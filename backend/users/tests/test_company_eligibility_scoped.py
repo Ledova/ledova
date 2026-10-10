@@ -1,6 +1,7 @@
 from contextlib import ExitStack
 
 from django.db import connections
+from rest_framework.test import APITransactionTestCase
 
 from shared.db import APP_ALIAS, OPERATOR_ALIAS, current_alias, principal_of
 from shared.tests.scoped import RunsOnTheScopedConnection
@@ -9,12 +10,12 @@ from users.models.company_eligibility import (
     CompanyEligibilityDecision,
     CompanyEligibilityRequest,
 )
-from users.tests import test_company_eligibility_categories as categories
-from users.tests import test_company_eligibility_guards as guards
 from users.tests import test_company_eligibility_requests as requests
 
 
-class ScopedCompanyEligibilityRequestTest(RunsOnTheScopedConnection, requests.CompanyEligibilityRequestTest):
+class ScopedCompanyEligibilityRequestTest(
+    RunsOnTheScopedConnection, requests.CompanyEligibilityRequestFixtures, APITransactionTestCase
+):
     def test_company_policy_reads_shared_records_without_joining_the_private_source(self):
         request, decision, _ = self.accepted_request()
         with self.app_as(self.approver):
@@ -48,11 +49,3 @@ class ScopedCompanyEligibilityRequestTest(RunsOnTheScopedConnection, requests.Co
         self.assertNotIn((APP_ALIAS, "INSERT"), recorded)
         self.assertEqual(current_alias(), APP_ALIAS)
         self.assertIn(principal_of(OPERATOR_ALIAS), (None, ""))
-
-
-class ScopedCompanyEligibilityCategoryTest(RunsOnTheScopedConnection, categories.CompanyEligibilityCategoryTest):
-    pass
-
-
-class ScopedCompanyEligibilityGuardTest(RunsOnTheScopedConnection, guards.CompanyEligibilityGuardTest):
-    pass

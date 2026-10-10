@@ -1,21 +1,19 @@
 from decimal import Decimal
 from uuid import uuid4
 
-from django.db import connections
 from django.test import override_settings
 from rest_framework.test import APITransactionTestCase
 
 from companies.models import Company
 from feature_flags.models import FeatureFlag
-from shared.db import APP_ALIAS, acting_for, use_migrate, use_operator
+from shared.db import use_migrate, use_operator
 from shared.tests.company_eligibility import accept_company_eligibility
-from shared.tests.scoped import RunsOnTheScopedConnection
 from shared.tests.settlement import (
     SYNTHETIC_SETTLEMENT_CONTRACT,
     save_swap_with_context,
 )
 from shared.tests.tenants import make_eligible, make_tenant
-from tokens.models import ShareToken, SwapOrder, TransferOrder
+from tokens.models import ShareToken, TransferOrder
 from tokens.tests.market_fixtures import record_synthetic_admission
 
 
@@ -193,20 +191,3 @@ class TradingRetentionTest(APITransactionTestCase):
         expected = {str(order.pk) for order in [self.buy, self.legacy_order, *additional]}
         self.assertEqual(len(rows), len(expected))
         self.assertEqual({row["uuid"] for row in rows}, expected)
-
-
-class ScopedTradingRetentionTest(RunsOnTheScopedConnection, TradingRetentionTest):
-    def test_class_disappears_under_the_non_bypass_buyer_role_while_records_remain(self):
-        self.admit_current_market()
-        with acting_for(self.buyer.user.pk):
-            with connections[APP_ALIAS].cursor() as cursor:
-                cursor.execute("SELECT current_user, rolbypassrls FROM pg_roles WHERE rolname = current_user")
-                self.assertEqual(cursor.fetchone(), ("ledova_app", False))
-            self.assertTrue(ShareToken.objects.filter(pk=self.token.pk).exists())
-        self.pause()
-        with acting_for(self.buyer.user.pk):
-            self.assertFalse(ShareToken.objects.filter(pk=self.token.pk).exists())
-            self.assertTrue(TransferOrder.objects.filter(pk=self.buy.pk).exists())
-            self.assertTrue(SwapOrder.objects.filter(pk=self.swap.pk).exists())
-        self.assertEqual(self.row()["tokenName"], self.original["tokenName"])
-        self.assertEqual(self.swaps()["results"][0]["uuid"], str(self.swap.pk))

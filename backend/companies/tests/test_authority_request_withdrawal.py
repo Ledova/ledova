@@ -40,7 +40,7 @@ from shared.db import (
 from shared.tests.upload_fixtures import StubUploadDependencies
 
 
-class CompanyAuthorityRequestWithdrawalTest(StubUploadDependencies, APITransactionTestCase):
+class CompanyAuthorityRequestWithdrawalFixtures(StubUploadDependencies):
     app_as = AuthorityRequestCases.app_as
 
     def setUp(self):
@@ -78,6 +78,8 @@ class CompanyAuthorityRequestWithdrawalTest(StubUploadDependencies, APITransacti
     def private_files(self):
         return sorted(path for path in self.root.rglob("*") if path.is_file())
 
+
+class CompanyAuthorityRequestWithdrawalTest(CompanyAuthorityRequestWithdrawalFixtures, APITransactionTestCase):
     def test_withdrawal_derives_state_and_keeps_original_terms_evidence_and_company_unchanged(self):
         pending = self.client.get(f"{URL}{self.proposal.pk}/").json()
         self.assertEqual((pending["status"], pending["withdrawnAt"]), ("pending", None))

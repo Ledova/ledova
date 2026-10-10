@@ -8,8 +8,6 @@ from unittest.mock import patch
 
 import django
 
-from shared.tests.synthetic_store import a_private_store_that_survives_a_kill
-
 
 def await_file(path, *, timeout=20):
     until = time.monotonic() + timeout
@@ -23,14 +21,9 @@ def run(directory, phase, index):
     os.environ["DJANGO_SETTINGS_MODULE"] = "ledova_backend.settings.test"
     from django.conf import settings
 
-    database = os.environ.get("OUTGOING_TEST_DATABASE")
-    if database:
-        settings.DATABASES = {"default": json.loads(database)}
-    else:
-        a_private_store_that_survives_a_kill(settings, directory / "outgoing.sqlite3")
+    settings.DATABASES = {"default": json.loads(os.environ["OUTGOING_TEST_DATABASE"])}
     django.setup()
 
-    from django.core.management import call_command
     from eth_account.signers.local import LocalAccount
     from web3 import Web3
 
@@ -47,15 +40,11 @@ def run(directory, phase, index):
         CHAIN_ID,
         KEY,
         SENDER,
-        admitted_signer,
         chain_client,
         claim_operation,
         receipt,
     )
 
-    if not database and phase != "recover":
-        call_command("migrate", run_syncdb=True, verbosity=0)
-        admitted_signer()
     if phase == "close_admission":
         from django.db import connection
 

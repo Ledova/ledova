@@ -11,11 +11,7 @@ from rest_framework.test import APITransactionTestCase
 
 from shared.api.exceptions import custom_exception_handler
 from shared.db import current_alias, set_principal, use_operator
-from shared.tests.scoped import (
-    SCOPED,
-    RunsOnTheScopedConnection,
-    aliases_this_deployment_has,
-)
+from shared.tests.scoped import SCOPED, aliases_this_deployment_has
 from tokens.exceptions import CapitalIncreaseConflict
 from tokens.models import (
     CapitalIncreaseExecution,
@@ -179,21 +175,3 @@ class CapitalIncreaseSubmissionConcurrencyTest(CompanyCapitalCases, APITransacti
         self.assertEqual(CapitalIncreaseRequest.objects.filter(token=self.token).in_flight().count(), 1)
         self.assertFalse(RegisterCapitalIncrease.objects.filter(pk=self.second["operation_id"]).exists())
         self.assertFalse(self.capital_node.broadcasts)
-
-
-class ScopedCapitalConsumerConcurrencyTest(RunsOnTheScopedConnection, CapitalIncreaseSubmissionConcurrencyTest):
-    def setUp(self):
-        with use_operator():
-            super().setUp()
-
-    def test_two_preparations_leave_one_original_with_the_normal_refusal(self):
-        with use_operator():
-            super().test_two_preparations_leave_one_original_with_the_normal_refusal()
-
-    def test_preparation_winning_refuses_failed_retry_before_any_signing(self):
-        with use_operator():
-            super().test_preparation_winning_refuses_failed_retry_before_any_signing()
-
-    def test_retry_admission_winning_refuses_preparation_before_chain_execution(self):
-        with use_operator():
-            super().test_retry_admission_winning_refuses_preparation_before_chain_execution()

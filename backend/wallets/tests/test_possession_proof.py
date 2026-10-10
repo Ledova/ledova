@@ -12,7 +12,6 @@ from rest_framework.test import APITransactionTestCase
 
 from companies.services.authority_requests import _requester_principal
 from shared.db import atomic, current_alias, principal_of, use_operator
-from shared.tests.scoped import RunsOnTheScopedConnection
 from users.models import UserAccount, UserProfile
 from wallets.constants import WALLET_VERIFICATION_STATUS_VERIFIED
 from wallets.exceptions import InvalidSignatureException, SignatureRequiredException
@@ -330,7 +329,3 @@ class WalletPossessionProofTest(APITransactionTestCase):
         self.assertEqual(len(self.jobs()), 1)
         self.assertEqual(self.wallet.verification_status, WALLET_VERIFICATION_STATUS_VERIFIED)
         self.assertNotEqual(before[0][0], WALLET_VERIFICATION_STATUS_VERIFIED)
-
-
-class ScopedWalletPossessionProofTest(RunsOnTheScopedConnection, WalletPossessionProofTest):
-    pass

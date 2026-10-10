@@ -10,7 +10,6 @@ from rest_framework.test import APITransactionTestCase
 from blockchain.models import BlockchainTransaction, SignedAttempt
 from blockchain.tests.outgoing_fixtures import admitted_signer
 from shared.db import use_operator
-from shared.tests.scoped import RunsOnTheScopedConnection
 from tokens.models import (
     SwapApprovalSubmission,
     SwapOrder,
@@ -150,13 +149,3 @@ class SwapRecoveryJourneyChecks(SubmissionFixtures):
 @override_settings(BLOCKCHAIN_OPERATOR_KEY=RELAYER_KEY)
 class SwapRecoveryJourneyTest(SwapRecoveryJourneyChecks, APITransactionTestCase):
     pass
-
-
-@override_settings(BLOCKCHAIN_OPERATOR_KEY=RELAYER_KEY)
-class ScopedSwapRecoveryJourneyTest(RunsOnTheScopedConnection, SwapRecoveryJourneyChecks, APITransactionTestCase):
-    def setUp(self):
-        super().setUp()
-        with use_operator():
-            user = self.tenant.account.user_profile.user
-        self.the_principal_the_middleware_would_set(user)
-        self.addCleanup(self.no_principal_is_set)

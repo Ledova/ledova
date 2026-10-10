@@ -29,7 +29,7 @@ def run(directory, phase, submission_id):
     from django.db import connection
     from web3 import Web3
 
-    from blockchain.models import OutgoingOperation, SignedAttempt
+    from blockchain.models import SignedAttempt
     from blockchain.services import outgoing
     from tokens.models import PauseChange
     from tokens.services import pause_changes, pause_recovery
@@ -55,8 +55,6 @@ def run(directory, phase, submission_id):
             stream.write(json.dumps(ledger))
             stream.flush()
             os.fsync(stream.fileno())
-        if phase == "accepted":
-            os.kill(os.getpid(), signal.SIGKILL)
         return tx_hash
 
     def observed(tx_hash):
@@ -74,7 +72,6 @@ def run(directory, phase, submission_id):
 
     original_open = outgoing.open_operation
     original_sign = outgoing.sign_operation
-    original_save = OutgoingOperation.save
     original_decide = pause_recovery._decide
     original_outcome = pause_recovery._record_outcome
     original_project = pause_changes.project
@@ -95,14 +92,6 @@ def run(directory, phase, submission_id):
             marker.replace(directory / "sign-ready")
             await_file(directory / "sign-go")
         result = original_sign(*args, **kwargs)
-        if phase == "signed":
-            os.kill(os.getpid(), signal.SIGKILL)
-        return result
-
-    def before_commit(row, *args, **kwargs):
-        result = original_save(row, *args, **kwargs)
-        if row.status == "signed":
-            os.kill(os.getpid(), signal.SIGKILL)
         return result
 
     def decided(*args, **kwargs):
@@ -142,8 +131,6 @@ def run(directory, phase, submission_id):
         stack.enter_context(patch.object(pause_recovery, "_decide", decided))
         stack.enter_context(patch.object(pause_recovery, "_record_outcome", outcome))
         stack.enter_context(patch.object(pause_changes, "project", projected))
-        if phase == "before_commit":
-            stack.enter_context(patch.object(OutgoingOperation, "save", before_commit))
         if phase == "race":
             (directory / f"ready-{os.getpid()}").touch()
             await_file(directory / "go")

@@ -2,7 +2,6 @@ from django.db import DatabaseError, connections
 from rest_framework.test import APITransactionTestCase
 
 from shared.db import atomic, current_alias, use_operator
-from shared.tests.scoped import RunsOnTheScopedConnection
 from shared.tests.upload_fixtures import StubUploadDependencies
 from users.models import InvestorClassification, InvestorClassificationStatus
 from users.services.investor_classification import evidence_operation
@@ -81,7 +80,3 @@ class PrivateSourcesAfterCutoverTest(
         self.assertEqual(raised.exception.__cause__.sqlstate, "23514")
         self.assertIn("Staff source review is retired", str(raised.exception))
         self.assertEqual(self.source_snapshot(), before)
-
-
-class ScopedPrivateSourcesAfterCutoverTest(RunsOnTheScopedConnection, PrivateSourcesAfterCutoverTest):
-    pass

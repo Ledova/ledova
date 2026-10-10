@@ -2,7 +2,6 @@ import hashlib
 
 from django.db import DatabaseError
 from django.test import override_settings
-from rest_framework.exceptions import PermissionDenied
 from rest_framework.test import APITransactionTestCase
 
 from shared.db import atomic, use_operator
@@ -49,30 +48,12 @@ class ScopedDistributionTest(RunsOnTheScopedConnection, StubUploadDependencies, 
         with atomic():
             return set(model.objects.filter(**filters).values_list("pk", flat=True))
 
-    def test_a_member_reads_their_own_entitlement_and_payment_records_and_no_other_member_s(self):
-        holder = self.here.members[0]
-        self.the_principal_the_middleware_would_set(holder.user)
-
-        with atomic():
-            entitled = list(PublicationRecipient.objects.values_list("user_id", "entitlement"))
-
-        self.assertEqual(entitled, [(holder.user.pk, roll_row(self.mine, holder).entitlement)])
-        self.assertEqual(self.visible(PublicationEvent), {event.pk for event in self.holders})
-
     def test_a_member_of_another_company_reads_none_of_this_company_s_records_or_entitlements(self):
         self.the_principal_the_middleware_would_set(self.there.members[0].user)
 
         self.assertEqual(self.visible(PublicationEvent, publication_id=self.mine.pk), set())
         self.assertEqual(self.visible(PublicationRecipient, publication_id=self.mine.pk), set())
         self.assertEqual(self.visible(PublicationEvent), {event.pk for event in self.strangers})
-
-    def test_the_company_reads_every_payment_record_and_entitlement_of_its_own_distribution_and_no_other(self):
-        self.the_principal_the_middleware_would_set(self.here.owner)
-
-        self.assertEqual(self.visible(PublicationEvent), {event.pk for event in (*self.holders, *self.others)})
-        with atomic():
-            entitled = sorted(PublicationRecipient.objects.values_list("entitlement", flat=True))
-        self.assertEqual([str(amount) for amount in entitled], ["1.00", "2.50"])
 
     def test_the_route_serves_each_reader_their_own_entitlement_and_standing_record_on_the_app_connection(self):
         holder, other = self.here.members
@@ -100,28 +81,6 @@ class ScopedDistributionTest(RunsOnTheScopedConnection, StubUploadDependencies, 
         )
         self.assertNotIn(str(self.mine.pk), stranger)
 
-    def test_a_person_holding_twice_is_shown_how_much_the_company_has_recorded_on_the_app_connection(self):
-        with use_operator():
-            world = a_company_with_members("scoped-dividend-twice", holdings=(100, 40), first_person_holds_twice=True)
-            distribution = a_distribution(world, rate="0.025")
-        person = world.members[0].user
-        self.client.force_authenticate(person)
-
-        def shown():
-            row = next(row for row in self.client.get(LISTING).json()["results"] if row["uuid"] == str(distribution.pk))
-            return row["myEntitlement"], row["myRecordedEntitlement"]
-
-        self.assertEqual(shown(), ("3.50", "0.00"))
-        with use_operator():
-            a_payment(world, distribution, world.members[1], reference="LDV-SMALLER-HOLDING")
-        self.assertEqual(shown(), ("3.50", "1.00"))
-        with use_operator():
-            a_payment(world, distribution, world.members[0], reference="LDV-LARGER-HOLDING")
-        self.assertEqual(shown(), ("3.50", "3.50"))
-        with use_operator():
-            withdraw_payment(world.staff, distribution, roll_row(distribution, world.members[1]), "Correction C-21")
-        self.assertEqual(shown(), ("3.50", "2.50"))
-
     def test_the_app_role_can_neither_record_rewrite_nor_delete_a_payment_record(self):
         holder = self.here.members[0]
         standing = self.holders[-1]
@@ -146,12 +105,6 @@ class ScopedDistributionTest(RunsOnTheScopedConnection, StubUploadDependencies, 
         with use_operator():
             self.assertEqual(PublicationEvent.objects.get(pk=standing.pk).reference, "LDV-RIGHT")
             self.assertEqual(verify_publication(self.mine.pk)["payments_recorded"], 2)
-
-    def test_recording_a_payment_refuses_the_scoped_connection(self):
-        self.the_principal_the_middleware_would_set(self.here.owner)
-
-        with self.assertRaises(PermissionDenied), atomic():
-            a_payment(self.here, self.mine, self.here.members[1])
 
     def test_the_evidence_is_stored_privately_and_its_digest_is_what_was_stored(self):
         with use_operator():

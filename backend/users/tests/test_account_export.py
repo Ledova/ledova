@@ -11,7 +11,6 @@ from assets.models import Asset
 from portfolios.models import Portfolio
 from shared.db import APP_ALIAS, configured, use_operator
 from shared.models import Country
-from shared.tests.scoped import RunsOnTheScopedConnection
 from users.models import FinancialProfile, UserAccount, UserPreferences, UserProfile
 from wallets.models import Transaction, Wallet
 from wallets.services.chain_observations import observe_wallet_chain
@@ -278,8 +277,4 @@ class AccountExportEvidenceChecks(ChainObservationFixture):
 
 
 class AccountExportEvidenceTest(AccountExportEvidenceChecks, APITransactionTestCase):
-    pass
-
-
-class ScopedAccountExportEvidenceTest(RunsOnTheScopedConnection, AccountExportEvidenceChecks, APITransactionTestCase):
     pass

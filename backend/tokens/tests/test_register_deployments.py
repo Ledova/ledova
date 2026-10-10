@@ -21,7 +21,6 @@ from companies.services.team import (
 )
 from shared.db import acting_for, atomic, current_alias, use_migrate, use_operator
 from shared.tests.row_contention import RealRowContention
-from shared.tests.scoped import RunsOnTheScopedConnection
 from shared.tests.tenants import make_tenant
 from shared.tests.upload_fixtures import StubUploadDependencies
 from tokens.exceptions import IssuanceExecutionConflict, RegisterChangeConflict
@@ -1023,7 +1022,3 @@ class RegisterDeploymentsTest(RealRowContention, AppointsTeam, StubUploadDepende
                     self.assertFalse(ShareRegister.objects.filter(token=self.token).exists())
                     self.assertFalse(RegisterEntry.objects.filter(operation_id=imported.pk).exists())
                     self.assertEqual(RegisterDeployment.objects.get(pk=proposal.pk).status, "applied")
-
-
-class ScopedRegisterDeploymentsTest(RunsOnTheScopedConnection, RegisterDeploymentsTest):
-    pass

@@ -68,8 +68,6 @@ def run(directory, phase, request_id, actor_id, confirmation):
             stream.write(json.dumps(current))
             stream.flush()
             os.fsync(stream.fileno())
-        if phase == "accepted":
-            os.kill(os.getpid(), signal.SIGKILL)
         return tx_hash
 
     def observed(tx_hash):
@@ -91,18 +89,6 @@ def run(directory, phase, request_id, actor_id, confirmation):
             await_file(directory / "mined")
         current = ledger()
         return 1100 if set(current.get("hashes", [])) - set(current.get("reverted", [])) else 1000
-
-    def signed(*args, **kwargs):
-        result = original_sign(*args, **kwargs)
-        if phase == "signed":
-            os.kill(os.getpid(), signal.SIGKILL)
-        return result
-
-    def before_commit(row, *args, **kwargs):
-        result = original_save(row, *args, **kwargs)
-        if row.status == "signed":
-            os.kill(os.getpid(), signal.SIGKILL)
-        return result
 
     def projected(command, claim, **kwargs):
         operation = OutgoingOperation.objects.get(pk=claim.operation_id)
@@ -134,8 +120,6 @@ def run(directory, phase, request_id, actor_id, confirmation):
 
     original_open = outgoing.open_operation
     original_check = capital_execution._check_preparation
-    original_sign = outgoing.sign_operation
-    original_save = OutgoingOperation.save
     original_project = capital_execution._project
     node.client.send_raw_transaction.side_effect = send
     node.client.get_transaction_receipt.side_effect = observed
@@ -146,12 +130,9 @@ def run(directory, phase, request_id, actor_id, confirmation):
             patch("tokens.services.register_capital_increases.get_base_chain_client", return_value=node.client)
         )
         stack.enter_context(patch("tokens.services.capital_execution._enqueue"))
-        stack.enter_context(patch.object(outgoing, "sign_operation", signed))
         stack.enter_context(patch.object(outgoing, "open_operation", opened))
         if phase == "attributed":
             stack.enter_context(patch.object(capital_execution, "_check_preparation", checked))
-        if phase == "before_commit":
-            stack.enter_context(patch.object(OutgoingOperation, "save", before_commit))
         if phase in ("before_revert_projection", "mined_before_projection"):
             stack.enter_context(patch.object(capital_execution, "_project", projected))
         if phase != "recover":

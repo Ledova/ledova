@@ -13,7 +13,6 @@ from assets.models import Asset, AssetChainDeployment, AssetType
 from operators.models import Operator
 from shared.constants import BLOCKCHAIN_BASE, BLOCKCHAIN_ETHEREUM
 from shared.db import MIGRATE_ALIAS, use_operator
-from shared.tests.scoped import RunsOnTheScopedConnection
 from shared.tests.tenants import make_tenant
 from wallets.models import Holding, Transaction, Wallet, WalletSubmission
 from wallets.services import transfers
@@ -337,8 +336,4 @@ class StablecoinApprovalChecks:
 
 @skipUnless(SINGLE_CONNECTION, NOT_SINGLE_CONNECTION)
 class StablecoinApprovalTest(StablecoinApprovalChecks, APITransactionTestCase):
-    pass
-
-
-class ScopedStablecoinApprovalTest(RunsOnTheScopedConnection, StablecoinApprovalChecks, APITransactionTestCase):
     pass

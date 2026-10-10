@@ -10,11 +10,10 @@ from uuid import uuid4
 
 from django.contrib import admin
 from django.contrib.auth import get_user_model
-from django.db import DatabaseError, IntegrityError, connections
+from django.db import IntegrityError, connections
 from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
-from rest_framework.test import APITransactionTestCase
 
 from companies.models import Company
 from offerings.models import (
@@ -23,8 +22,7 @@ from offerings.models import (
     Subscription,
     SubscriptionStatus,
 )
-from shared.db import atomic, current_alias, use_migrate, use_operator
-from shared.tests.scoped import RunsOnTheScopedConnection
+from shared.db import atomic, current_alias, use_migrate
 from shared.tests.test_admin_row_actions import ADMIN_STORAGES, grant, staff_user
 from tokens.models import (
     IssuanceStatus,
@@ -47,12 +45,7 @@ from tokens.services.register import (
     PERIOD_ENTRY_HEADERS,
 )
 from tokens.services.register_events import open_register, record_entry
-from tokens.tests.test_register_certificates import (
-    entered,
-    member_of,
-    unused_address,
-    wallet_of,
-)
+from tokens.tests.test_register_certificates import member_of, unused_address, wallet_of
 from tokens.tests.test_register_events import DAY, register_fixture
 from tokens.tests.test_register_export_audit import (
     CERTIFICATE,
@@ -459,39 +452,3 @@ class NoticeFiguresRecordTest(TestCase):
         self.assertTrue(RegisterExport.objects.filter(pk=figures.pk).exists())
         purge_register_exports(now=figures.created_at + timedelta(days=2558))
         self.assertFalse(RegisterExport.objects.filter(pk=figures.pk).exists())
-
-
-class ScopedNoticeFiguresTest(RunsOnTheScopedConnection, APITransactionTestCase):
-    def setUp(self):
-        with use_operator():
-            self.owner, self.company, self.token, _, _, self.opening = register_fixture()
-
-    def test_the_issuer_can_neither_read_nor_write_a_notice_figures_record(self):
-        with use_operator():
-            figures = noticed(self.token, self.owner)
-        self.the_principal_the_middleware_would_set(self.owner)
-        with self.assertRaisesRegex(DatabaseError, "permission denied for table tokens_registerexport"), atomic():
-            RegisterExport.objects.filter(pk=figures.pk).exists()
-        with self.assertRaisesRegex(DatabaseError, "permission denied for table tokens_registerexport"), atomic():
-            noticed(self.token, self.owner)
-        with use_operator():
-            self.assertEqual(list(RegisterExport.objects.filter(kind="notice_figures")), [figures])
-
-    @override_settings(STORAGES=ADMIN_STORAGES)
-    def test_the_register_outputs_page_records_its_notice_figures_on_the_operator_connection(self):
-        with use_operator():
-            member = member_of(self.company, wallet_of("Synthetic Scoped Member", "4 Synthetic Street"))
-            entered(self.opening.register, "issue", (member, 5))
-            staff = grant(staff_user("scoped-notice-figures"), admin.site._registry[RegisterOutput], "change")
-            self.client.force_login(staff)
-        response = self.client.post(
-            reverse("admin:tokens_registeroutput_notice_figures", args=[self.token.pk]),
-            {"period_from": DAY, "instruction": "SYNTHETIC-INSTRUCTION-12"},
-        )
-        self.assertEqual((response.status_code, response["Content-Type"]), (200, "text/csv"))
-        with use_operator():
-            record = RegisterExport.objects.get(kind="notice_figures")
-        self.assertEqual(
-            (record.requested_by_id, record.digest, record.register_sequence, record.member_rows, record.period_from),
-            (staff.pk, hashlib.sha256(response.content).hexdigest(), 2, 1, DAY),
-        )

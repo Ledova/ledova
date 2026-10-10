@@ -1,13 +1,16 @@
 from contextlib import ExitStack
 
 from django.db import connections
+from rest_framework.test import APITransactionTestCase
 
 from companies.tests import test_authority_admission as cases
 from shared.db import APP_ALIAS, OPERATOR_ALIAS, current_alias, principal_of
 from shared.tests.scoped import RunsOnTheScopedConnection
 
 
-class ScopedCompanyAuthorityAdmissionTest(RunsOnTheScopedConnection, cases.CompanyAuthorityAdmissionTest):
+class ScopedCompanyAuthorityAdmissionTest(
+    RunsOnTheScopedConnection, cases.CompanyAuthorityAdmissionFixtures, APITransactionTestCase
+):
     def test_admission_and_revocation_use_bounded_operator_writes_and_app_reads(self):
         observed = []
 

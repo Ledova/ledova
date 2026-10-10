@@ -34,10 +34,6 @@ PUBLICATION_BYTES = pdf_bytes()
 INSTRUCTION = "SYNTHETIC-PUBLICATION-INSTRUCTION-1"
 TITLE = "Annual holding statement 2026"
 QUESTION = "That the company adopt the synthetic constitution tabled with this notice."
-REHASH = (
-    "UPDATE shareholders_publicationevent "
-    "SET entry_hash = shareholders_publication_event_hash(shareholders_publicationevent) WHERE uuid = %s"
-)
 
 
 def an_upload(name="statement.pdf", payload=PUBLICATION_BYTES):

@@ -29,7 +29,7 @@ def run(directory, phase, deployment_id, actor_id=None, confirmation=None):
     from django.contrib.auth import get_user_model
     from web3 import Web3
 
-    from blockchain.models import OutgoingOperation, SignedAttempt
+    from blockchain.models import SignedAttempt
     from blockchain.services import outgoing
     from tokens.models import ShareToken, TokenDeployment
     from tokens.services import swap_approval
@@ -54,8 +54,6 @@ def run(directory, phase, deployment_id, actor_id=None, confirmation=None):
             stream.write(json.dumps(ledger))
             stream.flush()
             os.fsync(stream.fileno())
-        if phase == "accepted":
-            os.kill(os.getpid(), signal.SIGKILL)
         return tx_hash
 
     def observed(tx_hash):
@@ -71,26 +69,12 @@ def run(directory, phase, deployment_id, actor_id=None, confirmation=None):
         return None
 
     original_open = outgoing.open_operation
-    original_sign = outgoing.sign_operation
-    original_save = OutgoingOperation.save
     original_decide = swap_approval._decide
     original_outcome = swap_approval._record_outcome
 
     def opened(*args, **kwargs):
         result = original_open(*args, **kwargs)
         if phase == "opened":
-            os.kill(os.getpid(), signal.SIGKILL)
-        return result
-
-    def signed(*args, **kwargs):
-        result = original_sign(*args, **kwargs)
-        if phase == "signed":
-            os.kill(os.getpid(), signal.SIGKILL)
-        return result
-
-    def before_commit(row, *args, **kwargs):
-        result = original_save(row, *args, **kwargs)
-        if row.status == "signed":
             os.kill(os.getpid(), signal.SIGKILL)
         return result
 
@@ -118,11 +102,8 @@ def run(directory, phase, deployment_id, actor_id=None, confirmation=None):
     with ExitStack() as stack:
         stack.enter_context(patch.object(swap_approval, "get_base_chain_client", return_value=node.client))
         stack.enter_context(patch.object(outgoing, "open_operation", opened))
-        stack.enter_context(patch.object(outgoing, "sign_operation", signed))
         stack.enter_context(patch.object(swap_approval, "_decide", decided))
         stack.enter_context(patch.object(swap_approval, "_record_outcome", outcome))
-        if phase == "before_commit":
-            stack.enter_context(patch.object(OutgoingOperation, "save", before_commit))
         if phase in ("race", "retry_race"):
             (directory / f"ready-{os.getpid()}").touch()
             await_file(directory / "go")

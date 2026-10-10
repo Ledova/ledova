@@ -1,11 +1,15 @@
 import os
 import subprocess
 import sys
+import unittest
 from pathlib import Path
+from unittest.mock import patch
 
+from django.core.management.base import CommandError
 from django.test import SimpleTestCase
+from django.test.runner import DiscoverRunner
 
-from shared.test_runner import NamedRemoteTestResult
+from shared.test_runner import LedovaTestRunner, NamedRemoteTestResult
 from shared.tests.parallel_reporting_worker import UnserializableValue
 
 
@@ -23,6 +27,11 @@ class ParallelFailureReportingTest(SimpleTestCase):
         self.assertEqual(event[:2], ("addError", 0))
         self.assertIn(self.id(), str(event[2][1]))
         self.assertIn("Synthetic assertion before whole-event serialization", str(event[2][1]))
+
+    def test_empty_discovery_cannot_report_a_passing_backend_suite(self):
+        with patch.object(DiscoverRunner, "build_suite", return_value=unittest.TestSuite()):
+            with self.assertRaisesRegex(CommandError, "No backend tests were discovered"):
+                LedovaTestRunner(verbosity=0).build_suite()
 
     def test_an_unserializable_event_names_its_test_and_keeps_a_failed_verdict(self):
         for settings in (

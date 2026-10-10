@@ -13,7 +13,6 @@ from blockchain.models import OutgoingOperation, SignedAttempt, SigningAccount
 from companies.services.team import revoke_company_appointment
 from shared.db import atomic, current_alias, use_migrate, use_operator
 from shared.tests.row_contention import RealRowContention
-from shared.tests.scoped import RunsOnTheScopedConnection
 from tokens.exceptions import PauseChangeConflict, RegisterChangeConflict
 from tokens.models import PauseChange, RegisterPauseChange, ShareIssuance, ShareRegister
 from tokens.services import pause_changes
@@ -402,7 +401,3 @@ class RegisterPauseChangesTest(RealRowContention, CompanyPauseCases, APITransact
                     "SELECT count(*) FROM procrastinate_jobs WHERE args->>'submission_id'=%s", [str(proposal.pk)]
                 )
                 self.assertEqual(cursor.fetchone()[0], 1)
-
-
-class ScopedRegisterPauseChangesTest(RunsOnTheScopedConnection, RegisterPauseChangesTest):
-    pass

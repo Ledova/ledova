@@ -12,7 +12,6 @@ from rest_framework.exceptions import NotFound
 from shared.db import atomic, current_alias, use_migrate, use_operator
 from shared.tests.company_eligibility import accept_company_eligibility
 from shared.tests.row_contention import RealRowContention
-from shared.tests.scoped import RunsOnTheScopedConnection
 from tokens.models import SwapOrder
 from tokens.tests.swap_state_fixtures import (
     CONTRACT,
@@ -175,7 +174,3 @@ class SwapAuthorityLockOrderTest(RealRowContention, TransactionTestCase):
         finally:
             release_account.set()
             inspection.close()
-
-
-class ScopedSwapAuthorityLockOrderTest(RunsOnTheScopedConnection, SwapAuthorityLockOrderTest):
-    pass

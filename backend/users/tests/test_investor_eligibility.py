@@ -3,7 +3,6 @@ from django.test import TestCase
 from companies.services.authority_requests import _requester_principal
 from operators.models import Operator
 from shared.db import use_operator
-from shared.tests.scoped import RunsOnTheScopedConnection
 from users.constants import (
     ACCOUNT_STATUS_ACTIVE,
     ACCOUNT_STATUS_PENDING,
@@ -63,7 +62,3 @@ class AccountStandingMatrixTest(TestCase):
         self.assertFalse(refused.is_ready)
         self.assertEqual(refused.reasons, (IDENTITY_NOT_VERIFIED,))
         self.assertTrue(allowed.is_ready, allowed.reasons)
-
-
-class ScopedAccountStandingMatrixTest(RunsOnTheScopedConnection, AccountStandingMatrixTest):
-    pass

@@ -7,11 +7,9 @@ from django.contrib.auth import get_user_model
 from django.test import SimpleTestCase, TestCase, TransactionTestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
-from rest_framework.test import APITransactionTestCase
 
 from blockchain.tests.outgoing_fixtures import admitted_signer
-from shared.db import acting_for, use_migrate, use_operator
-from shared.tests.scoped import RunsOnTheScopedConnection
+from shared.db import acting_for
 from shared.tests.test_admin_row_actions import (
     ADMIN_STORAGES,
     PASSWORD,
@@ -307,46 +305,3 @@ class SettlementTransactionPageTest(TransactionTestCase):
             for target in (order, wallet, account):
                 self.assertContains(response, change(target))
         self.assertNotEqual(self.fixture.seller.account, self.fixture.buyer.account)
-
-
-@override_settings(STORAGES=ADMIN_STORAGES)
-class ScopedMarketAdminTest(RunsOnTheScopedConnection, APITransactionTestCase):
-
-    def setUp(self):
-        with use_operator():
-            with use_migrate():
-                self.first = make_market_tenant("scoped-market-one")
-                self.second = make_market_tenant("scoped-market-two")
-                for tenant in (self.first, self.second):
-                    self.assertEqual(
-                        list(
-                            TransferOrder.objects.filter(pk__in=[tenant.order.pk, tenant.counter_order.pk]).values_list(
-                                "eligibility_decision_id", flat=True
-                            )
-                        ),
-                        [None, None],
-                    )
-                    self.assertEqual(
-                        SwapOrder.objects.filter(pk=tenant.swap.pk)
-                        .values_list("seller_eligibility_decision_id", "buyer_eligibility_decision_id")
-                        .get(),
-                        (None, None),
-                    )
-            viewer = staff_user("scoped-market-viewer")
-            for model in MARKET:
-                viewer = grant(viewer, admin.site._registry[model], "view")
-            self.client.force_login(viewer)
-
-    def orders_of(self, tenant):
-        return {tenant.order.pk, tenant.counter_order.pk}
-
-    def test_staff_see_every_traders_orders_and_settlements_on_the_operator_connection(self):
-        orders = self.client.get(changelist(TransferOrder))
-        settlements = self.client.get(changelist(SwapOrder))
-        foreign = self.client.get(change(self.second.order))
-
-        self.assertEqual(rows_of(orders), self.orders_of(self.first) | self.orders_of(self.second))
-        self.assertEqual(rows_of(settlements), {self.first.swap.pk, self.second.swap.pk})
-        self.assertEqual(foreign.status_code, 200)
-        self.the_principal_the_middleware_would_set(self.first.user)
-        self.assertEqual(set(TransferOrder.objects.values_list("pk", flat=True)), self.orders_of(self.first))

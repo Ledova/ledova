@@ -10,13 +10,11 @@ from django.contrib.auth.models import Permission
 from django.core.files.base import ContentFile
 from django.db.models.expressions import RawSQL
 from django.test import TestCase, override_settings
-from rest_framework.test import APITransactionTestCase
 
 from companies.models import CompanyDocument
 from companies.services.document_review import prepare_document_review, verify_document
-from shared.db import use_migrate, use_operator
+from shared.db import use_migrate
 from shared.storage import private_storage
-from shared.tests.scoped import RunsOnTheScopedConnection
 from shared.tests.upload_fixtures import StubUploadDependencies, pdf_bytes
 from shareholders.constants import READ_AS_COMPANY, READ_AS_MEMBER, READ_AS_STAFF
 from shareholders.models import (
@@ -55,14 +53,11 @@ from tokens.models import RegisterExport
 from tokens.services.register_events import open_register
 from tokens.tests.test_company_pack import (
     ADMIN_STORAGES,
-    INSTRUCTION,
     ISOLATED,
-    RECIPIENT,
     ProducesPacks,
     consume,
     files_of,
     pack_staff,
-    page,
     remanifested,
     sha256,
     zipped,
@@ -932,30 +927,3 @@ class CompanyPackPublicationsTest(ProducesPacks, StubUploadDependencies, TestCas
                     [raw for raw in stored_bytes(ours) if any(raw in file for file in packs[theirs.label].values())],
                     [],
                 )
-
-
-class ScopedCompanyPackPublicationsTest(RunsOnTheScopedConnection, StubUploadDependencies, APITransactionTestCase):
-    @override_settings(STORAGES=ADMIN_STORAGES)
-    def test_the_pack_page_reads_ballots_payment_records_and_reads_on_the_operator_connection(self):
-        with use_operator():
-            world = publishing_company("scoped-pub", 862_000_100, 800)
-            scene = participation(world)
-            staff = pack_staff("scoped-publications-pack")
-            self.client.force_login(staff)
-
-        response = self.client.post(page(world.company), {"instruction": INSTRUCTION, "recipient": RECIPIENT})
-
-        self.assertEqual((response.status_code, response["Content-Type"]), (200, "application/zip"))
-        files = files_of(b"".join(response.streaming_content))
-        with use_operator():
-            votes = [expected_event(event) for event in events_of(scene.resolution)]
-            payments = [expected_event(event) for event in events_of(scene.distribution)]
-            record = RegisterExport.objects.get(kind="company_pack")
-        self.assertEqual(json.loads(files[f"{folder(scene.resolution)}/events.json"]), votes)
-        self.assertEqual([event["withheld"] for event in votes], [True, True, True, False])
-        self.assertEqual(json.loads(files[f"{folder(scene.distribution)}/events.json"]), payments)
-        self.assertEqual(
-            json.loads(files[f"{folder(scene.resolution)}/publication.json"])["reads"],
-            reads(member=3, company=1, opened=2),
-        )
-        self.assertEqual((record.digest, record.requested_by_id), (sha256(files["manifest.json"]), staff.pk))

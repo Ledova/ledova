@@ -117,7 +117,7 @@ def decide(owner, appointment, proposal, kind, **changes):
     )
 
 
-class RegisterTransfersTest(AppointsTeam, TransactionTestCase):
+class RegisterTransferFixtures(AppointsTeam):
     def setUp(self):
         with use_operator():
             self.owner, self.company, self.token, self.member, self.appointment, self.payload = transfer_fixture()
@@ -158,6 +158,8 @@ class RegisterTransfersTest(AppointsTeam, TransactionTestCase):
             )
         return proposal.applied_entry
 
+
+class RegisterTransfersTest(RegisterTransferFixtures, TransactionTestCase):
     def test_new_recipient_partial_transfer_has_real_roll_certificate_and_lodgement_deadline(self):
         proposal = self.prepare()
         self.assertEqual(preview(self.owner, self.appointment, proposal, "approve")["unmet_requirements"], [])
@@ -710,7 +712,7 @@ class RegisterTransfersTest(AppointsTeam, TransactionTestCase):
             self.assertEqual(RegisterMemberCessation.objects.filter(entry__operation_id=proposal.pk).count(), 1)
 
 
-class ScopedRegisterTransfersTest(RunsOnTheScopedConnection, RegisterTransfersTest):
+class ScopedRegisterTransfersTest(RunsOnTheScopedConnection, RegisterTransferFixtures, TransactionTestCase):
     def test_app_reads_only_own_transfers_and_cannot_write_effect_or_decisions(self):
         proposal = self.prepare()
         self.the_principal_the_middleware_would_set(self.owner)

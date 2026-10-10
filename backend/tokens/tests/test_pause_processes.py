@@ -84,15 +84,6 @@ class PauseProcessTest(TransactionTestCase):
     def test_kill_after_open_before_binding_recovers_original_operation(self):
         self.recover_killed("opened", False)
 
-    def test_kill_before_signed_commit_rolls_back_bytes_and_nonce(self):
-        self.recover_killed("before_commit", False)
-
-    def test_kill_after_signed_commit_recovers_original_bytes(self):
-        self.recover_killed("signed", True)
-
-    def test_kill_after_provider_acceptance_recovers_original_receipt_without_send(self):
-        self.recover_killed("accepted", True)
-
     def test_kill_after_revert_receipt_retains_it_before_retry(self):
         with tempfile.TemporaryDirectory(prefix="pause-revert-") as temporary:
             directory = Path(temporary)

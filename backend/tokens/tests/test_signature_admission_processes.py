@@ -14,7 +14,6 @@ from blockchain.models import BlockchainTransaction, OutgoingOperation, SignedAt
 from blockchain.tests.outgoing_fixtures import KEY
 from shared.db import current_alias, use_operator
 from shared.tests.row_contention import RealRowContention
-from shared.tests.scoped import RunsOnTheScopedConnection
 from tokens.models import RegisterEvidenceKind, ShareToken, SwapOrder, TransferOrder
 from tokens.services.register_pause_changes import (
     decide_pause_change,
@@ -45,7 +44,10 @@ class SignatureAdmissionProcessesTest(RealRowContention, SubmissionFixtures, API
     def stage(self, child, expected):
         event = child.read()
         self.assertEqual(event.get("stage"), expected, (event, child.error_output()))
-        self.assertIn(event["role"], ("ledova_app", "ledova_operator"))
+        self.assertIn(
+            event["role"],
+            (settings.RLS_ROLES["app"], settings.RLS_ROLES["operator"]),
+        )
         self.assertEqual(event["private_media_root"], str(settings.PRIVATE_MEDIA_ROOT))
         with connections["default"].cursor() as cursor:
             cursor.execute("SELECT pg_backend_pid()")
@@ -84,7 +86,7 @@ class SignatureAdmissionProcessesTest(RealRowContention, SubmissionFixtures, API
         )
         verified = self.stage(child, "verified")
         self.assertTrue(verified["valid"])
-        self.assertEqual(verified["role"], "ledova_app")
+        self.assertEqual(verified["role"], settings.RLS_ROLES["app"])
         self.assertEqual(verified["principal"], str(getattr(self.fixture, role).user.pk))
         return child
 
@@ -217,7 +219,7 @@ class SignatureAdmissionProcessesTest(RealRowContention, SubmissionFixtures, API
         creation = OrderChild(self, "order_submission_worker", "matching", self.directory, body=body)
         holding = creation.read()
         self.assertEqual(holding["stage"], "matching", holding)
-        self.assertEqual(holding["database_user"], "ledova_operator")
+        self.assertEqual(holding["database_user"], settings.RLS_ROLES["operator"])
         signer = self.signer()
         signer.release()
         locking = self.stage(signer, "locking")
@@ -262,7 +264,3 @@ class SignatureAdmissionProcessesTest(RealRowContention, SubmissionFixtures, API
         with use_operator():
             self.assertEqual(ShareToken.objects.get(pk=self.swap.share_token_id).status, "deployed")
         self.assertEqual(self.state()[0]["seller_signature"], self.fixture.signatures["seller"])
-
-
-class ScopedSignatureAdmissionProcessesTest(RunsOnTheScopedConnection, SignatureAdmissionProcessesTest):
-    pass

@@ -17,21 +17,20 @@ fails, and an entry naming no script fails.
 
 | Script                        | Rule                                                         | `make check` | CI job                 |
 | ----------------------------- | ------------------------------------------------------------ | ------------ | ---------------------- |
-| `check-comments.py`           | [The comment gate](#the-comment-gate)                        | yes          | source gates           |
-| `check-type-check.py`         | [The type-check gate](#the-type-check-gate)                  | yes          | source gates           |
-| `check-layers.py`             | [The layer gate](#the-layer-gate)                            | yes          | source gates           |
-| `check-connection-binding.py` | [The connection-binding gate](#the-connection-binding-gate)  | yes          | source gates           |
-| `check-schema-responses.py`   | [The schema response gate](#the-schema-response-gate)        | yes          | source gates           |
-| `check-test-shadowing.py`     | [The test shadowing gate](#the-test-shadowing-gate)          | yes          | source gates           |
-| `check-error-bodies.py`       | [The error body gate](#the-error-body-gate)                  | yes          | source gates           |
-| `check-logging.py`            | [The logging privacy gate](#the-logging-privacy-gate)        | yes          | source gates           |
-| `check-docs.py`               | [The documentation gate](#the-documentation-gate)            | yes          | source gates           |
+| `check-comments.py`           | [The comment gate](#the-comment-gate)                        | yes          | Source and client checks |
+| `check-type-check.py`         | [The type-check gate](#the-type-check-gate)                  | yes          | Source and client checks |
+| `check-layers.py`             | [The layer gate](#the-layer-gate)                            | yes          | Source and client checks |
+| `check-connection-binding.py` | [The connection-binding gate](#the-connection-binding-gate)  | yes          | Source and client checks |
+| `check-schema-responses.py`   | [The schema response gate](#the-schema-response-gate)        | yes          | Source and client checks |
+| `check-test-shadowing.py`     | [The test shadowing gate](#the-test-shadowing-gate)          | yes          | Source and client checks |
+| `check-error-bodies.py`       | [The error body gate](#the-error-body-gate)                  | yes          | Source and client checks |
+| `check-logging.py`            | [The logging privacy gate](#the-logging-privacy-gate)        | yes          | Source and client checks |
+| `check-docs.py`               | [The documentation gate](#the-documentation-gate)            | yes          | Source and client checks |
 | `check-pr-metadata.py`        | [The PR metadata gate](#the-pr-metadata-gate)                | no           | PR metadata            |
-| `check-api-schema.py`         | [The API type drift gate](#the-api-type-drift-gate)          | no           | Django                 |
-| `check-ordinary-shards.py`    | [The ordinary shard gate](#the-ordinary-shard-gate)          | yes          | Django ordinary shards |
-| `check-api-types.mjs`         | [The API type drift gate](#the-api-type-drift-gate)          | yes          | JavaScript             |
-| `check-client-operations.mjs` | [The API type drift gate](#the-api-type-drift-gate)          | no           | JavaScript             |
-| `check-self-imports.mjs`      | [Clients and the shared package](../architecture/clients.md) | yes          | JavaScript             |
+| `check-api-schema.py`         | [The API type drift gate](#the-api-type-drift-gate)          | no           | Backend verification |
+| `check-api-types.mjs`         | [The API type drift gate](#the-api-type-drift-gate)          | yes          | Source and client checks |
+| `check-client-operations.mjs` | [The API type drift gate](#the-api-type-drift-gate)          | no           | Source and client checks |
+| `check-self-imports.mjs`      | [Clients and the shared package](../architecture/clients.md) | yes          | Source and client checks |
 
 `check-port-free.py` is in `scripts/` and is not on this table: it refuses to
 start the chain test when its port is taken, which is Makefile plumbing rather
@@ -83,6 +82,16 @@ data. The check needs GitHub access and is not part of `make check`; locally,
 run `python scripts/check-pr-metadata.py --repository OWNER/REPO --pr NUMBER`
 with an authenticated `gh` 2.72.0 or later. It verifies traceability, not
 whether the issue is a sensible match; review owns that.
+
+For local wording checks, use
+`python scripts/check-pr-metadata.py --title-file TITLE --body-file BODY --base BASE`.
+This mode reads the complete ancestor-to-HEAD commit range and detects closing
+phrases in the whole draft body, including negated phrases. It refuses incomplete,
+shallow or divergent history. It verifies wording and the local range; issue
+existence, GitHub closing references and the complete PR commit count remain the
+online gate's responsibility. The online and local modes are mutually exclusive.
+[Preflight](testing.md#preflight) uses this local mode when intended PR title and
+body files are supplied.
 
 ## The comment gate
 
@@ -212,43 +221,19 @@ Markdown syntax or behavioural claims. New nested guides must remain
 discoverable from a parent; [documentation review](testing.md#documents-against-code)
 checks navigation and statements against source.
 
-## The ordinary shard gate
+## Backend test discovery
 
-CI splits the ordinary suite across parallel jobs, one per shard named in
-[`.github/ordinary-suite-shards.json`](../../.github/ordinary-suite-shards.json).
-Each shard lists test name patterns, and its job passes each to `manage.py test`
-after `-k`, so it runs the tests whose ids match one of them. A test id is the
-module that defines its class, the class and the method, so `wallets.*` selects
-every test a module under `backend/wallets/` defines; a new app, or a module
-named outside its app's patterns, fails until a pattern covers it. Balance
-shards by moving patterns between them or splitting one into narrower ones. The
-gate counts test identities, not durations: `--run SHARD` runs a shard as its
-CI job does and emits the runner's method durations and setup timings, which
-exclude class/module fixtures and Django pre/post hooks.
+The backend group uses normal Django discovery when running each suite. The
+[runner](../../backend/shared/test_runner.py) refuses an empty suite; Django
+reports import failures as failed tests and removes duplicate test instances.
+The [shadowing gate](#the-test-shadowing-gate) checks assertion/fixture helpers that would shadow reserved TestCase
+methods. There is no separate discovery run, saved inventory or shard
+balancing configuration.
 
-`scripts/check-ordinary-shards.py` runs once in the first matrix job before its
-suite; a failure fails that job and the Django verdict. It discovers the suite
-with no patterns and with each shard's patterns, re-running itself with
-`--discover` in a fresh interpreter for each, because a `load_tests` that keeps
-state can find different tests the second time a module is loaded and each CI
-shard starts from nothing. It refuses a shard without patterns, a pattern that
-selects no test, a test id the unlabelled suite finds more than once (as when a
-factory builds two classes with one name), a module whose test ids the shards
-find fewer or more times than the unlabelled suite, a test id only a shard
-finds, a module that fails to import, which is discovered as one `_FailedTest`
-in every discovery and would otherwise look covered, and a `backend-suite-shard`
-matrix that is anything but the file's shard names. Django matches a pattern
-against the whole id, so a class one module imports from another is selected by
-the defining module's pattern, and a pattern without `*` matches anywhere in an
-id; the checker widens such a pattern the same way when it refuses one that
-selects no test. `-k` selects by name, so a test unittest builds without reading
-names (a module that raises `SkipTest` as it is imported, a class whose only
-test is `runTest`, an instance a `load_tests` adds) is found by every shard and
-refused as duplicated: skip a class rather than a module. The gate needs the backend
-requirements and a `SECRET_KEY` but no database; `make check` runs it from
-`backend/` with a generated key, and
-[its tests](../../scripts/tests/test_check_ordinary_shards.py) plant each
-finding against a stand-in for Django's runner.
+The strict scoped runner also requires its declared connection-boundary classes
+and refuses skipped cases. Its compact inventory tests the actual app/operator
+credentials, tenant isolation and immutable records without inheriting entire
+ordinary suites.
 
 ## The API type drift gate
 

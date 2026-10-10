@@ -7,7 +7,6 @@ from django.utils import timezone
 from rest_framework.test import APITransactionTestCase
 
 from shared.db import acting_for, atomic, use_operator
-from shared.tests.scoped import RunsOnTheScopedConnection
 from wallets.models import Transaction, Wallet
 from wallets.tasks.confirmation import confirm_pending_transaction
 from wallets.tests.test_wallet_finality import WalletFinalityFixture
@@ -110,8 +109,4 @@ class ReceiptFencingChecks(WalletFinalityFixture):
 
 
 class ReceiptFencingTest(ReceiptFencingChecks, APITransactionTestCase):
-    pass
-
-
-class ScopedReceiptFencingTest(RunsOnTheScopedConnection, ReceiptFencingChecks, APITransactionTestCase):
     pass

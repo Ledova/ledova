@@ -1,8 +1,12 @@
+from rest_framework.test import APITransactionTestCase
+
 from companies.tests import test_team_invitations as cases
 from shared.tests.scoped import RunsOnTheScopedConnection
 
 
-class ScopedCompanyTeamInvitationTest(RunsOnTheScopedConnection, cases.CompanyTeamInvitationTest):
+class ScopedCompanyTeamInvitationTest(
+    RunsOnTheScopedConnection, cases.CompanyTeamInvitationFixtures, APITransactionTestCase
+):
     def test_app_read_policy_hides_other_invitations_and_appointments_and_denies_writes(self):
         from django.db import DatabaseError
 

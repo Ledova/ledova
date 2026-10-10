@@ -23,7 +23,6 @@ from companies.tests.test_document_file_access import DOCUMENT_BYTES
 from operators.models import Operator
 from shared.db import MIGRATE_ALIAS, atomic, current_alias, use_migrate, use_operator
 from shared.storage import private_storage
-from shared.tests.scoped import RunsOnTheScopedConnection
 from shared.tests.upload_fixtures import StubUploadDependencies, pdf_bytes
 from tokens.exceptions import RegisterChangeConflict
 from tokens.models import (
@@ -902,11 +901,3 @@ class RegisterOpeningDecisionGuardTest(OpeningAuthorityFixture, APITransactionTe
             "exact current company authority",
             lambda: forge_decision(self.proposal, "approve", self.owner, self.administrator),
         )
-
-
-class ScopedRegisterOpeningAuthorityTest(RunsOnTheScopedConnection, RegisterOpeningAuthorityTest):
-    pass
-
-
-class ScopedRegisterOpeningDecisionGuardTest(RunsOnTheScopedConnection, RegisterOpeningDecisionGuardTest):
-    pass

@@ -3,7 +3,7 @@ from decimal import Decimal
 
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
-from rest_framework.test import APITestCase, APITransactionTestCase
+from rest_framework.test import APITestCase
 
 from assets.models import AssetChainDeployment
 from offerings.models import (
@@ -28,7 +28,6 @@ from offerings.tests.factories import (
     subscription_technical_actor,
 )
 from shared.db import acting_for, use_operator
-from shared.tests.scoped import RunsOnTheScopedConnection
 from shared.tests.tenants import make_tenant
 from users.models import InvestorClassification
 
@@ -294,17 +293,3 @@ def assert_issuer_application_reads(case):
     case.assertEqual(received.status_code, 200, received.content)
     case.assertEqual([row["uuid"] for row in listed.json()["results"]], [str(mine.uuid)])
     case.assertIn(str(theirs.uuid), [row["uuid"] for row in received.json()["results"]])
-
-
-class ScopedSubscriptionIssuerReadTest(RunsOnTheScopedConnection, APITransactionTestCase):
-    def setUp(self):
-        super().setUp()
-        with use_operator():
-            self.tenant = make_tenant("scoped-api-issuer")
-            configure_operator()
-            self.offering = open_offering(self.tenant)
-            eligible_subscriber(self.tenant)
-        self.client.force_authenticate(self.tenant.user)
-
-    def test_an_issuer_lists_its_own_applications_and_not_those_made_to_its_offering(self):
-        assert_issuer_application_reads(self)

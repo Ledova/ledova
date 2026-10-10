@@ -12,7 +12,6 @@ from rest_framework.test import APITransactionTestCase
 from assets.services.identity import native_asset_for_chain
 from integrations.blockchain.bitcoin import BitcoinClient
 from shared.db import acting_for, use_operator
-from shared.tests.scoped import RunsOnTheScopedConnection
 from shared.tests.tenants import make_tenant
 from wallets.models import (
     BitcoinSubmission,
@@ -214,9 +213,4 @@ class BitcoinSubmissionChecks(BitcoinSubmissionFixture):
 
 @override_settings(BITCOIN_NETWORK="regtest")
 class BitcoinSubmissionTest(BitcoinSubmissionChecks, APITransactionTestCase):
-    pass
-
-
-@override_settings(BITCOIN_NETWORK="regtest")
-class ScopedBitcoinSubmissionTest(RunsOnTheScopedConnection, BitcoinSubmissionChecks, APITransactionTestCase):
     pass

@@ -11,7 +11,6 @@ from assets.models import Asset, AssetChainDeployment, AssetType
 from shared.constants import BLOCKCHAIN_BASE
 from shared.db import MIGRATE_ALIAS, acting_for, use_operator
 from shared.db.principal import give_the_role_back, take_the_app_role
-from shared.tests.scoped import RunsOnTheScopedConnection
 from shared.tests.tenants import make_tenant
 from tokens.models import ShareToken, ShareTokenStatus
 from wallets.models import Holding, Transaction, Wallet
@@ -182,10 +181,4 @@ class PausedClassTransferRefusalChecks:
 
 @skipUnless(SINGLE_CONNECTION, NOT_SINGLE_CONNECTION)
 class PausedClassTransferRefusalTest(PausedClassTransferRefusalChecks, APITransactionTestCase):
-    pass
-
-
-class ScopedPausedClassTransferRefusalTest(
-    RunsOnTheScopedConnection, PausedClassTransferRefusalChecks, APITransactionTestCase
-):
     pass

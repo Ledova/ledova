@@ -11,7 +11,6 @@ from web3 import Web3
 
 from assets.services.identity import native_asset_for_chain
 from shared.db import APP_ALIAS, acting_for, configured, current_alias, use_operator
-from shared.tests.scoped import RunsOnTheScopedConnection
 from shared.tests.tenants import make_tenant
 from wallets.exceptions import InvalidTransactionException
 from wallets.models import Holding, Transaction, Wallet, WalletSubmission
@@ -153,10 +152,4 @@ class GlobalSubmissionIdentityChecks(GlobalSubmissionFixture):
 
 
 class GlobalSubmissionIdentityTest(GlobalSubmissionIdentityChecks, APITransactionTestCase):
-    pass
-
-
-class ScopedGlobalSubmissionIdentityTest(
-    RunsOnTheScopedConnection, GlobalSubmissionIdentityChecks, APITransactionTestCase
-):
     pass

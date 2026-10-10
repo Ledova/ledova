@@ -16,9 +16,8 @@ from rest_framework.test import APITransactionTestCase
 from assets.models import AssetChainDeployment
 from companies.models import Company
 from operators.settlement import require_deployment
-from shared.db import acting_for, atomic, current_alias, use_migrate, use_operator
+from shared.db import atomic, current_alias, use_migrate, use_operator
 from shared.tests.company_eligibility import accept_company_eligibility
-from shared.tests.scoped import RunsOnTheScopedConnection
 from shared.tests.tenants import make_tenant
 from shared.utils.typed_data import signable_message, typed_data_digest
 from tokens.exceptions import (
@@ -39,12 +38,7 @@ from tokens.models import (
 )
 from tokens.services import token_transfer_service
 from tokens.services.settlement_context import recorded_settlement_context
-from tokens.tests.order_submission_fixtures import (
-    OTHER_KEY,
-    OWNER,
-    SubmissionFixtures,
-    pending_submission,
-)
+from tokens.tests.order_submission_fixtures import OTHER_KEY, OWNER, SubmissionFixtures
 from users.constants import ACCOUNT_STATUS_ACTIVE
 from users.models import UserAccount, UserProfile
 from wallets.models import Wallet
@@ -800,51 +794,3 @@ class OrderSubmissionProtocolTest(SubmissionBoundaryChecks, SubmissionFixtures, 
         self.assertEqual(response.status_code, 201, response.content)
         self.assertEqual(response.json()["order"]["tokenSymbol"], "NEW")
         self.assertEqual(self.submission().token_metadata["symbol"], self.tenant.deployed_token.symbol)
-
-
-class ScopedOrderSubmissionRecoveryTest(
-    RunsOnTheScopedConnection, SubmissionBoundaryChecks, SubmissionRecoveryChecks, APITransactionTestCase
-):
-    def test_raw_submission_reads_and_writes_follow_current_account_membership(self):
-        self.issue()
-        own = self.submission()
-        with use_operator():
-            other = make_tenant("submission-policy")
-            foreign = pending_submission(other)
-        with acting_for(self.tenant.user.pk):
-            self.assertTrue(OrderSubmission.objects.filter(pk=own.pk).exists())
-            self.assertFalse(OrderSubmission.objects.filter(pk=foreign.pk).exists())
-            self.assertEqual(OrderSubmission.objects.filter(pk=foreign.pk).update(updated_at=timezone.now()), 0)
-            self.assertEqual(OrderSubmission.objects.filter(pk=own.pk).update(updated_at=timezone.now()), 1)
-            with self.assertRaises(DatabaseError), atomic():
-                pending_submission(other)
-        with use_operator():
-            self.assertTrue(OrderSubmission.objects.filter(pk=foreign.pk).exists())
-
-    def test_hidden_foreign_issuer_metadata_falls_back_without_widening_token_visibility(self):
-        with use_operator():
-            issuer = make_tenant("submission-issuer")
-        with use_migrate():
-            UserProfile.objects.filter(pk=issuer.profile.pk).update(is_id_verified=True)
-            UserAccount.objects.filter(pk=issuer.account.pk).update(account_status=ACCOUNT_STATUS_ACTIVE)
-        issuer_decision = accept_company_eligibility(issuer)
-        accept_company_eligibility(self.tenant, issuer_decision=issuer_decision)
-        body = self.body(token=str(issuer.deployed_token.pk))
-        signed = self.signed_body(body)
-        created = self.create(signed)
-        self.assertEqual(created.status_code, 201, created.content)
-        self.assertEqual(self.recover().json()["order"]["tokenName"], issuer.deployed_token.name)
-        with acting_for(self.tenant.user.pk):
-            self.assertTrue(ShareToken.objects.filter(pk=issuer.deployed_token.pk).exists())
-        with use_operator():
-            ShareToken.objects.filter(pk=issuer.deployed_token.pk).update(
-                status="failed", name="No longer visible", symbol="HID"
-            )
-        with acting_for(self.tenant.user.pk):
-            self.assertFalse(ShareToken.objects.filter(pk=issuer.deployed_token.pk).exists())
-        recovered = self.recover()
-        self.assertEqual(recovered.status_code, 200, recovered.content)
-        self.assertEqual(recovered.json()["order"]["tokenName"], issuer.deployed_token.name)
-        self.assertEqual(recovered.json()["order"]["uuid"], created.json()["order"]["uuid"])
-        self.client.force_authenticate(issuer.user)
-        self.assertEqual(self.recover().status_code, 404)

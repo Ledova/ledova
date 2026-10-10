@@ -3,6 +3,7 @@ from contextlib import ExitStack
 from django.contrib.auth import get_user_model
 from django.db import connections
 from rest_framework.exceptions import PermissionDenied
+from rest_framework.test import APITransactionTestCase
 
 from companies.models import CompanyAuthorityRequestWithdrawal
 from companies.services.authority_requests import withdraw_authority_request
@@ -18,7 +19,7 @@ from shared.tests.scoped import RunsOnTheScopedConnection
 
 
 class ScopedCompanyAuthorityRequestWithdrawalTest(
-    RunsOnTheScopedConnection, cases.CompanyAuthorityRequestWithdrawalTest
+    RunsOnTheScopedConnection, cases.CompanyAuthorityRequestWithdrawalFixtures, APITransactionTestCase
 ):
     def test_scoped_withdrawal_uses_bounded_operator_insert_and_requester_app_reads(self):
         observed = []

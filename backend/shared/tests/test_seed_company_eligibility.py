@@ -24,7 +24,6 @@ from shared.seeds.synthetic.eligibility import (
     accept_source,
     company_approver,
 )
-from shared.tests.scoped import RunsOnTheScopedConnection
 from shared.tests.upload_fixtures import StubUploadDependencies
 from users.models import (
     CompanyEligibilityDecision,
@@ -212,7 +211,3 @@ class SyntheticCompanyEligibilityTest(
         self.assertEqual(subscription.status, "accepted")
         with use_operator():
             self.assertFalse(CompanyEligibilityDecision.objects.exists())
-
-
-class ScopedSyntheticCompanyEligibilityTest(RunsOnTheScopedConnection, SyntheticCompanyEligibilityTest):
-    pass

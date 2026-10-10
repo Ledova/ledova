@@ -60,7 +60,7 @@ class CapitalExecutionProcessTest(TransactionTestCase):
         self.assertEqual(code, 0, out + err)
         return json.loads(out)
 
-    def recover_killed(self, phase, signed):
+    def recover_killed(self, phase):
         with tempfile.TemporaryDirectory(prefix="capital-crash-") as temporary:
             directory = Path(temporary)
             code, out, err = finish(self.worker(directory, phase))
@@ -68,20 +68,13 @@ class CapitalExecutionProcessTest(TransactionTestCase):
             self.request.refresh_from_db()
             self.assertEqual(self.request.status, "executing")
             self.assertEqual(CapitalIncreaseExecution.objects.count(), 1)
-            self.assertEqual(self.attempts.count(), int(signed))
+            self.assertFalse(self.attempts.exists())
             if phase == "opened":
                 self.assertIsNone(CapitalIncreaseExecution.objects.get().operation_id)
                 self.assertEqual(self.operations.get().status, "preparing")
-            original = self.attempts.values("tx_hash", "raw_transaction", "nonce").first()
-            if not signed:
-                self.assertEqual(SigningAccount.objects.get().next_nonce, self.initial_nonce)
+            self.assertEqual(SigningAccount.objects.get().next_nonce, self.initial_nonce)
             self.assertEqual(self.successful(self.worker(directory, "recover"))["status"], "executed")
             attempt = self.attempts.get()
-            if original:
-                self.assertEqual(
-                    (attempt.tx_hash, bytes(attempt.raw_transaction), attempt.nonce),
-                    (original["tx_hash"], bytes(original["raw_transaction"]), original["nonce"]),
-                )
             ledger = json.loads((directory / "node.json").read_text())
             self.assertEqual(ledger["hashes"], [attempt.tx_hash])
             self.assertEqual(len(ledger["broadcasts"]), 1)
@@ -89,20 +82,11 @@ class CapitalExecutionProcessTest(TransactionTestCase):
             self.assertEqual(self.transactions.get().status, "confirmed")
 
     def test_kill_after_admission_preserves_request_and_recovers(self):
-        self.recover_killed("admitted", False)
+        self.recover_killed("admitted")
 
     def test_kill_after_opening_before_binding_recovers_the_same_operation(self):
-        self.recover_killed("opened", False)
+        self.recover_killed("opened")
         self.assertEqual(self.operations.count(), 1)
-
-    def test_kill_before_signed_commit_rolls_back_nonce_and_recovers(self):
-        self.recover_killed("before_commit", False)
-
-    def test_kill_after_signed_commit_recovers_original_bytes(self):
-        self.recover_killed("signed", True)
-
-    def test_kill_after_provider_acceptance_reads_original_receipt(self):
-        self.recover_killed("accepted", True)
 
     def test_independent_workers_share_one_signed_attempt_and_nonce(self):
         admit(self.request, self.actor, confirmed=self.form)

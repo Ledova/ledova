@@ -50,7 +50,7 @@ from shared.tests.upload_fixtures import StubUploadDependencies
 from users.models import UserAccount, UserProfile
 
 
-class CompanyActivationTest(StubUploadDependencies, APITransactionTestCase):
+class CompanyActivationFixtures(StubUploadDependencies):
     app_as = AuthorityRequestCases.app_as
 
     def setUp(self):
@@ -182,6 +182,34 @@ class CompanyActivationTest(StubUploadDependencies, APITransactionTestCase):
                 Event().wait(0.01)
         self.fail(f"Activation did not wait for the held exact {table}")
 
+    def expiring_actor(self, seconds):
+        with use_operator():
+            actor = get_user_model().objects.create_user(
+                email="provider-expiring@example.test",
+                is_active=True,
+                is_email_verified=True,
+            )
+            UserProfile.objects.create(user=actor, full_name="Provider Expiring Administrator")
+        _, code, _ = issue_team_invitation(
+            requester=self.user,
+            company_id=self.company.pk,
+            inviter_appointment_id=self.source.pk,
+            idempotency_key=uuid4(),
+            capabilities=["admin"],
+            delegatable_capabilities=[],
+            appointment_expires_at=timezone.now() + timedelta(seconds=seconds),
+        )
+        self.source = accept_team_invitation(
+            requester=actor,
+            code=code,
+            declaration_version=DECLARATION_VERSION,
+            accept_declaration=True,
+        )
+        self.user = actor
+        self.client.force_authenticate(actor)
+
+
+class CompanyActivationTest(CompanyActivationFixtures, APITransactionTestCase):
     def test_registry_start_uses_database_time_despite_skewed_application_default(self):
         started_at = CompanyRegistryCheck._meta.get_field("started_at")
         for hours in (-24, 24):
@@ -710,32 +738,6 @@ class CompanyActivationTest(StubUploadDependencies, APITransactionTestCase):
             self.assertFalse(CompanyRegistryCheck.objects.filter(idempotency_key=self.key).exists())
         self.provider.assert_not_called()
         self.assertEqual(self.activate().status_code, 200)
-
-    def expiring_actor(self, seconds):
-        with use_operator():
-            actor = get_user_model().objects.create_user(
-                email="provider-expiring@example.test",
-                is_active=True,
-                is_email_verified=True,
-            )
-            UserProfile.objects.create(user=actor, full_name="Provider Expiring Administrator")
-        _, code, _ = issue_team_invitation(
-            requester=self.user,
-            company_id=self.company.pk,
-            inviter_appointment_id=self.source.pk,
-            idempotency_key=uuid4(),
-            capabilities=["admin"],
-            delegatable_capabilities=[],
-            appointment_expires_at=timezone.now() + timedelta(seconds=seconds),
-        )
-        self.source = accept_team_invitation(
-            requester=actor,
-            code=code,
-            declaration_version=DECLARATION_VERSION,
-            accept_declaration=True,
-        )
-        self.user = actor
-        self.client.force_authenticate(actor)
 
     def test_actual_provider_boundary_holds_no_company_lock_and_retains_result_after_source_expiry(self):
         self.expiring_actor(30)

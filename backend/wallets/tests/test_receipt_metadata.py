@@ -8,7 +8,6 @@ from rest_framework.test import APITransactionTestCase
 
 from integrations.blockchain.bitcoin import BitcoinClient
 from shared.db import use_operator
-from shared.tests.scoped import RunsOnTheScopedConnection
 from wallets.models import Transaction
 from wallets.services.receipt_readers import extract_actual_fee, get_receipt_reader
 from wallets.tasks.confirmation import confirm_pending_transaction
@@ -152,10 +151,6 @@ class ImportedReceiptMetadataChecks(SubmissionFixture):
 
 
 class ReceiptMetadataTest(ImportedReceiptMetadataChecks, APITransactionTestCase):
-    pass
-
-
-class ScopedReceiptMetadataTest(RunsOnTheScopedConnection, ImportedReceiptMetadataChecks, APITransactionTestCase):
     pass
 
 

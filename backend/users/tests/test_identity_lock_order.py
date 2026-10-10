@@ -8,7 +8,6 @@ from django.test import TransactionTestCase
 from portfolios.models import Portfolio
 from shared.db import atomic, current_alias, use_migrate, use_operator
 from shared.tests.row_contention import RealRowContention
-from shared.tests.scoped import RunsOnTheScopedConnection
 from users.models import UserAccount
 from users.services import identity
 from users.tests.test_identity_apply_race import (
@@ -135,7 +134,3 @@ class IdentityLockOrderTest(RealRowContention, TransactionTestCase):
                 self.assertEqual(future.result(timeout=10), "committed")
         finally:
             inspection.close()
-
-
-class ScopedIdentityLockOrderTest(RunsOnTheScopedConnection, IdentityLockOrderTest):
-    pass

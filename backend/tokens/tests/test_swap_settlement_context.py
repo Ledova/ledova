@@ -17,9 +17,8 @@ from assets.models import AssetChainDeployment
 from blockchain.models import SignedAttempt, TransactionStatus
 from blockchain.tests.outgoing_fixtures import admitted_signer
 from feature_flags.models import FeatureFlag
-from shared.db import atomic, current_alias, set_principal, use_migrate, use_operator
+from shared.db import atomic, current_alias, use_migrate, use_operator
 from shared.tests.company_eligibility import accept_company_eligibility
-from shared.tests.scoped import RunsOnTheScopedConnection
 from shared.tests.settlement import save_swap_with_context
 from shared.tests.tenants import make_tenant
 from tokens.constants import SWAP_APPROVAL_RECEIPT_WAIT_SECONDS
@@ -1091,9 +1090,3 @@ class SwapSettlementRouteTest(APITransactionTestCase):
         provider.assert_not_called()
         with use_operator():
             self.assertEqual(persisted_outcome(self.swap), before)
-
-
-class ScopedSwapSettlementRouteTest(RunsOnTheScopedConnection, SwapSettlementRouteTest):
-    def setUp(self):
-        super().setUp()
-        set_principal(self.user.pk, current_alias())

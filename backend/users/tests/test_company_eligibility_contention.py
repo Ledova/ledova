@@ -26,7 +26,6 @@ from offerings.services.offering import transition_offering
 from shared.db import atomic, current_alias, use_migrate, use_operator
 from shared.tests.evidence_retention import installed_evidence_retention_policy
 from shared.tests.row_contention import RealRowContention
-from shared.tests.scoped import RunsOnTheScopedConnection
 from shared.tests.upload_fixtures import StubUploadDependencies, pdf_bytes
 from tokens.models import ShareToken
 from users.models import (
@@ -728,7 +727,3 @@ class CompanyEligibilityContentionTest(
                 self.assertTrue(self.source.evidence_file.storage.exists(source_name))
                 self.assertTrue(document.file.storage.exists(document_name))
                 self.assertFalse(CompanyEligibilityDecision.objects.exists())
-
-
-class ScopedCompanyEligibilityContentionTest(RunsOnTheScopedConnection, CompanyEligibilityContentionTest):
-    pass

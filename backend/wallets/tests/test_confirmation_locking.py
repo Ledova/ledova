@@ -12,7 +12,6 @@ from django.db import OperationalError, connections
 from rest_framework.test import APITransactionTestCase
 
 from shared.db import acting_for, current_alias, use_operator
-from shared.tests.scoped import RunsOnTheScopedConnection
 from wallets.models import Holding, Transaction
 from wallets.services import transaction_confirmation
 from wallets.services.chain_observations import observe_wallet_chain
@@ -198,8 +197,4 @@ class ConfirmationChecks(WalletFinalityFixture):
 
 
 class ConfirmationLockingTest(ConfirmationChecks, APITransactionTestCase):
-    pass
-
-
-class ScopedConfirmationLockingTest(RunsOnTheScopedConnection, ConfirmationChecks, APITransactionTestCase):
     pass

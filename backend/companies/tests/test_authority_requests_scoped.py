@@ -3,6 +3,7 @@ from unittest.mock import patch
 
 from django.db import connections
 from rest_framework.exceptions import PermissionDenied
+from rest_framework.test import APITransactionTestCase
 
 from companies.models import Company, CompanyAuthorityRequest
 from companies.tests import test_authority_requests as cases
@@ -17,7 +18,9 @@ from shared.db import (
 from shared.tests.scoped import RunsOnTheScopedConnection
 
 
-class ScopedCompanyAuthorityRequestTest(RunsOnTheScopedConnection, cases.AuthorityRequestApiTest):
+class ScopedCompanyAuthorityRequestTest(
+    RunsOnTheScopedConnection, cases.AuthorityRequestApiFixtures, APITransactionTestCase
+):
     def test_creation_uses_bounded_operator_connection_and_reads_use_the_requester_app_connection(self):
         observed = []
 

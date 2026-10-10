@@ -2,14 +2,11 @@ import base64
 import hashlib
 import hmac
 import json
-from concurrent.futures import ThreadPoolExecutor
 from decimal import Decimal
 from itertools import count
-from threading import Event, Lock
 from unittest.mock import MagicMock, patch
 
-from django.db import connections
-from django.test import TestCase, TransactionTestCase, override_settings
+from django.test import TestCase, override_settings
 from django.urls import reverse
 from rest_framework.test import APITestCase
 
@@ -30,8 +27,6 @@ from compliance.services.crypto_screening import CryptoScreeningService
 from compliance.services.transaction_monitoring import check_rule
 from integrations.kyc.base import KYCProvider
 from integrations.kyc.constants import PROVIDER_KYCAID, PROVIDER_SUMSUB
-from shared.db import use_operator
-from shared.tests.scoped import RunsOnTheScopedConnection
 from shared.tests.tenants import an_account
 from wallets.models import Transaction, Wallet
 
@@ -342,71 +337,3 @@ class CryptoWebhookResultTest(APITestCase):
         self.screening.refresh_from_db()
         self.assertEqual((self.screening.result, self.screening.risk_score), (SCREENING_RESULT_REJECTED, 0.9))
         self.assertEqual(ComplianceAlert.objects.filter(transaction=self.screening.transaction).count(), 1)
-
-
-@override_settings(**SCREENING_ON)
-class ScopedScreeningLockTest(RunsOnTheScopedConnection, TransactionTestCase):
-    def setUp(self):
-        super().setUp()
-        with use_operator():
-            self.wallet = a_wallet("screening-lock")
-        self.provider = a_provider()
-        provider = patch("compliance.services.crypto_screening.get_kyc_provider", return_value=self.provider)
-        provider.start()
-        self.addCleanup(provider.stop)
-
-    def first_caller_waits_for_a_second(self, name):
-        original = getattr(CryptoScreeningService, name)
-        arrivals = []
-        guard = Lock()
-        second = Event()
-
-        def contended(service, *args, **kwargs):
-            with guard:
-                arrivals.append(name)
-                first = len(arrivals) == 1
-            if first:
-                second.wait(timeout=2)
-            else:
-                second.set()
-            return original(service, *args, **kwargs)
-
-        return patch.object(CryptoScreeningService, name, contended)
-
-    def concurrently(self, action, *arguments):
-        def run(argument):
-            try:
-                with use_operator():
-                    return action(argument)
-            finally:
-                connections.close_all()
-
-        with ThreadPoolExecutor(max_workers=len(arguments)) as pool:
-            return list(pool.map(run, arguments))
-
-    def test_concurrent_results_complete_a_screening_once(self):
-        with use_operator():
-            screening_id = a_screening(self.wallet).pk
-
-        def deliver(score):
-            screening = TransactionScreening.objects.get(pk=screening_id)
-            CryptoScreeningService().process_webhook_result(screening, {"riskScore": score, "signals": [], "raw": {}})
-
-        with self.first_caller_waits_for_a_second("_create_alert"):
-            self.concurrently(deliver, 0.9, 0.7)
-        with use_operator():
-            self.assertEqual(TransactionScreening.objects.get(pk=screening_id).status, SCREENING_STATUS_COMPLETED)
-            self.assertEqual(ComplianceAlert.objects.filter(user_account=self.wallet.user_account).count(), 1)
-
-    def test_concurrent_retries_submit_once(self):
-        with use_operator():
-            screening_id = a_screening(self.wallet, status=SCREENING_STATUS_FAILED).pk
-
-        def retry(_):
-            return CryptoScreeningService().retry_failed_screening(TransactionScreening.objects.get(pk=screening_id))
-
-        with self.first_caller_waits_for_a_second("_blocker"):
-            self.concurrently(retry, 1, 2)
-        self.assertEqual(self.provider.submit_crypto_transaction.call_count, 1)
-        with use_operator():
-            self.assertEqual(TransactionScreening.objects.get(pk=screening_id).status, SCREENING_STATUS_PENDING)

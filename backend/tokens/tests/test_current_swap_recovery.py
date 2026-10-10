@@ -13,7 +13,6 @@ from blockchain.tests.outgoing_fixtures import CHAIN_ID, KEY, admitted_signer
 from feature_flags.models import FeatureFlag
 from shared.db import acting_for, use_operator
 from shared.tests.company_eligibility import accept_company_eligibility
-from shared.tests.scoped import RunsOnTheScopedConnection
 from tokens.models import SwapOrderStatus, TransferOrder
 from tokens.services import atomic_swap_service, swap_execution
 from tokens.tasks.swap_reconciler import resolve_executing_swaps
@@ -67,10 +66,6 @@ class CurrentSwapSigningTest(APITransactionTestCase):
             current.refresh_from_db()
             self.assertEqual(current.seller_signature, signature)
             self.assertEqual(current.status, "seller_signed")
-
-
-class ScopedCurrentSwapSigningTest(RunsOnTheScopedConnection, CurrentSwapSigningTest):
-    pass
 
 
 @override_settings(ATOMIC_SWAP_ADDRESS=CONTRACT, BLOCKCHAIN_OPERATOR_KEY=KEY, BLOCKCHAIN_CHAIN_ID=CHAIN_ID)

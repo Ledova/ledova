@@ -38,7 +38,6 @@ from tokens.models import (
     RequestStatus,
     ShareIssuanceRequest,
     ShareToken,
-    SwapOrder,
 )
 from tokens.services.register_instructions import (
     SETTLED,
@@ -1001,55 +1000,6 @@ class TransferInstructionApiTest(SettledTransferFixtures, APITransactionTestCase
         self.assertEqual(self.client.get(waiting).status_code, 404)
         self.assertEqual(
             self.client.post(url, {**payload, "operation_id": str(uuid4())}, format="json").status_code, 404
-        )
-
-
-@override_settings(**SETTLEMENT)
-class ScopedTransferInstructionTest(RunsOnTheScopedConnection, SettledTransferFixtures, APITransactionTestCase):
-    def test_the_owner_instructs_a_settlement_it_cannot_see_and_only_the_operator_applies_it(self):
-        self.open_register()
-        self.complete()
-        with use_operator():
-            token = ShareToken.objects.get(pk=self.swap.share_token_id)
-        self.signed_in_as(self.owner)
-        self.assertFalse(SwapOrder.objects.filter(pk=self.swap.pk).exists())
-        (effect,) = self.client.get(f"/api/v1/tokens/{token.uuid}/register/waiting/").json()["effects"]
-        seller, buyer = effect["wallets"]
-        response = self.client.post(
-            reverse("tokens:register-instructions-list"),
-            {
-                "operation_id": str(uuid4()),
-                "token_id": str(token.pk),
-                "document_id": str(self.document.pk),
-                "kind": "transfer",
-                "items": [
-                    {"settlement": effect["source"], "seller": seller, "buyer": buyer, "amount": effect["shares"]}
-                ],
-                "approving_director": DIRECTOR,
-                "authority_reference": "SYNTHETIC-RESOLUTION-TRANSFER-1",
-                "reason": "Register the settled transfer",
-            },
-            format="json",
-        )
-        self.assertEqual(response.status_code, 201, response.content)
-        self.the_principal_the_middleware_would_set(self.owner)
-        proposal = RegisterInstruction.objects.get(pk=response.json()["uuid"])
-        with self.assertRaises(PermissionDenied):
-            prepare_instruction_review(proposal_id=proposal.pk, reviewer=self.reviewer)
-        with self.assertRaises(PermissionDenied):
-            decide_instruction(proposal_id=proposal.pk, reviewer=self.reviewer, confirmation="", decision="apply")
-        with self.assertRaises(DatabaseError), atomic():
-            RegisterInstruction.objects.filter(pk=proposal.pk).update(
-                status="applied", reviewed_by=self.reviewer, reviewed_at=timezone.now()
-            )
-        with use_operator():
-            _, _, confirmation = prepare_instruction_review(proposal_id=proposal.pk, reviewer=self.reviewer)
-            applied = decide_instruction(
-                proposal_id=proposal.pk, reviewer=self.reviewer, confirmation=confirmation, decision="apply"
-            )
-            entry = RegisterEntry.objects.get(operation_id=self.swap.pk)
-        self.assertEqual(
-            (applied.status, entry.kind, entry.recorded_by_id), ("applied", "transfer", self.fixture.seller.user.pk)
         )
 
 

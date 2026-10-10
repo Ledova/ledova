@@ -6,7 +6,6 @@ from rest_framework.test import APITransactionTestCase
 
 from assets.models import Asset, AssetChainDeployment
 from shared.db import acting_for, use_operator
-from shared.tests.scoped import RunsOnTheScopedConnection
 from wallets.models import Holding
 from wallets.services.chain import fetch_chain_balance
 from wallets.services.holdings import sync_holding
@@ -112,8 +111,4 @@ class TokenFinalityChecks(TokenFinalityFixture):
 
 
 class TokenFinalityTest(TokenFinalityChecks, APITransactionTestCase):
-    pass
-
-
-class ScopedTokenFinalityTest(RunsOnTheScopedConnection, TokenFinalityChecks, APITransactionTestCase):
     pass

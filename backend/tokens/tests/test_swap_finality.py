@@ -19,7 +19,6 @@ from blockchain.tests.outgoing_fixtures import (
     receipt,
 )
 from shared.db import acting_for, atomic, current_alias, use_migrate, use_operator
-from shared.tests.scoped import RunsOnTheScopedConnection
 from tokens.exceptions import SwapNotReadyException
 from tokens.models import (
     ShareToken,
@@ -613,31 +612,6 @@ class SwapFinalityTest(SwapFinalityFixtures, TransactionTestCase):
             self.assertEqual(resolve_executing_swaps(), {"checked": 1, "resolved": 1})
             self.swap.refresh_from_db()
         self.assertEqual(self.swap.status, SwapOrderStatus.FAILED)
-
-
-class ScopedSwapFinalityTest(RunsOnTheScopedConnection, SwapFinalityTest):
-    def test_scoped_task_collects_outside_locks_and_records_final_inclusion(self):
-        self.confirm()
-        self.node.advance(head=20, finalized=12)
-        probes = []
-
-        def probe(label):
-            probes.append(label)
-            self.assertEqual(current_alias(), "operator")
-            self.assertTrue(connections[current_alias()].get_autocommit())
-            self.assertFalse(connections[current_alias()].in_atomic_block)
-
-        self.node.probe = probe
-        with override_settings(WALLET_CHAIN_FINALITY_POLICIES=FINALIZED), patch.object(
-            swap_execution, "get_base_chain_client", return_value=self.node.client
-        ):
-            self.assertEqual(current_alias(), "app")
-            self.assertEqual(resolve_executing_swaps(), {"checked": 1, "resolved": 1})
-            self.assertEqual(current_alias(), "app")
-        with use_operator():
-            self.swap.refresh_from_db()
-        self.assert_finalized_receipt()
-        self.assertIn("receipt", probes)
 
 
 @skipUnless(connection.vendor == "postgresql", "Independent processes require PostgreSQL row locks")

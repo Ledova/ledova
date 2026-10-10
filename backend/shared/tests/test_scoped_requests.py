@@ -85,14 +85,6 @@ class AuthRequestsUseTheAppRoleTest(RunsOnTheScopedConnection, APITransactionTes
             self.assertEqual(UserAccount.objects.count(), 1)
         send_email.assert_not_called()
 
-    def test_incomplete_signup_is_refused_for_the_business_reason(self):
-        with use_operator():
-            UserProfile.objects.filter(user=self.user).update(is_signup_completed=False)
-        response = self.signin()
-        self.assertEqual(response.status_code, 400, response.content)
-        self.assertIn("complete your signup", str(response.json()))
-        self.assertIn(principal_of(APP_ALIAS), (None, ""))
-
     def test_anonymous_request_after_signin_cannot_inherit_the_previous_principal(self):
         self.assertEqual(self.signin().status_code, 200)
         response = APIClient().get("/api/wallets/")

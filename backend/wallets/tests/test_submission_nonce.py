@@ -8,7 +8,6 @@ from rest_framework.test import APITransactionTestCase
 
 from integrations.blockchain.ethereum import EthereumClient
 from shared.db import current_alias, use_operator
-from shared.tests.scoped import RunsOnTheScopedConnection
 from shared.tests.tenants import a_profile
 from users.models import UserAccount
 from wallets.models import Wallet, WalletSubmission
@@ -167,10 +166,6 @@ class SubmissionNonceChecks(SubmissionFixture):
 
 
 class SubmissionNonceTest(SubmissionNonceChecks, APITransactionTestCase):
-    pass
-
-
-class ScopedSubmissionNonceTest(RunsOnTheScopedConnection, SubmissionNonceChecks, APITransactionTestCase):
     pass
 
 

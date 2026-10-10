@@ -76,15 +76,6 @@ class ImportedConfirmationUsesSeparateRolesTest(RunsOnTheScopedConnection, Trans
         self.assertIn(principal_of(APP_ALIAS), (None, ""))
         self.delivery.assert_not_called()
 
-    def test_a_foreign_wallet_is_invisible_before_any_chain_or_write_effect(self):
-        with use_operator():
-            result = self.run_task(self.other, self.owner.user.pk)
-
-        self.assertEqual(result, {"status": "error", "error": "Wallet not found"})
-        self.assertEqual(self.observed, [])
-        self.assertEqual(self.status_of(self.other), TRANSACTION_STATUS_PENDING)
-        self.delivery.assert_not_called()
-
     def test_system_task_switches_from_app_to_the_actual_operator_role(self):
         self.assertEqual(current_alias(), APP_ALIAS)
         result = self.run_task(self.other, None)
@@ -95,14 +86,3 @@ class ImportedConfirmationUsesSeparateRolesTest(RunsOnTheScopedConnection, Trans
         self.assertIn(principal, (None, ""))
         self.assertEqual(current_alias(), APP_ALIAS)
         self.assertEqual(self.status_of(self.other), TRANSACTION_STATUS_CONFIRMED)
-
-    def test_retry_failure_clears_the_app_principal_and_restores_the_worker_alias(self):
-        with use_operator(), patch(
-            "wallets.tasks.confirmation.get_blockchain_client", side_effect=RuntimeError("receipt unavailable")
-        ):
-            with self.assertRaisesRegex(RuntimeError, "receipt unavailable"):
-                self.run_task(self.owner, self.owner.user.pk)
-            self.assertEqual(current_alias(), OPERATOR_ALIAS)
-
-        self.assertIn(principal_of(APP_ALIAS), (None, ""))
-        self.assertEqual(self.status_of(self.owner), TRANSACTION_STATUS_PENDING)

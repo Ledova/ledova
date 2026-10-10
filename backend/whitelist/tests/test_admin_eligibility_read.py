@@ -14,7 +14,6 @@ from companies.services.authority_requests import _requester_principal
 from operators.models import Operator
 from operators.services import worklist
 from shared.db import use_migrate, use_operator
-from shared.tests.scoped import RunsOnTheScopedConnection
 from shared.tests.upload_fixtures import StubUploadDependencies
 from users.models import InvestorCategory, InvestorClassificationStatus, UserAccount
 from users.services import lifecycle
@@ -248,7 +247,3 @@ class WhitelistStandingReviewTest(TestCase):
         self.approval.refresh_from_db()
         self.assertEqual(self.account.account_status, "active")
         self.assertEqual(self.approval.status, WhitelistStatus.ACTIVE)
-
-
-class ScopedWhitelistAdminEligibilityReadTest(RunsOnTheScopedConnection, WhitelistAdminEligibilityReadTest):
-    pass

@@ -25,7 +25,6 @@ from integrations.kyc.base import (
 )
 from operators.models import Operator
 from shared.db import use_operator
-from shared.tests.scoped import RunsOnTheScopedConnection
 from shared.tests.upload_fixtures import StubUploadDependencies, pdf_bytes
 from users.models import (
     CompanyEligibilityDecision,
@@ -356,7 +355,3 @@ class CompanyEligibilityFreshSignupTest(StubUploadDependencies, APITransactionTe
         self.assertEqual(holder_history.status_code, 200, holder_history.content)
         self.assertEqual(holder_history.json()["outcome"], "accepted")
         self.assertEqual(holder_history.json()["decision"]["uuid"], str(retained.pk))
-
-
-class ScopedCompanyEligibilityFreshSignupTest(RunsOnTheScopedConnection, CompanyEligibilityFreshSignupTest):
-    pass

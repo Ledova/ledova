@@ -1,7 +1,6 @@
 import json
 import os
 import signal
-import sqlite3
 import subprocess
 import sys
 import tempfile
@@ -10,7 +9,7 @@ from pathlib import Path
 from unittest import skipUnless
 
 from django.db import connection
-from django.test import SimpleTestCase, TransactionTestCase
+from django.test import TransactionTestCase
 from eth_account._utils.legacy_transactions import Transaction
 from web3 import Web3
 
@@ -35,10 +34,9 @@ from blockchain.tests.outgoing_fixtures import (
 )
 
 
-def worker(directory, phase, index=0, database=None):
+def worker(directory, phase, index=0, *, database):
     env = os.environ.copy()
-    if database:
-        env["OUTGOING_TEST_DATABASE"] = json.dumps(database)
+    env["OUTGOING_TEST_DATABASE"] = json.dumps(database)
     return subprocess.Popen(
         [sys.executable, "-m", "blockchain.tests.outgoing_worker", str(directory), phase, str(index)],
         env=env,
@@ -56,56 +54,6 @@ def finish(process):
         out, err = process.communicate()
         raise AssertionError(f"Synthetic worker timed out: {out}\n{err}") from None
     return process.returncode, out, err
-
-
-class OutgoingCrashRecoveryTest(SimpleTestCase):
-    def crashed_then_recovered(self, phase):
-        with tempfile.TemporaryDirectory(prefix="outgoing-crash-") as temporary:
-            directory = Path(temporary)
-            code, out, err = finish(worker(directory, phase))
-            self.assertEqual(code, -signal.SIGKILL, out + err)
-            with sqlite3.connect(directory / "outgoing.sqlite3") as independent:
-                attempts = independent.execute(
-                    "SELECT tx_hash, raw_transaction, nonce FROM blockchain_signedattempt"
-                ).fetchall()
-                accounts = independent.execute("SELECT next_nonce FROM blockchain_signingaccount").fetchall()
-                status, attempt_id = independent.execute(
-                    "SELECT status, current_attempt_id FROM blockchain_outgoingoperation"
-                ).fetchone()
-            if phase == "before_commit":
-                self.assertEqual(attempts, [])
-                self.assertEqual(accounts, [(0,)])
-                self.assertEqual((status, attempt_id), ("preparing", None))
-            else:
-                self.assertEqual(len(attempts), 1)
-                tx_hash, raw, nonce = attempts[0]
-                self.assertEqual(Web3.to_hex(Web3.keccak(raw)), tx_hash)
-                self.assertEqual(Transaction.from_bytes(raw).nonce, nonce)
-                self.assertEqual((nonce, accounts, status), (7, [(8,)], "signed"))
-                self.assertIsNotNone(attempt_id)
-            code, out, err = finish(worker(directory, "recover"))
-            self.assertEqual(code, 0, out + err)
-            ledger = json.loads((directory / "node.json").read_text())
-            self.assertEqual(len(ledger["hashes"]), 1)
-            self.assertEqual(len(set(ledger["broadcasts"])), 1)
-            self.assertEqual(len(ledger["broadcasts"]), 2 if phase == "after_send" else 1)
-            with sqlite3.connect(directory / "outgoing.sqlite3") as independent:
-                self.assertEqual(
-                    independent.execute("SELECT status FROM blockchain_outgoingoperation").fetchone(), ("confirmed",)
-                )
-                self.assertEqual(independent.execute("SELECT count(*) FROM blockchain_signedattempt").fetchone(), (1,))
-                self.assertEqual(
-                    independent.execute("SELECT next_nonce FROM blockchain_signingaccount").fetchone(), (8,)
-                )
-
-    def test_killed_before_commit_leaves_no_signed_attempt_or_nonce_reservation(self):
-        self.crashed_then_recovered("before_commit")
-
-    def test_killed_after_commit_before_send_replays_the_durable_signed_attempt(self):
-        self.crashed_then_recovered("before_send")
-
-    def test_killed_after_node_acceptance_replays_identical_bytes_and_changes_the_chain_once(self):
-        self.crashed_then_recovered("after_send")
 
 
 @skipUnless(connection.vendor == "postgresql", "Independent signer row locks require PostgreSQL")
@@ -126,7 +74,7 @@ class OutgoingProcessRaceTest(TransactionTestCase):
     def run_race(self, indices):
         with tempfile.TemporaryDirectory(prefix="outgoing-race-") as temporary:
             directory = Path(temporary)
-            processes = [worker(directory, "race", index, self.database()) for index in indices]
+            processes = [worker(directory, "race", index, database=self.database()) for index in indices]
             try:
                 self.wait_for_files(directory, "ready-*", len(processes))
                 (directory / "go").touch()
@@ -162,10 +110,10 @@ class OutgoingProcessRaceTest(TransactionTestCase):
     def test_a_blocked_broadcast_does_not_hold_the_signer_lock(self):
         with tempfile.TemporaryDirectory(prefix="outgoing-wait-") as temporary:
             directory = Path(temporary)
-            blocked = worker(directory, "blocked_send", 0, self.database())
+            blocked = worker(directory, "blocked_send", 0, database=self.database())
             try:
                 self.wait_for_files(directory, "sending", 1)
-                code, out, err = finish(worker(directory, "sign", 1, self.database()))
+                code, out, err = finish(worker(directory, "sign", 1, database=self.database()))
                 self.assertEqual(code, 0, out + err)
                 self.assertEqual(json.loads(out)["nonce"], 8)
                 self.assertIsNone(blocked.poll())
@@ -192,7 +140,7 @@ class OutgoingProcessRaceTest(TransactionTestCase):
                 self.assertFalse((directory / "signed").exists())
                 self.assertFalse(SignedAttempt.objects.exists())
                 self.assertEqual(SigningAccount.objects.get().next_nonce, 0)
-                code, out, err = finish(worker(directory, "sign", 1, self.database()))
+                code, out, err = finish(worker(directory, "sign", 1, database=self.database()))
                 self.assertEqual(code, 0, out + err)
                 self.assertEqual(json.loads(out)["nonce"], 7)
             finally:

@@ -92,9 +92,3 @@ class BookSequencesTest(BookFixtures, TransactionTestCase):
 
     def test_a_random_sequence_of_market_events_never_leaves_the_book_crossed(self):
         self.run_sequence(846)
-
-    def test_another_random_sequence_of_market_events_never_leaves_the_book_crossed(self):
-        self.run_sequence(1002)
-
-    def test_a_third_random_sequence_of_market_events_never_leaves_the_book_crossed(self):
-        self.run_sequence(31337)

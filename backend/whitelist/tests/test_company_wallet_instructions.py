@@ -402,5 +402,34 @@ class CompanyWalletInstructionTest(CompanyWalletCases, APITransactionTestCase):
             self.assertFalse(WhitelistChange.objects.exists())
 
 
-class ScopedCompanyWalletInstructionTest(RunsOnTheScopedConnection, CompanyWalletInstructionTest):
-    pass
+@override_settings(BLOCKCHAIN_OPERATOR_KEY=KEY, BLOCKCHAIN_CHAIN_ID=CHAIN_ID, SHARE_TOKEN_FACTORY_ADDRESS=FACTORY)
+class ScopedCompanyWalletInstructionTest(RunsOnTheScopedConnection, CompanyWalletCases, APITransactionTestCase):
+    def test_app_reads_only_company_instructions_and_operator_applies_the_original(self):
+        proposal = self.prepare_wallet(self.nominate())
+        self.signed_in_as(self.owner)
+        own = self.client.get(f"{INSTRUCTIONS}{proposal.pk}/")
+        self.assertEqual(own.status_code, 200, own.content)
+        self.assertEqual(own.json()["uuid"], str(proposal.pk))
+        self.the_principal_the_middleware_would_set(self.owner)
+        for mutation in (
+            lambda: list(CompanyWalletInstruction.objects.all()),
+            lambda: CompanyWalletInstruction.objects.filter(pk=proposal.pk).update(status="applied"),
+            lambda: list(CompanyWalletInstructionDecision.objects.all()),
+            proposal.delete,
+        ):
+            with self.subTest(mutation=mutation), self.assertRaises(DatabaseError), atomic():
+                mutation()
+        self.signed_in_as(self.other)
+        foreign = self.client.get(f"{INSTRUCTIONS}{proposal.pk}/")
+        self.assertEqual(foreign.status_code, 404, foreign.content)
+        self.client.force_authenticate(user=None)
+        self.no_principal_is_set()
+        anonymous = self.client.get(f"{INSTRUCTIONS}{proposal.pk}/")
+        self.assertEqual(anonymous.status_code, 401, anonymous.content)
+        self.wallet_decide(proposal, "approve")
+        applied, _ = self.wallet_decide(proposal, "apply")
+        self.assertIsNotNone(applied.change_id)
+        with use_operator():
+            change = WhitelistChange.objects.get(pk=applied.change_id)
+            self.assertEqual((change.source_instruction_id, change.initiated_by_id), (proposal.pk, self.owner.pk))
+            self.assertFalse(SignedAttempt.objects.exists())

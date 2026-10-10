@@ -19,7 +19,6 @@ from companies.tests.registry_fixtures import matching_observation
 from shared.db import use_operator
 from shared.seeds.synthetic.authority import historical_owner_appointment
 from shared.tests.company_eligibility import accept_company_eligibility
-from shared.tests.scoped import RunsOnTheScopedConnection
 from shared.tests.tenants import make_eligible, make_tenant
 from shared.tests.upload_fixtures import pdf_bytes
 from users.models import CompanyEligibilityDecision, UserAccount
@@ -154,10 +153,4 @@ class CompanyEligibilityFixtureCases:
 
 
 class CompanyEligibilityFixtureTest(CompanyEligibilityFixtureCases, TransactionTestCase):
-    pass
-
-
-class ScopedCompanyEligibilityFixtureTest(
-    RunsOnTheScopedConnection, CompanyEligibilityFixtureCases, TransactionTestCase
-):
     pass

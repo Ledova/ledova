@@ -22,7 +22,6 @@ from shared.db import (
     use_operator,
 )
 from shared.db.principal import give_the_role_back, take_the_app_role
-from shared.tests.scoped import RunsOnTheScopedConnection
 from shared.tests.settlement import save_swap_with_context
 from shared.tests.tenants import make_tenant
 from tokens.constants import SWAP_APPROVAL_RECEIPT_WAIT_SECONDS
@@ -748,9 +747,3 @@ class SwapApprovalSubmissionTest(APITransactionTestCase):
         with self.app_role(), self.assertRaises(DatabaseError):
             list(SwapApprovalSubmission.objects.all())
         self.assertEqual(self.row().outcome, "confirmed")
-
-
-class ScopedSwapApprovalSubmissionTest(RunsOnTheScopedConnection, SwapApprovalSubmissionTest):
-    def setUp(self):
-        super().setUp()
-        set_principal(self.user.pk, current_alias())
