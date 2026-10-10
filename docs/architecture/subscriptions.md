@@ -4,46 +4,27 @@
 
 How payment, refund, scale-back and share allotment fit together.
 
-## Company-managed primary relationship
+## Company decisions and payments
 
-[AUD is a required payment option for purchasing company shares](../decisions.md#registry-priority-crypto-on-ramp-and-aud-payments),
-not merely a price display or an AUDY stablecoin balance.
-[#868](https://github.com/Ledova/ledova/issues/868) owns the company-managed
-primary payment work. The payment rail/provider, receipt verification,
-reconciliation and refund design remain undecided. Do not require a crypto
-on-ramp purchase or conversion to use the AUD payment option. The current bank
-transfer and stablecoin instructions and staff-attested receipts below are the
-existing implementation, not the completed company-managed AUD design.
-
-The [accepted plan](company-managed-registers.md#delivery-sequence) replaces the
-admin-only acceptance and receipt/refund recording paths with
-company-capability workflows. Company or appointed-provider payment settings
-and instruction snapshots must identify the actual primary recipient. Retain
-existing instructions as historical evidence; migrate secondary-market deposits
-and settlement separately rather than silently retargeting them.
-
-The [paid company issue conversion](../plans/company-managed-registers/company-paid-issues.md)
-is under implementation separately: it authorises exact issuance over an existing
-recorded PAID subscription without selecting new collection or refund mechanics.
-
-Company finance and issue authority are separate capabilities. A recorded receipt
-does not approve an issue, and evidence of a payment must not claim more than
-the configured provider/check actually establishes. Allotment must still bind
+Acceptance, payment confirmation and refunds are platform-staff admin actions
+on the company's instruction; the payment rail, receipt verification,
+reconciliation and refund design are deferred
+([9 October decision](../decisions.md#essential-registry-and-development-workflow-priority)).
+Company finance and issue authority are separate capabilities: a recorded
+receipt does not approve an issue, and the
+[paid-issue workflow](../plans/company-managed-registers/company-paid-issues.md)
+lets company appointees authorise the exact issue over an existing recorded
+PAID subscription without new collection or refund mechanics. Allotment binds
 the exact approved subscription, recipient and shares, with atomic admission,
 headroom, refund holds, idempotency, original transaction finality and bounded
-recovery. Non-paid grants use genuine non-paid terms and issue authority, not a
-fabricated receipt. The [paid-issue increment](../plans/company-managed-registers/company-paid-issues.md)
-is under implementation and replaces staff issue admission with exact company
-decisions over existing recorded PAID subscriptions. Acceptance and financial
-receipt/refund producers remain staff-assisted pending #868, including the bank
-and stablecoin attestation limitations below.
+recovery. Non-paid grants use genuine non-paid terms, never a fabricated receipt.
 
 ## Data flow of a subscription
 
 1. An eligible investor creates a draft at `POST /api/v1/subscriptions/` for a
    whole number of shares. Every writable FK is scoped in `get_fields()`: the
-   offering to `Offering.objects.open_now()` inside
-   `eligible_investor_companies(user)`, the account to the caller's investing
+   offering to `Offering.objects.open_now()` within the companies the caller's
+   current eligibility decisions admit, the account to the caller's investing
    account, the wallet to `owned_by(user).verified_evm()` on Base.
    `create_draft` stores the offering price, currency, company display name
    (trading name with legal-name fallback), class name and symbol on the row.
@@ -57,12 +38,13 @@ and stablecoin attestation limitations below.
    tampering are refused. RLS read scopes are unchanged.
    `POST .../submit/` first re-reads the offering and its class and company under
    the caller's policies. A hidden parent returns 400 and leaves the draft intact.
-   It then runs `require_subscription_eligibility(account, company,
-   amount_due)`; `accept` in the admin runs it again, because a certificate can
-   lapse between submission and acceptance and eligibility must still hold at acceptance. Both name the subscription's own account and issuer, so the
-   qualification is checked against the record being accepted. An account may hold several live claims, so the test is whether
-   *any* supports the offer; with no amount in play the newest live claim is
-   reported.
+   It then runs `require_subscription_eligibility(account, offering,
+   quantity)`; `accept` in the admin runs
+   `require_subscription_acceptance_eligibility(subscription)` again, because
+   a decision can lapse between submission and acceptance and eligibility must
+   still hold at acceptance. Both name the subscription's own account and
+   offering, so the qualification is checked against the record being accepted
+   ([participant eligibility](companies-and-eligibility.md#participant-eligibility)).
 3. Accepting issues the payment instruction in the same click.
    `offerings.services.payments.generate_reference` builds
    `Operator.payment_reference_prefix` plus an eight-character Crockford base32
@@ -157,7 +139,7 @@ and stablecoin attestation limitations below.
    current ADMIN/PREPARE in the exact company and class. Approvers and register
    readers can inspect proposals without that selector or the financial ledger.
    The existing subscription API carries create, list, detail, submit and withdraw
-   for the investor and no operator financial write route. The issuer reads
+   for the investor and no operator financial write route. The company reads
    its own offering's subscriptions at `GET
    /api/v1/offerings/{uuid}/subscriptions/`, scoped by the offering's own
    `subscribed_by(user)` and read-only, so payment confirmed and allotment pending

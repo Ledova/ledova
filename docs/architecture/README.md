@@ -9,9 +9,10 @@ Smart contracts enforce the share cap and each company's whitelist, with expiry,
 the operator interface.
 
 The [company-managed register plan](company-managed-registers.md) is the accepted
-direction from 3 October 2026: one product, company-scoped decision authority
-and self-service register workflows. The lifecycle guides below describe the
-current implementation, including staff gates that the plan replaces.
+direction from 3 October 2026, and the
+[implementation index](../plans/company-managed-registers/README.md) lists what
+is delivered under it. The guides below describe the current implementation and
+say where platform staff still act.
 
 ```mermaid
 flowchart LR
@@ -33,7 +34,7 @@ shows the main relationships, not every synchronous provider call.
 
 ## Follow a lifecycle
 
-1. [Company approval and investor eligibility](companies-and-eligibility.md).
+1. [Company activation and participant eligibility](companies-and-eligibility.md).
 2. [Contract deployment and share issuance](contracts-and-issuance.md).
 3. [Offering publication](offerings.md) and [subscriptions/allotment](subscriptions.md).
 4. [Register of members](register.md),
@@ -53,7 +54,7 @@ shows the main relationships, not every synchronous provider call.
 | Uploaded files, evidence and retention | [Files and retention](files-and-retention.md) |
 | Native transport and secrets | [Mobile security](mobile-security.md) |
 | Scanners, provider views and temporary files | [Mobile lifecycles](mobile-lifecycles.md) |
-| Future operator signing integration | [Outgoing signing foundation](outgoing-signing.md) |
+| Signing journals, admission and recovery of chain work | [Outgoing signing foundation](outgoing-signing.md) |
 
 Corporate actions are not built. [Splits and consolidations](splits-and-consolidations.md)
 is the written design for them: what the deployed contracts and the stored

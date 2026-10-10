@@ -17,25 +17,17 @@ documents with the evidence copies behind its approvals, what the company
 published to its members with each resolution's result and each dividend's
 payment records, and the contract information.
 
-## Company-managed portability
-
-The [accepted plan](company-managed-registers.md#required-self-service-workflows)
-requires company-appointed users to prepare their own permitted records and
-exports without routine staff action. Add a company-capability entry point to
-the pack service, with exact company scoping, instruction/requester provenance
-and audited production. A technical operator connection remains necessary for
-the current snapshot builder, but does not establish a human company mandate.
-The admin-only production path and format below describe current code.
-
-Preserve the snapshot, byte ceilings, evidence digests, immutable export records
-and exclusions: company administration must not expose private participant
-financial/identity evidence, raw signed broadcast capabilities or individual
-ballots. Company-authorised decisions need their actual mandate and actor
-recorded/exported according to the evolving format, while historical staff
-reviewers retain their original attribution. Changes to existing file meanings
-require the format change described below; do not silently relabel past actors.
-The pack's figures and chain evidence remain records with stated limits, not
-proof of a bank payment, current contract ownership or a lodged ASIC filing.
+Platform staff produce the pack in admin on the company's written instruction;
+[#871](https://github.com/Ledova/ledova/issues/871) adds company-scoped
+preparation with exact company scoping, instruction and requester provenance
+and audited production, keeping the snapshot, ceilings, digests, immutable
+export records and exclusions below. The same planned increment is to export
+company-authorised decisions with their actual mandate and actor, keeping
+historical staff reviewers' original attribution and changing no existing
+file's meaning without the format change described below; today those
+decisions are not carried ([Limits](#limits)). The pack's figures and chain
+evidence are records with stated limits, not proof of a bank payment, current
+contract ownership or a lodged ASIC filing.
 
 ## Producing and recording
 
@@ -757,6 +749,11 @@ bytes, with the positive control that the first's own pack carries all of them.
 - No test produces a pack near the ceiling: the ceiling tests patch the constant
   down to the fixture's size. A proxy in front of the backend could still time
   out a large download; that has not been measured.
+- The company's non-paid grant, non-paid transfer, wallet-instruction,
+  deployment, capital-increase and pause decision records are not carried as
+  decisions: their effects appear through the entries, class and chain files,
+  and #871's pack-provenance increment owns exporting the decisions and their
+  evidence copies.
 
 Next: [the register of members](register.md), the
 [runbook](../operations/register-foundation.md#producing-a-company-pack) and

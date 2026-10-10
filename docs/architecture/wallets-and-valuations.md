@@ -4,24 +4,18 @@
 
 How wallet identity, ownership verification, asset identity and portfolio values are represented.
 
-## Wallets in company-managed registers
+## Wallets and company decisions
 
-The [accepted plan](company-managed-registers.md#responsibility-and-company-access)
-keeps wallet-possession proof with the participant and makes company registry
-approval a separate company-capability decision backed by the required live
-checks. Neither a company appointment nor a self-declared signing preference
-grants control of a participant's key. Preserve network/address identity,
-conflict handling, expiry and current signed-work recovery when replacing
-staff-only whitelist admission.
-
-Imported and non-tokenised register members can have no wallet. Supported
-employee grants and other non-chain register changes need real ledger and
-participant-record paths; they must not create invented wallet holdings or mint
-receipts. Later tokenisation mirrors existing authorised holdings without
-issuing twice. The wallet, asset and valuation mechanisms below describe current
-implementation. Infrastructure asset allowlisting, settlement-token minting and
-yield-token NAV controls are separate capabilities, not an automatic grant to a
-company register administrator.
+Wallet-possession proof stays with the participant; a company's registry
+approval of that wallet is a separate
+[company decision](../plans/company-managed-registers/company-wallet-approvals.md).
+Neither a company appointment nor a self-declared signing preference grants
+control of a participant's key. Imported and non-tokenised register members can
+have no wallet: [non-paid grants](../plans/company-managed-registers/register-grants.md)
+and transfers are ledger events that create no wallet holding or mint receipt,
+and later tokenisation mirrors them without issuing twice. Infrastructure asset
+allowlisting, settlement-token minting and yield-token NAV controls are separate
+capabilities, not an automatic grant to a company register administrator.
 
 ## Wallet ownership and signing
 
@@ -281,9 +275,6 @@ Holdings pages show share quantities by company and class instead of a
 portfolio chart. Base transfers use ETH for native quantities and gas fees, and
 use Base's chain ID for signing.
 
-Next: [wallet transfers](transfers.md), [history and balance reconciliation](../reference/wallet-reconciliation.md),
-and [operator seeding](../operations/operator-console.md#seeding).
-
 ## Verification challenge upgrades
 
 Wallet ownership challenges expire five minutes after issuance, including the
@@ -293,3 +284,6 @@ server use the same `WALLET_VERIFICATION_CHALLENGE_MINUTES` setting and stored
 issue time. Migration `wallets/0011` adds that internal timestamp. Outstanding
 challenges issued before the migration have no trustworthy issue time and must
 be requested and signed again. Existing verified wallets keep their status.
+
+Next: [wallet transfers](transfers.md), [history and balance reconciliation](../reference/wallet-reconciliation.md),
+and [operator seeding](../operations/operator-console.md#seeding).
