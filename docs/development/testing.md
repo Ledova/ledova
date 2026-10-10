@@ -94,9 +94,9 @@ explains how the ordinary and scoped suites differ.
 The suites read the environment as the backend does. CI sets `SECRET_KEY`,
 `STORAGE_BACKEND` and the `POSTGRES_*` connection for them and no other backend
 setting; locally these usually come from loading `backend/.env`, whose other
-values then reach the suites too. In CI the scoped suite also inherits
-`UPLOAD_TEST_CLAMAV_HOST`, a test variable that the scanner step exports and
-only the separate scanner suite reads. A setting the test settings assign keeps
+values then reach the suites too. In CI the separate scanner suite reads
+`UPLOAD_TEST_CLAMAV_HOST`, a test variable exported within the backend checks
+job; the scoped job has its own environment. A setting the test settings assign keeps
 their value, though one the backend derives from the same variable can still
 follow the file. They assign the chain id and the finality policies, the only
 settings derived from `BLOCKCHAIN_CHAIN_ID` and `LOCAL_CHAIN_FINALITY_DEPTH`, so
@@ -142,8 +142,9 @@ and Django pre/post hooks, so they do not establish complete class costs or
 worker idle time. Keep full inventories and declared skips separate from these
 measurements; a duration report does not establish a scheduling improvement.
 
-On a pull request, a scope job decides whether the Django jobs run: the shards
-and "Django checks & tests". They run unless every changed file is under
+On a pull request, a scope job decides whether the Django jobs run: the six
+ordinary shards, "Django checks & tests", strict scoped tests and genuine chain
+checks. They run unless every changed file is under
 `dashboard/`, `docs/`, `marketing/`, `mobile/` or `packages/`, or is exactly
 the root `AGENTS.md` or `CONTRIBUTING.md`. Even then, two kinds of change run them:
 
@@ -165,9 +166,19 @@ unless the scope job succeeded and each Django job succeeded, or was skipped
 because the scope job found none needed; a failed, cancelled or wrongly skipped
 job fails it.
 
+The scoped and chain jobs depend only on that scope decision and can run
+concurrently with each other and the remaining backend checks. Each has its own
+hosted runner, fresh PostgreSQL/Redis services and database bootstrap. The scoped
+job retains the complete required scoped inventory and zero-skip checks; the
+chain job retains both EVM invocations and Bitcoin regtest. Schema generation,
+role/catalogue checks, real Redis controls and ClamAV remain in the backend job.
+All four backend job groups must have their expected result before the verdict
+passes; a missing dependency fails it. Independent jobs may still queue, and
+their source topology alone does not establish an elapsed-time improvement.
+
 The [9 October owner direction](../decisions.md#essential-registry-and-development-workflow-priority)
 prioritises further fixture and CI simplification under
-[#943](https://github.com/Ledova/ledova/issues/943). This first increment retains
+[#943](https://github.com/Ledova/ledova/issues/943). The workflow retains
 every current test selection, required verdict and main-push check. JavaScript,
 native, scanner and general backend routing remain unchanged; scheduled broad
 checks and more selective pre-merge coverage need their own reviewed
@@ -177,8 +188,9 @@ implementation. The under-five-minute documentation/configuration and
 `black`, `isort` and `flake8` are development requirements and are not in the
 backend image, so running the source gates inside that image proves nothing
 about CI's Lint step. Lint runs first in the Django checks job and stops that
-job when it fails; the ordinary suite's shards run in their own jobs whether or
-not it passes. Install the tools with `make install-backend` from the repository root
+job when it fails; ordinary shards, strict scoped tests and genuine chain checks
+run independently. A failure in any required group still fails the Django
+verdict. Install the tools with `make install-backend` from the repository root
 (`make check` does the same); CI installs the same file with
 `pip install -r requirements-dev.txt -c schema/requirements.txt` from
 `backend/`. Then run `cd backend && make lint`: `black --check` and
