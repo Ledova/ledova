@@ -2,7 +2,7 @@
 
 [Legal and regulatory](README.md) · [Registry service](registry-service.md) · [Positions](positions.md) · [Regulatory pathway](../regulatory-pathway.md)
 
-**Historical analysis A, written 15 September 2026.** The
+**Historical analysis A, first written 15 September 2026.** The
 [3 October 2026 one-product decision](../architecture/company-managed-registers.md)
 and the [4 October 2026 minimal-involvement decision](../decisions.md#company-representative-verification)
 postdate the readings on this page, which have not been reconfirmed against
