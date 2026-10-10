@@ -9,17 +9,23 @@ on:
   pull_request:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
-  source-gates:
-    name: Source gates
+  checks:
+    name: Source and client checks
     needs: scope
-    runs-on: ${{ fromJSON(needs.scope.outputs.runners)['source-gates'] }}
+    if: needs.scope.outputs.checks_required == 'true'
+    runs-on: ${{ fromJSON(needs.scope.outputs.runners)['checks'] }}
     timeout-minutes: ${{ fromJSON(needs.scope.outputs.runner_timeout) }}
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
       - uses: actions/setup-python@v7
         with:
-          python-version: '3.13'
+          python-version: '3.13.15'
       - name: Dependencies the gate scripts import
         run: pip install pyyaml
       - name: Comment and docstring gate
@@ -41,16 +47,10 @@ jobs:
       - name: Documentation gate
         run: python scripts/check-docs.py
       - name: Gate script tests
+        if: needs.scope.outputs.tooling_required == 'true'
         run: make test-gates PYTHON=python
-
-  javascript:
-    name: Build & test (JS workspaces + contracts)
-    needs: scope
-    runs-on: ${{ fromJSON(needs.scope.outputs.runners)['javascript'] }}
-    timeout-minutes: ${{ fromJSON(needs.scope.outputs.runner_timeout) }}
-    steps:
-      - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
+        if: needs.scope.outputs.javascript_required == 'true'
         with:
           node-version: 22.15.1
           cache: npm
@@ -60,15 +60,19 @@ jobs:
             marketing/package-lock.json
             mobile/package-lock.json
       - name: Install dependencies
+        if: needs.scope.outputs.javascript_required == 'true'
         run: make install
       - name: Workspace packages do not import themselves
+        if: needs.scope.outputs.javascript_required == 'true'
         run: make check-self-imports
       - name: Generated API types and trading event coverage
+        if: needs.scope.outputs.javascript_required == 'true'
         run: make check-api-types
       - name: Shared, dashboard and mobile HTTP operation coverage
+        if: needs.scope.outputs.javascript_required == 'true'
         run: make check-client-operations
       - name: Client operation coverage artefact
-        if: failure()
+        if: failure() && needs.scope.outputs.javascript_required == 'true'
         uses: actions/upload-artifact@v7
         with:
           name: client-operation-coverage
@@ -76,27 +80,34 @@ jobs:
           retention-days: 7
           if-no-files-found: ignore
       - name: Build dashboard, marketing, contracts
+        if: needs.scope.outputs.javascript_required == 'true'
         run: make build
       - name: Design tokens match packages/shared
+        if: needs.scope.outputs.javascript_required == 'true'
         run: |
           make generate-tokens
           git diff --exit-code dashboard/src/styles/tokens.css marketing/src/tokens.css
       - name: Type-check workspaces
+        if: needs.scope.outputs.javascript_required == 'true'
         run: |
           npm run typecheck
 
       - name: Mobile imports resolve from mobile/node_modules
+        if: needs.scope.outputs.javascript_required == 'true'
         run: npm --prefix mobile run check:resolution
 
       - name: iOS release configuration guards
+        if: needs.scope.outputs.javascript_required == 'true'
         run: node --test mobile/scripts/tests/ios-release-config.test.mjs
 
       - name: Lint workspaces
+        if: needs.scope.outputs.javascript_required == 'true'
         run: |
           make lint
           make check-mobile-test-awaits
 
       - name: Production dependency advisories
+        if: needs.scope.outputs.javascript_required == 'true' && needs.scope.outputs.audit == 'true'
         run: |
           npm audit --omit=dev --audit-level=low
           npm --prefix marketing audit --omit=dev --audit-level=low
@@ -104,9 +115,11 @@ jobs:
           npm --prefix mobile audit --omit=dev --audit-level=critical
 
       - name: Workspace, mobile, and contract tests
+        if: needs.scope.outputs.javascript_required == 'true'
         run: make test
 
       - name: Dashboard smoke tests (built bundle, real Chromium)
+        if: needs.scope.outputs.javascript_required == 'true'
         run: |
           # Playwright installs its own Chromium; the runner's Chrome update repo is unused.
           sudo rm -f /etc/apt/sources.list.d/google-chrome.list \
@@ -114,7 +127,7 @@ jobs:
           make smoke PLAYWRIGHT_BROWSER_DEPS=--with-deps
 
       - name: Smoke test artefacts
-        if: failure()
+        if: failure() && needs.scope.outputs.javascript_required == 'true'
         uses: actions/upload-artifact@v7
         with:
           name: dashboard-smoke-results
@@ -125,84 +138,45 @@ jobs:
           if-no-files-found: ignore
 
   scope:
-    name: Determine Django scope
+    name: Determine CI scope
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
       required: ${{ steps.scope.outputs.required }}
+      checks_required: ${{ steps.scope.outputs.checks_required }}
+      javascript_required: ${{ steps.scope.outputs.javascript_required }}
+      tooling_required: ${{ steps.scope.outputs.tooling_required }}
+      uploads: ${{ steps.scope.outputs.uploads }}
+      chains: ${{ steps.scope.outputs.chains }}
+      audit: ${{ steps.scope.outputs.audit }}
       runners: ${{ steps.scope.outputs.runners }}
       runner_timeout: ${{ steps.scope.outputs.runner_timeout }}
     steps:
       - uses: actions/checkout@v7
         with:
+          persist-credentials: false
           fetch-depth: 0
       - name: Classify the complete pull-request change
         id: scope
         run: python3 scripts/ci-scope.py route django
 
-  backend-suite-shard:
-    name: Django ordinary shard (${{ matrix.shard }})
-    needs: scope
-    if: needs.scope.outputs.required == 'true'
-    runs-on: ${{ fromJSON(needs.scope.outputs.runners)[format('backend-suite-shard-{0}', matrix.shard)] }}
-    timeout-minutes: ${{ fromJSON(needs.scope.outputs.runner_timeout) }}
-    strategy:
-      fail-fast: false
-      matrix:
-        shard: [tokens-1, tokens-2, tokens-3, shared-wallets, companies-users, others]
-    env:
-      SECRET_KEY: ci-only
-      STORAGE_BACKEND: local
-      POSTGRES_HOST: 127.0.0.1
-      POSTGRES_PORT: '5432'
-      POSTGRES_DB: ledova
-      POSTGRES_USER: ledova
-    services:
-      postgres:
-        image: postgres:16
-        env:
-          POSTGRES_DB: ledova
-          POSTGRES_USER: ledova
-          POSTGRES_HOST_AUTH_METHOD: trust
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U ledova -d ledova" --health-interval 5s --health-timeout 5s --health-retries 20
-    defaults:
-      run:
-        working-directory: backend
-    steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-python@v7
-        with:
-          python-version: '3.13.15'
-          cache: pip
-          cache-dependency-path: |
-            backend/requirements-dev.txt
-            backend/schema/requirements.txt
-      - name: Install dependencies
-        run: pip install -r requirements-dev.txt -c schema/requirements.txt
-      - name: Each ordinary test id is unique and in exactly one shard
-        if: strategy.job-index == 0
-        run: python ../scripts/check-ordinary-shards.py
-      - name: Suite
-        run: python ../scripts/check-ordinary-shards.py --run ${{ matrix.shard }}
-
   backend-suite:
     name: Django verdict
-    needs: [scope, backend-suite-shard, backend, backend-scoped, backend-chain]
+    needs: [scope, checks, backend]
     if: always()
-    runs-on: ${{ needs.scope.result == 'success' && fromJSON(needs.scope.outputs.runners)['backend-suite'] || 'ubuntu-latest' }}
-    timeout-minutes: ${{ fromJSON(needs.scope.outputs.runner_timeout || '360') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v7
-      - name: Every Django job succeeded, or the change needs none
+        with:
+          persist-credentials: false
+      - name: Every required checks and backend job succeeded
         env:
           JOB_RESULTS: ${{ toJSON(needs) }}
         run: python3 scripts/ci-scope.py verdict django
 
   backend:
-    name: Django checks & tests
+    name: Backend verification
     needs: scope
     if: needs.scope.outputs.required == 'true'
     runs-on: ${{ fromJSON(needs.scope.outputs.runners)['backend'] }}
@@ -214,6 +188,9 @@ jobs:
       POSTGRES_PORT: '5432'
       POSTGRES_DB: ledova
       POSTGRES_USER: ledova
+      REDIS_URL: redis://127.0.0.1:6379/0
+      THROTTLE_TEST_REDIS_URL: redis://127.0.0.1:6379/0
+      UPLOAD_TEST_REDIS_URL: redis://127.0.0.1:6379/0
     services:
       redis:
         image: redis:7-alpine
@@ -231,11 +208,10 @@ jobs:
           - 5432:5432
         options: >-
           --health-cmd "pg_isready -U ledova -d ledova" --health-interval 5s --health-timeout 5s --health-retries 20
-    defaults:
-      run:
-        working-directory: backend
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
       - uses: actions/setup-python@v7
         with:
           python-version: '3.13.15'
@@ -243,64 +219,24 @@ jobs:
           cache-dependency-path: |
             backend/requirements-dev.txt
             backend/schema/requirements.txt
-      - name: Install dependencies
-        run: pip install -r requirements-dev.txt -c schema/requirements.txt
-      - name: Production dependency advisories
-        run: pip-audit -r requirements.txt --ignore-vuln PYSEC-2026-1845
-      - name: Lint
-        run: make lint
-      - name: Django system check
-        run: python manage.py check
-      - name: Migration consistency
-        run: python manage.py makemigrations --check --dry-run
-      - name: Shared sign-in throttle (real Redis, fresh and concurrent processes)
-        env:
-          THROTTLE_TEST_REDIS_URL: redis://127.0.0.1:6379/0
+      - name: Install backend dependencies
+        run: pip install -r backend/requirements-dev.txt -c backend/schema/requirements.txt
+      - uses: actions/setup-node@v7
+        if: needs.scope.outputs.chains == 'true'
+        with:
+          node-version: 22.15.1
+          cache: npm
+          cache-dependency-path: contracts/package-lock.json
+      - name: Install contract dependencies
+        if: needs.scope.outputs.chains == 'true'
+        working-directory: contracts
+        run: npm ci
+      - name: Complete backend verification
         run: >-
-          python manage.py test authentication.tests.redis_throttle
-          --settings=ledova_backend.settings.test --noinput
-      - name: Shared upload quotas (real Redis, expiry and concurrent processes)
-        env:
-          UPLOAD_TEST_REDIS_URL: redis://127.0.0.1:6379/0
-        run: >-
-          python manage.py test shared.tests.redis_uploads
-          --settings=ledova_backend.settings.test --noinput
-      - name: Start isolated upload scanner
-        run: |
-          docker run -d --name ledova-upload-clamav --memory 4g --cpus 2 --pids-limit 128 \
-            --health-cmd 'clamdscan --ping=1 --config-file=/etc/clamav/clamd.conf' \
-            --health-interval 5s --health-timeout 3s --health-retries 60 \
-            -v "$GITHUB_WORKSPACE/backend/.deployment/clamd.conf:/etc/clamav/clamd.conf:ro" \
-            clamav/clamav:1.5.4-debian sh -c 'freshclam --foreground --stdout && exec clamd --foreground'
-          deadline=$((SECONDS + 300))
-          until [ "$(docker inspect -f '{{.State.Health.Status}}' ledova-upload-clamav)" = healthy ]; do
-            if [ "$SECONDS" -ge "$deadline" ]; then
-              docker logs ledova-upload-clamav
-              exit 1
-            fi
-            sleep 2
-          done
-          scanner_host=$(docker inspect -f '{{.NetworkSettings.Networks.bridge.IPAddress}}' ledova-upload-clamav)
-          echo "UPLOAD_TEST_CLAMAV_HOST=$scanner_host" >> "$GITHUB_ENV"
-      - name: Upload scanning (real signatures, clean documents and EICAR)
-        run: >-
-          python manage.py test shared.tests.clamav_uploads
-          --settings=ledova_backend.settings.test --noinput
-      - name: Remove isolated upload scanner
-        if: always()
-        run: docker rm -f -v ledova-upload-clamav || true
-      - name: Generate API schema and compare registered operation coverage
-        id: generate-schema
-        shell: bash
-        run: |
-          python manage.py migrate --settings=ledova_backend.settings.test_postgres --noinput
-          python manage.py export_api_schema --settings=ledova_backend.settings.test_postgres \
-            --file /tmp/ledova-schema.json --report /tmp/ledova-schema-environment.json \
-            2>&1 | tee /tmp/ledova-schema-diagnostics.log
-      - name: Complete API schema snapshot comparison
-        run: >-
-          python ../scripts/check-api-schema.py --schema /tmp/ledova-schema.json
-          --report /tmp/ledova-schema-comparison.json
+          make backend-test PYTHON=python
+          BACKEND_CHECKS="${{ needs.scope.outputs.uploads == 'true' && '--uploads' || '' }}
+          ${{ needs.scope.outputs.chains == 'true' && '--chains' || '' }}
+          ${{ needs.scope.outputs.audit == 'true' && '--audit' || '' }}"
       - name: Generated schema, diagnostics, environment and comparison
         if: always()
         uses: actions/upload-artifact@v7
@@ -313,126 +249,11 @@ jobs:
             /tmp/ledova-schema-comparison.json
           retention-days: 7
           if-no-files-found: ignore
-      - name: Row-level-security roles and catalogue (the half no test can see)
-        run: |
-          python manage.py migrate --noinput
-          python manage.py check_rls_roles
-          python manage.py check_rls_catalogue
-
-  backend-scoped:
-    name: Django strict scoped requests
-    needs: scope
-    if: needs.scope.outputs.required == 'true'
-    runs-on: ${{ fromJSON(needs.scope.outputs.runners)['backend-scoped'] }}
-    timeout-minutes: ${{ fromJSON(needs.scope.outputs.runner_timeout) }}
-    env:
-      SECRET_KEY: ci-only
-      STORAGE_BACKEND: local
-      POSTGRES_HOST: 127.0.0.1
-      POSTGRES_PORT: '5432'
-      POSTGRES_DB: ledova
-      POSTGRES_USER: ledova
-    services:
-      redis:
-        image: redis:7-alpine
-        ports:
-          - 6379:6379
-        options: >-
-          --health-cmd "redis-cli ping" --health-interval 5s --health-timeout 5s --health-retries 20
-      postgres:
-        image: postgres:16
-        env:
-          POSTGRES_DB: ledova
-          POSTGRES_USER: ledova
-          POSTGRES_HOST_AUTH_METHOD: trust
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U ledova -d ledova" --health-interval 5s --health-timeout 5s --health-retries 20
-    defaults:
-      run:
-        working-directory: backend
-    steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-python@v7
+      - name: Backend phase diagnostics and timings
+        if: always()
+        uses: actions/upload-artifact@v7
         with:
-          python-version: '3.13.15'
-          cache: pip
-          cache-dependency-path: |
-            backend/requirements-dev.txt
-            backend/schema/requirements.txt
-      - name: Install dependencies
-        run: pip install -r requirements-dev.txt -c schema/requirements.txt
-      - name: Bootstrap the isolated scoped database
-        run: python manage.py migrate --settings=ledova_backend.settings.test_postgres --noinput
-      - name: Request path on the scoped connection (the half the ordinary settings cannot see)
-        run: >-
-          python manage.py test --settings=ledova_backend.settings.test_scoped
-          --require-scoped-coverage --parallel 4 --noinput
-          --durations 0 --verbosity 2 --timing
-
-  backend-chain:
-    name: Genuine EVM and Bitcoin checks
-    needs: scope
-    if: needs.scope.outputs.required == 'true'
-    runs-on: ${{ fromJSON(needs.scope.outputs.runners)['backend-chain'] }}
-    timeout-minutes: ${{ fromJSON(needs.scope.outputs.runner_timeout) }}
-    env:
-      SECRET_KEY: ci-only
-      STORAGE_BACKEND: local
-      POSTGRES_HOST: 127.0.0.1
-      POSTGRES_PORT: '5432'
-      POSTGRES_DB: ledova
-      POSTGRES_USER: ledova
-    services:
-      redis:
-        image: redis:7-alpine
-        ports:
-          - 6379:6379
-        options: >-
-          --health-cmd "redis-cli ping" --health-interval 5s --health-timeout 5s --health-retries 20
-      postgres:
-        image: postgres:16
-        env:
-          POSTGRES_DB: ledova
-          POSTGRES_USER: ledova
-          POSTGRES_HOST_AUTH_METHOD: trust
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U ledova -d ledova" --health-interval 5s --health-timeout 5s --health-retries 20
-    defaults:
-      run:
-        working-directory: backend
-    steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-python@v7
-        with:
-          python-version: '3.13.15'
-          cache: pip
-          cache-dependency-path: |
-            backend/requirements-dev.txt
-            backend/schema/requirements.txt
-      - name: Install dependencies
-        run: pip install -r requirements-dev.txt -c schema/requirements.txt
-      - name: Bootstrap the isolated chain database
-        run: python manage.py migrate --noinput
-      - uses: actions/setup-node@v7
-        with:
-          node-version: 22.15.1
-          cache: npm
-          cache-dependency-path: contracts/package-lock.json
-      - name: Install contract dependencies
-        working-directory: contracts
-        run: npm ci
-      - name: Real-chain tests (Hardhat node, core contracts, five modules and company capital/pause seeds)
-        working-directory: .
-        env:
-          REDIS_URL: redis://127.0.0.1:6379/0
-        run: |
-          timeout --kill-after=2s 10s python backend/manage.py shell --command \
-            'from django.conf import settings; from redis import Redis; Redis.from_url(settings.REDIS_URL, socket_connect_timeout=2, socket_timeout=2).ping()'
-          make chain-test PYTHON=python
-      - name: Bitcoin submission pipeline (isolated regtest and PostgreSQL)
-        working-directory: .
-        run: python scripts/test-bitcoin-chain.py
+          name: backend-checks
+          path: /tmp/ledova-backend-checks
+          retention-days: 7
+          if-no-files-found: ignore

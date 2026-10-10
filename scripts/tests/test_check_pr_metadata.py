@@ -2,7 +2,9 @@ import contextlib
 import importlib.util
 import io
 import json
+import os
 import subprocess
+import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -290,6 +292,233 @@ class LiveIssueVerification(unittest.TestCase):
                 with contextlib.redirect_stderr(io.StringIO()) as errors:
                     self.assertEqual(gate.main(), 1)
         self.assertIn("must be an issue", errors.getvalue())
+
+
+class LocalDraftVerification(unittest.TestCase):
+    def setUp(self):
+        temporary = tempfile.TemporaryDirectory(prefix="ledova-metadata-local-")
+        self.addCleanup(temporary.cleanup)
+        self.directory = Path(temporary.name)
+        self.repository = self.directory / "repository"
+        self.repository.mkdir()
+        self.git("init", "--quiet")
+        self.base = self.commit("test(#943): initial synthetic commit\n\nRefs #943")
+        self.title = self.directory / "title.txt"
+        self.body = self.directory / "body.md"
+        self.title.write_text("ci(#943): prepare the backend checks\n")
+        self.body.write_text("Refs #943\n\nRecorded focused verification.\n")
+
+    def git(self, *arguments, input=None):
+        environment = os.environ | {"GIT_CONFIG_NOSYSTEM": "1", "GIT_CONFIG_GLOBAL": os.devnull}
+        return subprocess.run(
+            ["git", *arguments],
+            cwd=self.repository,
+            env=environment,
+            input=input,
+            capture_output=True,
+            text=True,
+            check=True,
+        ).stdout.strip()
+
+    def commit(self, message):
+        self.git(
+            "-c",
+            "user.name=Synthetic",
+            "-c",
+            "user.email=synthetic@example.invalid",
+            "-c",
+            "core.hooksPath=/dev/null",
+            "-c",
+            "commit.gpgSign=false",
+            "commit",
+            "--quiet",
+            "--allow-empty",
+            "--file=-",
+            input=message,
+        )
+        return self.git("rev-parse", "HEAD")
+
+    def check(self, base=None):
+        return gate.check_local(self.title, self.body, self.base if base is None else base, self.repository)
+
+    def cli(self, *extra):
+        return [
+            "check-pr-metadata.py",
+            "--title-file",
+            str(self.title),
+            "--body-file",
+            str(self.body),
+            "--base",
+            self.base,
+            "--repository-path",
+            str(self.repository),
+            *extra,
+        ]
+
+    def test_an_ancestor_range_retains_every_full_commit_message_without_network_access(self):
+        first_message = "test(#943): retain original bytes\n\nRefs #943\n\n" + "Synthetic evidence.\n" * 300
+        first = self.commit(first_message)
+        second = self.commit("ci(#943): verify complete range\n\nRefs #943\n")
+        with patch.object(gate, "github_json") as api:
+            self.assertEqual(self.check(), 943)
+            commits = gate.local_commits(self.repository, self.base)
+        api.assert_not_called()
+        self.assertEqual({item["oid"] for item in commits}, {first, second})
+        self.assertEqual(
+            next(item for item in commits if item["oid"] == first)["messageBody"],
+            first_message.partition("\n")[2],
+        )
+
+    def test_an_empty_current_head_range_is_valid_without_invented_commit_messages(self):
+        self.assertEqual(gate.local_commits(self.repository, self.base), [])
+        self.assertEqual(self.check(), 943)
+
+    def test_each_body_closing_phrase_including_negation_is_refused_locally(self):
+        phrases = [
+            *(
+                f"This does not {word} #8."
+                for word in ("close", "closes", "closed", "fix", "fixes", "fixed", "resolve", "resolves", "resolved")
+            ),
+            "CLOSES: owner/repository#8",
+            "Resolved\nhttps://github.com/owner/repository/issues/8",
+        ]
+        for phrase in phrases:
+            self.body.write_text(f"Refs #943\n\n{phrase}\n")
+            with self.subTest(phrase=phrase), self.assertRaisesRegex(ValueError, "would close"):
+                self.check()
+
+    def test_closes_draft_preserves_the_existing_closing_wording_rule(self):
+        self.title.write_text("fix(#943): finish checks, fixes #8\r\n")
+        self.body.write_text("Closes #943\n\nCloses #8\n")
+        self.commit("test(#943): finish the issue\n\nFixes #8")
+        self.assertEqual(self.check(), 943)
+
+    def test_malformed_title_and_missing_or_mismatched_body_reference_are_refused(self):
+        for title, body in (
+            ("untracked title", "Refs #943"),
+            ("ci(#943): first\nsecond", "Refs #943"),
+            ("ci(#943): prepare checks", ""),
+            ("ci(#943): prepare checks", "Refs #944"),
+            ("ci(#943): prepare checks", "    Refs #943"),
+        ):
+            self.title.write_text(title)
+            self.body.write_text(body)
+            with self.subTest(title=title, body=body), self.assertRaises(ValueError):
+                self.check()
+
+    def test_missing_unreadable_or_non_utf8_draft_files_are_refused(self):
+        for invalid in (self.directory / "missing", self.directory):
+            with self.subTest(invalid=invalid), self.assertRaisesRegex(ValueError, "Cannot read"):
+                gate.check_local(invalid, self.body, self.base, self.repository)
+        self.body.write_bytes(b"\xff")
+        with self.assertRaisesRegex(ValueError, "Cannot read"):
+            self.check()
+
+    def test_closing_commit_headlines_and_late_body_text_name_the_commit(self):
+        for message in (
+            "Fixed #8",
+            "test(#943): preserve the entire message\n\n" + "Synthetic evidence.\n" * 300 + "Does not close #8",
+        ):
+            with self.subTest(message=message[:50]):
+                self.git("checkout", "--quiet", "--detach", self.base)
+                oid = self.commit(message)
+                with self.assertRaisesRegex(ValueError, rf"{oid[:7]} \(#8\)"):
+                    self.check()
+
+    def test_unavailable_invalid_and_divergent_bases_are_refused(self):
+        for base in ("", " HEAD", "missing-reference", "HEAD~100", "--all"):
+            with self.subTest(base=base), self.assertRaises(ValueError):
+                self.check(base)
+        other = self.commit("test(#943): other branch\n\nRefs #943")
+        self.git("checkout", "--quiet", "--detach", self.base)
+        self.commit("test(#943): current branch\n\nRefs #943")
+        with self.assertRaisesRegex(ValueError, "complete ancestor base"):
+            self.check(other)
+
+    def test_shallow_history_is_refused_even_when_the_base_is_present(self):
+        self.commit("test(#943): shallow tip\n\nRefs #943")
+        shallow = self.directory / "shallow"
+        self.git("clone", "--quiet", "--depth=1", self.repository.as_uri(), str(shallow))
+        with self.assertRaisesRegex(ValueError, "complete history"):
+            gate.check_local(self.title, self.body, "HEAD", shallow)
+
+    def test_truncated_malformed_or_duplicate_git_inventory_is_refused(self):
+        oid = "a" * 40
+        record = f"{oid}\0test(#943): step\n\nRefs #943\n\0".encode()
+        for count, output in (
+            (b"2\n", record),
+            (b"1\n", record[:-1]),
+            (b"2\n", record * 2),
+            (b"1\n", b"invalid\0message\0"),
+            (b"1\n", b"\xff"),
+            (b"invalid\n", record),
+        ):
+            answers = [b"a" * 40 + b"\n", b"b" * 40 + b"\n", b"false\n", b"", count, output]
+            results = [subprocess.CompletedProcess([], 0, stdout=value) for value in answers]
+            with self.subTest(count=count, output=output[:30]), patch.object(
+                gate.subprocess, "run", side_effect=results
+            ):
+                with self.assertRaises(ValueError):
+                    gate.local_commits(self.repository, "base")
+
+    def test_git_timeout_and_malformed_revision_identity_fail_closed(self):
+        for response in (
+            subprocess.TimeoutExpired(["git"], 30),
+            subprocess.CompletedProcess([], 0, stdout=b"not-a-commit\n"),
+        ):
+            with self.subTest(response=response), patch.object(
+                gate.subprocess, "run", side_effect=[response, response]
+            ):
+                with self.assertRaises(ValueError):
+                    gate.local_commits(self.repository, "base")
+
+    def test_draft_commit_and_base_shell_text_remain_literal_data(self):
+        sentinel = self.directory / "executed"
+        literal = f"$(touch {sentinel}) `touch {sentinel}`"
+        self.title.write_text(f"ci(#943): retain {literal}\n")
+        self.body.write_text(f"Refs #943\n\n{literal}\n")
+        self.commit(f"test(#943): retain {literal}\n\nRefs #943\n{literal}")
+        self.assertEqual(self.check(), 943)
+        original_run = subprocess.run
+        with patch.object(gate.subprocess, "run", side_effect=original_run) as run:
+            with self.assertRaises(ValueError):
+                self.check(f"HEAD; touch {sentinel}")
+        self.assertFalse(sentinel.exists())
+        arguments = run.call_args.args[0]
+        self.assertEqual(arguments[-1], f"HEAD; touch {sentinel}^{{commit}}")
+        self.assertIn("--end-of-options", arguments)
+        self.assertNotIn("shell", run.call_args.kwargs)
+
+    def test_local_cli_pass_names_its_online_verification_limit(self):
+        output = io.StringIO()
+        with patch("sys.argv", self.cli()), patch.object(gate, "github_json") as api:
+            with contextlib.redirect_stdout(output):
+                self.assertEqual(gate.main(), 0)
+        api.assert_not_called()
+        self.assertIn("complete base-to-HEAD commit range", output.getvalue())
+        self.assertIn("required online", output.getvalue())
+
+    def test_partial_or_mixed_cli_modes_are_refused_before_git_or_github(self):
+        invalid = (
+            [],
+            ["--repository", "owner/repository"],
+            ["--pr", "1"],
+            ["--title-file", str(self.title)],
+            ["--title-file", str(self.title), "--body-file", str(self.body)],
+            self.cli()[1:] + ["--repository", "owner/repository", "--pr", "1"],
+            self.cli()[1:] + ["--pr", "1"],
+            ["--repository", "owner/repository", "--pr", "1", "--base", self.base],
+            ["--repository", "owner/repository", "--pr", "1", "--body-file", str(self.body)],
+            ["--repository", "owner/repository", "--pr", "1", "--repository-path", str(self.repository)],
+        )
+        for arguments in invalid:
+            with self.subTest(arguments=arguments), patch("sys.argv", ["check-pr-metadata.py", *arguments]):
+                with patch.object(gate, "github_json") as api, patch.object(gate.subprocess, "run") as run:
+                    with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit) as refusal:
+                        gate.main()
+                self.assertEqual(refusal.exception.code, 2)
+                api.assert_not_called()
+                run.assert_not_called()
 
 
 class MetadataWorkflow(unittest.TestCase):

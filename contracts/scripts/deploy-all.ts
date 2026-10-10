@@ -92,7 +92,8 @@ ATOMIC_SWAP_ADDRESS=${atomicSwapAddress}
 STABLECOIN_CONTRACT_ADDRESS=${stablecoinAddress}
 `;
 
-  const envPath = "../.deployed-contracts.env";
+  const envPath =
+    process.env.LEDOVA_DEPLOY_ENV_FILE ?? "../.deployed-contracts.env";
   fs.writeFileSync(envPath, envContent);
   console.log(`\nContract addresses written to: ${envPath}`);
   console.log("\nDeployment complete!");
