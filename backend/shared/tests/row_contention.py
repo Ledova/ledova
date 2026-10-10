@@ -43,10 +43,10 @@ class RealRowContention:
             deadline = monotonic() + 5
         last = None
         expected = query
-        select_prefix = None
+        select_table = None
         if expected is None and row is not None:
             expected = row._meta.db_table
-            select_prefix = f'SELECT "{row._meta.db_table}"'
+            select_table = f'"{row._meta.db_table}"'
         while monotonic() < deadline:
             if future is not None:
                 self.assert_worker_running(future, stage="lock observation")
@@ -62,7 +62,13 @@ class RealRowContention:
                 and blocker in last[0]
                 and last[1] == "Lock"
                 and (expected is None or expected in (last[2] or ""))
-                and (select_prefix is None or (last[2] or "").startswith(select_prefix))
+                and (
+                    select_table is None
+                    or (
+                        (last[2] or "").startswith("SELECT ")
+                        and (last[2] or "").partition(" FROM ")[2].startswith(select_table)
+                    )
+                )
             ):
                 logger.info(
                     "Observed PostgreSQL waiter=%s blocker=%s blocking_pids=%s row=%s/%s query=%s",
