@@ -415,7 +415,134 @@ class DjangoScopeTest(ScopeCase):
             text=True,
         )
         self.assertFalse(json.loads(result.stdout)["required"])
-        self.assertEqual(output.read_text(), "required=false\n")
+        self.assertEqual(
+            output.read_text(),
+            'required=false\nscoped_runner="ubuntu-latest"\nscoped_timeout=360\n',
+        )
+
+
+class PreferredMainRunnerTest(unittest.TestCase):
+    CONTEXT = {
+        "GITHUB_EVENT_NAME": "push",
+        "GITHUB_REPOSITORY": "Ledova/ledova",
+        "GITHUB_REF": "refs/heads/main",
+        "GITHUB_RUN_ID": "123456789",
+        "GITHUB_RUN_ATTEMPT": "1",
+    }
+
+    def route(self, changes=None, scope="django", arguments=()):
+        with tempfile.TemporaryDirectory() as directory:
+            event = Path(directory) / "event.json"
+            event.write_text("{}")
+            output = Path(directory) / "github-output"
+            environment = {key: value for key, value in os.environ.items() if key not in self.CONTEXT}
+            environment.update(self.CONTEXT)
+            environment.update(changes or {})
+            environment = {key: value for key, value in environment.items() if value is not None}
+            environment.update(GITHUB_EVENT_PATH=str(event), GITHUB_OUTPUT=str(output))
+            result = subprocess.run(
+                [sys.executable, str(SCRIPT), "route", scope, *arguments],
+                env=environment,
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            outputs = dict(line.split("=", 1) for line in output.read_text().splitlines())
+            return json.loads(result.stdout), outputs
+
+    def assert_standard(self, outputs):
+        self.assertEqual(
+            outputs,
+            {
+                "required": "true",
+                "scoped_runner": '"ubuntu-latest"',
+                "scoped_timeout": "360",
+            },
+        )
+
+    def test_real_main_push_and_dispatch_select_only_scoped_profile_per_run_labels_and_limits(self):
+        for event in ("push", "workflow_dispatch"):
+            with self.subTest(event=event):
+                decision, outputs = self.route({"GITHUB_EVENT_NAME": event})
+                self.assertTrue(decision["required"])
+                self.assertEqual(
+                    {key: json.loads(value) for key, value in outputs.items()},
+                    {
+                        "required": True,
+                        "scoped_runner": {
+                            "group": "ledova-mac-linux-arm64-pilot",
+                            "labels": ["ledova-mac-linux-arm64-pilot", "ledova-main-123456789-1"],
+                        },
+                        "scoped_timeout": 130,
+                    },
+                )
+
+    def test_distinct_runs_and_attempts_require_distinct_guest_labels(self):
+        labels = []
+        for run_id, attempt in (("123456789", "1"), ("123456790", "1"), ("123456789", "2")):
+            with self.subTest(run=run_id, attempt=attempt):
+                context = {"GITHUB_RUN_ID": run_id, "GITHUB_RUN_ATTEMPT": attempt}
+                decision, outputs = self.route(context)
+                self.assertEqual(self.route(context), (decision, outputs))
+                expected = f"ledova-main-{run_id}-{attempt}"
+                selected = json.loads(outputs["scoped_runner"])["labels"]
+                self.assertEqual(len(selected), 2)
+                self.assertEqual(selected[1], expected)
+                labels.append(expected)
+        self.assertEqual(len(set(labels)), 3)
+
+    def test_missing_case_changed_foreign_and_other_contexts_stay_standard(self):
+        changes = [{key: value} for key in self.CONTEXT for value in (None, "")]
+        changes.extend(
+            {"GITHUB_EVENT_NAME": event}
+            for event in ("pull_request", "pull_request_target", "schedule", "PUSH", "WORKFLOW_DISPATCH", "unknown")
+        )
+        changes.extend(
+            {"GITHUB_REPOSITORY": repository}
+            for repository in ("ledova/ledova", "Ledova/Ledova", "fork/ledova", "Ledova/ledova-extra", " Ledova/ledova")
+        )
+        changes.extend(
+            {"GITHUB_REF": ref}
+            for ref in (
+                "refs/heads/codex/943-trusted-selfhosted-pilot-runs",
+                "refs/heads/codex/943-trusted-selfhosted-pilot",
+                "refs/heads/Main",
+                "refs/tags/main",
+                "refs/heads/main-extra",
+                "prefix/refs/heads/main",
+                "refs/pull/123/merge",
+                "main",
+            )
+        )
+        changes.append(dict.fromkeys(self.CONTEXT))
+        for change in changes:
+            with self.subTest(context=change):
+                decision, outputs = self.route(change)
+                self.assertTrue(decision["required"])
+                self.assert_standard(outputs)
+
+    def test_invalid_run_ids_and_attempts_stay_standard(self):
+        for key in ("GITHUB_RUN_ID", "GITHUB_RUN_ATTEMPT"):
+            for value in ("0", "-1", "+1", "01", "1.0", "1e2", " 1", "1 ", "1\n", "１２3", "١", "a", "1-1"):
+                with self.subTest(key=key, value=value):
+                    decision, outputs = self.route({key: value})
+                    self.assertTrue(decision["required"])
+                    self.assert_standard(outputs)
+
+    def test_cli_event_arguments_cannot_supply_or_override_runner_context(self):
+        for changes in ({}, {"GITHUB_EVENT_NAME": "pull_request"}, {"GITHUB_EVENT_NAME": None}):
+            for event in ("push", "workflow_dispatch", "pull_request", "unknown"):
+                with self.subTest(context=changes, argument=event):
+                    _, outputs = self.route(changes, arguments=("--event", event))
+                    self.assertEqual(outputs["scoped_runner"], '"ubuntu-latest"')
+                    self.assertEqual(outputs["scoped_timeout"], "360")
+
+    def test_preferred_main_context_does_not_add_native_runner_outputs(self):
+        for event in ("push", "workflow_dispatch"):
+            with self.subTest(event=event):
+                decision, outputs = self.route({"GITHUB_EVENT_NAME": event}, scope="native")
+                self.assertTrue(decision["required"])
+                self.assertEqual(outputs, {"required": "true"})
 
 
 class NativeBuildVerdictTest(unittest.TestCase):
@@ -566,7 +693,8 @@ class DjangoVerdictTest(unittest.TestCase):
 class DjangoWorkflowTest(unittest.TestCase):
     def setUp(self):
         path = SCRIPT.parent.parent / ".github" / "workflows" / "ci.yml"
-        self.jobs = yaml.safe_load(path.read_text())["jobs"]
+        self.workflow = yaml.safe_load(path.read_text())
+        self.jobs = self.workflow["jobs"]
 
     def commands(self):
         return [
@@ -589,6 +717,51 @@ class DjangoWorkflowTest(unittest.TestCase):
                 self.assertEqual(job["if"], "needs.scope.outputs.required == 'true'")
                 self.assertFalse(job.get("continue-on-error", False))
                 self.assertTrue(all(not step.get("continue-on-error", False) for step in job["steps"]))
+
+    def test_runner_outputs_reach_only_the_complete_scoped_job(self):
+        events = self.workflow.get("on", self.workflow.get(True))
+        self.assertEqual(set(events), {"push", "pull_request", "workflow_dispatch"})
+        self.assertIsNone(events["workflow_dispatch"])
+        self.assertEqual(set(self.jobs["scope"]["outputs"]), {"required", "scoped_runner", "scoped_timeout"})
+        for output in ("scoped_runner", "scoped_timeout"):
+            with self.subTest(output=output):
+                self.assertEqual(self.jobs["scope"]["outputs"][output], "${{ steps.scope.outputs." + output + " }}")
+        scoped = self.jobs["backend-scoped"]
+        self.assertEqual(scoped["runs-on"], "${{ fromJSON(needs.scope.outputs.scoped_runner) }}")
+        self.assertEqual(scoped["timeout-minutes"], "${{ fromJSON(needs.scope.outputs.scoped_timeout) }}")
+        consumers = {name for name, job in self.jobs.items() if "needs.scope.outputs." in str(job.get("runs-on"))}
+        self.assertEqual(consumers, {"backend-scoped"})
+        for name, job in self.jobs.items():
+            if name not in consumers:
+                with self.subTest(job=name):
+                    self.assertEqual(job["runs-on"], "ubuntu-latest")
+
+    def test_mac_first_keeps_all_ordinary_shards_on_hosted_capacity(self):
+        shard = self.jobs["backend-suite-shard"]
+        self.assertEqual(shard["runs-on"], "ubuntu-latest")
+        self.assertEqual(shard["timeout-minutes"], 360)
+
+    def test_runner_routing_keeps_all_ordinary_shards_and_one_complete_inventory(self):
+        shard = self.jobs["backend-suite-shard"]
+        self.assertEqual(
+            shard["strategy"],
+            {
+                "fail-fast": False,
+                "matrix": {
+                    "shard": ["tokens-1", "tokens-2", "tokens-3", "shared-wallets", "companies-users", "others"]
+                },
+            },
+        )
+        self.assertEqual(shard["services"]["postgres"], self.jobs["backend"]["services"]["postgres"])
+        inventory = [row for row in self.commands() if row[2] == "python ../scripts/check-ordinary-shards.py"]
+        self.assertEqual(len(inventory), 1)
+        self.assertEqual(inventory[0][0], "backend-suite-shard")
+        self.assertEqual(inventory[0][1]["if"], "strategy.job-index == 0")
+        suites = [row for row in self.commands() if "check-ordinary-shards.py --run" in row[2]]
+        self.assertEqual(len(suites), 1)
+        self.assertEqual(suites[0][0], "backend-suite-shard")
+        self.assertEqual(suites[0][2], "python ../scripts/check-ordinary-shards.py --run ${{ matrix.shard }}")
+        self.assertNotIn("if", suites[0][1])
 
     def test_scoped_coverage_is_unlabelled_required_and_runs_exactly_once(self):
         matches = [row for row in self.commands() if "--settings=ledova_backend.settings.test_scoped" in row[2]]
@@ -639,7 +812,14 @@ class DjangoWorkflowTest(unittest.TestCase):
         ):
             with self.subTest(job=name):
                 job = self.jobs[name]
-                self.assertEqual(job["runs-on"], "ubuntu-latest")
+                self.assertEqual(
+                    job["runs-on"],
+                    (
+                        "${{ fromJSON(needs.scope.outputs.scoped_runner) }}"
+                        if name == "backend-scoped"
+                        else "ubuntu-latest"
+                    ),
+                )
                 self.assertEqual(job["env"], self.jobs["backend"]["env"])
                 self.assertEqual(job["services"], self.jobs["backend"]["services"])
                 self.assertEqual(job["services"]["postgres"]["image"], "postgres:16")

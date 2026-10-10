@@ -155,13 +155,55 @@ skipped because none was needed.
 
 The scoped and chain jobs depend only on that scope decision and can run
 concurrently with each other and the remaining backend checks. Each has its own
-hosted runner, fresh PostgreSQL/Redis services and database bootstrap. The scoped
+runner, fresh PostgreSQL/Redis services and database bootstrap. The scoped
 job retains the complete required scoped inventory and zero-skip checks; the
 chain job retains both EVM invocations and Bitcoin regtest. Schema generation,
 role/catalogue checks, real Redis controls and ClamAV remain in the backend job.
 All four backend job groups must have their expected result before the verdict
 passes; a missing dependency fails it. Independent jobs may still queue, and
 their source topology alone does not establish an elapsed-time improvement.
+
+Preferred self-hosted routing uses only real `push` or `workflow_dispatch`
+events in `Ledova/ledova` on `refs/heads/main`. The scope router reads the actual
+GitHub repository, event, full ref, run ID and attempt with case-sensitive
+comparisons. It selects only the fixed Mac-hosted Linux ARM64 group/profile
+for complete strict scoped. All six ordinary shards, including whole `tokens-2`,
+use `ubuntu-latest` with a 360-minute execution timeout. The scoped selection
+also requires `ledova-main-<run_id>-<run_attempt>` alongside its fixed label,
+binding a fresh registration to that run and attempt. Missing or invalid
+identity and every other context use standard runners. CLI event
+arguments cannot supply runner identity. Chain, scanner, source, JavaScript and
+native routing remain unchanged; ordinary CI does not dispatch native builds.
+
+Keeping this job available requires disposing each used guest and replenishing
+a clean one-job guest under the fixed primary allocation of six CPUs and 12 GiB.
+Each new immutable policy binds the actual queued reviewed main source SHA/tree,
+repository, event, workflow/ref, run/attempt and assigned job/profile. A later
+main commit needs a new policy and registration. Do not widen or reload a live
+receipt. Establish and read back exact repository/main-workflow eligibility
+before delivery, with registrations offline throughout separate settings writes.
+Eligibility can remain narrow between jobs; listener admission still requires
+fresh immutable source/run/job receipts and a current policy readback before
+starting the matching controller. Retain diagnostics and let busy work finish
+during drain. The existing dormant zero-policy sessions supply no job admission.
+
+Complete inventories, commands, services and four workers remain unchanged.
+The selected scoped job has a 130-minute execution timeout; its standard-runner
+contexts retain 360 minutes. An unavailable selected runner leaves work queued;
+GitHub's runner queue limit is 24 hours, separate from execution time. No automatic
+hosted fallback is implemented. Surface outage and replenishment failures rather
+than presenting queued or skipped work as success. Linux ordinary preference requires a later reviewed source increment after its
+disabled host handover and readiness. Both secondary slots need separate
+compatible-job policy and full-load acceptance before their routing changes.
+Trusted PR preference needs a protected reusable definition and its own
+verified source admission; current PRs stay on standard runners.
+
+Record actual source/job/runner identities, guest CPU/memory, architecture,
+resolved tools/services, IDs/skips, queue/setup/test/job timing, verdict and
+fresh-guest disposal/replacement. Wheel metadata and smoke readiness do not
+prove a complete four-worker ARM run fits. A single successful operational
+acceptance or method total does not establish repeatable wall-time improvement.
+Managed paid capacity remains separately controlled and is unused by this route.
 
 The [9 October owner direction](../decisions.md#essential-registry-and-development-workflow-priority)
 prioritises further fixture and CI simplification under

@@ -7,6 +7,7 @@ on:
   # got no CI at all under `branches: [main]`, which is exactly the branch that
   # most needs it.
   pull_request:
+  workflow_dispatch:
 
 jobs:
   source-gates:
@@ -125,6 +126,8 @@ jobs:
     timeout-minutes: 5
     outputs:
       required: ${{ steps.scope.outputs.required }}
+      scoped_runner: ${{ steps.scope.outputs.scoped_runner }}
+      scoped_timeout: ${{ steps.scope.outputs.scoped_timeout }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -138,6 +141,7 @@ jobs:
     needs: scope
     if: needs.scope.outputs.required == 'true'
     runs-on: ubuntu-latest
+    timeout-minutes: 360
     strategy:
       fail-fast: false
       matrix:
@@ -313,7 +317,8 @@ jobs:
     name: Django strict scoped requests
     needs: scope
     if: needs.scope.outputs.required == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(needs.scope.outputs.scoped_runner) }}
+    timeout-minutes: ${{ fromJSON(needs.scope.outputs.scoped_timeout) }}
     env:
       SECRET_KEY: ci-only
       STORAGE_BACKEND: local
