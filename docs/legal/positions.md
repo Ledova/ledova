@@ -8,12 +8,12 @@ and the [4 October 2026 minimal-involvement decision](../decisions.md#company-re
 postdate the readings on this page, which have not been reconfirmed against
 the current company-managed workflows. Neither product decision establishes a
 legal conclusion, and platform payment, crypto and support functions must be
-assessed on what they actually do. Procedures described here as performed by platform staff are
-implementation references pending the replacement workflows, not the current
-authority model. The 4 October decision also sets the rule that no
-impersonation or fraud verification is added unless a legal duty on Ledova
-requires it, and sends any such duty here to be raised with the owner with its
-source.
+assessed on what they actually do. Procedures described here as performed by
+platform staff are implementation references pending the replacement
+workflows, not the current authority model. The 4 October decision also sets
+the rule that no impersonation or fraud verification is added unless a legal
+duty on Ledova requires it, and sends any such duty here to be raised with the
+owner with its source.
 
 The questions the project depends on. Nobody qualified has been asked any of
 them. Each position has the [same parts](README.md#how-a-position-is-written).
