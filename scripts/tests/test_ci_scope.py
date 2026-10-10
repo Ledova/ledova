@@ -417,8 +417,7 @@ class DjangoScopeTest(ScopeCase):
         self.assertFalse(json.loads(result.stdout)["required"])
         self.assertEqual(
             output.read_text(),
-            'required=false\ntokens2_runner="ubuntu-latest"\nscoped_runner="ubuntu-latest"\n'
-            "tokens2_timeout=360\nscoped_timeout=360\n",
+            'required=false\nscoped_runner="ubuntu-latest"\nscoped_timeout=360\n',
         )
 
 
@@ -456,14 +455,12 @@ class PreferredMainRunnerTest(unittest.TestCase):
             outputs,
             {
                 "required": "true",
-                "tokens2_runner": '"ubuntu-latest"',
                 "scoped_runner": '"ubuntu-latest"',
-                "tokens2_timeout": "360",
                 "scoped_timeout": "360",
             },
         )
 
-    def test_real_main_push_and_dispatch_select_fixed_groups_per_run_labels_and_limits(self):
+    def test_real_main_push_and_dispatch_select_only_scoped_profile_per_run_labels_and_limits(self):
         for event in ("push", "workflow_dispatch"):
             with self.subTest(event=event):
                 decision, outputs = self.route({"GITHUB_EVENT_NAME": event})
@@ -472,15 +469,10 @@ class PreferredMainRunnerTest(unittest.TestCase):
                     {key: json.loads(value) for key, value in outputs.items()},
                     {
                         "required": True,
-                        "tokens2_runner": {
-                            "group": "ledova-selfhosted-linux-pilot",
-                            "labels": ["ledova-selfhosted-linux-x64-943-6c16g", "ledova-main-123456789-1"],
-                        },
                         "scoped_runner": {
                             "group": "ledova-mac-linux-arm64-pilot",
                             "labels": ["ledova-mac-linux-arm64-pilot", "ledova-main-123456789-1"],
                         },
-                        "tokens2_timeout": 130,
                         "scoped_timeout": 130,
                     },
                 )
@@ -493,10 +485,9 @@ class PreferredMainRunnerTest(unittest.TestCase):
                 decision, outputs = self.route(context)
                 self.assertEqual(self.route(context), (decision, outputs))
                 expected = f"ledova-main-{run_id}-{attempt}"
-                for key in ("tokens2_runner", "scoped_runner"):
-                    selected = json.loads(outputs[key])["labels"]
-                    self.assertEqual(len(selected), 2)
-                    self.assertEqual(selected[1], expected)
+                selected = json.loads(outputs["scoped_runner"])["labels"]
+                self.assertEqual(len(selected), 2)
+                self.assertEqual(selected[1], expected)
                 labels.append(expected)
         self.assertEqual(len(set(labels)), 3)
 
@@ -543,9 +534,7 @@ class PreferredMainRunnerTest(unittest.TestCase):
             for event in ("push", "workflow_dispatch", "pull_request", "unknown"):
                 with self.subTest(context=changes, argument=event):
                     _, outputs = self.route(changes, arguments=("--event", event))
-                    self.assertEqual(outputs["tokens2_runner"], '"ubuntu-latest"')
                     self.assertEqual(outputs["scoped_runner"], '"ubuntu-latest"')
-                    self.assertEqual(outputs["tokens2_timeout"], "360")
                     self.assertEqual(outputs["scoped_timeout"], "360")
 
     def test_preferred_main_context_does_not_add_native_runner_outputs(self):
@@ -729,31 +718,28 @@ class DjangoWorkflowTest(unittest.TestCase):
                 self.assertFalse(job.get("continue-on-error", False))
                 self.assertTrue(all(not step.get("continue-on-error", False) for step in job["steps"]))
 
-    def test_runner_outputs_reach_only_tokens_two_and_the_complete_scoped_job(self):
+    def test_runner_outputs_reach_only_the_complete_scoped_job(self):
         events = self.workflow.get("on", self.workflow.get(True))
         self.assertEqual(set(events), {"push", "pull_request", "workflow_dispatch"})
         self.assertIsNone(events["workflow_dispatch"])
-        for output in ("tokens2_runner", "scoped_runner", "tokens2_timeout", "scoped_timeout"):
+        self.assertEqual(set(self.jobs["scope"]["outputs"]), {"required", "scoped_runner", "scoped_timeout"})
+        for output in ("scoped_runner", "scoped_timeout"):
             with self.subTest(output=output):
                 self.assertEqual(self.jobs["scope"]["outputs"][output], "${{ steps.scope.outputs." + output + " }}")
-        shard = self.jobs["backend-suite-shard"]
-        self.assertEqual(
-            shard["runs-on"],
-            "${{ fromJSON(matrix.shard == 'tokens-2' && needs.scope.outputs.tokens2_runner || '\"ubuntu-latest\"') }}",
-        )
-        self.assertEqual(
-            shard["timeout-minutes"],
-            "${{ fromJSON(matrix.shard == 'tokens-2' && needs.scope.outputs.tokens2_timeout || '360') }}",
-        )
         scoped = self.jobs["backend-scoped"]
         self.assertEqual(scoped["runs-on"], "${{ fromJSON(needs.scope.outputs.scoped_runner) }}")
         self.assertEqual(scoped["timeout-minutes"], "${{ fromJSON(needs.scope.outputs.scoped_timeout) }}")
         consumers = {name for name, job in self.jobs.items() if "needs.scope.outputs." in str(job.get("runs-on"))}
-        self.assertEqual(consumers, {"backend-suite-shard", "backend-scoped"})
+        self.assertEqual(consumers, {"backend-scoped"})
         for name, job in self.jobs.items():
             if name not in consumers:
                 with self.subTest(job=name):
                     self.assertEqual(job["runs-on"], "ubuntu-latest")
+
+    def test_mac_first_keeps_all_ordinary_shards_on_hosted_capacity(self):
+        shard = self.jobs["backend-suite-shard"]
+        self.assertEqual(shard["runs-on"], "ubuntu-latest")
+        self.assertEqual(shard["timeout-minutes"], 360)
 
     def test_runner_routing_keeps_all_ordinary_shards_and_one_complete_inventory(self):
         shard = self.jobs["backend-suite-shard"]

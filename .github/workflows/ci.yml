@@ -126,9 +126,7 @@ jobs:
     timeout-minutes: 5
     outputs:
       required: ${{ steps.scope.outputs.required }}
-      tokens2_runner: ${{ steps.scope.outputs.tokens2_runner }}
       scoped_runner: ${{ steps.scope.outputs.scoped_runner }}
-      tokens2_timeout: ${{ steps.scope.outputs.tokens2_timeout }}
       scoped_timeout: ${{ steps.scope.outputs.scoped_timeout }}
     steps:
       - uses: actions/checkout@v7
@@ -142,8 +140,8 @@ jobs:
     name: Django ordinary shard (${{ matrix.shard }})
     needs: scope
     if: needs.scope.outputs.required == 'true'
-    runs-on: ${{ fromJSON(matrix.shard == 'tokens-2' && needs.scope.outputs.tokens2_runner || '"ubuntu-latest"') }}
-    timeout-minutes: ${{ fromJSON(matrix.shard == 'tokens-2' && needs.scope.outputs.tokens2_timeout || '360') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
     strategy:
       fail-fast: false
       matrix:

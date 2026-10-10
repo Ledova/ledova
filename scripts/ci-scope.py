@@ -122,17 +122,11 @@ def django_runners(environment):
     )
     run_label = f"ledova-main-{run_id}-{attempt}"
     return {
-        "tokens2_runner": (
-            {"group": "ledova-selfhosted-linux-pilot", "labels": ["ledova-selfhosted-linux-x64-943-6c16g", run_label]}
-            if trusted
-            else "ubuntu-latest"
-        ),
         "scoped_runner": (
             {"group": "ledova-mac-linux-arm64-pilot", "labels": ["ledova-mac-linux-arm64-pilot", run_label]}
             if trusted
             else "ubuntu-latest"
         ),
-        "tokens2_timeout": 130 if trusted else 360,
         "scoped_timeout": 130 if trusted else 360,
     }
 
