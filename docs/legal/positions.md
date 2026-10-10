@@ -2,7 +2,7 @@
 
 [Legal and regulatory](README.md) · [Regulatory pathway](../regulatory-pathway.md)
 
-**Current positions, written 15 September 2026 and dated individually below.**
+**Current positions, recorded from 15 September 2026 and dated individually below.**
 The [3 October 2026 one-product decision](../architecture/company-managed-registers.md)
 and the [4 October 2026 minimal-involvement decision](../decisions.md#company-representative-verification)
 postdate the readings on this page, which have not been reconfirmed against
