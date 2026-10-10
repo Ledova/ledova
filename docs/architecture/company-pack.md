@@ -21,11 +21,13 @@ Platform staff produce the pack in admin on the company's written instruction;
 [#871](https://github.com/Ledova/ledova/issues/871) adds company-scoped
 preparation with exact company scoping, instruction and requester provenance
 and audited production, keeping the snapshot, ceilings, digests, immutable
-export records and exclusions below. Company-authorised decisions are exported
-with their actual mandate and actor while historical staff reviewers keep their
-original attribution, and the pack's figures and chain evidence are records
-with stated limits, not proof of a bank payment, current contract ownership or
-a lodged ASIC filing.
+export records and exclusions below. The same planned increment is to export
+company-authorised decisions with their actual mandate and actor, keeping
+historical staff reviewers' original attribution and changing no existing
+file's meaning without the format change described below; today those
+decisions are not carried ([Limits](#limits)). The pack's figures and chain
+evidence are records with stated limits, not proof of a bank payment, current
+contract ownership or a lodged ASIC filing.
 
 ## Producing and recording
 
