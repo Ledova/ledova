@@ -1,6 +1,6 @@
 # The demonstration journey
 
-[Operations](README.md) · [Chains and keys](chains.md) · [Product §8](../product.md#8-guidance-for-implementation)
+[Operations](README.md) · [Chains and keys](chains.md)
 
 This page records the existing synthetic chain journey and its staff-assisted
 setup. It does not demonstrate the accepted
@@ -11,13 +11,13 @@ test and its evidence as regression coverage while adding verification of the
 replacement company workflows; payment and crypto operations do not confer
 company register authority.
 
-[Product §8](../product.md#8-guidance-for-implementation) asks for an
-incremental flow covering discovery, a seller listing, offer acceptance,
-approvals, simulated external payment, contract-enforced transfer and
-reconciliation, and for verification of private-data isolation, revocation,
-provider failure, direct contract calls, duplicate requests and migration to
-another interface. [#645](https://github.com/Ledova/ledova/issues/645) builds
-that as one real-chain test on one synthetic data set. This page maps each step
+The original product definition, carried out in
+[#645](https://github.com/Ledova/ledova/issues/645), asked for an incremental
+flow covering discovery, a seller listing, offer acceptance, approvals,
+simulated external payment, contract-enforced transfer and reconciliation, and
+for verification of private-data isolation, revocation, provider failure, direct
+contract calls, duplicate requests and migration to another interface. #645
+built that as one real-chain test on one synthetic data set. This page maps each step
 and each verification item to the test that proves it, and states what is real,
 what is simulated and what is still untested.
 

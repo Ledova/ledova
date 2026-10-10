@@ -3,138 +3,140 @@
 [Documentation](README.md) · [Current capabilities](product.md)
 
 This page orients the remaining work; the
-[open issues](https://github.com/Ledova/ledova/issues) are the working list. The
-[product alignment programme](https://github.com/Ledova/ledova/issues/645) and its
-phase issues record how the shipped work was built.
-
-The accepted direction is one private-company registry for companies and their
-shareholders, including private hosting of the same software. Companies make
-issuer decisions; Ledova records ownership and supplies bounded tools.
-The [9 October owner decision](decisions.md#essential-registry-and-development-workflow-priority)
-puts CI simplification first, then employee award/vesting records, external
-investor capital and allotments, ownership, member access and basic outputs.
-It supersedes immediate payment and marketplace expansion. Companies remain
-prohibited from buying cryptocurrency through the optional investor on-ramp.
-
+[open issues](https://github.com/Ledova/ledova/issues) are the working list.
 [Programme #860](https://github.com/Ledova/ledova/issues/860) and the
-[implementation index](plans/company-managed-registers/README.md) own the revised
-scope, current claims and dependencies. Reuse these issues rather than creating
-a parallel backlog. The [accepted plan](architecture/company-managed-registers.md)
-and [baseline documentation audit](plans/company-managed-registers/documentation-audit.md)
-retain the transition and delivered history.
+[implementation index](plans/company-managed-registers/README.md) carry the
+current claims and dependencies; the
+[9 October decision](decisions.md#essential-registry-and-development-workflow-priority)
+sets the order below. Reuse these issues rather than creating a parallel backlog.
 
 ## Shipped
 
-- Issuance on chain: [company-authorised empty share-class deployment](plans/company-managed-registers/company-deployments.md),
-  whitelisted recipients, authorized
-  caps and recovery of interrupted requests
-  ([contracts and issuance](architecture/contracts-and-issuance.md),
+The company-managed register foundation, delivered under #860:
+
+- One registry product ([#861](https://github.com/Ledova/ledova/issues/861)):
+  the product modes are retired.
+- Company authority ([#862](https://github.com/Ledova/ledova/issues/862)):
+  [self-declaration admission, invitations, scoped delegation and revocation](plans/company-managed-registers/authority-requests.md)
+  and [company information and documents](plans/company-managed-registers/company-information.md).
+- Activation and participant eligibility ([#863](https://github.com/Ledova/ledova/issues/863)):
+  [company activation](plans/company-managed-registers/company-activation.md)
+  and [company eligibility decisions](plans/company-managed-registers/company-eligibility.md),
+  which replaced platform-staff classification review.
+- Register commands ([#864](https://github.com/Ledova/ledova/issues/864)):
+  register reads by appointment, imports, corrections, reconciliation
+  acknowledgement, openings from the chain, member particulars changes and
+  member-wallet links, in the API and both clients
+  ([stored register runbook](operations/register-foundation.md)).
+- Non-paid [register grants](plans/company-managed-registers/register-grants.md)
+  and [transfers](plans/company-managed-registers/register-transfers.md) with
+  cessation history ([#865](https://github.com/Ledova/ledova/issues/865)).
+- Company-authorised chain actions ([#867](https://github.com/Ledova/ledova/issues/867),
+  six increments): [empty deployments](plans/company-managed-registers/company-deployments.md),
+  [wallet nominations and instructions](plans/company-managed-registers/company-wallet-approvals.md),
+  [non-paid chain grants](plans/company-managed-registers/company-register-issues.md),
+  [capital increases](plans/company-managed-registers/company-capital-increases.md),
+  [pause and unpause](plans/company-managed-registers/company-pause-changes.md)
+  and [paid issues over recorded subscriptions](plans/company-managed-registers/company-paid-issues.md).
+- Members editing their own [name and address in Profile](plans/company-managed-registers/member-profile.md)
+  ([#866](https://github.com/Ledova/ledova/issues/866), first increment).
+- Three [#943](https://github.com/Ledova/ledova/issues/943) increments:
+  root policy-document changes skip the Django jobs and test timings are
+  captured (#952), routine company fixtures no longer rewind the schema (#959),
+  and the strict scoped and chain checks run as their own parallel jobs (#960).
+
+Earlier platform work, recorded in the
+[product alignment programme](https://github.com/Ledova/ledova/issues/645) and
+its phase issues:
+
+- Issuance on chain: whitelisted recipients, authorised caps and recovery of
+  interrupted requests ([contracts and issuance](architecture/contracts-and-issuance.md),
   [operator recovery](operations/recovery.md)).
-- The investor directory, offerings, subscriptions, recorded payments and
-  allotment, current/former register views, private uploads and the operator
-  console ([product boundaries](product.md#current-capability-boundaries)).
-- Eligibility readers and the authoritative stored register
-  ([#647](https://github.com/Ledova/ledova/issues/647)): an append-only event log
-  and holdings served with the chain unreachable and reconciled with it; reviewed
-  company-run openings, imports and corrections; [non-paid walletless grants](plans/company-managed-registers/register-grants.md)
-  and [direct transfers](plans/company-managed-registers/register-transfers.md);
-  company-authorised non-paid chain issues, with retained former members; and staff-prepared
-  inspection copies, certificates and notice figures, with a list of those due
-  ([eligibility](architecture/companies-and-eligibility.md),
-  [the register](architecture/register.md)).
+- The investor directory, offerings, applications, recorded payments and
+  allotment, private uploads and the operator console. Offering review and
+  payment confirmation remain platform-staff actions
+  ([capability boundaries](product.md#current-capability-boundaries)).
+- The authoritative stored register ([#647](https://github.com/Ledova/ledova/issues/647)):
+  an append-only event log and holdings served with the chain unreachable and
+  reconciled with it, retained former members, and inspection copies,
+  certificates and notice figures prepared by platform staff with a list of
+  those due
+  ([the register](architecture/register.md)).
 - The secondary market: order, matching and settlement code, its recovery
-  journeys proven end to end
-  ([#5](https://github.com/Ledova/ledova/issues/5)), and trading enabled by
-  default.
-- Company-scoped on-chain approvals with expiry and the bounded
-  [participant nomination/company instruction workflow](plans/company-managed-registers/company-wallet-approvals.md),
-  preserving original signed recovery and technical removal causes
+  journeys proven end to end ([#5](https://github.com/Ledova/ledova/issues/5)),
+  trading enabled by default, and the accepted
+  [experimental limits](architecture/trading.md#accepted-experimental-limits)
+  ([#646](https://github.com/Ledova/ledova/issues/646)).
+- Company-scoped on-chain approvals with expiry
   ([#648](https://github.com/Ledova/ledova/issues/648),
   [product §5](product.md#5-verification-and-transaction-controls)).
-- Shareholder administration ([#649](https://github.com/Ledova/ledova/issues/649)):
-  documents, resolutions and dividends published to each class's members
+- Shareholder publications ([#649](https://github.com/Ledova/ledova/issues/649)):
+  documents, resolutions and dividends published to each class's members by
+  platform staff on the company's instruction
   ([shareholder publications](architecture/shareholder-publications.md)).
 - Reporting and portability ([#650](https://github.com/Ledova/ledova/issues/650)):
-  the [company pack](architecture/company-pack.md) carries the company, its
-  registers, the approvals and history behind them, each class's chain evidence
-  and settlements, its documents, its publications with each resolution's result
-  and each dividend's payment records, and its contract information, and the
-  [account-data export](reference/account-data-export.md) carries every
-  transaction.
+  the [company pack](architecture/company-pack.md) platform staff produce and the
+  [account-data export](reference/account-data-export.md).
 - [The signed-in app](https://github.com/Ledova/ledova/issues/732) rebuilt around
   the register, on the web and in the mobile app, as
-  [decided](decisions.md#the-signed-in-app).
-- Shared API types generated from the committed OpenAPI snapshot
-  ([decisions](decisions.md#clients-and-api-types)).
-
-Phase 0 verification and the bounded cross-account matcher are recorded in
-[#646](https://github.com/Ledova/ledova/issues/646). The owner accepted the
-[experimental limits](architecture/trading.md#accepted-experimental-limits).
+  [decided](decisions.md#the-signed-in-app), and shared API types generated from
+  the committed OpenAPI snapshot ([decisions](decisions.md#clients-and-api-types)).
 
 ## Remaining work
 
 ### First: simplify development and CI
 
-[#943](https://github.com/Ledova/ledova/issues/943) is ready independently of #867.
-Measure the slow test work, improve scheduling and simplify proven duplicate
-coverage or setup. Avoid repeated full local runs during development. Keep
-focused meaningful checks, applicable green CI on current main and independent
-review at the merging head. The first timing increment does not establish all
-proposed routing or verification tiers as delivered.
+[#943](https://github.com/Ledova/ledova/issues/943) continues: measure the slow
+test work, improve scheduling and simplify proven duplicate coverage or setup,
+keeping meaningful checks, green CI on current main and independent review at
+the merging head.
 
 ### Next: finish the essential register
 
-- **Employee awards and vesting records.** Keep the delivered non-paid grants
-  and add records for the company's existing award agreement and schedule.
-  Distinguish contractual entitlements from issued shares, and record actual
-  company-confirmed vesting/allotment events. Current grants are outright;
-  structured vesting is not delivered. No employee-payment requirement or
-  legal/tax rule engine is selected.
-- **External investor capital and allotments (#868).** Record the company's
-  investment agreement, genuine external capital evidence and exact approved
-  allotment. Keep commitment, receipt and actual share ownership distinct.
-  Company-managed off-chain investor allotment remains a gap; do not substitute
-  a non-paid grant or require a new payment integration.
-- **Member records and access (#866).** Finish permitted own-record access and
-  particulars requests, with one account-to-member association. Its access
-  policy remains an owner decision. Preserve privacy, company review and history.
-- **Ownership and company authority.** Build on delivered appointments, register
-  imports, corrections, non-paid issues/transfers and current #867 increments.
-  Keep exact quantities, genuine evidence, revoked-authority refusal and
-  original execution recovery. Wallets are needed only for chosen chain actions.
-- **Basic outputs (#871).** Supply company-authorised certificates, inspection
-  copies and exports with exact register provenance. These outputs no longer
-  wait for deferred trading, governance or filing work.
-- **Core acceptance (#873).** Record the essential web/mobile company/member
-  journey and preserved migration evidence. Its completion no longer waits for
-  #869, #870 or #872. Keep earlier journey artifacts and the separate genuine
-  human release checks under #624.
+- **Employee awards and vesting records ([#867](https://github.com/Ledova/ledova/issues/867)).** Record the award as a promised
+  entitlement with its agreement and vesting events; shares reach the register
+  only through a separate company-approved non-paid grant
+  ([10 October first scope](decisions.md#first-scopes-for-employee-awards-and-external-capital)).
+- **External investor capital and allotments ([#868](https://github.com/Ledova/ledova/issues/868)).**
+  Record the agreement, the company's receipt attestation and the exact
+  fully paid allotment as distinct records, including on walletless,
+  non-tokenised registers; partly paid allotments are deferred
+  ([10 October first scope](decisions.md#first-scopes-for-employee-awards-and-external-capital)).
+- **Member records and access ([#866](https://github.com/Ledova/ledova/issues/866)).**
+  One company-controlled account-to-member association, own holdings and
+  history, company-reviewed particulars requests and certificate request
+  status, fulfilled through #871. The invitation and binding policy is still an
+  owner decision.
+- **Basic outputs ([#871](https://github.com/Ledova/ledova/issues/871)).**
+  Register exports, inspection copies, certificates and the company pack
+  prepared through company appointments with exact register provenance, and
+  permitted member access once #866's association lands. Inspection copies came
+  first ([PR #954](https://github.com/Ledova/ledova/pull/954)).
+- **Core acceptance ([#873](https://github.com/Ledova/ledova/issues/873)).**
+  Once those essential increments land, record the web/mobile company and
+  member journey with zero routine platform-staff actions, and the preserved
+  upgrade evidence. The separate human release checks stay under
+  [#624](https://github.com/Ledova/ledova/issues/624).
 
-### Deferred expansion
+### Deferred
 
 - Integrated AUD collection, payment automation, reconciliation, refunds and
-  secondary settlement (#869). Recording genuine AUD capital evidence is still
-  part of the essential investor record. Future payment mechanics remain an
-  owner decision; existing instructions, receipts and recovery stay intact.
-- New marketplace/trading work (#869), advanced publications, voting and
-  distributions (#870), and filing preparation/submission workflows (#872).
-  The existing governed functionality is retained; its expansion is not a core
-  register completion requirement.
-- Tokenising an imported register and splits/consolidations. A later mirror
-  must preserve existing supply rather than issue those shares again.
-- Optional personal investor crypto purchases. Preserve
-  [#920](https://github.com/Ledova/ledova/issues/920)'s role and provider-lifetime
-  guards; companies cannot purchase cryptocurrency through that integration.
+  secondary settlement, and new trading work
+  ([#869](https://github.com/Ledova/ledova/issues/869)).
+- Advanced publications, voting and distributions
+  ([#870](https://github.com/Ledova/ledova/issues/870)) and filing preparation
+  and submission ([#872](https://github.com/Ledova/ledova/issues/872)).
+- Tokenising an imported register, and splits and consolidations. A later
+  mirror must preserve existing supply rather than issue those shares again.
 
-Deferred work is not cancelled or implicitly delivered. Existing payment,
-chain, authority, privacy and retention safeguards remain effective. Scope
-changes must preserve pending execution, genuine evidence and historical records.
+Deferred work is not cancelled or implicitly delivered; the existing payment,
+chain, authority, privacy and retention safeguards stay effective, and the
+optional investor crypto on-ramp keeps
+[#920](https://github.com/Ledova/ledova/issues/920)'s guards.
 
 ## Not on the roadmap
 
 No off-ramp, public investor directory, retail offering or mainnet deployment
-configuration is planned for the first releases. Current register reads are available to the company owner and current company
-appointees with administration or register capabilities; permitted member access
-remains #866 work. This is not a public investor directory.
-The [legal positions](legal/positions.md) record the unresolved
-conditions before any real-world use.
+configuration is planned for the first releases. The
+[legal positions](legal/positions.md) record the unresolved conditions before
+any real-world use.
