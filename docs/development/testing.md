@@ -94,9 +94,9 @@ explains how the ordinary and scoped suites differ.
 The suites read the environment as the backend does. CI sets `SECRET_KEY`,
 `STORAGE_BACKEND` and the `POSTGRES_*` connection for them and no other backend
 setting; locally these usually come from loading `backend/.env`, whose other
-values then reach the suites too. In CI the scoped suite also inherits
-`UPLOAD_TEST_CLAMAV_HOST`, a test variable that the scanner step exports and
-only the separate scanner suite reads. A setting the test settings assign keeps
+values then reach the suites too. In CI the separate scanner suite reads
+`UPLOAD_TEST_CLAMAV_HOST`, a test variable exported within the backend checks
+job; the scoped job has its own environment. A setting the test settings assign keeps
 their value, though one the backend derives from the same variable can still
 follow the file. They assign the chain id and the finality policies, the only
 settings derived from `BLOCKCHAIN_CHAIN_ID` and `LOCAL_CHAIN_FINALITY_DEPTH`, so
