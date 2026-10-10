@@ -223,9 +223,10 @@ The Mac expansion above changes the compatible main-run allocation. Scheduled br
 more selective pre-merge coverage and verification tiers need their own
 reviewed implementation. The [10 October baseline decision](../decisions.md#backend-migration-baseline)
 puts the baseline first, essential process/timing fixes second, and one backend
-job group plus `make preflight` third. This baseline increment does not deliver
-the latter two steps. PR checks within 15 minutes and the full backend suite
-within 20 minutes on the Mac remain goals; report actual timings in each PR.
+job group plus `make preflight` third. The baseline and timing repairs retain the
+existing job routing; one backend group and preflight remain separate work.
+PR checks within 15 minutes and the full backend suite within 20 minutes on the
+Mac remain goals; report actual timings in each PR.
 
 `black`, `isort` and `flake8` are development requirements and are not in the
 backend image, so running the source gates inside that image proves nothing
@@ -266,6 +267,29 @@ applicable. Restore the current schema before using current models. These tests
 do not rebuild or rewind the shipped old chain. The
 [upgrade notes](../operations/upgrades.md#adopting-the-migration-baseline)
 describe adoption; a live release still requires the owner's explicit approval.
+
+## Parallel failures and process timing
+
+Ordinary and scoped tests share the Django runner extensions in
+`backend/shared/test_runner.py`. Picklable errors retain their original assertion,
+traceback and subtest parameters. A failure or result event that cannot be
+serialized becomes a named error with the original diagnostic, preserving a
+failed verdict. Setup and teardown errors retain their class identity. Expected
+failures keep their normal meaning; there is no automatic serial rerun or retry.
+The scoped runner still refuses missing required coverage and skipped cases.
+
+Independent issuance and capital workers use one parent readiness deadline for
+the cohort and a longer child release limit. Swap workers distinguish startup
+from command deadlines, buffer complete messages and report exited workers,
+EOF and malformed messages. A ready file or thread-start event alone does not
+prove that a worker is alive or waiting on the intended database row.
+
+Lock-order tests observe the actual PostgreSQL blocker, Lock wait event and
+named query, then probe which rows are held or free. Expiry tests observe the
+database clock after the intended boundary. Preserve the genuine independent
+nonce/claim, signed-commit crash, receipt/finality and exactly-once effect proofs;
+use deterministic interruption controls for the domain recovery assertions
+already covered by those shared process proofs.
 
 ## Test traps
 

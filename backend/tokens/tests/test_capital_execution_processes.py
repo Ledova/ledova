@@ -4,7 +4,6 @@ import signal
 import subprocess
 import sys
 import tempfile
-import time
 from pathlib import Path
 
 from django.conf import settings
@@ -14,6 +13,7 @@ from django.test import TransactionTestCase, override_settings
 from blockchain.models import SigningAccount
 from blockchain.tests.test_outgoing_processes import finish
 from shared.db import current_alias
+from shared.tests.process_readiness import wait_for_worker_files
 from tokens.models import CapitalIncreaseExecution
 from tokens.services import capital_execution
 from tokens.tests.capital_fixtures import CHAIN_ID, KEY, admit, install_capital
@@ -52,14 +52,8 @@ class CapitalExecutionProcessTest(TransactionTestCase):
             process.kill()
             process.communicate(timeout=10)
 
-    def await_file(self, path, process=None):
-        until = time.monotonic() + 20
-        while not path.exists() and time.monotonic() < until:
-            if process is not None and process.poll() is not None:
-                out, err = process.communicate(timeout=10)
-                self.fail(f"{path}: worker exited with {process.returncode}\n{out}{err}")
-            time.sleep(0.01)
-        self.assertTrue(path.exists(), str(path))
+    def await_file(self, path, process):
+        wait_for_worker_files(self, [(path, process)])
 
     def successful(self, process):
         code, out, err = finish(process)
@@ -116,8 +110,7 @@ class CapitalExecutionProcessTest(TransactionTestCase):
         with tempfile.TemporaryDirectory(prefix="capital-race-") as temporary:
             directory = Path(temporary)
             processes = [self.worker(directory, "race", confirmation) for _ in range(2)]
-            for process in processes:
-                self.await_file(directory / f"ready-{process.pid}", process)
+            wait_for_worker_files(self, [(directory / f"ready-{process.pid}", process) for process in processes])
             (directory / "go").touch()
             for process in processes:
                 self.assertIn(self.successful(process)["status"], ("executing", "executed"))
@@ -209,8 +202,7 @@ class CapitalExecutionProcessTest(TransactionTestCase):
             directory = Path(temporary)
             previous_claim, retry = self.reverted(directory)
             processes = [self.worker(directory, "race", retry) for _ in range(2)]
-            for process in processes:
-                self.await_file(directory / f"ready-{process.pid}", process)
+            wait_for_worker_files(self, [(directory / f"ready-{process.pid}", process) for process in processes])
             (directory / "go").touch()
             for process in processes:
                 self.assertIn(self.successful(process)["status"], ("executing", "executed"))

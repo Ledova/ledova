@@ -5,9 +5,9 @@ from unittest.case import _Outcome
 from unittest.mock import MagicMock, patch
 
 from django.test import SimpleTestCase
-from django.test.runner import RemoteTestResult
 
 from blockchain.tests import test_monitor_processes as monitor
+from shared.test_runner import NamedRemoteTestResult
 
 
 class MonitorLockObserverTest(SimpleTestCase):
@@ -78,7 +78,7 @@ class MonitorParallelReportingTest(SimpleTestCase):
         )
         with patch("blockchain.tests.test_monitor_processes.transaction", return_value=None):
             case.setUp()
-        result = RemoteTestResult()
+        result = NamedRemoteTestResult()
         result.startTest(case)
         case._outcome = _Outcome(result)
         loaded = {"pid": os.getpid() + 1, "database_pid": 1234, "alias": "operator"}

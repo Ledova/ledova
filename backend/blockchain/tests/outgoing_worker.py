@@ -11,11 +11,11 @@ import django
 from shared.tests.synthetic_store import a_private_store_that_survives_a_kill
 
 
-def await_file(path):
-    until = time.monotonic() + 20
+def await_file(path, *, timeout=20):
+    until = time.monotonic() + timeout
     while not path.exists():
         if time.monotonic() > until:
-            raise RuntimeError("The synthetic process gate was never released")
+            raise RuntimeError(f"The synthetic process gate was never released: {path}")
         time.sleep(0.01)
 
 

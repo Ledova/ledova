@@ -10,6 +10,7 @@ from unittest.mock import patch
 import django
 
 from blockchain.tests.outgoing_worker import await_file
+from shared.tests.process_readiness import WORKER_RELEASE_TIMEOUT
 
 
 def run(directory, phase, request_id, actor_id, confirmation):
@@ -82,8 +83,6 @@ def run(directory, phase, request_id, actor_id, confirmation):
             stream.write(json.dumps(current))
             stream.flush()
             os.fsync(stream.fileno())
-        if phase == "accepted":
-            os.kill(os.getpid(), signal.SIGKILL)
         return tx_hash
 
     def observed(tx_hash):
@@ -111,12 +110,6 @@ def run(directory, phase, request_id, actor_id, confirmation):
             os.kill(os.getpid(), signal.SIGKILL)
         return result
 
-    def signed(*args, **kwargs):
-        result = original_sign(*args, **kwargs)
-        if phase == "signed":
-            os.kill(os.getpid(), signal.SIGKILL)
-        return result
-
     def before_commit(row, *args, **kwargs):
         result = original_save(row, *args, **kwargs)
         if row.status == "signed":
@@ -132,19 +125,14 @@ def run(directory, phase, request_id, actor_id, confirmation):
             await_file(directory / "finish-projection")
         return original_project(command, claim, **kwargs)
 
-    def opened(*args, **kwargs):
-        if phase == "delayed_open":
-            (directory / "open-ready").touch()
-            await_file(directory / "open")
-        result = original_open(*args, **kwargs)
-        if phase == "opened":
-            os.kill(os.getpid(), signal.SIGKILL)
-        return result
+    def delayed_open(*args, **kwargs):
+        (directory / "open-ready").touch()
+        await_file(directory / "open")
+        return original_open(*args, **kwargs)
 
     original_open = outgoing.open_operation
     original_preflight = issuance_execution._preflight
     original_start = issuance_execution._start
-    original_sign = outgoing.sign_operation
     original_save = OutgoingOperation.save
     original_project = issuance_execution._project
     node.client.send_raw_transaction.side_effect = send
@@ -152,8 +140,8 @@ def run(directory, phase, request_id, actor_id, confirmation):
     with ExitStack() as stack:
         stack.enter_context(patch("tokens.services.issuance_execution.get_base_chain_client", return_value=node.client))
         stack.enter_context(patch("tokens.tasks.execute_review_request_task.defer"))
-        stack.enter_context(patch.object(outgoing, "sign_operation", signed))
-        stack.enter_context(patch.object(outgoing, "open_operation", opened))
+        if phase == "delayed_open":
+            stack.enter_context(patch.object(outgoing, "open_operation", delayed_open))
         stack.enter_context(patch("tokens.services.share_token_service.is_recipient_whitelisted", return_value=True))
         stack.enter_context(patch("tokens.services.share_token_service.seed_recipient_holding"))
         stack.enter_context(patch.object(issuance_execution, "_preflight", preflight))
@@ -169,7 +157,7 @@ def run(directory, phase, request_id, actor_id, confirmation):
             os.kill(os.getpid(), signal.SIGKILL)
         if phase == "race":
             (directory / f"ready-{os.getpid()}").touch()
-            await_file(directory / "go")
+            await_file(directory / "go", timeout=WORKER_RELEASE_TIMEOUT)
         result = issuance_execution.recover(request.dispatch_id)
     print(json.dumps(result))
 

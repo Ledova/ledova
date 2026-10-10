@@ -3,9 +3,9 @@ from unittest import TestLoader, TestSuite
 
 from django.conf import settings
 from django.core.management.base import CommandError
-from django.test.runner import DiscoverRunner
 
 from shared.db import APP_ALIAS, MIGRATE_ALIAS, OPERATOR_ALIAS
+from shared.test_runner import LedovaTestRunner
 
 SCOPED_TEST_LABELS = (
     "shared.tests.test_seed_participant_approval.ScopedSyntheticParticipantApprovalTest",
@@ -214,7 +214,7 @@ def declared_scoped_classes():
     return labels
 
 
-class ScopedTestRunner(DiscoverRunner):
+class ScopedTestRunner(LedovaTestRunner):
     @classmethod
     def add_arguments(cls, parser):
         super().add_arguments(parser)
