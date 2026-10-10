@@ -29,7 +29,7 @@ from tokens.services import swap_execution, token_transfer_service
 from tokens.services.swap_expiry import expire_unclaimed_swap, expire_unclaimed_swaps
 from tokens.tasks.swap_expiry import expire_unclaimed_matches
 from tokens.tests.market_fixtures import record_synthetic_admission
-from tokens.tests.swap_execution_fixtures import make_execution, signed_execution
+from tokens.tests.swap_execution_fixtures import signed_execution
 from tokens.tests.swap_state_fixtures import (
     BUYER,
     CONTRACT,
@@ -260,7 +260,7 @@ class UnclaimedSwapExpiryTest(ExpiryFixtures, TransactionTestCase):
         self.publisher.assert_not_called()
 
     def test_a_swap_without_a_match_reservation_is_not_expiry_eligible(self):
-        swap = make_execution("expiry-without-reservation").swap
+        swap = make_tenant("expiry-without-reservation").swap
         self.assertFalse(swap.expiry_release_eligible)
         before = persisted_outcome(swap)
         self.assertFalse(expire_unclaimed_swap(swap, self.expired_at(swap)))
@@ -371,9 +371,11 @@ class UnclaimedSwapExpiryTest(ExpiryFixtures, TransactionTestCase):
 
     @skipUnless(connection.vendor == "postgresql", "Requires PostgreSQL eligibility trigger")
     def test_creation_marker_cannot_be_added_without_a_reservation_or_removed_from_new_matches(self):
-        old = make_execution("expiry-marker").swap
+        unreserved = make_tenant("expiry-marker").swap
         new = self.matched_swap()
-        for swap in (old, new):
+        self.assertFalse(unreserved.expiry_release_eligible)
+        self.assertTrue(new.expiry_release_eligible)
+        for swap in (unreserved, new):
             before = persisted_outcome(swap)
             with self.assertRaises(IntegrityError), atomic():
                 SwapOrder.objects.filter(pk=swap.pk).update(expiry_release_eligible=not swap.expiry_release_eligible)
