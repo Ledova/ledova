@@ -14,7 +14,6 @@ from assets.models import Asset, AssetChainDeployment
 from operators.settlement import require_deployment
 from shared.constants import BLOCKCHAIN_BASE
 from shared.db import use_migrate, use_operator
-from shared.tests.scoped import RunsOnTheScopedConnection
 from shared.tests.tenants import make_tenant
 from tokens.exceptions import SettlementChainDisagreement, SettlementContextChanged
 from tokens.models import (
@@ -299,23 +298,3 @@ class SettlementDriftTermsTest(TransactionTestCase):
 
         self.assertEqual(ShareToken.objects.get(pk=self.swap.share_token_id).decimals, 0)
         assert_current_settlement(self.swap)
-
-
-class ScopedSettlementChainAgreementTest(RunsOnTheScopedConnection, APITransactionTestCase):
-    @override_settings(ATOMIC_SWAP_ADDRESS=CONTRACT)
-    def test_the_deployment_chain_is_read_over_the_operator_connection(self):
-        with self.as_an_operator_would():
-            tenant = make_tenant("chain-agreement-scoped")
-            deployment = require_deployment(tenant.refs.stablecoin)
-            agreeing = deployed_token(tenant, settings.BLOCKCHAIN_CHAIN_ID, "AGR", AGREEING_ADDRESS)
-            foreign = deployed_token(tenant, FOREIGN_CHAIN_ID, "FGN", FOREIGN_ADDRESS)
-            admitted = unsigned_swap(tenant, agreeing)
-            refused = unsigned_swap(tenant, foreign)
-        self.the_principal_the_middleware_would_set(tenant.user)
-
-        context = capture_settlement_context(admitted, deployment)
-
-        self.assertEqual(context["share_token"]["uuid"], str(agreeing.pk))
-        with self.assertRaises(SettlementChainDisagreement) as caught:
-            capture_settlement_context(refused, deployment)
-        self.assertEqual(caught.exception.detail.code, "settlement_chain_disagreement")

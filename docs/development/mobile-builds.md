@@ -120,14 +120,26 @@ No EAS account or signing credentials are needed.
 Pull requests and pushes to `main` run both native builds when their complete
 change includes one of these inputs:
 
-- Anything under `mobile/` or `packages/shared/`.
+- Anything under `mobile/` or `packages/shared/`, except the JavaScript test
+  inputs below.
 - Root `package.json`, `package-lock.json`, `npm-shrinkwrap.json` or `.npmrc`,
   and `dashboard/package.json`: the native jobs install the root workspace
   dependency graph before installing mobile dependencies.
 - Any `.gitattributes`, which can change how the files beside it are checked out.
-- `.github/workflows/mobile-native.yml`, `scripts/ci-scope.py` or
-  `scripts/tests/test_ci_scope.py`. The script also decides whether a change
-  runs the Django jobs, so a change to either decision builds both platforms.
+- `.github/workflows/mobile-native.yml`.
+
+Changes only to `mobile/src/**/*.test.ts`, `mobile/src/**/*.test.tsx` or
+`packages/shared/tests/` (including its test fixtures) skip both native builds.
+Their JavaScript tests still run in ordinary CI. A `.gitattributes` in either
+test tree still requires both builds, as do production, native probe, script,
+configuration and dependency changes. Under `mobile/src`, test filenames
+starting with `Native` or containing `NativeComponent` also require builds:
+React Native codegen can consume these spec candidates, including its `.fb`
+and platform conventions.
+
+Routing-only edits to `scripts/ci-scope.py` or its tests also skip native builds.
+The scope, verdict and invalid-comparison controls run in ordinary CI;
+rebuilding the apps does not exercise routing policy.
 
 Other paths, including backend, dashboard application code, marketing and
 documentation, skip both native builds. Ordinary CI still runs. The router

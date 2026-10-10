@@ -5,7 +5,6 @@ from rest_framework.test import APITransactionTestCase
 
 from assets.models import Asset, AssetChainDeployment
 from shared.db import use_operator
-from shared.tests.scoped import RunsOnTheScopedConnection
 from wallets.services.chain import fetch_chain_balance
 from wallets.tests.test_wallet_finality import WalletFinalityFixture
 
@@ -41,10 +40,4 @@ class DisabledNativeSettlementChecks(WalletFinalityFixture):
 
 
 class DisabledNativeSettlementTest(DisabledNativeSettlementChecks, APITransactionTestCase):
-    pass
-
-
-class ScopedDisabledNativeSettlementTest(
-    RunsOnTheScopedConnection, DisabledNativeSettlementChecks, APITransactionTestCase
-):
     pass

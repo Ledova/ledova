@@ -14,7 +14,6 @@ from shared.seeds.synthetic.chain.approvals import approve_participant_wallet
 from shared.seeds.synthetic.chain.classes import ChainStepFailed
 from shared.seeds.synthetic.market.keyring import KeyRing
 from shared.seeds.synthetic.market.layer import _approve
-from shared.tests.scoped import RunsOnTheScopedConnection
 from shared.tests.upload_fixtures import StubUploadDependencies
 from users.tests.test_company_eligibility_consumption import (
     CompanyEligibilityConsumptionCases,
@@ -142,7 +141,3 @@ class SyntheticParticipantApprovalTest(
             self.assertFalse(CompanyWalletInstruction.objects.exists())
             self.assertFalse(WhitelistChange.objects.exists())
         self.assertEqual(self.node.broadcasts, [])
-
-
-class ScopedSyntheticParticipantApprovalTest(RunsOnTheScopedConnection, SyntheticParticipantApprovalTest):
-    pass

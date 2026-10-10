@@ -1,16 +1,13 @@
 import ast
-import sys
 from contextlib import contextmanager
-from unittest import TestSuite, defaultTestLoader, skipUnless
 
 from django.conf import settings
-from django.db import connection, connections, transaction
-from django.test import SimpleTestCase
+from django.db import connections, transaction
 from django.urls import resolve
+from rest_framework.test import APITransactionTestCase
 
 from shared.db import (
     APP_ALIAS,
-    MIGRATE_ALIAS,
     OPERATOR_ALIAS,
     atomic,
     current_alias,
@@ -20,14 +17,6 @@ from shared.db import (
 from shared.tests import test_cross_tenant_routes as matrix
 from shared.tests.scoped import RunsOnTheScopedConnection
 
-ROUTES = matrix.ROUTES
-
-POSTGRES = connection.vendor == "postgresql"
-REASON = (
-    "the policies exist only in PostgreSQL, and on SQLite this class would run the matrix "
-    "with nothing enforcing it and report the same green as the class it inherits from"
-)
-
 
 def runs_on_the_operator_connection(path, method):
     match = resolve(path.split("?", 1)[0])
@@ -36,58 +25,9 @@ def runs_on_the_operator_connection(path, method):
     return action in frozenset(getattr(view, "operator_actions", ()))
 
 
-SINGLE_CONNECTION = settings.RLS_AMBIENT_ALIAS == MIGRATE_ALIAS
-NOT_SINGLE_CONNECTION = (
-    "this class takes the app role with SET ROLE on one connection, which is the only shape available "
-    "where the ambient alias is the migrate one; under a scoped alias the class below is the "
-    "authoritative run and this one would report the same green without the routing"
-)
-
-
-@skipUnless(POSTGRES, REASON)
-@skipUnless(SINGLE_CONNECTION, NOT_SINGLE_CONNECTION)
-class TheMatrixHoldsWhenTheDatabaseIsTheOnlyThingHoldingItTest(matrix.CrossTenantRouteMatrixTest):
-
-    def setUp(self):
-        super().setUp()
-        with connection.cursor() as cursor:
-            cursor.execute("SELECT current_user")
-            assumed = cursor.fetchone()[0]
-
-        self.assertNotEqual(
-            assumed,
-            settings.RLS_ROLES["app"],
-            "a previous test left the connection as the app role, so everything after it ran scoped by "
-            "accident - the leak is the failure, not whatever fails next",
-        )
-
-    @contextmanager
-    def as_the_app_role(self):
-        with connection.cursor() as cursor:
-            cursor.execute(f"SET ROLE {settings.RLS_ROLES['app']}")
-        try:
-            yield
-        finally:
-            with connection.cursor() as cursor:
-                cursor.execute("RESET ROLE")
-
-    def perform(self, route, context):
-        path = route.path.format_map(context)
-        if runs_on_the_operator_connection(path, route.method):
-            return super().perform(route, context)
-        with self.as_the_app_role():
-            return super().perform(route, context)
-
-    def test_the_split_is_a_split_and_not_one_side(self):
-        somewhere = "00000000-0000-0000-0000-000000000000"
-
-        self.assertTrue(runs_on_the_operator_connection(f"/api/v1/companies/{somewhere}/status/", "post"))
-        self.assertTrue(runs_on_the_operator_connection(f"/api/v1/companies/{somewhere}/", "get"))
-        self.assertFalse(runs_on_the_operator_connection("/api/wallets/", "get"))
-
-
-class TheMatrixRunsOnTheConnectionTheRouterChoosesTest(RunsOnTheScopedConnection, matrix.CrossTenantRouteMatrixTest):
-
+class TheMatrixRunsOnTheConnectionTheRouterChoosesTest(
+    RunsOnTheScopedConnection, matrix.CrossTenantRouteFixtures, APITransactionTestCase
+):
     def setUp(self):
         with self.as_an_operator_would():
             super().setUp()
@@ -137,11 +77,85 @@ class TheMatrixRunsOnTheConnectionTheRouterChoosesTest(RunsOnTheScopedConnection
         self.assertEqual(settings.RLS_AMBIENT_ALIAS, APP_ALIAS)
         self.assertEqual(current_alias(), APP_ALIAS)
 
-    def test_it_runs_the_same_route_table_as_the_single_connection_class(self):
-        self.assertEqual(
-            sorted(f"{route.method} {route.path}" for route in ROUTES),
-            sorted(f"{route.method} {route.path}" for route in matrix.CrossTenantRouteMatrixTest.routes()),
-        )
+    def test_foreign_rows_are_not_found_and_left_untouched(self):
+        case = matrix.CrossTenantRouteMatrixTest
+        case.test_foreign_rows_are_not_found_and_left_untouched(self)
+
+    def test_own_rows_resolve_for_every_actor(self):
+        case = matrix.CrossTenantRouteMatrixTest
+        case.test_own_rows_resolve_for_every_actor(self)
+
+    def test_collection_routes_return_only_the_actors_rows(self):
+        case = matrix.CrossTenantRouteMatrixTest
+        case.test_collection_routes_return_only_the_actors_rows(self)
+
+    def test_authority_requests_are_requester_only_for_company_staff_and_missing_reference_cases(self):
+        case = matrix.CrossTenantRouteMatrixTest
+        case.test_authority_requests_are_requester_only_for_company_staff_and_missing_reference_cases(self)
+
+    def test_authority_admission_and_revocation_hide_foreign_requests_from_every_staff_role(self):
+        case = matrix.CrossTenantRouteMatrixTest
+        case.test_authority_admission_and_revocation_hide_foreign_requests_from_every_staff_role(self)
+
+    def test_team_routes_bind_company_source_and_appointee_without_exposing_foreign_history(self):
+        case = matrix.CrossTenantRouteMatrixTest
+        case.test_team_routes_bind_company_source_and_appointee_without_exposing_foreign_history(self)
+
+    def test_register_correction_routes_keep_evidence_private_and_decisions_company_bound(self):
+        case = matrix.CrossTenantRouteMatrixTest
+        case.test_register_correction_routes_keep_evidence_private_and_decisions_company_bound(self)
+
+    def test_register_issues_scope_all_eight_routes_to_exact_company_authority_and_private_evidence(self):
+        case = matrix.CrossTenantRouteMatrixTest
+        case.test_register_issues_scope_all_eight_routes_to_exact_company_authority_and_private_evidence(self)
+
+    def test_register_paid_issues_scope_all_seven_routes_to_current_company_authority_and_private_evidence(self):
+        case = matrix.CrossTenantRouteMatrixTest
+        case.test_register_paid_issues_scope_all_seven_routes_to_current_company_authority_and_private_evidence(self)
+
+    def test_register_pause_scope_all_six_routes_to_current_company_authority_and_private_evidence(self):
+        case = matrix.CrossTenantRouteMatrixTest
+        case.test_register_pause_scope_all_six_routes_to_current_company_authority_and_private_evidence(self)
+
+    def test_register_capital_scope_all_six_routes_to_current_company_authority_and_private_evidence(self):
+        case = matrix.CrossTenantRouteMatrixTest
+        case.test_register_capital_scope_all_six_routes_to_current_company_authority_and_private_evidence(self)
+
+    def test_register_deployments_scope_all_five_routes_to_current_company_read_and_steps(self):
+        case = matrix.CrossTenantRouteMatrixTest
+        case.test_register_deployments_scope_all_five_routes_to_current_company_read_and_steps(self)
+
+    def test_register_grants_keep_all_evidence_private_and_company_decisions_bound(self):
+        case = matrix.CrossTenantRouteMatrixTest
+        case.test_register_grants_keep_all_evidence_private_and_company_decisions_bound(self)
+
+    def test_register_transfers_keep_instruments_members_and_company_decisions_private(self):
+        case = matrix.CrossTenantRouteMatrixTest
+        case.test_register_transfers_keep_instruments_members_and_company_decisions_private(self)
+
+    def test_register_particulars_routes_keep_evidence_private_and_decisions_company_bound(self):
+        case = matrix.CrossTenantRouteMatrixTest
+        case.test_register_particulars_routes_keep_evidence_private_and_decisions_company_bound(self)
+
+    def test_register_opening_routes_keep_evidence_private_and_decisions_company_bound(self):
+        case = matrix.CrossTenantRouteMatrixTest
+        case.test_register_opening_routes_keep_evidence_private_and_decisions_company_bound(self)
+
+    def test_register_link_routes_keep_evidence_private_and_decisions_company_bound(self):
+        case = matrix.CrossTenantRouteMatrixTest
+        case.test_register_link_routes_keep_evidence_private_and_decisions_company_bound(self)
+
+    def test_register_import_routes_keep_evidence_private_and_decisions_company_bound(self):
+        case = matrix.CrossTenantRouteMatrixTest
+        case.test_register_import_routes_keep_evidence_private_and_decisions_company_bound(self)
+
+    def test_register_reconciliation_routes_keep_rows_and_acknowledgements_company_bound(self):
+        case = matrix.CrossTenantRouteMatrixTest
+        case.test_register_reconciliation_routes_keep_rows_and_acknowledgements_company_bound(self)
+
+    def test_register_instruction_routes_keep_evidence_private_and_review_operator_only(self):
+        case = matrix.CrossTenantRouteMatrixTest
+        case.test_register_instruction_routes_keep_evidence_private_and_review_operator_only(self)
 
 
 def locking_request_views():
@@ -157,29 +171,3 @@ def locking_request_views():
             ):
                 names.add(f"{module}.{node.name}")
     return names
-
-
-def every_case(suite):
-    for item in suite:
-        if isinstance(item, TestSuite):
-            yield from every_case(item)
-        else:
-            yield item
-
-
-class OnlyTheClassesDefinedHereAreCollectedTest(SimpleTestCase):
-
-    def test_the_base_matrix_is_reached_through_its_module_and_never_bound_to_a_name(self):
-        suite = defaultTestLoader.loadTestsFromModule(sys.modules[__name__])
-
-        self.assertEqual(
-            {type(case).__name__ for case in every_case(suite)},
-            {
-                "TheMatrixHoldsWhenTheDatabaseIsTheOnlyThingHoldingItTest",
-                "TheMatrixRunsOnTheConnectionTheRouterChoosesTest",
-                "OnlyTheClassesDefinedHereAreCollectedTest",
-            },
-            "unittest collects every TestCase subclass in dir(module) whatever it is called, so a "
-            "name bound to the base runs the single-connection matrix a second time, under settings "
-            "where it is not the authoritative run and carries no principal",
-        )

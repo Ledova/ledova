@@ -60,7 +60,7 @@ from users.models import UserAccount, UserProfile
 from wallets.models import Wallet
 
 
-class CompanyAuthorityAdmissionTest(StubUploadDependencies, APITransactionTestCase):
+class CompanyAuthorityAdmissionFixtures(StubUploadDependencies):
     app_as = AuthorityRequestCases.app_as
 
     def setUp(self):
@@ -131,6 +131,27 @@ class CompanyAuthorityAdmissionTest(StubUploadDependencies, APITransactionTestCa
             self.assertFalse(CompanyAppointment.objects.exists())
             self.assertFalse(CompanyAppointmentRevocation.objects.exists())
 
+    def concurrent(self, functions):
+        barrier = Barrier(len(functions))
+
+        def execute(function):
+            try:
+                with use_operator():
+                    actor = get_user_model().objects.get(pk=self.user.pk)
+                barrier.wait(timeout=20)
+                try:
+                    result = function(actor)
+                    return "success", str(result.pk)
+                except APIException as error:
+                    return "refused", error.status_code
+            finally:
+                connections.close_all()
+
+        with ThreadPoolExecutor(max_workers=len(functions)) as pool:
+            return [future.result(timeout=40) for future in [pool.submit(execute, function) for function in functions]]
+
+
+class CompanyAuthorityAdmissionTest(CompanyAuthorityAdmissionFixtures, APITransactionTestCase):
     def test_admission_records_exact_declaration_scope_and_abr_outcome_without_activating_company(self):
         before = {field.attname: getattr(self.proposal, field.attname) for field in self.proposal._meta.fields}
         response = self.admit()
@@ -710,25 +731,6 @@ class CompanyAuthorityAdmissionTest(StubUploadDependencies, APITransactionTestCa
                 self.proposal.delete()
             self.assertEqual(CompanyAppointment.objects.count(), 1)
             self.assertEqual(CompanyAppointmentRevocation.objects.count(), 1)
-
-    def concurrent(self, functions):
-        barrier = Barrier(len(functions))
-
-        def execute(function):
-            try:
-                with use_operator():
-                    actor = get_user_model().objects.get(pk=self.user.pk)
-                barrier.wait(timeout=20)
-                try:
-                    result = function(actor)
-                    return "success", str(result.pk)
-                except APIException as error:
-                    return "refused", error.status_code
-            finally:
-                connections.close_all()
-
-        with ThreadPoolExecutor(max_workers=len(functions)) as pool:
-            return [future.result(timeout=40) for future in [pool.submit(execute, function) for function in functions]]
 
     def test_concurrent_identical_admission_and_revocation_keep_one_of_each_effect(self):
         def admission(actor):

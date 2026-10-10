@@ -11,7 +11,7 @@ SCHEMA_COMPARISON ?= /tmp/ledova-schema-comparison.json
 CLIENT_OPERATIONS_REPORT ?= /tmp/ledova-client-operations.json
 
 .PHONY: help install install-backend install-node-if-missing init-local check-local-env build generate-tokens check check-comments check-layers \
-	check-logging check-connection-binding check-error-bodies check-schema-responses check-test-shadowing check-docs check-ordinary-shards check-api-types check-self-imports check-mobile-test-awaits test-gates audit test \
+	check-logging check-connection-binding check-error-bodies check-schema-responses check-test-shadowing check-docs check-api-types check-self-imports check-mobile-test-awaits test-gates audit test preflight backend-test \
 	dev-up dev-down dev-logs dev-seed dev-clean docker-prune contracts-deploy-local \
 	contracts-deploy-testnet chain-test smoke lint check-type-check \
 	install-schema-environment generate-api-schema check-api-schema update-api-schema update-api-types check-client-operations
@@ -23,6 +23,8 @@ CLIENT_OPERATIONS_REPORT ?= /tmp/ledova-client-operations.json
 # stack's chain (`make dev-up`) publishes 8545 too, so pick another port while the stack is up.
 CHAIN_TEST_PORT ?= 8545
 CHAIN_TEST_RPC_URL ?= http://127.0.0.1:$(CHAIN_TEST_PORT)
+CHAIN_TEST_ENV_FILE ?= $(CURDIR)/.deployed-contracts.env
+CHAIN_TEST_LOG_FILE ?= $(CURDIR)/.hardhat-node.log
 # Hardhat account #0: a public development key that only ever holds local test ether.
 CHAIN_TEST_OPERATOR_KEY ?= 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
 
@@ -48,7 +50,8 @@ help:
 	@echo "  make check-schema-responses   Fail on a view whose response the schema does not know"
 	@echo "  make check-test-shadowing     Fail on a test helper that shadows a TestCase method"
 	@echo "  make check-docs               Fail when a document disagrees with the tree it describes"
-	@echo "  make check-ordinary-shards    Fail when CI's ordinary suite shards do not run every test id exactly once"
+	@echo "  make preflight                Run quick local checks and preview required CI"
+	@echo "  make backend-test             Run the complete isolated backend check group"
 	@echo "  make check-connection-binding  Fail on a transaction or cursor bound to the default connection"
 	@echo "  make check-api-types          Regenerate and compare the shared API types and trading events"
 	@echo "  make install-schema-environment Install development dependencies with the schema toolchain constraints"
@@ -113,7 +116,6 @@ check: check-comments check-layers check-logging check-connection-binding check-
 	$(NPM) --prefix mobile run check:resolution
 	$(MAKE) check-mobile-test-awaits
 	cd backend && SECRET_KEY="$$( $(PYTHON) -c 'import secrets; print(secrets.token_urlsafe(32))')" STORAGE_BACKEND=local $(PYTHON) manage.py check
-	$(MAKE) check-ordinary-shards
 
 lint:
 	$(NPM) run lint
@@ -144,8 +146,11 @@ check-test-shadowing:
 check-docs:
 	$(PYTHON) scripts/check-docs.py
 
-check-ordinary-shards:
-	cd backend && SECRET_KEY="$$( $(PYTHON) -c 'import secrets; print(secrets.token_urlsafe(32))')" STORAGE_BACKEND=local $(PYTHON) ../scripts/check-ordinary-shards.py
+preflight:
+	"$(PYTHON)" scripts/preflight.py
+
+backend-test:
+	"$(PYTHON)" scripts/test-backend.py $(BACKEND_CHECKS)
 
 check-api-types:
 	node --test scripts/tests/check-api-types.test.mjs
@@ -240,7 +245,7 @@ chain-test:
 	@set -e; \
 	$(PYTHON) scripts/check-port-free.py $(CHAIN_TEST_PORT); \
 	$(NPM) --prefix contracts run compile; \
-	( cd contracts && exec node_modules/.bin/hardhat node --port $(CHAIN_TEST_PORT) ) > .hardhat-node.log 2>&1 & \
+	( cd contracts && exec node_modules/.bin/hardhat node --port $(CHAIN_TEST_PORT) ) > "$(CHAIN_TEST_LOG_FILE)" 2>&1 & \
 	node_pid=$$!; \
 	trap 'kill $$node_pid 2>/dev/null || true; wait $$node_pid 2>/dev/null || true' EXIT; \
 	ready=0; \
@@ -251,10 +256,10 @@ chain-test:
 		sleep 1; \
 	done; \
 	if [ "$$ready" != 1 ]; then \
-		echo "Hardhat node did not answer on $(CHAIN_TEST_RPC_URL) within 60s; see .hardhat-node.log" >&2; exit 1; \
+		echo "Hardhat node did not answer on $(CHAIN_TEST_RPC_URL) within 60s; see $(CHAIN_TEST_LOG_FILE)" >&2; exit 1; \
 	fi; \
-	LOCALHOST_RPC_URL=$(CHAIN_TEST_RPC_URL) $(NPM) --prefix contracts run deploy:local:core; \
-	set -a; . ./.deployed-contracts.env; set +a; \
+	LOCALHOST_RPC_URL=$(CHAIN_TEST_RPC_URL) LEDOVA_DEPLOY_ENV_FILE="$(CHAIN_TEST_ENV_FILE)" $(NPM) --prefix contracts run deploy:local:core; \
+	set -a; . "$(CHAIN_TEST_ENV_FILE)"; set +a; \
 	cd backend && \
 	for test_labels in \
 	    "tokens.tests.test_chain_integration" \

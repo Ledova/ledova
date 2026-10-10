@@ -27,7 +27,6 @@ from feature_flags.models import FeatureFlag
 from operators.models import Operator
 from shared.db import atomic, current_alias, principal_of, use_migrate, use_operator
 from shared.tests.row_contention import RealRowContention
-from shared.tests.scoped import RunsOnTheScopedConnection
 from shared.tests.tenants import reference_data
 from shared.tests.upload_fixtures import StubUploadDependencies
 from shared.utils.typed_data import signable_message
@@ -1373,13 +1372,3 @@ class CompanyEligibilityTradingAdmissionSQLTest(
                         cursor.execute("SELECT current_user, current_setting('role')")
                         self.assertEqual(cursor.fetchone(), before)
                     self.assertEqual(principal_of(), str(self.participant.pk))
-
-
-class ScopedCompanyEligibilityTradingAdmissionTest(RunsOnTheScopedConnection, CompanyEligibilityTradingAdmissionTest):
-    pass
-
-
-class ScopedCompanyEligibilityTradingAdmissionSQLTest(
-    RunsOnTheScopedConnection, CompanyEligibilityTradingAdmissionSQLTest
-):
-    pass

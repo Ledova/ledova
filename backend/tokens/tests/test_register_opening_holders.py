@@ -15,7 +15,6 @@ from companies.services.team import revoke_company_appointment
 from integrations.base_chain.exceptions import BaseChainConnectionError
 from operators.models import Operator
 from shared.db import use_migrate, use_operator
-from shared.tests.scoped import RunsOnTheScopedConnection
 from tokens.models import (
     RegisterEntry,
     RegisterEvidenceKind,
@@ -235,7 +234,3 @@ class RegisterOpeningHoldersTest(AppointsTeam, APITransactionTestCase):
         self.assertTrue(statements)
         self.assertEqual([sql for sql in statements if WRITES.search(sql) or LOCKS.search(sql)], [])
         self.assertEqual(self.stored(), before)
-
-
-class ScopedRegisterOpeningHoldersTest(RunsOnTheScopedConnection, RegisterOpeningHoldersTest):
-    pass

@@ -8,7 +8,6 @@ from eth_account.messages import encode_typed_data
 
 from blockchain.models import BlockchainTransaction
 from shared.db import atomic, current_alias, use_operator
-from shared.tests.scoped import RunsOnTheScopedConnection
 from tokens.models import SwapOrder, SwapOrderStatus, TransferOrder, TransferOrderStatus
 from tokens.services.swap_expiry import expire_unclaimed_swap
 from tokens.services.trading_locks import lock_orders
@@ -106,22 +105,3 @@ class ExpiryProcessesRespectExecutionClaimsTest(ExpiryFixtures, TransactionTestC
         self.assertEqual((current.seller_signature, current.transaction_id), ("", None))
         with use_operator():
             self.assertFalse(BlockchainTransaction.objects.filter(related_uuid=swap.pk).exists())
-
-
-@skipUnless(connection.vendor == "postgresql", "Requires independent PostgreSQL row locks")
-@override_settings(ATOMIC_SWAP_ADDRESS=CONTRACT, BLOCKCHAIN_OPERATOR_KEY="0x" + "11" * 32)
-class ScopedExpiryProcessesRespectExecutionClaimsTest(
-    RunsOnTheScopedConnection, ExpiryProcessesRespectExecutionClaimsTest
-):
-    def setUp(self):
-        super().setUp()
-        self.now = datetime.now(UTC)
-        self.clock.return_value = self.now
-
-    def matched_swap(self, **changes):
-        swap = super().matched_swap(**changes)
-        with use_operator():
-            user = swap.sell_order.owner_account.user_profile.user
-        self.the_principal_the_middleware_would_set(user)
-        self.addCleanup(self.no_principal_is_set)
-        return swap

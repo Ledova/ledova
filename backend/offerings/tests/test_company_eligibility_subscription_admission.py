@@ -36,7 +36,6 @@ from offerings.tests.factories import configure_operator
 from operators.models import Operator
 from shared.db import atomic, current_alias, use_migrate, use_operator
 from shared.tests.row_contention import RealRowContention
-from shared.tests.scoped import RunsOnTheScopedConnection
 from shared.tests.upload_fixtures import StubUploadDependencies, pdf_bytes
 from tokens.models import RequestStatus, ShareIssuanceExecution, ShareToken
 from users.exceptions import InvestorNotEligibleException
@@ -1075,10 +1074,6 @@ class CompanyEligibilitySubscriptionRecoveryTest(
         self.assertEqual(command.status, "queued")
         self.assertIsNone(command.operation_id)
         deferred.assert_called_once()
-
-
-class ScopedCompanyPaidIssueStandingTest(RunsOnTheScopedConnection, CompanyEligibilitySubscriptionRecoveryTest):
-    pass
 
 
 class CompanyEligibilitySubscriptionGuardTest(

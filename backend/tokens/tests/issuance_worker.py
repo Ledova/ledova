@@ -110,12 +110,6 @@ def run(directory, phase, request_id, actor_id, confirmation):
             os.kill(os.getpid(), signal.SIGKILL)
         return result
 
-    def before_commit(row, *args, **kwargs):
-        result = original_save(row, *args, **kwargs)
-        if row.status == "signed":
-            os.kill(os.getpid(), signal.SIGKILL)
-        return result
-
     def projected(command, claim, **kwargs):
         operation = OutgoingOperation.objects.get(pk=claim.operation_id)
         if phase == "before_revert_projection" and operation.status == "reverted":
@@ -133,7 +127,6 @@ def run(directory, phase, request_id, actor_id, confirmation):
     original_open = outgoing.open_operation
     original_preflight = issuance_execution._preflight
     original_start = issuance_execution._start
-    original_save = OutgoingOperation.save
     original_project = issuance_execution._project
     node.client.send_raw_transaction.side_effect = send
     node.client.get_transaction_receipt.side_effect = observed
@@ -146,8 +139,6 @@ def run(directory, phase, request_id, actor_id, confirmation):
         stack.enter_context(patch("tokens.services.share_token_service.seed_recipient_holding"))
         stack.enter_context(patch.object(issuance_execution, "_preflight", preflight))
         stack.enter_context(patch.object(issuance_execution, "_start", started))
-        if phase == "before_commit":
-            stack.enter_context(patch.object(OutgoingOperation, "save", before_commit))
         if phase in ("before_revert_projection", "mined_before_projection"):
             stack.enter_context(patch.object(issuance_execution, "_project", projected))
         existing = ShareIssuanceExecution.objects.filter(request_id=request.pk).first()

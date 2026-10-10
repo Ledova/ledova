@@ -1,9 +1,8 @@
 from contextlib import nullcontext
 from unittest.mock import patch
 
-from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.db import DatabaseError, connections
+from django.db import DatabaseError
 from django.test import TransactionTestCase, override_settings
 from django.utils import timezone
 
@@ -15,16 +14,8 @@ from blockchain.models import (
 )
 from blockchain.services import outgoing
 from blockchain.services.outgoing import OutgoingTransactionError
-from shared.db import (
-    APP_ALIAS,
-    OPERATOR_ALIAS,
-    atomic,
-    current_alias,
-    use_migrate,
-    use_operator,
-)
+from shared.db import atomic, use_migrate, use_operator
 from shared.tests.retained_rows import retained_rows
-from shared.tests.scoped import RunsOnTheScopedConnection
 from shared.tests.tenants import make_tenant
 from shared.tests.upload_fixtures import StubUploadDependencies
 from tokens.exceptions import IssuanceExecutionConflict
@@ -317,17 +308,3 @@ class RegisterDeploymentIssuanceGuardTest(StubUploadDependencies, TransactionTes
             command.refresh_from_db()
             self.assertEqual(command.finalized_receipt["block_number"], 12)
         self.assertEqual(self.node.broadcasts, [bytes(attempt.raw_transaction)])
-
-
-class ScopedRegisterDeploymentIssuanceGuardTest(RunsOnTheScopedConnection, RegisterDeploymentIssuanceGuardTest):
-    def setUp(self):
-        super().setUp()
-        self.assertEqual(current_alias(), APP_ALIAS)
-        sessions = {}
-        for alias in (APP_ALIAS, OPERATOR_ALIAS):
-            with connections[alias].cursor() as cursor:
-                cursor.execute("SELECT current_user, pg_backend_pid()")
-                sessions[alias] = cursor.fetchone()
-        self.assertEqual(sessions[APP_ALIAS][0], settings.RLS_ROLES["app"])
-        self.assertEqual(sessions[OPERATOR_ALIAS][0], settings.RLS_ROLES["operator"])
-        self.assertNotEqual(sessions[APP_ALIAS][1], sessions[OPERATOR_ALIAS][1])

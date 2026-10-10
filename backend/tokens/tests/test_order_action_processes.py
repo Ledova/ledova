@@ -15,7 +15,6 @@ from rest_framework.test import APITransactionTestCase
 from operators.models import Operator
 from operators.settlement import require_deployment
 from shared.db import current_alias, use_migrate, use_operator
-from shared.tests.scoped import RunsOnTheScopedConnection
 from shared.utils.token_amounts import token_base_units_ceiling
 from shared.utils.typed_data import signable_message
 from tokens.models import (
@@ -396,8 +395,4 @@ class ActionProcessChecks(ActionFixtures):
 
 @skipUnless(connection.vendor == "postgresql", "Independent action requests require PostgreSQL transactions and roles")
 class OrderActionProcessTest(ActionProcessChecks, APITransactionTestCase):
-    pass
-
-
-class ScopedOrderActionProcessTest(RunsOnTheScopedConnection, ActionProcessChecks, APITransactionTestCase):
     pass

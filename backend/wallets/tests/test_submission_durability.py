@@ -8,7 +8,6 @@ from rest_framework.test import APITransactionTestCase
 
 from assets.services.identity import native_asset_for_chain
 from shared.db import acting_for, use_operator
-from shared.tests.scoped import RunsOnTheScopedConnection
 from shared.tests.tenants import make_tenant
 from wallets.models import (
     Holding,
@@ -183,8 +182,4 @@ class SubmissionDurabilityChecks(SubmissionFixture):
 
 
 class SubmissionDurabilityTest(SubmissionDurabilityChecks, APITransactionTestCase):
-    pass
-
-
-class ScopedSubmissionDurabilityTest(RunsOnTheScopedConnection, SubmissionDurabilityChecks, APITransactionTestCase):
     pass

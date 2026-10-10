@@ -10,7 +10,6 @@ from django.db import connection
 from rest_framework.test import APITransactionTestCase
 
 from shared.db import use_operator
-from shared.tests.scoped import RunsOnTheScopedConnection
 from tokens.models import SigningChallenge, SwapOrder, TransferOrder
 from tokens.tests.order_process_fixtures import OrderChild, wait_for_row_lock
 from tokens.tests.order_submission_fixtures import COUNTERPARTY, SubmissionFixtures
@@ -177,8 +176,4 @@ class SubmissionProcessChecks(SubmissionFixtures):
 
 @skipUnless(connection.vendor == "postgresql", "Independent API requests require PostgreSQL transactions and roles")
 class OrderSubmissionProcessTest(SubmissionProcessChecks, APITransactionTestCase):
-    pass
-
-
-class ScopedOrderSubmissionProcessTest(RunsOnTheScopedConnection, SubmissionProcessChecks, APITransactionTestCase):
     pass

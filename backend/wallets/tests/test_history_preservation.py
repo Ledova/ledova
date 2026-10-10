@@ -14,7 +14,6 @@ from assets.models import Asset, AssetChainDeployment
 from assets.services.identity import native_asset_for_chain
 from shared.db import APP_ALIAS, acting_for, current_alias, use_operator
 from shared.db.aliases import configured
-from shared.tests.scoped import RunsOnTheScopedConnection
 from shared.tests.tenants import make_tenant
 from wallets.models import Holding, Transaction, Wallet
 from wallets.services import transaction_confirmation
@@ -534,29 +533,3 @@ class HistoryPreservationChecks:
 
 class HistoryPreservationTest(HistoryPreservationChecks, APITransactionTestCase):
     pass
-
-
-class ScopedHistoryPreservationTest(RunsOnTheScopedConnection, HistoryPreservationChecks, APITransactionTestCase):
-    def test_a_foreign_principal_cannot_verify_an_imported_receipt(self):
-        data = self.history()
-        self.import_history(data)
-        with use_operator():
-            other = make_tenant("foreign-receipt")
-        before = self.state()
-        with acting_for(other.user.pk):
-            with self.assertRaises(Wallet.DoesNotExist):
-                record_history_receipt(data["tx_hash"], wallet=self.wallet, succeeded=True)
-        self.assertEqual(self.state(), before)
-        self.assertEqual(self.check_receipt(data, self.receipt_client())["status"], "confirmed")
-
-    def test_a_foreign_operator_wallet_is_hidden_and_cannot_receive_history(self):
-        with use_operator():
-            other = make_tenant("foreign-history")
-            before = list(Transaction.objects.filter(wallet=other.wallet).values())
-        with acting_for(self.tenant.user.pk):
-            self.assertFalse(Wallet.objects.filter(pk=other.wallet.pk).exists())
-        with self.assertRaises(Wallet.DoesNotExist):
-            self.import_history(self.history(), wallet=other.wallet)
-        with use_operator():
-            self.assertEqual(list(Transaction.objects.filter(wallet=other.wallet).values()), before)
-        self.assertEqual(self.import_history(self.history())["transactions"], 1)

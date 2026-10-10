@@ -13,15 +13,7 @@ from django.test import override_settings
 from django.utils import timezone
 from rest_framework.test import APITransactionTestCase
 
-from shared.db import (
-    APP_ALIAS,
-    acting_for,
-    atomic,
-    configured,
-    current_alias,
-    use_operator,
-)
-from shared.tests.scoped import RunsOnTheScopedConnection
+from shared.db import APP_ALIAS, atomic, configured, current_alias, use_operator
 from shared.tests.tenants import make_tenant
 from wallets.models import Transaction, WalletChainObservation, WalletChainWatch
 from wallets.services.chain_observations import (
@@ -420,23 +412,3 @@ class ChainObservationChecks(ChainObservationFixture):
 
 class ChainObservationTest(ChainObservationChecks, APITransactionTestCase):
     pass
-
-
-class ScopedChainObservationTest(RunsOnTheScopedConnection, ChainObservationChecks, APITransactionTestCase):
-    def test_only_the_owner_reads_the_observations_and_even_the_owner_cannot_write_them(self):
-        self.assertEqual(observe_wallet_chain(self.tx_id), "recorded")
-        watch = self.watch()
-        row = self.observations()[0]
-        with use_operator():
-            other = make_tenant("observation-private")
-        with acting_for(other.user.pk):
-            self.assertEqual(WalletChainWatch.objects.count(), 0)
-            self.assertEqual(WalletChainObservation.objects.count(), 0)
-        with acting_for(self.tenant.user.pk):
-            self.assertEqual(WalletChainWatch.objects.get().pk, watch.pk)
-            self.assertEqual(WalletChainObservation.objects.get().pk, row["uuid"])
-            self.assert_database_refuses(
-                "UPDATE wallets_walletchainwatch SET generation = generation + 1, "
-                "last_started_at = CURRENT_TIMESTAMP WHERE uuid = %s",
-                [watch.pk],
-            )

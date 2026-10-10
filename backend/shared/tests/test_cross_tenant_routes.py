@@ -36,7 +36,6 @@ from offerings.models import Offering, OfferingStatus, Subscription
 from operators.models import Operator
 from shared.db import acting_for, atomic, current_alias, use_migrate, use_operator
 from shared.seeds.synthetic.eligibility import accept_source, company_approver
-from shared.tests.scoped import RunsOnTheScopedConnection
 from shared.tests.settlement import SYNTHETIC_SETTLEMENT_CONTRACT
 from shared.tests.tenants import (
     make_eligible,
@@ -721,12 +720,7 @@ def _fill(value, context):
     return value
 
 
-class CrossTenantRouteMatrixTest(StubUploadDependencies, APITransactionTestCase):
-
-    @staticmethod
-    def routes():
-        return ROUTES
-
+class CrossTenantRouteFixtures(StubUploadDependencies):
     @contextmanager
     def undone_before_the_next_case(self, route=None, actor=None):
         if route and route.path.endswith("/register/inspection-copy/"):
@@ -890,6 +884,38 @@ class CrossTenantRouteMatrixTest(StubUploadDependencies, APITransactionTestCase)
             text = text.replace(value, "<target>")
         return text
 
+    def initial_team_appointment(self, label, acn):
+        from companies.services.authority import DECLARATION_VERSION
+        from companies.tests.registry_fixtures import matching_observation
+        from companies.tests.test_authority_requests import authority_fixture
+
+        with self.as_an_operator_would():
+            owner, profile, company = authority_fixture(label, acn)
+            UserProfile.objects.filter(pk=profile.pk).update(is_id_verified=True)
+        self.client.force_authenticate(owner)
+        created = self.client.post(
+            COMPANY_AUTHORITY_ROUTES["create"][1],
+            {
+                "company": str(company.pk),
+                "idempotency_key": str(uuid4()),
+                "requested_capabilities": ["admin"],
+                "delegatable_capabilities": ["approve", "prepare"],
+                "file": SimpleUploadedFile("authority.pdf", pdf_bytes(), content_type="application/pdf"),
+            },
+            format="multipart",
+        )
+        self.assertEqual(created.status_code, 201, created.content)
+        with patch("companies.services.registry.lookup_company", return_value=matching_observation(company)):
+            admitted = self.client.post(
+                COMPANY_AUTHORITY_ROUTES["admit"][1].format(uuid=created.json()["uuid"]),
+                {"declaration_version": DECLARATION_VERSION, "accept_declaration": True},
+                format="json",
+            )
+        self.assertEqual(admitted.status_code, 200, admitted.content)
+        return owner, company, admitted.json()["appointment"]["uuid"], admitted.json()["uuid"]
+
+
+class CrossTenantRouteMatrixTest(CrossTenantRouteFixtures, APITransactionTestCase):
     def test_foreign_rows_are_not_found_and_left_untouched(self):
         with self.as_an_operator_would():
             before = snapshot(self.other)
@@ -1157,36 +1183,6 @@ class CrossTenantRouteMatrixTest(StubUploadDependencies, APITransactionTestCase)
                 self.assertEqual(response.status_code, 200, response.content)
                 self.assertEqual(response.json()["status"], "admitted")
         self.assertEqual(response.json()["appointment"]["status"], "revoked")
-
-    def initial_team_appointment(self, label, acn):
-        from companies.services.authority import DECLARATION_VERSION
-        from companies.tests.registry_fixtures import matching_observation
-        from companies.tests.test_authority_requests import authority_fixture
-
-        with self.as_an_operator_would():
-            owner, profile, company = authority_fixture(label, acn)
-            UserProfile.objects.filter(pk=profile.pk).update(is_id_verified=True)
-        self.client.force_authenticate(owner)
-        created = self.client.post(
-            COMPANY_AUTHORITY_ROUTES["create"][1],
-            {
-                "company": str(company.pk),
-                "idempotency_key": str(uuid4()),
-                "requested_capabilities": ["admin"],
-                "delegatable_capabilities": ["approve", "prepare"],
-                "file": SimpleUploadedFile("authority.pdf", pdf_bytes(), content_type="application/pdf"),
-            },
-            format="multipart",
-        )
-        self.assertEqual(created.status_code, 201, created.content)
-        with patch("companies.services.registry.lookup_company", return_value=matching_observation(company)):
-            admitted = self.client.post(
-                COMPANY_AUTHORITY_ROUTES["admit"][1].format(uuid=created.json()["uuid"]),
-                {"declaration_version": DECLARATION_VERSION, "accept_declaration": True},
-                format="json",
-            )
-        self.assertEqual(admitted.status_code, 200, admitted.content)
-        return owner, company, admitted.json()["appointment"]["uuid"], admitted.json()["uuid"]
 
     def test_team_routes_bind_company_source_and_appointee_without_exposing_foreign_history(self):
         from companies.services.authority import DECLARATION_VERSION
@@ -2840,10 +2836,6 @@ class OrderActionRouteMatrixTest(OrderActionRouteChecks, APITransactionTestCase)
     pass
 
 
-class ScopedOrderActionRouteMatrixTest(RunsOnTheScopedConnection, OrderActionRouteChecks, APITransactionTestCase):
-    pass
-
-
 ELIGIBILITY_ROUTES = (
     Route("get", "/api/v1/companies/{company}/eligibility-requests/"),
     Route("get", "/api/v1/company-eligibility/requests/{eligibility_request}/"),
@@ -2906,12 +2898,6 @@ class CompanyEligibilityRouteChecks(CompanyEligibilityCases, StubUploadDependenc
 
 
 class CompanyEligibilityRouteMatrixTest(CompanyEligibilityRouteChecks, APITransactionTestCase):
-    pass
-
-
-class ScopedCompanyEligibilityRouteMatrixTest(
-    RunsOnTheScopedConnection, CompanyEligibilityRouteChecks, APITransactionTestCase
-):
     pass
 
 
@@ -3024,58 +3010,3 @@ class CompanyWalletRouteMatrixTest(CompanyWalletCases, APITransactionTestCase):
             self.assertEqual(result.status_code, 200, result.content)
         self.assertEqual(result.json()["status"], "applied")
         self.assertIsNotNone(result.json()["changeId"])
-
-
-class ScopedCompanyWalletRouteMatrixTest(RunsOnTheScopedConnection, CompanyWalletRouteMatrixTest):
-    pass
-
-
-class ScopedCompanyCapitalRouteMatrixTest(RunsOnTheScopedConnection, StubUploadDependencies, APITransactionTestCase):
-    rows = staticmethod(CrossTenantRouteMatrixTest.rows)
-    test_register_capital_scope_all_six_routes_to_current_company_authority_and_private_evidence = getattr(
-        CrossTenantRouteMatrixTest,
-        "test_register_capital_scope_all_six_routes_to_current_company_authority_and_private_evidence",
-    )
-
-    def setUp(self):
-        super().setUp()
-        with use_operator():
-            self.actors = (
-                make_tenant("capital-foreign"),
-                make_tenant("capital-foreign-staff", staff=True),
-                make_tenant("capital-foreign-root", superuser=True),
-            )
-
-
-class ScopedCompanyPauseRouteMatrixTest(RunsOnTheScopedConnection, StubUploadDependencies, APITransactionTestCase):
-    rows = staticmethod(CrossTenantRouteMatrixTest.rows)
-    test_register_pause_scope_all_six_routes_to_current_company_authority_and_private_evidence = getattr(
-        CrossTenantRouteMatrixTest,
-        "test_register_pause_scope_all_six_routes_to_current_company_authority_and_private_evidence",
-    )
-
-    def setUp(self):
-        super().setUp()
-        with use_operator():
-            self.actors = (
-                make_tenant("pause-foreign"),
-                make_tenant("pause-foreign-staff", staff=True),
-                make_tenant("pause-foreign-root", superuser=True),
-            )
-
-
-class ScopedCompanyPaidIssueRouteMatrixTest(RunsOnTheScopedConnection, StubUploadDependencies, APITransactionTestCase):
-    rows = staticmethod(CrossTenantRouteMatrixTest.rows)
-    test_register_paid_issues_scope_all_seven_routes_to_current_company_authority_and_private_evidence = getattr(
-        CrossTenantRouteMatrixTest,
-        "test_register_paid_issues_scope_all_seven_routes_to_current_company_authority_and_private_evidence",
-    )
-
-    def setUp(self):
-        super().setUp()
-        with use_operator():
-            self.actors = (
-                make_tenant("paid-foreign"),
-                make_tenant("paid-foreign-staff", staff=True),
-                make_tenant("paid-foreign-root", superuser=True),
-            )

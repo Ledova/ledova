@@ -2,7 +2,6 @@ from contextlib import nullcontext
 from decimal import Decimal
 
 from django.conf import settings
-from django.db import DatabaseError, connections
 from rest_framework.test import APITransactionTestCase
 
 from companies.models import Company, CompanyStatus
@@ -16,8 +15,7 @@ from offerings.tests.factories import (
     open_offering,
     subscription_technical_actor,
 )
-from shared.db import APP_ALIAS, acting_for, atomic, use_migrate, use_operator
-from shared.tests.scoped import RunsOnTheScopedConnection
+from shared.db import APP_ALIAS, acting_for, use_migrate, use_operator
 from shared.tests.tenants import make_tenant
 from tokens.models import (
     RequestStatus,
@@ -212,71 +210,3 @@ class ApplicationRetentionCases:
 
 class ApplicationRetentionTest(ApplicationRetentionCases, APITransactionTestCase):
     pass
-
-
-class ScopedApplicationRetentionTest(ApplicationRetentionCases, RunsOnTheScopedConnection, APITransactionTestCase):
-    def test_retained_application_links_are_the_deliberate_policy_closure_exception(self):
-        with acting_for(self.investor.user.pk):
-            self.assertTrue(Offering.objects.filter(pk=self.offering.pk).exists())
-            self.assertTrue(Company.objects.filter(pk=self.issuer.company.pk).exists())
-            self.assertTrue(ShareToken.objects.filter(pk=self.offering.token_id).exists())
-        self.visibility("paused_closed")
-        with acting_for(self.investor.user.pk):
-            self.assertFalse(Offering.objects.filter(pk=self.offering.pk).exists())
-            self.assertFalse(Company.objects.filter(pk=self.issuer.company.pk).exists())
-            self.assertFalse(ShareToken.objects.filter(pk=self.offering.token_id).exists())
-            application = Subscription.objects.for_applicant(self.investor.user).get(pk=self.application.pk)
-            self.assertEqual(application.company_id, self.issuer.company.pk)
-            self.assertEqual(application.offering_id, self.offering.pk)
-            self.assertEqual(application.company_name, "Synthetic retained company")
-        self.assertEqual(self.client.get(f"{BASE}{self.application.uuid}/").status_code, 200)
-
-    def test_hidden_parent_updates_cannot_change_the_owner_or_parent_or_insert(self):
-        with self.operator():
-            eligible_subscriber(self.bystander)
-            eligible_subscriber(self.investor, issuer_decision=self.bystander.eligibility_decision)
-            other_offering = open_offering(self.bystander)
-            other = draft_subscription(self.investor, offering=other_offering)
-            with use_migrate():
-                Company.objects.filter(pk=self.bystander.company.pk).update(is_open_to_investors=False)
-        self.visibility("closed")
-        with acting_for(self.investor.user.pk):
-            with connections[APP_ALIAS].cursor() as cursor:
-                cursor.execute("SELECT current_user, rolbypassrls, rolsuper FROM pg_roles WHERE rolname = current_user")
-                self.assertEqual(cursor.fetchone(), (settings.RLS_ROLES[APP_ALIAS], False, False))
-            self.assertFalse(Offering.objects.filter(pk=self.offering.pk).exists())
-            self.assertEqual(Subscription.objects.filter(pk=self.draft.pk).update(payment_notes="Retained"), 1)
-            original = Subscription.objects.filter(pk=self.draft.pk).values().get()
-            count = Subscription.objects.count()
-            for values in (
-                {"company_id": self.investor.company.pk},
-                {"company_id": None},
-                {"offering_id": other_offering.pk},
-                {"offering_id": other_offering.pk, "company_id": other.company_id},
-            ):
-                with self.subTest(values=values):
-                    with self.assertRaisesMessage(
-                        DatabaseError, "Retain the exact subscription applicant and frozen economics"
-                    ) as raised, atomic():
-                        Subscription.objects.filter(pk=self.draft.pk).update(**values)
-                    self.assertEqual(getattr(raised.exception.__cause__, "sqlstate", None), "23514")
-                    self.assertEqual(Subscription.objects.filter(pk=self.draft.pk).values().get(), original)
-            with self.assertRaisesMessage(
-                DatabaseError, "Subscription admission requires the exact bounded current command"
-            ) as raised, atomic():
-                Subscription.objects.create(
-                    offering_id=self.offering.pk,
-                    company_id=self.issuer.company.pk,
-                    user_account=self.investor.account,
-                    wallet=self.investor.wallet,
-                    company_name=self.draft.company_name,
-                    token_name=self.draft.token_name,
-                    token_symbol=self.draft.token_symbol,
-                    currency=self.draft.currency,
-                    quantity=10,
-                    price_per_share=Decimal("2.50"),
-                    amount_due=Decimal("25.00"),
-                )
-            self.assertEqual(getattr(raised.exception.__cause__, "sqlstate", None), "23514")
-            self.assertEqual(Subscription.objects.count(), count)
-            self.assertEqual(Subscription.objects.filter(pk=self.draft.pk).values().get(), original)

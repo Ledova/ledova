@@ -26,7 +26,6 @@ from blockchain.tests.outgoing_fixtures import CHAIN_ID, KEY, SENDER, admitted_s
 from blockchain.tests.test_outgoing_processes import finish
 from feature_flags.models import FeatureFlag
 from shared.db import acting_for, atomic, current_alias, use_operator
-from shared.tests.scoped import RunsOnTheScopedConnection
 from shared.tests.tenants import make_tenant
 from tokens.exceptions import SwapNotReadyException
 from tokens.models import ShareToken, SwapOrder, TransferOrder
@@ -306,12 +305,12 @@ class SwapExecutionRecoveryTest(APITransactionTestCase):
         self.assertEqual(response.status_code, 400, response.content)
         self.assertEqual(response.json(), {"detail": "The authenticated participant must be the signing party"})
         self.assertEqual(self.admission_state(), before)
-        self.assertEqual(seen, [("ledova_app", False)])
+        self.assertEqual(seen, [(settings.RLS_ROLES["app"], False)])
         seen.clear()
         with patch.object(atomic_swap_service, "verify_signature", private_read):
             response = self.post_signature("buyer")
         self.assertEqual(response.status_code, 200, response.content)
-        self.assertEqual(seen, [("ledova_app", False)])
+        self.assertEqual(seen, [(settings.RLS_ROLES["app"], False)])
         before = self.admission_state()
         response = self.post_signature("seller", relayed="buyer")
         self.assertEqual(response.status_code, 200, response.content)
@@ -705,10 +704,6 @@ class SwapExecutionRecoveryTest(APITransactionTestCase):
         with patch.object(swap_execution, "get_base_chain_client", return_value=self.node.client):
             self.assertEqual(resolve_executing_swaps(), {"checked": 1, "resolved": 1})
         self.assert_held()
-
-
-class ScopedSwapExecutionRecoveryTest(RunsOnTheScopedConnection, SwapExecutionRecoveryTest):
-    pass
 
 
 @override_settings(BLOCKCHAIN_OPERATOR_KEY=KEY, BLOCKCHAIN_CHAIN_ID=CHAIN_ID, ATOMIC_SWAP_ADDRESS=CONTRACT)

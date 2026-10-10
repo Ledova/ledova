@@ -269,7 +269,59 @@ class CompanyEligibilityCases:
             self.assertNotIn(forbidden, serialized)
 
 
-class CompanyEligibilityRequestTest(CompanyEligibilityCases, StubUploadDependencies, APITransactionTestCase):
+class CompanyEligibilityRequestFixtures(CompanyEligibilityCases, StubUploadDependencies):
+    def retained_decision_and_revocation_replay(self, *, expire):
+        request, _ = self.created_request()
+        if expire:
+            expiry = timezone.now() + timedelta(seconds=3)
+            actor, _, selected = self.appointee("retained-expiring-approver", ["prepare", "approve"], expires_at=expiry)
+        else:
+            expiry = None
+            actor, selected = self.approver, self.appointment
+        self.client.force_authenticate(actor)
+        preview = self.decision_preview(request, appointment=str(selected.pk))
+        self.assertEqual(preview.status_code, 200, preview.content)
+        digest = preview.json()["previewDigest"]
+        key = uuid4()
+        first = self.decide(request, digest=digest, key=key, appointment=str(selected.pk))
+        self.assertEqual(first.status_code, 200, first.content)
+        revocation_payload = {
+            "appointment": str(selected.pk),
+            "idempotency_key": str(uuid4()),
+            "reason": "Synthetic retained company revocation",
+        }
+        revoked = self.client.post(self.company_url(request, "revoke"), revocation_payload, format="json")
+        self.assertEqual(revoked.status_code, 200, revoked.content)
+        before = self.snapshots()
+        if expire:
+            wait = (expiry - timezone.now()).total_seconds()
+            if wait > 0:
+                self.assertLess(wait, 4)
+                sleep(wait + 0.05)
+        else:
+            revoke_company_appointment(requester=actor, appointment_id=selected.pk)
+        readable = self.appoint_actor(actor, ["prepare"])
+        self.assertNotEqual(readable.pk, selected.pk)
+        self.assertEqual(readable.capabilities, ["prepare"])
+        self.assertEqual(self.client.get(self.company_url(request)).status_code, 200)
+        repeated_decision = self.decide(request, digest=digest, key=key, appointment=str(selected.pk))
+        self.assertEqual(repeated_decision.status_code, 200, repeated_decision.content)
+        self.assertEqual(repeated_decision.json()["decision"], revoked.json()["decision"])
+        self.assertEqual(repeated_decision.json()["decision"]["appointment"], str(selected.pk))
+        repeated_revocation = self.client.post(self.company_url(request, "revoke"), revocation_payload, format="json")
+        self.assertEqual(repeated_revocation.status_code, 200, repeated_revocation.content)
+        self.assertEqual(repeated_revocation.json()["decision"], revoked.json()["decision"])
+        self.assertEqual(repeated_revocation.json()["decision"]["revocation"]["appointment"], str(selected.pk))
+        changed_appointment = self.decide(request, digest=digest, key=key, appointment=str(readable.pk))
+        self.assertEqual(changed_appointment.status_code, 409, changed_appointment.content)
+        changed_revocation = self.client.post(
+            self.company_url(request, "revoke"), {**revocation_payload, "appointment": str(readable.pk)}, format="json"
+        )
+        self.assertEqual(changed_revocation.status_code, 409, changed_revocation.content)
+        self.assertEqual(self.snapshots(), before)
+
+
+class CompanyEligibilityRequestTest(CompanyEligibilityRequestFixtures, APITransactionTestCase):
     def test_pending_both_account_can_submit_and_be_accepted_only_with_investor_identity_policy_off(self):
         with use_operator():
             self.participant, self.account = make_investor(
@@ -696,56 +748,6 @@ class CompanyEligibilityRequestTest(CompanyEligibilityCases, StubUploadDependenc
             self.assertFalse(CompanyEligibilityDecision.objects.exists())
         accepted = self.decide(request, digest=digest, key=key, confirmation=True)
         self.assertEqual(accepted.status_code, 200, accepted.content)
-
-    def retained_decision_and_revocation_replay(self, *, expire):
-        request, _ = self.created_request()
-        if expire:
-            expiry = timezone.now() + timedelta(seconds=3)
-            actor, _, selected = self.appointee("retained-expiring-approver", ["prepare", "approve"], expires_at=expiry)
-        else:
-            expiry = None
-            actor, selected = self.approver, self.appointment
-        self.client.force_authenticate(actor)
-        preview = self.decision_preview(request, appointment=str(selected.pk))
-        self.assertEqual(preview.status_code, 200, preview.content)
-        digest = preview.json()["previewDigest"]
-        key = uuid4()
-        first = self.decide(request, digest=digest, key=key, appointment=str(selected.pk))
-        self.assertEqual(first.status_code, 200, first.content)
-        revocation_payload = {
-            "appointment": str(selected.pk),
-            "idempotency_key": str(uuid4()),
-            "reason": "Synthetic retained company revocation",
-        }
-        revoked = self.client.post(self.company_url(request, "revoke"), revocation_payload, format="json")
-        self.assertEqual(revoked.status_code, 200, revoked.content)
-        before = self.snapshots()
-        if expire:
-            wait = (expiry - timezone.now()).total_seconds()
-            if wait > 0:
-                self.assertLess(wait, 4)
-                sleep(wait + 0.05)
-        else:
-            revoke_company_appointment(requester=actor, appointment_id=selected.pk)
-        readable = self.appoint_actor(actor, ["prepare"])
-        self.assertNotEqual(readable.pk, selected.pk)
-        self.assertEqual(readable.capabilities, ["prepare"])
-        self.assertEqual(self.client.get(self.company_url(request)).status_code, 200)
-        repeated_decision = self.decide(request, digest=digest, key=key, appointment=str(selected.pk))
-        self.assertEqual(repeated_decision.status_code, 200, repeated_decision.content)
-        self.assertEqual(repeated_decision.json()["decision"], revoked.json()["decision"])
-        self.assertEqual(repeated_decision.json()["decision"]["appointment"], str(selected.pk))
-        repeated_revocation = self.client.post(self.company_url(request, "revoke"), revocation_payload, format="json")
-        self.assertEqual(repeated_revocation.status_code, 200, repeated_revocation.content)
-        self.assertEqual(repeated_revocation.json()["decision"], revoked.json()["decision"])
-        self.assertEqual(repeated_revocation.json()["decision"]["revocation"]["appointment"], str(selected.pk))
-        changed_appointment = self.decide(request, digest=digest, key=key, appointment=str(readable.pk))
-        self.assertEqual(changed_appointment.status_code, 409, changed_appointment.content)
-        changed_revocation = self.client.post(
-            self.company_url(request, "revoke"), {**revocation_payload, "appointment": str(readable.pk)}, format="json"
-        )
-        self.assertEqual(changed_revocation.status_code, 409, changed_revocation.content)
-        self.assertEqual(self.snapshots(), before)
 
     def test_identical_decision_and_revocation_retry_keeps_revoked_original_appointment_with_current_prepare_read(self):
         self.retained_decision_and_revocation_replay(expire=False)

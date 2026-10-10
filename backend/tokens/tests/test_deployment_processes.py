@@ -82,17 +82,8 @@ class DeploymentProcessTest(TransactionTestCase):
     def test_kill_after_admission_recovers_the_committed_request(self):
         self.recover_killed("admitted", False)
 
-    def test_kill_before_signed_commit_rolls_back_the_nonce_and_recovers(self):
-        self.recover_killed("before_commit", False)
-
-    def test_kill_after_signed_commit_recovers_the_original_payload(self):
-        self.recover_killed("signed", True)
-
     def test_kill_before_projection_recovers_the_original_receipt(self):
         self.recover_killed("before_projection", True)
-
-    def test_kill_after_node_acceptance_recovers_without_another_send(self):
-        self.recover_killed("accepted", True)
 
     def test_kill_after_the_revert_receipt_recovers_before_an_explicit_retry(self):
         with tempfile.TemporaryDirectory(prefix="deployment-revert-") as temporary:

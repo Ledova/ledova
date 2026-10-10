@@ -4,7 +4,6 @@ from procrastinate.contrib.django.models import ProcrastinateJob
 from rest_framework.test import APITransactionTestCase
 
 from shared.db import use_operator
-from shared.tests.scoped import RunsOnTheScopedConnection
 from users.models import Notification
 from users.tasks.notifications import send_transaction_notification
 from wallets.services import transaction_confirmation
@@ -85,10 +84,4 @@ class TransactionNotificationChecks(WalletFinalityFixture):
 
 
 class TransactionNotificationTest(TransactionNotificationChecks, APITransactionTestCase):
-    pass
-
-
-class ScopedTransactionNotificationTest(
-    RunsOnTheScopedConnection, TransactionNotificationChecks, APITransactionTestCase
-):
     pass

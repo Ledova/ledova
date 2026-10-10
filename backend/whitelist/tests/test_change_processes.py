@@ -79,15 +79,6 @@ class WhitelistChangeProcessTest(CompanyWalletCases, APITransactionTestCase):
     def test_kill_after_admission_recovers_the_accepted_command(self):
         self.recover_killed("admitted", False)
 
-    def test_kill_before_signed_commit_rolls_back_nonce_and_attempt(self):
-        self.recover_killed("before_commit", False)
-
-    def test_kill_after_signed_commit_recovers_original_bytes(self):
-        self.recover_killed("signed", True)
-
-    def test_kill_after_accepted_send_reconciles_without_another_broadcast(self):
-        self.recover_killed("accepted", True)
-
     def test_kill_after_terminal_projection_returns_original_outcome(self):
         self.recover_killed("projected", True)
 

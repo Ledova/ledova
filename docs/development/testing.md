@@ -18,7 +18,8 @@ backend suites run on PostgreSQL in both ordinary and specialised settings.
 | Gate unit tests                 | `make test-gates`                                                                                   |
 | Lint                            | `make lint`; `cd backend && make lint`, which needs the [backend lint tools](#backend-verification) |
 | JavaScript and contracts        | `make test`                                                                                         |
-| Backend suites                  | The three suites under [backend verification](#backend-verification); CI runs all three             |
+| Backend group                   | `make backend-test`; add relevant `BACKEND_CHECKS` flags for integrations/advisories                |
+| Prepare a push                  | `make preflight BASE=origin/main`; see [preflight](#preflight)                                      |
 | Migration drift                 | `cd backend && python manage.py makemigrations --check --dry-run`                                   |
 | Real EVM chain                  | `make chain-test`                                                                                   |
 | Real Bitcoin chain              | `python scripts/test-bitcoin-chain.py` against isolated PostgreSQL                                  |
@@ -54,191 +55,132 @@ Real Redis/ClamAV controls are separate from unit fakes; see
 
 ## Backend verification
 
-CI runs three backend scopes: ordinary, scoped, and roles/catalogue. All three
-must pass for the combined merging head before a backend change is called green.
-A change to a policy, a role grant or the test settings can pass two and fail the
-third, because each sees something the others cannot. A successful CI run that
-actually executes all three checks satisfies these full checks; it need not be
-duplicated by full local runs.
+Use focused regression tests while developing. The applicable CI checks must pass
+on the final PR head, up to date with main, with independent review. A successful
+CI run need not be repeated as a complete local run. Retire obsolete and redundant
+tests deliberately; preserve core register effects, authority, isolation, private
+evidence, economics and current execution/recovery boundaries.
 
-Use focused local checks while developing. Run additional local verification
-when a changed environment or behaviour is not covered by CI, a failure needs
-reproduction, or an unresolved concern warrants it. Retain the source and
-environment of reused evidence; results from an earlier head do not prove a
-changed combined head. Do not suppress a required suite or delete a failing
-regression to obtain green checks. This implements the owner's
-[6 October reduced-testing instruction](https://github.com/Ledova/ledova/issues/860#issuecomment-6014194017).
-From `backend/`, the commands CI runs, though CI splits the first across shard
-jobs (below):
+`make backend-test` runs one backend group: lint, Django system and migration
+consistency checks, baseline migration, role/catalogue checks, the pinned API
+schema comparison, ordinary tests and compact scoped tests. Each phase runs once
+and a failure stops the group. Add integrations when changing their inputs:
+
+```bash
+make backend-test BACKEND_CHECKS="--uploads --chains --audit"
+```
+
+`--uploads` runs real Redis throttle/quota and ClamAV scanner controls. `--chains`
+runs genuine EVM and Bitcoin checks. `--audit` checks backend production
+advisories. CI selects these flags from the complete changed paths. Database
+policies/settings/dependencies and unknown inputs select the affected integrations;
+ordinary test-only changes use the core group. Manual or unavailable comparisons
+select all checks. Every main push runs the core group, with integrations selected
+from its verified push comparison. The source in
+[`ci-scope.py`](../../scripts/ci-scope.py) owns the exact family rules.
+
+CI keeps disposable PostgreSQL data in a 4 GiB memory mount within a 6 GiB
+container limit. `fsync`, `synchronous_commit` and `full_page_writes` stay enabled.
+The job records storage usage and peak database memory alongside phase timings.
+Application-process recovery retains real commits while the database survives;
+this storage does not establish persistence across database-container loss.
+
+| Check                           | Meaningful boundary                                                             |
+| ------------------------------- | ------------------------------------------------------------------------------- |
+| Ordinary (`settings.test`)      | Current behaviour and app permissions through `SET ROLE` on a shared connection |
+| Scoped (`settings.test_scoped`) | Real separate app/operator credentials, tenant isolation and immutable records  |
+| Roles/catalogue                 | Installed privileges and policies that behavioural tests alone cannot establish |
+
+Normal Django discovery reports failed imports and the runner refuses an empty
+suite. The [shadowing gate](gates.md#the-test-shadowing-gate) checks assertion/fixture helpers that shadow reserved TestCase methods. Scoped coverage requires its declared connection-boundary classes and no
+skipped cases. There is no separate discovery run or shard scheduler. The suite
+commands are also available directly from `backend/`:
 
 ```bash
 python manage.py test --settings=ledova_backend.settings.test --parallel 4 --noinput
 python manage.py test --settings=ledova_backend.settings.test_scoped --require-scoped-coverage --parallel 4 --noinput
-python manage.py migrate --noinput
-python manage.py check_rls_roles
-python manage.py check_rls_catalogue
 ```
 
-| Suite                                                                             | What only it sees                                                                                          |
-| --------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| Ordinary (`settings.test`; `cd backend && make test` runs it without `--noinput`) | The app role on one shared connection, through `SET ROLE`                                                  |
-| Scoped                                                                            | Real, separate app and operator aliases: a different code path from the ordinary suite's shared connection |
-| Roles and catalogue                                                               | Grants and installed policies, which no test can observe                                                   |
+The group requires Python 3.13.15 with committed schema constraints, backend
+development tools and a local PostgreSQL 16 administrator connection. Upload
+integrations also need local Redis 7 and Docker. Chain integrations need Node 22.15.1,
+installed contract dependencies and Bitcoin Core 31.1; on native macOS provide
+`BITCOIN_TEST_BINARY`. Use `make install-schema-environment` and
+`npm --prefix contracts ci` to prepare those dependencies. Backend formatting uses
+`backend/pyproject.toml` and `backend/.flake8`.
 
-An empty or suppressed run is not a pass: find the `Ran N tests` tally before
-reading the exit status. [Scoped connection evidence](#scoped-connection-evidence)
-explains how the ordinary and scoped suites differ.
+The command creates a synthetic scratch database and separate migrate/app/operator
+roles. It removes only its owned database, roles, scanner and child processes;
+developer resources are preserved. Logs, schema diagnostics, phase timings and
+cleanup receipts are retained under `/tmp/ledova-backend-checks`. Suite output
+includes named durations, database setup and overall runner timings during the
+necessary run. A partial phase, cancellation or missing result is not a group
+pass. A hard kill cannot run Python cleanup; retain its resource receipt when
+recovering interrupted local work.
 
-The suites read the environment as the backend does. CI sets `SECRET_KEY`,
-`STORAGE_BACKEND` and the `POSTGRES_*` connection for them and no other backend
-setting; locally these usually come from loading `backend/.env`, whose other
-values then reach the suites too. In CI the separate scanner suite reads
-`UPLOAD_TEST_CLAMAV_HOST`, a test variable exported within the backend checks
-job; the scoped job has its own environment. A setting the test settings assign keeps
-their value, though one the backend derives from the same variable can still
-follow the file. They assign the chain id and the finality policies, the only
-settings derived from `BLOCKCHAIN_CHAIN_ID` and `LOCAL_CHAIN_FINALITY_DEPTH`, so
-they override any value of either that the backend accepts: the suites run on
-84532, Base Sepolia, under only the
-[approved policies](../operations/chains.md#chain-configuration), as in CI, and
-the local stack's values can stay in the file. A value the backend refuses still
-stops the suites, as it stops every other command. The template's values give
-the same results as CI's environment, but one changed from them can change a
-result: rerun a local failure with only CI's variables before reading it as a
-regression.
+Test settings pin Base Sepolia and approved finality policies. Real-chain selectors
+are deliberately skipped in ordinary tests without their chain environment.
+Inspect skip reasons and both complete EVM test footers. Native macOS cannot prove
+the decoder address-space cap; that case records a skip, while the Linux guest
+proves the kernel limit. See [upload limits](../operations/uploads.md#upload-validation-and-resource-limits).
 
-On macOS the suites run the real upload decoder and scanner client, but the
-kernel refuses their address-space limit (see
-[upload limits](../operations/uploads.md#upload-validation-and-resource-limits)).
-The ordinary suite then skips
-`test_a_real_decoder_cannot_run_with_an_insufficient_address_space_budget` with
-that reason, and the warning appears in the output. The CPU-limit and
-wall-deadline tests still run there, and so do the tests that simulate a kernel
-refusing each limit. Only a Linux run, such as CI, proves the address-space cap.
+## CI routing
 
-CI splits the ordinary suite into parallel "Django ordinary shard (NAME)" jobs,
-one for each shard in
-[`.github/ordinary-suite-shards.json`](../../.github/ordinary-suite-shards.json),
-each with its own PostgreSQL 16, running the ordinary command above with `-k`
-and that shard's test name patterns appended. Before its suite, the first
-matrix job runs the [ordinary shard gate](gates.md#the-ordinary-shard-gate)
-once for the whole matrix; that section describes the shard mechanics and the
-partition it holds the shards to. Locally, run the unsharded command. To repeat
-one shard, run `python ../scripts/check-ordinary-shards.py --run NAME` from
-`backend/`.
+[CI](../../.github/workflows/ci.yml) has two execution groups: **Source and client
+checks** and **Backend verification**, plus lightweight scope and verdict jobs.
+Source rules run for changes; client builds/typechecks/tests/smoke run when client
+or API inputs change, and tooling controls run when their scripts/workflows change.
+Backend tests run for backend inputs and documents that backend code reads.
+Unknown or incomplete comparisons select coverage. Native builds have their
+[own input rules](mobile-builds.md).
 
-CI's ordinary wrapper and strict scoped command emit the runner's
-`--durations 0 --verbosity 2 --timing` output during the necessary run, which
-records named method timings and overall test/database setup timings without a
-profiling framework or an extra suite. Method totals omit class/module fixtures
-and Django pre/post hooks, so they do not establish complete class costs or
-worker idle time. Keep full inventories and declared skips separate from these
-measurements; a duration report does not establish a scheduling improvement.
+Compatible main jobs use the Mac's isolated Linux ARM64 guests: backend on the
+primary profile, source/client checks on the ordinary profile. Scope and verdict
+stay hosted. Native Android/iOS builds use their platform-specific hosted runners.
+PR execution stays hosted until the protected definition and actual Mac admission
+are delivered. Linux-host expansion is deferred under the owner's Mac-only direction.
 
-On a pull request, a scope job decides whether the Django jobs run: the
-ordinary shards, "Django checks & tests", strict scoped tests and genuine chain
-checks. They run unless every changed file is under
-`dashboard/`, `docs/`, `marketing/`, `mobile/` or `packages/`, or is exactly
-the root `AGENTS.md` or `CONTRIBUTING.md`, except that a document any file
-under `backend/` names (`check_rls_catalogue` names `docs/architecture/tenancy.md`,
-and a test reads its heading; references to either root policy document count
-too) and any `.gitattributes` run them. The scope job compares the pull
-request's head with the base commit its event records, which still covers every
-changed file when GitHub leaves it at the branch point; a comparison it cannot
-complete runs them, and every push to `main` runs them whatever changed.
-[`scripts/ci-scope.py`](../../scripts/ci-scope.py) makes the decision, and the
-same kind for the [native builds](mobile-builds.md). The "Django verdict" check
-fails unless the scope job succeeded and each Django job succeeded or was
-skipped because none was needed.
+Main routing verifies repository, event, full main ref, run ID and attempt. Each
+one-job guest requests the exact run/attempt/job labels and has six CPUs, 12 GiB and
+a bounded disk. A changed workflow needs reviewed delivery, a clean drain and host
+policy rebinding before admission. Preserve diagnostics and let busy jobs finish;
+missing selected capacity remains visible rather than silently rerouting.
 
-The scoped and chain jobs depend only on that scope decision and can run
-concurrently with each other and the remaining backend checks. Each has its own
-runner, fresh PostgreSQL/Redis services and database bootstrap. The scoped
-job retains the complete required scoped inventory and zero-skip checks; the
-chain job retains both EVM invocations and Bitcoin regtest. Schema generation,
-role/catalogue checks, real Redis controls and ClamAV remain in the backend job.
-All four backend job groups must have their expected result before the verdict
-passes; a missing dependency fails it. Independent jobs may still queue, and
-their source topology alone does not establish an elapsed-time improvement.
+The permanent service starts at Mac user login; the Mac must remain powered and
+logged in. Administrator installation for system startup is deferred. Source
+routing does not prove unattended availability or full-load timings.
 
-Preferred self-hosted routing uses real `push` or `workflow_dispatch` events
-in `Ledova/ledova` on `refs/heads/main`. The scope router checks the actual
-repository, event, full ref, run ID and attempt with case-sensitive comparisons.
-Compatible source, JavaScript and backend work selects the Mac's isolated Linux
-ARM64 guests. The existing primary profile runs strict scoped and the complete
-`tokens-1`, `tokens-2` and `others` ordinary shards; the ordinary profile runs the
-remaining ordinary shards, backend checks, genuine chain checks and JavaScript
-and source gates, followed by the Django verdict. The lightweight scope bootstrap
-stays on `ubuntu-latest`.
-Native Android/iOS jobs keep their platform-specific hosted runners.
+PR checks within 15 minutes and the full backend suite within 20 minutes on the Mac
+remain targets. Report observed queue/setup/test/job timings against them in each
+increment. Focused test times and sums of parallel method durations do not establish
+those targets.
 
-Every selected job requests its fixed profile label,
-`ledova-main-<run_id>-<run_attempt>` and its exact `ledova-job-<job>` label.
-The matrix label includes the shard, so a registration cannot pick up another
-queued job in the same run. Missing or invalid identity and other contexts keep
-standard routing. CLI event arguments cannot supply runner identity. PRs remain
-hosted until protected reusable definitions and verified PR admission are
-implemented; this main-route increment does not deliver that work.
+## Preflight
 
-The persistent host service prepares and disposes a fresh one-job guest for each
-assignment. Each existing physical slot has six CPUs, 12 GiB and a bounded disk;
-using both slots requires reviewed admission for their assigned jobs and actual
-resource verification. Each immutable receipt binds the exact queued source,
-workflow, run/attempt, job and profile. Do not widen or reload an admitted receipt.
-A changed CI definition requires reviewed delivery, a clean drain and rebinding
-before admission. Retain diagnostics, let busy work finish during drain and stop
-replenishment when lifecycle state is uncertain. Source routing alone establishes
-neither unattended availability nor full-load acceptance.
+Run `make preflight BASE=origin/main` before pushing. It previews the same path
+rules for committed, staged, unstaged, deleted, renamed and untracked changes.
+Missing, shallow or divergent comparisons fail with a useful message. Inherited
+GitHub identity/output variables cannot supply local runner identity.
 
-The permanent service currently starts at Mac user login and requires the Mac to
-stay powered and logged in. Administrator installation for system startup is
-deferred.
+Preflight runs quick source/document checks, relevant client type/lint checks and
+tooling controls. Backend changes select formatting, lint and Django configuration
+checks. Run focused tests for the changed behaviour during development; preflight
+does not repeat the complete backend/integration pipeline before every push.
+Native builds, online issue verification and complete applicable CI remain required
+on the merging head.
 
-Runner allocation retains the suite commands, services and four workers. The
-[baseline](#migration-baseline) separately retires shipped migration tests.
-Selected execution has a 130-minute timeout; standard contexts retain 360 minutes.
-An unavailable selected runner leaves work queued, with no automatic hosted
-fallback. The verdict can use standard capacity when scope itself fails so it
-still reports the failed dependency; that does not move unavailable selected
-work onto hosted runners. Keep failed or missing required jobs visible. Linux
-runner expansion is deferred under the owner's Mac-only direction.
+Supply intended PR text only when preparing its description:
 
-Record actual source/job/runner identities, guest CPU/memory, architecture,
-resolved tools/services, IDs/skips, queue/setup/test/job timing, verdict and
-fresh-guest disposal/replacement. Wheel metadata and smoke readiness do not
-prove a complete four-worker ARM run fits. A single successful operational
-acceptance or method total does not establish repeatable wall-time improvement.
-Managed paid capacity remains separately controlled and is unused by this route.
+```bash
+make preflight BASE=origin/main PR_TITLE_FILE=/tmp/pr-title.txt PR_BODY_FILE=/tmp/pr-body.md
+python scripts/preflight.py --base origin/main --preview
+```
 
-The [9 October owner direction](../decisions.md#essential-registry-and-development-workflow-priority)
-prioritises further fixture and CI simplification under
-[#943](https://github.com/Ledova/ledova/issues/943). Its delivered increments
-aligned the policy documents, exempted root-policy-only changes (`AGENTS.md`,
-`CONTRIBUTING.md`) from the Django jobs and captured the timings above (#952),
-replaced routine historical schema rewinds in runtime company fixtures (#959)
-and gave the scoped and chain stages their own jobs (#960), while retaining
-every test selection, required verdict and main-push check. Those earlier
-increments left JavaScript, native, scanner and general backend routing unchanged.
-The Mac expansion above changes the compatible main-run allocation. Scheduled broad checks,
-more selective pre-merge coverage and verification tiers need their own
-reviewed implementation. The [10 October baseline decision](../decisions.md#backend-migration-baseline)
-puts the baseline first, essential process/timing fixes second, and one backend
-job group plus `make preflight` third. The baseline and timing repairs retain the
-existing job routing; one backend group and preflight remain separate work.
-PR checks within 15 minutes and the full backend suite within 20 minutes on the
-Mac remain goals; report actual timings in each PR.
-
-`black`, `isort` and `flake8` are development requirements and are not in the
-backend image, so running the source gates inside that image proves nothing
-about CI's Lint step. Lint runs first in the Django checks job and stops that
-job when it fails; ordinary shards, strict scoped tests and genuine chain checks
-run independently. A failure in any required group still fails the Django
-verdict. Install the tools with `make install-backend` from the repository root
-(`make check` does the same); CI installs the same file with
-`pip install -r requirements-dev.txt -c schema/requirements.txt` from
-`backend/`. Then run `cd backend && make lint`: `black --check` and
-`isort --check-only` against `backend/pyproject.toml`, and `flake8` against
-`backend/.flake8`.
+With both files supplied, preflight checks the intended text and complete
+base-to-HEAD commit messages. Closing phrases in a `Refs` body or commit fail even
+when negated. Without those files, it runs the selected checks without drafting a
+PR or requiring a final title for each push. The online metadata gate still
+verifies the owning issue and GitHub closing references.
 
 ## Migration baseline
 

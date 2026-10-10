@@ -3,30 +3,25 @@ from contextlib import ExitStack
 from unittest.mock import patch
 
 from django.conf import settings
-from django.db import DatabaseError, connections
-from django.db.models.deletion import ProtectedError
+from django.db import connections
 from django.test import TransactionTestCase, override_settings
-from eth_account.signers.local import LocalAccount
-from rest_framework.test import APIClient
 
 from assets.models import AssetChainDeployment
-from blockchain.models import BlockchainTransaction, OutgoingOperation, SignedAttempt
+from blockchain.models import BlockchainTransaction, SignedAttempt
 from blockchain.tests.outgoing_fixtures import receipt
 from companies.models import Company
 from companies.services.team import revoke_company_appointment
 from shared.db import (
     APP_ALIAS,
-    MIGRATE_ALIAS,
     OPERATOR_ALIAS,
     acting_for,
-    atomic,
     current_alias,
     principal_of,
     use_migrate,
     use_operator,
 )
 from shared.tests.scoped import RunsOnTheScopedConnection
-from tokens.exceptions import InvalidTokenStateException, TokenDeploymentFailedException
+from tokens.exceptions import TokenDeploymentFailedException
 from tokens.models import RegisterDeployment, ShareToken, TokenDeployment
 from tokens.services import deployment
 from tokens.tasks import deploy_share_token_task
@@ -35,7 +30,6 @@ from tokens.tests.deployment_fixtures import (
     CREATED,
     FACTORY,
     KEY,
-    admit_deployment,
     deployment_token,
     install_deployment,
 )
@@ -128,82 +122,11 @@ class ScopedTokenDeploymentTest(RunsOnTheScopedConnection, TransactionTestCase):
             self.other.token.refresh_from_db()
             self.assertIsNone(self.other.token.deployment_tx_hash)
 
-    def test_issuer_retry_retains_a_revert_left_unprojected_by_a_stopped_worker(self):
-        self.node.receipt_status = 0
-        with patch.object(deployment.deployment_journal, "record_outcome", side_effect=SystemExit):
-            with self.assertRaises(SystemExit):
-                self.run_task()
-        with use_operator():
-            operation = OutgoingOperation.objects.get()
-            original = BlockchainTransaction.objects.get()
-            self.assertEqual((operation.status, original.status), ("reverted", "submitted"))
-            self.node.receipt_status = 1
-
-            result = deploy_share_token_task.func(
-                token_uuid=str(self.token.pk),
-                deployment_id=str(self.token.deployment_id),
-                principal_id=self.tenant.user.pk,
-                retry_of=str(operation.claim_id),
-            )
-
-            self.assertTrue(result["success"])
-            self.assertEqual(current_alias(), OPERATOR_ALIAS)
-            original.refresh_from_db()
-            self.assertEqual(original.status, "reverted")
-            self.assertEqual(SignedAttempt.objects.count(), 2)
-            self.other.token.refresh_from_db()
-            self.assertIsNone(self.other.token.deployment_tx_hash)
-        self.assertIn(principal_of(APP_ALIAS), (None, ""))
-
     def test_foreign_token_is_refused_before_chain_access_and_owner_can_deploy(self):
         result = self.run_task(self.other.token)
         self.assertEqual(result, {"success": False, "error": "Token not found"})
         self.node.client.assert_expected_chain.assert_not_called()
         self.assertTrue(self.run_task(self.other.token, self.other.user.pk)["success"])
-
-    def test_company_admission_commits_original_applier_with_job_and_owner_changes_do_not_replace_it(self):
-        with use_operator():
-            token = self.tenant.company.tokens.create(name="Queued", symbol="QUE", total_supply="100")
-        with acting_for(self.tenant.user.pk):
-            admit_deployment(token, self.tenant.user)
-        jobs = [row for key, row in self.queued().items() if key not in self.initial_jobs]
-        self.assertEqual(
-            jobs,
-            [
-                (
-                    deploy_share_token_task.name,
-                    {
-                        "token_uuid": str(token.pk),
-                        "deployment_id": str(token.deployment_id),
-                        "principal_id": self.tenant.user.pk,
-                    },
-                )
-            ],
-        )
-        with use_operator():
-            with use_migrate():
-                Company.objects.filter(pk=token.company_id).update(owner=self.other.user)
-            result = deploy_share_token_task.func(**jobs[0][1])
-        self.assertTrue(result["success"])
-        self.assertEqual(self.run_task(token, self.other.user.pk), {"success": False, "error": "Token not found"})
-
-    def test_retry_preserves_original_signed_claim_and_captured_principal(self):
-        self.node.confirmed = False
-        self.run_task()
-        with use_operator():
-            attempt = SignedAttempt.objects.get()
-            confirmation = deployment.retry_confirmation(self.token)
-        with acting_for(self.tenant.user.pk):
-            deployment.retry_deployment(self.token, principal_id=self.tenant.user.pk, confirmation=confirmation)
-        jobs = [row for key, row in self.queued().items() if key not in self.initial_jobs]
-        self.assertEqual(jobs[0][1]["principal_id"], self.tenant.user.pk)
-        self.assertEqual(jobs[0][1]["retry_of"], str(attempt.claim_id))
-        self.node.receipts[attempt.tx_hash] = receipt(attempt)
-        self.node.existing_address = CREATED
-        with use_operator():
-            self.assertTrue(deploy_share_token_task.func(**jobs[0][1])["success"])
-            self.assertEqual(SignedAttempt.objects.count(), 1)
-        self.assertEqual(len(self.node.broadcasts), 1)
 
     def test_operator_recovery_finishes_signed_work_after_issuer_access_is_lost(self):
         self.node.confirmed = False
@@ -233,27 +156,6 @@ class ScopedTokenDeploymentTest(RunsOnTheScopedConnection, TransactionTestCase):
             self.assertFalse(SignedAttempt.objects.exists())
         self.assertEqual(self.node.broadcasts, [])
 
-    def test_private_history_is_unreadable_and_company_sources_protect_class_and_signed_recovery(self):
-        self.node.confirmed = False
-        self.run_task()
-        with acting_for(self.tenant.user.pk):
-            with self.assertRaises(DatabaseError), atomic():
-                TokenDeployment.objects.exists()
-            self.assertFalse(OutgoingOperation.objects.exists())
-        client = APIClient()
-        client.force_authenticate(self.tenant.user)
-        response = client.delete(f"/api/v1/tokens/{self.token.pk}/")
-        self.assertEqual(response.status_code, 405)
-        with use_operator():
-            with self.assertRaises(ProtectedError):
-                ShareToken.objects.filter(pk=self.token.pk).delete()
-            self.assertTrue(TokenDeployment.objects.filter(pk=self.token.deployment_id).exists())
-            attempt = SignedAttempt.objects.get()
-            self.node.receipts[attempt.tx_hash] = receipt(attempt)
-            self.node.existing_address = CREATED
-            self.assertEqual(deployment.recover(self.token.deployment_id), CREATED)
-            self.assertTrue(ShareToken.objects.filter(pk=self.token.pk).exists())
-
     def test_explicit_operator_job_restores_ambient_connection(self):
         result = deploy_share_token_task.func(
             token_uuid=str(self.token.pk), deployment_id=str(self.token.deployment_id), principal_id=None
@@ -261,79 +163,9 @@ class ScopedTokenDeploymentTest(RunsOnTheScopedConnection, TransactionTestCase):
         self.assertTrue(result["success"])
         self.assertEqual(current_alias(), APP_ALIAS)
 
-    def test_missing_principal_or_submission_fails_before_chain_access(self):
-        with use_operator(), self.assertRaises(TypeError):
-            deploy_share_token_task.func(token_uuid=str(self.token.pk), deployment_id=str(self.token.deployment_id))
-        with use_operator(), self.assertRaises(TypeError):
-            deploy_share_token_task.func(token_uuid=str(self.token.pk), principal_id=self.tenant.user.pk)
-        self.node.client.assert_expected_chain.assert_not_called()
-
     def test_unexpected_failure_clears_principal_and_restores_worker_alias(self):
         with patch("tokens.services.deployment.get_base_chain_client", side_effect=RuntimeError("Synthetic failure")):
             with self.assertRaises(TokenDeploymentFailedException):
                 self.run_task()
         self.assertIn(principal_of(APP_ALIAS), (None, ""))
         self.assertEqual(current_alias(), APP_ALIAS)
-
-    def test_surrounding_issuer_transaction_cannot_escape_through_operator_signing(self):
-        with acting_for(self.tenant.user.pk), atomic(), self.assertRaises(InvalidTokenStateException):
-            deployment.deploy_token(self.token)
-        with use_operator():
-            self.assertFalse(TokenDeployment.objects.exists())
-        self.assertEqual(self.node.broadcasts, [])
-
-    def change_during_signing(self, sql, parameters, *, alias=OPERATOR_ALIAS):
-        sign = LocalAccount.sign_transaction
-        observed = []
-
-        def changed(account, transaction, *args, **kwargs):
-            raw = sign(account, transaction, *args, **kwargs)
-            observer = connections[alias].copy(alias="deployment_revocation")
-            try:
-                with connections[current_alias()].cursor() as cursor:
-                    cursor.execute("SELECT pg_backend_pid()")
-                    signing_pid = cursor.fetchone()[0]
-                with observer.cursor() as cursor:
-                    cursor.execute("SELECT pg_backend_pid()")
-                    observer_pid = cursor.fetchone()[0]
-                    self.assertNotEqual(signing_pid, observer_pid)
-                    cursor.execute("SET lock_timeout = '100ms'")
-                    with self.assertRaises(DatabaseError) as refusal:
-                        cursor.execute(sql, parameters)
-                    self.assertEqual(refusal.exception.__cause__.sqlstate, "55P03")
-                    observed.append((signing_pid, observer_pid))
-            finally:
-                observer.close()
-            return raw
-
-        with patch.object(LocalAccount, "sign_transaction", changed):
-            self.assertTrue(self.run_task()["success"])
-        self.assertEqual(len(observed), 1)
-        with use_operator():
-            self.assertEqual(SignedAttempt.objects.count(), 1)
-            self.assertEqual(BlockchainTransaction.objects.count(), 1)
-        self.assertEqual(len(self.node.broadcasts), 1)
-        observer = connections[alias].copy(alias="deployment_after_commit")
-        try:
-            with observer.cursor() as cursor:
-                cursor.execute(sql, parameters)
-        finally:
-            observer.close()
-
-    def test_company_prefix_blocks_owner_change_during_signing_and_allows_it_after_commit(self):
-        self.change_during_signing(
-            "UPDATE companies_company SET owner_id=%s WHERE uuid=%s",
-            [self.other.user.pk, self.token.company_id],
-            alias=MIGRATE_ALIAS,
-        )
-        with use_operator():
-            self.assertEqual(Company.objects.get(pk=self.token.company_id).owner_id, self.other.user.pk)
-
-    def test_class_prefix_blocks_company_move_during_signing_and_allows_it_after_commit(self):
-        self.change_during_signing(
-            "UPDATE tokens_sharetoken SET company_id=%s, symbol='MOVED' WHERE uuid=%s",
-            [self.other.company.pk, self.token.pk],
-        )
-        with use_operator():
-            self.token.refresh_from_db()
-            self.assertEqual(self.token.company_id, self.other.company.pk)

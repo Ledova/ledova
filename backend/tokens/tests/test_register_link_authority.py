@@ -14,7 +14,6 @@ from companies.services.team import revoke_company_appointment
 from companies.tests.test_document_file_access import DOCUMENT_BYTES
 from shared.db import MIGRATE_ALIAS, atomic, current_alias, use_migrate, use_operator
 from shared.storage import private_storage
-from shared.tests.scoped import RunsOnTheScopedConnection
 from shared.tests.upload_fixtures import StubUploadDependencies
 from tokens.models import (
     RegisterEvidence,
@@ -636,11 +635,3 @@ class RegisterWalletLinkDecisionGuardTest(LinkAuthorityFixture, APITransactionTe
             raise RuntimeError("rollback")
         with use_operator():
             self.assertEqual(RegisterWalletLink.objects.get(pk=self.link.pk).status, "submitted")
-
-
-class ScopedRegisterWalletLinkAuthorityTest(RunsOnTheScopedConnection, RegisterWalletLinkAuthorityTest):
-    pass
-
-
-class ScopedRegisterWalletLinkDecisionGuardTest(RunsOnTheScopedConnection, RegisterWalletLinkDecisionGuardTest):
-    pass

@@ -9,8 +9,7 @@ from integrations.base_chain.client import (
     HTTP_TIMEOUT_SECONDS,
     BaseChainClient,
 )
-from shared.db import atomic, use_operator
-from shared.tests.scoped import RunsOnTheScopedConnection
+from shared.db import atomic
 from shared.tests.tenants import make_tenant
 from tokens.models import (
     RequestStatus,
@@ -221,21 +220,3 @@ class SyntheticCompanyCapitalSeedTest(TransactionTestCase):
         self.assertIsNotNone(proposal.approval_decision_id)
         self.assertEqual(SignedAttempt.objects.filter(operation=execution.operation).count(), 1)
         self.assertFalse(ShareIssuance.objects.filter(token=self.token).exists())
-
-
-class ScopedSyntheticCompanyCapitalSeedTest(RunsOnTheScopedConnection, SyntheticCompanyCapitalSeedTest):
-    def setUp(self):
-        with use_operator():
-            super().setUp()
-
-    def test_a_retained_synthetic_draft_has_no_company_decision_or_execution(self):
-        with use_operator():
-            super().test_a_retained_synthetic_draft_has_no_company_decision_or_execution()
-
-    def test_a_synthetic_rejection_is_the_companys_evidenced_decision(self):
-        with use_operator():
-            super().test_a_synthetic_rejection_is_the_companys_evidenced_decision()
-
-    def test_a_synthetic_raise_runs_the_original_company_job_without_staff_capital_approval(self):
-        with use_operator():
-            super().test_a_synthetic_raise_runs_the_original_company_job_without_staff_capital_approval()

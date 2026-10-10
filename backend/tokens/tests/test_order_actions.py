@@ -8,8 +8,7 @@ from django.test import override_settings
 from django.utils import timezone
 from rest_framework.test import APITransactionTestCase
 
-from shared.db import acting_for, atomic, use_migrate, use_operator
-from shared.tests.scoped import RunsOnTheScopedConnection
+from shared.db import atomic, use_migrate, use_operator
 from shared.tests.settlement import save_swap_with_context
 from shared.tests.tenants import make_tenant
 from tokens.models import (
@@ -368,40 +367,3 @@ class OrderActionRecoveryChecks(ActionFixtures):
 
 class OrderActionRecoveryTest(OrderActionRecoveryChecks, APITransactionTestCase):
     pass
-
-
-class ScopedOrderActionRecoveryTest(RunsOnTheScopedConnection, OrderActionRecoveryChecks, APITransactionTestCase):
-    def test_a_hidden_token_does_not_hide_the_owned_terminal_action_or_its_recorded_display(self):
-        with use_operator():
-            other = make_tenant("hidden-action-token")
-        with use_migrate():
-            self.order = TransferOrder.objects.create(
-                token=other.deployed_token,
-                payment_asset=self.tenant.refs.stablecoin,
-                wallet=self.wallet,
-                owner_account=self.tenant.account,
-                wallet_address=self.wallet.address,
-                order_type="buy",
-                quantity=10,
-                min_quantity=0,
-                price_per_share="2.50",
-            )
-        self.assertIsNone(self.order.eligibility_decision_id)
-        signed = self.signed()
-        first = self.execute("cancel", signed)
-        self.assertEqual(first.status_code, 200, first.content)
-        with acting_for(self.tenant.user.pk):
-            self.assertTrue(ShareToken.objects.filter(pk=self.order.token_id).exists())
-        with use_operator():
-            ShareToken.objects.filter(pk=self.order.token_id).update(status="paused")
-        with acting_for(self.tenant.user.pk):
-            self.assertFalse(ShareToken.objects.filter(pk=self.order.token_id).exists())
-            self.assertTrue(TransferOrder.objects.filter(pk=self.order.pk).exists())
-        recovered = self.recover()
-        self.assertEqual(recovered.status_code, 200, recovered.content)
-        self.assertEqual(recovered.json()["order"]["tokenName"], first.json()["order"]["tokenName"])
-        self.assertEqual(recovered.json()["order"]["tokenSymbol"], first.json()["order"]["tokenSymbol"])
-        self.assertEqual(recovered.json()["result"], first.json()["result"])
-        self.assertEqual(self.execute("cancel", self.identity()).status_code, 200)
-        self.assertEqual(self.context().status_code, 409)
-        self.assertEqual(len(self.events), 1)

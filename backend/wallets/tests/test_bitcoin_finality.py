@@ -5,7 +5,6 @@ from django.test import override_settings
 from rest_framework.test import APITransactionTestCase
 
 from shared.db import acting_for, use_operator
-from shared.tests.scoped import RunsOnTheScopedConnection
 from wallets.models import WalletChainObservation
 from wallets.services.holdings import sync_holding
 from wallets.tasks.confirmation import confirm_pending_transaction
@@ -123,8 +122,4 @@ class BitcoinFinalityChecks(BitcoinSubmissionFixture):
 
 
 class BitcoinFinalityTest(BitcoinFinalityChecks, APITransactionTestCase):
-    pass
-
-
-class ScopedBitcoinFinalityTest(RunsOnTheScopedConnection, BitcoinFinalityChecks, APITransactionTestCase):
     pass
