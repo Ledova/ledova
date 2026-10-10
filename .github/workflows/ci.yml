@@ -207,6 +207,7 @@ jobs:
         ports:
           - 5432:5432
         options: >-
+          --tmpfs /var/lib/postgresql/data:rw,size=4g --memory=6g --memory-swap=6g
           --health-cmd "pg_isready -U ledova -d ledova" --health-interval 5s --health-timeout 5s --health-retries 20
     steps:
       - uses: actions/checkout@v7
@@ -237,6 +238,12 @@ jobs:
           BACKEND_CHECKS="${{ needs.scope.outputs.uploads == 'true' && '--uploads' || '' }}
           ${{ needs.scope.outputs.chains == 'true' && '--chains' || '' }}
           ${{ needs.scope.outputs.audit == 'true' && '--audit' || '' }}"
+      - name: PostgreSQL storage and resource diagnostics
+        if: always()
+        run: |
+          docker exec "${{ job.services.postgres.id }}" psql -U ledova -d ledova -Atc 'SHOW fsync; SHOW synchronous_commit; SHOW full_page_writes;'
+          docker exec "${{ job.services.postgres.id }}" df -B1 /var/lib/postgresql/data
+          docker exec "${{ job.services.postgres.id }}" cat /sys/fs/cgroup/memory.peak /sys/fs/cgroup/memory.max
       - name: Generated schema, diagnostics, environment and comparison
         if: always()
         uses: actions/upload-artifact@v7

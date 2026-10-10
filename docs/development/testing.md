@@ -18,8 +18,8 @@ backend suites run on PostgreSQL in both ordinary and specialised settings.
 | Gate unit tests                 | `make test-gates`                                                                                   |
 | Lint                            | `make lint`; `cd backend && make lint`, which needs the [backend lint tools](#backend-verification) |
 | JavaScript and contracts        | `make test`                                                                                         |
-| Backend group                   | `make backend-test`; add relevant `BACKEND_CHECKS` flags for integrations/advisories |
-| Prepare a push                  | `make preflight BASE=origin/main`; see [preflight](#preflight) |
+| Backend group                   | `make backend-test`; add relevant `BACKEND_CHECKS` flags for integrations/advisories                |
+| Prepare a push                  | `make preflight BASE=origin/main`; see [preflight](#preflight)                                      |
 | Migration drift                 | `cd backend && python manage.py makemigrations --check --dry-run`                                   |
 | Real EVM chain                  | `make chain-test`                                                                                   |
 | Real Bitcoin chain              | `python scripts/test-bitcoin-chain.py` against isolated PostgreSQL                                  |
@@ -79,11 +79,17 @@ select all checks. Every main push runs the core group, with integrations select
 from its verified push comparison. The source in
 [`ci-scope.py`](../../scripts/ci-scope.py) owns the exact family rules.
 
-| Check | Meaningful boundary |
-| ----- | ------------------- |
-| Ordinary (`settings.test`) | Current behaviour and app permissions through `SET ROLE` on a shared connection |
-| Scoped (`settings.test_scoped`) | Real separate app/operator credentials, tenant isolation and immutable records |
-| Roles/catalogue | Installed privileges and policies that behavioural tests alone cannot establish |
+CI keeps disposable PostgreSQL data in a 4 GiB memory mount within a 6 GiB
+container limit. `fsync`, `synchronous_commit` and `full_page_writes` stay enabled.
+The job records storage usage and peak database memory alongside phase timings.
+Application-process recovery retains real commits while the database survives;
+this storage does not establish persistence across database-container loss.
+
+| Check                           | Meaningful boundary                                                             |
+| ------------------------------- | ------------------------------------------------------------------------------- |
+| Ordinary (`settings.test`)      | Current behaviour and app permissions through `SET ROLE` on a shared connection |
+| Scoped (`settings.test_scoped`) | Real separate app/operator credentials, tenant isolation and immutable records  |
+| Roles/catalogue                 | Installed privileges and policies that behavioural tests alone cannot establish |
 
 Normal Django discovery reports failed imports and the runner refuses an empty
 suite. The [shadowing gate](gates.md#the-test-shadowing-gate) checks assertion/fixture helpers that shadow reserved TestCase methods. Scoped coverage requires its declared connection-boundary classes and no
