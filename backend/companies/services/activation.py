@@ -152,6 +152,8 @@ def activate_company(
         source = _require_appointment(company, current_actor, profile, operator, appointment)
         if not _matches_request(check, current_actor, source, lifecycle_revision, declaration_version):
             raise CompanyActivationConflictException()
+        if check.applied_at is not None:
+            return company, check
         _require_current_attempt(company, current_actor, profile, operator, check)
         if check.status != RegistryCheckStatus.PASSED or check.completed_at is None:
             return company, check

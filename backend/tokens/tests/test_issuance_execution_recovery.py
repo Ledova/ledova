@@ -25,6 +25,52 @@ class IssuanceExecutionRecoveryTest(TransactionTestCase):
         command = admit(self.request, self.actor, **options)
         return issuance_execution.recover(command.pk)
 
+    def assert_original_issue_completed_once(self, command, result, *, signed_attempt=None):
+        from tokens.models import RegisterEntry, RegisterPosition, ShareRegister
+
+        command.refresh_from_db()
+        self.request.refresh_from_db()
+        self.assertEqual((command.status, self.request.status, result["status"]), ("executed",) * 3)
+        self.assertEqual((command.pk, command.request_id), (self.request.dispatch_id, self.request.pk))
+        self.assertEqual(command.source_instruction_id, self.proposal.pk)
+        self.assertEqual(command.executed_by_id, self.actor.pk)
+        self.assertEqual(ShareIssuanceExecution.objects.count(), 1)
+        issuance = ShareIssuance.objects.get(pk=command.issuance_id)
+        self.assertEqual(ShareIssuance.objects.count(), 1)
+        self.assertEqual(issuance.idempotency_key, f"issuance-request:{self.request.pk}")
+        self.assertEqual((issuance.status, issuance.amount), ("completed", str(self.request.amount)))
+        self.assertEqual(
+            (issuance.token_id, issuance.recipient_address.lower()),
+            (self.request.token_id, self.request.recipient_address.lower()),
+        )
+        self.assertEqual(issuance.recipient_address.lower(), command.intent["recipient"].lower())
+        attempt = self.attempts.get()
+        self.assertEqual(self.attempts.count(), 1)
+        self.assertEqual((attempt.operation_id, attempt.nonce), (command.operation_id, self.initial_nonce))
+        if signed_attempt is not None:
+            self.assertEqual(
+                (attempt.pk, attempt.tx_hash, bytes(attempt.raw_transaction), attempt.nonce),
+                (
+                    signed_attempt.pk,
+                    signed_attempt.tx_hash,
+                    bytes(signed_attempt.raw_transaction),
+                    signed_attempt.nonce,
+                ),
+            )
+        self.assertEqual((result["tx_hash"], issuance.tx_hash), (attempt.tx_hash,) * 2)
+        self.assertEqual(
+            (self.transactions.get().status, self.transactions.get().tx_hash), ("confirmed", attempt.tx_hash)
+        )
+        self.assertEqual(SigningAccount.objects.get().next_nonce, self.initial_nonce + 1)
+        self.assertEqual(self.node.broadcasts, [bytes(attempt.raw_transaction)])
+        self.assertEqual(list(self.node.receipts), [attempt.tx_hash])
+        self.assertEqual(RegisterEntry.objects.filter(operation_id=issuance.pk, kind="issue").count(), 1)
+        self.assertEqual(ShareRegister.objects.get(token=self.token).issued_supply, self.request.amount)
+        self.assertEqual(
+            RegisterPosition.objects.get(register__token=self.token, member_id=self.company_issue.member).shares,
+            self.request.amount,
+        )
+
     def test_success_and_replay_retain_original_receipt_bytes_and_supply(self):
         result = self.execute()
         self.assertEqual(result["status"], "executed")
@@ -55,9 +101,24 @@ class IssuanceExecutionRecoveryTest(TransactionTestCase):
         self.assertEqual(SigningAccount.objects.get().next_nonce, attempt.nonce + 1)
 
     def test_lost_send_acknowledgement_recovers_original_receipt(self):
+        command = admit(self.request, self.actor)
         self.node.lose_acknowledgement = True
-        self.assertEqual(self.execute()["status"], "executed")
+        with patch.object(issuance_execution, "_project", side_effect=ConnectionError("Synthetic projection loss")):
+            with self.assertRaisesRegex(ConnectionError, "Synthetic projection loss"):
+                self.execute()
+        command.refresh_from_db()
+        self.request.refresh_from_db()
+        self.assertEqual((command.status, self.request.status), ("executing", "executing"))
+        self.assertEqual(ShareIssuanceExecution.objects.count(), 1)
+        self.assertEqual(self.attempts.count(), 1)
+        original = self.attempts.get()
+        self.assertEqual(SigningAccount.objects.get().next_nonce, self.initial_nonce + 1)
+        self.assertIn(original.tx_hash, self.node.receipts)
+        result = issuance_execution.recover(command.pk)
+        self.assertEqual(result["status"], "executed")
         self.assertEqual(len(self.node.broadcasts), 1)
+        self.assertEqual(issuance_execution.recover(command.pk), result)
+        self.assert_original_issue_completed_once(command, result, signed_attempt=original)
 
     def test_missing_mint_event_retains_receipt_and_execution_hold(self):
         self.node.events_missing = True
@@ -140,12 +201,21 @@ class IssuanceExecutionRecoveryTest(TransactionTestCase):
 
         with patch.object(outgoing, "sign_operation", side_effect=committed_then_lost):
             self.assertEqual(self.execute()["status"], "executing")
+        command = ShareIssuanceExecution.objects.get()
+        self.request.refresh_from_db()
+        self.assertEqual((command.status, self.request.status), ("executing", "executing"))
+        self.assertEqual(ShareIssuanceExecution.objects.count(), 1)
+        self.assertEqual(self.attempts.count(), 1)
+        self.assertEqual(SigningAccount.objects.get().next_nonce, self.initial_nonce + 1)
         attempt = self.attempts.get()
-        self.assertEqual(self.execute()["status"], "executed")
+        result = self.execute()
+        self.assertEqual(result["status"], "executed")
         self.assertEqual(self.attempts.get().pk, attempt.pk)
         self.assertEqual(self.node.broadcasts, [bytes(attempt.raw_transaction)])
         self.assertEqual(self.attempts.count(), 1)
         self.assertEqual(len(self.node.broadcasts), 1)
+        self.assertEqual(issuance_execution.recover(command.pk), result)
+        self.assert_original_issue_completed_once(command, result, signed_attempt=attempt)
 
     def test_signed_callback_rollback_cannot_consume_nonce_or_broadcast(self):
         original = issuance_execution._record_signed
@@ -182,10 +252,51 @@ class IssuanceExecutionRecoveryTest(TransactionTestCase):
 
     def test_current_unsigned_claim_recovers_its_original_admitted_execution(self):
         command = admit(self.request, self.actor)
+        self.request.refresh_from_db()
+        self.assertEqual((command.status, self.request.status), ("queued", "approved"))
+        self.assertEqual(ShareIssuanceExecution.objects.count(), 1)
+        self.assertFalse(self.operations.exists())
+        self.assertFalse(self.attempts.exists())
+        self.assertEqual(SigningAccount.objects.get().next_nonce, self.initial_nonce)
         issuance_execution._start(command)
         self.request.refresh_from_db()
         self.assertEqual(self.request.status, "executing")
-        self.assertEqual(issuance_execution.recover(command.pk)["status"], "executed")
+        result = issuance_execution.recover(command.pk)
+        self.assertEqual(result["status"], "executed")
+        self.assertEqual(issuance_execution.recover(command.pk), result)
+        self.assert_original_issue_completed_once(command, result)
+
+    def test_opened_unbound_operation_recovers_the_original_admitted_issue(self):
+        from blockchain.services import outgoing
+
+        command = admit(self.request, self.actor)
+        original_open = outgoing.open_operation
+
+        def committed_then_unbound(*args, **kwargs):
+            original_open(*args, **kwargs)
+            raise ConnectionError("Synthetic operation binding loss")
+
+        with patch.object(outgoing, "open_operation", side_effect=committed_then_unbound):
+            with self.assertRaisesRegex(ConnectionError, "Synthetic operation binding loss"):
+                issuance_execution.recover(command.pk)
+        command.refresh_from_db()
+        self.request.refresh_from_db()
+        self.assertEqual((command.status, self.request.status), ("executing", "executing"))
+        self.assertEqual(ShareIssuanceExecution.objects.count(), 1)
+        self.assertIsNone(command.operation_id)
+        operation = self.operations.get()
+        original_claim = operation.claim_id
+        self.assertEqual(operation.status, "preparing")
+        self.assertEqual(self.operations.count(), 1)
+        self.assertFalse(self.attempts.exists())
+        self.assertEqual(SigningAccount.objects.get().next_nonce, self.initial_nonce)
+        issuance_id = command.issuance_id
+        result = issuance_execution.recover(command.pk)
+        self.assertEqual(issuance_execution.recover(command.pk), result)
+        self.assert_original_issue_completed_once(command, result)
+        self.assertEqual((command.operation_id, command.issuance_id), (operation.pk, issuance_id))
+        self.assertEqual(self.operations.count(), 1)
+        self.assertEqual(self.operations.get().claim_id, original_claim)
 
     def test_holding_seed_uses_original_contract_after_token_identity_changes(self):
         from tokens.models import ShareToken

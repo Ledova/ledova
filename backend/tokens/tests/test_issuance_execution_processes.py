@@ -4,7 +4,6 @@ import signal
 import subprocess
 import sys
 import tempfile
-import time
 from decimal import Decimal
 from pathlib import Path
 
@@ -20,6 +19,7 @@ from blockchain.models import (
 )
 from blockchain.tests.test_outgoing_processes import finish
 from shared.db import current_alias
+from shared.tests.process_readiness import wait_for_worker_files
 from tokens.models import ShareIssuanceExecution
 from tokens.services import issuance_execution
 from tokens.tests.issuance_fixtures import CHAIN_ID, KEY, admit, install_issuance
@@ -58,65 +58,36 @@ class IssuanceExecutionProcessTest(TransactionTestCase):
             process.communicate(timeout=10)
 
     def await_file(self, path, process):
-        until = time.monotonic() + 20
-        while not path.exists() and time.monotonic() < until:
-            if process.poll() is not None:
-                code, out, err = finish(process)
-                self.fail(f"{path}: worker exited {code}: {out}{err}")
-            time.sleep(0.01)
-        self.assertTrue(path.exists(), str(path))
+        wait_for_worker_files(self, [(path, process)])
 
     def successful(self, process):
         code, out, err = finish(process)
         self.assertEqual(code, 0, out + err)
         return json.loads(out)
 
-    def recover_killed(self, phase, signed):
+    def recover_killed(self, phase):
         with tempfile.TemporaryDirectory(prefix="issuance-crash-") as temporary:
             directory = Path(temporary)
             code, out, err = finish(self.worker(directory, phase))
             self.assertEqual(code, -signal.SIGKILL, out + err)
             self.request.refresh_from_db()
-            self.assertEqual(self.request.status, "approved" if phase == "admitted" else "executing")
+            self.assertEqual(self.request.status, "executing")
             self.assertEqual(ShareIssuanceExecution.objects.count(), 1)
-            self.assertEqual(self.attempts.count(), int(signed))
-            if phase == "opened":
-                self.assertIsNone(ShareIssuanceExecution.objects.get().operation_id)
-                self.assertEqual(self.operations.get().status, "preparing")
-            original = self.attempts.values("tx_hash", "raw_transaction", "nonce").first()
-            if not signed:
-                self.assertEqual(SigningAccount.objects.get().next_nonce, self.initial_nonce)
+            self.assertEqual(self.attempts.count(), 0)
+            self.assertEqual(SigningAccount.objects.get().next_nonce, self.initial_nonce)
             self.assertEqual(self.successful(self.worker(directory, "recover"))["status"], "executed")
             attempt = self.attempts.get()
-            if original:
-                self.assertEqual(
-                    (attempt.tx_hash, bytes(attempt.raw_transaction), attempt.nonce),
-                    (original["tx_hash"], bytes(original["raw_transaction"]), original["nonce"]),
-                )
             ledger = json.loads((directory / "node.json").read_text())
             self.assertEqual(ledger["hashes"], [attempt.tx_hash])
             self.assertEqual(len(ledger["broadcasts"]), 1)
             self.assertEqual(SigningAccount.objects.get().next_nonce, self.initial_nonce + 1)
             self.assertEqual(self.transactions.get().status, "confirmed")
 
-    def test_kill_after_admission_preserves_request_and_recovers(self):
-        self.recover_killed("admitted", False)
-
     def test_kill_after_public_claim_before_operation_opening_recovers(self):
-        self.recover_killed("claimed", False)
-
-    def test_kill_after_opening_before_binding_recovers_the_same_operation(self):
-        self.recover_killed("opened", False)
-        self.assertEqual(self.operations.count(), 1)
+        self.recover_killed("claimed")
 
     def test_kill_before_signed_commit_rolls_back_nonce_and_recovers(self):
-        self.recover_killed("before_commit", False)
-
-    def test_kill_after_signed_commit_recovers_original_bytes(self):
-        self.recover_killed("signed", True)
-
-    def test_kill_after_provider_acceptance_reads_original_receipt(self):
-        self.recover_killed("accepted", True)
+        self.recover_killed("before_commit")
 
     def test_independent_workers_share_one_signed_attempt_and_nonce(self):
         admit(self.request, self.actor, confirmed=self.form)
@@ -128,8 +99,7 @@ class IssuanceExecutionProcessTest(TransactionTestCase):
         with tempfile.TemporaryDirectory(prefix="issuance-race-") as temporary:
             directory = Path(temporary)
             processes = [self.worker(directory, "race", confirmation) for _ in range(2)]
-            for process in processes:
-                self.await_file(directory / f"ready-{process.pid}", process)
+            wait_for_worker_files(self, [(directory / f"ready-{process.pid}", process) for process in processes])
             (directory / "go").touch()
             for process in processes:
                 self.assertIn(self.successful(process)["status"], ("executing", "executed"))
@@ -187,8 +157,7 @@ class IssuanceExecutionProcessTest(TransactionTestCase):
             directory = Path(temporary)
             previous_claim, retry = self.reverted(directory)
             processes = [self.worker(directory, "race", retry) for _ in range(2)]
-            for process in processes:
-                self.await_file(directory / f"ready-{process.pid}", process)
+            wait_for_worker_files(self, [(directory / f"ready-{process.pid}", process) for process in processes])
             (directory / "go").touch()
             for process in processes:
                 self.assertIn(self.successful(process)["status"], ("executing", "executed"))

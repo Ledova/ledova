@@ -16,6 +16,7 @@ from eth_account.messages import encode_typed_data
 
 from shared.db import use_operator
 from shared.tests.company_eligibility import accept_company_eligibility
+from shared.tests.process_readiness import WORKER_START_TIMEOUT
 from shared.tests.scoped import RunsOnTheScopedConnection
 from tokens.models import SwapOrder, SwapOrderStatus
 from tokens.tests.order_process_fixtures import worker_databases
@@ -32,6 +33,7 @@ class SwapProcess:
 
     def __init__(self, test, mode, row_id, detail=""):
         self.test = test
+        self.pending_output = b""
         with use_operator():
             owner = SwapOrder.objects.get(pk=row_id).sell_order.owner_account
             user_id = owner.user_profile.user_id
@@ -52,7 +54,7 @@ class SwapProcess:
             },
         )
         test.addCleanup(self.close)
-        loaded = self.receive("loaded")
+        loaded = self.receive("loaded", timeout=WORKER_START_TIMEOUT)
         with connection.cursor() as cursor:
             cursor.execute("SELECT pg_backend_pid()")
             test.assertNotEqual(loaded["pid"], cursor.fetchone()[0])
@@ -64,13 +66,35 @@ class SwapProcess:
         return self.errors.read().decode()[-5000:]
 
     def receive(self, stage, timeout=25):
-        readable, _, _ = select.select([self.process.stdout], [], [], timeout)
-        self.test.assertTrue(readable, f"Worker did not reach {stage}: {self.error_output()}")
-        line = self.process.stdout.readline()
-        self.database_pid = json.loads(line)["pid"]
-        self.test.assertTrue(line, self.error_output())
-        event = json.loads(line)
-        self.test.assertEqual(event["stage"], stage, (event, self.error_output()))
+        deadline = time.monotonic() + timeout
+
+        def refused(reason):
+            self.test.fail(
+                f"{self.test.id()}: worker {self.process.pid} did not reach {stage}; "
+                f"exit={self.process.poll()}; {reason}; stderr={self.error_output()}"
+            )
+
+        while b"\n" not in self.pending_output:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                refused(f"timed out with incomplete message {self.pending_output[-500:]!r}")
+            readable, _, _ = select.select([self.process.stdout], [], [], remaining)
+            if not readable:
+                refused(f"timed out with incomplete message {self.pending_output[-500:]!r}")
+            chunk = os.read(self.process.stdout.fileno(), 65536)
+            if not chunk:
+                refused(f"EOF with incomplete message {self.pending_output[-500:]!r}")
+            self.pending_output += chunk
+        line, self.pending_output = self.pending_output.split(b"\n", 1)
+        try:
+            event = json.loads(line)
+        except (UnicodeDecodeError, json.JSONDecodeError) as error:
+            refused(f"invalid JSON: {error}; message={line[-500:]!r}")
+        if not isinstance(event, dict) or type(event.get("pid")) is not int or event["pid"] <= 0:
+            refused(f"invalid worker event: {event!r}")
+        if event.get("stage") != stage:
+            refused(f"unexpected worker event: {event!r}")
+        self.database_pid = event["pid"]
         return event
 
     def send(self, command):

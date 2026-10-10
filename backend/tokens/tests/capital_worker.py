@@ -10,6 +10,7 @@ from unittest.mock import patch
 import django
 
 from blockchain.tests.outgoing_worker import await_file
+from shared.tests.process_readiness import WORKER_RELEASE_TIMEOUT
 
 
 def run(directory, phase, request_id, actor_id, confirmation):
@@ -169,7 +170,7 @@ def run(directory, phase, request_id, actor_id, confirmation):
             os.kill(os.getpid(), signal.SIGKILL)
         if phase == "race":
             (directory / f"ready-{os.getpid()}").touch()
-            await_file(directory / "go")
+            await_file(directory / "go", timeout=WORKER_RELEASE_TIMEOUT)
         try:
             result = capital_execution.recover(request.dispatch_id)
         except CapitalIncreaseConflict:

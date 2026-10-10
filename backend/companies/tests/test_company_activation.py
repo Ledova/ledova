@@ -1,7 +1,8 @@
 import tempfile
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta
-from threading import Barrier, Event
+from threading import Event
+from time import monotonic
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 from uuid import uuid4
@@ -44,6 +45,7 @@ from integrations.kyc.base import (
 )
 from operators.models import Operator
 from shared.db import atomic, current_alias, use_migrate, use_operator
+from shared.tests.retained_rows import retained_rows
 from shared.tests.upload_fixtures import StubUploadDependencies
 from users.models import UserAccount, UserProfile
 
@@ -122,6 +124,63 @@ class CompanyActivationTest(StubUploadDependencies, APITransactionTestCase):
         with use_operator(), connections[current_alias()].cursor() as cursor:
             cursor.execute("SELECT clock_timestamp()")
             return cursor.fetchone()[0]
+
+    def expire_appointment_soon(self, seconds=2):
+        with retained_rows(("companies_companyappointment", "companies_initial_appointment_identity")):
+            with use_migrate(), connections[current_alias()].cursor() as cursor:
+                cursor.execute(
+                    "UPDATE companies_companyappointment "
+                    "SET expires_at = clock_timestamp() + %s * interval '1 second' WHERE uuid = %s",
+                    [seconds, self.source.pk],
+                )
+                self.assertEqual(cursor.rowcount, 1)
+
+    def wait_for_ready(self, worker, ready, stage):
+        deadline = monotonic() + 10
+        while monotonic() < deadline:
+            if ready.is_set():
+                return
+            if worker.done():
+                worker.result()
+                self.fail(f"Activation finished before {stage}")
+            ready.wait(timeout=0.01)
+        self.fail(f"Activation did not reach {stage}")
+
+    def wait_for_appointment_expiry(self):
+        deadline = monotonic() + 10
+        with use_migrate():
+            while monotonic() < deadline:
+                with connections[current_alias()].cursor() as cursor:
+                    cursor.execute(
+                        "SELECT clock_timestamp() >= expires_at FROM companies_companyappointment WHERE uuid = %s",
+                        [self.source.pk],
+                    )
+                    if cursor.fetchone() == (True,):
+                        return
+                Event().wait(0.01)
+        self.fail("The selected appointment did not reach its PostgreSQL expiry")
+
+    def wait_for_blocker(self, worker, *, blocker_pid, pids, table):
+        deadline = monotonic() + 10
+        with use_migrate():
+            while monotonic() < deadline:
+                if worker.done():
+                    worker.result()
+                    self.fail("Activation finished before the exact row lock was observed")
+                if "worker" not in pids:
+                    Event().wait(0.01)
+                    continue
+                with connections[current_alias()].cursor() as cursor:
+                    cursor.execute(
+                        "SELECT wait_event_type, query, %s = ANY(pg_blocking_pids(pid)) "
+                        "FROM pg_stat_activity WHERE pid = %s",
+                        [blocker_pid, pids["worker"]],
+                    )
+                    activity = cursor.fetchone()
+                if activity and activity[0] == "Lock" and activity[1].startswith(f'SELECT "{table}".') and activity[2]:
+                    return
+                Event().wait(0.01)
+        self.fail(f"Activation did not wait for the held exact {table}")
 
     def test_registry_start_uses_database_time_despite_skewed_application_default(self):
         started_at = CompanyRegistryCheck._meta.get_field("started_at")
@@ -420,63 +479,75 @@ class CompanyActivationTest(StubUploadDependencies, APITransactionTestCase):
             self.assertIsNone(CompanyRegistryCheck.objects.get(pk=check.pk).applied_at)
 
     def test_concurrent_identical_requests_make_one_retained_attempt_and_effect(self):
-        barrier = Barrier(2)
+        from companies.services.registry import perform_registry_check
+
+        completed, release = Event(), Event()
+
+        def pause_after_provider(receipt):
+            checked = perform_registry_check(receipt)
+            completed.set()
+            if not release.wait(timeout=45):
+                raise RuntimeError("Applied receipt replay coordination timed out")
+            return checked
 
         def run():
             try:
-                barrier.wait(timeout=15)
-                return self.service()[1].pk
+                company, receipt = self.service()
+                return company.status, company.lifecycle_revision, receipt.pk, receipt.applied_at
             finally:
                 connections.close_all()
 
-        with ThreadPoolExecutor(max_workers=2) as pool:
-            receipts = [result.result(timeout=40) for result in (pool.submit(run), pool.submit(run))]
+        with patch("companies.services.activation.perform_registry_check", side_effect=pause_after_provider):
+            with ThreadPoolExecutor(max_workers=1) as pool:
+                first = pool.submit(run)
+                try:
+                    self.wait_for_ready(first, completed, "the retained provider result")
+                    with use_operator():
+                        retained = CompanyRegistryCheck.objects.get(idempotency_key=self.key)
+                        self.assertEqual(retained.status, "passed")
+                        self.assertIsNotNone(retained.completed_at)
+                        self.assertIsNone(retained.applied_at)
+                        company = Company.objects.get(pk=self.company.pk)
+                        self.assertEqual((company.status, company.lifecycle_revision), ("draft", 0))
+                    second = run()
+                    self.assertEqual(second[:3], ("active", 1, retained.pk))
+                    self.assertIsNotNone(second[3])
+                finally:
+                    release.set()
+                self.assertEqual(first.result(timeout=20), second)
         with use_operator():
             retained = CompanyRegistryCheck.objects.get(idempotency_key=self.key)
-            self.assertEqual(receipts, [retained.pk, retained.pk])
+            self.assertEqual(CompanyRegistryCheck.objects.filter(idempotency_key=self.key).count(), 1)
             self.assertEqual(CompanyRegistryCheck.objects.filter(applied_at__isnull=False).count(), 1)
+            company = Company.objects.get(pk=self.company.pk)
+            self.assertEqual((company.status, company.lifecycle_revision), ("active", 1))
+            self.assertEqual(company.activated_at, retained.applied_at)
         self.provider.assert_called_once()
 
     def test_provider_runs_outside_company_locks_and_expiry_after_real_company_lock_wait_blocks(self):
-        with use_operator():
-            actor = get_user_model().objects.create_user(
-                email="expiring-activation@example.test",
-                is_active=True,
-                is_email_verified=True,
-            )
-            UserProfile.objects.create(user=actor, full_name="Expiring Administrator")
-        _, code, _ = issue_team_invitation(
-            requester=self.user,
-            company_id=self.company.pk,
-            inviter_appointment_id=self.source.pk,
-            idempotency_key=uuid4(),
-            capabilities=["admin"],
-            delegatable_capabilities=[],
-            appointment_expires_at=timezone.now() + timedelta(seconds=1),
-        )
-        self.source = accept_team_invitation(
-            requester=actor,
-            code=code,
-            declaration_version=DECLARATION_VERSION,
-            accept_declaration=True,
-        )
-        self.user = actor
-        reached = Event()
+        self.expiring_actor(30)
         locked = Event()
         release = Event()
+        pids = {}
 
         def hold():
             try:
                 with use_migrate(), atomic():
+                    with connections[current_alias()].cursor() as cursor:
+                        cursor.execute("SELECT pg_backend_pid()")
+                        pids["holder"] = cursor.fetchone()[0]
                     Company.objects.select_for_update().get(pk=self.company.pk)
                     locked.set()
-                    release.wait(timeout=10)
+                    if not release.wait(timeout=45):
+                        raise RuntimeError("Company expiry coordination timed out")
             finally:
                 connections.close_all()
 
         def run():
             try:
-                reached.set()
+                with use_operator(), connections[current_alias()].cursor() as cursor:
+                    cursor.execute("SELECT pg_backend_pid()")
+                    pids["worker"] = cursor.fetchone()[0]
                 return self.service()
             except APIException as error:
                 return error.status_code
@@ -485,12 +556,20 @@ class CompanyActivationTest(StubUploadDependencies, APITransactionTestCase):
 
         with ThreadPoolExecutor(max_workers=2) as pool:
             holder = pool.submit(hold)
-            self.assertTrue(locked.wait(timeout=10))
-            worker = pool.submit(run)
-            self.assertTrue(reached.wait(timeout=10))
-            self.assertFalse(worker.done())
-            Event().wait(1.2)
-            release.set()
+            try:
+                self.wait_for_ready(holder, locked, "the company row holder")
+                worker = pool.submit(run)
+                self.wait_for_blocker(
+                    worker,
+                    blocker_pid=pids["holder"],
+                    pids=pids,
+                    table="companies_company",
+                )
+                self.expire_appointment_soon()
+                self.wait_for_appointment_expiry()
+                self.assertFalse(worker.done())
+            finally:
+                release.set()
             holder.result(timeout=10)
             self.assertEqual(worker.result(timeout=20), 404)
         self.provider.assert_not_called()
@@ -659,20 +738,21 @@ class CompanyActivationTest(StubUploadDependencies, APITransactionTestCase):
         self.client.force_authenticate(actor)
 
     def test_actual_provider_boundary_holds_no_company_lock_and_retains_result_after_source_expiry(self):
-        self.expiring_actor(1)
+        self.expiring_actor(30)
 
         def take_company_lock():
             try:
                 with use_operator(), atomic():
-                    Company.objects.select_for_update().get(pk=self.company.pk)
+                    Company.objects.select_for_update(nowait=True).get(pk=self.company.pk)
                 return True
             finally:
                 connections.close_all()
 
         def observation(**kwargs):
             with ThreadPoolExecutor(max_workers=1) as pool:
-                self.assertTrue(pool.submit(take_company_lock).result(timeout=2))
-            Event().wait(1.2)
+                self.assertTrue(pool.submit(take_company_lock).result(timeout=10))
+            self.expire_appointment_soon()
+            self.wait_for_appointment_expiry()
             return matching_observation(self.company)
 
         self.provider.side_effect = observation
@@ -686,17 +766,23 @@ class CompanyActivationTest(StubUploadDependencies, APITransactionTestCase):
             self.assertEqual(Company.objects.get(pk=self.company.pk).status, "draft")
 
     def test_selected_source_is_rechecked_after_real_registry_check_lock_wait(self):
-        self.expiring_actor(1)
+        self.expiring_actor(30)
         locked = Event()
         release = Event()
+        pids = {}
+        holders = []
         from companies.services.registry import perform_registry_check
 
         def hold_check(receipt):
             try:
                 with use_operator(), atomic():
+                    with connections[current_alias()].cursor() as cursor:
+                        cursor.execute("SELECT pg_backend_pid()")
+                        pids["holder"] = cursor.fetchone()[0]
                     CompanyRegistryCheck.objects.select_for_update().get(pk=receipt.pk)
                     locked.set()
-                    release.wait(timeout=10)
+                    if not release.wait(timeout=45):
+                        raise RuntimeError("Registry check expiry coordination timed out")
             finally:
                 connections.close_all()
 
@@ -704,18 +790,37 @@ class CompanyActivationTest(StubUploadDependencies, APITransactionTestCase):
 
             def perform(receipt):
                 completed = perform_registry_check(receipt)
-                pool.submit(hold_check, completed)
-                self.assertTrue(locked.wait(timeout=5))
-
-                def expiry_wait():
-                    Event().wait(1.2)
-                    release.set()
-
-                pool.submit(expiry_wait)
+                holder = pool.submit(hold_check, completed)
+                holders.append(holder)
+                self.wait_for_ready(holder, locked, "the registry receipt holder")
+                self.expire_appointment_soon(seconds=5)
                 return completed
 
+            def run():
+                try:
+                    with use_operator(), connections[current_alias()].cursor() as cursor:
+                        cursor.execute("SELECT pg_backend_pid()")
+                        pids["worker"] = cursor.fetchone()[0]
+                    return self.activate()
+                finally:
+                    connections.close_all()
+
             with patch("companies.services.activation.perform_registry_check", side_effect=perform):
-                response = self.activate()
+                worker = pool.submit(run)
+                try:
+                    self.wait_for_ready(worker, locked, "the registry receipt holder")
+                    self.wait_for_blocker(
+                        worker,
+                        blocker_pid=pids["holder"],
+                        pids=pids,
+                        table="companies_companyregistrycheck",
+                    )
+                    self.wait_for_appointment_expiry()
+                    self.assertFalse(worker.done())
+                finally:
+                    release.set()
+                response = worker.result(timeout=20)
+                holders[0].result(timeout=10)
         self.assertEqual(response.status_code, 404, response.content)
         with use_operator():
             receipt = CompanyRegistryCheck.objects.get(idempotency_key=self.key)

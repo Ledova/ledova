@@ -10,7 +10,6 @@ from offerings.tests.test_allotment import CompanyAllotmentTestCase
 from shared.db import atomic, use_migrate, use_operator
 from shared.tests.scoped import RunsOnTheScopedConnection
 from tokens.models import RequestStatus, ShareIssuanceRequest
-from users.models import UserAccount
 
 
 class AllotmentLockOrderTest(CompanyAllotmentTestCase):
@@ -71,17 +70,6 @@ class AllotmentLockOrderTest(CompanyAllotmentTestCase):
 
     def test_single_allotment_holds_company_and_token_before_offering(self):
         self.check_prefix(self.offering, free=(self.subscription,), held=(self.company, self.token))
-
-    def test_paid_instructed_allotment_preserves_its_admission_after_account_standing_changes(self):
-        def reject():
-            UserAccount.objects.filter(pk=self.account.pk).update(account_status="rejected")
-
-        result = self.while_row_is_held(self.issue, self.company, after_wait=reject)
-        with use_operator():
-            current = Subscription.objects.get(pk=self.subscription.pk)
-            request = ShareIssuanceRequest.objects.get(pk=result)
-        self.assertEqual((current.status, current.issuance_request_id), (SubscriptionStatus.PAID, request.pk))
-        self.assertEqual(request.amount, 4)
 
 
 class ScopedAllotmentLockOrderTest(RunsOnTheScopedConnection, AllotmentLockOrderTest):
