@@ -22,7 +22,9 @@ def install(apps, schema_editor):
         )
         operator, migrate, time_zone, app = cursor.fetchone()
         cursor.execute(
-            Path(__file__).with_suffix(".sql").read_text()
+            Path(__file__)
+            .with_suffix(".sql")
+            .read_text()
             .replace("@CLASSIFICATION_DAYS@", str(classification_days))
             .replace("@DOCUMENT_DAYS@", str(document_days))
             .replace("@OPERATOR_ROLE@", operator)

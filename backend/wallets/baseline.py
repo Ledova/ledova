@@ -13,7 +13,9 @@ def install(apps, schema_editor):
         )
         operator, migrate, app_identifier, operator_identifier = cursor.fetchone()
         cursor.execute(
-            Path(__file__).with_suffix(".sql").read_text()
+            Path(__file__)
+            .with_suffix(".sql")
+            .read_text()
             .replace("@OPERATOR_ROLE@", operator)
             .replace("@MIGRATE_ROLE@", migrate)
             .replace("@APP_IDENTIFIER@", app_identifier)
