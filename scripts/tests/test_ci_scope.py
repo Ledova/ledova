@@ -458,7 +458,7 @@ class TrustedManualRunnerTest(unittest.TestCase):
                 "required": True,
                 "tokens2_runner": {
                     "group": "ledova-selfhosted-linux-pilot",
-                    "labels": "ledova-selfhosted-linux-x64-943-8c24g",
+                    "labels": "ledova-selfhosted-linux-x64-943-6c16g",
                 },
                 "scoped_runner": {
                     "group": "ledova-mac-linux-arm64-pilot",

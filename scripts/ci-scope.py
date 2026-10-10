@@ -118,7 +118,7 @@ def django_runners(environment):
     )
     return {
         "tokens2_runner": (
-            {"group": "ledova-selfhosted-linux-pilot", "labels": "ledova-selfhosted-linux-x64-943-8c24g"}
+            {"group": "ledova-selfhosted-linux-pilot", "labels": "ledova-selfhosted-linux-x64-943-6c16g"}
             if trusted
             else "ubuntu-latest"
         ),
