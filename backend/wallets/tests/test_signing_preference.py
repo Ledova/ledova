@@ -1,15 +1,11 @@
 import json
-from unittest import skipUnless
 
-from django.conf import settings
-from django.db import connection, connections
-from django.test import TransactionTestCase
+from django.db import connections
 from eth_account import Account
 from eth_account.messages import encode_defunct
 from rest_framework.test import APITestCase
 
 from shared.db import current_alias, use_operator
-from shared.tests.schema import migrate_to, restore_every_migration
 from shared.tests.tenants import make_tenant
 from wallets.models import Wallet
 from wallets.tasks.sync import sync_wallet
@@ -122,28 +118,3 @@ class SigningPreferenceTest(APITestCase):
         self.assertEqual(response.status_code, 404)
         other.wallet.refresh_from_db()
         self.assertIsNone(other.wallet.signing_preference)
-
-
-modules = getattr(settings, "MIGRATION_MODULES", {})
-MIGRATIONS_ENABLED = not ("wallets" in modules and modules["wallets"] is None)
-
-
-@skipUnless(connection.vendor == "postgresql" and MIGRATIONS_ENABLED, "Real PostgreSQL migrations are required")
-class SigningPreferenceMigrationTest(TransactionTestCase):
-    def test_renaming_preserves_both_recorded_preferences_and_wallet_identity(self):
-        tenant = make_tenant("pref-migration")
-        self.addCleanup(restore_every_migration)
-        historical = migrate_to([("wallets", "0012_balance_versions")]).get_model("wallets", "Wallet")
-        ids = []
-        for preference in ("hardware", "software"):
-            row = historical.objects.create(
-                user_account_id=tenant.account.pk,
-                address=Account.create().address,
-                chain="base",
-                wallet_type=preference,
-            )
-            ids.append((row.pk, row.address, preference))
-        restore_every_migration()
-        for uuid, address, preference in ids:
-            current = Wallet.objects.get(pk=uuid)
-            self.assertEqual((current.address, current.signing_preference), (address, preference))

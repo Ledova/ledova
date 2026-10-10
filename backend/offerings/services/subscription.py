@@ -87,15 +87,10 @@ ISSUANCE_ALREADY_CLAIMED = (
     "Issuance request {uuid} is {status}, so the shares are already claimed on chain. "
     "{verb} is refused while that mint stands; the money cannot go back while the shares stay out."
 )
-ISSUANCE_REFUSED_BY_REFUND = "Refused: subscription {reference} was refunded before the shares were minted."
 MINT_BROADCAST = (
     "Issuance request {uuid} broadcast mint {tx_hash} and never confirmed it, so those shares may be out. "
     "{verb} is refused until that mint is resolved: the executing sweep completes it if it was mined and "
     "clears the hash if it reverted, and only then is the money free to move."
-)
-UNIDENTIFIED_LEGACY_MINT = (
-    "Issuance request {uuid} has an unidentified legacy mint. "
-    "{verb} is refused until an operator identifies and resolves that mint."
 )
 
 
@@ -486,7 +481,6 @@ def _refuse_if_issuance_claimed(subscription: Subscription, verb: str) -> None:
 def _refuse_the_issuance(subscription: Subscription, verb: str) -> None:
     from tokens.exceptions import IssuanceExecutionConflict
     from tokens.services.issuance_execution import cancel_queued
-    from tokens.services.legacy_issuance import refund_has_no_unresolved_mint
 
     request = _linked_request(subscription)
     if request is None:
@@ -501,23 +495,8 @@ def _refuse_the_issuance(subscription: Subscription, verb: str) -> None:
             "The issuance cannot be cancelled. Resolve its recorded execution before refunding."
         ) from exc
     _refuse_if_the_mint_is_out(request, verb)
-    if not refund_has_no_unresolved_mint(request):
-        raise SubscriptionRefusedException(UNIDENTIFIED_LEGACY_MINT.format(uuid=request.uuid, verb=verb))
     if request.status == RequestStatus.REJECTED:
         return
-    now = timezone.now()
-    claimed = ShareIssuanceRequest.objects.filter(
-        pk=request.pk, status__in=ShareIssuanceRequest.EXECUTABLE_STATUSES
-    ).update(
-        status=RequestStatus.REJECTED,
-        rejection_reason=ISSUANCE_REFUSED_BY_REFUND.format(reference=subscription.reference or subscription.uuid),
-        reviewed_at=now,
-        updated_at=now,
-    )
-    if claimed:
-        logger.info(f"Issuance request {request.uuid} rejected because subscription {subscription.uuid} was refunded")
-        return
-    request.refresh_from_db(fields=["status"])
     raise _already_claimed(request, verb)
 
 

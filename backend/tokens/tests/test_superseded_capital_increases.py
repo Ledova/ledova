@@ -8,8 +8,8 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.test import APITransactionTestCase
 
 from blockchain.models import BlockchainTransaction, SignedAttempt
-from shared.db import atomic
-from shared.tests.schema import migrate_to, restore_every_migration
+from shared.db import atomic, use_migrate
+from shared.tests.retained_rows import retained_rows
 from tokens.exceptions import CapitalIncreaseConflict
 from tokens.models import CapitalIncreaseExecution, CapitalIncreaseRequest, ShareToken
 from tokens.services import capital_execution
@@ -17,6 +17,7 @@ from tokens.tasks import recover_capital_increases
 from tokens.tests.capital_fixtures import CHAIN_ID, KEY, admit
 from tokens.tests.company_capital_fixtures import CompanyCapitalCases
 from tokens.tests.retained_capital_fixtures import retain_capital_execution
+from tokens.tests.retained_guards import CAPITAL_GUARDS
 
 
 @override_settings(BLOCKCHAIN_OPERATOR_KEY=KEY, BLOCKCHAIN_CHAIN_ID=CHAIN_ID)
@@ -47,11 +48,8 @@ class SupersededCapitalIncreaseTest(CompanyCapitalCases, APITransactionTestCase)
         return command
 
     def historical_request(self, **fields):
-        try:
-            migrate_to([("tokens", "0102_company_register_capital_increases")])
+        with use_migrate(), retained_rows(*CAPITAL_GUARDS[:2]):
             return self.draft(**fields)
-        finally:
-            restore_every_migration()
 
     def transactions(self):
         return BlockchainTransaction.objects.filter(

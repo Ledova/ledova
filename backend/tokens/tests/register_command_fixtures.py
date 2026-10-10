@@ -2,8 +2,8 @@ from uuid import uuid4
 
 from django.utils import timezone
 
-from shared.db import use_operator
-from shared.tests.schema import migrate_to, restore_every_migration
+from shared.db import use_migrate, use_operator
+from shared.tests.retained_rows import retained_rows
 from tokens.models import RegisterEvidenceKind, RegisterMemberParticulars
 from tokens.tests.evidence_fixtures import upload_evidence
 
@@ -11,8 +11,10 @@ from tokens.tests.evidence_fixtures import upload_evidence
 def legacy_entry_before_company_transfers(token, owner, kind, changes, effective_on):
     from tokens.services.register_events import record_entry
 
-    try:
-        migrate_to([("tokens", "0095_company_register_grant_guards")])
+    with use_migrate(), retained_rows(
+        ("tokens_registerentry", "tokens_register_transfer_entry"),
+        ("tokens_registerentry", "tokens_register_entry_cessation"),
+    ):
         with use_operator():
             return record_entry(
                 register_id=token.stored_register.pk,
@@ -22,8 +24,6 @@ def legacy_entry_before_company_transfers(token, owner, kind, changes, effective
                 effective_on=effective_on,
                 recorded_by=owner,
             )
-    finally:
-        restore_every_migration()
 
 
 def transfer_existing_member(owner, appointment, token, source, target, shares):

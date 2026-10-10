@@ -19,7 +19,7 @@ from tokens.models import (
     ShareIssuanceExecution,
     ShareIssuanceRequest,
 )
-from tokens.services import capital_execution, issuance_execution, legacy_issuance
+from tokens.services import capital_execution, issuance_execution
 
 logger = logging.getLogger(__name__)
 
@@ -79,18 +79,7 @@ def check_executing_issuance_requests(timestamp: int = 0):
                 resolved += result["status"] in (RequestStatus.EXECUTED, RequestStatus.FAILED, RequestStatus.REJECTED)
             except Exception:
                 logger.warning("Issuance execution %s remains unresolved", execution_id)
-        legacy = list(
-            ShareIssuanceRequest.objects.unresolved_on_chain(cutoff)
-            .filter(dispatch_id__isnull=True)
-            .order_by("updated_at", "pk")[:ISSUANCE_RECOVERY_BATCH]
-        )
-        for request in legacy:
-            ShareIssuanceRequest.objects.filter(pk=request.pk).update(updated_at=timezone.now())
-            try:
-                resolved += bool(legacy_issuance.resolve_executing_issuance(request))
-            except Exception:
-                logger.warning("Historical issuance %s remains unresolved", request.pk)
-        return {"checked": len(pending) + len(legacy), "resolved": resolved}
+        return {"checked": len(pending), "resolved": resolved}
 
 
 @app.periodic(cron="*/5 * * * *")

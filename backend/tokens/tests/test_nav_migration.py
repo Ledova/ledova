@@ -8,39 +8,9 @@ from blockchain.models import OutgoingOperation
 from blockchain.services import outgoing
 from blockchain.tests.outgoing_fixtures import CHAIN_ID, KEY
 from shared.db import atomic
-from shared.tests.schema import migrate_to, restore_every_migration
-from shared.tests.tenants import make_tenant
 from tokens.models import NAVUpdate, YieldToken
 from tokens.services import legacy_outgoing_sources, nav, nav_recovery
 from tokens.tests.nav_fixtures import install_nav
-
-
-class NAVHistoricalMigrationTest(TransactionTestCase):
-    def test_upgrade_preserves_historical_rows_without_inventing_local_or_chain_authority(self):
-        tenant = make_tenant("historical-nav")
-        token = YieldToken.objects.create(name="Historical NAV", symbol="HISTORY", contract_address="0x" + "d" * 40)
-        self.addCleanup(restore_every_migration)
-        before = migrate_to([("tokens", "0052_pause_change_guards")])
-        old_model = before.get_model("tokens", "NAVUpdate")
-        old = old_model.objects.create(
-            yield_token_id=token.pk,
-            updated_by_id=tenant.user.pk,
-            old_nav_per_token="1",
-            new_nav_per_token="2",
-            total_reserve_value="3",
-        )
-        original = old_model.objects.filter(pk=old.pk).values().get()
-        restore_every_migration()
-        row = NAVUpdate.objects.get(pk=old.pk)
-        self.assertEqual(NAVUpdate.objects.filter(pk=old.pk).values(*original).get(), original)
-        self.assertEqual(
-            (row.mode, row.status, row.intent, row.operation_id, row.completed_at),
-            ("historical", "historical", None, None, None),
-        )
-        self.assertEqual(nav_recovery.recover(row.pk).status, "historical")
-        self.assertFalse(OutgoingOperation.objects.exists())
-        with self.assertRaises(DatabaseError), atomic():
-            NAVUpdate.objects.filter(pk=row.pk).update(mode="local", status="queued", intent={})
 
 
 @override_settings(BLOCKCHAIN_OPERATOR_KEY=KEY, BLOCKCHAIN_CHAIN_ID=CHAIN_ID)
@@ -146,10 +116,3 @@ class NAVGuardTest(TransactionTestCase):
         self.assertTrue(
             any(row["model"] == NAVUpdate._meta.label and row["uuid"] == str(historical.pk) for row in rows)
         )
-
-    def test_rollback_cannot_remove_admitted_nav_history(self):
-        self.addCleanup(restore_every_migration)
-        with self.assertRaisesMessage(DatabaseError, "Cannot remove admitted NAV"):
-            migrate_to([("tokens", "0052_pause_change_guards")])
-        restore_every_migration()
-        self.assertTrue(NAVUpdate.objects.filter(pk=self.update.pk).exists())

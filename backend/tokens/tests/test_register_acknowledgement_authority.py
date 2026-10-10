@@ -1,13 +1,11 @@
 import json
 from contextlib import contextmanager
 from datetime import datetime, timedelta
-from importlib import import_module
 from unittest.mock import patch
 from uuid import uuid4
 
 from django.conf import settings
-from django.db import DatabaseError, IntegrityError, connection, connections
-from django.test import TransactionTestCase
+from django.db import DatabaseError, IntegrityError, connections
 from django.utils import timezone
 from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.test import APIClient, APITransactionTestCase
@@ -23,7 +21,7 @@ from companies.services.team import (
 )
 from operators.models import Operator
 from shared.db import MIGRATE_ALIAS, atomic, current_alias, use_migrate, use_operator
-from shared.tests.schema import migrate_to, restore_every_migration
+from shared.tests.retained_rows import retained_rows
 from shared.tests.scoped import RunsOnTheScopedConnection
 from tokens.exceptions import RegisterChangeConflict
 from tokens.models import RegisterAcknowledgement, RegisterReconciliation, ShareToken
@@ -40,8 +38,6 @@ RECONCILIATIONS = "/api/v1/tokens/register-reconciliations/"
 OPERATION = "register_discrepancy_acknowledge"
 REFUSED = "current company approver"
 NOT_READABLE = "Reconciliation not found."
-PREVIOUS = ("tokens", "0086_company_register_correction_guards")
-ACKNOWLEDGEMENTS = import_module("tokens.migrations.0087_company_discrepancy_acknowledgements")
 
 
 def discrepancies(member):
@@ -91,10 +87,8 @@ def acknowledge(actor, appointment, record, index, reason="Accepted by the direc
 
 @contextmanager
 def under_the_staff_era_guard():
-    with use_migrate(), atomic(), connections[current_alias()].cursor() as cursor:
-        cursor.execute(ACKNOWLEDGEMENTS.ACKNOWLEDGEMENT_GUARD_AS_0070_INSTALLED_IT, [settings.RLS_ROLES["app"]])
+    with use_migrate(), retained_rows(("tokens_registeracknowledgement", "tokens_register_acknowledgement_record")):
         yield
-        cursor.execute(ACKNOWLEDGEMENTS.COMPANY_IMPORTS._with_roles(cursor, ACKNOWLEDGEMENTS.ACKNOWLEDGEMENT_GUARD))
 
 
 def staff_era_acknowledgement(record, index, reason, staff):
@@ -579,45 +573,6 @@ class RegisterAcknowledgementGuardTest(AcknowledgementFixtures, APITransactionTe
             self.recorded(), [(self.record.pk, self.record.discrepancies[0], staff.pk, None, "Accepted by staff")]
         )
         self.assertIsNone(retained.idempotency_key)
-
-
-class CompanyAcknowledgementMigrationTest(TransactionTestCase):
-    def guard(self):
-        with connection.cursor() as cursor:
-            cursor.execute("SELECT pg_get_functiondef('tokens_guard_register_acknowledgement()'::regprocedure)")
-            return cursor.fetchone()[0]
-
-    def test_reversal_restores_the_staff_guard_keeps_staff_era_rows_and_reapplies(self):
-        self.addCleanup(restore_every_migration)
-        company_run = self.guard()
-        self.assertIn(OPERATION, company_run)
-        migrate_to([("tokens", "0069_opening_mapping_values")])
-        migrate_to([PREVIOUS])
-        staff_review = self.guard()
-        self.assertIn("is_staff", staff_review)
-        self.assertNotIn(OPERATION, staff_review)
-        restore_every_migration()
-        self.assertEqual(self.guard(), company_run)
-        _, _, token, member, _ = acknowledgement_fixture()
-        retained = staff_era_acknowledgement(reconciled(token, member), 0, "Accepted by staff", staff_user())
-        migrate_to([PREVIOUS])
-        self.assertEqual(self.guard(), staff_review)
-        with connection.cursor() as cursor:
-            cursor.execute("SELECT uuid, reason, acknowledged_by_id FROM tokens_registeracknowledgement")
-            self.assertEqual(cursor.fetchall(), [(retained.pk, "Accepted by staff", retained.acknowledged_by_id)])
-        restore_every_migration()
-        self.assertEqual(self.guard(), company_run)
-        retained.refresh_from_db()
-        self.assertEqual((retained.appointment_id, retained.idempotency_key), (None, None))
-
-    def test_reversal_refuses_while_a_company_acknowledgement_exists(self):
-        owner, _, token, member, administrator = acknowledgement_fixture()
-        acknowledge(owner, administrator, reconciled(token, member), 0)
-        company_run = self.guard()
-        with self.assertRaisesMessage(DatabaseError, "Retain company acknowledgements"), atomic():
-            with connections[current_alias()].schema_editor() as editor:
-                ACKNOWLEDGEMENTS.remove_company_acknowledgements(None, editor)
-        self.assertEqual(self.guard(), company_run)
 
 
 class ScopedRegisterAcknowledgementAuthorityTest(RunsOnTheScopedConnection, RegisterAcknowledgementAuthorityTest):

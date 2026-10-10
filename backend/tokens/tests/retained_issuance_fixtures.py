@@ -8,21 +8,23 @@ from django.utils import timezone
 from blockchain.models import BlockchainTransaction
 from blockchain.services import outgoing
 from shared.db import use_migrate
-from shared.tests.schema import migrate_to, restore_every_migration
-from tokens.models import ShareIssuance, ShareIssuanceRequest
+from shared.tests.retained_rows import retained_rows
+from tokens.models import ShareIssuance, ShareIssuanceExecution, ShareIssuanceRequest
 from tokens.services import issuance_execution
 from tokens.services.holder_identity import identity_at_allotment
+from tokens.tests.retained_guards import (
+    INSTRUCTION_GUARDS,
+    ISSUANCE_GUARDS,
+    REQUEST_GUARDS,
+)
 
 
 def approve_retained_request(request, reviewer, *, notes=""):
     from shared.db import use_operator
 
-    try:
-        migrate_to([("tokens", "0100_company_register_issue_instructions")])
+    with use_migrate(), retained_rows(*REQUEST_GUARDS):
         with use_operator():
             request.approve(reviewer, notes=notes)
-    finally:
-        restore_every_migration()
     return request
 
 
@@ -38,8 +40,7 @@ def retain_signed_issuance(
     instructed=None,
     reviewed_by=None,
 ):
-    try:
-        historical = migrate_to([("tokens", "0100_company_register_issue_instructions")])
+    with use_migrate(), retained_rows(*(ISSUANCE_GUARDS + INSTRUCTION_GUARDS)):
         with use_migrate():
             request = ShareIssuanceRequest.objects.create(
                 token=token, recipient_address=recipient, recipient_name=recipient_name, amount=amount, reason=reason
@@ -49,7 +50,7 @@ def retain_signed_issuance(
                 instructed(request)
                 request.refresh_from_db()
             intent = issuance_execution._intent(request, token)
-            command = historical.get_model("tokens", "ShareIssuanceExecution").objects.create(
+            command = ShareIssuanceExecution.objects.create(
                 uuid=request.dispatch_id,
                 request_id=request.pk,
                 token_id=token.pk,
@@ -101,8 +102,6 @@ def retain_signed_issuance(
                 issuance.save(update_fields=["transaction", "tx_hash", "status", "processed_at", "updated_at"])
 
             outgoing.sign_operation(claim, prepared, settings.BLOCKCHAIN_OPERATOR_KEY, on_signed=retain)
-    finally:
-        restore_every_migration()
     return request, command.pk
 
 
@@ -127,12 +126,11 @@ def prepare_retained_execution(request, actor, client):
     from tokens.exceptions import IssuanceRefusedException
     from tokens.models import ShareIssuanceExecution
 
-    try:
-        historical = migrate_to([("tokens", "0100_company_register_issue_instructions")])
+    with use_migrate(), retained_rows(*(ISSUANCE_GUARDS + INSTRUCTION_GUARDS)):
         with use_operator():
             execution = ShareIssuanceExecution.objects.filter(request_id=request.pk).first()
             if execution is None:
-                row = historical.get_model("tokens", "ShareIssuanceExecution").objects.create(
+                row = ShareIssuanceExecution.objects.create(
                     uuid=request.dispatch_id,
                     request_id=request.pk,
                     token_id=request.token_id,
@@ -164,6 +162,4 @@ def prepare_retained_execution(request, actor, client):
                     except IssuanceRefusedException as exception:
                         outgoing.fail_preparing(claim)
                         issuance_execution._project(execution, claim, refusal=str(exception.detail))
-    finally:
-        restore_every_migration()
     return execution.pk

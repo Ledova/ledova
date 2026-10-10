@@ -10,13 +10,12 @@ from unittest import skipUnless
 from unittest.mock import patch
 
 from django.conf import settings
-from django.db import connection, connections
+from django.db import connection
 from django.test import TransactionTestCase, override_settings
 from eth_account.messages import encode_typed_data
 
-from shared.db import current_alias, use_migrate, use_operator
+from shared.db import use_operator
 from shared.tests.company_eligibility import accept_company_eligibility
-from shared.tests.schema import migrate_to
 from shared.tests.scoped import RunsOnTheScopedConnection
 from tokens.models import SwapOrder, SwapOrderStatus
 from tokens.tests.order_process_fixtures import worker_databases
@@ -36,19 +35,6 @@ class SwapProcess:
         with use_operator():
             owner = SwapOrder.objects.get(pk=row_id).sell_order.owner_account
             user_id = owner.user_profile.user_id
-        if mode == "reverse_inclusion":
-            with use_migrate(), connections[current_alias()].cursor() as cursor:
-                cursor.execute("SELECT current_setting('statement_timeout'), current_setting('lock_timeout')")
-                statement_timeout, lock_timeout = cursor.fetchone()
-                try:
-                    cursor.execute("SET statement_timeout = '20s'")
-                    cursor.execute("SET lock_timeout = '15s'")
-                    migrate_to([("tokens", "0063_swap_finalized_receipt")])
-                finally:
-                    cursor.execute(
-                        "SELECT set_config('statement_timeout', %s, false), set_config('lock_timeout', %s, false)",
-                        [statement_timeout, lock_timeout],
-                    )
         self.errors = tempfile.TemporaryFile()
         self.process = subprocess.Popen(
             [sys.executable, "-m", "tokens.tests.swap_state_worker", mode, str(row_id), detail],
@@ -66,13 +52,7 @@ class SwapProcess:
             },
         )
         test.addCleanup(self.close)
-        if mode == "reverse_inclusion":
-            preparation = self.receive("schema_preparation")
-            test.assertEqual(preparation["target"], "0063_swap_finalized_receipt")
-            loaded = self.receive("loaded", timeout=90)
-            test.assertEqual(loaded["pid"], preparation["pid"])
-        else:
-            loaded = self.receive("loaded")
+        loaded = self.receive("loaded")
         with connection.cursor() as cursor:
             cursor.execute("SELECT pg_backend_pid()")
             test.assertNotEqual(loaded["pid"], cursor.fetchone()[0])

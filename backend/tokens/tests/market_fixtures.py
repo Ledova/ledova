@@ -52,3 +52,20 @@ def make_market_tenant(label):
     for order in (tenant.order, tenant.counter_order):
         record_synthetic_admission(order)
     return tenant
+
+
+def complete_market_trade(test, tenant, label):
+    from django.test import override_settings
+
+    from shared.db import use_operator
+    from tokens.tests.swap_execution_fixtures import make_execution, signed_execution
+    from tokens.tests.swap_state_fixtures import BUYER, CONTRACT, SELLER
+
+    with override_settings(ATOMIC_SWAP_ADDRESS=CONTRACT), use_operator():
+        fixture = make_execution(label, issuer=tenant)
+    tenant.swap = signed_execution(
+        test,
+        fixture.swap,
+        (("seller", fixture.seller.user, SELLER), ("buyer", fixture.buyer.user, BUYER)),
+    )
+    return tenant.swap

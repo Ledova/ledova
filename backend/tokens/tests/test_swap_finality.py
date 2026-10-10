@@ -1,4 +1,3 @@
-import time
 from contextlib import ExitStack
 from datetime import timedelta
 from unittest import skipUnless
@@ -7,7 +6,6 @@ from unittest.mock import call, patch
 from django.db import DatabaseError, connection, connections
 from django.test import TransactionTestCase, override_settings
 from django.utils import timezone
-from rest_framework.exceptions import ValidationError
 
 from assets.models import Asset, AssetChainDeployment
 from blockchain.models import BlockchainTransaction, OutgoingOperation, SignedAttempt
@@ -21,7 +19,6 @@ from blockchain.tests.outgoing_fixtures import (
     receipt,
 )
 from shared.db import acting_for, atomic, current_alias, use_migrate, use_operator
-from shared.tests.schema import migrate_to, restore_every_migration
 from shared.tests.scoped import RunsOnTheScopedConnection
 from tokens.exceptions import SwapNotReadyException
 from tokens.models import (
@@ -49,7 +46,6 @@ from tokens.tests.swap_execution_fixtures import (
     ExecutionNode,
     execution_receipt,
     make_execution,
-    make_historical_execution,
 )
 from tokens.tests.swap_state_fixtures import BUYER, CONTRACT, SELLER
 from tokens.tests.test_swap_execution_storage import SwapExecutionStorageFixtures
@@ -671,80 +667,6 @@ class SwapFinalityProcessTest(SwapFinalityFixtures, TransactionTestCase):
             {"sell": (TransferOrderStatus.COMPLETED, 10), "buy": (TransferOrderStatus.COMPLETED, 10)},
         )
 
-    def test_downgrade_retains_actual_company_admission_and_its_confirmed_settlement(self):
-        self.confirm()
-        self.addCleanup(restore_every_migration)
-        before = (
-            SwapOrder.objects.filter(pk=self.swap.pk).values().get(),
-            self.parents(),
-            BlockchainTransaction.objects.filter(pk=self.record.pk).values().get(),
-        )
-        self.assertIsNotNone(before[0]["seller_eligibility_decision_id"])
-        self.assertIsNotNone(before[0]["buyer_eligibility_decision_id"])
-        with self.assertRaisesRegex(RuntimeError, "Retain actual trading admission evidence and its guards"):
-            migrate_to([("tokens", "0063_swap_finalized_receipt")])
-        self.assertEqual(
-            (
-                SwapOrder.objects.filter(pk=self.swap.pk).values().get(),
-                self.parents(),
-                BlockchainTransaction.objects.filter(pk=self.record.pk).values().get(),
-            ),
-            before,
-        )
-
-
-@override_settings(BLOCKCHAIN_OPERATOR_KEY=KEY, BLOCKCHAIN_CHAIN_ID=CHAIN_ID, ATOMIC_SWAP_ADDRESS=CONTRACT)
-class HistoricalSwapFinalityProcessTest(SwapFinalityFixtures, TransactionTestCase):
-    def make_fixture(self):
-        return make_historical_execution("historical-finality")
-
-    def test_downgrade_waits_for_uncommitted_settlement_and_preserves_its_evidence(self):
-        self.confirm()
-        self.addCleanup(restore_every_migration)
-        worker = workers.SwapProcess(self, "reverse_inclusion", self.swap.pk)
-        evidence = {
-            "block_number": 12,
-            "block_hash": BLOCK_HASH,
-            "gas_used": 21000,
-            "policy": {"version": 1, "mode": "finalized"},
-        }
-        with use_operator(), atomic():
-            self.assertEqual(
-                SwapOrder.objects.filter(pk=self.swap.pk).update(
-                    status="completed", completed_at=timezone.now(), finalized_receipt=evidence
-                ),
-                1,
-            )
-            with connections[current_alias()].cursor() as cursor:
-                cursor.execute("SELECT pg_backend_pid()")
-                holder_pid = cursor.fetchone()[0]
-            self.assertNotEqual(holder_pid, worker.database_pid)
-            worker.send("run")
-            worker.receive("reversing")
-            deadline = time.monotonic() + 60
-            while time.monotonic() < deadline:
-                with use_migrate(), connections[current_alias()].cursor() as cursor:
-                    cursor.execute("SELECT pg_stat_clear_snapshot()")
-                    cursor.execute(
-                        "SELECT %s = ANY(pg_blocking_pids(pid)), wait_event_type, query "
-                        "FROM pg_stat_activity WHERE pid = %s",
-                        [holder_pid, worker.database_pid],
-                    )
-                    observed = cursor.fetchone()
-                if observed and observed[0] and observed[1] == "Lock" and "tokens_swaporder" in observed[2]:
-                    break
-                time.sleep(0.01)
-            else:
-                self.fail(f"Downgrade never waited for the committing settlement: {observed}")
-        self.assertEqual(worker.done()["result"], "refused")
-        with use_operator():
-            self.swap.refresh_from_db(fields=["finalized_receipt"])
-        self.assertEqual(self.swap.finalized_receipt, evidence)
-
-
-class ScopedHistoricalSwapFinalityProcessTest(RunsOnTheScopedConnection, HistoricalSwapFinalityProcessTest):
-    pass
-
 
 @override_settings(BLOCKCHAIN_CHAIN_ID=CHAIN_ID)
 class SwapFinalityGuardTest(SwapExecutionStorageFixtures, TransactionTestCase):
@@ -863,63 +785,3 @@ class SwapFinalityGuardTest(SwapExecutionStorageFixtures, TransactionTestCase):
             completed_at=timezone.now(),
             finalized_receipt=self.finalized(policy={"version": 1, "mode": "depth", "depth": 2}),
         )
-
-    def test_upgrade_preserves_historical_null_evidence_and_refuses_later_backfill(self):
-        journal = self.retain()
-        self.project(journal, "confirmed")
-        self.addCleanup(restore_every_migration)
-        previous = migrate_to([("tokens", "0062_register_foundation")])
-        previous.get_model("tokens", "SwapOrder").objects.filter(pk=self.swap.pk).update(
-            status="completed", completed_at=timezone.now()
-        )
-        restore_every_migration()
-        self.swap.refresh_from_db()
-        self.assertEqual(self.swap.status, "completed")
-        self.assertIsNone(self.swap.finalized_receipt)
-        self.refuse("retain their recorded finality evidence", finalized_receipt=self.finalized())
-
-    def test_a_historical_completion_without_finality_evidence_refuses_classification(self):
-        journal = self.retain()
-        self.project(journal, "confirmed")
-        self.addCleanup(restore_every_migration)
-        previous = migrate_to([("tokens", "0062_register_foundation")])
-        previous.get_model("tokens", "SwapOrder").objects.filter(pk=self.swap.pk).update(
-            status="completed", completed_at=timezone.now()
-        )
-        restore_every_migration()
-        self.swap.refresh_from_db()
-        self.assertIsNone(self.swap.finalized_receipt)
-        with self.assertRaises(ValidationError) as refused:
-            completed_inclusions(self.swap.share_token_id)
-        self.assertIn(str(self.swap.pk), str(refused.exception.detail))
-
-    def test_downgrade_cannot_discard_recorded_finality_evidence(self):
-        journal = self.retain()
-        self.project(journal, "confirmed")
-        SwapOrder.objects.filter(pk=self.swap.pk).update(
-            status="completed", completed_at=timezone.now(), finalized_receipt=self.finalized()
-        )
-        self.addCleanup(restore_every_migration)
-        with self.assertRaisesMessage(DatabaseError, "Cannot remove recorded swap finality evidence"):
-            migrate_to([("tokens", "0062_register_foundation")])
-        self.swap.refresh_from_db(fields=["finalized_receipt"])
-        self.assertEqual(self.swap.finalized_receipt, self.finalized())
-
-    def test_reversing_the_guard_restores_the_previous_function_verbatim(self):
-        self.addCleanup(restore_every_migration)
-
-        def definition():
-            with connections[current_alias()].cursor() as cursor:
-                cursor.execute("SELECT pg_get_functiondef('protect_swap_execution'::regproc)")
-                return cursor.fetchone()[0]
-
-        current = definition()
-        self.assertIn("confirmed original receipt", current)
-        migrate_to([("tokens", "0057_swap_execution_guards")])
-        reverted = definition()
-        migrate_to([("tokens", "0056_hold_legacy_swaps")])
-        migrate_to([("tokens", "0057_swap_execution_guards")])
-        self.assertEqual(definition(), reverted)
-        self.assertNotIn("confirmed original receipt", reverted)
-        restore_every_migration()
-        self.assertEqual(definition(), current)

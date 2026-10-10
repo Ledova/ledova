@@ -1,14 +1,11 @@
 from copy import deepcopy
-from importlib import import_module
-from types import SimpleNamespace
 from unittest import skipUnless
 from unittest.mock import patch
 from uuid import uuid4
 
-from django.apps import apps
 from django.conf import settings
 from django.db import DatabaseError, IntegrityError, connections
-from django.test import TestCase, TransactionTestCase, override_settings
+from django.test import TestCase, override_settings
 from eth_account.messages import encode_typed_data
 from rest_framework.test import APIClient, APITransactionTestCase
 
@@ -17,7 +14,6 @@ from feature_flags.models import FeatureFlag
 from operators.settlement import require_deployment
 from shared.db import atomic, current_alias, reset_principal, use_migrate, use_operator
 from shared.tests.company_eligibility import accept_company_eligibility
-from shared.tests.schema import migrate_to, restore_every_migration
 from shared.tests.scoped import RunsOnTheScopedConnection
 from shared.tests.tenants import a_profile, make_eligible, make_tenant
 from tokens.exceptions import SwapNotReadyException
@@ -42,11 +38,6 @@ from wallets.constants import WALLET_VERIFICATION_STATUS_VERIFIED
 from wallets.models import Wallet
 
 IS_POSTGRES = settings.DATABASES["default"]["ENGINE"] == "django.db.backends.postgresql"
-_migration_modules = getattr(settings, "MIGRATION_MODULES", {})
-MIGRATIONS_ENABLED = not ("tokens" in _migration_modules and _migration_modules["tokens"] is None)
-BEFORE = [("tokens", "0039_swap_settlement_context")]
-AFTER = [("tokens", "0040_swap_parent_identity")]
-MIGRATION = import_module("tokens.migrations.0040_swap_parent_identity")
 
 
 OUTSIDER_ADDRESS = "0x" + "9c" * 20
@@ -141,139 +132,6 @@ class SwapParentStorageTest(TestCase):
             functions = cursor.fetchall()
         self.assertEqual(len(functions), 3)
         self.assertTrue(all(not privileged for _name, privileged in functions))
-
-
-@skipUnless(IS_POSTGRES, "Requires actual PostgreSQL foreign-key metadata")
-class SwapParentForeignKeyMetadataTest(TransactionTestCase):
-    def test_unexpected_reference_or_validation_state_refuses_without_replacing_either_constraint(self):
-        connection = connections[current_alias()]
-        for referenced, validated in (("alternate", True), ("uuid", False), ("uuid", True)):
-            with self.subTest(referenced=referenced, validated=validated), connection.schema_editor() as editor:
-                editor.execute("CREATE TEMP TABLE tokens_transferorder (uuid uuid PRIMARY KEY, alternate uuid UNIQUE)")
-                editor.execute("CREATE TEMP TABLE tokens_swaporder (sell_order_id uuid, buy_order_id uuid)")
-                try:
-                    for column in ("sell_order_id", "buy_order_id"):
-                        validation = "" if validated else " NOT VALID"
-                        editor.execute(
-                            f"ALTER TABLE pg_temp.tokens_swaporder ADD CONSTRAINT {column}_parent "
-                            f"FOREIGN KEY ({column}) REFERENCES pg_temp.tokens_transferorder ({referenced}) "
-                            f"DEFERRABLE INITIALLY DEFERRED{validation}"
-                        )
-                    with connection.cursor() as cursor:
-                        cursor.execute(
-                            "SELECT pg_get_constraintdef(oid) FROM pg_constraint "
-                            "WHERE conrelid = 'pg_temp.tokens_swaporder'::regclass ORDER BY conname"
-                        )
-                        before = cursor.fetchall()
-                    if referenced != "uuid" or not validated:
-                        with self.assertRaisesMessage(RuntimeError, "Unexpected swap-to-order foreign keys"):
-                            MIGRATION.replace_parent_foreign_keys(editor, True)
-                    else:
-                        MIGRATION.replace_parent_foreign_keys(editor, True)
-                        with connection.cursor() as cursor:
-                            cursor.execute(
-                                "SELECT confdeltype, condeferrable FROM pg_constraint "
-                                "WHERE conrelid = 'pg_temp.tokens_swaporder'::regclass"
-                            )
-                            self.assertEqual(cursor.fetchall(), [("r", False), ("r", False)])
-                        MIGRATION.replace_parent_foreign_keys(editor, False)
-                    with connection.cursor() as cursor:
-                        cursor.execute(
-                            "SELECT pg_get_constraintdef(oid) FROM pg_constraint "
-                            "WHERE conrelid = 'pg_temp.tokens_swaporder'::regclass ORDER BY conname"
-                        )
-                        self.assertEqual(cursor.fetchall(), before)
-                finally:
-                    editor.execute("DROP TABLE pg_temp.tokens_swaporder")
-                    editor.execute("DROP TABLE pg_temp.tokens_transferorder")
-
-
-@skipUnless(MIGRATIONS_ENABLED, "Requires actual parent-identity migrations")
-@override_settings(ATOMIC_SWAP_ADDRESS=CONTRACT)
-class SwapParentMigrationTest(TransactionTestCase):
-    def setUp(self):
-        self.swap = make_swap("parent-migration")
-        self.parent = self.swap.sell_order
-        self.parent_before = TransferOrder.objects.filter(pk=self.parent.pk).values().get()
-        self.old_apps = None
-        self.addCleanup(self.restore)
-
-    def restore(self):
-        try:
-            if self.old_apps:
-                migrate_to(BEFORE)
-                historical_order = self.old_apps.get_model("tokens", "TransferOrder")
-                fields = {field.attname for field in historical_order._meta.concrete_fields}
-                historical_order.objects.filter(pk=self.parent.pk).update(
-                    **{k: v for k, v in self.parent_before.items() if k != "uuid" and k in fields}
-                )
-        finally:
-            restore_every_migration()
-        admission_fields = (
-            "eligibility_decision_id",
-            "creation_submission_id",
-            "last_modification_eligibility_decision_id",
-        )
-        with use_migrate():
-            self.assertEqual(
-                TransferOrder.objects.filter(pk=self.parent.pk).values(*admission_fields).get(),
-                {field: None for field in admission_fields},
-            )
-
-    def test_preflight_refuses_wallet_and_captured_owner_drift_without_rewriting_rows(self):
-        other = make_tenant("parent-drift-target", with_swap=False)
-        self.old_apps = migrate_to(BEFORE)
-        orders = self.old_apps.get_model("tokens", "TransferOrder").objects
-        swaps = self.old_apps.get_model("tokens", "SwapOrder").objects
-        for changes, reason in (
-            ({"wallet_id": other.wallet.pk}, "seller wallet differs"),
-            ({"owner_account_id": other.account.pk}, "seller captured owner differs"),
-            ({"wallet_address": other.wallet.address}, "seller captured owner differs"),
-        ):
-            with self.subTest(reason=reason):
-                orders.filter(pk=self.parent.pk).update(**changes)
-                try:
-                    order_before = orders.filter(pk=self.parent.pk).values().get()
-                    swap_before = swaps.filter(pk=self.swap.pk).values().get()
-                    with self.assertRaises(RuntimeError) as refused:
-                        migrate_to(AFTER)
-                    self.assertIn(reason, str(refused.exception))
-                    self.assertIn(str(self.swap.pk), str(refused.exception))
-                    self.assertEqual(orders.filter(pk=self.parent.pk).values().get(), order_before)
-                    self.assertEqual(swaps.filter(pk=self.swap.pk).values().get(), swap_before)
-                finally:
-                    migrate_to(BEFORE)
-                    orders.filter(pk=self.parent.pk).update(**{k: self.parent_before[k] for k in changes})
-        migrate_to(AFTER)
-
-    def test_valid_v1_history_survives_retired_verification_and_reassignment(self):
-        self.old_apps = migrate_to(BEFORE)
-        Wallet.objects.filter(pk=self.swap.seller_wallet_id).update(verification_status="UNVERIFIED")
-        successor = a_profile("parent-drift-successor")
-        UserAccount.objects.filter(pk=self.parent.owner_account_id).update(user_profile=successor)
-        swaps = self.old_apps.get_model("tokens", "SwapOrder").objects
-        orders = self.old_apps.get_model("tokens", "TransferOrder").objects
-        before = list(swaps.order_by("pk").values()), list(orders.order_by("pk").values())
-        migrate_to(AFTER)
-        self.assertEqual((list(swaps.order_by("pk").values()), list(orders.order_by("pk").values())), before)
-
-    def test_legacy_history_cannot_be_updated_or_deleted_through_its_parent(self):
-        migrate_to([("tokens", "0038_order_action_submissions")])
-        restore_every_migration()
-        self.old_apps = None
-        with use_operator():
-            self.swap.refresh_from_db()
-            before = SwapOrder.objects.filter(pk=self.swap.pk).values().get()
-            self.assertEqual(self.swap.settlement_protocol_version, 0)
-            self.assertIsNone(self.swap.settlement_context)
-            with self.assertRaises(IntegrityError), atomic():
-                SwapOrder.objects.filter(pk=self.swap.pk).update(
-                    seller_signature="legacy", status=SwapOrderStatus.SELLER_SIGNED
-                )
-            with self.assertRaises(IntegrityError), atomic():
-                self.parent.delete()
-            self.assertEqual(SwapOrder.objects.filter(pk=self.swap.pk).values().get(), before)
-            self.assertEqual(TransferOrder.objects.filter(pk=self.parent.pk).values().get(), self.parent_before)
 
 
 @override_settings(ATOMIC_SWAP_ADDRESS=CONTRACT, BLOCKCHAIN_OPERATOR_KEY="0x" + "33" * 32)
@@ -635,34 +493,3 @@ class ScopedSwapParentIdentityTest(RunsOnTheScopedConnection, APITransactionTest
         with use_operator():
             self.swap.refresh_from_db()
         self.assertEqual(self.swap.seller_signature, self.signature("seller"))
-
-    def test_preflight_uses_the_schema_alias_when_the_ambient_principal_cannot_read_parents(self):
-        self.no_principal_is_set()
-        parent_id = self.orders["buyer"].pk
-        owner_id = self.orders["buyer"].owner_account_id
-        try:
-            with connections["default"].cursor() as cursor:
-                cursor.execute("ALTER TABLE tokens_transferorder DISABLE TRIGGER tokens_order_owner_identity_guard")
-                try:
-                    cursor.execute(
-                        "UPDATE tokens_transferorder SET owner_account_id = %s WHERE uuid = %s",
-                        [self.parties["seller"].account.pk, parent_id],
-                    )
-                finally:
-                    cursor.execute("ALTER TABLE tokens_transferorder ENABLE TRIGGER tokens_order_owner_identity_guard")
-            with self.assertRaisesMessage(RuntimeError, "buyer captured owner differs"):
-                MIGRATION.refuse_parent_drift(apps, SimpleNamespace(connection=connections["operator"]))
-            with use_operator():
-                self.assertEqual(
-                    TransferOrder.objects.get(pk=parent_id).owner_account_id, self.parties["seller"].account.pk
-                )
-        finally:
-            with connections["default"].cursor() as cursor:
-                cursor.execute("ALTER TABLE tokens_transferorder DISABLE TRIGGER tokens_order_owner_identity_guard")
-                try:
-                    cursor.execute(
-                        "UPDATE tokens_transferorder SET owner_account_id = %s WHERE uuid = %s", [owner_id, parent_id]
-                    )
-                finally:
-                    cursor.execute("ALTER TABLE tokens_transferorder ENABLE TRIGGER tokens_order_owner_identity_guard")
-        MIGRATION.refuse_parent_drift(apps, SimpleNamespace(connection=connections["operator"]))

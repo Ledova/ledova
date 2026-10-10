@@ -523,7 +523,9 @@ improve scheduling while preserving meaningful coverage and reliability.
 Use focused development checks, applicable green CI and independent review at
 the merging head. The first timing increment does not deliver every proposed
 CI tier or path filter. Essential coverage and safeguards remain required;
-retire tests only where obsolete or duplicate coverage is established.
+retire tests only where obsolete or duplicate coverage is established. The
+[10 October baseline decision](#backend-migration-baseline) makes the specific
+exception for upgrade/rollback tests of migrations that have already shipped.
 
 Then deliver a simple private-company share registry that records established
 company processes:
@@ -589,6 +591,52 @@ the licence or legal findings. #624 still needs genuine human release acceptance
   prepare/approve flow. Partly paid allotments, calls and outstanding amounts
   are deferred; the existing amount-paid row shape stays so a later increment
   needs no migration. No collection, provider or refund mechanics.
+
+## Backend migration baseline
+
+**Owner decision, 10 October 2026**, recorded on
+[#943](https://github.com/Ledova/ledova/issues/943#issuecomment-6096774615).
+
+Replace the shipped backend migration chain with a pre-launch baseline per app,
+using only the phases needed for dependencies. Old migrations remain in Git.
+Prove the fresh schema, reference rows, roles, grants, policies, functions,
+triggers and constraints equivalent to the completed old chain before retiring
+its upgrade/rollback tests and rewind helpers. Current runtime assertions stay,
+using direct current-schema fixtures; each later migration receives a cheap
+upgrade test from its immediate predecessor.
+
+The [migration cut on #860](https://github.com/Ledova/ledova/issues/860#issuecomment-6101119001)
+uses main at `b325fea6b816a075003cb97954b5df03e20251b1`. An existing database
+must complete that old project and vendor history before adopting the baseline.
+Partial old history is refused before planning or DDL; do not fake records to
+bypass it. Rehearse adoption on a restored copy and preserve the database and
+private storage together. A ledova.io release adopting this baseline requires
+the owner's explicit approval and the usual backup; this decision authorises
+no live database changes. The [upgrade procedure](operations/upgrades.md#adopting-the-migration-baseline)
+owns that release order.
+
+The owner confirmed that old-format swaps, issuances without execution journals
+and earlier subscription payment/timing rows are absent from ledova.io
+([initial confirmation](https://github.com/Ledova/ledova/issues/943#issuecomment-6097699851)),
+and that older issuances with signed mint journals are also absent
+([signed issuance confirmation](https://github.com/Ledova/ledova/issues/943#issuecomment-6101101076)).
+This permits retiring code and tests serving only those formats. Preserve
+current authority, isolation, arithmetic, private evidence, immutable records,
+retention and signed-transaction receipt/finality/recovery safeguards, along
+with unrelated retained history.
+
+The remaining #943 work follows the baseline: keep the essential real-process
+proofs and repair intermittent failures, then simplify to one backend job group
+and add `make preflight`. PR checks within 15 minutes and the full backend suite
+within 20 minutes on the Mac are targets, not achieved measurements. Individual
+fixture rewrites superseded by the baseline stop; employee award and external
+capital migrations must rebase onto it without taking over another agent's work.
+
+The owner's later runner direction keeps the permanent Mac pool and defers a
+separate Linux machine. The Mac login service requires a powered, logged-in Mac;
+administrator installation for system startup is deferred. Compatible main jobs
+use its isolated ARM64 guests; PR and native builds remain hosted as described
+in the [testing guide](development/testing.md#backend-verification).
 
 ## Registry priority, crypto on-ramp and AUD payments
 

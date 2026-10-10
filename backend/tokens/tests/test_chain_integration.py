@@ -22,7 +22,6 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Permission
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import connection, connections
-from django.db.migrations.executor import MigrationExecutor
 from django.test import SimpleTestCase, override_settings
 from django.utils import timezone
 from eth_account import Account
@@ -61,7 +60,7 @@ from offerings.tests.factories import eligible_subscriber
 from operators.models import Operator
 from shared.db import acting_for, current_alias, use_migrate, use_operator
 from shared.seeds.synthetic.eligibility import accept_source, company_approver
-from shared.tests.schema import migrate_to, restore_every_migration
+from shared.tests.retained_rows import retained_rows
 from shared.tests.tenants import make_eligible, make_tenant
 from shared.tests.upload_fixtures import pdf_bytes
 from shared.utils.typed_data import signable_message
@@ -178,6 +177,7 @@ from tokens.tests.company_wallet_chain_fixtures import (
 )
 from tokens.tests.deployment_fixtures import admit_deployment, delete_approval_jobs
 from tokens.tests.evidence_fixtures import upload_evidence
+from tokens.tests.retained_guards import REQUEST_GUARDS
 from tokens.tests.retained_issuance_fixtures import prepare_retained_execution
 from tokens.tests.test_register_imports import owner_appointment
 from tokens.tests.test_register_links import linked
@@ -471,8 +471,7 @@ class ChainTestMixin:
         return self._issuance_request(amount)
 
     def _issuance_request(self, amount, *, recipient=None, name="Investor"):
-        try:
-            migrate_to([("tokens", "0100_company_register_issue_instructions")])
+        with use_migrate(), retained_rows(*REQUEST_GUARDS), use_operator():
             return ShareIssuanceRequest.objects.create(
                 token=self.token,
                 recipient_address=recipient or self.investor,
@@ -483,8 +482,6 @@ class ChainTestMixin:
                 submitted_by=self.tenant.user,
                 reviewed_by=self.staff,
             )
-        finally:
-            restore_every_migration()
 
     def _execute(self, request):
         if isinstance(request, ShareIssuanceRequest):
@@ -752,14 +749,9 @@ class SettlementServiceChainTest(SettlementChainMixin, APITransactionTestCase):
                     request__user_account__in=[self.tenant.account, self.buyer_tenant.account],
                 ).exists()
             )
-            historical = (
-                MigrationExecutor(connections[current_alias()])
-                .loader.project_state([("tokens", "0081_held_orders_and_retired_statuses")])
-                .apps.get_model("tokens", "TransferOrder")
-            )
             for party, kind in ((self.seller, TransferOrderType.SELL), (self.buyer, TransferOrderType.BUY)):
                 wallet = self.party_wallets[party.address]
-                retained = historical.objects.using(current_alias()).create(
+                retained = TransferOrder.objects.create(
                     token_id=self.token.pk,
                     payment_asset_id=self.tenant.refs.stablecoin.pk,
                     wallet_id=wallet.pk,

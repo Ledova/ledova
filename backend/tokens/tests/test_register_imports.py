@@ -1,12 +1,11 @@
 import csv
 import io
 from datetime import date, timedelta
-from importlib import import_module
 from unittest.mock import Mock
 from uuid import uuid4
 
 from django.contrib.auth import get_user_model
-from django.db import DatabaseError, IntegrityError, connection, connections
+from django.db import DatabaseError, IntegrityError, connections
 from django.test import TransactionTestCase
 from django.utils import timezone
 from rest_framework.exceptions import PermissionDenied, ValidationError
@@ -17,7 +16,6 @@ from companies.services.administration import company_operation
 from offerings.tests.factories import eligible_subscriber
 from shared.constants import BLOCKCHAIN_BASE
 from shared.db import atomic, current_alias, use_operator
-from shared.tests.schema import migrate_to, restore_every_migration
 from shared.tests.scoped import RunsOnTheScopedConnection
 from tokens.exceptions import RegisterChangeConflict
 from tokens.models import (
@@ -1349,83 +1347,6 @@ class ImportOpenedInstructionTest(TransactionTestCase):
             RegisterInstruction.objects.filter(pk=original_nonpaid.pk).update(**applied)
         self.assertEqual(RegisterInstruction.objects.get(pk=waiting.pk).status, "submitted")
         self.assertEqual(RegisterInstruction.objects.get(pk=original_nonpaid.pk).status, "submitted")
-
-
-class RegisterImportOpeningMigrationTest(TransactionTestCase):
-    GUARDS = ("tokens_guard_register_import", "tokens_guard_register_instruction")
-
-    def installed(self):
-        with connection.cursor() as cursor:
-            cursor.execute(
-                "SELECT proname, prosrc FROM pg_proc WHERE proname = ANY(%s) ORDER BY proname", [list(self.GUARDS)]
-            )
-            return cursor.fetchall()
-
-    def test_reversal_restores_the_guards_the_earlier_migrations_installed_and_reapplies(self):
-        self.addCleanup(restore_every_migration)
-        (previous,) = import_module("tokens.migrations.0077_import_opening").Migration.dependencies
-        opening = self.installed()
-        migrate_to([("tokens", "0071_register_export_audit")])
-        migrate_to([previous])
-        earlier = self.installed()
-        self.assertEqual([name for name, _ in earlier], list(self.GUARDS))
-        restore_every_migration()
-        self.assertEqual(self.installed(), opening)
-        self.assertNotEqual(opening, earlier)
-        migrate_to([previous])
-        self.assertEqual(self.installed(), earlier)
-        restore_every_migration()
-        self.assertEqual(self.installed(), opening)
-
-    def test_reversal_refuses_while_an_import_has_opened_a_register(self):
-        owner, company, _, member, appointment, register_copy, asic, _ = import_fixture()
-        token = ShareToken.objects.create(company=company, name="Unopened", symbol="UNO", total_supply="1000")
-        apply_import(
-            owner, appointment, prepared(owner, import_payload(token, register_copy, asic, member, appointment))
-        )
-        opening = self.installed()
-        migration = import_module("tokens.migrations.0077_import_opening")
-        with self.assertRaisesMessage(DatabaseError, "Cannot restore guards"), atomic():
-            with connections[current_alias()].schema_editor() as editor:
-                migration.close_imports(None, editor)
-        self.assertEqual(self.installed(), opening)
-
-
-class CompanyRegisterImportMigrationTest(TransactionTestCase):
-    def guard(self):
-        with connection.cursor() as cursor:
-            cursor.execute("SELECT prosrc FROM pg_proc WHERE proname = 'tokens_guard_register_import'")
-            return cursor.fetchone()[0]
-
-    def insert_policy(self):
-        with connection.cursor() as cursor:
-            cursor.execute(
-                "SELECT pg_get_expr(polwithcheck, polrelid) FROM pg_policy "
-                "WHERE polname = 'tokens_registerimport_insert'"
-            )
-            return cursor.fetchone()[0]
-
-    def test_reversal_restores_the_staff_review_guard_and_owner_submissions_then_reapplies(self):
-        self.addCleanup(restore_every_migration)
-        company_run, closed = self.guard(), self.insert_policy()
-        self.assertIn("tokens_registerimportdecision", company_run)
-        self.assertNotIn("submitted_by_id", closed)
-        migrate_to([("tokens", "0081_held_orders_and_retired_statuses")])
-        staff_review = self.guard()
-        self.assertIn("Only operator review may decide", staff_review)
-        self.assertNotIn("tokens_registerimportdecision", staff_review)
-        self.assertIn("submitted_by_id", self.insert_policy())
-        restore_every_migration()
-        self.assertEqual((self.guard(), self.insert_policy()), (company_run, closed))
-
-    def test_reversal_refuses_while_company_register_evidence_or_imports_exist(self):
-        import_fixture()
-        company_run = self.guard()
-        migration = import_module("tokens.migrations.0084_company_register_import_guards")
-        with self.assertRaisesMessage(DatabaseError, "Retain company register imports"), atomic():
-            with connections[current_alias()].schema_editor() as editor:
-                migration.remove_company_imports(None, editor)
-        self.assertEqual(self.guard(), company_run)
 
 
 class ScopedRegisterImportTest(RunsOnTheScopedConnection, APITransactionTestCase):

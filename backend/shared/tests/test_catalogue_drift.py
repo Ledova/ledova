@@ -7,8 +7,7 @@ from django.conf import settings
 from django.core.management import call_command
 from django.core.management.base import CommandError
 from django.db import connections
-from django.db.migrations.executor import MigrationExecutor
-from django.test import SimpleTestCase, TestCase, TransactionTestCase
+from django.test import SimpleTestCase, TestCase
 
 from shared.db import MIGRATE_ALIAS
 from shared.db.policies import HELPERS, POLICIES, MissingOwnerColumns
@@ -210,44 +209,3 @@ class TheCatalogueMatchesWhatIsInstalledTest(TestCase):
                 }
                 with patch("shared.management.commands.check_rls_catalogue.AWAITING_R0", waiting, create=True):
                     call_command("check_rls_catalogue")
-
-
-@skipUnless(POSTGRES, REASON)
-class ReviewRequestPolicyMigrationTest(TransactionTestCase):
-    def migrate_to(self, target):
-        MigrationExecutor(connections[MIGRATE_ALIAS]).migrate(target)
-
-    def check_catalogue_at_the_applied_migration_state(self):
-        executor = MigrationExecutor(connections[MIGRATE_ALIAS])
-        applied_nodes = [node for node in executor.loader.applied_migrations if node in executor.loader.graph.nodes]
-        state = executor.loader.project_state(applied_nodes)
-        tables = {model._meta.db_table for model in state.apps.get_models(include_auto_created=True)}
-        catalogue = {table: policy for table, policy in POLICIES.items() if table in tables}
-        with patch("shared.management.commands.check_rls_catalogue.POLICIES", catalogue):
-            call_command("check_rls_catalogue")
-
-    def test_an_existing_installation_gains_the_request_policies_without_losing_them_on_reversal(self):
-        latest = MigrationExecutor(connections[MIGRATE_ALIAS]).loader.graph.leaf_nodes()
-        self.addCleanup(self.migrate_to, latest)
-        call_command("check_rls_catalogue")
-        self.migrate_to([("shared", "0006_account_insert_by_director")])
-        with connections[MIGRATE_ALIAS].cursor() as cursor:
-            for table in ("tokens_capitalincreaserequest", "tokens_shareissuancerequest"):
-                for suffix in ("read", "insert", "update", "delete"):
-                    cursor.execute(f"DROP POLICY {table}_{suffix} ON {table}")
-                cursor.execute(f"ALTER TABLE {table} DISABLE ROW LEVEL SECURITY")
-                cursor.execute(f"ALTER TABLE {table} NO FORCE ROW LEVEL SECURITY")
-
-        with self.assertRaises(CommandError) as missing:
-            self.check_catalogue_at_the_applied_migration_state()
-        for table in ("tokens_capitalincreaserequest", "tokens_shareissuancerequest"):
-            self.assertIn(table, str(missing.exception))
-
-        self.migrate_to([("shared", "0007_review_request_policies")])
-        self.check_catalogue_at_the_applied_migration_state()
-
-        self.migrate_to([("shared", "0006_account_insert_by_director")])
-        self.check_catalogue_at_the_applied_migration_state()
-
-        self.migrate_to(latest)
-        call_command("check_rls_catalogue")

@@ -47,11 +47,6 @@ from companies.tests.test_authority_requests import (
     evidence,
 )
 from companies.tests.test_document_file_access import legacy_company_administrators
-from companies.tests.test_legacy_owner_migration import (
-    APPOINTMENT,
-    PROVENANCE,
-    SOURCE,
-)
 from companies.tests.test_team_invitations import raw_team_appointment
 from operators.models import Operator
 from shared.db import MIGRATE_ALIAS, atomic, current_alias, use_migrate, use_operator
@@ -60,6 +55,9 @@ from users.models import UserProfile
 
 APPOINTMENTS = "/api/v1/company-authority/appointments/"
 INVITATIONS = "/api/v1/company-authority/invitations/"
+APPOINTMENT = CompanyAppointment._meta.db_table
+SOURCE = CompanyLegacyOwnerSource._meta.db_table
+PROVENANCE = "companies.0019_legacy_owner_appointments"
 
 
 class CompanyLegacyOwnerAppointmentTest(StubUploadDependencies, APITransactionTestCase):

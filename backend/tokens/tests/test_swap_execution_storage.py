@@ -31,7 +31,6 @@ from shared.db import (
     use_operator,
 )
 from shared.db.principal import give_the_role_back, take_the_app_role
-from shared.tests.schema import migrate_to, restore_every_migration
 from shared.tests.scoped import RunsOnTheScopedConnection, aliases_this_deployment_has
 from shared.tests.settlement import save_swap_with_context
 from shared.tests.tenants import make_tenant
@@ -528,100 +527,3 @@ class SwapExecutionAppStorageTest(SwapExecutionAppChecks, TransactionTestCase):
 @override_settings(BLOCKCHAIN_CHAIN_ID=CHAIN_ID)
 class ScopedSwapExecutionAppStorageTest(RunsOnTheScopedConnection, SwapExecutionAppChecks, TransactionTestCase):
     pass
-
-
-@override_settings(BLOCKCHAIN_CHAIN_ID=CHAIN_ID)
-class SwapExecutionMigrationTest(SwapExecutionStorageFixtures, TransactionTestCase):
-    def historical(self):
-        self.addCleanup(restore_every_migration)
-        previous = migrate_to([("tokens", "0056_hold_legacy_swaps")])
-        fields = self.fields()
-        fields["function_args"].pop("admission")
-        journal = previous.get_model("blockchain", "BlockchainTransaction").objects.create(
-            **fields, tx_hash="0x" + "ab" * 32, status="submitted", submitted_at=timezone.now()
-        )
-        old_swap = previous.get_model("tokens", "SwapOrder").objects
-        old_swap.filter(pk=self.swap.pk).update(transaction_id=journal.pk, status="executing", tx_hash=journal.tx_hash)
-        before = (
-            previous.get_model("blockchain", "BlockchainTransaction").objects.filter(pk=journal.pk).values().get()
-            | {"outgoing_operation_id": None},
-            old_swap.filter(pk=self.swap.pk).values().get()
-            | {
-                "finalized_receipt": None,
-                "seller_eligibility_decision_id": None,
-                "seller_eligibility_admitted_at": None,
-                "buyer_eligibility_decision_id": None,
-                "buyer_eligibility_admitted_at": None,
-            },
-        )
-        restore_every_migration()
-        return journal.pk, before
-
-    def test_upgrade_preserves_unmarked_history_and_refuses_annotation_binding_or_restart(self):
-        journal_id, before = self.historical()
-        self.assertEqual(BlockchainTransaction.objects.filter(pk=journal_id).values().get(), before[0])
-        self.assertEqual(SwapOrder.objects.filter(pk=self.swap.pk).values().get(), before[1])
-        journal = BlockchainTransaction.objects.get(pk=journal_id)
-        for changes in (
-            {"function_args": self.fields()["function_args"]},
-            {"tx_hash": "0x" + "cd" * 32},
-            {"status": "pending"},
-        ):
-            with self.subTest(changes=changes), self.assertRaises(DatabaseError), atomic():
-                BlockchainTransaction.objects.filter(pk=journal_id).update(**changes)
-        with self.assertRaises(DatabaseError):
-            outgoing.open_operation(f"swap-execution:{journal_id}", **(self.abi_intent(journal) | {"value": 0}))
-        unrelated = outgoing.open_operation("synthetic:history", **(self.abi_intent(journal) | {"value": 0}))
-        with self.assertRaises(DatabaseError), atomic():
-            BlockchainTransaction.objects.filter(pk=journal_id).update(outgoing_operation_id=unrelated.operation_id)
-        with self.assertRaises(DatabaseError), atomic():
-            SwapOrder.objects.filter(pk=self.swap.pk).update(status="completed", completed_at=timezone.now())
-        self.assertEqual(BlockchainTransaction.objects.filter(pk=journal_id).values().get(), before[0])
-
-    def test_reverse_refuses_admitted_and_open_before_bind_history(self):
-        journal = self.admit()
-        claim = outgoing.open_operation(f"swap-execution:{journal.pk}", **(self.abi_intent(journal) | {"value": 0}))
-        self.addCleanup(restore_every_migration)
-        with self.assertRaisesMessage(DatabaseError, "Cannot remove admitted"):
-            migrate_to([("blockchain", "0006_signer_admission")])
-        restore_every_migration()
-        self.assertEqual(OutgoingOperation.objects.get(pk=claim.operation_id).status, "preparing")
-        self.assertIsNone(BlockchainTransaction.objects.get(pk=journal.pk).outgoing_operation_id)
-
-    def test_empty_reverse_removes_the_column_and_restores_cleanly(self):
-        self.addCleanup(restore_every_migration)
-        migrate_to([("blockchain", "0006_signer_admission")])
-        with connections[current_alias()].cursor() as cursor:
-            cursor.execute(
-                "SELECT count(*) FROM information_schema.columns WHERE table_name = 'blockchain_blockchaintransaction' "
-                "AND column_name = 'outgoing_operation_id'"
-            )
-            self.assertEqual(cursor.fetchone(), (0,))
-        restore_every_migration()
-        self.assertIsNotNone(self.admit().pk)
-
-    def test_forward_refuses_preexisting_reserved_admission_metadata(self):
-        self.addCleanup(restore_every_migration)
-        previous = migrate_to([("tokens", "0056_hold_legacy_swaps")])
-        manager = previous.get_model("blockchain", "BlockchainTransaction").objects
-        journal = manager.create(**self.fields())
-        try:
-            with self.assertRaisesMessage(DatabaseError, "cannot be adopted"):
-                restore_every_migration()
-        finally:
-            manager.filter(pk=journal.pk).delete()
-            restore_every_migration()
-
-    def test_forward_refuses_preexisting_operation_prefix(self):
-        self.addCleanup(restore_every_migration)
-        previous = migrate_to([("tokens", "0056_hold_legacy_swaps")])
-        manager = previous.get_model("blockchain", "OutgoingOperation").objects
-        operation = manager.create(operation_key=f"swap-execution:{uuid4()}", intent={}, claim_id=uuid4())
-        try:
-            with self.assertRaisesMessage(DatabaseError, "cannot be adopted"):
-                restore_every_migration()
-        finally:
-            with connections[current_alias()].cursor() as cursor:
-                cursor.execute("TRUNCATE blockchain_outgoingoperation CASCADE")
-            restore_every_migration()
-        self.assertFalse(OutgoingOperation.objects.filter(pk=operation.pk).exists())

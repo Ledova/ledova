@@ -4,18 +4,18 @@ from uuid import uuid4
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.db import connections
 
 from blockchain.services import outgoing
 from blockchain.tests.outgoing_fixtures import admitted_signer
 from shared.db import atomic, use_migrate, use_operator
-from shared.tests.schema import migrate_to, restore_every_migration
+from shared.tests.retained_rows import retained_rows
 from shared.tests.tenants import make_tenant
 from tokens.exceptions import CapitalIncreaseConflict
 from tokens.models import CapitalIncreaseExecution, CapitalIncreaseRequest
 from tokens.services import capital_execution
 from tokens.services.dilution import dilution_for
 from tokens.tests.capital_fixtures import CapitalNode
+from tokens.tests.retained_guards import CAPITAL_GUARDS
 
 
 def install_retained_capital(test):
@@ -46,8 +46,7 @@ def _original_signing_token(execution):
 def retain_capital_execution(
     *, token, actor, client, additional_shares=100, new_authorized_total=1100, signed=True, superseded=False
 ):
-    try:
-        migrate_to([("tokens", "0102_company_register_capital_increases")])
+    with use_migrate(), retained_rows(*CAPITAL_GUARDS):
         with use_operator():
             request = CapitalIncreaseRequest.objects.create(
                 token=token,
@@ -85,28 +84,14 @@ def retain_capital_execution(
                     signing_context=lambda: _original_signing_token(execution),
                     on_signed=lambda attempt: capital_execution._record_signed(execution.pk, attempt),
                 )
-    finally:
-        restore_every_migration()
     request.refresh_from_db()
     execution.refresh_from_db()
     return request, execution
 
 
 def approve_retained_capital_request(request, submitter, reviewer, dilution_percentage, notes):
-    nested = connections["default"].in_atomic_block
-    with use_migrate():
-        if nested:
-            with connections["default"].cursor() as cursor:
-                cursor.execute("SET CONSTRAINTS ALL IMMEDIATE")
-        try:
-            migrate_to([("tokens", "0102_company_register_capital_increases")])
-            with use_operator():
-                request.submit(submitter, dilution_percentage)
-                request.approve(reviewer, notes)
-        finally:
-            restore_every_migration()
-            if nested:
-                with connections["default"].cursor() as cursor:
-                    cursor.execute("SET CONSTRAINTS ALL DEFERRED")
+    with use_migrate(), retained_rows(*CAPITAL_GUARDS), use_operator():
+        request.submit(submitter, dilution_percentage)
+        request.approve(reviewer, notes)
     request.refresh_from_db()
     return request

@@ -1,16 +1,12 @@
 from decimal import Decimal
-from unittest import skipUnless
 from unittest.mock import Mock, patch
 from uuid import uuid4
 
-from django.conf import settings
-from django.db import connection
 from django.test import TestCase, TransactionTestCase
 from rest_framework.test import APIClient
 
 from assets.models import Asset, ExchangeRate
 from assets.services import sync as asset_sync
-from shared.tests.schema import migrate_to, restore_every_migration
 from shared.tests.tenants import make_tenant
 from tokens.models import YieldToken
 from tokens.services import nav
@@ -114,22 +110,3 @@ class NAVValuationSourcesTest(TransactionTestCase):
         snapshot = holding.asset.snapshots.get()
         self.assertEqual((snapshot.data_source, snapshot.price), ("nav_update", Decimal("1.25")))
         self.assertEqual(snapshot.market_data["total_reserve_value"], "500")
-
-
-modules = getattr(settings, "MIGRATION_MODULES", {})
-MIGRATIONS_ENABLED = not ("assets" in modules and modules["assets"] is None)
-
-
-@skipUnless(connection.vendor == "postgresql" and MIGRATIONS_ENABLED, "Real PostgreSQL migrations are required")
-class PriceProvenanceMigrationTest(TransactionTestCase):
-    def test_existing_quotes_are_preserved_without_guessing_their_source(self):
-        self.addCleanup(restore_every_migration)
-        historical = migrate_to([("assets", "0012_audy_base_deployment")]).get_model("assets", "Asset")
-        row = historical.objects.create(symbol="OLD-QUOTE", name="Old quote", asset_type="erc20_token", current_price=7)
-        restore_every_migration()
-        restored = Asset.objects.get(pk=row.pk)
-        self.assertEqual(restored.current_price, 7)
-        self.assertIsNone(restored.price_source)
-        self.assertEqual(restored.value_source, "unpriced")
-        asset_sync.update_price(restored, Decimal("8"))
-        self.assertEqual(restored.value_source, "market")

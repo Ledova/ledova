@@ -1,5 +1,4 @@
 from decimal import Decimal
-from importlib import import_module
 
 from django.db import IntegrityError, ProgrammingError, connection, transaction
 from django.test import TestCase
@@ -60,19 +59,6 @@ class OwnerColumnIsDerivedInPythonTest(TestCase):
         ):
             with self.subTest(serializer=serializer.__name__):
                 self.assertNotIn("company", serializer().fields)
-
-
-class DerivationOrderTest(TestCase):
-
-    def test_a_parent_is_backfilled_before_its_child(self):
-        module = import_module("offerings.migrations.0005_r0_owner_columns")
-        position = {name: index for index, (name, _, _) in enumerate(module.DERIVATIONS)}
-
-        for name, _, (app, parent) in module.DERIVATIONS:
-            if parent in position:
-                with self.subTest(child=name, parent=parent):
-                    self.assertEqual(app, "offerings")
-                    self.assertLess(position[parent], position[name])
 
 
 class OwnerColumnTriggerTest(TestCase):

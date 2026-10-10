@@ -37,10 +37,8 @@ capital/pause seed classes and paid-issue module, are skipped by an ordinary
 backend suite without their chain environment. The command uses two sequential
 test-database lifetimes: the integration module, then the remaining selectors,
 with the same node, deployed contracts and original case order. Each lifetime
-runs genuine migrations and destroys its test database. This bounds repeated
-historical-fixture schema excursions, whose dropped columns still occupy
-PostgreSQL column slots. Record both complete test footers separately; their
-sum is not a single suite invocation. See
+runs the baseline migrations and destroys its test database. Record both complete
+test footers separately; their sum is not a single suite invocation. See
 [chains and keys](../operations/chains.md#chain-configuration). Use a free
 `CHAIN_TEST_PORT` per checkout, and one other than 8545 while the local stack is
 up, since its chain holds that port (`make chain-test CHAIN_TEST_PORT=8546`).
@@ -192,7 +190,12 @@ before admission. Retain diagnostics, let busy work finish during drain and stop
 replenishment when lifecycle state is uncertain. Source routing alone establishes
 neither unattended availability nor full-load acceptance.
 
-Complete test inventories, commands, services and four workers remain unchanged.
+The permanent service currently starts at Mac user login and requires the Mac to
+stay powered and logged in. Administrator installation for system startup is
+deferred.
+
+Runner allocation retains the suite commands, services and four workers. The
+[baseline](#migration-baseline) separately retires shipped migration tests.
 Selected execution has a 130-minute timeout; standard contexts retain 360 minutes.
 An unavailable selected runner leaves work queued, with no automatic hosted
 fallback. The verdict can use standard capacity when scope itself fails so it
@@ -218,10 +221,11 @@ every test selection, required verdict and main-push check. Those earlier
 increments left JavaScript, native, scanner and general backend routing unchanged.
 The Mac expansion above changes the compatible main-run allocation. Scheduled broad checks,
 more selective pre-merge coverage and verification tiers need their own
-reviewed implementation. The [10 October baseline decision](https://github.com/Ledova/ledova/issues/943#issuecomment-6096774615)
-sets targets of PR checks within 15 minutes and the full backend suite within
-20 minutes on the Mac, through the migration baseline, essential process proofs
-and preflight work. These are goals, not delivered measurements.
+reviewed implementation. The [10 October baseline decision](../decisions.md#backend-migration-baseline)
+puts the baseline first, essential process/timing fixes second, and one backend
+job group plus `make preflight` third. This baseline increment does not deliver
+the latter two steps. PR checks within 15 minutes and the full backend suite
+within 20 minutes on the Mac remain goals; report actual timings in each PR.
 
 `black`, `isort` and `flake8` are development requirements and are not in the
 backend image, so running the source gates inside that image proves nothing
@@ -234,6 +238,34 @@ verdict. Install the tools with `make install-backend` from the repository root
 `backend/`. Then run `cd backend && make lint`: `black --check` and
 `isort --check-only` against `backend/pyproject.toml`, and `flake8` against
 `backend/.flake8`.
+
+## Migration baseline
+
+The [10 October owner decision](../decisions.md#backend-migration-baseline)
+replaces the shipped project migration chain with a baseline. Old migration
+source and its upgrade/rollback tests remain in Git history. Retire those tests
+and their rewind helpers after proving equivalence; preserve meaningful current
+authority, isolation, economic, retention and execution/recovery assertions.
+Runtime fixtures build rows on the current schema. Retained history uses bounded
+synthetic fixtures with their exact guards restored before assertions or other
+workers run. It does not invent a successful old upgrade or revive formats the
+owner confirmed absent.
+
+The baseline PR records comparison of old-chain and baseline databases with the
+same PostgreSQL version and settings: normalised complete schema and reference
+data, roles/ACLs, RLS, functions, triggers and constraints. Keep the required
+ordinary, strict scoped, genuine chain, role/catalogue and API-schema checks.
+Also prove fully upgraded old-cut adoption retains its records and schema,
+partial old history refuses before DDL or recorder changes, and valid interrupted
+fresh phases can resume. Record expected replacement labels separately from
+application rows in the comparison.
+
+Each migration after the baseline gets a focused upgrade test from its immediate
+predecessor, covering affected records and refusal/rollback behaviour where
+applicable. Restore the current schema before using current models. These tests
+do not rebuild or rewind the shipped old chain. The
+[upgrade notes](../operations/upgrades.md#adopting-the-migration-baseline)
+describe adoption; a live release still requires the owner's explicit approval.
 
 ## Test traps
 
@@ -253,24 +285,26 @@ verdict. Install the tools with `make install-backend` from the repository root
 - Mobile render/event helpers are async. Await them and settle deferred promises;
   the lint mutation control verifies that unawaited events fail. Clean mounted
   components and query clients after every test, including the final one.
-- Read migration-era rows with the executor's historical models. Restore current
-  migrations after a tested rollback or rollback refusal before using current models.
+- For a new post-baseline migration, read predecessor rows with the executor's
+  historical models. Restore current migrations after a tested rollback or
+  rollback refusal before using current models.
 
 The cross-tenant route matrix uses the existing explicit synthetic historical-owner
 fixture to retain its legacy-source assertions on the current schema. Its setup
 does not replay the owner-upgrade migrations for each route case. The fixture
 requires the migration role and restores both appointment/source identity guards;
-genuine upgrade tests continue to use their historical migrations.
+the shipped owner-upgrade tests are retired under the baseline decision.
 
 Routine company registry and legacy-owner authority cases also use the existing
 bounded synthetic historical-owner fixture on the current schema. Their fixture
 does not rewind and reinstall later migrations for each runtime assertion.
 Legacy authority cases supply their retained migration-format provenance as
 synthetic fixture data; this does not establish that a migration executed or
-that its source and appointment timestamps match. Genuine legacy-owner upgrade
-and reversal tests still exercise the historical models, schema, actors, private
-records and migration guards. Test selections and required ordinary/scoped
-coverage remain unchanged.
+that its source and appointment timestamps match. The retired legacy-owner
+upgrade/reversal tests remain in Git history; current runtime tests retain the
+authority, actors, private records and immutability assertions. The baseline
+changes the old migration selections while preserving required current
+ordinary/scoped coverage.
 
 ## Scoped connection evidence
 

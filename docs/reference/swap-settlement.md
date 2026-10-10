@@ -4,15 +4,14 @@
 
 Captured settlement context, participant authorisation, durable execution claims and what PostgreSQL freezes. Trading is enabled by default; [secondary trading](../architecture/trading.md) describes the flag.
 
-New matches use the immutable settlement context introduced by `tokens/0039`.
+Matches use the immutable settlement context retained in the migration baseline.
 The backend, shared package, dashboard and mobile carry this protocol together.
 New-context swap requests require the exact swap, order, account and verified
 wallet identity; signing and approval requests also require the recorded full
 settlement digest. Initial authorised context lookup may omit that digest;
 the response returns the original value for subsequent requests. Missing identity
-fields return HTTP 400 validation errors. Exact-identity legacy V0 signing and
-approval requests return HTTP 409 `legacy_swap_held`. Their missing recorded
-domain cannot be reconstructed from current configuration. Exact
+fields return HTTP 400 validation errors. Unsupported protocol or missing recorded
+context returns HTTP 409 `swap_settlement_context_changed`. Exact
 lookup preserves the original review display and decimal-string typed values
 after expiry or configuration drift; it does not authorise a new signature or
 approval under changed terms. Ordinary numeric order/swap fields are not a
@@ -21,7 +20,7 @@ lossless source for rebuilding those signed values.
 The swap list supplies `viewerParties`: each entry names a recorded buyer or
 seller role, account UUID and wallet UUID that still belongs to the authenticated
 viewer and is verified with the original address. It never exposes the other
-participant's private account or wallet identifiers. V0 rows have no entries.
+participant's private account or wallet identifiers.
 The projection includes both owned sides regardless of which wallet address
 selected the row, so combining wallet lists cannot discard a signing side.
 
@@ -32,15 +31,14 @@ current ownership and verification again; a list entry is not authorisation.
 Same-address wallets cannot substitute for the recorded wallet. List rows offer
 review; exact amounts come from the fetched context before signing, never from
 rounded numeric list fields. Signed sides remain visible only while another
-owned side still needs a signature. Legacy history stays held for operator
-attribution.
+owned side still needs a signature.
 
 ## The reviewed intent
 
 The owner's decision of 16 September 2026 stands: V1 is the signed protocol —
 the EIP-712 `SwapOrder` typed data over the `LedovaAtomicSwap` domain — and no
-new protocol is introduced. V0 history stays held for operator attribution and
-is never adopted, replayed or re-signed by this contract.
+new protocol is introduced. Unsupported protocols cannot be adopted, replayed or
+re-signed by this contract.
 
 A newly matched swap captures its settlement context before anything is signed:
 the typed domain (name, version, `chainId`, `verifyingContract`) and message
@@ -75,7 +73,7 @@ current configuration.
 
 | Route | Resolves | Re-checks |
 | --- | --- | --- |
-| `GET swap/` | identity lookup, repeated after an optional approval-journal read | the re-check result is reported as `admission_refusal` rather than raised; a stale supplied digest or a legacy row still refuses with HTTP 409 through the resolver |
+| `GET swap/` | identity lookup, repeated after an optional approval-journal read | the re-check result is reported as `admission_refusal` rather than raised; a stale supplied digest or unsupported context still refuses with HTTP 409 through the resolver |
 | `POST swap/sign` | exact identity | `submit_signature` re-reads the swap, verifies the signature against the recorded terms, and under the operator lock re-authorises the actor, account and wallet (`_lock_authority`) and re-checks drift, deadline and status before storing |
 | `GET swap/approval-status` | identity lookup | re-check, then a fresh resolve and re-check before answering |
 | `GET swap/approval-data` | identity lookup | re-check, then a fresh resolve and re-check before answering, on both outcomes |
@@ -118,8 +116,7 @@ records a permanent refusal. With no compatible candidate, the order stays open.
 V1 market history decodes the original raw payment with its captured deployment
 scale, including older V1 records whose quoted price disagreed with the signed
 amount. It does not replace that amount with the quote or rewrite signatures,
-context or digest. Legacy V0 market reads retain their existing asset-pricing
-scale because no deployment snapshot was recorded. Both market reads select
+context or digest. Market reads select
 the latest completed swap by completion time, then identifier, and preserve
 exact payment digits without floating-point conversion. These read rules do not
 grant permission to execute historical swaps.
@@ -352,29 +349,20 @@ recordable refusal codes, `tokens/0059` the participant approval journal. They
 are named here for the map, not folded into the intent freeze above.
 Application connections cannot read or write the private execution journal.
 Historical unmarked transactions gain no admission or signing authority; they
-stay held for attribution. Reversal of `blockchain/0007` and `tokens/0057`
-refuses once admitted execution exists, and of `tokens/0056` while any V0
-history remains. The generic monitor remains excluded, and the old direct
+stay held for attribution. The baseline retains the execution guards; earlier
+migrations and their reversal checks remain in Git history. The generic monitor
+remains excluded, and the old direct
 executor and receipt-driven financial completion are removed.
 
-## Legacy history hold
+## Pre-baseline swap history
 
-`tokens/0056_hold_legacy_swaps` retains V0 rows without rewriting signatures,
-deadlines, hashes or outcomes; its trigger is in the
-[freeze table](#what-postgresql-freezes). Existing signatures are retained
-evidence; this server-side hold does not revoke signatures already disclosed on
-chain.
+The owner confirmed that old-format swaps are absent from ledova.io. V0 read-price
+fallbacks, specialised hold responses and their tests are retired. Current
+settlement requires the original recorded context, signatures and genuine receipt
+provenance. The baseline preserves the old schema and installed guards for
+mechanical equivalence; it supplies no V0 admission or re-enabling workflow.
+Earlier migration sources and decisions remain in Git history.
 
-V0 cannot create signing data, accept signatures, prepare approvals or claim an
-execution. Delayed execution callbacks and the dedicated recovery and expiry
-sweeps leave its history and reservations unchanged for operator attribution.
-No operator attribution or re-enabling endpoint is introduced. Legacy request
-discovery and response schema alternatives have been removed after the client
-cutover. The existing swap list still returns eligible V0 history.
-
-The generic transaction monitor's exclusion of every atomic-swap transaction,
-and the dedicated recovery worker's verification before it records receipt
-evidence, are in [receipt attribution](transaction-evidence.md#receipt-attribution).
 
 ## Unclaimed expiry
 
@@ -393,12 +381,10 @@ remaining quantity, unless its price would cross the book, when it is held back.
 The two still cross each other, so the one placed later, usually the order that
 took the match, is held, and the held-order sweep never pairs them again.
 
-`tokens/0036_swap_expiry_eligibility` leaves existing rows ineligible and prevents
-changing the marker on PostgreSQL. Do not backfill it: missing transaction data
-in a legacy row does not establish that nothing was sent. Deploy this code to
-all API and worker processes and stop older processes before permitting new
-matches; the eligibility marker describes the current service's durable claim
-protocol. Claimed, executing, inconsistent and legacy matches retain their
+The baseline retains the immutable expiry-eligibility marker. Do not backfill
+it: missing transaction data does not establish that nothing was sent. The
+marker describes the current service's durable claim protocol. Claimed,
+executing and inconsistent matches retain their
 reservations for reconciliation. This sweep does not inspect the chain, refund
 money, cancel a broadcast or change an existing signature/deadline. Trading is
 enabled by default.

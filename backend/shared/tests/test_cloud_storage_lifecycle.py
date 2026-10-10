@@ -18,7 +18,6 @@ from companies.models import Company, CompanyAuthorityRequest, CompanyDocument
 from companies.services.authority_requests import submit_authority_request
 from companies.tests.test_authority_requests import authority_fixture, evidence
 from documents.models import Document, DocumentType
-from shared.db import atomic, use_migrate
 from shared.services.orphaned_files import GRACE, sweep_orphaned_files
 from shared.storage import private_file_fields
 from shared.tests.tenants import an_account
@@ -41,7 +40,11 @@ from tokens.models import (
     ShareTokenStatus,
 )
 from tokens.tests.evidence_fixtures import upload_evidence
-from tokens.tests.instruction_fixtures import instruction_company, instruction_payload
+from tokens.tests.instruction_fixtures import (
+    instruction_company,
+    instruction_payload,
+    retained_instruction,
+)
 from tokens.tests.test_register_corrections import (
     correction_fixture,
     correction_payload,
@@ -266,34 +269,7 @@ class CloudStorageLifecycleTest(TransactionTestCase):
                 request = ShareIssuanceRequest.objects.create(
                     token=token, recipient_address="0x" + "3c" * 20, amount=5, reason="Allotment"
                 )
-                from shared.tests.schema import migrate_to, restore_every_migration
-                from tokens.services.register_instructions import _items
-                from tokens.services.register_openings import _retain
-
-                historical = migrate_to([("tokens", "0100_company_register_issue_instructions")])
-                try:
-                    instruction_model = historical.get_model("tokens", "RegisterInstruction")
-                    document_model = historical.get_model("companies", "CompanyDocument")
-                    values = instruction_payload(token, document, [request])
-                    values.pop("operation_id")
-                    values.pop("token_id")
-                    values.pop("document_id")
-                    values["items"] = _items(values["kind"], values["items"])
-                    with (
-                        use_migrate(),
-                        atomic(),
-                        patch("tokens.services.register_openings.CompanyDocument", document_model),
-                        patch.object(instruction_model._meta.get_field("file"), "storage", storage),
-                        patch.object(document_model._meta.get_field("file"), "storage", storage),
-                    ):
-                        original_owner = historical.get_model("authentication", "CustomUser").objects.get(pk=owner.pk)
-                        proposal = _retain(
-                            instruction_model(uuid=uuid4(), company_id=company.pk, token_id=token.pk, **values),
-                            document.pk,
-                            original_owner,
-                        )
-                finally:
-                    restore_every_migration()
+                proposal = retained_instruction(actor=owner, **instruction_payload(token, document, [request]))
                 original = objects.files[proposal.file.name]
                 document.delete()
                 orphan = storage.save("companies/interrupted-instruction.bin", ContentFile(PDF))

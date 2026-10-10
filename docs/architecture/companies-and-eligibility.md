@@ -68,8 +68,10 @@ not numbers this codebase generated, because expected values taken from the
 implementation under test agree with themselves for any algorithm, including a
 wrong one; and `backend/companies/tests/test_registry_verification.py` for retained technical
 recovery and `backend/companies/tests/test_company_activation.py`,
-`test_company_activation_scoped.py` and `test_company_activation_migration.py`
-for current activation and upgrade controls.
+`test_company_activation_scoped.py` for current activation controls, including
+the frozen Unicode parity reference. The
+[migration baseline checks](../development/testing.md#migration-baseline)
+replace the shipped activation upgrade/rollback tests.
 
 ## Participant eligibility
 

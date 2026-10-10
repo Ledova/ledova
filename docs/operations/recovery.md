@@ -65,16 +65,11 @@ merely to replace the placeholder.
 - **Import-origin registers** admit no issuance execution, failed-retry or
   unsigned signing; their retained requests and journals remain, and deploying
   an imported zero book supplies no issuance workflow for it.
-- **Legacy mints.** Historical null-dispatch requests keep their old journal and
-  transaction fields; recovery validates saved bytes before replay, a named
-  hash without bytes can only be observed, and the stale sweep can abandon a
-  recognised unsigned journal while retaining evidence. After the grace period,
-  use **Record legacy transaction hash** on the request with a mint identified
-  from operator history: naming validates the exact contract, recipient and
-  amount and refuses a hash already attributed to another issuance, including
-  reverted history. There is no Release claim action. Historical finality and
-  the same-key writer cutover are [outgoing history](../reference/outgoing-history.md)
-  work.
+- The owner confirmed that pre-admission null-dispatch issuances, including
+  signed legacy mint journals, are absent from ledova.io. Their legacy hash
+  naming and recovery paths are retired. Admitted executions without a company
+  source retain the recovery and refund controls above; existing records and
+  [outgoing history](../reference/outgoing-history.md) evidence are preserved.
 - **Settlement-asset and yield-token mints** (`recover_mint_requests`). Use
   **Recover** on a request whose outcome is unresolved and **Retry** after a
   recorded failure or revert, tied to the claim the form shows

@@ -3,7 +3,6 @@ from collections import ChainMap
 from concurrent.futures import ThreadPoolExecutor
 from copy import deepcopy
 from datetime import date
-from importlib import import_module
 from queue import Queue
 from threading import Barrier, Event
 from unittest.mock import patch
@@ -27,7 +26,6 @@ from companies.tests.test_document_file_access import (
 )
 from integrations.base_chain.exceptions import BaseChainConnectionError
 from shared.db import atomic, current_alias, use_migrate, use_operator
-from shared.tests.schema import migrate_to, restore_every_migration
 from shared.tests.tenants import make_tenant
 from tokens.exceptions import (
     RegisterChangeConflict,
@@ -1168,113 +1166,3 @@ class RegisterOpeningApiTest(APITransactionTestCase):
         self.client.force_authenticate(None)
         self.assertEqual(self.client.get(detail).status_code, 401)
         self.assertEqual(self.client.post(OPENINGS, self.payload, format="json").status_code, 401)
-
-
-class RegisterOpeningMigrationTest(TransactionTestCase):
-    GUARDS = ("tokens_guard_register_opening", "tokens_guard_register_opening_history")
-    FUNCTIONS = (
-        "tokens_register_opening_approved",
-        "tokens_register_opening_decision_digest",
-        "tokens_guard_register_opening_decision",
-        "tokens_check_register_opening_decision",
-    )
-    PINNED = ["search_path=pg_catalog, public, pg_temp"]
-
-    def installed(self, names=GUARDS):
-        with connection.cursor() as cursor:
-            cursor.execute(
-                "SELECT proname, prosrc FROM pg_proc WHERE proname = ANY(%s) ORDER BY proname", [list(names)]
-            )
-            return cursor.fetchall()
-
-    def configured(self):
-        with connection.cursor() as cursor:
-            cursor.execute(
-                "SELECT proname, proconfig FROM pg_proc WHERE proname = ANY(%s) ORDER BY proname",
-                [list(self.GUARDS + self.FUNCTIONS)],
-            )
-            return cursor.fetchall()
-
-    def insert_policy(self):
-        with connection.cursor() as cursor:
-            cursor.execute(
-                "SELECT pg_get_expr(polwithcheck, polrelid) FROM pg_policy "
-                "WHERE polname = 'tokens_registeropening_insert'"
-            )
-            return cursor.fetchone()[0]
-
-    def test_upgrade_preserves_register_history_without_fabricated_openings(self):
-        self.addCleanup(restore_every_migration)
-        migrate_to([("tokens", "0064_reviewed_register_corrections")])
-        _, _, _, _, _, opening = register_fixture()
-        original_hash = opening.entry_hash
-        restore_every_migration()
-        self.assertEqual(RegisterEntry.objects.get(pk=opening.pk).entry_hash, original_hash)
-        self.assertFalse(RegisterOpening.objects.exists())
-        self.assertFalse(RegisterMemberWallet.objects.exists())
-
-    def test_reversal_restores_the_staff_review_guards_and_owner_submissions_then_reapplies(self):
-        self.addCleanup(restore_every_migration)
-        previous = ("tokens", "0087_company_discrepancy_acknowledgements")
-        company_run, closed, pinned = self.installed(), self.insert_policy(), self.configured()
-        self.assertEqual(pinned, [(name, self.PINNED) for name in sorted(self.GUARDS + self.FUNCTIONS)])
-        self.assertIn("tokens_registeropeningdecision", dict(company_run)["tokens_guard_register_opening"])
-        self.assertNotIn("TG_OP <> 'UPDATE'", dict(company_run)["tokens_guard_register_opening_history"])
-        self.assertNotIn("submitted_by_id", closed)
-        self.assertEqual(len(self.installed(self.FUNCTIONS)), 4)
-        migrate_to([("tokens", "0064_reviewed_register_corrections")])
-        migrate_to([previous])
-        earlier = self.installed()
-        self.assertEqual(self.configured(), [(name, None) for name in sorted(self.GUARDS)])
-        self.assertIn("Only operator review may decide", dict(earlier)["tokens_guard_register_opening"])
-        self.assertIn("TG_OP <> 'UPDATE'", dict(earlier)["tokens_guard_register_opening_history"])
-        self.assertIn("submitted_by_id", self.insert_policy())
-        restore_every_migration()
-        self.assertEqual((self.installed(), self.insert_policy(), self.configured()), (company_run, closed, pinned))
-        migrate_to([previous])
-        self.assertEqual(
-            (self.installed(), self.configured()), (earlier, [(name, None) for name in sorted(self.GUARDS)])
-        )
-        self.assertIn("submitted_by_id", self.insert_policy())
-        self.assertEqual(self.installed(self.FUNCTIONS), [])
-        restore_every_migration()
-        self.assertEqual((self.installed(), self.insert_policy(), self.configured()), (company_run, closed, pinned))
-
-    @override_settings(**SETTINGS)
-    def test_reversal_refuses_while_a_company_opening_exists(self):
-        tenant, owner, administrator, evidence, target, node = opening_fixture()
-        reading(self, node)
-        prepared(owner, opening_payload(target.token_id, evidence, administrator))
-        company_run = self.installed()
-        migration = import_module("tokens.migrations.0089_company_register_opening_guards")
-        with self.assertRaisesMessage(DatabaseError, "Retain company register openings"), atomic():
-            with connections[current_alias()].schema_editor() as editor:
-                migration.remove_company_openings(None, editor)
-        self.assertEqual(self.installed(), company_run)
-        original = import_module("tokens.migrations.0065_register_opening")
-        with self.assertRaisesRegex(RuntimeError, "Retain opening"), atomic():
-            with connections[current_alias()].schema_editor() as editor:
-                original.remove_guards(None, editor)
-        self.assertTrue(RegisterOpening.objects.filter(token=tenant.token).exists())
-
-    @override_settings(**SETTINGS)
-    def test_reversal_refuses_while_a_company_decision_on_a_staff_era_opening_exists(self):
-        tenant, owner, administrator, evidence, target, node = opening_fixture()
-        reading(self, node)
-        proposal = staff_era(prepared(owner, opening_payload(target.token_id, evidence, administrator)))
-        decide(owner, administrator, proposal, "reject", reason="Submitted for the retired staff review")
-        company_run = self.installed()
-        migration = import_module("tokens.migrations.0089_company_register_opening_guards")
-        with self.assertRaisesMessage(DatabaseError, "Retain company register openings"), atomic():
-            with connections[current_alias()].schema_editor() as editor:
-                migration.remove_company_openings(None, editor)
-        self.assertEqual(self.installed(), company_run)
-
-    def test_the_original_reversal_still_refuses_to_discard_wallet_links(self):
-        _, company, _, member, _, _ = register_fixture()
-        RegisterMemberWallet.objects.create(company=company, member=member, address=ALICE)
-        migration = import_module("tokens.migrations.0065_register_opening")
-        with self.assertRaisesRegex(RuntimeError, "Retain register wallet links"), atomic():
-            with connections[current_alias()].schema_editor() as editor:
-                migration.remove_guards(None, editor)
-        self.assertTrue(RegisterMemberWallet.objects.filter(address=ALICE).exists())

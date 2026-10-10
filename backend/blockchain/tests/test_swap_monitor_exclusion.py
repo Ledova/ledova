@@ -1,14 +1,13 @@
 from concurrent.futures import ThreadPoolExecutor
-from unittest.mock import Mock, call
+from unittest.mock import Mock
 from uuid import uuid4
 
 from django.db import DatabaseError, connections
 from django.test import TransactionTestCase, override_settings
 
 from blockchain.models import BlockchainTransaction, TransactionStatus, TransactionType
-from blockchain.services.transaction import _record_receipt, check_pending_transactions
+from blockchain.services.transaction import check_pending_transactions
 from shared.db import atomic, current_alias
-from shared.tests.schema import migrate_to, restore_every_migration
 from tokens.models import SwapOrder
 from tokens.tests.swap_state_fixtures import CONFIRMED, CONTRACT, make_swap
 
@@ -26,58 +25,21 @@ class SwapMonitorExclusionTest(TransactionTestCase):
             from_address="0x" + "74" * 20,
         )
 
-    def associate(self, tx, kind, swap, *, apps=None):
-        transactions = apps.get_model("blockchain", "BlockchainTransaction") if apps else BlockchainTransaction
-        swaps = apps.get_model("tokens", "SwapOrder") if apps else SwapOrder
+    def associate(self, tx, kind, swap):
         if kind == "type":
-            transactions.objects.filter(pk=tx.pk).update(tx_type=TransactionType.ATOMIC_SWAP)
+            BlockchainTransaction.objects.filter(pk=tx.pk).update(tx_type=TransactionType.ATOMIC_SWAP)
         elif kind == "metadata":
-            transactions.objects.filter(pk=tx.pk).update(related_model="tokens.SwapOrder", related_uuid=uuid4())
+            BlockchainTransaction.objects.filter(pk=tx.pk).update(
+                related_model="tokens.SwapOrder", related_uuid=uuid4()
+            )
         else:
-            swaps.objects.filter(pk=swap.pk).update(transaction_id=tx.pk)
-
-    def historical_associations(self):
-        rows = [
-            (self.transaction(), kind, make_swap("monitor-history") if kind == "reverse" else None)
-            for kind in ("type", "metadata", "reverse")
-        ]
-        self.addCleanup(restore_every_migration)
-        historical = migrate_to([("tokens", "0056_hold_legacy_swaps")])
-        for tx, kind, swap in rows:
-            self.associate(tx, kind, swap, apps=historical)
-        restore_every_migration()
-        return rows
+            SwapOrder.objects.filter(pk=swap.pk).update(transaction_id=tx.pk)
 
     def snapshot(self):
         return (
             list(BlockchainTransaction.objects.order_by("pk").values()),
             list(SwapOrder.objects.order_by("pk").values()),
         )
-
-    def test_each_swap_association_is_excluded_while_unrelated_transactions_still_finish(self):
-        historical = self.historical_associations()
-        for outcome in (0, 1):
-            with self.subTest(outcome=outcome):
-                before = self.snapshot()
-                for stale_tx, kind, swap in historical:
-                    with self.subTest(stale_kind=kind):
-                        self.assertIsNone(_record_receipt(stale_tx, {**CONFIRMED, "status": outcome}))
-                        self.assertEqual(self.snapshot(), before)
-                unrelated = self.transaction()
-                client = Mock(spec=["get_transaction_receipt"])
-                client.get_transaction_receipt.return_value = {**CONFIRMED, "status": outcome}
-                self.assertEqual(
-                    check_pending_transactions(client),
-                    {"checked": 1, "confirmed": int(outcome == 1), "failed": int(outcome == 0)},
-                )
-                self.assertEqual(client.get_transaction_receipt.call_args_list, [call(unrelated.tx_hash)])
-                unrelated.refresh_from_db()
-                self.assertEqual(
-                    unrelated.status, TransactionStatus.CONFIRMED if outcome else TransactionStatus.REVERTED
-                )
-                after = self.snapshot()
-                self.assertEqual([row for row in after[0] if row["uuid"] != unrelated.pk], before[0])
-                self.assertEqual(after[1], before[1])
 
     def test_receipt_finishes_while_another_connection_cannot_reclassify_or_claim_its_transaction(self):
         with connections[current_alias()].cursor() as cursor:

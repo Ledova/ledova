@@ -3,9 +3,8 @@ from unittest import skipUnless
 
 from django.contrib.admin.sites import AdminSite
 from django.db import connection
-from django.test import RequestFactory, TestCase, TransactionTestCase
+from django.test import RequestFactory, TestCase
 
-from shared.tests.schema import app_tip, migrate_to, restore_every_migration
 from shared.tests.tenants import make_tenant
 from wallets.admin.wallet import WalletAdmin
 from wallets.constants import WALLET_VERIFICATION_STATUS_VERIFIED
@@ -14,14 +13,7 @@ from wallets.serializers.wallet import WalletSerializer
 
 POSTGRES = connection.vendor == "postgresql"
 REASON = "the trigger is PostgreSQL only, and on SQLite none of these writes reaches a refusal"
-FUNCTION = "transactions_user_account_is_derived"
 UNIQUE_TX_PER_WALLET = "transactions_tx_hash_wallet_id_f1ecff24_uniq"
-
-
-def _definition():
-    with connection.cursor() as cursor:
-        cursor.execute("SELECT pg_get_functiondef(%s::regproc)", [FUNCTION])
-        return cursor.fetchone()[0]
 
 
 def _unique_indexes_touching(table, column):
@@ -71,30 +63,6 @@ class ATransactionFollowsItsWalletAndWillNotChangeHandsTest(TestCase):
         self.transaction.refresh_from_db()
         self.assertEqual(self.transaction.wallet_id, self.sibling.uuid)
         self.assertEqual(self.transaction.user_account_id, self.tenant.account.uuid)
-
-
-@skipUnless(POSTGRES, REASON)
-class TheReverseRestoresTheBodyThatBehavesTest(TransactionTestCase):
-
-    def tearDown(self):
-        restore_every_migration()
-        super().tearDown()
-
-    def test_the_old_refusal_is_back_after_the_reverse_and_gone_after_the_forward(self):
-        tenant = make_tenant("r17reverse")
-        other = make_tenant("r17reverseother")
-
-        migrate_to([("wallets", "0008_r0_owner_column")])
-        self.assertIn("parent_account_id uuid;", _definition())
-        Wallet.objects.filter(pk=tenant.wallet.pk).update(user_account=other.account)
-        with self.assertRaises(Exception) as wedged:
-            Transaction.objects.filter(pk=tenant.transaction.pk).update(amount=Decimal("3"))
-        self.assertIn("does not match wallet.user_account_id", str(wedged.exception))
-
-        migrate_to(app_tip("wallets"))
-        Transaction.objects.filter(pk=tenant.transaction.pk).update(amount=Decimal("4"))
-        tenant.transaction.refresh_from_db()
-        self.assertEqual(tenant.transaction.user_account_id, other.account.uuid)
 
 
 class TheVerifiedWalletIdentityIsReadOnlyInTheAdminTest(TestCase):

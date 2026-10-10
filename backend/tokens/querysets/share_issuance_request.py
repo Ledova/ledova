@@ -33,11 +33,3 @@ class ShareIssuanceRequestQuerySet(QuerySet):
 
     def share_total(self) -> int:
         return int(self.aggregate(total=Sum("amount"))["total"] or 0)
-
-    def unresolved_on_chain(self, cutoff):
-        from tokens.models import ShareIssuance
-
-        return self.filter(updated_at__lt=cutoff).filter(
-            Q(status=RequestStatus.EXECUTING)
-            | Q(status=RequestStatus.FAILED, uuid__in=ShareIssuance.objects.unconfirmed_request_uuids())
-        )

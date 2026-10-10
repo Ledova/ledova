@@ -11,7 +11,7 @@ from django.template.defaulttags import (
     WithNode,
 )
 from django.template.loader import get_template
-from django.test import SimpleTestCase, TestCase, override_settings
+from django.test import SimpleTestCase, TestCase, TransactionTestCase, override_settings
 from django.utils.safestring import SafeString
 
 from companies.models import Company, CompanyDocument
@@ -181,7 +181,7 @@ class CompanyPackReadmeTemplateTest(SimpleTestCase):
 
 
 @override_settings(STORAGES=ADMIN_STORAGES)
-class CompanyPackReadmeTest(ProducesPacks, TestCase):
+class CompanyPackReadmeTest(ProducesPacks, TransactionTestCase):
     def setUp(self):
         self.a = pack_company("pack-r")
         self.client.force_login(pack_staff("pack-readme-staff"))

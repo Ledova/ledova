@@ -1,7 +1,3 @@
-from importlib import import_module
-
-from django.apps import apps
-from django.test import TestCase
 from rest_framework.test import APITestCase
 
 from assets.models import Asset, AssetChainDeployment, AssetType
@@ -136,24 +132,3 @@ class ShareTokenChainTest(APITestCase):
 
         self.assertEqual(response.status_code, 201)
         self.assertIsNone(ShareToken.objects.get(symbol="CHS").chain)
-
-
-class ChainBackfillTest(TestCase):
-    def setUp(self):
-        self.tenant = make_tenant("backfill")
-        self.backfill = import_module("tokens.migrations.0017_share_token_chain").set_chain_of_deployed_tokens
-
-    def test_tokens_deployed_before_the_column_existed_are_backfilled_to_base(self):
-        ShareToken.objects.update(chain=None)
-
-        self.backfill(apps, None)
-
-        self.assertEqual(ShareToken.objects.get(pk=self.tenant.deployed_token.pk).chain, BLOCKCHAIN_BASE)
-        self.assertIsNone(ShareToken.objects.get(pk=self.tenant.token.pk).chain)
-
-    def test_the_backfill_leaves_a_token_with_an_empty_address_alone(self):
-        ShareToken.objects.filter(pk=self.tenant.token.pk).update(chain=None, contract_address="")
-
-        self.backfill(apps, None)
-
-        self.assertIsNone(ShareToken.objects.get(pk=self.tenant.token.pk).chain)

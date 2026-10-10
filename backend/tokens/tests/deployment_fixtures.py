@@ -67,17 +67,18 @@ def legacy_deployment_token(name="legacy-deployment", *, journal=True, signed=Fa
         TransactionType,
     )
     from blockchain.services import outgoing
-    from shared.tests.schema import migrate_to, restore_every_migration
+    from shared.tests.retained_rows import retained_rows
+    from tokens.models import ShareToken
     from tokens.services import deployment
+    from tokens.tests.retained_guards import DEPLOYMENT_GUARDS
 
     tenant = make_tenant(name)
     with use_migrate():
         Company.objects.filter(pk=tenant.company.pk).update(status=CompanyStatus.ACTIVE)
         tenant.company.refresh_from_db()
-    try:
-        historical = migrate_to([("tokens", "0097_company_register_transfer_guards")])
-        old_tokens = historical.get_model("tokens", "ShareToken").objects
-        old_journals = historical.get_model("tokens", "TokenDeployment").objects
+    with use_migrate(), retained_rows(*DEPLOYMENT_GUARDS):
+        old_tokens = ShareToken.objects
+        old_journals = TokenDeployment.objects
         identifier = uuid4()
         old_tokens.filter(pk=tenant.token.pk).update(status="deploying", deployment_id=identifier)
         tenant.token.refresh_from_db()
@@ -124,8 +125,6 @@ def legacy_deployment_token(name="legacy-deployment", *, journal=True, signed=Fa
                 tenant.token.bind_deployment_transaction(attempt.tx_hash, record)
 
             outgoing.sign_operation(claim, prepared, KEY, on_signed=retain)
-    finally:
-        restore_every_migration()
     tenant.token.refresh_from_db()
     return tenant
 

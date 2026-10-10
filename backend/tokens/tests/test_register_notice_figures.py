@@ -1,6 +1,5 @@
 import csv
 import hashlib
-import importlib
 import io
 from collections import defaultdict
 from datetime import date, datetime, timedelta
@@ -60,7 +59,6 @@ from tokens.tests.test_register_export_audit import (
     NO_REQUEST,
     NOTICE_FIGURES,
     REQUEST,
-    certified,
     noticed,
 )
 from wallets.models import Wallet
@@ -461,17 +459,6 @@ class NoticeFiguresRecordTest(TestCase):
         self.assertTrue(RegisterExport.objects.filter(pk=figures.pk).exists())
         purge_register_exports(now=figures.created_at + timedelta(days=2558))
         self.assertFalse(RegisterExport.objects.filter(pk=figures.pk).exists())
-
-    def test_downgrade_refuses_to_discard_notice_figures_records(self):
-        migration = importlib.import_module("tokens.migrations.0078_register_notice_figures")
-        certified(self.token, self.owner)
-        with atomic(), connections[current_alias()].schema_editor() as editor:
-            migration.refuse_reversal(None, editor)
-        figures = noticed(self.token, self.owner)
-        with self.assertRaisesRegex(RuntimeError, "Retain notice figures records"), atomic():
-            with connections[current_alias()].schema_editor() as editor:
-                migration.refuse_reversal(None, editor)
-        self.assertTrue(RegisterExport.objects.filter(pk=figures.pk).exists())
 
 
 class ScopedNoticeFiguresTest(RunsOnTheScopedConnection, APITransactionTestCase):

@@ -287,3 +287,59 @@ class ExecutionNode:
         if self.lose_acknowledgement:
             raise ConnectionError("Synthetic swap acknowledgement loss")
         return tx_hash
+
+
+def signed_execution(test, swap, participants, *, complete=True, completed_at=None, status=1):
+    from unittest.mock import patch
+
+    from django.test import override_settings
+    from django.utils import timezone
+
+    from blockchain.models import SigningAccount
+    from blockchain.tests.outgoing_fixtures import admitted_signer
+    from shared.db import acting_for, use_operator
+    from tokens.services import swap_execution
+    from tokens.services.settlement_context import recorded_settlement_context
+
+    context = recorded_settlement_context(swap)
+    chain_id = int(context["typed_data"]["domain"]["chainId"])
+    network = f"evm:{chain_id}"
+    with override_settings(
+        BLOCKCHAIN_OPERATOR_KEY=KEY,
+        BLOCKCHAIN_CHAIN_ID=chain_id,
+        ATOMIC_SWAP_ADDRESS=context["typed_data"]["domain"]["verifyingContract"],
+        WALLET_CHAIN_FINALITY_POLICIES={network: {"mode": "finalized"}},
+    ), use_operator(), patch.object(swap_execution, "publish_trading_event"), patch.object(
+        swap_execution, "sync_holding", return_value=object()
+    ):
+        if not SigningAccount.objects.filter(chain_id=chain_id, address=SENDER.lower()).exists():
+            admitted_signer(chain_id=chain_id)
+        signable = encode_typed_data(full_message=context["typed_data"])
+        for participant, user, key in participants:
+            with acting_for(user.pk):
+                swap = swap_execution.submit_signature(
+                    swap,
+                    key.sign_message(signable).signature.to_0x_hex(),
+                    key.address,
+                    user=user,
+                    participant=participant,
+                )
+        record = swap.transaction
+        test.assertIsNotNone(record)
+        if complete:
+            node = ExecutionNode(record.function_args)
+            node.status = status
+            test.assertEqual(
+                swap_execution.recover(record.pk, client=node.client), "confirmed" if status else "reverted"
+            )
+            node.advance(head=20, finalized=12)
+            with patch("django.utils.timezone.now", return_value=completed_at or timezone.now()):
+                test.assertEqual(
+                    swap_execution.settle(record.pk, client=node.client),
+                    SwapOrderStatus.COMPLETED if status else SwapOrderStatus.FAILED,
+                )
+            swap.refresh_from_db()
+            test.assertIsNotNone(swap.finalized_receipt)
+            test.assertTrue(SignedAttempt.objects.filter(tx_hash=swap.tx_hash).exists())
+            test.assertEqual(len(node.broadcasts), 1)
+        return swap

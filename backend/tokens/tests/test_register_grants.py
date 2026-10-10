@@ -14,8 +14,8 @@ from rest_framework.exceptions import NotFound, ValidationError
 from companies.models import Company, CompanyCapability
 from companies.services.administration import company_operation
 from companies.services.team import revoke_company_appointment
-from shared.db import APP_ALIAS, atomic, current_alias, use_operator
-from shared.tests.schema import migrate_to, restore_every_migration
+from shared.db import APP_ALIAS, atomic, current_alias, use_migrate, use_operator
+from shared.tests.retained_rows import retained_rows
 from shared.tests.scoped import RunsOnTheScopedConnection
 from shareholders.services.roll import frozen_rows, holdings_at
 from tokens.exceptions import RegisterChangeConflict
@@ -671,12 +671,12 @@ class RegisterGrantsTest(AppointsTeam, TransactionTestCase):
             self.assertEqual(verify_register(self.token.stored_register.pk)["issued_supply"], "126")
 
 
-class RegisterGrantMigrationTest(TransactionTestCase):
+class RetainedRegisterGrantHistoryTest(TransactionTestCase):
+
     def test_a_legacy_future_ledger_day_refuses_a_current_day_issue_in_service_and_sql(self):
         with use_operator():
             owner, _, token, member, appointment, payload = grant_fixture()
-        try:
-            migrate_to([("tokens", "0093_company_register_wallet_link_guards")])
+        with use_migrate(), retained_rows(("tokens_registerentry", "tokens_register_grant_entry")):
             with use_operator():
                 record_entry(
                     register_id=token.stored_register.pk,
@@ -686,8 +686,6 @@ class RegisterGrantMigrationTest(TransactionTestCase):
                     effective_on=timezone.now().date() + timedelta(days=1),
                     recorded_by=owner,
                 )
-        finally:
-            restore_every_migration()
         with self.assertRaises(ValidationError) as refused:
             prepare_grant(actor=owner, **payload)
         self.assertIn("effective_date_before_latest_entry", str(refused.exception))
@@ -700,33 +698,24 @@ class RegisterGrantMigrationTest(TransactionTestCase):
             self.assertEqual(verify_register(token.stored_register.pk)["issued_supply"], "101")
             self.assertFalse(RegisterMember.objects.filter(pk=payload["member"]).exists())
 
-    def test_upgrade_preserves_imported_identity_and_projection_and_refuses_to_discard_a_grant(self):
+    def test_a_grant_preserves_the_imported_members_identity_and_adds_only_its_approved_shares(self):
         with use_operator():
             owner, _, token, member, appointment, payload = grant_fixture()
             before = verify_register(token.stored_register.pk)
             held = RegisterMemberParticulars.objects.get(member=member)
             particulars = (held.pk, held.name, held.residential_address, held.source_import_id)
-        try:
-            historical = migrate_to([("tokens", "0093_company_register_wallet_link_guards")])
-            old = historical.get_model("tokens", "RegisterMemberParticulars").objects.get(pk=held.pk)
-            self.assertEqual((old.pk, old.name, old.residential_address, old.source_import_id), particulars)
-        finally:
-            restore_every_migration()
-        with use_operator():
-            self.assertEqual(verify_register(token.stored_register.pk), before)
-            held.refresh_from_db()
             self.assertIsNone(held.source_grant_id)
         proposal = prepare_grant(actor=owner, **payload)[0]
         decide(owner, appointment, proposal, "approve")
         decide(owner, appointment, proposal, "apply")
-        try:
-            with self.assertRaisesMessage(RuntimeError, "Retain company register grants"):
-                migrate_to([("tokens", "0093_company_register_wallet_link_guards")])
-        finally:
-            restore_every_migration()
         with use_operator():
+            held.refresh_from_db()
+            self.assertEqual((held.pk, held.name, held.residential_address, held.source_import_id), particulars)
+            self.assertIsNone(held.source_grant_id)
             self.assertEqual(RegisterGrant.objects.get(pk=proposal.pk).status, "applied")
-            self.assertEqual(verify_register(token.stored_register.pk)["issued_supply"], "125")
+            after = verify_register(token.stored_register.pk)
+            self.assertEqual(after["issued_supply"], "125")
+            self.assertEqual(after["entries"], before["entries"] + 1)
 
 
 class ScopedRegisterGrantsTest(RunsOnTheScopedConnection, RegisterGrantsTest):

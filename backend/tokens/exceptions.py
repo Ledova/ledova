@@ -368,15 +368,6 @@ class SettlementContextChanged(APIException):
     expose_code = True
 
 
-class LegacySwapHeld(APIException):
-    status_code = 409
-    default_detail = (
-        "This legacy swap is held for operator attribution. New approvals, signatures and execution are unavailable."
-    )
-    default_code = "legacy_swap_held"
-    expose_code = True
-
-
 class SettlementChainDisagreement(APIException):
     status_code = 400
     default_detail = "This share token was deployed on another chain than the settlement domain names."

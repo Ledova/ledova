@@ -1009,9 +1009,9 @@ class CompanyActivationTest(StubUploadDependencies, APITransactionTestCase):
             self.assertEqual(Company.objects.get(pk=self.company.pk).status, "active")
 
     def test_installed_unicode_canonicalizer_matches_python_casefold_whitespace_and_nfkc_vectors(self):
-        import importlib
         import json
         import unicodedata
+        from pathlib import Path
 
         from companies.identity import registered_name
 
@@ -1026,8 +1026,8 @@ class CompanyActivationTest(StubUploadDependencies, APITransactionTestCase):
                 values.append(value)
             if value.isspace():
                 whitespace.append(value)
-        frozen = importlib.import_module("companies.migrations.0021_company_activation").UNICODE_15_1_CASEFOLD
-        self.assertEqual(json.loads(frozen), casefold)
+        frozen = Path(__file__).parent / "fixtures" / "unicode_15_1_casefold.json"
+        self.assertEqual(json.loads(frozen.read_text()), casefold)
         self.assertEqual(len(casefold), 1530)
         self.assertEqual(len(whitespace), 29)
         values += [f"{value}Straße{value}ΣΟΣ{value}" for value in whitespace]
