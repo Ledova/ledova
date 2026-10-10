@@ -1179,7 +1179,7 @@ extract as `asic_extract`, and the company's own statement of the extract's
 issued total and member count for the class; Ledova staff verify neither. A
 share class takes one applied import: preparation and application each refuse
 another once one is applied, and a partial unique index backs them. The
-[import screens](../architecture/clients.md) on
+[import screens](../architecture/clients.md#what-each-page-does) on
 Register in both clients are delivered.
 
 | Method and route                        | Result                                                                                                                                                                                                                                                                                                                    |

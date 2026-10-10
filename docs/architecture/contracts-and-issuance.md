@@ -4,36 +4,19 @@
 
 How a share class is deployed and shares are minted within its authorized cap.
 
-## Company authority and technical execution
+## Company decisions and technical execution
 
-The [company-managed plan](company-managed-registers.md#existing-gates-to-replace)
-makes the company decision and the technical signer distinct. Company-appointed
-users must authorise supported whitelist, issue/allotment and capital changes
-within their mandates; a backend signing key or privileged connection grants no
-human company authority. [Empty deployment](../plans/company-managed-registers/company-deployments.md)
-now uses a company decision family in both clients. Explicit
-[wallet nomination and company approval](../plans/company-managed-registers/company-wallet-approvals.md)
-and [non-paid chain grants](../plans/company-managed-registers/company-register-issues.md)
-have their own bounded company workflows. [Capital increases](../plans/company-managed-registers/company-capital-increases.md)
-use exact company preparation, approval and application. Paid issuance and pause
-conversion remain later #867 increments; their current checks stay effective
-until their service and database guards are replaced together.
-
-The lifecycle below describes current code. Preserve whole-share arithmetic,
-authorised headroom, wallet possession and company registry approval for chain
-actions, original signed bytes, finality and atomic register recording. A
-non-paid employee grant must record its actual terms and authority rather than
-invent a paid subscription. An import-origin register
-cannot issue or transfer through chain register instructions. The
-[non-paid grant workflow](../plans/company-managed-registers/register-grants.md)
-records genuine company-approved ledger issues without deployment or a wallet.
-[Direct non-paid transfers](../plans/company-managed-registers/register-transfers.md)
-also record genuine ledger effects with instruments, named approval and retained
-exit/return history. Later tokenisation needs additional execution work.
-Non-chain changes must retain real ledger authority without fake chain receipts;
-later tokenisation mirrors those holdings without issuing them twice.
-Changing company authority does not by itself change deployed contract ownership
-or bytecode, and must not be presented as such.
+Company appointees authorise deployments, wallet instructions, chain grants,
+paid issues, capital increases and pauses through the
+[delivered workflows](../plans/company-managed-registers/README.md); the backend
+signing key or privileged connection executes those decisions and grants no
+company authority, and changing who decides changes neither contract ownership
+nor bytecode. Every chain action preserves whole-share arithmetic, authorised
+headroom, wallet possession, company registry approval, original signed bytes,
+finality and atomic register recording. An import-origin register issues and
+transfers only through the [non-paid ledger workflows](../plans/company-managed-registers/register-grants.md),
+never through chain instructions, and later tokenisation mirrors its holdings
+without issuing them twice.
 
 ## Contracts
 
@@ -67,7 +50,7 @@ See [testing](../development/testing.md) for compilation, chain checks and advis
 
 ## Data flow of an issuance
 
-1. An operator or issuer creates a `ShareToken` in `DRAFT` with a name, symbol
+1. The company owner creates a `ShareToken` in `DRAFT` with a name, symbol
    and `total_supply` (the authorized cap). The historical API key `totalSupply`
    is this same cap; `issuedSupply` and the contract's `totalSupply()` are
    shares actually issued. Shares use whole units: model validation and the
@@ -80,7 +63,7 @@ See [testing](../development/testing.md) for compilation, chain checks and advis
    Existing classes keep their symbols.
 2. `/api/v1/tokens/register-deployments/` provides company preparation, preview,
    approval, application and rejection. A draft requires an active company, the
-   existing selected issuer wallet and proven empty register state. Preparation
+   company's existing selected wallet and proven empty register state. Preparation
    freezes company/class/issuer metadata, the factory intent and register boundary.
    Application consumes the exact approval; its original deployment UUID,
    `DEPLOYING` status and actual applying-principal job commit together. Exact
@@ -117,19 +100,15 @@ See [testing](../development/testing.md) for compilation, chain checks and advis
    acceptance evidence and freezes one request under the existing `UNDER_REVIEW`
    state. Human approval remains separate; application makes the request approved
    and admits its original execution atomically. No paid subscription or receipt
-   is created. The old direct owner issue POST is retired. The
-   [paid company issue conversion](../plans/company-managed-registers/company-paid-issues.md)
-   is under implementation: company application over the recorded PAID source
-   admits its original request and execution. Historical paid instructions keep
+   is created. The old direct owner issue POST is retired.
+   [Paid issues](../plans/company-managed-registers/company-paid-issues.md) work
+   the same way over an existing recorded PAID subscription: company application
+   admits the original request and execution. Historical paid instructions keep
    their original staff decisions; fresh staff paid admission is retired.
-   Admission retains the
-   approved terms and matching job in a private command. Before signing,
-   execution checks whitelist membership, the cap and pause state. A known
-   refusal in the paid or legacy path becomes a definite unsigned failure with a
-   safe explanation. An unsigned company grant retains its original recoverable
-   intent during source contention, temporary technical refusal or provider
-   failure. Permanent loss of its captured source can terminalise only its
-   original never-signed allocation; signed originals retain their recovery.
+   Admission retains the approved terms and matching job in a private command,
+   and execution checks whitelist membership, the cap and pause state before
+   signing. [Share-issuance boundaries](outgoing-signing.md#share-issuances)
+   describe refusals, unsigned holds and recovery.
 7. The worker durably claims the request before opening its shared outgoing
    operation. Its public `ShareIssuance` uses `issuance-request:<uuid>` as the
    idempotency key. Signed bytes, hash, nonce and the transaction association
@@ -141,32 +120,24 @@ See [testing](../development/testing.md) for compilation, chain checks and advis
    minutes. Unknown sends retain the original identity; a confirmed failure
    requires a fresh confirmation naming that failed attempt.
    A company grant records its original member's ISSUE once after the outcome
-   transaction. An executed but unentered original remains reserved until that
-   entry exists; chain completion alone does not establish register recording.
-   [Share-issuance boundaries](outgoing-signing.md#share-issuances) describe
-   queued refunds, public guards and historical recovery.
-8. A capital increase calls `setAuthorizedShares(new_authorized_total)` and
-   mints nothing. A current company appointee prepares the exact current cap,
-   positive delta and target with retained authority evidence. Approval alone
-   admits no execution; application commits the original request, immutable private
-   intent and background job before signing or broadcast. Read-only chain and
-   captured-cap preflight precedes the decision transaction. Network work runs
-   outside database transactions; an unresolved request retains the existing per-token
-   in-flight slot. The shared signing journal preserves the original bytes, hash
-   and nonce. Completion requires the original transaction's successful receipt
-   and its `AuthorizedSharesUpdated` event matching both approved cap values.
-   A matching current cap alone never establishes execution.
-   The five-minute `recover_capital_increases` task repairs admitted work.
-   Fresh signing rechecks the exact source and consumed personal authority.
-   Temporary source or lock unavailability retains unsigned work; explicit
-   revocation or expiry of its consumed appointment retires a genuinely never-signed
-   original and releases its slot. Signed work recovers the original receipt.
-   Definite unsigned or reverted failures need a fresh technical confirmation of
-   that exact failed attempt and current company source. Retained historical
-   supersession and attribution remain separate; no company authority is backfilled.
-   See [capital recovery boundaries](outgoing-signing.md#capital-increases).
-9. Pause and unpause read `paused()` first and reconcile the database when the
-   chain is already in the target state.
+   transaction; an executed but unentered original remains reserved until that
+   entry exists, because chain completion alone does not establish register
+   recording.
+8. A [capital increase](../plans/company-managed-registers/company-capital-increases.md)
+   calls `setAuthorizedShares(new_authorized_total)` and mints nothing. A current
+   company appointee prepares the exact current cap, positive delta and target
+   with retained authority evidence; application commits the original request,
+   immutable private intent and background job before signing. Completion
+   requires the original transaction's successful receipt and its
+   `AuthorizedSharesUpdated` event matching both approved cap values; a matching
+   current cap alone never establishes execution. The five-minute
+   `recover_capital_increases` task repairs admitted work.
+   [Capital recovery boundaries](outgoing-signing.md#capital-increases) describe
+   the in-flight slot, holds, retries and attribution.
+9. [Pause and unpause](../plans/company-managed-registers/company-pause-changes.md)
+   are company decisions applied the same way; execution reads `paused()` first
+   and reconciles the database when the chain is already in the target state
+   ([pause boundaries](outgoing-signing.md#pause-and-unpause)).
 10. Deployment writes a verified `assets.Asset` (`tokenized_security`,
     `decimals` 0) and an `AssetChainDeployment` at the address the factory
     attests; completing an issuance writes the recipient's `Holding` from
@@ -179,13 +150,13 @@ Reviewers write `review_notes`; execution attempts append timestamped entries to
 an intervening attempt. Successful execution adds its outcome to that same log
 after earlier refusals (`ReviewRequest.mark_executed` in
 `backend/tokens/models/review_request.py`), so the history does not stop at the
-last failure. Reviewer notes are omitted from the issuer serializers and from
-the client type in `packages/shared/src/types/domain/company-token.ts`; issuers
-receive execution notes and rejection or supersession reasons. Issuance and capital recovery retain transaction identity and safe error
+last failure. Reviewer notes are omitted from the company-facing serializers and from
+the client type in `packages/shared/src/types/domain/company-token.ts`; the company
+receives execution notes and rejection or supersession reasons. Issuance and capital recovery retain transaction identity and safe error
 categories in operator records; provider URLs and exception text do not enter
 public responses or recovery diagnostics.
 
-Issuers read their requests through `GET /api/v1/tokens/issuance-requests/`,
+A company reads its requests through `GET /api/v1/tokens/issuance-requests/`,
 filtered by token, company or status; the endpoint is read-only. List and detail
 reads retain company ownership checks even when the database allows a subscriber
 to read the linked request for withdrawal checks. Submitting an approval request
@@ -229,8 +200,10 @@ and repairs interrupted revert projections without opening another attempt.
 Once their transaction projection is complete, terminal failures await explicit
 retry. Successful projection atomically queues a separate immutable swap approval
 phase on the private deployment record. Approval failure leaves the token deployed;
-its own recovery follows the original signed transaction. Complete
-same-key cutover, historical attribution and finality remain outstanding. Signer
-admission remains closed by default. See [outgoing signing](outgoing-signing.md).
+its own recovery follows the original signed transaction. On a public network,
+same-key cutover and historical attribution remain outstanding and signer
+admission stays closed until the owner runs the cutover in
+[#624](https://github.com/Ledova/ledova/issues/624); the local stack admits its
+own signer. See [outgoing signing](outgoing-signing.md).
 
 Next: [offerings](offerings.md), [subscriptions](subscriptions.md), and [chain setup](../operations/chains.md).

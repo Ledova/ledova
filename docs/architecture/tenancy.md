@@ -4,26 +4,20 @@
 
 One database serves one deployment. PostgreSQL row-level security (RLS) enforces
 tenant isolation. Customer requests and principal-bearing jobs select authority
-at their boundary; product selectors retain narrower issuer, account and
+at their boundary; product selectors retain narrower company, account and
 eligibility rules where database read scopes are wider.
 
-## Company-managed authority boundaries
+## Company authority
 
-The [accepted plan](company-managed-registers.md#existing-gates-to-replace)
-extends today's owner-based company scopes to active administrative appointments
-and capabilities. Shareholder membership and a platform staff role must not
-grant those company capabilities. Rework company selectors, writable foreign
-keys, RLS helpers and decision triggers together; preserve participant own-record
-terms and private evidence boundaries rather than widening every company read.
-
-The roles below are PostgreSQL connection roles, not human job titles. Bounded
-privileged services may execute a company-authorised command after exact company
-and commit-time mandate checks; customer requests must never gain unrestricted
-`BYPASSRLS` or direct ledger/projection writes. Enqueued new unsigned work must
-retain and recheck company authority after revocation, while already accepted
-signed work follows its original recovery contract. The policy/job catalogue
-below describes current implementation until those changes are installed and
-proved on existing databases as well as fresh ones.
+The roles below are PostgreSQL connection roles, not human job titles. Company
+capabilities come from recorded appointments
+([authority guide](../plans/company-managed-registers/authority-requests.md));
+shareholder membership and a platform staff role grant none. Bounded privileged
+services execute a company-authorised command after exact company and
+commit-time mandate checks; customer requests never gain unrestricted `BYPASSRLS`
+or direct ledger/projection writes. Enqueued unsigned work rechecks company
+authority after revocation, while already signed work follows its original
+recovery contract ([outgoing signing](outgoing-signing.md)).
 
 ## Roles and principal
 
@@ -36,6 +30,16 @@ request-sourced initial appointment or legacy-owner source closes draft setup
 permanently; a pending authority request keeps the draft editable. Expiry,
 revocation, configured identity and current account checks determine appointment
 effectiveness. Delegatable scopes never count as personal authority.
+
+Company list, detail and basic edits, and company-document upload, private-file
+reads and deletion, use the actor-bound functions in
+`companies/services/administration.py`, `editing.py` and `documents.py`. Each
+locks the company before the live account, profile, operator identity
+requirement, appointments and affected document or wallet, and checks the
+actual clock after the wait. The existing identifier, status, reviewed-name and
+verified-wallet restrictions remain, and a PATCH answers with the complete
+`CompanyDetail`, so a client can validate its edit receipt. A pending authority
+request alone does not consume the draft-setup exception.
 
 The Company read policy retains its existing public discovery and market terms;
 its customer list/detail selectors remain narrower. App writes to Company and
@@ -88,8 +92,8 @@ company ownership or staff status grants no access to another person's proposal.
 Initial self-declaration admission shares the request lock and rejects a
 withdrawal. It retains the exact declaration, scoped appointment and genuine ABR
 check without activating the company. Self-revocation creates an immutable outcome;
-expiry/revocation stops current capability checks. The preserved configured issuer
-identity gate consumes server-owned provider results. None of these reads widens
+expiry/revocation stops current capability checks. The preserved configured representative
+identity gate (`issuer_kyc_required`) consumes server-owned provider results. None of these reads widens
 legacy owner-based company, investor or financial-data scopes.
 
 Invitations are readable only by their inviter through the app role. Bounded
@@ -160,7 +164,7 @@ Important invariants:
   private document, profile or basic administration access. These explicit
   boundaries prevent circular company/token policy evaluation. Other invoker
   helpers and participant scopes retain their existing terms.
-- Issuers may read subscriber accounts, wallets and profiles for their own
+- A company may read subscriber accounts, wallets and profiles for its own
   offerings. Personal API surfaces still select the caller's own records.
   A company's nullable operator-wallet link does not expose its owner's profile
   to an ordinary viewer of that company.
@@ -197,25 +201,26 @@ only for a classified administrative invocation. Worker ambient authority is
 operator, so omitting a scope would widen access.
 
 The [task catalogue](../../backend/shared/tasks/catalogue.py) records authority
-and bounded operator handoffs. Issuance execution and subscription allotment are
-operator jobs produced by staff admin actions; `executed_by` records the actor
-for audit and does not choose a tenant principal. The planned company execution
-entry points require the explicit company authority and bounded handoff described
-above; changing the enqueueing UI or omitting the principal is insufficient.
+and bounded operator handoffs. Deployments, issuance execution, capital
+increases, pause changes and subscription allotment are operator jobs that a
+company's applied decision produces; `executed_by` records the actor for audit
+and does not choose a tenant principal. New work requires the explicit company
+authority and bounded handoff described above; changing the enqueueing UI or
+omitting the principal is insufficient.
 
 Wallet producers insert transaction-screening jobs on their current connection
 inside the wallet transaction. The worker explicitly selects operator authority
 and commits alerts with `monitoring_completed_at`; rollback removes both the
 alerts and completion marker, and redelivery does not screen twice.
 
-Deployment captures the issuer principal and scopes token lifecycle writes.
-Its operator-only broadcast journal commits independently before sending, with
-company ownership rechecked under a lock. An outer issuer transaction cannot
-undo that durable boundary. See [issuance](contracts-and-issuance.md) and
+Deployment captures the applying principal and the company's exact approval and
+scopes token lifecycle writes. Its operator-only broadcast journal commits
+independently before sending, rechecking the consumed approval under a lock. An
+outer transaction cannot undo that durable boundary. See [issuance](contracts-and-issuance.md) and
 [recovery](../operations/recovery.md).
 
 Three bounded operator reads serve product behavior that ownership alone would
-refuse: resolving a supplied active issuer UUID for an associated-person claim,
+refuse: resolving a supplied active company UUID for an associated-person claim,
 fetching public market prices for already admitted tokens, and reading the
 documents attached to the approved offerings of a share class the caller's
 directory admits ([offerings](offerings.md)). Each resolves what the caller may

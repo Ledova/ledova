@@ -12,37 +12,13 @@ and reads no chain. Members read what was published to them through
 [the publications route](#the-members-route), in the dashboard and in the mobile
 app.
 
-Currently, Ledova staff publish on the company's written instruction, as
-inspection copies, certificates and notice figures are prepared today. The
-[runbook](../operations/publications.md) is the current procedure.
-
-## Company-managed publication and member actions
-
-The [accepted plan](company-managed-registers.md#required-self-service-workflows)
-requires company-appointed users to publish supported statements, notices,
-resolutions and dividends, enter authorised offline/proxy ballots and record or
-withdraw distribution payment evidence. Replace the service and trigger checks
-that require active staff with exact company capabilities and authority;
-preserve immutable rolls, actor attribution, content-bound evidence, voting
-windows, one ballot per holding, exact calculations and append-only corrections.
-Retain each historical staff-entered flag and actor; a new company-entered event
-must not be mislabelled as a platform staff decision.
-
-Participants retain access to their own records and ballots independently of
-eligibility for other investments. A company appointment grants neither the
-participant's private evidence nor individual ballots beyond the permitted
-policy. Distribution records continue to say what the company recorded, not
-that a bank transfer was independently verified. The existing frozen rolls,
-read audits, privacy and retention constraints remain required.
-
-The remaining sections describe current implementation. Its publication guard
-requires a class on chain, deployed or paused; an imported non-chain register
-cannot currently publish to its members. Supporting non-wallet and
-non-tokenised member administration requires a validated register/identity
-path, without inventing an account from a shared wallet address or forcing a
-wallet where no chain action exists. Non-chain governance needs genuine register
-authority and frozen member identity, not a fabricated deployment or chain
-completion.
+Platform staff publish on the company's written instruction until
+[#870](https://github.com/Ledova/ledova/issues/870), which is deferred; the
+[runbook](../operations/publications.md) is the procedure. A company-run
+replacement must keep the frozen rolls, actor attribution, content-bound
+evidence, voting windows, one ballot per holding, exact arithmetic, read audits
+and retention below, and must not relabel a historical staff-entered event as
+a company decision.
 
 ## One record for everything a company publishes
 
@@ -146,7 +122,7 @@ frozen and stores the account it found, and the policy reads that column alone.
 | --- | --- |
 | A member | The publications addressed to them, and their own roll row |
 | The company that published | Its own publications and their whole roll |
-| Ledova staff | Every publication, through admin, on the operator connection |
+| Platform staff | Every publication, through admin, on the operator connection |
 
 A member and a company owner reach theirs through the same route; staff have no
 route at all, because there is no client for one and admin already serves them.
@@ -328,54 +304,25 @@ grow with what was published, and a test holds that.
 
 ## In the member's everyday views
 
-The dashboard's **Notices** page at `/publications` lists every kind of
-publication addressed to the person, newest first: documents, resolutions and
-dividends together. A company owner's access as issuer does not add papers to
-this list: the company's own list is **Published to your members**, below, as
-recorded in [the signed-in app decisions](../decisions.md#the-signed-in-app).
-Each row retains its company, class, record date and frozen holding; dividends
-also show the rate, entitlement, payment date and what the company recorded.
-Whole share counts and money retain their decimal-string precision, and calendar
-dates display without a timezone shift. Downloads still use the audited file
-route, and resolutions retain confirmation, ballot status, refusal and results.
+**Notices**, at `/publications` on the web and in the mobile app, lists every
+kind of publication addressed to the person, newest first, reading every page
+with `addressed=me`; a company owner's access as issuer adds nothing to it
+([the signed-in app decisions](../decisions.md#the-signed-in-app)). Each row
+keeps its company, class, record date and frozen holding, and a dividend its
+rate, entitlement, payment date and what the company recorded; downloads use
+the audited file route. Holdings lists the three latest notices and, through
+`usePublicationSummary`, counts open resolutions awaiting the person's vote and
+dividends awaiting a company payment record, refreshing at `nextClosesAt` and
+every five minutes; neither count is proof that a bank transfer happened.
 
-A failed first page offers a retry without calling the list empty. A failed
-later page keeps the known rows and labels the list incomplete, with a retry of
-that page. A failed refresh withholds cached rows and their voting controls
-until a retry succeeds. A dividend remains a company record, separate from
-on-chain transaction filters.
-
-The dashboard's **Holdings** page lists the three latest notices addressed to
-the person and links to Notices from its personal work sections, described in
-[clients](clients.md).
-The dashboard's **Published to your members** page at `/company/publications`
-opens from Company for company and dual-role accounts. It follows every page with
-`issuer` set to the selected owned company, using a separate cache from Notices.
-Stored documents open through the same audited file route. Resolution results
-show exact share and member counts; dividends show the declared rate and dates
-available in the existing serializer. This issuer view has no ballot controls,
-personal entitlement or recorded personal payment, even if the owner holds shares.
-It adds no publication, distribution or resolution execution controls: staff
-prepare and publish on written instruction. Read failures hide stale actions and
-offer retry; file delivery failures distinguish an unavailable stored document.
-
-Mobile Holdings lists the same three latest notices and links to personal
-Notices, which retains `addressed=me` on every page. Native Published to your
-members selects the owned company with `issuer` on every page, separately from
-personal Notices. It shows stored documents and
-recorded resolution/dividend facts without personal ballot or entitlement
-controls. Company, account or session changes retire the prior document action;
-unavailable reads show retry and block stale actions.
-
-- `usePublicationSummary` powers the notice counts in Holdings: open resolutions
-  awaiting the person's vote and dividends awaiting a company payment record.
-  These are not unread counts or proof of whether a bank transfer happened. Failed reads show retry
-  instead of claiming there is no work. The shared hook refreshes at
-  `nextClosesAt` and every five minutes, with bounded timers that stop when the
-  consumer leaves.
-
-In both clients, a notification of a new publication of any kind opens the
-publications page from its `type` alone.
+**Published to your members**, at `/company/publications` on the web and in
+the mobile app, reads the selected owned company's publications with `issuer`
+set, in a cache separate from Notices: stored documents, exact resolution
+results and dividend rates and dates, with no ballot controls, personal
+entitlement or publication, resolution or distribution execution controls,
+because platform staff publish on written instruction. In both clients a
+notification of a new publication opens the publications page from its `type`
+alone. [Clients](clients.md) describes the failure and retry states.
 
 ## Every publication is announced
 
@@ -494,7 +441,7 @@ trigger refuses every ballot after the window has passed.
 | --- | --- |
 | A member | Their own ballot, whoever entered it, and the close of any resolution they are on the roll of |
 | The company that published | The close of its own resolutions, and no ballot |
-| Ledova staff | Everything, in admin on the operator connection |
+| Platform staff | Everything, in admin on the operator connection |
 
 The application role may write nothing. The member's ballot term reads the roll
 row the ballot names, and the close terms read the roll by publication or the
@@ -617,7 +564,7 @@ names, for "paid" without "recorded".
 | --- | --- |
 | A member | Their own roll rows' entitlements, and the payment records and withdrawals for those rows |
 | The company that published | The whole roll with every entitlement, and every payment record of its own distributions, because it is the payer |
-| Ledova staff | Everything, in admin on the operator connection |
+| Platform staff | Everything, in admin on the operator connection |
 
 The resolution terms are unchanged. The member's payment term reads the roll row
 each record names; the company's term reads the record's own copied company.
