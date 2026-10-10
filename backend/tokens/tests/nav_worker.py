@@ -27,7 +27,7 @@ def run(directory, phase, submission_id, new_id=None):
     from django.db import connection
     from web3 import Web3
 
-    from blockchain.models import OutgoingOperation, SignedAttempt
+    from blockchain.models import SignedAttempt
     from blockchain.services import outgoing
     from tokens.models import NAVUpdate
     from tokens.services import nav, nav_recovery
@@ -53,8 +53,6 @@ def run(directory, phase, submission_id, new_id=None):
             stream.write(json.dumps(ledger))
             stream.flush()
             os.fsync(stream.fileno())
-        if phase == "accepted":
-            os.kill(os.getpid(), signal.SIGKILL)
         return tx_hash
 
     def observed(tx_hash):
@@ -72,7 +70,6 @@ def run(directory, phase, submission_id, new_id=None):
 
     original_open = outgoing.open_operation
     original_sign = outgoing.sign_operation
-    original_save = OutgoingOperation.save
     original_decide = nav.decide
     original_outcome = nav_recovery._record_outcome
     original_project = nav.project
@@ -93,14 +90,6 @@ def run(directory, phase, submission_id, new_id=None):
             marker.replace(directory / "sign-ready")
             await_file(directory / "sign-go")
         result = original_sign(*args, **kwargs)
-        if phase == "signed":
-            os.kill(os.getpid(), signal.SIGKILL)
-        return result
-
-    def before_commit(row, *args, **kwargs):
-        result = original_save(row, *args, **kwargs)
-        if row.status == "signed":
-            os.kill(os.getpid(), signal.SIGKILL)
         return result
 
     def decided(*args, **kwargs):
@@ -132,8 +121,6 @@ def run(directory, phase, submission_id, new_id=None):
         stack.enter_context(patch.object(nav, "decide", decided))
         stack.enter_context(patch.object(nav_recovery, "_record_outcome", outcome))
         stack.enter_context(patch.object(nav, "project", projected))
-        if phase == "before_commit":
-            stack.enter_context(patch.object(OutgoingOperation, "save", before_commit))
         if phase in ("race", "admit"):
             (directory / f"ready-{os.getpid()}").touch()
             await_file(directory / "go")

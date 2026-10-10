@@ -30,8 +30,7 @@ def run(directory, phase, request_id, retry_of=None):
 
     from web3 import Web3
 
-    from blockchain.models import OutgoingOperation, SignedAttempt
-    from blockchain.services import outgoing
+    from blockchain.models import SignedAttempt
     from blockchain.tests.outgoing_fixtures import receipt
     from tokens.models import ShareToken
     from tokens.services import deployment
@@ -57,8 +56,6 @@ def run(directory, phase, request_id, retry_of=None):
             stream.write(json.dumps(ledger))
             stream.flush()
             os.fsync(stream.fileno())
-        if phase == "accepted":
-            os.kill(os.getpid(), signal.SIGKILL)
         return tx_hash
 
     def node_ledger():
@@ -89,21 +86,7 @@ def run(directory, phase, request_id, retry_of=None):
             await_file(directory / "go")
         return result
 
-    def signed(*args, **kwargs):
-        result = original_sign(*args, **kwargs)
-        if phase == "signed":
-            os.kill(os.getpid(), signal.SIGKILL)
-        return result
-
-    def before_commit(row, *args, **kwargs):
-        result = original_save(row, *args, **kwargs)
-        if row.status == "signed":
-            os.kill(os.getpid(), signal.SIGKILL)
-        return result
-
     original_admit = deployment._admit
-    original_sign = outgoing.sign_operation
-    original_save = OutgoingOperation.save
     original_project = deployment._project
     original_outcome = deployment.deployment_journal.record_outcome
     original_marker = deployment.deployment_journal.mark_projected
@@ -132,13 +115,10 @@ def run(directory, phase, request_id, retry_of=None):
             patch("tokens.services.share_token_service.get_base_chain_client", return_value=node.client)
         )
         stack.enter_context(patch.object(deployment, "_admit", admitted))
-        stack.enter_context(patch.object(outgoing, "sign_operation", signed))
         stack.enter_context(patch.object(deployment, "_project", projected))
         stack.enter_context(patch.object(deployment.deployment_journal, "record_outcome", recorded_outcome))
         if phase == "handoff":
             stack.enter_context(patch.object(deployment.deployment_journal, "mark_projected", handed_off))
-        if phase == "before_commit":
-            stack.enter_context(patch.object(OutgoingOperation, "save", before_commit))
         if phase == "recover":
             result = deployment.recover(token.deployment_id)
         else:

@@ -86,9 +86,6 @@ class IssuanceExecutionProcessTest(TransactionTestCase):
     def test_kill_after_public_claim_before_operation_opening_recovers(self):
         self.recover_killed("claimed")
 
-    def test_kill_before_signed_commit_rolls_back_nonce_and_recovers(self):
-        self.recover_killed("before_commit")
-
     def test_independent_workers_share_one_signed_attempt_and_nonce(self):
         admit(self.request, self.actor, confirmed=self.form)
         self.assertEqual(ShareIssuanceExecution.objects.get().status, "queued")

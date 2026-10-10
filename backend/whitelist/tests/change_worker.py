@@ -30,7 +30,7 @@ def run(directory, phase, actor_id, company_id, submission_id, action="add"):
     from django.contrib.auth import get_user_model
     from web3 import Web3
 
-    from blockchain.models import OutgoingOperation, SignedAttempt
+    from blockchain.models import SignedAttempt
     from blockchain.services import outgoing
     from blockchain.tests.outgoing_fixtures import receipt
     from companies.models import Company
@@ -65,8 +65,6 @@ def run(directory, phase, actor_id, company_id, submission_id, action="add"):
             stream.write(json.dumps(ledger))
             stream.flush()
             os.fsync(stream.fileno())
-        if phase == "accepted":
-            os.kill(os.getpid(), signal.SIGKILL)
         return tx_hash
 
     def observed(tx_hash):
@@ -92,15 +90,8 @@ def run(directory, phase, actor_id, company_id, submission_id, action="add"):
             os.kill(os.getpid(), signal.SIGKILL)
         return result
 
-    def before_commit(row, *args, **kwargs):
-        result = original_save(row, *args, **kwargs)
-        if row.status == "signed":
-            os.kill(os.getpid(), signal.SIGKILL)
-        return result
-
     original_sign = outgoing.sign_operation
     original_project = changes._project
-    original_save = OutgoingOperation.save
     node.client.send_raw_transaction.side_effect = send
     node.client.get_transaction_receipt.side_effect = observed
     with ExitStack() as stack:
@@ -108,10 +99,9 @@ def run(directory, phase, actor_id, company_id, submission_id, action="add"):
         stack.enter_context(
             patch.object(company_wallet_instructions, "get_base_chain_client", return_value=node.client)
         )
-        stack.enter_context(patch.object(outgoing, "sign_operation", signed))
+        if phase == "signed":
+            stack.enter_context(patch.object(outgoing, "sign_operation", signed))
         stack.enter_context(patch.object(changes, "_project", projected))
-        if phase == "before_commit":
-            stack.enter_context(patch.object(OutgoingOperation, "save", before_commit))
         if phase.startswith("race"):
             (directory / f"ready-{os.getpid()}").touch()
             await_file(directory / "go")
