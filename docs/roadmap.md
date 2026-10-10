@@ -40,8 +40,10 @@ The company-managed register foundation, delivered under #860:
   and [paid issues over recorded subscriptions](plans/company-managed-registers/company-paid-issues.md).
 - Members editing their own [name and address in Profile](plans/company-managed-registers/member-profile.md)
   ([#866](https://github.com/Ledova/ledova/issues/866), first increment).
-- The first [#943](https://github.com/Ledova/ledova/issues/943) increment:
-  the registry workflow runs first in CI and test timings are captured.
+- Three [#943](https://github.com/Ledova/ledova/issues/943) increments:
+  root policy-document changes skip the Django jobs and test timings are
+  captured (#952), routine company fixtures no longer rewind the schema (#959),
+  and the strict scoped and chain checks run as their own parallel jobs (#960).
 
 Earlier platform work, recorded in the
 [product alignment programme](https://github.com/Ledova/ledova/issues/645) and
