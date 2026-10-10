@@ -170,7 +170,8 @@ Compatible source, JavaScript and backend work selects the Mac's isolated Linux
 ARM64 guests. The existing primary profile runs strict scoped and the complete
 `tokens-1`, `tokens-2` and `others` ordinary shards; the ordinary profile runs the
 remaining ordinary shards, backend checks, genuine chain checks and JavaScript
-and source gates. The lightweight scope bootstrap stays on `ubuntu-latest`.
+and source gates, followed by the Django verdict. The lightweight scope bootstrap
+stays on `ubuntu-latest`.
 Native Android/iOS jobs keep their platform-specific hosted runners.
 
 Every selected job requests its fixed profile label,
@@ -213,12 +214,14 @@ aligned the policy documents, exempted root-policy-only changes (`AGENTS.md`,
 `CONTRIBUTING.md`) from the Django jobs and captured the timings above (#952),
 replaced routine historical schema rewinds in runtime company fixtures (#959)
 and gave the scoped and chain stages their own jobs (#960), while retaining
-every test selection, required verdict and main-push check. JavaScript, native,
-scanner and general backend routing remain unchanged. Scheduled broad checks,
+every test selection, required verdict and main-push check. Those earlier
+increments left JavaScript, native, scanner and general backend routing unchanged.
+The Mac expansion above changes the compatible main-run allocation. Scheduled broad checks,
 more selective pre-merge coverage and verification tiers need their own
-reviewed implementation, and the under-five-minute documentation/configuration
-and 15–25-minute routine-registry targets are goals, not delivered
-measurements. This guide describes only what runs today.
+reviewed implementation. The [10 October baseline decision](https://github.com/Ledova/ledova/issues/943#issuecomment-6096774615)
+sets targets of PR checks within 15 minutes and the full backend suite within
+20 minutes on the Mac, through the migration baseline, essential process proofs
+and preflight work. These are goals, not delivered measurements.
 
 `black`, `isort` and `flake8` are development requirements and are not in the
 backend image, so running the source gates inside that image proves nothing
