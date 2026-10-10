@@ -133,7 +133,10 @@ grows.
    another human or agent, not the author. A PR comment recording the reviewer's
    identity, verdict and head SHA is sufficient; a separate GitHub account or
    formal GitHub approval is not required by project policy. If the branch
-   moves, either show the content is unchanged or have the delta read.
+   moves, either show the content is unchanged or have the delta read. The
+   reviewer states the depth of the read and what it left out, because an
+   approval must not imply a read that did not occur, and reads both intentions
+   behind any conflict.
    Blocking is ordinary, and a block stands until its author clears it on that
    pull request; a later passing review from someone else does not lift it.
 4. **Required CI green, on a branch up to date with `main`.** Green on the branch

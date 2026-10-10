@@ -1170,5 +1170,5 @@ supported local or public test network. An upgrade adds:
 The notes above span historical migrations, not one current release. Newer journal,
 wallet-identity and private-file constraints are documented beside their mechanisms:
 [wallet identity](../architecture/wallets-and-valuations.md#network-identity),
-[EVM journals](../reference/evm-transfers.md), [Bitcoin journals](../reference/bitcoin-transfers.md),
+[EVM journals](../reference/wallet-transfers.md#evm), [Bitcoin journals](../reference/wallet-transfers.md#bitcoin),
 [chain observations](../reference/transaction-evidence.md), and [mint recovery](recovery.md#deployment-and-issuance).
