@@ -271,7 +271,7 @@ jobs:
             --health-cmd 'clamdscan --ping=1 --config-file=/etc/clamav/clamd.conf' \
             --health-interval 5s --health-timeout 3s --health-retries 60 \
             -v "$GITHUB_WORKSPACE/backend/.deployment/clamd.conf:/etc/clamav/clamd.conf:ro" \
-            clamav/clamav:1.5.4 sh -c 'freshclam --foreground --stdout && exec clamd --foreground'
+            clamav/clamav:1.5.4-debian sh -c 'freshclam --foreground --stdout && exec clamd --foreground'
           deadline=$((SECONDS + 300))
           until [ "$(docker inspect -f '{{.State.Health.Status}}' ledova-upload-clamav)" = healthy ]; do
             if [ "$SECONDS" -ge "$deadline" ]; then
