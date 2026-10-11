@@ -27,10 +27,10 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",
-    "@tanstack/react-query": "^5.104.0",
+    "@tanstack/react-query": "^5.104.1",
     "@testing-library/react": "^16.3.3",
     "@types/jest": "^30.0.0",
-    "@types/node": "^22.20.4",
+    "@types/node": "^22.20.5",
     "@types/react": "^19.1.2",
     "eslint": "^9.39.5",
     "eslint-config-prettier": "^10.1.8",
@@ -41,6 +41,6 @@
     "react": "19.3.0",
     "ts-jest": "^29.4.14",
     "typescript": "^5.9.2",
-    "typescript-eslint": "^8.71.0"
+    "typescript-eslint": "^8.71.1"
   }
 }
