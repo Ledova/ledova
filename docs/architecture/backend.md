@@ -1,5 +1,9 @@
 # Backend apps and layers
 
+Test links on this page point to the 10 October source as historical evidence.
+The owner's [11 October policy](https://github.com/Ledova/ledova/issues/943#issuecomment-6103674410)
+retires those broad tests; current automated coverage is the small core suite.
+
 [Architecture](README.md) · [Documentation](../README.md)
 
 Where backend code belongs and how its layers interact.
@@ -99,7 +103,7 @@ These named-staff actions follow admin's 403 permission behavior. Mint actions
 check change permission on the parent; `MintRequestAdmin` deliberately provides
 no add permission. `is_staff` alone is not enough. The layer gate refuses bare
 admin-view registration outside its helper allowance, and
-[route-derived tests](../../backend/shared/tests/test_admin_row_actions.py) exercise
+[route-derived tests](https://github.com/Ledova/ledova/blob/5f40e3cd896afc3f3a55a14e359224156735a417/backend/shared/tests/test_admin_row_actions.py) exercise
 every registered action.
 
 Fields must preserve the API's edit boundaries. On Company, ACN/ABN/type lock after
@@ -107,7 +111,7 @@ DRAFT; name and officeholder declaration fields are editable only in DRAFT or
 INFO_REQUIRED. Owner is read-only, and generic company admin creation/deletion is
 closed. Registration uses its bounded service; any reassignment needs an explicit
 workflow and reason.
-[Admin/API comparison tests](../../backend/companies/tests/test_admin_matches_the_api.py)
+[Admin/API comparison tests](https://github.com/Ledova/ledova/blob/5f40e3cd896afc3f3a55a14e359224156735a417/backend/companies/tests/test_admin_matches_the_api.py)
 measure serializer/form differences; the officeholder fields are separately bounded
 by the update service. There is no complete comparison across every admin/model pair.
 
