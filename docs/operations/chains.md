@@ -234,8 +234,9 @@ deployed share token can never be rebound to another registry, so moving onto
 those contracts was [the owner's decision](../decisions.md#company-scoped-approvals)
 to start fresh; the [Base Sepolia evidence](approval-controls.md#base-sepolia)
 records the authorised run of 25 September 2026. The [11 October fresh-database rebuild](upgrades.md#fresh-database-rebuild)
-is the current database procedure; any ledova.io backup, export or rebuild needs
-owner approval before execution. Fresh migrations install current PostgreSQL
+is the current database procedure. The [later follow-up](../decisions.md#binding-caps-and-backup-authorisation)
+already authorises backup, read-only inventory and reversible isolated validation;
+live selective export and rebuild steps still need the owner's go-ahead. Fresh migrations install current PostgreSQL
 guards on an empty database. They do not validate whether stored classes belong
 to a retired on-chain factory; step 8's contract checks remain separate.
 

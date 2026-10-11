@@ -61,7 +61,10 @@ Follow [local setup](docs/getting-started.md), then the
 2. Keep pull requests small and focused: one logical change each.
 3. Follow the [11 October minimum-test policy](docs/development/testing.md).
    Keep tests only for the worst failures and one happy path per delivered core
-   journey, within the suite caps. Replace or remove redundant tests and their
+   journey, within the binding suite caps, counting every parameterized row.
+   At capacity, a new core test replaces an existing case or needs an explicit
+   owner-approved cap increase in the same PR. Never exceed a cap temporarily.
+   Replace or remove redundant tests and their
    unused helpers/fixtures. There is no mandatory test for every change or
    cross-tenant row for every route. Keep PostgreSQL isolation/authority,
    ownership totals and issuance idempotency covered by the small core suite.
@@ -131,6 +134,8 @@ grows.
 2. **The author records what they checked** in the description before asking for
    review: the commands run and their results, what could not be reproduced, and
    what was deliberately not checked. An unstated gap reads as a checked one.
+   For suite changes, include before/after executed-case counts and the replaced
+   cases or explicit owner approval for a cap increase.
 3. **One independent review, at the commit that will merge.** The reviewer is
    another human or agent, not the author. A PR comment recording the reviewer's
    identity, verdict and head SHA is sufficient; a separate GitHub account or
@@ -138,7 +143,8 @@ grows.
    moves, either show the content is unchanged or have the delta read. The
    reviewer states the depth of the read and what it left out, because an
    approval must not imply a read that did not occur, and reads both intentions
-   behind any conflict.
+   behind any conflict. Review verifies suite counts and any replacement or
+   owner-approved cap change against the binding limits.
    Blocking is ordinary, and a block stands until its author clears it on that
    pull request; a later passing review from someone else does not lift it.
 4. **Required CI green, on a branch up to date with `main`.** Green on the branch
@@ -146,8 +152,13 @@ grows.
    together.
 5. **Product and legal decisions remain the repository owner's.** Live
    deployment, live database migrations, signer activation and real-funds use
-   also require the owner's explicit direction. The ledova.io fresh-database
-   plan requires approval before any backup, export, rebuild or re-seed.
+   also require the owner's explicit direction. The
+   [11 October follow-up](docs/decisions.md#binding-caps-and-backup-authorisation)
+   already authorises a ledova.io backup and read-only database/private-storage
+   inventory. Reversible isolated backup validation and mapping rehearsal may
+   proceed with workers, signers and external integrations disabled. Live selective
+   export, stopping writers, rebuild, migration, re-seeding, configuration and
+   release still need the owner's go-ahead.
 
 How to establish that a change does what it claims is a separate question, and is
 in [testing and review](docs/development/testing.md).

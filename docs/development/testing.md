@@ -7,6 +7,15 @@ replaces the earlier coverage rules. Keep only tests guarding the worst failures
 and one happy path per delivered core journey. Delete other tests and their
 unused fixtures/helpers. Report what the remaining suite proves and leaves out.
 
+The caps below are binding and count every executed case, including each
+parameterized row. At capacity, a new core test must replace an existing case
+or have an explicit owner-approved cap increase in the same PR. No temporary
+overflow or silent increase is permitted. For suite changes, the author records
+before/after counts and names the replaced cases or links the approval;
+independent review verifies them. The
+[11 October follow-up](../decisions.md#binding-caps-and-backup-authorisation)
+keeps the existing limits, including at most five real-app-login tenant cases.
+
 ## Commands
 
 Run commands from the repository root with workspace dependencies, backend
@@ -148,8 +157,10 @@ equivalence/adoption suite or blanket per-migration upgrade test is required.
 
 Historical sources remain in Git. Held product migrations rebase onto the fresh
 history. An older ledova.io database needs a rebuild; the
-[backup/export/rebuild/re-seed plan](../operations/upgrades.md#fresh-database-rebuild)
-requires owner approval before executing any part.
+[backup/inventory and rebuild plan](../operations/upgrades.md#fresh-database-rebuild)
+records the already-authorised backup and read-only database/private-storage
+inventory and reversible isolated validation. Live selective export and changes
+to the running deployment still require the owner's go-ahead.
 
 ## Documents against code
 

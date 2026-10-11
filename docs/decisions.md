@@ -646,9 +646,11 @@ history/share-total guards and issuance locks. Delete older-database baseline
 adoption. Package-owned migrations stay with their dependencies. Held product
 work, including #867, rebases onto the fresh migrations after this work lands.
 
-Do not touch ledova.io. Its database needs a rebuild for the fresh history.
-Prepare a short [backup/export/rebuild/re-seed plan](operations/upgrades.md#fresh-database-rebuild),
-and obtain the owner's approval before executing any part of it.
+At this initial checkpoint, ledova.io was left untouched and every part of its
+[backup/export/rebuild/re-seed plan](operations/upgrades.md#fresh-database-rebuild)
+needed owner approval. The later [follow-up below](#binding-caps-and-backup-authorisation)
+supersedes that blanket backup restriction; rebuilding for the fresh history
+still needs the owner's go-ahead.
 
 Deliver in at most three PRs, with short descriptions, independent review at the
 merging head and green CI. Targets are the whole PR run within **ten minutes on
@@ -687,6 +689,38 @@ its two groups to repository/public access. Preserve the reusable
 tooling, with private configuration and evidence kept outside Git. Future reuse
 requires a reviewed change and explicit host configuration; no Linux runner is
 activated by this decision. Local Mac preflight remains supported.
+
+## Binding caps and backup authorisation
+
+**Owner follow-up, 11 October 2026**, supplied directly in the active Codex
+session and recorded on [#977](https://github.com/Ledova/ledova/issues/977).
+
+The existing caps remain binding: backend 150, dashboard 20, mobile 10, shared
+10 and contracts 20 executed cases, with at most five real-app-login tenant
+cases. Count every parameterized row. At capacity, a new core test replaces an
+existing case or needs an explicit owner-approved cap increase in the same PR.
+The author records before/after counts and names the replaced cases or links the
+approval; independent review verifies them. No temporary overflow or silent cap
+increase is permitted. This adds no reporting framework or broader test mandate.
+
+The owner now authorises a ledova.io backup and read-only database/private-storage
+inventory. This supersedes the initial restriction above; that permission needs
+no repeat request. Access details and actual results belong to the separate
+operational task, with private evidence and no live identifiers or personal data
+in Git. Reversible isolated backup validation and mapping rehearsal may proceed
+with workers, signers and external integrations disabled; ordinary preparation
+needs no extra permission. This documentation records permission, not completed
+live or isolated work.
+
+Live selective-record export, stopping writers, rebuild, migrations, re-seeding,
+configuration and release still require the owner's go-ahead. Signer activation
+and real-funds use remain separate decisions.
+The [short rebuild plan](operations/upgrades.md#fresh-database-rebuild) preserves
+the original database/storage and matching release/configuration for recovery.
+A firm downtime estimate needs the actual database/storage inventory and sizes,
+owner-confirmed record mappings and a measured safe isolated rehearsal; no such
+estimate is available yet. Record selection is pending that inventory and the
+owner's decision, not a permission request for each preparation step.
 
 ## Backend migration baseline
 

@@ -36,7 +36,11 @@ when starting or resuming work, including after context compaction.
   capabilities distinct from current behaviour.
 - Keep only tests guarding the worst failures, under the
   [minimum-test policy](docs/development/testing.md): backend at most 150,
-  dashboard 20, mobile 10, shared 10 and contracts 20 executed cases. Keep at
+  dashboard 20, mobile 10, shared 10 and contracts 20 executed cases, counting
+  every parameterized row. These caps are binding: at capacity, a new core test
+  replaces an existing case or needs an explicit owner-approved cap increase
+  in the same PR. Record before/after counts and the replacement or approval;
+  independent review checks them. Never exceed a cap temporarily. Keep at
   most five real-app-login tenant tests and the Playwright smoke tests. Retire
   other tests and unused helpers/fixtures; historical or deferred features do
   not require coverage. No blanket regression or per-route cross-tenant matrix
@@ -50,6 +54,11 @@ when starting or resuming work, including after context compaction.
   required CI on a branch up to date with main. Do not push directly to main.
 
 The owner has authorised implementation, routine cleanup, and the repository's
-review-and-merge workflow without repeated permission requests. Any ledova.io
-backup, export, rebuild or re-seed requires the owner's approval before execution. Live deployment, live database migrations, signer activation
-and real-funds use require explicit direction under CONTRIBUTING.md.
+review-and-merge workflow without repeated permission requests. The
+[11 October follow-up](docs/decisions.md#binding-caps-and-backup-authorisation)
+already authorises a ledova.io backup and read-only database/private-storage
+inventory. Reversible isolated backup validation and mapping rehearsal may
+proceed with workers, signers and external integrations disabled. Live selective
+export, stopping writers, rebuild, migration, re-seeding, configuration and release
+still need the owner's go-ahead. Signer activation and real-funds use require explicit
+direction under CONTRIBUTING.md.

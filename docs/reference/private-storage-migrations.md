@@ -4,7 +4,10 @@
 
 Preserve private storage alongside database backups; a schema restore cannot
 restore deleted evidence. The [11 October fresh-database plan](../operations/upgrades.md#fresh-database-rebuild)
-requires owner approval before any ledova.io backup, export or rebuild.
+records the [already-authorised backup and read-only inventory](../decisions.md#binding-caps-and-backup-authorisation).
+Reversible isolated validation may proceed with workers, signers and external
+integrations disabled. Live selective export and rebuild steps still need the
+owner's go-ahead. Keep database/storage backups and raw inventory private.
 
 ## Moving existing files
 
