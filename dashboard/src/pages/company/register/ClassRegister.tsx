@@ -63,17 +63,20 @@ export function ClassRegister({ register, prepare = false }: { register: TokenHo
                   {holder.holderType === 'unidentified' && (
                     <p className="text-sm text-text-muted">{REGISTER_COPY.UNIDENTIFIED_NOTE}</p>
                   )}
-                  {holder.wallets.length === 0 ? (
-                    <p className="text-xs text-text-muted">{REGISTER_COPY.NO_WALLET}</p>
-                  ) : (
-                    <ul className="flex flex-col gap-1 text-xs text-text-muted">
-                      {holder.wallets.map((wallet) => (
-                        <li key={wallet.address} className="break-all">
-                          {wallet.address} · {wallet.whitelistStatus}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
+                  <details className="text-xs text-text-muted">
+                    <summary className="cursor-pointer py-1">Optional wallet links</summary>
+                    {holder.wallets.length === 0 ? (
+                      <p className="text-xs text-text-muted">{REGISTER_COPY.NO_WALLET}</p>
+                    ) : (
+                      <ul className="flex flex-col gap-1 text-xs text-text-muted">
+                        {holder.wallets.map((wallet) => (
+                          <li key={wallet.address} className="break-all">
+                            {wallet.address} · {wallet.whitelistStatus}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </details>
                   {prepare && (
                     <LinkRow
                       to={DESTINATIONS.companyRegisterParticulars.path.replace(':member', holder.member)}
@@ -86,10 +89,10 @@ export function ClassRegister({ register, prepare = false }: { register: TokenHo
             </ul>
           )}
           {!!register.formerMembers?.length && (
-            <div className="flex flex-col gap-3 border-t border-border-subtle pt-4">
-              <h3 className="text-sm font-medium text-text-primary">
+            <details className="space-y-3 border-t border-border-subtle pt-4">
+              <summary className="cursor-pointer text-sm font-medium text-text-primary">
                 {REGISTER_COPY.FORMER_TITLE} · {register.formerMembers.length}
-              </h3>
+              </summary>
               <p className="text-sm text-text-muted">{REGISTER_COPY.FORMER_NOTE}</p>
               {register.formerMembersStale && (
                 <p role="status" className="text-sm text-text-muted">
@@ -123,7 +126,7 @@ export function ClassRegister({ register, prepare = false }: { register: TokenHo
                   </li>
                 ))}
               </ul>
-            </div>
+            </details>
           )}
         </>
       )}

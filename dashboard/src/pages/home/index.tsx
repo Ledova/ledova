@@ -1,5 +1,5 @@
-import { DESTINATIONS, formatShareCount, getChainConfig, useOpenRows, useShareHoldings } from '@ledova/shared';
-import { Disclosure, LinkRow, Section } from '@components/Ledger';
+import { formatShareCount, getChainConfig, useOpenRows, useShareHoldings } from '@ledova/shared';
+import { Disclosure, Section } from '@components/Ledger';
 import { Page, PageAction } from '@components/Page';
 import { HoldingWork } from './components/HoldingWork';
 
@@ -8,13 +8,7 @@ export function HomePage() {
   const rows = useOpenRows();
 
   return (
-    <Page>
-      <Section title="Your member records">
-        <LinkRow to={DESTINATIONS.memberRecords.path} label="Read your company-recorded holdings and awards" />
-      </Section>
-      <Section title="Your company actions">
-        <LinkRow to={DESTINATIONS.companyEligibility.path} label="Read your company eligibility queue" />
-      </Section>
+    <Page lede="Wallet holdings and optional investing activity. Company-recorded shares are shown in My shares.">
       <Section title="Shares in your wallets">
         {isPending ? (
           <p role="status" className="py-3 text-sm text-text-muted">

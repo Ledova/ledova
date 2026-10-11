@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { WALLET_VERIFICATION_STATUS, getActiveChains, sortWallets, useWalletSort } from '@ledova/shared';
+import { DESTINATIONS, WALLET_VERIFICATION_STATUS, getActiveChains, sortWallets, useWalletSort } from '@ledova/shared';
 import type { Wallet as WalletType, DerivedAddress, HardwareWalletImport } from '@ledova/shared';
 import { Page, PageAction } from '@components/Page';
-import { Section } from '@components/Ledger';
+import { LinkRow, Section } from '@components/Ledger';
 import { WalletItem } from '@components/Wallet';
 import { useWallets } from './hooks/useWallets';
 import { WalletActions } from './components/WalletActions';
@@ -158,6 +158,7 @@ export function WalletsPage() {
         </>
       }
     >
+      <LinkRow to={DESTINATIONS.walletHoldings.path} label="View shares in your wallets" />
       {hasError ? (
         <div role="alert" className="space-y-3">
           <p className="text-sm text-text-muted">Your wallets could not be loaded. Try again before continuing.</p>

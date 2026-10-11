@@ -1,26 +1,37 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import {
+  getRegisterAwards,
   isRegisterEvidenceReceipt,
-  isUuid,
+  readEveryPage,
   uploadRegisterEvidence,
   useCompanyMemberAccess,
   type RegisterEvidence,
   type OrderSubmissionOwner,
+  type TokenHoldersResponse,
 } from '@ledova/shared';
 import { Section } from '@components/Ledger';
 import { PageAction } from '@components/Page';
 import { FIELD_CLASS } from '@components/fieldClass';
 import apiClient from '@services/apiClient';
+import { invitationMembers } from './invitationMembers';
+import { READ_TIMING, registerKey } from './useCompanyRegister';
 import { particularsKey } from './useRegisterParticulars';
 
 export function CompanyMemberAccess({
   company,
   owner,
+  guard,
+  registers,
   sourceReady = true,
+  onHeldChange,
 }: {
   company: string;
   owner: OrderSubmissionOwner;
+  guard: () => void;
+  registers: TokenHoldersResponse[];
   sourceReady?: boolean;
+  onHeldChange?: (held: boolean) => void;
 }) {
   const access = useCompanyMemberAccess(
     apiClient,
@@ -30,8 +41,45 @@ export function CompanyMemberAccess({
     sourceReady,
     particularsKey(owner, company),
   );
-  const [member, setMember] = useState('');
-  const [email, setEmail] = useState('');
+  const guardRecipients = () => {
+    guard();
+    access.guardPrepare();
+  };
+  const awards = useQuery({
+    queryKey: [...registerKey(owner), 'invitation-awards', company],
+    enabled: !!access.admin && !!access.prepare && sourceReady,
+    queryFn: () =>
+      readEveryPage(async (page) => {
+        guardRecipients();
+        const response = await getRegisterAwards(
+          apiClient,
+          { company, page },
+          { ledovaSubmissionGuard: guardRecipients },
+        );
+        guardRecipients();
+        return response;
+      }),
+    ...READ_TIMING,
+  });
+  let candidates = [] as ReturnType<typeof invitationMembers>;
+  let recipientsError = '';
+  if (access.admin && sourceReady && awards.isSuccess && !awards.isFetching) {
+    try {
+      candidates = invitationMembers(registers, awards.data, company);
+    } catch (failure) {
+      recipientsError = failure instanceof Error ? failure.message : 'The company recipients could not be confirmed.';
+    }
+  }
+  const recipientsReady = !!access.admin && sourceReady && awards.isSuccess && !awards.isFetching && !recipientsError;
+  const [invitation, setInvitation] = useState({ company, member: '', email: '' });
+  const member = invitation.company === company ? candidates.find(({ uuid }) => uuid === invitation.member) : undefined;
+  const email = invitation.company === company ? invitation.email : '';
+  const memberName = (uuid: string) =>
+    candidates.find((candidate) => candidate.uuid === uuid)?.name ||
+    registers.flatMap((register) => register.holders).find((holder) => holder.member === uuid)?.name ||
+    'Company member';
+  if (invitation.company !== company || (recipientsReady && invitation.member && !member))
+    setInvitation({ company, member: '', email: '' });
   const [reason, setReason] = useState('');
   const [request, setRequest] = useState('');
   const [certificateInstruction, setCertificateInstruction] = useState('');
@@ -43,6 +91,14 @@ export function CompanyMemberAccess({
     null,
   );
   const held = access.busy || uploading || !!access.retry;
+  useEffect(() => {
+    onHeldChange?.(held);
+    return () => onHeldChange?.(false);
+  }, [held, onHeldChange]);
+  const refresh = async () => {
+    await access.refresh();
+    await awards.refetch();
+  };
   const prepare = async () => {
     if (!file || !access.prepare || uploading) return;
     setUploading(true);
@@ -83,11 +139,7 @@ export function CompanyMemberAccess({
         A current company administrator invites one exact member to their own records. This creates no company
         appointment, holding or wallet link. Share the code privately; Ledova does not email it.
       </p>
-      <PageAction
-        label="Refresh member access"
-        disabled={access.busy || uploading}
-        onClick={() => void access.refresh()}
-      />
+      <PageAction label="Refresh member access" disabled={access.busy || uploading} onClick={() => void refresh()} />
       {access.error && (
         <p role="alert" className="text-sm text-error-light">
           {access.error}
@@ -108,17 +160,45 @@ export function CompanyMemberAccess({
       {access.admin && (
         <>
           <label className="block space-y-1 text-sm">
-            Member UUID
-            <input
+            Member or award recipient
+            <select
               className={FIELD_CLASS}
-              value={member}
-              disabled={held}
-              onChange={(event) => setMember(event.target.value)}
-            />
+              value={member?.uuid ?? ''}
+              disabled={held || !recipientsReady}
+              onChange={(event) => setInvitation({ company, member: event.target.value, email })}
+            >
+              <option value="">Select a member</option>
+              {candidates.map((candidate) => (
+                <option key={candidate.uuid} value={candidate.uuid}>
+                  {candidate.name} · {candidate.classes.join(', ')} · {candidate.sources.join(', ')}
+                  {candidates.some((other) => other.uuid !== candidate.uuid && other.name === candidate.name)
+                    ? ` · ${candidate.uuid.slice(0, 8)}`
+                    : ''}
+                </option>
+              ))}
+            </select>
           </label>
+          {awards.isPending && (
+            <p role="status" className="text-sm text-text-muted">
+              Loading company recipients…
+            </p>
+          )}
+          {(awards.isError || recipientsError) && (
+            <p role="alert" className="text-sm text-error-light">
+              {recipientsError || 'The company recipients could not be loaded. Refresh before inviting a member.'}
+            </p>
+          )}
+          {recipientsReady && candidates.length === 0 && (
+            <p className="text-sm text-text-muted">Record a member or employee award before inviting its recipient.</p>
+          )}
+          {member && (
+            <details className="text-sm text-text-muted">
+              <summary>Selected member record</summary>
+              <p className="break-all">{member.uuid}</p>
+            </details>
+          )}
           <p className="text-sm text-text-muted">
-            Use the member UUID recorded in this company&apos;s Register or employee award; an award-only recipient
-            needs no holding.
+            An award recipient can view their own award before any shares are issued.
           </p>
           <label className="block space-y-1 text-sm">
             Intended recipient email
@@ -127,13 +207,13 @@ export function CompanyMemberAccess({
               type="email"
               value={email}
               disabled={held}
-              onChange={(event) => setEmail(event.target.value)}
+              onChange={(event) => setInvitation({ company, member: member?.uuid ?? '', email: event.target.value })}
             />
           </label>
           <PageAction
             label="Create member invitation"
-            disabled={held || !isUuid(member) || !email.trim()}
-            onClick={() => void access.invite(member, email.trim())}
+            disabled={held || !recipientsReady || !member || !email.trim()}
+            onClick={() => member && void access.invite(member.uuid, email.trim())}
           />
           {access.code && (
             <label className="block space-y-1 text-sm">
@@ -141,11 +221,18 @@ export function CompanyMemberAccess({
               <input className={FIELD_CLASS} readOnly autoComplete="off" value={access.code} />
             </label>
           )}
-          {access.access?.invitations.map((invitation) => (
-            <p key={invitation.uuid} className="text-sm">
-              Invitation {invitation.uuid} · Member {invitation.member} · {invitation.intendedEmail} ·{' '}
-              {invitation.status} · Until {invitation.acceptanceDeadline}
-            </p>
+          {access.access?.invitations.map((item) => (
+            <div key={item.uuid} className="space-y-1 text-sm">
+              <p>
+                {memberName(item.member)} · {item.intendedEmail} · {item.status} · Until {item.acceptanceDeadline}
+              </p>
+              <details className="text-text-muted">
+                <summary>Invitation record</summary>
+                <p className="break-all">
+                  Invitation {item.uuid} · Member {item.member}
+                </p>
+              </details>
+            </div>
           ))}
           <label className="block space-y-1 text-sm">
             Company action reason
@@ -159,12 +246,17 @@ export function CompanyMemberAccess({
           {access.access?.associations.map((association) => (
             <div key={association.uuid} className="space-y-2 py-2">
               <p className="text-sm">
-                Member {association.member} · Account {association.userAccount} ·{' '}
-                {association.current ? 'Current access' : 'Revoked access'}
+                {memberName(association.member)} · {association.current ? 'Current access' : 'Revoked access'}
               </p>
+              <details className="text-sm text-text-muted">
+                <summary>Access record</summary>
+                <p className="break-all">
+                  Member {association.member} · Account {association.userAccount} · Access {association.uuid}
+                </p>
+              </details>
               {association.current && (
                 <PageAction
-                  label={`Revoke member access ${association.uuid}`}
+                  label={`Revoke access for ${memberName(association.member)}`}
                   disabled={held || !reason.trim()}
                   onClick={() => void access.revoke(association.uuid, reason.trim())}
                 />
@@ -182,12 +274,18 @@ export function CompanyMemberAccess({
           {access.requests.particulars.map((item) => (
             <div key={item.uuid} className="space-y-2 py-2">
               <p className="text-sm">
-                Member {item.member} · {item.name} · {item.residentialAddress} · {item.status}
-                {item.change ? ` · Company instruction ${item.change}` : ''}
+                {item.name} · {item.residentialAddress} · {item.status}
               </p>
+              <details className="text-sm text-text-muted">
+                <summary>Particulars request record</summary>
+                <p className="break-all">
+                  Request {item.uuid} · Member {item.member}
+                  {item.change ? ` · Company instruction ${item.change}` : ''}
+                </p>
+              </details>
               {item.status === 'submitted' && access.prepare && (
                 <PageAction
-                  label={`Prepare member particulars request ${item.uuid}`}
+                  label={`Prepare particulars update for ${item.name}`}
                   disabled={held}
                   onClick={() => setRequest(item.uuid)}
                 />
@@ -197,7 +295,10 @@ export function CompanyMemberAccess({
           {access.requests.particulars.some((item) => item.uuid === request && item.status === 'submitted') &&
             access.prepare && (
               <div className="space-y-3">
-                <p className="text-sm">Selected member request {request}</p>
+                <p className="text-sm">
+                  Prepare {access.requests.particulars.find((item) => item.uuid === request)?.name}&apos;s particulars
+                  update
+                </p>
                 <label className="block space-y-1 text-sm">
                   Company supporting document
                   <input
@@ -261,7 +362,7 @@ export function CompanyMemberAccess({
           {access.certificateTarget && (
             <div className="space-y-2">
               <p>
-                Recipient member {access.certificateTarget.preview.member} · Entry{' '}
+                {memberName(access.certificateTarget.preview.member)} · Entry{' '}
                 {access.certificateTarget.preview.sequence} · Register sequence{' '}
                 {access.certificateTarget.preview.registerSequence}
               </p>
@@ -276,17 +377,23 @@ export function CompanyMemberAccess({
           {access.requests.certificates.map((item) => (
             <div key={item.uuid} className="space-y-2">
               <p className="text-sm">
-                Certificate request {item.uuid} · Member {item.member} · Entry {item.entry} · {item.status}
+                {memberName(item.member)} · Certificate {item.status}
               </p>
-              {item.fulfilment && (
-                <p className="text-sm">
-                  Unsigned PDF {item.fulfilment.uuid} · SHA-256 {item.fulfilment.digest} · {item.fulfilment.fileSize}{' '}
-                  bytes
+              <details className="text-sm text-text-muted">
+                <summary>Certificate request record</summary>
+                <p className="break-all">
+                  Request {item.uuid} · Member {item.member} · Entry {item.entry}
                 </p>
-              )}
+                {item.fulfilment && (
+                  <p className="break-all">
+                    Unsigned PDF {item.fulfilment.uuid} · SHA-256 {item.fulfilment.digest} · {item.fulfilment.fileSize}{' '}
+                    bytes
+                  </p>
+                )}
+              </details>
               {item.status === 'requested' && (
                 <PageAction
-                  label={`Preview recipient certificate ${item.uuid}`}
+                  label={`Preview certificate for ${memberName(item.member)}`}
                   disabled={held || !!access.certificateTarget || !certificateInstruction.trim()}
                   onClick={() => void access.previewCertificate(item.uuid, certificateInstruction.trim())}
                 />

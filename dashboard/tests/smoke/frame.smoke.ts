@@ -34,11 +34,12 @@ async function serveASignedInAccount(page: Page, role: Role) {
 async function openTheSidebar(page: Page, role: Role) {
   await serveASignedInAccount(page, role);
   await page.goto('/home');
-  await expect(page.getByRole('heading', { level: 1, name: 'Holdings' })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: 'My shares' })).toBeVisible();
   if (page.viewportSize()!.width < 1024) await page.getByRole('button', { name: 'Open navigation' }).click();
   const aside = page.locator('aside').filter({ visible: true });
   await expect(aside).toHaveCount(1);
   await expect(aside.getByRole('button', { name: 'Sign out' })).toBeInViewport();
+  await aside.locator('summary').filter({ hasText: 'More' }).click();
   await expect(aside.getByRole('button', { name: 'Company', exact: true })).toBeVisible();
   await expect(aside.getByText(LONG_NAME)).toHaveCount(0);
   if (role !== 'company') await expect(aside.getByText('Invest', { exact: true })).toBeVisible();
@@ -75,7 +76,7 @@ test.describe('the signed-in sidebar when its list is longer than the screen', (
       viewport: { width: 390, height: 600 },
       roles: ['investor', 'company', 'both'] as Role[],
     },
-    { name: 'the desktop sidebar', viewport: { width: 1440, height: 900 }, roles: ['both'] as Role[] },
+    { name: 'the desktop sidebar', viewport: { width: 1440, height: 600 }, roles: ['both'] as Role[] },
   ];
 
   for (const layout of layouts) {

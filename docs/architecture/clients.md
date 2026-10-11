@@ -50,7 +50,8 @@ pages included. The audience is `everyone`, `investing` or `company`, and
 `canOpen(role, audience)` says who may open it: an investor opens the pages for
 everyone and for investing, a company those for everyone and for companies, and
 a dual-role account all of them. A role outside the API's list opens only the
-pages for everyone, on both clients, and lands on Holdings. Every signed-in
+pages for everyone. The web lands on My shares; mobile retains Holdings until
+its signed-in journey increment. Every signed-in
 route is guarded by `ProtectedRoute` with its entry's audience. A signed-out
 visitor goes to sign in. Email verification issues a full session before
 sign-up is finished, so a signed-in account whose profile does not say
@@ -61,24 +62,26 @@ a guess. A signed-in person who cannot open the page goes to `landingFor(role)`,
 which replaces the refused address. Every page shows the session check until
 the profile is known, and an investing or company page until the role is known
 as well, so no page appears on the way. Once the role is known, the sidebar
-offers only pages the role can open, in groups:
+offers only pages the role can open. On the web, readable register access supplies
+four company destinations: Register, Employee awards, Documents and Company.
+The account audience alone does not establish this workspace. Every account has
+My shares, Profile and Settings. More holds Notices, Activity, Wallets, permitted
+investing routes and Offerings; a person without register access reaches company
+setup through Company there. The native drawer retains its earlier groups until
+[#1006](https://github.com/Ledova/ledova/issues/1006).
 
-- a company's own group first, labelled Company, with Register, Offerings and
-  Company;
-- _Your shares_ for every account;
-- _Invest_ for an investing account, with Market only while trading is on;
-- then Wallets, Profile and Settings.
-
-Each item takes its name and address from its entry in `DESTINATIONS`, so a
-menu label always matches the page's title. Activity keeps the `/transactions`
-address. Holdings replaces the crypto home at the existing `/home` address.
-Notices at `/publications` lists documents, resolutions and dividends addressed
-to the person. Accounts without the company role reach Register from Settings
-on the web and the drawer on mobile once they hold register access through a
-current appointment.
+Web My shares at `/home` reads the person's associated member holdings and
+awards without a wallet. `/member-records` remains an alias. Wallet shares move
+to `/wallets/holdings`, linked from Wallets. Employee awards and Documents use
+`/company/register#awards` and `#documents`; these switch the visible section
+without unmounting register forms or their original-request recovery. A failed
+source read still withholds stale records and actions. Page-specific titles
+reflect these web views; mobile still consumes the shared destination titles.
+Activity keeps `/transactions`, and Notices keeps `/publications`.
 
 `landingFor(role)` decides where a signed-in person lands: an investing account
-on Holdings, and a company or dual-role account on Register. The front door,
+on `/home` (My shares on web, Holdings on mobile), and a company or dual-role
+account on Register. The front door,
 sign-in, the end of sign-up, the signed-out pages and the trading fallback all
 use it; the front door and the signed-out pages wait for the role before
 choosing, and the trading fallback runs behind the guard, which has already
@@ -139,9 +142,15 @@ register to show. It reads the share classes the person may read, as the
 company owner or through a current appointment holding administration or a
 register capability, groups them by company and, where the person can read
 more than one company, reads only the selected company's stored registers:
-current members, linked wallets, exact issued and authorised shares, the
-register CSV download and the inspection-copy preparation, with unopened
-registers and unknown or positive waiting-effect counts stated. Each class then
+current members, linked wallets, exact issued and authorised shares, with unopened
+registers and unknown or positive waiting-effect counts stated. On web,
+ownership appears first, followed by external allotments and their actual pending
+decisions. Employee awards and non-paid issues have their own destination;
+Documents holds register CSV, inspection copies and the company pack. Member
+invitations use named company members or award recipients with exact IDs retained
+internally. Invitations, particulars, wallet links, other changes and technical
+history sit in secondary disclosures, which preserve their mounted recovery state.
+Mobile retains the combined Register until #1006. Each class then
 lists its register entries, newest first a page at a time with Load more (an
 entry a later page repeats is listed once, a page with a share change that is
 not whole fails, and an entry's corrected or reversing entry reads as not
@@ -257,7 +266,7 @@ and in the mobile app, reading the selected owned company's publications with
 [shareholder publications](shareholder-publications.md#in-the-members-everyday-views)
 describes it and **Notices**.
 
-**Holdings** reads every page of the person's wallets and lists their
+**Wallet shares** on web (Holdings on mobile) reads every page of the person's wallets and lists their
 tokenised security holdings by company and class, one row per asset across
 chains, using the API's current class and company names where available and
 the asset's combined name otherwise, so a missing class lookup never removes a
@@ -270,12 +279,12 @@ transfer; _Recently published to you_ lists the three latest notices, each
 with its company, kind, date and until when its vote is open. These are
 personal reads, and only a known investing role reads the applicant-filtered
 application list. Actions open the application detail or Notices; nothing
-submits, pays or votes from Holdings.
+submits, pays or votes from this wallet view.
 
 **Verification** shows the person's eligibility sources and complete claim
 history in a cache of its own, and **Your company eligibility** (**Eligibility
 requests** on mobile) lets them request a decision from one company or an
-approved offering; **Company eligibility**, reachable from Holdings and
+approved offering; **Company eligibility**, reachable from Company and
 Company team, lets a current company approver read the queue and accept,
 refuse or revoke
 ([company eligibility](../plans/company-managed-registers/company-eligibility.md)),

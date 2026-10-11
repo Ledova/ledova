@@ -32,7 +32,8 @@ import SettingsPage from '@pages/settings';
 import { TradingRoute } from './TradingRoute';
 
 export const PAGES: Record<DestinationKey, ReactElement> = {
-  home: <HomePage />,
+  home: <MemberRecordsPage />,
+  walletHoldings: <HomePage />,
   memberRecords: <MemberRecordsPage />,
   wallets: <WalletsPage />,
   transactions: <TransactionsPage />,
