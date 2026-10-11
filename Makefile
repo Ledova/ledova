@@ -23,7 +23,6 @@ CLIENT_OPERATIONS_REPORT ?= /tmp/ledova-client-operations.json
 # stack's chain (`make dev-up`) publishes 8545 too, so pick another port while the stack is up.
 CHAIN_TEST_PORT ?= 8545
 CHAIN_TEST_RPC_URL ?= http://127.0.0.1:$(CHAIN_TEST_PORT)
-CHAIN_TEST_ENV_FILE ?= $(CURDIR)/.deployed-contracts.env
 CHAIN_TEST_LOG_FILE ?= $(CURDIR)/.hardhat-node.log
 # Hardhat account #0: a public development key that only ever holds local test ether.
 CHAIN_TEST_OPERATOR_KEY ?= 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
@@ -73,7 +72,7 @@ help:
 	@echo "  make docker-prune             Remove dangling images, unused unnamed volumes and build cache machine-wide (asks first)"
 	@echo "  make contracts-deploy-local   Deploy example contracts to a local Hardhat node"
 	@echo "  make contracts-deploy-testnet Deploy contracts to configured testnet only"
-	@echo "  make chain-test               Start a Hardhat node, deploy the core contracts, run the real-chain backend test"
+	@echo "  make chain-test               Run one manual register smoke on an owned local Hardhat node"
 
 install:
 	$(NPM) ci
@@ -258,15 +257,9 @@ chain-test:
 	if [ "$$ready" != 1 ]; then \
 		echo "Hardhat node did not answer on $(CHAIN_TEST_RPC_URL) within 60s; see $(CHAIN_TEST_LOG_FILE)" >&2; exit 1; \
 	fi; \
-	LOCALHOST_RPC_URL=$(CHAIN_TEST_RPC_URL) LEDOVA_DEPLOY_ENV_FILE="$(CHAIN_TEST_ENV_FILE)" $(NPM) --prefix contracts run deploy:local:core; \
-	set -a; . "$(CHAIN_TEST_ENV_FILE)"; set +a; \
 	cd backend && \
-	for test_labels in \
-	    "tokens.tests.test_chain_integration" \
-	    "offerings.tests.test_chain_allotment wallets.tests.test_submission_chain tokens.tests.test_chain_journey shared.tests.test_seed_chain tokens.tests.test_company_pack_chain.SyntheticCompanyCapitalChainTest tokens.tests.test_company_pack_chain.SyntheticCompanyPauseChainTest tokens.tests.test_company_paid_issue_chain"; do \
 	CHAIN_TEST_RPC_URL=$(CHAIN_TEST_RPC_URL) BLOCKCHAIN_RPC_URL=$(CHAIN_TEST_RPC_URL) \
-	BLOCKCHAIN_OPERATOR_KEY=$(CHAIN_TEST_OPERATOR_KEY) SECRET_KEY=chain-test STORAGE_BACKEND=local \
-	$(PYTHON) manage.py test $$test_labels --settings=ledova_backend.settings.test --noinput; \
-	done
+	POSTGRES_DB=chain_smoke BLOCKCHAIN_OPERATOR_KEY=$(CHAIN_TEST_OPERATOR_KEY) SECRET_KEY=chain-test STORAGE_BACKEND=local \
+	$(PYTHON) manage.py test tokens.tests.chain_smoke.ManualChainSmokeTest --settings=ledova_backend.settings.test --noinput
 
 .DEFAULT_GOAL := help

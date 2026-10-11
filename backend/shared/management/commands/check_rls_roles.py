@@ -20,7 +20,7 @@ WHERE n.nspname = 'public' AND c.relkind = 'r'
 
 CANNOT_AUTHENTICATE = (
     "{alias} cannot connect as {user}: {error}"
-    "\n    shared/0003 creates that role with LOGIN and no password, on purpose - a credential does "
+    "\n    Fresh database setup creates that role with LOGIN and no password, on purpose - a credential does "
     "not belong in a migration - so the server has to be one that admits it."
     "\n    A cluster initialised without POSTGRES_HOST_AUTH_METHOD=trust uses scram-sha-256 over "
     "anything but loopback, and refuses every passwordless role."

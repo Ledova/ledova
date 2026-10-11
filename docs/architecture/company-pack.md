@@ -1,5 +1,9 @@
 # Company pack
 
+Test links on this page point to the 10 October source as historical evidence.
+The owner's [11 October policy](https://github.com/Ledova/ledova/issues/943#issuecomment-6103674410)
+retires those broad tests; current automated coverage is the small core suite.
+
 [Architecture](README.md) · [Register of members](register.md)
 
 The company pack is the one archive in which a company's records leave Ledova:
@@ -138,7 +142,7 @@ It turns control characters and line breaks into spaces, trims the ends, and
 backslash-escapes the characters Markdown or HTML would read as structure, so a
 value cannot add a heading, a table column, a link or a tag. Values Ledova
 produces itself (ids, hashes, addresses, counts, times and status codes) are left
-as they are. [test_company_pack_readme.py](../../backend/tokens/tests/test_company_pack_readme.py)
+as they are. [test_company_pack_readme.py](https://github.com/Ledova/ledova/blob/5f40e3cd896afc3f3a55a14e359224156735a417/backend/tokens/tests/test_company_pack_readme.py)
 parses the template and fails on any interpolation that is neither filtered nor
 on its list of Ledova's own values. The JSON files and `register.csv` carry every
 value as stored.
@@ -512,7 +516,7 @@ Ballots, roll account ids and publication readers have theirs, described under
 [the consumer test](#the-consumer-test).
 
 Stored files have a test of their own in
-[test_company_pack_documents.py](../../backend/tokens/tests/test_company_pack_documents.py).
+[test_company_pack_documents.py](https://github.com/Ledova/ledova/blob/5f40e3cd896afc3f3a55a14e359224156735a417/backend/tokens/tests/test_company_pack_documents.py).
 It adds classification evidence and payslips, unattached and attached, so that
 files are stored under both `users/` and `documents/`, and records every name
 private storage is asked to open or size while the pack is produced. Those
@@ -529,7 +533,7 @@ contracts."
 
 ## The consumer test
 
-[test_company_pack.py](../../backend/tokens/tests/test_company_pack.py) builds a
+[test_company_pack.py](https://github.com/Ledova/ledova/blob/5f40e3cd896afc3f3a55a14e359224156735a417/backend/tokens/tests/test_company_pack.py) builds a
 synthetic company with two share classes: an opening; an issue of a paid
 subscription under an applied register instruction; one subscription paid and
 one part-paid, neither allotted, beside a draft that must stay out; a transfer whose operation
@@ -543,7 +547,7 @@ company document, or for the correction and the wallet link the company's own
 `authority` upload. It
 produces the pack
 through the admin page and gives it to
-[company_pack_consumer.py](../../backend/tokens/tests/company_pack_consumer.py),
+[company_pack_consumer.py](https://github.com/Ledova/ledova/blob/5f40e3cd896afc3f3a55a14e359224156735a417/backend/tokens/tests/company_pack_consumer.py),
 run as `python -I -S company_pack_consumer.py pack.zip` in a subprocess with an
 empty environment and a temporary working directory. `-S` leaves out
 site-packages, so Django, psycopg and web3 cannot be imported, and `-I` ignores
@@ -605,7 +609,7 @@ None of these is an on-chain fact. The consumer cannot check a signature or a
 receipt, because `hashlib`'s SHA3 is not Ethereum's Keccak and it has no
 secp256k1: it checks that the pack is internally consistent and well-formed.
 
-[test_company_pack_documents.py](../../backend/tokens/tests/test_company_pack_documents.py)
+[test_company_pack_documents.py](https://github.com/Ledova/ledova/blob/5f40e3cd896afc3f3a55a14e359224156735a417/backend/tokens/tests/test_company_pack_documents.py)
 adds an opening, prepared on a third, unopened class from the company's own
 authority upload, an import prepared from the company's own uploads and an
 applied particulars change, so that every kind of record with evidence retains a
@@ -643,7 +647,7 @@ node, leaves it uninstructed, and finds it in `waiting.json` with its reason and
 counted in the README; the synthetic company above has no opening boundary, so
 its lists are `null`.
 
-[test_company_pack_chain.py](../../backend/tokens/tests/test_company_pack_chain.py)
+[test_company_pack_chain.py](https://github.com/Ledova/ledova/blob/5f40e3cd896afc3f3a55a14e359224156735a417/backend/tokens/tests/test_company_pack_chain.py)
 builds the chain evidence through the real services against the fake nodes the
 services' own tests use: a settlement executed and finalized, an issue executed
 and finalized, a capital increase whose first attempt reverted and whose retry
@@ -659,7 +663,7 @@ control that each pack carries all of its own. An opening applied against a
 captured boundary is carried with it, and the consumer refuses a changed
 holding, a changed date, an unmapped holder and a missing boundary.
 
-[test_company_pack_publications.py](../../backend/tokens/tests/test_company_pack_publications.py)
+[test_company_pack_publications.py](https://github.com/Ledova/ledova/blob/5f40e3cd896afc3f3a55a14e359224156735a417/backend/tokens/tests/test_company_pack_publications.py)
 builds a company with three members through the publication services: a
 holding statement; an ordinary resolution with a ballot for, a ballot against
 and a staff-entered abstention, read by two members and the company, then
