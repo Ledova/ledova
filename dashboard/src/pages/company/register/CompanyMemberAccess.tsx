@@ -5,14 +5,31 @@ import {
   uploadRegisterEvidence,
   useCompanyMemberAccess,
   type RegisterEvidence,
+  type OrderSubmissionOwner,
 } from '@ledova/shared';
 import { Section } from '@components/Ledger';
 import { PageAction } from '@components/Page';
 import { FIELD_CLASS } from '@components/fieldClass';
 import apiClient from '@services/apiClient';
+import { particularsKey } from './useRegisterParticulars';
 
-export function CompanyMemberAccess({ company, sourceReady = true }: { company: string; sourceReady?: boolean }) {
-  const access = useCompanyMemberAccess(apiClient, company, () => crypto.randomUUID(), undefined, sourceReady);
+export function CompanyMemberAccess({
+  company,
+  owner,
+  sourceReady = true,
+}: {
+  company: string;
+  owner: OrderSubmissionOwner;
+  sourceReady?: boolean;
+}) {
+  const access = useCompanyMemberAccess(
+    apiClient,
+    company,
+    () => crypto.randomUUID(),
+    undefined,
+    sourceReady,
+    particularsKey(owner, company),
+  );
   const [member, setMember] = useState('');
   const [email, setEmail] = useState('');
   const [reason, setReason] = useState('');

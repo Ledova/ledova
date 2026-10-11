@@ -15,7 +15,7 @@ import { PageAction } from '@components/Page';
 import { AllotmentForm } from './AllotmentForm';
 import { AllotmentRecord } from './AllotmentRecord';
 import { useOwnAppointments } from './useRegisterImports';
-import { useTransferMembers } from './useRegisterTransfers';
+import { transferMembersKey, useTransferMembers } from './useRegisterTransfers';
 import { allotmentsKey, useRegisterAllotments } from './useRegisterAllotments';
 
 export function ClassAllotments({
@@ -89,6 +89,7 @@ export function ClassAllotments({
     await Promise.all([
       client.invalidateQueries({ queryKey: [...registerKey(owner), 'holders'] }),
       client.invalidateQueries({ queryKey: entriesKey(owner, token) }),
+      client.invalidateQueries({ queryKey: transferMembersKey(owner, token) }),
     ]);
   };
   return (

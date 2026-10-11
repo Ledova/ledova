@@ -157,6 +157,7 @@ function CompanyRegister({ epoch }: { epoch: number }) {
           />
           <CompanyMemberAccess
             key={`members/${epoch}/${company.uuid}`}
+            epoch={epoch}
             company={company.uuid}
             sourceReady={sourceReady}
           />
