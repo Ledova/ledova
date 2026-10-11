@@ -245,7 +245,10 @@ it('invites and associates a walletless member, recovers one exact request and r
   await screen.findByRole('button', { name: 'Retry original member action' });
   expect(screen.getByLabelText('Requested name')).toBeDisabled();
   await fireEvent.press(screen.getByRole('button', { name: 'Retry original member action' }));
-  await waitFor(() => expect(screen.queryByRole('button', { name: 'Retry original member action' })).toBeNull());
+  await waitFor(() => {
+    expect(screen.queryByRole('button', { name: 'Retry original member action' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Read own entries for Ordinary' })).toBeEnabled();
+  });
   const commands = api.post.mock.calls.filter(([url]) => url === URLS.MEMBER_PARTICULARS_REQUESTS);
   expect(commands).toHaveLength(2);
   expect(commands[0][1]).toEqual(commands[1][1]);
