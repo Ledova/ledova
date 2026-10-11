@@ -43,14 +43,12 @@ submitting for App Review; an unused local build number is not reserved at Apple
 Use an Xcode release accepted by App Store Connect. Since April 28, 2026,
 [Apple requires the iOS 26 SDK or later](https://developer.apple.com/news/?id=ueeok6yw).
 This requirement is separate from the app's minimum supported iOS version and
-the simulator CI toolchain. Xcode 27 refuses pod targets below iOS 15.0, and
-iOS 27 stops an app built with its SDK unless it adopts the UIKit scene life
-cycle; [mobile builds](mobile-builds.md) describes how the config plugin
-handles both and why a link that opens the closed app does not reach
-JavaScript. Before uploading, launch the same commit on iOS 27: build it in
-Release for an iOS 27 simulator and open it to the sign-in screen, or install
-the archive on an iOS 27 device. An earlier iOS does not enforce the scene life
-cycle, so a device on iOS 18 does not cover this check.
+the simulator CI toolchain. [Mobile builds](mobile-builds.md) describes how the
+config plugins satisfy Xcode 27's deployment-target and iOS 27's scene
+life-cycle requirements. Before uploading, launch the same commit on iOS 27:
+build it in Release for an iOS 27 simulator and open it to the sign-in screen,
+or install the archive on an iOS 27 device. An earlier iOS does not enforce the
+scene life cycle, so a device on iOS 18 does not cover this check.
 
 After installing the locked dependencies described in [mobile builds](mobile-builds.md),
 run from `mobile/` with the release environment already set:
@@ -91,13 +89,11 @@ Record the source commit, build, phone and results under the
 Then upload the validated archive for internal TestFlight testing. Uploading a
 build is separate from submitting it to App Review or releasing it publicly.
 
-The backend must be reachable by the intended testers. An owner-IP-only API will
-not work for Apple reviewers or testers on another network. Plan that access
-deliberately, with working demo accounts and accurate review notes; do not turn
-off access controls just to make a review connection succeed. Account recovery,
-email, privacy disclosures, permissions, encryption declarations and any offered
-push notifications need release-specific validation. A successful archive does
-not complete these checks or establish store approval.
+The backend must be reachable by the intended testers and by Apple's reviewers;
+plan that access deliberately rather than turning off access controls. Account
+recovery, email, privacy disclosures, permissions and encryption declarations
+need release-specific validation under the same checklist. A successful archive
+does not complete these checks or establish store approval.
 
 Next: [native probes and device checks](native-probes.md) and
 [Apple's distribution guide](https://developer.apple.com/documentation/xcode/distributing-your-app-for-beta-testing-and-releases).

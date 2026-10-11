@@ -2,21 +2,18 @@
 
 [Legal and regulatory](README.md) · [Company-hosted instance](company-hosted-instance.md) · [Positions](positions.md) · [Regulatory pathway](../regulatory-pathway.md)
 
-**Historical analysis B, first written 15 September 2026.** The
-[3 October 2026 one-product decision](../architecture/company-managed-registers.md)
-and the [4 October 2026 minimal-involvement decision](../decisions.md#company-representative-verification)
-postdate the readings on this page, which have not been reconfirmed against
-the current company-managed workflows. Neither product decision establishes a
-legal conclusion.
+**Historical analysis B, first written 15 September 2026.** See the
+[folder note](README.md) on the product decisions that postdate it.
 
 The earlier scenario studied here has one operator hosting the platform and
 keeping the share registers of many private companies, making each entry on
 the written instruction of that company's authorised officers with a director's
-approval recorded beside it. The current software implements staff-operated
-workflows. Its legacy registry setting is the default, but does not enforce the
-whole clerk-only service proposal below. [Retired by `operators/0002` on
-3 October 2026; see
-[one registry product](../operations/upgrades.md#one-registry-product).]
+approval recorded beside it. When this was written the software ran
+staff-operated workflows under a `registry` setting that did not enforce the
+clerk-only proposal below; the setting was retired on 3 October 2026
+([one product](../decisions.md#company-managed-registers-and-one-product)) and
+routine register work now runs under company appointments
+([implementation index](../plans/company-managed-registers/README.md)).
 
 This page is the project's reading of primary sources and regulator guidance,
 not advice; the [positions](positions.md) it rests on are numbered where they
@@ -105,14 +102,11 @@ service. This model is the second line.
 
 ## Getting an operator to market
 
-This sequence belongs to the earlier clerk-only service assumption. It is not
-the implementation sequence for company-managed registers; use the accepted
-[plan](../architecture/company-managed-registers.md) and the
-[regulatory pathway](../regulatory-pathway.md) to assess the actual workflows.
-
-On the positions as drafted, a clerk-only service does not need the financial
-services permissions discussed below while it stays within that boundary. The
-operator must still meet the [live-operation conditions](../regulatory-pathway.md).
+This sequence belongs to the earlier clerk-only service assumption, not to the
+company-managed registers of the accepted [plan](../architecture/company-managed-registers.md).
+On the positions as drafted, a clerk-only service needs none of the financial
+services permissions below while it stays within that boundary, but must still
+meet the [live-operation conditions](../regulatory-pathway.md).
 
 1. **Choose the operating entity.** Every contract, privacy obligation,
    enrolment and licence attaches to it.
@@ -164,35 +158,26 @@ default.
 - Opening a transfer board before it is registered.
 - Treating the ledger as the register without an approval.
 
-## How this differs from the company-hosted instance
-
-In the [company-hosted instance](company-hosted-instance.md) a company runs its
-own instance and its own officers make every entry. No separate registry operator
-is added, so no registry services agreement is needed, but written commercial
-software permission still is. The company carries the technical burden; software
-licensing, hosting and support terms are agreed separately. A registry service
-adds an operator and a services agreement per company. Both models require the
-live-operation conditions to be satisfied, and the clerk model depends on staying
-within its regulatory boundary.
+The [company-hosted instance](company-hosted-instance.md) differs by adding no
+operator and no agreement per company; the folder index states the
+[pivot](README.md#historical-analyses-a-and-b).
 
 ## Open questions
 
+The low-volume market and proper-instrument questions are consolidated in
+[Next investigations](README.md#next-investigations). Operator-specific
+questions:
+
 1. Which entity operates, and under what name.
-2. Whether a low-volume market registration is per company or per platform.
-   ASIC's register shows both single-company entries and a platform registered
-   per named company; the instrument's text has not been read, and it sunsets on
-   1 October 2026 to be remade as CS 60 proposes.
-3. Which AML/CTF services a licensed operator would provide beyond item 54, once
+2. Which AML/CTF services a licensed operator would provide beyond item 54, once
    it hosts offers.
-4. Whether an instrument of transfer signed inside the platform is a "proper
-   instrument of transfer" under s1071B.
-5. Pricing: a flat subscription is the recommendation, because a fee per
+3. Pricing: a flat subscription is the recommendation, because a fee per
    transaction is an indicator of arranging.
-6. Conflict of interest where the owner would be employee, shareholder and
+4. Conflict of interest where the owner would be employee, shareholder and
    operator of the registry recording their own issue. Mitigation is
    procedural: the director approves, and the record shows who instructed and
    who approved.
-7. Whether to produce scheme reporting (issue date, price, market value) from
+5. Whether to produce scheme reporting (issue date, price, market value) from
    the register for clients' ATO obligations, if clients want it.
 
 Next: the [regulatory pathway](../regulatory-pathway.md) for the route beyond

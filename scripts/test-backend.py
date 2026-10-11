@@ -81,7 +81,7 @@ def environment(supplied):
 
 def dependencies(env):
     require(sys.version_info[:3] == (3, 13, 15), "Use Python 3.13.15 for backend checks")
-    for name in ("django", "psycopg", "black", "isort", "flake8"):
+    for name in ("django", "psycopg", "black", "isort", "flake8", "pip_audit"):
         require(importlib.util.find_spec(name) is not None, f"Missing backend dependency: {name}")
     require(shutil.which("make", path=env.get("PATH")) is not None, "Missing backend dependency: make")
 
@@ -281,6 +281,15 @@ def run(supplied=None):
     start = time.monotonic()
     handlers = {number: signal.signal(number, interrupted) for number in (signal.SIGINT, signal.SIGTERM)}
     try:
+        phase(
+            "audit",
+            [sys.executable, str(ROOT / "scripts/audit-dependencies.py"), "backend"],
+            env,
+            directory,
+            results,
+            cwd=ROOT,
+            timeout=300,
+        )
         with scratch_database(env, receipt, receipt_path) as child:
 
             def execute(name, arguments, **options):

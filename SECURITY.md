@@ -4,35 +4,48 @@ How to report a vulnerability in Ledova, and what is in scope.
 
 ## Dependency advisories
 
-CI fails on a new production advisory. `npm audit --omit=dev` runs at the
-repository root and in `marketing/` and `contracts/`, where it must stay
-completely clean, and in `mobile/`, where it must stay free of criticals.
-`pip-audit` runs against `backend/requirements.txt`. `make audit` runs the same
-checks locally.
+CI fails on a new production advisory. The
+[dependency-advisory gate](docs/development/gates.md#dependency-advisories) says
+which commands run the npm and `pip-audit` checks and when; Dependabot's
+configuration remains separate from them.
 
-`mobile/` carries advisories that are accepted rather than fixed, because no
-forward version resolves them:
+The gate accepts only the fixed package and advisory pairs below. A different
+package, a new advisory ID, a critical npm finding, an audit tool failure or
+missing or malformed output fails the check. It does not add exceptions from
+the current audit result.
 
-- **The Expo and Metro toolchain.** Most of the remaining highs reach the tree
-  through `expo`, `@expo/cli`, `metro` and their dependencies, and clearing
-  them needs an Expo SDK major upgrade. That is deliberately out of scope here:
-  the SDK version is entangled with client work, and it belongs in its own
-  change. These are build-time dependencies of a developer machine, not code
-  shipped in the app.
-- **The base58 and elliptic-curve chain.** `base-x`, `bs58` and `elliptic` have
-  no fixed version published. The repository is local and testnet only, with
-  synthetic data. Trading is enabled by default on the experimental deployment,
-  and the app signs testnet transactions.
-- **`pytest` in the backend tree.** `bitcoin-message-tool` declares `pytest` as
-  a runtime dependency rather than a test one, so a production install pulls it
-  in. `PYSEC-2026-1845` is ignored by id in the CI step: the application never
-  imports `pytest`, and the advisory needs it to be running. Adding `pytest` to
-  `requirements.txt` to force a fixed version would put an unimported package
-  in production dependencies, which the coding rules forbid.
+The npm exceptions apply to `mobile/` only; the root, `marketing/` and
+`contracts/` audits must stay completely clean. They preserve the findings
+accepted on 5 October 2026. Most belong to the Expo and Metro developer
+toolchain, whose SDK upgrade remains separate work. `elliptic` and a second `uuid` ancestry also reach the
+experimental testnet chain. The earlier toolchain and testnet risk acceptance
+does not authorise additional advisories in those categories.
 
-Every one of these is revisited before any mainnet or store-distributed build.
-None of them is a reason to relax the gate; a new advisory outside these
-categories fails CI.
+| Package           | Accepted advisory ID  |
+| ----------------- | --------------------- |
+| `brace-expansion` | `GHSA-6j4f-fj2g-mc7p` |
+| `brace-expansion` | `GHSA-q2hr-2g5m-vwhr` |
+| `brace-expansion` | `GHSA-qhr7-859c-m2p7` |
+| `braces`          | `GHSA-vfj7-8cjw-p6xm` |
+| `elliptic`        | `GHSA-848j-6mx2-7j84` |
+| `fast-uri`        | `GHSA-hrr3-gc8f-f4qj` |
+| `image-size`      | `GHSA-5p2g-fcmc-qvqq` |
+| `image-size`      | `GHSA-w3rx-r6r6-pgpr` |
+| `node-forge`      | `GHSA-86w9-cpqp-85rv` |
+| `postcss`         | `GHSA-6g55-p6wh-862q` |
+| `postcss`         | `GHSA-fxqj-rqcc-2cmp` |
+| `postcss`         | `GHSA-qx2v-qp2m-jg93` |
+| `postcss`         | `GHSA-r28c-9q8g-f849` |
+| `uuid`            | `GHSA-w5hq-g745-h8pq` |
+
+The backend exception is the exact pair `pytest` / `PYSEC-2026-1845`.
+`bitcoin-message-tool` declares `pytest` as a runtime dependency, but the
+application never imports it and the advisory needs it to be running. This
+preserves the existing accepted exception without adding an unimported package
+to production requirements.
+
+Every accepted exception must be revisited before any mainnet or
+store-distributed build.
 
 ## Reporting a vulnerability
 

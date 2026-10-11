@@ -38,11 +38,27 @@ it('invites and associates a walletless member, recovers one exact request and r
   client.setQueryData(USER_PREFERENCES_QUERY_KEY, { data: preferences });
   let associated = false;
   let refused = false;
+  let preferencesRefused = false;
   let invitation: unknown;
-  let particulars: Record<string, unknown>[] = [];
+  let particulars: Record<string, unknown>[] = [
+    {
+      uuid: '12121212-1212-4212-8212-121212121212',
+      association: MEMBER_RECORD.uuid,
+      company: MEMBER_RECORD.company.uuid,
+      member: MEMBER_RECORD.member,
+      name: 'Private queued member name',
+      residentialAddress: 'Private queued member address',
+      status: 'submitted',
+      change: null,
+    },
+  ];
   let certificates: Record<string, unknown>[] = [];
   api.get.mockReset().mockImplementation(async (url) => {
-    if (url === '/api/user-preferences/') return { data: preferences };
+    if (url === '/api/user-preferences/') {
+      if (preferencesRefused)
+        throw Object.assign(new Error('Current preferences refused'), { response: { status: 404 } });
+      return { data: preferences };
+    }
     if (url === '/api/v1/company-authority/appointments/')
       return page([
         { ...APPOINTMENT, company: MEMBER_RECORD.company.uuid, capabilities: ['admin', 'prepare'], isEffective: true },
@@ -124,6 +140,21 @@ it('invites and associates a walletless member, recovers one exact request and r
   await fireEvent.changeText(screen.getByLabelText('Intended recipient email'), 'member@example.test');
   await fireEvent.press(screen.getByRole('button', { name: 'Create member invitation' }));
   await screen.findByText(`One-time member invitation code: ${MEMBER_CODE}`);
+  expect(screen.getByText(/Private queued member name/)).toBeTruthy();
+  expect(screen.getByText(/Private queued member address/)).toBeTruthy();
+  expect(screen.getByText(/member@example.test/)).toBeTruthy();
+  preferencesRefused = true;
+  await act(async () => {
+    await client.refetchQueries({ queryKey: USER_PREFERENCES_QUERY_KEY, exact: true });
+  });
+  await waitFor(() => expect(screen.queryByText(/Private queued member name/)).toBeNull());
+  expect(screen.queryByText(/Private queued member address/)).toBeNull();
+  expect(screen.queryByText(/member@example.test/)).toBeNull();
+  expect(screen.queryByText(`One-time member invitation code: ${MEMBER_CODE}`)).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Create member invitation' })).toBeNull();
+  preferencesRefused = false;
+  particulars = [];
+  client.setQueryData(USER_PREFERENCES_QUERY_KEY, { data: preferences });
   await company.unmount();
   await render(<MemberRecordsScreen />, { wrapper });
   await fireEvent.changeText(screen.getByLabelText('Member invitation code'), MEMBER_CODE);

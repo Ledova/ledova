@@ -36,17 +36,10 @@ work together and links to their technical details.
 ## Get started
 
 Follow [local setup and first use](docs/getting-started.md) for prerequisites,
-starting the stack, signing in and preparing a synthetic demo.
-
-Use the [documentation index](docs/README.md) to choose a route:
-
-- [Understand the product](docs/product.md) and its terminology.
-- [Run an instance](docs/operations/README.md): configuration, jobs and recovery.
-- [Contribute](CONTRIBUTING.md): workflow, standards and verification.
-- [Review the regulatory pathway](docs/regulatory-pathway.md) and the
-  [legal positions](docs/legal/README.md).
-
-Report vulnerabilities through the [security policy](SECURITY.md).
+starting the stack, signing in and preparing a synthetic demo. The
+[documentation index](docs/README.md) routes to the product, operations,
+contributing and legal material. Report vulnerabilities through the
+[security policy](SECURITY.md).
 
 ## Ownership and license
 

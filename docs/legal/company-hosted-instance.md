@@ -2,33 +2,25 @@
 
 [Legal and regulatory](README.md) · [Registry service](registry-service.md) · [Positions](positions.md) · [Regulatory pathway](../regulatory-pathway.md)
 
-**Historical analysis A, first written 15 September 2026.** The
-[3 October 2026 one-product decision](../architecture/company-managed-registers.md)
-and the [4 October 2026 minimal-involvement decision](../decisions.md#company-representative-verification)
-postdate the readings on this page, which have not been reconfirmed against
-the current company-managed workflows. Neither product decision establishes a
-legal conclusion.
+**Historical analysis A, first written 15 September 2026.** See the
+[folder note](README.md) on the product decisions that postdate it.
 
 The earlier scenario studied here is a private company deploying and running
 its own Ledova instance, for its own shares and its own shareholders, with no
 other company on it. Its own officers make every entry. Ledova is infrastructure
 the company uses to keep its register and the processes around it. The earlier
-product description associated this scenario with the single-issuer setting.
-That setting controls supporting-payslip availability, not single-company
-tenancy or a separate company authority model, and is scheduled for retirement
-([product direction](../product.md#roles-and-deployment)). [Retired by
-`operators/0002` on 3 October 2026; see
-[one registry product](../operations/upgrades.md#one-registry-product).]
+product description associated this scenario with a `single_issuer` setting
+that only controlled supporting-payslip availability; it was retired on
+3 October 2026 ([one product](../decisions.md#company-managed-registers-and-one-product)).
+The responsibility and perimeter readings below refer to that earlier scenario
+and do not establish a separate current product role for a privately hosted
+company.
 
 This page is the project's reading of primary sources and regulator guidance,
 not advice; the [positions](positions.md) it rests on are numbered where they
 apply, and the drafted ones remain unconfirmed until the owner signs them off.
 
 ## Whom the law looks at
-
-The responsibility and perimeter readings below refer to that earlier scenario.
-They do not establish a separate current product role for a privately hosted
-company or confirm the legal allocation for the replacement workflows.
 
 The company and its directors, and nobody else. Every duty in
 [position 6](positions.md#6-where-and-in-what-form-the-register-is-kept) is
@@ -156,32 +148,18 @@ below is the operating model on the positions as drafted.
 - **Exceeding the proprietary company limits** of fifty non-employee
   shareholders, or offering shares to the public. Those are Parliament's lines.
 
-## How this differs from the registry service
-
-In the [registry service](registry-service.md) a provider hosts one platform and
-makes entries for many companies on their written instructions. That provider is
-a new legal person: it needs an operating entity, an agreement with each company,
-a privacy posture, and constant discipline about a boundary this model does not
-have, because a business assembled from exempt clerical tasks can still be
-judged an arranging business in aggregate (RG 36.53). The trade is that
-companies get a service instead of a system to run, and the project gets a
-business. This model has fewer regulatory dependencies on the positions as
-drafted; both models require software permission and the live-operation
-conditions to be satisfied.
+The [registry service](registry-service.md) differs by adding an operator and an
+agreement per company; the folder index states the
+[pivot](README.md#historical-analyses-a-and-b).
 
 ## Open questions
 
-1. Whether a company holding tokens that represent its own shares, for its own
-   shareholders, is a digital asset platform under the 2027 regime.
-2. Whether an instrument of transfer signed inside the software is a "proper
-   instrument of transfer" under s1071B; the regulations that set the required
-   details have not been read.
-3. The terms of the low-volume exemption after it sunsets on 1 October 2026 and
-   is remade, as CS 60 proposes; they matter only if a transfer board is opened.
-4. The earlier commercial question was whether a managed single-company
-   instance would be the first paid offering. The current product decision
-   permits private hosting of the same software, without a separate product
-   mode; the actual hosting, support and company functions still need assessment.
+Open legal questions are consolidated in
+[Next investigations](README.md#next-investigations). The earlier commercial
+question, whether a managed single-company instance would be the first paid
+offering, is overtaken by the one-product decision: private hosting of the same
+software is permitted without a separate product mode, and the actual hosting,
+support and company functions still need assessment.
 
 Next: the [registry service](registry-service.md), then the
 [positions](positions.md) each model rests on.

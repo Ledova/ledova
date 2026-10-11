@@ -2,6 +2,9 @@
 
 [Implementation index](README.md) · [Non-paid grants](register-grants.md) · [Owner decision](https://github.com/Ledova/ledova/issues/867#issuecomment-6088911142)
 
+Delivered by [PR #973](https://github.com/Ledova/ledova/pull/973) under
+[#867](https://github.com/Ledova/ledova/issues/867).
+
 An employee award records a promised entitlement. The company records the
 agreement, recipient, share class, whole quantity and vesting schedule, then
 records each vesting event with its quantity, date and evidence. The schedule is
@@ -56,8 +59,7 @@ award allocation. A changed preview needs a new confirmation.
 
 New award and vesting rows and files require a current personal appointment for
 the exact company with administration, register-read, prepare, approve or apply
-capability. Metadata ownership, platform staff permissions and finance-only
-appointments grant no private award access. Recording facts requires
+capability. Recording facts requires
 administration or preparation authority; issuing shares retains the existing
 separate grant approval/application capabilities and director-conflict rule.
 
@@ -85,15 +87,7 @@ The existing `/api/v1/tokens/register-grants/` accepts an optional award
 reference; it remains the sole issue proposal and decision path for this
 supported register boundary.
 
-The fresh-schema migrations create the award/event tables and optional grant
-link before installing their PostgreSQL policies, roles/grants, history and
-allocation guards. They preserve unlinked grants' digest shape. This unreleased
-fresh history is intended for new databases; a database installed from an
-earlier cut must be rebuilt with approval, not adopted in place. Historical
-source and evidence remain in Git.
-
-The [minimum-test policy](../../development/testing.md) applies: one core API
-award-to-vesting-to-approved-issue journey, essential allocation/authority/privacy
-refusals and small client submission-recovery controls. Keep the five existing
-real-app-login cases, PostgreSQL roles/catalogue and schema checks; do not restore
-the retired broad suites, migration rewinds or process timing tests.
+Migration `tokens/0003_employee_awards` belongs to the
+[fresh history](../../decisions.md#minimum-tests-and-fresh-migrations); PR #973
+carries the verification under the
+[minimum-test policy](../../development/testing.md).

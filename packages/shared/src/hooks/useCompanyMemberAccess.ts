@@ -104,7 +104,13 @@ export function useCompanyMemberAccess(
       (row) => row.company === company && isCurrentEligibilityAppointment(row) && row.capabilities.includes('admin'),
     );
   const rows = appointments.isSuccess && appointments.fetchStatus === 'idle' ? appointments.data : [];
-  const readable = !!owner && sourceReady && hasCurrentRegisterReadAuthority(rows, company);
+  const preferences = client.getQueryState(USER_PREFERENCES_QUERY_KEY);
+  const readable =
+    !!owner &&
+    sourceReady &&
+    preferences?.status === 'success' &&
+    preferences.fetchStatus === 'idle' &&
+    hasCurrentRegisterReadAuthority(rows, company);
   const admin = adminAppointment(rows);
   const prepare = appointmentForRegisterStep(rows, company, 'prepare');
   const queue = useQuery({

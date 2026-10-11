@@ -35,21 +35,16 @@ as foreign matching. Unjournaled, stale-domain, unverified-wallet and inactive-o
 orders do not advertise market liquidity. Quotes use the same uniquely configured,
 active settlement asset and live deployment as new orders; absent or ambiguous
 configuration suppresses quotes. These quotes are a snapshot, not a
-reservation or a guarantee that a submitted order will match.
-The bounded create service can match
-across accounts after authorizing the caller's exact submission. A foreign
-candidate needs a recorded signed create admission with the current wallet,
-account, token and chain identity and the same payment asset. Its wallet must
-still be verified and on EVM, with an active account owner. The matcher locks
-one compatible candidate's wallet and account/profile/user authority and only
-that incoming/candidate order pair without waiting. Each attempt uses a savepoint;
-an unrepresentable settlement releases that candidate's locks before a fallback.
-Candidates stream in database priority order in batches of 100, with no whole-book
-Python sort or match list.
-A busy or concurrently changed candidate returns a retryable response, preserving the pending
-submission UUID and rolling back execution effects. Unjournaled orders
-retain their same-account behavior; they gain no cross-account matching authority.
-Both participants still approve and sign the captured settlement before execution.
+reservation or a guarantee that a submitted order will match. The bounded create
+service can match across accounts after authorizing the caller's exact
+submission: a foreign candidate needs a recorded signed create admission with
+the current wallet, account, token and chain identity, the same payment asset,
+a verified EVM wallet and an active account owner, and a busy or concurrently
+changed candidate returns a retryable response that preserves the submission
+UUID ([order submissions](../reference/order-submissions.md)). Unjournaled
+orders retain their same-account behaviour and gain no cross-account matching
+authority. Both participants still approve and sign the captured settlement
+before execution.
 Creating an order and signing a swap both require the acting party to hold a
 current [eligibility decision](companies-and-eligibility.md#participant-eligibility)
 from the share class's company, in addition to the wallet, registry and balance
@@ -77,15 +72,10 @@ make a hidden class public or authorize a new trading action.
 Matching captures settlement domain, exact signed values and participant context.
 New signatures and approvals recheck a current authorized participant against
 that context. The completing signature, original execution admission and recovery
-job commit together. Recovery journals signed bytes and a shared signer nonce
-before sending; receipt I/O stays outside locks. A verified receipt updates the
-private execution evidence while the swap and its financial reservations remain
-pending for finality. The same sweep settles the swap once its network's approved
-finality policy is satisfied and the inclusion re-verifies: a successful swap
-completes and its parents keep their fill, a final revert releases the
-reservation once, and anything unknown, waiting or orphaned holds. Local chains
-hold until an explicit depth override is configured. Once a swap completes, both
-parties' share and settlement-asset holdings are written from the chain, as
+job commit together; signing, finality and unresolved outcomes follow
+[durable execution](../reference/swap-settlement.md#durable-execution). Once a
+swap completes, both parties' share and settlement-asset holdings are written
+from the chain, as
 [wallets](wallets-and-valuations.md#a-share-holding-names-its-class) describes.
 
 Selling reads the chosen wallet's balance of every deployed class and of the
@@ -100,11 +90,6 @@ reached or does not answer in time, any JSON-RPC error (web3 reports some, rate
 limits and internal errors among them, as contract errors), a revert, a node on
 another chain, missing return data where the address has code, and a check that
 cannot be made.
-
-The expiry sweep releases only matches whose eligibility marker and recorded
-state prove they have no execution claim or competing reservation. Legacy,
-claimed or inconsistent matches remain retained for reconciliation. A missing
-receipt, age or nonce use alone cannot release a reservation.
 
 Current swap policies are installed; their existence does not complete every
 settlement, reservation or signer guarantee. See [tenancy](tenancy.md) for access
@@ -165,11 +150,8 @@ The owner accepted these limits for the experimental version in
   outbox or exactly-once delivery guarantee. Live updates may be missed until
   refresh; recovery of database state does not guarantee an event was delivered.
 - Two crossing orders committed at the same moment can both rest until the
-  next minute's sweep holds back the newer of the two, because each placement
-  sees only committed orders and no placement waits on another
-  ([decision](../decisions.md#payments-and-settlement)). Every sequence of
-  placements, settlements, lapses, modifications and cancellations leaves the
-  book uncrossed.
+  next minute's sweep holds back the newer
+  ([one match, never crossed](#one-match-never-crossed)).
 - Editing an order does not run matching: an edit that would cross is held back
   and takes its match from the minute's sweep.
 

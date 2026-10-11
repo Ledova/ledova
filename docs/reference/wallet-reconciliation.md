@@ -5,6 +5,8 @@
 History imports, optimistic deductions and authoritative chain refreshes have
 different effects. This page records those boundaries and their recovery behaviour.
 
+## Imports and previews
+
 Manual wallet sync returns `success: false` with an actionable `syncResult.error`
 when verification is missing, the provider fails, history cannot be read or a
 known holding cannot be refreshed. Both clients display that reason. A partial
@@ -35,9 +37,9 @@ intent, status, receipt fields or accounting. The import takes the wallet lock
 used by pending creation and confirmation before checking or inserting rows.
 New history rows start `pending`, regardless of the provider's history status,
 and the existing five-minute confirmation sweep obtains a receipt before
-completing them. Migration `wallets.0015_transaction_imported_from_history`
-adds an internal marker for new imports without inferring the origin of existing
-rows. Receipt verification for marked imports preserves block metadata when the
+completing them. Imported rows carry `imported_from_history`; the origin of
+rows recorded without it is not inferred. Receipt verification for marked
+imports preserves block metadata when the
 provider cannot supply it and updates available receipt fields under the wallet
 and transaction locks. It sends no lifecycle notifications and changes no
 holdings, including for quarantined assets. The wallet sync still
@@ -55,6 +57,8 @@ its hash first require operator attribution under #624. The transaction table st
 one row per wallet and hash, so it does not represent multiple transfer events
 within a transaction. Imported history reports receipt outcomes; it does not
 assert the local-transfer finality policy described below.
+
+## Receipts and finality
 
 The wallet receipt task requires the response to identify the requested
 transaction before it changes status or accounting. EVM `transactionHash` values
@@ -84,6 +88,8 @@ for the same hash is held for attribution against its first included observation
 Same-outcome reinclusion can settle after its earlier block is proven orphaned
 and the new inclusion satisfies policy. Nonce consumption alone cannot refund
 funds; replacement admission and synthetic reorg refunds are not supported.
+
+## Balance repair
 
 Ordinary holding refreshes enforce the owner's conservative availability policy.
 An affected holding may decrease but cannot increase while any relevant local
@@ -119,8 +125,8 @@ Unknown evidence continues to hold availability and legacy rows gain no authorit
 A worker interruption or provider outage leaves durable repair work for the
 existing five-minute sweep, including terminal transactions. A retry
 cannot enqueue a second lifecycle notification. Unattributed legacy rows receive
-no new finality authority: migration `wallets.0021_transaction_finality_observation`
-adds a nullable link without backfilling it or changing balances. Legacy pending,
+no new finality authority: `finality_observation` is a nullable link that is
+never backfilled. Legacy pending,
 reorged/replaced holds and terminal repair tokens without attributable finality
 remain conservative until operator attribution; current configuration cannot
 supply missing historical provenance.

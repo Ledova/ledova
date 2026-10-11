@@ -14,14 +14,13 @@ and each family's unsigned holds and recovery after authority loss in its own
 [outgoing signing](../../architecture/outgoing-signing.md) section. The guides
 link those rules rather than restating them. The
 [9 October priority](../../decisions.md#essential-registry-and-development-workflow-priority)
-puts [#943](https://github.com/Ledova/ledova/issues/943) first, then the
-essential register below; new integrated AUD payments, trading, advanced
-governance and filings are deferred.
+put the development workflow ([#943](https://github.com/Ledova/ledova/issues/943),
+closed 11 October) first and orders the remaining register work; new integrated
+AUD payments, trading, advanced governance and filings are deferred.
 
-Verification references in the delivered guides describe each increment's
-original evidence. The [11 October minimum-test policy](../../decisions.md#minimum-tests-and-fresh-migrations)
-replaces the earlier broad suites; deleted test names are historical references,
-not claims of current coverage. Held migrations rebase onto the fresh history.
+Verification references in the guides are each increment's original evidence;
+the [11 October minimum-test policy](../../decisions.md#minimum-tests-and-fresh-migrations)
+governs current coverage.
 
 ## Delivered increments
 
@@ -53,56 +52,20 @@ Two guides describe non-paid grants: company-register-issues.md covers
 | Issue                                               | Remaining                                                                                                                                                                                                        | Current prerequisites                                                                                        |
 | --------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
 | [#871](https://github.com/Ledova/ledova/issues/871) | Certificates, company-pack provenance and permitted member fulfilment                                                                                                                                            | #862, #864 and #865 delivered; member fulfilment needs #866's association; no #869/#870 blocker              |
-| [#873](https://github.com/Ledova/ledova/issues/873) | Preserved upgrades and the essential company/member web/mobile journey                                                                                                                                           | #943's initial improvement and the essential #866, #867, #868 and #871 increments; no #869/#870/#872 blocker |
+| [#873](https://github.com/Ledova/ledova/issues/873) | Preserved upgrades and the essential company/member web/mobile journey                                                                                                                                           | #867 and #868 delivered; the essential #866 and #871 increments; no #869/#870/#872 blocker                   |
 | Deferred                                            | [#869](https://github.com/Ledova/ledova/issues/869) trading and settlement, [#870](https://github.com/Ledova/ledova/issues/870) advanced governance, [#872](https://github.com/Ledova/ledova/issues/872) filings | Scheduled by the owner; no essential increment waits for them                                                |
-
-## Dependency flow
-
-```mermaid
-flowchart TB
-    workflow["#943 CI and development workflow first"]
-    foundation["#861–#865 Delivered foundation"]
-    participants["#866 Member records and access"]
-    issuance["#867 Issuance and employee award records"]
-    primary["#868 External capital and allotment"]
-    outputs["#871 Basic outputs"]
-    acceptance["#873 Core migration and journey evidence"]
-    later["Deferred #869 trading #870 governance #872 filings"]
-    workflow -. priority .-> participants
-    workflow -. priority .-> issuance
-    foundation --> participants
-    foundation --> issuance
-    foundation --> primary
-    issuance -. when used .-> primary
-    foundation --> outputs
-    participants -. when used .-> outputs
-    issuance -. when used .-> outputs
-    foundation --> acceptance
-    participants --> acceptance
-    issuance --> acceptance
-    primary --> acceptance
-    outputs --> acceptance
-    workflow -. initial improvement .-> acceptance
-    participants -. later .-> later
-    issuance -. later .-> later
-    outputs -. later .-> later
-```
 
 ## Ownership boundaries
 
 #866 owns the single account/member association and permitted own-record UI;
-#867 employee award and issuance records; #868 external capital and
-company-approved allotment; #871 basic outputs; #873 the essential journey
-evidence; #869, #870 and #872 trading, advanced governance and filings. Company
-mandates and required approvals remain separate from finance receipts,
-participant signatures and technical execution: a payment does not authorise an
-issue, a generated filing draft does not establish lodgement, and any later
-on-chain mirror preserves the recorded supply rather than issuing twice.
+#871 basic outputs; #873 the essential journey evidence; #869, #870 and #872
+trading, advanced governance and filings.
 
 ## History
 
-The [3 October documentation audit](documentation-audit.md) records the
-baseline; the [one-product decision](../../decisions.md#company-managed-registers-and-one-product)
+A 3 October file-by-file documentation audit set the baseline; the #955
+consolidation (PRs #956 to #964) acted on it, and the audit is in Git history.
+The [one-product decision](../../decisions.md#company-managed-registers-and-one-product)
 and [representative verification](../../decisions.md#company-representative-verification)
 are in decisions.md. Closed [#645](https://github.com/Ledova/ledova/issues/645)
 and its phase tickets delivered the earlier foundation, closed

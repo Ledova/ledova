@@ -37,7 +37,9 @@ shows the main relationships, not every synchronous provider call.
 1. [Company activation and participant eligibility](companies-and-eligibility.md).
 2. [Contract deployment and share issuance](contracts-and-issuance.md).
 3. [Offering publication](offerings.md) and [subscriptions/allotment](subscriptions.md).
-4. [Register of members](register.md),
+4. [Register of members](register.md), with
+   [employee awards](../plans/company-managed-registers/employee-awards.md) and
+   [external allotments](../plans/company-managed-registers/external-allotments.md),
    [shareholder publications](shareholder-publications.md) and the
    [company pack](company-pack.md) in which a company's records leave.
 5. [Wallets and valuation](wallets-and-valuations.md), [transfers](transfers.md)
@@ -51,6 +53,8 @@ shows the main relationships, not every synchronous provider call.
 | Shared package and design tokens | [Clients](clients.md) |
 | Sessions, cookies, bearer tokens and revocation | [Authentication](authentication.md) |
 | Database roles, principals and tenant isolation | [Tenancy](tenancy.md) |
+| Company authority, appointments and revocation | [Authority requests and appointments](../plans/company-managed-registers/authority-requests.md) |
+| Identity-provider results, screening and company registry checks | [Identity verification](identity-verification.md) |
 | Uploaded files, evidence and retention | [Files and retention](files-and-retention.md) |
 | Native transport and secrets | [Mobile security](mobile-security.md) |
 | Scanners, provider views and temporary files | [Mobile lifecycles](mobile-lifecycles.md) |

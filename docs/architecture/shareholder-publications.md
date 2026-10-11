@@ -61,22 +61,15 @@ A publication is a frozen record, so the member who reopens a statement in June
 should read the name it carried in March, exactly as the roll carries each
 member's name as at the record date.
 
-And the company and the share class are not reliably readable by the member.
-`tokens_sharetoken`'s read term is the issuer's own companies or a class on the
-market, which is `status = 'deployed'`; `companies_company`'s is ownership,
-the directory opt-in, or having a class on the market. **A pause moves the class
-out of both terms**, and [a paused class is still published to](#a-paused-class-keeps-its-members),
-so both rows can be hidden from the member when the publication is made as well
-as afterwards. A serializer that reached the names through `select_related`
-would then drop the publication itself from the member's listing, because Django
-joins a non-nullable foreign key with an INNER JOIN, and a row the policy hides
-deletes the row that points at it. That is the failure the `companies_company` entry in
-[policies.py](../../backend/shared/db/policies.py) was measured against, and the
-reason it carries a market term at all. Storing the three names avoids the join
-instead of widening a policy: widening one is not open to us here, because the
-roll's own policy reads `companies_company` through the visible-companies
-helper, and a term on `companies_company` that read the roll back would be a
-recursion PostgreSQL refuses.
+And the company and the share class are not reliably readable by the member:
+their read terms admit the issuer's own companies or a class on the market, and
+**a pause moves the class out of both**, while
+[a paused class is still published to](#a-paused-class-keeps-its-members). A
+serializer that reached the names through `select_related` would then drop the
+publication itself from the member's listing, because Django joins a
+non-nullable foreign key with an INNER JOIN. Storing the three names avoids the
+join instead of widening a policy; a term on `companies_company` that read the
+roll back would be a recursion PostgreSQL refuses.
 
 ## A paused class keeps its members
 
@@ -227,8 +220,7 @@ yet, and false for every other kind. It is what the clients offer a ballot on,
 rather than `myBallot` being empty, because one account can be on a roll through
 two register members: if staff entered a ballot for one holding, `myBallot` is
 set while the other holding still has none, and `cast_ballot` casts for it. The
-number of queries a page takes does not grow with the resolutions on it, and a
-test holds that.
+number of queries a page takes does not grow with the resolutions on it.
 
 A distribution's row carries its rate per share, currency, declaration date and
 payment date, and three more figures of the caller's own:
@@ -256,19 +248,10 @@ through the policy-scoped connection, opens the stored document, records the
 `PublicationRead` on the operator connection, and refuses with 503
 `publication_read_unrecorded` if it cannot. A foreign or non-existent uuid answers the same 404 with the same body.
 
-Both clients read it through `@ledova/shared`: `getPublications` for the
-listing, a page at a time. Personal Notices sends `addressed=me` on every page.
-Mobile Published to your members exhausts the selected owned company’s pages
-with `issuer=<company UUID>` on each request and a separate issuer/session cache.
-Its read-only records include exact tallies and rates, not the owner’s personal
-ballot or entitlement. Failed complete reads cannot appear as an empty list.
-The dashboard uses `openPublication`
-for the blob it saves through a download link, and `downloadPublication` gets
-the bytes the mobile app writes to one private cache copy and hands to the
-system share sheet, the way a
-company document is opened today. The stored object is named `.bin`, so each
-client names its copy with `publicationFilename` from the type served. A download
-link, unlike a new tab opened after the response, needs no popup permission.
+Both clients read it through `@ledova/shared` (`getPublications`,
+`openPublication`, `downloadPublication` and `publicationFilename`, which names
+the `.bin` stored object from the type served);
+[clients](clients.md#what-each-page-does) describes each page.
 
 ### The summary
 
@@ -298,31 +281,16 @@ its own holding as any member does, and a member of another company counts
 nothing of this one. For a member the policies are a second wall under that
 filter, as they are for `myBallot`. For an owner on its own roll they admit
 every row, so the filter is the only wall, here and in the listing's `shares`,
-`ballotOutstanding` and `myEntitlement`. A test puts an owner on its own roll
-beside another member and holds all of them. The number of queries does not
-grow with what was published, and a test holds that.
+`ballotOutstanding` and `myEntitlement`. The number of queries does not grow
+with what was published.
 
 ## In the member's everyday views
 
-**Notices**, at `/publications` on the web and in the mobile app, lists every
-kind of publication addressed to the person, newest first, reading every page
-with `addressed=me`; a company owner's access as issuer adds nothing to it
-([the signed-in app decisions](../decisions.md#the-signed-in-app)). Each row
-keeps its company, class, record date and frozen holding, and a dividend its
-rate, entitlement, payment date and what the company recorded; downloads use
-the audited file route. Holdings lists the three latest notices and, through
-`usePublicationSummary`, counts open resolutions awaiting the person's vote and
-dividends awaiting a company payment record, refreshing at `nextClosesAt` and
-every five minutes; neither count is proof that a bank transfer happened.
-
-**Published to your members**, at `/company/publications` on the web and in
-the mobile app, reads the selected owned company's publications with `issuer`
-set, in a cache separate from Notices: stored documents, exact resolution
-results and dividend rates and dates, with no ballot controls, personal
-entitlement or publication, resolution or distribution execution controls,
-because platform staff publish on written instruction. In both clients a
-notification of a new publication opens the publications page from its `type`
-alone. [Clients](clients.md) describes the failure and retry states.
+**Notices** (`/publications`) reads the listing with `addressed=me` and Holdings
+counts what waits through `usePublicationSummary`; **Published to your members**
+(`/company/publications`) reads the selected owned company's publications with
+`issuer` set and offers no ballot or publishing controls.
+[Clients](clients.md#what-each-page-does) describes both pages.
 
 ## Every publication is announced
 
@@ -343,13 +311,12 @@ which re-resolves the publication under the policies and audits the delivery.
 A resolution is a publication whose members are asked a question. Beside its
 document it records, frozen at insert under a per-kind constraint, the question,
 whether it is an ordinary or a special resolution, its vote basis and its voting
-window. The basis is one vote per share held on the record date (owner decision,
-23 September 2026); it is stored rather than assumed, so the declared basis is
-part of the record, and every tally counts members as well as shares, so a
-head-count reading needs no rebuild. The window's close must be in the future
-when the resolution is published. The roll is the publication's own frozen
-roll, so the members entitled to vote are exactly the members it was addressed
-to, with the shares they held on the record date.
+window. The basis is one vote per share held on the record date, stored on the
+row, and every tally counts members as well as shares
+([decisions](../decisions.md#shareholder-publications)). The window's close must
+be in the future when the resolution is published. The roll is the
+publication's own frozen roll, so the members entitled to vote are exactly the
+members it was addressed to, with the shares they held on the record date.
 
 ### One append-only chain of events
 
@@ -386,10 +353,9 @@ ballot is refused even by a writer who disabled the trigger.
 
 An ordinary resolution is carried when the shares voted for exceed the shares
 voted against; a tie is not carried. A special resolution is carried when the
-shares voted for are at least 75% of the votes cast, which is the definition of
-a special resolution in section 9 of the Corporations Act. The comparison is
-exact, in whole shares (four times the shares for against three times the votes
-cast), so nothing is rounded at the threshold. Abstentions are counted and
+shares voted for are at least 75% of the votes cast (section 9 of the
+Corporations Act). The comparison is exact, in whole shares (four times the
+shares for against three times the votes cast). Abstentions are counted and
 reported but are not votes cast, so they can neither carry nor defeat a
 resolution, and a resolution on which no votes were cast is not carried.
 
@@ -419,13 +385,11 @@ the close, capped at the longest delay a timer holds and re-armed until the
 boundary arrives, so a page left open offers the ballot when voting opens and
 withdraws it when voting closes without reloading.
 
-Staff enter a ballot in admin for a member who cannot cast one online — a
-treasury holding, a member the register could not name, or a member whose vote
-a proxy carries. There is no proxy machinery: a proxy is settled between the
-member and the company, and the resulting vote is entered by staff, marked
-staff-entered and signed with the authority relied on (owner decision 5,
-23 September 2026). Either way a roll row has one ballot, which cannot be
-changed or withdrawn.
+Staff enter a ballot in admin for a member who cannot cast one online, such as
+a treasury holding, a member the register could not name, or a member whose
+vote a proxy carries; there is no proxy machinery, and the staff-entered ballot
+names the authority relied on. Either way a roll row has one ballot, which
+cannot be changed or withdrawn.
 
 ### Closing
 
@@ -468,34 +432,29 @@ the platform can check the close and every payment record against its hash.
 
 ## Distributions
 
-A distribution is a publication whose members are owed a dividend. Staff
-publish it on the company's written instruction, like every other kind, with the
+A distribution is a publication whose members are owed a dividend, with the
 company's dividend notice as its document. Beside the roll it freezes, under a
 per-kind constraint, the rate per share, the currency (AUD only for now), the
 date the dividend was declared, the date it will be paid, which cannot be before
 the record date, the total the company declared and the amount left
-undistributed.
+undistributed. The [decisions](../decisions.md#shareholder-publications) record
+why the rate, rounding and payment records work as below.
 
 ### The rate is the input and the total is a check figure
 
-A board resolves a rate — "2.5 cents per ordinary share" — so the rate is what
-staff enter, to at most six decimal places. The declared total is entered as
-well, and publishing is refused unless it is exactly the eligible shares on the
-frozen roll times the rate, rounded down to the cent (owner decision 6,
-23 September 2026). A typing error in either figure then shows as a disagreement
-between them, and the refusal says what the total should have been.
+The rate is what staff enter, to at most six decimal places. The declared total
+is entered as well, and publishing is refused unless it is exactly the eligible
+shares on the frozen roll times the rate, rounded down to the cent; the refusal
+says what the total should have been.
 
 ### Entitlements live on the roll
 
 Each roll row of a distribution carries its `entitlement`: the row's shares times
-the rate, rounded **down** to the cent (owner decision 3, 23 September 2026).
-There is no entitlement table, because the roll already is the list of who is
-owed what, with the shares they held on the record date. The rule needs no
-tie-break, and the company can never owe more than it declared. What rounding
-leaves over is recorded on the publication as `undistributed` rather than given
-to anyone. It is never negative and always less than one cent for each member on
-the roll. The arithmetic is exact at any size: a holding of 78 digits is
-multiplied without rounding, and a total too large to record is refused.
+the rate, rounded **down** to the cent. There is no entitlement table. What
+rounding leaves over is recorded on the publication as `undistributed` rather
+than given to anyone; it is never negative and always less than one cent for
+each member on the roll. The arithmetic is exact at any size, and a total too
+large to record is refused.
 
 The database holds this, not only Python. The roll guard trigger refuses a
 distribution's roll row whose entitlement is not its shares times the rate
@@ -507,11 +466,10 @@ rounded down, or whose entitlements and remainder do not add up to that total.
 
 ### Payment records
 
-Ledova moves no money. A company pays its members through its own bank, and
-what the platform keeps is the company's statement that it has paid, entered by
-staff on the company's written advice. A payment record is an event on the
-publication's own [event chain](#one-append-only-chain-of-events), of one of two
-kinds:
+Ledova moves no money; the platform keeps the company's statement that it has
+paid, entered by staff on the company's written advice. A payment record is an
+event on the publication's own [event chain](#one-append-only-chain-of-events),
+of one of two kinds:
 
 - `payment` names the roll row, the date the company says it paid, the company's
   payment reference, the remittance evidence the company supplied (stored
@@ -553,10 +511,7 @@ that cannot be recorded serves nothing.
 
 The wording follows the table. Every member-facing sentence and every API field
 says that the company **recorded** a payment, never that the member was paid:
-"The company recorded this as paid on 3 October 2026, reference LDV-4412". The
-same discipline governs `Wallet.signing_preference`, which is self-declared and
-attests nothing. One test scans the shared copy, and another the API's field
-names, for "paid" without "recorded".
+"The company recorded this as paid on 3 October 2026, reference LDV-4412".
 
 ### Who may read a distribution's records
 
@@ -582,11 +537,9 @@ says what it prints.
 
 ### The distribution statement
 
-Owner decision 4 put the distribution statement with the dividend work. In this
-slice the member's own row is that statement: the rate, their frozen holding,
-their entitlement, the payment date and what the company recorded, read through
-the listing. A generated per-holder document is left until a company asks for
-one ([decisions](../decisions.md#shareholder-publications)).
+The member's own listing row is the distribution statement: the rate, their
+frozen holding, their entitlement, the payment date and what the company
+recorded. A generated per-holder document is left until a company asks for one.
 
 Next: [publishing to members](../operations/publications.md),
 [scheduled jobs](../operations/jobs.md) and

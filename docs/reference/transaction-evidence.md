@@ -43,9 +43,8 @@ with `satisfied` finality, after reading and verifying the receipt again;
 depth policy for the configured local chain id only and is refused for a public
 testnet. See [swap settlement](swap-settlement.md#durable-execution).
 
-Apply `wallets/0019_chain_observations` before starting the new worker. Existing
-journals and financial rows remain unchanged; legacy rows without authoritative
-journals are not adopted. Only the operator role writes watches and observations;
+Existing journals and financial rows remain unchanged; legacy rows without
+authoritative journals are not adopted. Only the operator role writes watches and observations;
 an account's owner can read their own evidence under RLS. PostgreSQL binds every
 watch to its journal, protects claim generations and observation links, and
 refuses evidence rewrites, deletion or migration rollback with retained watches.
@@ -115,11 +114,9 @@ proof of canonical inclusion or finality; the record has no chain ID. These
 guards cover the generic monitor, not every specialized transaction writer.
 Swap transaction types, swap business references and reverse swap associations
 are excluded both from selection and from the fresh receipt-write check. Their
-[dedicated recovery](swap-settlement.md#pre-baseline-swap-history)
-retain outcomes that cannot be attributed to the original settlement context.
-
-The two retired cleanup tasks and how to clear jobs queued under them are in the
-[upgrade note](../operations/upgrades.md#retired-transaction-cleanup-tasks).
+[dedicated recovery](swap-settlement.md#durable-execution) retains outcomes that
+cannot be attributed to the original settlement context. No scheduled task
+marks an old pending transaction as failed.
 
 Operator transactions without a hash remain unresolved. Recovering their
 identity, reviewing rows already failed by historical cleanup, and per-chain
@@ -154,6 +151,5 @@ storage keys. Stored candidate evidence keeps the input's hash and length, not a
 second copy of large calldata. Pruned historical state, unsupported envelopes and
 inconsistent provider responses stay unknown. This is one provider's internally
 consistent evidence, not an independent consensus proof, and the receipt's
-execution charge is recorded apart from complete fee accounting - rollup fees
-still need the ledger reconciliation in #7. Bitcoin replacement discovery is not
-part of this reader.
+execution charge is recorded apart from complete fee accounting. Bitcoin
+replacement discovery is not part of this reader.

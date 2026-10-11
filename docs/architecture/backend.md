@@ -1,25 +1,19 @@
 # Backend apps and layers
 
-Test links on this page point to the 10 October source as historical evidence.
-The owner's [11 October policy](https://github.com/Ledova/ledova/issues/943#issuecomment-6103674410)
-retires those broad tests; current automated coverage is the small core suite.
-
 [Architecture](README.md) · [Documentation](../README.md)
 
 Where backend code belongs and how its layers interact.
 
 ## Company authority
 
-Company authority is recorded by retained requests, scoped appointments,
-invitations and revocations in `companies`; `Company.owner` and `RegisterMember`
-do not substitute for an appointment, and the `operators` configuration row and
-privileged automation are technical infrastructure. Place company authority with
-the company concern and pass an explicit actor and company command into shared
-workflow services; client actions and exceptional admin support call those
-services rather than duplicate decision logic. [Tenancy](tenancy.md#roles-and-principal)
-describes how selectors, policies and database guards enforce it, and the
-[implementation index](../plans/company-managed-registers/README.md) links each
-delivered workflow.
+Company authority is recorded in `companies` as retained requests, scoped
+appointments, invitations and revocations
+([authority guide](../plans/company-managed-registers/authority-requests.md)).
+Place it with the company concern and pass an explicit actor and company command
+into shared workflow services; client actions and exceptional admin support call
+those services rather than duplicate decision logic.
+[Tenancy](tenancy.md#roles-and-principal) describes how selectors, policies and
+database guards enforce it.
 
 ## Backend apps
 
@@ -32,7 +26,7 @@ package of per-concern modules re-exported by `settings/__init__.py`.
 | `authentication` | `CustomUser`, the `AuthViewSet`, JWT sessions, email verification codes                                                                                                                                                                                               |
 | `users`          | Profiles, accounts, preferences (the transaction-alerts switch, on one `UserPreferences` row), financial profiles, device tokens, notifications, classification sources, and company eligibility requests and decisions                                               |
 | `companies`      | `Company`, its activation, `CompanyDocument`, and representative-authority request, appointment, invitation and retained revocation records                                                                                                                           |
-| `tokens`         | `ShareToken`, `ShareIssuanceRequest`, `ShareIssuance`, `CapitalIncreaseRequest`, `MintRequest`, `YieldToken`, the stored register with its company decision records, and the trading models                                                                           |
+| `tokens`         | `ShareToken`, `ShareIssuanceRequest`, `ShareIssuance`, `CapitalIncreaseRequest`, `MintRequest`, `YieldToken`, the stored register with its company decision records, employee award and vesting records, external capital and allotment records, and the trading models |
 | `shareholders`   | `Publication`, the `PublicationRecipient` roll frozen at a record date with each entitlement, the `PublicationRead` audit, and the `PublicationEvent` chain of a resolution's ballots and close and of a distribution's payment records                               |
 | `offerings`      | `Offering`, `Subscription`, their review and payment lifecycles, allotment, and the eligibility-gated investor directory at `/api/v1/directory/`                                                                                                                      |
 | `whitelist`      | `WhitelistEntry`, the per-company `WhitelistApproval` mirror, `WhitelistChange` commands and the sync from each company's registry                                                                                                                                    |
@@ -102,18 +96,14 @@ row. File reads use `admin_file_path` and view permission instead.
 These named-staff actions follow admin's 403 permission behavior. Mint actions
 check change permission on the parent; `MintRequestAdmin` deliberately provides
 no add permission. `is_staff` alone is not enough. The layer gate refuses bare
-admin-view registration outside its helper allowance, and
-[route-derived tests](https://github.com/Ledova/ledova/blob/5f40e3cd896afc3f3a55a14e359224156735a417/backend/shared/tests/test_admin_row_actions.py) exercise
-every registered action.
+admin-view registration outside its helper allowance.
 
 Fields must preserve the API's edit boundaries. On Company, ACN/ABN/type lock after
 DRAFT; name and officeholder declaration fields are editable only in DRAFT or
 INFO_REQUIRED. Owner is read-only, and generic company admin creation/deletion is
 closed. Registration uses its bounded service; any reassignment needs an explicit
-workflow and reason.
-[Admin/API comparison tests](https://github.com/Ledova/ledova/blob/5f40e3cd896afc3f3a55a14e359224156735a417/backend/companies/tests/test_admin_matches_the_api.py)
-measure serializer/form differences; the officeholder fields are separately bounded
-by the update service. There is no complete comparison across every admin/model pair.
+workflow and reason. The officeholder fields are separately bounded by the
+update service.
 
 Next: [tenancy](tenancy.md), [engineering standards](../development/standards.md),
 and [gates](../development/gates.md).
