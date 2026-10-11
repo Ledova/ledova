@@ -18,16 +18,13 @@ application code. These are current remedies distilled from prior failures.
 | Database transaction remains aborted after a caught error | A caught permission/integrity error still aborts PostgreSQL's transaction. Verify the correct connection and savepoint/rollback boundary. |
 | A test hangs in JSON rendering | A mock probably returned another mock. Supply a concrete response value and inspect a faulthandler dump. |
 | All assertions pass but test process fails | Inspect exit status and teardown: leaked React queries, unmounted components or unresolved promises can fail after assertions finish. |
-| Migration test selects a nonexistent column | Query historical state through the migration executor; restore all migrations before current services run. |
 | Upload returns 503 | Check Redis and ClamAV readiness/signature loading; there is no scanner bypass. Check that `UPLOAD_PROCESS_MEMORY_BYTES` and `UPLOAD_PROCESS_CPU_SECONDS` are at least 1: lower values refuse every upload. |
 | Backend logs `Upload workers run without RLIMIT_AS` | Expected on macOS, whose kernel refuses that limit; uploads still run under the others and the wall deadline. Linux applies every limit, so there the warning is a fault to investigate. See [upload limits](../operations/uploads.md#upload-validation-and-resource-limits). |
-| `--parallel` aborts with `MaybeEncodingError` naming an unpicklable `Mock` | A subtest failed in a test that keeps mocks on `self`. Django pickles the finished test case to send the failure back, and a mock cannot be pickled. Rerun that module without `--parallel` to read the failure. |
 | LLM or local chain on host times out from container | Check bridge-to-host reachability. Prefer a service on the Compose network and use the documented hostname allowlist for extraction. |
 | `make chain-test` says `CHAIN_TEST_PORT=8545 is already in use` | The local stack's chain holds 8545 while the stack is up. Run `make chain-test CHAIN_TEST_PORT=8546`, or any free port. |
 | `chain-deploy` exits 1, and `migrate`, `backend`, `worker` and `dashboard` never start | Its message names the difference: core contracts missing, owned or configured differently, or built from other sources, as after a change to `contracts/`. The chain and database go together: `make dev-clean`, then `make dev-up`. See [the local stack's chain](../operations/chains.md#the-local-stacks-chain). |
 | `migrate` stops at `admit_local_signer` with *the chain was reset, or lost its latest blocks* | The database recorded transactions the chain no longer has, because the chain volume was deleted alone or Anvil was killed between state writes. `make dev-clean` resets both together. |
 | `chain` exits at once with *invalid value '/state/state.json' for '--state'* | A hard kill interrupted Anvil while it was rewriting its state file, which it does in place. The chain cannot be recovered: `make dev-clean`. |
-| A mobile signing test times out | Cold renderer setup, not signing: the first settlement-screen test timed out at five seconds in CI with 488 of 489 mobile tests passing, and a measured run with its budget raised completed in 7.28 s, 6.67 s of it in the first render. That one integration test has a ten-second limit; the five-second default, real renderer, cryptographic signer and duplicate-submit assertions stand. These are harness timings, not a reason to extend a timeout without locating the cost ([#542](https://github.com/Ledova/ledova/issues/542)). |
 
 For PostgreSQL authentication on an existing volume, see
 [role provisioning](../operations/configuration.md#row-level-security-roles).
@@ -37,7 +34,3 @@ that the container bridge can authenticate.
 
 For native build/device failures, use [native probes](native-probes.md). For a
 pending issuance, transfer or retained file, use [operator recovery](../operations/recovery.md).
-
-When an instrument caused the apparent failure, record that correction. Keep
-historical failure counts and old implementation shapes in their dated source
-records rather than turning them into current setup instructions.

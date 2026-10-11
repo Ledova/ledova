@@ -54,10 +54,12 @@ backend to finish migration/role checks and for both application surfaces to
 respond. Check `docker compose -p ledova-keystone-local ps` and the backend logs
 if startup fails. Do not weaken database role checks to get past an error.
 
-The fresh templates leave operator credentials, external-provider credentials
-and deployed contract addresses unconfigured. Leave those values unconfigured
-for this ownership-only exercise. No worker, chain node or deployment command
-is needed. Do not reuse an unrelated checkout's existing environment files.
+The fresh templates leave operator credentials and external-provider
+credentials unconfigured; leave them so for this ownership-only exercise. The
+stack's own chain, contract deployment and scanner start as dependencies, and
+the compose anchor sets the chain addresses; no worker is needed and nothing is
+signed for this exercise. Do not reuse an unrelated checkout's existing
+environment files.
 
 Create the documented synthetic demo once, retaining its generated credentials
 in a private local file:

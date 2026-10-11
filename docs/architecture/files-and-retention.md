@@ -21,11 +21,11 @@ account and classification UUIDs in prefixes remain pseudonymous identifiers.
 
 | Upload | Storage prefix and lifecycle |
 | --- | --- |
-| Representative authority request | `companies/`; immutable request retains private evidence; uncommitted-copy orphans are swept |
-| Company register decision: import, opening, correction, wallet link, particulars change, grant, transfer, capital increase, pause change, instruction | `companies/<uuid>/register-evidence/` for the company's upload and `register-<kind>/` (`register-imports/`, `register-links/`, `register-particulars/` and so on) for the decision's own copy; both are retained with their rows; interrupted-copy orphans are swept |
-| Publication to members | `companies/`; retained with its row until the [publication purge](shareholder-publications.md#retention) |
-| Dividend payment evidence | `companies/`; retained with its payment record until the [publication purge](shareholder-publications.md#retention) |
-| Company document | `companies/`; swept after becoming an orphan |
+| Representative authority request | `companies/<uuid>/authority-requests/`; immutable request retains private evidence; uncommitted-copy orphans are swept |
+| Company register decision: opening, import, correction, wallet link, particulars change, grant, transfer, capital increase, pause change, instruction, employee award, vesting event, external allotment | `companies/<uuid>/register-evidence/` for the company's upload and `register-<kind>/` for the decision's own copy: `register-openings/`, `register-imports/`, `register-corrections/`, `register-links/`, `register-particulars/`, `register-grants/`, `register-transfers/`, `register-capital-increases/`, `register-pause-changes/`, `register-instructions/`, `register-awards/`, `register-award-vestings/` and `register-allotments/`; both are retained with their rows; interrupted-copy orphans are swept |
+| Publication to members | `companies/<uuid>/publications/`; retained with its row until the [publication purge](shareholder-publications.md#retention) |
+| Dividend payment evidence | `companies/<uuid>/publications/<publication>/payments/`; retained with its payment record until the [publication purge](shareholder-publications.md#retention) |
+| Company document | `companies/<uuid>/documents/<type>/`; swept after becoming an orphan |
 | Unattached payslip | `documents/`; ordinary deletion and orphan cleanup |
 | Classification evidence | `users/`; retained by the classification clock |
 | Attached payslip | `users/supporting-documents/`; retained with its claim |
@@ -85,9 +85,7 @@ Company owners and company-role accounts do not gain that cross-customer access.
 Every operations page/file/extraction/changelist read records `DocumentRead`;
 an audit write failure refuses delivery. Audit rows survive content purge and
 have no admin mutation path. Supporting evidence uses these same controls on
-hosted and private instances. Product-mode selection and its evidence-only
-restrictions are [retired](../operations/upgrades.md#one-registry-product);
-retirement does not purge private content or widen reviewer access.
+hosted and private instances.
 
 A [publication to members](shareholder-publications.md#every-read-is-audited-and-an-unrecorded-read-is-refused)
 follows the same read-audit rule for a document a member reads rather than a
@@ -107,22 +105,16 @@ Every company register decision retains a private copy of the company's upload
 with its size, type and SHA-256, and a particulars change also its own copy of
 the name and residential address it recorded; one submitted before the
 decisions were company-run retains its copy of the staff-verified document.
-During the synthetic experiment those decisions, uploads and copies have no
-automatic expiry, while a member's particulars themselves are purged 2,557 days
+Until production retention is decided those decisions, uploads and copies have
+no automatic expiry, while a member's particulars themselves are purged 2,557 days
 after the member last held shares in the company. The database refuses ordinary
 row deletion; the orphan sweep removes only unreferenced copies. The
 [register runbook](../operations/register-foundation.md) describes each
 decision's workflow.
 
-[Representative authority requests](../plans/company-managed-registers/authority-requests.md)
-retain a separate private upload and immutable person/company/terms/content
-snapshot. Only the requester can read the personal API or download its evidence.
-The request has no automatic purge; appointment expiry, revocation or
-withdrawal does not erase the submission.
-Withdrawal adds immutable requester history and leaves the original bytes
-downloadable. Its referenced file
-stays protected by the retained row, while aborted-copy orphans use the ordinary
-sweep. A populated schema reversal refuses to discard those records.
+A [representative authority request](../plans/company-managed-registers/authority-requests.md#what-is-recorded)
+retains its private upload with the immutable request, readable only by its
+requester and never purged automatically.
 
 ## Validation and extraction
 
@@ -145,5 +137,5 @@ preserves the original and records a failed extraction. These controls do not
 retroactively certify legacy files.
 
 Next: [upload configuration](../operations/uploads.md),
-[storage migration recovery](../operations/recovery.md#private-file-migrations)
+[repairing stray uploads](../operations/uploads.md#repairing-stray-uploads-and-checking-mime-types)
 and [legal retention positions](../legal/positions.md).

@@ -8,11 +8,10 @@ and one happy path per delivered core journey. Delete other tests and their
 unused fixtures/helpers. Report what the remaining suite proves and leaves out.
 
 The caps below are binding and count every executed case, including each
-parameterized row. At capacity, a new core test must replace an existing case
-or have an explicit owner-approved cap increase in the same PR. No temporary
-overflow or silent increase is permitted. For suite changes, the author records
-before/after counts and names the replaced cases or links the approval;
-independent review verifies them. The
+parameterized row. At capacity, a new core test replaces an existing case or
+needs an explicit owner-approved cap increase in the same PR; never exceed a
+cap temporarily. The PR records before/after counts and the replacement or
+approval, and independent review checks them. The
 [11 October follow-up](../decisions.md#binding-caps-and-backup-authorisation)
 keeps the existing limits, including at most five real-app-login tenant cases.
 
@@ -35,11 +34,10 @@ development tools and an isolated PostgreSQL administrator connection available.
 | Optional local chain smoke            | `make chain-test`                                                          |
 | Native builds before mobile release   | Manual [mobile native workflow](../../.github/workflows/mobile-native.yml) |
 
-Native builds and chain smoke are manual. They are outside PR/main CI and
-preflight. `make ci-checks` includes the JavaScript workspace audits, and
-`make backend-test` includes the backend audit; preflight runs each once.
-New production advisories fail, with only the fixed exceptions in
-[the security policy](../../SECURITY.md#dependency-advisories) accepted.
+Native builds and chain smoke are manual, outside PR/main CI and preflight.
+Dependency advisories run inside `make ci-checks` and `make backend-test`
+([the audit gate](gates.md#dependency-advisories)); only the exceptions in
+[the security policy](../../SECURITY.md#dependency-advisories) are accepted.
 Correct dependency installation and PostgreSQL role privileges are
 prerequisites; record setup time separately from test time.
 
@@ -48,8 +46,9 @@ prerequisites; record setup time separately from test time.
 Use PostgreSQL, not SQLite: RLS, history/share-total triggers and issuance locks
 are part of the actual application. `make backend-test` runs the small suite,
 lint, dependency advisories, Django system/migration checks, role/catalogue checks
-and the API schema snapshot. The fresh migrations create the current schema and database guards.
-The command owns its scratch database and roles; preserve developer resources.
+and the API schema snapshot. The fresh migrations create the current schema and
+database guards. The command owns its scratch database and roles; preserve
+developer resources.
 
 Keep at most **150 executed backend cases** in total. Cover:
 
@@ -63,25 +62,17 @@ Keep at most **150 executed backend cases** in total. Cover:
 - One fake-scanner test refuses infected or unscannable uploads.
 
 The delivered suite has 18 cases, including five real-app-login tenant cases.
-Employee awards and recorded vesting use a separate approved imported-register
-grant; entitlements remain distinct from issued holdings. Fully paid external
-allotments record company receipts separately from exact approved issues.
-Member-specific invitations, walletless own records and company-reviewed
-particulars requests have one core API journey; the existing five real-login
-controls include foreign invitation and revoked association refusals. Participant
-certificate fulfilment remains #871 work; a retained request creates no output.
+Member invitations, own records and company-reviewed requests have one core API
+journey; the existing tenant controls include foreign invitation and revoked
+association refusals. A retained certificate request creates no output; actual
+fulfilment follows #871.
 
-Keep at most five real-app-login tenant tests. Remove the broad strict suite,
-real Redis/ClamAV, multi-process timing, deferred/legacy tests and unused support.
-One or two optional chain smoke tests run through `make chain-test`; no chain
-node or scanner service is needed by the ordinary suite.
-
-## Scoped connection evidence
-
-The small tenant suite must use real non-bypassing app credentials for its
-API/database boundaries. A privileged fixture connection alone does not prove
-RLS isolation. Record the actual scoped test count and any skips; do not describe
-ordinary `SET ROLE` fixtures as separate app-login evidence.
+Keep at most five real-app-login tenant cases; they must use real non-bypassing
+app credentials for their API/database boundaries: a privileged fixture
+connection alone does not prove RLS isolation, and ordinary `SET ROLE` fixtures
+are not app-login evidence. The PR description records the executed count, the
+scoped count and any skips. One or two optional chain smoke tests run through
+`make chain-test`; the ordinary suite needs no chain node or scanner service.
 
 ## Client limits
 
@@ -94,42 +85,23 @@ Count executed cases, including parameterized rows:
 | Shared package | 8               | 10      | Essential shared behaviour       |
 | Contracts      | 14              | 20      | Who can mint, pause and transfer |
 
-The nine Playwright smoke tests remain. Mobile type-check and lint stay. Retire unused
-mock factories, presentation permutations and test-only dependencies with their
-tests. Build/probe/device results before release are separate evidence.
+The nine Playwright smoke tests remain, as do mobile type-check and lint.
+Build, probe and device results before release are separate evidence.
 
-## CI routing
+## CI
 
-Every pull request, main and manual CI run uses the same lean checks on GitHub's
-Ubuntu runners. There is no file-based routing. Keep the fail-closed verdict,
-PR wording and source gates.
-A failed, cancelled or missing required job is a failure; no rerun is automatic.
-
-The Mac pool is retired. Its login service is disabled, its runners deregistered
-and its two groups closed to repository/public access. The
-[manual host source](../../scripts/retired-mac-runner/README.md) stays in Git
-for possible future review; ordinary CI never imports or starts it. No Linux
-runner is activated. Reintroducing self-hosted routing requires a new reviewed
-change and explicit host configuration.
-
-The owner measured main runs at roughly 6½–8 minutes on the Mac pool, including
-1–3½ minutes of fresh-VM waiting per job, against roughly 5½ minutes on GitHub.
-GitHub's runners are free for this repository. Local Mac preflight remains
-supported; its execution time excludes installation and CI queue time.
-
-Targets are the whole PR run within **ten minutes on GitHub's runners** and all
-tests together within **five minutes on the Mac**. Record actual suite counts,
-commands, setup/queue/test/job times and gaps. Do not claim the targets from a
-focused subset, parallel method-time sum or historical larger-suite timing.
-
-The first complete run of this policy on 11 October passed in **5m14s on
-GitHub's runners**, including dependency setup and the final verdict
-([PR #970 CI](https://github.com/Ledova/ledova/actions/runs/38100287527)).
-The composed `make preflight` passed in **184.958 seconds on the Mac**, with
-dependencies and isolated PostgreSQL already installed. It ran all source,
-type, lint, tooling, build, test and Playwright checks plus fresh PostgreSQL
-verification; the backend had 15 cases and zero skips. These measurements meet
-both targets; fresh local dependency installation and native builds are separate.
+Every pull request, main and manual CI run uses the same lean checks on
+GitHub's Ubuntu runners; there is no file-based routing and no self-hosted
+pool. The verdict fails closed: a failed, cancelled or missing required job is
+a failure, and no rerun is automatic. The targets are the whole PR run within
+**ten minutes on GitHub's runners** and all tests together within **five
+minutes on the Mac**; record actual suite counts, commands and
+setup/queue/test/job times rather than claiming the targets from a focused
+subset or a historical larger-suite timing. The first complete run under this
+policy on 11 October met both targets
+([PR #970 CI](https://github.com/Ledova/ledova/actions/runs/38100287527)); the
+Mac pool's retirement is recorded in
+[decisions](../decisions.md#github-runners-and-mac-retirement).
 
 ## Preflight
 
@@ -139,40 +111,34 @@ development when useful, then preflight once before publication; applicable CI
 must still pass on the final head up to date with main.
 
 Preflight validates local wording and the commits since `BASE` (default
-`origin/main`). Supply `PR_TITLE_FILE` and `PR_BODY_FILE` to check the actual
-draft description; otherwise it checks a draft derived from the HEAD commit,
-adding a `Refs` header from its title when needed. The real PR description and
-online owning-issue verification stay in CI.
+`origin/main`) through the local mode of the
+[PR metadata gate](gates.md#the-pr-metadata-gate). Supply `PR_TITLE_FILE` and
+`PR_BODY_FILE` to check the actual draft description; otherwise it checks a
+draft derived from the HEAD commit, adding a `Refs` header from its title when
+needed. The real PR description and online owning-issue verification stay in
+CI; record the local and online boundaries separately in the PR.
 
-The [PR wording gate](gates.md#the-pr-metadata-gate) verifies the owning issue and
-closing phrases. A `Refs` body or commit must contain no closing phrase before
-an issue number, even a negated phrase. Record the local and online boundaries
-separately in the PR.
+## Migrations
 
-## Migration baseline
-
-The earlier baseline/adoption procedure is retired. Generate fresh initial
-project migrations from current models; install PostgreSQL roles/grants, RLS,
-functions/triggers and current history/share-total/issuance safeguards. Keep
-migration drift, roles/catalogue and API schema checks. No old-chain rewind,
-equivalence/adoption suite or blanket per-migration upgrade test is required.
-
-Historical sources remain in Git. Held product migrations rebase onto the fresh
-history. An older ledova.io database needs a rebuild; the
+Fresh initial migrations from current models install the schema, the PostgreSQL
+roles and grants, RLS policies, functions and triggers, and the
+history/share-total/issuance safeguards. `make backend-test` checks migration
+drift, roles/catalogue and the API schema snapshot; no old-chain rewind,
+equivalence/adoption suite or per-migration upgrade test is required. An older
+ledova.io database needs a rebuild; the
 [backup/inventory and rebuild plan](../operations/upgrades.md#fresh-database-rebuild)
 records the already-authorised backup and read-only database/private-storage
-inventory and reversible isolated validation. Live selective export and changes
-to the running deployment still require the owner's go-ahead.
+inventory and reversible isolated validation
+([decision](../decisions.md#binding-caps-and-backup-authorisation)). Live
+selective export and changes to the running deployment still require the
+owner's go-ahead.
 
 ## Documents against code
 
 Independent review reads the final changed behaviour and the claims made about
-it. State reviewer identity, head SHA, depth and omissions; a branch movement
-needs unchanged-content proof or review of its delta. A blocking review stands
-until its author clears it. Record meaningful results and gaps in short, plain
-PR descriptions. Documentation needs no tests mirroring its prose.
-
-Delivered increment guides retain their original evidence as history. Removed
-test names do not establish current coverage. Product authority, privacy and
-ownership rules remain behaviour even where exhaustive test permutations are
-retired; the minimum suite is deliberately narrower.
+it, under the [review and merge](../../CONTRIBUTING.md#review-and-merge)
+protocol. Documentation review checks navigation and statements against source;
+a page needs no tests mirroring its prose. Removed test names do not establish
+current coverage, and product authority, privacy and ownership rules remain
+behaviour even where exhaustive test permutations are retired. Record
+meaningful results and gaps in short, plain PR descriptions.

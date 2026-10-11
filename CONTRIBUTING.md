@@ -19,12 +19,9 @@ before opening your first pull request.
 - **No secrets, ever.** No `.env` files, private keys, seed phrases, API tokens,
   real personal data or internal infrastructure identifiers. Only `.env.example`
   templates with blank values belong in the repository.
-- **Trading routes are enabled by default** on the experimental deployment, an
-  owner decision recorded in
-  [#646](https://github.com/Ledova/ledova/issues/646). That default stays
-  synthetic-data-only: operation with real participants follows the
-  [regulatory pathway](docs/regulatory-pathway.md), and releases require the
-  human checks in [#624](https://github.com/Ledova/ledova/issues/624).
+- **Trading routes are enabled by default** on the experimental deployment
+  ([#646](https://github.com/Ledova/ledova/issues/646)), on synthetic data only;
+  see the [capability boundaries](docs/product.md#current-capability-boundaries).
 - Be respectful and constructive. Assume good faith.
   See [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
 
@@ -34,7 +31,8 @@ before opening your first pull request.
   [open issues](https://github.com/Ledova/ledova/issues).
   [Programme #860](https://github.com/Ledova/ledova/issues/860) and the
   [9 October decision](docs/decisions.md#essential-registry-and-development-workflow-priority)
-  set the order of work; reuse those issues and respect other agents' claims.
+  set the scope and order of the remaining work; reuse those issues and respect
+  other agents' claims.
 - Every work item, including owner-requested changes, is tracked in a GitHub
   issue. Reuse an existing issue when its scope fits; otherwise create one before
   implementation.
@@ -59,25 +57,16 @@ Follow [local setup](docs/getting-started.md), then the
 1. Branch from `main` (`fix/whitelist-check`, `docs/quickstart`). Contributors
    without repository write access use a fork.
 2. Keep pull requests small and focused: one logical change each.
-3. Follow the [11 October minimum-test policy](docs/development/testing.md).
-   Keep tests only for the worst failures and one happy path per delivered core
-   journey, within the binding suite caps, counting every parameterized row.
-   At capacity, a new core test replaces an existing case or needs an explicit
-   owner-approved cap increase in the same PR. Never exceed a cap temporarily.
-   Replace or remove redundant tests and their
-   unused helpers/fixtures. There is no mandatory test for every change or
-   cross-tenant row for every route. Keep PostgreSQL isolation/authority,
-   ownership totals and issuance idempotency covered by the small core suite.
-   Source gates, system/role/catalogue checks, API snapshot and Playwright smoke
-   remain. Documentation-only changes need no tests mirroring their text.
+3. Follow the [minimum-test policy and binding suite caps](docs/development/testing.md):
+   tests only for the worst failures and one happy path per delivered core
+   journey, replacing an existing case when a suite is full. There is no
+   mandatory test for every change, and documentation-only changes need no
+   tests mirroring their text.
 4. Follow the coding rules in
    [engineering standards](docs/development/standards.md#the-rules). The one that
    surprises people most: **source carries no comments and no docstrings**. Only
-   functional directives the tooling reads (`# noqa`, `eslint-disable`,
-   `// SPDX-License-Identifier` and the rest of the list) are allowed, and that
-   list is closed. There is no "unless it is really needed" exception: if a line
-   seems to need explaining, rename it or add a test. `make check-comments`
-   fails on anything else, so run it before you push. Configuration and
+   the closed list of functional directives the tooling reads is allowed, and
+   `make check-comments` fails on anything else. Configuration and
    documentation files keep their comments.
 5. Write a clear pull request description: what changed, why, and how you
    verified it. Follow the title and issue-reference format below.
@@ -152,13 +141,9 @@ grows.
    together.
 5. **Product and legal decisions remain the repository owner's.** Live
    deployment, live database migrations, signer activation and real-funds use
-   also require the owner's explicit direction. The
-   [11 October follow-up](docs/decisions.md#binding-caps-and-backup-authorisation)
-   already authorises a ledova.io backup and read-only database/private-storage
-   inventory. Reversible isolated backup validation and mapping rehearsal may
-   proceed with workers, signers and external integrations disabled. Live selective
-   export, stopping writers, rebuild, migration, re-seeding, configuration and
-   release still need the owner's go-ahead.
+   also require the owner's explicit direction. The current operational
+   authorisations for ledova.io are recorded in the
+   [11 October follow-up](docs/decisions.md#binding-caps-and-backup-authorisation).
 
 How to establish that a change does what it claims is a separate question, and is
 in [testing and review](docs/development/testing.md).
@@ -174,9 +159,8 @@ once on the merging head.
 
 ## Reporting security issues
 
-Do not open a public issue for a vulnerability. Use GitHub's private
-vulnerability reporting on this repository (Security, then _Report a
-vulnerability_). See [SECURITY.md](SECURITY.md).
+Report vulnerabilities privately as [SECURITY.md](SECURITY.md) describes,
+never in a public issue.
 
 ## Licensing of contributions
 

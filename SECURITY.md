@@ -4,21 +4,20 @@ How to report a vulnerability in Ledova, and what is in scope.
 
 ## Dependency advisories
 
-CI fails on a new production advisory. `make ci-checks` runs
-`npm audit --omit=dev --audit-level=low --json` at the repository root and in
-`marketing/`, `contracts/` and `mobile/`. The first three must stay completely
-clean. `make backend-test` runs strict `pip-audit` against
-`backend/requirements.txt` before creating its scratch database. `make preflight`
-inherits each audit once. `make audit` runs both audits locally. Dependabot's
-existing configuration remains separate from these gates.
+CI fails on a new production advisory. The
+[dependency-advisory gate](docs/development/gates.md#dependency-advisories) says
+which commands run the npm and `pip-audit` checks and when; Dependabot's
+configuration remains separate from them.
 
 The gate accepts only the fixed package and advisory pairs below. A different
 package, a new advisory ID, a critical npm finding, an audit tool failure or
 missing or malformed output fails the check. It does not add exceptions from
 the current audit result.
 
-These mobile exceptions preserve the accepted findings recorded on 5 October 2026. Most belong to the Expo and Metro developer toolchain, whose SDK upgrade
-remains separate work. `elliptic` and a second `uuid` ancestry also reach the
+The npm exceptions apply to `mobile/` only; the root, `marketing/` and
+`contracts/` audits must stay completely clean. They preserve the findings
+accepted on 5 October 2026. Most belong to the Expo and Metro developer
+toolchain, whose SDK upgrade remains separate work. `elliptic` and a second `uuid` ancestry also reach the
 experimental testnet chain. The earlier toolchain and testnet risk acceptance
 does not authorise additional advisories in those categories.
 
@@ -44,11 +43,6 @@ The backend exception is the exact pair `pytest` / `PYSEC-2026-1845`.
 application never imports it and the advisory needs it to be running. This
 preserves the existing accepted exception without adding an unimported package
 to production requirements.
-
-Newly reported `compression` and `pbkdf2` advisories are fixed through compatible
-patch releases. The new `sprintf-js` advisory has no patched release; a scoped
-`@istanbuljs/load-nyc-config` override to `js-yaml` 4 removes its obsolete
-`argparse` 1 dependency. These three findings are not exceptions.
 
 Every accepted exception must be revisited before any mainnet or
 store-distributed build.

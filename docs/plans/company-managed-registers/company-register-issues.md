@@ -23,12 +23,9 @@ Issued supply, member holdings, authorised cap and existing reservations remain
 separate quantities. The terms date records the company's terms; a later ISSUE
 entry uses the actual register-recording date.
 
-A current `admin` appointment may prepare, approve, apply and reject, with
-`prepare`, `approve` and `apply` as the narrower delegate capabilities, under
-the [owner's authority rules](../../decisions.md#company-run-register-authority-and-evidence);
-ownership, platform staff access and technical signer configuration grant no
-company mandate. The named approving director and the existing recipient
-conflict check follow the [register grant rule](register-grants.md#what-the-company-does).
+Authority follows the [owner's rules](../../decisions.md#company-run-register-authority-and-evidence).
+The named approving director and the existing recipient conflict check follow
+the [register grant rule](register-grants.md#what-the-company-does).
 
 An import-origin book cannot use this chain grant, including an imported zero
 book after deployment. Deployment does not supply a new chain opening or mirror
@@ -42,14 +39,11 @@ finite company wallet approval and the documentary member-wallet link are
 independently required. The preparation identifies the original ADD change
 explicitly; matching an address alone does not identify that approval.
 
-Before a first grant, the company can use the existing LINK instruction to link
-this selected nominated address to a new zero-position member, or explicitly
-select an existing member. LINK retains its own authority evidence, approval
-and application. No previous mint or waiting share effect is required. The grant
-validates the exact same-company member link and captures the existing identity
-resolver's actual source; names, addresses and accounts are not matched to infer
-an association. This introduces no shareholder claim or invitation policy from
-#866.
+Before a first grant, the company links the nominated address to a new
+zero-position member with the existing LINK instruction
+([runbook](../../operations/register-foundation.md#linking-wallets-after-the-opening))
+or selects an existing member; the grant validates the exact same-company member
+link without inferring an association from names, addresses or accounts.
 
 ## API
 
@@ -81,9 +75,4 @@ original allocation cannot silently free its reserved headroom.
 
 Current exact-company register-read capability controls proposals and retained
 files; metadata access does not expose private legacy owner histories or
-participant wallet and eligibility directories. Both clients retain the exact
-original body, operation key, evidence uploads and expected receipt within the
-current session; account, company, class and session changes guard transport
-and final document callbacks, and mobile additionally binds its session epoch.
-Changed retries conflict and do not replace the original recipient, nomination,
-approval, terms or execution identity.
+participant wallet and eligibility directories.

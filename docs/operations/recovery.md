@@ -45,31 +45,19 @@ merely to replace the placeholder.
   source cannot obtain a fresh signature. **Retry approval** on the same page
   reopens a failed [automatic swap approval](../architecture/outgoing-signing.md#automatic-swap-approval).
 - **Share issuance** (`check_executing_issuance_requests`, bounded batches every
-  five minutes; a command with an observed success or revert is eligible on
-  every sweep, without the ten-minute stale cutoff used for unmined work, and
-  each checked command moves to the back of the queue). A company
+  five minutes). A company
   [chain grant](../plans/company-managed-registers/company-register-issues.md)
-  or [paid issue](../plans/company-managed-registers/company-paid-issues.md),
-  delivered by [#951](https://github.com/Ledova/ledova/pull/951), admits the
-  private `ShareIssuanceExecution`; completion waits for the configured finality
-  policy and updates the issuance, request and subscription together, and
-  register recording may still leave the effect
+  or [paid issue](../plans/company-managed-registers/company-paid-issues.md)
+  admits the private `ShareIssuanceExecution`; completion waits for the
+  configured finality policy, and register recording may still leave the effect
   [waiting](register-foundation.md#the-issuers-waiting-list). A known unsigned
   failure or policy-final original revert allows **Retry Execute** on the
   request, bound to that exact failed claim, or a refund that cancels the
   allotment; after the worker's executing claim, uncertainty keeps the refund
-  hold. Permanent authority loss before any signature renews nothing, admits
-  no second request and refunds nothing automatically; further financial
-  resolution is #868 work
-  ([share issuances](../architecture/outgoing-signing.md#share-issuances)).
+  hold ([share issuances](../architecture/outgoing-signing.md#share-issuances)).
 - **Import-origin registers** admit no issuance execution, failed-retry or
   unsigned signing; their retained requests and journals remain, and deploying
   an imported zero book supplies no issuance workflow for it.
-- The owner confirmed that pre-admission null-dispatch issuances, including
-  signed legacy mint journals, are absent from ledova.io. Their legacy hash
-  naming and recovery paths are retired. Admitted executions without a company
-  source retain the recovery and refund controls above; existing records and
-  [outgoing history](../reference/outgoing-history.md) evidence are preserved.
 - **Settlement-asset and yield-token mints** (`recover_mint_requests`). Use
   **Recover** on a request whose outcome is unresolved and **Retry** after a
   recorded failure or revert, tied to the claim the form shows
@@ -82,15 +70,11 @@ five minutes. A [company capital increase](../plans/company-managed-registers/co
 commits its request and job before chain access; if a reply is lost, replay the
 original company command with its body and key and read its receipt. A known
 unsigned failure or original revert exposes **Retry Execute** on the request,
-bound to that exact failed attempt; an old form cannot authorise another. A hold
-for attribution retains its private observations: do not clear public status
-or notes to bypass it, and do not read a matching current cap, a failure label,
-a deleted request or a missing hash as proof that the approved transaction
-executed or was never sent. Explicit revocation or expiry of a consumed
-appointment can fail genuinely never-signed work and release the class slot;
-signed work recovers its original bytes. Historical work follows the
-[cutover process](../reference/outgoing-history.md); the invariants are in
-[capital increases](../architecture/outgoing-signing.md#capital-increases).
+bound to that exact failed attempt; an old form cannot authorise another. Do not
+clear public status or notes to bypass a hold for attribution, and do not read a
+matching current cap, a failure label, a deleted request or a missing hash as
+proof that the approved transaction executed or was never sent. The invariants
+are in [capital increases](../architecture/outgoing-signing.md#capital-increases).
 
 ## Subscriptions
 
@@ -116,14 +100,9 @@ change waits for the original to resolve.
 Recover a lost reply by replaying the original nomination, preparation or
 decision body and key under current read access; never replace a UUID, infer
 chain approval from applied status, alter a job to impersonate another actor or
-mark an uncertain outcome complete. Staff add/remove APIs and admin quick
-actions admit no fresh decision. A company appointee can prepare REMOVE from a
-genuine retained CONFIRMED or UNCHANGED ADD journal, including a historical
-NULL-source ADD, even after wallet deletion; an approval-only row with no
-journal is not invented into an ADD source. Restoring a read or an appointment
-does not itself create a new approval, source renewal or replacement
-instruction. Verify actual absence before retiring a blocked removal job. Pause uses its own company instruction. The
-rules are in [whitelist changes](../architecture/outgoing-signing.md#whitelist-changes),
+mark an uncertain outcome complete. Verify actual absence before retiring a
+blocked removal job. The rules are in
+[whitelist changes](../architecture/outgoing-signing.md#whitelist-changes),
 [refreshing an approval](../architecture/outgoing-signing.md#refreshing-an-approval)
 and the [company wallet workflow](../plans/company-managed-registers/company-wallet-approvals.md).
 
@@ -148,8 +127,7 @@ Use the recorded journal and the matching [EVM](../reference/wallet-transfers.md
 or [Bitcoin](../reference/wallet-transfers.md#bitcoin) protocol. Receipt confirmation
 and balance reconciliation are separate; a five-minute sweep requeues durable
 balance repair even after a transaction's status changes
-([wallet reconciliation](../reference/wallet-reconciliation.md)). The two
-retired cleanup tasks are in the [upgrade note](upgrades.md#retired-transaction-cleanup-tasks).
+([wallet reconciliation](../reference/wallet-reconciliation.md)).
 Do not infer compensation from timeouts; [transaction evidence](../reference/transaction-evidence.md)
 explains receipt, canonicality and finality limits. Trading is enabled by
 default; [orders](../reference/order-submissions.md) and
@@ -166,11 +144,9 @@ defines the limits of reconstructing pre-platform history.
 
 ## Private file migrations
 
-Read [private-storage migration procedures](../reference/private-storage-migrations.md)
-and the [upgrade notes](upgrades.md) before serving a carried database. A
-cleared file reference records a completed evidence purge; account deletion does
-not shorten the retention horizon; storage deletion failures retain references
-for retry ([retention and scanning](uploads.md)).
+Private storage is backed up and restored with the database.
+`python manage.py reconcile_private_media --check` reports stray local uploads
+([repairing stray uploads](uploads.md#repairing-stray-uploads-and-checking-mime-types)).
 
 ## Missing notifications or provider results
 
@@ -188,15 +164,10 @@ first, retaining original signed bytes and nonce or finishing an already
 recorded outcome without provider access. Keep the original
 [company preparation or decision](../plans/company-managed-registers/company-pause-changes.md)
 body and key when a reply is lost; both clients recover the receipt by
-repeating the original command, and a changed draft cannot rebuild its
-authority. Approval alone admits no execution, a pending result does not mean
-transfers have stopped or resumed, and a completed original outcome can differ
-from the token's current state after a later request. The retained legacy
-owner reminders keep **Check outcome** and **Retry same request** for an
+repeating the original command. Approval alone admits no execution, and a
+pending result does not mean transfers have stopped or resumed. The retained
+legacy owner reminders keep **Check outcome** and **Retry same request** for an
 existing exact row only; a never-admitted UUID receives an explicit
-fresh-admission refusal, and fresh owner or staff submission is retired. Recover the original observation or
-canonical receipt rather than creating a new command for an ambiguous outcome;
-if a retained NULL-source projection cannot reach its original scoped class,
-restore the correct identity, because no operator fallback bypasses that
-barrier. A completed failure permits a deliberate new company preparation. The
-contract is [pause and unpause](../architecture/outgoing-signing.md#pause-and-unpause).
+fresh-admission refusal. A completed failure permits a deliberate new company
+preparation. The contract is
+[pause and unpause](../architecture/outgoing-signing.md#pause-and-unpause).

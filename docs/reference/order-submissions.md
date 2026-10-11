@@ -2,7 +2,7 @@
 
 [Reference](README.md) · [Documentation](../README.md)
 
-The immutable identities and recovery contracts for creating, cancelling and modifying orders. Trading is enabled by default.
+The immutable identities and recovery contracts for creating, cancelling and modifying orders.
 
 ## Creating an order
 
@@ -43,8 +43,9 @@ matching and the recorded outcome in one independent operator transaction.
 Both aliases must have autocommit enabled and no enclosing transaction. The
 request returns to app authority before serialization. A lost response recovers
 the same recorded result through the owner-scoped lookup; no second commit or
-matching queue is introduced. `shared/0012` removes the app's redundant swap
-INSERT permission on existing databases as well as fresh installs.
+matching queue is introduced. The app connection cannot insert swap rows: its
+row-level write policy on `tokens_swaporder` is `false`, installed with the
+other policies and grants by `shared/0002_database_guards`.
 
 Foreign candidates must still have verified EVM wallets and active account owners.
 The database orders candidates by price, creation time and primary key. The matcher
@@ -67,7 +68,7 @@ A negative whitelist result, an investor classification that is not live for
 the share class's company, insufficient seller share or buyer payment
 balance, failure of every compatible fill's amount check, or a share token whose
 recorded deployment names a chain other than the one in the domain about to be
-signed — including one whose deployment row cannot be read — records a terminal
+signed, including one whose deployment row cannot be read, records a terminal
 business refusal: creation and matching roll back to their savepoint
 while spend and refusal commit together. The chain disagreement records its own
 `settlement_chain_disagreement` code and is token-wide, so matching refuses at the
@@ -81,22 +82,22 @@ changes. A corrected intent uses a new UUID. See
 [payment units](swap-settlement.md#payment-units) for the exact calculation rules.
 Provider, configuration,
 database and unclassified matching failures remain retryable; a lost commit
-acknowledgement requires recovery. `tokens/0037` protects the account/key, original
-intent, challenge linkage and terminal outcome against direct SQL changes.
+acknowledgement requires recovery. PostgreSQL guards protect the account/key,
+original intent, challenge linkage and terminal outcome against direct SQL
+changes.
 Never delete these identities to retry or reinterpret a refusal as permission
 to create another order. A separate deliberate order still undergoes the ordinary
 creation and matching checks. This protocol adds no aggregate balance policy,
 outgoing signer activation or settlement finality guarantee.
 
 The rows a submission holds across its decision, the order every trading journey
-takes its locks in, and the competing pairs the suite proves are in
+takes its locks in, and the competing pairs that order must hold are in
 [the trading lock graph](#the-trading-lock-graph).
 
 ## Cancelling or modifying an order
 
-Cancel and modify requests use a separate account-scoped `action_id`, introduced
-by `tokens/0038`. Coordinate backend, shared package, dashboard and mobile
-releases for this protocol change. Before preparing a fresh action, read
+Cancel and modify requests use a separate account-scoped `action_id`. Before
+preparing a fresh action, read
 `GET /api/v1/trading/orders/{order_uuid}/action-context/?owner_account_uuid=...`.
 This request is read-only. Use its canonical quantity/minimum/price strings for
 all absolute replacement values, including unchanged values in a price-only
@@ -133,16 +134,10 @@ before retrying. Terminal replay does not repeat an order change or publish a
 second event. The existing event mechanism has no outbox, so database recovery
 is not a guarantee of event delivery.
 
-Old unlinked cancel/modify challenges and modification logs remain unchanged.
-A `GET` on the cancel-message route, which older clients used to issue the
-challenge, answers 405; old POSTs without the new identity fields receive
-ordinary required-field errors.
-A keyed pending action presenting an unlinked legacy challenge also receives
-`action_refresh_required` before spend. There is no automatic rebinding or legacy
-execution fallback. Existing settlement signatures and stored swap deadlines are
-unchanged. This protocol changes no balance eligibility, admits no signer,
-broadcasts no transaction and establishes no settlement finality; trading is
-enabled by default.
+A keyed pending action presenting an unlinked legacy challenge receives
+`action_refresh_required` before spend; there is no automatic rebinding or
+legacy execution fallback. This protocol changes no balance eligibility, admits
+no signer, broadcasts no transaction and establishes no settlement finality.
 
 ## The trading lock graph
 
@@ -181,60 +176,54 @@ their earlier authority-lock behaviour; foreign candidates have their complete
 authority locked before matching. Three rules keep these edges from closing
 a cycle:
 
-- **R1** — trading journeys lock `Wallet` and `UserAccount` with `FOR NO KEY UPDATE`, never
-  `FOR UPDATE` (`_lock_authorized_wallet`, `create_order_and_match`,
-  `_lock_authority`, `_lock_foreign_matching_authority`). `FOR KEY SHARE` is compatible
-  with `FOR NO KEY UPDATE` and
-  conflicts with `FOR UPDATE`, so a matcher's foreign-key checks never wait on
-  another trading transaction's wallet or account lock. These locks still exclude
-  concurrent authorisation changes. Without R1, one
-  account's two wallets deadlock: the first request holds the account and wants a
-  key share on the second wallet, while the second holds its wallet and waits for
-  the account. A foreign seller's action can likewise hold its account and wait
-  for the order while the matcher holds that order and waits for an account key
-  share at commit. Wallet-side writers do hold `Wallet` `FOR UPDATE` and can delay the
-  insert, but they hold nothing at or after `TransferOrder` in G, so they can only
-  delay it, never wait on the matcher.
-- **R2** — every lock that can cover more than one `TransferOrder` row goes
+- **R1**: trading journeys lock `Wallet` and `UserAccount` with `FOR NO KEY UPDATE`,
+  never `FOR UPDATE` (`_lock_authorized_wallet`, `create_order_and_match`,
+  `_lock_authority`, `_lock_foreign_matching_authority`). `FOR KEY SHARE` is
+  compatible with `FOR NO KEY UPDATE`, so a matcher's foreign-key checks never
+  wait on another trading transaction's wallet or account lock, while those
+  locks still exclude concurrent authorisation changes. Without R1 one account's
+  two wallets deadlock at commit. Wallet-side writers hold `Wallet` `FOR UPDATE`
+  but nothing at or after `TransferOrder` in G, so they can delay the insert,
+  never wait on the matcher.
+- **R2**: every lock that can cover more than one `TransferOrder` row goes
   through `lock_orders`, which orders by primary key before locking
   (`find_matching_orders`, `match_orders`, `create_swap_order`, `_lock_swap`,
   `expire_unclaimed_swap`). The action path's `_authorized_order` locks exactly
   one row.
+- **R3**: foreign wallet/account/profile/user acquisition and each candidate's
+  order pair use `NOWAIT`, so two creates holding different incoming wallets
+  cannot wait on one another's authority, and a matcher cannot wait behind a
+  foreign action, expiry or account deletion while holding its own authority.
+  Contention or changed candidate terms abort the whole create transaction and
+  leave the submission retryable; each failed amount check rolls back its
+  candidate savepoint, so locks do not accumulate across the priority walk.
 
-- **R3** — foreign wallet/account/profile/user acquisition and each candidate's order pair use `NOWAIT`. Two creates holding different
-  incoming wallets cannot wait on one another's authority, nor can a matcher wait
-  behind a foreign action, expiry or account deletion while holding its own authority. Contention or
-  changed candidate terms abort the complete create transaction and leave the submission retryable.
-  Each failed amount check rolls back its candidate savepoint before a fallback;
-  locks from earlier candidates do not accumulate across the priority walk.
-
-`tokens/tests/test_trading_lock_rules.py` holds R1, R2 and R3 against the source.
-
-Two properties of the graph are deliberate rather than defects. The create path
-reads the whitelist and the chain balance while holding its wallet and account
-rows, so a balance is measured against every commitment visible under the lock,
-while the modify path reads the chain outside every transaction; a slow provider
-therefore extends how long the wallet's other requests and its authorisation
-changes wait on the create path only. And matching runs only inside creation and
-the held-order sweep, and an order decides whether it may rest from the orders
-already committed: two crossing orders created concurrently each see only
-committed orders, so both can rest unmatched. That is a liveness limit of the
-book, not a lock defect, and the minute's sweep bounds it without a new lock:
-after the held orders it holds back the newer of any two listed orders that
-cross, and its next run matches that order like any held order. Every placement,
-settlement, lapse, revert and modification in turn checks the
+Two properties of the graph are deliberate. The create path reads the whitelist
+and the chain balance while holding its wallet and account rows, so a balance is
+measured against every commitment visible under the lock; a slow provider
+therefore extends how long that wallet's other requests wait on the create path
+only. And matching runs only inside creation and the held-order sweep, each
+order deciding whether it may rest from the orders already committed, so two
+crossing orders created concurrently can both rest unmatched. The minute's sweep
+bounds that liveness limit without a new lock: it holds back the newer of any
+two listed orders that cross and matches it on its next run. Every placement,
+settlement, lapse, revert and modification checks the
 [book it would rest in](../architecture/trading.md#one-match-never-crossed).
 
-| Pair | What must hold | Proved by |
-| --- | --- | --- |
-| P1 — create against create, one wallet | the second waits at the wallet lock and measures its balance against the first's committed order: refused when the two do not fit, open when they do | `test_order_submission_processes.py`: `test_a_second_sell_on_one_wallet_waits_and_is_refused_by_the_first_commitment` and `test_two_sells_that_fit_the_balance_together_both_open_after_waiting`, through independent app requests with bounded operator commits |
-| P2 — create against create, two wallets of one account, crossing | the second waits on the account row; the matcher's key share on the second wallet does not deadlock; both commit and exactly one swap exists | `test_order_submission_processes.py`: `test_crossing_creates_on_two_wallets_wait_on_the_account_and_match_once`; reverting R1 turns it into a `DeadlockDetected` in one child |
-| P3 — a decision against an authorisation change (wallet verification, account reassignment) | the change waits on the wallet or account row until the decision commits, then the next submission is refused | `test_matching_wallet_locks.py` for the create path, whose two sides are threads on separate connections in one process; `test_order_action_processes.py`: `test_a_verification_change_waits_for_the_modify_and_then_refuses_a_fresh_submission` for the action path, where the modify is an independent process and the competing authorisation change is a thread on the operator connection in the test process |
-| P4 — the matcher against a cancel or modify of its candidate | same-account journeys serialize at the account; a foreign action waits behind an admitted matcher at the wallet, while a matcher encountering a busy foreign wallet returns retryable 503 and re-reads committed terms on retry: a modify or cancel of a matched order records its refusal with the spend committed, and a match after a modify uses the modified terms | `test_order_action_processes.py`: `test_a_modify_waits_for_the_match_and_is_then_refused_on_the_matched_order`, `test_a_cancellation_waits_for_the_match_and_is_then_refused_on_the_matched_order` and `test_a_match_waits_for_a_modification_and_matches_the_modified_values`, plus `test_the_foreign_sellers_modify_waits_for_matching_and_is_refused`, `test_the_foreign_sellers_cancel_waits_for_matching_and_is_refused` and `test_a_busy_foreign_modification_leaves_the_submission_retryable_with_no_spend` in `test_cross_account_matching.py`, using independent app requests and the bounded operator matcher; the serial one-process fences remain in `test_cancel_concurrency.py` and `test_modification_refusals.py` |
-| P5 — cancel or modify against signature, execution or settlement of the same order | fenced by status under the order lock: a decision taken while a swap is pending records a refusal, and that refusal is what every later replay returns | `test_order_actions.py`: `test_a_pending_swap_is_a_recorded_refusal_only_after_validated_execution`, which proves that one interleaving and its terminal replay once the swap has failed; a swap arriving while an action is already in flight is not in the suite |
-| P6 — signature, expiry and settlement of one swap against each other | both orders in primary-key order, then the swap: one release, a late admission refused, an admission never released | `test_swap_expiry_processes.py`, `test_swap_finality.py` (`test_two_settlement_workers_wait_for_the_share_class_an_opening_holds_and_complete_once`) and `test_swap_process_concurrency.py`, in independent processes; the expiry and signature/matching pairs also run as scoped twins with the ownership rules in force — the signing and matching requests authenticate the recorded principal before their bounded operator commits, while the expiry sweep runs as the operator, matching the task framework's `acting_for(None)` shape — while the settlement-process class stays ordinary-only because `settle` requires the operator connection by design |
-| P7 — recovery against recovery | the operation row first, then G; every lock released before an RPC; one attempt and one nonce | `test_swap_execution_recovery.py`: `test_rpc_boundaries_release_every_operation_authority_and_order_lock` and `test_delayed_open_after_peer_confirmation_reuses_its_attempt_and_nonce` |
-| P8 — a wallet-side writer against a create on one wallet | serialisation only: the two sides share no accounting record, so their mutual exclusion buys identity freshness and nothing else | a property of G rather than a test: the wallet side holds nothing at or after `TransferOrder` |
+The competing pairs the graph must hold are below. Their process-level proofs
+were retired under the [11 October policy](../decisions.md#minimum-tests-and-fresh-migrations);
+the sources remain in Git history.
+
+| Pair | What must hold |
+| --- | --- |
+| P1: create against create, one wallet | the second waits at the wallet lock and measures its balance against the first's committed order: refused when the two do not fit, open when they do |
+| P2: create against create, two wallets of one account, crossing | the second waits on the account row; the matcher's key share on the second wallet does not deadlock; both commit and exactly one swap exists |
+| P3: a decision against an authorisation change (wallet verification, account reassignment) | the change waits on the wallet or account row until the decision commits, then the next submission is refused |
+| P4: the matcher against a cancel or modify of its candidate | same-account journeys serialise at the account; a foreign action waits behind an admitted matcher at the wallet, while a matcher meeting a busy foreign wallet returns retryable 503 and re-reads committed terms on retry: a modify or cancel of a matched order records its refusal with the spend committed, and a match after a modify uses the modified terms |
+| P5: cancel or modify against signature, execution or settlement of the same order | fenced by status under the order lock: a decision taken while a swap is pending records a refusal, and that refusal is what every later replay returns |
+| P6: signature, expiry and settlement of one swap against each other | both orders in primary-key order, then the swap: one release, a late admission refused, an admission never released |
+| P7: recovery against recovery | the operation row first, then G; every lock released before an RPC; one attempt and one nonce |
+| P8: a wallet-side writer against a create on one wallet | serialisation only: the two sides share no accounting record, so their mutual exclusion buys identity freshness and nothing else |
 
 These are [PostgreSQL row-lock semantics](https://www.postgresql.org/docs/16/explicit-locking.html#LOCKING-ROWS),
 not a replacement for the account-ownership, wallet-address, verification,

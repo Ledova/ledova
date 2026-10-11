@@ -22,7 +22,8 @@ docker compose up --build
 
 The initializer copies templates into owner-only, gitignored environment files
 and generates development secrets without printing them. It does not overwrite
-existing files. `make init-local` and `make dev-up` perform the same steps.
+existing files. `make init-local` runs the initializer; `make dev-up` checks
+the files exist and runs `docker compose up --build`.
 
 Compose runs migrations, checks database roles and reconciles the compliance,
 procedure and asset seeds before serving the application. Before any of that it
@@ -60,28 +61,15 @@ docker compose exec backend python manage.py seed_demo
 
 and starts the worker again. The command prints generated credentials and
 refreshes a synthetic operator, superuser, company, investor, wallets,
-classification and share class; rerunning resolves and applies a password
-again. The first run on a fresh database also adds six months of synthetic
-history: staff, about sixty investors in every sign-up and verification state,
-four more companies, wallets and their transactions, notifications and
-compliance alerts. Its historical staff-assisted chain layer deployed classes,
-approved wallets and issued/opened/imported registers, followed by offerings,
-market trades and notices. Preserve that earlier journey as evidence.
+classification and share class; rerunning applies a password again. The first
+run on a fresh database also seeds six months of synthetic history;
+[demo data](operations/operator-console.md#demo-data) describes it and why its
+chain and market layer is historical evidence rather than a fresh-seed claim.
 
-That chain and market layer is evidence from the staff-assisted era, not a
-fresh-seed claim: the historical treasury has no key, its fresh approval is
-unsupported, so the default chain plan reports `SKIPPED` and the seed writes
-nothing on chain without a configured local chain. Do not reset retained data or
-bypass guards to reproduce the earlier fixture; see
-[demo details](operations/operator-console.md#demo-data).
-
-For issuance beyond the seed, the stack has already deployed the core
-contracts, configured their addresses and admitted the signer. Use the Register
-for [company-authorised empty deployment](plans/company-managed-registers/company-deployments.md),
-the [wallet nomination and instruction workflow](plans/company-managed-registers/company-wallet-approvals.md)
-and the other company-authorised chain actions listed in the
-[implementation index](plans/company-managed-registers/README.md); the
-[issuance guide](architecture/contracts-and-issuance.md) explains how the
+For issuance beyond the seed, the stack has already deployed the core contracts
+and admitted the signer. Use the Register for the company-authorised chain
+actions listed in the [implementation index](plans/company-managed-registers/README.md);
+the [issuance guide](architecture/contracts-and-issuance.md) explains how the
 company's decision, technical execution and chain confirmation stay distinct.
 
 ## The local chain
@@ -92,28 +80,31 @@ from a browser wallet, add a network with that RPC URL, chain id `31337` and
 currency `ETH`, then import accounts from the public test mnemonic
 `test test test test test test test test test test test junk`. Account #0 is
 the operator, which the backend signs with, and the demo company's wallet;
-account #1 is the demo investor's wallet. Each starts with 10,000 test ether.
-`make dev-seed` gives accounts #1, #2 and #4, the demo investor's Base wallets,
-the ether their seeded history leaves them, between about 0.3 and 2 ETH, which
-pays for gas there; account #0 keeps its test ether for the operator's gas, and
-the wallet sync shows the founder that balance. Their keys are public, so never
-send anything of value to them.
+account #1 is the demo investor's wallet. Each starts with 10,000 test ether,
+and account #0 pays the operator's gas. Their keys are public, so never send
+anything of value to them.
 
 The chain keeps its contracts, blocks and balances across `make dev-down`, and
-on every start the stack checks that the core contracts are still the ones it
-deployed. [The local stack's chain](operations/chains.md#the-local-stacks-chain)
-says what it checks, why transactions are final as soon as they are mined, and
-what to do when a check refuses. While the stack is up the chain holds port
-8545, so give the real-chain tests another one:
+every start checks that the core contracts are the ones it deployed
+([the local stack's chain](operations/chains.md#the-local-stacks-chain) says what
+it checks and what to do when a check refuses). While the stack is up the chain
+holds port 8545, so give the chain smoke test another one:
 `make chain-test CHAIN_TEST_PORT=8546`.
 
 ## Stop and clean up
 
-| Command             | Effect                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
-| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `make dev-down`     | Runs `docker compose down`: stops the stack and removes its containers. The database, the chain, Redis data, uploads and virus signatures stay in their volumes for the next start.                                                                                                                                                                                                                                                                                                                                                                                                                               |
-| `make dev-clean`    | Asks first, then also deletes those volumes and the images the stack built. The chain goes with the database, so the two always start over together: the next start deploys the core contracts on a new chain, migrates a new database and, when online, refreshes ClamAV's signatures before the scanner starts; run `make dev-seed` again for the demo. Compose names the project `ledova` (the file's `name:`), so from any checkout or worktree this deletes that one local stack's data; a `COMPOSE_PROJECT_NAME` set in the environment overrides the name and points the deletion at that project instead. |
-| `make docker-prune` | Reclaims space across every project on the machine: dangling images, unnamed volumes no container uses (on Docker 23 or later; earlier versions also take unused named volumes), and the build cache. Docker describes each step and asks before running it.                                                                                                                                                                                                                                                                                                                                                      |
+- `make dev-down` runs `docker compose down`: it stops the stack and removes its
+  containers. The database, the chain, Redis data, uploads and virus signatures
+  stay in their volumes for the next start.
+- `make dev-clean` asks first, then also deletes those volumes and the images
+  the stack built. The chain goes with the database, so the next start deploys
+  the core contracts on a new chain and migrates a new database; run
+  `make dev-seed` again for the demo. Compose names the project `ledova`, so
+  from any checkout this deletes that one local stack's data; a
+  `COMPOSE_PROJECT_NAME` in the environment points it at that project instead.
+- `make docker-prune` reclaims space across every project on the machine:
+  dangling images, unused unnamed volumes and the build cache. Docker describes
+  each step and asks before running it.
 
 ## Run individual components
 

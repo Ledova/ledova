@@ -14,7 +14,9 @@ deployment, only its issuer's view refuses a value-only transaction to it.
 EVM clients sign locally or through a hardware-wallet QR exchange. Bitcoin sends
 are signed with external tooling. Both backend submission paths decode signed
 bytes and verify their supported intent before recording a durable journal.
-Caller-declared recipient, amount and fee do not override signed terms.
+Caller-declared recipient, amount and fee do not override signed terms. Base
+transfers use ETH for native quantities and gas fees, and Base's chain ID for
+signing.
 
 ## Transfer lifecycle
 

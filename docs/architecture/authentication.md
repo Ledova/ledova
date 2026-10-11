@@ -32,41 +32,29 @@ How sessions are authenticated, transported, revoked and reflected in client que
 ## Company authority after authentication
 
 A successful login, a company account role or a global staff permission grants
-no company mandate. Appointments come from the
-[authority workflows](../plans/company-managed-registers/authority-requests.md):
-self-declaration admission through
-`POST /api/v1/company-authority/requests/{uuid}/admit/`, and invitation
-acceptance, which binds the authenticated person to the intended company and
-appointment. Revocation is checked at the service and commit boundary, so it
-stops new actions from a still-valid session and pending unsigned work; JWT
-expiry or a hidden client control is not that check, and already signed work
-keeps its original recovery. Company users use the normal client authentication
-transport, without a Django admin session.
+no company mandate: appointments come from the
+[authority workflows](../plans/company-managed-registers/authority-requests.md)
+and are rechecked at the service and commit boundary, so revocation stops new
+actions from a still-valid session. Company users use the normal client
+authentication transport, without a Django admin session.
 
 ## Client session queries
 
 `packages/shared/src/hooks/useAuth.ts` owns the authentication query and exports
 `AUTH_QUERY_KEY`. `ApiClientProvider` supplies each client's API instance, and
-that client's `QueryClient` sets focus and reconnect behavior: the dashboard
-revalidates on both, mobile only on reconnect. Authentication does not
-automatically retry a failed request, but a later mount may recheck a previous
-failure, now that the dashboard's `retryOnMount: false` is gone.
+that client's `QueryClient` sets focus and reconnect behaviour: the dashboard
+revalidates on both, mobile only on reconnect. Authentication does not retry a
+failed request automatically; a later mount may recheck a previous failure.
 
 The hook exposes fetching separately from the first session check, so a retry
-after a completed failure does not restore initial loading; public forms keep
-their nested auth consumers mounted, so another failure cannot create a remount
-loop. The dashboard's protected route keeps protected content hidden while a
-cached negative is rechecked, and redirects after a negative answer or failure.
-Email verification issues the session, so it awaits the same explicit auth
-refresh that sign-in does before moving on to the next step. Signup completion
-awaits its explicit auth refresh and a fresh profile before navigating, so the
-guard does not read an unfinished sign-up and send the account back into it. If
-either refresh fails it stays on the review: a profile that cannot be read shows
-that error, and any other failure says the sign-up could not be finished, with
-Complete Signup there to retry.
-`packages/shared/tests/hooks/useAuth.test.tsx` and the dashboard's
-`ProtectedRoute.test.tsx` and `SignupRoute.session.test.tsx` cover these
-policies.
+after a failure does not restore initial loading, and public forms keep their
+nested auth consumers mounted so a failure cannot create a remount loop. The
+dashboard's protected route hides protected content while a cached negative is
+rechecked and redirects after a negative answer or failure. Email verification
+and sign-up completion issue the session and await the explicit auth refresh,
+and sign-up a fresh profile too, before navigating; a failed refresh keeps the
+review step open with its error and a retry.
+`packages/shared/tests/hooks/useAuth.test.tsx` covers the hook.
 
 Both clients use the shared `useUserPreferences` and `useCurrency` hooks.
 Preferences and exchange-rate queries start only after authentication; cached

@@ -13,19 +13,12 @@ The proposal freezes the company, class, actor, appointment, configured contract
 signer, exact intent and a copied evidence fingerprint and snapshot. Company
 information and evidence remain provided by the company.
 
-Pause adds no decimal prerequisite; the existing share-token whole-unit model
-guard remains. It requires no register opening, member, wallet proof,
-nomination,
-[general eligibility decision](company-eligibility.md#general-associated-person-and-product-value-decisions),
-payment or share issue. It neither changes the cap nor mints shares. This
-workflow adds no legal resolution threshold or universal second-person rule.
+Pause requires no eligibility decision, nomination, payment or issue and changes
+neither cap nor supply.
 
-A current `admin` appointment may prepare, approve, apply and reject, with
-`prepare`, `approve` and `apply` as the narrower delegate capabilities, under
-the [owner's authority rules](../../decisions.md#company-run-register-authority-and-evidence);
-ownership, shareholding, platform staff privileges and technical signer
-configuration supply no company mandate. Current register-read capability
-permits bounded proposal, decision, original receipt and private evidence reads.
+Authority follows the [owner's rules](../../decisions.md#company-run-register-authority-and-evidence);
+register-read capability permits proposal, decision, original receipt and
+private evidence reads.
 
 ## API
 
@@ -69,9 +62,5 @@ transaction evidence.
 Fresh owner/platform-staff pause submission, confirmations and admin actions
 are retired. Existing exact owner-row POST replay and GET recovery remain, bound
 to their original account, actor, company, class, UUID and requested direction.
-The v1 saved-reminder key and its five fields remain unchanged. Reload,
-original-direction retry, GET polling and local completed-only dismissal retain
-their existing privacy, storage and native session/epoch/transport guards. A
-saved UUID never admitted to the server receives an explicit fresh-admission
-refusal; it is not converted into a company proposal. Historical actors,
-evidence, signed bytes, observation records and migrations remain.
+Historical actors, evidence, signed bytes, observation records and migrations
+remain.

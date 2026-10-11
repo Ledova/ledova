@@ -6,13 +6,9 @@ Use these guides to run a synthetic local or public-testnet instance. Start with
 [getting started](../getting-started.md) for a new checkout. Operator procedures
 assume the API, worker and database run compatible code.
 
-Register commands are company-run: appointees prepare, approve and apply
-openings, imports, corrections, wallet links, particulars changes, grants,
-transfers, deployments, wallet approvals, capital changes and pauses under the
-[company-managed register plan](../architecture/company-managed-registers.md).
-Platform staff still review offerings, record payments, publish to members,
-prepare certificates, notice figures and the company pack, and review transfer
-instructions. Do not grant company users platform-staff permissions.
+Companies run their registers through appointments
+([who runs what](../architecture/register.md#who-runs-what)); staff work the
+queues below. Do not grant company users platform-staff permissions.
 
 | Task                                                                              | Guide                                                                       |
 | --------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
@@ -21,15 +17,14 @@ instructions. Do not grant company users platform-staff permissions.
 | Deploy local/testnet contracts and align signer ownership                         | [Chains and keys](chains.md)                                                |
 | Read the current company-scoped approval controls and their dated bypass evidence | [Approval controls](approval-controls.md)                                   |
 | Verify a real Keystone wallet using a Mac camera and separate synthetic data      | [Keystone on a Mac](keystone-mac.md)                                        |
-| Read the original test evidence for the product's demonstration journey           | [Demonstration journey](demonstration-journey.md)                           |
 | Seed data, configure the operator record and work the remaining staff queues      | [Operator console](operator-console.md)                                     |
-| Read what transaction monitoring compares and when a customer counts as new       | [Transaction monitoring](operator-console.md#transaction-monitoring)        |
 | Follow the current staff workflow for publishing on company instruction           | [Publishing to members](publications.md)                                    |
+| Run the register commands and prepare register outputs on written instruction     | [Register runbook](register-foundation.md)                                  |
 | Produce a company's records as one archive for a successor or a lawful request    | [Producing a company pack](register-foundation.md#producing-a-company-pack) |
 | Configure private storage, scanning and retention                                 | [Uploads](uploads.md)                                                       |
 | Start workers and inspect schedules                                               | [Background jobs](jobs.md)                                                  |
 | Recover unresolved work                                                           | [Recovery](recovery.md)                                                     |
-| Upgrade an existing database or release                                           | [Upgrades](upgrades.md)                                                     |
+| Rebuild an older database for the fresh migrations, or apply a release            | [Upgrades](upgrades.md)                                                     |
 
 ## Before using a configured instance
 
@@ -38,9 +33,10 @@ instructions. Do not grant company users platform-staff permissions.
    needed for the flow. Redis is required even with trading disabled.
 3. Apply migrations and the role checks, then run the seed commands in the
    [operator guide](operator-console.md#seeding).
-4. Confirm `GET /health/` answers 200 and anonymous `GET /api/operator/` answers 401. The health route does not test database or provider readiness.
-5. Open the operator console and resolve configuration warnings relevant to the
-   selected payment rail. Confirm a worker is running and scheduled work advances.
+4. Confirm `GET /health/` answers 200 and anonymous `GET /api/operator/` answers
+   401. The health route does not test database or provider readiness.
+5. Open the operator console and resolve its configuration warnings. Confirm a
+   worker is running and scheduled work advances.
 6. Confirm `trading_enabled` matches this deployment's intent: it is seeded on,
    and an operator can disable it in Django admin. See
    [trading boundaries](../architecture/trading.md).
@@ -48,8 +44,5 @@ instructions. Do not grant company users platform-staff permissions.
 Before a native release, run the [native and physical-device checks](../development/native-probes.md).
 The [legal positions](../legal/positions.md) describe unresolved assumptions before any real use.
 
-The [stored register foundation](register-foundation.md) is the register
-runbook, with the #647 operator commands and integrity checks; the
-[approval controls](approval-controls.md) record the #648 evidence, closed on
-26 September 2026. [Upgrades](upgrades.md#before-and-after-an-upgrade) adds the
-upgrade-specific steps to the list above.
+The original test evidence for the product's demonstration journey is kept
+under [evidence](evidence/demonstration-journey-2026-09.md).

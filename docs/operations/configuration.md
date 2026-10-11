@@ -2,14 +2,7 @@
 
 [Operations](README.md) · [Documentation](../README.md)
 
-Core environment settings and database roles. Run only with synthetic data on local chains or supported public testnets.
-
-The database roles below are technical service identities. In particular,
-`ledova_operator` and its privileged database access are not a human appointment
-to administer a company's register. The accepted
-[company-managed register plan](../architecture/company-managed-registers.md)
-requires company-scoped user mandates and bounded platform service operations;
-do not grant a customer staff access or a database role as a substitute.
+Core environment settings and database roles. Run only with synthetic data on local chains or supported public testnets. Database roles are service identities, not company appointments.
 
 Every backend variable below is read in `backend/ledova_backend/settings/`; the
 client and contract variables have their own sections below.
@@ -38,39 +31,15 @@ lowercased and compared against `true` and treats anything else as off.
 | `REDIS_URL` | `redis://redis:6379/0` | **Yes.** It is `CACHES["default"]`, which holds the sign-in and upload quotas, and it is the trading event stream (`tokens/events.py`, `tokens/views/trading_events.py`). Background work is still Procrastinate on PostgreSQL |
 
 The per-address sign-in limit is 10 attempts in a rolling hour, shared by all
-backend workers through `CACHES["default"]`. `SharedRedisCache` reserves each
-attempt atomically in Redis using Redis's clock. Simultaneous requests cannot
-overwrite each other's counts. Successful and unsuccessful credential checks both
-consume an attempt; requests already over the limit return 429 with `Retry-After`.
-The count survives backend worker restarts and deployments. Redis data loss or an
-explicit cache clear resets it; the Compose volume alone is not a durability
-guarantee for every Redis failure.
-
-Redis is required for sign-in. An unreachable cache returns 503 with "This service
-is temporarily unavailable. Please try again shortly." before checking credentials.
-Backend and worker containers wait for the Redis healthcheck. Trading event streams
-handle their own Redis failures and continue to degrade independently.
-
-The default cache also holds the Transak access token
-(`integrations/transak/client.py`), which is now shared between workers. Other DRF
-rate limits use this shared cache but retain DRF's approximate read/write counting;
-the strict atomic rolling windows apply to `auth_email` and uploads.
-
-Ordinary test settings retain `LocMemCache`. CI separately runs the deployed cache
-against a real Redis service, including fresh processes, concurrent sign-in
-requests, window expiry and a connection failure. Run that suite locally with an
-isolated Redis URL:
-
-```sh
-THROTTLE_TEST_REDIS_URL=redis://127.0.0.1:6379/15 \
-  python manage.py test authentication.tests.redis_throttle \
-  --settings=ledova_backend.settings.test --noinput
-```
-
-The Redis suite requires its URL and fails if Redis is unavailable. It deletes
-only its own unique test keys and stops its child processes on completion.
-The concurrent test holds real history reads until all requests have read the
-same state, exposing lost updates if DRF's read/write implementation returns.
+backend workers through `CACHES["default"]`, which reserves each attempt
+atomically in Redis using Redis's clock. Successful and unsuccessful credential
+checks both consume an attempt; requests over the limit return 429 with
+`Retry-After`. The count survives backend restarts; Redis data loss or a cache
+clear resets it. Redis is required for sign-in: an unreachable cache returns 503
+before checking credentials, and the backend and worker containers wait for the
+Redis healthcheck. The same cache holds the Transak access token and the other
+DRF rate limits, which keep DRF's approximate counting; the strict atomic
+windows apply to `auth_email` and uploads. Test settings use `LocMemCache`.
 
 ## Auth cookies and tokens
 
@@ -83,10 +52,8 @@ same state, exposing lost updates if DRF's read/write implementation returns.
 | `ACCESS_TOKEN_LIFETIME` | `604800` seconds | No |
 | `REFRESH_TOKEN_LIFETIME` | `604800` seconds | No |
 
-The seven-day access token carries its refresh jti
-(`rjti`) and every request checks the session is still live, so revocation is
-immediate. Remove any older `ACCESS_TOKEN_LIFETIME=86400` override to pick the
-default up.
+The seven-day access token carries its refresh jti (`rjti`) and every request
+checks the session is still live, so revocation is immediate.
 
 ## Database
 
@@ -164,34 +131,29 @@ load it if you did.
 | Variable | Used by |
 | --- | --- |
 | `DEPLOYER_PRIVATE_KEY` (secret) | the `localhost` and `baseSepolia` account lists; [key management](chains.md#key-management) says why it must be the backend's operator key |
+| `LOCALHOST_RPC_URL`, `LEDOVA_DEPLOY_ENV_FILE` | the `localhost` network URL (default `http://127.0.0.1:8545`) and where `deploy-all.ts` writes the deployed addresses (default `../.deployed-contracts.env`) |
 | `BASE_SEPOLIA_RPC_URL`, `ETHERSCAN_API_KEY`, `REPORT_GAS` | network URL, contract verification, gas reporting |
 | `FACTORY_ADDRESS`, `STABLECOIN_ADDRESS`, `SHARE_TOKEN_ADDRESS`, `RELAYER_ADDRESS`, `TOKEN_NAME`, `TOKEN_SYMBOL`, `COMPANY_ACN`, `AUTHORIZED_SHARES`, `INITIAL_MINT` | inputs to the individual deploy scripts |
 
 ## Row-level security roles
 
-`shared/0003_rls_roles_and_grants` creates `ledova_app` and `ledova_operator`,
-grants them what they need, and `shared/0004_rls_policies` installs the helpers
-and a policy on every tenant table. The deployment requirements are:
+`shared/0002_database_guards` creates `ledova_app` and `ledova_operator` when
+they are absent, with no password, grants them what they need and installs the
+helpers and a policy on every tenant table. Whoever applies it needs superuser
+rights, because `ALTER ROLE ... BYPASSRLS` requires them; without them the roles
+come out without the attributes the policies assume, which `check_rls_roles`
+then refuses. The deployment requirements are:
 
-- **Provision the roles and their credentials out of band**, and point the
-  aliases at them with `RLS_APP_DB_USER`, `RLS_APP_DB_PASSWORD`,
-  `RLS_OPERATOR_DB_USER` and `RLS_OPERATOR_DB_PASSWORD`. The migration creates
-  the two roles if they are absent, so that development and CI have real ones
-  rather than a mechanism that is inert exactly where it is tested — but it
-  creates them **with no password**, and it never sets one. A credential does
-  not belong in a migration: the statement carrying it reaches the server log on
-  any instance with `log_statement = all`, and the migration is replayed on every
-  database the schema is applied to. Local work uses
-  `POSTGRES_HOST_AUTH_METHOD=trust`, which `docker-compose.yml` sets on the
-  `postgres` service, as CI does on its service container.
-- **`POSTGRES_HOST_AUTH_METHOD` is read by `initdb`, on the first start only.**
-  Setting it against a database that already exists does nothing: `pg_hba.conf`
-  was written when the volume was created. A cluster initialised without it
-  authenticates `scram-sha-256` for anything but loopback — and the compose
-  bridge is not loopback, so the two passwordless roles are refused there while
-  `psql` from inside the container succeeds on the `127.0.0.1/32 trust` line
-  and proves nothing. On an existing volume, give the roles the password the
-  settings already expect rather than recreating the database:
+- Provision the roles and their credentials out of band and point the aliases
+  at them with `RLS_APP_DB_USER`, `RLS_APP_DB_PASSWORD`, `RLS_OPERATOR_DB_USER`
+  and `RLS_OPERATOR_DB_PASSWORD`. The migration never sets a password. Local
+  work uses `POSTGRES_HOST_AUTH_METHOD=trust`, which `docker-compose.yml` sets
+  on the `postgres` service.
+- `POSTGRES_HOST_AUTH_METHOD` is read by `initdb` on the first start only. A
+  cluster initialised without it authenticates `scram-sha-256` for anything but
+  loopback, and the compose bridge is not loopback, so the two passwordless
+  roles are refused there. On an existing volume, give the roles the password
+  the settings expect rather than recreating the database:
 
   ```sql
   ALTER ROLE ledova_app      LOGIN PASSWORD '<the POSTGRES_PASSWORD in backend/.env>';
@@ -199,39 +161,16 @@ and a policy on every tenant table. The deployment requirements are:
   ```
 
   `DATABASES["app"]["PASSWORD"]` falls back to `POSTGRES_PASSWORD` when
-  `RLS_APP_DB_PASSWORD` is unset, so that is the value the connection sends.
-  `manage.py check_rls_roles` says all of this when a connection is refused,
-  rather than letting the failure surface as an authentication error inside
-  whichever command happens to touch the ORM first.
-- **`ALTER ROLE … BYPASSRLS` requires superuser.** Whoever applies
-  `shared/0003` must be able to grant it, or the roles come out without the
-  attributes the policies assume — which `check_rls_roles` then refuses.
-- **Transaction-level connection pooling is incompatible, not discouraged.** The
-  principal is a session-level `SET`, and a pgbouncer transaction-pooled handover
-  does not carry it. The symptom is not an error: it is one request reading
-  another user's principal. Session pooling or none.
-- **`manage.py --settings=x runserver` refuses to boot**, and the message names the
-  variable rather than the argument order. The runserver exemption is keyed on
-  `sys.argv[1:2]`, so a global option before the subcommand makes `manage.py`
-  set the operator ambient alias and the server's own guard then refuses to
-  serve requests unscoped. That is the right side to fail on — it will not start
-  rather than start wrong — but the error says `RLS_AMBIENT_ALIAS is
-  'operator'`, which reads like a configuration problem. Put the subcommand
-  first: `manage.py runserver --settings=x`.
-- **`manage.py check_rls_roles` runs in CI's PostgreSQL step and in the compose
-  `migrate` service, immediately after `migrate` and before the first command
-  that touches the ORM.** That order is deliberate: a role the policies assume
-  but the server will not admit is a role problem, and it should be reported
-  by the command whose subject is the roles, not by `sync_monitoring_rules`.
-  It
-  connects on each alias and asserts what no test can see — the app role lacks
-  `BYPASSRLS` and owns no table, the operator role has it, the migrate role owns
-  the tables, and a fresh app connection carries no principal. A misconfigured
-  `DATABASES["app"]` — the right role name against the wrong `USER` — passes the
-  whole test suite and fails here, which is the only place the answer means
-  anything.
-- **CI's schema-generation step runs as the migrate role.** Generating the
-  OpenAPI schema evaluates the views' querysets against the real `ledova`
-  database, so the step that migrates and the step that generates must both hold
-  a role that can read the schema. A step on the app role fails in a way that
-  reads like a schema bug rather than a permissions one.
+  `RLS_APP_DB_PASSWORD` is unset, so that is the value the connection sends;
+  `manage.py check_rls_roles` says so when a connection is refused.
+- Use session-level connection pooling or none. The principal is a session-level
+  `SET`, which a transaction-pooled handover does not carry; the symptom is one
+  request reading another user's principal, not an error.
+- Run `manage.py check_rls_roles` immediately after `migrate` and before the
+  first command that touches the ORM, as the compose `migrate` service does. It
+  connects on each alias and asserts that the app role lacks `BYPASSRLS` and
+  owns no table, the operator role has it, the migrate role owns the tables and
+  a fresh app connection carries no principal.
+- Put the subcommand before `--settings`: `manage.py runserver --settings=x`.
+  With a global option first, `manage.py` sets the operator ambient alias and
+  the server refuses to start, reporting `RLS_AMBIENT_ALIAS is 'operator'`.
