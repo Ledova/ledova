@@ -22,7 +22,7 @@ class PreflightTest(unittest.TestCase):
         self.assertFalse(any(name.startswith("GITHUB_") for name in run.call_args.kwargs["env"]))
 
     def test_partial_draft_is_refused_before_any_command_runs(self):
-        with patch.object(PREFLIGHT.subprocess, "run") as run:
+        with patch.dict(os.environ, {}, clear=True), patch.object(PREFLIGHT.subprocess, "run") as run:
             with self.assertRaises(SystemExit) as refusal:
                 PREFLIGHT.main(["--title-file", "title.txt"])
             self.assertEqual(refusal.exception.code, 2)
