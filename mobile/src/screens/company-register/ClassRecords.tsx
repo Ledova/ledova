@@ -100,7 +100,7 @@ export function ClassRecords({
         onPrepare={onPrepareGrant}
       />
       <ClassAwards
-        key={`${epoch}/${company}/${register.token.uuid}`}
+        key={`awards/${epoch}/${company}/${register.token.uuid}`}
         company={company}
         register={register}
         epoch={epoch}
@@ -108,7 +108,7 @@ export function ClassRecords({
         onPrepareGrant={onPrepareAwardGrant}
       />
       <ClassAllotments
-        key={`${epoch}/${company}/${register.token.uuid}`}
+        key={`allotments/${epoch}/${company}/${register.token.uuid}`}
         company={company}
         register={register}
         epoch={epoch}
