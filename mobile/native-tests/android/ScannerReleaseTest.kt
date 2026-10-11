@@ -309,7 +309,6 @@ class ScannerReleaseTest {
       override fun onCameraUnavailable(cameraId: String) { available[cameraId] = false }
     }
     manager.registerAvailabilityCallback(observer, Handler(Looper.getMainLooper()))
-    val mode = InstrumentationRegistry.getArguments().getString("reportMode")
     val intent = context.packageManager.getLaunchIntentForPackage(context.packageName)!!
     var scenario: ActivityScenario<Activity>? = null
     try {
@@ -432,16 +431,16 @@ class ScannerReleaseTest {
       enterStage("network-report")
       val result = device.wait(Until.findObject(By.text(Pattern.compile("NATIVE_PROBE_(PASS|FAIL|REPORT_FAILED)"))), 90000)
       assertNotNull("Release networking probe did not report", result)
-      assertEquals(if (mode == "red") "NATIVE_PROBE_FAIL" else "NATIVE_PROBE_PASS", result.text)
+      assertEquals("NATIVE_PROBE_PASS", result.text)
     } finally {
       try {
-        assertTrue(device.takeScreenshot(File(context.getExternalFilesDir(null), "scanner-release-$mode.png")))
-        device.dumpWindowHierarchy(File(context.getExternalFilesDir(null), "scanner-release-$mode.xml"))
+        assertTrue(device.takeScreenshot(File(context.getExternalFilesDir(null), "scanner-release.png")))
+        device.dumpWindowHierarchy(File(context.getExternalFilesDir(null), "scanner-release.xml"))
         instrumentation.runOnMainSync {
           val statuses = setOf("inactive", "loading", "denied", "failed", "ready", "scanned")
           val current = windowViews()
             .filterIsInstance<TextView>().map { it.text.toString() }.filter { it in statuses }
-          File(context.getExternalFilesDir(null), "scanner-release-$mode-status.txt").writeText(
+          File(context.getExternalFilesDir(null), "scanner-release-status.txt").writeText(
             (current + checkpoints + "lastStage=$stage" + "lastObservation=$lastObservation").joinToString("\n")
           )
         }

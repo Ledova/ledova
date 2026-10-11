@@ -64,20 +64,11 @@ evidence, economics and current execution/recovery boundaries.
 `make backend-test` runs one backend group: lint, Django system and migration
 consistency checks, baseline migration, role/catalogue checks, the pinned API
 schema comparison, ordinary tests and compact scoped tests. Each phase runs once
-and a failure stops the group. Add integrations when changing their inputs:
-
-```bash
-make backend-test BACKEND_CHECKS="--uploads --chains --audit"
-```
-
-`--uploads` runs real Redis throttle/quota and ClamAV scanner controls. `--chains`
-runs genuine EVM and Bitcoin checks. `--audit` checks backend production
-advisories. CI selects these flags from the complete changed paths. Database
-policies/settings/dependencies and unknown inputs select the affected integrations;
-ordinary test-only changes use the core group. Manual or unavailable comparisons
-select all checks. Every main push runs the core group, with integrations selected
-from its verified push comparison. The source in
-[`ci-scope.py`](../../scripts/ci-scope.py) owns the exact family rules.
+and a failure stops the group. Manual dependency advisory and chain checks remain separate from CI. Every pull
+request runs the same core backend and full source/client checks. Main pushes
+select the two Mac execution profiles; pull requests use GitHub-hosted execution.
+[`ci-runners.py`](../../scripts/ci-runners.py) selects those fixed runner identities
+and requires both execution jobs to succeed. It does not select tests.
 
 CI keeps disposable PostgreSQL data in a 4 GiB memory mount within a 6 GiB
 container limit. `fsync`, `synchronous_commit` and `full_page_writes` stay enabled.

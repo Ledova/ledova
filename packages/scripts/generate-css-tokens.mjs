@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { writeFileSync } from 'fs';
+import { readFileSync, writeFileSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
@@ -126,6 +126,8 @@ const css = `@theme {${[...themeColorVars, ...paperVars, ...sharedVars].join('\n
 const targets = [join(ROOT, 'dashboard/src/styles/tokens.css'), join(ROOT, 'marketing/src/tokens.css')];
 
 for (const target of targets) {
-  writeFileSync(target, css, 'utf-8');
+  if (process.argv.includes('--check')) {
+    if (readFileSync(target, 'utf-8') !== css) throw new Error(`Stale design tokens: ${target}`);
+  } else writeFileSync(target, css, 'utf-8');
   console.log(`✓ ${target.replace(ROOT + '/', '')}`);
 }

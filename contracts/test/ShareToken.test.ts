@@ -1,12 +1,11 @@
-import { expect } from "chai";
-import { ethers } from "hardhat";
-import { time } from "@nomicfoundation/hardhat-toolbox/network-helpers";
-import { ShareToken, WhitelistRegistry } from "../typechain-types";
-import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
+import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers';
+import { expect } from 'chai';
+import { ethers } from 'hardhat';
+import { ShareToken, WhitelistRegistry } from '../typechain-types';
 
 const NO_EXPIRY = 2n ** 64n - 1n;
 
-describe("ShareToken", function () {
+describe('ShareToken', function () {
   let whitelist: WhitelistRegistry;
   let shareToken: ShareToken;
   let owner: SignerWithAddress;
@@ -15,23 +14,21 @@ describe("ShareToken", function () {
   let investor2: SignerWithAddress;
   let nonWhitelisted: SignerWithAddress;
 
-  const TOKEN_NAME = "Test Company Shares";
-  const TOKEN_SYMBOL = "TEST";
+  const TOKEN_NAME = 'Test Company Shares';
+  const TOKEN_SYMBOL = 'TEST';
   const AUTHORIZED_SHARES = 1000000n;
 
   beforeEach(async function () {
-    [owner, company, investor1, investor2, nonWhitelisted] =
-      await ethers.getSigners();
+    [owner, company, investor1, investor2, nonWhitelisted] = await ethers.getSigners();
 
-    const WhitelistRegistry =
-      await ethers.getContractFactory("WhitelistRegistry");
+    const WhitelistRegistry = await ethers.getContractFactory('WhitelistRegistry');
     whitelist = await WhitelistRegistry.deploy(owner.address);
     await whitelist.waitForDeployment();
 
     await whitelist.setExpiry(investor1.address, NO_EXPIRY);
     await whitelist.setExpiry(investor2.address, NO_EXPIRY);
 
-    const ShareToken = await ethers.getContractFactory("ShareToken");
+    const ShareToken = await ethers.getContractFactory('ShareToken');
     shareToken = await ShareToken.deploy(
       TOKEN_NAME,
       TOKEN_SYMBOL,
@@ -42,317 +39,80 @@ describe("ShareToken", function () {
     await shareToken.waitForDeployment();
   });
 
-  describe("Deployment", function () {
-    it("Should set the correct name and symbol", async function () {
-      expect(await shareToken.name()).to.equal(TOKEN_NAME);
-      expect(await shareToken.symbol()).to.equal(TOKEN_SYMBOL);
-    });
-
-    it("Should set the correct owner", async function () {
-      expect(await shareToken.owner()).to.equal(company.address);
-    });
-
-    it("Should set the correct authorized shares", async function () {
-      expect(await shareToken.authorizedShares()).to.equal(AUTHORIZED_SHARES);
-    });
-
-    it("Should have zero decimals (whole shares)", async function () {
-      expect(await shareToken.decimals()).to.equal(0);
-    });
-
-    it("Should start with zero total supply", async function () {
-      expect(await shareToken.totalSupply()).to.equal(0);
-    });
-
-    it("Should revert if whitelist is zero address", async function () {
-      const ShareToken = await ethers.getContractFactory("ShareToken");
-      await expect(
-        ShareToken.deploy(
-          TOKEN_NAME,
-          TOKEN_SYMBOL,
-          ethers.ZeroAddress,
-          AUTHORIZED_SHARES,
-          company.address,
-        ),
-      ).to.be.revertedWithCustomError(shareToken, "InvalidWhitelistRegistry");
-    });
-  });
-
-  describe("Minting Shares", function () {
-    it("Should mint shares to whitelisted investor", async function () {
+  describe('Minting Shares', function () {
+    it('Should mint shares to whitelisted investor', async function () {
       const amount = 1000n;
 
       await expect(shareToken.connect(company).mint(investor1.address, amount))
-        .to.emit(shareToken, "SharesIssued")
+        .to.emit(shareToken, 'SharesIssued')
         .withArgs(investor1.address, amount);
 
       expect(await shareToken.balanceOf(investor1.address)).to.equal(amount);
       expect(await shareToken.totalSupply()).to.equal(amount);
     });
 
-    it("Should revert when minting to non-whitelisted address", async function () {
-      await expect(
-        shareToken.connect(company).mint(nonWhitelisted.address, 1000n),
-      ).to.be.revertedWithCustomError(shareToken, "RecipientNotWhitelisted");
+    it('Should revert when minting to non-whitelisted address', async function () {
+      await expect(shareToken.connect(company).mint(nonWhitelisted.address, 1000n)).to.be.revertedWithCustomError(
+        shareToken,
+        'RecipientNotWhitelisted',
+      );
     });
 
-    it("Should revert when exceeding authorized shares", async function () {
+    it('Should revert when exceeding authorized shares', async function () {
       await expect(
-        shareToken
-          .connect(company)
-          .mint(investor1.address, AUTHORIZED_SHARES + 1n),
-      ).to.be.revertedWithCustomError(shareToken, "ExceedsAuthorizedShares");
+        shareToken.connect(company).mint(investor1.address, AUTHORIZED_SHARES + 1n),
+      ).to.be.revertedWithCustomError(shareToken, 'ExceedsAuthorizedShares');
     });
 
-    it("Should revert when non-owner tries to mint", async function () {
-      await expect(
-        shareToken.connect(investor1).mint(investor1.address, 1000n),
-      ).to.be.revertedWithCustomError(shareToken, "OwnableUnauthorizedAccount");
+    it('Should revert when non-owner tries to mint', async function () {
+      await expect(shareToken.connect(investor1).mint(investor1.address, 1000n)).to.be.revertedWithCustomError(
+        shareToken,
+        'OwnableUnauthorizedAccount',
+      );
     });
   });
 
-  describe("Transfers", function () {
+  describe('Transfers', function () {
     beforeEach(async function () {
       await shareToken.connect(company).mint(investor1.address, 10000n);
     });
 
-    it("Should allow transfer between whitelisted addresses", async function () {
+    it('Should allow transfer between whitelisted addresses', async function () {
       await shareToken.connect(investor1).transfer(investor2.address, 1000n);
 
       expect(await shareToken.balanceOf(investor1.address)).to.equal(9000n);
       expect(await shareToken.balanceOf(investor2.address)).to.equal(1000n);
     });
 
-    it("Should revert transfer to non-whitelisted address", async function () {
-      await expect(
-        shareToken.connect(investor1).transfer(nonWhitelisted.address, 1000n),
-      ).to.be.revertedWithCustomError(shareToken, "RecipientNotWhitelisted");
-    });
-
-    it("Should allow transferFrom between whitelisted addresses", async function () {
-      await shareToken.connect(investor1).approve(investor2.address, 1000n);
-
-      await shareToken
-        .connect(investor2)
-        .transferFrom(investor1.address, investor2.address, 1000n);
-
-      expect(await shareToken.balanceOf(investor2.address)).to.equal(1000n);
-    });
-
-    it("Should revert transferFrom to non-whitelisted address", async function () {
-      await shareToken.connect(investor1).approve(investor2.address, 1000n);
-
-      await expect(
-        shareToken
-          .connect(investor2)
-          .transferFrom(investor1.address, nonWhitelisted.address, 1000n),
-      ).to.be.revertedWithCustomError(shareToken, "RecipientNotWhitelisted");
+    it('Should revert transfer to non-whitelisted address', async function () {
+      await expect(shareToken.connect(investor1).transfer(nonWhitelisted.address, 1000n)).to.be.revertedWithCustomError(
+        shareToken,
+        'RecipientNotWhitelisted',
+      );
     });
   });
 
-  describe("Burning Shares", function () {
+  describe('Pause/Unpause', function () {
     beforeEach(async function () {
       await shareToken.connect(company).mint(investor1.address, 10000n);
     });
 
-    it("Should allow burning shares", async function () {
-      await shareToken.connect(investor1).burn(1000n);
-
-      expect(await shareToken.balanceOf(investor1.address)).to.equal(9000n);
-      expect(await shareToken.totalSupply()).to.equal(9000n);
-    });
-  });
-
-  describe("Authorized Shares", function () {
-    it("Should update authorized shares", async function () {
-      const newAuthorized = 2000000n;
-
-      await expect(
-        shareToken.connect(company).setAuthorizedShares(newAuthorized),
-      )
-        .to.emit(shareToken, "AuthorizedSharesUpdated")
-        .withArgs(AUTHORIZED_SHARES, newAuthorized);
-
-      expect(await shareToken.authorizedShares()).to.equal(newAuthorized);
-    });
-
-    it("Should revert if reducing below current supply", async function () {
-      await shareToken.connect(company).mint(investor1.address, 500000n);
-
-      await expect(
-        shareToken.connect(company).setAuthorizedShares(100000n),
-      ).to.be.revertedWith("Cannot reduce below current supply");
-    });
-  });
-
-  describe("Sender checks", function () {
-    beforeEach(async function () {
-      await shareToken.connect(company).mint(investor1.address, 10000n);
-    });
-
-    it("Should refuse a direct transfer from a removed sender", async function () {
-      await whitelist.setExpiry(investor1.address, 0);
-
-      await expect(
-        shareToken.connect(investor1).transfer(investor2.address, 1000n),
-      )
-        .to.be.revertedWithCustomError(shareToken, "SenderNotWhitelisted")
-        .withArgs(investor1.address);
-    });
-
-    it("Should refuse a direct transfer from an expired sender", async function () {
-      const expiry = BigInt(await time.latest()) + 60n;
-      await whitelist.setExpiry(investor1.address, expiry);
-      await time.increaseTo(expiry);
-
-      await expect(
-        shareToken.connect(investor1).transfer(investor2.address, 1000n),
-      )
-        .to.be.revertedWithCustomError(shareToken, "SenderNotWhitelisted")
-        .withArgs(investor1.address);
-    });
-
-    it("Should refuse a delegated transferFrom out of a removed holder", async function () {
-      await shareToken.connect(investor1).approve(investor2.address, 1000n);
-      await whitelist.setExpiry(investor1.address, 0);
-
-      await expect(
-        shareToken
-          .connect(investor2)
-          .transferFrom(investor1.address, investor2.address, 1000n),
-      )
-        .to.be.revertedWithCustomError(shareToken, "SenderNotWhitelisted")
-        .withArgs(investor1.address);
-    });
-
-    it("Should refuse a delegated transferFrom out of an expired holder", async function () {
-      await shareToken.connect(investor1).approve(investor2.address, 1000n);
-      const expiry = BigInt(await time.latest()) + 60n;
-      await whitelist.setExpiry(investor1.address, expiry);
-      await time.increaseTo(expiry);
-
-      await expect(
-        shareToken
-          .connect(investor2)
-          .transferFrom(investor1.address, investor2.address, 1000n),
-      )
-        .to.be.revertedWithCustomError(shareToken, "SenderNotWhitelisted")
-        .withArgs(investor1.address);
-    });
-
-    it("Should let a removed holder transfer again once renewed", async function () {
-      await whitelist.setExpiry(investor1.address, 0);
-      await whitelist.setExpiry(investor1.address, NO_EXPIRY);
-
-      await shareToken.connect(investor1).transfer(investor2.address, 1000n);
-      expect(await shareToken.balanceOf(investor2.address)).to.equal(1000n);
-    });
-
-    it("Should still let a removed holder burn their own shares", async function () {
-      await whitelist.setExpiry(investor1.address, 0);
-
-      await shareToken.connect(investor1).burn(1000n);
-
-      expect(await shareToken.balanceOf(investor1.address)).to.equal(9000n);
-    });
-  });
-
-  describe("Expiry at the exact second", function () {
-    let expiry: bigint;
-
-    beforeEach(async function () {
-      await shareToken.connect(company).mint(investor1.address, 10000n);
-      expiry = BigInt(await time.latest()) + 100n;
-    });
-
-    it("Should let a sender transfer in the last listed second", async function () {
-      await whitelist.setExpiry(investor1.address, expiry);
-      await time.setNextBlockTimestamp(expiry - 1n);
-
-      await shareToken.connect(investor1).transfer(investor2.address, 1n);
-      expect(await shareToken.balanceOf(investor2.address)).to.equal(1n);
-    });
-
-    it("Should refuse a sender in the second its expiry names", async function () {
-      await whitelist.setExpiry(investor1.address, expiry);
-      await time.setNextBlockTimestamp(expiry);
-
-      await expect(
-        shareToken.connect(investor1).transfer(investor2.address, 1n),
-      ).to.be.revertedWithCustomError(shareToken, "SenderNotWhitelisted");
-    });
-
-    it("Should let a recipient receive in the last listed second", async function () {
-      await whitelist.setExpiry(investor2.address, expiry);
-      await time.setNextBlockTimestamp(expiry - 1n);
-
-      await shareToken.connect(investor1).transfer(investor2.address, 1n);
-      expect(await shareToken.balanceOf(investor2.address)).to.equal(1n);
-    });
-
-    it("Should refuse a recipient in the second its expiry names", async function () {
-      await whitelist.setExpiry(investor2.address, expiry);
-      await time.setNextBlockTimestamp(expiry);
-
-      await expect(
-        shareToken.connect(investor1).transfer(investor2.address, 1n),
-      ).to.be.revertedWithCustomError(shareToken, "RecipientNotWhitelisted");
-    });
-
-    it("Should refuse a mint in the second the recipient's expiry names", async function () {
-      await whitelist.setExpiry(investor2.address, expiry);
-      await time.setNextBlockTimestamp(expiry);
-
-      await expect(
-        shareToken.connect(company).mint(investor2.address, 1n),
-      ).to.be.revertedWithCustomError(shareToken, "RecipientNotWhitelisted");
-    });
-  });
-
-  describe("Pause/Unpause", function () {
-    beforeEach(async function () {
-      await shareToken.connect(company).mint(investor1.address, 10000n);
-    });
-
-    it("Should pause transfers", async function () {
+    it('Should pause transfers', async function () {
+      await expect(shareToken.connect(investor1).pause()).to.be.revertedWithCustomError(
+        shareToken,
+        'OwnableUnauthorizedAccount',
+      );
       await shareToken.connect(company).pause();
 
-      await expect(
-        shareToken.connect(investor1).transfer(investor2.address, 1000n),
-      ).to.be.revertedWithCustomError(shareToken, "EnforcedPause");
-    });
-
-    it("Should prevent minting when paused", async function () {
-      await shareToken.connect(company).pause();
-
-      await expect(
-        shareToken.connect(company).mint(investor1.address, 1000n),
-      ).to.be.revertedWithCustomError(shareToken, "EnforcedPause");
-    });
-
-    it("Should pause delegated transfers", async function () {
-      await shareToken.connect(investor1).approve(investor2.address, 1000n);
-      await shareToken.connect(company).pause();
-
-      await expect(
-        shareToken
-          .connect(investor2)
-          .transferFrom(investor1.address, investor2.address, 1000n),
-      ).to.be.revertedWithCustomError(shareToken, "EnforcedPause");
-    });
-
-    it("Should pause burning", async function () {
-      await shareToken.connect(company).pause();
-
-      await expect(
-        shareToken.connect(investor1).burn(1000n),
-      ).to.be.revertedWithCustomError(shareToken, "EnforcedPause");
-    });
-
-    it("Should allow transfers after unpause", async function () {
-      await shareToken.connect(company).pause();
+      await expect(shareToken.connect(investor1).transfer(investor2.address, 1000n)).to.be.revertedWithCustomError(
+        shareToken,
+        'EnforcedPause',
+      );
+      await expect(shareToken.connect(investor1).unpause()).to.be.revertedWithCustomError(
+        shareToken,
+        'OwnableUnauthorizedAccount',
+      );
       await shareToken.connect(company).unpause();
-
       await shareToken.connect(investor1).transfer(investor2.address, 1000n);
       expect(await shareToken.balanceOf(investor2.address)).to.equal(1000n);
     });

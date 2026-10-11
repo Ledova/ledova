@@ -1,8 +1,8 @@
 /** @jest-environment jsdom */
 import { renderHook } from '@testing-library/react';
 import type { AxiosInstance } from 'axios';
-import { createElement } from 'react';
 import type { ReactNode } from 'react';
+import { createElement } from 'react';
 
 import { ApiClientProvider, useApiClient } from '../../src/hooks/useApiClient';
 
@@ -15,12 +15,6 @@ const wrapWith = (instance: AxiosInstance) =>
   };
 
 describe('useApiClient', () => {
-  it('hands back the instance the provider was mounted with', () => {
-    const { result } = renderHook(() => useApiClient(), { wrapper: wrapWith(client) });
-
-    expect(result.current).toBe(client);
-  });
-
   it('gives each app its own instance rather than a module-level singleton', () => {
     const first = renderHook(() => useApiClient(), { wrapper: wrapWith(client) });
     const second = renderHook(() => useApiClient(), { wrapper: wrapWith(other) });

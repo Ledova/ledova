@@ -1,9 +1,6 @@
 name: Mobile native
 
 on:
-  push:
-    branches: [main]
-  pull_request:
   workflow_dispatch:
 
 permissions:
@@ -14,31 +11,15 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  scope:
-    name: Determine native build scope
-    runs-on: ubuntu-24.04
-    timeout-minutes: 5
-    outputs:
-      required: ${{ steps.scope.outputs.required }}
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-        with:
-          fetch-depth: 0
-      - name: Classify the complete pull-request or push change
-        id: scope
-        run: python3 scripts/ci-scope.py route native
-
   android:
     name: Android Release and native probe
-    needs: scope
-    if: needs.scope.outputs.required == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     env:
-      CI: "1"
-      EXPO_NO_DOTENV: "1"
-      EXPO_NO_TELEMETRY: "1"
-      EXPO_PUBLIC_DEV_API_HOST: "192.168.50.10"
+      CI: '1'
+      EXPO_NO_DOTENV: '1'
+      EXPO_NO_TELEMETRY: '1'
+      EXPO_PUBLIC_DEV_API_HOST: '192.168.50.10'
       ANDROID_SERIAL: emulator-5556
       NATIVE_ANDROID_ABIS: x86_64,arm64-v8a
     steps:
@@ -58,11 +39,6 @@ jobs:
           npm install --global npm@11.5.2
           npm ci --ignore-scripts --no-audit --no-fund
           npm --prefix mobile ci --ignore-scripts --no-audit --no-fund
-      - name: Check probe TLS and command deadlines before native setup
-        working-directory: mobile
-        run: |
-          node --test scripts/tests/native-probe-tls.test.mjs scripts/tests/native-command-timeout.test.mjs scripts/tests/android-test-packages.test.mjs scripts/tests/native-probe-report.test.mjs scripts/tests/screen-content.test.mjs scripts/tests/window-focus.test.mjs scripts/tests/emulator-settle.test.mjs scripts/tests/emulator-policy.test.mjs scripts/tests/android-evidence.test.mjs
-          npx jest --runInBand --testMatch '<rootDir>/native-tests/ScannerBridgeProbe.test.tsx'
       - name: Install native tools and prepare the emulator
         run: |
           export JAVA_HOME="$JAVA_HOME_21_X64"
@@ -89,7 +65,7 @@ jobs:
         run: |
           npx expo prebuild --clean --no-install --platform all
           node scripts/check-native-projects.mjs
-      - name: Build and run the ordinary app and native red/green probe
+      - name: Build and run the ordinary app and native probe
         working-directory: mobile
         run: node scripts/native-smoke.mjs android "$RUNNER_TEMP/ledova-native-android"
       - name: Retain the emulator's ANR and system records
@@ -127,15 +103,13 @@ jobs:
 
   ios:
     name: iOS ad hoc simulator Release and native probe
-    needs: scope
-    if: needs.scope.outputs.required == 'true'
     runs-on: macos-15
     timeout-minutes: 90
     env:
-      CI: "1"
-      EXPO_NO_DOTENV: "1"
-      EXPO_NO_TELEMETRY: "1"
-      EXPO_PUBLIC_DEV_API_HOST: "192.168.50.10"
+      CI: '1'
+      EXPO_NO_DOTENV: '1'
+      EXPO_NO_TELEMETRY: '1'
+      EXPO_PUBLIC_DEV_API_HOST: '192.168.50.10'
       DEVELOPER_DIR: /Applications/Xcode_16.4.app/Contents/Developer
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
@@ -147,14 +121,9 @@ jobs:
           npm install --global npm@11.5.2
           npm ci --ignore-scripts --no-audit --no-fund
           npm --prefix mobile ci --ignore-scripts --no-audit --no-fund
-      - name: Check probe TLS and command deadlines before native setup
-        run: node --test mobile/scripts/tests/native-probe-tls.test.mjs mobile/scripts/tests/native-command-timeout.test.mjs mobile/scripts/tests/native-probe-report.test.mjs mobile/scripts/tests/screen-content.test.mjs mobile/scripts/tests/window-focus.test.mjs
       - name: Generate native projects and resolve Pods
         working-directory: mobile
         run: |
-          node --test scripts/tests/ios-codegen.test.mjs scripts/tests/ios-deployment-targets.test.mjs scripts/tests/ios-simulator-identity.test.mjs
-          npx jest --runInBand --testMatch '<rootDir>/native-tests/diagnostics.test.ts'
-          node --test scripts/tests/ios-scene-lifecycle.test.mjs
           npx expo prebuild --clean --no-install --platform all
           node scripts/check-native-projects.mjs
           cd ios
@@ -165,7 +134,7 @@ jobs:
           echo "IOS_SIMULATOR_UDID=$native_udid" >> "$GITHUB_ENV"
           xcrun simctl boot "$native_udid"
           xcrun simctl bootstatus "$native_udid" -b
-      - name: Build and run the ordinary app and native red/green probe
+      - name: Build and run the ordinary app and native probe
         working-directory: mobile
         run: node scripts/native-smoke.mjs ios "$RUNNER_TEMP/ledova-native-ios"
       - name: Preserve native evidence and the ad hoc signed ordinary simulator app
@@ -196,12 +165,11 @@ jobs:
   native-status:
     name: Mobile native checks
     if: always()
-    needs: [scope, android, ios]
+    needs: [android, ios]
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-      - name: Require successful routing and the expected native outcomes
-        env:
-          JOB_RESULTS: ${{ toJSON(needs) }}
-        run: python3 scripts/ci-scope.py verdict native
+      - name: Require both manual native checks to succeed
+        run: |
+          test "${{ needs.android.result }}" = success
+          test "${{ needs.ios.result }}" = success

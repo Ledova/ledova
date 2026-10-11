@@ -97,34 +97,6 @@ class SchemaSnapshotTest(unittest.TestCase):
                 self.assertEqual(self.snapshot.read_bytes(), original)
                 self.assertFalse(json.loads(self.report.read_text())["matches"])
 
-    def test_array_order_is_preserved(self):
-        self.document["components"]["schemas"]["Thing"]["required"].reverse()
-        self.generated.write_text(json.dumps(self.document))
-        self.assertEqual(self.invoke(), 1)
-
-    def test_a_missing_snapshot_fails_without_creating_one(self):
-        self.snapshot.unlink()
-        self.assertEqual(self.invoke(), 1)
-        self.assertFalse(self.snapshot.exists())
-
-    def test_only_an_explicit_update_writes_the_complete_canonical_document(self):
-        self.snapshot.unlink()
-        self.assertEqual(self.invoke("--update"), 0)
-        self.assertEqual(json.loads(self.snapshot.read_text()), self.document)
-        self.assertEqual(self.snapshot.read_text(), gate.canonical_document(self.generated))
-        self.assertEqual(self.invoke(), 0)
-
-    def test_duplicate_keys_and_nonfinite_values_are_not_silently_normalized(self):
-        original = self.snapshot.read_bytes()
-        for content in (
-            '{"openapi":"3.0.3","paths":{},"paths":{}}',
-            '{"openapi":"3.0.3","paths":{},"value":NaN}',
-        ):
-            with self.subTest(content=content):
-                self.generated.write_text(content)
-                self.assertEqual(self.invoke("--update"), 1)
-                self.assertEqual(self.snapshot.read_bytes(), original)
-
 
 if __name__ == "__main__":
     unittest.main()

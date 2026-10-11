@@ -10,8 +10,6 @@ import {
   USER_PREFERENCES_QUERY_KEY,
   DESTINATIONS,
   type Company,
-  type CompanyDocument,
-  type DocumentType,
   type AccountRole,
   type UserPreferences,
 } from '@ledova/shared';
@@ -80,22 +78,6 @@ export function companyRecord(overrides: Partial<Company> = {}): Company {
     createdAt: '2026-09-01T00:00:00Z',
     updatedAt: '2026-09-01T00:00:00Z',
     ...overrides,
-  };
-}
-
-export function documentRecord(type: DocumentType, uuid: string = type): CompanyDocument {
-  return {
-    uuid,
-    company: 'company-one',
-    name: `${uuid}.pdf`,
-    documentType: type,
-    documentTypeDisplay: type,
-    fileUrl: `https://example.invalid/files/${uuid}`,
-    fileSize: 12,
-    mimeType: 'application/pdf',
-    isVerified: false,
-    verifiedAt: null,
-    createdAt: '2026-09-01T00:00:00Z',
   };
 }
 

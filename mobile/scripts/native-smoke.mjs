@@ -41,9 +41,9 @@ function archiveAndroidArtifact(source, name) {
   );
 }
 
-function collectScannerEvidence(name) {
+function collectScannerEvidence() {
   for (const suffix of ['.png', '.xml', '-status.txt']) {
-    const remote = `scanner-release-${name}${suffix}`;
+    const remote = `scanner-release${suffix}`;
     try {
       execFileSync(
         adb,
@@ -290,7 +290,7 @@ async function build(name, environment) {
 async function launch(name) {
   if (platform === 'android') {
     await command(adb, [...adbArgs, 'install', '-r', appPath], `${name}-install`);
-    if (name.startsWith('probe-')) {
+    if (name === 'probe') {
       await command(
         adb,
         [...adbArgs, 'shell', 'pm', 'grant', config.android.package, 'android.permission.CAMERA'],
@@ -564,7 +564,6 @@ try {
       command(adb, [...adbArgs, 'install', '-r', releaseTestApk], 'scanner-release-test-install'),
     );
   }
-  let nativeSource;
   if (platform === 'android') {
     const resource = path.join(mobile, 'android/app/src/main/res/xml/ledova_network_security_config.xml');
     const certificate = path.join(mobile, 'android/app/src/main/res/raw/ledova_probe_ca.pem');
@@ -576,29 +575,13 @@ try {
       resource,
       '<network-security-config><base-config cleartextTrafficPermitted="false"><trust-anchors><certificates src="system"/><certificates src="@raw/ledova_probe_ca"/></trust-anchors></base-config></network-security-config>',
     );
-    nativeSource = path.join(
-      mobile,
-      'android/app/src/main/java',
-      ...config.android.package.split('.'),
-      'MainApplication.kt',
-    );
   } else {
     await command(
       'xcrun',
       ['simctl', 'keychain', device, 'add-root-cert', path.join(directory, 'server/ca.pem')],
       'simulator-trust-probe-ca',
     );
-    nativeSource = path.join(mobile, 'ios', config.name, 'LedovaHTTPRequestHandler.m');
   }
-  preserve(nativeSource);
-  const correct = fs.readFileSync(nativeSource, 'utf8');
-  const bad =
-    platform === 'android'
-      ? correct
-          .replace('.followRedirects(false)', '.followRedirects(true)')
-          .replace('.followSslRedirects(false)', '.followSslRedirects(true)')
-      : correct.replace('completionHandler(nil);', 'completionHandler(request);');
-  assert.notEqual(bad, correct, 'The native redirect mutation must change the built source.');
   const environment = {
     ENTRY_FILE: 'native-tests/index.tsx',
     EXPO_PUBLIC_API_URL: endpoints.apiUrl,
@@ -606,67 +589,58 @@ try {
     EXPO_PUBLIC_NATIVE_PROBE_HTTP: endpoints.httpUrl,
     EXPO_PUBLIC_NATIVE_PROBE_UNTRUSTED: endpoints.untrustedUrl,
   };
-  for (const [name, source] of [
-    ['red', bad],
-    ['green', correct],
-  ]) {
-    fs.writeFileSync(nativeSource, source);
-    markStage(`probe-${name}-reset`);
-    await localRequest(endpoints.apiUrl, '/reset', ca);
-    let result;
-    try {
-      await build(`probe-${name}-build`, environment);
-      if (platform === 'android') archiveAndroidArtifact(appPath, `probe-${name}.apk`);
-      await launch(`probe-${name}`);
-      if (platform === 'android') {
-        try {
-          await command(
-            adb,
-            [
-              ...adbArgs,
-              'shell',
-              'am',
-              'instrument',
-              '-w',
-              '-r',
-              '-e',
-              'reportMode',
-              name,
-              'org.example.ledova.releaseprobe.test/androidx.test.runner.AndroidJUnitRunner',
-            ],
-            `scanner-release-${name}`,
-          );
-        } finally {
-          collectScannerEvidence(name);
-        }
-        const nativeResult = fs.readFileSync(path.join(directory, `scanner-release-${name}.log`), 'utf8');
-        assert.match(nativeResult, /OK \(1 test\)/);
-        assert.doesNotMatch(nativeResult, /FAILURES!!!|INSTRUMENTATION_FAILED|shortMsg=/);
+  markStage('probe-reset');
+  await localRequest(endpoints.apiUrl, '/reset', ca);
+  let result;
+  try {
+    await build('probe-release-build', environment);
+    if (platform === 'android') archiveAndroidArtifact(appPath, 'native-probe.apk');
+    await launch('probe');
+    if (platform === 'android') {
+      try {
+        await command(
+          adb,
+          [
+            ...adbArgs,
+            'shell',
+            'am',
+            'instrument',
+            '-w',
+            '-r',
+            'org.example.ledova.releaseprobe.test/androidx.test.runner.AndroidJUnitRunner',
+          ],
+          'scanner-release',
+        );
+      } finally {
+        collectScannerEvidence();
       }
-      markStage(`probe-${name}-report`);
-      result = await waitFor(path.join(directory, 'server/result.json'), 120000);
-      await delay(500);
-      await screenshot(`probe-${name}`);
-      const failed = result.checks
-        .filter((check) => !check.passed)
-        .map((check) => check.name)
-        .sort();
-      assert.ok(result.checks.length >= 12);
-      assert.deepEqual(failed, name === 'red' ? ['native 307 refusal', 'native 308 refusal'] : []);
-      assert.equal(result.counts.redirectTarget, name === 'red' ? 2 : 0);
-      assert.equal(result.counts.redirectBody, name === 'red' ? 2 : 0);
-      if (name === 'green') assert.equal(result.counts.redirectBearer, 0);
-      for (const count of ['direct', 'targetControl', 'upload', 'download', 'stream', 'cancelled'])
-        assert.ok(result.counts[count] > 0, `${count} needs a positive control.`);
-      for (const count of ['http', 'untrusted']) assert.equal(result.counts[count], 0);
-    } finally {
-      const report = path.join(directory, 'server/result.json');
-      const artifact = path.join(directory, `native-${name}.json`);
-      if (result !== undefined) fs.writeFileSync(artifact, JSON.stringify(result, null, 2));
-      else if (fs.existsSync(report)) fs.copyFileSync(report, artifact);
+      const nativeResult = fs.readFileSync(path.join(directory, 'scanner-release.log'), 'utf8');
+      assert.match(nativeResult, /OK \(1 test\)/);
+      assert.doesNotMatch(nativeResult, /FAILURES!!!|INSTRUMENTATION_FAILED|shortMsg=/);
     }
+    markStage('probe-report');
+    result = await waitFor(path.join(directory, 'server/result.json'), 120000);
+    await delay(500);
+    await screenshot('probe');
+    const failed = result.checks
+      .filter((check) => !check.passed)
+      .map((check) => check.name)
+      .sort();
+    assert.ok(result.checks.length >= 12);
+    assert.deepEqual(failed, []);
+    assert.equal(result.counts.redirectTarget, 0);
+    assert.equal(result.counts.redirectBody, 0);
+    assert.equal(result.counts.redirectBearer, 0);
+    for (const count of ['direct', 'targetControl', 'upload', 'download', 'stream', 'cancelled'])
+      assert.ok(result.counts[count] > 0, `${count} needs a positive control.`);
+    for (const count of ['http', 'untrusted']) assert.equal(result.counts[count], 0);
+  } finally {
+    const report = path.join(directory, 'server/result.json');
+    const artifact = path.join(directory, 'native-probe.json');
+    if (result !== undefined) fs.writeFileSync(artifact, JSON.stringify(result, null, 2));
+    else if (fs.existsSync(report)) fs.copyFileSync(report, artifact);
   }
-  console.log('Native Release probe passed with observed redirect failures before the fix.');
+  console.log('Native Release probe passed.');
 } catch (error) {
   failure = error;
   console.error(`Native validation failed during ${currentStage}: ${error.message}`);

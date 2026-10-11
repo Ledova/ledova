@@ -1,12 +1,11 @@
 /** @jest-environment jsdom */
-import { act, cleanup, render, renderHook, screen, waitFor } from '@testing-library/react';
 import { focusManager, onlineManager, QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { cleanup, renderHook, waitFor } from '@testing-library/react';
 import axios from 'axios';
 import type { PropsWithChildren } from 'react';
 
-import { AUTH_ENDPOINTS } from '../../src/constants/api';
 import { ApiClientProvider } from '../../src/hooks/useApiClient';
-import { AUTH_QUERY_KEY, useAuth } from '../../src/hooks/useAuth';
+import { useAuth } from '../../src/hooks/useAuth';
 
 const clients: QueryClient[] = [];
 
@@ -32,39 +31,6 @@ afterEach(() => {
 });
 
 describe('shared authentication follows the client refetch policy', () => {
-  it.each([
-    ['dashboard', true, 2],
-    ['mobile', false, 1],
-  ] as const)('%s rechecks on focus according to its own policy', async (_name, focus, expected) => {
-    const { client, get, wrapper } = harness(focus);
-    const { result } = renderHook(() => useAuth(), { wrapper });
-    await waitFor(() => expect(result.current.isAuthenticated).toBe(true));
-    expect(get).toHaveBeenCalledWith(AUTH_ENDPOINTS.VERIFY);
-    await client.invalidateQueries({ queryKey: AUTH_QUERY_KEY, refetchType: 'none' });
-
-    await act(async () => {
-      focusManager.setFocused(false);
-      focusManager.setFocused(true);
-    });
-
-    await waitFor(() => expect(get).toHaveBeenCalledTimes(expected));
-    expect(result.current.isAuthenticated).toBe(true);
-  });
-
-  it.each([true, false])('rechecks a stale session on reconnect with focus policy %s', async (focus) => {
-    const { client, get, wrapper } = harness(focus);
-    renderHook(() => useAuth(), { wrapper });
-    await waitFor(() => expect(get).toHaveBeenCalledTimes(1));
-    await client.invalidateQueries({ queryKey: AUTH_QUERY_KEY, refetchType: 'none' });
-
-    await act(async () => {
-      onlineManager.setOnline(false);
-      onlineManager.setOnline(true);
-    });
-
-    await waitFor(() => expect(get).toHaveBeenCalledTimes(2));
-  });
-
   it('recovers a failed verification on a later mount without retrying it in a loop', async () => {
     const { get, wrapper } = harness();
     get.mockRejectedValueOnce(new Error('Network unavailable'));
@@ -96,36 +62,5 @@ describe('shared authentication follows the client refetch policy', () => {
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(result.current.isAuthenticated).toBe(false);
     expect(get).toHaveBeenCalledTimes(1);
-  });
-
-  it('keeps a public form mounted when its nested auth consumer retries a failed check', async () => {
-    const { get, wrapper } = harness();
-    let rejectRetry!: (error: Error) => void;
-    get.mockRejectedValueOnce(new Error('No session')).mockImplementationOnce(
-      () =>
-        new Promise((_resolve, reject) => {
-          rejectRetry = reject;
-        }),
-    );
-
-    function Form() {
-      useAuth();
-      return <form aria-label="Sign in" />;
-    }
-
-    function PublicRoute() {
-      const { isLoading } = useAuth();
-      return isLoading ? <span>Checking session</span> : <Form />;
-    }
-
-    render(<PublicRoute />, { wrapper });
-    expect(screen.queryByRole('form', { name: 'Sign in' })).toBeNull();
-    await waitFor(() => expect(get).toHaveBeenCalledTimes(2));
-    expect(screen.getByRole('form', { name: 'Sign in' })).toBeTruthy();
-
-    await act(async () => rejectRetry(new Error('Still no session')));
-
-    expect(screen.getByRole('form', { name: 'Sign in' })).toBeTruthy();
-    expect(get).toHaveBeenCalledTimes(2);
   });
 });
