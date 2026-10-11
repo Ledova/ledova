@@ -64,9 +64,10 @@ Legacy adoption, replacement policy, canonicality/finality and a full accounting
 ledger remain separate work. It retains the existing generation-fenced
 [balance reconciliation](wallet-reconciliation.md) and admits no operator
 signer; trading is enabled by default and unaffected by this journal.
-`make chain-test` includes real local native/ERC-20 submission and settlement
-checks, including a node acknowledgement lost after mining; ordinary tests
-separately exercise process exits and concurrent retries on PostgreSQL.
+Earlier native/ERC-20 submission, settlement and process-timing test evidence
+remains in Git history. Under the [11 October policy](../decisions.md#minimum-tests-and-fresh-migrations),
+the ordinary suite retires those cases and `make chain-test` is one manual
+local EVM contract smoke.
 
 ## Bitcoin
 
@@ -102,38 +103,13 @@ a mined receipt belongs to the confirmation writer. Unavailable evidence leaves
 recovery unresolved. Input reservations are retained after terminal states; a
 replacement/release policy is separate work.
 
-`python scripts/test-bitcoin-chain.py` exercises this path on PostgreSQL with an
-isolated Bitcoin Core 31.1 regtest node, external networking disabled and no
-peers. On Linux x86_64 it downloads the official archive and verifies its pinned
-SHA256. `BITCOIN_TEST_BINARY` can select an already installed 31.1 daemon, and
-`--port` selects a free local RPC port. It uses a temporary data directory and
-cookie and stops only its own process. CI runs the same command. The test covers
-real signature refusal, mempool acceptance, lost responses, process exits before
-and after actual sends, recovery, mining and duplicate confirmation. Notification
-and external balance-refresh boundaries are isolated; these tests do not certify
-Bitcoin address-history providers, finality, reorg handling or hardware wallets.
+The [11 October testing decision](../decisions.md#minimum-tests-and-fresh-migrations)
+retires the broad Bitcoin regtest suite and takes chain tests out of CI. Earlier
+signature, mempool, recovery and confirmation evidence remains in the original
+PRs and Git history; it does not establish current automated coverage. The
+optional `make chain-test` is a narrow local EVM contract smoke.
 
-## Migration notes
-
-Apply `wallets/0016_wallet_submission` before starting the updated API and worker
-processes, and stop old processes before permitting new transfers. Existing
-transactions are retained without inferred journal records. PostgreSQL protects
-the journal, its wallet identity and its transaction's signed terms against
-direct mutation; delivery timestamps can only advance. Related financial rows
-cannot be cascade-deleted through these protected links, and reversing the
-migration refuses to discard a nonempty journal. Backups of this table contain
-signed transactions that can be broadcast and require the same protection as
-other signed payloads. Do not clear rows to make a migration reversal succeed.
-
-Apply `wallets/0017_bitcoin_submission` before admitting Bitcoin transfers and
-stop old API/worker processes first. Its owner policies protect raw bytes and
-input records on the request database role. PostgreSQL freezes the signed terms,
-wallet identity and input records, requires every input reservation at commit,
-and refuses a populated migration reversal. The Bitcoin journal needs the same
-backup protection as the EVM journal.
-
-Apply `wallets/0018_global_submission_identity` with old transfer writers stopped.
-If existing EVM journal rows share a chain transaction or signer nonce, migration
-stops without rewriting, deleting or choosing an owner for them. Preserve the
-records and resolve their ownership/accounting before retrying the migration.
-The migration does not infer intent from legacy transaction/history rows.
+Fresh migrations install the current journal/input-reservation guards and unique
+transaction/signer identity constraints. Journal backups contain signed bytes
+that can be broadcast and need restricted access. Preserve those records and
+their original evidence under the approved rebuild plan.

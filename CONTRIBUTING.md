@@ -59,12 +59,14 @@ Follow [local setup](docs/getting-started.md), then the
 1. Branch from `main` (`fix/whitelist-check`, `docs/quickstart`). Contributors
    without repository write access use a fork.
 2. Keep pull requests small and focused: one logical change each.
-3. Add or update tests for any behaviour change. Security and correctness fixes
-   come with a regression test. A new detail route or custom action also needs a
-   cross-tenant row in `backend/shared/tests/test_cross_tenant_routes.py`.
-   Prefer focused checks and retire demonstrably obsolete or duplicate tests;
-   preserve meaningful authority, privacy, economic, retention and migration
-   coverage. Documentation-only changes need no tests that mirror their text.
+3. Follow the [11 October minimum-test policy](docs/development/testing.md).
+   Keep tests only for the worst failures and one happy path per delivered core
+   journey, within the suite caps. Replace or remove redundant tests and their
+   unused helpers/fixtures. There is no mandatory test for every change or
+   cross-tenant row for every route. Keep PostgreSQL isolation/authority,
+   ownership totals and issuance idempotency covered by the small core suite.
+   Source gates, system/role/catalogue checks, API snapshot and Playwright smoke
+   remain. Documentation-only changes need no tests mirroring their text.
 4. Follow the coding rules in
    [engineering standards](docs/development/standards.md#the-rules). The one that
    surprises people most: **source carries no comments and no docstrings**. Only
@@ -144,7 +146,8 @@ grows.
    together.
 5. **Product and legal decisions remain the repository owner's.** Live
    deployment, live database migrations, signer activation and real-funds use
-   also require the owner's explicit direction.
+   also require the owner's explicit direction. The ledova.io fresh-database
+   plan requires approval before any backup, export, rebuild or re-seed.
 
 How to establish that a change does what it claims is a separate question, and is
 in [testing and review](docs/development/testing.md).

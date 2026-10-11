@@ -2,49 +2,44 @@
 
 [Operations](README.md) · [Documentation](../README.md)
 
-Apply only the migration notes relevant to the database you are upgrading. Schema reversibility does not guarantee data restoration.
+The [11 October decision](../decisions.md#minimum-tests-and-fresh-migrations)
+starts project migrations fresh. New databases use the current models and
+PostgreSQL guards; an older database cannot adopt that history in place.
+
+## Fresh database rebuild
+
+**Plan only: obtain the owner's approval before executing any part on ledova.io,
+including a backup, export or rehearsal using its data.** No live work has run.
+
+1. Back up the database and referenced private storage together, with matching
+   release/configuration information. Verify a restorable copy and preserve it.
+2. Inventory what is worth keeping with the owner: useful accounts, companies,
+   appointments, members, authoritative register/holding records and referenced
+   documents/evidence. Export only the agreed records with their identity links
+   and fingerprints; do not import stale migration records or invent historical
+   approvals, receipts or share ownership. Preserve the original backup.
+3. Rehearse the import mappings on an isolated copy. At the approved cutover,
+   stop writers and rebuild an empty PostgreSQL database using the fresh
+   migrations and required roles, grants, RLS, triggers and functions. Re-seed
+   required reference data and only the agreed useful records.
+4. Verify system, roles/catalogue and API snapshot checks, the small core suite,
+   register totals and private-file references. Record results and recovery via
+   the original backup/matching release; obtain release approval before serving
+   the rebuilt instance.
+
+Held product migrations rebase onto this fresh history. This is no authorization
+for deployment, signer activation or real-funds use.
 
 ## Adopting the migration baseline
 
-The [10 October owner decision](../decisions.md#backend-migration-baseline)
-replaces shipped project migrations with a baseline, using dependency phases
-where needed. Their source and earlier upgrade notes remain in Git history.
-The notes below describe those pre-baseline changes; use the last pre-baseline
-release to complete them on an existing database. Fresh databases build directly
-from the baseline.
+The 10 October adoption procedure is retired. The replacement is the
+[fresh-database rebuild plan](#fresh-database-rebuild); there is no `--fake` or
+replacement-record path for an old database.
 
-Adopting this baseline on **ledova.io requires the owner's explicit release
-approval**, a database/private-storage backup and rehearsal on a restored copy.
-Implementation or green CI does not authorise that live release.
-
-1. With the old code at the
-   [recorded cut](https://github.com/Ledova/ledova/issues/860#issuecomment-6101119001),
-   main `b325fea6b816a075003cb97954b5df03e20251b1`, complete every old project
-   and required vendor migration. Preserve genuine records, referenced private
-   files and unresolved signed operations. A partly upgraded database must finish
-   the old chain before switching code.
-2. Rehearse the switch with matching configuration on the restored copy. The
-   baseline PR must record fresh old-chain/baseline schema, reference-data,
-   role/ACL and guard equivalence, plus unchanged application rows and schema
-   during old-cut adoption. Keep the backup and matching old release available.
-3. On the copy, switch to the baseline release with API/worker writers stopped. From
-   `backend/`, inspect `python manage.py migrate --plan`, then use
-   `python manage.py migrate --noinput`. A complete old cut is adopted through
-   Django replacement records without replaying baseline schema operations.
-   The history guard refuses partial old project/vendor history before planning
-   or DDL; do not use `--fake`, delete records or edit the recorder to bypass it.
-4. Verify role/catalogue and private-media checks, supported application health
-   and retained recovery state before restarting writers. Record the rehearsed
-   release and results, resolve any failures, then obtain the owner's explicit
-   approval before repeating the successful procedure on ledova.io.
-
-The baseline does not provide a downgrade to an earlier shipped schema.
-Recovery uses a preserved backup with its matching release and the separately
-approved procedure. Never discard retained rows to force a reversal. New
-post-baseline migrations still need their own focused upgrade/refusal checks,
-as the [testing guide](../development/testing.md#migration-baseline) describes.
-Essential process/timing repairs, one backend job group and `make preflight`
-remain later #943 work.
+The notes below are historical release notes from before the 11 October reset.
+Their migration names and verification commands describe those earlier releases,
+not instructions for the current fresh history. Original source and tests remain
+in Git history and the linked PRs.
 
 ## One registry product
 

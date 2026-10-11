@@ -212,43 +212,17 @@ existing `FACTORY_ADDRESS` from the `TOKEN_NAME`, `TOKEN_SYMBOL`,
 `COMPANY_ACN`, `AUTHORIZED_SHARES` and `INITIAL_MINT` inputs listed in
 [deployment configuration](configuration.md#contracts).
 
-`make chain-test` does the local sequence unattended: it compiles, starts a
-node, waits for `eth_chainId`, deploys the core contracts, sources
-`.deployed-contracts.env` and runs the real-chain modules,
-`tokens.tests.test_chain_integration`, `offerings.tests.test_chain_allotment`,
-`wallets.tests.test_submission_chain`, `tokens.tests.test_chain_journey`
-(the [demonstration journey](demonstration-journey.md)) and
-`shared.tests.test_seed_chain` (the [demo seed's chain layer](operator-console.md#demo-data))
-and `tokens.tests.test_company_paid_issue_chain` for genuine paid company issue
-authority, original execution and separate Mint/register outcomes,
-plus `tokens.tests.test_company_pack_chain.SyntheticCompanyCapitalChainTest`
-and `tokens.tests.test_company_pack_chain.SyntheticCompanyPauseChainTest` for
-the genuine company capital and pause seed commands and their captured original
-jobs. It runs the integration module and the remaining selectors sequentially
-in separate fresh test-database lifetimes, preserving case order while bounding
-historical-fixture migration churn. It then stops the node. The capital class verifies cap-only execution
-without relying on the currently unsupported no-key treasury seed path.
-`CHAIN_TEST_PORT` moves the whole thing — the node, the `localhost` network the
-deploy connects to (through `LOCALHOST_RPC_URL`, which
-`contracts/hardhat.config.ts` reads) and the backend's `BLOCKCHAIN_RPC_URL` — so
-two worktrees can run the chain test at the same time on different ports. The
-target refuses to start when that port is already taken, naming the port rather
-than failing later with Hardhat's `HH108`. The local stack's chain holds 8545,
-so while the stack is up run `make chain-test CHAIN_TEST_PORT=8546`, or any
-other free port. The chain test keeps its own Hardhat node and test databases
-and never touches the stack's chain.
-The chain test uses PostgreSQL. Set `POSTGRES_*` for an isolated database; the
-two-worker capital-increase case requires its real row locks.
+`make chain-test` is an optional manual smoke on an owned local Hardhat node.
+It compiles the contracts, waits for the node and runs one genuine contract
+smoke, then stops its own node. It does not run the former backend chain/seed,
+paid-issue or multi-process suites. EVM and Bitcoin are outside PR/main CI and
+preflight under the [11 October policy](../decisions.md#minimum-tests-and-fresh-migrations).
 
-Each real-chain test isolates itself through `isolate_chain`
-(`backend/tokens/tests/test_chain_integration.py`): it mines one block at the
-wall-clock time, then takes the snapshot its cleanup reverts to. The Hardhat node
-moves its clock ahead on `evm_revert`, by the time since the snapshot, and by a
-second for every block mined within the same second as the one before it, so
-without that first block the clock would run ahead by about the suite's running
-time. A trade's settlement deadline, fifteen minutes after the match, is checked
-against block time, so the later modules' trades, the seed's among them, would
-start to expire on chain once the earlier tests ran longer than that.
+Use a free port, for example `make chain-test CHAIN_TEST_PORT=8546` while the
+local stack uses 8545. The command refuses an occupied port. It must use an
+isolated local node with synthetic accounts; no public signer activation or
+funds operation is part of the test. Its narrow contract result does not prove
+the full backend chain journeys.
 
 ## Fresh-start redeploy
 
@@ -259,22 +233,19 @@ whose per-company registries changed the bytecode of every contract, and a
 deployed share token can never be rebound to another registry, so moving onto
 those contracts was [the owner's decision](../decisions.md#company-scoped-approvals)
 to start fresh; the [Base Sepolia evidence](approval-controls.md#base-sepolia)
-records the authorised run of 25 September 2026. It is not the upgrade
-procedure for an existing environment, whose companies, registers, documents,
-approvals and signed history the
-[company-managed register upgrades](upgrades.md#company-managed-register-upgrades)
-preserve. The database must be a new, empty one: migration
-`whitelist/0007_per_company_approvals` refuses to run where whitelist changes
-written for the retired global registry remain, but a database carrying share
-classes deployed by a retired factory and no such rows would pass it, and step
-8's last check is what catches that.
+records the authorised run of 25 September 2026. The [11 October fresh-database rebuild](upgrades.md#fresh-database-rebuild)
+is the current database procedure; any ledova.io backup, export or rebuild needs
+owner approval before execution. Fresh migrations install current PostgreSQL
+guards on an empty database. They do not validate whether stored classes belong
+to a retired on-chain factory; step 8's contract checks remain separate.
 
 Steps 6 and 7 both sign, so the owner must explicitly authorise signer
 admission for the fresh environment. The narrow Base Sepolia bootstrap below
 verifies the five core deployment transactions before first admission; it cannot
-reopen an old signer or resolve historical cutover. Local `make chain-test`
-continues to establish admission as a synthetic test precondition, and the
-local stack's `admit_local_signer` refuses every chain but 31337.
+reopen an old signer or resolve historical cutover. The local stack's
+`admit_local_signer` refuses every chain but 31337. The current manual contract
+smoke directly deploys synthetic contracts without establishing backend signer
+admission.
 
 1. Stop the backend, workers and every other producer using the new operator
    key. Prepare a new key used only for this fresh isolated environment; do not

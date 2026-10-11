@@ -9,9 +9,9 @@ when starting or resuming work, including after context compaction.
 
 - Prioritise the development workflow under #943, then the essential
   company-managed register journeys. Follow the
-  [9 October owner decision](docs/decisions.md#essential-registry-and-development-workflow-priority)
-  and each issue's current dependencies. Check the GitHub issue and claim before
-  each increment; preserve other agents' claimed work.
+  [11 October testing decision](docs/decisions.md#minimum-tests-and-fresh-migrations),
+  the essential register priority and each issue's current dependencies. Check
+  the GitHub issue and claim before each increment; preserve other agents' claimed work.
 - Keep the design and implementation simple. Prefer existing patterns and small,
   focused changes over speculative abstractions or additional product modes.
 - Deliver the essential register scope of the 9 October decision and its
@@ -29,21 +29,27 @@ when starting or resuming work, including after context compaction.
 - Preserve useful history, old database migrations in Git, retained records and
   evidence, the earlier journey artifacts, and unrelated local work. Cleanup
   must not discard data or weaken privacy, authority or execution safeguards.
-- Follow the [10 October migration baseline decision](docs/decisions.md#backend-migration-baseline):
-  prove schema, reference-data and role equivalence before retiring shipped
-  upgrade/rollback tests. Keep meaningful current runtime assertions and cheap
-  upgrade coverage for each new migration after the baseline.
+- Use fresh initial project migrations from current models and install the current
+  PostgreSQL roles, grants, RLS policies, functions and triggers. Old migration
+  source remains in Git history; there is no older-database adoption path.
 - Update documentation to describe what is actually delivered, keeping planned
   capabilities distinct from current behaviour.
-- Use focused checks during development and the applicable required checks once
-  on the merging head, as the [testing guide](docs/development/testing.md) says;
-  do not claim proposed #943 test routing before it lands. Keep authority,
-  isolation, economic, retention and current execution/recovery coverage. Record
-  results and material gaps in the pull request.
+- Keep only tests guarding the worst failures, under the
+  [minimum-test policy](docs/development/testing.md): backend at most 150,
+  dashboard 20, mobile 10, shared 10 and contracts 20 executed cases. Keep at
+  most five real-app-login tenant tests and the Playwright smoke tests. Retire
+  other tests and unused helpers/fixtures; historical or deferred features do
+  not require coverage. No blanket regression or per-route cross-tenant matrix
+  requirement remains.
+- Every PR runs the same lean checks. `make preflight` runs those checks locally;
+  native Android/iOS builds are manual before a mobile release. Report actual
+  counts and times against ten minutes for the whole Hosted PR run and five
+  minutes for all tests on the Mac. Keep source gates, PR wording, the
+  fail-closed verdict, PostgreSQL role/catalogue checks and the API snapshot.
 - Use focused pull requests, independent review at the merging commit, and green
   required CI on a branch up to date with main. Do not push directly to main.
 
 The owner has authorised implementation, routine cleanup, and the repository's
-review-and-merge workflow without repeated permission requests. Live deployment,
-live database migrations, signer activation and real-funds use still require the
-owner's explicit direction under CONTRIBUTING.md.
+review-and-merge workflow without repeated permission requests. Any ledova.io
+backup, export, rebuild or re-seed requires the owner's approval before execution. Live deployment, live database migrations, signer activation
+and real-funds use require explicit direction under CONTRIBUTING.md.

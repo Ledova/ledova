@@ -14,22 +14,22 @@ Platform staff still review offerings, record payments, publish to members,
 prepare certificates, notice figures and the company pack, and review transfer
 instructions. Do not grant company users platform-staff permissions.
 
-| Task | Guide |
-| --- | --- |
-| Set environment variables and database roles | [Configuration](configuration.md) |
-| Configure email, KYC, market data or extraction | [Integrations](integrations.md) |
-| Deploy local/testnet contracts and align signer ownership | [Chains and keys](chains.md) |
-| Read the current company-scoped approval controls and their dated bypass evidence | [Approval controls](approval-controls.md) |
-| Verify a real Keystone wallet using a Mac camera and separate synthetic data | [Keystone on a Mac](keystone-mac.md) |
-| Read which real-chain test proves each step of the product's demonstration journey | [Demonstration journey](demonstration-journey.md) |
-| Seed data, configure the operator record and work the remaining staff queues | [Operator console](operator-console.md) |
-| Read what transaction monitoring compares and when a customer counts as new | [Transaction monitoring](operator-console.md#transaction-monitoring) |
-| Follow the current staff workflow for publishing on company instruction | [Publishing to members](publications.md) |
-| Produce a company's records as one archive for a successor or a lawful request | [Producing a company pack](register-foundation.md#producing-a-company-pack) |
-| Configure private storage, scanning and retention | [Uploads](uploads.md) |
-| Start workers and inspect schedules | [Background jobs](jobs.md) |
-| Recover unresolved work | [Recovery](recovery.md) |
-| Upgrade an existing database or release | [Upgrades](upgrades.md) |
+| Task                                                                              | Guide                                                                       |
+| --------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| Set environment variables and database roles                                      | [Configuration](configuration.md)                                           |
+| Configure email, KYC, market data or extraction                                   | [Integrations](integrations.md)                                             |
+| Deploy local/testnet contracts and align signer ownership                         | [Chains and keys](chains.md)                                                |
+| Read the current company-scoped approval controls and their dated bypass evidence | [Approval controls](approval-controls.md)                                   |
+| Verify a real Keystone wallet using a Mac camera and separate synthetic data      | [Keystone on a Mac](keystone-mac.md)                                        |
+| Read the original test evidence for the product's demonstration journey           | [Demonstration journey](demonstration-journey.md)                           |
+| Seed data, configure the operator record and work the remaining staff queues      | [Operator console](operator-console.md)                                     |
+| Read what transaction monitoring compares and when a customer counts as new       | [Transaction monitoring](operator-console.md#transaction-monitoring)        |
+| Follow the current staff workflow for publishing on company instruction           | [Publishing to members](publications.md)                                    |
+| Produce a company's records as one archive for a successor or a lawful request    | [Producing a company pack](register-foundation.md#producing-a-company-pack) |
+| Configure private storage, scanning and retention                                 | [Uploads](uploads.md)                                                       |
+| Start workers and inspect schedules                                               | [Background jobs](jobs.md)                                                  |
+| Recover unresolved work                                                           | [Recovery](recovery.md)                                                     |
+| Upgrade an existing database or release                                           | [Upgrades](upgrades.md)                                                     |
 
 ## Before using a configured instance
 
@@ -38,8 +38,7 @@ instructions. Do not grant company users platform-staff permissions.
    needed for the flow. Redis is required even with trading disabled.
 3. Apply migrations and the role checks, then run the seed commands in the
    [operator guide](operator-console.md#seeding).
-4. Confirm `GET /health/` answers 200 and anonymous `GET /api/operator/` answers
-   401. The health route does not test database or provider readiness.
+4. Confirm `GET /health/` answers 200 and anonymous `GET /api/operator/` answers 401. The health route does not test database or provider readiness.
 5. Open the operator console and resolve configuration warnings relevant to the
    selected payment rail. Confirm a worker is running and scheduled work advances.
 6. Confirm `trading_enabled` matches this deployment's intent: it is seeded on,

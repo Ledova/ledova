@@ -5,18 +5,19 @@
 Start here when a check fails. Each section states the rule, the remedy and
 what the check does and does not establish. The source owns exact matchers and
 exception inventories: when extending a checker or investigating a false result,
-run `make test-gates`, and introduce a failing fixture and a valid control for a
-changed matcher. Counted historical debt must shrink and stale counts must fail;
-a justified exclusion needs a reason and coverage proving its boundary. Commands
-run from the repository root unless stated otherwise.
+run the relevant small gate controls when they guard a meaningful failure.
+The [minimum-test policy](testing.md) applies to these helpers too. Counted
+historical debt must shrink and stale counts must fail; a justified exclusion
+needs a reason and a review of its boundary. Commands run from the repository
+root unless stated otherwise.
 
 ## Every gate, and where its rule is written
 
 `check-docs.py` holds this table to `scripts/`: a gate script with no entry
 fails, and an entry naming no script fails.
 
-| Script                        | Rule                                                         | `make check` | CI job                 |
-| ----------------------------- | ------------------------------------------------------------ | ------------ | ---------------------- |
+| Script                        | Rule                                                         | `make check` | CI job                   |
+| ----------------------------- | ------------------------------------------------------------ | ------------ | ------------------------ |
 | `check-comments.py`           | [The comment gate](#the-comment-gate)                        | yes          | Source and client checks |
 | `check-type-check.py`         | [The type-check gate](#the-type-check-gate)                  | yes          | Source and client checks |
 | `check-layers.py`             | [The layer gate](#the-layer-gate)                            | yes          | Source and client checks |
@@ -26,10 +27,10 @@ fails, and an entry naming no script fails.
 | `check-error-bodies.py`       | [The error body gate](#the-error-body-gate)                  | yes          | Source and client checks |
 | `check-logging.py`            | [The logging privacy gate](#the-logging-privacy-gate)        | yes          | Source and client checks |
 | `check-docs.py`               | [The documentation gate](#the-documentation-gate)            | yes          | Source and client checks |
-| `check-pr-metadata.py`        | [The PR metadata gate](#the-pr-metadata-gate)                | no           | PR metadata            |
-| `check-api-schema.py`         | [The API type drift gate](#the-api-type-drift-gate)          | no           | Backend verification |
+| `check-pr-metadata.py`        | [The PR metadata gate](#the-pr-metadata-gate)                | no           | PR metadata              |
+| `check-api-schema.py`         | [The API type drift gate](#the-api-type-drift-gate)          | no           | Backend verification     |
 | `check-api-types.mjs`         | [The API type drift gate](#the-api-type-drift-gate)          | yes          | Source and client checks |
-| `check-client-operations.mjs` | [The API type drift gate](#the-api-type-drift-gate)          | no           | Source and client checks |
+| `check-client-operations.mjs` | [The API type drift gate](#the-api-type-drift-gate)          | yes          | Source and client checks |
 | `check-self-imports.mjs`      | [Clients and the shared package](../architecture/clients.md) | yes          | Source and client checks |
 
 `check-port-free.py` is in `scripts/` and is not on this table: it refuses to
@@ -38,19 +39,14 @@ than a rule anything is held to. `check-docs.py` carries it in `NOT_A_GATE`
 with that reason, so its absence is a recorded decision rather than an
 oversight, and documenting it here would fail the gate.
 
-Two rules are gated without a script of their own: one migration per model
-change, through CI's `makemigrations --check --dry-run`, and the generated
-design tokens, through `git diff --exit-code` after `make build`. Other checks
-run from the Makefile rather than from `scripts/`: `make check-mobile-test-awaits`,
-`npm --prefix mobile run check:resolution`, which checks the real native
-dependency graph including shared React/query peers (Jest and TypeScript
-resolution alone do not prove Metro resolution), and, in `make test`,
-`dashboard/scripts/check-react-singleton.mjs`,
-`mobile/scripts/shared-peer-resolution.test.mjs`, the negative control for the
-peer step of `check:resolution`, and `mobile/scripts/tests/relative-imports.test.mjs`,
-the control for its refusal of a relative import that climbs out of `mobile/`
-into a `node_modules` directory. `check-self-imports.mjs` prevents the shared
-package importing its own public barrel.
+Two rules are gated without a script of their own: migration drift through
+`makemigrations --check --dry-run` in the backend group, and generated design
+tokens through the non-writing `generate-css-tokens.mjs --check` in `make check`.
+The Makefile also runs the mobile test-await control, the real native dependency
+resolver (`npm --prefix mobile run check:resolution`) and the dashboard React
+singleton check. Jest and TypeScript resolution alone do not establish Metro
+resolution. `check-self-imports.mjs` prevents the shared package importing its
+own public barrel. Removed broad resolver fixtures remain in Git history.
 
 ## The PR metadata gate
 
@@ -90,8 +86,8 @@ phrases in the whole draft body, including negated phrases. It refuses incomplet
 shallow or divergent history. It verifies wording and the local range; issue
 existence, GitHub closing references and the complete PR commit count remain the
 online gate's responsibility. The online and local modes are mutually exclusive.
-[Preflight](testing.md#preflight) uses this local mode when intended PR title and
-body files are supplied.
+[Preflight](testing.md#preflight) uses this local mode for supplied PR files or
+an explicitly qualified draft derived from HEAD.
 
 ## The comment gate
 
@@ -108,10 +104,10 @@ The trees are, in full: `backend`, `dashboard/src`, `mobile/src`,
 
 That sentence is checked against `TREES`. Each tree's extension and recursion scope
 lives in the script; `NOT_SCANNED` names intentional omissions with reasons. The
-[tree-coverage tests](../../scripts/tests/test_check_comments_trees.py) refuse
-source outside both lists, so dropping a recursive tree fails them. Native
-preprocessor code, URLs, regexes and JSX text are positive parsing controls, not
-comment exemptions. Admin templates are outside the scan and should also remain
+[small tree/parser control](../../scripts/tests/test_check_comments_trees.py)
+checks named source paths and representative functional syntax. It does not
+prove every tree or parser permutation. Functional native directives, URLs,
+regexes and JSX text are not comment exemptions. Admin templates are outside the scan and should also remain
 free of comments.
 
 Only functional directives are allowed: Python `# noqa`, `# type:`, `# pragma`,
@@ -128,11 +124,8 @@ a config with no file set and no references must name its files. The checker
 resolves JSONC and inherited `files`/`include` independently, reports unreadable
 configuration, accounts for every discovered workspace or explicit exclusion,
 and distinguishes a successful empty check from a compiler error that already
-fails CI; compiler-calibrated fixtures preserve the difference between ordinary
-tsc and project-reference build mode. It does not replace compilation. Install
-the correct workspace
-dependencies before running its type-check directly; `make check` installs
-missing ones.
+fails CI. It does not replace compilation. Install the correct workspace
+dependencies before running `make check`; checks do not install missing tools.
 
 ## The layer gate
 
@@ -165,16 +158,17 @@ establishes that metadata exists, not that it is accurate. Provider webhooks may
 be explicitly excluded. Non-DRF routes need another schema mechanism; the
 trading stream is covered by the
 [schema postprocessing hook](../../backend/shared/api/schema_hooks.py), which
-derives event names from the publisher catalogue, and its tests.
+derives event names from the publisher catalogue. The API snapshot checks the
+resulting schema; the earlier hook unit matrix is retired.
 
 ## The test shadowing gate
 
 `make check-test-shadowing` refuses helpers that override reserved
 `unittest.TestCase` methods, such as `fail`, and silently disable assertions.
 Rename the helper. The reserved set derives from `dir(TestCase)` and excludes
-intentional setup/teardown and runner hooks; its regression controls establish
-which assertions become inert when `fail` is replaced. This does not establish
-assertion quality.
+intentional setup/teardown and runner hooks. Its small control checks the
+matcher's positive/negative boundary, not whether every assertion executes.
+This does not establish assertion quality.
 
 ## The error body gate
 
@@ -223,17 +217,16 @@ checks navigation and statements against source.
 
 ## Backend test discovery
 
-The backend group uses normal Django discovery when running each suite. The
+The backend group runs one small suite through normal Django discovery. The
 [runner](../../backend/shared/test_runner.py) refuses an empty suite; Django
 reports import failures as failed tests and removes duplicate test instances.
 The [shadowing gate](#the-test-shadowing-gate) checks assertion/fixture helpers that would shadow reserved TestCase
 methods. There is no separate discovery run, saved inventory or shard
 balancing configuration.
 
-The strict scoped runner also requires its declared connection-boundary classes
-and refuses skipped cases. Its compact inventory tests the actual app/operator
-credentials, tenant isolation and immutable records without inheriting entire
-ordinary suites.
+At most five cases use real app login and non-bypassing credentials for the
+API/database tenant boundary. There is no separate strict runner or declared
+class inventory; record the actual case count and any skips.
 
 ## The API type drift gate
 
@@ -249,8 +242,8 @@ snapshot; ordinary comparison never rewrites it. Mapping keys are canonicalised;
 array order, constraints, request/response metadata and nullability remain
 significant. Fix diagnostics through real declarations and existing enum
 definitions, without bypassing authorisation or suppressing warnings. The
-schema checker shares the tenancy route walker's administrative, static,
-API-root, format-duplicate and bodyless-method scope; its explicit
+schema checker excludes administrative, static, API-root, format-duplicate
+and bodyless methods; its explicit
 provider-webhook exclusions are Alchemy, KYCAID identity, KYCAID crypto and
 Sumsub. Missing routes, phantom operations and stale exclusions fail; unused
 application routes and error-only compatibility routes still count.
@@ -265,8 +258,8 @@ absent from generated requests and write-only inputs from responses;
 nullability, required fields, enums and exact decimal strings survive, binary
 payloads use `Blob`, and received objects remain mutable JavaScript data.
 Trading event types come from the stream extension: the invalidation map must
-account for every event and must not retain a removed event, and mutation tests
-exercise both. The shared, dashboard and mobile compiler checks validate
+account for every event and must not retain a removed event. The shared,
+dashboard and mobile compiler checks validate
 consumers against those contracts.
 
 `make check-client-operations` uses installed root Node dependencies and the

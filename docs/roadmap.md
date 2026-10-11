@@ -40,10 +40,12 @@ The company-managed register foundation, delivered under #860:
   and [paid issues over recorded subscriptions](plans/company-managed-registers/company-paid-issues.md).
 - Members editing their own [name and address in Profile](plans/company-managed-registers/member-profile.md)
   ([#866](https://github.com/Ledova/ledova/issues/866), first increment).
-- Three [#943](https://github.com/Ledova/ledova/issues/943) increments:
-  root policy-document changes skip the Django jobs and test timings are
-  captured (#952), routine company fixtures no longer rewind the schema (#959),
-  and the strict scoped and chain checks run as their own parallel jobs (#960).
+- Earlier [#943](https://github.com/Ledova/ledova/issues/943) increments
+  (#952, #959 and #960) improved routing and fixture setup. Their file-based
+  routing and parallel scoped/chain jobs are superseded by the
+  [11 October minimum-test policy](decisions.md#minimum-tests-and-fresh-migrations):
+  fresh PostgreSQL migrations, small core suites and the same lean checks on
+  every PR.
 
 Earlier platform work, recorded in the
 [product alignment programme](https://github.com/Ledova/ledova/issues/645) and
