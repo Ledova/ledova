@@ -32,8 +32,9 @@ export const REGISTER_IMPORT_COPY = {
     'administration or that step.',
   NO_HOLDERS: 'The stored register lists no current members, so this class has none to import.',
   NOT_ON_CHAIN_NOTE:
-    "Applying this import opens the share class's register from the company's own records. A class an import " +
-    'opened is not on chain: it records no issue, transfer or cessation until it is tokenised, which is later work.',
+    "Applying this import opens the share class's register from the company's own records. For a draft class " +
+    'without a contract, company-approved grants, allotments and direct transfers update this register. ' +
+    'Tokenising existing holdings remains planned.',
   STAGES: {
     submitted: 'Prepared',
     approved: 'Approved',
