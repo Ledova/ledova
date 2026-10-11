@@ -28,7 +28,7 @@ jest.mock('expo-crypto', () => ({
   digest: jest.fn(
     async (_algorithm: string, bytes: Uint8Array) =>
       Uint8Array.from(
-        jest.requireActual<typeof import('node:crypto')>('node:crypto').createHash('sha256').update(bytes).digest(),
+        jest.requireActual<{ sha256: (value: Uint8Array) => Uint8Array }>('@noble/hashes/sha256').sha256(bytes),
       ).buffer,
   ),
 }));
