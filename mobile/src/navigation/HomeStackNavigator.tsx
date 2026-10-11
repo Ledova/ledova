@@ -1,5 +1,6 @@
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { MemberRecordsScreen } from '../screens/member-records/MemberRecordsScreen';
 import { HomeScreen } from '../screens/home';
 import { CompanyTeamScreen } from '../screens/company-team/CompanyTeamScreen';
 import { CompanyEligibilityScreen } from '../screens/eligibility-records/CompanyEligibilityScreen';
@@ -18,6 +19,7 @@ import { MainHeader, getMainHeaderStyle } from './headers';
 
 export type HomeStackParamList = {
   HomeMain: undefined;
+  MemberRecords: undefined;
   CompanyTeam: undefined;
   ParticipantEligibility: undefined;
   CompanyEligibility: undefined;
@@ -58,6 +60,11 @@ export function HomeStackNavigator({ onNotifications, unreadCount }: HomeStackNa
         options={() => ({
           title: '',
         })}
+      />
+      <Stack.Screen
+        name="MemberRecords"
+        component={MemberRecordsScreen}
+        options={{ title: '', headerLeft: undefined, headerBackVisible: true, headerRight: () => null }}
       />
       <Stack.Screen
         name="CompanyTeam"

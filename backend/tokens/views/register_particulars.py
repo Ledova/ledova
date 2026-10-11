@@ -41,7 +41,8 @@ class RegisterParticularsChangeViewSet(RegisterProposalViewSet):
     scoped_model = RegisterParticularsChange
     operator_actions = RegisterProposalViewSet.operator_actions | {"create", "decision_preview", "decide"}
     operator_actions_because = (
-        "Retained particulars change reads require this request's company owner or a current appointment holding "
+        "Member-requested changes require a current exact-company personal register appointment; other retained "
+        "particulars change reads require this request's company owner or a current appointment holding "
         "administration or a register capability. The queryset binds every change and file to those companies. "
         "Preparation, previews and decisions run the bounded company register command, which checks the caller's "
         "current appointment under the company lock, and their responses read the operator-only decisions."

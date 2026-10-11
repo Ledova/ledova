@@ -62,12 +62,14 @@ Keep at most **150 executed backend cases** in total. Cover:
 - Issued shares equal holdings, and a repeated request produces one issue.
 - One fake-scanner test refuses infected or unscannable uploads.
 
-The delivered suite has 17 cases, including five real-app-login tenant cases.
+The delivered suite has 18 cases, including five real-app-login tenant cases.
 Employee awards and recorded vesting use a separate approved imported-register
 grant; entitlements remain distinct from issued holdings. Fully paid external
 allotments record company receipts separately from exact approved issues.
-Account/member association and participant certificates remain product work;
-current grants, own Profile and company inspection exports are covered.
+Member-specific invitations, walletless own records and company-reviewed
+particulars requests have one core API journey; the existing five real-login
+controls include foreign invitation and revoked association refusals. Participant
+certificate fulfilment remains #871 work; a retained request creates no output.
 
 Keep at most five real-app-login tenant tests. Remove the broad strict suite,
 real Redis/ClamAV, multi-process timing, deferred/legacy tests and unused support.
@@ -87,8 +89,8 @@ Count executed cases, including parameterized rows:
 
 | Suite          | Delivered cases | Maximum | Essential coverage               |
 | -------------- | --------------- | ------- | -------------------------------- |
-| Dashboard unit | 14              | 20      | Main pages, sign-in, core flows  |
-| Mobile Jest    | 10              | 10      | App starts, sign-in, core flows  |
+| Dashboard unit | 15              | 20      | Main pages, sign-in, core flows  |
+| Mobile Jest    | 9               | 10      | App starts, sign-in, core flows  |
 | Shared package | 8               | 10      | Essential shared behaviour       |
 | Contracts      | 14              | 20      | Who can mint, pause and transfer |
 

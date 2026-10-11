@@ -7,7 +7,7 @@ from shared.models import BaseModel
 from shared.storage import private_storage
 from tokens.models.register_correction import RegisterCorrectionStatus
 from tokens.models.register_decision import RegisterDecision
-from tokens.querysets import RegisterProposalQuerySet
+from tokens.querysets.register_particulars import RegisterParticularsQuerySet
 
 
 def particulars_evidence_path(instance, filename):
@@ -15,11 +15,14 @@ def particulars_evidence_path(instance, filename):
 
 
 class RegisterParticularsChange(BaseModel):
-    objects = RegisterProposalQuerySet.as_manager()
+    objects = RegisterParticularsQuerySet.as_manager()
     company = models.ForeignKey(
         "companies.Company", on_delete=models.PROTECT, related_name="register_particulars_changes"
     )
     member = models.ForeignKey("tokens.RegisterMember", on_delete=models.PROTECT, related_name="particulars_changes")
+    member_request = models.OneToOneField(
+        "tokens.MemberParticularsRequest", on_delete=models.PROTECT, related_name="change", null=True
+    )
     name = models.CharField(max_length=255)
     residential_address = models.TextField()
     as_at = models.DateField()

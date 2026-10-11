@@ -5,7 +5,17 @@ from django.conf import settings
 SQL = Path(__file__).with_suffix(".sql").read_text()
 AWARD_SQL = Path(__file__).with_name("database_award_guards.sql").read_text()
 ALLOTMENT_SQL = Path(__file__).with_name("database_allotment_guards.sql").read_text()
+MEMBER_SQL = Path(__file__).with_name("database_member_guards.sql").read_text()
+MEMBER_TABLES = (
+    "tokens_memberinvitation",
+    "tokens_memberassociation",
+    "tokens_memberassociationrevocation",
+    "tokens_memberparticularsrequest",
+    "tokens_membercertificaterequest",
+    "tokens_membercertificatewithdrawal",
+)
 RESTRICTED_TABLES = (
+    *MEMBER_TABLES,
     "tokens_registeragreement",
     "tokens_registercontribution",
     "tokens_registerallotment",
@@ -42,7 +52,11 @@ def install(apps, schema_editor):
         cursor.execute(
             ALLOTMENT_SQL.replace("__OPERATOR__", operator).replace("__MIGRATE__", migrate).replace("__APP__", app)
         )
+        cursor.execute(
+            MEMBER_SQL.replace("__OPERATOR__", operator).replace("__MIGRATE__", migrate).replace("__APP__", app)
+        )
         for table in (
+            *MEMBER_TABLES,
             "tokens_registeraward",
             "tokens_registerawardvesting",
             "tokens_registeragreement",

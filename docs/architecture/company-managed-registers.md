@@ -41,11 +41,12 @@ calculation. Tokenised award fulfilment remains unsupported. Contractual
 entitlements and actual issued ownership stay distinct, and the
 [10 October first scopes](../decisions.md#first-scopes-for-employee-awards-and-external-capital)
 settle how awards and external capital are first recorded. No legal/tax rule
-engine or option-exercise scheme is selected. The single account-to-member
-association remains #866 work. The
-[11 October invitation decision](../decisions.md#member-invitations-and-account-association)
-selects a company-issued member-specific invitation accepted by the signed-in
-recipient.
+engine or option-exercise scheme is selected. The [member-access increment](../plans/company-managed-registers/member-access.md)
+implements the [11 October invitation decision](../decisions.md#member-invitations-and-account-association):
+a current company administrator invites one member-specific recipient, who
+accepts using their signed-in account. Own company-recorded particulars,
+holdings, history and awards are bounded by that association. Member requests
+remain separate from company-approved changes and actual certificate fulfilment.
 
 Useful existing chain and payment functionality, evidence and recovery are
 retained. Optional crypto on-ramp purchases remain personal investor activity;

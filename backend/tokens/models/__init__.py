@@ -12,6 +12,14 @@ from .choices import (
 )
 from .former_holder import FormerHolder
 from .issuance_execution import IssuanceExecutionStatus, ShareIssuanceExecution
+from .member_access import (
+    MemberAssociation,
+    MemberAssociationRevocation,
+    MemberCertificateRequest,
+    MemberCertificateWithdrawal,
+    MemberInvitation,
+    MemberParticularsRequest,
+)
 from .mint_request import MintRequest, MintRequestStatus
 from .nav_update import NAVUpdate, NAVUpdateMode, NAVUpdateStatus
 from .order_action import OrderActionPurpose, OrderActionStatus, OrderActionSubmission
@@ -90,6 +98,12 @@ from .transfer_order import TransferOrder
 from .yield_token import YieldToken
 
 __all__ = [
+    "MemberInvitation",
+    "MemberAssociation",
+    "MemberAssociationRevocation",
+    "MemberParticularsRequest",
+    "MemberCertificateRequest",
+    "MemberCertificateWithdrawal",
     "ApprovalSubmissionOutcome",
     "SwapApprovalSubmission",
     "PauseAuthority",

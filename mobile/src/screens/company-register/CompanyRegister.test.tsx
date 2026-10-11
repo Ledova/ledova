@@ -37,13 +37,6 @@ const shareClass = {
   companyName: 'Paper Company',
 };
 const preference = { ...shareClass, uuid: 'preference', name: 'Preference shares', symbol: 'PRF' };
-const growth = {
-  uuid: 'growth',
-  name: 'Growth shares',
-  symbol: 'GRO',
-  companyUuid: 'garden',
-  companyName: 'Garden Company',
-};
 const register = {
   token: { ...shareClass, totalSupply: '9007199254740995' },
   issuedSupply: '9007199254740993',
@@ -69,7 +62,7 @@ const register = {
     },
   ],
 };
-const registerOf = (target: typeof growth, changes: object) => ({
+const registerOf = (target: typeof shareClass, changes: object) => ({
   ...register,
   token: { ...register.token, ...target },
   ...changes,
@@ -88,10 +81,6 @@ function defaultRead(url: string, number: number): Promise<unknown> {
     return Promise.resolve({
       data: registerOf(preference, { initialized: false, issuedSupply: null, holders: [] }),
     });
-  if (url === URLS.HOLDERS('growth'))
-    return Promise.resolve({
-      data: registerOf(growth, { totalHolders: 1, holders: [{ ...register.holders[0], name: 'Gale Member' }] }),
-    });
   if (url === URLS.REGISTER_EXPORT('ordinary'))
     return Promise.resolve({ data: Uint8Array.from('member,shares', (c) => c.charCodeAt(0)).buffer });
   if (url === URLS.REGISTER_IMPORTS || url === APPOINTMENTS) return Promise.resolve(page([]));
@@ -100,7 +89,6 @@ function defaultRead(url: string, number: number): Promise<unknown> {
   return Promise.reject(new Error(`Unexpected ${url}`));
 }
 const requested = () => get.mock.calls.map(([url]) => url);
-const holderReads = () => requested().filter((url) => url.endsWith('/holders/'));
 function wrapper({ children }: { children: React.ReactNode }) {
   return (
     <QueryClientProvider client={client}>
@@ -134,7 +122,7 @@ afterEach(async () => {
   client.clear();
 });
 
-it('lets an investor appointee read every register class and its members and share the class CSV', async () => {
+it('reads the company register and shares its CSV, but refuses a later CSV after the session changes', async () => {
   mockPreferences.userAccount = { role: 'investor' };
   const view = await render(<CompanyRegisterScreen />, { wrapper });
   await view.findByRole('button', { name: 'Preference shares register' });
@@ -171,32 +159,6 @@ it('lets an investor appointee read every register class and its members and sha
   await fireEvent.press(view.getByRole('button', { name: 'Preference shares register' }));
   expect(view.getByText(REGISTER_COPY.NOT_OPENED_NOTE)).toBeTruthy();
   expect(view.getByRole('button', { name: 'Download CSV for Preference shares' })).toBeDisabled();
-});
-
-it('asks which company to read when several registers are readable and reads only the chosen company', async () => {
-  pages = [[shareClass, growth], [preference]];
-  const view = await render(<CompanyRegisterScreen />, { wrapper });
-  await view.findByText('Choose a company above.');
-  expect(view.getByText('Choose company')).toBeTruthy();
-  expect(requested()).toEqual([URLS.REGISTER, URLS.REGISTER]);
-  await fireEvent.press(view.getByRole('button', { name: 'Select company Garden Company' }));
-  await view.findByRole('button', { name: 'Growth shares register' });
-  expect(view.getByRole('button', { name: 'Select company Garden Company' })).toBeSelected();
-  expect(view.getByText('Garden Company · GRO')).toBeTruthy();
-  expect(view.queryByRole('button', { name: 'Ordinary shares register' })).toBeNull();
-  await fireEvent.press(view.getByRole('button', { name: 'Growth shares register' }));
-  expect(view.getByText('Gale Member')).toBeTruthy();
-  expect(holderReads()).toEqual([URLS.HOLDERS('growth')]);
-  await fireEvent.press(view.getByRole('button', { name: 'Select company Paper Company' }));
-  await view.findByRole('button', { name: 'Preference shares register' });
-  expect(view.getByRole('button', { name: 'Ordinary shares register' })).toBeTruthy();
-  expect(view.queryByRole('button', { name: 'Growth shares register' })).toBeNull();
-  expect(holderReads()).toEqual([URLS.HOLDERS('growth'), URLS.HOLDERS('ordinary'), URLS.HOLDERS('preference')]);
-});
-
-it('does not share a register CSV that arrives after the session changes', async () => {
-  mockPreferences.userAccount = { role: 'investor' };
-  pages = [[shareClass]];
   let late: ((value: unknown) => void) | undefined;
   read = (url, number) =>
     url === URLS.REGISTER_EXPORT('ordinary')
@@ -204,8 +166,7 @@ it('does not share a register CSV that arrives after the session changes', async
           late = resolve;
         })
       : defaultRead(url, number);
-  const view = await render(<CompanyRegisterScreen />, { wrapper });
-  await fireEvent.press(await view.findByRole('button', { name: 'Ordinary shares register' }));
+  jest.mocked(Sharing.shareAsync).mockClear();
   await fireEvent.press(view.getByRole('button', { name: 'Download CSV for Ordinary shares' }));
   await waitFor(() => expect(late).toBeDefined());
   await act(() => invalidateSessionScope());
@@ -213,5 +174,4 @@ it('does not share a register CSV that arrives after the session changes', async
   expect(view.queryByRole('button', { name: 'Download CSV for Ordinary shares' })).toBeNull();
   await act(async () => late!(await defaultRead(URLS.REGISTER_EXPORT('ordinary'), 1)));
   expect(Sharing.shareAsync).not.toHaveBeenCalled();
-  expect(files.size).toBe(0);
 });

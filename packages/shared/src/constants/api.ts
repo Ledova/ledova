@@ -81,6 +81,20 @@ export const COMPANY_ENDPOINTS = {
 } as const;
 
 export const COMPANY_TOKEN_ENDPOINTS = {
+  MEMBER_INVITATIONS: '/api/v1/tokens/member-invitations/',
+  MEMBER_INVITATION: (uuid: string) => `/api/v1/tokens/member-invitations/${uuid}/` as const,
+  MEMBER_INVITATION_ACCEPT: '/api/v1/tokens/member-invitations/accept/',
+  MEMBER_ASSOCIATIONS: '/api/v1/tokens/member-associations/',
+  MEMBER_ASSOCIATION_REVOKE: (uuid: string) => `/api/v1/tokens/member-associations/${uuid}/revoke/` as const,
+  MEMBER_RECORDS: '/api/v1/tokens/member-records/',
+  MEMBER_RECORD: (uuid: string) => `/api/v1/tokens/member-records/${uuid}/` as const,
+  MEMBER_ENTRIES: (uuid: string) => `/api/v1/tokens/member-records/${uuid}/entries/` as const,
+  MEMBER_PARTICULARS_REQUESTS: '/api/v1/tokens/member-particulars-requests/',
+  MEMBER_PARTICULARS_REQUEST_PREPARE: (uuid: string) =>
+    `/api/v1/tokens/member-particulars-requests/${uuid}/prepare/` as const,
+  MEMBER_CERTIFICATE_REQUESTS: '/api/v1/tokens/member-certificate-requests/',
+  MEMBER_CERTIFICATE_REQUEST_WITHDRAW: (uuid: string) =>
+    `/api/v1/tokens/member-certificate-requests/${uuid}/withdraw/` as const,
   REGISTER_PAID_ISSUES: '/api/v1/tokens/register-paid-issues/',
   REGISTER_PAID_ISSUE_SUBSCRIPTIONS: '/api/v1/tokens/register-paid-issues/ready-subscriptions/',
   REGISTER_PAID_ISSUE: (uuid: string) => `/api/v1/tokens/register-paid-issues/${uuid}/`,

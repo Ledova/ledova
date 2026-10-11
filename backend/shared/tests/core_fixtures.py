@@ -169,6 +169,16 @@ class CoreFixtures:
         self.token, self.member = populated_register(self.owner, self.company, self.appointment)
         self.client.force_authenticate(self.owner)
 
+    def invitation_payload(self, **changes):
+        return {
+            "operation_id": str(uuid4()),
+            "company": str(self.company.pk),
+            "appointment": str(self.appointment.pk),
+            "member": str(self.member.pk),
+            "intended_email": self.foreign.email,
+            **changes,
+        }
+
     def decision(self, endpoint, identifier, kind, appointment=None, **changes):
         appointment = appointment or self.appointment
         fields = {"appointment": str(appointment.pk), "kind": kind}
