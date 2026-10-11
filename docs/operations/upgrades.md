@@ -8,24 +8,40 @@ PostgreSQL guards; an older database cannot adopt that history in place.
 
 ## Fresh database rebuild
 
-**Plan only: obtain the owner's approval before executing any part on ledova.io,
-including a backup, export or rehearsal using its data.** No live work has run.
+The [11 October follow-up](../decisions.md#binding-caps-and-backup-authorisation)
+already authorises a ledova.io backup and read-only database/private-storage
+inventory and reversible isolated validation. This page records no completed
+live work. Live selective-record export, stopping writers, rebuild, migration,
+re-seeding, configuration and release still need the owner's go-ahead.
 
-1. Back up the database and referenced private storage together, with matching
-   release/configuration information. Verify a restorable copy and preserve it.
-2. Inventory what is worth keeping with the owner: useful accounts, companies,
-   appointments, members, authoritative register/holding records and referenced
-   documents/evidence. Export only the agreed records with their identity links
-   and fingerprints; do not import stale migration records or invent historical
-   approvals, receipts or share ownership. Preserve the original backup.
-3. Rehearse the import mappings on an isolated copy. At the approved cutover,
-   stop writers and rebuild an empty PostgreSQL database using the fresh
-   migrations and required roles, grants, RLS, triggers and functions. Re-seed
-   required reference data and only the agreed useful records.
+1. Back up the database and all private storage, including retained files
+   without rows, with matching release/configuration provenance and restricted
+   file permissions. Record
+   snapshot/copy checkpoints and any consistency gaps. Preserve the originals
+   and backup; keep credentials and raw records private.
+2. Read-only inventory records aggregate counts, sizes, storage/reference coverage and
+   what is worth keeping with the owner: actual accounts, companies, appointments,
+   members, register/holding records and documents/evidence. Plan identity and
+   fingerprint preservation; record selection and mappings await the owner's
+   decision on the actual inventory.
+3. Validate the backup and rehearse proposed mappings on a private isolated copy,
+   with workers, signers and external integrations disabled. At the approved
+   live cutover, stop writers, selectively export only agreed records and rebuild
+   an empty PostgreSQL database using fresh migrations, roles, grants, RLS,
+   triggers and functions. Seed only reference data and import agreed records;
+   invent no approved actors, receipts or ownership, and import no old recorder.
 4. Verify system, roles/catalogue and API snapshot checks, the small core suite,
    register totals and private-file references. Record results and recovery via
-   the original backup/matching release; obtain release approval before serving
+   the original database/storage backup and matching release/configuration;
+   obtain release approval before serving
    the rebuilt instance.
+
+Downtime is data-dependent: actual inventory/sizes, owner-confirmed mappings and
+a measured safe isolated rehearsal are needed before a firm estimate. Reversible
+isolated validation needs no routine extra approval. Rollback restores the matching old release,
+database, private storage and configuration while writers remain stopped.
+Writes accepted after cutover would need separate recovery; the backup does not
+promise to preserve them automatically.
 
 Held product migrations rebase onto this fresh history. This is no authorization
 for deployment, signer activation or real-funds use.
