@@ -49,10 +49,11 @@ Keep at most **150 executed backend cases** in total. Cover:
 - Issued shares equal holdings, and a repeated request produces one issue.
 - One fake-scanner test refuses infected or unscannable uploads.
 
-The delivered suite has 16 cases, including five real-app-login tenant cases.
+The delivered suite has 17 cases, including five real-app-login tenant cases.
 Employee awards and recorded vesting use a separate approved imported-register
-grant; entitlements remain distinct from issued holdings. External allotments,
-account/member association and participant certificates remain product work;
+grant; entitlements remain distinct from issued holdings. Fully paid external
+allotments record company receipts separately from exact approved issues.
+Account/member association and participant certificates remain product work;
 current grants, own Profile and company inspection exports are covered.
 
 Keep at most five real-app-login tenant tests. Remove the broad strict suite,
@@ -73,9 +74,9 @@ Count executed cases, including parameterized rows:
 
 | Suite          | Delivered cases | Maximum | Essential coverage               |
 | -------------- | --------------- | ------- | -------------------------------- |
-| Dashboard unit | 13              | 20      | Main pages, sign-in, core flows  |
-| Mobile Jest    | 9               | 10      | App starts, sign-in, core flows  |
-| Shared package | 7               | 10      | Essential shared behaviour       |
+| Dashboard unit | 14              | 20      | Main pages, sign-in, core flows  |
+| Mobile Jest    | 10              | 10      | App starts, sign-in, core flows  |
+| Shared package | 8               | 10      | Essential shared behaviour       |
 | Contracts      | 14              | 20      | Who can mint, pause and transfer |
 
 The nine Playwright smoke tests remain. Mobile type-check and lint stay. Retire unused

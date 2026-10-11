@@ -42,3 +42,5 @@ export * from './register-issue';
 export * from './register-capital-increase';
 export * from './register-pause-change';
 export * from './register-paid-issue';
+
+export * from './register-allotment';

@@ -592,6 +592,24 @@ the licence or legal findings. #624 still needs genuine human release acceptance
   are deferred; the existing amount-paid row shape stays so a later increment
   needs no migration. No collection, provider or refund mechanics.
 
+### Member invitations and account association
+
+**Owner decision, 11 October 2026**, supplied directly in the active Codex
+session and recorded on
+[#866](https://github.com/Ledova/ledova/issues/866#issuecomment-6104290270).
+
+The first account/member linking flow is a company-issued invitation for one
+specific member, accepted by the signed-in recipient. Acceptance binds the
+intended recipient to that company's member record; foreign or ambiguous
+identities are refused. A member association grants permitted own-record
+access, not a company appointment. Supported walletless records need no wallet
+or eligibility for an unrelated investment.
+
+The member can view permitted records and submit particulars or certificate
+requests. Company review remains separate from member confirmation, and
+certificate fulfilment follows the supported #871 outputs. This selects the
+first linking flow; the implementation index records delivery separately.
+
 ## Minimum tests and fresh migrations
 
 **Owner decision, 11 October 2026**, supplied directly in the active Codex session

@@ -112,6 +112,15 @@ export const COMPANY_TOKEN_ENDPOINTS = {
     `/api/v1/tokens/register-transfers/${uuid}/instrument-file/` as const,
   REGISTER_TRANSFER_PREVIEW: (uuid: string) => `/api/v1/tokens/register-transfers/${uuid}/decision-preview/` as const,
   REGISTER_TRANSFER_DECIDE: (uuid: string) => `/api/v1/tokens/register-transfers/${uuid}/decide/` as const,
+  REGISTER_ALLOTMENTS: '/api/v1/tokens/register-allotments/',
+  REGISTER_ALLOTMENT: (uuid: string) => `/api/v1/tokens/register-allotments/${uuid}/` as const,
+  REGISTER_ALLOTMENT_FILE: (uuid: string) => `/api/v1/tokens/register-allotments/${uuid}/file/` as const,
+  REGISTER_ALLOTMENT_AGREEMENT_FILE: (uuid: string) =>
+    `/api/v1/tokens/register-allotments/${uuid}/agreement-file/` as const,
+  REGISTER_ALLOTMENT_RECEIPT_FILE: (uuid: string) =>
+    `/api/v1/tokens/register-allotments/${uuid}/receipt-file/` as const,
+  REGISTER_ALLOTMENT_PREVIEW: (uuid: string) => `/api/v1/tokens/register-allotments/${uuid}/decision-preview/` as const,
+  REGISTER_ALLOTMENT_DECIDE: (uuid: string) => `/api/v1/tokens/register-allotments/${uuid}/decide/` as const,
   REGISTER_GRANTS: '/api/v1/tokens/register-grants/',
   REGISTER_AWARDS: '/api/v1/tokens/register-awards/',
   REGISTER_AWARD: (uuid: string) => `/api/v1/tokens/register-awards/${uuid}/` as const,

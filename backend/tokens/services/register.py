@@ -37,6 +37,7 @@ from tokens.constants import (
 from tokens.exceptions import RegisterChangeConflict, RegisterNotInitialized
 from tokens.models import (
     ImportedFormerMember,
+    RegisterAllotment,
     RegisterEntry,
     RegisterEntryKind,
     RegisterExport,
@@ -387,6 +388,48 @@ def _identity_sources(token, member_ids):
     return particulars, wallets, identities, stamps
 
 
+def _external_amounts_paid(register, imported_at, imported):
+    sources = {}
+    for proposal in RegisterAllotment.objects.filter(
+        token_id=register.token_id, company_id=register.company_id, status="applied"
+    ).select_related("register_entry", "contribution"):
+        entry = proposal.register_entry
+        if (
+            entry is not None
+            and entry.register_id == register.pk
+            and entry.operation_id == proposal.pk
+            and entry.kind == RegisterEntryKind.ISSUE
+            and entry.changes == [{"member": str(proposal.member), "shares": str(proposal.shares)}]
+            and proposal.currency == "AUD"
+            and proposal.contribution.currency == "AUD"
+            and proposal.contribution.amount == proposal.consideration
+        ):
+            sources[entry.pk] = proposal
+    if not sources:
+        return {}
+    amounts = {
+        member: {
+            "shares": int(row["shares"]),
+            "paid": Decimal(row["amount_paid"]) if row["amount_paid"] is not None else None,
+            "external": False,
+        }
+        for member, row in imported.items()
+    }
+    for entry in register.entries.filter(sequence__gt=imported_at).order_by("sequence"):
+        for change in entry.changes:
+            member = change["member"]
+            state = amounts.setdefault(member, {"shares": 0, "paid": ZERO, "external": False})
+            state["shares"] += int(change["shares"])
+            source = sources.get(entry.pk)
+            if source is not None and member == str(source.member):
+                state["external"] = True
+                if state["paid"] is not None:
+                    state["paid"] += source.consideration
+            else:
+                state["paid"] = None
+    return {member: state for member, state in amounts.items() if state["external"]}
+
+
 def _stored_register(token):
     register = ShareRegister.objects.filter(token=token).first()
     if register is None or register.sequence == 0:
@@ -399,6 +442,7 @@ def _stored_register(token):
     )
     particulars, wallets, identities, stamps = _identity_sources(token, [position.member_id for position in positions])
     imported_at, imported = _imported(token)
+    external_paid = _external_amounts_paid(register, imported_at, imported)
     ceased, former = _cessations(
         token, {address.lower(): member for member, addresses in wallets.items() for address in addresses}
     )
@@ -424,6 +468,9 @@ def _stored_register(token):
             entered_on = date.fromisoformat(continuing["entered_on"])
             if position.last_entry.sequence <= imported_at:
                 amount_paid = None if continuing["amount_paid"] is None else Decimal(continuing["amount_paid"])
+        if member in external_paid:
+            backing = external_paid[member]
+            amount_paid = backing["paid"] if backing["shares"] == shares else None
         rows.append(
             {
                 "member": member,

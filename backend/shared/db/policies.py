@@ -596,6 +596,10 @@ FRAMEWORK = {
 }
 
 OPERATOR_ONLY = {
+    "tokens_registeragreement": "Retained private external agreements served through current exact-company register appointments.",
+    "tokens_registercontribution": "Immutable company-recorded AUD receipts served through current exact-company register appointments.",
+    "tokens_registerallotment": "Exact fully paid external allotments, private to current company register appointments.",
+    "tokens_registerallotmentdecision": "Append-only attributable company allotment decisions reached through their private parent.",
     "tokens_registeraward": "Immutable private company employee agreements, served only through current "
     "exact-company register appointments on the operator connection.",
     "tokens_registerawardvesting": "Append-only company-confirmed vesting facts and private evidence, "

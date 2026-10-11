@@ -184,6 +184,7 @@ def _details(change):
                 "source_change": held.source_change_id,
                 "source_grant": held.source_grant_id,
                 "source_transfer": held.source_transfer_id,
+                "source_allotment": held.source_allotment_id,
             }
         ),
     }
@@ -207,6 +208,7 @@ def _apply(change, actor, decision):
             "as_at": change.as_at,
             "source_import": None,
             "source_grant": None,
+            "source_allotment": None,
             "source_transfer": None,
             "source_change": change,
         },
