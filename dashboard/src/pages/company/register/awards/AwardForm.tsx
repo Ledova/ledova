@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import {
   REGISTER_AWARD_COPY as COPY,
   apiErrorSentence,
@@ -29,6 +29,8 @@ export function AwardForm({
   blocked,
   onRecorded,
   onHeldChange,
+  visible = true,
+  canPrepare = true,
 }: {
   company: string;
   token: string;
@@ -38,6 +40,8 @@ export function AwardForm({
   blocked: boolean;
   onRecorded: () => Promise<unknown>;
   onHeldChange?: (held: boolean) => void;
+  visible?: boolean;
+  canPrepare?: boolean;
 }) {
   const [memberId] = useState(() => crypto.randomUUID());
   const [member, setMember] = useState('new');
@@ -52,6 +56,10 @@ export function AwardForm({
   const [held, setHeld] = useState(false);
   const [error, setError] = useState('');
   const live = useRef(true);
+  const unavailable = useRef(blocked || !visible);
+  useLayoutEffect(() => {
+    unavailable.current = blocked || !visible;
+  }, [blocked, visible]);
   const pending = useRef(false);
   const upload = useRef<{ file: File; key: string; receipt: RegisterEvidence | null } | null>(null);
   const operation = useRef<{ request: RegisterAwardPreparation; confirmed: boolean; uncertain: boolean } | null>(null);
@@ -63,6 +71,8 @@ export function AwardForm({
   }, []);
   const check = () => {
     guard();
+    if (unavailable.current)
+      throw createUserFriendlyError('Refresh company access and award records before continuing.');
     if (!live.current) throw createUserFriendlyError('This award form is closed. Reopen it before continuing.');
   };
   const today = new Date().toISOString().slice(0, 10);
@@ -80,11 +90,13 @@ export function AwardForm({
     if (pending.current || busy || blocked || (!operation.current && (problem || !file))) return;
     pending.current = true;
     setBusy(true);
+    onHeldChange?.(true);
     setError('');
     try {
       check();
       let command = operation.current;
       if (!command) {
+        if (!canPrepare) throw createUserFriendlyError('Current preparation authority is required to record an award.');
         if (!file) return;
         if (upload.current?.file !== file) upload.current = { file, key: crypto.randomUUID(), receipt: null };
         const request = {
@@ -123,6 +135,7 @@ export function AwardForm({
         setHeld(true);
         onHeldChange?.(true);
       }
+      let absent = false;
       if (command.uncertain && !command.confirmed) {
         try {
           check();
@@ -136,15 +149,40 @@ export function AwardForm({
         } catch (cause) {
           check();
           if (failureStatus(cause) !== 404) throw cause;
+          absent = true;
         }
       }
       if (!command.confirmed) {
-        check();
-        const { data } = await recordRegisterAward(apiClient, command.request, { ledovaSubmissionGuard: check });
-        check();
-        if (!isRecordedRegisterAward(data, command.request, company))
-          throw createUserFriendlyError(COPY.RECORDING_FAILED);
-        command.confirmed = true;
+        try {
+          check();
+          const { data } = await recordRegisterAward(apiClient, command.request, { ledovaSubmissionGuard: check });
+          check();
+          if (!isRecordedRegisterAward(data, command.request, company))
+            throw createUserFriendlyError(COPY.RECORDING_FAILED);
+          command.confirmed = true;
+        } catch (cause) {
+          const status = failureStatus(cause);
+          if (!absent || !status || status < 400 || status >= 500) throw cause;
+          check();
+          try {
+            const { data } = await getRegisterAward(apiClient, command.request.operationId, {
+              ledovaSubmissionGuard: check,
+            });
+            check();
+            if (!isRecordedRegisterAward(data, command.request, company))
+              throw createUserFriendlyError(COPY.RECORDING_FAILED);
+            command.confirmed = true;
+          } catch (lookup) {
+            check();
+            if (failureStatus(lookup) !== 404) throw lookup;
+            operation.current = null;
+            setHeld(false);
+            setError(
+              'The original award was not recorded and the request was refused. Close this form and start again with current company authority.',
+            );
+            return;
+          }
+        }
       }
       await onRecorded();
       operation.current = null;
@@ -173,9 +211,13 @@ export function AwardForm({
       setError(apiErrorSentence(cause, COPY.RECORDING_FAILED, COPY.RECORDING_FAILED));
     } finally {
       pending.current = false;
-      if (live.current) setBusy(false);
+      if (live.current) {
+        setBusy(false);
+        onHeldChange?.(!!operation.current);
+      }
     }
   };
+  if (!visible) return null;
   return (
     <form
       className="space-y-4"
@@ -184,90 +226,103 @@ export function AwardForm({
         void submit();
       }}
     >
-      <fieldset disabled={busy || blocked || held} className="space-y-4">
-        <label className={LABEL}>
-          Promised recipient
-          <select className={FIELD_CLASS} value={member} onChange={(event) => setMember(event.target.value)}>
-            <option value="new">New recipient</option>
-            {members
-              .filter((row) => row.walletless && row.particularsRetained)
-              .map((row) => (
-                <option key={row.member} value={row.member}>
-                  {row.name} · {row.member}
-                </option>
-              ))}
-          </select>
-        </label>
-        {member === 'new' && (
-          <>
-            <label className={LABEL}>
-              Recipient name
-              <input
-                className={FIELD_CLASS}
-                value={name}
-                maxLength={255}
-                onChange={(event) => setName(event.target.value)}
-              />
-            </label>
-            <label className={LABEL}>
-              Residential address
-              <textarea
-                className={FIELD_CLASS}
-                value={address}
-                maxLength={1000}
-                onChange={(event) => setAddress(event.target.value)}
-              />
-            </label>
-          </>
-        )}
-        <label className={LABEL}>
-          {COPY.SHARES}
-          <input
-            className={FIELD_CLASS}
-            inputMode="numeric"
-            maxLength={78}
-            value={shares}
-            onChange={(event) => setShares(event.target.value.trim())}
-          />
-        </label>
-        <label className={LABEL}>
-          {COPY.TERMS_ON}
-          <input
-            className={FIELD_CLASS}
-            type="date"
-            max={today}
-            value={termsOn}
-            onChange={(event) => setTermsOn(event.target.value)}
-          />
-        </label>
-        <label className={LABEL}>
-          {COPY.TERMS}
-          <textarea
-            className={FIELD_CLASS}
-            maxLength={1000}
-            value={terms}
-            onChange={(event) => setTerms(event.target.value)}
-          />
-        </label>
-        <label className={LABEL}>
-          {COPY.SCHEDULE}
-          <textarea
-            className={FIELD_CLASS}
-            maxLength={1000}
-            value={schedule}
-            onChange={(event) => setSchedule(event.target.value)}
-          />
-        </label>
-        <label className={LABEL}>
-          {COPY.AGREEMENT_DOCUMENT}
-          <input
-            type="file"
-            accept="application/pdf,image/png,image/jpeg"
-            className={FIELD_CLASS}
-            onChange={(event) => setFile(event.target.files?.[0] ?? null)}
-          />
-        </label>
-        <p className="text-sm text-text-muted">PDF or image, max 10 MB. {COPY.NOTE}</p>
+      <fieldset disabled={busy || blocked || held || !canPrepare} className="space-y-4">
+        <fieldset className="space-y-3">
+          <legend className="pb-2 text-base font-medium">Person and promised shares</legend>
+          <label className={LABEL}>
+            Promised recipient
+            <select className={FIELD_CLASS} value={member} onChange={(event) => setMember(event.target.value)}>
+              <option value="new">New recipient</option>
+              {members
+                .filter((row) => row.walletless && row.particularsRetained)
+                .map((row) => (
+                  <option key={row.member} value={row.member}>
+                    {row.name} · {row.residentialAddress}
+                  </option>
+                ))}
+            </select>
+          </label>
+          {member === 'new' && (
+            <>
+              <label className={LABEL}>
+                Recipient name
+                <input
+                  className={FIELD_CLASS}
+                  value={name}
+                  maxLength={255}
+                  onChange={(event) => setName(event.target.value)}
+                />
+              </label>
+              <label className={LABEL}>
+                Residential address
+                <textarea
+                  className={FIELD_CLASS}
+                  value={address}
+                  maxLength={1000}
+                  onChange={(event) => setAddress(event.target.value)}
+                />
+              </label>
+            </>
+          )}
+          <label className={LABEL}>
+            {COPY.SHARES}
+            <input
+              className={FIELD_CLASS}
+              inputMode="numeric"
+              maxLength={78}
+              value={shares}
+              onChange={(event) => setShares(event.target.value.trim())}
+            />
+          </label>
+        </fieldset>
+        <fieldset className="space-y-3 border-t border-border-subtle pt-3">
+          <legend className="pb-2 text-base font-medium">Agreement</legend>
+          <label className={LABEL}>
+            {COPY.TERMS_ON}
+            <input
+              className={FIELD_CLASS}
+              type="date"
+              max={today}
+              value={termsOn}
+              onChange={(event) => setTermsOn(event.target.value)}
+            />
+          </label>
+          <label className={LABEL}>
+            {COPY.TERMS}
+            <textarea
+              className={FIELD_CLASS}
+              maxLength={1000}
+              value={terms}
+              onChange={(event) => setTerms(event.target.value)}
+            />
+          </label>
+          <label className={LABEL}>
+            {COPY.AGREEMENT_DOCUMENT}
+            <input
+              type="file"
+              accept="application/pdf,image/png,image/jpeg"
+              className={FIELD_CLASS}
+              onChange={(event) => setFile(event.target.files?.[0] ?? null)}
+            />
+          </label>
+          <p className="text-sm text-text-muted">PDF or image, max 10 MB. {COPY.NOTE}</p>
+        </fieldset>
+        <fieldset className="space-y-3 border-t border-border-subtle pt-3">
+          <legend className="pb-2 text-base font-medium">Vesting schedule</legend>
+          <label className={LABEL}>
+            {COPY.SCHEDULE}
+            <textarea
+              className={FIELD_CLASS}
+              maxLength={1000}
+              value={schedule}
+              onChange={(event) => setSchedule(event.target.value)}
+            />
+          </label>
+          <p className="text-sm text-text-muted">
+            Retain the company&apos;s schedule. Each vesting event is recorded separately; dates create no vesting or
+            issued shares.
+          </p>
+        </fieldset>
       </fieldset>
       {problem && <p className="text-sm text-text-muted">{problem}</p>}
       {error && (
@@ -278,7 +333,7 @@ export function AwardForm({
       <p className="text-sm text-text-muted">{COPY.RECOVERY_NOTE}</p>
       <PageAction
         label={busy ? 'Recording award…' : COPY.SUBMIT}
-        disabled={busy || blocked || (!held && !!problem)}
+        disabled={busy || blocked || (!held && (!canPrepare || !!problem))}
         onClick={() => void submit()}
       />
     </form>

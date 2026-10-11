@@ -150,7 +150,12 @@ Documents holds register CSV, inspection copies and the company pack. Member
 invitations use named company members or award recipients with exact IDs retained
 internally. Invitations, particulars, wallet links, other changes and technical
 history sit in secondary disclosures, which preserve their mounted recovery state.
-Mobile retains the combined Register until #1006. Each class then
+On web, each named award shows promised, vested, issued and available quantities,
+with Record vesting and Issue vested shares in context. Preparing its issue
+returns to the same company and expands the existing non-paid issue decisions;
+Approve and Record issue remain separate. Award, vesting, preparation and issue
+recovery stay mounted through a failed read, with private content withheld until
+current access is restored. Mobile retains the combined Register until #1006. Each class then
 lists its register entries, newest first a page at a time with Load more (an
 entry a later page repeats is listed once, a page with a share change that is
 not whole fails, and an entry's corrected or reversing entry reads as not

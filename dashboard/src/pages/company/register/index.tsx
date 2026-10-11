@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import {
@@ -173,7 +173,37 @@ function OwnRegister({
       return next;
     });
   }, []);
-  const { hash } = useLocation();
+  const allotmentHeld = useCallback(
+    (token: string, held: boolean) => classHeld(`allotments/${token}`, held),
+    [classHeld],
+  );
+  const awardHeld = useCallback((token: string, held: boolean) => classHeld(`awards/${token}`, held), [classHeld]);
+  const grantHeld = useCallback((token: string, held: boolean) => classHeld(`grants/${token}`, held), [classHeld]);
+  const location = useLocation();
+  const { hash } = location;
+  const issueToken = typeof location.state?.awardIssueToken === 'string' ? location.state.awardIssueToken : '';
+  const issueCompany = typeof location.state?.awardIssueCompany === 'string' ? location.state.awardIssueCompany : '';
+  const enteredIssue = useRef('');
+  useEffect(() => {
+    if (enteredIssue.current === location.key || !classes.isSuccess || classes.isFetching || held) return;
+    if (
+      issueToken &&
+      issueCompany &&
+      classes.data.some((item) => item.uuid === issueToken && item.companyUuid === issueCompany)
+    )
+      selectCompany(issueCompany);
+    enteredIssue.current = location.key;
+  }, [
+    enteredIssue,
+    location.key,
+    classes.isSuccess,
+    classes.isFetching,
+    classes.data,
+    held,
+    issueToken,
+    issueCompany,
+    selectCompany,
+  ]);
   const view = hash === '#awards' ? 'awards' : hash === '#documents' ? 'documents' : 'register';
 
   return (
@@ -286,7 +316,7 @@ function OwnRegister({
                     register={register}
                     company={scope.company.uuid}
                     sourceReady={sourceReady}
-                    onHeldChange={classHeld}
+                    onHeldChange={allotmentHeld}
                   />
                   {readable && (
                     <details className="space-y-3 border-t border-border-subtle pt-4">
@@ -326,22 +356,29 @@ function OwnRegister({
                   )}
                 </div>
                 <div hidden={view !== 'awards'} className="space-y-5">
-                  {readable && (
-                    <>
-                      <ClassAwards
-                        key={`${scope.company.uuid}/${register.token.uuid}`}
-                        owner={owner}
-                        guard={guard}
-                        register={register}
-                        company={scope.company.uuid}
-                        sourceReady={!classes.isFetching && !registers.isFetching}
-                      />
-                      <details className="space-y-3 border-t border-border-subtle pt-4">
-                        <summary className="cursor-pointer text-sm font-medium">Non-paid share issues</summary>
-                        <ClassGrants owner={owner} guard={guard} register={register} company={scope.company.uuid} />
-                      </details>
-                    </>
-                  )}
+                  <ClassAwards
+                    key={`${scope.company.uuid}/${register.token.uuid}`}
+                    owner={owner}
+                    guard={guard}
+                    register={register}
+                    company={scope.company.uuid}
+                    sourceReady={sourceReady}
+                    onHeldChange={awardHeld}
+                  />
+                  <details
+                    open={issueToken === register.token.uuid}
+                    className="space-y-3 border-t border-border-subtle pt-4"
+                  >
+                    <summary className="cursor-pointer text-sm font-medium">Non-paid share issues</summary>
+                    <ClassGrants
+                      owner={owner}
+                      guard={guard}
+                      register={register}
+                      company={scope.company.uuid}
+                      sourceReady={sourceReady}
+                      onHeldChange={grantHeld}
+                    />
+                  </details>
                 </div>
                 <div hidden={view !== 'documents'} className="space-y-5">
                   {readable && (
