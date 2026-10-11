@@ -56,11 +56,12 @@ runtime and public HTTP checks. Unused resources belonging to that operation
 were removed; existing protected backups and operational evidence remain private.
 The owner's password login and physical-device acceptance were not exercised.
 
-The first attempt failed on an unsupported Compose option before database
-writes; the old release was restored. The corrected serving retry took
-68 seconds; the fresh migration phase took 140 seconds separately. These
-measured operations are recorded privately, including the
-initial interruption; they are not a promised future downtime.
+The first attempt completed fresh migrations, the selected-record import and
+reference/role checks, then failed on an unsupported Compose option before
+fresh public access opened. The old release was restored. The corrected serving
+retry took 68 seconds, reusing the verified fresh database; its migration phase
+took 140 seconds separately. These measured operations are recorded privately,
+including the initial interruption; they are not a promised future downtime.
 
 Later member access [#985](https://github.com/Ledova/ledova/pull/985) and outputs
 [#986](https://github.com/Ledova/ledova/pull/986) were not deployed in this cutover.
