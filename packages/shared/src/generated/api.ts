@@ -1631,6 +1631,102 @@ export interface ApiPaths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/tokens/register-award-vestings/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: ApiOperations['api_v1_tokens_register_award_vestings_list'];
+    put?: never;
+    post: ApiOperations['api_v1_tokens_register_award_vestings_create'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/tokens/register-award-vestings/{uuid}/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: ApiOperations['api_v1_tokens_register_award_vestings_retrieve'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/tokens/register-award-vestings/{uuid}/file/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: ApiOperations['api_v1_tokens_register_award_vestings_file_retrieve'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/tokens/register-awards/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: ApiOperations['api_v1_tokens_register_awards_list'];
+    put?: never;
+    post: ApiOperations['api_v1_tokens_register_awards_create'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/tokens/register-awards/{uuid}/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: ApiOperations['api_v1_tokens_register_awards_retrieve'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/tokens/register-awards/{uuid}/file/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: ApiOperations['api_v1_tokens_register_awards_file_retrieve'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/tokens/register-capital-increases/': {
     parameters: {
       query?: never;
@@ -5149,6 +5245,18 @@ export interface ApiComponents {
       previous?: string | null;
       results: ApiComponents['schemas']['Publication'][];
     };
+    PaginatedRegisterAwardList: {
+      count: number;
+      next?: string | null;
+      previous?: string | null;
+      results: ApiComponents['schemas']['RegisterAward'][];
+    };
+    PaginatedRegisterAwardVestingList: {
+      count: number;
+      next?: string | null;
+      previous?: string | null;
+      results: ApiComponents['schemas']['RegisterAwardVesting'][];
+    };
     PaginatedRegisterCapitalIncreaseList: {
       count: number;
       next?: string | null;
@@ -5565,6 +5673,67 @@ export interface ApiComponents {
       idempotencyKey: string;
       reason: string;
     };
+    RegisterAward: {
+      agreementEvidence: string;
+      agreementFingerprint: string;
+      agreementSnapshot: unknown;
+      availableShares: string;
+      company: string;
+      createdAt: string;
+      issuedShares: string;
+      member: string;
+      name: string;
+      newMember: boolean;
+      preparedByName: string;
+      preparingAppointment: string;
+      providedBy: string;
+      residentialAddress: string;
+      schedule: string;
+      shares: string;
+      submittedBy: number;
+      terms: string;
+      termsOn: string;
+      token: string;
+      uuid: string;
+      vestedShares: string;
+    };
+    RegisterAwardCreateRequest: {
+      agreementEvidence: string;
+      appointment: string;
+      member: string;
+      name?: string;
+      newMember: boolean;
+      operationId: string;
+      residentialAddress?: string;
+      schedule: string;
+      shares: string;
+      terms: string;
+      termsOn: string;
+      tokenId: string;
+    };
+    RegisterAwardVesting: {
+      award: string;
+      company: string;
+      createdAt: string;
+      evidence: string;
+      evidenceFingerprint: string;
+      evidenceSnapshot: unknown;
+      preparedByName: string;
+      preparingAppointment: string;
+      providedBy: string;
+      shares: string;
+      submittedBy: number;
+      uuid: string;
+      vestedOn: string;
+    };
+    RegisterAwardVestingCreateRequest: {
+      appointment: string;
+      award: string;
+      evidence: string;
+      operationId: string;
+      shares: string;
+      vestedOn: string;
+    };
     RegisterCapitalIncrease: {
       additionalShares: string;
       approvalDecision: string | null;
@@ -5921,6 +6090,7 @@ export interface ApiComponents {
       approvingDirector: string;
       authorityEvidence: string;
       authorityReference: string;
+      award: string | null;
       company: string;
       createdAt: string;
       decisions: ApiComponents['schemas']['RegisterGrantDecision'][];
@@ -5958,6 +6128,7 @@ export interface ApiComponents {
       approvingDirector: string;
       authorityEvidence: string;
       authorityReference: string;
+      award?: string | null;
       member: string;
       name?: string;
       newMember: boolean;
@@ -5995,6 +6166,11 @@ export interface ApiComponents {
       afterShares: string;
       approvingDirector: string;
       authorisedSupply: string;
+      award?: string;
+      awardAvailableShares?: string;
+      awardIssuedShares?: string;
+      awardPromisedShares?: string;
+      awardVestedShares?: string;
       canDecide: boolean;
       currentShares: string;
       effectiveOn: string;
@@ -10761,6 +10937,205 @@ export interface ApiOperations {
         };
         content: {
           'application/json': ApiComponents['schemas']['PaginatedShareIssuanceRequestList'];
+        };
+      };
+    };
+  };
+  api_v1_tokens_register_award_vestings_list: {
+    parameters: {
+      query?: {
+        award?: string;
+        company?: string;
+        ordering?: string;
+        page?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['PaginatedRegisterAwardVestingList'];
+        };
+      };
+    };
+  };
+  api_v1_tokens_register_award_vestings_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': ApiComponents['schemas']['RegisterAwardVestingCreateRequest'];
+        'application/x-www-form-urlencoded': ApiComponents['schemas']['RegisterAwardVestingCreateRequest'];
+        'multipart/form-data': ApiComponents['schemas']['RegisterAwardVestingCreateRequest'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['RegisterAwardVesting'];
+        };
+      };
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['RegisterAwardVesting'];
+        };
+      };
+    };
+  };
+  api_v1_tokens_register_award_vestings_retrieve: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['RegisterAwardVesting'];
+        };
+      };
+    };
+  };
+  api_v1_tokens_register_award_vestings_file_retrieve: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': Blob;
+        };
+      };
+    };
+  };
+  api_v1_tokens_register_awards_list: {
+    parameters: {
+      query?: {
+        company?: string;
+        member?: string;
+        ordering?: string;
+        page?: number;
+        token?: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['PaginatedRegisterAwardList'];
+        };
+      };
+    };
+  };
+  api_v1_tokens_register_awards_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': ApiComponents['schemas']['RegisterAwardCreateRequest'];
+        'application/x-www-form-urlencoded': ApiComponents['schemas']['RegisterAwardCreateRequest'];
+        'multipart/form-data': ApiComponents['schemas']['RegisterAwardCreateRequest'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['RegisterAward'];
+        };
+      };
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['RegisterAward'];
+        };
+      };
+    };
+  };
+  api_v1_tokens_register_awards_retrieve: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['RegisterAward'];
+        };
+      };
+    };
+  };
+  api_v1_tokens_register_awards_file_retrieve: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': Blob;
         };
       };
     };

@@ -22,6 +22,7 @@ export * from './company-wallet';
 export * from './company-token';
 export * from './register-command';
 export * from './register-grant';
+export * from './register-award';
 export * from './register-deployment';
 export * from './register-transfer';
 export * from './register-import';

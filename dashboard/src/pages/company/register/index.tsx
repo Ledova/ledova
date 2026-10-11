@@ -15,6 +15,7 @@ import { CompanySelection } from '../CompanySelection';
 import { ClassCorrections } from './ClassCorrections';
 import { ClassImports } from './ClassImports';
 import { ClassGrants } from './ClassGrants';
+import { ClassAwards } from './ClassAwards';
 import { ClassTransfers } from './ClassTransfers';
 import { ClassOpenings } from './ClassOpenings';
 import { ClassReconciliation } from './ClassReconciliation';
@@ -195,6 +196,14 @@ function OwnRegister({
                 )}
                 <ClassImports owner={owner} guard={guard} token={register.token.uuid} company={company.uuid} />
                 <ClassGrants owner={owner} guard={guard} register={register} company={company.uuid} />
+                <ClassAwards
+                  key={`${company.uuid}/${register.token.uuid}`}
+                  owner={owner}
+                  guard={guard}
+                  register={register}
+                  company={company.uuid}
+                  sourceReady={!classes.isFetching && !registers.isFetching}
+                />
                 <ClassTransfers owner={owner} guard={guard} register={register} company={company.uuid} />
                 <ClassCorrections owner={owner} guard={guard} token={register.token.uuid} company={company.uuid} />
                 <ClassReconciliation

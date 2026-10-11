@@ -1,5 +1,5 @@
 from django.conf import settings
-from django.db import connections
+from django.db import ProgrammingError, connections
 from django.test import override_settings
 from django.test.utils import CaptureQueriesContext
 from rest_framework.test import APIClient, APITransactionTestCase
@@ -17,7 +17,14 @@ from shared.tests.core_fixtures import (
     import_payload,
     populated_register,
 )
-from tokens.models import RegisterGrant, RegisterPosition, ShareToken
+from tokens.models import (
+    RegisterAward,
+    RegisterAwardVesting,
+    RegisterGrant,
+    RegisterMember,
+    RegisterPosition,
+    ShareToken,
+)
 from users.models import UserProfile
 
 
@@ -106,6 +113,12 @@ class ScopedAccessTest(CoreFixtures, APITransactionTestCase):
 
     def test_foreign_company_cannot_approve_issue_or_write_the_private_grant(self):
         identifier = self.prepare_grant()
+        award = self.award_payload()
+        recorded = self.client.post("/api/v1/tokens/register-awards/", award, format="json")
+        self.assertEqual(recorded.status_code, 201, recorded.content)
+        vesting = self.vesting_payload(award["operation_id"])
+        recorded_vesting = self.client.post("/api/v1/tokens/register-award-vestings/", vesting, format="json")
+        self.assertEqual(recorded_vesting.status_code, 201, recorded_vesting.content)
         self.sign_in(self.foreign)
         response = self.client.post(
             f"/api/v1/tokens/register-grants/{identifier}/decision-preview/",
@@ -115,9 +128,22 @@ class ScopedAccessTest(CoreFixtures, APITransactionTestCase):
         self.assertEqual(response.status_code, 404, response.content)
         creation = self.client.post("/api/v1/tokens/register-grants/", self.grant_payload(), format="json")
         self.assertEqual(creation.status_code, 404, creation.content)
+        for endpoint, payload in (("register-awards", award), ("register-award-vestings", vesting)):
+            detail = f"/api/v1/tokens/{endpoint}/{payload['operation_id']}/"
+            self.assertEqual(self.client.get(detail).status_code, 404)
+            self.assertEqual(self.client.get(f"{detail}file/").status_code, 404)
+            rejected = self.client.post(f"/api/v1/tokens/{endpoint}/", payload, format="json")
+            self.assertEqual(rejected.status_code, 404, rejected.content)
         set_principal(self.foreign.pk, APP_ALIAS)
         self.assertEqual(RegisterGrant.objects.using(APP_ALIAS).filter(pk=identifier).count(), 0)
         self.assertEqual(RegisterGrant.objects.using(APP_ALIAS).filter(pk=identifier).update(status="applied"), 0)
+        for model, payload in ((RegisterAward, award), (RegisterAwardVesting, vesting)):
+            with self.assertRaises(ProgrammingError) as read:
+                model.objects.using(APP_ALIAS).filter(pk=payload["operation_id"]).count()
+            self.assertEqual(read.exception.__cause__.sqlstate, "42501")
+            with self.assertRaises(ProgrammingError) as write:
+                model.objects.using(APP_ALIAS).filter(pk=payload["operation_id"]).update(shares=1)
+            self.assertEqual(write.exception.__cause__.sqlstate, "42501")
         reset_principal(APP_ALIAS)
         with use_operator():
             self.assertIsNone(RegisterGrant.objects.get(pk=identifier).register_entry_id)
@@ -125,7 +151,31 @@ class ScopedAccessTest(CoreFixtures, APITransactionTestCase):
 
     def test_employee_issue_matches_holdings_and_retry_cannot_issue_twice(self):
         self.sign_in(self.owner)
-        identifier = self.prepare_grant()
+        award = self.award_payload()
+        endpoint = "/api/v1/tokens/register-awards/"
+        recorded = self.client.post(endpoint, award, format="json")
+        self.assertEqual(recorded.status_code, 201, recorded.content)
+        replayed = self.client.post(endpoint, award, format="json")
+        self.assertEqual(replayed.status_code, 200, replayed.content)
+        self.assertEqual(replayed.json()["uuid"], recorded.json()["uuid"])
+        changed = self.client.post(endpoint, {**award, "shares": "31"}, format="json")
+        self.assertEqual(changed.status_code, 409, changed.content)
+        vesting = self.vesting_payload(award["operation_id"])
+        vesting_endpoint = "/api/v1/tokens/register-award-vestings/"
+        vested = self.client.post(vesting_endpoint, vesting, format="json")
+        self.assertEqual(vested.status_code, 201, vested.content)
+        self.assertEqual(self.client.post(vesting_endpoint, vesting, format="json").status_code, 200)
+        entitlement = self.client.get(f"{endpoint}{award['operation_id']}/").json()
+        self.assertEqual(
+            (entitlement["vestedShares"], entitlement["issuedShares"], entitlement["availableShares"]),
+            ("25", "0", "25"),
+        )
+        with use_operator():
+            self.assertFalse(RegisterMember.objects.filter(pk=award["member"]).exists())
+            self.assertEqual(int(self.token.stored_register.issued_supply), 100)
+        prepared = self.client.post("/api/v1/tokens/register-grants/", self.linked_grant_payload(award), format="json")
+        self.assertEqual(prepared.status_code, 201, prepared.content)
+        identifier = prepared.json()["uuid"]
         endpoint = "/api/v1/tokens/register-grants/"
         self.decision(endpoint, identifier, "approve")
         first, payload = self.decision(endpoint, identifier, "apply")
@@ -140,3 +190,10 @@ class ScopedAccessTest(CoreFixtures, APITransactionTestCase):
             self.assertEqual(int(register.issued_supply), 125)
             self.assertEqual(positions.get(member_id=proposal.member).shares, 25)
             self.assertEqual(register.entries.filter(kind="issue").count(), 1)
+            self.assertEqual(RegisterAward.objects.filter(pk=award["operation_id"]).count(), 1)
+            self.assertEqual(RegisterAwardVesting.objects.filter(award_id=award["operation_id"]).count(), 1)
+        entitlement = self.client.get(f"/api/v1/tokens/register-awards/{award['operation_id']}/").json()
+        self.assertEqual(
+            (entitlement["vestedShares"], entitlement["issuedShares"], entitlement["availableShares"]),
+            ("25", "25", "0"),
+        )

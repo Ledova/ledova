@@ -3,7 +3,10 @@ from pathlib import Path
 from django.conf import settings
 
 SQL = Path(__file__).with_suffix(".sql").read_text()
+AWARD_SQL = Path(__file__).with_name("database_award_guards.sql").read_text()
 RESTRICTED_TABLES = (
+    "tokens_registeraward",
+    "tokens_registerawardvesting",
     "tokens_tokendeployment",
     "tokens_capitalincreaseexecution",
     "tokens_shareissuanceexecution",
@@ -28,6 +31,12 @@ def install(apps, schema_editor):
         )
         operator, migrate, app = cursor.fetchone()
         cursor.execute(SQL.replace("__OPERATOR__", operator).replace("__MIGRATE__", migrate).replace("__APP__", app))
+        cursor.execute(
+            AWARD_SQL.replace("__OPERATOR__", operator).replace("__MIGRATE__", migrate).replace("__APP__", app)
+        )
+        for table in ("tokens_registeraward", "tokens_registerawardvesting"):
+            cursor.execute(f"ALTER TABLE {table} ENABLE ROW LEVEL SECURITY")
+            cursor.execute(f"ALTER TABLE {table} FORCE ROW LEVEL SECURITY")
         cursor.execute(
             "SELECT quote_ident(%s), quote_ident(%s)", [settings.RLS_ROLES["app"], settings.RLS_ROLES["operator"]]
         )

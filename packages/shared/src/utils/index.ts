@@ -96,6 +96,7 @@ export {
 export { summarizeShareHoldings, type ShareHoldingRow } from './share-holdings';
 export {
   appointmentForRegisterStep,
+  hasCurrentRegisterReadAuthority,
   failureStatus,
   isRegisterDecisionReceipt,
   isRegisterEvidenceReceipt,
@@ -117,6 +118,11 @@ export {
 } from './register-openings';
 export { isPreparedRegisterParticularsChange } from './register-particulars';
 export { isPreparedRegisterGrant } from './register-grants';
+export {
+  hasValidRegisterAwardTotals,
+  isRecordedRegisterAward,
+  isRecordedRegisterAwardVesting,
+} from './register-awards';
 export { isPreparedRegisterDeployment } from './register-deployments';
 export { isWalletNominationReceipt, isPreparedCompanyWalletInstruction } from './company-wallets';
 export { isPreparedRegisterTransfer } from './register-transfers';

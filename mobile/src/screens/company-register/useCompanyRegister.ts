@@ -56,7 +56,7 @@ export function useCompanyAccess() {
   return { ...preferences, allowed: !preferences.isError && !!role && canOpen(role, 'company') };
 }
 
-const registerKey = (epoch: number) => ['company-tokens', 'register', epoch];
+export const registerKey = (epoch: number) => ['company-tokens', 'register', epoch];
 const recordsKey = (records: string) => (epoch: number, scope?: string) => [
   ...registerKey(epoch),
   records,
@@ -238,9 +238,10 @@ export function useRegisterTransfers(epoch: number, company: string, token: stri
   });
 }
 
-export function useTransferMembers(epoch: number, token: string) {
+export function useTransferMembers(epoch: number, token: string, enabled = true) {
   return useQuery({
     queryKey: transferMembersKey(epoch, token),
+    enabled,
     queryFn: async ({ signal }) => {
       const { data } = await sessionRead(epoch, () =>
         getRegisterTransferMembers(apiClient, token, { ledovaSessionEpoch: epoch, signal }),

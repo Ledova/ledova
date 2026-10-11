@@ -14,6 +14,7 @@ import { registerKey } from './useCompanyRegister';
 import { entriesKey } from './useRegisterCorrections';
 import { useOwnAppointments } from './useRegisterImports';
 import { grantsKey, useRegisterGrants } from './useRegisterGrants';
+import { awardsKey } from './useRegisterAwards';
 
 export function ClassGrants({
   owner,
@@ -40,6 +41,7 @@ export function ClassGrants({
     await Promise.all(
       [
         grantsKey(owner, token),
+        awardsKey(owner, token),
         [...registerKey(owner), 'holders'],
         entriesKey(owner, token),
         ownAppointmentsKey(owner),

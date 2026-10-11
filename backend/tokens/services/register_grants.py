@@ -11,6 +11,7 @@ from companies.models import CompanyCapability
 from tokens.constants import REGISTER_IMPORT_ADDRESS_LENGTH
 from tokens.exceptions import RegisterChangeConflict
 from tokens.models import (
+    RegisterAward,
     RegisterEntry,
     RegisterEntryKind,
     RegisterEvidence,
@@ -111,6 +112,7 @@ def prepare_grant(
     acceptance_evidence=None,
     name="",
     residential_address="",
+    award=None,
 ):
     try:
         operation_id, appointment, token_id, member, authority_evidence, terms_evidence = (
@@ -118,6 +120,7 @@ def prepare_grant(
             for value in (operation_id, appointment, token_id, member, authority_evidence, terms_evidence)
         )
         acceptance_evidence = UUID(str(acceptance_evidence)) if acceptance_evidence is not None else None
+        award = UUID(str(award)) if award is not None else None
         terms_on = date.fromisoformat(str(terms_on))
     except (ValueError, TypeError, AttributeError):
         raise ValidationError("Grant references must be UUIDs and the terms date an ISO date.") from None
@@ -159,12 +162,17 @@ def prepare_grant(
             if token is None:
                 raise NotFound("Share class not found.")
             list(ShareRegister.objects.select_for_update().filter(token=token).values_list("uuid", flat=True))
+            if award is not None:
+                promised = RegisterAward.objects.select_for_update().filter(pk=award, company=company).first()
+                if promised is None:
+                    raise NotFound("Employee award not found.")
             existing = RegisterGrant.objects.filter(pk=operation_id).first()
             if existing is not None:
                 expected = {
                     **values,
                     "company_id": company.pk,
                     "token_id": token.pk,
+                    "award_id": award,
                     "member": member,
                     "name": name.strip() if name else existing.name,
                     "residential_address": (
@@ -200,6 +208,7 @@ def prepare_grant(
                 uuid=operation_id,
                 company=company,
                 token=token,
+                award_id=award,
                 member=member,
                 preparing_appointment=source,
                 submitted_by=current_actor,
@@ -223,6 +232,9 @@ def prepare_grant(
                 setattr(proposal, f"{prefix}fingerprint" if prefix else "evidence_fingerprint", evidence.sha256)
                 setattr(proposal, f"{prefix}snapshot" if prefix else "evidence_snapshot", evidence_snapshot(evidence))
                 getattr(proposal, f"{prefix}file").save("evidence.bin", ContentFile(raw), save=False)
+            unmet = _award_requirements(proposal)
+            if unmet:
+                raise ValidationError({"unmet_requirements": unmet})
             try:
                 proposal.save(force_insert=True)
             except IntegrityError:
@@ -234,8 +246,42 @@ def prepare_grant(
         raise
 
 
+def _award_requirements(proposal):
+    if proposal.award_id is None:
+        return []
+    from tokens.services.register_awards import award_quantities
+
+    award = RegisterAward.objects.filter(pk=proposal.award_id).first()
+    if award is None or (
+        award.company_id,
+        award.token_id,
+        award.member,
+        award.terms_on,
+        award.terms,
+        award.agreement_fingerprint,
+    ) != (
+        proposal.company_id,
+        proposal.token_id,
+        proposal.member,
+        proposal.terms_on,
+        proposal.terms,
+        proposal.terms_fingerprint,
+    ):
+        return ["award_binding_required"]
+    unmet = []
+    if int(proposal.shares) > int(award_quantities(award, excluding_grant=proposal.pk)["available_shares"]):
+        unmet.append("recorded_vested_quantity_required")
+    try:
+        matching_bytes(award.file, award.agreement_snapshot["file_size"], award.agreement_fingerprint)
+        for event in award.vestings.all():
+            matching_bytes(event.file, event.evidence_snapshot["file_size"], event.evidence_fingerprint)
+    except ValidationError:
+        unmet.append("award_evidence_unavailable")
+    return unmet
+
+
 def _effect_requirements(proposal):
-    unmet = _state(proposal)
+    unmet = _state(proposal) + _award_requirements(proposal)
     try:
         matching_bytes(proposal.file, proposal.evidence_snapshot["file_size"], proposal.evidence_fingerprint)
         matching_bytes(proposal.terms_file, proposal.terms_snapshot["file_size"], proposal.terms_fingerprint)
@@ -253,7 +299,7 @@ def _details(proposal):
     register = ShareRegister.objects.filter(token=token).first()
     held = RegisterPosition.objects.filter(register=register, member_id=proposal.member).first()
     issued, shares = int(register.issued_supply) if register else 0, int(held.shares) if held else 0
-    return {
+    details = {
         "member": proposal.member,
         "new_member": proposal.new_member,
         "name": proposal.name,
@@ -271,11 +317,24 @@ def _details(proposal):
         "current_shares": str(shares),
         "after_shares": str(shares + int(proposal.shares)),
     }
+    if proposal.award_id is not None:
+        from tokens.services.register_awards import award_quantities
+
+        award = RegisterAward.objects.get(pk=proposal.award_id)
+        quantities = award_quantities(award)
+        details.update(
+            award=award.pk,
+            award_promised_shares=str(award.shares),
+            **{f"award_{key}": value for key, value in quantities.items()},
+        )
+    return details
 
 
 def _lock(proposal):
     ShareToken.objects.select_for_update().get(pk=proposal.token_id)
     list(ShareRegister.objects.select_for_update().filter(token_id=proposal.token_id).values_list("uuid", flat=True))
+    if proposal.award_id is not None:
+        RegisterAward.objects.select_for_update().get(pk=proposal.award_id)
     list(
         RegisterMemberParticulars.objects.select_for_update()
         .filter(member_id=proposal.member)

@@ -36,6 +36,14 @@ class File {
   write(bytes: Uint8Array) {
     files.set(this.uri, { size: bytes.length, content: String.fromCharCode(...bytes) });
   }
+
+  move(destination: File) {
+    const entry = files.get(this.uri);
+    if (!entry || files.has(destination.uri)) throw new Error('Synthetic move refused');
+    files.set(destination.uri, entry);
+    files.delete(this.uri);
+    this.uri = destination.uri;
+  }
 }
 
 class Directory {
@@ -44,6 +52,8 @@ class Directory {
   constructor(...parts: (string | { uri: string })[]) {
     this.uri = join(parts) + '/';
   }
+
+  create() {}
 
   get exists() {
     return [...files.keys()].some((uri) => uri.startsWith(this.uri));
@@ -55,6 +65,15 @@ class Directory {
 }
 
 export const nativeFileSystem = { File, Directory, Paths: { cache: new Directory(cache) } };
+
+export function pickedFile(id: number) {
+  const uri = `${cache}DocumentPicker/00000000-0000-0000-0000-${String(id).padStart(12, '0')}.pdf`;
+  files.set(uri, { size: 5, content: 'file' });
+  return {
+    canceled: false as const,
+    assets: [{ uri, name: `${id}.pdf`, mimeType: 'application/pdf', size: 5, lastModified: 0 }],
+  };
+}
 
 export function resetFiles() {
   files.clear();

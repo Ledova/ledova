@@ -27,7 +27,7 @@ export type HomeStackParamList = {
   PrepareRegisterImport: { tokenUuid: string; companyUuid: string };
   PrepareRegisterCorrection: { tokenUuid: string; companyUuid: string; entryUuid: string };
   PrepareRegisterParticulars: { tokenUuid: string; companyUuid: string; memberUuid: string };
-  PrepareRegisterGrant: { tokenUuid: string; companyUuid: string };
+  PrepareRegisterGrant: { tokenUuid: string; companyUuid: string; awardUuid?: string };
   PrepareRegisterTransfer: { tokenUuid: string; companyUuid: string };
   PrepareRegisterLink: { company: string };
 };

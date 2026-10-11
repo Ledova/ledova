@@ -96,6 +96,14 @@ function CompanyRegister({ epoch }: { epoch: number }) {
                         company={company.uuid}
                         register={register}
                         refreshHolders={registers.refetch}
+                        sourceReady={!isFetching}
+                        onPrepareAwardGrant={(awardUuid) =>
+                          navigation.navigate('PrepareRegisterGrant', {
+                            tokenUuid: uuid,
+                            companyUuid: company.uuid,
+                            awardUuid,
+                          })
+                        }
                         onOpen={() =>
                           navigation.navigate('PrepareRegisterOpening', { tokenUuid: uuid, companyUuid: company.uuid })
                         }

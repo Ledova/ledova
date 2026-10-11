@@ -306,7 +306,7 @@ POLICIES = {
         f"AND submitted_by_id = {PRINCIPAL} AND status = 'submitted'",
     ),
     "tokens_registermemberparticulars": ("member_id IN (SELECT uuid FROM tokens_registermember)", "false"),
-    "tokens_registergrant": (_company("company_id", VISIBLE_COMPANIES), "false"),
+    "tokens_registergrant": (f"award_id IS NULL AND {_company('company_id', VISIBLE_COMPANIES)}", "false"),
     "tokens_registertransfer": (_company("company_id", VISIBLE_COMPANIES), "false"),
     "tokens_registermembercessation": (_company("company_id", VISIBLE_COMPANIES), "false"),
     "tokens_registerparticularschange": (_company("company_id", VISIBLE_COMPANIES), "false"),
@@ -596,6 +596,10 @@ FRAMEWORK = {
 }
 
 OPERATOR_ONLY = {
+    "tokens_registeraward": "Immutable private company employee agreements, served only through current "
+    "exact-company register appointments on the operator connection.",
+    "tokens_registerawardvesting": "Append-only company-confirmed vesting facts and private evidence, "
+    "served only through current exact-company register appointments on the operator connection.",
     "tokens_registerpausechange": "Private immutable company pause sources and retained authority evidence, "
     "served through current exact-company register authority.",
     "tokens_registerpausechangedecision": "Append-only personal company pause decisions served through "

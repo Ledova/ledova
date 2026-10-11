@@ -3,6 +3,7 @@ import {
   COMPANY_TOKEN_ENDPOINTS,
   formatDateTime,
   REGISTER_GRANT_COPY as COPY,
+  REGISTER_AWARD_COPY as AWARD_COPY,
   REGISTER_GRANT_DECISIONS,
   type OwnCompanyAppointment,
   type RegisterDecisionKind,
@@ -19,6 +20,15 @@ import { useCompanyStyles } from './styles';
 function GrantRows({ grant }: { grant: RegisterGrant | RegisterGrantDecisionPreview }) {
   return (
     <Rows>
+      {grant.award && <Row label="Employee award">{grant.award}</Row>}
+      {'awardPromisedShares' in grant && grant.award && (
+        <>
+          <Row label={AWARD_COPY.PROMISED}>{grant.awardPromisedShares}</Row>
+          <Row label={AWARD_COPY.VESTED}>{grant.awardVestedShares}</Row>
+          <Row label={AWARD_COPY.ISSUED}>{grant.awardIssuedShares}</Row>
+          <Row label={AWARD_COPY.AVAILABLE}>{grant.awardAvailableShares}</Row>
+        </>
+      )}
       <Row label="Member">
         {grant.name} · {grant.member}
       </Row>

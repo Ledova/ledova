@@ -7,7 +7,7 @@ from shared.models import BaseModel
 from shared.storage import private_storage
 from tokens.models.register_correction import RegisterCorrectionStatus
 from tokens.models.register_decision import RegisterDecision
-from tokens.querysets import RegisterProposalQuerySet
+from tokens.querysets.register_award import RegisterAwardGrantQuerySet
 
 
 def grant_evidence_path(instance, filename):
@@ -15,9 +15,10 @@ def grant_evidence_path(instance, filename):
 
 
 class RegisterGrant(BaseModel):
-    objects = RegisterProposalQuerySet.as_manager()
+    objects = RegisterAwardGrantQuerySet.as_manager()
     company = models.ForeignKey("companies.Company", on_delete=models.PROTECT, related_name="register_grants")
     token = models.ForeignKey("tokens.ShareToken", on_delete=models.PROTECT, related_name="register_grants")
+    award = models.ForeignKey("tokens.RegisterAward", on_delete=models.PROTECT, related_name="grants", null=True)
     member = models.UUIDField()
     new_member = models.BooleanField()
     name = models.CharField(max_length=255)

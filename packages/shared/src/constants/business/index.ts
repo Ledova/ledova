@@ -9,6 +9,7 @@ export * from './subscriptions';
 export * from './publications';
 export * from './register';
 export * from './register-grants';
+export * from './register-awards';
 export * from './register-deployments';
 export * from './company-wallets';
 export * from './register-transfers';

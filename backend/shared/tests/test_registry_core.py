@@ -131,6 +131,12 @@ class RegistryCoreTest(CoreFixtures, APITransactionTestCase):
             format="json",
         )
         self.assertEqual(issue.status_code, 404, issue.content)
+        award = self.client.post(
+            "/api/v1/tokens/register-awards/",
+            self.award_payload(appointment=str(appointment.pk)),
+            format="json",
+        )
+        self.assertEqual(award.status_code, 404, award.content)
         self.assertEqual(RegisterGrant.objects.count(), 1)
         self.assertEqual(RegisterGrantDecision.objects.filter(register_grant_id=grant).count(), 0)
         self.assertIsNone(RegisterGrant.objects.get(pk=grant).register_entry_id)

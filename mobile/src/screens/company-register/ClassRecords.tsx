@@ -5,6 +5,7 @@ import { ClassCorrections } from './ClassCorrections';
 import { ClassEntries } from './ClassEntries';
 import { ClassImports } from './ClassImports';
 import { ClassGrants } from './ClassGrants';
+import { ClassAwards } from './ClassAwards';
 import { ClassTransfers } from './ClassTransfers';
 import { ClassOpenings } from './ClassOpenings';
 import { ClassReconciliation } from './ClassReconciliation';
@@ -22,6 +23,8 @@ export function ClassRecords({
   onOpen,
   onPrepareImport,
   onPrepareGrant,
+  onPrepareAwardGrant,
+  sourceReady = true,
   onPrepareTransfer,
   onCorrect,
   onChangeParticulars,
@@ -33,6 +36,8 @@ export function ClassRecords({
   onOpen: () => void;
   onPrepareImport: () => void;
   onPrepareGrant: () => void;
+  onPrepareAwardGrant: (award: string) => void;
+  sourceReady?: boolean;
   onPrepareTransfer: () => void;
   onCorrect: (entry: RegisterEntry) => void;
   onChangeParticulars: (member: string) => void;
@@ -85,6 +90,14 @@ export function ClassRecords({
         refreshHolders={refreshHolders}
         refreshAppointments={appointments.refetch}
         onPrepare={onPrepareGrant}
+      />
+      <ClassAwards
+        key={`${epoch}/${company}/${register.token.uuid}`}
+        company={company}
+        register={register}
+        epoch={epoch}
+        sourceReady={sourceReady}
+        onPrepareGrant={onPrepareAwardGrant}
       />
       <ClassCorrections
         epoch={epoch}
