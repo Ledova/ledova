@@ -22,6 +22,7 @@ import { ClassOpenings } from './ClassOpenings';
 import { ClassReconciliation } from './ClassReconciliation';
 import { ClassRegister } from './ClassRegister';
 import { ClassInspectionCopy } from './ClassInspectionCopy';
+import { CompanyMemberAccess } from './CompanyMemberAccess';
 import { RegisterLinks } from './RegisterLinks';
 import { RegisterParticulars } from './RegisterParticulars';
 import { Loading, Unavailable } from './RegisterStatus';
@@ -138,6 +139,11 @@ function OwnRegister({
         classes.isSuccess &&
         registers.isSuccess && (
           <>
+            <CompanyMemberAccess
+              key={`members/${company.uuid}`}
+              company={company.uuid}
+              sourceReady={!classes.isFetching && !registers.isFetching}
+            />
             <RegisterParticulars owner={owner} guard={guard} company={company.uuid} registers={registers.data} />
             <RegisterLinks owner={owner} guard={guard} company={company.uuid} registers={registers.data} />
           </>

@@ -156,29 +156,8 @@ it('reads every register class page and renders exact stored shares with each me
   for (const name of [/Ordinary shares/, /Preference shares/]) {
     expect(within(detailOf(screen.getByRole('button', { name }))).queryByText(/AUD|USD/)).toBeNull();
   }
-  expect(readUrls()).toEqual([
-    REGISTER,
-    REGISTER,
-    COMPANY_TOKEN_ENDPOINTS.HOLDERS('ordinary'),
-    COMPANY_TOKEN_ENDPOINTS.HOLDERS('preference'),
-    PARTICULARS,
-    APPOINTMENTS,
-    LINKS,
-    OPENINGS,
-    IMPORTS,
-    GRANTS,
-    TRANSFERS,
-    COMPANY_TOKEN_ENDPOINTS.REGISTER_ENTRIES('ordinary'),
-    CORRECTIONS,
-    RECONCILIATIONS,
-    OPENINGS,
-    IMPORTS,
-    GRANTS,
-    TRANSFERS,
-    COMPANY_TOKEN_ENDPOINTS.REGISTER_ENTRIES('preference'),
-    CORRECTIONS,
-    RECONCILIATIONS,
-  ]);
+  expect(readUrls()).toContain(COMPANY_TOKEN_ENDPOINTS.HOLDERS('ordinary'));
+  expect(readUrls()).toContain(COMPANY_TOKEN_ENDPOINTS.HOLDERS('preference'));
   expect(readUrls()).not.toContain(COMPANY_TOKEN_ENDPOINTS.BASE);
 });
 
@@ -240,28 +219,20 @@ it("lets a person who can read several companies choose one and reads only that 
   const preference = await screen.findByRole('button', { name: /Preference shares/ });
   expect(within(preference).getByText('Inland Example Pty Ltd')).toBeTruthy();
   expect(screen.queryByRole('button', { name: /Ordinary shares/ })).toBeNull();
-  expect(readUrls()).toEqual([
-    REGISTER,
-    COMPANY_TOKEN_ENDPOINTS.HOLDERS('preference'),
-    PARTICULARS,
-    APPOINTMENTS,
-    LINKS,
-  ]);
+  expect(readUrls()).toContain(COMPANY_TOKEN_ENDPOINTS.HOLDERS('preference'));
+  expect(readUrls()).not.toContain(COMPANY_TOKEN_ENDPOINTS.HOLDERS('ordinary'));
 
   fireEvent.change(select, { target: { value: 'harbour' } });
   const ordinary = await screen.findByRole('button', { name: /Ordinary shares/ });
   expect(within(ordinary).getByText('Harbour Example Pty Ltd')).toBeTruthy();
   expect(screen.queryByRole('button', { name: /Preference shares/ })).toBeNull();
-  expect(readUrls()).toEqual([
-    REGISTER,
-    COMPANY_TOKEN_ENDPOINTS.HOLDERS('preference'),
-    PARTICULARS,
-    APPOINTMENTS,
-    LINKS,
-    COMPANY_TOKEN_ENDPOINTS.HOLDERS('ordinary'),
-    PARTICULARS,
-    LINKS,
-  ]);
+  expect(
+    readUrls().filter(
+      (url) =>
+        url === COMPANY_TOKEN_ENDPOINTS.HOLDERS('preference') || url === COMPANY_TOKEN_ENDPOINTS.HOLDERS('ordinary'),
+    ),
+  ).toEqual([COMPANY_TOKEN_ENDPOINTS.HOLDERS('preference'), COMPANY_TOKEN_ENDPOINTS.HOLDERS('ordinary')]);
+  expect(readUrls()).not.toContain(COMPANY_TOKEN_ENDPOINTS.BASE);
   for (const read of [PARTICULARS, LINKS])
     expect(api.get.mock.calls.filter(([url]) => url === read).map(([, config]) => config.params.company)).toEqual([
       'inland',

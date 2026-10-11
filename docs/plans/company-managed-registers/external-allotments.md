@@ -53,8 +53,10 @@ their commit checks; arbitrary operator transaction control is outside that
 guarantee.
 
 Partly paid allotments, calls, outstanding amounts, collection, providers and
-refunds remain deferred. This first scope adds no account/member association
-or member-facing access; those follow #866.
+refunds remain deferred. The separate [member invitation and own-record flow](member-access.md)
+lets accepted recipients read their own resulting holdings and history. Private
+agreement, receipt and company-authority documents remain company-only.
+Employee awards and non-paid grants remain distinct from paid investor capital.
 
 ## API and verification
 

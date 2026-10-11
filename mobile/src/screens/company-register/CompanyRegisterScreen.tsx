@@ -12,6 +12,7 @@ import { useCompanyRegister } from './useCompanyRegister';
 import { useCompanyStyles } from './styles';
 import { ClassRecords } from './ClassRecords';
 import { CompanyLinks } from './CompanyLinks';
+import { CompanyMemberAccess } from './CompanyMemberAccess';
 import { CompanyParticulars } from './CompanyParticulars';
 import { RegisterDownload } from './RegisterDownload';
 import { RegisterInspectionCopy } from './RegisterInspectionCopy';
@@ -141,6 +142,11 @@ function CompanyRegister({ epoch }: { epoch: number }) {
       </Section>
       {company && registers.isSuccess && (
         <>
+          <CompanyMemberAccess
+            key={`members/${epoch}/${company.uuid}`}
+            company={company.uuid}
+            sourceReady={!isFetching}
+          />
           <CompanyParticulars
             epoch={epoch}
             company={company.uuid}

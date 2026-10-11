@@ -23,10 +23,11 @@ appointment, member association, register instruction or historical particular
 change. The company's evidenced particular-change workflow remains separate.
 Backend policy and generated contracts are unchanged by this increment.
 
-## Remaining member work
+## Member register access
 
-Account/member association, permitted own register records, company-reviewed
-particulars requests and certificate request status are the remaining #866
-increments, following the
-[11 October invitation decision](../../decisions.md#member-invitations-and-account-association).
-This Profile form does not complete them.
+The [member-access journey](member-access.md) implements company-issued,
+member-specific invitations accepted by the signed-in intended recipient.
+Associated members read their own company-recorded particulars, holdings,
+history and awards, and submit requests for company review. This Profile form
+remains separate: saving it changes no register record or company mandate.
+Certificate requests are retained; actual fulfilment follows #871.

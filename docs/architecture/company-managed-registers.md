@@ -31,9 +31,12 @@ An award is an entitlement and a grant issues shares. The
 [10 October first scopes](../decisions.md#first-scopes-for-employee-awards-and-external-capital)
 settle how [employee awards](../plans/company-managed-registers/employee-awards.md)
 and [external allotments](../plans/company-managed-registers/external-allotments.md)
-are recorded, and the
-[11 October invitation decision](../decisions.md#member-invitations-and-account-association)
-selects the member association for #866.
+are recorded. The [member-access increment](../plans/company-managed-registers/member-access.md)
+implements the [11 October invitation decision](../decisions.md#member-invitations-and-account-association):
+a current company administrator invites one member-specific recipient, who
+accepts using their signed-in account. Own particulars, holdings, history and
+awards are bounded by that association; member requests remain separate from
+company-approved changes and actual certificate fulfilment.
 
 Useful existing chain and payment functionality, evidence and recovery are
 retained. Companies must not buy cryptocurrency through the on-ramp, and #920's

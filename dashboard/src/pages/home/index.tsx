@@ -9,6 +9,9 @@ export function HomePage() {
 
   return (
     <Page>
+      <Section title="Your member records">
+        <LinkRow to={DESTINATIONS.memberRecords.path} label="Read your company-recorded holdings and awards" />
+      </Section>
       <Section title="Your company actions">
         <LinkRow to={DESTINATIONS.companyEligibility.path} label="Read your company eligibility queue" />
       </Section>

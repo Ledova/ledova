@@ -5193,7 +5193,7 @@
           "identitySource": {
             "allOf": [
               {
-                "$ref": "#/components/schemas/IdentitySourceEnum"
+                "$ref": "#/components/schemas/FormerMemberIdentitySourceEnum"
               }
             ],
             "readOnly": true
@@ -5288,6 +5288,20 @@
           "walletAddress"
         ],
         "type": "object"
+      },
+      "FormerMemberIdentitySourceEnum": {
+        "description": "* `profile` - Current profile\n* `stamped` - Stamped at the time\n* `recorded` - Name recorded at allotment, identity never resolved\n* `particulars` - Recorded register particulars\n* `treasury_label` - Whitelist entry label, no profile exists\n* `unresolvable` - Not resolvable, two wallets share this address\n* `none` - Not identified\n* `unknown` - Never identified while it held shares",
+        "enum": [
+          "profile",
+          "stamped",
+          "recorded",
+          "particulars",
+          "treasury_label",
+          "unresolvable",
+          "none",
+          "unknown"
+        ],
+        "type": "string"
       },
       "HolderTypeEnum": {
         "description": "* `member` - Member\n* `treasury` - Treasury\n* `ambiguous` - Ambiguous\n* `unidentified` - Unidentified",
@@ -5413,20 +5427,6 @@
           409
         ],
         "type": "integer"
-      },
-      "IdentitySourceEnum": {
-        "description": "* `profile` - Current profile\n* `stamped` - Stamped at the time\n* `recorded` - Name recorded at allotment, identity never resolved\n* `particulars` - Recorded register particulars\n* `treasury_label` - Whitelist entry label, no profile exists\n* `unresolvable` - Not resolvable, two wallets share this address\n* `none` - Not identified\n* `unknown` - Never identified while it held shares",
-        "enum": [
-          "profile",
-          "stamped",
-          "recorded",
-          "particulars",
-          "treasury_label",
-          "unresolvable",
-          "none",
-          "unknown"
-        ],
-        "type": "string"
       },
       "IdentityVerificationSession": {
         "properties": {
@@ -5888,6 +5888,822 @@
         },
         "required": [
           "marked"
+        ],
+        "type": "object"
+      },
+      "MemberAssociation": {
+        "properties": {
+          "acceptedEmail": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "company": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "readOnly": true,
+            "type": "string"
+          },
+          "current": {
+            "default": true,
+            "readOnly": true,
+            "type": "boolean"
+          },
+          "invitation": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "member": {
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "user": {
+            "readOnly": true,
+            "type": "integer"
+          },
+          "userAccount": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "uuid": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "acceptedEmail",
+          "company",
+          "createdAt",
+          "current",
+          "invitation",
+          "member",
+          "user",
+          "userAccount",
+          "uuid"
+        ],
+        "type": "object"
+      },
+      "MemberAssociationRevokeRequest": {
+        "properties": {
+          "appointment": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "idempotencyKey": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "reason": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "appointment",
+          "idempotencyKey",
+          "reason"
+        ],
+        "type": "object"
+      },
+      "MemberCertificateRequest": {
+        "properties": {
+          "association": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "company": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "readOnly": true,
+            "type": "string"
+          },
+          "entry": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "member": {
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "requestedBy": {
+            "readOnly": true,
+            "type": "integer"
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MemberCertificateRequestStatusEnum"
+              }
+            ],
+            "readOnly": true
+          },
+          "token": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "uuid": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "association",
+          "company",
+          "createdAt",
+          "entry",
+          "member",
+          "requestedBy",
+          "status",
+          "token",
+          "uuid"
+        ],
+        "type": "object"
+      },
+      "MemberCertificateRequestCreateRequest": {
+        "properties": {
+          "association": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "entry": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "operationId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "association",
+          "entry",
+          "operationId"
+        ],
+        "type": "object"
+      },
+      "MemberCertificateRequestStatusEnum": {
+        "description": "* `requested` - requested\n* `withdrawn` - withdrawn",
+        "enum": [
+          "requested",
+          "withdrawn"
+        ],
+        "type": "string"
+      },
+      "MemberCertificateWithdrawRequest": {
+        "properties": {
+          "idempotencyKey": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "idempotencyKey"
+        ],
+        "type": "object"
+      },
+      "MemberInvitation": {
+        "properties": {
+          "acceptanceDeadline": {
+            "format": "date-time",
+            "readOnly": true,
+            "type": "string"
+          },
+          "appointment": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "company": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "readOnly": true,
+            "type": "string"
+          },
+          "intendedEmail": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "issuedBy": {
+            "readOnly": true,
+            "type": "integer"
+          },
+          "member": {
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MemberInvitationStatusEnum"
+              }
+            ],
+            "readOnly": true
+          },
+          "uuid": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "acceptanceDeadline",
+          "appointment",
+          "company",
+          "createdAt",
+          "intendedEmail",
+          "issuedBy",
+          "member",
+          "status",
+          "uuid"
+        ],
+        "type": "object"
+      },
+      "MemberInvitationAcceptRequest": {
+        "properties": {
+          "code": {
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_-]{43}$",
+            "type": "string",
+            "writeOnly": true
+          },
+          "confirmation": {
+            "type": "boolean"
+          },
+          "userAccount": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "confirmation",
+          "userAccount"
+        ],
+        "type": "object"
+      },
+      "MemberInvitationCreateRequest": {
+        "properties": {
+          "acceptanceDeadline": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "appointment": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "company": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "intendedEmail": {
+            "maxLength": 254,
+            "minLength": 1,
+            "type": "string"
+          },
+          "member": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "operationId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "appointment",
+          "company",
+          "intendedEmail",
+          "member",
+          "operationId"
+        ],
+        "type": "object"
+      },
+      "MemberInvitationIssued": {
+        "properties": {
+          "acceptanceDeadline": {
+            "format": "date-time",
+            "readOnly": true,
+            "type": "string"
+          },
+          "appointment": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "code": {
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
+          "company": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "readOnly": true,
+            "type": "string"
+          },
+          "intendedEmail": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "issuedBy": {
+            "readOnly": true,
+            "type": "integer"
+          },
+          "member": {
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MemberInvitationStatusEnum"
+              }
+            ],
+            "readOnly": true
+          },
+          "uuid": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "acceptanceDeadline",
+          "appointment",
+          "code",
+          "company",
+          "createdAt",
+          "intendedEmail",
+          "issuedBy",
+          "member",
+          "status",
+          "uuid"
+        ],
+        "type": "object"
+      },
+      "MemberInvitationStatusEnum": {
+        "description": "* `pending` - pending\n* `expired` - expired\n* `unavailable` - unavailable\n* `accepted` - accepted\n* `revoked` - revoked",
+        "enum": [
+          "pending",
+          "expired",
+          "unavailable",
+          "accepted",
+          "revoked"
+        ],
+        "type": "string"
+      },
+      "MemberParticularsRequest": {
+        "properties": {
+          "association": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "change": {
+            "format": "uuid",
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
+          "company": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "readOnly": true,
+            "type": "string"
+          },
+          "member": {
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "name": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "requestedBy": {
+            "readOnly": true,
+            "type": "integer"
+          },
+          "residentialAddress": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MemberParticularsRequestStatusEnum"
+              }
+            ],
+            "readOnly": true
+          },
+          "uuid": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "association",
+          "change",
+          "company",
+          "createdAt",
+          "member",
+          "name",
+          "requestedBy",
+          "residentialAddress",
+          "status",
+          "uuid"
+        ],
+        "type": "object"
+      },
+      "MemberParticularsRequestCreateRequest": {
+        "properties": {
+          "association": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "confirmation": {
+            "type": "boolean"
+          },
+          "name": {
+            "maxLength": 255,
+            "minLength": 1,
+            "type": "string"
+          },
+          "operationId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "residentialAddress": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "association",
+          "confirmation",
+          "name",
+          "operationId",
+          "residentialAddress"
+        ],
+        "type": "object"
+      },
+      "MemberParticularsRequestPrepareRequest": {
+        "properties": {
+          "appointment": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "asAt": {
+            "format": "date",
+            "type": "string"
+          },
+          "operationId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "reason": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "type": "string"
+          },
+          "supportingEvidence": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "appointment",
+          "asAt",
+          "operationId",
+          "reason",
+          "supportingEvidence"
+        ],
+        "type": "object"
+      },
+      "MemberParticularsRequestStatusEnum": {
+        "description": "* `submitted` - submitted\n* `prepared` - prepared\n* `approved` - approved\n* `applied` - applied\n* `rejected` - rejected",
+        "enum": [
+          "submitted",
+          "prepared",
+          "approved",
+          "applied",
+          "rejected"
+        ],
+        "type": "string"
+      },
+      "MemberRecord": {
+        "properties": {
+          "awards": {
+            "items": {
+              "$ref": "#/components/schemas/MemberRecordAward"
+            },
+            "type": "array"
+          },
+          "classes": {
+            "items": {
+              "$ref": "#/components/schemas/MemberRecordClass"
+            },
+            "type": "array"
+          },
+          "company": {
+            "$ref": "#/components/schemas/MemberRecordCompany"
+          },
+          "identitySource": {
+            "$ref": "#/components/schemas/MemberRecordIdentitySourceEnum"
+          },
+          "member": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "residentialAddress": {
+            "type": "string"
+          },
+          "uuid": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "awards",
+          "classes",
+          "company",
+          "identitySource",
+          "member",
+          "name",
+          "residentialAddress",
+          "uuid"
+        ],
+        "type": "object"
+      },
+      "MemberRecordAward": {
+        "properties": {
+          "availableShares": {
+            "format": "decimal",
+            "pattern": "^-?\\d{0,78}(?:\\.\\d{0,0})?$",
+            "type": "string"
+          },
+          "issuedShares": {
+            "format": "decimal",
+            "pattern": "^-?\\d{0,78}(?:\\.\\d{0,0})?$",
+            "type": "string"
+          },
+          "schedule": {
+            "type": "string"
+          },
+          "shares": {
+            "format": "decimal",
+            "pattern": "^-?\\d{0,78}(?:\\.\\d{0,0})?$",
+            "type": "string"
+          },
+          "terms": {
+            "type": "string"
+          },
+          "termsOn": {
+            "format": "date",
+            "type": "string"
+          },
+          "token": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "uuid": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "vestedShares": {
+            "format": "decimal",
+            "pattern": "^-?\\d{0,78}(?:\\.\\d{0,0})?$",
+            "type": "string"
+          },
+          "vestings": {
+            "items": {
+              "$ref": "#/components/schemas/MemberRecordVesting"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "availableShares",
+          "issuedShares",
+          "schedule",
+          "shares",
+          "terms",
+          "termsOn",
+          "token",
+          "uuid",
+          "vestedShares",
+          "vestings"
+        ],
+        "type": "object"
+      },
+      "MemberRecordClass": {
+        "properties": {
+          "amountPaid": {
+            "format": "decimal",
+            "nullable": true,
+            "pattern": "^-?\\d{0,76}(?:\\.\\d{0,2})?$",
+            "type": "string"
+          },
+          "ceasedOn": {
+            "format": "date",
+            "nullable": true,
+            "type": "string"
+          },
+          "enteredOn": {
+            "format": "date",
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "shares": {
+            "format": "decimal",
+            "pattern": "^-?\\d{0,78}(?:\\.\\d{0,0})?$",
+            "type": "string"
+          },
+          "symbol": {
+            "type": "string"
+          },
+          "uuid": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "amountPaid",
+          "ceasedOn",
+          "enteredOn",
+          "name",
+          "shares",
+          "symbol",
+          "uuid"
+        ],
+        "type": "object"
+      },
+      "MemberRecordCompany": {
+        "properties": {
+          "acn": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "uuid": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "acn",
+          "name",
+          "uuid"
+        ],
+        "type": "object"
+      },
+      "MemberRecordEntries": {
+        "properties": {
+          "entries": {
+            "items": {
+              "$ref": "#/components/schemas/MemberRecordEntry"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "entries"
+        ],
+        "type": "object"
+      },
+      "MemberRecordEntry": {
+        "properties": {
+          "correctedBy": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "corrects": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "delta": {
+            "format": "decimal",
+            "pattern": "^-?\\d{0,78}(?:\\.\\d{0,0})?$",
+            "type": "string"
+          },
+          "effectiveOn": {
+            "format": "date",
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "sequence": {
+            "type": "integer"
+          },
+          "uuid": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "correctedBy",
+          "corrects",
+          "createdAt",
+          "delta",
+          "effectiveOn",
+          "kind",
+          "sequence",
+          "uuid"
+        ],
+        "type": "object"
+      },
+      "MemberRecordIdentitySourceEnum": {
+        "description": "* `company_recorded` - company_recorded",
+        "enum": [
+          "company_recorded"
+        ],
+        "type": "string"
+      },
+      "MemberRecordVesting": {
+        "properties": {
+          "shares": {
+            "format": "decimal",
+            "pattern": "^-?\\d{0,78}(?:\\.\\d{0,0})?$",
+            "type": "string"
+          },
+          "uuid": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "vestedOn": {
+            "format": "date",
+            "type": "string"
+          }
+        },
+        "required": [
+          "shares",
+          "uuid",
+          "vestedOn"
         ],
         "type": "object"
       },
@@ -7898,6 +8714,161 @@
           "results": {
             "items": {
               "$ref": "#/components/schemas/IssuerSubscription"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "count",
+          "results"
+        ],
+        "type": "object"
+      },
+      "PaginatedMemberAssociationList": {
+        "properties": {
+          "count": {
+            "example": 123,
+            "type": "integer"
+          },
+          "next": {
+            "example": "http://api.example.org/accounts/?page=4",
+            "format": "uri",
+            "nullable": true,
+            "type": "string"
+          },
+          "previous": {
+            "example": "http://api.example.org/accounts/?page=2",
+            "format": "uri",
+            "nullable": true,
+            "type": "string"
+          },
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/MemberAssociation"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "count",
+          "results"
+        ],
+        "type": "object"
+      },
+      "PaginatedMemberCertificateRequestList": {
+        "properties": {
+          "count": {
+            "example": 123,
+            "type": "integer"
+          },
+          "next": {
+            "example": "http://api.example.org/accounts/?page=4",
+            "format": "uri",
+            "nullable": true,
+            "type": "string"
+          },
+          "previous": {
+            "example": "http://api.example.org/accounts/?page=2",
+            "format": "uri",
+            "nullable": true,
+            "type": "string"
+          },
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/MemberCertificateRequest"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "count",
+          "results"
+        ],
+        "type": "object"
+      },
+      "PaginatedMemberInvitationList": {
+        "properties": {
+          "count": {
+            "example": 123,
+            "type": "integer"
+          },
+          "next": {
+            "example": "http://api.example.org/accounts/?page=4",
+            "format": "uri",
+            "nullable": true,
+            "type": "string"
+          },
+          "previous": {
+            "example": "http://api.example.org/accounts/?page=2",
+            "format": "uri",
+            "nullable": true,
+            "type": "string"
+          },
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/MemberInvitation"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "count",
+          "results"
+        ],
+        "type": "object"
+      },
+      "PaginatedMemberParticularsRequestList": {
+        "properties": {
+          "count": {
+            "example": 123,
+            "type": "integer"
+          },
+          "next": {
+            "example": "http://api.example.org/accounts/?page=4",
+            "format": "uri",
+            "nullable": true,
+            "type": "string"
+          },
+          "previous": {
+            "example": "http://api.example.org/accounts/?page=2",
+            "format": "uri",
+            "nullable": true,
+            "type": "string"
+          },
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/MemberParticularsRequest"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "count",
+          "results"
+        ],
+        "type": "object"
+      },
+      "PaginatedMemberRecordList": {
+        "properties": {
+          "count": {
+            "example": 123,
+            "type": "integer"
+          },
+          "next": {
+            "example": "http://api.example.org/accounts/?page=4",
+            "format": "uri",
+            "nullable": true,
+            "type": "string"
+          },
+          "previous": {
+            "example": "http://api.example.org/accounts/?page=2",
+            "format": "uri",
+            "nullable": true,
+            "type": "string"
+          },
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/MemberRecord"
             },
             "type": "array"
           }
@@ -16240,6 +17211,13 @@
             "readOnly": true,
             "type": "string"
           },
+          "memberRequest": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
           "name": {
             "readOnly": true,
             "type": "string"
@@ -16319,6 +17297,7 @@
           "evidenceFingerprint",
           "evidenceSnapshot",
           "member",
+          "memberRequest",
           "name",
           "preparedByName",
           "preparingAppointment",
@@ -28388,6 +29367,995 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/PaginatedShareIssuanceRequestList"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/tokens/member-associations/": {
+      "get": {
+        "operationId": "api_v1_tokens_member_associations_list",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "company",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "member",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Which field to use when ordering the results.",
+            "in": "query",
+            "name": "ordering",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "A page number within the paginated result set.",
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedMemberAssociationList"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/tokens/member-associations/{uuid}/": {
+      "get": {
+        "operationId": "api_v1_tokens_member_associations_retrieve",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberAssociation"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/tokens/member-associations/{uuid}/revoke/": {
+      "post": {
+        "operationId": "api_v1_tokens_member_associations_revoke_create",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MemberAssociationRevokeRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/MemberAssociationRevokeRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/MemberAssociationRevokeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberAssociation"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": [],
+            "csrfCookie": [],
+            "csrfHeader": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/tokens/member-certificate-requests/": {
+      "get": {
+        "operationId": "api_v1_tokens_member_certificate_requests_list",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "association",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "company",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "member",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Which field to use when ordering the results.",
+            "in": "query",
+            "name": "ordering",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "A page number within the paginated result set.",
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedMemberCertificateRequestList"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      },
+      "post": {
+        "operationId": "api_v1_tokens_member_certificate_requests_create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MemberCertificateRequestCreateRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/MemberCertificateRequestCreateRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/MemberCertificateRequestCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberCertificateRequest"
+                }
+              }
+            },
+            "description": ""
+          },
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberCertificateRequest"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": [],
+            "csrfCookie": [],
+            "csrfHeader": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/tokens/member-certificate-requests/{uuid}/": {
+      "get": {
+        "operationId": "api_v1_tokens_member_certificate_requests_retrieve",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberCertificateRequest"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/tokens/member-certificate-requests/{uuid}/withdraw/": {
+      "post": {
+        "operationId": "api_v1_tokens_member_certificate_requests_withdraw_create",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MemberCertificateWithdrawRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/MemberCertificateWithdrawRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/MemberCertificateWithdrawRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberCertificateRequest"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": [],
+            "csrfCookie": [],
+            "csrfHeader": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/tokens/member-invitations/": {
+      "get": {
+        "operationId": "api_v1_tokens_member_invitations_list",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "company",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "member",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Which field to use when ordering the results.",
+            "in": "query",
+            "name": "ordering",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "A page number within the paginated result set.",
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedMemberInvitationList"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      },
+      "post": {
+        "operationId": "api_v1_tokens_member_invitations_create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MemberInvitationCreateRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/MemberInvitationCreateRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/MemberInvitationCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberInvitationIssued"
+                }
+              }
+            },
+            "description": ""
+          },
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberInvitationIssued"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": [],
+            "csrfCookie": [],
+            "csrfHeader": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/tokens/member-invitations/accept/": {
+      "post": {
+        "operationId": "api_v1_tokens_member_invitations_accept_create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MemberInvitationAcceptRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/MemberInvitationAcceptRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/MemberInvitationAcceptRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberAssociation"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": [],
+            "csrfCookie": [],
+            "csrfHeader": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/tokens/member-invitations/{uuid}/": {
+      "get": {
+        "operationId": "api_v1_tokens_member_invitations_retrieve",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberInvitation"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/tokens/member-particulars-requests/": {
+      "get": {
+        "operationId": "api_v1_tokens_member_particulars_requests_list",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "association",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "company",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "member",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Which field to use when ordering the results.",
+            "in": "query",
+            "name": "ordering",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "A page number within the paginated result set.",
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedMemberParticularsRequestList"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      },
+      "post": {
+        "operationId": "api_v1_tokens_member_particulars_requests_create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MemberParticularsRequestCreateRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/MemberParticularsRequestCreateRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/MemberParticularsRequestCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberParticularsRequest"
+                }
+              }
+            },
+            "description": ""
+          },
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberParticularsRequest"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": [],
+            "csrfCookie": [],
+            "csrfHeader": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/tokens/member-particulars-requests/{uuid}/": {
+      "get": {
+        "operationId": "api_v1_tokens_member_particulars_requests_retrieve",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberParticularsRequest"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/tokens/member-particulars-requests/{uuid}/prepare/": {
+      "post": {
+        "operationId": "api_v1_tokens_member_particulars_requests_prepare_create",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MemberParticularsRequestPrepareRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/MemberParticularsRequestPrepareRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/MemberParticularsRequestPrepareRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisterParticularsChange"
+                }
+              }
+            },
+            "description": ""
+          },
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisterParticularsChange"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": [],
+            "csrfCookie": [],
+            "csrfHeader": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/tokens/member-records/": {
+      "get": {
+        "operationId": "api_v1_tokens_member_records_list",
+        "parameters": [
+          {
+            "description": "Which field to use when ordering the results.",
+            "in": "query",
+            "name": "ordering",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "A page number within the paginated result set.",
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedMemberRecordList"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/tokens/member-records/{uuid}/": {
+      "get": {
+        "operationId": "api_v1_tokens_member_records_retrieve",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberRecord"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/tokens/member-records/{uuid}/entries/": {
+      "get": {
+        "operationId": "api_v1_tokens_member_records_entries_retrieve",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "token",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberRecordEntries"
                 }
               }
             },
