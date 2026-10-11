@@ -22,12 +22,12 @@ not deliver tokenised award fulfilment, an employee purchase or option exercise.
 In the Register, the class's Employee awards section distinguishes these
 quantities:
 
-| Quantity                  | Meaning                                                       |
-| ------------------------- | ------------------------------------------------------------- |
-| Promised                  | The whole quantity retained in the award agreement            |
-| Company-recorded vested   | The sum of retained vesting events                            |
-| Issued through grants     | Shares actually issued by applied grants linked to this award |
-| Vested and not yet issued | Recorded vested quantity less those actual issues             |
+| Quantity                | Meaning                                                       |
+| ----------------------- | ------------------------------------------------------------- |
+| Promised                | The whole quantity retained in the award agreement            |
+| Company-recorded vested | The sum of retained vesting events                            |
+| Issued through grants   | Shares actually issued by applied grants linked to this award |
+| Available to issue      | Recorded vested quantity less those actual issues             |
 
 A current company administrator or register preparer records an award with a
 new or existing walletless recipient, agreement date and terms, recorded
@@ -36,18 +36,27 @@ register member, entry, position, issued supply or certificate entitlement. A
 new recipient retains the same stable identifier that their first genuine
 grant will use.
 
-The company records each vesting event separately with supporting evidence.
+The award form groups the person and promised quantity, agreement and vesting
+schedule. Each award shows the recipient and four quantities first. Agreement
+particulars, evidence downloads, vesting history and record identifiers are
+secondary details.
+
+Choose **Record vesting** on the award to record a company-confirmed event with
+supporting evidence. The company records each event separately.
 Agreement and event dates are company-recorded facts no later than today in UTC;
 an event cannot predate its agreement. Total recorded vesting cannot exceed
-the promise. To issue vested shares,
-choose the award in the existing grant workflow. Its class, recipient and
+the promise. When recorded vested shares are available, choose **Issue vested
+shares** on that award. This opens the existing grant preparation page with the
+recipient's name and available quantity. Its class, recipient and
 agreement remain bound to the award; upload the matching agreement through the
 preparer's existing evidence path. Retain the grant's authority document,
 approving director and any required acceptance. After the first genuine issue,
 later proposals use the recipient's existing member record and current
 particulars, including a retained former-member record.
 
-Preview, approve and apply the grant through the existing decision flow.
+Preparing the issue returns to the same company's Employee awards page and
+opens that class's non-paid issues. Preview and approve the grant, then choose
+**Record issue** on web through the existing decision flow.
 Approval alone does not create holdings. Application rechecks company authority,
 source evidence, available vested quantity, member particulars, register
 sequence and authorised headroom, then records the genuine ISSUE and its
@@ -74,8 +83,21 @@ events or linked grant applications serialize allocation checks. Failed effects
 roll back atomically. Keep an interrupted submission's original request and
 operation identifier; confirm the retained outcome before starting another.
 
-This increment adds no employee account association or own-record access rule.
-Those remain #866 work. It adds no automatic issued-share restrictions,
+Award, vesting and grant forms retain the original command during an interrupted
+response or failed refresh. Inputs and scope selection stay held until that
+command is recovered. A failed read or lost company appointment removes private
+fields and evidence actions; it does not discard an unfinished command. After
+current access and reads are restored, retry the original request. This recovery
+works with a current register-read appointment even when preparation authority
+has ended: it first looks up the exact original outcome. If that outcome is
+absent, a retry keeps the original request and appointment. A definite refusal
+followed by a second scoped absent lookup releases the form with a not-recorded
+message. Fresh preparation still requires current preparation authority. This
+recovery is retained while the page stays open; leaving the page discards the
+local form.
+
+The [member-access flow](member-access.md) bounds employees' own records by their
+accepted company invitation. This award flow adds no automatic issued-share restrictions,
 forfeiture, exercise price, purchase, payment receipt or tax calculation.
 
 ## API

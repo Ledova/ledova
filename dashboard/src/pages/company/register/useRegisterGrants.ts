@@ -5,9 +5,16 @@ import { READ_TIMING, registerKey } from './useCompanyRegister';
 
 export const grantsKey = (owner: OrderSubmissionOwner, token: string) => [...registerKey(owner), 'grants', token];
 
-export function useRegisterGrants(owner: OrderSubmissionOwner, company: string, token: string, guard: () => void) {
+export function useRegisterGrants(
+  owner: OrderSubmissionOwner,
+  company: string,
+  token: string,
+  guard: () => void,
+  enabled = true,
+) {
   return useQuery({
     queryKey: grantsKey(owner, token),
+    enabled,
     queryFn: async () => {
       const grants = await readEveryPage(async (page) => {
         guard();

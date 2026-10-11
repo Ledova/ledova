@@ -19,7 +19,9 @@ deferred #870.
 ## What the company does
 
 A current personal `admin` or `prepare` appointee prepares the grant from the
-company's Register. The register must already have an applied opening import.
+company's Register. On web, an award's **Issue vested shares** action opens this
+same preparation flow and returns to that company's Employee awards page with
+the class's non-paid issues expanded. The register must already have an applied opening import.
 The company identifies an existing member by stable member ID, or supplies a new
 stable member ID with their name and residential address. Names do not establish
 an account link or merge members. This increment accepts only recipients with
@@ -43,9 +45,18 @@ Ledova.
 The preview shows the exact member, named director, terms and quantity, terms
 date and actual proposed UTC entry day, current holdings, register sequence,
 issued supply, authorised cap and resulting totals. A current approver approves
-that exact preview and a current applier applies it under the
+that exact preview and a current applier chooses **Record issue** on web to
+record it under the
 [owner's rules](../../decisions.md#company-run-register-authority-and-evidence);
-rejection records a written reason.
+rejection records a written reason. Approval alone does not create ownership.
+The issue list shows the named recipient, quantity, stage and next action;
+particulars, documents, record identifiers and decision history are in its
+expandable details.
+
+An interrupted decision retains its original request while this page is open.
+A failed read hides private detail and actions while holding the company/class
+selection. Restore current register access and refresh before recovering that
+same outcome; fresh decisions still require their own current capability.
 
 ## What is recorded
 

@@ -1,10 +1,16 @@
 // @vitest-environment jsdom
 
-import { COMPANY_TOKEN_ENDPOINTS as URLS, REGISTER_AWARD_COPY as COPY } from '@ledova/shared';
-import type { OwnCompanyAppointment, RegisterAward, RegisterAwardVesting } from '@ledova/shared';
+import {
+  COMPANY_TOKEN_ENDPOINTS as URLS,
+  REGISTER_AWARD_COPY as COPY,
+  REGISTER_GRANT_COPY as GRANT,
+  ApiClientProvider,
+  USER_PREFERENCES_QUERY_KEY,
+} from '@ledova/shared';
+import type { OwnCompanyAppointment, RegisterAward, RegisterAwardVesting, RegisterGrant } from '@ledova/shared';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import {
   APPOINTMENT,
@@ -14,9 +20,15 @@ import {
   vestingFrom,
 } from '../../../../../packages/shared/tests/fixtures/employee-awards';
 import { ClassAwards } from './ClassAwards';
+import { GrantForm } from './grant/GrantForm';
+import { ownAppointmentsKey } from '../team/appointments';
+import apiClient from '@services/apiClient';
+import CompanyRegisterPage from '.';
+import { companyPreferences, prepareCompanyClient } from '../testSupport';
 
-const api = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn() }));
+const api = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn(), save: vi.fn() }));
 vi.mock('@services/apiClient', () => ({ default: api }));
+vi.mock('./useCompanyRegister', async (original) => ({ ...(await original<object>()), saveFile: api.save }));
 const OWNER = { userUuid: 'profile-one', ownerAccountUuid: 'account-one' };
 const FILE = new File(['%PDF synthetic'], 'synthetic.pdf', { type: 'application/pdf' });
 let client: QueryClient;
@@ -27,11 +39,17 @@ let failedRead: 'award' | 'vesting' | null;
 const submissions = (url: string) =>
   api.post.mock.calls.filter(([endpoint]) => endpoint === url).map(([, body]) => body);
 
-function show() {
+function show(onHeldChange?: (token: string, held: boolean) => void) {
   return render(
     <QueryClientProvider client={client}>
       <MemoryRouter>
-        <ClassAwards owner={OWNER} company={APPOINTMENT.company} register={REGISTER} guard={() => {}} />
+        <ClassAwards
+          owner={OWNER}
+          company={APPOINTMENT.company}
+          register={REGISTER}
+          guard={() => {}}
+          onHeldChange={onHeldChange}
+        />
       </MemoryRouter>
     </QueryClientProvider>,
   );
@@ -43,6 +61,7 @@ beforeEach(() => {
   awards = [];
   events = [];
   failedRead = null;
+  api.save.mockReset();
   api.get.mockReset().mockImplementation(async (url) => {
     if (url === '/api/v1/company-authority/appointments/') return { data: { results: appointments, next: null } };
     if (url === URLS.REGISTER_AWARDS) {
@@ -53,6 +72,8 @@ beforeEach(() => {
       if (failedRead === 'vesting') throw new Error('Recorded vesting could not be refreshed');
       return { data: { results: events, next: null } };
     }
+    if (events.some((event) => url === URLS.REGISTER_AWARD_VESTING(event.uuid)))
+      return { data: events.find((event) => url === URLS.REGISTER_AWARD_VESTING(event.uuid)) };
     if (url === URLS.REGISTER_MEMBERS(REGISTER.token.uuid)) return { data: { members: [] } };
     throw new Error(`Unexpected request: ${url}`);
   });
@@ -99,10 +120,10 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-it('keeps confirmed award and vesting commands through parent refresh failures without submitting or uploading twice', async () => {
-  show();
+it('retains original award, vesting and linked issue preparations through interrupted responses without duplicating their effects', async () => {
+  const view = show();
   for (const kind of ['award', 'vesting'] as const) {
-    const open = await screen.findByRole('button', { name: kind === 'award' ? COPY.PREPARE : COPY.VEST });
+    const open = await screen.findByRole('button', { name: kind === 'award' ? COPY.PREPARE : 'Record vesting' });
     await waitFor(() => expect((open as HTMLButtonElement).disabled).toBe(false));
     fireEvent.click(open);
     if (kind === 'award') {
@@ -129,12 +150,13 @@ it('keeps confirmed award and vesting commands through parent refresh failures w
     );
     const retained = submissions(url)[0];
     expect((screen.getByRole('button', { name: close }) as HTMLButtonElement).disabled).toBe(true);
-    expect((screen.getByRole('button', { name: action }) as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.queryByRole('button', { name: action })).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: retry }));
     await waitFor(() =>
       expect((screen.getByRole('button', { name: retry }) as HTMLButtonElement).disabled).toBe(false),
     );
     expect(submissions(url)).toEqual([retained]);
+    appointments = [{ ...APPOINTMENT, capabilities: ['read_register'] }];
     failedRead = null;
     fireEvent.click(screen.getByRole('button', { name: retry }));
     await waitFor(() =>
@@ -145,23 +167,375 @@ it('keeps confirmed award and vesting commands through parent refresh failures w
     await waitFor(() => expect(screen.queryByRole('button', { name: close })).toBeNull());
     expect(submissions(url)).toEqual([retained]);
     expect(submissions(URLS.REGISTER_EVIDENCE)).toHaveLength(kind === 'award' ? 1 : 2);
+    appointments = [APPOINTMENT];
+    await client.refetchQueries({ queryKey: ownAppointmentsKey(OWNER) });
   }
   expect(awards[0]).toEqual(
     expect.objectContaining({ vestedShares: '100', issuedShares: '0', availableShares: '100' }),
   );
-  expect(screen.getByRole('link', { name: COPY.PREPARE_GRANT }).getAttribute('href')).toContain(
+  expect((await screen.findByRole('link', { name: 'Issue vested shares' })).getAttribute('href')).toContain(
     `award=${encodeURIComponent(awards[0].uuid)}`,
   );
   expect(submissions(URLS.REGISTER_GRANTS)).toHaveLength(0);
+  for (const [label, quantity] of [
+    [COPY.PROMISED, '100'],
+    [COPY.VESTED, '100'],
+    [COPY.ISSUED, '0'],
+    ['Available to issue', '100'],
+  ])
+    expect(within(screen.getByText(label).parentElement!).getByText(`${quantity} shares`)).toBeTruthy();
+  view.unmount();
+  const post = api.post.getMockImplementation()!;
+  let retainedGrant: RegisterGrant | null = null;
+  let preferencesFailed = false;
+  let listed = true;
+  let effectCount = 0;
+  const get = api.get.getMockImplementation()!;
+  api.get.mockImplementation(async (url, config) => {
+    if (url === '/api/user-preferences/') {
+      if (preferencesFailed) throw new Error('Preferences unavailable');
+      return { data: companyPreferences() };
+    }
+    if (url === URLS.REGISTER)
+      return {
+        data: {
+          results: listed
+            ? [
+                { uuid: REGISTER.token.uuid, companyUuid: APPOINTMENT.company, companyName: APPOINTMENT.companyName },
+                { uuid: 'other-class', companyUuid: 'other-company', companyName: 'Other Company' },
+              ]
+            : [{ uuid: 'other-class', companyUuid: 'other-company', companyName: 'Other Company' }],
+          next: null,
+        },
+      };
+    if (url === URLS.HOLDERS(REGISTER.token.uuid))
+      return {
+        data: {
+          ...REGISTER,
+          issuedSupply: retainedGrant?.registerEntry ? '10' : '0',
+          totalHolders: retainedGrant?.registerEntry ? 1 : 0,
+        },
+      };
+    if (url === URLS.REGISTER_LINK_WAITING_WALLETS) return { data: { wallets: [] } };
+    if (url === URLS.REGISTER_GRANTS) return { data: { results: retainedGrant ? [retainedGrant] : [], next: null } };
+    if (
+      url === URLS.REGISTER_AWARDS ||
+      url === URLS.REGISTER_AWARD_VESTINGS ||
+      url === '/api/v1/company-authority/appointments/' ||
+      url === URLS.REGISTER_MEMBERS(REGISTER.token.uuid)
+    )
+      return get(url, config);
+    if (url.startsWith('/api/v1/tokens/')) return { data: { results: [], next: null } };
+    return get(url, config);
+  });
+  api.post.mockImplementation(async (url, body) => {
+    if (retainedGrant && url === URLS.REGISTER_GRANT_PREVIEW(retainedGrant.uuid))
+      return {
+        data: {
+          ...retainedGrant,
+          effectiveOn: '2026-10-11',
+          previewDigest: 'b'.repeat(64),
+          canDecide: true,
+          unmetRequirements: [],
+          registerSequence: 1,
+          currentShares: '0',
+          afterShares: body.kind === 'apply' ? '10' : '0',
+          issuedSupply: '0',
+          afterIssuedSupply: body.kind === 'apply' ? '10' : '0',
+          authorisedSupply: '1000',
+          awardPromisedShares: '100',
+          awardVestedShares: '100',
+          awardIssuedShares: '0',
+          awardAvailableShares: '100',
+        },
+      };
+    if (retainedGrant && url === URLS.REGISTER_GRANT_DECIDE(retainedGrant.uuid)) {
+      const repeated = retainedGrant.decisions.some((row) => row.idempotencyKey === body.idempotencyKey);
+      if (!repeated) {
+        retainedGrant = {
+          ...retainedGrant,
+          decisions: [
+            ...retainedGrant.decisions,
+            {
+              uuid: body.idempotencyKey,
+              appointment: body.appointment,
+              kind: body.kind,
+              digest: body.previewDigest,
+              idempotencyKey: body.idempotencyKey,
+              reason: body.reason || '',
+              decidedAt: '2026-10-11T00:00:00Z',
+              decidedBy: 1,
+              decidedByName: 'Synthetic Appointee',
+            },
+          ],
+          stage: body.kind === 'apply' ? 'applied' : 'approved',
+          ...(body.kind === 'apply'
+            ? {
+                status: 'applied',
+                registerEntry: 'entry-award',
+                effectiveOn: '2026-10-11',
+                reviewedAt: '2026-10-11T00:00:00Z',
+                reviewedBy: 1,
+              }
+            : {}),
+        };
+        if (body.kind === 'apply') {
+          effectCount++;
+          awards = [{ ...awards[0], issuedShares: '10', availableShares: '90' }];
+          throw new Error('Issue committed but response interrupted');
+        }
+      }
+      return { data: retainedGrant };
+    }
+    if (url !== URLS.REGISTER_GRANTS) return post(url, body);
+    retainedGrant = {
+      ...body,
+      uuid: body.operationId,
+      company: APPOINTMENT.company,
+      token: body.tokenId,
+      preparingAppointment: body.appointment,
+      providedBy: 'company',
+      status: 'submitted',
+      stage: 'submitted',
+      acceptanceEvidence: null,
+      acceptanceFingerprint: '',
+      acceptanceSnapshot: {},
+      evidenceFingerprint: 'a'.repeat(64),
+      evidenceSnapshot: {},
+      termsFingerprint: 'a'.repeat(64),
+      termsSnapshot: {},
+      preparedByName: 'Synthetic Preparer',
+      submittedBy: 1,
+      registerEntry: null,
+      effectiveOn: null,
+      reviewedBy: null,
+      reviewedAt: null,
+      rejectionReason: '',
+      decisions: [],
+      createdAt: '2026-10-07T00:00:00Z',
+    };
+    throw new Error('Response interrupted after preparation');
+  });
+  function Returned() {
+    const location = useLocation();
+    return (
+      <>
+        <output data-testid="return-context">{JSON.stringify({ hash: location.hash, ...location.state })}</output>
+        <CompanyRegisterPage />
+      </>
+    );
+  }
+  prepareCompanyClient(client);
+  let canPrepare = true;
+  const preparation = () => (
+    <QueryClientProvider client={client}>
+      <ApiClientProvider client={apiClient}>
+        <MemoryRouter initialEntries={['/prepare']}>
+          <Routes>
+            <Route
+              path="/prepare"
+              element={
+                <GrantForm
+                  owner={OWNER}
+                  guard={() => {}}
+                  company={APPOINTMENT.company}
+                  token={REGISTER.token.uuid}
+                  members={[]}
+                  appointment={APPOINTMENT}
+                  blocked={false}
+                  canPrepare={canPrepare}
+                  onRefused={() => {}}
+                  award={awards[0]}
+                />
+              }
+            />
+            <Route path="/company/register" element={<Returned />} />
+          </Routes>
+        </MemoryRouter>
+      </ApiClientProvider>
+    </QueryClientProvider>
+  );
+  const preparedView = render(preparation());
+  expect(screen.getByText(AWARD_REQUEST.name!)).toBeTruthy();
+  expect(screen.queryByRole('combobox')).toBeNull();
+  const fillGrant = () => {
+    for (const [label, value] of [
+      [GRANT.SHARES, '10'],
+      [GRANT.DIRECTOR, 'Synthetic Director'],
+      [GRANT.AUTHORITY_REFERENCE, 'Synthetic resolution'],
+      [GRANT.REASON, 'Issue recorded vested shares'],
+    ])
+      fireEvent.change(screen.getByLabelText(label), { target: { value } });
+    for (const label of [GRANT.AUTHORITY_DOCUMENT, GRANT.TERMS_DOCUMENT])
+      fireEvent.change(screen.getByLabelText(label), { target: { files: [FILE] } });
+  };
+  fillGrant();
+  fireEvent.click(screen.getByRole('button', { name: 'Prepare vested share issue' }));
+  const recover = await screen.findByRole('button', { name: 'Recover original grant preparation' });
+  await waitFor(() => expect((recover as HTMLButtonElement).disabled).toBe(false));
+  const original = submissions(URLS.REGISTER_GRANTS)[0];
+  expect(original).toEqual(
+    expect.objectContaining({ award: awards[0].uuid, member: awards[0].member, shares: '10', newMember: true }),
+  );
+  expect((screen.getByLabelText(GRANT.SHARES).closest('fieldset') as HTMLFieldSetElement).disabled).toBe(true);
+  canPrepare = false;
+  preparedView.rerender(preparation());
+  fireEvent.click(recover);
+  expect((await screen.findByTestId('return-context')).textContent).toBe(
+    JSON.stringify({
+      hash: '#awards',
+      awardIssueToken: REGISTER.token.uuid,
+      awardIssueCompany: APPOINTMENT.company,
+    }),
+  );
+  expect(submissions(URLS.REGISTER_GRANTS)).toEqual([original]);
+  expect(submissions(URLS.REGISTER_EVIDENCE)).toHaveLength(4);
+  expect(awards[0].issuedShares).toBe('0');
+  await screen.findByText('Next: review and approve the exact share issue.');
+  expect((screen.getByLabelText('Company') as HTMLSelectElement).value).toBe(APPOINTMENT.company);
+  expect((screen.getByText('Non-paid share issues').parentElement as HTMLDetailsElement).open).toBe(true);
+  expect(screen.queryByRole('button', { name: /^Record issue [(]grant/ })).toBeNull();
+  for (const label of ['Approve', 'Record issue']) {
+    fireEvent.click(screen.getByRole('button', { name: new RegExp(`^${label} [(]grant`) }));
+    const confirm = await screen.findByRole('button', { name: `${label} non-paid grant` });
+    await waitFor(() => expect((confirm as HTMLButtonElement).disabled).toBe(false));
+    fireEvent.click(confirm);
+    if (label === 'Approve') {
+      await screen.findByText('Next: record the approved issue. Approval has not changed ownership.');
+      expect(effectCount).toBe(0);
+      expect(awards[0].issuedShares).toBe('0');
+    }
+  }
+  await screen.findByRole('button', { name: /^Recover record issue receipt/, hidden: true });
+  const originalIssue = submissions(URLS.REGISTER_GRANT_DECIDE(retainedGrant!.uuid)).filter(
+    (row) => row.kind === 'apply',
+  )[0];
+  expect((screen.getByLabelText('Company') as HTMLSelectElement).disabled).toBe(true);
+  preferencesFailed = true;
+  await act(async () => client.refetchQueries({ queryKey: USER_PREFERENCES_QUERY_KEY, exact: true }));
+  expect(screen.queryByRole('button', { name: /^Recover record issue receipt/ })).toBeNull();
+  expect(document.body.textContent).not.toContain(AWARD_REQUEST.name);
+  listed = false;
+  await act(async () =>
+    client.refetchQueries({
+      queryKey: ['tokens', 'register', OWNER.userUuid, OWNER.ownerAccountUuid, 'classes'],
+      exact: true,
+    }),
+  );
+  expect(screen.queryByRole('dialog')).toBeNull();
+  appointments = [{ ...APPOINTMENT, capabilities: ['read_register'] }];
+  preferencesFailed = false;
+  listed = true;
+  await act(async () => client.refetchQueries({ queryKey: USER_PREFERENCES_QUERY_KEY, exact: true }));
+  await act(async () =>
+    client.refetchQueries({
+      queryKey: ['tokens', 'register', OWNER.userUuid, OWNER.ownerAccountUuid, 'classes'],
+      exact: true,
+    }),
+  );
+  fireEvent.click(await screen.findByRole('button', { name: 'Refresh grants' }));
+  const issueRecovery = await screen.findByRole('button', { name: /^Recover record issue receipt/ });
+  await waitFor(() => expect((issueRecovery as HTMLButtonElement).disabled).toBe(false));
+  fireEvent.click(issueRecovery);
+  await screen.findByText('Shares issued');
+  await waitFor(() => expect(screen.queryByRole('button', { name: /^Recover record issue receipt/ })).toBeNull());
+  expect(submissions(URLS.REGISTER_GRANT_DECIDE(retainedGrant!.uuid)).filter((row) => row.kind === 'apply')).toEqual([
+    originalIssue,
+    originalIssue,
+  ]);
+  expect(effectCount).toBe(1);
+  expect(awards[0].issuedShares).toBe('10');
+  expect(awards[0].availableShares).toBe('90');
+  preparedView.unmount();
+  api.post.mockClear();
+  retainedGrant = null;
+  canPrepare = true;
+  api.post.mockImplementation(async (url, body) => {
+    if (url !== URLS.REGISTER_GRANTS) return post(url, body);
+    if (submissions(url).length === 1) throw new Error('Preparation response interrupted');
+    throw { response: { status: 403 } };
+  });
+  const refusedView = render(preparation());
+  fillGrant();
+  fireEvent.click(screen.getByRole('button', { name: 'Prepare vested share issue' }));
+  const absentRecover = await screen.findByRole('button', { name: 'Recover original grant preparation' });
+  await waitFor(() => expect((absentRecover as HTMLButtonElement).disabled).toBe(false));
+  const absentOriginal = submissions(URLS.REGISTER_GRANTS)[0];
+  canPrepare = false;
+  refusedView.rerender(preparation());
+  const beforeLookup = api.get.mock.calls.filter(([url]) => url === URLS.REGISTER_GRANTS).length;
+  fireEvent.click(absentRecover);
+  await screen.findByText(/The original grant was not recorded and the request was refused/);
+  expect(screen.queryByRole('button', { name: 'Recover original grant preparation' })).toBeNull();
+  expect(submissions(URLS.REGISTER_GRANTS)).toEqual([absentOriginal, absentOriginal]);
+  expect(api.get.mock.calls.filter(([url]) => url === URLS.REGISTER_GRANTS)).toHaveLength(beforeLookup + 2);
+  expect(submissions(URLS.REGISTER_EVIDENCE)).toHaveLength(2);
+  expect(awards[0].issuedShares).toBe('10');
 });
 
 it('hides cached private award rows and document actions when current company authority is lost', async () => {
   awards = [awardFrom(AWARD_REQUEST)];
-  show();
-  await screen.findByText(`${AWARD_REQUEST.name} · ${AWARD_REQUEST.member}`);
+  const held = vi.fn();
+  show(held);
+  await screen.findByRole('heading', { name: AWARD_REQUEST.name! });
+  const open = await screen.findByRole('button', { name: 'Record vesting' });
+  await waitFor(() => expect((open as HTMLButtonElement).disabled).toBe(false));
+  fireEvent.click(open);
+  fireEvent.change(screen.getByLabelText(COPY.VESTING_SHARES), { target: { value: '50' } });
+  fireEvent.change(screen.getByLabelText(COPY.VESTING_DOCUMENT), { target: { files: [FILE] } });
+  const post = api.post.getMockImplementation()!;
+  api.post.mockImplementation(async (url, body) => {
+    const response = await post(url, body);
+    if (url === URLS.REGISTER_AWARD_VESTINGS) {
+      failedRead = null;
+      throw new Error('Vesting response interrupted');
+    }
+    return response;
+  });
+  fireEvent.click(screen.getByRole('button', { name: COPY.VEST }));
+  await screen.findByRole('alert');
+  const original = submissions(URLS.REGISTER_AWARD_VESTINGS)[0];
+  expect(held).toHaveBeenLastCalledWith(REGISTER.token.uuid, true);
+  let receiveFile: (value: { data: Blob }) => void = () => {};
+  const download = new Promise<{ data: Blob }>((resolve) => {
+    receiveFile = resolve;
+  });
+  const get = api.get.getMockImplementation()!;
+  api.get.mockImplementation(async (url, config) =>
+    url === URLS.REGISTER_AWARD_FILE(awards[0].uuid) ? download : get(url, config),
+  );
+  fireEvent.click(screen.getByText('Agreement and vesting schedule'));
+  fireEvent.click(screen.getByRole('button', { name: /^Download agreement/ }));
+  await waitFor(() =>
+    expect(api.get.mock.calls.some(([url]) => url === URLS.REGISTER_AWARD_FILE(awards[0].uuid))).toBe(true),
+  );
+  failedRead = 'award';
+  fireEvent.click(screen.getByRole('button', { name: 'Refresh awards' }));
+  await screen.findByText(/Employee awards could not be read/);
+  expect(screen.queryByRole('heading', { name: AWARD_REQUEST.name! })).toBeNull();
+  await act(async () => receiveFile({ data: new Blob(['private agreement'], { type: 'application/pdf' }) }));
+  expect(api.save).not.toHaveBeenCalled();
+  failedRead = null;
+  fireEvent.click(screen.getByRole('button', { name: 'Retry awards' }));
+  await screen.findByRole('heading', { name: AWARD_REQUEST.name! });
   appointments = [{ ...APPOINTMENT, capabilities: ['finance'] }];
   fireEvent.click(screen.getByRole('button', { name: 'Refresh awards' }));
-  await waitFor(() => expect(screen.queryByText(`${AWARD_REQUEST.name} · ${AWARD_REQUEST.member}`)).toBeNull());
+  await waitFor(() => expect(screen.queryByRole('heading', { name: AWARD_REQUEST.name! })).toBeNull());
+  expect(screen.queryByText(AWARD_REQUEST.residentialAddress!)).toBeNull();
+  expect(screen.queryByLabelText(COPY.VESTING_SHARES)).toBeNull();
   expect(screen.queryByRole('button', { name: /^Download agreement/ })).toBeNull();
   expect(screen.queryByRole('button', { name: COPY.PREPARE })).toBeNull();
+  expect(held).toHaveBeenLastCalledWith(REGISTER.token.uuid, true);
+  appointments = [{ ...APPOINTMENT, capabilities: ['read_register'] }];
+  await client.refetchQueries({ queryKey: ownAppointmentsKey(OWNER) });
+  await screen.findByRole('heading', { name: AWARD_REQUEST.name! });
+  const recover = await screen.findByRole('button', { name: COPY.VEST });
+  await waitFor(() => expect((recover as HTMLButtonElement).disabled).toBe(false));
+  expect((screen.getByLabelText(COPY.VESTING_SHARES).closest('fieldset') as HTMLFieldSetElement).disabled).toBe(true);
+  fireEvent.click(recover);
+  await waitFor(() => expect(screen.queryByRole('button', { name: 'Close vesting form' })).toBeNull());
+  expect(submissions(URLS.REGISTER_AWARD_VESTINGS)).toEqual([original]);
+  expect(submissions(URLS.REGISTER_EVIDENCE)).toHaveLength(1);
+  expect(held).toHaveBeenLastCalledWith(REGISTER.token.uuid, false);
+  expect(api.get.mock.calls.some(([url]) => url === URLS.REGISTER_AWARD_VESTING(original.operationId))).toBe(true);
 });
