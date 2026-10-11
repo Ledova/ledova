@@ -22,6 +22,7 @@ coverage
 *credentials*.json
 *.dump
 *.sql
+!**/database*_guards.sql
 *.sql.gz
 *secret*.zip
 *secret*.tar
