@@ -13,7 +13,6 @@ from tokens.models import (
     MemberCertificateRequest,
     MemberInvitation,
     MemberParticularsRequest,
-    RegisterParticularsChange,
 )
 from tokens.serializers import member_access as schema
 from tokens.serializers.register_particulars import RegisterParticularsChangeSerializer
@@ -176,7 +175,7 @@ class MemberParticularsRequestViewSet(MemberAccessViewSet):
             actor=request.user, request_id=uuid, **self.body(schema.MemberParticularsRequestPrepareSerializer)
         )
         current = with_decisions(
-            RegisterParticularsChange.objects.filter(pk=change.pk), PARTICULARS.approved_function
+            service.requested_particulars_change(request.user, change.pk), PARTICULARS.approved_function
         ).get()
         return Response(RegisterParticularsChangeSerializer(current).data, status=201 if created else 200)
 

@@ -29,6 +29,7 @@ from tokens.models import (
     RegisterEntry,
     RegisterMemberCessation,
     RegisterMemberParticulars,
+    RegisterParticularsChange,
     RegisterPosition,
 )
 from tokens.services.former_holders import retention_cutoff
@@ -258,6 +259,10 @@ def prepare_requested_particulars(*, actor, request_id, operation_id, appointmen
         reason=reason,
         member_request=request.pk,
     )
+
+
+def requested_particulars_change(actor, change):
+    return RegisterParticularsChange.objects.register_readable_by(actor).filter(pk=change)
 
 
 def request_certificate(*, actor, operation_id, association, entry):
