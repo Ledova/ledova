@@ -34,11 +34,7 @@ export default function Footer() {
         </div>
         <div className="flex flex-wrap gap-x-6 gap-y-2">
           {FOOTER_LINKS.map((link) => (
-            <a
-              key={link.path}
-              href={`${SITE_URL}${link.path}`}
-              className="transition-colors hover:text-text-primary"
-            >
+            <a key={link.path} href={`${SITE_URL}${link.path}`} className="transition-colors hover:text-text-primary">
               {link.label}
             </a>
           ))}
