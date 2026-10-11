@@ -11,7 +11,7 @@ const { ESLint } = require('eslint');
 test('a missing register press await is rejected by the real mobile lint config', async () => {
   const filePath = path.join(MOBILE, 'src/screens/company-register/CompanyRegister.test.tsx');
   const source = await readFile(filePath, 'utf8');
-  const awaited = "await fireEvent.press(view.getByRole('button', { name: 'Select company Garden Company' }));";
+  const awaited = "await fireEvent.press(view.getByRole('button', { name: 'Ordinary shares register' }));";
   assert.equal(source.split(awaited).length, 2, 'the selection must await its press');
   const eslint = new ESLint({ cwd: MOBILE });
   const positive = await eslint.lintText(source, { filePath });
