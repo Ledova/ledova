@@ -179,7 +179,9 @@ it('invites and associates a walletless member, recovers one exact request and r
       <ApiClientProvider client={api as unknown as AxiosInstance}>{children}</ApiClientProvider>
     </QueryClientProvider>
   );
-  const company = await render(<CompanyMemberAccess company={MEMBER_RECORD.company.uuid} />, { wrapper });
+  const company = await render(<CompanyMemberAccess company={MEMBER_RECORD.company.uuid} epoch={getSessionEpoch()} />, {
+    wrapper,
+  });
   await fireEvent.changeText(await screen.findByLabelText('Member UUID'), MEMBER_RECORD.member);
   await fireEvent.changeText(screen.getByLabelText('Intended recipient email'), 'member@example.test');
   await fireEvent.press(screen.getByRole('button', { name: 'Create member invitation' }));
