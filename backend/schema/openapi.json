@@ -873,6 +873,7 @@
                 "$ref": "#/components/schemas/CapitalRequestStatusEnum"
               }
             ],
+            "default": "draft",
             "readOnly": true
           },
           "statusDisplay": {
@@ -14799,6 +14800,7 @@
                 "$ref": "#/components/schemas/RegisterCorrectionStatusEnum"
               }
             ],
+            "default": "submitted",
             "readOnly": true
           },
           "submittedBy": {
