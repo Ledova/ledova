@@ -228,6 +228,20 @@ At most five cases use real app login and non-bypassing credentials for the
 API/database tenant boundary. There is no separate strict runner or declared
 class inventory; record the actual case count and any skips.
 
+## Dependency advisories
+
+`make ci-checks` runs `npm audit --omit=dev` for the root JavaScript workspaces,
+marketing, contracts and mobile. `make backend-test` runs `pip-audit` against
+the backend requirements. `make audit` runs both directly; preflight inherits
+each audit once from its CI group. Dependabot continues separately.
+
+[The audit helper](../../scripts/audit-dependencies.py) accepts only the fixed
+package/advisory pairs recorded in [SECURITY.md](../../SECURITY.md#dependency-advisories).
+A new advisory, a critical npm finding, an incomplete report or a tool failure
+fails verification. Resolve the dependency finding or obtain an explicit,
+reviewed exception; do not accept every future finding in an existing category.
+Production dependency audits do not cover omitted development dependencies.
+
 ## The API type drift gate
 
 The committed [OpenAPI document](../../backend/schema/openapi.json) is generated with

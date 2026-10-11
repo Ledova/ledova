@@ -24,7 +24,9 @@ class SQL:
 
 
 PSYCOPG = types.SimpleNamespace(
-    sql=types.SimpleNamespace(SQL=SQL, Identifier=lambda value: '"' + value + '"', Literal=repr)
+    sql=types.SimpleNamespace(
+        SQL=SQL, Identifier=lambda value: '"' + value + '"', Literal=repr
+    )
 )
 
 
@@ -63,11 +65,19 @@ class BackendCommandTest(unittest.TestCase):
     def test_real_nonzero_subprocess_is_a_named_failure(self):
         results = []
         output = io.StringIO()
-        with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(output):
-            with self.assertRaisesRegex(BACKEND.BackendFailure, "synthetic-failure failed .*9"):
+        with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(
+            output
+        ):
+            with self.assertRaisesRegex(
+                BACKEND.BackendFailure, "synthetic-failure failed .*9"
+            ):
                 BACKEND.phase(
                     "synthetic-failure",
-                    [sys.executable, "-c", "print('AssertionError: named synthetic case'); raise SystemExit(9)"],
+                    [
+                        sys.executable,
+                        "-c",
+                        "print('AssertionError: named synthetic case'); raise SystemExit(9)",
+                    ],
                     self.env,
                     self.root,
                     results,
@@ -94,27 +104,38 @@ class BackendCommandTest(unittest.TestCase):
         return scratch
 
     def test_failed_phase_stops_the_group_and_cleans_the_database(self):
-        events = []
-        scratch = self.context(events)
-        phases = []
+        for failure in ("audit", "ordinary"):
+            events = []
+            phases = []
 
-        def execute(name, *arguments, **options):
-            phases.append(name)
-            if name == "ordinary":
-                raise BACKEND.BackendFailure("ordinary failed")
+            def execute(name, *arguments, **options):
+                phases.append(name)
+                if name == failure:
+                    raise BACKEND.BackendFailure(f"{failure} failed")
 
-        with (
-            patch.object(BACKEND, "dependencies"),
-            patch.object(BACKEND, "scratch_database", scratch),
-            patch.object(BACKEND, "phase", side_effect=execute),
-            contextlib.redirect_stdout(io.StringIO()),
-        ):
-            with self.assertRaisesRegex(BACKEND.BackendFailure, "ordinary failed"):
-                BACKEND.run({"PATH": "/usr/bin"})
-        self.assertEqual(phases[-1], "ordinary")
-        self.assertEqual(events, ["database-created", "database-cleaned"])
-        receipt = json.loads(next(self.artifacts.glob("run-*/resources.json")).read_text())
-        self.assertEqual(receipt["status"], "failed")
+            with (
+                self.subTest(failure=failure),
+                patch.object(BACKEND, "dependencies"),
+                patch.object(BACKEND, "scratch_database", self.context(events)),
+                patch.object(BACKEND, "phase", side_effect=execute),
+                contextlib.redirect_stdout(io.StringIO()),
+            ):
+                with self.assertRaisesRegex(
+                    BACKEND.BackendFailure, f"{failure} failed"
+                ):
+                    BACKEND.run({"PATH": "/usr/bin"})
+            self.assertEqual(phases[0], "audit")
+            self.assertEqual(phases.count("audit"), 1)
+            self.assertEqual(phases[-1], failure)
+            self.assertEqual(
+                events,
+                [] if failure == "audit" else ["database-created", "database-cleaned"],
+            )
+        receipts = [
+            json.loads(path.read_text())
+            for path in self.artifacts.glob("run-*/resources.json")
+        ]
+        self.assertTrue(all(receipt["status"] == "failed" for receipt in receipts))
 
     def test_database_cleanup_rejects_foreign_owners_before_any_drop(self):
         connection = MagicMock()
@@ -122,7 +143,9 @@ class BackendCommandTest(unittest.TestCase):
         cursor.fetchall.return_value = [("test_owned", "developer")]
         with patch.dict(sys.modules, {"psycopg": PSYCOPG}):
             with self.assertRaisesRegex(BACKEND.BackendFailure, "ownership changed"):
-                BACKEND.cleanup_database(connection, "owned", {"migrate": "owned_migrate"})
+                BACKEND.cleanup_database(
+                    connection, "owned", {"migrate": "owned_migrate"}
+                )
         self.assertEqual(cursor.execute.call_count, 1)
 
     def test_owned_scratch_roles_are_used_and_credentials_are_absent_from_receipt(self):
@@ -139,7 +162,9 @@ class BackendCommandTest(unittest.TestCase):
                 return_value="synthetic-private-password",
             ),
         ):
-            with BACKEND.scratch_database(self.env, self.receipt, self.receipt_path) as child:
+            with BACKEND.scratch_database(
+                self.env, self.receipt, self.receipt_path
+            ) as child:
                 self.assertTrue(child["POSTGRES_DB"].startswith("ledova_check_"))
                 self.assertEqual(
                     len(
@@ -160,14 +185,20 @@ class BackendCommandTest(unittest.TestCase):
     ):
         def attempt(primary):
             try:
-                with BACKEND.scratch_database(self.env, self.receipt, self.receipt_path):
+                with BACKEND.scratch_database(
+                    self.env, self.receipt, self.receipt_path
+                ):
                     if primary is not None:
                         raise primary
             except Exception as error:
                 return error
             self.fail("Cleanup failure was accepted")
 
-        for primary, ambient in ((None, False), (BACKEND.BackendFailure("Core phase failed"), False), (None, True)):
+        for primary, ambient in (
+            (None, False),
+            (BACKEND.BackendFailure("Core phase failed"), False),
+            (None, True),
+        ):
             with self.subTest(primary=primary, ambient=ambient):
                 connection = MagicMock()
                 cursor = connection.cursor.return_value.__enter__.return_value
@@ -176,7 +207,9 @@ class BackendCommandTest(unittest.TestCase):
                 self.receipt = {"run_id": "a" * 32}
                 with (
                     patch.dict(sys.modules, {"psycopg": PSYCOPG}),
-                    patch.object(BACKEND, "postgres_connection", return_value=connection),
+                    patch.object(
+                        BACKEND, "postgres_connection", return_value=connection
+                    ),
                     patch.object(
                         BACKEND,
                         "cleanup_database",
@@ -194,8 +227,12 @@ class BackendCommandTest(unittest.TestCase):
                 if primary is not None:
                     self.assertIs(outcome, primary)
                 self.assertEqual(self.receipt["database_cleanup"], "failed")
-                self.assertEqual(self.receipt["database_cleanup_error_type"], "RuntimeError")
-                self.assertNotIn("synthetic-private-password", self.receipt_path.read_text())
+                self.assertEqual(
+                    self.receipt["database_cleanup_error_type"], "RuntimeError"
+                )
+                self.assertNotIn(
+                    "synthetic-private-password", self.receipt_path.read_text()
+                )
                 connection.close.assert_called_once_with()
 
     def test_a_preexisting_scratch_role_is_not_adopted_or_removed(self):
@@ -208,7 +245,9 @@ class BackendCommandTest(unittest.TestCase):
             patch.object(BACKEND, "postgres_connection", return_value=connection),
         ):
             with self.assertRaisesRegex(BACKEND.BackendFailure, "already exists"):
-                with BACKEND.scratch_database(self.env, self.receipt, self.receipt_path):
+                with BACKEND.scratch_database(
+                    self.env, self.receipt, self.receipt_path
+                ):
                     self.fail("Preexisting roles were admitted")
         self.assertEqual(cursor.execute.call_count, 2)
 
