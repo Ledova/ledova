@@ -11,7 +11,7 @@ SCHEMA_COMPARISON ?= /tmp/ledova-schema-comparison.json
 CLIENT_OPERATIONS_REPORT ?= /tmp/ledova-client-operations.json
 
 .PHONY: help install install-backend install-node-if-missing init-local check-local-env build generate-tokens check check-comments check-layers \
-	check-logging check-connection-binding check-error-bodies check-schema-responses check-test-shadowing check-docs check-api-types check-self-imports check-mobile-test-awaits test-gates audit test preflight backend-test ci-checks \
+	check-logging check-connection-binding check-error-bodies check-schema-responses check-test-shadowing check-docs check-api-types check-self-imports check-mobile-test-awaits test-gates audit audit-node audit-backend test preflight backend-test ci-checks \
 	dev-up dev-down dev-logs dev-seed dev-clean docker-prune contracts-deploy-local \
 	contracts-deploy-testnet chain-test smoke lint check-type-check \
 	install-schema-environment generate-api-schema check-api-schema update-api-schema update-api-types check-client-operations
@@ -117,6 +117,7 @@ check: check-comments check-layers check-logging check-connection-binding check-
 	$(NPM) exec -- tsx packages/scripts/generate-css-tokens.mjs --check
 
 ci-checks:
+	$(MAKE) audit-node
 	$(MAKE) check
 	$(MAKE) test-gates
 	$(MAKE) lint
@@ -193,12 +194,13 @@ test-gates:
 	$(PYTHON) -m unittest discover --start-directory scripts/tests --top-level-directory scripts/tests
 	node --test scripts/tests/check-api-types.test.mjs scripts/tests/check-client-operations.test.mjs scripts/tests/check-self-imports.test.mjs
 
-audit:
-	$(NPM) audit --omit=dev --audit-level=low
-	$(NPM) --prefix marketing audit --omit=dev --audit-level=low
-	$(NPM) --prefix contracts audit --omit=dev --audit-level=low
-	$(NPM) --prefix mobile audit --omit=dev --audit-level=critical
-	$(PYTHON) -m pip_audit -r backend/requirements.txt --ignore-vuln PYSEC-2026-1845
+audit: audit-node audit-backend
+
+audit-node:
+	"$(PYTHON)" scripts/audit-dependencies.py node --npm "$(NPM)"
+
+audit-backend:
+	"$(PYTHON)" scripts/audit-dependencies.py backend
 
 test:
 	$(NPM) test

@@ -656,6 +656,20 @@ GitHub's runners**, and all tests together within **five minutes on the Mac**.
 Report actual counts and timings against those targets. Earlier timings and
 verification remain historical evidence, not proof of the new targets.
 
+### Dependency advisories in ordinary CI
+
+**Owner follow-up, 11 October 2026**, after the minimum-suite targets were met
+and #943 completed. [#975](https://github.com/Ledova/ledova/issues/975) records
+the audit restore.
+
+Run JavaScript production dependency advisories in `make ci-checks` and backend
+advisories in `make backend-test`, so preflight includes each once. A new advisory
+must fail. Keep only the explicit previously accepted package/advisory pairs
+in [the security policy](../SECURITY.md#dependency-advisories); a severity
+threshold or broad category must not silently accept future findings.
+Dependabot remains unchanged. Report the measured audit time as part of the
+ordinary check timings.
+
 ## Backend migration baseline
 
 **Historical owner decision, 10 October 2026**, recorded on

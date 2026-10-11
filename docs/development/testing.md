@@ -21,21 +21,25 @@ development tools and an isolated PostgreSQL administrator connection available.
 | Small gate controls                   | `make test-gates`                                                          |
 | Client, shared and contract tests     | `make test`                                                                |
 | PostgreSQL backend verification       | `make backend-test`                                                        |
+| Production dependency advisories      | `make audit`                                                               |
 | Browser bundle and Playwright smoke   | `make build && make smoke`                                                 |
 | Optional local chain smoke            | `make chain-test`                                                          |
 | Native builds before mobile release   | Manual [mobile native workflow](../../.github/workflows/mobile-native.yml) |
 
 Native builds and chain smoke are manual. They are outside PR/main CI and
-preflight. Dependency advisories remain available through `make audit` when
-needed. Correct dependency installation and PostgreSQL role privileges are
+preflight. `make ci-checks` includes the JavaScript workspace audits, and
+`make backend-test` includes the backend audit; preflight runs each once.
+New production advisories fail, with only the fixed exceptions in
+[the security policy](../../SECURITY.md#dependency-advisories) accepted.
+Correct dependency installation and PostgreSQL role privileges are
 prerequisites; record setup time separately from test time.
 
 ## Backend verification
 
 Use PostgreSQL, not SQLite: RLS, history/share-total triggers and issuance locks
 are part of the actual application. `make backend-test` runs the small suite,
-lint, Django system/migration checks, role/catalogue checks and the API schema
-snapshot. The fresh migrations create the current schema and database guards.
+lint, dependency advisories, Django system/migration checks, role/catalogue checks
+and the API schema snapshot. The fresh migrations create the current schema and database guards.
 The command owns its scratch database and roles; preserve developer resources.
 
 Keep at most **150 executed backend cases** in total. Cover:
