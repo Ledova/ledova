@@ -18,7 +18,8 @@ company authority and activation, company eligibility decisions, the
 company-run register with imports, corrections, openings and wallet links,
 non-paid grants and transfers, six company-authorised chain actions, employee
 awards with recorded vesting, fully paid external allotments, members' own
-Profile particulars and company inspection copies. The
+Profile particulars, member-specific invitations and own records,
+company-reviewed particulars requests, unsigned certificates and core packs. The
 [implementation index](plans/company-managed-registers/README.md) lists each
 increment with its guide and pull request.
 
@@ -57,22 +58,13 @@ its phase issues:
 
 ## Remaining work
 
-### Finish the essential register
+### Human release acceptance
 
-The [implementation index](plans/company-managed-registers/README.md#remaining-scope)
-carries each issue's prerequisites.
-
-- **Member records and access ([#866](https://github.com/Ledova/ledova/issues/866)).**
-  A company-issued, member-specific invitation accepted by the signed-in
-  recipient ([11 October decision](decisions.md#member-invitations-and-account-association)),
-  then permitted own records, particulars requests and certificate request status.
-- **Basic outputs ([#871](https://github.com/Ledova/ledova/issues/871)).**
-  Certificates and the company pack prepared through company appointments with
-  exact register provenance, and permitted member access once #866 lands.
-- **Core acceptance ([#873](https://github.com/Ledova/ledova/issues/873)).**
-  The web and mobile company and member journey recorded with zero routine
-  platform-staff actions. The separate human release checks stay under
-  [#624](https://github.com/Ledova/ledova/issues/624).
+The [11 October essential journey](operations/evidence/essential-register-2026-10-11.md)
+records the joined web/company and iOS/member flow without routine platform-staff
+actions. Genuine physical-device and live human release checks remain under
+[#624](https://github.com/Ledova/ledova/issues/624); the controlled browser and
+simulator observation does not establish them.
 
 ### Deferred
 

@@ -28,6 +28,7 @@ stay here as history and are marked where they appear.
 | [Dependency advisories in ordinary CI](#dependency-advisories-in-ordinary-ci) | 11 October 2026 | Current |
 | [GitHub runners and Mac retirement](#github-runners-and-mac-retirement) | 11 October 2026 | Current |
 | [Binding caps and backup authorisation](#binding-caps-and-backup-authorisation) | 11 October 2026 | Current |
+| [ledova.io rebuild and release authorisation](#ledovaio-rebuild-and-release-authorisation) | 11 October 2026 | Completed under #979; signer and funds decisions remain separate |
 | [Backend migration baseline](#backend-migration-baseline) | 10 October 2026 | Superseded 11 October |
 | [Registry priority, crypto on-ramp and AUD payments](#registry-priority-crypto-on-ramp-and-aud-payments) | 5 October 2026 | Payment scope superseded 9 October; on-ramp restriction stands |
 | [Payments and settlement](#payments-and-settlement) | 25 September to 2 October 2026 | Current behaviour; new mechanics deferred |
@@ -684,9 +685,9 @@ work, including #867, rebases onto the fresh migrations after this work lands.
 
 At this initial checkpoint, ledova.io was left untouched and every part of its
 [backup/export/rebuild/re-seed plan](operations/upgrades.md#fresh-database-rebuild)
-needed owner approval. The later [follow-up below](#binding-caps-and-backup-authorisation)
-supersedes that blanket backup restriction; rebuilding for the fresh history
-still needs the owner's go-ahead.
+needed owner approval. The later [backup permission](#binding-caps-and-backup-authorisation)
+and [release direction](#ledovaio-rebuild-and-release-authorisation) supersede
+those restrictions for the completed operation.
 
 Deliver in at most three PRs, with short descriptions, independent review at the
 merging head and green CI. Targets are the whole PR run within **ten minutes on
@@ -748,15 +749,32 @@ with workers, signers and external integrations disabled; ordinary preparation
 needs no extra permission. This documentation records permission, not completed
 live or isolated work.
 
-Live selective-record export, stopping writers, rebuild, migrations, re-seeding,
-configuration and release still require the owner's go-ahead. Signer activation
+At this checkpoint, live selective-record export, stopping writers, rebuild,
+migrations, re-seeding, configuration and release still required the owner's
+go-ahead, supplied in the [later direction below](#ledovaio-rebuild-and-release-authorisation). Signer activation
 and real-funds use remain separate decisions.
 The [short rebuild plan](operations/upgrades.md#fresh-database-rebuild) preserves
 the original database/storage and matching release/configuration for recovery.
-A firm downtime estimate needs the actual database/storage inventory and sizes,
-owner-confirmed record mappings and a measured safe isolated rehearsal; no such
-estimate is available yet. Record selection is pending that inventory and the
-owner's decision, not a permission request for each preparation step.
+A firm downtime estimate needed the actual database/storage inventory and sizes,
+owner-confirmed record mappings and a measured safe isolated rehearsal; none was
+available at this checkpoint. Record selection was pending that inventory and
+the owner's decision, not a permission request for each preparation step.
+
+## ledova.io rebuild and release authorisation
+
+**Later owner direction, 11 October 2026**, supplied directly in the active
+Codex session. The owner authorised production deployment and the fresh rebuild,
+permitted resetting obsolete production data/resources to keep the project
+simple, and then directed that no further backup work was needed. This
+supersedes the preparation-only restriction above for that operation and needs
+no repeat permission request. Signer activation and real-funds use remain
+separate decisions.
+
+The authorised operation completed under [#979](https://github.com/Ledova/ledova/issues/979).
+Its [operational record](operations/upgrades.md#completed-ledovaio-rebuild-11-october-2026)
+owns the release, retained setup, checks and limits. Existing protected backups
+and private evidence remain retained; this decision does not claim later product
+PRs were deployed.
 
 ## Backend migration baseline
 
@@ -777,7 +795,8 @@ unrelated retained records remain.
 
 The [11 October decision](#minimum-tests-and-fresh-migrations) supersedes the
 baseline adoption path, broad runtime/process coverage and earlier 15/20-minute
-targets. ledova.io needs an approved rebuild. That checkpoint kept the Mac login
+targets. The live rebuild later completed under [#979](https://github.com/Ledova/ledova/issues/979).
+That checkpoint kept the Mac login
 service running while Linux and administrator-level startup stayed deferred.
 The later [GitHub runner decision](#github-runners-and-mac-retirement) retires it.
 

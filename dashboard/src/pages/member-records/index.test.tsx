@@ -173,7 +173,13 @@ it('invites and associates a walletless member, recovers one exact request and r
       <ApiClientProvider client={api as unknown as AxiosInstance}>{children}</ApiClientProvider>
     </QueryClientProvider>
   );
-  const company = render(<CompanyMemberAccess company={MEMBER_RECORD.company.uuid} />, { wrapper });
+  const company = render(
+    <CompanyMemberAccess
+      owner={{ userUuid: preferences.userProfile, ownerAccountUuid: preferences.userAccount.uuid }}
+      company={MEMBER_RECORD.company.uuid}
+    />,
+    { wrapper },
+  );
   fireEvent.change(await screen.findByLabelText('Member UUID'), { target: { value: MEMBER_RECORD.member } });
   fireEvent.change(screen.getByLabelText('Intended recipient email'), { target: { value: 'member@example.test' } });
   fireEvent.click(screen.getByRole('button', { name: 'Create member invitation' }));

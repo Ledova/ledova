@@ -126,14 +126,12 @@ Fresh initial migrations from current models install the schema, the PostgreSQL
 roles and grants, RLS policies, functions and triggers, and the
 history/share-total/issuance safeguards. `make backend-test` checks migration
 drift, roles/catalogue and the API schema snapshot; no old-chain rewind,
-equivalence/adoption suite or per-migration upgrade test is required. An older
-ledova.io database needs a rebuild; the
-[backup/inventory and rebuild plan](../operations/upgrades.md#fresh-database-rebuild)
-records the already-authorised backup and read-only database/private-storage
-inventory and reversible isolated validation
-([decision](../decisions.md#binding-caps-and-backup-authorisation)). Live
-selective export and changes to the running deployment still require the
-owner's go-ahead.
+equivalence/adoption suite or per-migration upgrade test is required. A database
+using an older initial graph needs a rebuild, including the pre-member graph
+used by the completed ledova.io cutover. The
+[upgrade guide](../operations/upgrades.md#completed-ledovaio-rebuild-11-october-2026)
+records that completed operation and the later, undeployed member/output scope.
+There is no older-database adoption path.
 
 ## Documents against code
 

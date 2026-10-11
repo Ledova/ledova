@@ -150,7 +150,12 @@ function OwnRegister({
         classes.isSuccess &&
         registers.isSuccess && (
           <>
-            <CompanyMemberAccess key={`members/${company.uuid}`} company={company.uuid} sourceReady={sourceReady} />
+            <CompanyMemberAccess
+              key={`members/${company.uuid}`}
+              owner={owner}
+              company={company.uuid}
+              sourceReady={sourceReady}
+            />
             <CompanyPack owner={owner} guard={guard} company={company.uuid} sourceReady={sourceReady} />
             <RegisterParticulars owner={owner} guard={guard} company={company.uuid} registers={registers.data} />
             <RegisterLinks owner={owner} guard={guard} company={company.uuid} registers={registers.data} />

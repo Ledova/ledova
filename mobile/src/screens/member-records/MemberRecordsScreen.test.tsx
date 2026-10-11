@@ -179,7 +179,9 @@ it('invites and associates a walletless member, recovers one exact request and r
       <ApiClientProvider client={api as unknown as AxiosInstance}>{children}</ApiClientProvider>
     </QueryClientProvider>
   );
-  const company = await render(<CompanyMemberAccess company={MEMBER_RECORD.company.uuid} />, { wrapper });
+  const company = await render(<CompanyMemberAccess company={MEMBER_RECORD.company.uuid} epoch={getSessionEpoch()} />, {
+    wrapper,
+  });
   await fireEvent.changeText(await screen.findByLabelText('Member UUID'), MEMBER_RECORD.member);
   await fireEvent.changeText(screen.getByLabelText('Intended recipient email'), 'member@example.test');
   await fireEvent.press(screen.getByRole('button', { name: 'Create member invitation' }));
@@ -243,7 +245,10 @@ it('invites and associates a walletless member, recovers one exact request and r
   await screen.findByRole('button', { name: 'Retry original member action' });
   expect(screen.getByLabelText('Requested name')).toBeDisabled();
   await fireEvent.press(screen.getByRole('button', { name: 'Retry original member action' }));
-  await waitFor(() => expect(screen.queryByRole('button', { name: 'Retry original member action' })).toBeNull());
+  await waitFor(() => {
+    expect(screen.queryByRole('button', { name: 'Retry original member action' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Read own entries for Ordinary' })).toBeEnabled();
+  });
   const commands = api.post.mock.calls.filter(([url]) => url === URLS.MEMBER_PARTICULARS_REQUESTS);
   expect(commands).toHaveLength(2);
   expect(commands[0][1]).toEqual(commands[1][1]);

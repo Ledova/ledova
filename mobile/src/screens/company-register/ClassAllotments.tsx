@@ -8,7 +8,7 @@ import {
   type TokenHoldersResponse,
 } from '@ledova/shared';
 import { useQueryClient } from '@tanstack/react-query';
-import { entriesKey, registerKey } from './useCompanyRegister';
+import { entriesKey, registerKey, transferMembersKey } from './useCompanyRegister';
 import { Action } from '../../components/Ledger';
 import { assertSessionEpoch } from '../../services/sessionScope';
 import { AllotmentForm } from './AllotmentForm';
@@ -85,6 +85,7 @@ export function ClassAllotments({
     await Promise.all([
       client.invalidateQueries({ queryKey: [...registerKey(epoch), 'holders'] }),
       client.invalidateQueries({ queryKey: entriesKey(epoch, register.token.uuid) }),
+      client.invalidateQueries({ queryKey: transferMembersKey(epoch, register.token.uuid) }),
     ]);
   };
   return (

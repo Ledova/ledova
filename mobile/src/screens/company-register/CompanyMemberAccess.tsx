@@ -8,9 +8,25 @@ import { orderSubmissionSession } from '../../services/orderSubmissions';
 import { EvidencePicker, Field } from './RegisterFields';
 import { useRegisterEvidence } from './useRegisterEvidence';
 import { useCompanyStyles } from './styles';
+import { particularsKey } from './useCompanyRegister';
 
-export function CompanyMemberAccess({ company, sourceReady = true }: { company: string; sourceReady?: boolean }) {
-  const access = useCompanyMemberAccess(apiClient, company, Crypto.randomUUID, orderSubmissionSession, sourceReady);
+export function CompanyMemberAccess({
+  company,
+  epoch,
+  sourceReady = true,
+}: {
+  company: string;
+  epoch: number;
+  sourceReady?: boolean;
+}) {
+  const access = useCompanyMemberAccess(
+    apiClient,
+    company,
+    Crypto.randomUUID,
+    orderSubmissionSession,
+    sourceReady,
+    particularsKey(epoch, company),
+  );
   const styles = useCompanyStyles();
   const evidence = useRegisterEvidence(company, 'supporting');
   const [member, setMember] = useState('');

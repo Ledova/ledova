@@ -15,6 +15,7 @@ import { entriesKey } from './useRegisterCorrections';
 import { useOwnAppointments } from './useRegisterImports';
 import { grantsKey, useRegisterGrants } from './useRegisterGrants';
 import { awardsKey } from './useRegisterAwards';
+import { transferMembersKey } from './useRegisterTransfers';
 
 export function ClassGrants({
   owner,
@@ -44,6 +45,7 @@ export function ClassGrants({
         awardsKey(owner, token),
         [...registerKey(owner), 'holders'],
         entriesKey(owner, token),
+        transferMembersKey(owner, token),
         ownAppointmentsKey(owner),
       ].map((queryKey) => client.invalidateQueries({ queryKey })),
     );

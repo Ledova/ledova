@@ -8,11 +8,11 @@ PostgreSQL guards; an older database cannot adopt that history in place.
 
 ## Fresh database rebuild
 
-The [11 October follow-up](../decisions.md#binding-caps-and-backup-authorisation)
-already authorises a ledova.io backup and read-only database/private-storage
-inventory and reversible isolated validation. This page records no completed
-live work. Live selective-record export, stopping writers, rebuild, migration,
-re-seeding, configuration and release still need the owner's go-ahead.
+For a future rebuild, agree what is worth keeping and the recovery checkpoint
+before changing the running instance. The separately authorised ledova.io
+operation is [completed below](#completed-ledovaio-rebuild-11-october-2026);
+its earlier preparation-only restriction is superseded by the
+[owner's release direction](../decisions.md#ledovaio-rebuild-and-release-authorisation).
 
 1. Back up the database and all private storage, including retained files
    without rows, with matching release/configuration provenance and restricted
@@ -45,6 +45,30 @@ promise to preserve them automatically.
 
 Held product migrations rebase onto this fresh history. This is no authorization
 for deployment, signer activation or real-funds use.
+
+## Completed ledova.io rebuild, 11 October 2026
+
+The owner-authorised [#979](https://github.com/Ledova/ledova/issues/979) cutover
+served fresh release `7cba7ace27a555d715c2f4651eb310770c6b54ce` at 05:33 UTC.
+It retained the selected sign-ins and basic company setup, installed the fresh
+PostgreSQL guards, and passed the recorded system, role/catalogue, core API,
+runtime and public HTTP checks. Unused resources belonging to that operation
+were removed; existing protected backups and operational evidence remain private.
+The owner's password login and physical-device acceptance were not exercised.
+
+The first attempt completed fresh migrations, the selected-record import and
+reference/role checks, then failed on an unsupported Compose option before
+fresh public access opened. The old release was restored. The corrected serving
+retry took 68 seconds, reusing the verified fresh database; its migration phase
+took 140 seconds separately. These measured operations are recorded privately,
+including the initial interruption; they are not a promised future downtime.
+
+Later member access [#985](https://github.com/Ledova/ledova/pull/985) and outputs
+[#986](https://github.com/Ledova/ledova/pull/986) were not deployed in this cutover.
+Their current initial migration graph requires another fresh rebuild when
+adopted from this pre-member release; there is no in-place adoption command.
+The owner directed that no further backup work was needed for the completed
+operation. Signer activation and real-funds use remain separate decisions.
 
 ## Applying a release
 

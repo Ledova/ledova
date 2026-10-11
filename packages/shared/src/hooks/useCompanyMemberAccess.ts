@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient, type QueryKey } from '@tanstack/react-query';
 import type { AxiosInstance } from 'axios';
 import { getOwnCompanyAppointments } from '../services/company-authority';
 import {
@@ -45,6 +45,7 @@ export function useCompanyMemberAccess(
   newKey: () => string,
   session?: OrderSubmissionSession,
   sourceReady = true,
+  particularsQueryKey?: QueryKey,
 ) {
   const client = useQueryClient();
   const { owner, boundary } = useSubmissionOwner(session);
@@ -301,6 +302,7 @@ export function useCompanyMemberAccess(
           data.preparingAppointment !== command.payload.appointment
         )
           throw new Error('The company instruction does not match the member request.');
+        if (particularsQueryKey) await client.invalidateQueries({ queryKey: particularsQueryKey });
         setNotice(
           `Company particulars instruction ${data.uuid} recorded. Approval and application remain separate in Register particulars changes.`,
         );

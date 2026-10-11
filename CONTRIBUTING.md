@@ -143,7 +143,7 @@ grows.
    deployment, live database migrations, signer activation and real-funds use
    also require the owner's explicit direction. The current operational
    authorisations for ledova.io are recorded in the
-   [11 October follow-up](docs/decisions.md#binding-caps-and-backup-authorisation).
+   [11 October release decision](docs/decisions.md#ledovaio-rebuild-and-release-authorisation).
 
 How to establish that a change does what it claims is a separate question, and is
 in [testing and review](docs/development/testing.md).
