@@ -1,4 +1,4 @@
-import { useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   REGISTER_ALLOTMENT_COPY as COPY,
   appointmentForRegisterStep,
@@ -17,6 +17,7 @@ import { AllotmentRecord } from './AllotmentRecord';
 import { useOwnAppointments } from './useRegisterImports';
 import { transferMembersKey, useTransferMembers } from './useRegisterTransfers';
 import { allotmentsKey, useRegisterAllotments } from './useRegisterAllotments';
+import { ownAppointmentsKey } from '../team/appointments';
 
 export function ClassAllotments({
   owner,
@@ -24,24 +25,29 @@ export function ClassAllotments({
   register,
   guard,
   sourceReady = true,
+  onHeldChange,
 }: {
   owner: OrderSubmissionOwner;
   company: string;
   register: TokenHoldersResponse;
   guard: () => void;
   sourceReady?: boolean;
+  onHeldChange?: (token: string, held: boolean) => void;
 }) {
   const client = useQueryClient();
-  const [editing, setEditing] = useState(false);
+  const [editing, setEditing] = useState<OwnCompanyAppointment | null>(null);
   const [formHeld, setFormHeld] = useState(false);
+  const [decisionHolds, setDecisionHolds] = useState<Record<string, boolean>>({});
   const live = useRef(true);
   const writeReady = useRef(false);
-  const latestAppointments = useRef<OwnCompanyAppointment[]>([]);
+  const sourceAvailable = useRef(sourceReady);
+  const privateAvailable = useRef(false);
   const appointments = useOwnAppointments(owner, guard);
-  const readable = hasCurrentRegisterReadAuthority(appointments.isSuccess ? appointments.data : [], company);
+  const readable =
+    appointments.isSuccess && !appointments.isFetching && hasCurrentRegisterReadAuthority(appointments.data, company);
   useLayoutEffect(() => {
-    latestAppointments.current = appointments.isSuccess ? appointments.data : [];
-  }, [appointments.isSuccess, appointments.data]);
+    sourceAvailable.current = sourceReady;
+  }, [sourceReady]);
   useLayoutEffect(() => {
     live.current = true;
     return () => {
@@ -52,24 +58,29 @@ export function ClassAllotments({
     () => () => {
       guard();
       if (!live.current) throw new Error('This allotment section is no longer open.');
-      if (!hasCurrentRegisterReadAuthority(latestAppointments.current, company))
+      const state = client.getQueryState(ownAppointmentsKey(owner));
+      if (!sourceAvailable.current || state?.status !== 'success' || state.fetchStatus !== 'idle')
+        throw new Error('Refresh the register and current company appointments.');
+      const current = client.getQueryData<OwnCompanyAppointment[]>(ownAppointmentsKey(owner)) ?? [];
+      if (!hasCurrentRegisterReadAuthority(current, company))
         throw new Error('A current company register appointment is required.');
     },
-    [guard, company],
+    [guard, company, client, owner],
   );
   const token = register.token.uuid;
-  const allotments = useRegisterAllotments(owner, company, token, check, readable);
+  const allotments = useRegisterAllotments(owner, company, token, check, readable && sourceReady);
   const financialGuard = () => {
     check();
     const current = client.getQueryState(allotmentsKey(owner, token));
-    if (current?.status !== 'success' || current.fetchStatus !== 'idle')
+    if (!privateAvailable.current || current?.status !== 'success' || current.fetchStatus !== 'idle')
       throw new Error('Refresh the external allotments before reading private sources.');
   };
   const appointment =
     readable && appointments.isSuccess ? appointmentForRegisterStep(appointments.data, company, 'prepare') : undefined;
   const supported = register.initialized && register.token.status === 'draft';
-  const members = useTransferMembers(owner, token, check, editing && !!appointment && supported);
+  const members = useTransferMembers(owner, token, check, !!editing && !!appointment && supported && sourceReady);
   const financialReady = allotments.isSuccess && allotments.fetchStatus === 'idle';
+  const privateReady = readable && financialReady && sourceReady && !appointments.isError;
   const blocked =
     !readable ||
     !financialReady ||
@@ -81,10 +92,21 @@ export function ClassAllotments({
     !supported;
   useLayoutEffect(() => {
     writeReady.current = !blocked;
-  }, [blocked]);
+    privateAvailable.current = privateReady;
+  }, [blocked, privateReady]);
+  const recordHeld = useCallback((uuid: string, held: boolean) => {
+    setDecisionHolds((current) => (current[uuid] === held ? current : { ...current, [uuid]: held }));
+  }, []);
+  const held = formHeld || Object.values(decisionHolds).some(Boolean);
+  useEffect(() => {
+    onHeldChange?.(token, held);
+    return () => onHeldChange?.(token, false);
+  }, [onHeldChange, token, held]);
   const refresh = async (throwOnError = false) => {
+    guard();
+    await appointments.refetch({ throwOnError });
     check();
-    await Promise.all([allotments.refetch({ throwOnError }), appointments.refetch({ throwOnError })]);
+    await allotments.refetch({ throwOnError });
     check();
     await Promise.all([
       client.invalidateQueries({ queryKey: [...registerKey(owner), 'holders'] }),
@@ -109,16 +131,14 @@ export function ClassAllotments({
         </>
       )}
       {appointments.isSuccess && !appointment && <p className="text-sm text-text-muted">{COPY.READ_ONLY_NOTE}</p>}
-      {appointment && supported && (
+      {appointment && supported && privateReady && (
         <PageAction
           label={editing ? 'Close allotment form' : COPY.PREPARE}
-          disabled={blocked || formHeld}
-          onClick={() => setEditing((value) => !value)}
+          disabled={blocked || held}
+          onClick={() => setEditing((value) => (value ? null : appointment))}
         />
       )}
       {editing &&
-        appointment &&
-        supported &&
         (members.isPending ? (
           <p role="status" className="text-sm text-text-muted">
             Loading retained recipients…
@@ -134,36 +154,42 @@ export function ClassAllotments({
               onClick={() => void members.refetch()}
             />
           </>
-        ) : (
-          <AllotmentForm
-            key={`${company}/${token}/${appointment.uuid}`}
-            company={company}
-            token={token}
-            members={members.data}
-            appointment={appointment}
-            guard={financialGuard}
-            newEffectGuard={() => {
-              if (
-                !writeReady.current ||
-                appointmentForRegisterStep(latestAppointments.current, company, 'prepare')?.uuid !== appointment.uuid
-              )
-                throw new Error('Refresh the register and your preparation appointment.');
-            }}
-            blocked={blocked || members.isFetching}
-            onHeldChange={setFormHeld}
-            onRecorded={async () => {
-              check();
-              await refresh(true);
-              check();
-              setEditing(false);
-            }}
-          />
-        ))}
+        ) : null)}
+      {editing && (
+        <AllotmentForm
+          key={`${company}/${token}/${editing.uuid}`}
+          company={company}
+          token={token}
+          members={members.data ?? []}
+          appointment={editing}
+          guard={financialGuard}
+          newEffectGuard={() => {
+            if (
+              !writeReady.current ||
+              appointmentForRegisterStep(
+                client.getQueryData<OwnCompanyAppointment[]>(ownAppointmentsKey(owner)) ?? [],
+                company,
+                'prepare',
+              )?.uuid !== editing.uuid
+            )
+              throw new Error('Refresh the register and your preparation appointment.');
+          }}
+          blocked={blocked || members.isFetching}
+          visible={privateReady && members.isSuccess && !members.isFetching}
+          onHeldChange={setFormHeld}
+          onRecorded={async () => {
+            check();
+            await refresh(true);
+            check();
+            setEditing(null);
+          }}
+        />
+      )}
       {!readable ? (
         <p className="text-sm text-text-muted">
           A current company register appointment is required to read external allotments.
         </p>
-      ) : allotments.isPending || allotments.isFetching ? (
+      ) : allotments.isPending || allotments.isFetching || !sourceReady ? (
         <p role="status" className="text-sm text-text-muted">
           Loading external allotments…
         </p>
@@ -174,34 +200,39 @@ export function ClassAllotments({
               External allotments could not be read. A current company register appointment is required.
             </p>
           )}
-          <PageAction
-            label={allotments.isError ? 'Retry allotments' : 'Refresh allotments'}
-            disabled={allotments.isFetching || appointments.isFetching}
-            onClick={() => void refresh().catch(() => {})}
-          />
-          {financialReady && allotments.data?.length === 0 ? (
-            <p className="text-sm text-text-muted">{COPY.EMPTY}</p>
-          ) : (
-            <ul className="divide-y divide-border-subtle">
-              {financialReady &&
-                allotments.data?.map((allotment) => (
-                  <AllotmentRecord
-                    key={allotment.uuid}
-                    allotment={allotment}
-                    steps={registerSteps(appointments.isSuccess ? appointments.data : [], company)}
-                    guard={financialGuard}
-                    newEffectGuard={(kind) => {
-                      check();
-                      if (!writeReady.current || !appointmentForRegisterStep(latestAppointments.current, company, kind))
-                        throw new Error('Refresh the register and your appointment before a new decision.');
-                    }}
-                    onSettled={() => refresh(true)}
-                  />
-                ))}
-            </ul>
-          )}
+          {privateReady && allotments.data?.length === 0 && <p className="text-sm text-text-muted">{COPY.EMPTY}</p>}
         </>
       )}
+      <PageAction
+        label={allotments.isError ? 'Retry allotments' : 'Refresh allotments'}
+        disabled={allotments.isFetching || appointments.isFetching}
+        onClick={() => void refresh().catch(() => {})}
+      />
+      <ul className="divide-y divide-border-subtle">
+        {allotments.data?.map((allotment) => (
+          <AllotmentRecord
+            key={allotment.uuid}
+            allotment={allotment}
+            steps={registerSteps(appointments.isSuccess ? appointments.data : [], company)}
+            guard={financialGuard}
+            visible={privateReady}
+            onHeldChange={recordHeld}
+            newEffectGuard={(kind) => {
+              check();
+              if (
+                !writeReady.current ||
+                !appointmentForRegisterStep(
+                  client.getQueryData<OwnCompanyAppointment[]>(ownAppointmentsKey(owner)) ?? [],
+                  company,
+                  kind,
+                )
+              )
+                throw new Error('Refresh the register and your appointment before a new decision.');
+            }}
+            onSettled={() => refresh(true)}
+          />
+        ))}
+      </ul>
     </div>
   );
 }

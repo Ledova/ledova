@@ -48,15 +48,19 @@ export function registersQuery(owner: OrderSubmissionOwner, uuids: string[]) {
   };
 }
 
-export function useCompanyRegister(owner: OrderSubmissionOwner) {
+export function useCompanyRegister(
+  owner: OrderSubmissionOwner,
+  retained?: { company: { uuid: string; name: string }; tokens: string[] },
+) {
   const [selected, setSelected] = useState('');
   const classes = useRegisterClasses(owner);
   const listed = classes.data ?? [];
   const companies = [...new Map(listed.map((item) => [item.companyUuid, item.companyName])).entries()].map(
     ([uuid, name]) => ({ uuid, name }),
   );
-  const company = companies.length === 1 ? companies[0] : companies.find(({ uuid }) => uuid === selected);
-  const uuids = listed.filter((item) => item.companyUuid === company?.uuid).map(({ uuid }) => uuid);
+  const company =
+    retained?.company ?? (companies.length === 1 ? companies[0] : companies.find(({ uuid }) => uuid === selected));
+  const uuids = retained?.tokens ?? listed.filter((item) => item.companyUuid === company?.uuid).map(({ uuid }) => uuid);
   const registers = useQuery(registersQuery(owner, uuids));
   return { classes, companies, company, selectCompany: setSelected, registers };
 }

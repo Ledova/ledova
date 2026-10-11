@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { useRegisterDecision, type RegisterDecisionFamily, type RegisterDecisionKind } from '@ledova/shared';
 import { Modal } from '@components/Modal';
 import { PageAction } from '@components/Page';
@@ -31,6 +31,7 @@ export function RegisterDecisions<Shown extends Proposal, Previewed extends Prev
   note,
   children,
   visible = true,
+  onHeldChange,
 }: {
   family: RegisterDecisionFamily<Shown, Previewed>;
   copy: DecisionCopy;
@@ -45,6 +46,7 @@ export function RegisterDecisions<Shown extends Proposal, Previewed extends Prev
   note?: (kind: RegisterDecisionKind, preview: Previewed) => ReactNode;
   children: (preview: Previewed) => ReactNode;
   visible?: boolean;
+  onHeldChange?: (uuid: string, held: boolean) => void;
 }) {
   const [active, setActive] = useState<RegisterDecisionKind | null>(null);
   const [reason, setReason] = useState('');
@@ -66,6 +68,11 @@ export function RegisterDecisions<Shown extends Proposal, Previewed extends Prev
   const decisions = { approve, apply, reject };
   const decision = active ? decisions[active] : null;
   const busy = approve.busy || apply.busy || reject.busy;
+  const held = busy || !!approve.recovery || !!apply.recovery || !!reject.recovery;
+  useEffect(() => {
+    onHeldChange?.(proposal.uuid, held);
+    return () => onHeldChange?.(proposal.uuid, false);
+  }, [onHeldChange, proposal.uuid, held]);
   const kinds: RegisterDecisionKind[] = proposal.providedBy === 'company' ? KINDS : ['reject'];
   const available = proposal.status === 'submitted' ? kinds.filter((kind) => steps[kind]) : [];
   const target = decision?.target;
