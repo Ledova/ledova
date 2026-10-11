@@ -1,12 +1,12 @@
 // @vitest-environment jsdom
 
-import type { PropsWithChildren } from 'react';
-import { act, renderHook } from '@testing-library/react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { signin, AUTH_QUERY_KEY } from '@ledova/shared';
+import { AUTH_QUERY_KEY, signin } from '@ledova/shared';
 import apiClient from '@services/apiClient';
-import { useSignIn } from './useSignIn';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { act, renderHook } from '@testing-library/react';
+import type { PropsWithChildren } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { useSignIn } from './useSignIn';
 
 vi.mock('@ledova/shared', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@ledova/shared')>()),

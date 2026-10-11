@@ -117,50 +117,11 @@ runtime. The exact CI setup is in
 [Xcode 16.4 on the macOS 15 runner](https://github.com/actions/runner-images/blob/main/images/macos/macos-15-Readme.md).
 No EAS account or signing credentials are needed.
 
-Pull requests and pushes to `main` run both native builds when their complete
-change includes one of these inputs:
-
-- Anything under `mobile/` or `packages/shared/`, except the JavaScript test
-  inputs below.
-- Root `package.json`, `package-lock.json`, `npm-shrinkwrap.json` or `.npmrc`,
-  and `dashboard/package.json`: the native jobs install the root workspace
-  dependency graph before installing mobile dependencies.
-- Any `.gitattributes`, which can change how the files beside it are checked out.
-- `.github/workflows/mobile-native.yml`.
-
-Changes only to `mobile/src/**/*.test.ts`, `mobile/src/**/*.test.tsx` or
-`packages/shared/tests/` (including its test fixtures) skip both native builds.
-Their JavaScript tests still run in ordinary CI. A `.gitattributes` in either
-test tree still requires both builds, as do production, native probe, script,
-configuration and dependency changes. Under `mobile/src`, test filenames
-starting with `Native` or containing `NativeComponent` also require builds:
-React Native codegen can consume these spec candidates, including its `.fb`
-and platform conventions.
-
-Routing-only edits to `scripts/ci-scope.py` or its tests also skip native builds.
-The scope, verdict and invalid-comparison controls run in ordinary CI;
-rebuilding the apps does not exercise routing policy.
-
-Other paths, including backend, dashboard application code, marketing and
-documentation, skip both native builds. Ordinary CI still runs. The router
-compares a pull request's head with the base commit its event records, or the
-full push before-to-after range, including deleted and renamed inputs. GitHub
-can leave a pull request's recorded base at the branch point after `main` moves,
-which still covers every file the pull request changes. A verified empty diff
-skips. These run both platforms, to be safe:
-
-- an unavailable or malformed comparison;
-- a recorded base that is not an ancestor of the head;
-- a push range whose start is not an ancestor of its end.
-
-Manual runs always build both, and can check external tool or dependency drift
-without a mobile change.
-
-The lightweight scope job and `Mobile native checks` verdict always run. The
-verdict requires successful classification and the expected platform results;
-require that verdict when configuring branch protection. When adding a native
-dependency outside the listed paths, update the router and its tests as part of
-that change.
+Native Android and iOS builds run only through `workflow_dispatch` before a
+release. Both platforms build and start the ordinary Release app and run the
+native runtime probe. The `Mobile native checks` verdict requires both jobs to
+succeed. Pull requests and main pushes run the same ordinary CI checks and do
+not run Native builds or classify files for test selection.
 
 From a clean checkout:
 

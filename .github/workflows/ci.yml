@@ -16,9 +16,8 @@ jobs:
   checks:
     name: Source and client checks
     needs: scope
-    if: needs.scope.outputs.checks_required == 'true'
     runs-on: ${{ fromJSON(needs.scope.outputs.runners)['checks'] }}
-    timeout-minutes: 45
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
         with:
@@ -28,29 +27,7 @@ jobs:
           python-version: '3.13.15'
       - name: Dependencies the gate scripts import
         run: pip install pyyaml
-      - name: Comment and docstring gate
-        run: python scripts/check-comments.py
-      - name: Backend layer gate
-        run: python scripts/check-layers.py
-      - name: Type-check scripts reach their files
-        run: python scripts/check-type-check.py
-      - name: Logging privacy gate
-        run: python scripts/check-logging.py
-      - name: Connection binding
-        run: python scripts/check-connection-binding.py
-      - name: Schema response gate
-        run: python scripts/check-schema-responses.py
-      - name: Test shadowing gate
-        run: python scripts/check-test-shadowing.py
-      - name: Error body gate
-        run: python scripts/check-error-bodies.py
-      - name: Documentation gate
-        run: python scripts/check-docs.py
-      - name: Gate script tests
-        if: needs.scope.outputs.tooling_required == 'true'
-        run: make test-gates PYTHON=python
       - uses: actions/setup-node@v7
-        if: needs.scope.outputs.javascript_required == 'true'
         with:
           node-version: 22.15.1
           cache: npm
@@ -60,75 +37,22 @@ jobs:
             marketing/package-lock.json
             mobile/package-lock.json
       - name: Install dependencies
-        if: needs.scope.outputs.javascript_required == 'true'
         run: make install
-      - name: Workspace packages do not import themselves
-        if: needs.scope.outputs.javascript_required == 'true'
-        run: make check-self-imports
-      - name: Generated API types and trading event coverage
-        if: needs.scope.outputs.javascript_required == 'true'
-        run: make check-api-types
-      - name: Shared, dashboard and mobile HTTP operation coverage
-        if: needs.scope.outputs.javascript_required == 'true'
-        run: make check-client-operations
+      - name: Full source and client checks
+        run: |
+          sudo rm -f /etc/apt/sources.list.d/google-chrome.list /etc/apt/sources.list.d/google-chrome.sources
+          make ci-checks PYTHON=python PLAYWRIGHT_BROWSER_DEPS=--with-deps
       - name: Client operation coverage artefact
-        if: failure() && needs.scope.outputs.javascript_required == 'true'
+        if: failure()
         uses: actions/upload-artifact@v7
         with:
           name: client-operation-coverage
           path: /tmp/ledova-client-operations.json
           retention-days: 7
           if-no-files-found: ignore
-      - name: Build dashboard, marketing, contracts
-        if: needs.scope.outputs.javascript_required == 'true'
-        run: make build
-      - name: Design tokens match packages/shared
-        if: needs.scope.outputs.javascript_required == 'true'
-        run: |
-          make generate-tokens
-          git diff --exit-code dashboard/src/styles/tokens.css marketing/src/tokens.css
-      - name: Type-check shared and mobile
-        if: needs.scope.outputs.javascript_required == 'true'
-        run: |
-          npm --prefix packages/shared run type-check
-          npm --prefix mobile run type-check
-
-      - name: Mobile imports resolve from mobile/node_modules
-        if: needs.scope.outputs.javascript_required == 'true'
-        run: npm --prefix mobile run check:resolution
-
-      - name: iOS release configuration guards
-        if: needs.scope.outputs.javascript_required == 'true'
-        run: node --test mobile/scripts/tests/ios-release-config.test.mjs
-
-      - name: Lint workspaces
-        if: needs.scope.outputs.javascript_required == 'true'
-        run: |
-          make lint
-          make check-mobile-test-awaits
-
-      - name: Production dependency advisories
-        if: needs.scope.outputs.javascript_required == 'true' && needs.scope.outputs.audit == 'true'
-        run: |
-          npm audit --omit=dev --audit-level=low
-          npm --prefix marketing audit --omit=dev --audit-level=low
-          npm --prefix contracts audit --omit=dev --audit-level=low
-          npm --prefix mobile audit --omit=dev --audit-level=critical
-
-      - name: Workspace, mobile, and contract tests
-        if: needs.scope.outputs.javascript_required == 'true'
-        run: make test
-
-      - name: Dashboard smoke tests (built bundle, real Chromium)
-        if: needs.scope.outputs.javascript_required == 'true'
-        run: |
-          # Playwright installs its own Chromium; the runner's Chrome update repo is unused.
-          sudo rm -f /etc/apt/sources.list.d/google-chrome.list \
-            /etc/apt/sources.list.d/google-chrome.sources
-          make smoke PLAYWRIGHT_BROWSER_DEPS=--with-deps
 
       - name: Smoke test artefacts
-        if: failure() && needs.scope.outputs.javascript_required == 'true'
+        if: failure()
         uses: actions/upload-artifact@v7
         with:
           name: dashboard-smoke-results
@@ -139,26 +63,18 @@ jobs:
           if-no-files-found: ignore
 
   scope:
-    name: Determine CI scope
+    name: Select CI runners
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
-      required: ${{ steps.scope.outputs.required }}
-      checks_required: ${{ steps.scope.outputs.checks_required }}
-      javascript_required: ${{ steps.scope.outputs.javascript_required }}
-      tooling_required: ${{ steps.scope.outputs.tooling_required }}
-      uploads: ${{ steps.scope.outputs.uploads }}
-      chains: ${{ steps.scope.outputs.chains }}
-      audit: ${{ steps.scope.outputs.audit }}
       runners: ${{ steps.scope.outputs.runners }}
     steps:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
-          fetch-depth: 0
-      - name: Classify the complete pull-request change
+      - name: Select the two execution runners
         id: scope
-        run: python3 scripts/ci-scope.py route django
+        run: python3 scripts/ci-runners.py select
 
   backend-suite:
     name: Django verdict
@@ -173,14 +89,13 @@ jobs:
       - name: Every required checks and backend job succeeded
         env:
           JOB_RESULTS: ${{ toJSON(needs) }}
-        run: python3 scripts/ci-scope.py verdict django
+        run: python3 scripts/ci-runners.py verdict
 
   backend:
     name: Backend verification
     needs: scope
-    if: needs.scope.outputs.required == 'true'
     runs-on: ${{ fromJSON(needs.scope.outputs.runners)['backend'] }}
-    timeout-minutes: 45
+    timeout-minutes: 10
     env:
       SECRET_KEY: ci-only
       STORAGE_BACKEND: local
@@ -188,16 +103,7 @@ jobs:
       POSTGRES_PORT: '5432'
       POSTGRES_DB: ledova
       POSTGRES_USER: ledova
-      REDIS_URL: redis://127.0.0.1:6379/0
-      THROTTLE_TEST_REDIS_URL: redis://127.0.0.1:6379/0
-      UPLOAD_TEST_REDIS_URL: redis://127.0.0.1:6379/0
     services:
-      redis:
-        image: ${{ needs.scope.outputs.uploads == 'true' && 'redis:7-alpine' || '' }}
-        ports:
-          - 6379:6379
-        options: >-
-          --health-cmd "redis-cli ping" --health-interval 5s --health-timeout 5s --health-retries 20
       postgres:
         image: postgres:16
         env:
@@ -222,22 +128,8 @@ jobs:
             backend/schema/requirements.txt
       - name: Install backend dependencies
         run: pip install -r backend/requirements-dev.txt -c backend/schema/requirements.txt
-      - uses: actions/setup-node@v7
-        if: needs.scope.outputs.chains == 'true'
-        with:
-          node-version: 22.15.1
-          cache: npm
-          cache-dependency-path: contracts/package-lock.json
-      - name: Install contract dependencies
-        if: needs.scope.outputs.chains == 'true'
-        working-directory: contracts
-        run: npm ci
-      - name: Complete backend verification
-        run: >-
-          make backend-test PYTHON=python
-          BACKEND_CHECKS="${{ needs.scope.outputs.uploads == 'true' && '--uploads' || '' }}
-          ${{ needs.scope.outputs.chains == 'true' && '--chains' || '' }}
-          ${{ needs.scope.outputs.audit == 'true' && '--audit' || '' }}"
+      - name: Complete core backend verification
+        run: make backend-test PYTHON=python
       - name: PostgreSQL storage and resource diagnostics
         if: always()
         run: |

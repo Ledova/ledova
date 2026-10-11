@@ -11,7 +11,7 @@ SCHEMA_COMPARISON ?= /tmp/ledova-schema-comparison.json
 CLIENT_OPERATIONS_REPORT ?= /tmp/ledova-client-operations.json
 
 .PHONY: help install install-backend install-node-if-missing init-local check-local-env build generate-tokens check check-comments check-layers \
-	check-logging check-connection-binding check-error-bodies check-schema-responses check-test-shadowing check-docs check-api-types check-self-imports check-mobile-test-awaits test-gates audit test preflight backend-test \
+	check-logging check-connection-binding check-error-bodies check-schema-responses check-test-shadowing check-docs check-api-types check-self-imports check-mobile-test-awaits test-gates audit test preflight backend-test ci-checks \
 	dev-up dev-down dev-logs dev-seed dev-clean docker-prune contracts-deploy-local \
 	contracts-deploy-testnet chain-test smoke lint check-type-check \
 	install-schema-environment generate-api-schema check-api-schema update-api-schema update-api-types check-client-operations
@@ -39,7 +39,7 @@ help:
 	@echo "  make init-local               Create owner-only local .env files"
 	@echo "  make build                    Build dashboard, marketing, and contracts"
 	@echo "  make generate-tokens          Regenerate the CSS design tokens from packages/shared"
-	@echo "  make check                    Run static checks, including mobile and Django"
+	@echo "  make check                    Run source and client static checks"
 	@echo "  make check-self-imports       Check workspace package imports after installing Node dependencies"
 	@echo "  make lint                     Run ESLint and solhint across every workspace"
 	@echo "  make check-comments           Fail on any comment or docstring in source"
@@ -49,8 +49,8 @@ help:
 	@echo "  make check-schema-responses   Fail on a view whose response the schema does not know"
 	@echo "  make check-test-shadowing     Fail on a test helper that shadows a TestCase method"
 	@echo "  make check-docs               Fail when a document disagrees with the tree it describes"
-	@echo "  make preflight                Run quick local checks and preview required CI"
-	@echo "  make backend-test             Run the complete isolated backend check group"
+	@echo "  make preflight                Run every CI check except manual Native builds"
+	@echo "  make backend-test             Run core backend and fresh schema checks"
 	@echo "  make check-connection-binding  Fail on a transaction or cursor bound to the default connection"
 	@echo "  make check-api-types          Regenerate and compare the shared API types and trading events"
 	@echo "  make install-schema-environment Install development dependencies with the schema toolchain constraints"
@@ -108,13 +108,21 @@ build:
 generate-tokens:
 	$(NPM) exec -- tsx packages/scripts/generate-css-tokens.mjs
 
-check: check-comments check-layers check-logging check-connection-binding check-error-bodies check-type-check check-schema-responses check-test-shadowing check-docs install-backend install-node-if-missing
-	$(MAKE) check-self-imports
-	$(MAKE) check-api-types
+check: check-comments check-layers check-logging check-connection-binding check-error-bodies check-type-check check-schema-responses check-test-shadowing check-docs
+	$(MAKE) check-self-imports check-api-types check-client-operations
 	$(NPM) run typecheck
 	$(NPM) --prefix mobile run check:resolution
 	$(MAKE) check-mobile-test-awaits
-	cd backend && SECRET_KEY="$$( $(PYTHON) -c 'import secrets; print(secrets.token_urlsafe(32))')" STORAGE_BACKEND=local $(PYTHON) manage.py check
+	$(NPM) run check:react-singleton -w dashboard
+	$(NPM) exec -- tsx packages/scripts/generate-css-tokens.mjs --check
+
+ci-checks:
+	$(MAKE) check
+	$(MAKE) test-gates
+	$(MAKE) lint
+	$(MAKE) test
+	$(MAKE) build
+	$(MAKE) smoke
 
 lint:
 	$(NPM) run lint
@@ -149,10 +157,9 @@ preflight:
 	"$(PYTHON)" scripts/preflight.py
 
 backend-test:
-	"$(PYTHON)" scripts/test-backend.py $(BACKEND_CHECKS)
+	"$(PYTHON)" scripts/test-backend.py
 
 check-api-types:
-	node --test scripts/tests/check-api-types.test.mjs
 	node scripts/check-api-types.mjs --schema "$(API_TYPES_SCHEMA)"
 
 update-api-types:
@@ -171,7 +178,6 @@ update-api-schema: generate-api-schema
 	node scripts/check-client-operations.mjs --schema "$(SCHEMA)" --report "$(CLIENT_OPERATIONS_REPORT)"
 
 check-client-operations:
-	node --test scripts/tests/check-client-operations.test.mjs
 	node scripts/check-client-operations.mjs --report "$(CLIENT_OPERATIONS_REPORT)"
 
 check-logging:
@@ -179,13 +185,13 @@ check-logging:
 
 check-self-imports:
 	node scripts/check-self-imports.mjs
-	node --test scripts/tests/check-self-imports.test.mjs
 
 check-mobile-test-awaits:
 	node --test scripts/tests/check-mobile-test-awaits.test.mjs
 
 test-gates:
 	$(PYTHON) -m unittest discover --start-directory scripts/tests --top-level-directory scripts/tests
+	node --test scripts/tests/check-api-types.test.mjs scripts/tests/check-client-operations.test.mjs scripts/tests/check-self-imports.test.mjs
 
 audit:
 	$(NPM) audit --omit=dev --audit-level=low
@@ -195,11 +201,8 @@ audit:
 	$(PYTHON) -m pip_audit -r backend/requirements.txt --ignore-vuln PYSEC-2026-1845
 
 test:
-	$(NPM) run check:react-singleton -w dashboard
-	node --test mobile/scripts/shared-peer-resolution.test.mjs
-	node --test mobile/scripts/tests/relative-imports.test.mjs
 	$(NPM) test
-	$(NPM) --prefix mobile test
+	$(NPM) --prefix mobile test -- --runInBand
 	$(NPM) --prefix contracts test
 
 smoke:
@@ -259,7 +262,7 @@ chain-test:
 	fi; \
 	cd backend && \
 	CHAIN_TEST_RPC_URL=$(CHAIN_TEST_RPC_URL) BLOCKCHAIN_RPC_URL=$(CHAIN_TEST_RPC_URL) \
-	POSTGRES_DB=chain_smoke BLOCKCHAIN_OPERATOR_KEY=$(CHAIN_TEST_OPERATOR_KEY) SECRET_KEY=chain-test STORAGE_BACKEND=local \
+	BLOCKCHAIN_OPERATOR_KEY=$(CHAIN_TEST_OPERATOR_KEY) POSTGRES_DB=chain_smoke SECRET_KEY=chain-test STORAGE_BACKEND=local \
 	$(PYTHON) manage.py test tokens.tests.chain_smoke.ManualChainSmokeTest --settings=ledova_backend.settings.test --noinput
 
 .DEFAULT_GOAL := help

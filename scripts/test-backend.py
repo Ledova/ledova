@@ -341,9 +341,6 @@ def run(supplied=None):
 
 def main():
     parser = argparse.ArgumentParser(description="Run backend checks on owned synthetic resources")
-    parser.add_argument("--uploads", action="store_true", help=argparse.SUPPRESS)
-    parser.add_argument("--chains", action="store_true", help=argparse.SUPPRESS)
-    parser.add_argument("--audit", action="store_true", help=argparse.SUPPRESS)
     parser.parse_args()
     try:
         run()
