@@ -75,3 +75,7 @@ export { useCompanyPaidIssues } from './useCompanyPaidIssues';
 export { REGISTER_PAID_ISSUE_DECISIONS } from './useRegisterDecision';
 
 export { REGISTER_ALLOTMENT_DECISIONS } from './useRegisterDecision';
+
+export { useMemberRecords } from './useMemberRecords';
+
+export { useCompanyMemberAccess } from './useCompanyMemberAccess';

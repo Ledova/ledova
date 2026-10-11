@@ -1,5 +1,6 @@
 import type { ReactElement } from 'react';
 import type { DestinationKey } from '@ledova/shared';
+import MemberRecordsPage from '@pages/member-records';
 import HomePage from '@pages/home';
 import WalletsPage from '@pages/wallets';
 import TransactionsPage from '@pages/transactions';
@@ -32,6 +33,7 @@ import { TradingRoute } from './TradingRoute';
 
 export const PAGES: Record<DestinationKey, ReactElement> = {
   home: <HomePage />,
+  memberRecords: <MemberRecordsPage />,
   wallets: <WalletsPage />,
   transactions: <TransactionsPage />,
   trading: <TradingRoute />,

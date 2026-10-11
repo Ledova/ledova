@@ -189,3 +189,5 @@ export * from './register-pause-changes';
 export * from './register-paid-issues';
 
 export * from './register-allotments';
+
+export * from './member-access';

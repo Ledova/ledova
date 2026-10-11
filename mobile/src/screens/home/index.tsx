@@ -1,3 +1,7 @@
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { HomeStackParamList } from '../../navigation/HomeStackNavigator';
+import { Action } from '../../components/Ledger';
 import { useState } from 'react';
 import { ActivityIndicator, Pressable, RefreshControl, Text, View } from 'react-native';
 import { CaretDownIcon, CaretRightIcon } from 'phosphor-react-native';
@@ -67,6 +71,7 @@ function ShareHolding({ holding }: { holding: ShareHoldingRow }) {
 }
 
 export function HomeScreen() {
+  const navigation = useNavigation<NativeStackNavigationProp<HomeStackParamList>>();
   const theme = useAppTheme();
   const work = useHoldingWork();
   const { data: holdings = [], isPending, isError, isFetching, refetch } = useShareHoldings();
@@ -95,6 +100,12 @@ export function HomeScreen() {
         />
       }
     >
+      <Section title="Your member records">
+        <Action
+          label="Read your company-recorded holdings and awards"
+          onPress={() => navigation.navigate('MemberRecords')}
+        />
+      </Section>
       <Section title="Shares in your wallets">
         {isPending ? (
           <View style={styles.state}>

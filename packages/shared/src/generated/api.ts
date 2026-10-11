@@ -1631,6 +1631,246 @@ export interface ApiPaths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/tokens/member-associations/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: ApiOperations['api_v1_tokens_member_associations_list'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/tokens/member-associations/{uuid}/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: ApiOperations['api_v1_tokens_member_associations_retrieve'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/tokens/member-associations/{uuid}/revoke/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: ApiOperations['api_v1_tokens_member_associations_revoke_create'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/tokens/member-certificate-requests/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: ApiOperations['api_v1_tokens_member_certificate_requests_list'];
+    put?: never;
+    post: ApiOperations['api_v1_tokens_member_certificate_requests_create'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/tokens/member-certificate-requests/{uuid}/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: ApiOperations['api_v1_tokens_member_certificate_requests_retrieve'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/tokens/member-certificate-requests/{uuid}/withdraw/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: ApiOperations['api_v1_tokens_member_certificate_requests_withdraw_create'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/tokens/member-invitations/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: ApiOperations['api_v1_tokens_member_invitations_list'];
+    put?: never;
+    post: ApiOperations['api_v1_tokens_member_invitations_create'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/tokens/member-invitations/{uuid}/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: ApiOperations['api_v1_tokens_member_invitations_retrieve'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/tokens/member-invitations/accept/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: ApiOperations['api_v1_tokens_member_invitations_accept_create'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/tokens/member-particulars-requests/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: ApiOperations['api_v1_tokens_member_particulars_requests_list'];
+    put?: never;
+    post: ApiOperations['api_v1_tokens_member_particulars_requests_create'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/tokens/member-particulars-requests/{uuid}/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: ApiOperations['api_v1_tokens_member_particulars_requests_retrieve'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/tokens/member-particulars-requests/{uuid}/prepare/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: ApiOperations['api_v1_tokens_member_particulars_requests_prepare_create'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/tokens/member-records/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: ApiOperations['api_v1_tokens_member_records_list'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/tokens/member-records/{uuid}/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: ApiOperations['api_v1_tokens_member_records_retrieve'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/tokens/member-records/{uuid}/entries/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: ApiOperations['api_v1_tokens_member_records_entries_retrieve'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/tokens/register-allotments/': {
     parameters: {
       query?: never;
@@ -4812,7 +5052,7 @@ export interface ApiComponents {
       correctedBy: string | null;
       corrects: string | null;
       identityRecordedAt: string;
-      identitySource: ApiComponents['schemas']['IdentitySourceEnum'];
+      identitySource: ApiComponents['schemas']['FormerMemberIdentitySourceEnum'];
       identitySourceDisplay: string;
       member: string | null;
       name: string;
@@ -4827,6 +5067,8 @@ export interface ApiComponents {
       uuid: string;
       walletAddress: string | null;
     };
+    FormerMemberIdentitySourceEnum:
+      'profile' | 'stamped' | 'recorded' | 'particulars' | 'treasury_label' | 'unresolvable' | 'none' | 'unknown';
     HolderTypeEnum: 'member' | 'treasury' | 'ambiguous' | 'unidentified';
     Holding: {
       asset: ApiComponents['schemas']['Asset'];
@@ -4846,8 +5088,6 @@ export interface ApiComponents {
       walletUuid: string;
     };
     HttpStatusEnum: 400 | 403 | 409;
-    IdentitySourceEnum:
-      'profile' | 'stamped' | 'recorded' | 'particulars' | 'treasury_label' | 'unresolvable' | 'none' | 'unknown';
     IdentityVerificationSession: {
       accessToken: string | null;
       applicantId: string | null;
@@ -4932,6 +5172,161 @@ export interface ApiComponents {
     KycProviderEnum: 'sumsub' | 'kycaid';
     MarkAllReadResponse: {
       marked: number;
+    };
+    MemberAssociation: {
+      acceptedEmail: string;
+      company: string;
+      createdAt: string;
+      current: boolean;
+      invitation: string;
+      member: string;
+      user: number;
+      userAccount: string;
+      uuid: string;
+    };
+    MemberAssociationRevokeRequest: {
+      appointment: string;
+      idempotencyKey: string;
+      reason: string;
+    };
+    MemberCertificateRequest: {
+      association: string;
+      company: string;
+      createdAt: string;
+      entry: string;
+      member: string;
+      requestedBy: number;
+      status: ApiComponents['schemas']['MemberCertificateRequestStatusEnum'];
+      token: string;
+      uuid: string;
+    };
+    MemberCertificateRequestCreateRequest: {
+      association: string;
+      entry: string;
+      operationId: string;
+    };
+    MemberCertificateRequestStatusEnum: 'requested' | 'withdrawn';
+    MemberCertificateWithdrawRequest: {
+      idempotencyKey: string;
+    };
+    MemberInvitation: {
+      acceptanceDeadline: string;
+      appointment: string;
+      company: string;
+      createdAt: string;
+      intendedEmail: string;
+      issuedBy: number;
+      member: string;
+      status: ApiComponents['schemas']['MemberInvitationStatusEnum'];
+      uuid: string;
+    };
+    MemberInvitationAcceptRequest: {
+      code: string;
+      confirmation: boolean;
+      userAccount: string;
+    };
+    MemberInvitationCreateRequest: {
+      acceptanceDeadline?: string | null;
+      appointment: string;
+      company: string;
+      intendedEmail: string;
+      member: string;
+      operationId: string;
+    };
+    MemberInvitationIssued: {
+      acceptanceDeadline: string;
+      appointment: string;
+      code: string | null;
+      company: string;
+      createdAt: string;
+      intendedEmail: string;
+      issuedBy: number;
+      member: string;
+      status: ApiComponents['schemas']['MemberInvitationStatusEnum'];
+      uuid: string;
+    };
+    MemberInvitationStatusEnum: 'pending' | 'expired' | 'unavailable' | 'accepted' | 'revoked';
+    MemberParticularsRequest: {
+      association: string;
+      change: string | null;
+      company: string;
+      createdAt: string;
+      member: string;
+      name: string;
+      requestedBy: number;
+      residentialAddress: string;
+      status: ApiComponents['schemas']['MemberParticularsRequestStatusEnum'];
+      uuid: string;
+    };
+    MemberParticularsRequestCreateRequest: {
+      association: string;
+      confirmation: boolean;
+      name: string;
+      operationId: string;
+      residentialAddress: string;
+    };
+    MemberParticularsRequestPrepareRequest: {
+      appointment: string;
+      asAt: string;
+      operationId: string;
+      reason: string;
+      supportingEvidence: string;
+    };
+    MemberParticularsRequestStatusEnum: 'submitted' | 'prepared' | 'approved' | 'applied' | 'rejected';
+    MemberRecord: {
+      awards: ApiComponents['schemas']['MemberRecordAward'][];
+      classes: ApiComponents['schemas']['MemberRecordClass'][];
+      company: ApiComponents['schemas']['MemberRecordCompany'];
+      identitySource: ApiComponents['schemas']['MemberRecordIdentitySourceEnum'];
+      member: string;
+      name: string;
+      residentialAddress: string;
+      uuid: string;
+    };
+    MemberRecordAward: {
+      availableShares: string;
+      issuedShares: string;
+      schedule: string;
+      shares: string;
+      terms: string;
+      termsOn: string;
+      token: string;
+      uuid: string;
+      vestedShares: string;
+      vestings: ApiComponents['schemas']['MemberRecordVesting'][];
+    };
+    MemberRecordClass: {
+      amountPaid: string | null;
+      ceasedOn: string | null;
+      enteredOn: string;
+      name: string;
+      shares: string;
+      symbol: string;
+      uuid: string;
+    };
+    MemberRecordCompany: {
+      acn: string;
+      name: string;
+      uuid: string;
+    };
+    MemberRecordEntries: {
+      entries: ApiComponents['schemas']['MemberRecordEntry'][];
+    };
+    MemberRecordEntry: {
+      correctedBy: string | null;
+      corrects: string | null;
+      createdAt: string;
+      delta: string;
+      effectiveOn: string;
+      kind: string;
+      sequence: number;
+      uuid: string;
+    };
+    MemberRecordIdentitySourceEnum: 'company_recorded';
+    MemberRecordVesting: {
+      shares: string;
+      uuid: string;
+      vestedOn: string;
     };
     NameEnum: 'LedovaAtomicSwap';
     NetworkEnum: 'BTC';
@@ -5327,6 +5722,36 @@ export interface ApiComponents {
       next?: string | null;
       previous?: string | null;
       results: ApiComponents['schemas']['IssuerSubscription'][];
+    };
+    PaginatedMemberAssociationList: {
+      count: number;
+      next?: string | null;
+      previous?: string | null;
+      results: ApiComponents['schemas']['MemberAssociation'][];
+    };
+    PaginatedMemberCertificateRequestList: {
+      count: number;
+      next?: string | null;
+      previous?: string | null;
+      results: ApiComponents['schemas']['MemberCertificateRequest'][];
+    };
+    PaginatedMemberInvitationList: {
+      count: number;
+      next?: string | null;
+      previous?: string | null;
+      results: ApiComponents['schemas']['MemberInvitation'][];
+    };
+    PaginatedMemberParticularsRequestList: {
+      count: number;
+      next?: string | null;
+      previous?: string | null;
+      results: ApiComponents['schemas']['MemberParticularsRequest'][];
+    };
+    PaginatedMemberRecordList: {
+      count: number;
+      next?: string | null;
+      previous?: string | null;
+      results: ApiComponents['schemas']['MemberRecord'][];
     };
     PaginatedNotificationList: {
       count: number;
@@ -6991,6 +7416,7 @@ export interface ApiComponents {
       evidenceFingerprint: string;
       evidenceSnapshot: unknown;
       member: string;
+      memberRequest: string | null;
       name: string;
       preparedByName: string | null;
       preparingAppointment: string;
@@ -11184,6 +11610,467 @@ export interface ApiOperations {
         };
         content: {
           'application/json': ApiComponents['schemas']['PaginatedShareIssuanceRequestList'];
+        };
+      };
+    };
+  };
+  api_v1_tokens_member_associations_list: {
+    parameters: {
+      query?: {
+        company?: string;
+        member?: string;
+        ordering?: string;
+        page?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['PaginatedMemberAssociationList'];
+        };
+      };
+    };
+  };
+  api_v1_tokens_member_associations_retrieve: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['MemberAssociation'];
+        };
+      };
+    };
+  };
+  api_v1_tokens_member_associations_revoke_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': ApiComponents['schemas']['MemberAssociationRevokeRequest'];
+        'application/x-www-form-urlencoded': ApiComponents['schemas']['MemberAssociationRevokeRequest'];
+        'multipart/form-data': ApiComponents['schemas']['MemberAssociationRevokeRequest'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['MemberAssociation'];
+        };
+      };
+    };
+  };
+  api_v1_tokens_member_certificate_requests_list: {
+    parameters: {
+      query?: {
+        association?: string;
+        company?: string;
+        member?: string;
+        ordering?: string;
+        page?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['PaginatedMemberCertificateRequestList'];
+        };
+      };
+    };
+  };
+  api_v1_tokens_member_certificate_requests_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': ApiComponents['schemas']['MemberCertificateRequestCreateRequest'];
+        'application/x-www-form-urlencoded': ApiComponents['schemas']['MemberCertificateRequestCreateRequest'];
+        'multipart/form-data': ApiComponents['schemas']['MemberCertificateRequestCreateRequest'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['MemberCertificateRequest'];
+        };
+      };
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['MemberCertificateRequest'];
+        };
+      };
+    };
+  };
+  api_v1_tokens_member_certificate_requests_retrieve: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['MemberCertificateRequest'];
+        };
+      };
+    };
+  };
+  api_v1_tokens_member_certificate_requests_withdraw_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': ApiComponents['schemas']['MemberCertificateWithdrawRequest'];
+        'application/x-www-form-urlencoded': ApiComponents['schemas']['MemberCertificateWithdrawRequest'];
+        'multipart/form-data': ApiComponents['schemas']['MemberCertificateWithdrawRequest'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['MemberCertificateRequest'];
+        };
+      };
+    };
+  };
+  api_v1_tokens_member_invitations_list: {
+    parameters: {
+      query?: {
+        company?: string;
+        member?: string;
+        ordering?: string;
+        page?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['PaginatedMemberInvitationList'];
+        };
+      };
+    };
+  };
+  api_v1_tokens_member_invitations_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': ApiComponents['schemas']['MemberInvitationCreateRequest'];
+        'application/x-www-form-urlencoded': ApiComponents['schemas']['MemberInvitationCreateRequest'];
+        'multipart/form-data': ApiComponents['schemas']['MemberInvitationCreateRequest'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['MemberInvitationIssued'];
+        };
+      };
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['MemberInvitationIssued'];
+        };
+      };
+    };
+  };
+  api_v1_tokens_member_invitations_retrieve: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['MemberInvitation'];
+        };
+      };
+    };
+  };
+  api_v1_tokens_member_invitations_accept_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': ApiComponents['schemas']['MemberInvitationAcceptRequest'];
+        'application/x-www-form-urlencoded': ApiComponents['schemas']['MemberInvitationAcceptRequest'];
+        'multipart/form-data': ApiComponents['schemas']['MemberInvitationAcceptRequest'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['MemberAssociation'];
+        };
+      };
+    };
+  };
+  api_v1_tokens_member_particulars_requests_list: {
+    parameters: {
+      query?: {
+        association?: string;
+        company?: string;
+        member?: string;
+        ordering?: string;
+        page?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['PaginatedMemberParticularsRequestList'];
+        };
+      };
+    };
+  };
+  api_v1_tokens_member_particulars_requests_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': ApiComponents['schemas']['MemberParticularsRequestCreateRequest'];
+        'application/x-www-form-urlencoded': ApiComponents['schemas']['MemberParticularsRequestCreateRequest'];
+        'multipart/form-data': ApiComponents['schemas']['MemberParticularsRequestCreateRequest'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['MemberParticularsRequest'];
+        };
+      };
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['MemberParticularsRequest'];
+        };
+      };
+    };
+  };
+  api_v1_tokens_member_particulars_requests_retrieve: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['MemberParticularsRequest'];
+        };
+      };
+    };
+  };
+  api_v1_tokens_member_particulars_requests_prepare_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': ApiComponents['schemas']['MemberParticularsRequestPrepareRequest'];
+        'application/x-www-form-urlencoded': ApiComponents['schemas']['MemberParticularsRequestPrepareRequest'];
+        'multipart/form-data': ApiComponents['schemas']['MemberParticularsRequestPrepareRequest'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['RegisterParticularsChange'];
+        };
+      };
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['RegisterParticularsChange'];
+        };
+      };
+    };
+  };
+  api_v1_tokens_member_records_list: {
+    parameters: {
+      query?: {
+        ordering?: string;
+        page?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['PaginatedMemberRecordList'];
+        };
+      };
+    };
+  };
+  api_v1_tokens_member_records_retrieve: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['MemberRecord'];
+        };
+      };
+    };
+  };
+  api_v1_tokens_member_records_entries_retrieve: {
+    parameters: {
+      query: {
+        token: string;
+      };
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['MemberRecordEntries'];
         };
       };
     };

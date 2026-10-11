@@ -44,3 +44,5 @@ export * from './register-pause-change';
 export * from './register-paid-issue';
 
 export * from './register-allotment';
+
+export * from './member-access';
