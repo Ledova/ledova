@@ -2,12 +2,21 @@
 
 [Architecture](README.md) · [Documentation](../README.md)
 
+How the backend's operator key signs and sends chain transactions. The signer
+authority rules and core API come first, then the two admission commands (the
+Base Sepolia bootstrap with its legacy inventory, and the local chain), then
+each family that uses the foundation: automatic swap approval, mint requests,
+whitelist changes and approval refresh, capital increases, share issuances and
+pause/unpause. NAV updates are in
+[wallets and valuations](wallets-and-valuations.md#nav-updates).
+
 Settlement-asset and yield-token `MintRequest` execution, whitelist add/remove
-commands, share-token deployment and its automatic swap approval, capital increases, share issuances, swap execution, pause/unpause and NAV updates use the
-operator signing foundation. Signer
-admission starts closed. The [deployment flow](contracts-and-issuance.md) binds
-its original receipt to immutable deployment terms; an identifier lookup alone
-leaves the deployment pending for attribution.
+commands, share-token deployment and its automatic swap approval, capital
+increases, share issuances, swap execution, pause/unpause and NAV updates use
+the operator signing foundation. Signer admission starts closed. The
+[deployment flow](contracts-and-issuance.md) binds its original receipt to
+immutable deployment terms; an identifier lookup alone leaves the deployment
+pending for attribution.
 
 ## Company decisions and signer authority
 
@@ -27,15 +36,28 @@ conflict, and no replay after process loss is promised. Private journals stay
 inaccessible to customer connections, and company self-service does not relax
 the bootstrap, same-key writer drain or cutover requirements.
 
-The foundation now requires explicit signer admission. Existing and new
+Every family takes its source and class locks before the outgoing operation and
+signer locks and makes chain calls outside those locks. Temporary contention or
+loss of an unsigned source holds the original unsigned claim with no signature,
+attempt or nonce; only explicit revocation or database-clock expiry of the
+consumed approval can fail a genuinely never-signed claim, and it does not
+recategorise a definite preparation failure or signed work. Once signed, work
+recovers its original bytes, nonce and receipt under operator authority after
+any later loss of the human source. None of these projections is taken over by
+the generic transaction monitor.
+
+The foundation requires explicit signer admission. Existing and new
 `SigningAccount` rows start `closed`, and a missing row is also closed. A nonce
 counter, successful legacy status or inventory capture never grants admission.
-The [fresh Base Sepolia bootstrap](#fresh-base-sepolia-admission) is the only first-admission command for a public testnet, and
-[local chain admission](#local-chain-admission) the only one for the local development chain. Neither can reopen a signer or authorize legacy cutover, and there is no admin edit surface. Admitted synthetic test
-fixtures establish a test precondition only. Participant-signed approvals are the
-one settlement writer outside this foundation, because the backend never holds
-the participant's key: their delivery is journaled and replayed as exact bytes
-by `tokens.SwapApprovalSubmission`, described in the
+The [fresh Base Sepolia bootstrap](#fresh-base-sepolia-admission) is the only
+first-admission command for a public testnet, and
+[local chain admission](#local-chain-admission) the only one for the local
+development chain. Neither can reopen a signer or authorise legacy cutover, and
+there is no admin edit surface. Admitted synthetic test fixtures establish a
+test precondition only. Participant-signed approvals are the one settlement
+writer outside this foundation, because the backend never holds the
+participant's key: their delivery is journaled and replayed as exact bytes by
+`tokens.SwapApprovalSubmission`, described in the
 [swap settlement reference](../reference/swap-settlement.md#participant-approvals).
 
 `close_signer_admission(chain_id=..., sender=...)` is an operator-only service
@@ -90,11 +112,10 @@ unresolved. All these RPC reads finish before the recording transaction; its
 claim and attempt fences are checked again under the lock.
 
 A recorded revert permits a new claim and nonce while retaining the immutable
-earlier attempt. Individual adapters may
-refuse restart: swap execution retains a single original claim even after revert.
-Here `confirmed` means a successful receipt with canonical inclusion was observed;
-confirmation depth, replacement detection and reorg repair remain part of the
-separate finality work.
+earlier attempt. Individual adapters may refuse restart: swap execution retains
+a single original claim even after revert. Here `confirmed` means a successful
+receipt with canonical inclusion was observed; confirmation depth, replacement
+detection and reorg repair remain part of the separate finality work.
 
 This initial API signs EIP-155 legacy gas-price transactions, including contract
 creation. Chain IDs and gas limits fit a positive signed 64-bit database integer;
@@ -109,7 +130,12 @@ and never the signed payload. Signed payloads are broadcast capabilities and
 belong in protected backups; errors retain a category rather than provider or
 database exception text.
 
-For existing databases, read [outgoing history and cutover constraints](../reference/outgoing-history.md).
+The PostgreSQL guards for every family are installed by
+`shared/0002_database_guards`. A row without a dispatch UUID or company source
+is historical work needing operator attribution, with no automatic retry or
+legacy sender fallback ([legacy inventory](#legacy-inventory)); the owner
+confirmed that ledova.io holds none
+([decision](../decisions.md#backend-migration-baseline)).
 
 ## Fresh Base Sepolia admission
 
@@ -152,24 +178,51 @@ admission closed.
 The command refuses legacy source rows, unattributed chain transactions, imported
 outgoing evidence, current outgoing operations or attempts, other signer state,
 and any substantive inventory hold. Empty inventory captures can retain their
-permanent coverage limitations; they confer no authority. This path does not
-resolve the legacy signer cutover work in #624. The stopped-producer attestation
-is necessary: opening an unsigned outgoing operation does not acquire the signer
-lock, and the command cannot prove that another process or offline key holder
-has stopped. Keep those producers stopped throughout verification and commit.
+permanent coverage limitations; they confer no authority. The stopped-producer
+attestation is necessary: opening an unsigned outgoing operation does not acquire
+the signer lock, and the command cannot prove that another process or offline key
+holder has stopped. Keep those producers stopped throughout verification and
+commit.
 
 The final transaction takes a deployment-wide admission lock, then locks the
 signer and rechecks database history. Different fresh keys cannot both admit
-against one apparently empty database. Only a
-missing signer or a closed generation-zero, nonce-zero row can enter generation
-one with next nonce five. The unique bootstrap receipt, manifest digest, artifact
-and build identities, and chain evidence commit with admission. The receipt is
-operator-only and PostgreSQL refuses UPDATE or DELETE. Exact manifest replay is
-recognized before fresh-history and nonce checks, and returns unchanged only
-while that same signer remains admitted at generation one; it preserves an
-advanced nonce. Closure, any earlier admission, or a different manifest cannot
-be undone through this command. The existing close and generation fences remain
-in force.
+against one apparently empty database. Only a missing signer or a closed
+generation-zero, nonce-zero row can enter generation one with next nonce five.
+The unique bootstrap receipt, manifest digest, artifact and build identities,
+and chain evidence commit with admission. The receipt is operator-only and
+PostgreSQL refuses UPDATE or DELETE. Exact manifest replay is recognized before
+fresh-history and nonce checks, and returns unchanged only while that same
+signer remains admitted at generation one; it preserves an advanced nonce.
+Closure, any earlier admission, or a different manifest cannot be undone through
+this command. The existing close and generation fences remain in force.
+
+### Legacy inventory
+
+`inventory_outgoing_history` reads whatever legacy operator signing history a
+database holds. It never signs, contacts a provider, reserves or releases a
+nonce, or edits a journal or status, and it refuses an application connection
+or an enclosing transaction. Run it from `backend/` on the operator connection:
+
+```bash
+python manage.py inventory_outgoing_history
+OUTGOING_CAPTURE_ID=$(python -c 'import uuid; print(uuid.uuid4())')
+python manage.py inventory_outgoing_history --record --capture-id "$OUTGOING_CAPTURE_ID"
+```
+
+The first command only reports. `--record` commits a private capture, its
+evidence rows and append-only cutover holds together under an advisory lock.
+Re-entering the same capture ID with unchanged source returns the original
+batch; changed source needs a new ID, and a later capture can add variants and
+holds but never rewrites an earlier observation or clears its holds. Reports
+carry counts and fixed reason codes and always say `cutover_authorized: false`;
+raw payloads and source snapshots are operator-only, and PostgreSQL refuses
+even operator UPDATE or DELETE on the three inventory tables. The bootstrap
+above refuses while any evidence row, any hold beyond the two permanent
+coverage limits, or any legacy source row exists, and a
+[rebuilt database](../operations/upgrades.md#fresh-database-rebuild) carries no
+legacy signer history, so the inventory is the emptiness check, not a cutover
+path: offline or old-binary key use is not observable in these tables, and no
+capture authorises activation.
 
 ## Local chain admission
 
@@ -201,12 +254,10 @@ anything changed.
 ## Automatic swap approval
 
 Company empty deployments retain their original consumed approval and applying
-actor separately from this technical approval. Inside the durable signing
-transaction, source locks precede outgoing/signer/journal locks. After checking
-the actual outgoing state, every fresh deployment signature rechecks its exact
-company source immediately before the local signature. Unsigned source loss or
-contention holds the original operation; original signed receipt recovery and this
-automatic swap-approval suffix keep their existing association checks. See
+actor separately from this technical approval. Every fresh deployment signature
+rechecks its exact company source immediately before the local signature, and
+original signed receipt recovery and this approval suffix keep their existing
+association checks. See
 [company deployment](../plans/company-managed-registers/company-deployments.md).
 
 After the token projection and asset bridge succeed, a bounded operator
@@ -229,7 +280,7 @@ An initial verified `approvedShareTokens` reading at a recorded block can produc
 records observation, never transaction attribution. A false reading commits an
 executing decision before opening the common operation. From that point, current
 approval state cannot replace the original transaction's result, including when
-another observer finishes late. Signed uncertainty retains its bytes, hash and nonce.
+another observer finishes late.
 
 The original successful receipt and a unique matching `ShareTokenApproved(token,
 true)` event from the admitted contract confirm the approval. A retained revert
@@ -237,16 +288,12 @@ can be projected locally while the provider is unavailable. Explicit admin retry
 requires current active staff with token change permission and a signed form
 identifying the actor, deployment and exact completed failed claim. The previous
 transaction's receipt survives retry; replay acknowledges accepted work without
-opening another claim. The generic transaction monitor excludes this adapter.
+opening another claim.
 
-Migrations `tokens/0049` and `0050` preserve historical rows, guard admission and
-immutable associations, and refuse reversal after an approval disposition exists.
 The app role cannot read or write approval metadata. The old direct Python
-approval sender is removed. The standalone Hardhat deployment script remains in
-the all-writer inventory; this conversion does not establish the all-writer
-signer cutover, which remains #6 acceptance, or finality, which remains #7's.
-The swap relayer itself is converted (#619) and the participant-signed approval
-is journaled (#6), both described in the
+approval sender is removed; the standalone Hardhat deployment script remains in
+the all-writer inventory. The swap relayer itself is converted (#619) and the
+participant-signed approval is journaled (#6), both described in the
 [swap settlement reference](../reference/swap-settlement.md).
 
 ## Mint requests
@@ -255,14 +302,12 @@ The asset mint page, yield-token mint page and request execution page all use
 `tokens.services.mint_service`. Minting an active stablecoin on Base can precede
 enabling that asset for settlement. Unsupported receiving chains have no mint
 action, and direct mint-page requests are refused before creating a request.
-A mint form retains a submission UUID across a
-repeated POST. Reusing it with different terms or another actor is refused; a
-fresh form represents a deliberate new mint. The service checks current active
-staff and the entry point's model permission before admitting work. It refuses
-application authority and enclosing transactions. Admission commits the token,
+A mint form retains a submission UUID across a repeated POST. Reusing it with
+different terms or another actor is refused; a fresh form represents a
+deliberate new mint. The service checks current active staff and the entry
+point's model permission before admitting work. Admission commits the token,
 deployment, chain, signer, recipient, raw amount, calldata and executing actor
-before opening an outgoing operation. Later recovery is operator-owned accepted
-work, even if the original actor subsequently loses permission.
+before opening an outgoing operation.
 
 Every new request has a dispatch UUID. Its outgoing key includes both request
 and dispatch UUIDs. PostgreSQL freezes admitted terms and operation association,
@@ -283,22 +328,11 @@ unresolved**. Use **Recover** on the same request. The five-minute
 oldest update first, using operator authority. It does not admit pending requests
 or automatically restart terminal attempts. A recorded pre-signing failure or
 revert permits an explicit **Retry** tied to the claim shown on that form;
-replaying an old form cannot authorize a later attempt. Every signed attempt
-survives, and recovery updates the transaction projection from its operation.
-An explicit retry retains the previous revert and its receipt fields before
-opening another attempt. If a worker stops before that projection, the sweep
-repairs it without provider access or another signed attempt.
-The generic transaction monitor excludes those projections. Here **Executed**
-means a successful receipt was observed, with finality still governed by #7's
-remaining work.
-
-Migration `tokens/0042` leaves every old request's dispatch UUID null, preserving
-all statuses and transaction references. An old binary inserting after migration
-also leaves it null. These requests are historical work requiring operator
-attribution, with no automatic retry, generation backfill or legacy sender
-fallback. The migration refuses reversal once any request has been admitted.
-Deploying this adapter does not authorize signer activation: the drain,
-attribution and all-writer cutover requirements above still apply.
+replaying an old form cannot authorize a later attempt. Recovery updates the
+transaction projection from its operation; if a worker stops before that
+projection, the sweep repairs it without provider access or another signed
+attempt. Here **Executed** means a successful receipt was observed, with
+finality still governed by #7's remaining work.
 
 ## Whitelist changes
 
@@ -326,26 +360,18 @@ finite whole-second expiry and REMOVE writes zero. The nullable immutable source
 link preserves old journals without invented company actors or approvals. New
 staff/operator ADD/REMOVE and batch-add admission, whitelist-admin quick actions
 and subscription-admin whitelisting are replaced; retained private entry reads,
-sync/export and original technical recovery remain.
+sync/export and original technical recovery remain. Preparation and decision
+receipts follow the [uncertain-reply rule](#company-decisions-and-signer-authority);
+proposal, consumed approval, change, outgoing operation, claim and transaction
+identities remain separate, and the clients scope saved state to the current
+account and session.
 
-Exact preparation and decision receipts compare their original bodies before
-fresh source checks, while current scoped company read is still required.
-Changed retries conflict. Recover a lost reply with that original body/key,
-never a replacement UUID. Proposal, consumed approval, change, outgoing operation,
-claim and transaction identities remain separate. Browser/mobile scope this state
-to the current account/session; no process-persistent replay or source renewal
-workflow is promised.
-
-The target advisory lock precedes company/source locks and outgoing/signer locks.
-Every actual unsigned signature rechecks the captured company mandates,
-nomination/proof, GENERAL source, expiry, configuration and intent inside the
-durable signing transaction. Default-deferred effect guards recheck at the actual
-clock under ordinary constraint mode. Chain RPC calls remain outside transactions
-and locks. Temporary contention retains the original unsigned claim with no
-signature/attempt/nonce. Permanent loss on genuinely never-signed work conditionally
-fails the original claim and projects that failure, releasing its target so a
-genuine eligibility-loss REMOVE is not stranded behind it. It does not invent a
-withdrawal or wallet-deletion cause. Signed work recovers the exact original first.
+The target advisory lock precedes the company/source locks, and a fresh
+signature rechecks the captured nomination/proof, GENERAL source and expiry
+with the company mandates. Permanent source loss on never-signed work fails the
+original claim and projects that failure, releasing its target so a genuine
+eligibility-loss REMOVE is not stranded behind it; it does not invent a
+withdrawal or wallet-deletion cause.
 
 `pending` and `executing` are unresolved; the original nested operation distinguishes
 PREPARING from SIGNED. `confirmed` records the original successful transaction
@@ -359,40 +385,16 @@ replay cannot overwrite newer membership.
 
 Projection checks the original company/chain/registry/address and current mutable
 entry association. It cannot recreate a deleted entry or redirect a receipt to
-its replacement. SIGNED/CONFIRMED recovery preserves original bytes, attribution,
-nonce and technical sender admission after human source loss. The generic
-transaction monitor does not take over these projections. See
-[whitelist recovery](../operations/recovery.md#whitelist-changes).
-
-Historical migrations `whitelist/0005`–`0007` retain their journal, per-company
-approval and exact-calldata guards. The historical 0007 fresh-start restriction
-concerns the retired global registry, not company-authority migration policy.
-The wallet-proof and company-instruction migrations retain original wallet,
-change, approval and journal identities/bytes, with no fake backfill. New source
-history prevents destructive reversal. Neither this adapter nor approval sync
-establishes complete same-key writer cutover or a live release.
+its replacement. See [whitelist recovery](../operations/recovery.md#whitelist-changes).
 
 Every read the platform makes before acting asks the share class's own
 registry, through the token's `whitelist()`: issuance execution and order
-creation. Wallets > Send refuses a share class outright. A stablecoin sent from
-Wallets > Send has no company registry to ask, so
-`wallets.services.transaction_confirmation.require_stablecoin_approvals` checks
-instead that the sending wallet and the recipient each hold a live stored
-approval for at least one company: when the transfer is prepared, and again when
-the signed transfer is submitted, before the submission is recorded or
-broadcast. A transfer to the operator's receiving wallet, on the chain it is
-configured for, is exempt on both sides, because the stablecoin payment
-instruction names it and nothing approves it; an unset receiving wallet, or one
-on another chain, exempts nothing. The refusal is 403
-`stablecoin_approval_required` and says which side lacks an approval. The recipient's wallet belongs to another account, so the
-lookup runs on the operator connection and answers only yes or no. A submission
-already recorded is not checked again: a repeated request and the recovery sweep
-re-send the bytes the check admitted. `GET /api/v1/trading/whitelist/<token>/<address>/status/`
-answers the same question for the share class at contract address `<token>`,
-for any signed-in user and any address. Creating an order and signing a swap
-also require a current [eligibility decision](companies-and-eligibility.md#participant-eligibility)
-from the share class's company; order creation records the refusal as
-`investor_not_eligible` and signing answers 403.
+creation. Wallets > Send refuses a share class outright; a stablecoin sent from
+Wallets > Send has no company registry to ask and is checked against stored
+approvals instead, under the [EVM transfer rules](../reference/wallet-transfers.md#evm).
+`GET /api/v1/trading/whitelist/<token>/<address>/status/` answers the registry
+question for the share class at contract address `<token>`, for any signed-in
+user and any address.
 
 ## Refreshing an approval
 
@@ -405,24 +407,19 @@ needed; absence of a genuine cause is diagnostic, not permission to write.
 
 The sweep reads actual registry expiry. An already expired address needs no write:
 its finite on-chain expiry lapses by itself. An unresolved predecessor is recovered
-first. Genuine never-signed permanent company-source loss reaches a real failed
-terminal outcome before the retained removal proceeds; a signed predecessor uses
-its original bytes/receipt. Missing receipts, time or current membership do not
-release an unresolved signed operation.
+first. Missing receipts, time or current membership do not release an unresolved
+signed operation.
 
 Source/request withdrawal, company decision revocation, expiry and evidence purge
 retain their applicable decision cause. Account standing/identity and wallet
 verification loss/deletion retain actual prior facts and the actor where one
 exists. Deleting a wallet captures company/registry/address targets before the
-mutable entry and approval cascade and queues its removal after commit. These
-attributions remain independent of a new company instruction.
-
-The retained `refresh_whitelist_targets` deletion/removal job retries incomplete
-targets every five minutes without an attempt ceiling. It finishes only when the
-address is absent/expired or its own removal is confirmed. A known failed removal
-permits a new bounded technical removal under the same genuine cause; unresolved
-work must finish first. The job never substitutes another actor or grants approval.
-Retain it after deletion: the approval sweep cannot rediscover deleted targets.
+mutable entry and approval cascade and queues its removal after commit; the
+retained `refresh_whitelist_targets` job finishes those removals, never
+substitutes another actor or grants approval, and must stay because the approval
+sweep cannot rediscover deleted targets
+([whitelist recovery](../operations/recovery.md#whitelist-changes) owns its
+cadence). These attributions remain independent of a new company instruction.
 
 `refresh_whitelist_approvals` sweeps surviving approvals every five minutes;
 `recover_whitelist_changes` recovers original unresolved journals. Unavailable
@@ -455,28 +452,20 @@ Human approval admits no journal or job. Application consumes the exact personal
 approval and commits the original `CapitalIncreaseExecution`, public `executing`
 state and durable job together before signing or broadcast. Read-only chain and
 captured-cap preflight precedes the decision transaction outside its locks.
-Fresh owner/staff creation, submission,
-review and admission are retired. Original private histories remain readable.
-Technical retry retains `change_capitalincreaserequest` permission and a signed
-confirmation binding request, dispatch, actor and exact failed claim; it supplies
-no new company decision. Already signed recovery needs no renewed human authority.
+Fresh owner/staff creation, submission, review and admission are retired.
+Original private histories remain readable. Technical retry retains
+`change_capitalincreaserequest` permission and a signed confirmation binding
+request, dispatch, actor and exact failed claim; it supplies no new company
+decision. Already signed recovery needs no renewed human authority.
 
 The immutable intent retains the original token, company, actor, chain, signer,
 contract, approved target and prior recorded cap. PostgreSQL guards freeze public
 identity and non-draft terms, and prevent token cap/identity edits while the
 request is executing. Pause/unpause remains available. The existing per-token
 in-flight constraint is the hold; network reads, signing preparation and broadcast
-do not hold that token lock. Source and class locks precede outgoing operation
-and signer locks, consistently with the other class writers.
-
-Fresh preparation and signing recheck the immutable source, consumed approval,
-current personal appointments, evidence, class and configuration; default-deferred
-guards recheck each effect. Temporary source/configuration/provider or row-lock
-unavailability holds the same original unsigned claim without a nonce. Explicit
-revocation or database-clock expiry of a consumed approval/application appointment
-can atomically fail that same PREPARING operation and request only when no signed
-attempt ever existed. This releases the class slot while retaining the intent and
-journal. It does not recategorise a definite gas/preparation failure or signed work.
+do not hold that token lock. Failing a never-signed request after revocation or
+expiry of its consumed approval releases the class slot while retaining the
+intent and journal.
 
 All signed attempts use the common nonce journal. Recovery retains the exact
 original terminal receipt before verifying the cap event. Only a matching
@@ -485,25 +474,19 @@ atomic completion and cap projection; replay cannot lower a later cap. Missing
 receipts or events stay unresolved. Contradictory cap observations retain immutable
 private attribution evidence and keep the public hold. A delayed preparer assists
 a peer's already signed transaction instead of treating its cap change as unknown.
-The generic transaction monitor excludes these projections.
 
 Unsigned failure and confirmed revert permit a deliberate retry of the exact
-failed claim. Retry admission reacquires the public slot and records that claim
-before enqueueing. Replaying a stale form cannot reopen a newer failed attempt,
-and the previous reverted transaction survives. New company preparation refuses
-non-increasing or incoherent terms before admission. Genuine predecessor
-superseded records retain their original figures and attribution. A known failed
-request overtaken by a later cap can also retire;
-an unresolved signed request cannot.
+failed claim; retry admission reacquires the public slot and records that claim
+before enqueueing. New company preparation refuses non-increasing or incoherent
+terms before admission. Genuine predecessor superseded records retain their
+original figures and attribution. A known failed request overtaken by a later
+cap can also retire; an unresolved signed request cannot.
 
-Migrations `tokens/0045` and `0046` preserve historical requests and transactions
-with null dispatch identities, restrict private access and refuse reversal after
-admission. New and retry admission check legacy request states and unexplained
+New and retry admission check legacy request states and unexplained
 same-contract capital transactions, including orphaned and hashless records.
 Only exact hashes from the admitted operations' signed attempts are exempt.
 This conservative fence cannot establish absent historical authority or drain an
-external same-key writer; complete cutover and receipt finality remain separate
-programme acceptance. See [operator recovery](../operations/recovery.md#capital-increases).
+external same-key writer. See [operator recovery](../operations/recovery.md#capital-increases).
 
 ## Share issuances
 
@@ -511,16 +494,11 @@ programme acceptance. See [operator recovery](../operations/recovery.md#capital-
 [non-paid chain grant](../plans/company-managed-registers/company-register-issues.md)
 from its exact applied RegisterInstruction ISSUE and original consumed approval.
 The personal company mandates, member/nomination/finite wallet approval, evidence
-and intent are rechecked before a fresh signature. The source prefix precedes
-outgoing/signer locks; RPC runs outside those locks. Temporary source
-contention, technical refusal or provider failure holds the original unsigned
-intent with no signed attempt or nonce, a known refusal in the paid or legacy
-path becomes a definite unsigned failure with a safe explanation, and
-permanent loss of the captured source terminalises only a genuinely
-never-signed allocation. Original signed recovery
-retains its bytes and attribution after company source loss. Finalised completion
-and original-member register recording are distinct bounded transactions;
-executed but unentered allocations remain reserved until the once-only ISSUE.
+and intent are rechecked before a fresh signature. A known refusal in the paid
+or legacy path becomes a definite unsigned failure with a safe explanation.
+Finalised completion and original-member register recording are distinct
+bounded transactions; executed but unentered allocations remain reserved until
+the once-only ISSUE.
 
 A [paid issue](../plans/company-managed-registers/company-paid-issues.md) uses
 the same admission: its exact applied instruction consumes current company
@@ -532,8 +510,7 @@ nomination or grant requirements. Original financial receipt/refund producers
 remain separate until #868 changes them. Fresh staff paid ISSUE admission is
 retired; historical accepted commands keep their original actor and source.
 App connections cannot read or write private commands; public company reads
-retain their existing shape. Accepted recovery remains operator-owned after the
-initiating actor loses access.
+retain their existing shape.
 
 Initial admission leaves the public request approved and the private command
 queued. A refund that wins before the worker claim rejects the request and retains
@@ -541,17 +518,15 @@ a cancelled command in the same transaction. Delayed jobs return that cancellati
 without opening an operation or creating a public issuance. The worker commits
 executing state and its stamped public issuance before opening the outgoing
 operation. From that claim onward, uncertainty blocks refunds. A definite unsigned
-failure or policy-final original revert permits refund cancellation or an explicit retry of
-that exact failed claim. Reverts retain the original transaction and signed bytes.
+failure or policy-final original revert permits refund cancellation or an
+explicit retry of that exact failed claim.
 
 PostgreSQL guards freeze approved terms, dispatch identity, subscription linkage,
 payment and share quantities. Recorded refunds cannot be reduced or undone.
-Token identity stays fixed while new work can execute. Company paid sources lock
-their company, class, offering, subscription and original source associations
-before the outgoing operation and signer. Retained NULL-source paid commands
-keep their applicable outgoing, token, subscription, request and private-command
-suffix. Chain reads and sends run outside those transactions. Common-journal signing commits original bytes,
-nonce, hash, public transaction and issuance association before broadcast.
+Token identity stays fixed while new work can execute. Retained NULL-source paid
+commands keep their applicable outgoing, token, subscription, request and
+private-command suffix. Common-journal signing commits original bytes, nonce,
+hash, public transaction and issuance association before broadcast.
 
 Recovery retains the first receipt before checking finality. A transaction marked
 confirmed or reverted is evidence of that first inclusion; the issuance remains
@@ -569,27 +544,17 @@ A changed success/revert outcome remains held for operator attribution. The
 locked projection rechecks the original claim, attempt and current finality
 policy. Private completion, public issuance, request and subscription allotment
 commit atomically. Terminal replay preserves that outcome; a holding refresh uses
-the admitted contract address. Unknown sends reuse the original bytes and nonce.
-Missing receipts or events never permit a fresh attempt. The five-minute sweep
-recovers bounded batches of accepted work. Completion calls
-`record_completed_effects` in the same transaction; the
-[register recording rules](register.md) may retain the effect as waiting for
-its opening, wallet link, attribution or applied instruction.
+the admitted contract address. The five-minute sweep recovers bounded batches of
+accepted work. Completion calls `record_completed_effects` in the same
+transaction; the [register recording rules](register.md) may retain the effect
+as waiting for its opening, wallet link, attribution or applied instruction.
 
 An admitted paid subscription retains its unique execution and immutable request
 binding. Permanent consumed-appointment loss before any signature retains that
 history and paid money; it does not renew authority, bind a second request or
-automatically refund funds. Original signed/confirmed work can project its
-original receipt after authority loss without a replacement approval. An actual
-financial cancellation still requires its existing refund/cancellation facts;
-further paid fund resolution policy belongs to #868.
-
-The owner confirmed that pre-admission null-dispatch issuances, including signed
-legacy mint journals, are absent from ledova.io. Their hash-naming and recovery
-paths are retired with the migration baseline. Retained admitted executions
-without a company source keep their original transaction, receipt, finality and
-refund controls. Existing records and outgoing history evidence are preserved.
-See [issuance recovery](../operations/recovery.md#deployment-and-issuance).
+automatically refund funds. An actual financial cancellation still requires its
+existing refund/cancellation facts; further paid fund resolution policy belongs
+to #868. See [issuance recovery](../operations/recovery.md#deployment-and-issuance).
 
 ## Pause and unpause
 
@@ -606,36 +571,17 @@ POST replay and private GET recovery retain their original identity and directio
 
 A verified initial boolean at a recorded block may produce `observed`, with no
 outgoing operation, signature or nonce. The decision is serialized against an
-executing peer. Temporary provider, configuration, readiness and row contention
-retain the same unsigned work. Only explicit revocation or actual database-clock
-expiry of a consumed approval/application appointment retires a genuinely
-never-signed original and releases its target slot. Definite preparation failures
-retain their technical meaning. Once executing, recovery uses the original
-outgoing key, signed bytes, nonce and receipt after current human authority loss.
-A unique original `Paused` or `Unpaused` event from the admitted contract and
-sender, canonical successful receipt and configured finality are required for
-confirmation. Current chain state cannot replace that transaction's outcome.
+executing peer. Failing a never-signed original after revocation or expiry of
+its consumed approval releases its target slot; definite preparation failures
+retain their technical meaning. A unique original `Paused` or `Unpaused` event
+from the admitted contract and sender, canonical successful receipt and
+configured finality are required for confirmation. Current chain state cannot
+replace that transaction's outcome.
 
 The incomplete command reserves its chain and contract, including a confirmed or
 observed outcome awaiting public projection. Company projection locks target,
 company, class, source and journal on one operator alias before updating the
-public state. Fresh opening/signing contexts acquire source/class authority
-before outgoing and signer locks and recheck default-deferred effects using
-actual time. Network operations run outside database transactions.
-
-Retained NULL-source owner projection preserves its original path: target and
-private journal locks on the operator alias, then original owner company/class
-writes on the scoped app connection. It holds no operator company/class lock
-while that separate connection projects. That write commits before completing
-the private command. A lost commit response retains the barrier for idempotent
-original recovery, preventing a newer opposite command from overtaking it.
-Completed replay returns before updating the token. Missing original owner
-provenance keeps the outcome and barrier; no operator fallback supplies that write.
-
-Historical `0051`/`0052` retain their definitions and original states. New
-`0104`/`0105` add company sources without backfilling approvals, reject fresh
-NULL-source admission and refuse reversal with retained company history. API and
-clients expose requested state, genuine observation or original receipt separately
-from current class state. The v1 five-field owner reminder remains, with original
-UUID/direction, same-account reload/replay/polling and completed-only dismissal.
-A saved UUID never admitted to the server gets an explicit fresh-admission refusal.
+public state. A retained NULL-source pause projects through its original owner
+path, and no operator fallback supplies that write. API and clients expose
+requested state, genuine observation or original receipt separately from
+current class state.

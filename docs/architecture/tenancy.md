@@ -12,110 +12,13 @@ eligibility rules where database read scopes are wider.
 The roles below are PostgreSQL connection roles, not human job titles. Company
 capabilities come from recorded appointments
 ([authority guide](../plans/company-managed-registers/authority-requests.md));
-shareholder membership and a platform staff role grant none. Bounded privileged
-services execute a company-authorised command after exact company and
-commit-time mandate checks; customer requests never gain unrestricted `BYPASSRLS`
-or direct ledger/projection writes. Enqueued unsigned work rechecks company
-authority after revocation, while already signed work follows its original
-recovery contract ([outgoing signing](outgoing-signing.md)).
+shareholder membership and a platform staff role grant none, and customer
+requests never gain unrestricted `BYPASSRLS` or direct ledger writes. Bounded
+privileged services execute a company-authorised command after exact company and
+commit-time mandate checks, and enqueued unsigned work rechecks authority after
+revocation ([outgoing signing](outgoing-signing.md#company-decisions-and-signer-authority)).
 
 ## Roles and principal
-
-Basic Company and CompanyDocument API selectors admit current personal `admin`
-appointments, including initial, invited and legacy sources, or a genuine
-unrooted draft owned by the current active, email-verified actor. The narrow
-principal-bound `app_company_administration_ids()` definer sees retained roots
-regardless of their app visibility and exposes only company UUIDs. A retained
-request-sourced initial appointment or legacy-owner source closes draft setup
-permanently; a pending authority request keeps the draft editable. Expiry,
-revocation, configured identity and current account checks determine appointment
-effectiveness. Delegatable scopes never count as personal authority.
-
-Company list, detail and basic edits, and company-document upload, private-file
-reads and deletion, use the actor-bound functions in
-`companies/services/administration.py`, `editing.py` and `documents.py`. Each
-locks the company before the live account, profile, operator identity
-requirement, appointments and affected document or wallet, and checks the
-actual clock after the wait. The existing identifier, status, reviewed-name and
-verified-wallet restrictions remain, and a PATCH answers with the complete
-`CompanyDetail`, so a client can validate its edit receipt. A pending authority
-request alone does not consume the draft-setup exception.
-
-The Company read policy retains its existing public discovery and market terms;
-its customer list/detail selectors remain narrower. App writes to Company and
-CompanyDocument are denied, with exact actor-bound operator services and database
-guards for permitted effects. CompanyDocument responses name the company UUID,
-and private-file handles open while the effect-time resource checks are held.
-Published-offering document reads retain their existing offering/class eligibility
-service and retention boundary. No generic participant, subscriber, profile,
-account or wallet policy predicate is widened. Company contact name/email is a bounded response rather than
-new access to the owner's raw profile or financial records.
-Company API metadata reads admit the exact current active owner alongside current
-personal administration. An owner without that administration receives no contact
-name/email or private document inventory, and cannot edit company information or
-files. Raw Company access retains the separate administration/public policy.
-Existing owner-domain reads and writes remain independent of personal
-administration: `app_visible_company_ids()` and `app_manageable_company_ids()` keep
-their exact owner UUID bodies and become fixed-search-path definers only after
-migration 0020. Child, participant, subscriber, profile, account and wallet policy
-terms remain unchanged. Historical installation and reversal restore the original
-invoker attributes. Owner API selectors bind the actual request owner; offering
-and capital effects recheck the live owner and active actor under company-first
-locks. Private documents supplied to offering actions separately require current
-personal administration. Offering updates and document attachment lock the exact
-offering before that check, so expiry during the row wait prevents a new private
-document reference. Share-class creation accepts only its existing validated
-fields and rechecks its selected owner and active actor under the same lock order.
-Personal administration supplies no mandate for these retained owner workflows.
-Historical policy installation waits for required columns, and the new
-administration migration reverses before the earlier policy installer is removed.
-
-Publication list and file selectors separately bind the exact retained company
-owner or named recipient on the operator connection before returning frozen
-publication data. Pausing a class does not require a new basic-admin appointment
-to read its publications. Customer file lookup excludes unrelated staff; the
-existing direct staff read service and its audit remain available. Ballot and
-summary paths keep their app-role policies.
-
-[Representative authority requests](../plans/company-managed-registers/authority-requests.md)
-are requester-private and company appointments appointee-private
-boundaries: the app reads its principal's own requests and the appointments that
-name it as appointee, and cannot create, update or delete authority rows. A bounded creation service carries and
-restores the individual principal on the selected connection, then locks and
-rechecks that person, profile and owned draft company. This does not widen the
-existing company helpers or grant any register capability.
-
-Withdrawal likewise resolves the individual's own request on the app connection
-before a bounded operator service locks that person and request. A separate
-immutable row records cancellation; only its requester can read it. Current
-company ownership or staff status grants no access to another person's proposal.
-Initial self-declaration admission shares the request lock and rejects a
-withdrawal. It retains the exact declaration, scoped appointment and genuine ABR
-check without activating the company. Self-revocation creates an immutable outcome;
-expiry/revocation stops current capability checks. The preserved configured representative
-identity gate (`issuer_kyc_required`) consumes server-owned provider results. None of these reads widens
-legacy owner-based company, investor or financial-data scopes.
-
-Invitations are readable only by their inviter through the app role. Bounded
-issuance checks a current selected appointment and its explicit delegatable
-scope; acceptance binds the first code holder's actual account and profile to
-one immutable appointment. The code appears only in the initial response and
-acceptance body; retained rows and history contain no plaintext code. Team reads
-require current administration for that exact company and expose account and
-appointment fields, excluding private identity, financial and authority evidence.
-Company administrators can revoke another appointment within that company, and
-appointees can revoke their own. These services lock the company before actors,
-restore the caller principal and check expiry after lock waits. No new company
-visibility helper or global staff mandate is introduced.
-
-The legacy-owner upgrade records existing owners as administrator appointees
-without widening the company helpers. Its immutable source table denies app
-reads and writes; own appointment history exposes the legacy source and null
-declaration fields, while bounded team reads retain the same privacy limits.
-Only the atomic upgrade can seed these rows. Installed guards refuse later
-legacy source/appointment inserts and source mutation, including through operator
-or migration connections. Existing initial or legacy roots remain consumed after
-expiry/revocation, and later owner changes supply no appointment.
 
 | Role     | Purpose                                                                              |
 | -------- | ------------------------------------------------------------------------------------ |
@@ -139,12 +42,33 @@ Use `shared.db.atomic` and `shared.db.on_commit` so transactions, queries and
 callbacks share the current alias. Raw cursors name `connections[alias]`;
 `django.db.connection` reaches the default connection and can bypass scope.
 
+Company rows follow the same rule. Company and CompanyDocument selectors admit a
+current personal `admin` appointment or a genuine unrooted draft owned by the
+current active, email-verified actor; the fixed-search-path definer
+`app_company_administration_ids()` exposes only company UUIDs, and
+`app_visible_company_ids()` and `app_manageable_company_ids()` keep their owner
+terms for the retained owner workflows (offerings, capital effects and
+share-class creation), which recheck the live owner and active actor under
+company-first locks. App writes to Company, CompanyDocument, authority requests,
+appointments, invitations and legacy-owner sources are denied; the actor-bound
+services in `companies/services/` (`administration.py`, `editing.py`,
+`documents.py`, `authority_requests.py`, `team.py`) carry the caller's
+principal, lock the company before the live account, profile, identity
+requirement and appointments, and check the clock after the wait. Authority
+requests are requester-private, appointments appointee-private and invitations
+inviter-private; team reads need current administration for that exact company
+and exclude private identity, financial and authority evidence. Publication
+selectors bind the exact retained company owner or named roll recipient. The
+[authority guide](../plans/company-managed-registers/authority-requests.md#what-is-recorded)
+and [shareholder publications](shareholder-publications.md#who-may-read-a-publication)
+own those boundaries.
+
 ## Policy catalogue
 
 [policies.py](../../backend/shared/db/policies.py) classifies every table and
 records exceptional read/write scopes. Grants derive from that catalogue;
 unclassified tables are denied rather than receiving blanket grants. The current
-`AWAITING_R0` and `AWAITING_RLS` sets are empty, including swap coverage.
+`AWAITING_R0` and `AWAITING_RLS` sets are empty.
 
 Important invariants:
 
@@ -175,18 +99,15 @@ Important invariants:
   table to carry such a term.
 - RLS visibility does not decide investor eligibility. Directory and market
   selectors apply the [eligibility rules](companies-and-eligibility.md).
-- A catalogue change needs a migration to reinstall policies for existing
-  databases. Fresh installs alone cannot prove an upgrade received the change.
-  A term that names a column added after its table was created is listed in
-  `policy_sql.TERM_COLUMNS_ADDED_AFTER_CREATION`: the creating migration then
-  enables and forces row-level security without policies, denying the app role,
-  and the column's own migration installs the term.
+- `shared/0002_database_guards` installs the catalogue's roles, grants, policies
+  and helpers on a fresh database; there is no in-place adoption path for an
+  older one.
 
 `check_rls_catalogue` compares installed policies and helpers with the installer
-inside a rolled-back transaction. It compares PostgreSQL-normalized expressions,
-policy roles/permissiveness and helper properties, and checks pending-column
-classifications. It runs after migration, not on the scoped serving connection.
-`check_rls_roles` checks live connection privileges, grants and principal state.
+inside a rolled-back transaction. It compares PostgreSQL-normalised expressions,
+policy roles/permissiveness and helper properties. It runs after migration, not
+on the scoped serving connection. `check_rls_roles` checks live connection
+privileges, grants and principal state.
 
 ## Requests and jobs
 
@@ -229,20 +150,15 @@ expose private orders or wallets. The basic company document policy permits read
 for current personal administration or the bounded unrooted-draft setup exception;
 app writes remain closed.
 
-Order creation authorizes the exact submission in app scope, then rechecks its
-owner and wallet under locks in one bounded operator transaction. Challenge spend,
-matching, reservations and the recorded result commit together. Private order
-reads and edits remain owner-scoped; swap insertion is operator-only. See the
-[create protocol](../reference/order-submissions.md#creating-an-order).
+Order creation authorises the exact submission in app scope, then rechecks its
+owner and wallet under locks in one bounded operator transaction
+([create protocol](../reference/order-submissions.md#creating-an-order)).
 
 ## Verification
 
-The ordinary request suite takes the app role on one ambient
-test connection, keeping fixtures visible without cross-alias deadlocks. That
-checks policy behavior. The separate scoped suite checks actual alias routing,
-transaction rollback, locks and task boundaries. Role/catalogue commands check
-the deployed connections and schema. Each proves a different boundary.
-
-Run the commands in [testing](../development/testing.md). The earlier owner-column
-rollout is historical; current code and the policy catalogue are the reference
-for new work. See [decisions](../decisions.md) for the retained rationale.
+`check_rls_roles` and `check_rls_catalogue` run inside `make backend-test`
+against the deployed connections and schema.
+`backend/shared/tests/test_scoped_access.py` holds the real-app-login tenant
+cases: session and principal handling, foreign reads and writes, exact-company
+binding, foreign approval and once-only issue. See
+[backend verification](../development/testing.md#backend-verification).

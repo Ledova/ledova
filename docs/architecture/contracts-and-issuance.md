@@ -15,6 +15,8 @@ nor bytecode. Every chain action preserves whole-share arithmetic, authorised
 headroom, wallet possession, company registry approval, original signed bytes,
 finality and atomic register recording. An import-origin register issues and
 transfers only through the [non-paid ledger workflows](../plans/company-managed-registers/register-grants.md),
+including grants linked to [employee awards](../plans/company-managed-registers/employee-awards.md)
+and [external allotments](../plans/company-managed-registers/external-allotments.md),
 never through chain instructions, and later tokenisation mirrors its holdings
 without issuing them twice.
 
@@ -77,11 +79,9 @@ See [testing](../development/testing.md) for compilation, chain checks and advis
    attributable local deployment remains pending for operator attribution.
 4. The shared outgoing journal commits the signed bytes, nonce, hash and token
    association before broadcast. Recovery uses the original transaction and
-   matching factory event. Unknown outcomes remain `DEPLOYING`; a signed admin
-   confirmation may retry a definite unsigned failure or revert with the same
-   intent, subject to the original company source for fresh signing. The
-   five-minute sweep recovers admitted work. Deployment mints
-   nothing: the contract's `totalSupply()` starts at zero. See
+   matching factory event; unknown outcomes remain `DEPLOYING`, and the
+   five-minute sweep recovers admitted work. Deployment mints nothing: the
+   contract's `totalSupply()` starts at zero. See
    [deployment persistence](#deployment-persistence).
 5. A participant proves possession of their selected wallet and explicitly
    nominates it against current GENERAL eligibility for the exact company.
@@ -111,29 +111,20 @@ See [testing](../development/testing.md) for compilation, chain checks and advis
    describe refusals, unsigned holds and recovery.
 7. The worker durably claims the request before opening its shared outgoing
    operation. Its public `ShareIssuance` uses `issuance-request:<uuid>` as the
-   idempotency key. Signed bytes, hash, nonce and the transaction association
-   commit together before broadcast. The existing network finality policy and
-   original receipt/mint-event verification precede atomic completion of the
-   issuance, request and linked subscription. A first receipt alone leaves it
-   executing; a mined revert also waits for finality before failure permits retry.
-   `check_executing_issuance_requests` recovers interrupted work every five
-   minutes. Unknown sends retain the original identity; a confirmed failure
-   requires a fresh confirmation naming that failed attempt.
-   A company grant records its original member's ISSUE once after the outcome
-   transaction; an executed but unentered original remains reserved until that
-   entry exists, because chain completion alone does not establish register
-   recording.
+   idempotency key. The network finality policy and original receipt/mint-event
+   verification precede atomic completion of the issuance, request and linked
+   subscription; `check_executing_issuance_requests` recovers interrupted work
+   every five minutes. A company grant records its original member's ISSUE once
+   after the outcome transaction; an executed but unentered original remains
+   reserved until that entry exists, because chain completion alone does not
+   establish register recording.
 8. A [capital increase](../plans/company-managed-registers/company-capital-increases.md)
-   calls `setAuthorizedShares(new_authorized_total)` and mints nothing. A current
-   company appointee prepares the exact current cap, positive delta and target
-   with retained authority evidence; application commits the original request,
-   immutable private intent and background job before signing. Completion
-   requires the original transaction's successful receipt and its
+   calls `setAuthorizedShares(new_authorized_total)` and mints nothing.
+   Completion requires the original transaction's successful receipt and its
    `AuthorizedSharesUpdated` event matching both approved cap values; a matching
    current cap alone never establishes execution. The five-minute
-   `recover_capital_increases` task repairs admitted work.
-   [Capital recovery boundaries](outgoing-signing.md#capital-increases) describe
-   the in-flight slot, holds, retries and attribution.
+   `recover_capital_increases` task repairs admitted work
+   ([capital recovery boundaries](outgoing-signing.md#capital-increases)).
 9. [Pause and unpause](../plans/company-managed-registers/company-pause-changes.md)
    are company decisions applied the same way; execution reads `paused()` first
    and reconciles the database when the chain is already in the target state
@@ -152,9 +143,7 @@ after earlier refusals (`ReviewRequest.mark_executed` in
 `backend/tokens/models/review_request.py`), so the history does not stop at the
 last failure. Reviewer notes are omitted from the company-facing serializers and from
 the client type in `packages/shared/src/types/domain/company-token.ts`; the company
-receives execution notes and rejection or supersession reasons. Issuance and capital recovery retain transaction identity and safe error
-categories in operator records; provider URLs and exception text do not enter
-public responses or recovery diagnostics.
+receives execution notes and rejection or supersession reasons.
 
 A company reads its requests through `GET /api/v1/tokens/issuance-requests/`,
 filtered by token, company or status; the endpoint is read-only. List and detail
@@ -168,42 +157,24 @@ execution of an approved request.
 `backend/tokens/services/deployment.py` admits one immutable `TokenDeployment`
 for each queued submission. Its UUID snapshots preserve token/company/issuer
 identity; new journals also retain their exact company proposal and consumed
-approval. Captured wallet/account/profile/user identifiers remain private JSON
-associations rather than customer-deletion foreign keys.
-Historical rows retain null submission identities and their original hashes and
-records; they are not automatically attributed or imported into the outgoing journal.
-
-The shared outgoing journal's local signing callback commits `SignedAttempt`
+approval, and captured wallet/account/profile/user identifiers remain private
+JSON associations rather than customer-deletion foreign keys. Historical rows
+with null submission identities keep their original hashes and records and are
+not attributed or imported into the outgoing journal; legacy NULL-source work
+cannot obtain a fresh signature. The signing callback commits `SignedAttempt`
 bytes, the reserved nonce, the `BlockchainTransaction` and the public token's
-hash/transaction association in one durable operator transaction. It refuses
-surrounding transactions, competing bindings and changed admitted terms. Inside
-that transaction a narrow source-lock context precedes outgoing/signer/journal
-locks and rechecks the exact consumed approval, approving/applying mandates,
-captured wallet, configuration and register state immediately before signing.
-Temporary contention or source loss holds the original unsigned operation without
-a signed attempt or nonce. Operator recovery reconciles already-signed originals
-after company source loss; legacy NULL-source work cannot obtain a fresh signature.
-
-Unknown sends and lost commit acknowledgements recover the original signed
-bytes, hash and nonce. Definite preparation failures and reverts retain their
-intent; an explicit retry names the failed claim, so stale jobs and forms cannot
-reopen a later terminal attempt. A retry records the previous transaction's
-revert before reopening its operation. New transaction projections are excluded from
-the legacy hash monitor. Only the original operation's receipt, with a factory
-creation event matching identifier, symbol and cap, can establish the contract.
-An identifier lookup or current share cap cannot substitute for attribution.
-
-Projection checks the current token/submission/company and chain/factory before
-writing public state. A failed asset bridge stays recoverable after the token's
-contract is recorded. The bounded sweep rotates unresolved work by update time
-and repairs interrupted revert projections without opening another attempt.
-Once their transaction projection is complete, terminal failures await explicit
-retry. Successful projection atomically queues a separate immutable swap approval
-phase on the private deployment record. Approval failure leaves the token deployed;
-its own recovery follows the original signed transaction. On a public network,
-same-key cutover and historical attribution remain outstanding and signer
-admission stays closed until the owner runs the cutover in
+hash/transaction association in one durable operator transaction, under the
+[common hold, retry and recovery rules](outgoing-signing.md#company-decisions-and-signer-authority).
+Only the original operation's receipt, with a factory creation event matching
+identifier, symbol and cap, can establish the contract; an identifier lookup or
+current share cap cannot substitute for attribution. Projection checks the
+current token/submission/company and chain/factory before writing public state,
+and a failed asset bridge stays recoverable after the token's contract is
+recorded. Successful projection queues the
+[automatic swap approval](outgoing-signing.md#automatic-swap-approval), whose
+failure leaves the token deployed. On a public network signer admission stays
+closed until the owner runs the cutover in
 [#624](https://github.com/Ledova/ledova/issues/624); the local stack admits its
-own signer. See [outgoing signing](outgoing-signing.md).
+own signer.
 
 Next: [offerings](offerings.md), [subscriptions](subscriptions.md), and [chain setup](../operations/chains.md).

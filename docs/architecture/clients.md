@@ -14,18 +14,18 @@ register runbook and each increment guide describe what their screens do.
 `packages/shared` is consumed from source: `main` and `types` in its
 `package.json` point at `src/index.ts`, which re-exports `constants`, `types`,
 `services`, `utils` and `hooks`; there is no build step and no `dist/`. The
-`hooks` barrel ships `ApiClientProvider`/`useApiClient` and shared hooks, so `react` and `@tanstack/react-query` are
-`peerDependencies` supplied by the importing client. Mobile must supply one copy
-of each: `metro.config.js` reanchors both specifiers to `mobile/index.ts`,
-`jest.config.js` maps them to `mobile/node_modules`, and
-`mobile/scripts/shared-peer-resolution.mjs` (the last step of
-`check-resolution.mjs`) fails if a real Metro resolution from `App.tsx` and one
-from a shared hook disagree.
-
-- The dashboard resolves it through the root npm workspace link
-  (`node_modules/@ledova/shared` to `packages/shared`); Vite and `tsc -b` follow
-  the symlink to its real path outside `node_modules`, so the sources are
-  transformed and type-checked as application code.
+`hooks` barrel ships `ApiClientProvider`/`useApiClient` and shared hooks, so
+`react` and `@tanstack/react-query` are `peerDependencies` supplied by the
+importing client. Mobile must supply one copy of each: `metro.config.js`
+reanchors both specifiers to `mobile/index.ts`, `jest.config.js` maps them to
+`mobile/node_modules`, and `mobile/scripts/shared-peer-resolution.mjs` (the last
+step of `check-resolution.mjs`) fails if a real Metro resolution from `App.tsx`
+and one from a shared hook disagree. Run `npm --prefix mobile run
+check:resolution` after dependency changes; `make check-self-imports` refuses
+self-imports through the public barrel. The dashboard resolves the package
+through the root npm workspace link (`node_modules/@ledova/shared` to
+`packages/shared`); Vite and `tsc -b` follow the symlink to its real path, so
+the sources are transformed and type-checked as application code.
 
 Every client import is `from '@ledova/shared'`. `packages/shared/src/services`
 holds the API call functions both clients share; each takes the caller's axios
@@ -50,33 +50,32 @@ pages included. The audience is `everyone`, `investing` or `company`, and
 `canOpen(role, audience)` says who may open it: an investor opens the pages for
 everyone and for investing, a company those for everyone and for companies, and
 a dual-role account all of them. A role outside the API's list opens only the
-pages for everyone, on both clients, and lands on Holdings. Every signed-in route is guarded by
-`ProtectedRoute` with its entry's audience. A signed-out visitor goes to sign
-in. Email verification issues a full session before sign-up is finished, so a
-signed-in account whose profile does not say `isSignupCompleted` goes back to
-the account-type step, the first after email verification; the later steps
-fill their forms from what was saved. A signed-in account whose profile cannot
-be read sees an error with a way to try again, not a guess. A signed-in person
-who cannot open the page goes to `landingFor(role)`, which replaces the refused
-address. Every page shows the session check until the profile is known, and an
-investing or company page until the role is known as well, so no page appears
-on the way. If the account cannot be read, it says so and offers Try again
-instead of deciding with a guessed role. Once the role is known, the sidebar
+pages for everyone, on both clients, and lands on Holdings. Every signed-in
+route is guarded by `ProtectedRoute` with its entry's audience. A signed-out
+visitor goes to sign in. Email verification issues a full session before
+sign-up is finished, so a signed-in account whose profile does not say
+`isSignupCompleted` goes back to the account-type step, the first after email
+verification; the later steps fill their forms from what was saved. A signed-in
+account whose profile cannot be read sees an error with a way to try again, not
+a guess. A signed-in person who cannot open the page goes to `landingFor(role)`,
+which replaces the refused address. Every page shows the session check until
+the profile is known, and an investing or company page until the role is known
+as well, so no page appears on the way. Once the role is known, the sidebar
 offers only pages the role can open, in groups:
 
-- a company's own group first, named after the company, with Register, Offerings and
-  Company.
+- a company's own group first, labelled Company, with Register, Offerings and
+  Company;
 - _Your shares_ for every account;
 - _Invest_ for an investing account, with Market only while trading is on;
 - then Wallets, Profile and Settings.
 
 Each item takes its name and address from its entry in `DESTINATIONS`, so a
 menu label always matches the page's title. Activity keeps the `/transactions`
-address. Holdings replaces the crypto home at the existing `/home`
-address. Notices at `/publications` lists documents, resolutions and dividends
-addressed to the person. Accounts without the company role reach Register from
-Settings on the web and the drawer on mobile once they hold register access
-through a current appointment.
+address. Holdings replaces the crypto home at the existing `/home` address.
+Notices at `/publications` lists documents, resolutions and dividends addressed
+to the person. Accounts without the company role reach Register from Settings
+on the web and the drawer on mobile once they hold register access through a
+current appointment.
 
 `landingFor(role)` decides where a signed-in person lands: an investing account
 on Holdings, and a company or dual-role account on Register. The front door,
@@ -90,10 +89,8 @@ goes to `landingFor(role)` instead of reopening one, while an account still
 signing up and a signed-out visitor move through them as before. Email
 verification refreshes the session answer before it moves on, as sign-in does,
 so in the in-app flow the steps read the profile once, before any form, and a
-later recheck of the session does not take away a step being filled in. One case
-remains: if the session check itself fails as a step loads and succeeds on a
-later recheck, the step is replaced while the profile loads, and what was typed
-into it is lost.
+later recheck of the session does not take away a step being filled in.
+
 The signed-in frame (sidebar and phone bar) appears only for a signed-in account
 that has finished sign-up, which `useSignupFinished` decides; sign-in, sign-up
 and everything else use the public layout. The frame marks itself with
@@ -104,14 +101,13 @@ frame appears. The page keeps showing the session check until then, rather
 than rendering once in the public layout. Since the sidebar's Sign out is not
 shown there, the public layout gives any signed-in visitor a Sign out button in
 its header, through `AuthLayoutAction`, so an account still signing up can
-always leave. The not-found page reads the same
-decision: inside the frame with a link to `landingFor(role)` for a finished
-account, and otherwise in the public layout with a link to sign in, or, for an
-account still signing up, back into sign-up. It shows nothing until its own
-decision and the frame's agree, so, like a guarded page, it never appears in
-the wrong layout for a moment.
-Native stacks and sign-up routes remain declared separately; the native drawer
-reuses titles from `DESTINATIONS`.
+always leave. The not-found page reads the same decision: inside the frame with
+a link to `landingFor(role)` for a finished account, and otherwise in the public
+layout with a link to sign in, or, for an account still signing up, back into
+sign-up. It shows nothing until its own decision and the frame's agree, so,
+like a guarded page, it never appears in the wrong layout for a moment. Native
+stacks and sign-up routes remain declared separately; the native drawer reuses
+titles from `DESTINATIONS`.
 
 Signing in, and verifying an email, which also signs a new person in, clear
 what the tab cached for whoever was signed in before, as signing out does, so a
@@ -139,29 +135,34 @@ holds each register command's rules and API.
 **Register** is the company landing page on both clients and a page for every
 signed-in account on the web, at `/company/register`; the API decides which
 registers it shows, and with nothing readable the page says there is no company
-register to show. It reads every page of the share classes the person may read,
-as the company owner or through a current appointment holding administration
-or a register capability, groups them by company and, where the person can
-read more than one company, reads only the selected company's stored
-registers: current members, linked wallets, exact issued and authorised shares,
-the register CSV download and the inspection-copy preparation, with unopened
+register to show. It reads the share classes the person may read, as the
+company owner or through a current appointment holding administration or a
+register capability, groups them by company and, where the person can read
+more than one company, reads only the selected company's stored registers:
+current members, linked wallets, exact issued and authorised shares, the
+register CSV download and the inspection-copy preparation, with unopened
 registers and unknown or positive waiting-effect counts stated. Each class then
 lists its register entries, newest first a page at a time with Load more (an
 entry a later page repeats is listed once, a page with a share change that is
-not whole fails and offers a retry, and an entry's corrected or reversing entry
-reads as not loaded yet until its page arrives), its
+not whole fails, and an entry's corrected or reversing entry reads as not
+loaded yet until its page arrives), its
 [imports](../operations/register-foundation.md#importing-an-existing-register),
 [corrections](../operations/register-foundation.md#compensating-corrections),
 [openings](../operations/register-foundation.md#opening-the-register-from-the-chain)
 and latest [reconciliation](../operations/register-foundation.md#reconciling-with-the-chain);
 the company's [particulars changes](../operations/register-foundation.md#changing-a-members-particulars)
 and [wallet links](../operations/register-foundation.md#linking-wallets-after-the-opening)
-follow in sections of their own. Each proposal shows its stage, preparer,
-dates, terms, authority, decision trail, any rejection reason and its
-document's download; one that predates its command being company-run says
-whether platform staff verified the evidence, and a particulars change, which
-was company-run from the start, notes that the company provided the document.
-A proposal of another company or class, a mapping or holding that cannot be
+follow in sections of their own. Each class also lists its
+[non-paid grants](../plans/company-managed-registers/register-grants.md),
+[transfers](../plans/company-managed-registers/register-transfers.md),
+[employee awards](../plans/company-managed-registers/employee-awards.md) and
+[external allotments](../plans/company-managed-registers/external-allotments.md);
+those guides own their rules. Each proposal shows its stage, preparer, dates,
+terms, authority, decision trail, any rejection reason and its document's
+download; one that predates its command being company-run says whether
+platform staff verified the evidence, and a particulars change, which was
+company-run from the start, notes that the company provided the document. A
+proposal of another company or class, a mapping or holding that cannot be
 read, and a correction lookup that answers with entries it was not asked for
 fail the read. The reconciliation shows status, block, compared sequence, time,
 any failure and each discrepancy in words with its acknowledgement (reason,
@@ -186,8 +187,8 @@ decision opens the shared preview-first dialog, `useRegisterDecision`, which
 previews the exact decision, its unmet requirements in words and what applying
 records, takes a reason of up to 1,000 characters for a rejection, and
 confirms it with a retry key reused only for the same preview while the step's
-appointment is still the one previewed; on mobile the dialog
-closes when a refresh withdraws its step. A discrepancy is acknowledged through
+appointment is still the one previewed; on mobile the dialog closes when a
+refresh withdraws its step. A discrepancy is acknowledged through
 `useDiscrepancyAcknowledgement` with a reason of up to 1,000 characters; the
 dialog keeps the appointment it opened with and holds confirmation if a refresh
 changes it. Every read, upload, preview, decision, acknowledgement and
@@ -220,9 +221,8 @@ paid issues, capital increases and pause changes, each prepared, approved and
 applied under company authority with saved recovery of an uncertain reply
 within the session ([implementation index](../plans/company-managed-registers/README.md));
 share arithmetic uses whole integers, and a quantity or resulting cap above the
-2,147,483,647 request limit is refused rather than rounded.
-Certificates, notice figures and the company pack are still prepared by
-platform staff on written instruction.
+2,147,483,647 request limit is refused rather than rounded
+([register](register.md)).
 
 **Company** reads the selected company's complete detail and every page of
 its share classes and team; administrators edit company information and
@@ -255,9 +255,7 @@ nothing ([offerings](offerings.md)).
 and in the mobile app, reading the selected owned company's publications with
 `issuer` set into one Publications card whose title carries the complete count;
 [shareholder publications](shareholder-publications.md#in-the-members-everyday-views)
-describes it and **Notices**. Loading and failed company or publication reads
-block document actions, a retry never presents a partial list as complete, and
-document delivery failures remain visible.
+describes it and **Notices**.
 
 **Holdings** reads every page of the person's wallets and lists their
 tokenised security holdings by company and class, one row per asset across
@@ -284,24 +282,21 @@ refuse or revoke
 and holds the company's wallet nominations and instructions
 ([wallet approvals](../plans/company-managed-registers/company-wallet-approvals.md)).
 Every claim page loads before a submission is offered, so a pending claim on a
-later page still prevents a second one, and a failed background read keeps an
-open claim's fields and selected file with a retry inside the modal.
+later page still prevents a second one.
 
 **Directory** groups the accessible share classes under their company and
 opens a class's current offering, with the documents attached to its approved
 offerings; the first experience presents one fictional company and adds no
 registry search. A draft application reads every verified Base wallet page,
-computes its fixed-price total in integer cents, keeps its quantity and chosen
-wallet through a failed refresh while hiding the application actions, and is
-scoped to the offering, so a replacement offering starts fresh; a closed or
-unavailable offering has no form, and the server still selects the applicant
-and enforces quantity and eligibility. **Applications** presents the recorded
-company, class, currency and payment instruction independently of current
-Directory access, including the unaltered reference, leading zeroes, bank
-details or raw settlement units, never falling back to generic payment rails;
-a copy failure keeps the value available, and a recorded partial payment shows
-the amount outstanding and asks the investor to confirm any further payment
-with the operator.
+computes its fixed-price total in integer cents and is scoped to the offering,
+so a replacement offering starts fresh; a closed or unavailable offering has no
+form, and the server still selects the applicant and enforces quantity and
+eligibility. **Applications** presents the recorded company, class, currency
+and payment instruction independently of current Directory access, including
+the unaltered reference, leading zeroes, bank details or raw settlement units,
+never falling back to generic payment rails; a copy failure keeps the value
+available, and a recorded partial payment shows the amount outstanding and
+asks the investor to confirm any further payment with the operator.
 
 **Market** presents For sale and Wanted lists with automatic matching; buyers
 fund before placing an offer ([trading](trading.md)). Owned order history reads
@@ -332,13 +327,12 @@ mobile a pending one cannot be dismissed or submitted twice; imports run one
 address at a time and remember confirmed additions for retry within the same
 import; mobile's software registration waits for the server after the
 authenticated local seed storage. Buy crypto and Send are Wallets actions
-rather than menu items. Buy crypto requires a personal `investor` or `both`
-account and an owned receiving wallet, which the API checks again before
-contacting the provider, and both clients refuse direct opening and late
-responses after account or role loss
-([#920](https://github.com/Ledova/ledova/issues/920)); when the purchase page
-cannot be opened it gives the server's reason (`readApiError` in
-`packages/shared/src/utils/errors.ts`) or "The purchase page could not be
+rather than menu items, mounted in the signed-in frame so an open flow survives
+Wallets reloading its wallet list and the person leaving Wallets. Buy crypto
+follows the [on-ramp decision](../decisions.md#registry-priority-crypto-on-ramp-and-aud-payments)
+and [#920](https://github.com/Ledova/ledova/issues/920)'s account guard; when
+the purchase page cannot be opened it gives the server's reason (`readApiError`
+in `packages/shared/src/utils/errors.ts`) or "The purchase page could not be
 opened. Try again.", never a proxy's error page. Send opens its form directly
 when Wallets has read exactly one verified wallet on the networks it lists
 (Ethereum, Bitcoin and Base), offering Cancel where Back would return to a
@@ -346,21 +340,18 @@ choice never made, and otherwise asks which wallet; the web counts the wallets
 last read even while re-reading, mobile asks until the read has finished and
 opens a lone Bitcoin wallet in the Bitcoin send form. Buy crypto goes straight
 to the widget only when a finished read finds exactly one verified wallet on
-the chosen asset's network. Every chooser reads every page, lists only the
-networks Wallets lists, never says there are none before a read has answered,
-and offers Try again without the request's error text; mobile's Send forms
-wait for the chosen wallet's balances, say so with the server's reason when
-they cannot be read, and keep Continue unavailable until they have been read.
-Send offers crypto and payment tokens, including AUDY, and never shares.
+the chosen asset's network. Every chooser lists only the networks Wallets
+lists; mobile's Send forms wait for the chosen wallet's balances and keep
+Continue unavailable until they have been read. Send offers crypto and payment
+tokens, including AUDY, and never shares.
 
 **Activity** presents recorded wallet transfers read-only, with exact decimal
 amounts, native fees and status; a share transfer's amount carries its class's
 own symbol ([a share holding names its class](wallets-and-valuations.md#a-share-holding-names-its-class)).
-Its history read does not depend on the wallet filter read, and a failed
-selector page disables the selector without hiding history or clearing draft
-filters; filters use only supported API fields, with date bounds covering
-whole local days (block time on mobile, excluding records without one), and
-each entry opens in place to its detail and explorer link.
+Its history read does not depend on the wallet filter read; filters use only
+supported API fields, with date bounds covering whole local days (block time
+on mobile, excluding records without one), and each entry opens in place to
+its detail and explorer link.
 
 **Profile and Settings** use the ledger sections for personal information,
 identity status, security, notifications and data controls. Members edit their
@@ -369,12 +360,10 @@ details ([member profile](../plans/company-managed-registers/member-profile.md))
 The transaction-alerts switch is the `transactionAlerts` field of the one user
 preferences record, read through `useUserPreferences` and saved with a partial
 `POST` to `/api/user-preferences/`; mobile distinguishes an unavailable
-preferences record from disabled alerts. Password changes, data export and
-account deletion show failures and allow retry, and their mobile dialogs stay
-open after a refusal and cannot close while a request is pending; deletion
-keeps its confirmation dialog, states which records are retained, and clears
-the tab's account data after the server confirms. Mobile Settings adds
-biometric sign-in and app lock.
+preferences record from disabled alerts. Account deletion keeps its
+confirmation dialog, states which records are retained, and clears the tab's
+account data after the server confirms. Mobile Settings adds biometric sign-in
+and app lock.
 
 Where market values are shown, they are in AUD: the shared `useCurrency`
 converts the API's US-dollar values at the current rate, shows a dash while the
@@ -383,10 +372,8 @@ prices and an application's amounts are in the offering's currency: a new
 offering is priced in AUD, and one created before that rule keeps the currency
 it was given ([decision](../decisions.md#the-signed-in-app)). The Buy step
 shows each asset's current price, and no price while the exchange rate is
-unknown. Both flows are mounted in the signed-in frame, so an open flow
-survives Wallets reloading its wallet list and the person leaving Wallets. The
-guard decides pages, not data: the API still decides which rows a person sees,
-and answers 404 for one it refuses.
+unknown. The guard decides pages, not data: the API still decides which rows a
+person sees, and answers 404 for one it refuses.
 
 ## The shared client layer
 
@@ -406,9 +393,11 @@ decision can leave unmet; and the preparation destinations.
 
 | Command            | Preparation destination                                                        |
 | ------------------ | ------------------------------------------------------------------------------ |
-| Import             | `/company/register/:uuid/import`                                               |
+| Import             | `/company/register/:uuid/import` (`companyRegisterImport`)                     |
 | Correction         | `/company/register/:uuid/correct/:entry` (`companyRegisterCorrection`)         |
 | Opening            | `/company/register/:uuid/open` (`companyRegisterOpening`)                      |
+| Grant              | `/company/register/:uuid/grant` (`companyRegisterGrant`)                       |
+| Transfer           | `/company/register/:uuid/transfer` (`companyRegisterTransfer`)                 |
 | Particulars change | `/company/register/members/:member/particulars` (`companyRegisterParticulars`) |
 | Wallet links       | `/company/register/companies/:company/links` (`companyRegisterLinks`)          |
 
@@ -420,214 +409,92 @@ label), and recognise a holdings-moved refusal by its `opening_holdings_moved`
 code. Each wallet's proof is worded as the holder's own proof on Ledova, never
 as a verification by Ledova.
 
-## The page frame
+## Signed-in page conventions
 
-Inside the frame, every signed-in page renders in `Page`
-(`dashboard/src/components/Page.tsx`), and so do the route guard's own waiting
-and failure states, so each shows its page's title.
-`routes/every-page-titled.test.tsx` renders every real page with empty data and
-checks its title. Each page opens with one title block on the content's own
-edge, above the content or its loading state: the title row, 64 px high, where
-the title and the page's actions share one row (on a phone too narrow for both,
-the actions wrap under the title), and the page's lede directly under that row
-when it has one. The first section follows the title block at the page's one
-gap, the same gap as between sections (16 px on a phone, 20 px from 640 px and
-24 px from 768 px), whether or not the page has a lede. The frame holds only the
-sidebar, with the notification bell beside the logo, and on a phone a top bar
-with the menu, the logo and the bell. It has no header bar and no footer; only
-the public layout has a footer.
+Every signed-in page renders in `Page` (`dashboard/src/components/Page.tsx`,
+`mobile/src/components/Page.tsx`), and so do the route guard's waiting and
+failure states, so each shows its page's title. The title block is one title
+row holding the title and the page's actions, with the lede, one muted
+sentence, directly under it when the page has one; a lede appears only where it
+says what the titles do not. The first section follows at the same gap as
+between sections. On mobile `Page` is a scroll view on the paper whose header
+sets the title in Newsreader at `theme.fontSize.xxxxl`, then the lede, then the
+screen actions as one wrapping row, because a phone's large title leaves no
+room beside it; loading, access and failure states render under the same title,
+and the stack header above carries no title of its own, only the menu or back
+button and, on a top-level screen, the bell. The frame holds only the sidebar,
+or the phone's top bar, with the notification bell; it has no header bar and no
+footer. The sidebar's list ends with Help & Support, and its foot names the
+person above Sign out (the public layout's `SignOutButton` in its sidebar
+variant); mobile's drawer has the same shape. The mobile exceptions keep a
+frame of their own: Help & Support keeps its stack title; Send, Transfer, Verify
+Wallet and Recovery Phrase are titled inside their `Panel` card
+(`mobile/src/components/panel`); Buy crypto is its dialog over the plain paper
+followed by the provider's web view.
 
-On mobile every signed-in screen renders in `Page`
-(`mobile/src/components/Page.tsx`), except those named at the end of this
-paragraph. `Page` is a scroll view on the paper that opens with one header
-block: the screen's title in Newsreader at 36 (`fontSize.xxxxl`), marked as the
-screen's header, then its lede directly under the title when it has one, then
-its screen actions as one wrapping row of content-width `Action`s: a way back
-such as Back to Directory, Back to Applications or Back to Company, Refresh on
-Published to your members, New offering, Edit company, and
-Wallets' Buy crypto, Send, Add wallet and Sync balances. Where the web
-keeps the title and actions on one row, a phone's large title leaves no room, so
-mobile keeps the lede with the title it describes and puts the actions after it.
-The side padding is 24 (`spacing.lg`), and the first card follows the header
-block at the same 24 as between cards, whether or not the screen has a lede or
-actions. A screen's loading, access and failure states render in the same frame
-under the same title; a company's share class is titled Share class until the
-class is read, and then by the class. Each screen keeps its own pull to refresh
-and keyboard handling, which `Page` hands to its scroll view. The stack header
-above the page carries no title of its own, only the menu or back button and, on
-a top-level screen, the bell, which in every stack opens the notifications and
-shows the unread count. The exceptions keep a frame of their own: Help & Support,
-the last row of the drawer's list, keeps its stack title and contact cards; the
-Send, Transfer, Verify Wallet and Recovery Phrase screens are titled inside their
-`Panel` card; and Buy crypto is its dialog over the plain paper, followed by the
-provider's web view, both under a Buy Crypto stack title.
+Pages are built from the ledger blocks in `dashboard/src/components/Ledger.tsx`
+and `mobile/src/components/Ledger.tsx`; each enforces one rule:
 
-The sidebar's list holds its destinations and ends with Help & Support, a
-footer-style link to the contact page that opens in a new tab. The list scrolls
-on its own, so one too tall for the screen is cut at the rule above the foot. A
-group label wraps rather than being cut short, so a long company name is shown
-whole. The foot is one block: the person's full name, or the email when the
-profile has no name, above Sign out, which keeps its icon and red hover and is
-the public layout's `SignOutButton` in its sidebar variant. Mobile's drawer
-follows the same rule: a company's group takes the company's name, wrapping
-rather than cut short, and keeps Company until the name is read; its list ends
-with Help & Support, which opens the Help screen, and a foot pinned below the
-list names the person above Sign out.
-
-## The ledger blocks
-
-Pages rebuilt in the paper layout use the ledger blocks in
-`dashboard/src/components/Ledger.tsx`:
-
-- `Section`: a white card on the paper ground (`bg-surface-raised`, a
-  `border-border` hairline, `rounded-xl`), with its Newsreader title inside at
-  the top and no rule under it. The page's title row stays on the paper above
-  the cards.
-- `Rows`: ruled label and value pairs, with figures right-aligned in tabular
-  numerals. Every amount names its currency (`formatMoney`), and share counts
+- `Section`: every section is its own white card on the paper
+  (`bg-surface-raised`, a `border-border` hairline, `rounded-xl`) with its
+  Newsreader title inside. Forms and things to act on are cards too, and a
+  group inside a card is set off by a rule or a small heading, never a nested
+  card. An empty section keeps its real title with one muted sentence under it
+  ("No activity yet.") and at most one action; a state is never a title.
+- `Rows`: ruled label and value pairs, figures right-aligned in tabular
+  numerals; every amount names its currency (`formatMoney`) and share counts
   are whole numbers.
-- `LinkRow`: a row that opens another page, named after its destination, with
-  optional detail lines, an optional aside such as a status or a price, and a
-  trailing chevron; the whole row is the link.
-- `SwitchRow`: a row that turns a setting on or off, with its label, an
-  optional muted sentence under it, and an On or Off pill at its end that is
-  the switch itself (`role="switch"`), named by the label and described by the
-  sentence.
-- `Disclosure`: a row that opens in place: a button with `aria-expanded` and a
-  leading caret that turns when open, controlling the detail directly under it,
-  which it holds only while open. The detail is a landmark (`region`, labelled
-  by the button) only when asked, as Activity's filter is; entries are not,
-  since any number of them can be open. The page keeps whether it is open, so
-  it can close it when what it shows changes; a list keeps its open rows with
-  `useOpenRows` from `@ledova/shared`, as Activity, Holdings and the Register do.
-- `Status`: a status in words after a small mark for waiting, moving, done or
-  closed and, when it has one, a ✓ or ✗; screen readers read only the words.
-- `Timeline`: each event with its date.
+- `LinkRow`: the one place a page reaches each of its sub-pages and each
+  neighbour a section points to; the whole row is the link, named after its
+  destination, with optional detail lines and an aside. A destination the
+  sidebar already reaches is not repeated in a title row; an underlined link
+  is part of a sentence or opens an external resource.
+- `PageAction` (`Action` on mobile): the button for whatever a page, section or
+  row does, content-width wherever it sits: the title row for the page as a
+  whole, including the way back to the parent page; inside a section for what
+  that section does; in a row for what is done to that row's record alone.
+  Nothing is selected before acting and no toolbar waits under a list.
+- `Disclosure`: a row that opens in place, a button with `aria-expanded`
+  (expanded or collapsed on mobile) and a leading caret controlling the detail
+  directly under it, held only while open. Lists are read, filtered and sorted
+  in place: an entry opens under its own row and leaves other open entries as
+  they are; Activity's filter and Wallets' sort (shown once a chain holds two
+  wallets) are a `Disclosure` at the top of the card that names what it
+  applies and, applied or cleared, closes itself and every open entry and
+  returns focus to its button. Open rows are kept with `useOpenRows` from
+  `@ledova/shared`. A dialog is kept for work that sets the page aside: a form
+  that creates or changes something, a signing step or a confirmation.
+- `SwitchRow`: the one control for a setting that takes effect as soon as it
+  changes (Transaction alerts; Show this company to eligible investors). The
+  On/Off pill or native switch is the switch itself (`role="switch"`), its
+  `aria-checked` is the saved value, it is disabled while saving, keeps the
+  saved value when refused, and the refusal is an alert in the same card. A
+  choice saved with a form stays a checkbox.
+- `Status`: a status in words after a small mark; screen readers read only the
+  words. `Timeline`: each event with its date.
 
-An empty section keeps its real title; the state is one muted sentence under
-it, in the `text-sm text-text-muted` paragraph ("No activity yet.", "No
-Ethereum wallets yet."), with at most one action, a `PageAction` or a
-`LinkRow`, and no icon block. A state is never a section's title. Activity's
-"Transfers" and each Wallets chain keep the same title whether or not they
-hold anything; Directory, Applications and Notices list one section per
-company, application or notice when they hold something, so their empty
-section's title names what it would hold ("Share classes", "Your
-applications", "Your notices"). Mobile's `Section` and `Action` follow the
-same rule.
+A dialog (`Modal` in `dashboard/src/components/Modal`; `CustomModal` in
+`mobile/src/components/modal`) is the same card over the dimmed page: its
+Newsreader title labels it (on mobile marked as a header and
+`accessibilityViewIsModal`, since React Native cannot make it the accessible
+name), its body scrolls inside the card, and `ModalActions` ends it as one
+right-aligned row of content-width actions, a plain Cancel, Close or Back
+before the one primary action, wrapping rather than stretching. On mobile the
+backdrop closes the dialog, and a busy dialog holds the backdrop, Android Back
+and Cancel.
 
-Actions use one language. `PageAction` is the button for whatever a page or a
-section does, and it keeps its content width wherever it sits: in the title row
-for the page as a whole (Edit company, Add wallet, Refresh, and the way back to the
-parent page such as Back to Register, Back to Company, Back to Directory or Back
-to Applications), inside a section for what that section does (Create share
-class, Edit personal details, Change password beside its sentence), and in a row for what is
-done to that row's record alone (each wallet's Edit, Sync and Delete on Wallets,
-a submitted claim's Withdraw claim on Verification), so nothing is selected
-before acting and no toolbar waits under a list. A page reaches each of
-its own sub-pages, and each neighbour a section points to, from one place, a
-`LinkRow` in that section, never also from a title action or an underlined
-link: Company lists Application and Published to your members under its details
-and each share class and the Register under its classes; Register lists a Share
-class row inside each class; Settings lists Profile; Directory lists each share
-class under its company, or a Verification row until the investor is verified;
-Applications lists an Application row under each application, or a Directory
-row when there are none; Verification lists a Directory row once the investor
-is verified; and the apply form lists a Wallets row until there is a receiving
-wallet. A destination the sidebar already reaches, such as Notices, is not
-repeated in a title row. An underlined link is part of a sentence ("open
-Notices") or opens an external resource such as a block explorer or a stored
-document. Mobile's `LinkRow` and `Action` follow the same rule.
-
-A list on a page is read and filtered in place rather than in a dialog. An entry opens
-under its own row as a `Disclosure`, and the list's filter is a `Disclosure` at
-the top of the list's card, above the entries or the empty sentence; closed, it
-names the filters it applies. Opening an entry leaves any other open entry as it
-is, so the row stays where it was pressed and two entries can be compared.
-Applying or clearing the filter closes it and every open entry and returns focus
-to the filter's button. Activity's Transfers works this way, so its title row has
-no Filter action. Holdings and the Register have no filter, and their rows open
-the same way, each a `Disclosure`: a holding to its shares by network and wallet,
-a share class to its Share class row and stored register. Every row starts
-closed. A dialog is kept for work that sets the page aside: a
-form that creates or changes something, a signing step or a confirmation.
-Wallets sorts each chain's list in place as Activity filters, on both clients:
-a Sort `Disclosure` at the top of a chain's card, shown once the chain holds two
-or more wallets, names the order it applies, and choosing one of its six orders
-applies it at once, closes it and returns focus to its button, screen-reader
-focus on mobile; each chain keeps its own order, so its title row has no Filter
-action either. The bell's notifications belong to the frame rather than a page,
-on both clients.
-
-Mobile's Activity and Market follow the same rule with the `Disclosure` in
-`mobile/src/components/Ledger.tsx`: a button marked expanded or collapsed, with
-its caret on the summary's first line and its detail directly under it, indented
-past the caret and held only while open. The detail is not announced when it
-opens: as on the web, screen readers read the button's expanded state and then
-the detail after it. Activity's Filter is the first row of the Transfers card,
-closed at first and naming the filters it applies, so Activity has no screen
-action, and its loading and failure states sit in the same card under the
-filter, which stays at hand when a filtered read fails. Each entry is named by
-its summary and opens its detail under its row, independently of the others;
-applying or clearing the filter closes it and every open entry and moves the
-screen reader's focus back to Filter. On Market, each of Your orders keeps its
-rows and opens the rest of its details, from Total quantity to Order ID, under
-them with Details, while changing or cancelling an order, signing and settling
-stay dialogs. An order's Details, Modify and Cancel order name it as its row
-shows it, by side, class, status, shares remaining (the order's own once none
-remain) and price, never by its id. Both keep their open rows with the same
-`useOpenRows` as the web's lists.
-
-A setting that takes effect as soon as it changes has one control, a
-`SwitchRow`: Transaction alerts on Settings and Show this company to eligible
-investors on Offerings. Its `aria-checked` is the saved value; it is disabled
-while a change is saving, keeps the saved value when the change is refused, and
-the refusal is an alert in the same card. On the web a choice that is saved
-with a form stays a checkbox, as the payment and document choices in the
-offering editor and the declaration in a claim do. Mobile's `SwitchRow` puts the native switch at
-the end of the same row, named by the label with the sentence as its hint, for
-biometric sign-in, App lock and Transaction alerts on Settings and Show this
-company to eligible investors on Offerings. The mobile offering editor's
-payment and document choices are not in that row yet: each is still a bare
-native switch under its own line of text.
-
-A lede, the one muted sentence under a page's title, appears only where it says
-what the titles do not: an instruction (Wallets, Activity) or a fact (Register,
-Published to your members, the company of a Directory share class). `Page` sets
-its `lede` in the title block, directly under the title row, as the heading's
-description; a page whose titles
-already say it, such as Directory, Applications, Verification or Notices, has
-none. Other explanations stay in the section they explain, after the content
-they serve: Market's Saved work follows Trades awaiting signatures, and Offerings
-leads with Your offerings. Mobile's `Page` sets its `lede` directly under the
-title, above the screen's actions.
-
-Every section is its own card, including forms and things to act on such as a
-payment instruction, and a dialog (`Modal` in `dashboard/src/components/Modal`)
-is the same card over the dimmed page: its Newsreader title sits inside at the
-top and labels it, its body scrolls inside the card when the screen is too short,
-and its actions end the card as one right-aligned row of content-width
-`PageAction`s (`ModalActions`), a plain Cancel, Close or Back before the primary
-action. On a narrow phone the row wraps onto another line rather than
-stretching. A group inside a card is set off by a rule or a small heading
-rather than a card of its own, as the For sale and Wanted lists on Market, the
-saved payslips on Profile, a vote's confirmation on Notices, the saved pause and
-unpause requests on a share class and the steps of a signing dialog are
-([decision](../decisions.md#the-signed-in-app)). On the signed-in pages and in
-their dialogs a field is white with a hairline border (`rounded-lg border
-border-border bg-surface-raised`), and warnings and errors are text rather than
-tinted boxes: a warning is warning-coloured, usually beside its icon, and an
-error is either error-coloured or in the plain or muted text around it. The one
-exception is the extraction status beside each saved payslip on Profile, a small
-tinted pill (Queued, Extracting, Extracted, or an error-tinted Failed) that labels
-the file rather than holding a message. The one box a card keeps is a dashed
-upload area, the payslip upload on Profile and the evidence file in a claim,
-because its outline marks where a file goes.
-Sign-in and the sign-up steps hold their forms in the same card on the public
-layout, under the same Newsreader titles, and sign-up lists its password rules
-as marked lines under the field rather than in a box. The rest of those forms
-keeps its earlier look: their fields are tinted, the message at the top of a
-form and the identity check's outcomes sit in tinted boxes, and a field's own
-error is error-coloured text under it.
+Inside cards and dialogs nothing is boxed: fields are white with a hairline
+border (`rounded-lg border border-border bg-surface-raised`; `useDialogStyles`
+on mobile), steps are numbered lines, a choice is an outlined `Choice` marked
+selected, and warnings and errors are text, warning-coloured beside an icon or
+error-coloured, rather than tinted boxes. The exceptions are the tinted
+extraction-status pill beside a saved payslip on Profile and the dashed upload
+area that marks where a file goes. Addresses, hashes and signing summaries use
+the monospaced face (`font-mono`; `theme.fontFamily.mono`). Sign-in and the
+sign-up steps hold their forms in the same card under the same titles but keep
+their tinted fields and boxed outcomes, as the identity check's outcomes do.
+Mobile's theme adds one spacing step, `smd` (12), for the web's 12px spacing
+the shared scale lacks.
 
 ## Design tokens
 
@@ -643,44 +510,12 @@ theme switch. `PAPER_COLORS` is the palette. The marketing site uses it
 directly (`bg-paper`, `text-ink`, `border-rule`, `bg-ledger`). `PAPER_THEME`
 maps it onto the theme tokens, which are the generated defaults, so the
 dashboard's `bg-surface-*`, `text-text-*` and `brand` classes, and any code
-that reads `PAPER_THEME` directly, render in paper. Both
-clients bundle Newsreader for display text and Instrument Sans for everything
-else. Mobile also uses fixed paper and bundles these fonts with a finite
-loading/error/retry gate; the account stores no theme, and a theme an older
-build saved on the device is not read. Shared tokens and the CSS generator contain only paper; the retired dark and light palettes are removed.
-
-On mobile a dialog is `CustomModal` in `mobile/src/components/modal`, the same
-card as `Section` (`useCardStyles` in `mobile/src/components/Ledger.tsx`) over
-the dimmed screen and inside the safe area. Its Newsreader title is the card's
-first element, marked as a header, and the card is marked
-`accessibilityViewIsModal` for VoiceOver; React Native has no way to make the
-title the dialog's accessible name as the web's `DialogTitle` does. Its body
-scrolls inside the card, and its actions end the card as one right-aligned row
-of content-width `Action`s (`ModalActions`), a plain Cancel, Close or Back before
-the one primary action, wrapping onto another line rather than stretching. The
-backdrop is a button that closes the dialog, and a busy dialog holds the
-backdrop, Android Back and Cancel. The iOS date sheet in `DatePickerField` and
-the Send, Transfer, Verify Wallet and Recovery Phrase screens (`Panel` in
-`mobile/src/components/panel`) use the same card and action row; their stack
-header has no title, so the card's title is the screen's only one. Inside them
-nothing is boxed, as on the web: `Rows` draws a rule only between items and
-`Row` and `LinkRow` draw none of their own, steps are numbered lines, fields
-are white with a hairline border (`useDialogStyles`), a choice is an outlined
-`Choice` marked selected rather than a second filled button, and warnings and
-errors are text rather than tinted boxes: a warning is warning-coloured,
-usually beside its icon, and an error is either error-coloured or in the plain
-or muted text around it. Values set in monospace (the send review's addresses,
-the signing summaries' values, a sent transaction's hash and the addresses in
-the wallet dialogs) use the theme's `fontFamily.mono`, the system monospaced
-face on iOS, as the web's `font-mono` does. The profile's identity dialog shows
-the check's outcome as plain lines; the sign-up screens keep their tinted fields
-and boxed outcomes, as on the web. Mobile's theme adds one spacing step, `smd`
-(12), for the web's 12px spacing the shared scale lacks.
-
-Mobile resolves the package through its Metro configuration and local workspace
-link. Run `npm --prefix mobile run check:resolution` after dependency/resolution
-changes. Internal shared imports are relative; `make check-self-imports` refuses
-self-imports through the public barrel. These checks complement type checking.
+that reads `PAPER_THEME` directly, render in paper. Both clients bundle
+Newsreader for display text and Instrument Sans for everything else. Mobile
+also uses fixed paper and bundles these fonts with a finite loading/error/retry
+gate; the account stores no theme, and a theme an older build saved on the
+device is not read. Shared tokens and the CSS generator contain only paper; the
+retired dark and light palettes are removed.
 
 Next: [authentication](authentication.md), [mobile security](mobile-security.md),
 [mobile lifecycles](mobile-lifecycles.md), and [mobile builds](../development/mobile-builds.md).

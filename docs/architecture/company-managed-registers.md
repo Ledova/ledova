@@ -5,9 +5,7 @@
 **Status:** accepted product direction, 3 October 2026, reprioritised on
 9 October 2026 (Australia/Sydney). **Decision maker:** the project owner. The
 [implementation index](../plans/company-managed-registers/README.md) lists the
-increments delivered under it and the remaining scope; the
-[3 October documentation audit](../plans/company-managed-registers/documentation-audit.md)
-is the baseline it started from.
+increments delivered under it and the remaining scope.
 
 ## Decision
 
@@ -17,46 +15,30 @@ Ledova supplies infrastructure, software, records, workflows, validation,
 automation and tools. Routine company register work must not require Ledova
 staff to perform or approve it.
 
-There is one registry product. The `registry` / `single_issuer` product-mode
-distinction is [retired](../operations/upgrades.md#one-registry-product).
-A private internal instance uses the same software, features
-and authority model. Hosting does not select a separately maintained product.
-This decision does not change the software licence or establish a legal finding.
+There is [one registry product](../decisions.md#company-managed-registers-and-one-product):
+a private internal instance uses the same software, features and authority
+model, and the decision changes neither the software licence nor any legal
+finding.
 
 The owner's [9 October priority amendment](../decisions.md#essential-registry-and-development-workflow-priority)
-puts #943 first, then a simple register for non-paid employee awards and vesting
+puts the essential register first: non-paid employee awards and vesting
 records, externally arranged investor capital and company-approved allotments,
-accurate ownership, member access and basic outputs. Core outputs (#871) and
-core acceptance (#873) no longer wait for deferred trading (#869), advanced
-governance (#870) or filings (#872). The earlier required integrated AUD-payment
-expansion is deferred; #868 now focuses on external capital records and allotment.
+accurate ownership, member access and basic outputs, with new integrated AUD
+payments, trading (#869), advanced governance (#870) and filings (#872)
+deferred.
 
-Grants issue outright shares. The
-[employee-award increment](../plans/company-managed-registers/employee-awards.md)
-records promised entitlements, agreement/schedule data and company-confirmed
-vesting events in both clients. Separate approved grants issue recorded vested
-quantities on supported imported non-tokenised registers; awards and elapsed
-dates create no holdings. Schedules are recorded data, with no automatic vesting
-calculation. Tokenised award fulfilment remains unsupported. Contractual
-entitlements and actual issued ownership stay distinct, and the
+An award is an entitlement and a grant issues shares. The
 [10 October first scopes](../decisions.md#first-scopes-for-employee-awards-and-external-capital)
-settle how awards and external capital are first recorded. No legal/tax rule
-engine or option-exercise scheme is selected. The single account-to-member
-association remains #866 work. The
+settle how [employee awards](../plans/company-managed-registers/employee-awards.md)
+and [external allotments](../plans/company-managed-registers/external-allotments.md)
+are recorded, and the
 [11 October invitation decision](../decisions.md#member-invitations-and-account-association)
-selects a company-issued member-specific invitation accepted by the signed-in
-recipient.
+selects the member association for #866.
 
 Useful existing chain and payment functionality, evidence and recovery are
-retained. Optional crypto on-ramp purchases remain personal investor activity;
-companies must not buy cryptocurrency through it, and #920's investor and
-provider-lifetime guards stand. The
-[external-allotment increment](../plans/company-managed-registers/external-allotments.md)
-records fully paid AUD arrangements and company receipt attestations separately
-from approval and one actual ISSUE on an opened imported register. The evidence
-is company-provided; Ledova does not collect or verify the money. Future payment
-mechanics remain an owner decision. A core register entry needs no payment
-integration, wallet or fabricated chain transaction.
+retained. Companies must not buy cryptocurrency through the on-ramp, and #920's
+investor and provider-lifetime guards stand. A core register entry needs no
+payment integration, wallet or fabricated chain transaction.
 
 ## Goals
 
@@ -150,43 +132,18 @@ and provider/check evidence before automated application.
 
 ### Representative verification
 
-The owner's [4 October 2026 self-declaration decision](https://github.com/Ledova/ledova/issues/862#issuecomment-5973451112)
-establishes the initial representative's authority through their declaration that
-they are authorised to act for the company. The company registers itself and
-provides its own company and share information. It remains responsible for that
-information, ASIC filings and legal obligations. Companies and investors are
-responsible for their own actions; Ledova supplies infrastructure and tools and
-minimises its involvement wherever reasonably possible. False information and
-impersonation are matters for regulators and law enforcement.
-
-The [accepted refinements](https://github.com/Ledova/ledova/issues/862#issuecomment-5973465105)
-require company details to be shown as **provided by the company**, never
-**verified by Ledova**; the terms make the company responsible for them. Ledova
-changes company administrators only when the company's existing administrators
-do it, or when a court or regulator directs it. A person recovering their own
-account through normal account recovery is a separate matter; it does not
-appoint a replacement company administrator.
-
-The earlier same-day [ASIC officeholder decision](https://github.com/Ledova/ledova/issues/862#issuecomment-5970984155)
-and [InfoTrack selection](https://github.com/Ledova/ledova/issues/862#issuecomment-5971158175)
-are superseded history. No ASIC search, broker, uploaded ASIC extract or InfoTrack
-agreement is required for representative authority, and an uploaded declaration
-can establish it; those prerequisites no longer block #862–#873. Retained
-records and private evidence from the earlier request lifecycle are preserved.
-
-The existing representative identity check and ABR company lookup remain
-unchanged. A declaration does not turn either check into a company-provided
-success result. Keep ordinary account security, tenant isolation and
-signed-transaction safeguards. Do not add verification to catch impersonation or
-fraud unless a legal duty falls on Ledova itself. If one is identified, cite it
-and raise it with the owner rather than building the check; the
-[legal positions](../legal/positions.md) remain a dated research record.
-
-Other representatives receive in-app delegation from authorised company users
-within their recorded delegatable scope. Subsequent actions require their
-applicable company mandate, capability and exact approval; self-declaration does
-not approve an issue or payment, and company approval policy is implemented with
-each domain workflow. The [authority guide](../plans/company-managed-registers/authority-requests.md)
+The owner's [4 October 2026 decision](../decisions.md#company-representative-verification)
+selects self-declaration: the initial representative declares that they are
+authorised to act for the company, which registers itself and remains
+responsible for its information, filings and legal obligations. Company details
+are shown as provided by the company, never verified by Ledova, and Ledova
+changes administrators only through existing administrators or at a court's or
+regulator's direction. The representative identity check and ABR lookup remain,
+and a declaration turns neither into a success result. No impersonation or fraud
+verification is added unless a legal duty on Ledova requires it; such a duty is
+raised with the owner, not built. Other representatives receive in-app
+delegation within their recorded delegatable scope; self-declaration approves no
+issue or payment. The [authority guide](../plans/company-managed-registers/authority-requests.md)
 describes the delivered admission, invitation, delegation, revocation and
 legacy-owner upgrade.
 
@@ -297,7 +254,7 @@ rather than issuing them a second time.
   Core outputs and acceptance do not require deferred trading, advanced
   governance or filings. Existing filing drafts remain preparation; any
   submitted/accepted status still requires genuine evidence.
-- Upgrading either old mode preserves records, private-evidence restrictions,
+- A rebuilt instance preserves retained records, private-evidence restrictions,
   retention and historical actors; private instances use identical capabilities.
 
 Each increment owns its verification under the
@@ -305,8 +262,9 @@ Each increment owns its verification under the
 
 ## Decisions still open
 
-- Domain-specific approval policies, action terms and external-signature
-  capture, implemented with each company workflow.
+- Action terms and external-signature capture, implemented with each company
+  workflow; approval policy is
+  [decided](../decisions.md#company-run-register-authority-and-evidence).
 - Signature, filing and legal requirements, which remain in the
   [regulatory pathway](../regulatory-pathway.md), and future integrated AUD
   collection, receipt verification, reconciliation, refunds and secondary

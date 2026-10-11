@@ -95,7 +95,8 @@ The RNG entry shim and mnemonic generation use Expo Crypto's native
 fallback. Temporary mnemonic entropy is overwritten after conversion; that is
 not a claim that JavaScript strings or all native copies can be securely erased.
 The remaining Buffer, process, crypto-browserify, stream, events, assert and util
-shims support the existing wallet/Keystone dependency graph. Resolution checks,
-BIP39/BIP44 derivation/signature vectors and the native probe cover their use.
+shims support the existing wallet/Keystone dependency graph. Resolution checks
+(`npm --prefix mobile run check:resolution`) and the manual native probe cover
+their use.
 
 Next: [mobile builds](../development/mobile-builds.md), [native probes](../development/native-probes.md), and [screen/file lifetimes](mobile-lifecycles.md).
