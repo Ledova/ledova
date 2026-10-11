@@ -89,19 +89,22 @@ tests. Build/probe/device results before release are separate evidence.
 
 ## CI routing
 
-Every pull request runs the same lean checks on GitHub's runners. There is no
-file-based routing. Keep the fail-closed verdict, PR wording and source gates.
+Every pull request, main and manual CI run uses the same lean checks on GitHub's
+Ubuntu runners. There is no file-based routing. Keep the fail-closed verdict,
+PR wording and source gates.
 A failed, cancelled or missing required job is a failure; no rerun is automatic.
 
-Compatible main jobs keep the existing permanent Mac pool selection: backend
-uses the primary profile and source/client checks the ordinary profile. Guests
-are isolated Linux ARM64 with exact run/attempt/job identity. A workflow change
-requires independent review, a clean drain and host policy rebinding before
-admission. Missing capacity remains visible. Linux-host expansion stays deferred.
+The Mac pool is retired. Its login service is disabled, its runners deregistered
+and its two groups closed to repository/public access. The
+[manual host source](../../scripts/retired-mac-runner/README.md) stays in Git
+for possible future review; ordinary CI never imports or starts it. No Linux
+runner is activated. Reintroducing self-hosted routing requires a new reviewed
+change and explicit host configuration.
 
-The login service needs the Mac powered and logged in. Administrator-level
-system startup installation remains deferred. Guest cleanup and queue time are
-separate from execution time; a configured route does not prove availability.
+The owner measured main runs at roughly 6½–8 minutes on the Mac pool, including
+1–3½ minutes of fresh-VM waiting per job, against roughly 5½ minutes on GitHub.
+GitHub's runners are free for this repository. Local Mac preflight remains
+supported; its execution time excludes installation and CI queue time.
 
 Targets are the whole PR run within **ten minutes on GitHub's runners** and all
 tests together within **five minutes on the Mac**. Record actual suite counts,

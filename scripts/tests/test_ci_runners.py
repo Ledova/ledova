@@ -17,23 +17,22 @@ class RunnerTest(unittest.TestCase):
             "GITHUB_RUN_ATTEMPT": "2",
         }
 
-    def test_main_keeps_the_two_reserved_mac_job_identities(self):
-        chosen = CI.runners(self.main)
-        self.assertEqual(chosen["backend"]["group"], "ledova-mac-linux-arm64-pilot")
-        self.assertEqual(chosen["checks"]["group"], "ledova-mac-linux-arm64-ordinary-pilot")
-        for job, selection in chosen.items():
-            self.assertEqual(selection["labels"], [selection["group"], "ledova-main-123-2", f"ledova-job-{job}"])
-
-    def test_a_pr_or_incomplete_main_identity_stays_hosted(self):
-        for field, value in (("GITHUB_EVENT_NAME", "pull_request"), ("GITHUB_RUN_ID", "")):
-            with self.subTest(field=field):
+    def test_main_manual_and_pr_jobs_all_stay_hosted(self):
+        for event in ("push", "workflow_dispatch", "pull_request"):
+            with self.subTest(event=event):
                 self.assertEqual(
-                    CI.runners(self.main | {field: value}), {"checks": "ubuntu-latest", "backend": "ubuntu-latest"}
+                    CI.runners(self.main | {"GITHUB_EVENT_NAME": event}),
+                    {"checks": "ubuntu-latest", "backend": "ubuntu-latest"},
                 )
 
     def test_missing_skipped_or_failed_jobs_cannot_pass_the_verdict(self):
         complete = {job: {"result": "success"} for job in ("scope", "checks", "backend")}
         self.assertTrue(CI.verdict(complete))
-        for incomplete in (None, complete | {"backend": {"result": "skipped"}}, {"scope": complete["scope"]}):
+        for incomplete in (
+            None,
+            complete | {"backend": {"result": "skipped"}},
+            complete | {"checks": {"result": "failure"}},
+            {"scope": complete["scope"]},
+        ):
             with self.subTest(incomplete=incomplete):
                 self.assertFalse(CI.verdict(incomplete))

@@ -1,31 +1,11 @@
 import argparse
 import json
 import os
-import re
 from pathlib import Path
 
 
 def runners(environment):
-    run_id = environment.get("GITHUB_RUN_ID", "")
-    attempt = environment.get("GITHUB_RUN_ATTEMPT", "")
-    trusted = (
-        environment.get("GITHUB_EVENT_NAME") in ("push", "workflow_dispatch")
-        and environment.get("GITHUB_REPOSITORY") == "Ledova/ledova"
-        and environment.get("GITHUB_REF") == "refs/heads/main"
-        and re.fullmatch(r"[1-9][0-9]*", run_id)
-        and re.fullmatch(r"[1-9][0-9]*", attempt)
-    )
-    chosen = {}
-    for job, group in (
-        ("checks", "ledova-mac-linux-arm64-ordinary-pilot"),
-        ("backend", "ledova-mac-linux-arm64-pilot"),
-    ):
-        chosen[job] = (
-            {"group": group, "labels": [group, f"ledova-main-{run_id}-{attempt}", f"ledova-job-{job}"]}
-            if trusted
-            else "ubuntu-latest"
-        )
-    return chosen
+    return {"checks": "ubuntu-latest", "backend": "ubuntu-latest"}
 
 
 def verdict(needs):
