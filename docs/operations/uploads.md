@@ -14,42 +14,40 @@ Configure private storage, retention clocks, Redis quotas and the malware scanne
 
 Days an investor classification's evidence file is kept, measured from
 `reviewed_at` for a rejected, revoked or withdrawn claim and from `expires_at`
-for a verified one. 2557 days is seven calendar years including two leap days,
-chosen because the Corporations Act's financial-records obligation and the
-AML/CTF customer-identification obligation both land there. **That reading was
-made without advice** — see [legal position 3](../legal/positions.md#3-the-evidence-retention-period). Set `0` to retain
-indefinitely: the deadline stays unset and nothing is deleted. Attached payslips
-inherit this same claim clock; unattached uploads use their separate, shorter
-lifetime. Neither setting changes an eligibility decision.
+for a verified one. 2557 days is seven calendar years including two leap days;
+the reading is unadvised ([legal position 3](../legal/positions.md#3-the-evidence-retention-period)).
+`0` retains indefinitely: the deadline stays unset and nothing is deleted.
+Attached payslips inherit this claim clock; unattached uploads use their
+separate, shorter lifetime. Neither setting changes an eligibility decision.
 
-`FORMER_MEMBER_RETENTION_DAYS` is independent of it and behaves the opposite
-way: `retention_cutoff` raises `ImproperlyConfigured` below 2557 days, so the
-floor cannot be configured away and `0` is not a valid value. The purge measures
-from the cessation date, and a later full-history fold cannot recreate what it
-removed. It implements the accepted seven-year assumption for s169(3); the legal
-basis is unadvised, and is [legal position 1](../legal/positions.md#1-section-1693-members-who-ceased-in-the-last-seven-years).
-Register export records share this clock, measured from the export. So do
-imported former members, from their date ceased, and a member's recorded
-particulars, from the last date the member held shares in the company. The same
-daily job purges them all (owner decisions, 21 September 2026). It removes
-nothing else of a register opening, import, correction, wallet link,
-particulars change, grant or direct transfer: the import, its copies of the
-register document and ASIC extract, an opening's, correction's or wallet link's
-copy of its authority document, a particulars change with its copy of the
-supporting document, a grant's or transfer's copies of its authority, terms,
-acceptance and instrument documents, each proposal's decisions, captured
-boundary and identity snapshots, and the company's evidence uploads of kind
-`share_register`, `asic_extract`, `authority` or `supporting`, including those
-no proposal used, are evidence, kept with no automatic expiry during the
-synthetic experiment; ordinary deletion of them is blocked, and only copies left
-by a rolled-back or interrupted preparation fall under the 24-hour orphan
-sweep. This is the one statement of that rule; the
-[register runbook](register-foundation.md#company-register-decisions) and the
-plan guides link here. Their production retention is decided before any real
-data (owner decisions, 22 September and 5 October 2026). Account and company
-deletion still respect the protected register relations. Classification
-evidence, former-member retention and export records have independent
-retention policies; this rule does not change them.
+`FORMER_MEMBER_RETENTION_DAYS` behaves the opposite way: `retention_cutoff`
+raises `ImproperlyConfigured` below 2557 days, so the floor cannot be configured
+away and `0` is not a valid value. It implements the accepted seven-year
+assumption for s169(3), which is unadvised
+([legal position 1](../legal/positions.md#1-section-1693-members-who-ceased-in-the-last-seven-years)).
+This is the one statement of what the daily purge removes and leaves; the
+[register runbook](register-foundation.md#company-register-commands) and the
+plan guides link here (owner decisions, 21 and 22 September and 5 October 2026):
+
+- The purge measures from the cessation date, and a later full-history fold
+  cannot recreate what it removed.
+- The same clock and job cover register export records, measured from the
+  export; imported former members, from their date ceased; and a member's
+  recorded particulars, from the last date the member held shares in the
+  company.
+- It removes nothing else of a register opening, import, correction, wallet
+  link, particulars change, grant or direct transfer. The proposal's copies of
+  its register, ASIC, authority, supporting, terms, acceptance and instrument
+  documents, its decisions, captured boundaries and identity snapshots, and the
+  company's evidence uploads of kind `share_register`, `asic_extract`,
+  `authority` or `supporting`, including those no proposal used, are evidence
+  with no automatic expiry during the synthetic experiment. Ordinary deletion
+  of them is blocked; only copies left by a rolled-back or interrupted
+  preparation fall under the 24-hour orphan sweep.
+- Production retention is decided before any real data. Account and company
+  deletion still respect the protected register relations, and classification
+  evidence, former-member retention and export records keep their independent
+  policies.
 
 [Publications to members](../architecture/shareholder-publications.md#retention)
 share the same floor and setting, measured from the publication, and a
@@ -66,12 +64,42 @@ share the same floor and setting, measured from the publication, and a
 
 Uploaded evidence uses private storage and authenticated streaming endpoints.
 No upload is served by `/media/`, including in debug mode. Local evidence lives
-under `PRIVATE_MEDIA_ROOT`; cloud evidence uses private S3/GCS objects. See the
+under `PRIVATE_MEDIA_ROOT`, which also works with `DEBUG=false`; cloud evidence
+uses private S3/GCS objects. Authenticated file reads keep the same owner and
+staff permissions in both entrypoints. See the
 [storage and retention architecture](../architecture/files-and-retention.md).
-Local private storage also works with `DEBUG=false`. The obsolete startup guard
-that required a public `/media/` route has been removed. Both entrypoints still
-require the scoped request connection, and authenticated file reads retain the
-same owner and staff permissions.
+
+## Repairing stray uploads and checking MIME types
+
+`python manage.py reconcile_private_media` repairs local uploads whose bytes sit
+under `MEDIA_ROOT` instead of `PRIVATE_MEDIA_ROOT`. For every private file
+field it moves each stray file back under `PRIVATE_MEDIA_ROOT`, removes the
+public copy only when a private copy with the same bytes already exists, and
+leaves alone, and reports, a pair whose bytes differ. `--check` reports without
+moving and exits non-zero when it finds a stray or a conflict. With a
+`STORAGE_BACKEND` other than `local` it does nothing.
+
+When exporting records from an older database, check stored MIME values against
+the allowlist in `backend/shared/uploads.py`: PDF, PNG and JPEG. The values
+live on `documents.mime_type`, `companies_companydocument.mime_type` and
+`users_investorclassification.evidence_mime_type`:
+
+```sql
+SELECT 'documents' AS source, mime_type, COUNT(*) AS rows
+FROM documents GROUP BY mime_type
+UNION ALL
+SELECT 'companies_companydocument', mime_type, COUNT(*)
+FROM companies_companydocument GROUP BY mime_type
+UNION ALL
+SELECT 'users_investorclassification', evidence_mime_type, COUNT(*)
+FROM users_investorclassification GROUP BY evidence_mime_type
+ORDER BY source, rows DESC;
+```
+
+A blank value is an allowed stored value on documents and classification
+evidence, not on company documents, and is served as
+`application/octet-stream`. A value outside the allowlist stays an attachment;
+normalise it explicitly rather than weakening the serving rules.
 
 ## Upload validation and resource limits
 
@@ -101,27 +129,18 @@ there is no retained quarantine or bypass switch. Malware scanning cannot prove
 arbitrary content harmless.
 
 Defaults below are integer environment settings shared by backend and worker.
-The decoder uses Linux resource limits; clean synthetic PDF/PNG/JPEG controls run
-under the default 512 MiB address-space cap in CI. Resource limits contain work;
-they are not a security sandbox or an aggregate concurrency limit.
-
-Each child refuses to run unless its address-space, CPU and file-size limits
-are positive integers, so a setting below 1 fails every upload instead of lifting
-a limit; Python can read a negative value as unlimited. The child then turns core
-dumps off and sets the three limits before it reads the upload. Linux accepts all
-four, so production and CI apply every limit. The address-space limit is the only
-exception: when the kernel refuses to lower it to the configured value, the child
-runs without it instead of failing every upload, and the parent logs one warning
-per process, `Upload workers run without RLIMIT_AS, which this platform refuses to set`.
-Every other refusal still fails the upload, including a refused core-dump, CPU or
-file-size limit and an address-space limit above the hard limit. macOS refuses any
-address-space limit below what a process has already mapped, which is hundreds
-of GiB on Apple silicon, so on macOS the decoder and the scanner client run
-without the `UPLOAD_PROCESS_MEMORY_BYTES` cap. macOS enforces the CPU limit on
-computation, but in testing on macOS 27 it did not stop a child that spent its
-time in back-to-back system calls, such as reading its own CPU clock. The
-parent's wall deadline applies on every platform: it bounds how long such a
-child runs, not how much memory it takes.
+Each decoder or scanner child refuses to run unless its address-space, CPU and
+file-size limits are positive integers, so a setting below 1 fails every upload
+instead of lifting a limit; it turns core dumps off and sets the limits before
+reading the upload. On Linux every limit applies. When the kernel refuses to
+lower the address-space limit, the child runs without it and the parent logs
+`Upload workers run without RLIMIT_AS, which this platform refuses to set` once
+per process. macOS refuses any address-space limit below what a process has
+already mapped, so there the children run without the
+`UPLOAD_PROCESS_MEMORY_BYTES` cap, and its CPU limit does not stop a child that
+spends its time in system calls; the parent's wall deadline applies on every
+platform. Resource limits contain work; they are not a security sandbox or an
+aggregate concurrency limit.
 
 | Variable | Default | Bound |
 | --- | --- | --- |
@@ -161,20 +180,6 @@ least the configured request limit if clients should receive the API error body.
 Changing file limits also requires aligning `StreamMaxLength`/`MaxFileSize` and
 the other scan limits in `backend/.deployment/clamd.conf`; the stricter bound wins.
 
-CI runs synthetic clean formats and EICAR through a real daemon and tests Redis
-expiry, unavailable connections, fresh processes and concurrent reservations.
-Ordinary unit tests stub these external dependencies explicitly; they do not
-establish malware detection. Run the integration suites against isolated services:
-
-```sh
-UPLOAD_TEST_CLAMAV_HOST=private-scanner \
-  python manage.py test shared.tests.clamav_uploads \
-  --settings=ledova_backend.settings.test --noinput
-UPLOAD_TEST_REDIS_URL=redis://isolated-redis:6379/0 \
-  python manage.py test shared.tests.redis_uploads \
-  --settings=ledova_backend.settings.test --noinput
-```
-
-The suites require real reachable services and fail if they are unavailable;
-Redis tests remove only their own unique keys. This change adds the deployment
-dependency; it does not roll out a scanner to an already running dev stack.
+The ordinary suite stubs the scanner and cache; one test holds that an infected
+or unscannable upload is refused. No CI job runs a real daemon, so scanner
+health must be monitored on the instance.

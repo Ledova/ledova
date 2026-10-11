@@ -70,146 +70,14 @@ result later in a `SERVICE_RESULT` callback that carries the same
 [address verification](https://docs.kycaid.com/risks-check/crypto) and
 [result callback](https://docs-v1.kycaid.com/#crypto-result-callback) references
 describe. The screening records that id as its provider id when KYCAID answers,
-and the callback finds the screening by it. A screening submitted before that
-change, whose callback matched nothing, stays pending; retrying it records a new
-id. The result's `signals` are shares by category, and only a sanctions share
-above zero makes the alert a sanctioned-address one. What the monitoring rules
-compare is under [transaction monitoring](operator-console.md#transaction-monitoring).
+and the callback finds the screening by it. The result's `signals` are shares by
+category, and only a sanctions share above zero makes the alert a
+sanctioned-address one. What the monitoring rules compare is under
+[transaction monitoring](../architecture/wallets-and-valuations.md#transaction-monitoring).
 
-### Identity results
-
-Both providers write the same profile fields: `verification_status`, one of
-`init`, `pending`, `queued`, `prechecked`, `onHold` and `completed`;
-`review_result`, which is `GREEN`, `RED` or `YELLOW`, or null while there is no
-result (never an empty string); `rejection_labels`; the identity document's
-type and country; and, for an approval, the PEP type the risk policy reads.
-
-| The provider reports   | KYCAID                                                                                                               | Sum&Sub                                                                                  |
-| ---------------------- | -------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| Not started            | `unused`, recorded as `init`                                                                                         | `init`, from the created webhook                                                         |
-| In progress, no result | `pending`                                                                                                            | `pending`, `queued`, `prechecked` or `onHold`, from the pending and on-hold webhooks too |
-| Finished               | `completed`: `verified` true is `GREEN`, false is `RED`, null is no result                                           | `completed` with its `reviewAnswer`                                                      |
-| A status poll          | the applicant's last verification: `pending`; `valid` is `completed` and `GREEN`; `invalid` is `completed` and `RED` | the review status, normalized through the same mapping as a webhook                      |
-| Reasons                | each check's `decline_reasons` and the applicant's, once each                                                        | `reviewResult.rejectLabels`                                                              |
-| Identity document      | the type of the applicant's latest valid identity document; no country                                               | approved `IDENTITY` steps from `requiredIdDocsStatus`, including the issuing country     |
-| PEP evidence           | the applicant's `pep` flag, or a failed `pep` check                                                                  | with `RED`, the `PEP` label or `pep` button; with `GREEN`, the fetched AML case          |
-
-A result counts only once the provider reports the check completed. Sum&Sub says
-so of `reviewAnswer`, so an answer reported beside another status, such as a
-provisional `GREEN` while `awaitingService`, or with no `reviewStatus` at all, is
-not recorded, and a status poll that brings no result writes nothing. KYCAID's
-`verified` is read as a JSON boolean or the string `true` or `false`; anything
-else is no result. A verification status KYCAID does not document is recorded as
-`pending` with no result, and a status-changed callback carrying one changes
-nothing; both are logged. A callback and an applicant record are read by separate
-mappings, so neither is mistaken for the other. Sum&Sub's created, pending and
-on-hold webhooks record their status in `verification_status`, the field the apps
-read, as well as in `sumsub_verification_status`, unless the profile has since
-moved to KYCAID. A data migration in the users app rewrote rows stored before
-this mapping: an empty result became null, `unused` became `init`, and the `RED`
-that the earlier mapping wrote for an `unused` verification became null.
-
-KYCAID's document objects carry a type, a number, dates and an issuing authority
-but no country, so the foreign-passport factor remains unset. Neither provider's
-applicant country or nationality is inferred as an issuing country. On a Sum&Sub
-approval, the integration reads [verification step results](https://docs.sumsub.com/reference/get-status-of-verification-steps)
-and records an approved identity document, preferring a passport. Its alpha-3
-issuing country is converted to alpha-2 where ISO defines it.
-When a completed GREEN result has no current identity document, either provider
-clears the stored type and issuing country. Pending results with no current
-identity document retain earlier verified evidence. A valid KYCAID document
-records its type with no issuing country, including when an earlier result had
-supplied a country.
-
-The same approval then reads [the applicant's AML case](https://docs.sumsub.com/reference/get-aml-case-data).
-The token needs **View applicants** and **View AML screening** permissions. The
-AML endpoint allows ten requests per minute; a shared Redis window applies that
-limit across applicants and workers. Exhaustion, unavailable Redis, a failed
-provider request or malformed evidence leaves the approval unapplied. The
-webhook answers 500 for Sum&Sub to resend; a status poll retains the cached
-pending result and can try again. Provider calls happen before the apply
-transaction, and each completed GREEN approval makes both reads. Rejections and
-unfinished reviews make neither extra read.
-
-A PEP hit in that fetched case counts unless it is marked `false_positive` or
-`no_match`; a case that omits its hits can supply the `pep` case label. Only the
-hit ID, match status and labels are retained as evidence, without names or source
-URLs. Sum&Sub does not provide the PEP's locality or category here, so the risk
-assessment records **PEP category not provided** (`unknown`) with
-`approved_by_provider`, and adds the existing accepted-PEP customer score
-adjustment of two under `provider_approved_pep`. It does not invent a domestic
-category or overturn Sum&Sub's completed approval. This is the owner's decision
-to respect the officer's clearance and retain the PEP risk weighting. FATF
-black-list rejection still applies. The authenticated callback always replaces
-any supplied AML or document fields with fetched evidence; unsigned callbacks
-never cause a read.
-
-Rejected PEP evidence from either provider still uses the shared classifier in
-`integrations/kyc/pep.py`, and KYCAID's yes-or-no PEP flag remains a foreign PEP
-under its existing rejection policy. Known foreign, international-organisation,
-family and associate categories are rejected; existing domestic categories keep
-their existing score adjustment. No sanctions rejection is overridden.
-
-Applicants never see a screening reason. The identity status and the profile
-show `UNABLE_TO_VERIFY` in place of the reject labels and decline reasons that
-report a list match (`PEP`, `SANCTIONS`, `COMPROMISED_PERSONS`, `ADVERSE_MEDIA`,
-`CRIMINAL`, `BLOCKLIST` and `RESTRICTED_PERSON` from Sum&Sub, `COMPROMISED_PERSON`
-from KYCAID), once, and every other reason as it is. The stored labels keep every
-reason, staff see them in the admin, and the identity notifications name none.
-
-A KYCAID approval is recorded only once the applicant's `pep` flag is read as
-true or false, accepting a JSON boolean or the existing strings `true` and
-`false`. The [Get applicant reference](https://docs.kycaid.com/objects/applicants/applicant-get)
-types this flag as boolean or null; null does not establish that the person is
-not a PEP. When the callback's applicant is missing, is not an object, has no
-`pep` key or carries a null or uninterpretable flag, the applicant record is read
-first; if that read fails the callback answers
-500, KYCAID retries it, and the user's next status poll applies the result as
-well. An approval whose applicant record still supplies no interpretable flag,
-by callback or by poll, is recorded as `pending` with no result and logged. Every result is
-applied with the profile's row locked, so a callback and a poll that arrive
-together activate the account, assess its risk and notify the person once; no
-provider is called while that lock is held.
-
-KYCAID's `DATABASE_SCREENING` callback reports a match that its monitoring finds
-on a sanctions, PEP, wanted, lost-or-stolen-document or internal list. Each one
-raises a compliance alert under rule `KYC-SCREEN` for staff review, and the
-account, the identity result and the risk assessment are left as they are. A
-sanctions match is a critical `sanctions_match`, a wanted-list match a critical
-`watchlist_match`, a PEP match a high `pep_match`, and any other list a high
-`watchlist_match`; `sync_procedure_templates` loads a staff procedure for each of
-the three types. The alert keeps the list types, the databases, the accuracy,
-the verification and document ids and the matched person's details. A callback
-repeating a match already raised, whatever that alert's status, raises nothing:
-the account is locked while the alert is looked for, so retried or concurrent
-deliveries raise one alert. The callback is authenticated as every KYCAID
-callback is.
-
-KYCAID's documentation disagrees with itself in two places. The current
-reference types the applicant's `verification_status` as `any`; only the legacy
-reference lists `pending`, `valid` and `invalid`, which is what the poll reads.
-The current Verification completed page says that callback is sent when a user
-submits the form, with the status `pending`, and the Verification status changed
-page says that one is sent when a status is set, with `completed`. The callbacks
-overview and the legacy reference say the opposite. The mapping does not depend
-on either reading: each callback is read by the status it carries.
-
-Sources, read on 2 October 2026: KYCAID's
-[Verification completed](https://docs.kycaid.com/callbacks/verification-completed),
-[Verification status changed](https://docs.kycaid.com/callbacks/verification-status-changed),
-[Database screening](https://docs.kycaid.com/callbacks/database-screening),
-[callbacks overview](https://docs.kycaid.com/callbacks/overview),
-[form integration](https://docs.kycaid.com/guides/form-integration),
-[decline reasons](https://docs.kycaid.com/decline-reasons) and the
-[legacy API reference](https://docs-v1.kycaid.com/) for the verification,
-applicant and document objects and database screening; Sum&Sub's
-[Get applicant review status](https://docs.sumsub.com/reference/get-applicant-review-status),
-[applicant statuses](https://docs.sumsub.com/docs/applicant-statuses),
-[rejection labels](https://docs.sumsub.com/docs/rejection-labels),
-[rejection explanatory buttons](https://docs.sumsub.com/reference/rejected),
-[AML screening](https://docs.sumsub.com/docs/aml-how-it-works),
-[applicant risk labels](https://docs.sumsub.com/docs/applicant-risk-labels) and
-[AML case data](https://docs.sumsub.com/reference/get-aml-case-data).
+Both providers write the same profile fields; see
+[identity verification](../architecture/identity-verification.md) for how each
+provider's statuses, reasons, documents and PEP evidence are mapped.
 
 ## Email
 
@@ -226,20 +94,12 @@ backend log.
 
 ## On-ramp
 
-The on-ramp is an optional personal investor feature, outside the core
-private-company register and share workflows. Companies must not buy
-cryptocurrency through it. [#920](https://github.com/Ledova/ledova/issues/920)
-checks the actual current `investor` or `both` personal account before contacting
-the provider, retaining wallet ownership and server-derived purchase fields.
-Missing and company-only accounts are refused. Both clients guard entry,
-deferred responses and open provider views against account/role loss. This adds
-no server signup, KYC or account-status condition; native identity and
-session/lock/foreground guards remain. Configuring Transak does not select an AUD
-share-payment provider or make conversion a prerequisite for buying shares. The
-[AUD payment design](../decisions.md#registry-priority-crypto-on-ramp-and-aud-payments)
-remains undecided in [#868](https://github.com/Ledova/ledova/issues/868) and
-[#869](https://github.com/Ledova/ledova/issues/869). Keep company share-wallet and
-transaction safeguards distinct from this optional service.
+The on-ramp is an optional personal investor feature outside the register.
+Companies must not buy cryptocurrency through it: the API and both clients admit
+only a current `investor` or `both` personal account
+([#920](https://github.com/Ledova/ledova/issues/920)), and configuring Transak
+selects no AUD share-payment provider
+([decision](../decisions.md#registry-priority-crypto-on-ramp-and-aud-payments)).
 
 | Variable                                                                              | Default     | Required                 |
 | ------------------------------------------------------------------------------------- | ----------- | ------------------------ |
@@ -255,66 +115,42 @@ transaction safeguards distinct from this optional service.
 | `LLM_MODEL`       | `qwen2.5vl:7b`                         | No       |
 | `LLM_EXTRA_HOSTS` | empty                                  | No       |
 
-**The default points at a service on the host, and a host firewall that drops
-bridge-to-host traffic makes it unreachable from the containers.** `ufw` does
-this by default on Arch and Ubuntu: `host.docker.internal` and the bridge
-gateway (`172.17.0.1`) both time out from the worker, with no route error to
-say why. `BLOCKCHAIN_RPC_URL` in `backend/.env.example` defaults the same way
-(`http://host.docker.internal:8545`) and has the same problem wherever that file
-applies; the local stack overrides it with its own `chain` service.
+The default points at a service on the host. A host firewall that drops
+bridge-to-host traffic, as `ufw` does by default on Arch and Ubuntu, makes
+`host.docker.internal` and the bridge gateway time out from the worker with no
+route error to say why. `BLOCKCHAIN_RPC_URL` in `backend/.env.example` defaults
+the same way; the local stack overrides it with its own `chain` service. Two
+remedies: run the service inside the compose network and name it in the
+variable, or open the bridge to the host port
+(`ufw allow in on docker0 to any port 11434`). The first is preferred and is
+what the [chain setup guide](chains.md) assumes.
 
-Two remedies, either of which works for both: run the service **inside the
-compose network** and point the variable at its service name, or open the
-bridge to the host port (`ufw allow in on docker0 to any port 11434`). The
-first is preferred, and it is what the [chain setup guide](chains.md) assumes.
+`LLM_EXTRA_HOSTS` is the allowlist that makes the first remedy expressible.
+`_validate_local_base_url` admits `localhost`, `127.0.0.1`, `::1` and
+`host.docker.internal` and nothing else until an operator names a hostname
+there: `LLM_EXTRA_HOSTS=ollama` with `LLM_BASE_URL=http://ollama:11434/v1`
+points extraction at a sibling container. Entries are bare hostnames, compared
+against the URL's host only, and there is no wildcard; name only hosts you
+control. The check never reads the path, so operator diagnostics name the
+settings to inspect, `LLM_BASE_URL` and `LLM_MODEL`, and not their values. The
+member API never sends the stored diagnostic; the operator reads it in the
+extraction admin.
 
-**`LLM_EXTRA_HOSTS` is what makes the first remedy expressible, and it is
-empty by default.** `_validate_local_base_url` admits `localhost`,
-`127.0.0.1`, `::1` and `host.docker.internal` and nothing else until an
-operator names a hostname in `LLM_EXTRA_HOSTS` — a comma-separated list, so
-`LLM_EXTRA_HOSTS=ollama` with `LLM_BASE_URL=http://ollama:11434/v1` points
-extraction at a sibling container. **The default is unchanged and the opt-in
-is the whole control**: the allowlist is what makes _a document never leaves
-this machine_ true, and a compose service name is a weaker statement than a
-loopback address, because `ollama` resolves to whatever is on that network.
-Name only hosts you control, and only on a deployment where you know what
-else is on the network. Entries are hostnames — no scheme, no port, no path —
-because the value is compared against the URL's host and nothing else. **There
-is no wildcard**: `LLM_EXTRA_HOSTS=*` admits a host literally named `*` and so
-admits nothing, and `*.internal` likewise. There is no way to open this to a
-range, which is deliberate — every admitted host is one an operator typed.
-
-Installing the service on the host is **not sufficient on such a host**: an
-operator who installs Ollama and sees the same failure has fixed the first
-cause and not the second. Operator diagnostics name the settings to inspect —
-`LLM_BASE_URL` and `LLM_MODEL` — and not their values,
-because `_validate_local_base_url` checks the scheme, host, userinfo, query
-and fragment and **never the path**, so a value like
-`http://127.0.0.1:11434/v1/sk-proj-…` passes it and would otherwise reach the
-uploader's screen. The member API derives its failure message from the extraction
-status and never sends the stored diagnostic, including on historical attempts.
-The operator can read that diagnostic in the extraction admin.
-
-Connection failures, timeouts, rate limits and upstream server errors are retried
-by the extraction task, up to three attempts spaced thirty seconds apart. SDK
-retries are disabled so each recorded attempt makes one upstream request, and its
-client connection is closed after the call. Invalid requests, model/configuration
-errors and invalid extracted output stop after one attempt. Each attempt remains
-in the extraction history. After correcting a terminal failure, the operator can
-select its failed attempt in the extraction admin and re-run it. Unclassified
-storage or rendering failures require that operator action; they are not assumed
-to be transient.
+Connection failures, timeouts, rate limits and upstream server errors are
+retried by the extraction task, up to three attempts thirty seconds apart, each
+making one upstream request. Invalid requests, model or configuration errors and
+invalid extracted output stop after one attempt. Each attempt stays in the
+extraction history. After correcting a terminal failure, select the failed
+attempt in the extraction admin and re-run it; storage or rendering failures
+need that operator action too.
 
 ## Company registry verification
 
-Company activation is instructed by a current personal company administrator in
-web or mobile, using the [activation workflow](../plans/company-managed-registers/company-activation.md).
-It records the representative's exact declaration, appointment, identity snapshot,
-company revision and a distinct ABR activation attempt. Normal owner submission,
-resubmission and withdrawal and staff initial review/approval/activation are
-retired. Existing documents and application history remain readable within their
-current privacy boundaries; the earlier nine listing documents are not new
-activation prerequisites.
+Company activation is instructed by a current personal company administrator
+through the [activation workflow](../plans/company-managed-registers/company-activation.md),
+which records the representative's declaration, appointment, identity snapshot,
+company revision and a distinct ABR attempt, and describes the retained staff
+controls. The provider configuration is below.
 
 `ABR_AUTH_GUID` is blank by default. Obtain the free authentication GUID through
 [ABR Web Services](https://abr.business.gov.au/Tools/WebServices) and configure it
@@ -338,25 +174,12 @@ require `PUB`. ABR does not distinguish listed from unlisted public companies, s
 this check does not verify listing status. Missing, ambiguous or unsupported
 types remain pending; a contradictory `PRV` or `PUB` result fails verification.
 
-The provider runs outside database transactions. Before applying a passing result,
-the service locks and rechecks the exact company, current actor/profile, configured
-identity requirement, personal administrator appointment, company revision and
-attempt. Changed, expired or revoked authority cannot apply a new effect. A
-pending or failed attempt remains an outcome rather than an active company. Retry
-an unconfirmed request with its original idempotency key; a new provider attempt
-uses a new key after reviewing current requirements. There is no manual override
-or stale-pass fallback.
-
-Platform staff retain technical warning, suspension, delisting, registry retry,
-Resolve Warning and Reinstate controls. A registry retry does not change status.
-Recovery to ACTIVE runs a fresh matching lookup outside transactions. Companies
-activated through the new workflow retain their original applied activation
-provenance; historical companies without that provenance still require a named
-officeholder declaration, board-resolution reference and explicit operator
-attestation. Only the bounded operator recovery form exposes that historical
-attestation and its attempts. A new initial staff approval or activation is
-unavailable. Existing ACTIVE companies, historical actors, documents and attempts
-remain preserved by the upgrade.
+The provider runs outside database transactions, and a passing result is applied
+only after the exact company, actor, appointment, company revision and attempt
+are locked and rechecked. Staff keep technical warning, suspension, delisting,
+registry retry, Resolve Warning and Reinstate controls; a registry retry does
+not change status, and recovery to ACTIVE runs a fresh matching lookup. There is
+no manual override or stale-pass fallback.
 
 ## Notifications and push
 
@@ -378,23 +201,17 @@ Staff can also add, change and delete rows in the Django admin
 Each notice names its kind as `type` in its `data`, and the dashboard bell opens
 that kind's page:
 
-| Kind (`data.type`) | Sent by                                                                                  | The bell opens |
-| ------------------ | ---------------------------------------------------------------------------------------- | -------------- |
-| `company`          | Retained application history; its normal notification sender is retired                  | Activation     |
-| `offering`         | `offerings/services/offering.py`, on each notified offering transition                   | Offerings      |
-| `publication`      | `shareholders/services/publications.py`, when a publication is announced                 | Notices        |
-| `transaction`      | `wallets/services/transaction_confirmation.py`, when a transaction is confirmed or fails | Activity       |
-| `identity`         | `users/services/identity.py`, when the identity check's result changes                   | Profile        |
+| Kind (`data.type`) | Sent by                                                                                                                                                      | The bell opens |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------- |
+| `company`          | Retained application history; its sender is retired, administrator activation creates no notice, and warning, suspend, reinstate and delist stay silent | Activation     |
+| `offering`         | `offerings/services/offering.py`, on each notified offering transition                                                                                       | Offerings      |
+| `publication`      | `shareholders/services/publications.py`, when a publication is announced                                                                                     | Notices        |
+| `transaction`      | `wallets/services/transaction_confirmation.py`, when a transaction is confirmed or fails                                                                     | Activity       |
+| `identity`         | `users/services/identity.py`, when the identity check's result changes                                                                                       | Profile        |
 
 A notice of any other kind stays where it is. That includes identity notices
 sent before they carried a type. The mobile inbox opens only publication
 notices.
-
-The old company application transitions and their owner-notification producer are
-retired. Existing notices retain their payloads; the dashboard bell opens the
-reused Activation page. Administrator activation returns its retained attempt
-through the API and creates no application notice. Warning, resolve-warning,
-suspend, reinstate and delist remain silent technical transitions.
 
 Push registration needs `extra.eas.projectId` in `mobile/app.json`, which is
 not set in this repository. On Android, remote push is unavailable in Expo Go

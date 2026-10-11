@@ -1,6 +1,6 @@
 # The demonstration journey
 
-[Operations](README.md) · [Chains and keys](chains.md)
+[Operations](../README.md) · [Chains and keys](../chains.md)
 
 This page records the original synthetic chain journey and its dated evidence. Its company decisions,
 eligibility, the wallet link and the revocation, are company-run through the
@@ -9,7 +9,7 @@ changes the fixture needs and apply the transfer instruction. It is not the
 company-managed register journey evidence that
 [#873](https://github.com/Ledova/ledova/issues/873) owns. Preserve this evidence;
 the original suite is retired under the
-[11 October policy](../decisions.md#minimum-tests-and-fresh-migrations).
+[11 October policy](../../decisions.md#minimum-tests-and-fresh-migrations).
 
 The original product definition, carried out in
 [#645](https://github.com/Ledova/ledova/issues/645), asked for an incremental
@@ -25,7 +25,7 @@ The tests named here are the original `DemonstrationJourneyChainTest` in
 [Git history](https://github.com/Ledova/ledova/blob/5f40e3cd896afc3f3a55a14e359224156735a417/backend/tokens/tests/test_chain_journey.py),
 which ran against a local Hardhat node with the core contracts deployed by
 `deploy-all.ts`. Today's optional `make chain-test` is one direct contract smoke;
-see [chains and keys](chains.md) for its current target.
+see [chains and keys](../chains.md) for its current target.
 
 ## The data set
 
@@ -52,7 +52,7 @@ Each test starts from the same synthetic company:
 calls one step method for each step of the definition and each step asserts its
 own result. The payment is recorded before the offer is accepted. That is the
 requirement: the owner decided on 25 September 2026 that a secondary buyer funds
-before placing an offer ([decision](../decisions.md#payments-and-settlement)).
+before placing an offer ([decision](../../decisions.md#payments-and-settlement)).
 The buy order checks the buyer's balance on the node when it is created, and
 the remaining steps run in the definition's order.
 
@@ -81,7 +81,7 @@ journey's end state to another interface, below.
 | Direct contract calls          | `test_direct_calls_to_the_share_and_swap_contracts_revert_on_the_node`                          | A transfer the seller signs to an address with no approval reverts with `RecipientNotWhitelisted`. The buyer's own `executeSwap`, carrying the exact calldata the relayer was admitted to send with both signatures, reverts with `NotRelayer`. No balance moves, and the relayer then settles the same calldata                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
 | Provider failure               | `test_register_reconciliation_fails_closed_while_the_provider_is_unreachable_and_then_recovers` | With `BLOCKCHAIN_RPC_URL` pointed at a closed local port, the scheduled reconciliation raises and records a failed reconciliation with no block. With the real URL restored, it matches. The client is not patched: the connection is refused                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
 | Private-data isolation         | `test_another_tenant_reaches_none_of_the_journeys_records`                                      | After the whole journey, another tenant, the owner of another company, gets 404 from each swap and register route that the party or owner reads with 200, and the journey's orders are not in their order list, which does list their own. The company pack is a staff admin route: they are redirected to the admin login, no export is recorded, and staff holding the pack permissions reach its page                                                                                                                                                                                                                                                                                                                                                                                  |
-| Migration to another interface | The journey's `carry` step                                                                      | Staff produce the [company pack](../architecture/company-pack.md) for the journey's company through the admin pack page, naming an instruction and a recipient, and one `company_pack` export record is written for each of its share classes, each with the manifest's digest. The [independent consumer](../architecture/company-pack.md#the-consumer-test) reads the archive as `python -I -S`, with an empty environment and neither Django nor the database: it replays the class's two entries to its two current members, exits 0 and prints the recorded digest. The pack carries the settlement with the transaction the node mined, its final block and its register entry, and that entry chained to the opening                                                               |
+| Migration to another interface | The journey's `carry` step                                                                      | Staff produce the [company pack](../../architecture/company-pack.md) for the journey's company through the admin pack page, naming an instruction and a recipient, and one `company_pack` export record is written for each of its share classes, each with the manifest's digest. The [independent consumer](../../architecture/company-pack.md#the-consumer-test) reads the archive as `python -I -S`, with an empty environment and neither Django nor the database: it replays the class's two entries to its two current members, exits 0 and prints the recorded digest. The pack carries the settlement with the transaction the node mined, its final block and its register entry, and that entry chained to the opening                                                               |
 
 ## What is real and what is simulated
 

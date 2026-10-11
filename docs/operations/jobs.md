@@ -4,14 +4,6 @@
 
 Start a worker and find the periodic tasks that keep the application current. All clock times below are UTC.
 
-This is the current schedule. A worker's technical database or signer access
-does not appoint it to make company decisions. The accepted
-[company-managed register plan](../architecture/company-managed-registers.md)
-requires new company register effects to carry an exact company-authorised
-instruction and to recheck the relevant authority when committed. Recovery must
-still preserve
-the identity and signed history of already admitted work; see [recovery](recovery.md).
-
 Procrastinate runs on PostgreSQL. Start a worker with
 `python manage.py procrastinate worker --queues=default,builtin` (the compose
 `worker` service and `make worker` in `backend/`).
@@ -61,19 +53,10 @@ Procrastinate's job manager, as Procrastinate's own builtin `remove_old_jobs`
 does: a succeeded job seven days after it finished, and a failed, cancelled or
 aborted job thirty days after. A job still to do or running is never removed,
 however old, so a job that keeps retrying on its own schedule stays until it
-finishes.
-
-The two windows follow what each record is for. A succeeded record shows only
-that a run happened, and the schedule above queues thousands of them a day.
-Whether the work a job started is complete is answered by the records the work
-changed, not by the job: a job can succeed with its work still unresolved (see
-[recovery](recovery.md#deployment-and-issuance)). A failed job is a signal to
-look at, as it is for the
-[register reconciliation](register-foundation.md#reconciling-with-the-chain),
-and staff retry one from the admin's Procrastinate jobs page with **Retry Job**,
-which needs the record. A month leaves time to notice a failure and act on it,
-and a sweep that fails on every run while its cause persists always has its
-latest failure inside the window.
+finishes. Staff retry a failed job from the admin's Procrastinate jobs page
+with **Retry Job**, which needs the record; a failed
+[register reconciliation](register-foundation.md#reconciling-with-the-chain)
+is one to look at.
 
 To keep older records, for an investigation or an audit, copy them out of
 `procrastinate_jobs` and `procrastinate_events` before the next run.

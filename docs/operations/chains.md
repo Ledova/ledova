@@ -28,12 +28,9 @@ or correction, and signer admission is a platform-staff act under
 | `SWAP_ORDER_EXPIRY_HOURS`            | `0.25` (15 minutes)                                     | No; finite fractional hours are accepted                                                                                                                                    |
 | `LOCAL_CHAIN_FINALITY_DEPTH`         | empty                                                   | No; a positive block depth at which an issuance, swap or register opening on a local chain (1337, 31337) is final. The local stack sets `1`. Refused for any other chain id |
 
-Malformed and non-finite values are refused at settings import. This default
-applies when issuing a new swap without an explicit signing window.
-Existing stored deadlines and signatures are preserved. An explicit operator
-override still takes precedence: remove an older `SWAP_ORDER_EXPIRY_HOURS=24`
-override or set it to `0.25` to use the new default for future swaps. The ordinary
-order-challenge lifetime remains 300 seconds.
+Malformed and non-finite values are refused at settings import. An explicit
+`SWAP_ORDER_EXPIRY_HOURS` value takes precedence over the default; the signing
+challenge lifetime (`SIGNING_CHALLENGE_TTL_SECONDS`) defaults to 300 seconds.
 
 ## Key management
 
@@ -95,10 +92,11 @@ never needs them. `make dev-clean` deletes the chain with the database, and that
 only way to start either over: delete one volume alone and the database points
 at contracts or transactions the chain no longer has.
 
-The one-shot `chain-deploy` service, built from `contracts/`, runs before
-anything that signs. On a new chain it deploys the core contracts with
-`npm run deploy:local:core`, from development account #0 at its nonces 0 to 4,
-which puts them at the same three addresses every time:
+The one-shot `chain-deploy` service, built from `contracts/`, runs
+`npm run deploy:local:stack` before anything that signs. On a new chain that
+wrapper deploys the core contracts through `deploy:local:core`, from development
+account #0 at its nonces 0 to 4, which puts them at the same three addresses
+every time:
 
 | Contract            | Address                                      |
 | ------------------- | -------------------------------------------- |
@@ -139,19 +137,14 @@ node never reorganises, so a deeper wait would protect nothing.
 To use the chain from a browser wallet, add a network with the RPC URL
 `http://127.0.0.1:8545`, chain id `31337` and currency `ETH`, then import
 accounts from the public test mnemonic
-`test test test test test test test test test test test junk`. Each of its
-first ten accounts holds 10,000 test ether: #0 is the operator, the backend's
-signer and the demo issuer wallet, and #1 is the demo investor's wallet. The
-[demo seed's chain layer](operator-console.md#demo-data) then gives accounts #1,
-#2 and #4, the demo investor's Base wallets, the ether their seeded history
-leaves them, between about 0.3 and 2 ETH, so the hourly wallet sync keeps their
-balances. It leaves account #0's test ether alone, since the operator pays its
-gas from it, and the sync then shows the founder that balance. Avoid
-sending from account #0 while the backend is signing, and never send anything
-of value to these addresses: their keys are public. Scripts on the host reach
-the chain at the same URL, and so can a backend run on the host; but only one
-database should sign for account #0 on this chain, and the stack's backend and
-worker already do, so stop them first.
+`test test test test test test test test test test test junk`: its first ten
+accounts hold 10,000 test ether each, #0 is the operator, the backend's signer
+and the demo issuer wallet, and the [demo seed's chain layer](operator-console.md#demo-data)
+leaves #1, #2 and #4, the demo investor's Base wallets, with between about 0.3
+and 2 ETH. Never send anything of value to these addresses, avoid sending from
+account #0 while the backend is signing, and stop the stack's backend and worker
+before a backend on the host signs for account #0 on this chain: only one
+database should sign for it.
 
 ### A chain of your own
 
@@ -187,12 +180,12 @@ setting makes one final once that many blocks, counted inclusively from the
 receipt's block, sit on a stable tip. It is refused when `BLOCKCHAIN_CHAIN_ID`
 names a public testnet, whose policies stay the approved ones.
 
-The backend test settings override any `BLOCKCHAIN_CHAIN_ID` and
-`LOCAL_CHAIN_FINALITY_DEPTH` the backend accepts: the suites run on 84532 with
-the approved policies, as in CI, and the real-chain modules below set 31337 for
-themselves. A value the backend refuses stops the suites, as it stops every
-other command. [Backend verification](../development/testing.md#backend-verification)
-says what else the suites read from the environment.
+The backend test settings fix `BLOCKCHAIN_CHAIN_ID=84532` with the approved
+finality policies, so an accepted `LOCAL_CHAIN_FINALITY_DEPTH` has no effect on
+the suites, while a value the backend refuses stops them as it stops every other
+command; the optional `make chain-test` smoke uses its own Hardhat node.
+[Backend verification](../development/testing.md#backend-verification) says
+what else the suites read from the environment.
 
 Base Sepolia (chain id 84532) is the supported public testnet:
 `npm --prefix contracts run deploy:testnet`, with `DEPLOYER_PRIVATE_KEY` and
@@ -212,41 +205,26 @@ existing `FACTORY_ADDRESS` from the `TOKEN_NAME`, `TOKEN_SYMBOL`,
 `COMPANY_ACN`, `AUTHORIZED_SHARES` and `INITIAL_MINT` inputs listed in
 [deployment configuration](configuration.md#contracts).
 
-`make chain-test` is an optional manual smoke on an owned local Hardhat node.
-It compiles the contracts, waits for the node and runs one genuine contract
-smoke, then stops its own node. It does not run the former backend chain/seed,
-paid-issue or multi-process suites. EVM and Bitcoin are outside PR/main CI and
-preflight under the [11 October policy](../decisions.md#minimum-tests-and-fresh-migrations).
-
-Use a free port, for example `make chain-test CHAIN_TEST_PORT=8546` while the
-local stack uses 8545. The command refuses an occupied port. It must use an
-isolated local node with synthetic accounts; no public signer activation or
-funds operation is part of the test. Its narrow contract result does not prove
-the full backend chain journeys.
+`make chain-test` is the optional manual smoke: it compiles the contracts,
+starts its own Hardhat node on `CHAIN_TEST_PORT` (default 8545, refusing an
+occupied port) with synthetic accounts, runs one contract smoke and stops the
+node, as [backend verification](../development/testing.md#backend-verification)
+describes.
 
 ## Fresh-start redeploy
 
 This procedure stands up a fresh public-testnet environment on the per-company
 contracts: new contracts and a new, empty database, with nothing carried over
-and no register re-anchored. Its origin is [#648](https://github.com/Ledova/ledova/issues/648),
-whose per-company registries changed the bytecode of every contract, and a
-deployed share token can never be rebound to another registry, so moving onto
-those contracts was [the owner's decision](../decisions.md#company-scoped-approvals)
-to start fresh; the [Base Sepolia evidence](approval-controls.md#base-sepolia)
-records the authorised run of 25 September 2026. The [11 October fresh-database rebuild](upgrades.md#fresh-database-rebuild)
-is the current database procedure. The [later follow-up](../decisions.md#binding-caps-and-backup-authorisation)
-already authorises backup, read-only inventory and reversible isolated validation;
-live selective export and rebuild steps still need the owner's go-ahead. Fresh migrations install current PostgreSQL
-guards on an empty database. They do not validate whether stored classes belong
-to a retired on-chain factory; step 8's contract checks remain separate.
-
-Steps 6 and 7 both sign, so the owner must explicitly authorise signer
-admission for the fresh environment. The narrow Base Sepolia bootstrap below
-verifies the five core deployment transactions before first admission; it cannot
-reopen an old signer or resolve historical cutover. The local stack's
-`admit_local_signer` refuses every chain but 31337. The current manual contract
-smoke directly deploys synthetic contracts without establishing backend signer
-admission.
+and no register re-anchored, as [the owner decided](../decisions.md#company-scoped-approvals)
+when #648 changed every contract's bytecode; the
+[Base Sepolia evidence](approval-controls.md#base-sepolia) records the authorised
+run of 25 September 2026. Steps 6 and 7 sign, so the owner must explicitly
+authorise signer admission for the fresh environment: the bootstrap in step 4
+verifies the five core deployment transactions before first admission and cannot
+reopen an old signer, and the local stack's `admit_local_signer` refuses every
+chain but 31337. The fresh migrations install the current PostgreSQL guards on
+the empty database but do not check whether stored classes belong to a retired
+factory; step 8 does.
 
 1. Stop the backend, workers and every other producer using the new operator
    key. Prepare a new key used only for this fresh isolated environment; do not
@@ -299,32 +277,21 @@ admission.
 
    Success prints the immutable bootstrap UUID, manifest digest and
    `unchanged: false`; exact replay prints `unchanged: true` and does not reset
-   an advanced nonce. A verification failure leaves admission closed: resolve
-   the reported configuration or evidence problem while retaining the original
-   manifest. Evidence refusals identify the zero-based manifest transaction
-   index and reason. If the latest head changes during an observation, the
-   command reads that transaction's evidence again, up to five attempts total;
-   every accepted observation must still have a stable head and pass all receipt
-   and finality checks. Other evidence failures are not retried. Exhausted reads
-   leave admission closed and do not create a bootstrap record or send transactions.
-   The [admission contract](../architecture/outgoing-signing.md#fresh-base-sepolia-admission)
-   lists the strict transaction, finality, history and replay checks. This
-   command must run before companies, legacy source rows or outgoing operations
-   exist. An inventory report does not authorise admission or clear legacy holds.
+   an advanced nonce. A verification failure leaves admission closed and creates
+   no bootstrap record: resolve the reported problem while retaining the original
+   manifest. The [admission contract](../architecture/outgoing-signing.md#fresh-base-sepolia-admission)
+   lists the transaction, finality, history and replay checks; the command must
+   run before companies, legacy source rows or outgoing operations exist.
 
 5. After successful admission, start the backend and workers and recreate
    companies and users through the browser. `createsuperuser` and admin wallet
    verification are the other steps outside it.
 6. Deploy each share class. A company's first class creates its registry; its
    later classes share it.
-7. Use the [company wallet workflow](../plans/company-managed-registers/company-wallet-approvals.md):
-   the participant completes ordinary possession proof and explicitly nominates
-   one own Base wallet under the exact company's current GENERAL eligibility;
-   a current company appointee prepares, approves and applies its finite-expiry
-   ADD. Verify the original execution outcome separately from human applied
-   status. Staff APIs/admin override and a blank expiry do not substitute for
-   that source. Unsupported treasury/broader eligibility has no new admission
-   exception. This guide does not direct a live deployment or real-funds use.
+7. Approve wallets through the [company wallet workflow](../plans/company-managed-registers/company-wallet-approvals.md):
+   the participant nominates a wallet whose possession it has proved and a
+   company appointee prepares, approves and applies a finite-expiry ADD; staff
+   APIs, admin overrides and a blank expiry do not substitute for that source.
 8. Verify, from `backend/`. Each command prints its own answer; the expected
    answer follows it. The chain and database probes are read-only; the refresh
    sweep below can sign and broadcast changes.
@@ -410,16 +377,11 @@ admission.
    "
    ```
 
-   The sweep runs itself every five minutes. `submitted` counts returned
-   change submissions, including unsuccessful outcomes; it does not count
-   confirmed removals. `unattributed` and `errors` require investigation.
-   Inspect the specific change's outcome and transaction, allow pending changes
-   to recover, and verify that `is_whitelisted(token_address, wallet_address)`
-   returns `False` on chain after revocation. A confirmed removal projects
-   `removed`; ordinary expiry can deny membership without changing the stored
-   approval to `removed`. Deleted-wallet approvals can disappear, so inspect
-   their retained removal jobs through [recovery](recovery.md) instead of
-   treating absence from this query as success.
+   The sweep also runs itself every five minutes; `unattributed` and `errors`
+   need investigation, and [refreshing an approval](../architecture/outgoing-signing.md#refreshing-an-approval)
+   gives each status's meaning. Deleted-wallet approvals can disappear from this
+   query; their removal jobs are in [recovery](recovery.md#whitelist-changes),
+   so absence is not success.
 
    ```bash
    python manage.py shell -c "
@@ -435,15 +397,8 @@ admission.
 
 [The approval controls](approval-controls.md) record the local rehearsal of
 this runbook, what each check answered, and the authorised Base Sepolia result
-of 25 September 2026.
-
-An approval refreshes itself when a classification is revoked or renewed, when
-an account is suspended or terminated, and when a wallet is deleted or
-relinked: the platform refuses at once and, in normal operation, the chain follows
-within fifteen minutes. [Refreshing an approval](../architecture/outgoing-signing.md#refreshing-an-approval)
-owns the rule, what each status means and what staff must still do by hand.
-Until a removal lands on chain, a direct contract call can still move shares,
-and pausing the token is the incident lever.
+of 25 September 2026. [Refreshing an approval](../architecture/outgoing-signing.md#refreshing-an-approval)
+owns the removal rule, its window and the incident lever.
 
 ## Reaching the node from Compose
 

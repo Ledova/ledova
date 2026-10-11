@@ -4,10 +4,11 @@
 
 A company publishes documents to the members of one share class: the annual
 holding statement, the meeting notice, the resolution put to members for a vote
-and the dividend. Platform staff publish on the company's written instruction
-until [#870](https://github.com/Ledova/ledova/issues/870), which is deferred
-(owner decision, 23 September 2026); the company decides what to publish and
-when. [Shareholder publications](../architecture/shareholder-publications.md)
+and the dividend. Platform staff publish on the company's written instruction;
+company-run publishing is deferred under the
+[9 October priority](../decisions.md#essential-registry-and-development-workflow-priority).
+The company decides what to publish and when.
+[Shareholder publications](../architecture/shareholder-publications.md)
 holds every rule this runbook relies on: what a publication
 [records](../architecture/shareholder-publications.md#one-record-for-everything-a-company-publishes),
 why the [bytes are stored](../architecture/shareholder-publications.md#stored-bytes-not-a-regenerated-document),
@@ -37,18 +38,15 @@ a paused class as to any other
    authority document, attach the document as a PDF, PNG or JPEG, and choose
    **Publish**.
 
-The page refuses, and records nothing, when the share class's register has no
-applied opening, when the class is not on chain (a class whose register an
-import opened before it was deployed), when the record date is after today in
-Sydney's calendar, when no member held shares on that record date, when the
-instruction or the title is blank, or when the authority document is not a
-current verification of a document of that company. An attachment is
-size-bounded, scanned and decoded before it is stored, exactly as every other
-upload is. Publishing is what reaches the member
+Refused, with nothing recorded, when: the register has no applied opening; the
+class is not on chain (a class an import opened before it was deployed); the
+record date is after today in Sydney's calendar; no member held shares on that
+date; the instruction or the title is blank; or the authority document is not a
+current verification of a document of that company. The attachment is checked
+as every other upload is. Publishing is what reaches the member
 ([every publication is announced](../architecture/shareholder-publications.md#every-publication-is-announced));
 a member the register could not name is on the roll with no account and is told
-nothing, so the company reaches them the way it reaches any member it cannot
-address online.
+nothing, so the company reaches them another way.
 
 ## Publishing a resolution
 
@@ -57,11 +55,11 @@ statement as the document. On **Publish to members** choose **Resolution** and
 also fill in the question put to members, exactly as the company worded it,
 whether it is an **ordinary** or a **special** resolution, and when voting opens
 and closes, both in UTC. Leave those fields blank for anything that is not a
-resolution: a document with a question or a voting window is refused. The page
-also refuses a resolution with no question, an unknown kind, a window that
-closes before it opens, or a window that has already closed. Every member has
-one vote per share held on the record date, and the frozen roll is the list of
-who may vote; members with an account cast their own ballot on **Notices**
+resolution. Refused when: a non-resolution carries a question or a voting
+window; or a resolution has no question, an unknown kind, a window that closes
+before it opens, or a window that has already closed. Every member has one vote
+per share held on the record date, and the frozen roll is the list of who may
+vote; members with an account cast their own ballot on **Notices**
 ([casting a ballot](../architecture/shareholder-publications.md#casting-a-ballot)).
 
 The resolution's admin page shows its question, kind and window, the tally once
@@ -86,9 +84,9 @@ the proxy form. Ledova does not manage proxies (owner decision, 23 September
    reference of the signed proxy form, and choose **Record the ballot**.
 
 The ballot is chained with your account as its actor and the authority you
-recorded, and cannot be changed or withdrawn by you or by the member. The page
-refuses, and records nothing, when voting has not opened or has closed, when the
-member already has a ballot, or when the authority is blank.
+recorded, and cannot be changed or withdrawn by you or by the member. Refused
+when: voting has not opened or has closed; the member already has a ballot; or
+the authority is blank.
 
 ## Publishing a dividend
 
@@ -96,17 +94,17 @@ A dividend is published the same way, with the company's dividend notice as the
 document. On **Publish to members** choose **Dividend** and also fill in,
 exactly as the company's instruction states them, the rate per share in AUD to
 at most six decimal places, the date the dividend was declared, the date the
-company will pay it, which cannot be before the record date, and the total the
-company declared. The total is a check on the rate: the page refuses the
-dividend unless the total is exactly the shares on the roll times the rate,
-rounded down to the cent, and the refusal says what the total should have been
+company will pay it, and the total the company declared. The total is a check
+on the rate: the page refuses the dividend unless the total is exactly the
+shares on the roll times the rate, rounded down to the cent, and says what the
+total should have been
 ([the rate is the input](../architecture/shareholder-publications.md#the-rate-is-the-input-and-the-total-is-a-check-figure)).
-When that happens, do not change either figure yourself: go back to the
-company, because one of the two figures in its instruction is wrong. The page
-also refuses a rate of zero or less, or to more than six decimal places, a
-declaration dated in the future, a payment date before the record date, a rate
-at which the members between them are owed less than a cent, and any of these
-fields on something that is not a dividend.
+Do not change either figure yourself: go back to the company, because one of
+the two figures in its instruction is wrong. Also refused: a rate of zero or
+less or to more than six decimal places; a declaration dated in the future; a
+payment date before the record date; a rate at which the members between them
+are owed less than a cent; and any of these fields on something that is not a
+dividend.
 
 The dividend's admin page shows the rate, the dates, the declared total and the
 undistributed amount, each member's
@@ -131,10 +129,10 @@ statement that it paid, and members are shown exactly that
    remittance evidence as a PDF, PNG or JPEG, and what you relied on, such as the
    reference of the company's payment advice. Choose **Record the payment**.
 
-The record names you and cannot be changed. The page refuses, and records
-nothing, when the date is in the future or before the dividend was declared, the
-reference or what you relied on is blank, the evidence is not an accepted file,
-or the member already has a standing record.
+The record names you and cannot be changed. Refused when: the date is in the
+future or before the dividend was declared; the reference or what you relied on
+is blank; the evidence is not an accepted file; or the member already has a
+standing record.
 
 ## Withdrawing a payment record
 
@@ -155,11 +153,10 @@ Nothing needs doing. `close_resolutions_past_their_window` runs every five
 minutes ([background jobs](jobs.md#schedule)) and closes each resolution whose
 voting window has passed; the tally then appears on the resolution's page
 ([closing](../architecture/shareholder-publications.md#closing),
-[the tally](../architecture/shareholder-publications.md#the-tally)). If the
-worker is not running nothing closes, but nothing can be cast either: the
-database refuses every ballot once the window has passed, so a late close
-changes only when the tally appears, never what it says. Start the worker as
-[background jobs](jobs.md) describes.
+[the tally](../architecture/shareholder-publications.md#the-tally)). Without a
+running worker nothing closes, but the database refuses every ballot once the
+window has passed, so a late close changes only when the tally appears, never
+what it says.
 
 ## Opening a published document
 
@@ -191,7 +188,7 @@ count and digest it recomputed for each, and fails naming the publication whose
 roll no longer matches what it recorded. It reads the stored roll only: it
 proves that the audience a publication was addressed to has not changed since,
 not that the register itself is sound, which `register_foundation verify`
-answers ([the synthetic operator exercise](register-foundation.md#synthetic-operator-exercise)).
+answers ([verifying the stored register](register-foundation.md#verifying-the-stored-register)).
 
 ### Verifying a resolution
 
