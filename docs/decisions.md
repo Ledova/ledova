@@ -33,7 +33,8 @@ stay here as history and are marked where they appear.
 | [Registry priority, crypto on-ramp and AUD payments](#registry-priority-crypto-on-ramp-and-aud-payments) | 5 October 2026 | Payment scope superseded 9 October; on-ramp restriction stands |
 | [Payments and settlement](#payments-and-settlement) | 25 September to 2 October 2026 | Current behaviour; new mechanics deferred |
 | [Assets and portfolio presentation](#assets-and-portfolio-presentation) | 26 September 2026 | Current |
-| [The signed-in app](#the-signed-in-app) | 26 September to 2 October 2026 | Current |
+| [The signed-in app](#the-signed-in-app) | 26 September to 2 October 2026 | Navigation superseded by 11 October journey direction |
+| [Simpler signed-in journeys](#simpler-signed-in-journeys) | 11 October 2026 | Current; incremental work under #1000 |
 | [The account-data export](#the-account-data-export) | 23 September 2026 | Current |
 | [Tenancy, sessions and deployment](#tenancy-sessions-and-deployment) | 3 October 2026 | Current |
 | [Contracts compiler and toolchain](#contracts-compiler-and-toolchain) | Undated | Current |
@@ -911,6 +912,26 @@ explicitly identify unpriced holdings
 [signed-in app decision](#the-signed-in-app) replaced the earlier per-asset
 chart presentation: Holdings lists shares by company and class, and crypto
 actions stay in Wallets.
+
+## Simpler signed-in journeys
+
+On 11 October 2026 the owner approved the reviewed journey proposal under
+[#1000](https://github.com/Ledova/ledova/issues/1000). Keep signup unchanged.
+Start with home/navigation and named-member invitations (#1003), then focused
+investor issuance (#1004) and employee award/vesting/issue flows (#1005), followed
+by mobile alignment (#1006). Use existing company processes and APIs, small
+increments, plain terms and the binding test caps.
+
+The web company workspace has Register, Employee awards, Documents and Company.
+Personal My shares starts with associated register holdings and awards; a wallet
+is optional. Optional investing, wallets and technical history are secondary.
+Named recipients replace manual IDs, while exact identity, company appointments,
+private evidence and original-request recovery remain required. An award,
+recorded vesting, approval, external capital receipt and issued ownership stay
+distinct. There is no extra Overview page, task engine, new role, legal document
+generator, payment collection rail or filing integration in this direction.
+Delivered behaviour is described in [clients](architecture/clients.md) and each
+increment guide; later refinements remain planned until their PRs land.
 
 ## The signed-in app
 

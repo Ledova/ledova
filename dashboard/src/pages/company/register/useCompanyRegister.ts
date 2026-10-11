@@ -9,7 +9,6 @@ import {
   useSubmissionOwner,
   type OrderSubmissionOwner,
 } from '@ledova/shared';
-import { useRole } from '@hooks/useRole';
 import apiClient from '@services/apiClient';
 
 export const READ_TIMING = { staleTime: CACHE_TIMING.SHORT_STALE_TIME, gcTime: CACHE_TIMING.MEDIUM_GC_TIME };
@@ -64,10 +63,9 @@ export function useCompanyRegister(owner: OrderSubmissionOwner) {
 
 export function useRegisterEntry() {
   const { owner } = useSubmissionOwner();
-  const { isKnown, isCompany } = useRole();
   const access = useQuery({
     queryKey: [...registerKey(owner), 'access'],
-    enabled: !!owner && isKnown && !isCompany,
+    enabled: !!owner,
     queryFn: async () => (await getRegisterClasses(apiClient, { page: 1 })).data.results.length > 0,
     ...READ_TIMING,
   });

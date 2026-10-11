@@ -1,13 +1,23 @@
 // @vitest-environment jsdom
 
 import { PageTitle } from '@components/PageTitle';
-import { ApiClientProvider, HOLDING_ASSET_TYPE, WALLET_ENDPOINTS, type WalletHolding } from '@ledova/shared';
+import {
+  ApiClientProvider,
+  AUTH_QUERY_KEY,
+  COMPANY_TOKEN_ENDPOINTS as URLS,
+  HOLDING_ASSET_TYPE,
+  USER_PREFERENCES_QUERY_KEY,
+  WALLET_ENDPOINTS,
+  type WalletHolding,
+} from '@ledova/shared';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import type { AxiosInstance } from 'axios';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { HomePage } from './index';
+import MemberRecordsPage from '../member-records';
+import { MEMBER_ENTRY, MEMBER_RECORD } from '../../../../packages/shared/tests/fixtures/member-access';
 
 const api = vi.hoisted(() => ({ get: vi.fn() }));
 vi.mock('@services/apiClient', () => ({ default: api }));
@@ -130,4 +140,57 @@ it('reads every wallet page and shows exact share totals with company/class name
   fireEvent.click(row);
   expect(within(detailOf(row)).getByText('Primary')).toBeTruthy();
   expect(within(detailOf(row)).getByText('Reserve')).toBeTruthy();
+});
+
+it('puts own register shares and awards first without wallet reads, preserves selected history on refresh and hides revoked records without an empty-ownership claim', async () => {
+  const preferences = { userProfile: 'profile-one', userAccount: { uuid: 'account-one', role: 'investor' } };
+  client.setQueryData(AUTH_QUERY_KEY, { data: { valid: true } });
+  client.setQueryData(USER_PREFERENCES_QUERY_KEY, { data: preferences });
+  let refused = false;
+  api.get.mockImplementation(async (url: string) => {
+    if (url === '/api/user-preferences/') return { data: preferences };
+    if (url === URLS.MEMBER_RECORDS) {
+      if (refused) throw Object.assign(new Error('Current association revoked'), { response: { status: 404 } });
+      return { data: { results: [MEMBER_RECORD], next: null, count: 1 } };
+    }
+    if (url === URLS.MEMBER_RECORD(MEMBER_RECORD.uuid)) return { data: MEMBER_RECORD };
+    if (url === URLS.MEMBER_ENTRIES(MEMBER_RECORD.uuid)) return { data: { entries: [MEMBER_ENTRY] } };
+    if (url === URLS.MEMBER_PARTICULARS_REQUESTS || url === URLS.MEMBER_CERTIFICATE_REQUESTS)
+      return { data: { results: [], next: null, count: 0 } };
+    throw new Error(`Unexpected request: ${url}`);
+  });
+  render(
+    <QueryClientProvider client={client}>
+      <ApiClientProvider client={api as unknown as AxiosInstance}>
+        <MemoryRouter>
+          <PageTitle.Provider value="My shares">
+            <MemberRecordsPage />
+          </PageTitle.Provider>
+        </MemoryRouter>
+      </ApiClientProvider>
+    </QueryClientProvider>,
+  );
+  expect(await screen.findByText('10 issued shares')).toBeTruthy();
+  expect(screen.getByText(/5 awarded · 2 vested · 0 issued · 2 available/)).toBeTruthy();
+  const ownEntries = await screen.findByRole('button', { name: 'Read own entries for Ordinary' });
+  expect(api.get.mock.calls.some(([url]) => url === WALLET_ENDPOINTS.BASE)).toBe(false);
+  expect(screen.queryByRole('heading', { name: 'Shares in your wallets' })).toBeNull();
+  const invitation = screen.getByText('Accept another member invitation').closest('details');
+  expect(invitation?.open).toBe(false);
+  fireEvent.click(ownEntries);
+  await screen.findByRole('button', { name: 'Request certificate for entry 1' });
+  await act(async () => {
+    await client.refetchQueries({ queryKey: ['member-records', 'profile-one', 'account-one', 0], exact: true });
+  });
+  expect(await screen.findByRole('button', { name: 'Request certificate for entry 1' })).toBeTruthy();
+  refused = true;
+  await act(async () => {
+    await client.refetchQueries({ queryKey: ['member-records', 'profile-one', 'account-one', 0], exact: true });
+  });
+  await waitFor(() => expect(screen.queryByText('10 issued shares')).toBeNull());
+  expect(screen.queryByText(/5 awarded · 2 vested/)).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Request certificate for entry 1' })).toBeNull();
+  expect(screen.getByRole('alert').textContent).toMatch(/could not be read/);
+  expect(screen.queryByRole('heading', { name: 'Get access to your shares' })).toBeNull();
+  expect(screen.queryByText('No issued shares recorded.')).toBeNull();
 });

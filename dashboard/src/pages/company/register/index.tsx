@@ -1,17 +1,19 @@
-import { useMemo, type ReactNode } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   DESTINATIONS,
   REGISTER_COPY,
   appointmentForRegisterStep,
-  useOpenRows,
   useSubmissionOwner,
   useUserPreferences,
   USER_PREFERENCES_QUERY_KEY,
   type OrderSubmissionOwner,
+  formatShareCount,
   type TokenHoldersResponse,
 } from '@ledova/shared';
-import { Disclosure, LinkRow, Section } from '@components/Ledger';
+import { LinkRow, Section } from '@components/Ledger';
+import { PageTitle } from '@components/PageTitle';
 import { Page, PageAction } from '@components/Page';
 import { CompanySelection } from '../CompanySelection';
 import { ClassCorrections } from './ClassCorrections';
@@ -43,23 +45,24 @@ function RegisterPage({
   sections?: ReactNode;
   children: ReactNode;
 }) {
+  const { hash } = useLocation();
+  const title = hash === '#awards' ? 'Employee awards' : hash === '#documents' ? 'Documents' : 'Register';
   return (
-    <Page lede="The stored register records your company's members and their shares; wallet balances do not replace it.">
-      {selection}
-      <Section title="Share classes">{children}</Section>
-      {sections}
-      <Section title="Register instructions">
-        <p className="text-sm text-text-muted">
-          Company appointees run the supported register commands above, including non-paid grants and direct transfers
-          for imported draft classes. They prepare, approve and apply empty-class deployment from the Share class page;
-          this creates no shares and does not mirror existing holdings. AUD payment workflows, tokenisation of existing
-          holdings and other corporate actions remain planned. Supported tokenised issues, wallet approvals, capital
-          increases and pause changes use separate company workflows with exact company approval. Company appointees
-          prepare inspection copies, unsigned certificates and supported company packs above. Publications remain
-          prepared by staff on written instruction.
-        </p>
-      </Section>
-    </Page>
+    <PageTitle.Provider value={title}>
+      <Page
+        lede={
+          hash === '#awards'
+            ? 'Record employee entitlements and vesting. Shares are issued through a separate company decision.'
+            : hash === '#documents'
+              ? 'Prepare permitted register copies, certificates and company packs.'
+              : 'Company-recorded ownership and share issue decisions.'
+        }
+      >
+        {selection}
+        {children}
+        {sections}
+      </Page>
+    </PageTitle.Provider>
   );
 }
 
@@ -133,7 +136,9 @@ function OwnRegister({
     preferences.fetchStatus === 'idle' &&
     !classes.isFetching &&
     !registers.isFetching;
-  const rows = useOpenRows();
+  const [memberHeld, setMemberHeld] = useState(false);
+  const { hash } = useLocation();
+  const view = hash === '#awards' ? 'awards' : hash === '#documents' ? 'documents' : 'register';
 
   return (
     <RegisterPage
@@ -141,7 +146,12 @@ function OwnRegister({
         classes.isSuccess &&
         companies.length > 1 && (
           <CompanySelection
-            read={{ companies, companyUuid: company?.uuid, selectionBlocked: classes.isFetching, selectCompany }}
+            read={{
+              companies,
+              companyUuid: company?.uuid,
+              selectionBlocked: classes.isFetching || memberHeld,
+              selectCompany,
+            }}
           />
         )
       }
@@ -150,15 +160,37 @@ function OwnRegister({
         classes.isSuccess &&
         registers.isSuccess && (
           <>
-            <CompanyMemberAccess
-              key={`members/${company.uuid}`}
-              owner={owner}
-              company={company.uuid}
-              sourceReady={sourceReady}
-            />
-            <CompanyPack owner={owner} guard={guard} company={company.uuid} sourceReady={sourceReady} />
-            <RegisterParticulars owner={owner} guard={guard} company={company.uuid} registers={registers.data} />
-            <RegisterLinks owner={owner} guard={guard} company={company.uuid} registers={registers.data} />
+            <div hidden={view !== 'register'}>
+              <details className="space-y-3 border-t border-border pt-4">
+                <summary className="cursor-pointer text-base font-medium">Invite and manage member access</summary>
+                <CompanyMemberAccess
+                  key={`members/${company.uuid}`}
+                  owner={owner}
+                  guard={guard}
+                  company={company.uuid}
+                  registers={registers.data}
+                  sourceReady={sourceReady}
+                  onHeldChange={setMemberHeld}
+                />
+              </details>
+              <details className="space-y-3 border-t border-border pt-4">
+                <summary className="cursor-pointer text-base font-medium">Particulars and wallet links</summary>
+                <RegisterParticulars owner={owner} guard={guard} company={company.uuid} registers={registers.data} />
+                <RegisterLinks owner={owner} guard={guard} company={company.uuid} registers={registers.data} />
+              </details>
+              <details className="space-y-3 border-t border-border pt-4">
+                <summary className="cursor-pointer text-base font-medium">Register guidance</summary>
+                <p className="text-sm text-text-muted">
+                  Company appointees prepare, approve and record supported changes. The stored register establishes
+                  recorded ownership; wallet balances do not replace it. Share class settings retain empty-class
+                  deployment and supported tokenised workflows. Importing holdings does not tokenise them. Outputs are
+                  company-provided, and certificates are unsigned. Publications retain their existing staff workflow.
+                </p>
+              </details>
+            </div>
+            <div hidden={view !== 'documents'}>
+              <CompanyPack owner={owner} guard={guard} company={company.uuid} sourceReady={sourceReady} />
+            </div>
           </>
         )
       }
@@ -180,75 +212,78 @@ function OwnRegister({
       ) : registers.isPending ? (
         <Loading />
       ) : (
-        <ul className="divide-y divide-border">
+        <ul className="space-y-6">
           {registers.data.map((register) => (
             <li key={register.token.uuid}>
-              <Disclosure
-                open={rows.isOpen(register.token.uuid)}
-                onToggle={() => rows.toggle(register.token.uuid)}
-                summary={
-                  <span className="flex flex-wrap items-start justify-between gap-3">
-                    <span className="min-w-0 flex-1 basis-40 break-words">
-                      <span className="block text-sm text-text-muted">{company.name}</span>
-                      <span className="block text-base text-text-primary">{register.token.name}</span>
-                    </span>
-                    <span className="ml-auto text-sm text-text-muted">{register.token.symbol}</span>
-                  </span>
-                }
-              >
-                {
-                  <div className="border-b border-border-subtle">
+              <Section title={`${register.token.name} · ${register.token.symbol}`}>
+                <p className="text-sm text-text-muted">
+                  {company.name} ·{' '}
+                  {register.issuedSupply === null
+                    ? 'Issued quantity not recorded'
+                    : `${formatShareCount(register.issuedSupply)} issued shares`}{' '}
+                  · {register.totalHolders} current members
+                </p>
+                <div hidden={view !== 'register'} className="space-y-5">
+                  <RegisterMembers owner={owner} guard={guard} register={register} company={company.uuid} />
+                  <ClassAllotments
+                    key={`allotments/${company.uuid}/${register.token.uuid}`}
+                    owner={owner}
+                    guard={guard}
+                    register={register}
+                    company={company.uuid}
+                    sourceReady={!classes.isFetching && !registers.isFetching}
+                  />
+                  <details className="space-y-3 border-t border-border-subtle pt-4">
+                    <summary className="cursor-pointer text-sm font-medium">Other changes and register history</summary>
                     <LinkRow
                       to={DESTINATIONS.companyClass.path.replace(':uuid', register.token.uuid)}
                       label={DESTINATIONS.companyClass.title}
                     />
-                  </div>
-                }
-                <RegisterDownload register={register} />
-                <ClassInspectionCopy
-                  register={register}
-                  guard={guard}
-                  sourceReady={!classes.isFetching && !registers.isFetching}
-                />
-                <RegisterMembers owner={owner} guard={guard} register={register} company={company.uuid} />
-                {ON_CHAIN.includes(register.token.status) && (
-                  <ClassOpenings owner={owner} guard={guard} register={register} company={company.uuid} />
-                )}
-                <ClassImports owner={owner} guard={guard} token={register.token.uuid} company={company.uuid} />
-                <ClassGrants owner={owner} guard={guard} register={register} company={company.uuid} />
-                <ClassAwards
-                  key={`${company.uuid}/${register.token.uuid}`}
-                  owner={owner}
-                  guard={guard}
-                  register={register}
-                  company={company.uuid}
-                  sourceReady={!classes.isFetching && !registers.isFetching}
-                />
-                <ClassAllotments
-                  key={`allotments/${company.uuid}/${register.token.uuid}`}
-                  owner={owner}
-                  guard={guard}
-                  register={register}
-                  company={company.uuid}
-                  sourceReady={!classes.isFetching && !registers.isFetching}
-                />
-                <ClassTransfers owner={owner} guard={guard} register={register} company={company.uuid} />
-                <ClassCorrections
-                  owner={owner}
-                  guard={guard}
-                  token={register.token.uuid}
-                  company={company.uuid}
-                  register={register}
-                  sourceReady={sourceReady}
-                />
-                <ClassReconciliation
-                  owner={owner}
-                  guard={guard}
-                  token={register.token.uuid}
-                  company={company.uuid}
-                  holders={register.holders}
-                />
-              </Disclosure>
+                    {ON_CHAIN.includes(register.token.status) && (
+                      <ClassOpenings owner={owner} guard={guard} register={register} company={company.uuid} />
+                    )}
+                    <ClassImports owner={owner} guard={guard} token={register.token.uuid} company={company.uuid} />
+                    <ClassTransfers owner={owner} guard={guard} register={register} company={company.uuid} />
+                    <ClassCorrections
+                      owner={owner}
+                      guard={guard}
+                      token={register.token.uuid}
+                      company={company.uuid}
+                      register={register}
+                      sourceReady={sourceReady}
+                    />
+                    <ClassReconciliation
+                      owner={owner}
+                      guard={guard}
+                      token={register.token.uuid}
+                      company={company.uuid}
+                      holders={register.holders}
+                    />
+                  </details>
+                </div>
+                <div hidden={view !== 'awards'} className="space-y-5">
+                  <ClassAwards
+                    key={`${company.uuid}/${register.token.uuid}`}
+                    owner={owner}
+                    guard={guard}
+                    register={register}
+                    company={company.uuid}
+                    sourceReady={!classes.isFetching && !registers.isFetching}
+                  />
+                  <details className="space-y-3 border-t border-border-subtle pt-4">
+                    <summary className="cursor-pointer text-sm font-medium">Non-paid share issues</summary>
+                    <ClassGrants owner={owner} guard={guard} register={register} company={company.uuid} />
+                  </details>
+                </div>
+                <div hidden={view !== 'documents'} className="space-y-5">
+                  <RegisterDownload register={register} />
+                  <ClassInspectionCopy
+                    register={register}
+                    guard={guard}
+                    sourceReady={!classes.isFetching && !registers.isFetching}
+                  />
+                </div>
+              </Section>
             </li>
           ))}
         </ul>
