@@ -135,3 +135,5 @@ export * from './register-issues';
 export * from './register-capital-increases';
 export * from './register-pause-changes';
 export * from './register-paid-issues';
+
+export { allotmentAud, isPreparedRegisterAllotment, isRegisterAllotmentDecisionReceipt } from './register-allotments';

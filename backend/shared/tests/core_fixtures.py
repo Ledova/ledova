@@ -254,3 +254,32 @@ class CoreFixtures:
             terms_evidence=award["agreement_evidence"],
             **changes,
         )
+
+    def allotment_payload(self, **changes):
+        authority = retained_evidence(self.owner, self.appointment, RegisterEvidenceKind.AUTHORITY)
+        agreement = retained_evidence(self.owner, self.appointment, RegisterEvidenceKind.SUPPORTING)
+        receipt = retained_evidence(self.owner, self.appointment, RegisterEvidenceKind.SUPPORTING)
+        return {
+            "operation_id": str(uuid4()),
+            "appointment": str(self.appointment.pk),
+            "token_id": str(self.token.pk),
+            "member": str(uuid4()),
+            "new_member": True,
+            "name": "Synthetic Investor",
+            "residential_address": "3 Example Street, Sydney NSW 2000",
+            "shares": "25",
+            "consideration": "250.00",
+            "currency": "AUD",
+            "agreement_reference": "SYNTHETIC-EXTERNAL-AGREEMENT",
+            "agreement_on": timezone.now().date().isoformat(),
+            "terms": "Externally arranged fully paid allotment",
+            "agreement_evidence": str(agreement.pk),
+            "received_amount": "250.00",
+            "received_on": timezone.now().date().isoformat(),
+            "receipt_evidence": str(receipt.pk),
+            "approving_director": "Synthetic Independent Director",
+            "authority_reference": "SYNTHETIC-EXTERNAL-ALLOTMENT",
+            "reason": "Record the exact company-approved external investment",
+            "authority_evidence": str(authority.pk),
+            **changes,
+        }

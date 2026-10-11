@@ -1,3 +1,7 @@
+import { REGISTER_ALLOTMENT_COPY, REGISTER_ALLOTMENT_UNMET_COPY } from '../constants/business/register-allotments';
+import { previewRegisterAllotmentDecision, decideRegisterAllotment } from '../services/register-allotments';
+import { isRegisterAllotmentDecisionReceipt } from '../utils/register-allotments';
+import type { RegisterAllotment, RegisterAllotmentDecisionPreview } from '../types';
 import { REGISTER_PAID_ISSUE_COPY, REGISTER_PAID_ISSUE_UNMET_COPY } from '../constants/business/register-paid-issues';
 import { previewRegisterPaidIssueDecision, decideRegisterPaidIssue } from '../services/register-paid-issues';
 import { isRegisterPaidIssueDecisionReceipt } from '../utils/register-paid-issues';
@@ -145,6 +149,15 @@ export const REGISTER_IMPORT_DECISIONS: RegisterDecisionFamily<RegisterImport, R
   unmet: REGISTER_IMPORT_UNMET_COPY,
   copy: REGISTER_IMPORT_COPY,
 };
+
+export const REGISTER_ALLOTMENT_DECISIONS: RegisterDecisionFamily<RegisterAllotment, RegisterAllotmentDecisionPreview> =
+  {
+    preview: previewRegisterAllotmentDecision,
+    decide: decideRegisterAllotment,
+    isReceipt: isRegisterAllotmentDecisionReceipt,
+    unmet: REGISTER_ALLOTMENT_UNMET_COPY,
+    copy: REGISTER_ALLOTMENT_COPY,
+  };
 
 export const REGISTER_GRANT_DECISIONS: RegisterDecisionFamily<RegisterGrant, RegisterGrantDecisionPreview> = {
   preview: previewRegisterGrantDecision,

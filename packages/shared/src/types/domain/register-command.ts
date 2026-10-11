@@ -1,4 +1,9 @@
 import type {
+  RegisterAllotment,
+  RegisterAllotmentDecisionRequest,
+  RegisterAllotmentDecideRequest,
+} from './register-allotment';
+import type {
   RegisterPaidIssue,
   RegisterPaidIssueDecisionRequest,
   RegisterPaidIssueDecideRequest,
@@ -50,6 +55,7 @@ export type RegisterEvidenceKind = ApiSchema<'RegisterEvidenceKindEnum'>;
 export type RegisterEvidenceUpload = ApiRequest<'api_v1_tokens_register_evidence_create'>;
 export type RegisterDecisionKind = ApiSchema<'RegisterDecisionKindEnum'>;
 export type RegisterProposal =
+  | RegisterAllotment
   | RegisterPaidIssue
   | RegisterPauseChange
   | RegisterCapitalIncrease
@@ -64,6 +70,7 @@ export type RegisterProposal =
   | RegisterDeployment
   | CompanyWalletInstruction;
 export type RegisterDecisionRequest =
+  | RegisterAllotmentDecisionRequest
   | RegisterPaidIssueDecisionRequest
   | RegisterPauseChangeDecisionRequest
   | RegisterCapitalIncreaseDecisionRequest
@@ -78,6 +85,7 @@ export type RegisterDecisionRequest =
   | RegisterLinkDecisionRequest
   | CompanyWalletDecisionRequest;
 export type RegisterDecideRequest =
+  | RegisterAllotmentDecideRequest
   | RegisterPaidIssueDecideRequest
   | RegisterPauseChangeDecideRequest
   | RegisterCapitalIncreaseDecideRequest

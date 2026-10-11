@@ -42,15 +42,21 @@ entitlements and actual issued ownership stay distinct, and the
 [10 October first scopes](../decisions.md#first-scopes-for-employee-awards-and-external-capital)
 settle how awards and external capital are first recorded. No legal/tax rule
 engine or option-exercise scheme is selected. The single account-to-member
-association remains #866 work; its invitation/access policy is not selected.
+association remains #866 work. The
+[11 October invitation decision](../decisions.md#member-invitations-and-account-association)
+selects a company-issued member-specific invitation accepted by the signed-in
+recipient.
 
 Useful existing chain and payment functionality, evidence and recovery are
 retained. Optional crypto on-ramp purchases remain personal investor activity;
 companies must not buy cryptocurrency through it, and #920's investor and
-provider-lifetime guards stand. AUD capital can be recorded from genuine
-company-provided evidence without claiming Ledova collected or settled funds.
-Future payment mechanics remain an owner decision. A core register entry needs
-no payment integration, wallet or fabricated chain transaction.
+provider-lifetime guards stand. The
+[external-allotment increment](../plans/company-managed-registers/external-allotments.md)
+records fully paid AUD arrangements and company receipt attestations separately
+from approval and one actual ISSUE on an opened imported register. The evidence
+is company-provided; Ledova does not collect or verify the money. Future payment
+mechanics remain an owner decision. A core register entry needs no payment
+integration, wallet or fabricated chain transaction.
 
 ## Goals
 
@@ -299,7 +305,6 @@ Each increment owns its verification under the
 
 ## Decisions still open
 
-- The #866 account-to-member invitation and access policy.
 - Domain-specific approval policies, action terms and external-signature
   capture, implemented with each company workflow.
 - Signature, filing and legal requirements, which remain in the

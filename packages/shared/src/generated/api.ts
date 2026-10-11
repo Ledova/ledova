@@ -1631,6 +1631,118 @@ export interface ApiPaths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/tokens/register-allotments/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: ApiOperations['api_v1_tokens_register_allotments_list'];
+    put?: never;
+    post: ApiOperations['api_v1_tokens_register_allotments_create'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/tokens/register-allotments/{uuid}/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: ApiOperations['api_v1_tokens_register_allotments_retrieve'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/tokens/register-allotments/{uuid}/agreement-file/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: ApiOperations['api_v1_tokens_register_allotments_agreement_file_retrieve'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/tokens/register-allotments/{uuid}/decide/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: ApiOperations['api_v1_tokens_register_allotments_decide_create'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/tokens/register-allotments/{uuid}/decision-preview/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: ApiOperations['api_v1_tokens_register_allotments_decision_preview_create'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/tokens/register-allotments/{uuid}/file/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: ApiOperations['api_v1_tokens_register_allotments_file_retrieve'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/tokens/register-allotments/{uuid}/receipt-file/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: ApiOperations['api_v1_tokens_register_allotments_receipt_file_retrieve'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/tokens/register-award-vestings/': {
     parameters: {
       query?: never;
@@ -4444,6 +4556,7 @@ export interface ApiComponents {
       to: string;
       value: string;
     };
+    CurrencyEnum: 'AUD';
     DeclarationVersionEnum: '2026-10-04';
     DeletedAccountResponse: {
       message: string;
@@ -5245,6 +5358,12 @@ export interface ApiComponents {
       previous?: string | null;
       results: ApiComponents['schemas']['Publication'][];
     };
+    PaginatedRegisterAllotmentList: {
+      count: number;
+      next?: string | null;
+      previous?: string | null;
+      results: ApiComponents['schemas']['RegisterAllotment'][];
+    };
     PaginatedRegisterAwardList: {
       count: number;
       next?: string | null;
@@ -5673,6 +5792,121 @@ export interface ApiComponents {
       idempotencyKey: string;
       reason: string;
     };
+    RegisterAgreement: {
+      agreedOn: string;
+      evidence: string;
+      evidenceFingerprint: string;
+      evidenceSnapshot: unknown;
+      recordedAt: string;
+      recordedBy: number;
+      reference: string;
+      terms: string;
+      uuid: string;
+    };
+    RegisterAllotment: {
+      agreement: ApiComponents['schemas']['RegisterAgreement'];
+      approvingDirector: string;
+      authorityEvidence: string;
+      authorityReference: string;
+      company: string;
+      consideration: string;
+      contribution: ApiComponents['schemas']['RegisterContribution'];
+      createdAt: string;
+      currency: string;
+      decisions: ApiComponents['schemas']['RegisterAllotmentDecision'][];
+      effectiveOn: string | null;
+      evidenceFingerprint: string;
+      evidenceSnapshot: unknown;
+      member: string;
+      name: string;
+      newMember: boolean;
+      preparedByName: string | null;
+      preparingAppointment: string;
+      providedBy: string;
+      reason: string;
+      registerEntry: string | null;
+      rejectionReason: string;
+      residentialAddress: string;
+      reviewedAt: string | null;
+      reviewedBy: number | null;
+      shares: string;
+      stage: string;
+      status: ApiComponents['schemas']['RegisterCorrectionStatusEnum'];
+      submittedBy: number;
+      token: string;
+      uuid: string;
+    };
+    RegisterAllotmentCreateRequest: {
+      agreementEvidence: string;
+      agreementOn: string;
+      agreementReference: string;
+      appointment: string;
+      approvingDirector: string;
+      authorityEvidence: string;
+      authorityReference: string;
+      consideration: string;
+      currency: ApiComponents['schemas']['CurrencyEnum'];
+      member: string;
+      name?: string;
+      newMember: boolean;
+      operationId: string;
+      reason: string;
+      receiptEvidence: string;
+      receivedAmount: string;
+      receivedOn: string;
+      residentialAddress?: string;
+      shares: string;
+      terms: string;
+      tokenId: string;
+    };
+    RegisterAllotmentDecideRequest: {
+      appointment: string;
+      confirmation: boolean;
+      idempotencyKey: string;
+      kind: ApiComponents['schemas']['RegisterDecisionKindEnum'];
+      previewDigest: string;
+      reason?: string;
+    };
+    RegisterAllotmentDecision: {
+      appointment: string;
+      decidedAt: string;
+      decidedBy: number;
+      decidedByName: string;
+      digest: string;
+      idempotencyKey: string;
+      kind: ApiComponents['schemas']['RegisterDecisionKindEnum'];
+      reason: string;
+      uuid: string;
+    };
+    RegisterAllotmentDecisionPreview: {
+      afterIssuedSupply: string;
+      afterShares: string;
+      agreement: ApiComponents['schemas']['RegisterAgreement'];
+      approvingDirector: string;
+      authorisedSupply: string;
+      authorityReference: string;
+      canDecide: boolean;
+      consideration: string;
+      contribution: ApiComponents['schemas']['RegisterContribution'];
+      currency: string;
+      currentShares: string;
+      effectiveOn: string;
+      issuedSupply: string;
+      member: string;
+      name: string;
+      newMember: boolean;
+      previewDigest: string;
+      reason: string;
+      registerSequence: number;
+      residentialAddress: string;
+      shares: string;
+      unmetRequirements: string[];
+    };
+    RegisterAllotmentDecisionRequestRequest: {
+      appointment: string;
+      kind: ApiComponents['schemas']['RegisterDecisionKindEnum'];
+      reason?: string;
+    };
     RegisterAward: {
       agreementEvidence: string;
       agreementFingerprint: string;
@@ -5848,6 +6082,18 @@ export interface ApiComponents {
       decimals: number;
       name: string;
       symbol: string;
+      uuid: string;
+    };
+    RegisterContribution: {
+      amount: string;
+      companyRecorded: boolean;
+      currency: string;
+      evidence: string;
+      evidenceFingerprint: string;
+      evidenceSnapshot: unknown;
+      receivedOn: string;
+      recordedAt: string;
+      recordedBy: number;
       uuid: string;
     };
     RegisterCorrection: {
@@ -6808,6 +7054,7 @@ export interface ApiComponents {
       asAt: string;
       name: string;
       residentialAddress: string;
+      sourceAllotment: string | null;
       sourceChange: string | null;
       sourceGrant: string | null;
       sourceImport: string | null;
@@ -10937,6 +11184,203 @@ export interface ApiOperations {
         };
         content: {
           'application/json': ApiComponents['schemas']['PaginatedShareIssuanceRequestList'];
+        };
+      };
+    };
+  };
+  api_v1_tokens_register_allotments_list: {
+    parameters: {
+      query?: {
+        company?: string;
+        member?: string;
+        ordering?: string;
+        page?: number;
+        status?: 'applied' | 'rejected' | 'submitted';
+        token?: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['PaginatedRegisterAllotmentList'];
+        };
+      };
+    };
+  };
+  api_v1_tokens_register_allotments_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': ApiComponents['schemas']['RegisterAllotmentCreateRequest'];
+        'application/x-www-form-urlencoded': ApiComponents['schemas']['RegisterAllotmentCreateRequest'];
+        'multipart/form-data': ApiComponents['schemas']['RegisterAllotmentCreateRequest'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['RegisterAllotment'];
+        };
+      };
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['RegisterAllotment'];
+        };
+      };
+    };
+  };
+  api_v1_tokens_register_allotments_retrieve: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['RegisterAllotment'];
+        };
+      };
+    };
+  };
+  api_v1_tokens_register_allotments_agreement_file_retrieve: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': Blob;
+        };
+      };
+    };
+  };
+  api_v1_tokens_register_allotments_decide_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': ApiComponents['schemas']['RegisterAllotmentDecideRequest'];
+        'application/x-www-form-urlencoded': ApiComponents['schemas']['RegisterAllotmentDecideRequest'];
+        'multipart/form-data': ApiComponents['schemas']['RegisterAllotmentDecideRequest'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['RegisterAllotment'];
+        };
+      };
+    };
+  };
+  api_v1_tokens_register_allotments_decision_preview_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': ApiComponents['schemas']['RegisterAllotmentDecisionRequestRequest'];
+        'application/x-www-form-urlencoded': ApiComponents['schemas']['RegisterAllotmentDecisionRequestRequest'];
+        'multipart/form-data': ApiComponents['schemas']['RegisterAllotmentDecisionRequestRequest'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['RegisterAllotmentDecisionPreview'];
+        };
+      };
+    };
+  };
+  api_v1_tokens_register_allotments_file_retrieve: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': Blob;
+        };
+      };
+    };
+  };
+  api_v1_tokens_register_allotments_receipt_file_retrieve: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': Blob;
         };
       };
     };

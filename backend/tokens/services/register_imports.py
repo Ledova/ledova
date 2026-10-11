@@ -452,6 +452,7 @@ def _apply(proposal, actor, decision):
                 "source_import": proposal,
                 "source_change": None,
                 "source_grant": None,
+                "source_allotment": None,
                 "source_transfer": None,
             },
         )

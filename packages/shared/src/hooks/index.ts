@@ -73,3 +73,5 @@ export { useCompanyPauseChanges } from './useCompanyPauseChanges';
 export { REGISTER_PAUSE_CHANGE_DECISIONS } from './useRegisterDecision';
 export { useCompanyPaidIssues } from './useCompanyPaidIssues';
 export { REGISTER_PAID_ISSUE_DECISIONS } from './useRegisterDecision';
+
+export { REGISTER_ALLOTMENT_DECISIONS } from './useRegisterDecision';

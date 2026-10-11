@@ -5,6 +5,7 @@ import { ClassCorrections } from './ClassCorrections';
 import { ClassEntries } from './ClassEntries';
 import { ClassImports } from './ClassImports';
 import { ClassGrants } from './ClassGrants';
+import { ClassAllotments } from './ClassAllotments';
 import { ClassAwards } from './ClassAwards';
 import { ClassTransfers } from './ClassTransfers';
 import { ClassOpenings } from './ClassOpenings';
@@ -98,6 +99,13 @@ export function ClassRecords({
         epoch={epoch}
         sourceReady={sourceReady}
         onPrepareGrant={onPrepareAwardGrant}
+      />
+      <ClassAllotments
+        key={`${epoch}/${company}/${register.token.uuid}`}
+        company={company}
+        register={register}
+        epoch={epoch}
+        sourceReady={sourceReady}
       />
       <ClassCorrections
         epoch={epoch}

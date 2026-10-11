@@ -1,6 +1,7 @@
 from rest_framework.routers import DefaultRouter
 
 from tokens import views
+from tokens.views.register_allotment import RegisterAllotmentViewSet
 from tokens.views.register_award import (
     RegisterAwardVestingViewSet,
     RegisterAwardViewSet,
@@ -34,6 +35,7 @@ router.register(r"register-issues", RegisterIssueViewSet, basename="register-iss
 router.register(r"register-corrections", RegisterCorrectionViewSet, basename="register-corrections")
 router.register(r"register-openings", RegisterOpeningViewSet, basename="register-openings")
 router.register(r"register-links", RegisterWalletLinkViewSet, basename="register-links")
+router.register(r"register-allotments", RegisterAllotmentViewSet, basename="register-allotments")
 router.register(r"register-grants", RegisterGrantViewSet, basename="register-grants")
 router.register(r"register-awards", RegisterAwardViewSet, basename="register-awards")
 router.register(r"register-award-vestings", RegisterAwardVestingViewSet, basename="register-award-vestings")

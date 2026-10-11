@@ -4,7 +4,12 @@ from django.conf import settings
 
 SQL = Path(__file__).with_suffix(".sql").read_text()
 AWARD_SQL = Path(__file__).with_name("database_award_guards.sql").read_text()
+ALLOTMENT_SQL = Path(__file__).with_name("database_allotment_guards.sql").read_text()
 RESTRICTED_TABLES = (
+    "tokens_registeragreement",
+    "tokens_registercontribution",
+    "tokens_registerallotment",
+    "tokens_registerallotmentdecision",
     "tokens_registeraward",
     "tokens_registerawardvesting",
     "tokens_tokendeployment",
@@ -34,7 +39,17 @@ def install(apps, schema_editor):
         cursor.execute(
             AWARD_SQL.replace("__OPERATOR__", operator).replace("__MIGRATE__", migrate).replace("__APP__", app)
         )
-        for table in ("tokens_registeraward", "tokens_registerawardvesting"):
+        cursor.execute(
+            ALLOTMENT_SQL.replace("__OPERATOR__", operator).replace("__MIGRATE__", migrate).replace("__APP__", app)
+        )
+        for table in (
+            "tokens_registeraward",
+            "tokens_registerawardvesting",
+            "tokens_registeragreement",
+            "tokens_registercontribution",
+            "tokens_registerallotment",
+            "tokens_registerallotmentdecision",
+        ):
             cursor.execute(f"ALTER TABLE {table} ENABLE ROW LEVEL SECURITY")
             cursor.execute(f"ALTER TABLE {table} FORCE ROW LEVEL SECURITY")
         cursor.execute(

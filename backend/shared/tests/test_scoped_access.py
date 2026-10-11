@@ -4,6 +4,7 @@ from django.test import override_settings
 from django.test.utils import CaptureQueriesContext
 from rest_framework.test import APIClient, APITransactionTestCase
 
+from companies.services.team import revoke_company_appointment
 from shared.db import (
     APP_ALIAS,
     principal_of,
@@ -18,8 +19,12 @@ from shared.tests.core_fixtures import (
     populated_register,
 )
 from tokens.models import (
+    RegisterAgreement,
+    RegisterAllotment,
+    RegisterAllotmentDecision,
     RegisterAward,
     RegisterAwardVesting,
+    RegisterContribution,
     RegisterGrant,
     RegisterMember,
     RegisterPosition,
@@ -119,6 +124,14 @@ class ScopedAccessTest(CoreFixtures, APITransactionTestCase):
         vesting = self.vesting_payload(award["operation_id"])
         recorded_vesting = self.client.post("/api/v1/tokens/register-award-vestings/", vesting, format="json")
         self.assertEqual(recorded_vesting.status_code, 201, recorded_vesting.content)
+        allotment = self.allotment_payload()
+        capital = self.client.post("/api/v1/tokens/register-allotments/", allotment, format="json")
+        self.assertEqual(capital.status_code, 201, capital.content)
+        capital_detail = f"/api/v1/tokens/register-allotments/{allotment['operation_id']}/"
+        for suffix in ("", "file/", "agreement-file/", "receipt-file/"):
+            healthy = self.client.get(f"{capital_detail}{suffix}")
+            self.assertEqual(healthy.status_code, 200, getattr(healthy, "content", b""))
+            healthy.close()
         self.sign_in(self.foreign)
         response = self.client.post(
             f"/api/v1/tokens/register-grants/{identifier}/decision-preview/",
@@ -144,10 +157,33 @@ class ScopedAccessTest(CoreFixtures, APITransactionTestCase):
             with self.assertRaises(ProgrammingError) as write:
                 model.objects.using(APP_ALIAS).filter(pk=payload["operation_id"]).update(shares=1)
             self.assertEqual(write.exception.__cause__.sqlstate, "42501")
+        for suffix in ("", "file/", "agreement-file/", "receipt-file/"):
+            self.assertEqual(self.client.get(f"{capital_detail}{suffix}").status_code, 404)
+        foreign_preview = self.client.post(
+            f"{capital_detail}decision-preview/",
+            {"appointment": str(self.foreign_appointment.pk), "kind": "approve"},
+            format="json",
+        )
+        self.assertEqual(foreign_preview.status_code, 404, foreign_preview.content)
+        for model in (RegisterAgreement, RegisterContribution, RegisterAllotment, RegisterAllotmentDecision):
+            with self.assertRaises(ProgrammingError) as private_read:
+                model.objects.using(APP_ALIAS).count()
+            self.assertEqual(private_read.exception.__cause__.sqlstate, "42501")
         reset_principal(APP_ALIAS)
         with use_operator():
             self.assertIsNone(RegisterGrant.objects.get(pk=identifier).register_entry_id)
             self.assertEqual(RegisterPosition.objects.get(member=self.member).shares, 100)
+        self.sign_in(self.owner)
+        set_principal(self.owner.pk, APP_ALIAS)
+        for model in (RegisterAgreement, RegisterContribution, RegisterAllotment, RegisterAllotmentDecision):
+            with self.assertRaises(ProgrammingError) as owner_read:
+                model.objects.using(APP_ALIAS).count()
+            self.assertEqual(owner_read.exception.__cause__.sqlstate, "42501")
+        reset_principal(APP_ALIAS)
+        revoke_company_appointment(requester=self.owner, appointment_id=self.appointment.pk)
+        for suffix in ("", "file/", "agreement-file/", "receipt-file/"):
+            self.assertEqual(self.client.get(f"{capital_detail}{suffix}").status_code, 404)
+        self.assertEqual(self.client.get("/api/v1/tokens/register-allotments/").json()["count"], 0)
 
     def test_employee_issue_matches_holdings_and_retry_cannot_issue_twice(self):
         self.sign_in(self.owner)
