@@ -120,10 +120,17 @@ export function useRegisterAccess(enabled: boolean) {
     enabled,
     queryFn: async ({ signal }) => (await readClasses(epoch, 1, signal)).data.results.length > 0,
   });
-  return enabled && firstPage.data === true;
+  return {
+    allowed: enabled && firstPage.isSuccess && !firstPage.isFetching && firstPage.data === true,
+    loading: enabled && firstPage.isPending,
+  };
 }
 
-export function useCompanyRegister(epoch: number) {
+export function useCompanyRegister(
+  epoch: number,
+  retained?: { uuid: string; name: string; classes: CompanyShareTokenListItem[] },
+  preferred?: { companyUuid: string; tokenUuid: string },
+) {
   const queryClient = useQueryClient();
   const [selected, selectCompany] = useState<string>();
   const classes = useQuery({
@@ -136,9 +143,21 @@ export function useCompanyRegister(epoch: number) {
       return rows;
     },
   });
+  const [requested, setRequested] = useState<string>();
+  const requestedScope =
+    preferred &&
+    classes.isSuccess &&
+    classes.data.some((item) => item.uuid === preferred.tokenUuid && item.companyUuid === preferred.companyUuid)
+      ? `${preferred.companyUuid}/${preferred.tokenUuid}`
+      : undefined;
+  if (!preferred && requested) setRequested(undefined);
+  if (requestedScope && requestedScope !== requested) {
+    setRequested(requestedScope);
+    selectCompany(preferred!.companyUuid);
+  }
   const companies = companiesOf(classes.isSuccess ? classes.data : []);
   const company =
-    companies.find(({ uuid }) => uuid === selected) ?? (companies.length === 1 ? companies[0] : undefined);
+    retained ?? companies.find(({ uuid }) => uuid === selected) ?? (companies.length === 1 ? companies[0] : undefined);
   const registers = useQuery({
     queryKey: [...registerKey(epoch), 'holders', company?.uuid, company?.classes.map(({ uuid }) => uuid)],
     enabled: !!company,

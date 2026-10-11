@@ -1,5 +1,5 @@
 import React from 'react';
-import { DESTINATIONS } from '@ledova/shared';
+import { DESTINATIONS, useUserPreferences } from '@ledova/shared';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import type { NavigatorScreenParams } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -23,6 +23,7 @@ import type { TradingStackParamList } from './TradingStackNavigator';
 import { useFeatureFlags } from '../hooks/useFeatureFlags';
 import { useRole } from '../hooks/useRole';
 import { useAppTheme } from '../contexts';
+import { useRegisterAccess } from '../screens/company-register/useCompanyRegister';
 
 export type BottomTabParamList = {
   Home: NavigatorScreenParams<HomeStackParamList>;
@@ -50,15 +51,17 @@ export function BottomTabNavigator({ onNotifications, unreadCount }: BottomTabNa
   const insets = useSafeAreaInsets();
   const { isEnabled } = useFeatureFlags();
   const { isCompany, isInvestor, isLoading: isLoadingRole } = useRole();
+  const preferences = useUserPreferences();
+  const access = useRegisterAccess(!preferences.isLoading && !preferences.isError && !!preferences.userAccount);
   const showTrading = isInvestor && isEnabled('trading_enabled');
 
-  if (isLoadingRole) {
+  if (isLoadingRole || access.loading) {
     return null;
   }
 
   return (
     <Tab.Navigator
-      initialRouteName={isCompany ? 'Company' : 'Home'}
+      initialRouteName={isCompany && access.allowed ? 'Company' : 'Home'}
       screenOptions={() => ({
         ...getMainHeaderStyle(theme),
         ...MainHeader({ theme, onNotifications, unreadCount }),
@@ -102,14 +105,14 @@ export function BottomTabNavigator({ onNotifications, unreadCount }: BottomTabNa
         name="Company"
         options={{
           headerShown: false,
-          tabBarLabel: 'Company',
+          tabBarLabel: DESTINATIONS.companyRegister.title,
           tabBarIcon: ({ color, size }) => <BuildingsIcon size={size} color={color} weight="regular" />,
-          tabBarItemStyle: isCompany ? undefined : { display: 'none' },
+          tabBarItemStyle: access.allowed ? undefined : { display: 'none' },
         }}
         listeners={({ navigation }) => ({
           tabPress: (e) => {
             e.preventDefault();
-            navigation.navigate('Company', { screen: 'CompanyMain' });
+            navigation.navigate('Company', { screen: 'CompanyMain', params: { section: 'register' }, pop: true });
           },
         })}
       >
@@ -139,6 +142,7 @@ export function BottomTabNavigator({ onNotifications, unreadCount }: BottomTabNa
           options={{
             headerShown: false,
             tabBarLabel: DESTINATIONS.trading.title,
+            tabBarItemStyle: { display: 'none' },
             tabBarIcon: ({ color, size }) => <CertificateIcon size={size} color={color} weight="regular" />,
           }}
           listeners={({ navigation }) => ({

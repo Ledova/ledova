@@ -1,9 +1,11 @@
-import { useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Text, View } from 'react-native';
 import * as Crypto from 'expo-crypto';
 import {
   REGISTER_AWARD_COPY as COPY,
   apiErrorSentence,
+  appointmentForRegisterStep,
   createUserFriendlyError,
   failureStatus,
   getRegisterAwardVesting,
@@ -18,6 +20,7 @@ import { Action } from '../../components/Ledger';
 import { apiClient } from '../../services/apiClient';
 import { EvidencePicker, Field, isoDay, utcToday } from './RegisterFields';
 import { useCompanyStyles } from './styles';
+import { registerAppointmentsKey } from './useCompanyRegister';
 import { useRegisterEvidence } from './useRegisterEvidence';
 
 export function AwardVestingForm({
@@ -28,6 +31,7 @@ export function AwardVestingForm({
   blocked,
   onRecorded,
   onHeldChange,
+  visible = true,
 }: {
   award: RegisterAward;
   epoch: number;
@@ -36,14 +40,20 @@ export function AwardVestingForm({
   blocked: boolean;
   onRecorded: () => Promise<unknown>;
   onHeldChange?: (held: boolean) => void;
+  visible?: boolean;
 }) {
   const styles = useCompanyStyles();
+  const client = useQueryClient();
   const evidence = useRegisterEvidence(award.company, 'supporting');
   const [shares, setShares] = useState('');
   const [vestedOn, setVestedOn] = useState(utcToday);
   const [submitting, setSubmitting] = useState(false);
   const [held, setHeld] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const unavailable = useRef(blocked || !visible);
+  useLayoutEffect(() => {
+    unavailable.current = blocked || !visible;
+  }, [blocked, visible]);
   const live = useRef(true);
   const pending = useRef(false);
   const operation = useRef<{ request: RegisterAwardVestingPreparation; confirmed: boolean; uncertain: boolean } | null>(
@@ -57,6 +67,8 @@ export function AwardVestingForm({
   }, []);
   const check = () => {
     guard();
+    if (unavailable.current)
+      throw createUserFriendlyError('Refresh company access and the current records before continuing.');
     if (!live.current) throw createUserFriendlyError('This vesting form is closed. Reopen it before continuing.');
   };
   const quantity = shares.trim();
@@ -69,7 +81,17 @@ export function AwardVestingForm({
         : !evidence.name
           ? 'Choose the company’s evidence for this vesting event.'
           : null;
+  const beforeWrite = () => {
+    check();
+    const appointments = client.getQueryData<OwnCompanyAppointment[]>(registerAppointmentsKey(epoch)) ?? [];
+    if (appointmentForRegisterStep(appointments, award.company, 'prepare')?.uuid !== appointment.uuid)
+      throw createUserFriendlyError('Refresh your current preparation appointment before a new request.');
+  };
   const busy = submitting || evidence.busy;
+  useEffect(() => {
+    onHeldChange?.(busy || held);
+  }, [busy, held, onHeldChange]);
+  useEffect(() => () => onHeldChange?.(false), [onHeldChange]);
   const pick = async () => {
     try {
       check();
@@ -93,7 +115,7 @@ export function AwardVestingForm({
       check();
       let command = operation.current;
       if (!command) {
-        const retained = await evidence.upload(appointment.uuid, check);
+        const retained = await evidence.upload(appointment.uuid, beforeWrite);
         const body = {
           appointment: appointment.uuid,
           award: award.uuid,
@@ -106,32 +128,54 @@ export function AwardVestingForm({
         setHeld(true);
         onHeldChange?.(true);
       }
-      if (command.uncertain && !command.confirmed) {
+      const lookup = async () => {
         try {
           check();
-          const { data } = await getRegisterAwardVesting(apiClient, command.request.operationId, {
+          const { data } = await getRegisterAwardVesting(apiClient, command!.request.operationId, {
             ledovaSessionEpoch: epoch,
             ledovaSubmissionGuard: check,
+          });
+          check();
+          if (!isRecordedRegisterAwardVesting(data, command!.request, award.company))
+            throw createUserFriendlyError(COPY.VESTING_FAILED);
+          return true;
+        } catch (cause) {
+          check();
+          if (failureStatus(cause) !== 404) throw cause;
+          return false;
+        }
+      };
+      let absent = false;
+      if (command.uncertain && !command.confirmed) {
+        command.confirmed = await lookup();
+        absent = !command.confirmed;
+      }
+      if (!command.confirmed) {
+        try {
+          const writeGuard = command.uncertain ? check : beforeWrite;
+          writeGuard();
+          const { data } = await recordRegisterAwardVesting(apiClient, command.request, {
+            ledovaSessionEpoch: epoch,
+            ledovaSubmissionGuard: writeGuard,
           });
           check();
           if (!isRecordedRegisterAwardVesting(data, command.request, award.company))
             throw createUserFriendlyError(COPY.VESTING_FAILED);
           command.confirmed = true;
         } catch (cause) {
-          check();
-          if (failureStatus(cause) !== 404) throw cause;
+          const status = failureStatus(cause);
+          if (!absent || !status || status < 400 || status >= 500) throw cause;
+          command.confirmed = await lookup();
+          if (!command.confirmed) {
+            operation.current = null;
+            setHeld(false);
+            onHeldChange?.(false);
+            setError(
+              'The original vesting event was not recorded and the request was refused. Close this form and start again with current company authority.',
+            );
+            return;
+          }
         }
-      }
-      if (!command.confirmed) {
-        check();
-        const response = await recordRegisterAwardVesting(apiClient, command.request, {
-          ledovaSessionEpoch: epoch,
-          ledovaSubmissionGuard: check,
-        });
-        check();
-        if (!isRecordedRegisterAwardVesting(response.data, command.request, award.company))
-          throw createUserFriendlyError(COPY.VESTING_FAILED);
-        command.confirmed = true;
       }
       await onRecorded();
       operation.current = null;
@@ -162,6 +206,7 @@ export function AwardVestingForm({
       if (live.current) setSubmitting(false);
     }
   };
+  if (!visible) return null;
   return (
     <View style={styles.group}>
       <Field
@@ -195,7 +240,7 @@ export function AwardVestingForm({
       )}
       <Text style={styles.muted}>{COPY.RECOVERY_NOTE}</Text>
       <Action
-        label={submitting ? 'Recording vesting…' : COPY.VEST}
+        label={submitting ? 'Recording vesting…' : 'Record vesting'}
         primary
         disabled={busy || blocked || (!held && !!problem)}
         onPress={() => void submit()}

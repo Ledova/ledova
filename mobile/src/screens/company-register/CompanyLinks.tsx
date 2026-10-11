@@ -1,12 +1,20 @@
-import { useEffect } from 'react';
+import { useEffect, useLayoutEffect, useRef } from 'react';
 import { Text, View } from 'react-native';
 import { useQueryClient } from '@tanstack/react-query';
-import { failureStatus, REGISTER_LINK_COPY as COPY, type TokenHoldersResponse } from '@ledova/shared';
+import {
+  failureStatus,
+  REGISTER_LINK_COPY as COPY,
+  hasCurrentRegisterReadAuthority,
+  type OwnCompanyAppointment,
+  type TokenHoldersResponse,
+} from '@ledova/shared';
 import { Action, Section } from '../../components/Ledger';
 import { LinkRecord } from './LinkRecord';
 import { useCompanyStyles } from './styles';
 import {
   entriesKey,
+  linksKey,
+  registerAppointmentsKey,
   useRegisterAppointments,
   useRegisterLinks,
   useRegisterWaitingWallets,
@@ -19,7 +27,11 @@ export function CompanyLinks({
   registers,
   refreshHolders,
   onPrepare,
+  sourceReady = true,
+  onHeldChange,
 }: {
+  sourceReady?: boolean;
+  onHeldChange?: (key: string, held: boolean) => void;
   epoch: number;
   company: string;
   registers: TokenHoldersResponse[];
@@ -27,9 +39,36 @@ export function CompanyLinks({
   onPrepare: () => void;
 }) {
   const styles = useCompanyStyles();
+  const sourceAvailable = useRef(sourceReady);
+  useLayoutEffect(() => {
+    sourceAvailable.current = sourceReady;
+  }, [sourceReady]);
   const queryClient = useQueryClient();
   const links = useRegisterLinks(epoch, company);
   const { appointments, steps } = useRegisterAppointments(epoch, company);
+  const privateReady =
+    sourceReady &&
+    appointments.isSuccess &&
+    !appointments.isFetching &&
+    links.isSuccess &&
+    !links.isFetching &&
+    hasCurrentRegisterReadAuthority(appointments.data, company);
+  const guard = () => {
+    const authority = queryClient.getQueryState(registerAppointmentsKey(epoch));
+    const state = queryClient.getQueryState(linksKey(epoch, company));
+    if (
+      !sourceAvailable.current ||
+      authority?.status !== 'success' ||
+      authority.fetchStatus !== 'idle' ||
+      state?.status !== 'success' ||
+      state.fetchStatus !== 'idle' ||
+      !hasCurrentRegisterReadAuthority(
+        queryClient.getQueryData<OwnCompanyAppointment[]>(registerAppointmentsKey(epoch)) ?? [],
+        company,
+      )
+    )
+      throw new Error('Refresh the company records and current appointments.');
+  };
   const waiting = useRegisterWaitingWallets(epoch, company, !!steps?.prepare);
   const waitingError = waiting.error;
   const readAppointments = appointments.refetch;
@@ -61,7 +100,8 @@ export function CompanyLinks({
         </View>
       )}
       {steps && !Object.values(steps).some(Boolean) && <Text style={styles.muted}>{COPY.READ_ONLY_NOTE}</Text>}
-      {steps?.prepare &&
+      {privateReady &&
+        steps?.prepare &&
         (waiting.isError ? (
           <View style={styles.group}>
             <Text accessibilityRole="alert" style={styles.error}>
@@ -88,21 +128,23 @@ export function CompanyLinks({
           </Text>
           <Action label="Retry wallet links" disabled={links.isFetching} onPress={() => void links.refetch()} />
         </View>
-      ) : links.data.length === 0 ? (
+      ) : privateReady && links.data.length === 0 ? (
         <Text style={styles.muted}>{COPY.EMPTY}</Text>
-      ) : (
-        links.data.map((link, index) => (
-          <LinkRecord
-            key={link.uuid}
-            link={link}
-            holders={holders}
-            epoch={epoch}
-            steps={steps}
-            last={index === links.data.length - 1}
-            onSettled={settle}
-          />
-        ))
-      )}
+      ) : null}
+      {links.data?.map((link, index) => (
+        <LinkRecord
+          key={link.uuid}
+          link={link}
+          holders={holders}
+          epoch={epoch}
+          steps={steps}
+          last={index === links.data!.length - 1}
+          onSettled={settle}
+          visible={privateReady}
+          guard={guard}
+          onHeldChange={onHeldChange}
+        />
+      ))}
     </Section>
   );
 }

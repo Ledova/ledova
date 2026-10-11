@@ -81,9 +81,15 @@ export function LinkRecord({
   steps,
   last,
   onSettled,
+  visible = true,
+  guard,
+  onHeldChange,
 }: {
   link: RegisterLink;
   holders: Holders;
+  visible?: boolean;
+  guard?: () => void;
+  onHeldChange?: (key: string, held: boolean) => void;
   epoch: number;
   steps?: Record<RegisterStep, OwnCompanyAppointment | undefined>;
   last: boolean;
@@ -97,75 +103,86 @@ export function LinkRecord({
   const description = `${stage.toLowerCase()} wallet link for ${wallets}, prepared on ${prepared}`;
   const labels = registerLinkMemberLabels(link.mappingSummary, holders);
   return (
-    <View style={[styles.entry, last && styles.lastEntry]}>
-      <Text style={styles.heading}>
-        {stage} · {wallets}
-      </Text>
-      <Text style={styles.muted}>{link.providedBy === 'company' ? COPY.PROVIDED_BY_COMPANY : COPY.STAFF_VERIFIED}</Text>
-      <Rows>
-        {link.preparedByName !== null && <Row label="Prepared by">{link.preparedByName || 'Name not recorded'}</Row>}
-        <Row label="Prepared on">{prepared}</Row>
-        {link.decisions.map((decision) => (
-          <Row key={decision.uuid} label={DECIDED[decision.kind]}>
-            {[decision.decidedByName, formatDateTime(decision.decidedAt)].filter(Boolean).join(' · ')}
-          </Row>
-        ))}
-        {link.decisions.length === 0 && link.reviewedAt && (
-          <Row label="Decided on">{formatDateTime(link.reviewedAt)}</Row>
-        )}
-        {!!link.rejectionReason && <Row label="Rejection reason">{link.rejectionReason}</Row>}
-        <Row label={COPY.AUTHORITY}>{COPY.AUTHORITIES[link.authority]}</Row>
-        {!!link.approvingDirector && <Row label={COPY.APPROVING_DIRECTOR}>{link.approvingDirector}</Row>}
-        <Row label={COPY.AUTHORITY_REFERENCE}>{link.authorityReference}</Row>
-        <Row label={COPY.REASON}>{link.reason}</Row>
-      </Rows>
-      <Text style={styles.heading}>{COPY.WALLETS}</Text>
-      {link.mappingSummary.map((row) => (
-        <View key={row.address}>
-          <Text style={styles.text}>{labels.get(row.member)}</Text>
-          <Text selectable style={styles.muted}>
-            {row.address}
+    <View style={visible ? [styles.entry, last && styles.lastEntry] : undefined}>
+      {visible && (
+        <>
+          <Text style={styles.heading}>
+            {stage} · {wallets}
           </Text>
-        </View>
-      ))}
-      <RegisterCopy
-        label={COPY.DOWNLOAD}
-        accessibilityLabel={`${COPY.DOWNLOAD} of the ${description}`}
-        filename={`authority-${link.uuid}`}
-        epoch={epoch}
-        read={() =>
-          apiClient.get<ArrayBuffer>(COMPANY_TOKEN_ENDPOINTS.REGISTER_LINK_FILE(link.uuid), {
-            responseType: 'arraybuffer',
-            ledovaSessionEpoch: epoch,
-          })
-        }
-      />
-      {link.status === 'submitted' && steps && (
-        <View style={styles.choices}>
-          {kinds.map((kind) => {
-            const appointment = steps[kind];
-            return (
-              appointment && (
-                <RegisterDecision
-                  key={kind}
-                  family={REGISTER_LINK_DECISIONS}
-                  copy={COPY}
-                  noun="wallet link"
-                  proposal={link}
-                  kind={kind}
-                  appointment={appointment.uuid}
-                  epoch={epoch}
-                  description={description}
-                  onSettled={onSettled}
-                  onRefused={onSettled}
-                >
-                  {(preview) => <LinkPreview kind={kind} preview={preview} holders={holders} />}
-                </RegisterDecision>
-              )
-            );
-          })}
-        </View>
+          <Text style={styles.muted}>
+            {link.providedBy === 'company' ? COPY.PROVIDED_BY_COMPANY : COPY.STAFF_VERIFIED}
+          </Text>
+          <Rows>
+            {link.preparedByName !== null && (
+              <Row label="Prepared by">{link.preparedByName || 'Name not recorded'}</Row>
+            )}
+            <Row label="Prepared on">{prepared}</Row>
+            {link.decisions.map((decision) => (
+              <Row key={decision.uuid} label={DECIDED[decision.kind]}>
+                {[decision.decidedByName, formatDateTime(decision.decidedAt)].filter(Boolean).join(' · ')}
+              </Row>
+            ))}
+            {link.decisions.length === 0 && link.reviewedAt && (
+              <Row label="Decided on">{formatDateTime(link.reviewedAt)}</Row>
+            )}
+            {!!link.rejectionReason && <Row label="Rejection reason">{link.rejectionReason}</Row>}
+            <Row label={COPY.AUTHORITY}>{COPY.AUTHORITIES[link.authority]}</Row>
+            {!!link.approvingDirector && <Row label={COPY.APPROVING_DIRECTOR}>{link.approvingDirector}</Row>}
+            <Row label={COPY.AUTHORITY_REFERENCE}>{link.authorityReference}</Row>
+            <Row label={COPY.REASON}>{link.reason}</Row>
+          </Rows>
+          <Text style={styles.heading}>{COPY.WALLETS}</Text>
+          {link.mappingSummary.map((row) => (
+            <View key={row.address}>
+              <Text style={styles.text}>{labels.get(row.member)}</Text>
+              <Text selectable style={styles.muted}>
+                {row.address}
+              </Text>
+            </View>
+          ))}
+          <RegisterCopy
+            label={COPY.DOWNLOAD}
+            accessibilityLabel={`${COPY.DOWNLOAD} of the ${description}`}
+            filename={`authority-${link.uuid}`}
+            epoch={epoch}
+            guard={guard}
+            read={() =>
+              apiClient.get<ArrayBuffer>(COMPANY_TOKEN_ENDPOINTS.REGISTER_LINK_FILE(link.uuid), {
+                responseType: 'arraybuffer',
+                ledovaSessionEpoch: epoch,
+                ledovaSubmissionGuard: guard,
+              })
+            }
+          />
+        </>
       )}
+      <View style={styles.choices}>
+        {kinds.map((kind) => {
+          const appointment = steps?.[kind];
+          return (
+            <RegisterDecision
+              key={kind}
+              family={REGISTER_LINK_DECISIONS}
+              copy={COPY}
+              noun="wallet link"
+              proposal={link}
+              kind={kind}
+              appointment={appointment?.uuid}
+              visible={visible}
+              enabled={link.status === 'submitted'}
+              readGuard={guard}
+              newEffectGuard={guard}
+              onHeldChange={onHeldChange}
+              epoch={epoch}
+              description={description}
+              onSettled={onSettled}
+              onRefused={onSettled}
+            >
+              {(preview) => <LinkPreview kind={kind} preview={preview} holders={holders} />}
+            </RegisterDecision>
+          );
+        })}
+      </View>
     </View>
   );
 }

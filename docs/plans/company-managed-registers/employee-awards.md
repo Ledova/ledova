@@ -56,7 +56,7 @@ particulars, including a retained former-member record.
 
 Preparing the issue returns to the same company's Employee awards page and
 opens that class's non-paid issues. Preview and approve the grant, then choose
-**Record issue** on web through the existing decision flow.
+**Record issue** on both clients through the existing decision flow.
 Approval alone does not create holdings. Application rechecks company authority,
 source evidence, available vested quantity, member particulars, register
 sequence and authorised headroom, then records the genuine ISSUE and its

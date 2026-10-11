@@ -1,6 +1,6 @@
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { CompanyRegisterScreen } from '../screens/company-register/CompanyRegisterScreen';
+import { CompanyRegisterScreen, type CompanyRegisterSection } from '../screens/company-register/CompanyRegisterScreen';
 import { PrepareRegisterCorrectionScreen } from '../screens/company-register/PrepareRegisterCorrectionScreen';
 import { PrepareRegisterImportScreen } from '../screens/company-register/PrepareRegisterImportScreen';
 import { PrepareRegisterLinkScreen } from '../screens/company-register/PrepareRegisterLinkScreen';
@@ -20,7 +20,7 @@ import { getMainHeaderStyle } from './headers/MainHeader';
 import { MainHeader } from './headers';
 
 export type CompanyStackParamList = {
-  CompanyMain: undefined;
+  CompanyMain: { section?: CompanyRegisterSection; companyUuid?: string; tokenUuid?: string } | undefined;
   CompanyDetails: undefined;
   CompanyPublications: undefined;
   CompanyOfferings: undefined;

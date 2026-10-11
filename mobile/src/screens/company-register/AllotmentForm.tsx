@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Text, View } from 'react-native';
 import * as Crypto from 'expo-crypto';
 import {
@@ -34,6 +34,7 @@ export function AllotmentForm({
   blocked,
   onRecorded,
   onHeldChange,
+  visible = true,
 }: {
   company: string;
   token: string;
@@ -45,6 +46,7 @@ export function AllotmentForm({
   blocked: boolean;
   onRecorded: () => Promise<unknown>;
   onHeldChange: (held: boolean) => void;
+  visible?: boolean;
 }) {
   const styles = useCompanyStyles();
   const today = utcToday();
@@ -72,6 +74,10 @@ export function AllotmentForm({
   const busy = submitting || authority.busy || agreement.busy || receipt.busy;
   const [held, setHeld] = useState(false);
   const [error, setError] = useState<string | null>('');
+  const unavailable = useRef(blocked || !visible);
+  useLayoutEffect(() => {
+    unavailable.current = blocked || !visible;
+  }, [blocked, visible]);
   const live = useRef(true);
   const pending = useRef(false);
   const operation = useRef<{ request: RegisterAllotmentPreparation; confirmed: boolean; uncertain: boolean } | null>(
@@ -83,8 +89,14 @@ export function AllotmentForm({
       live.current = false;
     };
   }, []);
+  useEffect(() => {
+    onHeldChange(busy || held);
+  }, [busy, held, onHeldChange]);
+  useEffect(() => () => onHeldChange(false), [onHeldChange]);
   const check = () => {
     guard();
+    if (unavailable.current)
+      throw createUserFriendlyError('Refresh company access and the current records before continuing.');
     if (!live.current) throw createUserFriendlyError('This allotment form is closed.');
   };
   const beforeWrite = () => {
@@ -169,32 +181,54 @@ export function AllotmentForm({
         setHeld(true);
         onHeldChange(true);
       }
-      if (command.uncertain && !command.confirmed) {
+      const lookup = async () => {
         try {
           check();
-          const { data } = await getRegisterAllotment(apiClient, command.request.operationId, {
+          const { data } = await getRegisterAllotment(apiClient, command!.request.operationId, {
             ledovaSessionEpoch: epoch,
             ledovaSubmissionGuard: check,
+          });
+          check();
+          if (!isPreparedRegisterAllotment(data, command!.request, company))
+            throw createUserFriendlyError(COPY.PREPARATION_RECEIPT_FAILED);
+          return true;
+        } catch (cause) {
+          check();
+          if (failureStatus(cause) !== 404) throw cause;
+          return false;
+        }
+      };
+      let absent = false;
+      if (command.uncertain && !command.confirmed) {
+        command.confirmed = await lookup();
+        absent = !command.confirmed;
+      }
+      if (!command.confirmed) {
+        try {
+          const writeGuard = command.uncertain ? check : beforeWrite;
+          writeGuard();
+          const { data } = await prepareRegisterAllotment(apiClient, command.request, {
+            ledovaSessionEpoch: epoch,
+            ledovaSubmissionGuard: writeGuard,
           });
           check();
           if (!isPreparedRegisterAllotment(data, command.request, company))
             throw createUserFriendlyError(COPY.PREPARATION_RECEIPT_FAILED);
           command.confirmed = true;
         } catch (cause) {
-          check();
-          if (failureStatus(cause) !== 404) throw cause;
+          const status = failureStatus(cause);
+          if (!absent || !status || status < 400 || status >= 500) throw cause;
+          command.confirmed = await lookup();
+          if (!command.confirmed) {
+            operation.current = null;
+            setHeld(false);
+            onHeldChange?.(false);
+            setError(
+              'The original allotment was not recorded and the request was refused. Close this form and start again with current company authority.',
+            );
+            return;
+          }
         }
-      }
-      if (!command.confirmed) {
-        beforeWrite();
-        const { data } = await prepareRegisterAllotment(apiClient, command.request, {
-          ledovaSessionEpoch: epoch,
-          ledovaSubmissionGuard: beforeWrite,
-        });
-        check();
-        if (!isPreparedRegisterAllotment(data, command.request, company))
-          throw createUserFriendlyError(COPY.PREPARATION_RECEIPT_FAILED);
-        command.confirmed = true;
       }
       await onRecorded();
       operation.current = null;
@@ -225,9 +259,10 @@ export function AllotmentForm({
       if (live.current) setSubmitting(false);
     }
   };
+  if (!visible) return null;
   return (
     <View style={styles.group}>
-      <Text style={styles.heading}>Investor/member</Text>
+      <Text style={styles.heading}>Person and shares</Text>
       <Text style={styles.text}>
         {member === 'new' ? 'New investor/member' : members.find((row) => row.member === member)?.name || member}
       </Text>
@@ -277,21 +312,25 @@ export function AllotmentForm({
           reason: COPY.REASON,
         }[key];
         return (
-          <Field
-            key={key}
-            label={label}
-            value={fields[key]}
-            editable={!busy && !blocked && !held}
-            keyboardType={
-              key === 'shares'
-                ? 'number-pad'
-                : key === 'consideration' || key === 'receivedAmount'
-                  ? 'decimal-pad'
-                  : 'default'
-            }
-            maxLength={key === 'shares' ? 78 : ['terms', 'reason', 'residentialAddress'].includes(key) ? 1000 : 255}
-            onChange={(value) => setFields((current) => ({ ...current, [key]: value }))}
-          />
+          <View key={key}>
+            {key === 'receivedAmount' && <Text style={styles.heading}>Agreement and company receipt</Text>}
+            {key === 'approvingDirector' && <Text style={styles.heading}>Company authority and review</Text>}
+            <Field
+              key={key}
+              label={label}
+              value={fields[key]}
+              editable={!busy && !blocked && !held}
+              keyboardType={
+                key === 'shares'
+                  ? 'number-pad'
+                  : key === 'consideration' || key === 'receivedAmount'
+                    ? 'decimal-pad'
+                    : 'default'
+              }
+              maxLength={key === 'shares' ? 78 : ['terms', 'reason', 'residentialAddress'].includes(key) ? 1000 : 255}
+              onChange={(value) => setFields((current) => ({ ...current, [key]: value }))}
+            />
+          </View>
         );
       })}
       {(['authority', 'agreement', 'receipt'] as const).map((kind) => (

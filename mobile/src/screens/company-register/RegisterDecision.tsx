@@ -39,6 +39,7 @@ export function RegisterDecision<Proposal extends { uuid: string }, Shown extend
   onSettled,
   onRefused,
   children,
+  onHeldChange,
 }: {
   family: RegisterDecisionFamily<Proposal, Shown>;
   copy: DecisionCopy;
@@ -56,6 +57,7 @@ export function RegisterDecision<Proposal extends { uuid: string }, Shown extend
   onSettled: () => Promise<unknown>;
   onRefused: () => Promise<unknown>;
   children: (preview: Shown) => ReactNode;
+  onHeldChange?: (uuid: string, held: boolean) => void;
 }) {
   const styles = useCompanyStyles();
   const [visible, setVisible] = useState(false);
@@ -96,6 +98,11 @@ export function RegisterDecision<Proposal extends { uuid: string }, Shown extend
   const previewed = kind !== 'reject' || target?.request.reason === reason.trim();
   const current = !!target && target.request.appointment === appointment;
   const ready = enabled && !!preview?.canDecide && !busy && previewed && current;
+  const held = busy || !!decision.recovery;
+  useEffect(() => {
+    onHeldChange?.(`${proposal.uuid}/${kind}`, held);
+  }, [onHeldChange, proposal.uuid, kind, held]);
+  useEffect(() => () => onHeldChange?.(`${proposal.uuid}/${kind}`, false), [onHeldChange, proposal.uuid, kind]);
   if (!shown) return null;
   return (
     <>

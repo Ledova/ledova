@@ -4,6 +4,7 @@ import { BuyStackNavigator, type BuyStackParamList } from './BuyStackNavigator';
 import { SendStackNavigator, type SendStackParamList } from './SendStackNavigator';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { WalletsScreen } from '../screens/wallets';
+import { WalletHoldingsScreen } from '../screens/home';
 import { WalletActionScreen } from '../screens/wallets/components/WalletActionScreen';
 import { WalletVerificationScreen } from '../screens/wallets/components/WalletVerificationScreen';
 import { SeedPhraseBackupScreen } from '../screens/wallets/components/SeedPhraseBackupScreen';
@@ -17,6 +18,7 @@ import { getMainHeaderStyle } from './headers/MainHeader';
 
 export type WalletsStackParamList = {
   WalletsList: undefined;
+  WalletShares: undefined;
   Buy: NavigatorScreenParams<BuyStackParamList>;
   Send: NavigatorScreenParams<SendStackParamList>;
   WalletAction: {
@@ -67,6 +69,11 @@ export function WalletsStackNavigator({
       <Stack.Screen name="Buy" options={{ headerShown: false }}>
         {() => <BuyStackNavigator onNotifications={onNotifications} unreadCount={unreadCount} />}
       </Stack.Screen>
+      <Stack.Screen
+        name="WalletShares"
+        component={WalletHoldingsScreen}
+        options={{ title: '', headerLeft: undefined, headerBackVisible: true, headerRight: () => null }}
+      />
       <Stack.Screen name="Send" options={{ headerShown: false }}>
         {() => <SendStackNavigator onNotifications={onNotifications} unreadCount={unreadCount} />}
       </Stack.Screen>

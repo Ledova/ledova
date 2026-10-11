@@ -9,7 +9,7 @@ import {
 import { Action } from '../../components/Ledger';
 import { TransferRecord } from './TransferRecord';
 import { useCompanyStyles } from './styles';
-import { entriesKey, transferMembersKey, useRegisterTransfers } from './useCompanyRegister';
+import { entriesKey, transfersKey, transferMembersKey, useRegisterTransfers } from './useCompanyRegister';
 
 export function ClassTransfers({
   epoch,
@@ -19,7 +19,13 @@ export function ClassTransfers({
   refreshHolders,
   refreshAppointments,
   onPrepare,
+  sourceReady = true,
+  guard,
+  onHeldChange,
 }: {
+  sourceReady?: boolean;
+  guard?: () => void;
+  onHeldChange?: (key: string, held: boolean) => void;
   epoch: number;
   company: string;
   register: TokenHoldersResponse;
@@ -31,6 +37,13 @@ export function ClassTransfers({
   const styles = useCompanyStyles();
   const queryClient = useQueryClient();
   const transfers = useRegisterTransfers(epoch, company, register.token.uuid);
+  const privateReady = sourceReady && transfers.isSuccess && !transfers.isFetching;
+  const recordGuard = () => {
+    guard?.();
+    const state = queryClient.getQueryState(transfersKey(epoch, register.token.uuid));
+    if (state?.status !== 'success' || state.fetchStatus !== 'idle')
+      throw new Error('Refresh the register records before continuing.');
+  };
   const settle = () =>
     Promise.all([
       transfers.refetch(),
@@ -42,7 +55,7 @@ export function ClassTransfers({
   return (
     <View style={styles.group}>
       <Text style={styles.heading}>{COPY.TITLE}</Text>
-      {steps?.prepare && register.initialized && register.token.status === 'draft' && (
+      {privateReady && steps?.prepare && register.initialized && register.token.status === 'draft' && (
         <Action
           label={COPY.PREPARE}
           accessibilityLabel={`${COPY.PREPARE} for ${register.token.name}`}
@@ -59,24 +72,23 @@ export function ClassTransfers({
           </Text>
           <Action label="Retry transfers" disabled={transfers.isFetching} onPress={() => void transfers.refetch()} />
         </>
-      ) : transfers.data.length === 0 ? (
+      ) : privateReady && transfers.data.length === 0 ? (
         <Text style={styles.muted}>{COPY.EMPTY}</Text>
-      ) : (
-        <>
-          <Text style={styles.muted}>{COPY.RECOVERY_NOTE}</Text>
-          <Action label="Refresh transfers" disabled={transfers.isFetching} onPress={() => void settle()} />
-          {transfers.data.map((transfer, index) => (
-            <TransferRecord
-              key={transfer.uuid}
-              transfer={transfer}
-              epoch={epoch}
-              steps={steps}
-              last={index === transfers.data.length - 1}
-              onSettled={settle}
-            />
-          ))}
-        </>
-      )}
+      ) : null}
+      <Action label="Refresh transfers" disabled={transfers.isFetching} onPress={() => void settle()} />
+      {transfers.data?.map((transfer, index) => (
+        <TransferRecord
+          key={transfer.uuid}
+          transfer={transfer}
+          epoch={epoch}
+          steps={steps}
+          last={index === transfers.data!.length - 1}
+          onSettled={settle}
+          visible={privateReady}
+          guard={recordGuard}
+          onHeldChange={onHeldChange}
+        />
+      ))}
     </View>
   );
 }

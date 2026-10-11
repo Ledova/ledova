@@ -18,6 +18,12 @@ put the development workflow ([#943](https://github.com/Ledova/ledova/issues/943
 closed 11 October) first and orders the remaining register work; new integrated
 AUD payments, trading, advanced governance and filings are deferred.
 
+The [11 October journey cleanup](https://github.com/Ledova/ledova/issues/1000)
+organises these existing capabilities around My shares and four company
+destinations, with named invitations and focused investor and employee issue
+tasks. Signup remains unchanged. The guides below describe the delivered
+structure on web and mobile.
+
 Verification references in the guides are each increment's original evidence;
 the [11 October minimum-test policy](../../decisions.md#minimum-tests-and-fresh-migrations)
 governs current coverage.
@@ -42,8 +48,8 @@ governs current coverage.
 | [#866](https://github.com/Ledova/ledova/issues/866) | Own Profile name and residential address                                                                        | [member-profile.md](member-profile.md)                                                           | [#953](https://github.com/Ledova/ledova/pull/953)                                                    |
 | #866                                                | Member-specific invitations, own records and company-reviewed particulars and certificate requests              | [member-access.md](member-access.md)                                                             | [#985](https://github.com/Ledova/ledova/pull/985)                                                    |
 | [#871](https://github.com/Ledova/ledova/issues/871) | Company inspection copies                                                                                       | [company-inspection-copies.md](company-inspection-copies.md)                                     | [#954](https://github.com/Ledova/ledova/pull/954)                                                    |
-| #871                                                | Company certificates, core pack provenance/download and recipient-only member fulfilment                        | [register-outputs.md](register-outputs.md)                                                       | [#986](https://github.com/Ledova/ledova/pull/986)                                                     |
-| [#873](https://github.com/Ledova/ledova/issues/873) | Fresh-schema essential company/member journey and actual outputs                                                | [11 October observation](../../operations/evidence/essential-register-2026-10-11.md)              | Final acceptance increment under #873                                                                |
+| #871                                                | Company certificates, core pack provenance/download and recipient-only member fulfilment                        | [register-outputs.md](register-outputs.md)                                                       | [#986](https://github.com/Ledova/ledova/pull/986)                                                    |
+| [#873](https://github.com/Ledova/ledova/issues/873) | Fresh-schema essential company/member journey and actual outputs                                                | [11 October observation](../../operations/evidence/essential-register-2026-10-11.md)             | Final acceptance increment under #873                                                                |
 
 Two guides describe non-paid grants: company-register-issues.md covers
 **on-chain** grants minted on a deployed class, and register-grants.md covers
@@ -51,10 +57,10 @@ Two guides describe non-paid grants: company-register-issues.md covers
 
 ## Remaining scope
 
-| Issue                                               | Remaining                                                                                                                                                                                                        | Current prerequisites                                                       |
-| --------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
-| [#624](https://github.com/Ledova/ledova/issues/624) | Physical-device and live human release acceptance                                                                                                                                                               | Genuine device/human and configured-chain evidence                         |
-| Deferred                                            | [#869](https://github.com/Ledova/ledova/issues/869) trading and settlement, [#870](https://github.com/Ledova/ledova/issues/870) advanced governance, [#872](https://github.com/Ledova/ledova/issues/872) filings | Scheduled by the owner; no essential increment waits for them               |
+| Issue                                               | Remaining                                                                                                                                                                                                        | Current prerequisites                                         |
+| --------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| [#624](https://github.com/Ledova/ledova/issues/624) | Physical-device and live human release acceptance                                                                                                                                                                | Genuine device/human and configured-chain evidence            |
+| Deferred                                            | [#869](https://github.com/Ledova/ledova/issues/869) trading and settlement, [#870](https://github.com/Ledova/ledova/issues/870) advanced governance, [#872](https://github.com/Ledova/ledova/issues/872) filings | Scheduled by the owner; no essential increment waits for them |
 
 ## Ownership boundaries
 
