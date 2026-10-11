@@ -1,13 +1,19 @@
 import { useState } from 'react';
 import * as Crypto from 'expo-crypto';
 import { Text, View } from 'react-native';
-import { formatShareCount, useMemberRecords } from '@ledova/shared';
+import {
+  formatShareCount,
+  useMemberRecords,
+  getMemberCertificateFileBytes,
+  type MemberCertificateRequest,
+} from '@ledova/shared';
 import { Action, Choice, Section } from '../../components/Ledger';
 import { Page } from '../../components/Page';
 import { apiClient } from '../../services/apiClient';
 import { orderSubmissionSession } from '../../services/orderSubmissions';
 import { Field } from '../company-register/RegisterFields';
 import { useCompanyStyles } from '../company-register/styles';
+import { RegisterCopy } from '../company-register/RegisterCopy';
 
 export function MemberRecordsScreen() {
   const read = useMemberRecords(apiClient, Crypto.randomUUID, orderSubmissionSession);
@@ -209,14 +215,17 @@ function MemberRecords({ read }: { read: ReturnType<typeof useMemberRecords> }) 
                     </Text>
                   ))}
                   <Text style={styles.muted}>
-                    A certificate request does not create a certificate. Fulfilment remains separate company output
-                    work.
+                    A request creates no certificate. A fulfilled request provides an unsigned PDF of your own receiving
+                    entry only; the company is responsible for its execution.
                   </Text>
                   {read.requests.certificates.map((request) => (
                     <View key={request.uuid} style={styles.entry}>
                       <Text style={styles.text}>
                         Certificate request {request.uuid} · {request.status} · Entry {request.entry}
                       </Text>
+                      {request.status === 'fulfilled' && request.fulfilment && (
+                        <MemberCertificateCopy read={read} request={request} />
+                      )}
                       {request.status === 'requested' && (
                         <Action
                           label={`Withdraw certificate request ${request.uuid}`}
@@ -233,5 +242,58 @@ function MemberRecords({ read }: { read: ReturnType<typeof useMemberRecords> }) 
         </>
       )}
     </Page>
+  );
+}
+
+function MemberCertificateCopy({
+  read,
+  request,
+}: {
+  read: ReturnType<typeof useMemberRecords>;
+  request: MemberCertificateRequest;
+}) {
+  const guard = () => {
+    read.guardCertificate(request.uuid);
+  };
+  return (
+    <RegisterCopy
+      label={`Share own unsigned certificate ${request.uuid}`}
+      accessibilityLabel={`Share own unsigned certificate ${request.uuid}`}
+      filename={`member-certificate-${request.uuid}`}
+      epoch={orderSubmissionSession.getEpoch()}
+      guard={guard}
+      read={async () => {
+        const captured = read.guardCertificate(request.uuid);
+        const check = () => {
+          const current = read.guardCertificate(request.uuid);
+          if (
+            current.uuid !== captured.uuid ||
+            current.digest !== captured.digest ||
+            current.fileSize !== captured.fileSize
+          )
+            throw new Error('The certificate fulfilment changed. Refresh your records.');
+        };
+        check();
+        const response = await getMemberCertificateFileBytes(apiClient, request.uuid, {
+          ...orderSubmissionSession.requestConfig(),
+          ledovaSubmissionGuard: check,
+        });
+        check();
+        if (
+          !(response.data instanceof ArrayBuffer) ||
+          response.data.byteLength !== captured.fileSize ||
+          String(response.headers['content-type']).split(';')[0] !== 'application/pdf'
+        )
+          throw new Error('The recipient certificate PDF could not be confirmed.');
+        const digest = await Crypto.digest(Crypto.CryptoDigestAlgorithm.SHA256, new Uint8Array(response.data));
+        check();
+        if (
+          Array.from(new Uint8Array(digest), (value) => value.toString(16).padStart(2, '0')).join('') !==
+          captured.digest
+        )
+          throw new Error('The recipient certificate digest does not match its retained record.');
+        return response;
+      }}
+    />
   );
 }

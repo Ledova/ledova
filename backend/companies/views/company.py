@@ -1,6 +1,8 @@
-from drf_spectacular.utils import extend_schema, inline_serializer
+from django.http import FileResponse
+from drf_spectacular.utils import OpenApiTypes, extend_schema, inline_serializer
 from rest_framework import serializers, status
 from rest_framework.decorators import action
+from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
 
@@ -16,19 +18,24 @@ from companies.serializers import (
     CompanyStatusUpdateSerializer,
     CompanyUpdateSerializer,
 )
+from companies.serializers.pack import CompanyPackRequestSerializer
 from companies.services import transition_company
 from companies.services.activation import activate_company
 from shared.db import set_principal
 from shared.views import AuthenticatedModelViewSet
+from tokens.exceptions import RegisterIntegrityError
+from tokens.services.company_pack_outputs import prepare_company_pack
 
 
 class CompanyViewSet(AuthenticatedModelViewSet):
     administrative_actions = frozenset({"status_update"})
-    operator_actions = administrative_actions | frozenset({"list", "retrieve", "activate"})
+    operator_actions = administrative_actions | frozenset({"list", "retrieve", "activate", "pack"})
     operator_actions_because = (
         "Company metadata reads retain the exact current owner alongside current personal administration. "
         "Private documents and contact remain separately administration-scoped. Activation requires "
-        "the exact current personal administrator appointment and actor-bound service checks."
+        "the exact current personal administrator appointment and actor-bound service checks. Company pack "
+        "download captures one supported complete archive, refuses restricted categories and rechecks the "
+        "personal administrator and tenant before recording the immutable delivery audit."
     )
     http_method_names = ["get", "post", "patch", "head", "options"]
     filterset_class = CompanyFilter
@@ -161,12 +168,28 @@ class CompanyViewSet(AuthenticatedModelViewSet):
             }
         )
 
+    @extend_schema(request=CompanyPackRequestSerializer, responses={(200, "application/zip"): OpenApiTypes.BINARY})
+    @action(detail=True, methods=["post"])
+    def pack(self, request, uuid=None):
+        company = self.get_object()
+        serializer = CompanyPackRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        try:
+            archive, filename = prepare_company_pack(
+                actor=request.user, company_id=company.pk, **serializer.validated_data
+            )
+        except RegisterIntegrityError as error:
+            raise ValidationError(str(error)) from error
+        response = FileResponse(archive, as_attachment=True, filename=filename, content_type="application/zip")
+        response["Cache-Control"] = "private, no-store"
+        return response
+
     def narrow(self, queryset):
         if self.action in self.administrative_actions:
             return queryset
         if self.action in {"list", "retrieve"}:
             return queryset.readable_by(self.request.user)
-        if self.action == "activate":
+        if self.action in {"activate", "pack"}:
             return queryset.for_activation(self.request.user, self.kwargs.get("uuid"))
         if self.action == "partial_update":
             return queryset.administrable_by(self.request.user)

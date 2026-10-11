@@ -176,10 +176,10 @@ reports the difference as `member` and `supply` rows, which the company
 acknowledges. Replacement transactions and partial corrections are not built.
 The evidence is an `authority` upload.
 
-| Method and route                              | Result                                                                                                                                                                                                                                                                                                              |
-| --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Method and route                              | Result                                                                                                                                                                                                                                                                                                          |
+| --------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `GET /api/v1/tokens/{uuid}/register/entries/` | Paginated entries of the share class's register, newest first, for its register readers: each change names its member as the register does, with the entry it `corrects`, the correction that reverses it (`correctedBy`) and whether it is `correctable`. Repeat `entry` with UUIDs to read just those entries |
-| `POST /api/v1/tokens/register-corrections/`   | Prepare the correction. `GET` lists, filterable by `company`, `register`, `token` (the share class) and `status`; `{uuid}/` returns the request, bound revision, evidence, stage and decisions; `{uuid}/file/`, `{uuid}/decision-preview/` and `{uuid}/decide/` as above                                            |
+| `POST /api/v1/tokens/register-corrections/`   | Prepare the correction. `GET` lists, filterable by `company`, `register`, `token` (the share class) and `status`; `{uuid}/` returns the request, bound revision, evidence, stage and decisions; `{uuid}/file/`, `{uuid}/decision-preview/` and `{uuid}/decide/` as above                                        |
 
 ```json
 {
@@ -227,7 +227,7 @@ an `authority` upload. A staff-era opening can only be rejected.
 | Method and route                                      | Result                                                                                                                                                                                                                                                                                                                                                     |
 | ----------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `GET /api/v1/tokens/{uuid}/register/opening-holders/` | Read the chain for a class whose register is not opened: the block read (`number`, `hash`, `date`) and each holding address with its `shares`, the company `member` already linked to it and that member's `memberName`, or null, and `memberExists`, true exactly when the address is linked. Only for a current appointment holding `admin` or `prepare` |
-| `POST /api/v1/tokens/register-openings/`              | Prepare the opening, capturing its boundary. `GET` lists, filterable by `company`, `token` and `status`; `{uuid}/` returns the request, captured boundary and its summary, mapping, evidence, stage and decisions; `{uuid}/file/`, `{uuid}/decision-preview/` and `{uuid}/decide/` as above                                                               |
+| `POST /api/v1/tokens/register-openings/`              | Prepare the opening, capturing its boundary. `GET` lists, filterable by `company`, `token` and `status`; `{uuid}/` returns the request, captured boundary and its summary, mapping, evidence, stage and decisions; `{uuid}/file/`, `{uuid}/decision-preview/` and `{uuid}/decide/` as above                                                                |
 
 The holders read shows a preparer which addresses to map: it captures a
 snapshot as preparation does, stores nothing, lists holdings largest first and
@@ -297,10 +297,10 @@ be new, and application creates it, or may already belong to the company, and
 several addresses may map to one member. An address linked once is never linked
 again. The evidence is an `authority` upload.
 
-| Method and route                                              | Result                                                                                                                                                                                                                                                                                                                                                                         |
-| ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Method and route                                              | Result                                                                                                                                                                                                                                                                                                                                                                       |
+| ------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `GET /api/v1/tokens/register-links/waiting-wallets/?company=` | `wallets`: each wallet that a completed issue or transfer of the company's opened classes waits for, as the [waiting list](#the-issuers-waiting-list) names it in `unlinkedWallets`, with `waiting`, the number of waiting effects naming it, ordered by address. Reads only the database. Only for a current appointment holding `admin` or `prepare`; anyone else gets 404 |
-| `POST /api/v1/tokens/register-links/`                         | Prepare the link. `GET` lists, filterable by `company` and `status`; `{uuid}/` returns the link, its mapping and `mappingSummary`, evidence, stage and decisions; `{uuid}/file/`, `{uuid}/decision-preview/` and `{uuid}/decide/` as above                                                                                                                                     |
+| `POST /api/v1/tokens/register-links/`                         | Prepare the link. `GET` lists, filterable by `company` and `status`; `{uuid}/` returns the link, its mapping and `mappingSummary`, evidence, stage and decisions; `{uuid}/file/`, `{uuid}/decision-preview/` and `{uuid}/decide/` as above                                                                                                                                   |
 
 ```json
 {
@@ -363,8 +363,8 @@ and member count; Ledova staff verify neither. A share class takes one applied
 import. The [import screens](../architecture/clients.md#what-each-page-does) on
 Register in both clients are delivered.
 
-| Method and route                        | Result                                                                                                                                                                                                                                                                                                                    |
-| --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Method and route                        | Result                                                                                                                                                                                                                                                                                                                              |
+| --------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `POST /api/v1/tokens/register-imports/` | Prepare the import. `GET` lists, filterable by `company`, `token` and `status`; `{uuid}/` returns the request, rows, stated figures, stage and decisions; `{uuid}/file/` and `{uuid}/asic-file/` stream the import's copies of the register document and the ASIC extract; `{uuid}/decision-preview/` and `{uuid}/decide/` as above |
 
 ```json
@@ -453,8 +453,8 @@ of [#866](https://github.com/Ledova/ledova/issues/866). The Register screen in
 both clients lists the company's particulars changes and prepares a change from
 a current member's row.
 
-| Method and route                                    | Result                                                                                                                                                                                                                                                       |
-| --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Method and route                                    | Result                                                                                                                                                                                                                                                                       |
+| --------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `POST /api/v1/tokens/register-particulars-changes/` | Prepare the change. `GET` lists, filterable by `company`, `member` and `status`; `{uuid}/` returns the request, evidence, stage and decisions; `{uuid}/file/`, `{uuid}/decision-preview/` (the change beside the member's current particulars) and `{uuid}/decide/` as above |
 
 ```json
@@ -621,7 +621,7 @@ then fails if any could not be reconciled; a class whose run raised keeps its
 previous result in the CSV, so the failed job is the signal to look at.
 
 | Discrepancy                    | Meaning and next step                                                                                                                                                                                                                                                                                                                                                |
-| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `unrecognised_transfer`        | A chain transfer after the opening that no recorded, waiting or executing platform operation accounts for, such as a direct token transfer between whitelisted wallets. A transfer of zero shares is never reported. Investigate it; if it is accepted, [acknowledge](#acknowledging-a-discrepancy) it and the rows it causes, otherwise dispute it with the parties |
 | `missing_transfer`             | A completed effect whose transaction is not on chain in its block. Treat it as a reorganisation: stop, and attribute it before relying on the register. It cannot be acknowledged                                                                                                                                                                                    |
 | `member`, `unlinked`, `supply` | Holdings or supply that differ from the stored register plus pending movements and earlier acknowledgements. They accompany one of the others, or follow an applied correction, which changes the stored register and not the chain. Acknowledge them once their cause is understood                                                                                 |
@@ -637,7 +637,7 @@ It prints the retained record. Only the operator records reconciliations; the
 company reads its own through the
 [reconciliation API](#acknowledging-a-discrepancy).
 
-## Staff outputs on written instruction
+## Outputs on written instruction
 
 ### Reviewing documentary evidence
 
@@ -660,50 +660,10 @@ commands use company-provided evidence instead.
 
 ### Preparing a certificate
 
-A company must have a certificate ready within 2 months after an issue and 1
-month after a transfer is lodged (s1071H of the Corporations Act). Staff prepare
-it only on the company's written instruction; Ledova hands it over unsigned, and
-the company executes it and gives it to the member (owner decision,
-22 September 2026). You need the **Can change register outputs** permission, and
-the share class needs an applied opening.
-
-1. Keep the company's written instruction, and note its reference and the issue
-   or transfer it names.
-2. Find that entry's number, its sequence in the share class's register. An
-   entry still without a certificate is on the [due list](#working-the-due-list)
-   with its number. Admin has no list of every entry: from `backend/`, run
-   `python manage.py shell`, which uses the operator connection, and list the
-   class's entries:
-
-   ```python
-   from tokens.models import RegisterEntry
-   RegisterEntry.objects.filter(register__token_id="TOKEN_UUID").values_list(
-       "sequence", "kind", "effective_on", "operation_id", "corrects__sequence"
-   )
-   ```
-
-   A chain issue's operation is its share issuance and a chain transfer's is its
-   swap order; a direct ledger issue or transfer names its retained grant or
-   transfer command; a correction's last value is the entry it reverses.
-
-3. In **Admin → Tokens → Register outputs**, open the share class and choose
-   **Prepare a certificate**.
-4. Enter the entry's number and the instruction's reference, then choose
-   **Prepare and download**.
-
-The download, `certificate-SYMBOL-N.pdf` for entry N, has a page for the member
-the entry moved shares to and, for a transfer, a page certifying the balance the
-transferor still holds after it, with the names and addresses the register gives
-when you prepare it. Check the pages against the instruction and give the file
-to the company unchanged to execute. The page refuses, and records nothing, an
-entry that is not an issue or a transfer, an entry a correction has reversed, a
-number the register does not have, and a member the register cannot
-[name](../architecture/register.md#membership-and-identity). Each certificate is
-recorded once in **Admin → Tokens → Register exports** as kind **Certificate**
-with the instruction and the file's SHA-256 digest; Ledova keeps no copy of the
-file, so compare `sha256sum certificate-SYMBOL-N.pdf` with the record's digest
-to confirm a file. The records cannot be rewritten, are read only by staff, and
-follow the export records' 2,557-day floor and daily purge.
+Use the company Register's unsigned certificate preview and confirmation, or
+fulfil a member's request with a recipient-only PDF. Current company appointments
+replace the routine staff certificate form. The [output guide](../plans/company-managed-registers/register-outputs.md)
+owns the steps, source binding, retained file access and unsigned-document boundary.
 
 ### Preparing notice figures
 
@@ -767,6 +727,11 @@ Ledova prepared: a row stays when the company produced the output elsewhere or
 needs none.
 
 ### Producing a company pack
+
+A current company administrator downloads or shares a supported core pack from
+the Register in both clients; the [output guide](../plans/company-managed-registers/register-outputs.md#core-company-pack)
+records the scope and complete refusal rules. The following retained staff
+workflow covers the broader restricted archive.
 
 A company pack is one zip of a company's records: every share class with its
 register, the entries and the approvals behind them, the issues and

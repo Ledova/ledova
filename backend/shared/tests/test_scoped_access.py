@@ -26,6 +26,7 @@ from shared.tests.core_fixtures import (
 from tokens.models import (
     MemberAssociation,
     MemberAssociationRevocation,
+    MemberCertificateFulfilment,
     MemberCertificateRequest,
     MemberCertificateWithdrawal,
     MemberInvitation,
@@ -222,11 +223,24 @@ class ScopedAccessTest(CoreFixtures, APITransactionTestCase):
             MemberParticularsRequest,
             MemberCertificateRequest,
             MemberCertificateWithdrawal,
+            MemberCertificateFulfilment,
         ):
             with self.assertRaises(ProgrammingError) as read:
                 model.objects.using(APP_ALIAS).count()
             self.assertEqual(read.exception.__cause__.sqlstate, "42501")
         reset_principal(APP_ALIAS)
+        company_certificate = self.client.get(f"/api/v1/tokens/{self.token.pk}/register/certificate/?sequence=1")
+        self.assertEqual(company_certificate.status_code, 404, company_certificate.content)
+        company_pack = self.client.post(
+            f"/api/v1/companies/{self.company.pk}/pack/",
+            {
+                "appointment": str(self.foreign_appointment.pk),
+                "instruction": "FOREIGN-COMPANY-PACK",
+                "recipient": "Foreign recipient",
+            },
+            format="json",
+        )
+        self.assertEqual(company_pack.status_code, 404, company_pack.content)
         response = self.client.post(
             f"/api/v1/tokens/register-grants/{identifier}/decision-preview/",
             {"appointment": str(self.foreign_appointment.pk), "kind": "approve"},
@@ -313,6 +327,18 @@ class ScopedAccessTest(CoreFixtures, APITransactionTestCase):
         self.assertEqual(self.client.get("/api/v1/tokens/register-allotments/").json()["count"], 0)
         self.assertEqual(self.client.get("/api/v1/tokens/member-invitations/").json()["count"], 0)
         self.assertEqual(self.client.get("/api/v1/tokens/member-associations/").json()["count"], 0)
+        revoked_certificate = self.client.get(f"/api/v1/tokens/{self.token.pk}/register/certificate/?sequence=1")
+        self.assertEqual(revoked_certificate.status_code, 404, revoked_certificate.content)
+        revoked_pack = self.client.post(
+            f"/api/v1/companies/{self.company.pk}/pack/",
+            {
+                "appointment": str(self.appointment.pk),
+                "instruction": "REVOKED-COMPANY-PACK",
+                "recipient": "Synthetic recipient",
+            },
+            format="json",
+        )
+        self.assertEqual(revoked_pack.status_code, 404, revoked_pack.content)
 
     def test_employee_issue_matches_holdings_and_retry_cannot_issue_twice(self):
         self.sign_in(self.owner)

@@ -32,7 +32,14 @@ contract ownership or a lodged ASIC filing.
 
 ## Producing and recording
 
-Staff produce a pack in admin, on the company's written instruction naming who
+Current company administrators produce complete imported/non-tokenised core
+packs through `POST /api/v1/companies/{uuid}/pack/` and the Register in both clients.
+The [output guide](../plans/company-managed-registers/register-outputs.md#core-company-pack)
+records supported contents, exact authority and whole-pack refusal boundaries.
+Core packs retain mandates, award/vesting and external agreement/contribution/
+allotment provenance with the original supporting files.
+
+The broader retained staff workflow produces a pack in admin, on the company's written instruction naming who
 it is for, or on a document that legally compels disclosure, referenced in its
 place; the [runbook](../operations/register-foundation.md#producing-a-company-pack)
 has the steps. The page is a row action on **Company packs**, a proxy of
@@ -40,7 +47,7 @@ has the steps. The page is a row action on **Company packs**, a proxy of
 permission, **Can change company pack** (`companies.change_companypack`), which
 opens nothing else, and **Can view company document**
 (`companies.view_companydocument`), because the pack carries the company's
-documents. There is no API route and no company self-service.
+documents. Its restricted families are outside the company core route.
 
 [company_pack.py](../../backend/tokens/services/company_pack.py) builds the pack
 within the request, on the operator connection. It reads every record, the

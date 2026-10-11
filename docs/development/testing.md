@@ -61,11 +61,13 @@ Keep at most **150 executed backend cases** in total. Cover:
 - Issued shares equal holdings, and a repeated request produces one issue.
 - One fake-scanner test refuses infected or unscannable uploads.
 
-The delivered suite has 18 cases, including five real-app-login tenant cases.
+The delivered suite has 19 cases, including five real-app-login tenant cases.
 Member invitations, own records and company-reviewed requests have one core API
 journey; the existing tenant controls include foreign invitation and revoked
-association refusals. A retained certificate request creates no output; actual
-fulfilment follows #871.
+association refusals. One core output case covers real company/member PDFs,
+pack provenance and file integrity; the same tenant controls cover private
+output refusals. A request creates no output until company fulfilment retains
+the actual recipient-only file.
 
 Keep at most five real-app-login tenant cases; they must use real non-bypassing
 app credentials for their API/database boundaries: a privileged fixture
@@ -80,8 +82,8 @@ Count executed cases, including parameterized rows:
 
 | Suite          | Delivered cases | Maximum | Essential coverage               |
 | -------------- | --------------- | ------- | -------------------------------- |
-| Dashboard unit | 15              | 20      | Main pages, sign-in, core flows  |
-| Mobile Jest    | 9               | 10      | App starts, sign-in, core flows  |
+| Dashboard unit | 16              | 20      | Main pages, sign-in, core flows  |
+| Mobile Jest    | 10              | 10      | App starts, sign-in, core flows  |
 | Shared package | 8               | 10      | Essential shared behaviour       |
 | Contracts      | 14              | 20      | Who can mint, pause and transfer |
 

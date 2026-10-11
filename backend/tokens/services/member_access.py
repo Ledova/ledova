@@ -21,6 +21,7 @@ from tokens.exceptions import RegisterChangeConflict
 from tokens.models import (
     MemberAssociation,
     MemberAssociationRevocation,
+    MemberCertificateFulfilment,
     MemberCertificateRequest,
     MemberCertificateWithdrawal,
     MemberInvitation,
@@ -306,6 +307,8 @@ def withdraw_certificate(*, actor, request_id, idempotency_key):
         if existing:
             _same(existing, values)
             return request
+        if MemberCertificateFulfilment.objects.filter(request=request).exists():
+            raise ValidationError("This request already has a retained certificate and cannot be withdrawn.")
         if MemberCertificateWithdrawal.objects.filter(request=request).exists():
             raise RegisterChangeConflict()
         try:

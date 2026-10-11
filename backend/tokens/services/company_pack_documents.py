@@ -137,3 +137,47 @@ def carry(stored, target):
             "so no pack was produced. Restore the copy that was submitted before producing a pack."
         )
     return size, carried["sha256"]
+
+
+RETAINED_SOURCES = {
+    "evidence_snapshot": "file",
+    "agreement_snapshot": "file",
+    "terms_snapshot": "terms_file",
+    "acceptance_snapshot": "acceptance_file",
+    "asic_snapshot": "asic_file",
+}
+
+
+def retained_evidence_path(record, snapshot_field):
+    snapshot = getattr(record, snapshot_field) or {}
+    if not snapshot:
+        return None
+    suffix = (
+        ""
+        if snapshot_field in {"evidence_snapshot", "agreement_snapshot"}
+        else "-" + snapshot_field.removesuffix("_snapshot")
+    )
+    return _path(f"{EVIDENCE_FOLDER}/{record._meta.model_name}{suffix}", record.pk, snapshot.get("mime_type"))
+
+
+def retained_sources(records):
+    copies = {}
+    for record in records:
+        fields = ["agreement_snapshot"] if record._meta.model_name == "registeraward" else ["evidence_snapshot"]
+        if record._meta.model_name == "registergrant":
+            fields += ["terms_snapshot", "acceptance_snapshot"]
+        if record._meta.model_name == "registertransfer":
+            fields += ["instrument_snapshot"]
+        for field in fields:
+            snapshot = getattr(record, field) or {}
+            if not snapshot:
+                continue
+            file_field = "instrument_file" if field == "instrument_snapshot" else RETAINED_SOURCES[field]
+            path = retained_evidence_path(record, field)
+            copies[path] = {
+                "file": getattr(record, file_field),
+                "size": None,
+                "recorded": {"size": snapshot.get("file_size"), "sha256": snapshot.get("sha256")},
+                "of": f"the retained {field.removesuffix('_snapshot')} of {record._meta.verbose_name} {record.pk}",
+            }
+    return copies

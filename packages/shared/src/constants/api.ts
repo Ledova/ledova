@@ -72,6 +72,7 @@ export const OPERATOR_ENDPOINTS = {
 } as const;
 
 export const COMPANY_ENDPOINTS = {
+  PACK: (uuid: string) => `/api/v1/companies/${uuid}/pack/` as const,
   BASE: '/api/v1/companies/',
   DETAIL: (uuid: string) => `/api/v1/companies/${uuid}/` as const,
   DOCUMENTS: (uuid: string) => `/api/v1/companies/${uuid}/documents/` as const,
@@ -81,6 +82,11 @@ export const COMPANY_ENDPOINTS = {
 } as const;
 
 export const COMPANY_TOKEN_ENDPOINTS = {
+  REGISTER_CERTIFICATE: (uuid: string) => `/api/v1/tokens/${uuid}/register/certificate/` as const,
+  MEMBER_CERTIFICATE_PREVIEW: (uuid: string) =>
+    `/api/v1/tokens/member-certificate-requests/${uuid}/fulfilment-preview/` as const,
+  MEMBER_CERTIFICATE_FULFIL: (uuid: string) => `/api/v1/tokens/member-certificate-requests/${uuid}/fulfil/` as const,
+  MEMBER_CERTIFICATE_FILE: (uuid: string) => `/api/v1/tokens/member-certificate-requests/${uuid}/file/` as const,
   MEMBER_INVITATIONS: '/api/v1/tokens/member-invitations/',
   MEMBER_INVITATION: (uuid: string) => `/api/v1/tokens/member-invitations/${uuid}/` as const,
   MEMBER_INVITATION_ACCEPT: '/api/v1/tokens/member-invitations/accept/',

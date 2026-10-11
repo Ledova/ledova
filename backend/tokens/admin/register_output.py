@@ -13,19 +13,12 @@ from tokens.exceptions import RegisterNotInitialized
 from tokens.models import RegisterExportKind, RegisterOutput
 from tokens.services.register import (
     outputs_due,
-    prepare_certificate,
     prepare_notice_figures,
 )
 
 PREPARE_PAGES = {
-    RegisterExportKind.CERTIFICATE: "admin:tokens_registeroutput_certificate",
     RegisterExportKind.NOTICE_FIGURES: "admin:tokens_registeroutput_notice_figures",
 }
-
-
-class CertificateForm(forms.Form):
-    sequence = forms.IntegerField(min_value=1, label="Number of the register entry")
-    instruction = forms.CharField(max_length=255, label="Reference of the company's written instruction")
 
 
 class NoticeFiguresForm(forms.Form):
@@ -45,10 +38,10 @@ def _download(content, content_type, filename):
 
 @admin.register(RegisterOutput)
 class RegisterOutputAdmin(admin.ModelAdmin):
-    list_display = ["symbol", "name", "company", "certificate_link", "notice_figures_link"]
+    list_display = ["symbol", "name", "company", "notice_figures_link"]
     list_select_related = ["company"]
     search_fields = ["symbol", "name", "company__name"]
-    fields = ["name", "symbol", "company", "certificate_link", "notice_figures_link"]
+    fields = ["name", "symbol", "company", "notice_figures_link"]
     readonly_fields = fields
     actions = None
 
@@ -75,18 +68,10 @@ class RegisterOutputAdmin(admin.ModelAdmin):
     def get_urls(self):
         return [
             admin_page_path(self, "due/", "tokens_registeroutput_due", self.due),
-            admin_action_path(self, "<uuid:uuid>/certificate/", "tokens_registeroutput_certificate", self.certificate),
             admin_action_path(
                 self, "<uuid:uuid>/notice-figures/", "tokens_registeroutput_notice_figures", self.notice_figures
             ),
         ] + super().get_urls()
-
-    @admin.display(description="Certificate")
-    def certificate_link(self, obj):
-        return format_html(
-            '<a href="{}">Prepare a certificate</a>',
-            reverse("admin:tokens_registeroutput_certificate", args=[obj.pk]),
-        )
 
     @admin.display(description="Notice figures")
     def notice_figures_link(self, obj):
@@ -119,25 +104,18 @@ class RegisterOutputAdmin(admin.ModelAdmin):
                 "opts": self.model._meta,
                 "title": "Register outputs due",
                 "due": [
-                    {**item, "url": reverse(PREPARE_PAGES[item["output"]], args=[item["token"].pk])}
+                    {
+                        **item,
+                        "url": (
+                            reverse(PREPARE_PAGES[item["output"]], args=[item["token"].pk])
+                            if item["output"] in PREPARE_PAGES
+                            else ""
+                        ),
+                    }
                     for item in outputs_due()
                 ],
             },
         )
-
-    @method_decorator(require_http_methods(["GET", "POST"]))
-    def certificate(self, request, token):
-        form = CertificateForm(request.POST if request.method == "POST" else None)
-        refusal = ""
-        if form.is_valid():
-            try:
-                content = prepare_certificate(token, request.user, **form.cleaned_data)
-            except ValidationError as error:
-                refusal = _refusal(error)
-            else:
-                sequence = form.cleaned_data["sequence"]
-                return _download(content, "application/pdf", f"certificate-{token.symbol}-{sequence}.pdf")
-        return self._page(request, token, "admin/tokens/register_certificate.html", form, refusal)
 
     @method_decorator(require_http_methods(["GET", "POST"]))
     def notice_figures(self, request, token):

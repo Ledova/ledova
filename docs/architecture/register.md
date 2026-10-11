@@ -22,9 +22,11 @@ approved grant that references it. An allotment at
 `/api/v1/tokens/register-allotments/` keeps the external agreement, the
 company's receipt attestation and the approved allotment as separate records,
 and its application makes one ISSUE entry on an opened imported register.
-Platform staff still review settled-transfer instructions and prepare
-certificates, notice figures and the company pack on the company's written
-instruction ([#871](https://github.com/Ledova/ledova/issues/871)).
+Company readers prepare unsigned certificates and administrators prepare
+complete imported/non-tokenised core packs; members receive only their own
+retained certificate ([outputs](../plans/company-managed-registers/register-outputs.md)).
+Platform staff still review settled-transfer instructions and prepare notice
+figures and broader restricted packs on the company's written instruction.
 `RegisterMember` is a shareholder record, not an appointment. An imported class
 opens without a contract and accepts no chain issue or transfer instruction:
 its grants, allotments and transfers are ledger events, a wallet is required
@@ -212,8 +214,9 @@ registers and waiting-effect warnings. If any read fails, the page offers retry
 and hides partial or stale register rows. It does not substitute wallet balances
 for the stored register. Former members remain available in the register CSV,
 downloaded from each class on Register or from the class page, and inspection
-copies are prepared there too; certificates, notice figures and the company
-pack are still staff-prepared on written instruction, as described below.
+copies and unsigned certificates are prepared there too. Administrators obtain
+supported core company packs there; notice figures and broader restricted packs
+retain their staff workflow, as described below.
 
 `GET /api/v1/tokens/{uuid}/holders/` returns whether the register is
 initialised, current members with their wallets, the stored issued supply, the
@@ -335,13 +338,12 @@ generation route.
 ## Certificates
 
 Section 1071H requires a company to have a certificate ready within 2 months
-after an issue and within 1 month after a transfer is lodged. Staff prepare it
-in admin, on the company's written instruction, from the share class's
-**Register outputs** page, a proxy of `ShareToken` whose change permission,
-**Can change register outputs** (`tokens.change_registeroutput`), opens it; the
-[runbook](../operations/register-foundation.md#preparing-a-certificate) has the
-steps. There is no API route. Ledova prepares the certificate unsigned and the
-company executes it (owner decision, 22 September 2026).
+after an issue and within 1 month after a transfer is lodged. Current company
+readers prepare it through the Register's bounded certificate API on the
+company's written instruction. The [output guide](../plans/company-managed-registers/register-outputs.md)
+has the company preview and permitted member fulfilment steps. Ledova prepares
+the certificate unsigned and the company executes it (owner decision,
+22 September 2026). The routine staff preparation form is retired.
 
 `prepare_certificate` in [register.py](../../backend/tokens/services/register.py)
 reads one entry of the class's own register, by its number, from one snapshot.
@@ -384,7 +386,7 @@ that notice or otherwise within 28 days (s178A, s178C and s178D);
 [legal position 6](../legal/positions.md#6-where-and-in-what-form-the-register-is-kept)
 lists these obligations. Staff prepare the figures for those notices in admin,
 on the company's written instruction, from the share class's **Register
-outputs** page, with the permission certificates use; the
+outputs** page, with `tokens.change_registeroutput`; the
 [runbook](../operations/register-foundation.md#preparing-notice-figures) has
 the steps. There is no API route. The company decides which notices the figures
 support and lodges them: Ledova prepares figures, not a notice, and names no

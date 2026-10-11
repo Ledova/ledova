@@ -4,6 +4,8 @@ import type {
   MemberAssociation,
   MemberAssociationRevoke,
   MemberCertificateRequest,
+  MemberCertificateFulfilmentPreview,
+  MemberCertificateFulfilmentCreate,
   MemberCertificateRequestCreate,
   MemberCertificateRequestWithdraw,
   MemberInvitation,
@@ -79,3 +81,19 @@ export const withdrawMemberCertificateRequest = (
   data: MemberCertificateRequestWithdraw,
   config: AxiosRequestConfig = {},
 ) => api.post<MemberCertificateRequest>(URLS.MEMBER_CERTIFICATE_REQUEST_WITHDRAW(uuid), data, config);
+
+export const getMemberCertificateFulfilmentPreview = (
+  api: AxiosInstance,
+  uuid: string,
+  config: AxiosRequestConfig = {},
+) => api.get<MemberCertificateFulfilmentPreview>(URLS.MEMBER_CERTIFICATE_PREVIEW(uuid), config);
+export const fulfilMemberCertificateRequest = (
+  api: AxiosInstance,
+  uuid: string,
+  data: MemberCertificateFulfilmentCreate,
+  config: AxiosRequestConfig = {},
+) => api.post<MemberCertificateRequest>(URLS.MEMBER_CERTIFICATE_FULFIL(uuid), data, config);
+export const getMemberCertificateFile = (api: AxiosInstance, uuid: string, config: AxiosRequestConfig = {}) =>
+  api.get<Blob>(URLS.MEMBER_CERTIFICATE_FILE(uuid), { ...config, responseType: 'blob' });
+export const getMemberCertificateFileBytes = (api: AxiosInstance, uuid: string, config: AxiosRequestConfig = {}) =>
+  api.get<ArrayBuffer>(URLS.MEMBER_CERTIFICATE_FILE(uuid), { ...config, responseType: 'arraybuffer' });

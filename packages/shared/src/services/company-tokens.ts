@@ -7,6 +7,8 @@ import type {
   PauseSubmissionResponse,
   TokenCreate,
   TokenHoldersResponse,
+  RegisterCertificatePreview,
+  RegisterCertificateRequest,
   RegisterInspectionPreview,
   RegisterInspectionRequest,
   TokenIssuance,
@@ -115,4 +117,32 @@ export const getShareIssuanceRequests = (
   apiClient.get<PaginatedResponse<ShareIssuanceRequest>>(COMPANY_TOKEN_ENDPOINTS.ISSUANCE_REQUESTS, {
     ...config,
     params,
+  });
+
+export const getRegisterCertificatePreview = (
+  apiClient: AxiosInstance,
+  uuid: string,
+  sequence: number,
+  config: AxiosRequestConfig = {},
+) =>
+  apiClient.get<RegisterCertificatePreview>(COMPANY_TOKEN_ENDPOINTS.REGISTER_CERTIFICATE(uuid), {
+    ...config,
+    params: { sequence },
+  });
+export const createRegisterCertificate = (
+  apiClient: AxiosInstance,
+  uuid: string,
+  data: RegisterCertificateRequest,
+  config: AxiosRequestConfig = {},
+) =>
+  apiClient.post<Blob>(COMPANY_TOKEN_ENDPOINTS.REGISTER_CERTIFICATE(uuid), data, { ...config, responseType: 'blob' });
+export const createRegisterCertificateBytes = (
+  apiClient: AxiosInstance,
+  uuid: string,
+  data: RegisterCertificateRequest,
+  config: AxiosRequestConfig = {},
+) =>
+  apiClient.post<ArrayBuffer>(COMPANY_TOKEN_ENDPOINTS.REGISTER_CERTIFICATE(uuid), data, {
+    ...config,
+    responseType: 'arraybuffer',
   });

@@ -48,10 +48,12 @@ Award-only particulars requests are unsupported until a genuine issued member
 exists.
 
 Members can request a certificate for a supported positive receiving ISSUE or
-TRANSFER and withdraw that retained request. The company sees requested or
-withdrawn status. A request produces no document; actual company fulfilment and
-permitted own output access follow #871. There is no automatic signing or legal
-recognition claim.
+TRANSFER and withdraw it before fulfilment. A company reader can preview and
+retain one recipient-only PDF under the written instruction; its status then
+becomes fulfilled. The member downloads or shares the digest-verified file
+through current access. Request status remains readable after revocation, while
+file access stops. See [register outputs](register-outputs.md). There is no
+automatic signing or legal recognition claim.
 
 Keep the original operation and request after an uncertain response. Retry the
 original action and recover its recorded outcome before starting another.

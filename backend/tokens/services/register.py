@@ -697,18 +697,35 @@ def _holdings_after(entry, members) -> dict:
     return held
 
 
-def _certificate_pages(token, entry) -> list[dict]:
+def _certificate_pages(token, entry, only_member=None) -> list[dict]:
     moved = {UUID(change["member"]): int(change["shares"]) for change in entry.changes}
     held = _holdings_after(entry, moved)
     parties = [(member, shares, False) for member, shares in moved.items() if shares > 0]
     parties += [(member, held[member], True) for member, shares in moved.items() if shares < 0 and held[member]]
-    particulars, wallets, identities, stamps = _identity_sources(token, [member for member, _, _ in parties])
+    if only_member is not None:
+        parties = [
+            (member, shares, balance) for member, shares, balance in parties if member == only_member and not balance
+        ]
+        held_identity = RegisterMemberParticulars.objects.filter(
+            member_id=only_member, member__company_id=token.company_id
+        ).first()
+        if held_identity is None:
+            raise ValidationError("A member certificate needs retained company-recorded particulars.")
+    else:
+        particulars, wallets, identities, stamps = _identity_sources(token, [member for member, _, _ in parties])
     pages = []
     for index, (member, shares, balance) in enumerate(parties, 1):
         number = f"{entry.sequence}-{index}"
-        holder_type, name, residential_address, _, _ = _member_identity(
-            wallets[member], identities, stamps, particulars.get(member)
-        )
+        if only_member is not None:
+            holder_type, name, residential_address = (
+                HolderType.MEMBER.value,
+                held_identity.name,
+                held_identity.residential_address,
+            )
+        else:
+            holder_type, name, residential_address, _, _ = _member_identity(
+                wallets[member], identities, stamps, particulars.get(member)
+            )
         if holder_type == HolderType.AMBIGUOUS.value:
             raise ValidationError(
                 f"Certificate {number} cannot be prepared: member {member}'s wallets resolve to different people."
@@ -749,26 +766,51 @@ def _certificate_pdf(token, entry, pages) -> bytes:
         return document.tobytes(garbage=3, deflate=True, no_new_id=True)
 
 
-def prepare_certificate(token, requested_by, *, sequence, instruction) -> bytes:
+def _certificate_source(token, sequence, only_member=None):
+    entry = RegisterEntry.objects.select_related("register").filter(register__token=token, sequence=sequence).first()
+    if entry is None:
+        raise ValidationError(f"This share class's register has no entry {sequence}.")
+    if entry.kind not in CERTIFICATE_ENTRY_KINDS:
+        raise ValidationError(f"Entry {sequence} is not an issue or a transfer, so it has no certificate.")
+    reversed_by = RegisterEntry.objects.filter(corrects=entry).values_list("sequence", flat=True).first()
+    if reversed_by is not None:
+        raise ValidationError(
+            f"Entry {sequence} was reversed by correction entry {reversed_by}, so it has no certificate."
+        )
+    pages = _certificate_pages(token, entry, only_member=only_member)
+    if not 1 <= len(pages) <= 2:
+        raise ValidationError("This entry does not produce one or two supported certificate pages.")
+    content = _certificate_pdf(token, entry, pages)
+    source = f"{token.pk}/{entry.pk}/{entry.register.sequence}\n".encode() + content
+    return entry, content, len(pages), hashlib.sha256(source).hexdigest()
+
+
+def certificate_preview(token, *, sequence):
     with _snapshot():
-        entry = RegisterEntry.objects.filter(register__token=token, sequence=sequence).first()
-        if entry is None:
-            raise ValidationError(f"This share class's register has no entry {sequence}.")
-        if entry.kind not in CERTIFICATE_ENTRY_KINDS:
-            raise ValidationError(f"Entry {sequence} is not an issue or a transfer, so it has no certificate.")
-        reversed_by = RegisterEntry.objects.filter(corrects=entry).values_list("sequence", flat=True).first()
-        if reversed_by is not None:
-            raise ValidationError(
-                f"Entry {sequence} was reversed by correction entry {reversed_by}, so it has no certificate."
+        entry, _, page_count, digest = _certificate_source(token, sequence)
+    return {
+        "token": token.pk,
+        "entry": entry.pk,
+        "sequence": entry.sequence,
+        "register_sequence": entry.register.sequence,
+        "page_count": page_count,
+        "source_digest": digest,
+    }
+
+
+def prepare_certificate(token, requested_by, *, sequence, instruction, source_digest=None) -> bytes:
+    with _snapshot():
+        entry, content, page_count, digest = _certificate_source(token, sequence)
+        if source_digest is not None and source_digest != digest:
+            raise RegisterChangeConflict(
+                "The register or certificate particulars changed. Refresh the certificate before preparing it."
             )
-        pages = _certificate_pages(token, entry)
-        content = _certificate_pdf(token, entry, pages)
     RegisterExport.objects.create(
         token=token,
         requested_by_id=requested_by.pk,
         kind=RegisterExportKind.CERTIFICATE,
         register_sequence=entry.sequence,
-        member_rows=len(pages),
+        member_rows=page_count,
         former_rows=0,
         digest=hashlib.sha256(content).hexdigest(),
         instruction=instruction,

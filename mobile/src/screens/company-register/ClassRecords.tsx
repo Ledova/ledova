@@ -82,7 +82,14 @@ export function ClassRecords({
         refreshAppointments={appointments.refetch}
         onPrepare={onPrepareImport}
       />
-      <ClassEntries epoch={epoch} register={register} steps={steps} onCorrect={onCorrect} />
+      <ClassEntries
+        epoch={epoch}
+        company={company}
+        register={register}
+        steps={steps}
+        onCorrect={onCorrect}
+        sourceReady={sourceReady && appointments.isSuccess && !appointments.isFetching}
+      />
       <ClassGrants
         epoch={epoch}
         company={company}

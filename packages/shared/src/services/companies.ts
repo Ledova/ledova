@@ -8,6 +8,7 @@ import type {
   CompanyRegistration,
   CompanyRegistrationResponse,
   CompanyDocument,
+  CompanyPackRequest,
   DocumentUpload,
   CompanyActivate,
   CompanyActivated,
@@ -76,3 +77,16 @@ export const activateCompany = (
   config === undefined
     ? apiClient.post<CompanyActivated>(COMPANY_ENDPOINTS.ACTIVATE(companyUuid), data)
     : apiClient.post<CompanyActivated>(COMPANY_ENDPOINTS.ACTIVATE(companyUuid), data, config);
+
+export const createCompanyPack = (
+  apiClient: AxiosInstance,
+  companyUuid: string,
+  data: CompanyPackRequest,
+  config: AxiosRequestConfig = {},
+) => apiClient.post<Blob>(COMPANY_ENDPOINTS.PACK(companyUuid), data, { ...config, responseType: 'blob' });
+export const createCompanyPackBytes = (
+  apiClient: AxiosInstance,
+  companyUuid: string,
+  data: CompanyPackRequest,
+  config: AxiosRequestConfig = {},
+) => apiClient.post<ArrayBuffer>(COMPANY_ENDPOINTS.PACK(companyUuid), data, { ...config, responseType: 'arraybuffer' });

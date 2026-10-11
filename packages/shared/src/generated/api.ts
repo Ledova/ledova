@@ -799,6 +799,22 @@ export interface ApiPaths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/companies/{uuid}/pack/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: ApiOperations['api_v1_companies_pack_create'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/companies/{uuid}/status/': {
     parameters: {
       query?: never;
@@ -1487,6 +1503,22 @@ export interface ApiPaths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/tokens/{uuid}/register/certificate/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: ApiOperations['api_v1_tokens_register_certificate_retrieve'];
+    put?: never;
+    post: ApiOperations['api_v1_tokens_register_certificate_create'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/tokens/{uuid}/register/entries/': {
     parameters: {
       query?: never;
@@ -1703,6 +1735,54 @@ export interface ApiPaths {
       cookie?: never;
     };
     get: ApiOperations['api_v1_tokens_member_certificate_requests_retrieve'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/tokens/member-certificate-requests/{uuid}/file/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: ApiOperations['api_v1_tokens_member_certificate_requests_file_retrieve'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/tokens/member-certificate-requests/{uuid}/fulfil/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: ApiOperations['api_v1_tokens_member_certificate_requests_fulfil_create'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/tokens/member-certificate-requests/{uuid}/fulfilment-preview/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: ApiOperations['api_v1_tokens_member_certificate_requests_fulfilment_preview_retrieve'];
     put?: never;
     post?: never;
     delete?: never;
@@ -4566,6 +4646,11 @@ export interface ApiComponents {
       tradingName: string;
       uuid: string;
     };
+    CompanyPackRequestRequest: {
+      appointment: string;
+      instruction: string;
+      recipient: string;
+    };
     CompanyRegistered: {
       company: ApiComponents['schemas']['CompanyDetail'];
       message: string;
@@ -5189,11 +5274,40 @@ export interface ApiComponents {
       idempotencyKey: string;
       reason: string;
     };
+    MemberCertificateFulfilment: {
+      appointment: string;
+      createdAt: string;
+      digest: string;
+      fileSize: number;
+      instruction: string;
+      producedBy: number;
+      sourceDigest: string;
+      uuid: string;
+    };
+    MemberCertificateFulfilmentCreateRequest: {
+      appointment: string;
+      instruction: string;
+      operationId: string;
+      sourceDigest: string;
+    };
+    MemberCertificateFulfilmentPreview: {
+      appointment: string;
+      company: string;
+      entry: string;
+      member: string;
+      memberRequest: string;
+      pageCount: number;
+      registerSequence: number;
+      sequence: number;
+      sourceDigest: string;
+      token: string;
+    };
     MemberCertificateRequest: {
       association: string;
       company: string;
       createdAt: string;
       entry: string;
+      fulfilment: ApiComponents['schemas']['MemberCertificateFulfilment'] | null;
       member: string;
       requestedBy: number;
       status: ApiComponents['schemas']['MemberCertificateRequestStatusEnum'];
@@ -5205,7 +5319,7 @@ export interface ApiComponents {
       entry: string;
       operationId: string;
     };
-    MemberCertificateRequestStatusEnum: 'requested' | 'withdrawn';
+    MemberCertificateRequestStatusEnum: 'requested' | 'withdrawn' | 'fulfilled';
     MemberCertificateWithdrawRequest: {
       idempotencyKey: string;
     };
@@ -6508,6 +6622,21 @@ export interface ApiComponents {
       name: string;
       symbol: string;
       uuid: string;
+    };
+    RegisterCertificatePreview: {
+      appointment: string;
+      entry: string;
+      pageCount: number;
+      registerSequence: number;
+      sequence: number;
+      sourceDigest: string;
+      token: string;
+    };
+    RegisterCertificateRequestRequest: {
+      appointment: string;
+      instruction: string;
+      sequence: number;
+      sourceDigest: string;
     };
     RegisterContribution: {
       amount: string;
@@ -10103,6 +10232,33 @@ export interface ApiOperations {
       };
     };
   };
+  api_v1_companies_pack_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': ApiComponents['schemas']['CompanyPackRequestRequest'];
+        'application/x-www-form-urlencoded': ApiComponents['schemas']['CompanyPackRequestRequest'];
+        'multipart/form-data': ApiComponents['schemas']['CompanyPackRequestRequest'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/zip': Blob;
+        };
+      };
+    };
+  };
   api_v1_companies_status_create: {
     parameters: {
       query?: never;
@@ -11372,6 +11528,56 @@ export interface ApiOperations {
       };
     };
   };
+  api_v1_tokens_register_certificate_retrieve: {
+    parameters: {
+      query: {
+        sequence: number;
+      };
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['RegisterCertificatePreview'];
+        };
+      };
+    };
+  };
+  api_v1_tokens_register_certificate_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': ApiComponents['schemas']['RegisterCertificateRequestRequest'];
+        'application/x-www-form-urlencoded': ApiComponents['schemas']['RegisterCertificateRequestRequest'];
+        'multipart/form-data': ApiComponents['schemas']['RegisterCertificateRequestRequest'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/pdf': Blob;
+        };
+      };
+    };
+  };
   api_v1_tokens_register_entries_list: {
     parameters: {
       query?: {
@@ -11761,6 +11967,75 @@ export interface ApiOperations {
         };
         content: {
           'application/json': ApiComponents['schemas']['MemberCertificateRequest'];
+        };
+      };
+    };
+  };
+  api_v1_tokens_member_certificate_requests_file_retrieve: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/pdf': Blob;
+        };
+      };
+    };
+  };
+  api_v1_tokens_member_certificate_requests_fulfil_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': ApiComponents['schemas']['MemberCertificateFulfilmentCreateRequest'];
+        'application/x-www-form-urlencoded': ApiComponents['schemas']['MemberCertificateFulfilmentCreateRequest'];
+        'multipart/form-data': ApiComponents['schemas']['MemberCertificateFulfilmentCreateRequest'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['MemberCertificateRequest'];
+        };
+      };
+    };
+  };
+  api_v1_tokens_member_certificate_requests_fulfilment_preview_retrieve: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['MemberCertificateFulfilmentPreview'];
         };
       };
     };

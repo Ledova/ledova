@@ -17,6 +17,7 @@ export function CompanyMemberAccess({ company, sourceReady = true }: { company: 
   const [email, setEmail] = useState('');
   const [reason, setReason] = useState('');
   const [request, setRequest] = useState('');
+  const [certificateInstruction, setCertificateInstruction] = useState('');
   const [asAt, setAsAt] = useState(new Date().toISOString().slice(0, 10));
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState('');
@@ -151,12 +152,49 @@ export function CompanyMemberAccess({ company, sourceReady = true }: { company: 
               </View>
             )}
           <Text style={styles.muted}>
-            Certificate requests are retained requests only. Certificate fulfilment remains separate output work.
+            Fulfil a genuine receiving issue or transfer with an unsigned recipient-only PDF. The company remains
+            responsible for execution and permitted use.
           </Text>
+          <Field
+            label="Certificate instruction reference"
+            value={certificateInstruction}
+            editable={!held && !access.certificateTarget}
+            onChange={setCertificateInstruction}
+          />
+          {access.certificateTarget && (
+            <View style={styles.group}>
+              <Text style={styles.text}>
+                Recipient member {access.certificateTarget.preview.member} · Entry{' '}
+                {access.certificateTarget.preview.sequence} · Register sequence{' '}
+                {access.certificateTarget.preview.registerSequence}
+              </Text>
+              <Action
+                label="Confirm recipient certificate fulfilment"
+                disabled={held}
+                onPress={() => void access.fulfilCertificate()}
+              />
+              <Action label="Edit recipient certificate request" disabled={held} onPress={access.editCertificate} />
+            </View>
+          )}
           {access.requests.certificates.map((item) => (
-            <Text key={item.uuid} style={styles.text}>
-              Certificate request {item.uuid} · Member {item.member} · Entry {item.entry} · {item.status}
-            </Text>
+            <View key={item.uuid} style={styles.group}>
+              <Text style={styles.text}>
+                Certificate request {item.uuid} · Member {item.member} · Entry {item.entry} · {item.status}
+              </Text>
+              {item.fulfilment && (
+                <Text style={styles.muted}>
+                  Unsigned PDF {item.fulfilment.uuid} · SHA-256 {item.fulfilment.digest} · {item.fulfilment.fileSize}{' '}
+                  bytes
+                </Text>
+              )}
+              {item.status === 'requested' && (
+                <Action
+                  label={`Preview recipient certificate ${item.uuid}`}
+                  disabled={held || !!access.certificateTarget || !certificateInstruction.trim()}
+                  onPress={() => void access.previewCertificate(item.uuid, certificateInstruction.trim())}
+                />
+              )}
+            </View>
           ))}
         </>
       )}

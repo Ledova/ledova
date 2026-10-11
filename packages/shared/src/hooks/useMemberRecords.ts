@@ -12,7 +12,7 @@ import {
   getOwnMemberRecords,
   withdrawMemberCertificateRequest,
 } from '../services/member-access';
-import type { OwnMemberRecord } from '../types';
+import type { OwnMemberRecord, MemberCertificateRequest } from '../types';
 import { getErrorMessage } from '../utils/errors';
 import { readEveryPage } from '../utils/pagination';
 import { useSubmissionOwner } from './useSubmissionOwner';
@@ -325,6 +325,23 @@ export function useMemberRecords(api: AxiosInstance, newKey: () => string, sessi
     record: ready ? detail.data : null,
     entries: ready && entries.isSuccess && entries.fetchStatus === 'idle' ? entries.data : [],
     requests: ready && requests.isSuccess && requests.fetchStatus === 'idle' ? requests.data : null,
+    guardCertificate: (uuid: string) => {
+      guardAction();
+      const request = client
+        .getQueryData<{ certificates: MemberCertificateRequest[] }>(requestsKey)
+        ?.certificates.find((row) => row.uuid === uuid);
+      if (
+        !request ||
+        request.status !== 'fulfilled' ||
+        !request.fulfilment ||
+        request.association !== selected ||
+        !/^[a-f0-9]{64}$/.test(request.fulfilment.digest) ||
+        !Number.isSafeInteger(request.fulfilment.fileSize) ||
+        request.fulfilment.fileSize < 1
+      )
+        throw new Error('Refresh your current certificate fulfilment before downloading it.');
+      return request.fulfilment;
+    },
     busy,
     retry,
     loading: list.isPending,

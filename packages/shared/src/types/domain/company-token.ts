@@ -26,3 +26,6 @@ export type CapitalIncreaseListItem = ApiResponse<'api_v1_tokens_capital_increas
 export type ShareIssuanceRequest = ApiSchema<'ShareIssuanceRequest'>;
 
 export type ShareIssuanceRequestQueryParams = ApiQuery<'api_v1_tokens_issuance_requests_list'>;
+
+export type RegisterCertificatePreview = ApiResponse<'api_v1_tokens_register_certificate_retrieve'>;
+export type RegisterCertificateRequest = ApiRequest<'api_v1_tokens_register_certificate_create'>;
