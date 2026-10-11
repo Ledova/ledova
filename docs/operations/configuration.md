@@ -93,10 +93,14 @@ serves requests. Run `make init-local` first; `make dev-up` checks.
 Client variables are public build configuration. They are embedded in the
 bundle and must never hold a secret.
 
+The `site/` package serves the public landing page and website. Dashboard and
+mobile links retain the existing `VITE_MARKETING_URL` and
+`EXPO_PUBLIC_MARKETING_URL` environment names for that site's public URL.
+
 | File | Variables |
 | --- | --- |
 | `dashboard/.env` | `VITE_API_URL`, `VITE_MARKETING_URL`, `VITE_HOST`, `VITE_PORT`, `VITE_ALLOWED_HOSTS` |
-| `marketing/.env` | `VITE_LEDOVA_URL`, `VITE_HOST`, `VITE_PORT`, `VITE_ALLOWED_HOSTS` |
+| `site/.env` | `VITE_LEDOVA_URL`, `VITE_HOST`, `VITE_PORT`, `VITE_ALLOWED_HOSTS` |
 | `mobile/.env` | `EXPO_PUBLIC_API_URL`, `EXPO_PUBLIC_DEV_API_HOST`, `EXPO_PUBLIC_MARKETING_URL`, `EXPO_PUBLIC_SUPPORT_EMAIL`, `EXPO_PUBLIC_APP_STORE_URL` |
 
 The production images never read these files: `.dockerignore` keeps every
@@ -104,7 +108,7 @@ The production images never read these files: `.dockerignore` keeps every
 instead:
 - `dashboard/.deployment/Dockerfile.prod` takes `VITE_API_URL` and
   `VITE_MARKETING_URL`.
-- `marketing/.deployment/Dockerfile.prod` takes `VITE_LEDOVA_URL`, the dashboard
+- `site/.deployment/Dockerfile.prod` takes `VITE_LEDOVA_URL`, the dashboard
   origin that its Register and Sign in links open.
 
 Each defaults to its local address, so a build without them links to
@@ -112,7 +116,7 @@ Each defaults to its local address, so a build without them links to
 
 Mobile Release builds require HTTPS. Native Debug accepts loopback, the Android
 emulator host, and one private LAN IPv4 explicitly selected with
-`EXPO_PUBLIC_DEV_API_HOST` before prebuild. Set the API/marketing URLs to that
+`EXPO_PUBLIC_DEV_API_HOST` before prebuild. Set the API/site URLs to that
 same address when using it; a native rebuild is required to change the allowance.
 Bearer requests, including absolute download URLs, must remain on the configured
 API origin. API servers must serve requests directly: native API/SSE redirects

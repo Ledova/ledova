@@ -28,7 +28,7 @@ human checks in [#624](https://github.com/Ledova/ledova/issues/624). The
 | `dashboard/` | React web interface for companies and investors |
 | `mobile/` | Expo / React Native client |
 | `packages/` | Shared client types, services, hooks and design tokens |
-| `marketing/` | Public project website |
+| `site/` | Public landing page and website |
 
 The [architecture overview](docs/architecture/README.md) shows how these pieces
 work together and links to their technical details.

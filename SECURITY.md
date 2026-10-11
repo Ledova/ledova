@@ -14,7 +14,7 @@ package, a new advisory ID, a critical npm finding, an audit tool failure or
 missing or malformed output fails the check. It does not add exceptions from
 the current audit result.
 
-The npm exceptions apply to `mobile/` only; the root, `marketing/` and
+The npm exceptions apply to `mobile/` only; the root, `site/` and
 `contracts/` audits must stay completely clean. They preserve the findings
 accepted on 5 October 2026. Most belong to the Expo and Metro developer
 toolchain, whose SDK upgrade remains separate work. `elliptic` and a second `uuid` ancestry also reach the

@@ -501,12 +501,12 @@ the shared scale lacks.
 The design tokens are the single source of colour, spacing and radius values.
 `make generate-tokens` runs `packages/scripts/generate-css-tokens.mjs` with
 `tsx` over `packages/shared/src/constants/ui/design-tokens.ts` and writes
-`dashboard/src/styles/tokens.css` and `marketing/src/tokens.css`, raw generator
+`dashboard/src/styles/tokens.css` and `site/src/tokens.css`, raw generator
 output and prettier-ignored. Tailwind v4 reads that `@theme` block and derives
 the utility classes (`bg-surface-base`, `text-text-body`,
 `border-border-subtle`). Never edit either file: CI regenerates them after `make
 build` and fails on any drift. The web clients have one look, paper, and no
-theme switch. `PAPER_COLORS` is the palette. The marketing site uses it
+theme switch. `PAPER_COLORS` is the palette. The public site uses it
 directly (`bg-paper`, `text-ink`, `border-rule`, `bg-ledger`). `PAPER_THEME`
 maps it onto the theme tokens, which are the generated defaults, so the
 dashboard's `bg-surface-*`, `text-text-*` and `brand` classes, and any code

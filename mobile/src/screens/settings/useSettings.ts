@@ -10,7 +10,7 @@ import { shareDocumentCopy } from '../../services/documentCopies';
 import { getSessionEpoch } from '../../services/sessionScope';
 import { clearTokens } from '../../services/tokenStorage';
 import type { RootStackParamList } from '../../navigation/AppNavigator';
-import { APP_STORE_URL, MARKETING_URL } from '../../config/publicLinks';
+import { APP_STORE_URL, SITE_URL } from '../../config/publicLinks';
 
 export function useSettings() {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
@@ -130,7 +130,7 @@ export function useSettings() {
   const shareApp = useCallback(async () => {
     try {
       await Share.share({
-        message: `Ledova, the share register for private companies: ${MARKETING_URL}`,
+        message: `Ledova, the share register for private companies: ${SITE_URL}`,
         title: 'Share Ledova',
       });
     } catch {}

@@ -1,7 +1,7 @@
 .PHONY: help install dev build preview typecheck lint
 
 help:
-	@echo "Ledova marketing site (local development only)"
+	@echo "Ledova public site (local development only)"
 	@echo "  make install    Install dependencies"
 	@echo "  make dev        Start Vite locally"
 	@echo "  make build      Build the site"

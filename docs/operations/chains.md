@@ -111,7 +111,7 @@ exits non-zero when the chain holds only some of them, when account #0 has sent
 transactions without creating them, or when they were built from other sources,
 as after a change to `contracts/`. Then `migrate`, `backend`, `worker` and
 `dashboard` never start, while `chain`, `postgres`, `redis`, `clamav` and
-`marketing` keep running, and the message says to reset with `make dev-clean`.
+`site` keep running, and the message says to reset with `make dev-clean`.
 Anvil restarts its clock at the latest block's time, which would leave every
 later block behind the wall clock by the time the stack was down, so the same
 step then moves the chain's clock forward to the present. It never moves the

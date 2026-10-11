@@ -48,7 +48,7 @@ ROOT = Path(__file__).resolve().parent.parent
 
 TS = (".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs")
 
-CLIENT_TREES = ("dashboard/src", "mobile/src", "packages/shared/src", "marketing/src")
+CLIENT_TREES = ("dashboard/src", "mobile/src", "packages/shared/src", "site/src")
 BACKEND_TREE = "backend"
 
 SKIP_ANYWHERE = frozenset({".git", ".mypy_cache", ".pytest_cache", ".ruff_cache", "__pycache__", "node_modules"})

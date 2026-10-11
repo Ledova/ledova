@@ -76,7 +76,7 @@ Follow [local setup](docs/getting-started.md), then the
 Every PR, including Dependabot and other automated PRs, has one owning issue in
 this repository. Use `type(#issue): description` for its title, for example
 `feat(#123): add portfolio export`, `fix(#124): reject expired signatures`, or
-`deps(#518): update marketing dependencies`.
+`deps(#518): update site dependencies`.
 
 | Type       | Change                        |
 | ---------- | ----------------------------- |

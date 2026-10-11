@@ -125,7 +125,7 @@ updates:
   # refuses the tree and the whole group dies at install.
   # Drop each when its plugin ships a release admitting the new major.
   - package-ecosystem: npm
-    directory: /marketing
+    directory: /site
     schedule:
       interval: weekly
     open-pull-requests-limit: 3

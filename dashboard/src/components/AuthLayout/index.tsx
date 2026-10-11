@@ -1,6 +1,6 @@
 import { ReactNode, useContext } from 'react';
 import { Logo } from '@components/Logo';
-import { MARKETING_URL } from '@utils/marketingUrl';
+import { SITE_URL } from '@utils/siteUrl';
 import { AuthLayoutAction } from './AuthLayoutAction';
 
 interface AuthLayoutProps {
@@ -13,7 +13,7 @@ export function AuthLayout({ children }: AuthLayoutProps) {
   return (
     <div className="flex flex-1 flex-col">
       <header className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between px-5 md:h-20 md:px-8">
-        <a href={MARKETING_URL}>
+        <a href={SITE_URL}>
           <Logo />
         </a>
         {action}

@@ -47,7 +47,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-WORKSPACES = ("dashboard", "marketing", "mobile", "packages/shared")
+WORKSPACES = ("dashboard", "site", "mobile", "packages/shared")
 
 # WORKSPACES is closed against shrinking - a name here whose workspace has lost its
 # type-check script is a failure. It was open the other way: a fifth workspace nobody

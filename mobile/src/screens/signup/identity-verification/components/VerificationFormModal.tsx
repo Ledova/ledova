@@ -5,7 +5,7 @@ import type { WebViewMessageEvent, WebViewNavigation } from 'react-native-webvie
 import type { ShouldStartLoadRequest } from 'react-native-webview/lib/WebViewTypes';
 import { XIcon } from 'phosphor-react-native';
 import { overlayColors, useAppTheme, useThemedStyles } from '../../../../contexts';
-import { MARKETING_URL } from '../../../../config/publicLinks';
+import { SITE_URL } from '../../../../config/publicLinks';
 import { allowWebNavigation } from '../../../../config/networkPolicy';
 import { useProviderViewLifecycle } from '../../../../hooks/useProviderViewLifecycle';
 
@@ -18,13 +18,13 @@ interface VerificationFormModalProps {
   onClose: () => void;
 }
 
-const MARKETING = new URL(MARKETING_URL);
+const SITE_ORIGIN = new URL(SITE_URL);
 
 const sameOrigin = (url: URL, origin: URL, hostname = origin.hostname) =>
   url.protocol === origin.protocol && url.port === origin.port && url.hostname === hostname.toLowerCase();
 
 const isCompletionOrigin = (url: URL) =>
-  sameOrigin(url, MARKETING) || sameOrigin(url, MARKETING, `www.${MARKETING.hostname}`);
+  sameOrigin(url, SITE_ORIGIN) || sameOrigin(url, SITE_ORIGIN, `www.${SITE_ORIGIN.hostname}`);
 
 function buildSumsubHtml(token: string, themeColors: { bg: string; muted: string; error: string }): string {
   return `<!DOCTYPE html>
@@ -260,7 +260,7 @@ export function VerificationFormModal({
             </View>
 
             <View style={styles.webviewContainer}>
-              {lifecycle.admitted && accessToken && allowWebNavigation(MARKETING_URL) ? (
+              {lifecycle.admitted && accessToken && allowWebNavigation(SITE_URL) ? (
                 <WebView
                   key={lifecycle.key}
                   source={{
@@ -269,7 +269,7 @@ export function VerificationFormModal({
                       muted: theme.colors.text.muted,
                       error: theme.colors.error.light,
                     }),
-                    baseUrl: MARKETING_URL,
+                    baseUrl: SITE_URL,
                   }}
                   style={styles.webview}
                   onMessage={handleMessage}
@@ -281,7 +281,7 @@ export function VerificationFormModal({
                   mediaCapturePermissionGrantType="prompt"
                   allowsInlineMediaPlayback
                   originWhitelist={['*']}
-                  onShouldStartLoadWithRequest={allowNavigation((url) => sameOrigin(url, MARKETING))}
+                  onShouldStartLoadWithRequest={allowNavigation((url) => sameOrigin(url, SITE_ORIGIN))}
                   onOpenWindow={() => {}}
                   setSupportMultipleWindows={false}
                   mixedContentMode="never"
