@@ -7,11 +7,10 @@ focused guides, and each guide links to the implementation detail behind it.
 
 | I want to… | Start here |
 | --- | --- |
-| Understand Ledova and what works today | [Product and functionality](product.md) |
-| Understand company-managed registers: the decision and what is delivered | [Accepted plan](architecture/company-managed-registers.md) · [Implementation index](plans/company-managed-registers/README.md) |
+| Understand Ledova and what works today | [Product and functionality](product.md) · [Implementation index](plans/company-managed-registers/README.md) |
 | Understand the route to lawful launch | [Regulatory pathway](regulatory-pathway.md) |
 | Run it locally | [Getting started](getting-started.md) |
-| Understand the system | [Architecture](architecture/README.md) |
+| Understand the system | [Architecture](architecture/README.md) · [Accepted register plan](architecture/company-managed-registers.md) |
 | Configure or operate an instance | [Operations](operations/README.md) |
 | Change or test the code | [Contributing](../CONTRIBUTING.md) |
 | Understand future work | [Roadmap](roadmap.md) |
@@ -21,6 +20,3 @@ focused guides, and each guide links to the implementation detail behind it.
 For a specific technical contract, use the [reference index](reference/README.md).
 For a failing check, start at the [gate inventory](development/gates.md). For a
 local environment problem, use [troubleshooting](development/troubleshooting.md).
-
-Ledova is experimental and unaudited. All examples, procedures and supported
-deployments use synthetic data on local chains or public testnets.

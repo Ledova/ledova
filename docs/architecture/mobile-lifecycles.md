@@ -8,21 +8,16 @@ How scans, provider forms and temporary upload copies respond to focus, app lock
 
 Starting a new buy or sell order saves a fresh submission identity in AsyncStorage
 before requesting a signing challenge. Each record contains only the protocol
-version and user, account, wallet and submission UUIDs. Terms, challenges,
-signatures, seeds and bearer tokens are not saved with it. A read/write or
-verification failure prevents the first signing request. Equal terms submitted
-as explicit new orders remain separate orders; the saved-orders list retains
-multiple unresolved submissions for the current user and account.
-
-Closing the draft or signing window, changing account, or retiring the session
-prevents stale seed-read continuations, signing results and authenticated HTTP
-replays. An already sent request can still finish on the server. Its saved
-identity remains available for authenticated recovery after closing or restarting.
-Recovery reads the original terms or recorded outcome before requesting another
-challenge. A missing or inaccessible lookup stays unconfirmed; it never supplies
-invented terms or silently starts a replacement. Confirmed outcomes show the
-order's current state, including later changes or cancellation. A terminal refusal
-requires an explicit new order to try again with a new identity.
+version and user, account, wallet and submission UUIDs; terms, challenges,
+signatures, seeds and bearer tokens are never saved with it. A read/write or
+verification failure prevents the first signing request. Closing the draft or
+signing window, changing account, or retiring the session prevents stale
+seed-read continuations, signing results and authenticated HTTP replays; an
+already sent request can still finish on the server, and its saved identity
+remains available for authenticated recovery after closing or restarting. The
+saved-orders list retains multiple unresolved submissions for the current user
+and account. Recovery follows the
+[create protocol](../reference/order-submissions.md#creating-an-order).
 
 Shared React/query peer resolution is documented in [client architecture](clients.md).
 
@@ -59,14 +54,6 @@ first made while locked is passive until a later explicit close/reopen. A lock
 pause preserves completed scans, accumulated UR parts and the verification
 challenge/step. The optional lock setting, existing session criterion, absence
 threshold and biometric/passcode fallback remain unchanged.
-
-Component tests exercise the installed Expo permission methods at a controlled
-native boundary, actual UR encoding/decoding and verification step/mutation
-hooks, plus the actual app-lock provider with delayed session/authentication
-responses. They establish JavaScript request, callback and mount timing. OS prompt
-presentation, physical camera shutdown, device settings/OEM behavior and global
-lock-overlay/input stacking are not established by these controls and remain
-under #13.
 
 ## Android scanner sessions
 
@@ -119,10 +106,8 @@ are still shown.
 
 Sumsub access tokens remain opaque strings when embedded in the initial HTML.
 The serialized value escapes less-than characters so HTML parsing cannot end the
-script or enter a script escape state inside a token. Parser controls use the
-mounted WebView's actual HTML and verify that the SDK receives the original token,
-including quotes, closing-script text and Unicode separators. These controls use
-synthetic tokens and do not contact the provider.
+script or enter a script escape state inside a token, so the SDK receives the
+original token, including quotes, closing-script text and Unicode separators.
 
 KYCAID completion redirects must retain the configured marketing URL's scheme and
 port and match its hostname or existing `www` alias. The shared navigation policy
@@ -144,30 +129,36 @@ Android requests carry `isTopFrame` absent or true, so every one is a top frame.
 iOS sends `isTopFrame` false when the request URL differs from its main document
 URL; such a navigation passes only the lifecycle and shared web navigation checks.
 Configured hostnames are lower-cased before comparison, because the app's `URL`
-global, Expo's WHATWG polyfill, keeps a hostname's case. Both platforms are
-expected to report lower-case hosts, since their engines canonicalise a URL before
-offering it. That is inferred, not observed; a reported upper-case host would be
-refused.
-
-Both views refuse new windows: `onOpenWindow` does nothing and multiple windows
-are disabled. An Android popup is then expected to become a top-level navigation
-that the same callback decides. That rests on Android's `setSupportMultipleWindows`
-documentation, not on Chromium source or a device run. Automatic JavaScript window
-opening stays off. On iOS, camera and microphone requests reach WebKit's own
-prompt instead of a silent grant, and `NSMicrophoneUsageDescription` stays.
-Android blocks `RECORD_AUDIO` app-wide, although Expo Camera's plugin and library
+global, Expo's WHATWG polyfill, keeps a hostname's case; a reported upper-case
+host would be refused. Both views refuse new windows: `onOpenWindow` does
+nothing, multiple windows are disabled and automatic JavaScript window opening
+stays off. On iOS, camera and microphone requests reach WebKit's own prompt
+instead of a silent grant, and `NSMicrophoneUsageDescription` stays. Android
+blocks `RECORD_AUDIO` app-wide, although Expo Camera's plugin and library
 manifest declare it; nothing in the app records audio. The app's config plugin
 declares the `IMAGE_CAPTURE` and `GET_CONTENT` intent queries, and no permission
-with them. A provider file input that requests capture starts `IMAGE_CAPTURE`
-only when `resolveActivity` finds a camera app, which Android package visibility
-is expected to hide without that query. That rests on react-native-webview
-source, not a device run.
+with them. Removing `expo-image-picker` dropped `NSPhotoLibraryUsageDescription`
+on iOS.
 
-Removing `expo-image-picker` dropped `NSPhotoLibraryUsageDescription` on iOS.
-Whether a provider page's `<input type="file">` still offers the photo library
-there is not established. That it does is inferred from WebKit main source:
-`WKFileUploadPanel.mm` uses `PHPickerViewController`, which does not request
-photo-library authorization. It has not been observed on the deployment target.
+Five expectations rest on platform documentation or library source, not on a
+device run:
+
+- Both engines report lower-case hosts, since they canonicalise a URL before
+  offering it.
+- An Android popup becomes a top-level navigation that the same callback
+  decides (Android's `setSupportMultipleWindows` documentation).
+- A provider file input that requests capture starts `IMAGE_CAPTURE` only when
+  `resolveActivity` finds a camera app, which Android package visibility is
+  expected to hide without that query (react-native-webview source).
+- A provider page's `<input type="file">` still offers the iOS photo library
+  without `NSPhotoLibraryUsageDescription`, because WebKit's
+  `WKFileUploadPanel.mm` uses `PHPickerViewController`, which requests no
+  photo-library authorization.
+- The iOS top-frame test: react-native-webview treats a request as a top frame
+  only when its URL equals its main document URL. A main-frame redirect, or a
+  main document URL that is nil or normalised differently, has not been seen; a
+  top-frame request that fails the test would be checked as a subframe, without
+  the origin list.
 
 These gaps are accepted by the #13 owner decisions named beside each:
 
@@ -194,54 +185,24 @@ The Sumsub SDK builder script loads from an unversioned URL, so its iframe host,
 token parsing and frame permissions can change without a repository change. That
 is known and recorded here, but no owner decision accepts or rejects it.
 
-The iOS top-frame test has not been observed. react-native-webview treats a
-request as a top frame only when its URL equals its main document URL. Neither a
-main-frame redirect nor a main document URL that is nil or normalised differently
-has been seen; a top-frame request that fails the test would be checked as a
-subframe, without the origin list.
-
-Mounted JavaScript controls use the locked WebView wrapper, actual app-lock
-provider and owner hooks with synthetic credentials. They establish mount,
-callback and error-display behavior, not physical camera shutdown or native
-permission-dialog cancellation. Navigation controls send requests with
-`isTopFrame` absent, true and false through the installed iOS adapter, parsing
-with the same Expo `URL` global as the app. On both platform adapters, window and
-media props are checked, and an invoked `onOpenWindow` calls no `Linking.openURL`,
-changes no source and completes nothing. Native frame, POST, popup, timeout and
-prompt behavior are not established by them. Android owning-window focus and global
-modal/lock stacking remain separate #13 checks, and a form-completion signal is
-not server verification approval.
-
-The [product policy](../decisions.md#registry-priority-crypto-on-ramp-and-aud-payments)
-limits the optional buy-crypto on-ramp to personal investor use and excludes
-company purchases. [#920](https://github.com/Ledova/ledova/issues/920) requires a
-known `investor` or `both` personal account at the API and client entry points.
-Direct purchase routes and pending responses also require that account. A
-provider route carries its requesting account UUID with the session epoch;
-account replacement or loss of investing authority removes the WebView and
-retires that URL even if authority later returns. Company share-wallet operations
-keep their own authority and signing safeguards.
-
-The buy-crypto provider uses the same admission and session lifetime. A widget
-URL carries the session epoch captured before its request; a late response after
-logout, cancellation, account change or owner unmount cannot open the provider.
-Widget requests also require active, unlocked admission before they start.
-Backgrounding or losing app-lock admission retires a pending response, including
-quick loss/regain before React renders. Resuming starts a fresh request for the
-current selection; the old response cannot navigate after access returns.
-The native WebView wrapper is removed during app lock, backgrounding or navigation
-blur. A blur revision also rejects queued callbacks across a quick blur/return
-before React commits a new view. Completion and close are each delivered at most
-once, and a completed URL stays retired when focus returns. A current purchase
-completion only refreshes wallet/dashboard queries; it does not establish payment
-settlement. Native load errors use a fixed message without the provider URL or
-error details.
-
-These on-ramp controls exercise the installed WebView JavaScript adapter and real
-query mutation callbacks with a synthetic native host and provider response. They
-do not establish physical WebView media release or validate vendor origins,
-iframe message provenance, third-party payment redirects or media permissions.
-Those policies and native/device observations remain part of #13.
+The buy-crypto provider view follows the
+[on-ramp decision](../decisions.md#registry-priority-crypto-on-ramp-and-aud-payments)
+and [#920](https://github.com/Ledova/ledova/issues/920)'s account guard; this
+page covers only its lifetime. A provider route carries its requesting account
+UUID with the session epoch captured before its request, so account replacement,
+loss of investing authority, logout, cancellation, account change or owner
+unmount retires that URL even if authority later returns, and a late response
+cannot open the provider. Widget requests also require active, unlocked
+admission before they start. Backgrounding or losing app-lock admission retires
+a pending response, including quick loss/regain before React renders; resuming
+starts a fresh request for the current selection, and the old response cannot
+navigate after access returns. The native WebView wrapper is removed during app
+lock, backgrounding or navigation blur, and a blur revision rejects queued
+callbacks across a quick blur/return before React commits a new view.
+Completion and close are each delivered at most once, and a completed URL stays
+retired when focus returns. A current purchase completion only refreshes
+wallet/dashboard queries; it does not establish payment settlement. Native load
+errors use a fixed message without the provider URL or error details.
 
 ## Document upload copies
 
@@ -304,12 +265,18 @@ earlier builds wrote to the cache root are not found. Settings shares the
 [account-data export](../reference/account-data-export.md) the same way, as one
 JSON copy in that directory.
 
-Component tests control native picker, file and sharing boundaries while
-retaining the actual upload hooks and React Query mutation lifecycle. The native
-probe supplies a synthetic picker result and exercises actual file move,
-retention, multipart upload and retirement on the emulator/simulator. It also
-replaces the share sheet to check that only the latest viewed copy remains. It
-drives neither system UI. Local/cloud-provider, low-storage and physical-device
-checks remain under #13.
+## Not established by automated checks
+
+The mobile Jest suite covers none of these lifetimes. The manual
+[native probes](../development/native-probes.md) exercise the Android scanner's
+session ownership and, with a synthetic picker result, the document copy move,
+retention, multipart upload and retirement on an emulator or simulator; they
+drive no system UI. OS prompt presentation, physical camera shutdown and
+WebView media release, device settings and OEM behaviour, global lock-overlay
+and input stacking, native frame, POST, popup, timeout and prompt behaviour,
+vendor origins, iframe message provenance, third-party payment redirects,
+local or cloud provider pickers, low storage and physical-device checks remain
+device work under #13, and a form-completion signal is not server verification
+approval.
 
 Next: [scanner instrumentation](../development/native-probes.md#android-scanner-instrumentation) and [device checks](../development/native-probes.md#pre-release-device-checks).

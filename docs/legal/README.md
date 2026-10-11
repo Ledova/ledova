@@ -73,8 +73,6 @@ silence:
   reached only by licence, registration or relief.
 - **Less is more.** Favour the simpler option; where a trade-off is meaningful,
   recommend and ask. Remove what a change makes redundant, in the same change.
-- **Everything lands through a pull request**, documentation included, with an
-  owning issue, and the documentation gate (`make check-docs`) green.
 - **Product and legal decisions remain the owner's.**
 
 ## What bites now, and what does not
@@ -176,36 +174,38 @@ a primary text was not read, the position or pathway page says so.
 
 ## Next investigations
 
-In the order they unblock work. Each says what it settles.
+In the order they unblock work; each says what it settles. Items 7 to 12, on
+markets, licensing and digital-asset platforms, follow the deferred #869 and
+#870 work ([9 October priority](../decisions.md#essential-registry-and-development-workflow-priority)).
 
-1. **Part 2 of ASIC Corporations (Low Volume Financial Markets) Instrument
-   2016/888**, and the remade instrument after 1 October 2026. Settles the
-   operator's conditions for a low-volume market registration and whether it is
-   per company or per platform.
-2. **The Acacia instrument (F2025L00831) and its explanatory statement.**
-   Settles the exact shape of a pilot exemption.
-3. **The Corporations Regulations on the details a proper instrument of
+1. **The Corporations Regulations on the details a proper instrument of
    transfer must show**, and whether Part 1.2AA reaches it. Settles whether an
    in-app signature satisfies s1071B, before the first transfer is registered.
-4. **AML/CTF Act designated services Table 1 items for dealing in securities,
-   and Table 6 in the amended Act**, rather than summaries. Settles position 8.
+2. **Division 1A of Part 7.12** and the ATO's start-up concession pages in
+   full, to replace the summaries behind position 11.
+3. **State duties on unlisted share transfers**, which vary and were not
+   looked at.
+4. **The OAIC's reform page** for any legislated change to the small business
+   exemption.
 5. **The Digital Assets Framework Act text**: the definitions of digital
    token, digital asset platform and tokenised custody platform, and the
    small-scale exemption. Settles the wording of position 9.
-6. **RG 105 and RG 166** for what a responsible manager and the base-level
+6. **AML/CTF Act designated services Table 1 items for dealing in securities,
+   and Table 6 in the amended Act**, rather than summaries. Settles position 8.
+7. **Part 2 of ASIC Corporations (Low Volume Financial Markets) Instrument
+   2016/888**, and the remade instrument after 1 October 2026. Settles the
+   operator's conditions for a low-volume market registration and whether it is
+   per company or per platform.
+8. **The Acacia instrument (F2025L00831) and its explanatory statement.**
+   Settles the exact shape of a pilot exemption.
+9. **RG 105 and RG 166** for what a responsible manager and the base-level
    financial requirements actually demand of a wholesale-only licensee. Settles
    whether licensing is affordable.
-7. **The Innovation Hub application form** and the Financial Innovation
-   Committee's membership process. Settles how engagement starts.
-8. **RG 261 and RG 262** in full, only if retail is ever wanted.
-9. **The FCX operating rules and licence conditions** as published, for what a
-   licensed venue is held to.
-10. **Division 1A of Part 7.12** and the ATO's start-up concession pages in
-    full, to replace the summaries behind position 11.
-11. **State duties on unlisted share transfers**, which vary and were not
-    looked at.
-12. **The OAIC's reform page** for any legislated change to the small business
-    exemption.
+10. **The Innovation Hub application form** and the Financial Innovation
+    Committee's membership process. Settles how engagement starts.
+11. **RG 261 and RG 262** in full, only if retail is ever wanted.
+12. **The FCX operating rules and licence conditions** as published, for what a
+    licensed venue is held to.
 
 ## Glossary
 

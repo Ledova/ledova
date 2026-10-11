@@ -27,6 +27,6 @@ Backend policy and generated contracts are unchanged by this increment.
 
 Account/member association, permitted own register records, company-reviewed
 particulars requests and certificate request status are the remaining #866
-increments; the invitation/binding policy is an owner decision. This Profile
-form supplies their existing personal-detail editor; it does not complete those
-workflows or #866.
+increments, following the
+[11 October invitation decision](../../decisions.md#member-invitations-and-account-association).
+This Profile form does not complete them.

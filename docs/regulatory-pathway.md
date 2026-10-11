@@ -3,27 +3,28 @@
 [Documentation](README.md) · [Product and functionality](product.md) · [Legal and regulatory](legal/README.md)
 
 **Regulatory pathway, assessed 19 September 2026; product direction updated
-3 October 2026.** The
-[3 October 2026 one-product decision](architecture/company-managed-registers.md)
-and the [4 October 2026 minimal-involvement decision](decisions.md#company-representative-verification)
+9 October 2026.** The
+[3 October 2026 one-product decision](architecture/company-managed-registers.md),
+the [4 October 2026 minimal-involvement decision](decisions.md#company-representative-verification)
+and the [9 October 2026 essential-registry decision](decisions.md#essential-registry-and-development-workflow-priority)
 postdate the assessment; validate its responsibility allocation against the
-actual company-managed workflows. Neither product decision establishes a legal
-conclusion.
+actual company-managed workflows. None of them establishes a legal conclusion.
 
 ## Purpose and status
 
-Ledova is intended to provide a multi-company share registry and non-custodial
-marketplace on a public blockchain. Investors discover companies, shareholders
-advertise shares for sale, and participants make or accept offers through the
-platform. Companies also administer new share issues and ownership records.
+Ledova is intended to provide a multi-company share registry with an
+experimental non-custodial marketplace on a public blockchain. Companies
+administer share issues and ownership records; investors discover companies,
+shareholders advertise shares for sale, and participants make or accept offers
+through the platform.
 
 This planning brief identifies the route to lawful operation; it is not a legal
 opinion or regulatory approval. The [product page](product.md) defines the
 agreed features and behaviour.
 
-**Preserve discovery, listings and trading while establishing the necessary
-obligations, controls and permissions.** Bring material trade-offs back to the
-owner.
+**Discovery, listings and trading stay in the product under their existing
+controls while the necessary obligations, controls and permissions are
+established.** Bring material trade-offs back to the owner.
 
 ## 1. Regulatory objective
 
@@ -152,7 +153,7 @@ changes. Explain limits and responses.
 
 ## 7. Decisions and conditions for live operation
 
-Maintain one short decision log covering:
+Keep one short record, in the [legal positions](legal/positions.md), of:
 
 - The operator and legal route for each activity.
 - Eligible companies and investors, and the permitted offer and acceptance
@@ -169,8 +170,10 @@ regulated live activity. Do not rely on best efforts followed by an
 explanation after launch.
 
 When the first design cannot meet a requirement, propose alternatives or
-staged delivery for owner review. Retain the core marketplace in the product
-plan and state any limitation explicitly.
+staged delivery for owner review. Keep the existing experimental marketplace
+under its current controls, with its expansion deferred by the
+[9 October decision](decisions.md#essential-registry-and-development-workflow-priority),
+and state any limitation explicitly.
 
 Agents need owner authorisation to contact regulators, submit applications or
 launch services. Recheck current law and instruments before relying on the

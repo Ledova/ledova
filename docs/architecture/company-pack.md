@@ -1,9 +1,5 @@
 # Company pack
 
-Test links on this page point to the 10 October source as historical evidence.
-The owner's [11 October policy](https://github.com/Ledova/ledova/issues/943#issuecomment-6103674410)
-retires those broad tests; current automated coverage is the small core suite.
-
 [Architecture](README.md) · [Register of members](register.md)
 
 The company pack is the one archive in which a company's records leave Ledova:
@@ -15,8 +11,9 @@ portability pack that wraps them, because the three would be the same generator
 run with different flags; the [decision](../decisions.md#the-company-pack)
 records the choices behind it. The pack is built in slices under
 [#650](https://github.com/Ledova/ledova/issues/650). This page describes what it
-carries: the company, its share classes, each register, the approvals and
-history behind them, each class's chain evidence and settlements, the company's
+carries: the company, its share classes, each register, the approvals the pack
+carries ([Limits](#limits)) and the history behind them, each class's chain
+evidence and settlements, the company's
 documents with the evidence copies behind its approvals, what the company
 published to its members with each resolution's result and each dividend's
 payment records, and the contract information.
@@ -49,25 +46,17 @@ documents. There is no API route and no company self-service.
 within the request, on the operator connection. It reads every record, the
 company row included, in one repeatable-read snapshot, the one the register's
 outputs use, so an entry recorded while the pack is read cannot make two files
-disagree: a test commits an entry from another connection partway through a
-read and finds it in no file of that pack. It reads no chain. Once the snapshot
+disagree. It reads no chain. Once the snapshot
 closes, it adds up the stored files the pack would carry and refuses above the
 ceiling, then writes the archive into a spooled temporary file that stays in
 memory up to 8 MiB, streaming each stored file into it from private storage,
 records it, then serves it. [Documents](#documents) describes the ceiling and
 the files.
 
-Ledova keeps a fingerprint, not the file. A pack is recorded in
-`RegisterExport` as one `company_pack` row for each share class it carries, with
-that class's register sequence and current- and former-member row counts, the
-instruction's reference, the recipient, and the SHA-256 of the pack's
-`manifest.json`, the same on every row. A database check constraint requires the
-digest, a non-blank instruction and a non-blank recipient, and allows no request
-date or late flag; the notice-figures constraint already allows a period on no
-other kind. The records share the export records' update guard, operator-only
-table and daily purge after the 2,557-day floor, as
-[legal position 2](../legal/positions.md#2-section-168-who-is-obliged-to-keep-the-register)
-describes.
+Ledova keeps a fingerprint, not the file: a pack is recorded as one
+`company_pack` [export record](register.md#export-records) for each share class
+it carries, each with the SHA-256 of the pack's `manifest.json`
+([legal position 2](../legal/positions.md#2-section-168-who-is-obliged-to-keep-the-register)).
 
 A refusal records nothing: a company with no share classes, a blank field, a
 register entry that no longer matches its stored hash, which names the class
@@ -142,20 +131,17 @@ It turns control characters and line breaks into spaces, trims the ends, and
 backslash-escapes the characters Markdown or HTML would read as structure, so a
 value cannot add a heading, a table column, a link or a tag. Values Ledova
 produces itself (ids, hashes, addresses, counts, times and status codes) are left
-as they are. [test_company_pack_readme.py](https://github.com/Ledova/ledova/blob/5f40e3cd896afc3f3a55a14e359224156735a417/backend/tokens/tests/test_company_pack_readme.py)
-parses the template and fails on any interpolation that is neither filtered nor
-on its list of Ledova's own values. The JSON files and `register.csv` carry every
-value as stored.
+as they are. The JSON files and `register.csv` carry every value as stored.
 
 ### Hash preimages
 
 A register entry's hash is the SHA-256 of PostgreSQL's text rendering of a JSONB
-array, in the order the [register foundation](../operations/register-foundation.md#identity-and-events)
-lists. Reproducing that rendering outside PostgreSQL would be the first copy of
-it anywhere, so the pack carries the text instead:
+array, in the order the [event chain](register.md#event-chain) lists.
+Reproducing that rendering outside PostgreSQL would be the first copy of it
+anywhere, so the pack carries the text instead:
 `tokens_register_entry_preimage(entry)`, installed beside
-`tokens_register_entry_hash` by `tokens/0080_company_pack`, returns exactly what
-the hash function digests. The builder refuses a register if the SHA-256 of any
+`tokens_register_entry_hash` from `backend/tokens/database_guards.sql`, returns
+exactly what the hash function digests. The builder refuses a register if the SHA-256 of any
 entry's preimage differs from its stored hash. A reader then needs only a JSON
 parser and SHA-256 to check each entry against its fields, each link to the
 entry before it, and the last hash against the manifest's head, and to replay the
@@ -166,9 +152,9 @@ without it, and appears nowhere else in the pack.
 A publication's event chain uses the same recipe under two version tags, `v1`
 for ballots and the close and `v2` for payment records and their withdrawals.
 `shareholders_publication_event_preimage(event)`, installed beside
-`shareholders_publication_event_hash` by `shareholders/0005_publication_event_preimage`,
-returns the text either version digests, and a test holds the SHA-256 of that
-text to the hash function's result for every kind of event. The builder refuses
+`shareholders_publication_event_hash` from
+`backend/shareholders/database_guards.sql`, returns the text either version
+digests. The builder refuses
 a publication if any event's preimage does not digest to its stored hash. A
 ballot's preimage never leaves: see [publications](#publications).
 
@@ -190,8 +176,8 @@ version 1, at the class's address; the settlement domain is whatever
 `configured_domain()` returns, the domain both parties to a settlement sign
 under, and is empty when no settlement contract is configured. The interfaces
 are the files committed under `backend/contracts/`, never a local
-`contracts/artifacts/` build, and a test holds the compiler settings the pack
-states to `contracts/hardhat.config.ts` and `contracts/package.json`.
+`contracts/artifacts/` build; the compiler settings the pack states are those of
+`contracts/hardhat.config.ts` and `contracts/package.json`.
 
 The README explains how to hand over control of the contracts and does not
 perform it (owner decision 5). Its section 5 names every class and registry
@@ -241,15 +227,14 @@ address.
   signatures, the transaction and its operation key, the finalized receipt and
   its policy, the completion time, and the transfer entry whose operation id is
   the swap, or none while it waits. The settlement context's order, account and
-  wallet ids stay behind: a test finds the swap's own id in the pack and none of
-  them.
+  wallet ids stay behind.
 - **The opening's boundary** travels with the opening in `authority.json`,
   rather than in `chain.json`. It is a field of the opening record, it is what
   the opening's mapping was checked against when it was prepared, or reviewed for
   one submitted before openings were company-run, and the
   opening's entry is derived from it: the boundary's holdings summed by the
   member each wallet is mapped to, effective on the boundary block's date. Kept
-  together, a reader can check that derivation offline, and the consumer does.
+  together, a reader can check that derivation offline.
 
 **Signed bytes never leave.** A mined transaction can be fetched from any node
 by its hash, but an unmined one could still be broadcast, so the pack carries
@@ -257,25 +242,13 @@ the hash, nonce, signer, chain id and unsigned intent and never the signed
 payload ([outgoing signing](outgoing-signing.md)). The attempts are read with a
 column list that leaves the payload out, so it is never read from the
 database, and the JSON writer refuses any bytes value outright rather than
-writing its text form. A test gathers every stored signed transaction, from
-every model with a `raw_transaction` field (the outgoing journal, the history
-inventory, participant approval submissions, and EVM and Bitcoin wallet
-submissions) and every legacy mint journal, and searches the whole archive and
-every file in it for each one, raw, in hexadecimal of either case and in both
-base64 alphabets. It finds none. As its positive control it writes one
-attempt's payload, in hexadecimal, into the company's trading name, which the
-pack carries, sees the same search name that attempt, and restores the name. A
-second test holds the search itself to finding each of those forms in a stored
-or deflated zip, and the set of models it reads to the five that exist today, so
-a new one fails it until it is added.
+writing its text form.
 
-What a record proves is in the README's section 3: the design note's evidence
-table, word for word for the rows it has, with two rows added for records it did
-not cover. An opening's boundary proves that one provider reported those
-holdings at that block under the named finality policy, not independent
-consensus; a pause or settlement approval observed already in place proves the
-contract was read in that state at that block, not which transaction put it
-there.
+What a record proves is in the README's section 3, the design note's evidence
+table: an opening's boundary proves that one provider reported those holdings
+at that block under the named finality policy, not independent consensus; a
+pause or settlement approval observed already in place proves the contract was
+read in that state at that block, not which transaction put it there.
 
 ## Approvals and history
 
@@ -402,8 +375,8 @@ under `companies/<company id>/` ([files and retention](files-and-retention.md)).
   size and SHA-256 and refuses the pack, naming the record, unless they are the
   size and SHA-256 its snapshot recorded when it was submitted. A publication's
   document and a payment record's remittance evidence are tied the same way, to
-  the SHA-256 recorded when each was stored. The consumer
-  checks the same tie offline, from `evidence` and the bytes carried. A company
+  the SHA-256 recorded when each was stored. A reader can check the same tie
+  offline, from `evidence` and the bytes carried. A company
   document has no recorded digest to tie to; the manifest fixes its bytes, as it
   fixes every file's.
 - **The ceiling.** Before writing the archive, the builder adds up the stored
@@ -476,13 +449,8 @@ a folder; a holding statement or meeting notice has no events.
 - **The ceiling** counts each publication document and remittance evidence file
   by the size storage reports, since neither records a size of its own.
 
-The README lists every publication with its kind, title, class, record date,
-number of events and head hash; explains how to check the event chains and a
-close's tally; and says what is withheld and why: how a member voted, and who
-opened what. It also says that a tally can still show how members voted,
-because the shares counted each way, set against the roll's holdings, may fit
-only one set of members, and that the company already sees the same tally and
-roll through Ledova.
+The README lists every publication, explains how to check the event chains and
+a close's tally, and says what is withheld and why ([Limits](#limits)).
 
 ## What does not leave, and why
 
@@ -499,32 +467,8 @@ roll through Ledova.
 | Ledova's source code                                                                                           | The software licence is noncommercial; the pack carries interface files and the owner's statement of what they may be used for                                 | [Position 5](../legal/positions.md#5-software-licensing-and-commercial-permission)    |
 
 No file in the pack is built from these areas, apart from the register's own
-particulars. Four tests produce a pack and search every file in it for the
-fixture's values in one area: each member's email, phone, date of birth,
-citizenship, occupation, source of funds, account number and account, profile,
-wallet and whitelist entry ids; a member's and the owner's classification
-claims, their bases and evidence, and payslips; an unmatched listing and order;
-and an inspection copy's export record. The members' test first finds the
-subscriptions awaiting allotment in the pack, so the details stay out while
-those members' subscriptions are carried. Each then plants those values in a
-member's residential address, which the pack does carry, sees the same search
-find every one, and removes them again. Another test fails if the company's API
-key, its owner's email or the owner's account number appears in the pack, with
-the positive control that the company's name does. Signed transaction bytes
-have their own test, described under [chain evidence](#chain-evidence).
-Ballots, roll account ids and publication readers have theirs, described under
-[the consumer test](#the-consumer-test).
-
-Stored files have a test of their own in
-[test_company_pack_documents.py](https://github.com/Ledova/ledova/blob/5f40e3cd896afc3f3a55a14e359224156735a417/backend/tokens/tests/test_company_pack_documents.py).
-It adds classification evidence and payslips, unattached and attached, so that
-files are stored under both `users/` and `documents/`, and records every name
-private storage is asked to open or size while the pack is produced. Those
-names are exactly the company's own document and evidence files, all under
-`companies/<company id>/`, and none of the bytes stored outside the company is
-in the archive or any file in it. As its positive control it copies one
-member's classification evidence into a new company document, sees the search
-name that file, deletes the document and sees it gone again.
+particulars, and the only stored files the builder opens are the company's own
+document and evidence files under `companies/<company id>/`.
 
 The README ends with the owner's statement, verbatim: "The company, and a
 provider it names in writing, may use the records and the contract interface
@@ -533,194 +477,28 @@ contracts."
 
 ## The consumer test
 
-[test_company_pack.py](https://github.com/Ledova/ledova/blob/5f40e3cd896afc3f3a55a14e359224156735a417/backend/tokens/tests/test_company_pack.py) builds a
-synthetic company with two share classes: an opening; an issue of a paid
-subscription under an applied register instruction; one subscription paid and
-one part-paid, neither allotted, beside a draft that must stay out; a transfer whose operation
-is a settlement order; a correction reversing the issue, prepared, approved and
-applied by the company owner's appointment through the correction service; a
-wallet link the same appointment prepared, approved and applied; a former member; an approved capital increase; a pause; one
-listed and one lapsed wallet approval and an approval change; a discrepant
-reconciliation with a staff-era and a company acknowledgement; and a registry
-check. Every authority record rests on evidence with bytes of its own: a verified
-company document, or for the correction and the wallet link the company's own
-`authority` upload. It
-produces the pack
-through the admin page and gives it to
-[company_pack_consumer.py](https://github.com/Ledova/ledova/blob/5f40e3cd896afc3f3a55a14e359224156735a417/backend/tokens/tests/company_pack_consumer.py),
-run as `python -I -S company_pack_consumer.py pack.zip` in a subprocess with an
-empty environment and a temporary working directory. `-S` leaves out
-site-packages, so Django, psycopg and web3 cannot be imported, and `-I` ignores
-`PYTHON*` variables and the user's own site-packages.
-
-The consumer:
-
-1. refuses to run if `django` can be imported, and the test runs it once without
-   `-S` to see that refusal, which proves the isolation is real;
-2. checks every file the manifest lists for its size and SHA-256, and refuses a
-   file it does not list;
-3. checks each register's chain as the README describes, and that it ends at the
-   manifest's head;
-4. checks that each applied opening and correction in `authority.json` names
-   the entry whose operation is that record, of the matching kind, and for a
-   correction the same corrected entry, and that no other record names one;
-5. checks that an applied opening carries its boundary, and that its entry is
-   the boundary's holdings summed by the member each wallet is mapped to,
-   effective on the boundary block's date;
-6. checks, in `chain.json`, that every attempt has a well-formed hash and
-   signer, a whole nonce and a positive chain id, that an operation has a
-   current attempt exactly when its status is not `preparing` or `failed` and
-   that it is one of its attempts, and that a receipt's block hash is
-   well-formed;
-7. checks that every operation key a record names (a pause, an issue's or
-   capital increase's execution, the deployment and its swap approval, or a
-   settlement) is listed in `chain.json` for that purpose and record, and that
-   every operation listed is named by a record;
-8. checks that each settlement's transaction hash is well-formed and that a
-   settlement naming an entry names the transfer whose operation is that
-   settlement;
-9. replays each class's entries and compares the holdings with the current
-   members in `register.csv`, read by header;
-10. checks that every document `documents.json` gives a `path` is carried, that
-    every authority record's evidence copy is carried at its `path` with the
-    size and SHA-256 its `evidence` records, and that every file under
-    `documents/` is named by a document or a record;
-11. checks each publication's event chain: numbering from 1, each
-    `previous_hash` the hash of the event before, and the last hash and count
-    the manifest's head; for every event but a withheld ballot, that the SHA-256
-    of its preimage is its hash, that the preimage's values are the event's
-    fields, the publication's id and the company's id, apart from the opaque
-    account number and storage name, and that a payment record names a row on
-    the roll; that only a ballot is withheld, and nothing follows a close;
-12. checks a close's tally against what it can see: its basis, kind and
-    eligible shares and members against the resolution and its roll, the
-    members it counts against the number of ballots on the chain, the shares it
-    counts against the roll's, and `carried` against the shares for and against
-    under the resolution's kind. It cannot recount the tally, because the
-    ballots are withheld;
-13. checks each publication's roll count, that its document and each remittance
-    evidence file has the SHA-256 its records state, and that every file under
-    `publications/` is named by a publication;
-14. prints each class's result, a count of the documents and evidence copies,
-    each publication's count of events linked, recomputed and withheld, and the
-    manifest's SHA-256, which the test compares with the recorded rows.
-
-None of these is an on-chain fact. The consumer cannot check a signature or a
-receipt, because `hashlib`'s SHA3 is not Ethereum's Keccak and it has no
-secp256k1: it checks that the pack is internally consistent and well-formed.
-
-[test_company_pack_documents.py](https://github.com/Ledova/ledova/blob/5f40e3cd896afc3f3a55a14e359224156735a417/backend/tokens/tests/test_company_pack_documents.py)
-adds an opening, prepared on a third, unopened class from the company's own
-authority upload, an import prepared from the company's own uploads and an
-applied particulars change, so that every kind of record with evidence retains a
-copy. Its tests find every document and evidence copy carried with the bytes
-storage holds and listed in the manifest, each
-record naming its copy, and the documents and the members' evidence statement
-in the README. The builder refuses an evidence copy whose stored bytes changed
-by one byte, and a company document or evidence copy missing from storage, and
-records nothing; restored, the pack is produced. With the ceiling patched down
-to the fixture's own total less one byte it refuses and records nothing, and at
-the total and one byte above it it produces the pack. The tenant fixture's ASIC
-extract records a size of one byte, smaller than its file, so the same test
-shows that a document is counted by its recorded size. The consumer names a byte
-flipped in a document, a byte flipped in an evidence copy with the manifest
-rewritten to match, a document or copy removed with its listing, and a listed
-file no record names. A second company's pack carries none of the first's
-document files, ids or bytes, with the positive control that the first's own
-pack carries all of them.
-
-A second test parses the consumer and holds its imports to `zipfile`, `json`,
-`csv`, `hashlib`, `io` and `sys`, with one dynamic import, of `django`, for the
-refusal. Red proofs flip one byte in a file, remove a file, add one, change one
-entry's shares, break one `previous_hash` consistently, drop the last entry,
-change one holding in the CSV, point a correction's authority at another entry
-or another corrected entry, and remove an applied correction's entry; each
-fails the consumer, which names the file and the entry or record. Another test
-produces packs for two companies and finds none of one company's ids,
-addresses, names, references, reviewers, directors or evidence digests in the
-other's pack, with the positive control that its own pack contains every one of
-them. The consumer checks nothing else in the approvals and history files: the
-rest carries no link it could check without the platform.
-
-A separate test settles a transfer after the register's opening against a fake
-node, leaves it uninstructed, and finds it in `waiting.json` with its reason and
-counted in the README; the synthetic company above has no opening boundary, so
-its lists are `null`.
-
-[test_company_pack_chain.py](https://github.com/Ledova/ledova/blob/5f40e3cd896afc3f3a55a14e359224156735a417/backend/tokens/tests/test_company_pack_chain.py)
-builds the chain evidence through the real services against the fake nodes the
-services' own tests use: a settlement executed and finalized, an issue executed
-and finalized, a capital increase whose first attempt reverted and whose retry
-confirmed, a second class deployed with its swap approval still pending, a
-confirmed pause, and an unpause signed with no receipt. Its tests hold each
-section to the journal's own rows, the README's evidence table and handover
-steps to their exact text, and the consumer to naming a current attempt left
-out, a malformed attempt hash, an operation left out, a record's link dropped, a
-settlement pointed at the wrong entry and a malformed settlement hash. A second
-company with a pause and a capital increase of its own shares none of its
-operation keys, attempt hashes or record ids with the first, with the positive
-control that each pack carries all of its own. An opening applied against a
-captured boundary is carried with it, and the consumer refuses a changed
-holding, a changed date, an unmapped holder and a missing boundary.
-
-[test_company_pack_publications.py](https://github.com/Ledova/ledova/blob/5f40e3cd896afc3f3a55a14e359224156735a417/backend/tokens/tests/test_company_pack_publications.py)
-builds a company with three members through the publication services: a
-holding statement; an ordinary resolution with a ballot for, a ballot against
-and a staff-entered abstention, read by two members and the company, then
-closed; and a dividend whose rate leaves a cent undistributed, with a payment
-record, a second that is withdrawn and recorded again, a member's read and a
-staff read of remittance evidence. Its tests hold each publication's files to
-the database's rows, the preimage function to the hash function for all four
-kinds of event, the README to its table and its statements of what is withheld,
-and the consumer to verifying every chain without the platform. The consumer
-names a ballot's link broken, the close's link broken with its preimage and
-hash rewritten to match, the close's tally changed with its hash left
-unchanged, the tally changed outside its preimage, a ballot removed, the last
-payment record removed, a byte flipped in remittance evidence, and an unnamed
-file. With the close's hash and the manifest's head rewritten to match, it
-names a tally counting one ballot too many, eligible shares that are not the
-roll's and a result its shares for and against contradict; it also names a
-ballot marked as carried in full, an event after the close, a ballot on a
-dividend, a payment record whose roll row is gone, a roll row removed and a
-publication that is not the one the manifest lists. The builder refuses a changed or missing document or remittance evidence,
-a ballot rewritten in the database, and a roll row rewritten, and records
-nothing; the ceiling refuses one byte below the fixture's total, which counts
-the six stored publication files.
-
-Three absence tests search the whole archive. Every member, staff and owner
-account in the fixture has a nine-digit id, so a search for each is exact. No
-roll row's account id appears, while the staff id inside each payment record's
-preimage does, which is the search's positive control. No reader's account id
-or read record id appears, with the same control, and the read counts are the
-ones the fixture wrote. For ballots, the search finds each ballot's roll row,
-member and name in the pack and then finds no JSON object holding one of them
-with that ballot's choice, and no ballot's preimage, id or time, even inside a
-JSON string; planting the choice beside the roll row or the name, or the
-preimage, into one ballot is found. A second company's pack carries none of the
-first's publication, roll row, event or evidence ids, names, hashes or file
-bytes, with the positive control that the first's own pack carries all of them.
+A reader checks the pack offline with a JSON parser and SHA-256, as the README
+describes; no offline consumer ships with the platform. The earlier consumer
+and its tests remain in the
+[10 October tree](https://github.com/Ledova/ledova/tree/5f40e3cd896afc3f3a55a14e359224156735a417/backend/tokens/tests)
+as historical evidence.
 
 ## Limits
 
-- The consumer is ours, written from our own README. It proves the recipe works
-  without the platform, not that a stranger would understand the README. It
-  lives in the tests, not in the pack, because the pack carries no Ledova source
-  code.
-- The consumer checks the current members against the entries. It does not
-  recompute the supply summary or the former members, which come from records
-  the entries do not carry.
-- The original pack evidence used fake nodes and did not show a pack produced
-  after a real deployment, settlement or pause. The pack itself does not read a
-  chain. Today's [manual contract smoke](../development/testing.md#commands)
-  does not produce a pack; the earlier pack suite remains historical evidence.
+- No offline consumer ships; a reader has the README's recipe only. The recipe
+  checks the current members against the entries and does not recompute the
+  supply summary or the former members, which come from records the entries do
+  not carry.
+- The pack itself does not read a chain, and the
+  [manual contract smoke](../development/testing.md#commands) does not produce
+  a pack.
 - An approval change's outgoing operation is not carried: `approvals.json` has
   each change's status and, once confirmed, its transaction hash, but not the
   attempts of one still `executing`. The README counts such a change as
   unresolved.
 - A swap approval observed already in place, a legacy settlement with no
   transaction record and a legacy mint journal are not exercised. A pause
-  observed already in place is, by the first fixture above, carried with its
-  block and no operation.
+  observed already in place is carried with its block and no operation.
 - What the README lists as unresolved, and a registry's owner, are what
   Ledova's records say at the as-at time, not chain reads.
 - The owner a class was deployed with is what Ledova recorded, not a chain read.
@@ -728,35 +506,31 @@ bytes, with the positive control that the first's own pack carries all of them.
 - The ceiling counts a company document by its recorded size, which staff can
   edit in admin, so a wrong record is counted as recorded. Uploads are bounded
   at 10 MiB each, so the error is bounded by the number of documents.
-- A company document has no digest recorded apart from the manifest's, so the
-  consumer can check an evidence copy against its record but a document only
+- A company document has no digest recorded apart from the manifest's, so a
+  reader can check an evidence copy against its record but a document only
   against the manifest.
 - A document held as an `external_url` is not fetched, so the pack cannot show
   what that address served.
 - A withheld ballot's own hash cannot be recomputed from the pack, and a close's
-  tally cannot be recounted: the consumer checks the ballots' links, the
-  close's hash, which covers the last ballot's, and the tally against the roll
-  and the number of ballots. The division of shares between for, against and
-  abstain rests on the close's hash and on Ledova's own verifier.
+  tally cannot be recounted: a reader checks the ballots' links, the close's
+  hash, which covers the last ballot's, and the tally against the roll and the
+  number of ballots. The division of shares between for, against and abstain
+  rests on the close's hash and on Ledova's own verifier.
 - A roll's audience digest covers account ids that do not leave, so only the
-  builder can check it. The consumer checks the row count, not the roll against
-  the register's entries at the publication's sequence and record date, which
-  the pack would allow.
+  builder can check it; a reader can check the row count and the roll against
+  the register's entries at the publication's sequence and record date.
 - A tally can show how members voted. With one vote per share, the shares
   counted for, against and abstaining, set against the roll's holdings, often
-  fit only one set of members: in the test fixture, holdings of 100, 40 and 1
-  and a tally of 100 for, 40 against and 1 abstaining identify every vote. The
-  company already sees the same tally and roll through Ledova, so the pack adds
-  nothing to what it can infer, but withholding ballots does not make votes
-  secret from the company in a small company.
-- No test produces a pack near the ceiling: the ceiling tests patch the constant
-  down to the fixture's size. A proxy in front of the backend could still time
-  out a large download; that has not been measured.
-- The company's non-paid grant, non-paid transfer, wallet-instruction,
-  deployment, capital-increase and pause decision records are not carried as
-  decisions: their effects appear through the entries, class and chain files,
-  and #871's pack-provenance increment owns exporting the decisions and their
-  evidence copies.
+  fit only one set of members. The company already sees the same tally and roll
+  through Ledova, so the pack adds nothing to what it can infer, but withholding
+  ballots does not make votes secret from the company in a small company.
+- Production near the ceiling has not been measured; a proxy in front of the
+  backend could still time out a large download.
+- The company's non-paid grant, non-paid transfer, employee award, vesting
+  event, external allotment, wallet-instruction, deployment, capital-increase
+  and pause decision records are not carried as decisions: their effects appear
+  through the entries, class and chain files, and #871's pack-provenance
+  increment owns exporting the decisions and their evidence copies.
 
 Next: [the register of members](register.md), the
 [runbook](../operations/register-foundation.md#producing-a-company-pack) and

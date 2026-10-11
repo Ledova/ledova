@@ -24,24 +24,24 @@ it.** The server issues a plain-text challenge naming the address, a timestamp
 and a nonce, and on submission recovers the signer and compares it to the stored
 address. Three things bound that, all in `complete_wallet_verification`: the row
 is locked for the read-modify-write, the challenge is refused outside
-`WALLET_VERIFICATION_CHALLENGE_MINUTES` of its issue time, and it is cleared on
-success so a signature cannot be replayed. Master fingerprint, derivation path
-and xpub appear nowhere in that path, so a Keystone signature and a script's are
-indistinguishable to it. `signing_preference` is self-declared, client-writable,
-and read by no backend authorisation decision.
+`WALLET_VERIFICATION_CHALLENGE_MINUTES` (five minutes, including the exact
+boundary) of its stored issue time, and it is cleared on success so a signature
+cannot be replayed; requesting another challenge replaces the nonce and restarts
+the window. Master fingerprint, derivation path and xpub appear nowhere in that
+path, so a Keystone signature and a script's are indistinguishable to it.
+`signing_preference` is self-declared, client-writable, and read by no backend
+authorisation decision.
 
-**The identity check is two branches, and the gate covers one.**
-`verify_wallet_signature` dispatches on chain
-(`backend/wallets/services/wallets.py:36-50`): ETH, ETHEREUM and BASE take
+**The identity check is two branches.** `verify_wallet_signature` dispatches on
+chain (`backend/wallets/services/wallets.py`): ETH, ETHEREUM and BASE take
 `encode_defunct`, `recover_message` and a lowercase compare, standard EIP-191;
 BTC and BITCOIN take a base64 compact signature through `bmt.verify_message`,
 re-derive the address from the recovered public key by the signature's header
 byte, and compare case-sensitively. That branch also refuses any address whose
-prefix does not match `BITCOIN_NETWORK` — `m`, `n`, `2` or `tb1` for `test`,
-`bcrt1` for `regtest`, nothing for any other value — and `parse_bitcoin_network`
+prefix does not match `BITCOIN_NETWORK` (`m`, `n`, `2` or `tb1` for `test`,
+`bcrt1` for `regtest`, nothing for any other value), and `parse_bitcoin_network`
 in `backend/ledova_backend/chain_safety.py` refuses to start the process unless
-`BITCOIN_NETWORK` is `test` or `regtest`. `test_wallet_verification.py` has no
-Bitcoin case, so the gate exercises the EVM branch only.
+`BITCOIN_NETWORK` is `test` or `regtest`.
 
 **Two client signing paths exist, and both are legitimate.** The Keystone path
 wraps the challenge as a UR/CBOR `eth-sign-request`, renders a QR, and reads an
@@ -49,14 +49,12 @@ wraps the challenge as a UR/CBOR `eth-sign-request`, renders a QR, and reads an
 derives the key in the browser with `localSigner` and never stores or transmits
 the phrase. Both clients' `localSigner` modules are built on the shared
 `createLocalSigner`, which holds the key handling and the EVM signing, and each
-passes it its own `ethers` and `ethereum-cryptography`, the copies it bundles
-and tests; mobile adds Bitcoin message signing on the same key handling. The
-buffer hygiene is narrower than it looks: only the derived
-private key copy is wiped from a `finally`, while the BIP-39 seed and master
-private key are wiped on `deriveKey`'s straight-line and guarded-throw exits, so
-if `masterKey.derive(derivationPath)` throws, neither is zeroed. That throw is
-reachable, because `derivation_path` is a free-text `CharField` that
-`wallets/serializers/wallet.py` leaves writable with no format validation.
+passes it its own `ethers` and `ethereum-cryptography`, the copies it bundles;
+mobile adds Bitcoin message signing on the same key handling. The derived
+private key is wiped in a `finally`, while the BIP-39 seed and master key are
+wiped only on `deriveKey`'s normal and guarded exits, so a throw from
+`masterKey.derive(derivationPath)` leaves them unzeroed; that throw is reachable
+because `derivation_path` is a free-text `CharField` with no format validation.
 
 **The dashboard path proves ownership locally before it spends anything.**
 `deriveAddress` runs first and is compared case-insensitively against the
@@ -84,15 +82,7 @@ Reference: `backend/wallets/services/verification.py`,
 `dashboard/src/utils/softwareWallet/localSigner.ts`,
 `mobile/src/utils/softwareWallet/localSigner.ts`,
 `mobile/src/screens/wallets/useWalletVerification.ts`,
-`mobile/src/services/secureKeyStorage.ts`. Gate:
-`backend/wallets/tests/test_wallet_verification.py` and
-`dashboard/src/pages/wallets/hooks/useWalletVerification.test.tsx`, whose
-signature assertion recovers the signer with `ethers.verifyMessage` rather than
-re-deriving it through the code that produced the signature. Each client's
-`localSigner.test.ts` checks its signatures byte for byte against
-`packages/shared/tests/fixtures/local-signing-vectors.json`, produced by the
-backend's `eth-account` and `bitcoin-message-tool`, and
-`packages/shared/tests/utils/local-signer.test.ts` checks when each key is wiped.
+`mobile/src/services/secureKeyStorage.ts`.
 
 ## Network identity
 
@@ -100,12 +90,6 @@ Wallet identity is `(account, network, address)`. An account can register the
 same EVM address on Ethereum and Base, each with its own UUID, verification,
 holdings and transactions. EVM address case variants are the same identity
 within that account and network; Bitcoin addresses retain their case.
-Migration `wallets/0014` adds both database constraints and preserves existing
-wallet UUIDs and financial references. It stops if old EVM records differ only
-in address case within one account and network. Review those conflicting records
-and their references before retrying; the migration does not merge or delete
-them. Reversal also refuses if the old account/address constraint cannot
-represent wallets registered on two networks.
 
 Wallet and transaction address filters require an explicit `chain`. A
 transaction query may instead supply a visible `wallet` UUID, from which the
@@ -207,83 +191,87 @@ rates before refreshing asset prices. Without a positive finite rate, a new
 AUDY holding remains unpriced. A later provider outage preserves the last
 valid cached quote, as it does for market prices; this is not live pricing.
 Manual quotes in another currency also require a stored conversion rate.
-Each wallet transaction, imported by sync or sent from the app, also records its
+A cached price whose source is unknown is excluded from current valuations
+until a producer refresh or the admin **Update prices** action records it;
+direct price, currency and source fields are read-only in the admin. Each
+wallet transaction, imported by sync or sent from the app, also records its
 USD and AUD values when it is recorded, for
-[transaction monitoring](../operations/operator-console.md#transaction-monitoring).
+[transaction monitoring](#transaction-monitoring).
 
-Migration `assets/0013` preserves existing cached prices but leaves their
-provenance unknown. Until a producer refresh or the admin **Update prices**
-action records their source, the API returns a null current price and excludes
-them from current valuations. Direct price, currency and source fields are
-read-only in the admin. Historical snapshots remain unchanged; no FX history
-or source is guessed for old records.
+## Transaction monitoring
+
+The rules `sync_monitoring_rules` seeds (`backend/compliance/seeds/monitoring_rules.py`)
+state their amounts in AUD and are compared with a transaction's AUD value:
+MON-001 at AUD 10,000; MON-002 for five transactions within an hour; MON-003
+for three of AUD 8,000 to 9,999 within 168 hours; MON-006 at AUD 10,000 for a
+new customer without source-of-funds documents; MON-007 at AUD 50,000 within 30
+days; MON-008 at AUD 5,000 after 90 days without activity; MON-009 at three
+times the customer's 90-day average, given five prior transactions; MON-010 for
+three multiples of AUD 5,000 within 30 days; and MON-011 for any transaction by
+a customer rated extreme risk. The address rules, MON-004 and MON-005, screen a
+transaction of AUD 5,000 or more, and any transaction by a high- or
+extreme-risk or new customer.
+
+Each transaction is valued as it is recorded (`transaction_values` in
+`backend/assets/services/valuation.py`): the USD value is the amount at the
+asset's USD price at the block time, and the AUD value is that converted at the
+USD/AUD rate stored at that moment; an asset with an AUD par, AUDY, is valued
+at par whatever its USD price. A transfer sent from the app is recorded before
+it is mined, so it is valued at the moment it is sent, and wallet sync later
+finds the hash already recorded and skips it, so it counts once.
+`sync_exchange_rates` refreshes the rate every 10 minutes and no rate history is
+kept; the per-transaction rules check only transactions whose block time is
+less than an hour old (`TRANSACTION_MONITORING_WINDOW_HOURS`), or that are not
+mined yet, so for them it is the rate in effect when they happened. History
+imported later, such as a newly verified wallet's past transfers, is converted
+at the rate stored when it is imported. A transaction with no USD price, or
+recorded while no rate was stored, has no AUD value, and no amount rule counts
+it. The windows run on when a transaction happened, its block time or, for a
+transfer not mined yet, when it was recorded, so imported history counts when it
+happened, not as a burst of recent activity.
+
+A customer is new for 30 days (`NEW_CUSTOMER_DAYS`) after their account first
+became active, and an account with no activation date counts as new. The
+account records that moment once, whichever path activates it, and the
+`users_keep_first_activation` trigger keeps the earliest date through suspension
+and reactivation; it can still move earlier, which is how the demo seed dates
+its testers from their identity decision.
 
 ## NAV updates
 
 The staff YieldToken **Update NAV** form requires `tokens.change_yieldtoken`.
-Its signed form identifier belongs to that staff member and token. Retrying the
-same identifier returns its original outcome; changed values, mode or actor are
-refused. Staff with the action permission can read the resulting NAV audit page.
-The form URL retains that identifier through Back and reload. Once admitted, it
-opens the original audit page before any chain read. **Start a new NAV update**
-opens a fresh form for deliberate new work; invalid or mismatched identifiers
-are rejected without replacement.
-Metadata edits save only the edited fields, so an older form cannot overwrite a
-NAV that completed while the form was open.
+Its signed form identifier belongs to that staff member and token: retrying the
+same identifier returns its original outcome, changed values, mode or actor are
+refused, and **Start a new NAV update** opens a fresh form for deliberate new
+work. Metadata edits save only the edited fields, so an older form cannot
+overwrite a NAV that completed while the form was open.
 
-Local-only updates need no chain configuration. They commit the NAV audit row,
+Local-only updates need no chain configuration and commit the NAV audit row,
 token valuation, original same-symbol asset and daily snapshot together. Chain
-updates first commit a private NAVUpdate and its exact recovery job, before any
-provider call. The worker checks current staff permission, the original target,
-signer and contract units before signing through the outgoing journal. Once
-signed, operator recovery retains the original transaction even if staff access
-is later removed.
-
-An original successful receipt must contain exactly one NAVUpdated event from
-the admitted contract, with its admitted new NAV and reserve value. A matching
-current chain value is insufficient: even an equal-value update changes the
-contract timestamp. The event's previous NAV can differ from the previous local
-valuation after local-only updates. Confirmed evidence is saved before the
-atomic local projection, allowing that projection to recover without a provider.
-
-An unresolved newly admitted chain update reserves the token and contract until
-projection completes. It refuses every competing submission, including local-only
-changes. The competing identifier retains a completed unsigned refusal; a later
-attempt needs a new form. Completion and failure never reopen. The exact job and
-the periodic `check_pending_nav_updates` sweep recover unresolved chain work;
-the NAV audit page shows its original status, transaction hash and completion.
-Scheduled NAV price sync locks and rereads the token before locking the asset,
-so a captured old quote cannot overwrite a newer completed NAV.
-
-Migrations `tokens/0053` and `0054` preserve historical audit rows and transaction
-links without guessing their execution mode or granting recovery authority.
-Historical rows stay outside this adapter's admission and recovery flow. The
-[legacy attribution and signer cutover](../reference/outgoing-history.md) remains
-a separate prerequisite to activation. Reversing these migrations refuses to
-remove newly admitted NAV history.
+updates first commit a private NAVUpdate and its exact recovery job, then sign
+through the [outgoing journal](outgoing-signing.md) after checking current staff
+permission, the original target, signer and contract units. An original
+successful receipt must contain exactly one NAVUpdated event from the admitted
+contract with the admitted new NAV and reserve value; a matching current chain
+value is insufficient, because even an equal-value update changes the contract
+timestamp. An unresolved chain update reserves the token and contract and
+refuses every competing submission, including local-only changes, until
+projection completes; the exact job and the periodic `check_pending_nav_updates`
+sweep recover it, and the NAV audit page shows its status, transaction hash and
+completion. Scheduled NAV price sync locks and rereads the token before locking
+the asset, so a captured old quote cannot overwrite a newer completed NAV.
+Historical NAV rows stay outside this adapter's admission and recovery; the
+[legacy inventory](outgoing-signing.md#legacy-inventory) remains a prerequisite
+to activation.
 
 ## Portfolio history
 
 There is none. A `Holding` carries only its current quantity: the hourly sync,
 history imports and transfer confirmation rewrite that quantity and keep no
-dated series of it, and no valuation is computed for a past date. The snapshot
-HTTP routes were
-[retired](../operations/upgrades.md#retired-asset-and-portfolio-http-routes),
-and the holding snapshots and value-series service that outlived them are
-[dropped](../operations/upgrades.md#database-migrations). Dashboard and mobile
-Holdings pages show share quantities by company and class instead of a
-portfolio chart. Base transfers use ETH for native quantities and gas fees, and
-use Base's chain ID for signing.
-
-## Verification challenge upgrades
-
-Wallet ownership challenges expire five minutes after issuance, including the
-exact five-minute boundary. Requesting another challenge replaces the nonce and
-restarts that window; successful verification consumes it. The message and the
-server use the same `WALLET_VERIFICATION_CHALLENGE_MINUTES` setting and stored
-issue time. Migration `wallets/0011` adds that internal timestamp. Outstanding
-challenges issued before the migration have no trustworthy issue time and must
-be requested and signed again. Existing verified wallets keep their status.
+dated series of it, and no valuation is computed for a past date. No snapshot
+route, holding snapshot or value-series service exists; the portfolios API only
+groups wallets. Dashboard and mobile Holdings pages show share quantities by
+company and class instead of a portfolio chart.
 
 Next: [wallet transfers](transfers.md), [history and balance reconciliation](../reference/wallet-reconciliation.md),
 and [operator seeding](../operations/operator-console.md#seeding).

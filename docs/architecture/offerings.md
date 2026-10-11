@@ -45,7 +45,7 @@ authority.
    fires one push to the owner. It is where `approve` re-runs the headroom
    check, because an issuance completing between submission and approval
    shrinks the headroom the submission measured.
-5. Platform staff review in the Django admin — start review, approve, reject,
+5. Platform staff review in the Django admin: start review, approve, reject,
    close. No approve, reject or close route exists on the API, so there is no
    staff API surface to mis-permission. `OfferingAdmin.get_readonly_fields`
    freezes the share class, exemption, price, bounds, payment rails and window
@@ -55,7 +55,7 @@ authority.
    documents and loses none (item 9).
 6. There is no `OPEN` status and no scheduler. Open-now is derived by
    `OfferingQuerySet.open_now()`: approved, `opens_at <= now`, `closes_at` null
-   or in the future — nothing is left in flight for a sweep to fix. Reaching
+   or in the future, so nothing is left in flight for a sweep to fix. Reaching
    the cap does not close an offering; in current code, closing is a deliberate
    staff admin act.
 7. The directory publishes exactly that set:
@@ -106,16 +106,12 @@ authority.
    and deleting a company document that an approved or closed offering
    carries answers 409 `offered_document`. On the web and in the app,
    Offerings has Add documents on an approved or closed offering: the attached
-   documents show ticked and locked, and only the new choices are sent. In
-   admin, staff add documents through the offering's picker, which lists the
-   class company's offer documents and anything already attached, and a save
-   that leaves out a document of an approved or closed offering is refused.
-   Admin's delete pages and bulk deletes refuse such a document, and an
-   approved or closed offering that carries documents; the document rows on
-   the company page refuse it too, and its company is read-only. Migration
-   `offerings.0009_published_documents_stay` is the backstop for every other
-   path: its triggers refuse to delete or re-point an approved or closed
-   offering's attachment, and to move its document to another company.
+   documents show ticked and locked, and only the new choices are sent.
+   Admin's picker, delete pages and bulk deletes apply the same rule. The
+   database guards (`offerings/database_guards.sql`, installed by
+   `shared/0002_database_guards`) are the backstop: they refuse to delete or
+   re-point an approved or closed offering's attachment, and to move its
+   document to another company.
 10. A rejected offering can be withdrawn by the company. Withdrawal keeps the
     reviewer, the review time, the notes and the rejection reason; the row
     stays visible as a record and offers no further edit, resubmit or delete.

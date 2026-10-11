@@ -24,12 +24,8 @@ Raising the cap mints zero shares and changes no holding or register quantity.
 It does not approve a grant, allotment or payment. The participant nomination,
 wallet proof and finite ADD requirements of a grant are separate workflows.
 
-A current `admin` appointment may prepare, approve, apply and reject, with
-`prepare`, `approve` and `apply` as the narrower delegate capabilities, under
-the [owner's authority rules](../../decisions.md#company-run-register-authority-and-evidence);
-ownership, platform staff permissions and technical signer configuration supply
-no company mandate. Current register-read capability permits bounded proposal,
-history and evidence reads.
+Authority follows the [owner's rules](../../decisions.md#company-run-register-authority-and-evidence);
+register-read capability permits proposal, history and evidence reads.
 
 ## What is recorded
 
@@ -69,9 +65,6 @@ platform-staff permissions are retired. Existing private owner histories,
 original technical recovery, migration history and retained evidence remain,
 and retained legacy actors, intents, signatures and historical arithmetic are
 unchanged. Pause and paid-issue authority use their own guides. Genuine payment
-and transfer records and the investor-only provider guards remain; #868 records
-externally arranged capital and company-approved allotments, and new integrated
-payment and transfer mechanics are deferred under the
-[9 October priority](../../decisions.md#essential-registry-and-development-workflow-priority).
-This increment supplies no member-binding, payment, treasury or
-populated-mirror policy.
+and transfer records and the investor-only provider guards remain. This
+increment supplies no member-binding, payment, treasury or populated-mirror
+policy.

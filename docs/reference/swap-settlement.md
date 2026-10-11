@@ -2,7 +2,7 @@
 
 [Reference](README.md) · [Documentation](../README.md)
 
-Captured settlement context, participant authorisation, durable execution claims and what PostgreSQL freezes. Trading is enabled by default; [secondary trading](../architecture/trading.md) describes the flag.
+Captured settlement context, participant authorisation, durable execution claims and what PostgreSQL freezes. Start with [secondary trading](../architecture/trading.md).
 
 Matches use the immutable settlement context installed by the fresh PostgreSQL
 migrations and database guards.
@@ -36,9 +36,8 @@ owned side still needs a signature.
 
 ## The reviewed intent
 
-The owner's decision of 16 September 2026 stands: V1 is the signed protocol —
-the EIP-712 `SwapOrder` typed data over the `LedovaAtomicSwap` domain — and no
-new protocol is introduced. Unsupported protocols cannot be adopted, replayed or
+V1, the EIP-712 `SwapOrder` typed data over the `LedovaAtomicSwap` domain, is
+the only signed protocol; unsupported protocols cannot be adopted, replayed or
 re-signed by this contract.
 
 A newly matched swap captures its settlement context before anything is signed:
@@ -58,8 +57,7 @@ remain two submissions, two orders and two swaps. Order creation resolves the
 operator's single active, deployed, supported settlement asset, so two signed
 orders form a swap. The captured context is what the parties review; every
 stage re-checks it under its locks through the admission matrix below, and
-[what PostgreSQL freezes](#what-postgresql-freezes) maps the original migrations that
-hold it.
+[what PostgreSQL freezes](#what-postgresql-freezes) maps the guards that hold it.
 
 ## The settlement admission matrix
 
@@ -80,17 +78,13 @@ current configuration.
 | `GET swap/approval-data`       | identity lookup                                                   | re-check, then a fresh resolve and re-check before answering, on both outcomes                                                                                                                                                               |
 | `POST swap/approval-broadcast` | exact identity                                                    | the service re-checks before decoding, re-invokes the route's fresh resolver, and the recording transaction re-checks the locked swap and its digest                                                                                         |
 
-The earlier route matrix is retained in
-[Git history](https://github.com/Ledova/ledova/blob/5f40e3cd896afc3f3a55a14e359224156735a417/backend/tokens/tests/test_settlement_admission_rules.py).
-The [11 October policy](../decisions.md#minimum-tests-and-fresh-migrations)
-retires these deferred-trading tests. The resolver and lock behaviour described
-above remains production code; this guide does not claim current automated
-coverage of every swap route.
+The matrix is production behaviour; its tests were retired on 11 October, so
+this guide claims no automated coverage of every swap route.
 
 Delivery and recovery re-authorise the _recorded_ actor under the lock
 (`_lock_command(authority=True)` to `_lock_authority`), never a fresh one. The
 finality consumer `settle` deliberately performs no actor authorisation at all:
-finality is not an actor's action, and the rule records that exemption — its own
+finality is not an actor's action, and the rule records that exemption: its own
 body reaches neither the resolver, the re-check nor the authority lock. The swap
 _list_ is a wallet-scoped read under row-level security, not an admission, and
 is outside this matrix.
@@ -146,9 +140,8 @@ scoped identity and computed hash. Its detail states the recorded row's own
 outcome. While the row is pending the approval is recorded and recovery is in
 progress: do not sign another approval for that swap. A `reverted` or
 `superseded` row says the approval took no effect and is no longer replayed,
-which is the state in which `approval-data` prepares a fresh one below. Neither
-response is confirmation, and the client keeps its saved hash until exact
-outcome recovery establishes a definite result.
+which is the state in which `approval-data` prepares a fresh one below. The client keeps its saved hash
+until exact outcome recovery establishes a definite result.
 
 The existing `GET swap/` accepts one optional `approval_tx_hash`. Its
 `approval_outcome` is absent when no hash was requested, null when no authorised
@@ -202,12 +195,7 @@ before observation and delivery. Execution admission retains complete signed
 arguments and their original domain. A receipt that cannot be attributed to that
 original chain/context leaves the claim unresolved.
 
-The original `tokens/0059` introduced the journal and its trigger without
-adopting earlier approvals; its reversal refusal is historical source in Git.
-Fresh migrations install the current journal/guard on an empty database; an old
-database requires owner approval under the [rebuild plan](../operations/upgrades.md#fresh-database-rebuild).
-The captured-party signature rule originally introduced by `tokens/0040`
-permits a signature through either currently authorised
+A captured party's signature is permitted through either currently authorised
 participant while the other order and wallet stay private; its freeze is in the
 [table below](#what-postgresql-freezes). Swap-row RLS is installed; private
 cross-account matching and outcome writes requiring both parent objects retain
@@ -267,12 +255,11 @@ that evidence is unavailable or contradictory.
 Both successful and reverted signed receipts leave the public swap EXECUTING and
 parent reservations held until finality. Only a proven unsigned preparation
 failure can fail the swap before that and unwind its reservation once. This
-adapter never restarts its original claim, including after a revert. Aggregate
-capital reservation was resolved by owner decision on 16 September 2026:
-[#625](https://github.com/Ledova/ledova/issues/625) closed as not planned, and
-the per-row guards and triggers stand, with the sell-side
+adapter never restarts its original claim, including after a revert. There is
+no aggregate capital reservation ([#625](https://github.com/Ledova/ledova/issues/625),
+not planned); the per-row guards and the sell-side
 [#620](https://github.com/Ledova/ledova/issues/620) and buyer-side
-[#626](https://github.com/Ledova/ledova/issues/626) commitment checks.
+[#626](https://github.com/Ledova/ledova/issues/626) commitment checks stand.
 
 The finality consumer, `settle`, runs from the same sweep for every executing
 swap whose transaction is confirmed or reverted. It reads the chain with the
@@ -298,10 +285,8 @@ comparing settlement against an opening boundary. The database validates the
 evidence shape and freezes it on settlement; provider evidence is verified by
 the service, not proven by those database checks.
 
-The original `tokens/0063` introduced nullable evidence without attributing
-older completed swaps; reversal refused once evidence had been recorded. Those
-migration details remain in Git history. Current guards keep missing historical
-evidence explicit and refuse ordinary backfills. New signed settlement requires
+`finalized_receipt` is nullable: swaps completed without it keep no evidence,
+and the guards refuse ordinary backfills. New signed settlement requires
 evidence; unsigned preparation failures retain none. Company-run register
 openings from the chain read the final inclusion, as documented in
 [the register](../architecture/register.md).
@@ -324,48 +309,36 @@ outcome differs from the first receipt's, a revert finalized as a success or the
 reverse, is held for operator attribution: the sweep logs both outcomes once per
 pass and neither completes nor releases the swap.
 
-PostgreSQL cannot see finality, so that remains the service's guarantee. Its
-earlier deferred-trading tests remain in Git history. Other adapters still complete at their first receipt;
-only swaps hold a financial reservation. A local chain never settles a swap
+PostgreSQL cannot see finality, so that remains the service's guarantee. Other
+adapters still complete at their first receipt; only swaps hold a financial
+reservation. A local chain never settles a swap
 unless [`LOCAL_CHAIN_FINALITY_DEPTH`](../operations/chains.md#blockchain)
 is set.
 
 ## What PostgreSQL freezes
 
-The numbered identifiers below are historical origins retained in Git. Current
-fresh migrations install these retained guards through
-`shared/0002_database_guards`; this map is not an old-database upgrade procedure.
+`shared/0002_database_guards` installs these guards on a fresh database from
+`tokens/database_guards.sql` and `blockchain/database_guards.sql`; this map is
+not an old-database upgrade procedure.
 
-| Historical migration origin | Freezes                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
-| --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `tokens/0039`               | The settlement context, digest and `order_hash` cannot be replaced, and the fifteen-field swap identity (uuid, both parents, both wallets, token, payment asset, both addresses, both amounts, nonce, order hash, expiry, creation) is immutable; new swaps must carry protocol 1 and name both parent orders with matching tokens, types, wallets and addresses; a recorded settlement identity cannot be deleted                                                                                                                                                                                                                                                |
-| `tokens/0040`               | Each order's owner identity (uuid, account, wallet, address) cannot change, and a referenced parent order cannot be replaced; a captured party's signature is permitted through either currently authorised participant while the other order and wallet stay private; case-only address spelling, economic/status updates and unreferenced order deletion remain available; an unchanged V1 update must prove one current captured participant to avoid both-parent derivation, and INSERT, legacy and the original operator/both-visible path retain their checks                                                                                               |
-| `tokens/0056`               | Every V0 row is held: all UPDATE and DELETE attempts on it, including operator writes and parent cascades, are rejected                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
-| `tokens/0057`               | Execution admission is frozen: exact addresses, supported exact integers, both original 65-byte signatures and the original chain; transaction identity, admission and arguments are immutable, the first receipt summary, first submission time and original nonce are retained, and historical transactions gain no new signing authority; admission requires its original actor and participant, its original V1 order, arguments equal to the original settlement and signatures, an unclaimed ready order and an empty journal; failure requires proof that the original operation never signed; the original claim cannot restart, including after a revert |
-| `tokens/0058`               | Fresh swaps start without signatures or execution claims; claimed swaps retain their journal, signatures and execution hash; `executing` becomes `completed` only with a confirmed admitted journal, its confirmed operation, a matching hash and a completion time, or `failed` with a reverted journal or a proved unsigned failure whose journal holds no hash; `completed` and `failed` are terminal; signed swaps remain held until finality                                                                                                                                                                                                                 |
-| `blockchain/0004`           | Outgoing transaction history cannot be changed or deleted; signer identity and reserved nonces cannot be rewound; outgoing operation identity cannot be changed                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
-| `blockchain/0007`           | An admitted swap transaction binds exactly one outgoing operation (one-to-one, protected), and at most one admitted swap transaction exists per swap                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| Subject                                               | Freezes                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| ----------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Settlement context and swap identity                  | The settlement context, digest and `order_hash` cannot be replaced, and the fifteen-field swap identity (uuid, both parents, both wallets, token, payment asset, both addresses, both amounts, nonce, order hash, expiry, creation) is immutable; new swaps must carry protocol 1 and name both parent orders with matching tokens, types, wallets and addresses; a recorded settlement identity cannot be deleted                                                                                                                                                                                                                                                |
+| Order owner identity and the captured-party signature | Each order's owner identity (uuid, account, wallet, address) cannot change, and a referenced parent order cannot be replaced; a captured party's signature is permitted through either currently authorised participant while the other order and wallet stay private; case-only address spelling, economic/status updates and unreferenced order deletion remain available; an unchanged V1 update must prove one current captured participant to avoid both-parent derivation, and INSERT, legacy and the original operator/both-visible path retain their checks                                                                                               |
+| V0 rows                                               | Every V0 row is held: all UPDATE and DELETE attempts on it, including operator writes and parent cascades, are rejected                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| Execution admission                                   | Execution admission is frozen: exact addresses, supported exact integers, both original 65-byte signatures and the original chain; transaction identity, admission and arguments are immutable, the first receipt summary, first submission time and original nonce are retained, and historical transactions gain no new signing authority; admission requires its original actor and participant, its original V1 order, arguments equal to the original settlement and signatures, an unclaimed ready order and an empty journal; failure requires proof that the original operation never signed; the original claim cannot restart, including after a revert |
+| Swap status transitions                               | Fresh swaps start without signatures or execution claims; claimed swaps retain their journal, signatures and execution hash; `executing` becomes `completed` only with a confirmed admitted journal, its confirmed operation, a matching hash and a completion time, or `failed` with a reverted journal or a proved unsigned failure whose journal holds no hash; `completed` and `failed` are terminal; signed swaps remain held until finality                                                                                                                                                                                                                 |
+| Outgoing history and nonces                           | Outgoing transaction history cannot be changed or deleted; signer identity and reserved nonces cannot be rewound; outgoing operation identity cannot be changed                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| One operation per swap                                | An admitted swap transaction binds exactly one outgoing operation (one-to-one, protected), and at most one admitted swap transaction exists per swap                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 
-Adjacent guarantees carry related, narrower rules: `tokens/0037` freezes order
-submission identity and terminal outcomes, `tokens/0055` and `tokens/0060` the
-recordable refusal codes, `tokens/0059` the participant approval journal. They
-are named here for the map, not folded into the intent freeze above.
+Related, narrower guards freeze order submission identity and terminal
+outcomes, the recordable refusal codes and the participant approval journal;
+they are named here for the map, not folded into the intent freeze above.
 Application connections cannot read or write the private execution journal.
 Historical unmarked transactions gain no admission or signing authority; they
-stay held for attribution. Fresh migrations install the current execution
-guards; the numbered migration map above and reversal checks are historical
-sources retained in Git. The generic monitor
-remains excluded, and the old direct
-executor and receipt-driven financial completion are removed.
-
-## Pre-baseline swap history
-
-The owner confirmed that old-format swaps are absent from ledova.io. V0 read-price
-fallbacks, specialised hold responses and their tests are retired. Current
-settlement requires the original recorded context, signatures and genuine receipt
-provenance. Fresh migrations install the current schema and guards on an empty
-database; there is no older-database adoption or V0 re-enabling workflow.
-Earlier migration sources and decisions remain in Git history.
+stay held for attribution. The generic monitor does not handle swap
+transactions, and there is no direct executor or receipt-driven financial
+completion.
 
 ## Unclaimed expiry
 
@@ -384,10 +357,9 @@ remaining quantity, unless its price would cross the book, when it is held back.
 The two still cross each other, so the one placed later, usually the order that
 took the match, is held, and the held-order sweep never pairs them again.
 
-The fresh PostgreSQL installer retains the immutable expiry-eligibility marker. Do not backfill
-it: missing transaction data does not establish that nothing was sent. The
-marker describes the current service's durable claim protocol. Claimed,
-executing and inconsistent matches retain their
-reservations for reconciliation. This sweep does not inspect the chain, refund
-money, cancel a broadcast or change an existing signature/deadline. Trading is
-enabled by default.
+The expiry-eligibility marker is immutable. Do not backfill it: missing
+transaction data does not establish that nothing was sent. The marker describes
+the current service's durable claim protocol. Claimed, executing and
+inconsistent matches retain their reservations for reconciliation. This sweep
+does not inspect the chain, refund money, cancel a broadcast or change an
+existing signature/deadline.

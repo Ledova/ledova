@@ -4,66 +4,42 @@
 
 Install the native toolchain and generate the Android or iOS project before running device probes.
 
-The mobile app uses the versions resolved by `mobile/package-lock.json`: Expo
-54.0.33, React Native 0.81.5, React 19.1.0, SecureStore 15.0.8 and Expo Crypto
-15.0.8. Native projects are generated from `app.json` and the local config plugin;
-`android/` and `ios/` are not committed. An explicit iOS distribution environment
-can override the store identity through `app.config.js`; see
-[iOS distribution builds](ios-distribution.md). Use a native development build to test
-these policies. Expo Go does not contain Ledova's native networking overrides.
+The mobile app uses the versions resolved by `mobile/package-lock.json`,
+currently Expo SDK 54 on React Native 0.81. Native projects are generated from
+`app.json` and the local config plugins in `mobile/plugins/`; `android/` and
+`ios/` are not committed. An explicit iOS distribution environment can override
+the store identity through `app.config.js`; see
+[iOS distribution builds](ios-distribution.md). Use a native development build
+to test these policies. Expo Go does not contain Ledova's native networking
+overrides.
 
 The `expo-system-ui` plugin applies the paper-only light appearance to Android
 native dialogs, including when the device uses dark mode. Generated-project
 checks verify the Android light resource and both iOS light appearance settings.
 
-iOS 27 stops an app built with the iOS 27 SDK at launch, in
-`_UIApplicationEvaluateRuntimeIssueForNoSceneLifecycleAdoption`, unless it uses the
+iOS 27 stops an app built with the iOS 27 SDK at launch unless it uses the
 UIKit scene life cycle
 ([TN3187](https://developer.apple.com/documentation/technotes/tn3187-migrating-to-the-uikit-scene-based-life-cycle)).
-Expo 54 and React Native 0.81.5 generate an app-delegate app with no scene delegate;
-Expo adds one in SDK 58, and in 57.0.23 behind `ios.enableSceneSupport`. Until the
-upgrade, `plugins/withSceneLifecycle.cjs` declares a `UIApplicationSceneManifest` in
-both Info.plists and adds `LedovaSceneDelegate`, so every iOS version the app
-supports runs the scene life cycle, and `check-native-projects.mjs` refuses a
-generated project without the manifest and the delegate.
+Expo 54 generates an app-delegate app with no scene delegate; Expo adds one in
+SDK 58, and in 57.0.23 behind `ios.enableSceneSupport`. Until that upgrade,
+`plugins/withSceneLifecycle.cjs` declares a `UIApplicationSceneManifest` and
+adds `LedovaSceneDelegate`, which moves the window `AppDelegate` creates into
+the connecting scene and forwards the URL, user-activity, foreground and
+background events UIKit no longer sends to the app delegate.
+`check-native-projects.mjs` refuses a generated project without the manifest
+and the delegate. The plugin refuses an `AppDelegate` that no longer creates a
+window Objective-C can read (`var window: UIWindow?` on an `ExpoAppDelegate`
+subclass), or another scene manifest, so an Expo upgrade that brings its own
+scene delegate stops at prebuild until the plugin is removed.
 
-`LedovaSceneDelegate` moves the window that `AppDelegate` still creates at launch
-into the connecting window scene. `AppDelegate` keeps creating it because Expo 54's
-dev launcher needs a window in `didFinishLaunching`, and expo-system-ui and React
-Native read `AppDelegate.window`. UIKit no longer calls the app delegate's URL,
-user-activity, foreground and background methods, so the scene delegate forwards
-those events to `AppDelegate`, which hands them to Expo's subscribers and
-`RCTLinkingManager` as before. UIKit still posts the application notifications that
-`AppState`, the app lock, the camera and WebViews observe. A window that becomes
-visible without a scene, such as Expo's developer menu, is moved into the app's
-scene. Generated-project checks verify the manifest and the delegate. The plugin
-refuses an `AppDelegate` that no longer creates the window, or another scene
-manifest, so an Expo upgrade that brings its own scene delegate stops at prebuild
-until this plugin is removed. It also refuses one whose window Objective-C
-cannot read, because the scene delegate asks for it by selector and would
-otherwise get nil and a black screen: the class must subclass `ExpoAppDelegate`
-and store `var window: UIWindow?`. Swift still exposes a private or implicitly
-unwrapped `window` there; `@nonobjc`, `static`, `let` or a computed property
-hides it, and a `weak` one is released as soon as it is assigned, which leaves
-the same black screen.
-
-A link that opens the app from closed does not reach JavaScript. UIKit delivers
-it with the connecting scene, after `AppDelegate` has started React Native with
-launch options that no longer carry it, so `Linking.getInitialURL()` returns null,
-and the `url` event the scene delegate sends fires before any JavaScript listens.
-On iOS 27.0 and 26.5 simulators the launch options React Native keeps for
-`getInitialURL` were empty after a link started the Release build; on iOS 26.5,
-which can launch the same build without the scene manifest, they held the link.
-A link that arrives while the app runs, such as an OAuth redirect back to it,
-still reaches `Linking`'s `url` event. Nothing depends on this today: the app
-reads no incoming links. The earlier scene-lifecycle control is retired under
-the minimum-test policy. A feature
-that needs a link to open the closed app, such as an emailed confirmation link,
-must first move to Expo SDK 58, or 57.0.23 or later with
-`ios.enableSceneSupport`, whose scene delegate starts React Native with the link
-in its launch options
-([expo/expo#47628](https://github.com/expo/expo/pull/47628)). That upgrade
-replaces this plugin, which refuses the new `AppDelegate` at prebuild.
+A link that opens the app from closed does not reach JavaScript: UIKit delivers
+it with the connecting scene after React Native has started, so
+`Linking.getInitialURL()` returns null. A link that arrives while the app runs,
+such as an OAuth redirect, still reaches `Linking`'s `url` event. Nothing
+depends on this today; a feature that needs a link to open the closed app must
+first move to Expo SDK 58, or 57.0.23 with `ios.enableSceneSupport`
+([expo/expo#47628](https://github.com/expo/expo/pull/47628)), which replaces
+this plugin.
 
 The lockfile keeps registry URLs and npm integrity values; the shared workspace
 is the intentional local link. Install with `--ignore-scripts` in native CI.
@@ -74,11 +50,11 @@ No broad dependency upgrade or full transitive source audit is implied.
 Each native run records the resolved Android release dependency graph and
 repository configuration, or the resolved Podfile.lock and generated iOS protocol
 provider in CI. The generated Android repositories are Google Maven, Maven
-Central and JitPack. The Gradle 8.14.3 distribution is SHA-256 pinned by the
-plugin. Native dependency graphs still need review when they change; npm's
-lockfile does not itself pin every downloaded Maven/Pod artifact. The ordinary
-APK is checked for both ZIP alignment and every native library's ELF load-segment
-alignment at 16 KiB. [RN 0.81's compatibility statement](https://reactnative.dev/blog/2025/08/12/react-native-0.81)
+Central and JitPack. The Gradle distribution is SHA-256 pinned by the plugin.
+Native dependency graphs still need review when they change; npm's lockfile does
+not itself pin every downloaded Maven/Pod artifact. The ordinary APK is checked
+for both ZIP alignment and every native library's ELF load-segment alignment at
+16 KiB. [RN 0.81's compatibility statement](https://reactnative.dev/blog/2025/08/12/react-native-0.81)
 does not replace checking third-party binaries.
 
 RN 0.81.5 can turn an empty app spec search into a codegen dependency on the
@@ -86,44 +62,43 @@ entire iOS project directory, creating a cycle with Expo's generated provider.
 The plugin's CocoaPods post-install helper removes only the exact
 `${PODS_ROOT}/..` input from ReactCodegen's Generate Specs phase. Real spec inputs,
 generation commands and handler registration remain intact. Manual iOS builds
-preserve the generated Podspec and Pods project for build diagnosis. The same post-install step raises any pod target
-whose `IPHONEOS_DEPLOYMENT_TARGET` is below the Podfile's platform to that
-platform, because Xcode 27 refuses targets below iOS 15.0 and some third-party
-resource bundles still declare older minimums; targets at or above the platform
-are left alone. The manual native build checks the generated project; the
-earlier deployment-target unit fixtures remain in Git history.
+preserve the generated Podspec and Pods project for build diagnosis. The same
+post-install step raises any pod target whose `IPHONEOS_DEPLOYMENT_TARGET` is
+below the Podfile's platform to that platform, because Xcode 27 refuses targets
+below iOS 15.0 and some third-party resource bundles still declare older
+minimums; targets at or above the platform are left alone. The manual native
+build checks the generated project.
+
+The exact toolchain is pinned in
+[mobile-native.yml](../../.github/workflows/mobile-native.yml), which selects
+[Xcode 16.4 on the macOS 15 runner](https://github.com/actions/runner-images/blob/main/images/macos/macos-15-Readme.md):
 
 | Component                | Build baseline                                                              |
 | ------------------------ | --------------------------------------------------------------------------- |
 | Node / npm               | 22.15.1 / 11.5.2                                                            |
 | Android                  | JDK 17, SDK/target 36, minimum API 24, Build Tools 36.0.0                   |
-| Android native toolchain | NDK 27.1.12297006, CMake 3.22.1, Gradle 8.14.3, Kotlin 2.1.20               |
+| Android native toolchain | NDK 27.1.12297006, CMake 3.22.1, Gradle 8.14.3                              |
 | iOS                      | Xcode 16.4, minimum deployment target 15.1, ad hoc signed simulator Release |
 | Runtime probes           | Android API 36 x86_64 emulator; iOS 18.5 simulator                          |
 
 These minimum platform versions follow [Expo SDK 54](https://docs.expo.dev/versions/v54.0.0/).
 The Android build includes ARM64 and x86_64; only the emulator architecture is
-executed here. Some native subprojects also request Android Build Tools 35.0.0,
-which Gradle installs when its SDK license is available. Current Android command
-line tools may require JDK 21 for SDK installation; select JDK 17 for Gradle.
+executed here. Current Android command line tools may require JDK 21 for SDK
+installation; select JDK 17 for Gradle.
 
 Install the SDK/NDK/CMake packages from the table, plus platform-tools, emulator
 and `system-images;android-36;google_apis;x86_64`. Put SDK, Gradle cache and AVDs
 in owned directories when sharing a machine; do not reuse a personal device or
 live development service. On macOS, install CocoaPods and the iOS 18.5 simulator
-runtime. The exact CI setup is in
-[mobile-native.yml](../../.github/workflows/mobile-native.yml), which selects
-[Xcode 16.4 on the macOS 15 runner](https://github.com/actions/runner-images/blob/main/images/macos/macos-15-Readme.md).
-No EAS account or signing credentials are needed.
+runtime. No EAS account or signing credentials are needed.
 
 Android and iOS native builds run only by manual dispatch of
 [mobile-native.yml](../../.github/workflows/mobile-native.yml) before a mobile
 release, under the [11 October decision](../decisions.md#minimum-tests-and-fresh-migrations).
 Both platforms build and start the ordinary Release app and run the native
 runtime probe. The `Mobile native checks` verdict requires both jobs to succeed.
-Pull requests and main run the same lean JavaScript, type-check and lint checks;
-there is no changed-file selector. Manual build results and device/probe gaps
-belong in the release record. Native builds are outside `make preflight`.
+Manual build results and device/probe gaps belong in the release record. Native
+builds are outside `make preflight`.
 
 From a clean checkout:
 

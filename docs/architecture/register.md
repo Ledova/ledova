@@ -10,90 +10,121 @@ records, and reads no chain. Former members are stored separately.
 ## Who runs what
 
 Openings, imports, corrections, wallet links, members' particulars,
-[non-paid grants](../plans/company-managed-registers/register-grants.md) and
+[non-paid grants](../plans/company-managed-registers/register-grants.md),
 [transfers](../plans/company-managed-registers/register-transfers.md),
+[employee awards and vesting records](../plans/company-managed-registers/employee-awards.md),
+[external capital and allotments](../plans/company-managed-registers/external-allotments.md),
 reconciliation acknowledgement and inspection copies are company-run through
-current appointments, with company-provided evidence. Platform staff still
-review settled-transfer instructions and prepare certificates, notice figures
-and the company pack on the company's written instruction
-([#871](https://github.com/Ledova/ledova/issues/871)). `RegisterMember` is a
-shareholder record, not an appointment. An imported class opens without a
-contract and accepts no chain issue or transfer instruction: its grants and
-transfers are ledger events, a wallet is required only for a chain action, and
-later tokenisation mirrors its holdings without issuing them twice.
-Publications require a deployed or paused class until #870.
+current appointments, with company-provided evidence. An award is a promised
+entitlement recorded at `/api/v1/tokens/register-awards/` and
+`register-award-vestings/`; shares reach the register only through a separate
+approved grant that references it. An allotment at
+`/api/v1/tokens/register-allotments/` keeps the external agreement, the
+company's receipt attestation and the approved allotment as separate records,
+and its application makes one ISSUE entry on an opened imported register.
+Platform staff still review settled-transfer instructions and prepare
+certificates, notice figures and the company pack on the company's written
+instruction ([#871](https://github.com/Ledova/ledova/issues/871)).
+`RegisterMember` is a shareholder record, not an appointment. An imported class
+opens without a contract and accepts no chain issue or transfer instruction:
+its grants, allotments and transfers are ledger events, a wallet is required
+only for a chain action, and later tokenisation mirrors its holdings without
+issuing them twice. Publications require a deployed or paused class until #870.
 
-The [stored register foundation](../operations/register-foundation.md) adds member
-references with durable wallet links, immutable events and a holdings projection
-for #647. A company-run [opening](../operations/register-foundation.md#opening-the-register-from-the-chain)
-initialises it from one verified canonical chain boundary, captured when the
-company prepares the opening, under the company's own authority document, and
-the integrity verifier replays the whole chain. For a class not
-yet on chain, an applied
-[import](../operations/register-foundation.md#importing-an-existing-register)
-is the opening instead: it records the company's existing register as the
-opening entry, checked against the ASIC extract's figures, and captures no chain
-boundary. Non-paid register grants can append genuine ISSUE entries while the
-class remains off chain; chain completions and chain reconciliation remain
-separate. A wallet the
-opening did not map is linked to a member only by a company-run
-[wallet link](../operations/register-foundation.md#linking-wallets-after-the-opening)
-under the company's own authority document.
-Opening preparation and decisions, and an operator report, classify completed
-effects against that boundary from evidence both sides record: each completion's
-finalized receipt, and the canonical transfer history the boundary retains. A
-completion is represented by the opening only when its transaction is in that
-history; one in a later block falls after it; anything the evidence cannot place,
-including an earlier inclusion that was orphaned and every completion against a
-boundary [captured before that history was retained](../operations/register-foundation.md#openings-captured-before-the-history-was-retained),
-is held for operator attribution. An opening whose captured boundary does not
-represent a completed effect is refused rather than applied over it. Settlement
-completion takes the same share-class lock as issuance completion, so neither can
-interleave with an opening. Each completion after the opening is
+A register is opened once: by a company-run
+[opening](../operations/register-foundation.md#opening-the-register-from-the-chain)
+from one verified canonical chain boundary captured when the company prepares
+it, or by an applied
+[import](../operations/register-foundation.md#importing-an-existing-register),
+which records the company's existing register as the opening entry and captures
+no chain boundary. A wallet the opening did not map is linked to a member only
+by a company-run [wallet link](../operations/register-foundation.md#linking-wallets-after-the-opening).
+Completed chain effects are classified against the boundary from the
+completion's finalized receipt and the canonical transfer history the boundary
+retains: one in that history is represented by the opening, one in a later block
+falls after it, and anything the evidence cannot place is held for operator
+attribution. An opening whose captured boundary does not represent a completed
+effect is refused. Settlement completion takes the same share-class lock as
+issuance completion, so neither interleaves with an opening.
+
+Each completion after the opening is
 [recorded as an issue or transfer](../operations/register-foundation.md#recording-issues-and-transfers-after-the-opening)
-in chain order, in its own completion transaction unless something holds it back;
-recording waits, without stalling the completion, at the first effect whose wallet
-has no link, which needs attribution, or which no applied register instruction
-covers.
-An issue or transfer entry is dated the day it is made, so one that waited
-carries the later date; the register refuses one dated before its latest entry.
+in chain order, in its own completion transaction. Recording stops at the first
+effect it cannot record: a wallet with no link, an issue or transfer no applied
+instruction covers, a completion held for attribution, or an entry the register
+refuses, such as a transfer whose seller's stored holding does not cover it
+after a move outside settlement. Nothing is recorded past that effect, so the
+stored holdings never skip ahead of the chain. The completion itself still
+commits, because a register record must not stall the workflow; the reason is
+logged. Recording resumes at the next completion in that share class, the next
+applied wallet link in the company or the next applied register instruction for
+that share class, each of which takes the share-class lock first (a wallet link
+every class of its company), so a completion in progress cannot miss the new
+link or cover. `register_inclusions` reports `recorded` for each effect. An
+issue or transfer entry is dated the day it is made, so one that waited carries
+the later date, and the register never dates one before its latest entry: while
+the latest entry is dated after today, as with an opening whose boundary block's
+time runs ahead of the platform's clock, the next issue or transfer waits as
+`refused` until a recording on or after that date.
 
 A company-authorised [non-paid chain grant](../plans/company-managed-registers/company-register-issues.md)
-uses an exact member, nomination and finite company wallet approval on a genuinely
-CHAIN-opened class. It retains company-provided authority, terms and any required
-acceptance through personal appointment decisions. Application admits the existing
-mint journal; only its finalised genuine outcome supplies the original member's
-once-only ISSUE entry. The first-member LINK can precede a first mint. Imported
-books retain their separate walletless grant workflow and cannot obtain chain
-issue authority by deploying a contract, including when imported supply is zero.
+mints on a CHAIN-opened class, and only the finalised mint supplies the member's
+once-only ISSUE entry. A [paid issue](../plans/company-managed-registers/company-paid-issues.md)
+binds the company's preparation, approval and application to a recorded PAID
+subscription and records its ISSUE once the wallet link exists; payment,
+approval, mint and register recording remain separate. A settled transfer is
+entered only under an applied
+[transfer instruction](../operations/register-foundation.md#register-instructions-for-transfers)
+listing the completed settlements a named director approved, still recorded by
+the transferor, whose signed order is the instrument; a transfer the directors
+decline keeps waiting. Company-run
+[compensating corrections](../operations/register-foundation.md#compensating-corrections)
+reverse one earlier entry exactly, retaining the original entry and evidence; an
+applied correction changes the stored holdings and performs no chain
+reconciliation.
 
-A [paid issue](../plans/company-managed-registers/company-paid-issues.md)
-binds the company's exact preparation, approval and application to an existing
-recorded PAID subscription. Application admits its original request and
-execution; a genuine finalised Mint supplies the original member's ISSUE once
-its wallet link exists. The entry records the company appointee who applied the
-issue. Payment, approval, Mint, ALLOTTED and register recording remain separate.
-Retained paid instructions keep their original staff decisions and financial
-source; fresh legacy paid admission is retired, and retained non-paid requests
-may still obtain their earlier guarded register cover. PostgreSQL keeps those
-instructions immutable and rejects fabricated company or legacy authority.
+## Event chain
 
-A settled transfer is entered only under a
-[transfer instruction](../operations/register-foundation.md#register-instructions-for-transfers).
-Directors decide after the settlement, so its entry waits for one: the
-company owner lists the exact completed settlements a named director approved,
-each with its seller, buyer and shares, under the same authority and review, and
-staff refuse a director who is either party. Applying it records the transfers
-that waited, still recorded by the transferor, whose signed order is the
-instrument. A transfer the directors decline is not modelled: its settlement
-keeps waiting and stays on the waiting list.
+A register belongs to one share class. Its first entry records the opening
+state, including an explicitly empty state, and later entries are:
 
-Company-run [compensating corrections](../operations/register-foundation.md#compensating-corrections)
-bind the company's own authority document to an exact reversal and register
-revision. The company's appointments approve and apply them, and application
-commits the entry with its decision, retaining the original entry and private
-evidence. An applied correction changes the stored holdings the reads below
-serve; it performs no chain reconciliation.
+| Kind       | Effect                                                        |
+| ---------- | ------------------------------------------------------------- |
+| Issue      | Add a positive whole-share quantity to one member             |
+| Transfer   | Subtract from one member and add the same quantity to another |
+| Cessation  | Remove a member's entire holding in this class                |
+| Correction | Compensate every quantity in one earlier entry exactly        |
+
+A transfer that empties a holding leaves a zero position; a cessation describes
+the class holding, not membership across the company's other classes. A
+correction can itself be compensated, but each original entry can be
+compensated only once and no change can make a position negative. Recording a
+cessation or correction burns, seizes or transfers nothing on chain. Partial
+corrections and replacement transactions are not built.
+
+PostgreSQL locks the register head, validates the event and member company,
+assigns the next sequence, hashes the event with its predecessor and updates the
+holdings and issued supply in the same transaction. Quantities are exact
+integers bounded by the unsigned 256-bit range. A repeated operation UUID with
+the same instructions returns its original entry; changed instructions
+conflict. Entry payloads admit only member UUIDs and share changes, never names
+or residential addresses. Triggers refuse entry and member rewrites and deletes,
+and holdings or head writes outside event projection; the operator role has no
+TRUNCATE privilege. The schema owner remains trusted: the hash chain is not an
+externally anchored proof against a schema owner who rewrites the entire
+history and every hash.
+
+The hash input is a PostgreSQL JSONB array in this order: format marker
+`ledova-register-v1`, entry UUID, register UUID, operation UUID, sequence,
+kind, effective date, sorted changes, corrected-entry UUID, actor ID, previous
+hash and creation time in UTC with microseconds. SHA-256 covers its UTF-8 JSONB
+text; the first predecessor is 64 zeroes. `tokens_register_entry_hash` and
+`tokens_register_entry_preimage`, installed from
+`backend/tokens/database_guards.sql`, compute the digest and return the exact
+text it covers; the [company pack](company-pack.md#hash-preimages) carries the
+preimage beside each entry. Verification checks each digest and link, replays
+positions and entry dates, and compares the resulting head and supply with
+storage; an uninitialised head fails verification.
 
 ## Membership and identity
 
@@ -241,29 +272,43 @@ The CSV has three sections with different widths:
    a class an import opened is `not on chain` until the fold first reads it.
 
 Read sections by their headers rather than assuming one width or column index.
-`csv_cell` neutralizes formula-opening user values. Each export is recorded in
-`RegisterExport` once its rows are built: the requester's ID, the share class,
-the kind, the stored register sequence exported, the current- and former-member
-row counts, and the time. A refused or failed export records nothing, and the
-route refuses `HEAD`, which would record a sheet it never sends. The records are
-kept for staff: the table is operator-only, so no company or customer route reads
-it, and operators query it in admin. Records cannot be rewritten. The daily
-former-member purge removes them after the same
-[2,557-day floor](../operations/uploads.md#data-retention).
+`csv_cell` neutralises formula-opening user values. The export route refuses
+`HEAD`, which would record a sheet it never sends.
 
 The company shareholder tile counts distinct completed allotment addresses and
 does no chain read. Operator identity queues also use allotment addresses and
 apply no identity-stamp fallback. They can include former holders and miss
 transfer-only holders; neither is a substitute for the register.
 
+### Export records
+
+Ledova keeps a fingerprint, not the file. Each output below is recorded in
+`RegisterExport` once its bytes are built, with the requester's ID, the share
+class, the kind, the register sequence exported, the current- and former-member
+row counts and the time. A refused or failed output records nothing. Database
+check constraints require each kind's own fields and refuse another kind's:
+
+| Kind              | Sequence and rows                                    | Also records                                                                                                              |
+| ----------------- | ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `register_csv`    | The head; member rows as exported                    | Nothing more                                                                                                              |
+| `inspection_copy` | The head; member rows as exported                    | SHA-256 of the bytes served, instruction reference, request date, recipient and late flag                                 |
+| `certificate`     | The certified entry's; one or two pages              | SHA-256 of the bytes served and the instruction reference                                                                 |
+| `notice_figures`  | The head's; the members the period's entries changed | SHA-256 of the bytes served, instruction reference and the first day of the period                                        |
+| `company_pack`    | Each class's head, one row per class                 | SHA-256 of `manifest.json`, instruction reference and recipient ([company pack](company-pack.md#producing-and-recording)) |
+
+Records cannot be rewritten. The table is operator-only, so no company or
+customer route reads it and operators query it in admin. The daily
+former-member purge removes records after the
+[2,557-day floor](../operations/uploads.md#data-retention).
+
 ## Inspection copies
 
 Section 173(3) requires a company to give a copy of its register within 7 days
 after a proper request. Current exact-company appointees holding administration
-or a register capability prepare it in the web/mobile **Register**; the
-[runbook](../operations/register-foundation.md#preparing-an-inspection-copy)
-has the steps. Ownership and platform staff permissions supply no inspection-copy
-authority. The company decides whether a request is proper and provides the copy.
+or a register capability prepare it in the web/mobile **Register**
+([company inspection copies](../plans/company-managed-registers/company-inspection-copies.md)).
+Ownership and platform staff permissions supply no inspection-copy authority.
+The company decides whether a request is proper and provides the copy.
 
 [register_inspection_copies.py](../../backend/tokens/services/register_inspection_copies.py)
 serves the company-authorised preview and generation behind the API. It calls
@@ -279,27 +324,21 @@ future date.
 The flag counts calendar days and does not extend a limit that ends on a
 weekend or public holiday, which also errs towards late.
 
-Ledova keeps a fingerprint, not the file. Each copy is recorded in
-`RegisterExport` as an `inspection_copy`, beside the fields every export
-records, with the SHA-256 of the exact bytes served, the instruction's
-reference, the request date, the recipient and the late flag, so the file and
-its record agree. Database check constraints require an `inspection_copy` row
-to carry all five and a `register_csv` row to carry none. A register with no
-opening, a request date after today and a blank field are refused, and a
-refusal records nothing. Preparation binds the exact appointment and source
-fingerprint; generation refuses changed source or lost authority and rechecks
-authority before committing the record. The source fingerprint includes the
-class, sequence and base CSV bytes; the audit digest identifies the final bytes.
-The retired staff form supplies no parallel generation route. Historical records
-and direct generator consumers remain. The records share the export records' update guard,
-operator-only table and daily purge after the 2,557-day floor.
+Each copy is recorded as an `inspection_copy` ([export records](#export-records)),
+so the file and its record agree. A register with no opening, a request date
+after today and a blank field are refused, and a refusal records nothing.
+Preparation binds the exact appointment and a source fingerprint over the class,
+sequence and base CSV bytes; generation refuses changed source or lost authority
+and rechecks authority before committing the record. There is no staff
+generation route.
 
 ## Certificates
 
 Section 1071H requires a company to have a certificate ready within 2 months
 after an issue and within 1 month after a transfer is lodged. Staff prepare it
 in admin, on the company's written instruction, from the share class's
-**Register outputs** page, with the permission inspection copies use; the
+**Register outputs** page, a proxy of `ShareToken` whose change permission,
+**Can change register outputs** (`tokens.change_registeroutput`), opens it; the
 [runbook](../operations/register-foundation.md#preparing-a-certificate) has the
 steps. There is no API route. Ledova prepares the certificate unsigned and the
 company executes it (owner decision, 22 September 2026).
@@ -334,14 +373,8 @@ records its licence. The file carries no creation date or random identifier, so
 preparing the same entry again gives the same bytes while the register, the
 particulars and the PyMuPDF version stay the same.
 
-Ledova keeps a fingerprint, not the file. Each certificate is recorded in
-`RegisterExport` as a `certificate`, whose register sequence is the certified
-entry's and whose member rows count its pages, with the SHA-256 of the exact
-bytes served and the instruction's reference. A database check constraint
-requires the digest, the instruction and one or two pages, and allows no former
-rows and none of an inspection copy's request fields. The records share the
-export records' update guard, operator-only table and daily purge after the
-2,557-day floor.
+Each certificate is recorded as a `certificate` ([export records](#export-records)),
+so the file and its record agree.
 
 ## Notice figures
 
@@ -351,7 +384,7 @@ that notice or otherwise within 28 days (s178A, s178C and s178D);
 [legal position 6](../legal/positions.md#6-where-and-in-what-form-the-register-is-kept)
 lists these obligations. Staff prepare the figures for those notices in admin,
 on the company's written instruction, from the share class's **Register
-outputs** page, with the permission the other outputs use; the
+outputs** page, with the permission certificates use; the
 [runbook](../operations/register-foundation.md#preparing-notice-figures) has
 the steps. There is no API route. The company decides which notices the figures
 support and lodges them: Ledova prepares figures, not a notice, and names no
@@ -393,14 +426,8 @@ Days are counted in Sydney's calendar, as for inspection copies. A register with
 no opening and a period starting after today are refused, and a refusal records
 nothing. A period with no entries is not refused: its sections list none.
 
-Ledova keeps a fingerprint, not the file. Each preparation is recorded in
-`RegisterExport` as `notice_figures`, whose register sequence is the head's and
-whose member rows count the changed members, with the first day of the period,
-the instruction's reference and the SHA-256 of the exact bytes served. A
-database check constraint requires the digest, the instruction and the period,
-and allows no former rows and none of an inspection copy's request fields; a
-second allows a period on no other kind. The records share the export records'
-update guard, operator-only table and daily purge after the 2,557-day floor.
+Each preparation is recorded as `notice_figures` ([export records](#export-records)),
+so the file and its record agree.
 
 ## Outputs due
 

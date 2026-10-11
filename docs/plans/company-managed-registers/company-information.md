@@ -13,14 +13,9 @@ The screen reads every company-list page and the selected company's full documen
 record; a partial or failed read does not establish that the company is absent.
 
 The **Manage company information and team** permission is the personal `admin`
-capability of a current appointment for that company. Delegatable scope alone,
-shareholding, a global company account role or platform staff access does not
-grant it. The screen uses current company access returned by the API. Revoked or
-expired appointments and inactive or unverified accounts cannot start a new
-administrative effect. Before initial admission, an active, email-verified owner
-may prepare their draft company under the
-[draft setup exception](authority-requests.md#boundaries), which admission or
-legacy-owner history closes permanently.
+capability of a current appointment for that company; the
+[authority guide](authority-requests.md#boundaries) defines it and the draft
+setup exception.
 
 ## What the company does
 
@@ -46,31 +41,14 @@ uses the existing private document-copy and share flow with its session cleanup.
 ## Boundaries
 
 [Company activation](company-activation.md) and share-class
-[deployment](company-deployments.md) are company-run through their own
-appointments and checks; share-class creation, offerings and publications keep
-their existing owner and account-role conditions. Basic draft preparation does
-not grant activation authority, and managing company information does not
-itself instruct activation, issue shares, approve a payment or publish an
-offering. Platform document review and retained identity/provider outcomes keep
-their existing checks and history; platform staff access supplies no company
-mandate.
+[deployment](company-deployments.md) run through their own appointments and
+checks; managing company information does not itself instruct activation, issue
+shares, approve a payment or publish an offering.
 
 An owner with the existing company account role can still select the company and
-read its basic metadata after their administrative appointment ends. This read
-does not restore administration: private company documents and contact records
-remain hidden, and company edits, file access, uploads and deletion still require
-current administrative access. Owner business actions retain their own existing
-checks. An appointee's administration does not grant the owner's business scope.
-
-Company administrators receive bounded company contact and document information.
-This access does not expose another representative's private declaration or
-identity and financial evidence. Existing private-file authorisation, upload
-validation, retention and company isolation remain enforced by the server.
-
-The clients check both the current company list and the selected company detail
-before using administration or owner business access. A refreshed list can
-withdraw either access while the detail remains cached. Private contact and
-document displays stop with administration access, and an open document removal
-confirmation closes. Local edit and upload drafts remain available with their
-submission disabled. Loss of owner access or the company account role disables
-an open share-class draft without substituting administration authority.
+read its basic metadata after their administrative appointment ends; private
+documents and contact records stay hidden, and edits, file access, uploads and
+deletion still require current administrative access. Company administrators
+see bounded contact and document information, never another representative's
+private declaration or evidence. Clients re-check the company list and detail
+before administration actions.

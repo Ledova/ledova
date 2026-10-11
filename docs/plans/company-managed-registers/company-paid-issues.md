@@ -5,12 +5,9 @@
 Delivered by [PR #951](https://github.com/Ledova/ledova/pull/951).
 
 The company can issue shares from an existing subscription recorded as PAID on
-a deployed Base whole-share class. This increment adds no new payment mechanics
-or off-chain investor allotment: #868 records externally arranged investor
-capital and company-approved allotments, while offering publication,
-application funnels, payment collection, receipt verification and refund
-mechanics are deferred under the
-[9 October priority](../../decisions.md#essential-registry-and-development-workflow-priority).
+a deployed Base whole-share class. This increment adds no new payment mechanics;
+externally arranged capital is recorded through
+[external allotments](external-allotments.md).
 
 ## What the company does
 
@@ -30,13 +27,11 @@ wallet nomination, member selection, grant terms or acceptance prerequisite for
 an already instructed paid subscription.
 
 The preparer retains its own exact-company AUTHORITY document and states the
-approving director, authority reference and reason. A current `admin`
-appointment may prepare, approve, apply and reject, with `prepare`, `approve`
-and `apply` as the narrower delegate capabilities, under the
-[owner's authority rules](../../decisions.md#company-run-register-authority-and-evidence);
-ownership, platform staff permissions, a receipt or technical signer access
-supplies no company mandate. The named director and the existing recipient
-conflict check follow the [register grant rule](register-grants.md#what-the-company-does).
+approving director, authority reference and reason. Authority follows the
+[owner's rules](../../decisions.md#company-run-register-authority-and-evidence);
+a receipt supplies no company mandate. The named director and the existing
+recipient conflict check follow the
+[register grant rule](register-grants.md#what-the-company-does).
 
 ## API
 
@@ -74,16 +69,12 @@ Actual register entry dates and subscription allotment dates remain distinct.
 Current exact-company register-read capability controls proposals and retained
 authority files. Private account, profile, wallet lock and reserved dispatch
 identifiers remain internal. Company administration does not grant the
-financial ledger or unrelated participant records. Both clients retain the
-original operation key, body, uploads and expected receipt within the current
-session; the selected source packet, company, class, account and session guard
-uploads, previews, confirmations and final callbacks, and mobile additionally
-binds its session epoch.
+financial ledger or unrelated participant records.
 
 ## Boundaries
 
 Fresh platform-staff paid-issue approval and admission are retired; financial
-receipt/refund producers and technical diagnostics remain until #868 changes
-them. Historical paid records and migrations retain their actual actors and
+receipt/refund producers and technical diagnostics remain, and new payment
+mechanics are deferred. Historical paid records and migrations retain their actual actors and
 source bindings. This increment does not deliver AUD collection or prove that
 AUD pricing or a stablecoin is direct AUD payment.

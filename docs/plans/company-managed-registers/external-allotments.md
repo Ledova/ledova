@@ -2,6 +2,9 @@
 
 [Implementation index](README.md) · [Owner decision](https://github.com/Ledova/ledova/issues/868#issuecomment-6088911736)
 
+Delivered by [PR #974](https://github.com/Ledova/ledova/pull/974) under
+[#868](https://github.com/Ledova/ledova/issues/868).
+
 The company records an investment arranged outside Ledova and a fully paid
 allotment on an opened imported register. The investor can be a new or existing
 walletless member. No deployment, subscription payment or chain receipt is
@@ -51,8 +54,7 @@ guarantee.
 
 Partly paid allotments, calls, outstanding amounts, collection, providers and
 refunds remain deferred. This first scope adds no account/member association
-or member-facing access; those follow #866. Employee awards and non-paid grants
-remain distinct from paid investor capital.
+or member-facing access; those follow #866.
 
 ## API and verification
 
@@ -61,9 +63,7 @@ routes. Detail actions provide `file/`, `agreement-file/`, `receipt-file/`,
 `decision-preview/` and `decide/`. The readonly agreement and contribution are
 separate nested records; the contribution identifies its company provenance.
 
-Fresh migrations install the records and their PostgreSQL guards before the
-shared role/policy catalogue. The minimum core API journey and essential
-authority/isolation/retry refusals, small client core flows, PostgreSQL
-role/catalogue checks and canonical schema cover this increment. The
-[minimum-test policy](../../development/testing.md) applies; broad retired
-fixtures and shipped-migration rewinds are not restored.
+Migration `tokens/0004_external_allotments` belongs to the
+[fresh history](../../decisions.md#minimum-tests-and-fresh-migrations); PR #974
+carries the verification under the
+[minimum-test policy](../../development/testing.md).

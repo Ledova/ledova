@@ -61,9 +61,9 @@ flowchart LR
 ```
 
 Team invitations, acceptance, appointment history, administrator team reads and
-revocation are available on web and mobile and through the API below. The
-upgrade records existing company owners as administrators under the legacy
-source below.
+revocation are available on web and mobile and through the API below.
+Appointments created by the retired owner upgrade carry the legacy-owner source
+described below.
 
 ## Web and mobile
 
@@ -162,8 +162,7 @@ offered personal and delegatable capabilities must be within the selected
 appointment's current delegatable scope. A caller may delegate a capability they
 do not personally hold; this does not grant it to the caller. Granting or
 delegating `admin` also requires a current personal `admin` appointment for
-that company. A platform staff role, company ownership or shareholder record
-supplies neither appointment nor access to its team.
+that company.
 
 `acceptance_deadline` defaults to seven days and must be within thirty days.
 Optional `appointment_expires_at` must be in the future. The issuance response
@@ -186,70 +185,28 @@ returns its retained appointment, including after expiry or revocation; a
 different account cannot consume it again. Revoking the inviter blocks a new
 acceptance but does not revoke an already accepted child.
 
-Team reads contain account name/email, appointment identifiers, capabilities,
-expiry and current status. They expose no identity-provider files, financial
-evidence, declaration text, bootstrap request or invitation hash/code. Self
-revocation remains available after loss of identity verification. Administrators
-may revoke an initial or another administrator appointment; there is no last
-administrator exception or new-bootstrap path. History remains retained.
+Self revocation remains available after loss of identity verification.
+Administrators may revoke an initial or another administrator appointment; there
+is no last administrator exception or new-bootstrap path. History remains
+retained.
 
 ## What is recorded
 
-The app connection reads only its principal's requests, appointments, issued
-invitations and retained outcomes. An appointment names its appointee and their
-profile; initial admission records the request's requester as the appointee,
-and a company has one such bootstrap appointment. The app connection cannot
-create or alter these authority records directly. Bounded operator services
-carry and restore the individual principal, lock and recheck identities and
-exact scopes. Database triggers protect admission, withdrawal, revocation and
-immutable history. Existing identity-provider results and the configured
-company identity check remain server-owned; ordinary profile changes keep their
-existing account scope.
+An appointment names its appointee and their profile and has exactly one
+initial-request, invitation or legacy-owner source. Initial admission records
+the request's requester as the appointee, and a company has one such bootstrap
+appointment. The app connection cannot create or alter these authority records
+directly; database triggers protect admission, withdrawal, revocation and
+immutable history.
 
-An appointment has exactly one initial-request, invitation or legacy-owner
-source. Company locks precede actor locks in submission, admission, invitation
-and revocation services. Invitation guards check possession of the code through
-a temporary transaction setting and restore any prior setting after successful
-acceptance; rollback also restores the outer transaction. Database expiry checks
-use actual time after waiting for locks. Invitation history and non-self
-administrator revocation prevent reversal of migration `0017`; supported
-empty/self-revocation reversal restores the preceding guards and policies
-exactly. Guard-only migration `0018` protects new invitation admissions without
-changing prior appointments, invitations, revocations or actors; reversing it
-restores the exact preceding invitation guard.
-
-### Existing owner appointments
-
-`companies/0019_legacy_owner_appointments` records one administrator appointment
-for each existing company that has no initial-request or legacy-owner appointment.
-An expired or revoked initial appointment still counts, so upgrading cannot
-restore it. The source retains the company's actual owner account and profile at
-upgrade time, the migration identifier and the time recorded by the upgrade.
-It does not fabricate a signed declaration, ABR result, director mandate,
-activation or approval of a pending proposal. Existing records and actors
-remain unchanged.
-
-Legacy appointments have personal `admin` and may delegate the six existing
-capabilities. Normal active-account, verified-email and configured identity
-requirements still determine current authority. Web/mobile history identifies
-the legacy source; the own-record API returns `source: "legacy_owner"` and null
-declaration fields. Initial and invited appointments retain their exact signed
-declarations. Bounded team reads continue to exclude private evidence.
-
-New companies and later owner changes do not create legacy appointments. A
-legacy root remains consumed after revocation or expiry; administrators use
-invitations for subsequent appointments. Revocation is permanent and does not
-cascade to an already accepted child appointment. Raw app, operator and migration
-connection writes cannot create another legacy source or appointment after the
-upgrade, change the retained source or erase its history. Populated reversal
-refuses before discarding any source or appointment; empty reversal restores the
-preceding guards and constraints.
+`source: "legacy_owner"` marks appointments created by the retired owner upgrade
+delivered with [PR #911](https://github.com/Ledova/ledova/pull/911). They carry
+personal `admin` and the six delegatable capabilities, return null declaration
+fields in the own-record API, and are subject to the same account, identity,
+expiry and revocation checks. The fresh migration history creates none;
+administrators appoint through invitations.
 
 Supporting files retain the [private-file lifecycle](../../architecture/files-and-retention.md).
-Migration reversal refuses to discard populated admission/revocation history;
-empty reversal preserves the earlier request and withdrawal lifecycle. Follow
-[upgrade notes](../../operations/upgrades.md) and retain the database and private
-storage together.
 
 ## Boundaries
 
@@ -274,40 +231,12 @@ hidden roots and later owner changes cannot reopen it. A pending request leaves
 the draft editable so admission still checks its exact retained identity
 snapshots against the current company.
 
-The connection roles, selectors, policies and owner-domain helpers behind these
-checks are described once in the
-[tenancy model](../../architecture/tenancy.md#roles-and-principal). Specific to
-this increment: persistence locks the company first, then the live actor,
-profile, configured identity row and appointments, followed by the affected
-document, wallet and attached offerings, and checks use the actual time after
-waiting; document update/delete statements and command-scoped association
-removals lock the declared company before their rows, and for `document_delete`
-the statement guards lock all offerings of the declared company before either
-document or association rows and recheck authority after that wait; a failed
-upload removes only its newly written object, and file reads open the private
-handle under the checked boundary, then stream with `private, no-store`. Public
-discovery retains its original terms through a separate UUID helper without
-granting private resource access. Share-class creation accepts only its existing
-validated fields and rechecks its selected owner and active actor under the same
-lock order; personal `admin` supplies no mandate for the retained owner
-workflows. The existing provider projection, owner submission and platform-staff
-lifecycle/content review callers retain their specific permissions through
-bounded commands: the status API requires current active platform staff, admin
-row review additionally requires the existing model change permission, and
-document review retains its own model permission and exact content
-confirmation. Staff status alone does not authorise basic metadata or document
-management, and generic admin add/delete and document metadata paths are
-closed. Offering, finance and publication authority keep their existing owner
-and platform-staff checks; no delivered increment converts them.
+Checks lock the company before the actor and affected rows and use the time
+after lock waits; the connection roles, selectors and policies behind them are
+described once in the [tenancy model](../../architecture/tenancy.md#roles-and-principal).
+Share-class creation, offering, finance and publication authority keep their
+existing owner and platform-staff checks; no delivered increment converts them.
 
-The owner's [self-declaration decision](../../decisions.md#company-representative-verification)
-supersedes the earlier ASIC officeholder/InfoTrack route: no ASIC search, broker,
-extract or InfoTrack agreement is a prerequisite, and the company remains
-responsible for its information, ASIC filings and legal obligations. Company
-administrators change through existing company administrators or court/regulator
-direction. Normal recovery of a person's own account is separate; it supplies no
-appointment to a replacement administrator. Initial admission and self-revocation
-implement neither disputed-access replacement nor a court-order processing route.
-No new fraud or impersonation verification is added; any identified legal duty on
-Ledova must be cited and raised with the owner before building a check, as the
-dated [legal positions](../../legal/positions.md) record.
+Representative verification follows the owner's
+[self-declaration decision](../../decisions.md#company-representative-verification),
+which also rules out new fraud or impersonation checks without a cited legal duty.

@@ -18,6 +18,9 @@ PAID subscription without new collection or refund mechanics. Allotment binds
 the exact approved subscription, recipient and shares, with atomic admission,
 headroom, refund holds, idempotency, original transaction finality and bounded
 recovery. Non-paid grants use genuine non-paid terms, never a fabricated receipt.
+Capital arranged outside Ledova is recorded as a
+[register allotment](../plans/company-managed-registers/external-allotments.md),
+not a subscription.
 
 ## Data flow of a subscription
 
@@ -28,8 +31,7 @@ recovery. Non-paid grants use genuine non-paid terms, never a fabricated receipt
    account, the wallet to `owned_by(user).verified_evm()` on Base.
    `create_draft` stores the offering price, currency, company display name
    (trading name with legal-name fallback), class name and symbol on the row.
-   Later edits do not refresh those values. Existing applications are backfilled
-   from their parents by the migration, including hidden and paused classes.
+   Later edits do not refresh those values.
 2. The personal list and detail read these stored values without joining the
    offering, class or company. Reads, bank instructions and guarded withdrawal
    remain available after a class is paused or the company leaves the directory,
@@ -54,7 +56,7 @@ recovery. Non-paid grants use genuine non-paid terms, never a fabricated receipt
    when a write bypassed model validation, and the random code is never
    truncated. `normalize_reference` runs on generation and on admin lookup, so a
    mangled bank narrative still matches. `build_instruction` returns the
-   rail-dependent payload — the operator's bank fields, or the receiving wallet
+   rail-dependent payload: the operator's bank fields, or the receiving wallet
    plus the settlement asset's contract address and decimals from
    `operators.settlement.require_deployment`, which refuses when the asset has
    no active deployment on `Operator.receiving_wallet_chain`.
@@ -71,7 +73,7 @@ recovery. Non-paid grants use genuine non-paid terms, never a fabricated receipt
    `confirm_payment` also catches the index's `IntegrityError` and returns the
    same refusal rather than a 500 for whoever loses. The hash is **not verified
    against the chain**: `confirm_payment` never checks that it exists, moves the
-   right amount, or reaches the operator's wallet — the operator is trusted
+   right amount, or reaches the operator's wallet; the operator is trusted
    throughout this admin. The bank rail has no such key: settlement there is
    operator-attested, so a statement line already recorded against another
    subscription is a **warning** naming the other references, not a refusal.
@@ -86,7 +88,7 @@ recovery. Non-paid grants use genuine non-paid terms, never a fabricated receipt
    `refunded_at` is set, and the row is closeable only when every cent is back.
    Before allotment the whole amount is returnable and the refund unwinds the
    allotment; after allotment only the residual no allotted share paid for can
-   come back — a cent more is refused as a claimed mint, because money never
+   come back, and a cent more is refused as a claimed mint, because money never
    leaves while the shares it bought stay out. A queued allotment refund retains
    a cancelled private admission and rejects its approved request atomically.
    A delayed task cannot revive it. Once the worker commits its executing claim,
@@ -97,17 +99,10 @@ recovery. Non-paid grants use genuine non-paid terms, never a fabricated receipt
 6. Paid issuance needs the exact applied company
    [paid-issue instruction](../plans/company-managed-registers/company-paid-issues.md)
    over the recorded subscription and captured recipient, quantity and payment
-   facts. Preparation and approval admit no request or execution. Application
+   facts. Preparation and approval admit no request or execution; application
    consumes company approval and admits one private `ShareIssuanceExecution`
    alongside its approved request, original subscription link and exact task
-   identity. Initial queued
-   work remains refundable until the worker claims it. The shared outgoing journal
-   commits the original signed transaction and public associations before send.
-   The database protects approved terms, first linkage, money and share quantities
-   against stale edits. Fresh signing needs the original current company source;
-   technical retry preserves that source and original identity. Recovery of
-   accepted signed work is operator-owned after authority loss.
-   Retry confirmations bind the subscription, actor and exact failed claim.
+   identity, and queued work remains refundable until the worker claims it.
    See [issuance boundaries](outgoing-signing.md#share-issuances).
 7. The company paid-issue family checks both offering headroom and class capacity
    under the original source locks, with current chain observations taken before
@@ -128,12 +123,10 @@ recovery. Non-paid grants use genuine non-paid terms, never a fabricated receipt
    becomes `refund_amount`, and the clamp floors at zero so a negative headroom
    scales a row to nothing rather than to a quantity the database check
    constraint rejects.
-8. New recovery commits the request, issuance and subscription's allotted status
-   together after original receipt verification. `reconcile_subscriptions` still
-   repairs historical paid subscriptions whose linked request already executed.
-   The issuance sweep handles queued and executing private commands, plus
-   unresolved historical requests. The daily `expire_unpaid_subscriptions` only
-   touches rows with no payment recorded.
+8. Recovery commits the request, issuance and subscription's allotted status
+   together after original receipt verification
+   ([subscription recovery](../operations/recovery.md#subscriptions)); the daily
+   `expire_unpaid_subscriptions` only touches rows with no payment recorded.
 9. Both clients expose company preparation and exact approval/application through
    `/api/v1/tokens/register-paid-issues/`, with a narrow ready-source selector for
    current ADMIN/PREPARE in the exact company and class. Approvers and register

@@ -37,19 +37,15 @@ the account's profile, wallets, transactions and portfolios. It is not
 everything Ledova holds about the person: classification claims and their
 evidence, uploaded documents, per-asset holdings, orders, subscriptions,
 notifications, the transaction-alerts switch and register particulars are not
-in it. Until `users/0028` the export also had a `preferences` section holding
-the selected portfolio; it went with that preference
-([upgrade note](../operations/upgrades.md#theme-and-selected-portfolio-preferences)).
+in it. There is no `preferences` section: the selected-portfolio preference it
+once held no longer exists.
 
 ## Transactions
 
 Every transaction row of the account's wallets is exported, newest block first,
-with no limit. Until [#650](https://github.com/Ledova/ledova/issues/650) the
-export kept only the newest 1,000 and said nothing about the rest; the
-[decision](../decisions.md#the-account-data-export) records why that was
-removed. The rows are read through a database cursor rather than loaded as
-models all at once, and each row's latest chain observation arrives in the same
-query.
+with no limit ([decision](../decisions.md#the-account-data-export)). The rows
+are read through a database cursor rather than loaded as models all at once,
+and each row's latest chain observation arrives in the same query.
 
 | Field | Meaning |
 | --- | --- |
@@ -101,8 +97,7 @@ when it carries personal information of someone other than the person asking,
 or when it goes to anyone but that person. This export carries only the
 requester's own data and goes only to them, so recording it would log a person
 looking at their own records. Register exports meet that rule and are recorded
-([register exports](../architecture/register.md#api-and-export)). A test holds
-the export request to issuing no `INSERT`, `UPDATE` or `DELETE`.
+([register exports](../architecture/register.md#api-and-export)).
 
 ## Limits
 

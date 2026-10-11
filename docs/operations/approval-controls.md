@@ -2,106 +2,81 @@
 
 [Operations](README.md) · [Chains and keys](chains.md) · [Refreshing an approval](../architecture/outgoing-signing.md#refreshing-an-approval)
 
-This is an implementation and dated evidence record. The accepted
-[company-managed register plan](../architecture/company-managed-registers.md)
-replaces routine platform-staff eligibility and register decisions with
-company-scoped authority. The current
-[wallet nomination and company instruction workflow](../plans/company-managed-registers/company-wallet-approvals.md)
-replaces fresh staff ADD/REMOVE admission. The earlier staff actors, commands and
-signer exercises below remain dated evidence, without supplying a current company
-mandate. The owning pull request records the replacement controls' executed
-checks and limits.
-
+This page is the dated evidence record for
+[product §5](../product.md#5-verification-and-transaction-controls).
 [#648](https://github.com/Ledova/ledova/issues/648) gave each company its own
 on-chain `WhitelistRegistry` with an expiry the share token enforces on both
 sides of every movement, made a revoked or expired classification reach the
-chain, and put classification liveness in front of listing and acceptance.
-This page records the evidence for
-[product §5](../product.md#5-verification-and-transaction-controls): which
-merged pull request supplied each required behaviour and its original tests, what the bypass review asked and answered, and what the
-[fresh-start redeploy](chains.md#fresh-start-redeploy) rehearsal found. The reviews and test names below are historical evidence; the
-[11 October policy](../decisions.md#minimum-tests-and-fresh-migrations) retires
-the broad suites and does not claim these cases still run on main. Original commands and
-source remain in the linked pull requests. The #863 eligibility cutover retired
-the global classification renewal workflow and replaced it with retained
-company-decision and actual participant-loss removal controls; commit
-`c42402e7` (5 October 2026) renamed the stage-check tests accordingly, and the
-first-row names describe the 10 October source, before the minimum-test reset.
-
-Contract tests are Mocha names inside `contracts/test/`, run with
-`npm --prefix contracts test`. Backend names use `module.Class.method`; their original commands are in
-the linked PRs; the current [core suite](../development/testing.md#backend-verification)
-has deliberately narrower coverage.
+chain, and put classification liveness in front of listing and acceptance. The
+page records which merged pull request supplied each required behaviour, what
+the bypass review asked and answered, what the
+[fresh-start redeploy](chains.md#fresh-start-redeploy) rehearsal found and the
+authorised Base Sepolia run. The staff actors and commands in this evidence are
+history: company appointees now authorise wallet approvals through the
+[company wallet workflow](../plans/company-managed-registers/company-wallet-approvals.md),
+and [refreshing an approval](../architecture/outgoing-signing.md#refreshing-an-approval)
+states what the controls do not do.
 
 ## The six required behaviours
 
-| §5 behaviour                                                                                                                   | Where it is enforced                                                                                                                                                                                                                                                                                                                  | Merged                                                                                                                                                  | Historical test evidence                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
-| ------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Apply checks at relevant stages, including listing, acceptance and transfer                                                    | Order creation and swap signing check the account's live classification for the class's company; `ShareToken._update` checks the registry on every movement                                                                                                                                                                           | [#702](https://github.com/Ledova/ledova/pull/702), [#701](https://github.com/Ledova/ledova/pull/701)                                                    | `tokens.tests.test_marketplace_stage_checks.ListingRequiresALiveClassificationTest.test_a_revoked_company_decision_records_the_eligibility_refusal`; `...AcceptanceRequiresALiveClassificationTest.test_a_party_whose_company_decision_was_revoked_cannot_accept`; `...test_a_fresh_seller_signature_cannot_be_submitted_as_the_buyer` (the nearest successor of `test_a_relayed_signature_is_judged_by_whose_signature_it_is`, removed in `c42402e7`); `ShareToken` → `Sender checks` → "Should refuse a direct transfer from a removed sender"                                                                                        |
-| Bind approvals to the correct participant, company, wallet and action; enforce expiry, revocation and protection against reuse | The factory keys one registry per ACN; a change carries its company, address, action and expiry, bound into the exact `setExpiry` calldata by a database trigger; `isWhitelisted` is `expiresAt > block.timestamp`                                                                                                                    | [#701](https://github.com/Ledova/ledova/pull/701)                                                                                                       | `ShareTokenFactory` → `Cross-company isolation` → "Should grant nothing on company B's token for an approval in company A's registry"; `WhitelistRegistry` → "Should stop listing an address once its expiry has passed"; `whitelist.tests.test_change_recovery.WhitelistChangeRecoveryTest.test_each_company_keeps_its_own_approval_row_and_registry`; `whitelist.tests.test_change_guards.WhitelistChangeGuardTest.test_the_guard_binds_the_expiry_into_the_registry_call`; `whitelist.tests.test_company_wallet_instructions.CompanyWalletInstructionTest.test_exact_applied_replay_survives_source_loss_and_changed_terms_conflict` |
-| Enforce rules on direct contract calls and delegated transfers; check administrative and recovery paths for bypasses           | `_update` is the single enforcement point, so a direct call, a delegated transfer and a swap settlement all meet it; fresh company instructions check the exact company mandates and sources; technical removal retains its actual loss cause                                                                                         | [#701](https://github.com/Ledova/ledova/pull/701), this slice                                                                                           | `ShareToken` → `Sender checks` (four cases); `Approval bypasses` (whole file); `whitelist.tests.test_bypass_paths` (whole file) — see [the bypass review](#the-bypass-review)                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
-| Refresh affected permissions when evidence or restrictions change, with documented update delays                               | Company revocation, holder withdrawal, expiry and actual standing/wallet losses retain their original decision or loss before removal; refresh cannot add or renew authority. The approval sweep covers surviving rows; removal jobs retry every five minutes after their rows disappear. The normal update window is fifteen minutes | [#702](https://github.com/Ledova/ledova/pull/702), removal recovery under [#648](https://github.com/Ledova/ledova/issues/648)                           | `whitelist.tests.test_company_eligibility_invalidation.CompanyEligibilityInvalidationTest.test_company_revocation_removes_under_the_real_now_inactive_company_revoker`; `...test_holder_source_withdrawal_retains_the_holder_without_a_staff_reviewer`; `...test_actual_expiry_is_automation_with_no_invented_human`; `whitelist.tests.test_change_scoped.ScopedWhitelistChangeTest.test_deleted_wallet_removal_job_survives_pending_add_then_removes_its_late_confirmation`                                                                                                                                                            |
-| Hold affected actions when required checks are stale, unavailable or unresolved, with review and recovery procedures           | A screening result without a valid risk score leaves the screening pending rather than approving it; a failed removal reads as not approved and is resubmitted; an unreadable registry reads `unknown`, never `whitelisted`; an unresolved change blocks the opposite command until recovery finishes                                 | [#700](https://github.com/Ledova/ledova/pull/700), [#701](https://github.com/Ledova/ledova/pull/701), [#702](https://github.com/Ledova/ledova/pull/702) | `compliance.tests.test_crypto_screening_results.ProviderWithoutScreeningTest.test_a_provider_that_cannot_screen_fails_and_raises_the_monitoring_flag`; `whitelist.tests.test_company_eligibility_invalidation.CompanyEligibilityInvalidationTest.test_original_unresolved_outgoing_is_recovered_without_a_fresh_eligibility_suffix`; `whitelist.tests.test_status_view.WhitelistInvestorStatusServiceTest.test_a_chain_error_is_reported_as_unknown_rather_than_a_refusal`                                                                                                                                                              |
-| Resolve mistaken identity matches and expired restrictions through an accountable correction process                           | Every change retains its original authority and actor; company changes also retain their exact applied source, and the database refuses forged or mutable authority; a removal retains its genuine decision or loss actor, and a legacy change without a retained cause is reported without fabricating one                           | [#701](https://github.com/Ledova/ledova/pull/701), [#702](https://github.com/Ledova/ledova/pull/702), this slice                                        | `whitelist.tests.test_company_wallet_instructions.CompanyWalletInstructionTest.test_exact_applied_replay_survives_source_loss_and_changed_terms_conflict`; `whitelist.tests.test_company_eligibility_invalidation.CompanyEligibilityInvalidationTest.test_legacy_approval_without_an_actual_cause_is_observable_and_not_fabricated`; `whitelist.tests.test_bypass_paths.WhitelistAuthorityBypassTest.test_the_database_refuses_moving_an_admitted_change_to_another_authority`                                                                                                                                                          |
+| §5 behaviour                                                                                                                   | Where it is enforced                                                                                                                                                                                                                                                                                                                  | Merged                                                                                                                                                  |
+| ------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Apply checks at relevant stages, including listing, acceptance and transfer                                                    | Order creation and swap signing check the account's live classification for the class's company; `ShareToken._update` checks the registry on every movement                                                                                                                                                                           | [#702](https://github.com/Ledova/ledova/pull/702), [#701](https://github.com/Ledova/ledova/pull/701)                                                    |
+| Bind approvals to the correct participant, company, wallet and action; enforce expiry, revocation and protection against reuse | The factory keys one registry per ACN; a change carries its company, address, action and expiry, bound into the exact `setExpiry` calldata by a database trigger; `isWhitelisted` is `expiresAt > block.timestamp`                                                                                                                    | [#701](https://github.com/Ledova/ledova/pull/701)                                                                                                       |
+| Enforce rules on direct contract calls and delegated transfers; check administrative and recovery paths for bypasses           | `_update` is the single enforcement point, so a direct call, a delegated transfer and a swap settlement all meet it; fresh company instructions check the exact company mandates and sources; technical removal retains its actual loss cause; see [the bypass review](#the-bypass-review)                                             | [#701](https://github.com/Ledova/ledova/pull/701), [#703](https://github.com/Ledova/ledova/pull/703)                                                    |
+| Refresh affected permissions when evidence or restrictions change, with documented update delays                               | Company revocation, holder withdrawal, expiry and actual standing/wallet losses retain their original decision or loss before removal; refresh cannot add or renew authority. The approval sweep covers surviving rows; removal jobs retry every five minutes after their rows disappear. The normal update window is fifteen minutes | [#702](https://github.com/Ledova/ledova/pull/702), removal recovery under [#648](https://github.com/Ledova/ledova/issues/648)                           |
+| Hold affected actions when required checks are stale, unavailable or unresolved, with review and recovery procedures           | A screening result without a valid risk score leaves the screening pending rather than approving it; a failed removal reads as not approved and is resubmitted; an unreadable registry reads `unknown`, never `whitelisted`; an unresolved change blocks the opposite command until recovery finishes                                 | [#700](https://github.com/Ledova/ledova/pull/700), [#701](https://github.com/Ledova/ledova/pull/701), [#702](https://github.com/Ledova/ledova/pull/702) |
+| Resolve mistaken identity matches and expired restrictions through an accountable correction process                           | Every change retains its original authority and actor; company changes also retain their exact applied source, and the database refuses forged or mutable authority; a removal retains its genuine decision or loss actor, and a legacy change without a retained cause is reported without fabricating one                           | [#701](https://github.com/Ledova/ledova/pull/701), [#702](https://github.com/Ledova/ledova/pull/702), [#703](https://github.com/Ledova/ledova/pull/703) |
+
+The original Mocha and Django cases are in those pull requests and in commit
+`c42402e7` (5 October 2026), which renamed the stage-check tests after the #863
+eligibility cutover; the current suites are smaller
+([backend verification](../development/testing.md#backend-verification)).
 
 §5 also asks that screening providers be replaceable while effective
 restrictions are preserved. Only the KYCAID adapter implements crypto
 screening; the base adapter raises. [#700](https://github.com/Ledova/ledova/pull/700)
 made a provider that cannot screen fail the screening and raise the monitoring
-flag rather than approve it, which is what replaceability has to preserve:
-`compliance.tests.test_crypto_screening_results.ProviderWithoutScreeningTest.test_a_provider_that_cannot_screen_fails_and_raises_the_monitoring_flag`.
-
-## What these controls do not do
-
-- **A removal reaches the chain in minutes, not at once.** Between a revocation
-  and its removal landing, a direct contract call can still move shares. Every
-  platform path refuses in that window; the chain does not. Pausing the token
-  is the incident lever.
-- **Owner power is trusted, not checked.** The operator key owns every registry
-  and token. Renouncing either ownership freezes it for good, and the swap
-  moves any token its owner approves, whether or not the factory created it.
-  The tests below record those consequences; no contract prevents them.
-- **A burn is not a transfer.** A holder whose approval lapsed can still burn
-  their own shares, and a spender they authorised earlier can still `burnFrom`
-  them. Reconciliation reports the burn.
+flag rather than approve it, which is what replaceability has to preserve.
 
 ## The bypass review
 
 §5 asks that administrative and recovery paths be checked for bypasses. These
-are the cases the review asked, the answer each has, and the test that holds
-it. "Existing" means the case already had a test when this slice started;
-"new" means this slice added it.
+are the cases the review asked and the answer each has. The review ran on
+23 September 2026; the Mocha cases came with
+[#701](https://github.com/Ledova/ledova/pull/701) and
+[#703](https://github.com/Ledova/ledova/pull/703).
 
 ### On chain
 
-| Case                                                                            | Answer                                                                                                                                                                       | Test                                                                                                                                                                                                                                                                                 |                  |
-| ------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------- |
-| Direct `transfer` from an expired holder                                        | Refused                                                                                                                                                                      | `ShareToken` → "Should refuse a direct transfer from an expired sender"                                                                                                                                                                                                              | existing         |
-| Direct `transfer` from a removed holder                                         | Refused                                                                                                                                                                      | `ShareToken` → "Should refuse a direct transfer from a removed sender"                                                                                                                                                                                                               | existing         |
-| Delegated `transferFrom` out of an expired holder                               | Refused                                                                                                                                                                      | `ShareToken` → "Should refuse a delegated transferFrom out of an expired holder"                                                                                                                                                                                                     | existing         |
-| Delegated `transferFrom` out of a removed holder                                | Refused                                                                                                                                                                      | `ShareToken` → "Should refuse a delegated transferFrom out of a removed holder"                                                                                                                                                                                                      | existing         |
-| `burnFrom` by an approved spender against an expired holder                     | **Allowed**: the burn sends to nobody, so `_update` has no recipient to check, and the holder granted that allowance while approved                                          | `Approval bypasses` → "Should let an approved spender burnFrom an expired holder, because the burn sends to nobody and the holder granted the allowance"                                                                                                                             | new              |
-| The same spender's `transferFrom` of the same shares                            | Refused                                                                                                                                                                      | `Approval bypasses` → "Should refuse the same spender a transferFrom of the same shares"                                                                                                                                                                                             | new              |
-| `burnFrom` without an allowance                                                 | Refused                                                                                                                                                                      | `Approval bypasses` → "Should refuse a burnFrom without an allowance"                                                                                                                                                                                                                | new              |
-| A removed holder burning their own shares                                       | Allowed, by the owner's decision; reconciliation reports it                                                                                                                  | `ShareToken` → "Should still let a removed holder burn their own shares"                                                                                                                                                                                                             | existing         |
-| Mint to a recipient with no approval                                            | Refused                                                                                                                                                                      | `ShareToken` → "Should revert when minting to non-whitelisted address"                                                                                                                                                                                                               | existing         |
-| Mint in the second the recipient's expiry names                                 | Refused                                                                                                                                                                      | `ShareToken` → "Should refuse a mint in the second the recipient's expiry names"                                                                                                                                                                                                     | existing         |
-| Transfer in the last second a party's approval names                            | Allowed                                                                                                                                                                      | `ShareToken` → "Should let a sender transfer in the last listed second", "Should let a recipient receive in the last listed second"                                                                                                                                                  | existing         |
-| Transfer in the second a party's expiry names                                   | Refused                                                                                                                                                                      | `ShareToken` → "Should refuse a sender in the second its expiry names", "Should refuse a recipient in the second its expiry names"                                                                                                                                                   | existing         |
-| Swap settlement with a seller who was never approved, or whose approval expired | Refused, both nonces preserved                                                                                                                                               | `AtomicSwap` → `Whitelist validation by the share token` (three cases)                                                                                                                                                                                                               | existing         |
-| Swap settlement with a removed seller, and with a removed buyer                 | Refused, the nonce preserved                                                                                                                                                 | `Approval bypasses` → "Should refuse settlement when the seller's approval was removed", "...when the buyer's approval was removed"                                                                                                                                                  | new              |
-| Swap settlement with an expired buyer                                           | Refused, and no payment moves                                                                                                                                                | `Approval bypasses` → "Should refuse settlement when the buyer's approval expired"                                                                                                                                                                                                   | new              |
-| Swap settlement in the last listed second, and in the second an expiry names    | Settles, then refused                                                                                                                                                        | `Approval bypasses` → "Should settle in the last second a party's approval names", "Should refuse settlement in the second a party's expiry names"                                                                                                                                   | new              |
-| An approval in one company's registry, used on another company's token          | Grants nothing                                                                                                                                                               | `ShareTokenFactory` → `Cross-company isolation` (three cases)                                                                                                                                                                                                                        | existing         |
-| The same, through a swap settlement                                             | Grants nothing                                                                                                                                                               | `Approval bypasses` → "Should refuse settlement of one company's token for parties approved only by another"                                                                                                                                                                         | new              |
-| Two classes of one company                                                      | Share one registry: one approval covers both, one removal freezes both, and another company's classes are untouched                                                          | `ShareTokenFactory` → "Should bind two classes of one company to the same registry"; `Approval bypasses` → "Should refuse both of a company's classes once its one approval is removed", "Should grant nothing on either of a company's classes for an approval held only elsewhere" | existing and new |
-| `setExpiry` by anyone but the registry's owner, including the factory's owner   | Refused                                                                                                                                                                      | `WhitelistRegistry` → `Owner-only writes` (three cases); `ShareTokenFactory` → "Should refuse registry writes from the factory owner when it does not own the token"                                                                                                                 | existing         |
-| A paused token: transfer, mint, delegated transfer and burn                     | All refused                                                                                                                                                                  | `ShareToken` → `Pause/Unpause` (four refusals, and one case for unpausing)                                                                                                                                                                                                           | existing         |
-| A paused token: swap settlement                                                 | Refused, and settles again after unpausing                                                                                                                                   | `Approval bypasses` → "Should stop a swap settlement while the share token is paused"                                                                                                                                                                                                | new              |
-| `pause` by anyone but the token's owner                                         | Refused                                                                                                                                                                      | `Approval bypasses` → "Should refuse a pause from anyone but the token owner"                                                                                                                                                                                                        | new              |
-| `renounceOwnership` on a registry                                               | **Freezes it for good**: no approval can be renewed or granted again, so every approval can only lapse and every holding freezes with it                                     | `Approval bypasses` → "Should leave a registry unwritable for good, so approvals can only lapse"                                                                                                                                                                                     | new              |
-| `renounceOwnership` on a token                                                  | **Freezes minting and the pause lever for good**, while the registry still governs transfers                                                                                 | `Approval bypasses` → "Should leave a token unmintable and unpausable for good, while its registry still governs transfers"                                                                                                                                                          | new              |
-| A token the factory did not create, approved on the swap by its owner           | **Moves with no approval check**, because the swap relies on the token's own `_update`; a `ShareToken` deployed outside the factory still enforces the registry it was given | `Approval bypasses` → "Should move a plain token the owner approved between unapproved parties, because no registry governs it", "Should still enforce its own registry for a share token deployed outside the factory"                                                              | new              |
+| Case                                                                            | Answer                                                                                                                                                                       |
+| ------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Direct `transfer` from an expired holder                                        | Refused                                                                                                                                                                      |
+| Direct `transfer` from a removed holder                                         | Refused                                                                                                                                                                      |
+| Delegated `transferFrom` out of an expired holder                               | Refused                                                                                                                                                                      |
+| Delegated `transferFrom` out of a removed holder                                | Refused                                                                                                                                                                      |
+| `burnFrom` by an approved spender against an expired holder                     | **Allowed**: the burn sends to nobody, so `_update` has no recipient to check, and the holder granted that allowance while approved                                          |
+| The same spender's `transferFrom` of the same shares                            | Refused                                                                                                                                                                      |
+| `burnFrom` without an allowance                                                 | Refused                                                                                                                                                                      |
+| A removed holder burning their own shares                                       | Allowed, by the owner's decision; reconciliation reports it                                                                                                                  |
+| Mint to a recipient with no approval                                            | Refused                                                                                                                                                                      |
+| Mint in the second the recipient's expiry names                                 | Refused                                                                                                                                                                      |
+| Transfer in the last second a party's approval names                            | Allowed                                                                                                                                                                      |
+| Transfer in the second a party's expiry names                                   | Refused                                                                                                                                                                      |
+| Swap settlement with a seller who was never approved, or whose approval expired | Refused, both nonces preserved                                                                                                                                               |
+| Swap settlement with a removed seller, and with a removed buyer                 | Refused, the nonce preserved                                                                                                                                                 |
+| Swap settlement with an expired buyer                                           | Refused, and no payment moves                                                                                                                                                |
+| Swap settlement in the last listed second, and in the second an expiry names    | Settles, then refused                                                                                                                                                        |
+| An approval in one company's registry, used on another company's token          | Grants nothing                                                                                                                                                               |
+| The same, through a swap settlement                                             | Grants nothing                                                                                                                                                               |
+| Two classes of one company                                                      | Share one registry: one approval covers both, one removal freezes both, and another company's classes are untouched                                                          |
+| `setExpiry` by anyone but the registry's owner, including the factory's owner   | Refused                                                                                                                                                                      |
+| A paused token: transfer, mint, delegated transfer and burn                     | All refused                                                                                                                                                                  |
+| A paused token: swap settlement                                                 | Refused, and settles again after unpausing                                                                                                                                   |
+| `pause` by anyone but the token's owner                                         | Refused                                                                                                                                                                      |
+| `renounceOwnership` on a registry                                               | **Freezes it for good**: no approval can be renewed or granted again, so every approval can only lapse and every holding freezes with it                                     |
+| `renounceOwnership` on a token                                                  | **Freezes minting and the pause lever for good**, while the registry still governs transfers                                                                                 |
+| A token the factory did not create, approved on the swap by its owner           | **Moves with no approval check**, because the swap relies on the token's own `_update`; a `ShareToken` deployed outside the factory still enforces the registry it was given |
 
 The backend never approves a share token the factory did not create: a swap
 approval is built from a `TokenDeployment`, and a deployment whose factory is
@@ -110,28 +85,29 @@ contract one.
 
 ### In the backend
 
-The current company controls below replace the earlier fresh staff admission
-cases. Original staff-run verification remains in the linked historical pull
-requests and dated exercises. Company-wallet cases also have declared scoped
-counterparts; their actual results belong in the owning pull request.
+The company-wallet cases below are as merged in
+[#942](https://github.com/Ledova/ledova/pull/942) (8 October 2026). They replaced
+the earlier fresh staff admission cases, whose verification remains in the
+linked historical pull requests.
 
-| Case                                                              | Answer                                                                                               | Test                                                                                                                                                                                                                                                                                                                          |
-| ----------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| A wallet status override without retained possession proof        | Cannot nominate; the ordinary signature producer can refresh genuine proof                           | `wallets.tests.test_possession_proof`; `whitelist.tests.test_company_wallet_instructions.CompanyWalletInstructionTest.test_status_override_has_no_possession_proof_and_refresh_uses_the_real_existing_producer`                                                                                                               |
-| A company reader inspecting a participant's wallets               | Only the explicitly shared nomination's minimal facts are readable                                   | `whitelist.tests.test_company_wallet_instructions.CompanyWalletInstructionTest.test_company_reads_only_the_explicit_nomination_and_own_record_keeps_its_exact_receipt`                                                                                                                                                        |
-| Fresh staff admission or forged source rows                       | Refused, with a healthy genuine company command as the positive control                              | `whitelist.tests.test_company_wallet_instructions.CompanyWalletInstructionTest.test_raw_source_and_old_staff_admissions_are_refused_with_healthy_company_control`                                                                                                                                                             |
-| Expired eligibility, changed replay or excessive approval expiry  | Refused without a new effect; an exact applied receipt remains recoverable under current read access | `whitelist.tests.test_company_wallet_instructions.CompanyWalletInstructionTest.test_expired_exact_eligibility_and_overlong_expiry_refuse_without_effect`; `...test_exact_applied_replay_survives_source_loss_and_changed_terms_conflict`                                                                                      |
-| Lost mandate or real source-row contention before a new signature | Holds the original unsigned claim with no new nonce or attempt                                       | `whitelist.tests.test_company_wallet_instructions.CompanyWalletInstructionTest.test_step_authority_and_real_source_row_contention_preserve_the_original_unsigned_claim`                                                                                                                                                       |
-| Authority expiry under normal deferred constraints                | Preparation, application and signing roll back their actual source/effect, queue or signature        | `whitelist.tests.test_company_wallet_instructions.CompanyWalletInstructionTest.test_default_deferred_prepare_expiry_rolls_back_the_source`; `...test_default_deferred_apply_expiry_rolls_back_actual_queue_and_projection`; `...test_default_deferred_signature_expiry_removes_attempt_and_nonce_without_fabricating_removal` |
-| Permanent source loss on genuinely never-signed work              | Projects the original failure before genuine cause-backed automatic removal                          | `whitelist.tests.test_company_wallet_instructions.CompanyWalletInstructionTest.test_permanent_unsigned_source_loss_terminalises_original_before_genuine_automatic_removal`                                                                                                                                                    |
-| A deleted mutable wallet after signing                            | Recovers the original bytes and retained target; company REMOVE uses the genuine ADD journal         | `whitelist.tests.test_company_wallet_instructions.CompanyWalletInstructionTest.test_original_signed_recovery_and_company_removal_survive_wallet_deletion`                                                                                                                                                                     |
-| Refresh asked to ADD or renew, including by staff                 | Refused; only removal with the actual retained decision or loss is admitted                          | `whitelist.tests.test_company_eligibility_invalidation.CompanyEligibilityInvalidationTest.test_new_refresh_entries_can_neither_add_nor_bypass_a_retained_cause`                                                                                                                                                               |
+| Case                                                              | Answer                                                                                               |
+| ----------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| A wallet status override without retained possession proof        | Cannot nominate; the ordinary signature producer can refresh genuine proof                           |
+| A company reader inspecting a participant's wallets               | Only the explicitly shared nomination's minimal facts are readable                                   |
+| Fresh staff admission or forged source rows                       | Refused, with a healthy genuine company command as the positive control                              |
+| Expired eligibility, changed replay or excessive approval expiry  | Refused without a new effect; an exact applied receipt remains recoverable under current read access |
+| Lost mandate or real source-row contention before a new signature | Holds the original unsigned claim with no new nonce or attempt                                       |
+| Authority expiry under normal deferred constraints                | Preparation, application and signing roll back their actual source/effect, queue or signature        |
+| Permanent source loss on genuinely never-signed work              | Projects the original failure before genuine cause-backed automatic removal                          |
+| A deleted mutable wallet after signing                            | Recovers the original bytes and retained target; company REMOVE uses the genuine ADD journal         |
+| Refresh asked to ADD or renew, including by staff                 | Refused; only removal with the actual retained decision or loss is admitted                          |
 
 ## The fresh-start redeploy rehearsal
 
 The [fresh-start redeploy](chains.md#fresh-start-redeploy) was rehearsed on a
 local Hardhat node on 23 September 2026, against `598327e7`. The record below
-is what ran, what it answered and what the runbook had to change.
+is what ran and what it answered, with the steps as numbered on 23 September;
+the runbook's current numbering differs.
 
 | Step                            | What ran                                                                                                                     | Result                                                                                          |
 | ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
@@ -143,28 +119,6 @@ is what ran, what it answered and what the runbook had to change.
 | 6. Deploy each share class      | Not reachable: outgoing signer admission is closed by design and has no activation command                                   | Blocked; see below                                                                              |
 | 7. Approve wallets per company  | Not reachable for the same reason                                                                                            | Blocked; see below                                                                              |
 | 8. Verify                       | The five commands the runbook now lists                                                                                      | Each ran and answered; see below                                                                |
-
-**What the rehearsal changed in the runbook.**
-
-1. **Signer admission is a prerequisite, and it is closed.** Steps 6 and 7 both
-   write to the chain through the
-   [outgoing signing foundation](../architecture/outgoing-signing.md), whose
-   admission is closed for every signer and has no activation command or admin
-   surface. On a new database no share class can be deployed and no approval
-   written until the owner directs otherwise. The runbook now says so before
-   step 6 instead of reading as though those steps always work.
-2. **Step 2 did not say to start a node.** It now names `npx hardhat node` and
-   the `LOCALHOST_RPC_URL` the deployment reads.
-3. **Step 3 did not say where to run `manage.py`.** It now says `backend/`, and
-   points at the role-authentication note a brand-new cluster needs.
-4. **Step 8 was prose.** Its five checks are now five commands, each of which
-   answers on the console.
-5. **The fresh start is what makes the migration guard sufficient.** The
-   `whitelist/0007` guard refuses a database that holds whitelist changes
-   written for the retired global registry, but a database with deployed share
-   classes and no such rows would pass it. The runbook now says the database
-   must be a new, empty one, and the last step-8 check is what catches a
-   database still carrying classes from retired contracts.
 
 **Step 8's checks, with what they answered.** Because steps 6 and 7 were
 blocked, the rehearsal put the state there another way: it called the factory
@@ -180,7 +134,7 @@ the other way.
 | The configured chain id matches the node                               | `31337`                                                                                            | With `BLOCKCHAIN_CHAIN_ID=84532`: `Refusing EVM endpoint on chain 31337; expected chain 84532`                                                                                                                           |
 | Each class's `whitelist()` equals its company's `registryOf(acn)`      | `AORD True`, `APREF True`, `BORD True`                                                             | Repointing one class's row at the other company: `AORDX False`                                                                                                                                                           |
 | A wallet approved for one company is refused another company's class   | `BORD False`                                                                                       | Approving the same wallet in the second registry: `BORD True`                                                                                                                                                            |
-| The refresh sweep reports whether it can attribute and submit a change | `{'checked': 1, 'submitted': 0, 'unattributed': 1, 'errors': 0}`, with the unattributed row logged | Not mutated; the unattributed case is proved by `whitelist.tests.test_company_eligibility_invalidation.CompanyEligibilityInvalidationTest.test_legacy_approval_without_an_actual_cause_is_observable_and_not_fabricated` |
+| The refresh sweep reports whether it can attribute and submit a change | `{'checked': 1, 'submitted': 0, 'unattributed': 1, 'errors': 0}`, with the unattributed row logged | Not mutated                                                                                                                                                                                                              |
 | No class has a deployment whose factory differs                        | `[]`                                                                                               | Not mutated                                                                                                                                                                                                              |
 
 The isolation fixture approved the control wallet only in company A. Adding a
@@ -190,13 +144,10 @@ fixtures and refuses missing classes or a shared registry. The sweep's
 historical counters above report an unattributed change, not a successful
 removal or an on-chain confirmation.
 
-The original real-chain suite performed steps 6 and 7 against a real node,
-with an admitted synthetic signer, deployment/whitelist services and the
-`WhitelistChangeChainTest` / `ShareTokenChainTest` controls. That suite is
+The original real-chain suite performed steps 6 and 7 against a real node with
+an admitted synthetic signer; it is
 [historical evidence](https://github.com/Ledova/ledova/blob/5f40e3cd896afc3f3a55a14e359224156735a417/backend/tokens/tests/test_chain_integration.py),
-retired under the 11 October policy. Today's `make chain-test` is one direct
-contract smoke; it does not repeat that backend workflow. The dated Base Sepolia
-record below retains the actual authorised signer/deployment evidence.
+retired under the 11 October policy.
 
 ### Base Sepolia
 
@@ -330,16 +281,14 @@ finalized head `47292917` (SHA-256
 `5d260d4047db7322e5ba951b1a8a6047cb95d291b36167a069ae76bb76bd9e3a`).
 
 C's positive finalized baseline was retained at 16:41:58 UTC in
-`c-baseline-finalized-01.json`, SHA-256
-`2eeb99961b3ff5ebf1a65b4406942ee25dee6a377ef625a36a18bb9fc882aba9`.
+`c-baseline-finalized-01.json` (committed; see the evidence bundle).
 At finalized block `47292664`, hash
 `0x69e0b765e829a00d0922957f67d153e892dfbce470eddfebc47cc5444ae711ee`,
 timestamp `1790353616`, C was approved in A and
 absent in B. Zero-value self-transfer `eth_call` simulations succeeded in A and
 returned `SenderNotWhitelisted(C)` in B. I's finalized positive baseline is
 also retained, before revocation, at 16:55:22 UTC in
-`i-baseline-finalized-01.json`, SHA-256
-`7fa42bca8957c638417b3d30f5c6c8bfe6dd8f1a1fa5d90e262807cbc539d793`:
+`i-baseline-finalized-01.json` (committed; see the evidence bundle):
 at finalized block `47292917`, hash
 `0x5f24fc9b96bc75d6a6bde9beccfad6937a40e2282fd999fe6525480cf6cee16b`,
 timestamp `1790354122`, A approved I and B did
@@ -389,7 +338,7 @@ timestamp `1790356196` (evidence SHA-256
 `i-removed-finalized-01.json` at 17:28:53 UTC checks that same finalized block:
 both registry expiries are zero, membership is false in A and B, and both
 zero-value self-transfer simulations return `SenderNotWhitelisted(I)`
-(SHA-256 `0efc077aa4ea0a4662c077271f0c77a454cab678a2547da7b566c2f095c456cc`).
+(committed; see the evidence bundle).
 No positive-amount transfer, mined reverting transfer or hardware signature was
 performed.
 
@@ -403,9 +352,8 @@ timestamp `1790359258` (18:00:58 UTC), with evidence SHA-256
 The finalized check, `c-expired-finalized-01.json`, at 18:24:17 UTC recorded
 block `47295622`, hash
 `0x45ef42a51fc2d0adff1467911221010f256dceb55b10081e4fc1e72d71e3d08f`,
-timestamp `1790359532` (18:05:32 UTC), with evidence SHA-256
-`7dcc3f458818f002b169fdc7c0611d18907571ca46b9bc1f58e69ba6e1fef997`.
-Both observations retained A's original nonzero expiry `1790359200` and B's
+timestamp `1790359532` (18:05:32 UTC); the file is committed in the evidence
+bundle. Both observations retained A's original nonzero expiry `1790359200` and B's
 zero expiry, while both memberships were false and both zero-value self-transfer
 simulations returned `SenderNotWhitelisted(C)`. The finalized observer also
 rechecked factory/registry/token bindings. This completes the natural-expiry
@@ -417,5 +365,3 @@ The #648 public approval-control exercise has retained completion evidence, and
 journey for [#645 is already accepted](https://github.com/Ledova/ledova/issues/645#issuecomment-5827887653).
 Physical Keystone acceptance and release-level public swap proof belong to
 [#624](https://github.com/Ledova/ledova/issues/624), separately from this exercise.
-Update these rows from retained observations; prepared verifiers, synthetic
-setup, job success and elapsed time do not supply missing acceptance evidence.

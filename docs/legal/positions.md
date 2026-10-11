@@ -8,9 +8,10 @@ and the [4 October 2026 minimal-involvement decision](../decisions.md#company-re
 postdate the readings on this page, which have not been reconfirmed against
 the current company-managed workflows. Neither product decision establishes a
 legal conclusion, and platform payment, crypto and support functions must be
-assessed on what they actually do. Procedures described here as performed by
-platform staff are implementation references pending the replacement
-workflows, not the current authority model. The 4 October decision also sets
+assessed on what they actually do. Where a position's "What the code does"
+names platform staff, the [current capability boundaries](../product.md#current-capability-boundaries)
+say what staff still do; register entries run under company appointments. The
+4 October decision also sets
 the rule that no impersonation or fraud verification is added unless a legal
 duty on Ledova requires it, and sends any such duty here to be raised with the
 owner with its source.
@@ -28,12 +29,9 @@ assistant from primary sources and are **not yet confirmed by the owner**.
 Position 12 was drafted on 2026-09-22, when the owner chose to record
 PyMuPDF's licence, and is not yet confirmed either.
 
-The positions were written against two historical analyses,
-[A, the company-hosted instance](company-hosted-instance.md), and
-[B, the registry service](registry-service.md). The "Binds" column says which
-analysis a position was engaged by; where the earlier reading differs between
-them, the position says so. A and B are retained research labels, not
-selectable product modes.
+The "Binds" column names the [historical analysis](README.md#historical-analyses-a-and-b)
+that engaged each position; where the earlier reading differs between them, the
+position says so.
 
 | # | Question | Triggered by | Binds | Status |
 | --- | --- | --- | --- | --- |
@@ -161,10 +159,10 @@ two conflict, the code keeps the evidence, which is the recoverable direction.
 
 **Status.** Reviewed 2026-09-15; unchanged. Note that in neither historical
 analysis is an identity document collected until investor onboarding is
-switched on or the operator turns on the issuer KYC switch, which requires a
-company's owner to be identity-verified before the company is submitted for
-review; this position is engaged only then. The issuer switch was added to this
-note on 2026-09-21.
+switched on or the operator turns on the `issuer_kyc_required` setting, which
+requires a company appointee to be identity-verified before their appointment
+is effective; this position is engaged only then. The issuer switch was added to
+this note on 2026-09-21.
 
 ## 4. Operating without a licence: the two halves
 
@@ -203,16 +201,13 @@ classification and trading enabled by default for synthetic/testnet use — none
 which a registry service would run.
 The [registry service](registry-service.md) page's feature table records what
 the earlier clerk-only service proposal would omit or defer; it is not a list
-of implemented deployment-mode controls. An issue is now approved only under
-a [register instruction](../operations/register-foundation.md#register-instructions-for-issues),
-and entered only once an applied one covers it: the company owner lists the
-exact issues a named director approved, staff verify the documentary authority,
-and applying the instruction is the approval. A settled transfer is now entered
-the same way, after the settlement: the company owner lists the exact
-settlements a named director approved, staff verify the authority, and applying
-the instruction lets the register enter them, with the seller's retained signed
-order as the instrument. A transfer the directors decline is not modelled yet:
-its settlement stays unentered and visible.
+of implemented controls. Fresh issues, grants, allotments and non-paid
+transfers are prepared, approved and applied by company appointees, retaining
+the company's authority document and named director with no staff verification
+([implementation index](../plans/company-managed-registers/README.md)). Staff
+verification remains only in the retained instruction workflow for earlier
+direct issues and settled market transfers
+([runbook](../operations/register-foundation.md#register-instructions-for-issues)).
 
 **The position.** A hosted register-of-members service is not a financial
 service while all of the following hold: entries are made only on written
@@ -387,9 +382,10 @@ from them with the chain unreachable. A correction is a compensating entry that
 those holdings already reflect. A scheduled job reconciles the stored register
 with the chain and retains each result. Former members are stored, and an
 import records members' particulars and pre-platform former members, and opens a
-class not yet on chain from the company's register. Staff prepare the s173(3)
-copy in admin, on the company's
-written instruction: the register as exported, with the request date, the
+class not yet on chain from the company's register. Company appointees prepare
+the s173(3) copy in the Register
+([inspection copies](../plans/company-managed-registers/company-inspection-copies.md)),
+on the company's written instruction: the register as exported, with the request date, the
 instruction's reference and the recipient, marked late when prepared more than
 seven days after the request. Ledova keeps its SHA-256 and the request details,
 not the file; the company decides whether a request is proper and hands the copy
@@ -406,6 +402,8 @@ register head and each changed member's holding, with amount paid only where it
 is established. Ledova keeps their SHA-256 and the period, not the file, and the
 company lodges the notices. See
 [notice figures](../architecture/register.md#notice-figures).
+[#871](https://github.com/Ledova/ledova/issues/871) moves certificates and
+notice figures to company appointments.
 A list in admin shows staff which certificates and notice figures are still due
 and when, from the register and those records; it records nothing, and does not
 know what the company lodged or delivered. See
@@ -531,10 +529,11 @@ professional summaries, not from the amended Act.
 **Implementation and earlier service assumption.** Investor onboarding,
 classification, payment recording and token workflows exist in the software.
 The earlier clerk-only service proposal assumed no movement of money or tokens;
-deployment-mode selection does not enforce that whole proposal. The current
-issuer KYC switch requires each company's owner to be identity-verified before
-the company is submitted for review. The replacement company-managed workflows
-and retained platform functions need their own assessment.
+the retired deployment mode did not enforce that whole proposal. The operator's
+`issuer_kyc_required` setting requires a company appointee to be
+identity-verified before their appointment is effective. The replacement
+company-managed workflows and retained platform functions need their own
+assessment.
 
 **The position.** Keeping a register and preparing registration or transfer
 documents on the company's instruction is not a Table 6 service, because the
@@ -663,9 +662,10 @@ details come from professional and ATO summaries, not the enacted text.
 **Implementation and earlier service assumption.** The
 [offerings flow](../architecture/offerings.md) hosts offers; the earlier
 clerk-only service proposal assumed that it would not use that flow. Each
-allotment and direct issue in the current implementation is approved
-by a register instruction that retains the directors' authority document and
-names the approving director beside the issues it lists.
+grant, allotment and issue is approved by a company decision that retains the
+directors' authority document and names the approving director
+([grants](../plans/company-managed-registers/register-grants.md),
+[external allotments](../plans/company-managed-registers/external-allotments.md)).
 
 **The position.** Every obligation in this position belongs to the company and
 its advisers. In historical analysis B Ledova records the outcome — the allotment,

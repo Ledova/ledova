@@ -42,11 +42,10 @@ Ledova.
 
 The preview shows the exact member, named director, terms and quantity, terms
 date and actual proposed UTC entry day, current holdings, register sequence,
-issued supply, authorised cap and resulting totals. A current `admin` or
-`approve` appointee approves that preview; a current `admin` or `apply`
-appointee then applies it with a current approval; a current `admin` or
-`approve` appointee may reject it with a written reason, under the
-[owner's authority rules](../../decisions.md#company-run-register-authority-and-evidence).
+issued supply, authorised cap and resulting totals. A current approver approves
+that exact preview and a current applier applies it under the
+[owner's rules](../../decisions.md#company-run-register-authority-and-evidence);
+rejection records a written reason.
 
 ## What is recorded
 
@@ -87,38 +86,22 @@ the service's full Unicode comparison guarantee. Transfers share both caveats.
 
 Non-paid terms do not establish a statutory amount paid. The existing outputs
 continue to show an unrecorded amount where no genuine backing amount exists;
-the grant's retained terms establish its non-paid workflow. The existing
-platform-staff certificate-output route is not converted into company
-self-service by this increment; certificate requests and capability-scoped
-output work stay with #871 and #866.
+the grant's retained terms establish its non-paid workflow.
 
-Paid allotments, AUD collection or refunds, chain issuance, tokenisation and
-unsupported corporate actions are not completed by a grant. #868 records
-externally arranged capital and company-approved allotments; new integrated
-payment mechanics are deferred under the
-[9 October priority](../../decisions.md#essential-registry-and-development-workflow-priority).
-Core register work requires no crypto on-ramp purchase.
+Paid allotments ([external allotments](external-allotments.md)), chain
+issuance, tokenisation and unsupported corporate actions are not completed by a
+grant.
 
 ## Planned: tokenising an imported register
 
-No open issue owns this design yet; #865 is closed and #867's remaining scope
-is employee awards and vesting. Current deployment creates an empty contract;
-that is not a mirror of the register. Do not treat deployment or a current
-chain balance as proof that the existing holdings have been mirrored.
+No open issue owns this design; it is [deferred](../../roadmap.md#deferred).
+Current deployment creates an empty contract; that is not a mirror of the
+register. Do not treat deployment or a current chain balance as proof that the
+existing holdings have been mirrored.
 
-A future mirror must capture one exact register sequence, digest, issued supply
-and member holdings under current company authority. Every mapped wallet must
-have a genuine company-approved member link and the applicable possession and
-eligibility checks. Walletless or ambiguous holdings must stay visibly
-unresolved; do not invent addresses or new member identities. Preserve the
-authorised cap and the existing share total.
-
-Admit one immutable mirror command for that boundary, with an explicit mapping
-and recovery identity. Until finalised execution and exact reconciliation, freeze
-or refuse competing effects that would move the captured boundary. Recovery
-must retain the original signed transactions and uncertain outcomes. A mirror
-mint represents existing shares and must not append a second register ISSUE or
-increase the stored supply. Verify each mapped holding and the total against
-the finalised chain evidence before claiming an on-chain mirror exists. Retain
-the original imports, grants, decisions and evidence throughout. This design
-does not activate a signer or authorise a live migration.
+A future mirror must capture one exact register sequence and member holdings
+under current company authority; every mapped wallet needs a genuine
+company-approved member link; one immutable mirror command represents the
+existing shares without a second register ISSUE or supply increase; and each
+mapped holding is reconciled against finalised chain evidence before a mirror is
+claimed.
