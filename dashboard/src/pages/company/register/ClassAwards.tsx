@@ -1,0 +1,171 @@
+import { useLayoutEffect, useMemo, useRef, useState } from 'react';
+import {
+  REGISTER_AWARD_COPY as COPY,
+  appointmentForRegisterStep,
+  hasCurrentRegisterReadAuthority,
+  type OrderSubmissionOwner,
+  type OwnCompanyAppointment,
+  type TokenHoldersResponse,
+} from '@ledova/shared';
+import { PageAction } from '@components/Page';
+import { AwardForm } from './awards/AwardForm';
+import { AwardRecord } from './awards/AwardRecord';
+import { useOwnAppointments } from './useRegisterImports';
+import { useTransferMembers } from './useRegisterTransfers';
+import { useRegisterAwards } from './useRegisterAwards';
+
+export function ClassAwards({
+  owner,
+  company,
+  register,
+  guard,
+  sourceReady = true,
+}: {
+  owner: OrderSubmissionOwner;
+  company: string;
+  register: TokenHoldersResponse;
+  guard: () => void;
+  sourceReady?: boolean;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [formHeld, setFormHeld] = useState(false);
+  const live = useRef(true);
+  const latestAppointments = useRef<OwnCompanyAppointment[]>([]);
+  const appointments = useOwnAppointments(owner, guard);
+  const readable = hasCurrentRegisterReadAuthority(appointments.isSuccess ? appointments.data : [], company);
+  useLayoutEffect(() => {
+    latestAppointments.current = appointments.isSuccess ? appointments.data : [];
+  }, [appointments.isSuccess, appointments.data]);
+  useLayoutEffect(() => {
+    live.current = true;
+    return () => {
+      live.current = false;
+    };
+  }, []);
+  const check = useMemo(
+    () => () => {
+      guard();
+      if (!live.current) throw new Error('This award section is no longer open.');
+      if (!hasCurrentRegisterReadAuthority(latestAppointments.current, company))
+        throw new Error('A current company register appointment is required.');
+    },
+    [guard, company],
+  );
+  const token = register.token.uuid;
+  const awards = useRegisterAwards(owner, company, token, check, readable);
+  const appointment =
+    readable && appointments.isSuccess ? appointmentForRegisterStep(appointments.data, company, 'prepare') : undefined;
+  const supported = register.initialized && register.token.status === 'draft';
+  const members = useTransferMembers(owner, token, check, editing && !!appointment && supported);
+  const blocked =
+    !readable ||
+    !sourceReady ||
+    awards.isFetching ||
+    awards.isError ||
+    appointments.isFetching ||
+    appointments.isError ||
+    !supported;
+  const refresh = (throwOnError = false) =>
+    Promise.all([awards.refetch({ throwOnError }), appointments.refetch({ throwOnError })]);
+  return (
+    <div className="mt-4 flex flex-col gap-3 border-t border-border-subtle pt-4">
+      <h3 className="text-sm font-medium text-text-primary">{COPY.TITLE}</h3>
+      <p className="text-sm text-text-muted">{COPY.NOTE}</p>
+      {appointments.isError && (
+        <>
+          <p role="alert" className="text-sm text-error-light">
+            Your appointments could not be read. Retry before recording an award.
+          </p>
+          <PageAction
+            label="Retry award appointments"
+            disabled={appointments.isFetching}
+            onClick={() => void appointments.refetch()}
+          />
+        </>
+      )}
+      {appointments.isSuccess && !appointment && <p className="text-sm text-text-muted">{COPY.READ_ONLY_NOTE}</p>}
+      {appointment && supported && (
+        <PageAction
+          label={editing ? 'Close award form' : COPY.PREPARE}
+          disabled={blocked || formHeld}
+          onClick={() => setEditing((value) => !value)}
+        />
+      )}
+      {editing &&
+        appointment &&
+        supported &&
+        (members.isPending ? (
+          <p role="status" className="text-sm text-text-muted">
+            Loading retained recipients…
+          </p>
+        ) : members.isError ? (
+          <>
+            <p role="alert" className="text-sm text-error-light">
+              The retained recipients could not be read.
+            </p>
+            <PageAction
+              label="Retry award recipients"
+              disabled={members.isFetching}
+              onClick={() => void members.refetch()}
+            />
+          </>
+        ) : (
+          <AwardForm
+            key={`${company}/${token}/${appointment.uuid}`}
+            company={company}
+            token={token}
+            members={members.data}
+            appointment={appointment}
+            guard={check}
+            blocked={blocked || members.isFetching}
+            onHeldChange={setFormHeld}
+            onRecorded={async () => {
+              check();
+              await refresh(true);
+              check();
+              setEditing(false);
+            }}
+          />
+        ))}
+      {!readable ? (
+        <p className="text-sm text-text-muted">
+          A current company register appointment is required to read employee awards.
+        </p>
+      ) : awards.isPending ? (
+        <p role="status" className="text-sm text-text-muted">
+          Loading employee awards…
+        </p>
+      ) : (
+        <>
+          {awards.isError && (
+            <p role="alert" className="text-sm text-error-light">
+              Employee awards could not be read. A current company register appointment is required.
+            </p>
+          )}
+          <PageAction
+            label={awards.isError ? 'Retry awards' : 'Refresh awards'}
+            disabled={awards.isFetching || appointments.isFetching}
+            onClick={() => void refresh()}
+          />
+          {awards.data?.length === 0 ? (
+            <p className="text-sm text-text-muted">{COPY.EMPTY}</p>
+          ) : (
+            <ul className="divide-y divide-border-subtle">
+              {awards.data?.map((award) => (
+                <AwardRecord
+                  key={award.uuid}
+                  owner={owner}
+                  award={award}
+                  appointment={appointment}
+                  guard={check}
+                  blocked={blocked}
+                  onSettled={() => refresh(true)}
+                />
+              ))}
+            </ul>
+          )}
+        </>
+      )}
+    </div>
+  );
+}

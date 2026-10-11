@@ -10,6 +10,7 @@ import { Action } from '../../components/Ledger';
 import { GrantRecord } from './GrantRecord';
 import { useCompanyStyles } from './styles';
 import { entriesKey, useRegisterGrants } from './useCompanyRegister';
+import { awardsKey } from './useRegisterAwards';
 
 export function ClassGrants({
   epoch,
@@ -37,6 +38,7 @@ export function ClassGrants({
       refreshHolders(),
       refreshAppointments(),
       queryClient.refetchQueries({ queryKey: entriesKey(epoch, register.token.uuid), type: 'active' }),
+      queryClient.refetchQueries({ queryKey: awardsKey(epoch, register.token.uuid), type: 'active' }),
     ]);
   return (
     <View style={styles.group}>

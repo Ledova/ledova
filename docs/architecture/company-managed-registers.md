@@ -31,9 +31,14 @@ core acceptance (#873) no longer wait for deferred trading (#869), advanced
 governance (#870) or filings (#872). The earlier required integrated AUD-payment
 expansion is deferred; #868 now focuses on external capital records and allotment.
 
-Current grants issue outright shares; a stored agreement does not implement
-vesting. Contractual entitlements and actual issued ownership must stay
-distinct, and the
+Grants issue outright shares. The
+[employee-award increment](../plans/company-managed-registers/employee-awards.md)
+records promised entitlements, agreement/schedule data and company-confirmed
+vesting events in both clients. Separate approved grants issue recorded vested
+quantities on supported imported non-tokenised registers; awards and elapsed
+dates create no holdings. Schedules are recorded data, with no automatic vesting
+calculation. Tokenised award fulfilment remains unsupported. Contractual
+entitlements and actual issued ownership stay distinct, and the
 [10 October first scopes](../decisions.md#first-scopes-for-employee-awards-and-external-capital)
 settle how awards and external capital are first recorded. No legal/tax rule
 engine or option-exercise scheme is selected. The single account-to-member

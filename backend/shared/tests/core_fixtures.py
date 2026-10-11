@@ -212,3 +212,45 @@ class CoreFixtures:
         response = self.client.post("/api/v1/tokens/register-grants/", self.grant_payload(**changes), format="json")
         self.assertEqual(response.status_code, 201, response.content)
         return response.json()["uuid"]
+
+    def award_payload(self, **changes):
+        agreement = retained_evidence(self.owner, self.appointment, RegisterEvidenceKind.SUPPORTING)
+        return {
+            "operation_id": str(uuid4()),
+            "appointment": str(self.appointment.pk),
+            "token_id": str(self.token.pk),
+            "member": str(uuid4()),
+            "new_member": True,
+            "name": "Synthetic Employee",
+            "residential_address": "2 Example Street, Sydney NSW 2000",
+            "shares": "30",
+            "terms_on": timezone.now().date().isoformat(),
+            "terms": "Company-promised non-paid employee award",
+            "schedule": "The company separately confirms each vesting event",
+            "agreement_evidence": str(agreement.pk),
+            **changes,
+        }
+
+    def vesting_payload(self, award, **changes):
+        evidence = retained_evidence(self.owner, self.appointment, RegisterEvidenceKind.SUPPORTING)
+        return {
+            "operation_id": str(uuid4()),
+            "appointment": str(self.appointment.pk),
+            "award": award,
+            "shares": "25",
+            "vested_on": timezone.now().date().isoformat(),
+            "evidence": str(evidence.pk),
+            **changes,
+        }
+
+    def linked_grant_payload(self, award, **changes):
+        return self.grant_payload(
+            award=award["operation_id"],
+            member=award["member"],
+            name=award["name"],
+            residential_address=award["residential_address"],
+            terms_on=award["terms_on"],
+            terms=award["terms"],
+            terms_evidence=award["agreement_evidence"],
+            **changes,
+        )

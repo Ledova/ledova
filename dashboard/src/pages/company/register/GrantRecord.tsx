@@ -1,6 +1,7 @@
 import { useMutation } from '@tanstack/react-query';
 import {
   REGISTER_GRANT_COPY as COPY,
+  REGISTER_AWARD_COPY as AWARD_COPY,
   REGISTER_GRANT_DECISIONS,
   apiErrorSentence,
   downloadRegisterGrantFile,
@@ -19,6 +20,15 @@ import { saveFile } from './useCompanyRegister';
 function GrantRows({ grant }: { grant: RegisterGrant | RegisterGrantDecisionPreview }) {
   return (
     <Rows>
+      {grant.award && <Row label="Employee award">{grant.award}</Row>}
+      {'awardPromisedShares' in grant && grant.award && (
+        <>
+          <Row label={AWARD_COPY.PROMISED}>{shareCount(grant.awardPromisedShares!)}</Row>
+          <Row label={AWARD_COPY.VESTED}>{shareCount(grant.awardVestedShares!)}</Row>
+          <Row label={AWARD_COPY.ISSUED}>{shareCount(grant.awardIssuedShares!)}</Row>
+          <Row label={AWARD_COPY.AVAILABLE}>{shareCount(grant.awardAvailableShares!)}</Row>
+        </>
+      )}
       <Row label="Member">
         {grant.name} · {grant.member}
       </Row>

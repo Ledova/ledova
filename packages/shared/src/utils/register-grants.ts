@@ -1,4 +1,9 @@
-import type { RegisterGrant, RegisterGrantPreparation, RegisterDecideRequest } from '../types';
+import type {
+  RegisterGrant,
+  RegisterGrantPreparation,
+  RegisterGrantDecisionPreview,
+  RegisterDecideRequest,
+} from '../types';
 import { isRegisterDecisionReceipt } from './register-commands';
 
 export function isPreparedRegisterGrant(grant: RegisterGrant, request: RegisterGrantPreparation) {
@@ -6,6 +11,7 @@ export function isPreparedRegisterGrant(grant: RegisterGrant, request: RegisterG
     grant.uuid === request.operationId &&
     grant.preparingAppointment === request.appointment &&
     grant.token === request.tokenId &&
+    (grant.award ?? null) === (request.award ?? null) &&
     grant.member === request.member &&
     grant.newMember === request.newMember &&
     !!grant.name.trim() &&
@@ -27,9 +33,15 @@ export function isPreparedRegisterGrant(grant: RegisterGrant, request: RegisterG
   );
 }
 
-export function isRegisterGrantDecisionReceipt(grant: RegisterGrant, uuid: string, request: RegisterDecideRequest) {
+export function isRegisterGrantDecisionReceipt(
+  grant: RegisterGrant,
+  uuid: string,
+  request: RegisterDecideRequest,
+  preview?: RegisterGrantDecisionPreview,
+) {
   return (
     isRegisterDecisionReceipt(grant, uuid, request) &&
+    (!preview || (grant.award ?? null) === (preview.award ?? null)) &&
     (request.kind !== 'apply' || (!!grant.registerEntry && !!grant.effectiveOn))
   );
 }

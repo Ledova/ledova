@@ -76,11 +76,27 @@ class RegisterGrantViewSet(RegisterProposalViewSet):
         grant, created = prepare_grant(actor=request.user, **serializer.validated_data)
         return self._respond(grant, 201 if created else 200)
 
+    def _private_file(self, grant, stored, mime_type):
+        response = stream_stored_file(stored, mime_type, as_attachment=True)
+        if grant.award_id is not None:
+            try:
+                self.get_object()
+            except BaseException:
+                response.close()
+                raise
+        return response
+
+    @extend_schema(responses={(200, "*/*"): OpenApiTypes.BINARY})
+    @action(detail=True, methods=["get"])
+    def file(self, request, uuid=None):
+        grant = self.get_object()
+        return self._private_file(grant, grant.file, grant.evidence_snapshot["mime_type"])
+
     @extend_schema(responses={(200, "*/*"): OpenApiTypes.BINARY})
     @action(detail=True, methods=["get"], url_path="terms-file")
     def terms_file(self, request, uuid=None):
         grant = self.get_object()
-        return stream_stored_file(grant.terms_file, grant.terms_snapshot["mime_type"], as_attachment=True)
+        return self._private_file(grant, grant.terms_file, grant.terms_snapshot["mime_type"])
 
     @extend_schema(responses={(200, "*/*"): OpenApiTypes.BINARY})
     @action(detail=True, methods=["get"], url_path="acceptance-file")
@@ -88,7 +104,7 @@ class RegisterGrantViewSet(RegisterProposalViewSet):
         grant = self.get_object()
         if not grant.acceptance_required:
             raise NotFound("This grant's terms require no acceptance document.")
-        return stream_stored_file(grant.acceptance_file, grant.acceptance_snapshot["mime_type"], as_attachment=True)
+        return self._private_file(grant, grant.acceptance_file, grant.acceptance_snapshot["mime_type"])
 
     @extend_schema(request=RegisterGrantDecisionRequestSerializer, responses=RegisterGrantDecisionPreviewSerializer)
     @action(detail=True, methods=["post"], url_path="decision-preview")

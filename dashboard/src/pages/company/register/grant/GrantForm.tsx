@@ -15,6 +15,8 @@ import {
   type OwnCompanyAppointment,
   type RegisterEvidence,
   type RegisterGrantPreparation,
+  type RegisterAward,
+  type RegisterTransferMember,
   type TokenHoldersResponse,
 } from '@ledova/shared';
 import { PageAction } from '@components/Page';
@@ -41,6 +43,8 @@ export function GrantForm({
   appointment,
   blocked,
   onRefused,
+  award,
+  awardMember,
 }: {
   owner: OrderSubmissionOwner;
   guard: () => void;
@@ -50,6 +54,8 @@ export function GrantForm({
   appointment: OwnCompanyAppointment;
   blocked: boolean;
   onRefused: () => void;
+  award?: RegisterAward;
+  awardMember?: RegisterTransferMember | null;
 }) {
   const client = useQueryClient();
   const navigate = useNavigate();
@@ -85,18 +91,25 @@ export function GrantForm({
   const documentKinds: DocumentKind[] = acceptanceRequired
     ? ['authority', 'terms', 'acceptance']
     : ['authority', 'terms'];
+  const newRecipient = award ? !awardMember : member === 'new';
+  const recipientName = award ? (awardMember?.name ?? award.name) : name.trim();
+  const recipientAddress = award ? (awardMember?.residentialAddress ?? award.residentialAddress) : address.trim();
+  const retainedDate = award?.termsOn ?? termsOn;
+  const retainedSummary = award?.terms ?? terms.trim();
   const problem =
-    member === 'new' && (!name.trim() || !address.trim())
+    newRecipient && (!recipientName || !recipientAddress)
       ? 'Give the new member’s name and residential address.'
       : !/^[1-9]\d*$/.test(shares)
         ? 'Enter a positive whole number of shares.'
-        : !/^\d{4}-\d{2}-\d{2}$/.test(termsOn) || termsOn > today
-          ? 'Enter a terms date no later than today (UTC).'
-          : !terms.trim() || !approvingDirector.trim() || !authorityReference.trim() || !reason.trim()
-            ? 'Give the non-paid terms, approving director, authority reference and reason.'
-            : documentKinds.some((kind) => !files[kind])
-              ? 'Choose the authority, terms and any required acceptance documents.'
-              : null;
+        : award && BigInt(shares) > BigInt(award.availableShares)
+          ? 'The grant quantity must fit the award’s vested and not yet issued shares.'
+          : !/^\d{4}-\d{2}-\d{2}$/.test(retainedDate) || retainedDate > today
+            ? 'Enter a terms date no later than today (UTC).'
+            : !retainedSummary || !approvingDirector.trim() || !authorityReference.trim() || !reason.trim()
+              ? 'Give the non-paid terms, approving director, authority reference and reason.'
+              : documentKinds.some((kind) => !files[kind])
+                ? 'Choose the authority, terms and any required acceptance documents.'
+                : null;
   const upload = async (kind: DocumentKind) => {
     const file = files[kind]!;
     const previous = uploads.current[kind];
@@ -136,16 +149,19 @@ export function GrantForm({
       check();
       const authority = await upload('authority');
       const retainedTerms = await upload('terms');
+      if (award && retainedTerms.sha256 !== award.agreementFingerprint)
+        throw createUserFriendlyError('Upload the same agreement document retained for this award.');
       const acceptance = acceptanceRequired ? await upload('acceptance') : null;
       const request = {
         appointment: appointment.uuid,
         tokenId: token,
-        member: member === 'new' ? newMemberId : member,
-        newMember: member === 'new',
-        ...(member === 'new' ? { name: name.trim(), residentialAddress: address.trim() } : {}),
+        member: award?.member ?? (newRecipient ? newMemberId : member),
+        newMember: newRecipient,
+        ...(newRecipient ? { name: recipientName, residentialAddress: recipientAddress } : {}),
+        ...(award ? { award: award.uuid } : {}),
         shares,
-        termsOn,
-        terms: terms.trim(),
+        termsOn: retainedDate,
+        terms: retainedSummary,
         approvingDirector: approvingDirector.trim(),
         authorityReference: authorityReference.trim(),
         reason: reason.trim(),
@@ -189,18 +205,25 @@ export function GrantForm({
       }}
     >
       <fieldset disabled={busy || blocked} className="space-y-4">
-        <label className={LABEL}>
-          Member
-          <select className={FIELD_CLASS} value={member} onChange={(event) => setMember(event.target.value)}>
-            <option value="new">New member</option>
-            {members.map((holder) => (
-              <option key={holder.member} value={holder.member}>
-                {holder.name || 'Unnamed member'} · {holder.member}
-              </option>
-            ))}
-          </select>
-        </label>
-        {member === 'new' ? (
+        {award ? (
+          <p className="text-sm text-text-primary">
+            Award {award.uuid} · {recipientName} · {award.member}. The recipient and agreement are fixed; this grant
+            still requires separate company approval and application.
+          </p>
+        ) : (
+          <label className={LABEL}>
+            Member
+            <select className={FIELD_CLASS} value={member} onChange={(event) => setMember(event.target.value)}>
+              <option value="new">New member</option>
+              {members.map((holder) => (
+                <option key={holder.member} value={holder.member}>
+                  {holder.name || 'Unnamed member'} · {holder.member}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+        {!award && member === 'new' ? (
           <>
             <label className={LABEL}>
               {COPY.NAME}
@@ -221,11 +244,11 @@ export function GrantForm({
               />
             </label>
           </>
-        ) : (
+        ) : !award ? (
           <p className="text-sm text-text-muted">
             The grant retains the existing member’s current particulars. Preview them before approval.
           </p>
-        )}
+        ) : null}
         <label className={LABEL}>
           {COPY.SHARES}
           <input
@@ -241,7 +264,8 @@ export function GrantForm({
             type="date"
             max={today}
             className={FIELD_CLASS}
-            value={termsOn}
+            value={retainedDate}
+            disabled={!!award}
             onChange={(event) => setTermsOn(event.target.value)}
           />
         </label>
@@ -251,7 +275,8 @@ export function GrantForm({
             className={FIELD_CLASS}
             maxLength={1000}
             rows={3}
-            value={terms}
+            value={retainedSummary}
+            disabled={!!award}
             onChange={(event) => setTerms(event.target.value)}
           />
         </label>
@@ -306,6 +331,11 @@ export function GrantForm({
           </label>
         ))}
         <p className="text-sm text-text-muted">PDF or image, max 10 MB each. {COPY.PROVIDED_BY_COMPANY}</p>
+        {award && (
+          <p className="text-sm text-text-muted">
+            Choose the same agreement bytes as the award’s retained agreement for the terms document.
+          </p>
+        )}
       </fieldset>
       {problem && <p className="text-sm text-text-muted">{problem}</p>}
       {error && (

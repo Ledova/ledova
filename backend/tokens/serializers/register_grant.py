@@ -16,6 +16,7 @@ class RegisterGrantCreateSerializer(serializers.Serializer):
     operation_id = serializers.UUIDField()
     appointment = serializers.UUIDField()
     token_id = serializers.UUIDField()
+    award = serializers.UUIDField(allow_null=True, required=False, default=None)
     member = serializers.UUIDField()
     new_member = serializers.BooleanField()
     name = serializers.CharField(max_length=255, allow_blank=True, required=False, default="")
@@ -43,6 +44,11 @@ class RegisterGrantDecideSerializer(RegisterDecideSerializer):
 
 
 class RegisterGrantDecisionPreviewSerializer(serializers.Serializer):
+    award = serializers.UUIDField(required=False)
+    award_promised_shares = serializers.CharField(required=False)
+    award_vested_shares = serializers.CharField(required=False)
+    award_issued_shares = serializers.CharField(required=False)
+    award_available_shares = serializers.CharField(required=False)
     preview_digest = serializers.CharField()
     unmet_requirements = serializers.ListField(child=serializers.CharField())
     can_decide = serializers.BooleanField()
@@ -79,6 +85,7 @@ class RegisterGrantSerializer(RegisterDecidedSerializer):
             "uuid",
             "company",
             "token",
+            "award",
             "member",
             "new_member",
             "name",

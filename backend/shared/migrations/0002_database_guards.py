@@ -26,7 +26,7 @@ class Migration(migrations.Migration):
         ("shared", "0001_initial"),
         ("shareholders", "0002_initial"),
         ("token_blacklist", "0013_alter_blacklistedtoken_options_and_more"),
-        ("tokens", "0002_initial"),
+        ("tokens", "0003_employee_awards"),
         ("users", "0001_initial"),
         ("wallets", "0001_initial"),
         ("whitelist", "0001_initial"),

@@ -1,6 +1,10 @@
 from rest_framework.routers import DefaultRouter
 
 from tokens import views
+from tokens.views.register_award import (
+    RegisterAwardVestingViewSet,
+    RegisterAwardViewSet,
+)
 from tokens.views.register_capital_increase import RegisterCapitalIncreaseViewSet
 from tokens.views.register_correction import RegisterCorrectionViewSet
 from tokens.views.register_deployment import RegisterDeploymentViewSet
@@ -31,6 +35,8 @@ router.register(r"register-corrections", RegisterCorrectionViewSet, basename="re
 router.register(r"register-openings", RegisterOpeningViewSet, basename="register-openings")
 router.register(r"register-links", RegisterWalletLinkViewSet, basename="register-links")
 router.register(r"register-grants", RegisterGrantViewSet, basename="register-grants")
+router.register(r"register-awards", RegisterAwardViewSet, basename="register-awards")
+router.register(r"register-award-vestings", RegisterAwardVestingViewSet, basename="register-award-vestings")
 router.register(r"register-transfers", RegisterTransferViewSet, basename="register-transfers")
 router.register(r"register-imports", RegisterImportViewSet, basename="register-imports")
 router.register(r"register-evidence", RegisterEvidenceViewSet, basename="register-evidence")

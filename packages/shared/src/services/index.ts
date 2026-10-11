@@ -95,6 +95,7 @@ export {
 } from './company-tokens';
 export { uploadRegisterEvidence } from './register-commands';
 export * from './register-grants';
+export * from './register-awards';
 export * from './register-deployments';
 export * from './register-transfers';
 export {

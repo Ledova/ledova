@@ -31,6 +31,7 @@ from .register import (
     RegisterReconciliationStatus,
     ShareRegister,
 )
+from .register_award import RegisterAward, RegisterAwardVesting
 from .register_capital_increase import (
     RegisterCapitalIncrease,
     RegisterCapitalIncreaseDecision,
@@ -123,6 +124,8 @@ __all__ = [
     "RegisterEvidence",
     "RegisterEvidenceKind",
     "RegisterGrant",
+    "RegisterAward",
+    "RegisterAwardVesting",
     "RegisterGrantDecision",
     "RegisterTransfer",
     "RegisterTransferDecision",

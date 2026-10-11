@@ -17,6 +17,14 @@ const STEP_CAPABILITY: Record<RegisterStep, CompanyCapability> = {
   reject: 'approve',
 };
 
+const REGISTER_READ_CAPABILITIES: readonly CompanyCapability[] = [
+  'admin',
+  'read_register',
+  'prepare',
+  'approve',
+  'apply',
+];
+
 export function rowsOf<Row>(value: unknown, text: string[], optional: string[] = []): value is Row[] {
   return (
     Array.isArray(value) &&
@@ -45,6 +53,18 @@ export function appointmentForRegisterStep(appointments: OwnCompanyAppointment[]
         (appointment.capabilities.includes('admin') || appointment.capabilities.includes(STEP_CAPABILITY[step])),
     )
     .sort((left, right) => left.uuid.localeCompare(right.uuid))[0];
+}
+
+export function hasCurrentRegisterReadAuthority(appointments: OwnCompanyAppointment[], company: string) {
+  return appointments.some(
+    (appointment) =>
+      appointment.company === company &&
+      appointment.status === 'active' &&
+      appointment.isEffective &&
+      !appointment.revokedAt &&
+      (!appointment.expiresAt || Date.parse(appointment.expiresAt) > Date.now()) &&
+      REGISTER_READ_CAPABILITIES.some((capability) => appointment.capabilities.includes(capability)),
+  );
 }
 
 export function isRegisterEvidenceReceipt(
