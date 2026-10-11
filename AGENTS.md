@@ -7,8 +7,7 @@ when starting or resuming work, including after context compaction.
 
 ## Owner's standing instructions
 
-- Prioritise the essential company-managed register journeys (#866, #871, then
-  #873) under the
+- Follow the essential company-managed register scope under the
   [9 October decision](docs/decisions.md#essential-registry-and-development-workflow-priority)
   and each issue's current dependencies; the development workflow under #943 is
   complete. Check the GitHub issue and claim before each increment; preserve
@@ -48,6 +47,7 @@ when starting or resuming work, including after context compaction.
 The owner has authorised implementation, routine cleanup, and the repository's
 review-and-merge workflow without repeated permission requests. Live deployment,
 live database migrations, signer activation and real-funds use require the
-owner's explicit direction under CONTRIBUTING.md; the current ledova.io
-authorisations (backup, read-only inventory and isolated rehearsal) are recorded
-in the [11 October follow-up](docs/decisions.md#binding-caps-and-backup-authorisation).
+owner's explicit direction under CONTRIBUTING.md. The already-authorised
+ledova.io rebuild and release completed under #979; its permission and the
+instruction to do no further backup work are recorded in the
+[11 October release decision](docs/decisions.md#ledovaio-rebuild-and-release-authorisation).

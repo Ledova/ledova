@@ -44,5 +44,7 @@ queues below. Do not grant company users platform-staff permissions.
 Before a native release, run the [native and physical-device checks](../development/native-probes.md).
 The [legal positions](../legal/positions.md) describe unresolved assumptions before any real use.
 
-The original test evidence for the product's demonstration journey is kept
-under [evidence](evidence/demonstration-journey-2026-09.md).
+The [11 October essential journey](evidence/essential-register-2026-10-11.md)
+records the fresh-schema company/member observation and its substitutions.
+The [earlier demonstration](evidence/demonstration-journey-2026-09.md) remains
+dated historical evidence.
