@@ -139,9 +139,8 @@ To use the chain from a browser wallet, add a network with the RPC URL
 accounts from the public test mnemonic
 `test test test test test test test test test test test junk`: its first ten
 accounts hold 10,000 test ether each, #0 is the operator, the backend's signer
-and the demo issuer wallet, and the [demo seed's chain layer](operator-console.md#demo-data)
-leaves #1, #2 and #4, the demo investor's Base wallets, with between about 0.3
-and 2 ETH. Never send anything of value to these addresses, avoid sending from
+and the demo issuer wallet, and #1 to #4 are the demo investor's wallets
+([demo data](operator-console.md#demo-data)). Never send anything of value to these addresses, avoid sending from
 account #0 while the backend is signing, and stop the stack's backend and worker
 before a backend on the host signs for account #0 on this chain: only one
 database should sign for it.

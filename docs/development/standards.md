@@ -111,7 +111,9 @@ Types and interfaces use PascalCase and properties camelCase; query parameters
 follow the API's snake_case names. Compose pagination, ordering and date-range
 types from shared API types. Entities use their bare name, queries
 `{Entity}QueryParams`, and non-CRUD calls `{Action}Request` / `{Action}Response`.
-These are conventions checked in review; ESLint does not enforce them.
+The shared ESLint rules (`packages/shared/eslint-naming-rules.js`) enforce the
+PascalCase and camelCase naming and the snake_case query-parameter fields as
+errors; the utility-type preferences are checked in review.
 
 ## Documentation changes
 

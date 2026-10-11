@@ -24,7 +24,8 @@ opening import are decided before real data is admitted.
 Run the commands from `backend/` against an isolated development database with
 configured app, operator and migration roles. They select the operator
 connection explicitly; application connections read only their company's rows
-through RLS. None calls a provider or signs a transaction.
+through RLS. None signs a transaction; only `register_snapshot` reads the
+configured chain provider.
 
 ### Verifying the stored register
 
@@ -79,9 +80,13 @@ python manage.py register_inclusions --token TOKEN_UUID
 
 The read-only command prints a share class's captured boundary and classifies
 each completed issuance and settlement against it by the rule
-[register architecture](../architecture/register.md) states: `unopened`,
-`opening`, `after_opening`, `attribution` or `recorded`. Where completions
-cannot be classified it prints the refusal or a null boundary.
+[register architecture](../architecture/register.md) states: `unopened` (no
+applied opening), `opening` (its transaction is in the captured history at the
+same block and hash, so the opening already holds it), `after_opening` (a later
+block, absent from the history) or `attribution` (the evidence cannot place it,
+so an operator must attribute it), and flags whether each is already `recorded`
+in the register. Where completions cannot be classified it prints the refusal
+or a null boundary.
 
 ## Company register commands
 

@@ -80,10 +80,9 @@ from a browser wallet, add a network with that RPC URL, chain id `31337` and
 currency `ETH`, then import accounts from the public test mnemonic
 `test test test test test test test test test test test junk`. Account #0 is
 the operator, which the backend signs with, and the demo company's wallet;
-account #1 is the demo investor's wallet. Each starts with 10,000 test ether;
-`make dev-seed` leaves accounts #1, #2 and #4 the ether their seeded history
-leaves them, and account #0 keeps its test ether for the operator's gas. Their
-keys are public, so never send anything of value to them.
+account #1 is the demo investor's wallet. Each starts with 10,000 test ether,
+and account #0 pays the operator's gas. Their keys are public, so never send
+anything of value to them.
 
 The chain keeps its contracts, blocks and balances across `make dev-down`, and
 every start checks that the core contracts are the ones it deployed

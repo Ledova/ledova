@@ -214,7 +214,9 @@ evidence rows and append-only cutover holds together under an advisory lock.
 Re-entering the same capture ID with unchanged source returns the original
 batch; changed source needs a new ID, and a later capture can add variants and
 holds but never rewrites an earlier observation or clears its holds. Reports
-carry counts and fixed reason codes and always say `cutover_authorized: false`;
+carry counts and fixed reason codes (`missing_chain_provenance`,
+`missing_signer_authorization`, `missing_raw_payload`) and always say
+`cutover_authorized: false`;
 raw payloads and source snapshots are operator-only, and PostgreSQL refuses
 even operator UPDATE or DELETE on the three inventory tables. The bootstrap
 above refuses while any evidence row, any hold beyond the two permanent

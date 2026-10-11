@@ -61,7 +61,8 @@ Keep at most **150 executed backend cases** in total. Cover:
 - Issued shares equal holdings, and a repeated request produces one issue.
 - One fake-scanner test refuses infected or unscannable uploads.
 
-Keep at most five real-app-login tenant cases. They must use real non-bypassing
+The suite delivered on 11 October has 17 cases. Keep at most five real-app-login
+tenant cases; they must use real non-bypassing
 app credentials for their API/database boundaries: a privileged fixture
 connection alone does not prove RLS isolation, and ordinary `SET ROLE` fixtures
 are not app-login evidence. The PR description records the executed count, the
