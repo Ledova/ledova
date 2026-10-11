@@ -37,7 +37,7 @@ help:
 	@echo "  make install                  Install JavaScript dependencies"
 	@echo "  make install-backend          Install backend development dependencies"
 	@echo "  make init-local               Create owner-only local .env files"
-	@echo "  make build                    Build dashboard, marketing, and contracts"
+	@echo "  make build                    Build dashboard, site, and contracts"
 	@echo "  make generate-tokens          Regenerate the CSS design tokens from packages/shared"
 	@echo "  make check                    Run source and client static checks"
 	@echo "  make check-self-imports       Check workspace package imports after installing Node dependencies"
@@ -77,7 +77,7 @@ help:
 install:
 	$(NPM) ci
 	$(NPM) --prefix contracts ci
-	$(NPM) --prefix marketing ci
+	$(NPM) --prefix site ci
 	$(NPM) --prefix mobile ci
 
 install-backend:
@@ -91,7 +91,7 @@ install-schema-environment:
 # line of project code, which looks like a real type error and is not.
 install-node-if-missing:
 	@test -d node_modules || $(NPM) ci
-	@test -d marketing/node_modules || $(NPM) --prefix marketing ci
+	@test -d site/node_modules || $(NPM) --prefix site ci
 	@test -d mobile/node_modules || $(NPM) --prefix mobile ci
 
 init-local:
@@ -102,7 +102,7 @@ check-local-env:
 
 build:
 	$(NPM) run build -w dashboard
-	$(NPM) --prefix marketing run build
+	$(NPM) --prefix site run build
 	$(NPM) --prefix contracts run compile
 
 generate-tokens:
@@ -127,7 +127,7 @@ ci-checks:
 
 lint:
 	$(NPM) run lint
-	$(NPM) --prefix marketing run lint
+	$(NPM) --prefix site run lint
 	$(NPM) --prefix mobile run lint
 	$(NPM) --prefix contracts run lint
 

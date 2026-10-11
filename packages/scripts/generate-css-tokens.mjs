@@ -123,7 +123,7 @@ const css = `@theme {${[...themeColorVars, ...paperVars, ...sharedVars].join('\n
 }
 `;
 
-const targets = [join(ROOT, 'dashboard/src/styles/tokens.css'), join(ROOT, 'marketing/src/tokens.css')];
+const targets = [join(ROOT, 'dashboard/src/styles/tokens.css'), join(ROOT, 'site/src/tokens.css')];
 
 for (const target of targets) {
   if (process.argv.includes('--check')) {

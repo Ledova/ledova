@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { getOperator, CACHE_TIMING, useAuth } from '@ledova/shared';
 import apiClient from '@services/apiClient';
-import { MARKETING_URL } from '@utils/marketingUrl';
+import { SITE_URL } from '@utils/siteUrl';
 
 const FOOTER_LINKS = [
   { label: 'About', path: '/about' },
@@ -36,7 +36,7 @@ export default function Footer() {
           {FOOTER_LINKS.map((link) => (
             <a
               key={link.path}
-              href={`${MARKETING_URL}${link.path}`}
+              href={`${SITE_URL}${link.path}`}
               className="transition-colors hover:text-text-primary"
             >
               {link.label}

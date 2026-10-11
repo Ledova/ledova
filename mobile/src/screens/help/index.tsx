@@ -83,7 +83,7 @@ export function HelpScreen() {
           <ContactCard
             icon={<QuestionIcon />}
             title="Help Center"
-            description="Browse the reference documentation served by the configured marketing site."
+            description="Browse the reference documentation served by the configured public site."
             actionLabel="Visit Help Center"
             actionType="link"
             onAction={handleVisitHelpCenter}

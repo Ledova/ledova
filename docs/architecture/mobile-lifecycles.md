@@ -109,7 +109,7 @@ The serialized value escapes less-than characters so HTML parsing cannot end the
 script or enter a script escape state inside a token, so the SDK receives the
 original token, including quotes, closing-script text and Unicode separators.
 
-KYCAID completion redirects must retain the configured marketing URL's scheme and
+KYCAID completion redirects must retain the configured site URL's scheme and
 port and match its hostname or existing `www` alias. The shared navigation policy
 also rejects credentials and fragments before a redirect can retire the form. The
 same completion check admits the redirect as a navigation, so what may load and
@@ -123,7 +123,7 @@ an exact scheme, host and port match from the view's list:
 
 - KYCAID: the origin of the form URL the backend returned, plus the completion
   origin above.
-- Sumsub: the marketing origin, which is the inline page's base URL.
+- Sumsub: the site origin, which is the inline page's base URL.
 
 Android requests carry `isTopFrame` absent or true, so every one is a top frame.
 iOS sends `isTopFrame` false when the request URL differs from its main document

@@ -37,7 +37,7 @@ loading signatures before uploads work. See [upload setup](operations/uploads.md
 | Surface                                | Address                 |
 | -------------------------------------- | ----------------------- |
 | Dashboard                              | <http://localhost:5174> |
-| Marketing                              | <http://localhost:5173> |
+| Site                              | <http://localhost:5173> |
 | API and admin                          | <http://localhost:8000> |
 | Local chain (JSON-RPC, chain id 31337) | <http://127.0.0.1:8545> |
 

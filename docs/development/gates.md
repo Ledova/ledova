@@ -208,7 +208,7 @@ limits and the real-app-login rule are in [testing](testing.md#backend-verificat
 ## Dependency advisories
 
 `make ci-checks` runs `npm audit --omit=dev` for the root JavaScript workspaces,
-marketing, contracts and mobile. `make backend-test` runs `pip-audit` against
+site, contracts and mobile. `make backend-test` runs `pip-audit` against
 the backend requirements. `make audit` runs both directly; preflight inherits
 each audit once from its CI group. Dependabot continues separately.
 

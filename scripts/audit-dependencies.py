@@ -143,7 +143,7 @@ def main(argv=None):
     args = parser.parse_args(argv)
     try:
         if args.kind == "node":
-            for name in ("root", "marketing", "contracts", "mobile"):
+            for name in ("root", "site", "contracts", "mobile"):
                 accepted = MOBILE_ACCEPTED if name == "mobile" else set()
                 audit(
                     [args.npm, "audit", "--omit=dev", "--audit-level=low", "--json"],

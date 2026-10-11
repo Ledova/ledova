@@ -12,7 +12,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 TEMPLATES = {
     REPO_ROOT / "backend" / ".env": REPO_ROOT / "backend" / ".env.example",
     REPO_ROOT / "dashboard" / ".env": REPO_ROOT / "dashboard" / ".env.example",
-    REPO_ROOT / "marketing" / ".env": REPO_ROOT / "marketing" / ".env.example",
+    REPO_ROOT / "site" / ".env": REPO_ROOT / "site" / ".env.example",
     REPO_ROOT / "mobile" / ".env": REPO_ROOT / "mobile" / ".env.example",
 }
 

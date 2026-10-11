@@ -13,7 +13,7 @@ import { useReview } from './useReview';
 import { AuthLayout } from '@components/AuthLayout';
 import { Section } from '@components/Ledger';
 import { COMPANY_TYPES } from '../company-registration/constants';
-import { MARKETING_URL } from '@utils/marketingUrl';
+import { SITE_URL } from '@utils/siteUrl';
 
 function displayCompanyType(companyType: string | undefined) {
   return COMPANY_TYPES.find((type) => type.value === companyType)?.label ?? companyType ?? '';
@@ -190,7 +190,7 @@ export function SignupReview() {
           <p className="text-sm text-text-body leading-relaxed mb-4">
             By completing signup, you accept the{' '}
             <a
-              href={`${MARKETING_URL}/terms-of-service`}
+              href={`${SITE_URL}/terms-of-service`}
               target="_blank"
               rel="noopener noreferrer"
               className="text-brand-light hover:text-brand-subtle underline"
@@ -199,7 +199,7 @@ export function SignupReview() {
             </a>{' '}
             and{' '}
             <a
-              href={`${MARKETING_URL}/privacy-policy`}
+              href={`${SITE_URL}/privacy-policy`}
               target="_blank"
               rel="noopener noreferrer"
               className="text-brand-light hover:text-brand-subtle underline"

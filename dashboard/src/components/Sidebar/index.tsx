@@ -18,7 +18,7 @@ import { DESTINATIONS, useFeatureFlags, type DestinationKey } from '@ledova/shar
 import { ICON_MD } from '@components/iconSizes';
 import { useRole } from '@hooks/useRole';
 import { useUserProfile } from '@pages/user-profile/useUserProfile';
-import { MARKETING_URL } from '@utils/marketingUrl';
+import { SITE_URL } from '@utils/siteUrl';
 import { Logo } from '@components/Logo';
 import { NotificationBell } from '@components/NotificationBell';
 import { SignOutButton } from '@components/SignOutButton';
@@ -147,7 +147,7 @@ export function Sidebar({ onNavigate, withNotifications = false }: SidebarProps 
           ))}
         </nav>
         <a
-          href={`${MARKETING_URL}/contact`}
+          href={`${SITE_URL}/contact`}
           target="_blank"
           rel="noopener noreferrer"
           onClick={() => onNavigate?.()}

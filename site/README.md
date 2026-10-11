@@ -1,6 +1,7 @@
-# Marketing site
+# Public site
 
-The public Ledova site: React, TypeScript and Vite, static output, no API calls.
+The public Ledova landing page and website: React, TypeScript and Vite, static
+output, no API calls.
 
 Product copy claims only what the
 [current capability boundaries](../docs/product.md#current-capability-boundaries)

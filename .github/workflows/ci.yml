@@ -34,7 +34,7 @@ jobs:
           cache-dependency-path: |
             package-lock.json
             contracts/package-lock.json
-            marketing/package-lock.json
+            site/package-lock.json
             mobile/package-lock.json
       - name: Install dependencies
         run: make install

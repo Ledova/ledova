@@ -14,7 +14,7 @@ stored session removes an existing Authorization header before dispatch.
 
 Native Debug allows exact `localhost`, `127.0.0.1`, `::1` and `10.0.2.2` hosts.
 For a physical development device, set `EXPO_PUBLIC_DEV_API_HOST` to one private
-LAN IPv4 and set the API/marketing URLs to that host before prebuild. Ports are
+LAN IPv4 and set the API/site URLs to that host before prebuild. Ports are
 not restricted by the native allowlist. Do not put credentials in `EXPO_PUBLIC_`
 variables; Expo embeds them in the bundle. Changing the native allowance requires
 regeneration and rebuilding. A Release build made from a Debug-configured
