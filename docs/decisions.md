@@ -670,6 +670,24 @@ threshold or broad category must not silently accept future findings.
 Dependabot remains unchanged. Report the measured audit time as part of the
 ordinary check timings.
 
+### GitHub runners and Mac retirement
+
+**Owner follow-up, 11 October 2026**, after comparing completed main runs.
+[#976](https://github.com/Ledova/ledova/issues/976) records the change.
+
+Use GitHub-hosted `ubuntu-latest` for ordinary PR, main and manual CI runs.
+The owner measured roughly 6½–8 minutes on the Mac pool against 5½ minutes
+on GitHub, with each Mac job waiting 1–3½ minutes for a fresh VM. GitHub's
+runners are free for this repository, so the earlier main self-hosted selection
+is superseded. Keep the fail-closed verdict, PR wording and source gates.
+
+Retire the Mac login service, deregister its remaining owned runners and close
+its two groups to repository/public access. Preserve the reusable
+[host source](../scripts/retired-mac-runner/README.md) in Git as retired manual
+tooling, with private configuration and evidence kept outside Git. Future reuse
+requires a reviewed change and explicit host configuration; no Linux runner is
+activated by this decision. Local Mac preflight remains supported.
+
 ## Backend migration baseline
 
 **Historical owner decision, 10 October 2026**, recorded on
@@ -689,8 +707,9 @@ unrelated retained records remain.
 
 The [11 October decision](#minimum-tests-and-fresh-migrations) supersedes the
 baseline adoption path, broad runtime/process coverage and earlier 15/20-minute
-targets. ledova.io needs an approved rebuild. The permanent Mac login service
-continues; Linux and administrator-level startup installation remain deferred.
+targets. ledova.io needs an approved rebuild. That checkpoint kept the Mac login
+service running while Linux and administrator-level startup stayed deferred.
+The later [GitHub runner decision](#github-runners-and-mac-retirement) retires it.
 
 ## Registry priority, crypto on-ramp and AUD payments
 
