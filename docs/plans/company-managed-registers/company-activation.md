@@ -2,9 +2,9 @@
 
 [Implementation index](README.md) · [Company information](company-information.md) · [Authority requests and appointments](authority-requests.md)
 
-Delivered by [PR #913](https://github.com/Ledova/ledova/pull/913) under
-[#863](https://github.com/Ledova/ledova/issues/863); [PR #914](https://github.com/Ledova/ledova/pull/914)
-aligned the authority lock prefixes.
+Delivered by PRs [#913](https://github.com/Ledova/ledova/pull/913) and
+[#914](https://github.com/Ledova/ledova/pull/914) under
+[#863](https://github.com/Ledova/ledova/issues/863).
 
 A current personal `admin` appointee can activate a company in web and mobile
 after accepting the exact declaration and meeting the configured identity and
@@ -37,12 +37,9 @@ by a newly reviewed attempt. Private readiness and attempt displays disappear
 when personal `admin` access ends, even if basic draft preparation remains
 available.
 
-Existing submission, review, approval, rejection and withdrawal dates and reasons
-remain a historical record. Company files remain in **Company**, with their
-existing authorisation and retention controls. The old nine listing uploads,
-owner submit/resubmit/withdraw actions and platform staff initial
-review/approval/activation are retired. Historical migrations and retained
-actors/documents are preserved.
+The earlier owner submission and platform-staff review flow is retired; its
+dates, reasons, files and actors remain a historical record, and company files
+stay in **Company** under their existing controls.
 
 ## API
 
@@ -85,23 +82,10 @@ after lock waits. Expiry, revocation, identity/configuration changes or stale
 company identity/revision prevent a new effect. The company ACTIVE transition
 and immutable `appliedAt` receipt commit together. Database guards refuse forged
 provider decisions, raw application-role effects and orphan applied receipts.
-Receipt identity must equal the exact four-field company snapshot, including its
-normalised name. Database name comparison uses NFKC, a frozen Unicode 15.1 full
-case-fold map and the same whitespace collapse as the existing Python identity
-function. Receipt writes lock the declared company before any receipt row,
-preserving the service's lock order.
-
-Registry start, completion and application times are sampled from the current
-database connection after the required locks. Receipt times and their company
-projections stay equal when application and database hosts have different clocks.
-Provider observation timestamps retain their original provenance.
+Receipt identity must match the exact company snapshot; receipt and projection
+times come from the database clock.
 
 ## Boundaries
-
-Migration `0021_company_activation` adds attempt provenance and effect guards
-without creating historical declarations, provider passes, approval dates or
-activation actors. Existing statuses, documents, checks, actors and earlier
-journey evidence remain retained.
 
 Platform staff technical warning, suspension, delisting, registry retry and
 recovery remain available within their existing model permissions. Recovery

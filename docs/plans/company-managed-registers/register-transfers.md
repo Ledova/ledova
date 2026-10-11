@@ -35,11 +35,10 @@ snapshots.
 
 The preview shows both exact identities, terms, quantity, documents and dates,
 the register sequence, each holding before and after, and unchanged issued
-supply. A current `admin` or `approve` appointee approves that exact preview; a
-current `admin` or `apply` appointee applies it with a current approval; a
-current `admin` or `approve` appointee may reject it with a written reason,
-under the [owner's authority rules](../../decisions.md#company-run-register-authority-and-evidence).
-Changed state invalidates an earlier preview, and revoked or expired authority
+supply. A current approver approves that exact preview and a current applier
+applies it under the
+[owner's rules](../../decisions.md#company-run-register-authority-and-evidence);
+rejection records a written reason. Changed state invalidates an earlier preview, and revoked or expired authority
 refuses a new effect.
 
 ## What is recorded
@@ -62,19 +61,14 @@ corrections retain their attributable transitions and the original exit history.
 Exit and return clocks use the actual UTC transition day, retaining the source
 entry's effective date separately. A backdated correction cannot shorten fresh
 retention or date a new return before its actual exit. Particulars edits and
-invitations do not reset the exit clock. The existing 2,557-day retention floor
-continues to apply; particulars remain while the member holds shares in any of
-the company's classes. Retained proposal documents and identity snapshots remain
-private evidence under the existing synthetic-data retention policy, separate
-from the purgeable particulars projection.
+invitations do not reset the exit clock. Retention follows the
+[former-member rules](../../architecture/register.md#former-members).
 
 Stored-register and roll calculations consume the genuine ledger and retained
 identity. Certificate deadlines for these transfers use one calendar month from
 the actual lodgement date. Existing chain-transfer deadlines continue to use
 their retained SwapOrder input. This increment supplies certificate and roll
-inputs; participant access, publication authority and company output screens
-remain with #866, deferred #870 and #871. Frozen publication recipients and
-digests retain their recorded meaning.
+inputs; frozen publication recipients and digests retain their recorded meaning.
 
 ## Boundaries
 
@@ -82,12 +76,9 @@ This increment supports a director-resolution, signed-instrument, non-paid
 transfer between identified walletless members of an imported register. It does
 not implement a court-directed transfer, paid settlement, chain transfer or
 tokenisation. Existing court-backed corrections remain available under their
-own command. #868 records externally arranged capital and company-approved
-allotments; new integrated AUD collection and settlement are deferred under the
-[9 October priority](../../decisions.md#essential-registry-and-development-workflow-priority),
-and non-paid terms do not invent statutory amount-paid figures or payment
-evidence. Core register work requires no crypto on-ramp purchase. Unsupported
-corporate actions retain their existing explicit boundaries. This imported
+own command. Non-paid terms do not invent statutory amount-paid figures or
+payment evidence. Unsupported corporate actions retain their existing explicit
+boundaries. This imported
 register boundary refuses unsupported CESSATION entries and unapproved
 compensating corrections. Cessation history derives from an approved ledger
 effect; corrections use the existing company preparation, approval and
@@ -99,8 +90,5 @@ current decision and approval authority at commit; the operator-connection
 [same as for grants](register-grants.md#boundaries). The HTTP routes expose no
 SQL or constraint-mode control.
 
-Tokenising an imported register remains
-[planned](register-grants.md#planned-tokenising-an-imported-register): capture
-the exact ledger and member mapping, mirror existing shares once and reconcile
-finalised execution before claiming delivery. Deployment alone does not
-establish a mirror or authorise a second ISSUE.
+Tokenising an imported register is
+[planned](register-grants.md#planned-tokenising-an-imported-register).

@@ -95,57 +95,27 @@ Prepare-only users see unmet personal approval and cannot confirm a decision.
 Decisions and reasoned revocations require explicit confirmation; history
 retains the actual appointment, actor, clocks, keys and digests.
 
-One shared client lifecycle binds previews and writes to the current session,
-account, source, company, offering, quantity, request and selected appointment.
-Changing a binding or closing a confirmation retires held callbacks before
-dispatch. An uncertain transport outcome retains the original payload and key
-for identical replay within the running client session, including navigation
-away and back; a reload or application restart requires inspecting retained
-history, as there is no durable local command store. Company response views
-render only the permitted summary and outcome history.
+Uncertain replies follow the
+[company decision rule](../../architecture/outgoing-signing.md#company-decisions-and-signer-authority);
+company response views render only the permitted summary and outcome history.
 
 Directory, market, subscription and new order/signature effects use current
 exact-company decisions. The account-readiness response (`account`, `isReady`,
 `reasons`) concerns login, account standing and configured identity; it supplies
-no company permission. Streams authenticate a fresh JWT and live refresh session
-before connection, matching events and heartbeats, and recheck current decision
-and evidence. Cached Django session users do not authenticate the stream.
-Company-run register, grant and issuance workflows have their own guides in the
-[implementation index](README.md); company-run offering publication is not
-delivered.
+no company permission. Company-run offering publication is not delivered.
 
-The service and statement guards acquire the bounded company/product,
-account/actor/profile, settings, appointment, source/document and retained-record
-prefix before new effects; post-wait checks refuse changed bindings and use the
-current clock. Application-role writes cannot forge standing, identity policies,
-source payloads or company decisions, and the privileged executor still requires
-the actual principal and exact personal mandate.
-
-## Evidence and upgrades
+## Evidence
 
 New source uploads retain their actual holder, declaration and submitted bytes.
 Withdrawal records the actual holder rather than inventing a reviewer. The first
 company request freezes further supporting attachments. Source and attached
 document records, read audits and eligibility history remain retained. Retention
 removes due private files and derived extraction payloads after fresh database
-checks under the source/document locks. A caller-supplied future batch time or
-retention setting cannot authorise early physical deletion. Missing bytes and
-storage failures remain observable.
+checks under the source/document locks; zero days retains evidence indefinitely.
+A caller-supplied future batch time or retention setting cannot authorise early
+physical deletion. Missing bytes and storage failures remain observable.
 
-`users/0032_company_eligibility_records` adds the four record tables and nullable
-source withdrawer without inferring historical actors or approvals.
-`users/0033_company_eligibility_guards` installs evidence/command guards and
-protected retention constants from the actual configuration. Zero days retains
-evidence indefinitely. Changing either retention period or the certificate
-time zone requires an explicit guard migration and a coordinated backend/worker
-upgrade; configuration mismatch refuses new effects. Stop old writers before
-applying the new guarded boundary, and back up database and private storage
-together. Existing migrations and retained records remain unchanged. Empty
-reversal preserves the old source data; once new records or actual source
-withdrawal attribution exist, reversal refuses to discard their history or
-protections.
-
-## Consumer and source cutover
+## Consumers
 
 New subscriptions, order creation, modification and swap signature effects
 retain their actual company decision and recheck evidence, standing and current
@@ -154,34 +124,9 @@ an approved offering within its opening period, a deployed token with a contract
 and an active company open to investors. Eligibility grants no offering
 publication or technical acceptance authority.
 
-Losing investment eligibility does not hide the holder's retained subscription,
-order or swap records. Historical rows keep NULL provenance. Already paid
-subscriptions and submitted chain transactions retain their original execution
-and recovery paths; migrations infer no decisions for old records.
-
-Historical staff review fields remain; new staff review commands and mutable
-admin actions are retired. Holder withdrawal, sharing freezes, private access
-and retention continue to apply.
-
-Company revocation, holder source/request withdrawal, expiry and actual account,
-identity or wallet loss retain their genuine cause. Loss producers capture
-original facts before the change in the same bounded transaction and dispatch
-after commit, preserving the actual holder, permitted staff actor or explicit
-provider automation. Deferred guards require the declared loss and exact model
-permission. Workers use the restricted operator in autocommit, recover the
-original unresolved outgoing transaction first and admit only `REMOVE`; they
-cannot add or renew approval. Another current general decision prevents
-decision-based removal. A legacy approval lacking a retained cause is reported
-without inventing an actor.
-
-SQL checks relational metadata; services hash actual storage bytes. Changed bytes
-under otherwise live metadata require reconciliation and do not justify an
-invented removal cause. Storage and chain failures remain observable. Synthetic
-fixtures obtain real holder requests and nonstaff company decisions; maintenance
-is confined to historical states, without manufacturing current consent or
-admission provenance.
-
-The additional migrations are `shared/0015`, `users/0034` and `0035`,
-`offerings/0010`, `tokens/0082` and `whitelist/0009`. The shared replacement keeps
-original migration history and the queue prerequisite while supporting a fresh
-schema. Reversal refuses incompatible retained history.
+Losing eligibility hides none of the holder's retained subscription, order or
+swap records and removes approval without renewing it: company revocation,
+holder withdrawal, expiry and account, identity or wallet loss retain their
+genuine cause, workers admit only `REMOVE`, and another current general
+decision prevents decision-based removal. Staff review commands and mutable
+admin actions are retired; historical review fields remain.
