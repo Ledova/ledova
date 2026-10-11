@@ -190,14 +190,13 @@ fixtures and refuses missing classes or a shared registry. The sweep's
 historical counters above report an unattributed change, not a successful
 removal or an on-chain confirmation.
 
-Steps 6 and 7 are performed against a real node, with an admitted test signer,
-by the real-chain suite: `make chain-test` deploys a class through
-`tokens.services.deployment` and writes approvals through
-`whitelist.services.changes`, and
-`tokens.tests.test_chain_integration.WhitelistChangeChainTest` and
-`ShareTokenChainTest` assert the registry binding and the expiry the chain
-enforces. That is the evidence for those two steps until signer admission is
-opened.
+The original real-chain suite performed steps 6 and 7 against a real node,
+with an admitted synthetic signer, deployment/whitelist services and the
+`WhitelistChangeChainTest` / `ShareTokenChainTest` controls. That suite is
+[historical evidence](https://github.com/Ledova/ledova/blob/5f40e3cd896afc3f3a55a14e359224156735a417/backend/tokens/tests/test_chain_integration.py),
+retired under the 11 October policy. Today's `make chain-test` is one direct
+contract smoke; it does not repeat that backend workflow. The dated Base Sepolia
+record below retains the actual authorised signer/deployment evidence.
 
 ### Base Sepolia
 

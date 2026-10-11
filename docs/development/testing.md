@@ -15,6 +15,7 @@ development tools and an isolated PostgreSQL administrator connection available.
 | Purpose                               | Command                                                                    |
 | ------------------------------------- | -------------------------------------------------------------------------- |
 | All ordinary CI checks before pushing | `make preflight`                                                           |
+| Source and client CI group            | `make ci-checks`                                                           |
 | Source gates and type-checks          | `make check`                                                               |
 | Lint                                  | `make lint`; `cd backend && make lint`                                     |
 | Small gate controls                   | `make test-gates`                                                          |
@@ -48,6 +49,11 @@ Keep at most **150 executed backend cases** in total. Cover:
 - Issued shares equal holdings, and a repeated request produces one issue.
 - One fake-scanner test refuses infected or unscannable uploads.
 
+The delivered suite has 15 cases, including five real-app-login tenant cases.
+Planned entitlements/vesting, external allotments, account/member association and
+participant certificates remain product work; current outright grants, own
+Profile and company inspection exports are covered.
+
 Keep at most five real-app-login tenant tests. Remove the broad strict suite,
 real Redis/ClamAV, multi-process timing, deferred/legacy tests and unused support.
 One or two optional chain smoke tests run through `make chain-test`; no chain
@@ -64,14 +70,14 @@ ordinary `SET ROLE` fixtures as separate app-login evidence.
 
 Count executed cases, including parameterized rows:
 
-| Suite          | Maximum | Essential coverage                 |
-| -------------- | ------- | ---------------------------------- |
-| Dashboard unit | 20      | Main pages, sign-in, one core flow |
-| Mobile Jest    | 10      | App starts, sign-in, one core flow |
-| Shared package | 10      | Essential shared behaviour         |
-| Contracts      | 20      | Who can mint, pause and transfer   |
+| Suite          | Delivered cases | Maximum | Essential coverage                 |
+| -------------- | --------------- | ------- | ---------------------------------- |
+| Dashboard unit | 11              | 20      | Main pages, sign-in, one core flow |
+| Mobile Jest    | 7               | 10      | App starts, sign-in, one core flow |
+| Shared package | 6               | 10      | Essential shared behaviour         |
+| Contracts      | 14              | 20      | Who can mint, pause and transfer   |
 
-Keep the Playwright smoke tests. Mobile type-check and lint stay. Retire unused
+The nine Playwright smoke tests remain. Mobile type-check and lint stay. Retire unused
 mock factories, presentation permutations and test-only dependencies with their
 tests. Build/probe/device results before release are separate evidence.
 
@@ -96,6 +102,15 @@ tests together within **five minutes on the Mac**. Record actual suite counts,
 commands, setup/queue/test/job times and gaps. Do not claim the targets from a
 focused subset, parallel method-time sum or historical larger-suite timing.
 
+The first complete run of this policy on 11 October passed in **5m14s on
+GitHub's runners**, including dependency setup and the final verdict
+([PR #970 CI](https://github.com/Ledova/ledova/actions/runs/38100287527)).
+The composed `make preflight` passed in **184.958 seconds on the Mac**, with
+dependencies and isolated PostgreSQL already installed. It ran all source,
+type, lint, tooling, build, test and Playwright checks plus fresh PostgreSQL
+verification; the backend had 15 cases and zero skips. These measurements meet
+both targets; fresh local dependency installation and native builds are separate.
+
 ## Preflight
 
 `make preflight` runs the same ordinary checks as CI, except native builds.
@@ -103,10 +118,16 @@ There is no change preview or test-selection policy. Run a focused case during
 development when useful, then preflight once before publication; applicable CI
 must still pass on the final head up to date with main.
 
+Preflight validates local wording and the commits since `BASE` (default
+`origin/main`). Supply `PR_TITLE_FILE` and `PR_BODY_FILE` to check the actual
+draft description; otherwise it checks a draft derived from the HEAD commit,
+adding a `Refs` header from its title when needed. The real PR description and
+online owning-issue verification stay in CI.
+
 The [PR wording gate](gates.md#the-pr-metadata-gate) verifies the owning issue and
 closing phrases. A `Refs` body or commit must contain no closing phrase before
-an issue number, even a negated phrase. Record local wording checks and any
-online metadata boundary separately in the PR.
+an issue number, even a negated phrase. Record the local and online boundaries
+separately in the PR.
 
 ## Migration baseline
 

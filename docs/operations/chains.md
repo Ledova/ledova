@@ -242,9 +242,10 @@ to a retired on-chain factory; step 8's contract checks remain separate.
 Steps 6 and 7 both sign, so the owner must explicitly authorise signer
 admission for the fresh environment. The narrow Base Sepolia bootstrap below
 verifies the five core deployment transactions before first admission; it cannot
-reopen an old signer or resolve historical cutover. Local `make chain-test`
-continues to establish admission as a synthetic test precondition, and the
-local stack's `admit_local_signer` refuses every chain but 31337.
+reopen an old signer or resolve historical cutover. The local stack's
+`admit_local_signer` refuses every chain but 31337. The current manual contract
+smoke directly deploys synthetic contracts without establishing backend signer
+admission.
 
 1. Stop the backend, workers and every other producer using the new operator
    key. Prepare a new key used only for this fresh isolated environment; do not

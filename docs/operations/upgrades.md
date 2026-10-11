@@ -18,10 +18,10 @@ including a backup, export or rehearsal using its data.** No live work has run.
    documents/evidence. Export only the agreed records with their identity links
    and fingerprints; do not import stale migration records or invent historical
    approvals, receipts or share ownership. Preserve the original backup.
-3. With writers stopped, rebuild an empty PostgreSQL database using the fresh
+3. Rehearse the import mappings on an isolated copy. At the approved cutover,
+   stop writers and rebuild an empty PostgreSQL database using the fresh
    migrations and required roles, grants, RLS, triggers and functions. Re-seed
-   required reference data and only the agreed useful records. Rehearse the
-   import mappings on an isolated copy before the approved live rebuild.
+   required reference data and only the agreed useful records.
 4. Verify system, roles/catalogue and API snapshot checks, the small core suite,
    register totals and private-file references. Record results and recovery via
    the original backup/matching release; obtain release approval before serving

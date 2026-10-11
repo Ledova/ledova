@@ -44,7 +44,7 @@ package of per-concern modules re-exported by `settings/__init__.py`.
 | `documents`      | Uploaded documents and their extraction records                                                                                                                                                                                                                       |
 | `integrations`   | Chain client, KYC providers, Alchemy, CoinGecko, Blockstream, ABR company registry, LLM document extraction, SendGrid, Expo push, Transak                                                                                                                             |
 | `feature_flags`  | `FeatureFlag` and the trading middleware                                                                                                                                                                                                                              |
-| `shared`         | Base model, country lookup, the health-check middleware, the cross-tenant route matrix                                                                                                                                                                                |
+| `shared`         | Base model, country lookup, health-check middleware and PostgreSQL connection/principal helpers                                                                                                                                                                       |
 
 The [outgoing-signing guide](outgoing-signing.md) owns admission, locking, history
 and activation constraints. Converted writers use the foundation; the local stack

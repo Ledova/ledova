@@ -64,9 +64,10 @@ Legacy adoption, replacement policy, canonicality/finality and a full accounting
 ledger remain separate work. It retains the existing generation-fenced
 [balance reconciliation](wallet-reconciliation.md) and admits no operator
 signer; trading is enabled by default and unaffected by this journal.
-`make chain-test` includes real local native/ERC-20 submission and settlement
-checks, including a node acknowledgement lost after mining; ordinary tests
-separately exercise process exits and concurrent retries on PostgreSQL.
+Earlier native/ERC-20 submission, settlement and process-timing test evidence
+remains in Git history. Under the [11 October policy](../decisions.md#minimum-tests-and-fresh-migrations),
+the ordinary suite retires those cases and `make chain-test` is one manual
+local EVM contract smoke.
 
 ## Bitcoin
 

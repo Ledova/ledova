@@ -56,8 +56,8 @@ On iOS 27.0 and 26.5 simulators the launch options React Native keeps for
 which can launch the same build without the scene manifest, they held the link.
 A link that arrives while the app runs, such as an OAuth redirect back to it,
 still reaches `Linking`'s `url` event. Nothing depends on this today: the app
-reads no incoming links, and `mobile/scripts/tests/ios-scene-lifecycle.test.mjs`
-fails if `App.tsx`, `index.ts` or code under `mobile/src` starts to. A feature
+reads no incoming links. The earlier scene-lifecycle control is retired under
+the minimum-test policy. A feature
 that needs a link to open the closed app, such as an emailed confirmation link,
 must first move to Expo SDK 58, or 57.0.23 or later with
 `ios.enableSceneSupport`, whose scene delegate starts React Native with the link
@@ -85,14 +85,13 @@ RN 0.81.5 can turn an empty app spec search into a codegen dependency on the
 entire iOS project directory, creating a cycle with Expo's generated provider.
 The plugin's CocoaPods post-install helper removes only the exact
 `${PODS_ROOT}/..` input from ReactCodegen's Generate Specs phase. Real spec inputs,
-generation commands and handler registration remain intact. iOS CI checks this
-with a genuine native spec control and preserves the generated Podspec and Pods
-project for build diagnosis. The same post-install step raises any pod target
+generation commands and handler registration remain intact. Manual iOS builds
+preserve the generated Podspec and Pods project for build diagnosis. The same post-install step raises any pod target
 whose `IPHONEOS_DEPLOYMENT_TARGET` is below the Podfile's platform to that
 platform, because Xcode 27 refuses targets below iOS 15.0 and some third-party
 resource bundles still declare older minimums; targets at or above the platform
-are left alone. `mobile/scripts/tests/ios-deployment-targets.test.mjs` covers
-the floor and the hook's insertion.
+are left alone. The manual native build checks the generated project; the
+earlier deployment-target unit fixtures remain in Git history.
 
 | Component                | Build baseline                                                              |
 | ------------------------ | --------------------------------------------------------------------------- |

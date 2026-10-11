@@ -76,11 +76,9 @@ load until a complete decimal reading below 4 arrives within the budget; every
 wait is bounded by the time left. `ledova-guest-settle.log` records either
 settling or a budget gap: the guest stayed busy, a reading was unavailable or
 malformed (unconfirmed), or a reading arrived after the budget. The emulator gets
-the runner's four vCPUs, and `mobile/scripts/tests/emulator-policy.test.mjs`
-executes the actual setup and prebuild shell blocks with isolated tool stubs.
-It checks one emulator launch, at least four vCPUs, and completed foreground
-boot and settle commands before prebuild. The helper's separate tests check
-its real polling and budget behaviour; the shell controls do not boot Android.
+four vCPUs in the manual Android workflow, with foreground boot and settling
+completed before prebuild. The earlier setup-shell and polling helper controls
+remain in Git history.
 
 These settings mitigate the resource conditions investigated in
 [#880](https://github.com/Ledova/ledova/issues/880). In the
@@ -136,17 +134,16 @@ trust. An untrusted certificate with the same hostname/IP coverage must fail.
 
 ## Transport controls
 
-The runner first enables native redirects in generated source and requires both
-307/308 refusal assertions to fail while the target receives exactly two
-requests. It restores the policy and requires zero redirected target requests,
-with successful direct bearer/body, API refresh, native entropy and signing,
+The manually dispatched runner checks 307/308 refusal with zero redirected
+target requests, alongside successful direct bearer/body, API refresh, native
+entropy and signing,
 file upload/download, streaming and cancellation controls. Numeric HTTP requests
 must fail, including repeated refusal/cancellation. An unenrolled Android
 emulator additionally checks gated-wallet refusal while preserving a legacy
 recovery copy. SIGINT/SIGTERM cancel the runner, terminate its owned
 command/server groups
 (with forced termination after a two-second grace period), reap direct children,
-and restore generated files. Short synchronous tool calls have timeouts.
+and close their resources. Short synchronous tool calls have timeouts.
 An uncatchable kill or host loss requires a fresh prebuild before using the
 generated project. Remove only the owned emulator/simulator afterward. Deleting
 the iOS simulator also removes its test CA.
@@ -155,8 +152,7 @@ apps.
 
 ## Android scanner instrumentation
 
-`ScannerWindow.android.test.tsx` exercises each placement through the native
-event boundary. The Android instrumentation suite exercises real Activity and
+The manually run Android instrumentation suite exercises real Activity and
 Dialog windows, CameraX open/closed state, parent visibility and detachment,
 fully clipped previews, backgrounding, delayed provider completion, replacement
 sessions, focus loss/regain before JavaScript admission changes, and real
@@ -245,18 +241,17 @@ emulator run is retained. Cross-application camera priority remains device work.
 The initial JavaScript mount retains its one-minute deadline. The expanded
 continuation has a bounded six-minute deadline to accommodate its independent
 native stages; each native poll retains its existing 15- or 20-second limit.
-Mounted controls require progress past one minute and refusal at the continuation
-deadline, and confirm the initial deadline still applies.
+The earlier mounted JavaScript deadline controls are retired; native deadline
+results come from the completed manual probe.
 
 These emulator controls do not replace physical-device verification of sensor
 shutdown, OS permission dialogs, settings or OEM behaviour. The runner retains
 APK hashes, instrumentation logs, screenshots and window diagnostics, including
 failed runs, and removes both owned instrumentation packages during cleanup.
 The cleanup tracker includes attempted installs and uses bounded adb commands
-outside the cancelled command runner. Node controls cover install, instrumentation
-and cancellation failures, absent packages and a cleanup error alongside another
-owned package. Only completed emulator logs establish native results; JavaScript
-and script controls do not certify Kotlin compilation or camera hardware behaviour.
+outside the cancelled command runner. Earlier Node failure/cleanup permutations
+are retired. Only completed emulator logs establish native results; JavaScript
+checks do not certify Kotlin compilation or camera hardware behaviour.
 
 To run only these native controls on an owned emulator after prebuild:
 
@@ -348,8 +343,8 @@ work.
   few bytes as it needs, so its signature is 65 bytes on chain 1, 66 on Base and
   the local chain, 67 on Base Sepolia and 68 on Ethereum Sepolia. Both clients
   read 65 to 72 bytes and refuse a `v` for another network or a signature that
-  does not recover to the wallet's address; tests encode signatures the same
-  way, but only a device shows that the firmware still does. Messages and typed
+  does not recover to the wallet's address. Earlier signature fixtures remain in
+  Git history; only a device shows the firmware's actual result. Messages and typed
   data are signed with `v` 27 or 28, always 65 bytes. The seed-phrase
   alternative in the dashboard does not cover any of this.
 
