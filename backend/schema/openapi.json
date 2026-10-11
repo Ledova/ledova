@@ -2681,6 +2681,30 @@
         ],
         "type": "object"
       },
+      "CompanyPackRequestRequest": {
+        "properties": {
+          "appointment": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "instruction": {
+            "maxLength": 255,
+            "minLength": 1,
+            "type": "string"
+          },
+          "recipient": {
+            "maxLength": 255,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "appointment",
+          "instruction",
+          "recipient"
+        ],
+        "type": "object"
+      },
       "CompanyRegistered": {
         "properties": {
           "company": {
@@ -5977,6 +6001,145 @@
         ],
         "type": "object"
       },
+      "MemberCertificateFulfilment": {
+        "properties": {
+          "appointment": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "readOnly": true,
+            "type": "string"
+          },
+          "digest": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "fileSize": {
+            "readOnly": true,
+            "type": "integer"
+          },
+          "instruction": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "producedBy": {
+            "readOnly": true,
+            "type": "integer"
+          },
+          "sourceDigest": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "uuid": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "appointment",
+          "createdAt",
+          "digest",
+          "fileSize",
+          "instruction",
+          "producedBy",
+          "sourceDigest",
+          "uuid"
+        ],
+        "type": "object"
+      },
+      "MemberCertificateFulfilmentCreateRequest": {
+        "properties": {
+          "appointment": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "instruction": {
+            "maxLength": 255,
+            "minLength": 1,
+            "type": "string"
+          },
+          "operationId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "sourceDigest": {
+            "minLength": 1,
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "appointment",
+          "instruction",
+          "operationId",
+          "sourceDigest"
+        ],
+        "type": "object"
+      },
+      "MemberCertificateFulfilmentPreview": {
+        "properties": {
+          "appointment": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "company": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "entry": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "member": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "memberRequest": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "pageCount": {
+            "maximum": 2,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "registerSequence": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "sequence": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "sourceDigest": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "token": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "appointment",
+          "company",
+          "entry",
+          "member",
+          "memberRequest",
+          "pageCount",
+          "registerSequence",
+          "sequence",
+          "sourceDigest",
+          "token"
+        ],
+        "type": "object"
+      },
       "MemberCertificateRequest": {
         "properties": {
           "association": {
@@ -6001,6 +6164,15 @@
             "format": "uuid",
             "readOnly": true,
             "type": "string"
+          },
+          "fulfilment": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MemberCertificateFulfilment"
+              }
+            ],
+            "nullable": true,
+            "readOnly": true
           },
           "member": {
             "format": "uuid",
@@ -6037,6 +6209,7 @@
           "company",
           "createdAt",
           "entry",
+          "fulfilment",
           "member",
           "requestedBy",
           "status",
@@ -6068,10 +6241,11 @@
         "type": "object"
       },
       "MemberCertificateRequestStatusEnum": {
-        "description": "* `requested` - requested\n* `withdrawn` - withdrawn",
+        "description": "* `requested` - requested\n* `withdrawn` - withdrawn\n* `fulfilled` - fulfilled",
         "enum": [
           "requested",
-          "withdrawn"
+          "withdrawn",
+          "fulfilled"
         ],
         "type": "string"
       },
@@ -12606,6 +12780,78 @@
           "name",
           "symbol",
           "uuid"
+        ],
+        "type": "object"
+      },
+      "RegisterCertificatePreview": {
+        "properties": {
+          "appointment": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "entry": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "pageCount": {
+            "maximum": 2,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "registerSequence": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "sequence": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "sourceDigest": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "token": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "appointment",
+          "entry",
+          "pageCount",
+          "registerSequence",
+          "sequence",
+          "sourceDigest",
+          "token"
+        ],
+        "type": "object"
+      },
+      "RegisterCertificateRequestRequest": {
+        "properties": {
+          "appointment": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "instruction": {
+            "maxLength": 255,
+            "minLength": 1,
+            "type": "string"
+          },
+          "sequence": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "sourceDigest": {
+            "minLength": 1,
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "appointment",
+          "instruction",
+          "sequence",
+          "sourceDigest"
         ],
         "type": "object"
       },
@@ -26850,6 +27096,69 @@
         ]
       }
     },
+    "/api/v1/companies/{uuid}/pack/": {
+      "post": {
+        "operationId": "api_v1_companies_pack_create",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompanyPackRequestRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/CompanyPackRequestRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/CompanyPackRequestRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/zip": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": [],
+            "csrfCookie": [],
+            "csrfHeader": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
     "/api/v1/companies/{uuid}/status/": {
       "post": {
         "operationId": "api_v1_companies_status_create",
@@ -29703,6 +30012,149 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/MemberCertificateRequest"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/tokens/member-certificate-requests/{uuid}/file/": {
+      "get": {
+        "operationId": "api_v1_tokens_member_certificate_requests_file_retrieve",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/pdf": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/tokens/member-certificate-requests/{uuid}/fulfil/": {
+      "post": {
+        "operationId": "api_v1_tokens_member_certificate_requests_fulfil_create",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MemberCertificateFulfilmentCreateRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/MemberCertificateFulfilmentCreateRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/MemberCertificateFulfilmentCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberCertificateRequest"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": [],
+            "csrfCookie": [],
+            "csrfHeader": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/tokens/member-certificate-requests/{uuid}/fulfilment-preview/": {
+      "get": {
+        "operationId": "api_v1_tokens_member_certificate_requests_fulfilment_preview_retrieve",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberCertificateFulfilmentPreview"
                 }
               }
             },
@@ -36288,6 +36740,115 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/PauseSubmissionResponse"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": [],
+            "csrfCookie": [],
+            "csrfHeader": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/tokens/{uuid}/register/certificate/": {
+      "get": {
+        "operationId": "api_v1_tokens_register_certificate_retrieve",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "sequence",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisterCertificatePreview"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      },
+      "post": {
+        "operationId": "api_v1_tokens_register_certificate_create",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterCertificateRequestRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterCertificateRequestRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterCertificateRequestRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/pdf": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
                 }
               }
             },

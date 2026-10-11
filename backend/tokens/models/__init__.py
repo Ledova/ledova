@@ -20,6 +20,7 @@ from .member_access import (
     MemberInvitation,
     MemberParticularsRequest,
 )
+from .member_certificate import MemberCertificateFulfilment
 from .mint_request import MintRequest, MintRequestStatus
 from .nav_update import NAVUpdate, NAVUpdateMode, NAVUpdateStatus
 from .order_action import OrderActionPurpose, OrderActionStatus, OrderActionSubmission
@@ -98,6 +99,7 @@ from .transfer_order import TransferOrder
 from .yield_token import YieldToken
 
 __all__ = [
+    "MemberCertificateFulfilment",
     "MemberInvitation",
     "MemberAssociation",
     "MemberAssociationRevocation",

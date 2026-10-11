@@ -1,3 +1,4 @@
+from django.http import HttpResponse
 from drf_spectacular.utils import (
     OpenApiParameter,
     OpenApiTypes,
@@ -15,8 +16,17 @@ from tokens.models import (
     MemberParticularsRequest,
 )
 from tokens.serializers import member_access as schema
+from tokens.serializers.register_certificate import (
+    MemberCertificateFulfilmentCreateSerializer,
+    MemberCertificateFulfilmentPreviewSerializer,
+)
 from tokens.serializers.register_particulars import RegisterParticularsChangeSerializer
 from tokens.services import member_access as service
+from tokens.services.member_certificates import (
+    fulfil_member_certificate,
+    member_certificate_bytes,
+    preview_member_certificate,
+)
 from tokens.services.register_particulars import PARTICULARS
 from tokens.views.register_proposal import with_decisions
 
@@ -29,7 +39,21 @@ FILTERS = [
 
 class MemberAccessViewSet(AuthenticatedReadOnlyViewSet):
     abstract = True
-    operator_actions = frozenset({"list", "retrieve", "create", "accept", "revoke", "entries", "prepare", "withdraw"})
+    operator_actions = frozenset(
+        {
+            "list",
+            "retrieve",
+            "create",
+            "accept",
+            "revoke",
+            "entries",
+            "prepare",
+            "withdraw",
+            "fulfilment_preview",
+            "fulfil",
+            "file",
+        }
+    )
     http_method_names = ["get", "post", "head", "options"]
 
     def filter_queryset(self, queryset):
@@ -187,12 +211,13 @@ class MemberCertificateRequestViewSet(MemberAccessViewSet):
     serializer_class = schema.MemberCertificateRequestSerializer
     operator_actions_because = (
         "Own associated members request only genuine receiving ISSUE or TRANSFER effects; current personal "
-        "company register appointments read that exact queue. Immutable requests and own withdrawals retain "
-        "attribution and report their recorded state without promising an unavailable certificate output."
+        "company register appointments read the exact queue and produce one immutable recipient-only unsigned "
+        "certificate bound to the current source and audited private bytes. File access requires a current own "
+        "association or personal company reader; fulfilled requests cannot be withdrawn."
     )
 
     def narrow(self, queryset):
-        return service.request_readable(queryset.select_related("withdrawal"), self.request.user)
+        return service.request_readable(queryset.select_related("withdrawal", "fulfilment"), self.request.user)
 
     @extend_schema(
         request=schema.MemberCertificateRequestCreateSerializer,
@@ -213,3 +238,31 @@ class MemberCertificateRequestViewSet(MemberAccessViewSet):
             actor=request.user, request_id=uuid, **self.body(schema.MemberCertificateWithdrawSerializer)
         )
         return Response(schema.MemberCertificateRequestSerializer(source).data)
+
+    @extend_schema(responses=MemberCertificateFulfilmentPreviewSerializer)
+    @action(detail=True, methods=["get"], url_path="fulfilment-preview")
+    def fulfilment_preview(self, request, uuid=None):
+        return Response(
+            MemberCertificateFulfilmentPreviewSerializer(
+                preview_member_certificate(actor=request.user, request_id=uuid)
+            ).data
+        )
+
+    @extend_schema(
+        request=MemberCertificateFulfilmentCreateSerializer, responses=schema.MemberCertificateRequestSerializer
+    )
+    @action(detail=True, methods=["post"])
+    def fulfil(self, request, uuid=None):
+        source, _ = fulfil_member_certificate(
+            actor=request.user, request_id=uuid, **self.body(MemberCertificateFulfilmentCreateSerializer)
+        )
+        return Response(schema.MemberCertificateRequestSerializer(source).data)
+
+    @extend_schema(responses={(200, "application/pdf"): OpenApiTypes.BINARY})
+    @action(detail=True, methods=["get"])
+    def file(self, request, uuid=None):
+        content = member_certificate_bytes(actor=request.user, request_id=uuid)
+        response = HttpResponse(content, content_type="application/pdf")
+        response["Content-Disposition"] = f'attachment; filename="member-certificate-{uuid}.pdf"'
+        response["Cache-Control"] = "private, no-store"
+        return response

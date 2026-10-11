@@ -7,24 +7,45 @@ import {
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import * as Crypto from 'expo-crypto';
+import * as Sharing from 'expo-sharing';
 import type { AxiosInstance } from 'axios';
 import { apiClient } from '../../services/apiClient';
 import { getSessionEpoch } from '../../services/sessionScope';
 import { MEMBER_CODE, MEMBER_ENTRY, MEMBER_RECORD } from '../../../../packages/shared/tests/fixtures/member-access';
-import { APPOINTMENT } from '../../../../packages/shared/tests/fixtures/employee-awards';
+import {
+  FULFILLED_CERTIFICATE,
+  MEMBER_PDF,
+  OUTPUT_APPOINTMENT,
+  OUTPUT_PREVIEW,
+} from '../../../../packages/shared/tests/fixtures/register-outputs';
+import { cache, resetFiles } from '../../testSupport/documentFiles';
 import { MemberRecordsScreen } from './MemberRecordsScreen';
 import { CompanyMemberAccess } from '../company-register/CompanyMemberAccess';
 
-jest.mock('expo-crypto', () => ({ randomUUID: jest.fn() }));
+jest.mock('expo-crypto', () => ({
+  randomUUID: jest.fn(),
+  CryptoDigestAlgorithm: { SHA256: 'SHA-256' },
+  digest: jest.fn(
+    async (_algorithm: string, bytes: Uint8Array) =>
+      Uint8Array.from(
+        jest.requireActual<{ sha256: (value: Uint8Array) => Uint8Array }>('@noble/hashes/sha256').sha256(bytes),
+      ).buffer,
+  ),
+}));
+jest.mock('expo-file-system', () => jest.requireActual('../../testSupport/documentFiles').nativeFileSystem);
+jest.mock('expo-sharing', () => ({ isAvailableAsync: jest.fn(async () => true), shareAsync: jest.fn(async () => {}) }));
 jest.mock('../../services/apiClient', () => ({ apiClient: { get: jest.fn(), post: jest.fn() } }));
 const api = { get: jest.mocked(apiClient.get), post: jest.mocked(apiClient.post) };
-const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
+const client = new QueryClient({
+  defaultOptions: { queries: { retry: false, gcTime: Infinity }, mutations: { retry: false, gcTime: 0 } },
+});
 let release: (() => void) | undefined;
 afterEach(async () => {
   await act(async () => release?.());
   release = undefined;
   await cleanup();
   client.clear();
+  resetFiles();
 });
 const page = (results: unknown[]) => ({ data: { results, next: null, count: results.length } });
 
@@ -52,7 +73,7 @@ it('invites and associates a walletless member, recovers one exact request and r
       change: null,
     },
   ];
-  let certificates: Record<string, unknown>[] = [];
+  let certificates: Record<string, unknown>[] = [{ ...FULFILLED_CERTIFICATE, status: 'requested', fulfilment: null }];
   api.get.mockReset().mockImplementation(async (url) => {
     if (url === '/api/user-preferences/') {
       if (preferencesRefused)
@@ -60,9 +81,7 @@ it('invites and associates a walletless member, recovers one exact request and r
       return { data: preferences };
     }
     if (url === '/api/v1/company-authority/appointments/')
-      return page([
-        { ...APPOINTMENT, company: MEMBER_RECORD.company.uuid, capabilities: ['admin', 'prepare'], isEffective: true },
-      ]);
+      return page([{ ...OUTPUT_APPOINTMENT, capabilities: ['admin', 'prepare'] }]);
     if (url === URLS.MEMBER_INVITATIONS) return page(invitation ? [invitation] : []);
     if (url === URLS.MEMBER_ASSOCIATIONS) return page([]);
     if (url === URLS.MEMBER_RECORDS) {
@@ -73,10 +92,35 @@ it('invites and associates a walletless member, recovers one exact request and r
     if (url === URLS.MEMBER_ENTRIES(MEMBER_RECORD.uuid)) return { data: { entries: [MEMBER_ENTRY] } };
     if (url === URLS.MEMBER_PARTICULARS_REQUESTS) return page(particulars);
     if (url === URLS.MEMBER_CERTIFICATE_REQUESTS) return page(certificates);
+    if (url === URLS.MEMBER_CERTIFICATE_FILE(FULFILLED_CERTIFICATE.uuid))
+      return { data: MEMBER_PDF.buffer, headers: { 'content-type': 'application/pdf' } };
+    if (url === URLS.MEMBER_CERTIFICATE_PREVIEW(FULFILLED_CERTIFICATE.uuid))
+      return {
+        data: {
+          ...OUTPUT_PREVIEW,
+          company: MEMBER_RECORD.company.uuid,
+          member: MEMBER_RECORD.member,
+          memberRequest: FULFILLED_CERTIFICATE.uuid,
+        },
+      };
     throw new Error(`Unexpected GET ${url}`);
   });
   api.post.mockReset().mockImplementation(async (url, value) => {
     const body = value as Record<string, string>;
+    if (url === URLS.MEMBER_CERTIFICATE_FULFIL(FULFILLED_CERTIFICATE.uuid)) {
+      const request = {
+        ...FULFILLED_CERTIFICATE,
+        fulfilment: {
+          ...FULFILLED_CERTIFICATE.fulfilment,
+          uuid: body.operationId,
+          appointment: body.appointment,
+          instruction: body.instruction,
+          sourceDigest: body.sourceDigest,
+        },
+      };
+      certificates = [request];
+      return { data: request };
+    }
     if (url === URLS.MEMBER_INVITATIONS) {
       invitation = {
         ...body,
@@ -155,6 +199,24 @@ it('invites and associates a walletless member, recovers one exact request and r
   preferencesRefused = false;
   particulars = [];
   client.setQueryData(USER_PREFERENCES_QUERY_KEY, { data: preferences });
+  await fireEvent.changeText(
+    await screen.findByLabelText('Certificate instruction reference'),
+    'Synthetic recipient instruction',
+  );
+  await fireEvent.press(
+    screen.getByRole('button', { name: `Preview recipient certificate ${FULFILLED_CERTIFICATE.uuid}` }),
+  );
+  await fireEvent.press(await screen.findByRole('button', { name: 'Confirm recipient certificate fulfilment' }));
+  await screen.findByText(/The unsigned recipient certificate is recorded/);
+  expect(api.post).toHaveBeenCalledWith(
+    URLS.MEMBER_CERTIFICATE_FULFIL(FULFILLED_CERTIFICATE.uuid),
+    expect.objectContaining({
+      appointment: OUTPUT_APPOINTMENT.uuid,
+      instruction: 'Synthetic recipient instruction',
+      sourceDigest: OUTPUT_PREVIEW.sourceDigest,
+    }),
+    expect.objectContaining({ ledovaSubmissionGuard: expect.any(Function) }),
+  );
   await company.unmount();
   await render(<MemberRecordsScreen />, { wrapper });
   await fireEvent.changeText(screen.getByLabelText('Member invitation code'), MEMBER_CODE);
@@ -165,6 +227,15 @@ it('invites and associates a walletless member, recovers one exact request and r
   );
   await screen.findByText(MEMBER_RECORD.name);
   expect(screen.getByText(/5 awarded · 2 vested · 0 issued/)).toBeTruthy();
+  await fireEvent.press(
+    await screen.findByRole('button', { name: `Share own unsigned certificate ${FULFILLED_CERTIFICATE.uuid}` }),
+  );
+  await waitFor(() =>
+    expect(Sharing.shareAsync).toHaveBeenCalledWith(
+      `${cache}ledova-document-views-v1/member-certificate-${FULFILLED_CERTIFICATE.uuid}.pdf`,
+      { mimeType: 'application/pdf', UTI: 'com.adobe.pdf' },
+    ),
+  );
   await fireEvent.changeText(screen.getByLabelText('Requested name'), 'Requested Member Name');
   await fireEvent.changeText(screen.getByLabelText('Requested residential address'), 'Requested synthetic address');
   await fireEvent.press(screen.getByRole('checkbox', { name: 'Share these particulars with this company for review' }));

@@ -7,7 +7,10 @@ export type OwnMemberRecord = ApiSchema<'MemberRecord'>;
 export type OwnMemberEntry = ApiSchema<'MemberRecordEntry'>;
 export type OwnMemberEntries = ApiSchema<'MemberRecordEntries'>;
 export type MemberParticularsRequest = ApiSchema<'MemberParticularsRequest'>;
+export type MemberCertificateFulfilment = ApiSchema<'MemberCertificateFulfilment'>;
 export type MemberCertificateRequest = ApiSchema<'MemberCertificateRequest'>;
+export type MemberCertificateFulfilmentPreview = ApiSchema<'MemberCertificateFulfilmentPreview'>;
+export type MemberCertificateFulfilmentCreate = ApiRequest<'api_v1_tokens_member_certificate_requests_fulfil_create'>;
 
 export type MemberInvitationCreate = ApiRequest<'api_v1_tokens_member_invitations_create'>;
 export type MemberInvitationAccept = ApiRequest<'api_v1_tokens_member_invitations_accept_create'>;

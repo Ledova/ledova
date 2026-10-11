@@ -82,7 +82,14 @@ export function ClassRecords({
         refreshAppointments={appointments.refetch}
         onPrepare={onPrepareImport}
       />
-      <ClassEntries epoch={epoch} register={register} steps={steps} onCorrect={onCorrect} />
+      <ClassEntries
+        epoch={epoch}
+        company={company}
+        register={register}
+        steps={steps}
+        onCorrect={onCorrect}
+        sourceReady={sourceReady && appointments.isSuccess && !appointments.isFetching}
+      />
       <ClassGrants
         epoch={epoch}
         company={company}
@@ -93,7 +100,7 @@ export function ClassRecords({
         onPrepare={onPrepareGrant}
       />
       <ClassAwards
-        key={`${epoch}/${company}/${register.token.uuid}`}
+        key={`awards/${epoch}/${company}/${register.token.uuid}`}
         company={company}
         register={register}
         epoch={epoch}
@@ -101,7 +108,7 @@ export function ClassRecords({
         onPrepareGrant={onPrepareAwardGrant}
       />
       <ClassAllotments
-        key={`${epoch}/${company}/${register.token.uuid}`}
+        key={`allotments/${epoch}/${company}/${register.token.uuid}`}
         company={company}
         register={register}
         epoch={epoch}

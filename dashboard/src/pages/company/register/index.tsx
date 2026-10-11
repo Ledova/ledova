@@ -1,4 +1,5 @@
 import { useMemo, type ReactNode } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   DESTINATIONS,
   REGISTER_COPY,
@@ -6,6 +7,7 @@ import {
   useOpenRows,
   useSubmissionOwner,
   useUserPreferences,
+  USER_PREFERENCES_QUERY_KEY,
   type OrderSubmissionOwner,
   type TokenHoldersResponse,
 } from '@ledova/shared';
@@ -23,6 +25,7 @@ import { ClassReconciliation } from './ClassReconciliation';
 import { ClassRegister } from './ClassRegister';
 import { ClassInspectionCopy } from './ClassInspectionCopy';
 import { CompanyMemberAccess } from './CompanyMemberAccess';
+import { CompanyPack } from './CompanyPack';
 import { RegisterLinks } from './RegisterLinks';
 import { RegisterParticulars } from './RegisterParticulars';
 import { Loading, Unavailable } from './RegisterStatus';
@@ -52,8 +55,8 @@ function RegisterPage({
           this creates no shares and does not mirror existing holdings. AUD payment workflows, tokenisation of existing
           holdings and other corporate actions remain planned. Supported tokenised issues, wallet approvals, capital
           increases and pause changes use separate company workflows with exact company approval. Company appointees
-          prepare inspection copies above. Certificates, publications and the company pack are prepared by staff on
-          written instruction.
+          prepare inspection copies, unsigned certificates and supported company packs above. Publications remain
+          prepared by staff on written instruction.
         </p>
       </Section>
     </Page>
@@ -122,6 +125,14 @@ function OwnRegister({
 }) {
   const guard = useMemo(() => ownerGuard(owner, currentOwner), [owner, currentOwner]);
   const { classes, companies, company, selectCompany, registers } = useCompanyRegister(owner);
+  const client = useQueryClient();
+  useUserPreferences();
+  const preferences = client.getQueryState(USER_PREFERENCES_QUERY_KEY);
+  const sourceReady =
+    preferences?.status === 'success' &&
+    preferences.fetchStatus === 'idle' &&
+    !classes.isFetching &&
+    !registers.isFetching;
   const rows = useOpenRows();
 
   return (
@@ -139,11 +150,8 @@ function OwnRegister({
         classes.isSuccess &&
         registers.isSuccess && (
           <>
-            <CompanyMemberAccess
-              key={`members/${company.uuid}`}
-              company={company.uuid}
-              sourceReady={!classes.isFetching && !registers.isFetching}
-            />
+            <CompanyMemberAccess key={`members/${company.uuid}`} company={company.uuid} sourceReady={sourceReady} />
+            <CompanyPack owner={owner} guard={guard} company={company.uuid} sourceReady={sourceReady} />
             <RegisterParticulars owner={owner} guard={guard} company={company.uuid} registers={registers.data} />
             <RegisterLinks owner={owner} guard={guard} company={company.uuid} registers={registers.data} />
           </>
@@ -220,7 +228,14 @@ function OwnRegister({
                   sourceReady={!classes.isFetching && !registers.isFetching}
                 />
                 <ClassTransfers owner={owner} guard={guard} register={register} company={company.uuid} />
-                <ClassCorrections owner={owner} guard={guard} token={register.token.uuid} company={company.uuid} />
+                <ClassCorrections
+                  owner={owner}
+                  guard={guard}
+                  token={register.token.uuid}
+                  company={company.uuid}
+                  register={register}
+                  sourceReady={sourceReady}
+                />
                 <ClassReconciliation
                   owner={owner}
                   guard={guard}

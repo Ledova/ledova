@@ -22,9 +22,16 @@ from shared.utils.typed_data import DOMAIN_NAME, DOMAIN_VERSION
 from tokens.constants import COMPANY_PACK_SPOOL_BYTES
 from tokens.exceptions import RegisterIntegrityError, SettlementContextChanged
 from tokens.models import (
+    RegisterAgreement,
+    RegisterAllotment,
+    RegisterAward,
+    RegisterAwardVesting,
+    RegisterContribution,
     RegisterEntry,
     RegisterExport,
     RegisterExportKind,
+    RegisterGrant,
+    RegisterTransfer,
     ShareRegister,
     ShareToken,
     ShareTokenStatus,
@@ -32,6 +39,7 @@ from tokens.models import (
 from tokens.services import company_pack_chain as chain
 from tokens.services import company_pack_documents as documents
 from tokens.services import company_pack_history as history
+from tokens.services import company_pack_mandates as mandates
 from tokens.services import company_pack_publications as publications
 from tokens.services.register import (
     REGISTER_HEADERS,
@@ -351,18 +359,22 @@ def _member(path):
 def _archive(files, stored, manifest):
     archive = SpooledTemporaryFile(max_size=COMPANY_PACK_SPOOL_BYTES)
     listed = []
-    with zipfile.ZipFile(archive, "w") as bundle:
-        for path in sorted({*files, *stored}):
-            if path in files:
-                bundle.writestr(_member(path), files[path])
-                size, digest = len(files[path]), _digest(files[path])
-            else:
-                with bundle.open(_member(path), "w") as target:
-                    size, digest = documents.carry(stored[path], target)
-            listed.append({"path": path, "size": size, "sha256": digest})
-        manifest = _json({**manifest, "files": listed})
-        bundle.writestr(_member(MANIFEST), manifest)
-    archive.seek(0)
+    try:
+        with zipfile.ZipFile(archive, "w") as bundle:
+            for path in sorted({*files, *stored}):
+                if path in files:
+                    bundle.writestr(_member(path), files[path])
+                    size, digest = len(files[path]), _digest(files[path])
+                else:
+                    with bundle.open(_member(path), "w") as target:
+                        size, digest = documents.carry(stored[path], target)
+                listed.append({"path": path, "size": size, "sha256": digest})
+            manifest = _json({**manifest, "files": listed})
+            bundle.writestr(_member(MANIFEST), manifest)
+        archive.seek(0)
+    except BaseException:
+        archive.close()
+        raise
     return archive, manifest
 
 
@@ -384,7 +396,7 @@ def _record(classes, requested_by, digest, instruction, recipient):
         )
 
 
-def produce_company_pack(company, requested_by, *, instruction, recipient):
+def _build_company_pack(company, *, instruction, recipient, validate_contents=None):
     with _snapshot():
         as_at = timezone.now().astimezone(utc_zone.utc)
         company = Company.objects.get(pk=company.pk)
@@ -405,10 +417,29 @@ def produce_company_pack(company, requested_by, *, instruction, recipient):
         )
         contracts = _contracts(classes, approvals["registries"])
         published = publications.section(company)
+        mandate_source = mandates.section(company)
+        mandate_records = _json(mandate_source)
+        core_records = [
+            record
+            for model in (
+                RegisterAward,
+                RegisterAwardVesting,
+                RegisterAgreement,
+                RegisterContribution,
+                RegisterAllotment,
+                RegisterGrant,
+                RegisterTransfer,
+            )
+            for record in model.objects.filter(company=company).order_by("created_at", "uuid")
+        ]
+        copies.update(documents.retained_sources(core_records))
+        if validate_contents is not None:
+            validate_contents(company, classes, approvals, published, mandate_source)
     stored = {**held, **copies, **published["stored"]}
     documents.within_ceiling(company, stored)
     files = {
         "company.json": _json(record),
+        "company_mandates.json": mandate_records,
         "approvals.json": _json(approvals),
         "wallet_links.json": _json(wallet_links),
         "particulars_changes.json": _json(particulars_changes),
@@ -469,5 +500,14 @@ def produce_company_pack(company, requested_by, *, instruction, recipient):
         },
     )
     digest = _digest(manifest)
-    _record(classes, requested_by, digest, instruction, recipient)
-    return archive, f"company-pack-{company.acn}-{as_at:%Y%m%dT%H%M%SZ}.zip"
+    return archive, f"company-pack-{company.acn}-{as_at:%Y%m%dT%H%M%SZ}.zip", classes, digest
+
+
+def produce_company_pack(company, requested_by, *, instruction, recipient):
+    archive, filename, classes, digest = _build_company_pack(company, instruction=instruction, recipient=recipient)
+    try:
+        _record(classes, requested_by, digest, instruction, recipient)
+    except BaseException:
+        archive.close()
+        raise
+    return archive, filename

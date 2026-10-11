@@ -1,8 +1,9 @@
 import { useState, useSyncExternalStore } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Text, View, RefreshControl, Pressable } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { REGISTER_COPY } from '@ledova/shared';
+import { REGISTER_COPY, useUserPreferences, USER_PREFERENCES_QUERY_KEY } from '@ledova/shared';
 import { Action, LinkRow, Rows, Section } from '../../components/Ledger';
 import { Page } from '../../components/Page';
 import type { CompanyStackParamList } from '../../navigation/CompanyStackNavigator';
@@ -13,6 +14,7 @@ import { useCompanyStyles } from './styles';
 import { ClassRecords } from './ClassRecords';
 import { CompanyLinks } from './CompanyLinks';
 import { CompanyMemberAccess } from './CompanyMemberAccess';
+import { CompanyPack } from './CompanyPack';
 import { CompanyParticulars } from './CompanyParticulars';
 import { RegisterDownload } from './RegisterDownload';
 import { RegisterInspectionCopy } from './RegisterInspectionCopy';
@@ -24,6 +26,10 @@ export function CompanyRegisterScreen() {
 
 function CompanyRegister({ epoch }: { epoch: number }) {
   const { classes, companies, company, selectCompany, registers, isFetching, refresh } = useCompanyRegister(epoch);
+  const client = useQueryClient();
+  useUserPreferences();
+  const preferences = client.getQueryState(USER_PREFERENCES_QUERY_KEY);
+  const sourceReady = preferences?.status === 'success' && preferences.fetchStatus === 'idle' && !isFetching;
   const styles = useCompanyStyles();
   const navigation = useNavigation<NativeStackNavigationProp<CompanyStackParamList>>();
   const [expanded, setExpanded] = useState<string[]>([]);
@@ -97,7 +103,7 @@ function CompanyRegister({ epoch }: { epoch: number }) {
                         company={company.uuid}
                         register={register}
                         refreshHolders={registers.refetch}
-                        sourceReady={!isFetching}
+                        sourceReady={sourceReady}
                         onPrepareAwardGrant={(awardUuid) =>
                           navigation.navigate('PrepareRegisterGrant', {
                             tokenUuid: uuid,
@@ -142,10 +148,17 @@ function CompanyRegister({ epoch }: { epoch: number }) {
       </Section>
       {company && registers.isSuccess && (
         <>
+          <CompanyPack
+            key={`pack/${epoch}/${company.uuid}`}
+            epoch={epoch}
+            company={company.uuid}
+            name={company.name}
+            disabled={!sourceReady}
+          />
           <CompanyMemberAccess
             key={`members/${epoch}/${company.uuid}`}
             company={company.uuid}
-            sourceReady={!isFetching}
+            sourceReady={sourceReady}
           />
           <CompanyParticulars
             epoch={epoch}
@@ -168,9 +181,10 @@ function CompanyRegister({ epoch }: { epoch: number }) {
           for imported draft classes. They prepare, approve and apply empty-class deployment from the Share class page;
           this creates no shares and does not mirror existing holdings. AUD payment workflows, tokenisation of existing
           holdings and other corporate actions remain planned. Supported tokenised issues, wallet approvals, capital
-          increases and pause changes use separate company workflows with exact company approval. Certificates,
-          publications and the company pack are prepared by staff on written instruction. Current company appointees
-          prepare inspection copies above with the written instruction, recipient and request date.
+          increases and pause changes use separate company workflows with exact company approval. Unsigned certificates
+          and supported company packs are prepared by current company appointees above; publications remain
+          staff-prepared on written instruction. Current company appointees prepare inspection copies above with the
+          written instruction, recipient and request date.
         </Text>
       </Section>
     </Page>

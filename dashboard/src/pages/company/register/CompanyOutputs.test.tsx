@@ -1,0 +1,119 @@
+// @vitest-environment jsdom
+
+import { COMPANY_ENDPOINTS, COMPANY_TOKEN_ENDPOINTS, USER_PREFERENCES_QUERY_KEY } from '@ledova/shared';
+import { QueryClient } from '@tanstack/react-query';
+import { act, cleanup, fireEvent, screen, waitFor } from '@testing-library/react';
+import { afterEach, expect, it, vi } from 'vitest';
+import {
+  OUTPUT_APPOINTMENT,
+  OUTPUT_ENTRY,
+  OUTPUT_PREVIEW,
+  OUTPUT_REGISTER,
+} from '../../../../../packages/shared/tests/fixtures/register-outputs';
+import { prepareCompanyClient, renderCompanyPage } from '../testSupport';
+import { ClassCertificate } from './ClassCertificate';
+import { CompanyPack } from './CompanyPack';
+
+const api = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn() }));
+vi.mock('@services/apiClient', () => ({ default: api }));
+const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
+let release: (() => void) | undefined;
+afterEach(async () => {
+  await act(async () => release?.());
+  release = undefined;
+  cleanup();
+  client.clear();
+  vi.restoreAllMocks();
+  vi.unstubAllGlobals();
+});
+
+it('downloads the exact unsigned entry certificate and company pack, refusing a late pack after current account preferences fail', async () => {
+  prepareCompanyClient(client);
+  const certificate = COMPANY_TOKEN_ENDPOINTS.REGISTER_CERTIFICATE(OUTPUT_REGISTER.token.uuid);
+  const pack = COMPANY_ENDPOINTS.PACK(OUTPUT_APPOINTMENT.company);
+  const pdf = new Blob(['%PDF synthetic unsigned'], { type: 'application/pdf' });
+  const zip = new Blob(['PK synthetic archive'], { type: 'application/zip' });
+  const createObjectURL = vi.fn(() => 'blob:synthetic');
+  vi.stubGlobal('URL', { createObjectURL, revokeObjectURL: vi.fn() });
+  vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+  api.get.mockReset().mockImplementation(async (url) => {
+    if (url === '/api/v1/company-authority/appointments/')
+      return { data: { results: [OUTPUT_APPOINTMENT], next: null } };
+    if (url === certificate) return { data: OUTPUT_PREVIEW };
+    throw new Error(`Unexpected GET ${url}`);
+  });
+  api.post.mockReset().mockImplementation(async (url) => ({ data: url === certificate ? pdf : zip }));
+  renderCompanyPage(
+    client,
+    <>
+      <ClassCertificate
+        sourceKey="synthetic"
+        register={OUTPUT_REGISTER}
+        entry={OUTPUT_ENTRY}
+        guard={() => {}}
+        sourceReady
+      />
+      <CompanyPack
+        owner={{ userUuid: 'profile-one', ownerAccountUuid: 'account-one' }}
+        guard={() => {}}
+        company={OUTPUT_APPOINTMENT.company}
+        sourceReady
+      />
+    </>,
+    'Register outputs',
+  );
+  fireEvent.click(screen.getByRole('button', { name: /Prepare unsigned certificate/ }));
+  fireEvent.change(screen.getByLabelText('Certificate instruction reference'), {
+    target: { value: 'Synthetic certificate instruction' },
+  });
+  fireEvent.click(screen.getByRole('button', { name: 'Preview unsigned certificate' }));
+  fireEvent.click(await screen.findByRole('button', { name: 'Confirm and download unsigned PDF' }));
+  await waitFor(() => expect(createObjectURL).toHaveBeenCalledWith(pdf));
+  expect(api.post).toHaveBeenCalledWith(
+    certificate,
+    {
+      sequence: OUTPUT_ENTRY.sequence,
+      appointment: OUTPUT_APPOINTMENT.uuid,
+      sourceDigest: OUTPUT_PREVIEW.sourceDigest,
+      instruction: 'Synthetic certificate instruction',
+    },
+    expect.objectContaining({ responseType: 'blob', ledovaSubmissionGuard: expect.any(Function) }),
+  );
+  fireEvent.change(await screen.findByLabelText('Pack instruction reference'), {
+    target: { value: 'Synthetic pack instruction' },
+  });
+  fireEvent.change(screen.getByLabelText('Pack recipient'), { target: { value: 'Synthetic recipient' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Prepare and download company pack' }));
+  await waitFor(() => expect(createObjectURL).toHaveBeenCalledWith(zip));
+  expect(api.post).toHaveBeenCalledWith(
+    pack,
+    {
+      appointment: OUTPUT_APPOINTMENT.uuid,
+      instruction: 'Synthetic pack instruction',
+      recipient: 'Synthetic recipient',
+    },
+    expect.objectContaining({ responseType: 'blob', ledovaSubmissionGuard: expect.any(Function) }),
+  );
+  api.post.mockImplementationOnce(
+    () =>
+      new Promise((resolve) => {
+        release = () => resolve({ data: zip });
+      }),
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'Prepare and download company pack' }));
+  await waitFor(() => expect(release).toBeTypeOf('function'));
+  await act(async () => {
+    await client
+      .fetchQuery({
+        queryKey: USER_PREFERENCES_QUERY_KEY,
+        queryFn: async () => {
+          throw new Error('Current preferences refused');
+        },
+        retry: false,
+      })
+      .catch(() => {});
+  });
+  await act(async () => release!());
+  await screen.findByRole('alert');
+  expect(createObjectURL).toHaveBeenCalledTimes(2);
+});

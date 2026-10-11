@@ -1,9 +1,15 @@
 import { useState } from 'react';
-import { formatShareCount, useMemberRecords } from '@ledova/shared';
+import {
+  formatShareCount,
+  useMemberRecords,
+  getMemberCertificateFile,
+  type MemberCertificateRequest,
+} from '@ledova/shared';
 import { Row, Rows, Section } from '@components/Ledger';
 import { Page, PageAction } from '@components/Page';
 import { FIELD_CLASS } from '@components/fieldClass';
 import apiClient from '@services/apiClient';
+import { saveFile } from '../company/register/useCompanyRegister';
 
 export default function MemberRecordsPage() {
   const read = useMemberRecords(apiClient, () => crypto.randomUUID());
@@ -210,14 +216,17 @@ function MemberRecords({ read }: { read: ReturnType<typeof useMemberRecords> }) 
                     </p>
                   ))}
                   <p className="text-sm text-text-muted">
-                    A certificate request does not create a certificate. Fulfilment remains separate company output
-                    work.
+                    A request creates no certificate. A fulfilled request provides an unsigned PDF of your own receiving
+                    entry only; the company is responsible for its execution.
                   </p>
                   {read.requests.certificates.map((request) => (
                     <div key={request.uuid} className="space-y-2 py-3">
                       <p>
                         Certificate request {request.uuid} · {request.status} · Entry {request.entry}
                       </p>
+                      {request.status === 'fulfilled' && request.fulfilment && (
+                        <MemberCertificateDownload read={read} request={request} />
+                      )}
                       {request.status === 'requested' && (
                         <PageAction
                           label={`Withdraw certificate request ${request.uuid}`}
@@ -234,5 +243,63 @@ function MemberRecords({ read }: { read: ReturnType<typeof useMemberRecords> }) 
         </>
       )}
     </Page>
+  );
+}
+
+function MemberCertificateDownload({
+  read,
+  request,
+}: {
+  read: ReturnType<typeof useMemberRecords>;
+  request: MemberCertificateRequest;
+}) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const download = async () => {
+    if (busy) return;
+    setBusy(true);
+    setError('');
+    try {
+      const captured = read.guardCertificate(request.uuid);
+      const check = () => {
+        const current = read.guardCertificate(request.uuid);
+        if (
+          current.uuid !== captured.uuid ||
+          current.digest !== captured.digest ||
+          current.fileSize !== captured.fileSize
+        )
+          throw new Error('The certificate fulfilment changed. Refresh your records.');
+      };
+      check();
+      const { data } = await getMemberCertificateFile(apiClient, request.uuid, { ledovaSubmissionGuard: check });
+      check();
+      if (!(data instanceof Blob) || !/^application\/pdf(?:;|$)/.test(data.type) || data.size !== captured.fileSize)
+        throw new Error('The recipient certificate PDF could not be confirmed.');
+      const digest = await crypto.subtle.digest('SHA-256', await data.arrayBuffer());
+      check();
+      if (
+        Array.from(new Uint8Array(digest), (value) => value.toString(16).padStart(2, '0')).join('') !== captured.digest
+      )
+        throw new Error('The recipient certificate digest does not match its retained record.');
+      saveFile(data, `member-certificate-${request.uuid}.pdf`);
+    } catch {
+      setError('The certificate could not be downloaded. Refresh your current member records.');
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <>
+      <PageAction
+        label={`Download own unsigned certificate ${request.uuid}`}
+        disabled={busy || read.busy}
+        onClick={() => void download()}
+      />
+      {error && (
+        <p role="alert" className="text-sm text-error-light">
+          {error}
+        </p>
+      )}
+    </>
   );
 }

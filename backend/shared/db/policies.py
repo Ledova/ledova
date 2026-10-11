@@ -599,6 +599,8 @@ FRAMEWORK = {
 }
 
 OPERATOR_ONLY = {
+    "tokens_membercertificatefulfilment": "Immutable private recipient-only certificates served through current "
+    "own association or personal company register appointment, with original producing authority and export.",
     "tokens_memberinvitation": "Immutable intended-recipient company member invitations issued by current "
     "ADMIN appointments.",
     "tokens_memberassociation": "Exact signed-in user/account member associations served only through "

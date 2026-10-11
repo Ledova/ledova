@@ -5,6 +5,7 @@ from authentication.serializers.fields import NormalizedEmailField
 from companies.serializers.team import StrictTeamSerializer
 from tokens.models import (
     MemberAssociation,
+    MemberCertificateFulfilment,
     MemberCertificateRequest,
     MemberInvitation,
     MemberParticularsRequest,
@@ -146,16 +147,46 @@ class MemberCertificateWithdrawSerializer(StrictTeamSerializer):
     idempotency_key = serializers.UUIDField()
 
 
+class MemberCertificateFulfilmentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = MemberCertificateFulfilment
+        fields = [
+            "uuid",
+            "produced_by",
+            "appointment",
+            "instruction",
+            "source_digest",
+            "digest",
+            "file_size",
+            "created_at",
+        ]
+        read_only_fields = fields
+
+
 class MemberCertificateRequestSerializer(serializers.ModelSerializer):
+    fulfilment = MemberCertificateFulfilmentSerializer(read_only=True, allow_null=True)
     status = serializers.SerializerMethodField()
 
     class Meta:
         model = MemberCertificateRequest
-        fields = ["uuid", "association", "company", "token", "member", "entry", "requested_by", "status", "created_at"]
+        fields = [
+            "uuid",
+            "association",
+            "company",
+            "token",
+            "member",
+            "entry",
+            "requested_by",
+            "status",
+            "fulfilment",
+            "created_at",
+        ]
         read_only_fields = fields
 
-    @extend_schema_field(serializers.ChoiceField(choices=["requested", "withdrawn"]))
+    @extend_schema_field(serializers.ChoiceField(choices=["requested", "withdrawn", "fulfilled"]))
     def get_status(self, obj):
+        if getattr(obj, "fulfilment", None):
+            return "fulfilled"
         return "withdrawn" if getattr(obj, "withdrawal", None) else "requested"
 
 

@@ -3,6 +3,9 @@ import {
   DESTINATIONS,
   REGISTER_CORRECTION_COPY,
   formatDateTime,
+  hasCurrentRegisterReadAuthority,
+  USER_PREFERENCES_QUERY_KEY,
+  type TokenHoldersResponse,
   type OrderSubmissionOwner,
   type OwnCompanyAppointment,
 } from '@ledova/shared';
@@ -10,6 +13,7 @@ import { LinkRow } from '@components/Ledger';
 import { PageAction } from '@components/Page';
 import { ownAppointmentsKey } from '../team/appointments';
 import { CorrectionRecord } from './CorrectionRecord';
+import { ClassCertificate } from './ClassCertificate';
 import { RegisterChanges } from './RegisterChanges';
 import { registerSteps } from './proposals';
 import { registerKey } from './useCompanyRegister';
@@ -30,12 +34,18 @@ function EntryHistory({
   token,
   prepare,
   corrections,
+  register,
+  certificateGuard,
+  sourceReady,
 }: {
   owner: OrderSubmissionOwner;
   guard: () => void;
   token: string;
   prepare: OwnCompanyAppointment | undefined;
   corrections: ClassCorrection[];
+  register: TokenHoldersResponse;
+  certificateGuard: () => void;
+  sourceReady: boolean;
 }) {
   const history = useRegisterEntries(owner, token, guard);
   const sequences = new Map(
@@ -85,6 +95,13 @@ function EntryHistory({
                       {reversal === undefined ? COPY.CORRECTED_NOTE : `Reversed by entry ${reversal}.`}
                     </p>
                   )}
+                  <ClassCertificate
+                    sourceKey={`${owner.userUuid}/${owner.ownerAccountUuid}`}
+                    register={register}
+                    entry={entry}
+                    guard={certificateGuard}
+                    sourceReady={sourceReady && !history.isFetching && !history.moreFailed}
+                  />
                   {prepare && entry.correctable && (
                     <LinkRow
                       to={DESTINATIONS.companyRegisterCorrection.path
@@ -127,16 +144,33 @@ export function ClassCorrections({
   guard,
   token,
   company,
+  register,
+  sourceReady = true,
 }: {
   owner: OrderSubmissionOwner;
   guard: () => void;
   token: string;
   company: string;
+  register: TokenHoldersResponse;
+  sourceReady?: boolean;
 }) {
   const client = useQueryClient();
   const appointments = useOwnAppointments(owner, guard);
   const corrections = useClassCorrections(owner, token, guard);
   const steps = appointments.isSuccess ? registerSteps(appointments.data, company) : null;
+  const certificateGuard = () => {
+    guard();
+    const preferences = client.getQueryState(USER_PREFERENCES_QUERY_KEY);
+    const state = client.getQueryState<OwnCompanyAppointment[]>(ownAppointmentsKey(owner));
+    if (
+      preferences?.status !== 'success' ||
+      preferences.fetchStatus !== 'idle' ||
+      state?.status !== 'success' ||
+      state.fetchStatus !== 'idle' ||
+      !hasCurrentRegisterReadAuthority(state.data ?? [], company)
+    )
+      throw new Error('Refresh current company register authority before preparing a certificate.');
+  };
   const refresh = async () => {
     try {
       guard();
@@ -160,6 +194,9 @@ export function ClassCorrections({
         token={token}
         prepare={steps?.prepare}
         corrections={corrections.data ?? []}
+        register={register}
+        certificateGuard={certificateGuard}
+        sourceReady={sourceReady && appointments.isSuccess && !appointments.isFetching}
       />
       <div className="mt-4 flex flex-col gap-3 border-t border-border-subtle pt-4">
         <h3 className="text-sm font-medium text-text-primary">{COPY.TITLE}</h3>

@@ -47,7 +47,7 @@ SPECTACULAR_SETTINGS = {
         "CompanyEligibilityRequestOutcomeEnum": "users.serializers.company_eligibility.REQUEST_OUTCOME_CHOICES",
         "MemberInvitationStatusEnum": ["pending", "expired", "unavailable", "accepted", "revoked"],
         "MemberParticularsRequestStatusEnum": ["submitted", "prepared", "approved", "applied", "rejected"],
-        "MemberCertificateRequestStatusEnum": ["requested", "withdrawn"],
+        "MemberCertificateRequestStatusEnum": ["requested", "withdrawn", "fulfilled"],
         "CompanyAppointmentStatusEnum": ["active", "expired", "revoked"],
         "CompanyAppointmentSourceEnum": ["initial", "invitation", "legacy_owner"],
         "CompanyCapabilityEnum": "companies.models.authority_request.CompanyCapability.choices",

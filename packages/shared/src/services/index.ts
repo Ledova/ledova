@@ -61,6 +61,8 @@ export {
   uploadCompanyDocument,
   deleteCompanyDocument,
   activateCompany,
+  createCompanyPack,
+  createCompanyPackBytes,
 } from './companies';
 export {
   getCompanyAuthorityRequests,
@@ -89,6 +91,9 @@ export {
   getRegisterInspectionPreview,
   createRegisterInspectionCopy,
   createRegisterInspectionCopyBytes,
+  getRegisterCertificatePreview,
+  createRegisterCertificate,
+  createRegisterCertificateBytes,
   getCompanyTokenIssuances,
   getCapitalIncreases,
   getShareIssuanceRequests,
