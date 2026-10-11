@@ -2,7 +2,7 @@
 
 [Documentation](README.md)
 
-Updated 10 October 2026 · Agreed product direction, paired with the
+Updated 11 October 2026 · Agreed product direction, paired with the
 [regulatory pathway](regulatory-pathway.md)
 
 ## Purpose
@@ -54,48 +54,41 @@ authority.
 | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Company setup and authority    | Establish share classes, opening ownership and company appointments; retain the existing representative checks, scoped authority and revocation.                                                        | Delivered                                                                                                                                                                      |
 | Register and cap table         | Maintain member particulars, issued ownership, approved changes, corrections and attributable history; reconcile chain records where relevant.                                                          | Delivered                                                                                                                                                                      |
-| Employee awards                | Retain the company's award agreement and vesting schedule, distinguish entitlements from issued shares, and record company-confirmed vesting and approved issues without requiring an employee payment. | Planned; [first scope decided](decisions.md#first-scopes-for-employee-awards-and-external-capital)                                                                             |
-| Investor capital and allotment | Record an externally agreed investment and capital evidence, then the exact company-approved allotment. Agreement, receipt and issued ownership remain separate.                                        | Planned; [first scope decided](decisions.md#first-scopes-for-employee-awards-and-external-capital)                                                                             |
-| Member access                  | Let shareholders and employees read permitted own records and request particulars changes through one account-to-member association.                                                                    | Partly: own name and address editing; the association policy is an owner decision ([#866](https://github.com/Ledova/ledova/issues/866))                                        |
-| Basic outputs                  | Supply company-authorised certificates, inspection copies and exports with genuine register provenance and private access.                                                                              | Partly: register exports and inspection copies are company-run; platform staff prepare certificates and the company pack ([#871](https://github.com/Ledova/ledova/issues/871)) |
+| Employee awards                | Retain the company's award agreement and vesting schedule, distinguish entitlements from issued shares, and record company-confirmed vesting and approved issues without requiring an employee payment. | Delivered ([guide](plans/company-managed-registers/employee-awards.md))                                                                                                         |
+| Investor capital and allotment | Record an externally agreed investment and capital evidence, then the exact company-approved allotment. Agreement, receipt and issued ownership remain separate.                                        | Delivered for fully paid allotments ([guide](plans/company-managed-registers/external-allotments.md))                                                                           |
+| Member access                  | Let shareholders and employees read permitted own records and request particulars changes through one account-to-member association.                                                                    | Partly ([#866](https://github.com/Ledova/ledova/issues/866))                                                                                                                    |
+| Basic outputs                  | Supply company-authorised certificates, inspection copies and exports with genuine register provenance and private access.                                                                              | Partly ([#871](https://github.com/Ledova/ledova/issues/871))                                                                                                                    |
 
-Company discovery, marketplace, payment and chain features already present in
-the experimental product remain subject to their existing controls; expanding
-them is outside this core scope. The scope excludes Ledova custody, nominee
-holdings, investment recommendations, proprietary market making, a Ledova
-stablecoin and a proprietary blockchain, and no fee model is selected.
-Companies set their own terms; Ledova does not guarantee prices, liquidity or
-investment performance.
+Expanding the discovery, marketplace, payment and chain features already in the
+experimental product is outside this core scope ([roadmap](roadmap.md#deferred)).
+The scope excludes Ledova custody, nominee holdings, investment recommendations,
+proprietary market making, a Ledova stablecoin and a proprietary blockchain, and
+no fee model is selected. Companies set their own terms; Ledova does not
+guarantee prices, liquidity or investment performance.
 
-## 3. Planned registry journeys
+## 3. Registry journeys
 
 ### Employee awards and vesting records
 
-1. The company records its agreement, recipient, award terms and vesting schedule.
-2. The record distinguishes the contractual entitlement from shares actually
-   issued under that arrangement.
-3. The company confirms relevant vesting events and approves the exact issue
-   when an allotment is due; Ledova retains the supporting authority and evidence.
-4. The register and employee's permitted view show actual ownership and its
-   history alongside the distinct award record.
-
-Current non-paid grants issue their full approved quantity outright; they do
-not calculate vesting or promise future issues. An option or conditional award
-must not silently become issued shares.
+The company records the award agreement, recipient, share class, whole quantity
+and vesting schedule, then each vesting event with its quantity, date and
+evidence. The schedule is retained text: Ledova does not calculate vesting, and
+a date never creates a holding. Vested shares reach the register only through a
+separate company-approved non-paid grant that references the award, so the
+contractual entitlement and the issued shares stay distinct. There is no
+employee payment, exercise price, forfeiture or tokenised fulfilment
+([guide](plans/company-managed-registers/employee-awards.md)).
 
 ### Investor capital and newly issued shares
 
-1. The company and investor agree terms through their established investment
-   process; a funding-round label alone establishes no payment or ownership.
-2. The company records that agreement and genuine external capital evidence,
-   including amount, currency, date and reference where provided.
-3. The company approves and records the exact recipient, class and share allotment.
-4. Ledova updates ownership once and retains the agreement, authority and history.
-
-Money is received outside this registry workflow by the company or its appointed
-provider. Recording company-provided evidence does not claim that Ledova
-collected funds or independently verified receipt. A commitment or payment alone
-does not establish that shares were issued.
+The company and investor agree terms through their own process. The company
+records the agreement, its own receipt of the money with amount, date and
+evidence, and then approves the exact fully paid allotment; applying the
+approved decision creates one issue. Agreement, receipt, decision and ownership
+remain separate records. Ledova neither collects nor verifies the money, and a
+receipt alone never issues shares. Partly paid allotments, calls and payment
+collection are deferred
+([guide](plans/company-managed-registers/external-allotments.md)).
 
 ### Ownership changes and access
 
@@ -104,12 +97,6 @@ as genuine ledger events. Keep the actual dates, actors, instruments and
 resulting quantities. Members can obtain their permitted records and outputs
 without a wallet where no chain action is involved. Contractual terms, receipt,
 company issue authority, technical execution and register entry stay distinct.
-
-Existing primary subscriptions use AUD bank-transfer and stablecoin receipts
-recorded by platform staff, and secondary settlement uses a prefunded
-stablecoin atomic swap. Their controls, evidence and recovery are preserved; they do not deliver a
-company-managed off-chain allotment or a direct AUD secondary market, and new
-integrated collection is deferred.
 
 ## 4. Self-custody and ownership records
 
@@ -171,8 +158,6 @@ approvals, history, permitted verification records and contract information.
 Include the authority and instructions needed to continue through another
 interface or provider while preserving required restrictions.
 
-<a id="roles-and-deployment-modes"></a>
-
 ## Roles and deployment
 
 One registry product runs on Ledova-hosted or private infrastructure, with one
@@ -207,9 +192,9 @@ delivered increment's guide.
 | Participant eligibility       | Participants submit sources and request a decision from one company; current company approvers [accept or refuse](plans/company-managed-registers/company-eligibility.md) with bounded expiry and can revoke. Directory, applications, market and swap effects use the exact-company decision. No global verification and no staff classification review.                                                                                                                                                                                                                                                                                                                                                                                                                                         |
 | Register                      | Company appointees read and export the register; prepare, approve and apply imports, corrections, openings from the chain, member particulars changes and member-wallet links; acknowledge reconciliation discrepancies; record [non-paid grants](plans/company-managed-registers/register-grants.md) to new or existing walletless members and [direct non-paid transfers](plans/company-managed-registers/register-transfers.md) with cessation history. All in both clients and the API with company-provided evidence ([runbook](operations/register-foundation.md)). Settled market transfers still enter through director instructions that platform staff review ([#869](https://github.com/Ledova/ledova/issues/869)).                                                                    |
 | Register outputs              | Company appointees prepare [inspection copies](plans/company-managed-registers/company-inspection-copies.md). Certificates, notice figures and the company pack are prepared by platform staff on the company's written instruction and recorded as exports with a fingerprint; [#871](https://github.com/Ledova/ledova/issues/871) moves them to company appointments.                                                                                                                                                                                                                                                                                                                                                                                                                           |
-| Members' own records          | Members edit their own [name and residential address](plans/company-managed-registers/member-profile.md) in Profile, alongside phone. Reading one's own register record, confirmations, certificate requests and walletless association are not delivered ([#866](https://github.com/Ledova/ledova/issues/866)).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
-| Employee awards               | Not delivered; current grants are outright ([first scope](decisions.md#first-scopes-for-employee-awards-and-external-capital), [#867](https://github.com/Ledova/ledova/issues/867)).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
-| Investor capital              | Not delivered; the #867 paid path covers only recorded PAID subscriptions on deployed classes ([first scope](decisions.md#first-scopes-for-employee-awards-and-external-capital), [#868](https://github.com/Ledova/ledova/issues/868)).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| Members' own records          | Members edit their own [name and residential address](plans/company-managed-registers/member-profile.md) in Profile, alongside phone. The company-issued invitation that links an account to a member record is [decided](decisions.md#member-invitations-and-account-association) and not yet delivered, so reading one's own register record, confirmations and certificate requests are not available ([#866](https://github.com/Ledova/ledova/issues/866)).                                                                                                                                                                                                                                                                                                                                      |
+| Employee awards               | Company appointees record promised awards and vesting events on opened imported registers and issue vested shares through a separate approved non-paid grant ([employee awards](plans/company-managed-registers/employee-awards.md)). No tokenised award fulfilment, employee purchase or option exercise.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| Investor capital              | Company appointees record the external agreement, the company's receipt attestation and the exact fully paid allotment on opened imported registers; applying the approved decision creates one issue ([external allotments](plans/company-managed-registers/external-allotments.md)). Partly paid allotments, calls and payment collection are deferred.                                                                                                                                                                                                                                                                                                                                                                                                                                         |
 | Offerings and applications    | The company creates and submits offerings; platform staff review, approve, reject and close them in admin. Eligible investors see the directory and approved offering documents and apply in both clients with recorded payment instructions ([offerings](architecture/offerings.md), [subscriptions](architecture/subscriptions.md)).                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
 | Payments                      | Primary AUD bank-transfer and stablecoin receipts and refunds are recorded by platform staff in admin; secondary settlement is a prefunded stablecoin atomic swap. Historical financial records keep their original attribution. No integrated AUD collection exists, and new payment mechanics are deferred.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
 | Publications                  | Documents, resolutions with online member ballots, dividends and payment records are published by platform staff on the company's written instruction; members read them in Notices ([shareholder publications](architecture/shareholder-publications.md), [#870](https://github.com/Ledova/ledova/issues/870) deferred).                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
@@ -243,7 +228,3 @@ provider does not establish safety or regulatory compliance.
 - **Payment received**, **allotted**, **broadcast**, **confirmed** and **finalised**
   are separate states. An accepted broadcast is not evidence of mining; receipt
   evidence does not itself establish finality.
-
-Next: the [regulatory pathway](regulatory-pathway.md),
-[system architecture](architecture/README.md), [local setup](getting-started.md),
-and the [reasons behind product choices](decisions.md).

@@ -6,12 +6,37 @@ These are recorded owner choices and their reasons, in the owner's words where
 they were given. This page makes no new product, licensing or legal decision,
 and it does not say what the code does today: the
 [capability boundaries](product.md#current-capability-boundaries) do that, and
-the architecture guides own the mechanisms. Read earlier choices in date order.
-The [3 October decision](#company-managed-registers-and-one-product) supersedes
-the earlier allocation of routine register work to platform staff; the
-[9 October decision](#essential-registry-and-development-workflow-priority)
-supersedes earlier immediate payment, marketplace, governance and filing
-priorities. Superseded choices stay here as history.
+the architecture guides own the mechanisms. Sections are grouped by topic; the
+index gives each decision's date and whether it still stands. Superseded choices
+stay here as history and are marked where they appear.
+
+| Decision | Date | Status |
+| --- | --- | --- |
+| [Company-managed registers and one product](#company-managed-registers-and-one-product) | 3 October 2026 | Current; replaces routine register work by platform staff |
+| [Company-run register authority and evidence](#company-run-register-authority-and-evidence) | 5 October 2026 | Current |
+| [Company representative verification](#company-representative-verification) | 4 October 2026 | Current |
+| [Eligibility and ownership records](#eligibility-and-ownership-records) | September to 6 October 2026 | Current |
+| [The stored register](#the-stored-register) | September 2026; staff review retired 5 October | Current |
+| [Company-scoped approvals](#company-scoped-approvals) | 19 September 2026 | Current |
+| [Shareholder publications](#shareholder-publications) | 23 September 2026 | Current; expansion deferred (#870) |
+| [Splits and consolidations](#splits-and-consolidations) | 23 September 2026 | Design only; deferred |
+| [The company pack](#the-company-pack) | 23 September 2026 | Current |
+| [Essential registry and development workflow priority](#essential-registry-and-development-workflow-priority) | 9 October 2026 | Register priority current; workflow part superseded 11 October |
+| [First scopes for employee awards and external capital](#first-scopes-for-employee-awards-and-external-capital) | 10 October 2026 | Delivered 11 October (#973, #974) |
+| [Member invitations and account association](#member-invitations-and-account-association) | 11 October 2026 | Current; #866 implements it |
+| [Minimum tests and fresh migrations](#minimum-tests-and-fresh-migrations) | 11 October 2026 | Current |
+| [Dependency advisories in ordinary CI](#dependency-advisories-in-ordinary-ci) | 11 October 2026 | Current |
+| [GitHub runners and Mac retirement](#github-runners-and-mac-retirement) | 11 October 2026 | Current |
+| [Binding caps and backup authorisation](#binding-caps-and-backup-authorisation) | 11 October 2026 | Current |
+| [Backend migration baseline](#backend-migration-baseline) | 10 October 2026 | Superseded 11 October |
+| [Registry priority, crypto on-ramp and AUD payments](#registry-priority-crypto-on-ramp-and-aud-payments) | 5 October 2026 | Payment scope superseded 9 October; on-ramp restriction stands |
+| [Payments and settlement](#payments-and-settlement) | 25 September to 2 October 2026 | Current behaviour; new mechanics deferred |
+| [Assets and portfolio presentation](#assets-and-portfolio-presentation) | 26 September 2026 | Current |
+| [The signed-in app](#the-signed-in-app) | 26 September to 2 October 2026 | Current |
+| [The account-data export](#the-account-data-export) | 23 September 2026 | Current |
+| [Tenancy, sessions and deployment](#tenancy-sessions-and-deployment) | 3 October 2026 | Current |
+| [Contracts compiler and toolchain](#contracts-compiler-and-toolchain) | Undated | Current |
+| [Clients and API types](#clients-and-api-types) | 14 September 2026 | Current |
 
 ## Company-managed registers and one product
 
@@ -187,8 +212,10 @@ activation, eligibility decisions and each register command;
 ## The stored register
 
 The staff reviewer below was retired by the rules above, decided on 5 October
-and delivered under #864 by 7 October 2026; the admin-only outputs remain
-until #871. The register's authority, evidence, identity, event history and
+and delivered under #864 by 7 October 2026. Inspection copies became
+company-run in [PR #954](https://github.com/Ledova/ledova/pull/954);
+certificates, notice figures and the company pack remain admin-only until
+#871. The register's authority, evidence, identity, event history and
 retention controls remain requirements.
 
 Wallets become linked to register members only through documentary authority:
@@ -527,6 +554,10 @@ retire tests only where obsolete or duplicate coverage is established. The
 [10 October baseline decision](#backend-migration-baseline) makes the specific
 exception for upgrade/rollback tests of migrations that have already shipped.
 
+_The workflow part of this decision was superseded on 11 October by
+[minimum tests and fresh migrations](#minimum-tests-and-fresh-migrations), and
+#943 closed the same day. The register priority below stands._
+
 Then deliver a simple private-company share registry that records established
 company processes:
 
@@ -592,6 +623,10 @@ the licence or legal findings. #624 still needs genuine human release acceptance
   are deferred; the existing amount-paid row shape stays so a later increment
   needs no migration. No collection, provider or refund mechanics.
 
+_Delivered on 11 October: [employee awards](plans/company-managed-registers/employee-awards.md)
+(#973) and [external allotments](plans/company-managed-registers/external-allotments.md)
+(#974)._
+
 ### Member invitations and account association
 
 **Owner decision, 11 October 2026**, supplied directly in the active Codex
@@ -634,7 +669,8 @@ timing, deferred and legacy suites leave the tree. EVM and Bitcoin leave CI;
 `make chain-test` keeps one or two manually invoked smoke tests.
 
 Every PR runs the same checks on GitHub's runners. Remove changed-file routing
-and its tests. Keep the current Mac main runner selection, fail-closed verdict,
+and its tests. Keep the current Mac main runner selection (superseded
+[below](#github-runners-and-mac-retirement)), fail-closed verdict,
 PR wording and source gates, backend lint/system checks, RLS role/catalogue
 checks and API schema snapshot. `make preflight` runs the CI checks except
 native builds. Android and iOS native builds run only by manual dispatch before
@@ -1038,10 +1074,8 @@ The earlier implementation's registry and single-issuer modes shared one operato
 model and tenancy boundary. The 3 October 2026
 [one-product decision](#company-managed-registers-and-one-product) retired the
 mode distinction: [#861](https://github.com/Ledova/ledova/issues/861) removed
-the field with [`operators/0002`](operations/upgrades.md#one-registry-product)
-and its API, client and evidence branches. The initial migration remains
-historical; reversal recreates the registry default rather than each
-installation's old choice. Private evidence, unrelated configuration and
+the field and its API, client and evidence branches, and the fresh migrations
+carry no mode column. Private evidence, unrelated configuration and
 register/payment history are preserved.
 PostgreSQL RLS enforces row isolation; product selectors still distinguish company
 management, personal accounts and discovery. See [tenancy](architecture/tenancy.md).

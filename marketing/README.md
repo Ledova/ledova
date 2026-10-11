@@ -18,7 +18,8 @@ The `VITE_` values in `.env` are embedded in the browser bundle. Do not put a
 secret in one. The local `.env` is gitignored.
 
 `src/tokens.css` is generated from `packages/shared` by `make generate-tokens`
-at the repository root. Do not edit it: CI regenerates it and fails on drift.
+at the repository root. Do not edit it: `make check`, which CI runs, fails when
+it drifts.
 
 ## Commands
 
