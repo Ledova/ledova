@@ -3,22 +3,22 @@
 [Reference](README.md) · [Recovery](../operations/recovery.md#private-file-migrations)
 
 Preserve private storage alongside database backups; a schema restore cannot
-restore deleted evidence. Test release adoption on a restored copy first and
-follow the [baseline upgrade procedure](../operations/upgrades.md#adopting-the-migration-baseline).
+restore deleted evidence. The [11 October fresh-database plan](../operations/upgrades.md#fresh-database-rebuild)
+requires owner approval before any ledova.io backup, export or rebuild.
 
 ## Moving existing files
 
-The baseline starts with private file fields and their widened columns. An older
-database must reach the complete pre-baseline release first; its file relocation
-migrations and tests remain in Git history. Baseline adoption moves no files and
-does not narrow stored keys.
+Fresh migrations create the current private-file fields. There is no old-database
+baseline adoption or automatic file relocation. An agreed record export must
+retain referenced files, keys and fingerprints together. Earlier relocation
+migrations remain in Git history.
 
 `manage.py reconcile_private_media` repairs stray local uploads. For every
 private `FileField`, it moves stored keys whose bytes sit under `MEDIA_ROOT`
 back under `PRIVATE_MEDIA_ROOT`, removes a public duplicate only when its bytes
 match, and refuses to guess when the two copies differ. `--check` reports without
-moving and exits non-zero when it finds a stray or conflict. Current private-media
-corpus, reconciliation and cloud-lifecycle tests retain the runtime coverage.
+moving and exits non-zero when it finds a stray or conflict. The minimum upload test covers scanner refusal; it does not certify a complete
+private-media corpus migration or cloud lifecycle.
 
 ## Check historical MIME types
 

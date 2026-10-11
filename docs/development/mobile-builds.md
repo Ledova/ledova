@@ -117,11 +117,14 @@ runtime. The exact CI setup is in
 [Xcode 16.4 on the macOS 15 runner](https://github.com/actions/runner-images/blob/main/images/macos/macos-15-Readme.md).
 No EAS account or signing credentials are needed.
 
-Native Android and iOS builds run only through `workflow_dispatch` before a
-release. Both platforms build and start the ordinary Release app and run the
-native runtime probe. The `Mobile native checks` verdict requires both jobs to
-succeed. Pull requests and main pushes run the same ordinary CI checks and do
-not run Native builds or classify files for test selection.
+Android and iOS native builds run only by manual dispatch of
+[mobile-native.yml](../../.github/workflows/mobile-native.yml) before a mobile
+release, under the [11 October decision](../decisions.md#minimum-tests-and-fresh-migrations).
+Both platforms build and start the ordinary Release app and run the native
+runtime probe. The `Mobile native checks` verdict requires both jobs to succeed.
+Pull requests and main run the same lean JavaScript, type-check and lint checks;
+there is no changed-file selector. Manual build results and device/probe gaps
+belong in the release record. Native builds are outside `make preflight`.
 
 From a clean checkout:
 

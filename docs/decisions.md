@@ -592,51 +592,73 @@ the licence or legal findings. #624 still needs genuine human release acceptance
   are deferred; the existing amount-paid row shape stays so a later increment
   needs no migration. No collection, provider or refund mechanics.
 
+## Minimum tests and fresh migrations
+
+**Owner decision, 11 October 2026**, supplied directly in the active Codex session
+and recorded on [#943](https://github.com/Ledova/ledova/issues/943#issuecomment-6103674410).
+
+Use the bare minimum tests guarding the worst failures. This replaces the prior
+coverage rules in AGENTS.md, CONTRIBUTING.md, the testing guide and #943,
+including per-route cross-tenant rows, shipped-migration equivalence/adoption
+proofs and real-process timing coverage. It changes testing requirements;
+company authority and PostgreSQL data safeguards remain product behaviour.
+
+| Suite               | Maximum executed cases | Keep                                                                                                                                                                                              |
+| ------------------- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Backend, PostgreSQL | 150                    | Delivered core API happy paths; tenant API/database isolation with at most five real-app-login tests; company authority; ownership totals and issuance idempotency; one fake-scanner refusal test |
+| Dashboard           | 20                     | Main pages, sign-in and one core flow; existing Playwright smoke tests separately                                                                                                                 |
+| Mobile Jest         | 10                     | App start, sign-in and one core flow; type-check and lint                                                                                                                                         |
+| Shared package      | 10                     | Essential shared behaviour                                                                                                                                                                        |
+| Contracts           | 20                     | Who can mint, pause and transfer                                                                                                                                                                  |
+
+Delete other tests and unused helpers/fixtures. Real Redis/ClamAV, multi-process
+timing, deferred and legacy suites leave the tree. EVM and Bitcoin leave CI;
+`make chain-test` keeps one or two manually invoked smoke tests.
+
+Every PR runs the same checks on GitHub's runners. Remove changed-file routing
+and its tests. Keep the current Mac main runner selection, fail-closed verdict,
+PR wording and source gates, backend lint/system checks, RLS role/catalogue
+checks and API schema snapshot. `make preflight` runs the CI checks except
+native builds. Android and iOS native builds run only by manual dispatch before
+a mobile release.
+
+Delete project migrations and generate fresh initial migrations from current
+models. They must install PostgreSQL RLS, roles/grants, functions/triggers,
+history/share-total guards and issuance locks. Delete older-database baseline
+adoption. Package-owned migrations stay with their dependencies. Held product
+work, including #867, rebases onto the fresh migrations after this work lands.
+
+Do not touch ledova.io. Its database needs a rebuild for the fresh history.
+Prepare a short [backup/export/rebuild/re-seed plan](operations/upgrades.md#fresh-database-rebuild),
+and obtain the owner's approval before executing any part of it.
+
+Deliver in at most three PRs, with short descriptions, independent review at the
+merging head and green CI. Targets are the whole PR run within **ten minutes on
+GitHub's runners**, and all tests together within **five minutes on the Mac**.
+Report actual counts and timings against those targets. Earlier timings and
+verification remain historical evidence, not proof of the new targets.
+
 ## Backend migration baseline
 
-**Owner decision, 10 October 2026**, recorded on
+**Historical owner decision, 10 October 2026**, recorded on
 [#943](https://github.com/Ledova/ledova/issues/943#issuecomment-6096774615).
 
-Replace the shipped backend migration chain with a pre-launch baseline per app,
-using only the phases needed for dependencies. Old migrations remain in Git.
-Prove the fresh schema, reference rows, roles, grants, policies, functions,
-triggers and constraints equivalent to the completed old chain before retiring
-its upgrade/rollback tests and rewind helpers. Current runtime assertions stay,
-using direct current-schema fixtures; each later migration receives a cheap
-upgrade test from its immediate predecessor.
+The earlier direction required an equivalent baseline at the
+[recorded cut](https://github.com/Ledova/ledova/issues/860#issuecomment-6101119001),
+safe old-database adoption, essential real-process tests and one backend group.
+Those increments landed in #967, #968 and #969; their source, review and timings
+remain in those PRs and Git history.
 
-The [migration cut on #860](https://github.com/Ledova/ledova/issues/860#issuecomment-6101119001)
-uses main at `b325fea6b816a075003cb97954b5df03e20251b1`. An existing database
-must complete that old project and vendor history before adopting the baseline.
-Partial old history is refused before planning or DDL; do not fake records to
-bypass it. Rehearse adoption on a restored copy and preserve the database and
-private storage together. A ledova.io release adopting this baseline requires
-the owner's explicit approval and the usual backup; this decision authorises
-no live database changes. The [upgrade procedure](operations/upgrades.md#adopting-the-migration-baseline)
-owns that release order.
+The owner confirmed the absence of old-format swaps, journal-less issuances and
+earlier subscription rows ([initial confirmation](https://github.com/Ledova/ledova/issues/943#issuecomment-6097699851)),
+and signed legacy issuances ([later confirmation](https://github.com/Ledova/ledova/issues/943#issuecomment-6101101076)).
+Their obsolete compatibility paths were retired; current database guards and
+unrelated retained records remain.
 
-The owner confirmed that old-format swaps, issuances without execution journals
-and earlier subscription payment/timing rows are absent from ledova.io
-([initial confirmation](https://github.com/Ledova/ledova/issues/943#issuecomment-6097699851)),
-and that older issuances with signed mint journals are also absent
-([signed issuance confirmation](https://github.com/Ledova/ledova/issues/943#issuecomment-6101101076)).
-This permits retiring code and tests serving only those formats. Preserve
-current authority, isolation, arithmetic, private evidence, immutable records,
-retention and signed-transaction receipt/finality/recovery safeguards, along
-with unrelated retained history.
-
-The remaining #943 work follows the baseline: keep the essential real-process
-proofs and repair intermittent failures, then simplify to one backend job group
-and add `make preflight`. PR checks within 15 minutes and the full backend suite
-within 20 minutes on the Mac are targets, not achieved measurements. Individual
-fixture rewrites superseded by the baseline stop; employee award and external
-capital migrations must rebase onto it without taking over another agent's work.
-
-The owner's later runner direction keeps the permanent Mac pool and defers a
-separate Linux machine. The Mac login service requires a powered, logged-in Mac;
-administrator installation for system startup is deferred. Compatible main jobs
-use its isolated ARM64 guests; PR and native builds remain hosted as described
-in the [testing guide](development/testing.md#backend-verification).
+The [11 October decision](#minimum-tests-and-fresh-migrations) supersedes the
+baseline adoption path, broad runtime/process coverage and earlier 15/20-minute
+targets. ledova.io needs an approved rebuild. The permanent Mac login service
+continues; Linux and administrator-level startup installation remain deferred.
 
 ## Registry priority, crypto on-ramp and AUD payments
 

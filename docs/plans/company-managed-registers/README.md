@@ -18,6 +18,11 @@ puts [#943](https://github.com/Ledova/ledova/issues/943) first, then the
 essential register below; new integrated AUD payments, trading, advanced
 governance and filings are deferred.
 
+Verification references in the delivered guides describe each increment's
+original evidence. The [11 October minimum-test policy](../../decisions.md#minimum-tests-and-fresh-migrations)
+replaces the earlier broad suites; deleted test names are historical references,
+not claims of current coverage. Held migrations rebase onto the fresh history.
+
 ## Delivered increments
 
 | Issue                                               | Increment                                                                                                       | Guide                                                                                            | PR                                                                                                   |
