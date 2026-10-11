@@ -70,8 +70,14 @@ export function ImportRecord({
   last,
   onSettled,
   onRefused,
+  visible = true,
+  guard,
+  onHeldChange,
 }: {
   proposal: RegisterImport;
+  visible?: boolean;
+  guard?: () => void;
+  onHeldChange?: (key: string, held: boolean) => void;
   epoch: number;
   steps?: Record<RegisterStep, OwnCompanyAppointment | undefined>;
   last: boolean;
@@ -85,90 +91,102 @@ export function ImportRecord({
   const prepared = formatDateTime(proposal.createdAt);
   const description = `${stage.toLowerCase()} import as at ${formatDate(proposal.asAt)}, prepared on ${prepared}`;
   return (
-    <View style={[styles.entry, last && styles.lastEntry]}>
-      <Text style={styles.heading}>
-        {stage} · as at {formatDate(proposal.asAt)}
-      </Text>
-      <Text style={styles.muted}>
-        {proposal.providedBy === 'company'
-          ? REGISTER_IMPORT_COPY.PROVIDED_BY_COMPANY
-          : REGISTER_IMPORT_COPY.STAFF_VERIFIED}
-      </Text>
-      <Rows>
-        {proposal.preparedByName !== null && (
-          <Row label="Prepared by">{proposal.preparedByName || 'Name not recorded'}</Row>
-        )}
-        <Row label="Prepared on">{prepared}</Row>
-        {proposal.decisions.map((decision) => (
-          <Row key={decision.uuid} label={DECIDED[decision.kind]}>
-            {[decision.decidedByName, formatDateTime(decision.decidedAt)].filter(Boolean).join(' · ')}
-          </Row>
-        ))}
-        {proposal.decisions.length === 0 && proposal.reviewedAt && (
-          <Row label="Decided on">{formatDateTime(proposal.reviewedAt)}</Row>
-        )}
-        {!!proposal.rejectionReason && <Row label="Rejection reason">{proposal.rejectionReason}</Row>}
-      </Rows>
-      {proposal.asicIssuedTotal !== null && proposal.asicMemberCount !== null && (
-        <Text style={styles.text}>
-          {REGISTER_IMPORT_COPY.STATED_FIGURES(formatShareCount(proposal.asicIssuedTotal), proposal.asicMemberCount)}
-        </Text>
+    <View style={visible ? [styles.entry, last && styles.lastEntry] : undefined}>
+      {visible && (
+        <>
+          <Text style={styles.heading}>
+            {stage} · as at {formatDate(proposal.asAt)}
+          </Text>
+          <Text style={styles.muted}>
+            {proposal.providedBy === 'company'
+              ? REGISTER_IMPORT_COPY.PROVIDED_BY_COMPANY
+              : REGISTER_IMPORT_COPY.STAFF_VERIFIED}
+          </Text>
+          <Rows>
+            {proposal.preparedByName !== null && (
+              <Row label="Prepared by">{proposal.preparedByName || 'Name not recorded'}</Row>
+            )}
+            <Row label="Prepared on">{prepared}</Row>
+            {proposal.decisions.map((decision) => (
+              <Row key={decision.uuid} label={DECIDED[decision.kind]}>
+                {[decision.decidedByName, formatDateTime(decision.decidedAt)].filter(Boolean).join(' · ')}
+              </Row>
+            ))}
+            {proposal.decisions.length === 0 && proposal.reviewedAt && (
+              <Row label="Decided on">{formatDateTime(proposal.reviewedAt)}</Row>
+            )}
+            {!!proposal.rejectionReason && <Row label="Rejection reason">{proposal.rejectionReason}</Row>}
+          </Rows>
+          {proposal.asicIssuedTotal !== null && proposal.asicMemberCount !== null && (
+            <Text style={styles.text}>
+              {REGISTER_IMPORT_COPY.STATED_FIGURES(
+                formatShareCount(proposal.asicIssuedTotal),
+                proposal.asicMemberCount,
+              )}
+            </Text>
+          )}
+          <Text style={styles.text}>
+            {REGISTER_IMPORT_COPY.IMPORTED_FIGURES(formatShareCount(totals.total), totals.count)}
+          </Text>
+          <RegisterCopy
+            label={REGISTER_IMPORT_COPY.DOWNLOAD_REGISTER}
+            accessibilityLabel={`${REGISTER_IMPORT_COPY.DOWNLOAD_REGISTER} of the ${description}`}
+            filename={`register-${proposal.uuid}`}
+            epoch={epoch}
+            guard={guard}
+            read={() =>
+              apiClient.get<ArrayBuffer>(COMPANY_TOKEN_ENDPOINTS.REGISTER_IMPORT_FILE(proposal.uuid), {
+                responseType: 'arraybuffer',
+                ledovaSessionEpoch: epoch,
+                ledovaSubmissionGuard: guard,
+              })
+            }
+          />
+          {!!proposal.asicSnapshot && (
+            <RegisterCopy
+              label={REGISTER_IMPORT_COPY.DOWNLOAD_ASIC}
+              accessibilityLabel={`${REGISTER_IMPORT_COPY.DOWNLOAD_ASIC} of the ${description}`}
+              filename={`asic-extract-${proposal.uuid}`}
+              epoch={epoch}
+              guard={guard}
+              read={() =>
+                apiClient.get<ArrayBuffer>(COMPANY_TOKEN_ENDPOINTS.REGISTER_IMPORT_ASIC_FILE(proposal.uuid), {
+                  responseType: 'arraybuffer',
+                  ledovaSessionEpoch: epoch,
+                  ledovaSubmissionGuard: guard,
+                })
+              }
+            />
+          )}
+        </>
       )}
-      <Text style={styles.text}>
-        {REGISTER_IMPORT_COPY.IMPORTED_FIGURES(formatShareCount(totals.total), totals.count)}
-      </Text>
-      <RegisterCopy
-        label={REGISTER_IMPORT_COPY.DOWNLOAD_REGISTER}
-        accessibilityLabel={`${REGISTER_IMPORT_COPY.DOWNLOAD_REGISTER} of the ${description}`}
-        filename={`register-${proposal.uuid}`}
-        epoch={epoch}
-        read={() =>
-          apiClient.get<ArrayBuffer>(COMPANY_TOKEN_ENDPOINTS.REGISTER_IMPORT_FILE(proposal.uuid), {
-            responseType: 'arraybuffer',
-            ledovaSessionEpoch: epoch,
-          })
-        }
-      />
-      {!!proposal.asicSnapshot && (
-        <RegisterCopy
-          label={REGISTER_IMPORT_COPY.DOWNLOAD_ASIC}
-          accessibilityLabel={`${REGISTER_IMPORT_COPY.DOWNLOAD_ASIC} of the ${description}`}
-          filename={`asic-extract-${proposal.uuid}`}
-          epoch={epoch}
-          read={() =>
-            apiClient.get<ArrayBuffer>(COMPANY_TOKEN_ENDPOINTS.REGISTER_IMPORT_ASIC_FILE(proposal.uuid), {
-              responseType: 'arraybuffer',
-              ledovaSessionEpoch: epoch,
-            })
-          }
-        />
-      )}
-      {proposal.status === 'submitted' && steps && (
-        <View style={styles.choices}>
-          {kinds.map((kind) => {
-            const appointment = steps[kind];
-            return (
-              appointment && (
-                <RegisterDecision
-                  key={kind}
-                  family={REGISTER_IMPORT_DECISIONS}
-                  copy={REGISTER_IMPORT_COPY}
-                  noun="import"
-                  proposal={proposal}
-                  kind={kind}
-                  appointment={appointment.uuid}
-                  epoch={epoch}
-                  description={description}
-                  onSettled={onSettled}
-                  onRefused={onRefused}
-                >
-                  {(preview) => <ImportPreview kind={kind} preview={preview} />}
-                </RegisterDecision>
-              )
-            );
-          })}
-        </View>
-      )}
+      <View style={styles.choices}>
+        {kinds.map((kind) => {
+          const appointment = steps?.[kind];
+          return (
+            <RegisterDecision
+              key={kind}
+              family={REGISTER_IMPORT_DECISIONS}
+              copy={REGISTER_IMPORT_COPY}
+              noun="import"
+              proposal={proposal}
+              kind={kind}
+              appointment={appointment?.uuid}
+              visible={visible}
+              enabled={proposal.status === 'submitted'}
+              readGuard={guard}
+              newEffectGuard={guard}
+              onHeldChange={onHeldChange}
+              epoch={epoch}
+              description={description}
+              onSettled={onSettled}
+              onRefused={onRefused}
+            >
+              {(preview) => <ImportPreview kind={kind} preview={preview} />}
+            </RegisterDecision>
+          );
+        })}
+      </View>
     </View>
   );
 }

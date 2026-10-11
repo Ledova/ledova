@@ -1,6 +1,6 @@
-import { useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
-import { Text, View } from 'react-native';
-import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import { Alert, Text, View } from 'react-native';
+import { StackActions, useNavigation, usePreventRemove, useRoute, type RouteProp } from '@react-navigation/native';
 import { useQueryClient } from '@tanstack/react-query';
 import * as Crypto from 'expo-crypto';
 import {
@@ -9,21 +9,31 @@ import {
   failureStatus,
   getErrorMessage,
   isPreparedRegisterGrant,
+  getRegisterGrants,
+  readEveryPage,
+  useSubmissionOwner,
+  useUserPreferences,
+  formatShareCount,
+  USER_PREFERENCES_QUERY_KEY,
   hasCurrentRegisterReadAuthority,
   prepareRegisterGrant,
   REGISTER_GRANT_COPY as COPY,
   type RegisterGrantPreparation,
   type OwnCompanyAppointment,
+  type CompanyShareTokenListItem,
 } from '@ledova/shared';
 import { Action, Section } from '../../components/Ledger';
 import { Page } from '../../components/Page';
 import type { CompanyStackParamList } from '../../navigation/CompanyStackNavigator';
+import { orderSubmissionSession } from '../../services/orderSubmissions';
 import { apiClient } from '../../services/apiClient';
 import { assertSessionEpoch, getSessionEpoch, subscribeSession } from '../../services/sessionScope';
 import { EvidencePicker, Field, isoDay, utcToday } from './RegisterFields';
 import { useCompanyStyles } from './styles';
 import {
   grantsKey,
+  registerKey,
+  registerAppointmentsKey,
   useClassRegister,
   useCompanyMembers,
   useRegisterAppointments,
@@ -33,6 +43,7 @@ import { useRegisterEvidence } from './useRegisterEvidence';
 import { useRegisterAward } from './useRegisterAwards';
 
 const FAILED = 'The grant preparation response could not be confirmed. Retry with the same details.';
+const RETURN_FAILED = 'The preparation is confirmed. Refresh the company list before returning.';
 
 export function PrepareRegisterGrantScreen() {
   const epoch = useSyncExternalStore(subscribeSession, getSessionEpoch);
@@ -92,7 +103,11 @@ function PrepareRegisterGrant({ epoch }: { epoch: number }) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const pending = useRef(false);
-  const retry = useRef<{ signature: string; operationId: string } | null>(null);
+  const [held, setHeld] = useState(false);
+  const [completed, setCompleted] = useState(false);
+  const operation = useRef<{ request: RegisterGrantPreparation; confirmed: boolean; uncertain: boolean } | null>(null);
+  const { owner, boundary } = useSubmissionOwner(orderSubmissionSession);
+  const preferenceRead = useUserPreferences();
   useLayoutEffect(() => {
     live.current = true;
     return () => {
@@ -128,9 +143,9 @@ function PrepareRegisterGrant({ epoch }: { epoch: number }) {
     (!!awardUuid && (award.isFetching || awardMembers.isFetching));
   const supported = register.data?.initialized && register.data.token.status === 'draft';
   const ready =
-    !problem &&
+    (!problem || held) &&
     !busy &&
-    !!steps?.prepare &&
+    (!!steps?.prepare || held) &&
     supported &&
     register.isSuccess &&
     members.isSuccess &&
@@ -148,72 +163,164 @@ function PrepareRegisterGrant({ epoch }: { epoch: number }) {
   };
   const refresh = () =>
     Promise.all([
+      preferenceRead.refetch(),
       register.refetch(),
       members.refetch(),
       appointments.refetch(),
       ...(awardUuid && readable ? [award.refetch(), awardMembers.refetch()] : []),
     ]);
+  usePreventRemove(busy || held, () => {
+    Alert.alert('Finish this share issue', 'Recover the original request before leaving this form.');
+  });
+  useEffect(() => {
+    if (completed && !busy && !held) {
+      const params = { section: 'awards', companyUuid, tokenUuid };
+      navigation.dispatch(StackActions.popTo('CompanyMain', params));
+    }
+  }, [completed, busy, held, navigation, companyUuid, tokenUuid]);
+  const preferences = queryClient.getQueryState(USER_PREFERENCES_QUERY_KEY);
+  const preferencesReady = preferences?.status === 'success' && preferences.fetchStatus === 'idle';
+  const currentRead = useRef(false);
+  useLayoutEffect(() => {
+    currentRead.current =
+      preferencesReady && register.isSuccess && members.isSuccess && appointments.isSuccess && !fetching && readable;
+  }, [register.isSuccess, members.isSuccess, appointments.isSuccess, fetching, readable, preferencesReady]);
+  const guard = () => {
+    assertSessionEpoch(epoch);
+    if (!live.current || !owner || boundary.get() !== owner)
+      throw new Error('This grant or signed-in account is no longer current.');
+    const sources = [
+      USER_PREFERENCES_QUERY_KEY,
+      registerAppointmentsKey(epoch),
+      [...registerKey(epoch), 'class', tokenUuid],
+      [...registerKey(epoch), 'members', companyUuid],
+    ].map((key) => queryClient.getQueryState(key));
+    if (!currentRead.current || sources.some((state) => state?.status !== 'success' || state.fetchStatus !== 'idle'))
+      throw new Error('Refresh the register and your current company authority.');
+    if (awardUuid) awardGuard();
+  };
+  const lookup = async (request: RegisterGrantPreparation) => {
+    const rows = await readEveryPage(async (page) => {
+      guard();
+      const response = await getRegisterGrants(
+        apiClient,
+        { token: tokenUuid, page },
+        {
+          ledovaSessionEpoch: epoch,
+          ledovaSubmissionGuard: guard,
+        },
+      );
+      guard();
+      return response;
+    });
+    if (rows.some((row) => row.company !== companyUuid || row.token !== tokenUuid))
+      throw createUserFriendlyError('The grants did not identify this company and share class.');
+    const original = rows.find((row) => row.uuid === request.operationId);
+    if (original && !isPreparedRegisterGrant(original, request))
+      throw createUserFriendlyError(COPY.PREPARATION_RECEIPT_FAILED);
+    return original;
+  };
   const submit = async () => {
-    const appointment = steps?.prepare;
-    if (!ready || !appointment || pending.current) return;
-    const guard = () => {
-      assertSessionEpoch(epoch);
-      if (!live.current) throw new Error('This grant is no longer open.');
-      if (awardUuid) awardGuard();
-    };
+    if (!ready || pending.current) return;
     pending.current = true;
     setSubmitting(true);
     setError(null);
     try {
       guard();
-      const retainedAuthority = await authority.upload(appointment.uuid, guard);
-      const retained = await retainedTerms.upload(appointment.uuid, guard);
-      if (fixed && retained.sha256 !== fixed.agreementFingerprint)
-        throw createUserFriendlyError('Upload the same agreement document retained for this award.');
-      const accepted = acceptanceRequired ? await acceptance.upload(appointment.uuid, guard) : null;
-      const request = {
-        appointment: appointment.uuid,
-        tokenId: tokenUuid,
-        member: fixed?.member ?? (newRecipient ? newMemberId : member),
-        newMember: newRecipient,
-        ...(newRecipient ? { name: recipientName, residentialAddress: recipientAddress } : {}),
-        ...(fixed ? { award: fixed.uuid } : {}),
-        shares: shares.trim(),
-        termsOn: date,
-        terms: summary,
-        approvingDirector: approvingDirector.trim(),
-        authorityReference: authorityReference.trim(),
-        reason: reason.trim(),
-        authorityEvidence: retainedAuthority.uuid,
-        termsEvidence: retained.uuid,
-        acceptanceRequired,
-        acceptanceEvidence: accepted?.uuid ?? null,
-      };
-      const signature = JSON.stringify(request);
-      const operationId = retry.current?.signature === signature ? retry.current.operationId : Crypto.randomUUID();
-      retry.current = { signature, operationId };
-      const preparation: RegisterGrantPreparation = { operationId, ...request };
-      guard();
-      const response = await prepareRegisterGrant(apiClient, preparation, {
-        ledovaSessionEpoch: epoch,
-        ledovaSubmissionGuard: guard,
-      });
-      guard();
-      if (!isPreparedRegisterGrant(response.data, preparation))
-        throw createUserFriendlyError(COPY.PREPARATION_RECEIPT_FAILED);
-      retry.current = null;
+      let command = operation.current;
+      if (!command) {
+        const appointment = steps?.prepare;
+        if (!appointment) throw createUserFriendlyError('Current preparation authority is required.');
+        const retainedAuthority = await authority.upload(appointment.uuid, guard);
+        const retained = await retainedTerms.upload(appointment.uuid, guard);
+        if (fixed && retained.sha256 !== fixed.agreementFingerprint)
+          throw createUserFriendlyError('Upload the same agreement document retained for this award.');
+        const accepted = acceptanceRequired ? await acceptance.upload(appointment.uuid, guard) : null;
+        const request: RegisterGrantPreparation = {
+          operationId: Crypto.randomUUID(),
+          appointment: appointment.uuid,
+          tokenId: tokenUuid,
+          member: fixed?.member ?? (newRecipient ? newMemberId : member),
+          newMember: newRecipient,
+          ...(newRecipient ? { name: recipientName, residentialAddress: recipientAddress } : {}),
+          ...(fixed ? { award: fixed.uuid } : {}),
+          shares: shares.trim(),
+          termsOn: date,
+          terms: summary,
+          approvingDirector: approvingDirector.trim(),
+          authorityReference: authorityReference.trim(),
+          reason: reason.trim(),
+          authorityEvidence: retainedAuthority.uuid,
+          termsEvidence: retained.uuid,
+          acceptanceRequired,
+          acceptanceEvidence: accepted?.uuid ?? null,
+        };
+        command = { request, confirmed: false, uncertain: false };
+        operation.current = command;
+        setHeld(true);
+      }
+      let absent = false;
+      if (command.uncertain && !command.confirmed) {
+        command.confirmed = !!(await lookup(command.request));
+        absent = !command.confirmed;
+      }
+      if (!command.confirmed) {
+        try {
+          guard();
+          const response = await prepareRegisterGrant(apiClient, command.request, {
+            ledovaSessionEpoch: epoch,
+            ledovaSubmissionGuard: guard,
+          });
+          guard();
+          if (!isPreparedRegisterGrant(response.data, command.request))
+            throw createUserFriendlyError(COPY.PREPARATION_RECEIPT_FAILED);
+          command.confirmed = true;
+        } catch (failure) {
+          const status = failureStatus(failure);
+          if (!absent || !status || status < 400 || status >= 500) throw failure;
+          command.confirmed = !!(await lookup(command.request));
+          if (!command.confirmed) {
+            operation.current = null;
+            setHeld(false);
+            setError(
+              'The original grant was not recorded and the request was refused. Start again with current company authority.',
+            );
+            return;
+          }
+        }
+      }
       await queryClient.invalidateQueries({ queryKey: grantsKey(epoch, tokenUuid) });
       guard();
-      navigation.goBack();
+      const classesKey = [...registerKey(epoch), 'classes'];
+      await queryClient.refetchQueries({ queryKey: classesKey, type: 'active' }, { throwOnError: true });
+      guard();
+      const classesRead = queryClient.getQueryState(classesKey);
+      const classes = queryClient.getQueryData<CompanyShareTokenListItem[]>(classesKey);
+      if (
+        classesRead?.status !== 'success' ||
+        classesRead.fetchStatus !== 'idle' ||
+        !classes?.some((item) => item.uuid === tokenUuid && item.companyUuid === companyUuid)
+      )
+        throw createUserFriendlyError(RETURN_FAILED);
+      operation.current = null;
+      setHeld(false);
+      setCompleted(true);
     } catch (cause) {
       const status = failureStatus(cause);
-      if (status && status < 500) retry.current = null;
+      if (operation.current && !operation.current.confirmed) {
+        if (!status || status >= 500) operation.current.uncertain = true;
+        else if (!operation.current.uncertain) {
+          operation.current = null;
+          setHeld(false);
+        }
+      }
       try {
         guard();
       } catch {
         return;
       }
-      setError(apiErrorSentence(cause, FAILED, FAILED));
+      const fallback = operation.current?.confirmed ? RETURN_FAILED : FAILED;
+      setError(apiErrorSentence(cause, fallback, fallback));
       if (status === 400 || status === 404 || status === 409) await refresh();
     } finally {
       pending.current = false;
@@ -235,7 +342,14 @@ function PrepareRegisterGrant({ epoch }: { epoch: number }) {
         <Action label="Retry" disabled={fetching} onPress={() => void refresh()} />
       </Page>
     );
-  if (!steps?.prepare)
+  if (!readable || fetching || !owner || !preferencesReady)
+    return (
+      <Page title="Prepare share issue">
+        <Text style={styles.muted}>Refresh the register and your current company read access before continuing.</Text>
+        <Action label="Refresh share issue" disabled={fetching} onPress={() => void refresh()} />
+      </Page>
+    );
+  if (!steps?.prepare && !held)
     return (
       <Page title="Register">
         <Text style={styles.muted}>{COPY.READ_ONLY_NOTE}</Text>
@@ -277,19 +391,28 @@ function PrepareRegisterGrant({ epoch }: { epoch: number }) {
       </Page>
     );
   return (
-    <Page testID="prepare-grant-screen" title="Register" lede={COPY.NOTE} keyboardShouldPersistTaps="handled">
+    <Page
+      testID="prepare-grant-screen"
+      title="Prepare share issue"
+      lede={COPY.NOTE}
+      keyboardShouldPersistTaps="handled"
+    >
       <Section title={register.data.token.name}>
         <Text style={styles.heading}>Member</Text>
         <Text style={styles.text}>
           {fixed
-            ? `${recipientName} · ${fixed.member}`
+            ? recipientName
             : member === 'new'
               ? 'New member'
               : members.data.holders.find((holder) => holder.member === member)?.name || member}
         </Text>
         {!fixed && (
           <>
-            <Action label="Use a new member" disabled={busy || member === 'new'} onPress={() => setMember('new')} />
+            <Action
+              label="Use a new member"
+              disabled={busy || held || member === 'new'}
+              onPress={() => setMember('new')}
+            />
             <View style={styles.choices}>
               {members.data.holders
                 .filter((holder) => holder.wallets.length === 0)
@@ -298,7 +421,7 @@ function PrepareRegisterGrant({ epoch }: { epoch: number }) {
                     key={holder.member}
                     label={`Use ${holder.name || holder.member}`}
                     accessibilityLabel={`Use existing member ${holder.name || holder.member} ${holder.member}`}
-                    disabled={busy || member === holder.member}
+                    disabled={busy || held || member === holder.member}
                     onPress={() => setMember(holder.member)}
                   />
                 ))}
@@ -307,11 +430,11 @@ function PrepareRegisterGrant({ epoch }: { epoch: number }) {
         )}
         {!fixed && member === 'new' ? (
           <>
-            <Field label={COPY.NAME} value={name} editable={!busy} maxLength={255} onChange={setName} />
+            <Field label={COPY.NAME} value={name} editable={!busy && !held} maxLength={255} onChange={setName} />
             <Field
               label={COPY.RESIDENTIAL_ADDRESS}
               value={residentialAddress}
-              editable={!busy}
+              editable={!busy && !held}
               multiline
               maxLength={1000}
               onChange={setResidentialAddress}
@@ -323,30 +446,38 @@ function PrepareRegisterGrant({ epoch }: { epoch: number }) {
           </Text>
         ) : (
           <Text style={styles.muted}>
-            Award {fixed.uuid}. The recipient and agreement are fixed; this grant still requires separate company
-            approval and application.
+            {formatShareCount(fixed.availableShares)} vested shares available. The recipient and agreement are fixed;
+            company approval and recording the issue remain separate.
           </Text>
         )}
-        <Field label={COPY.SHARES} value={shares} editable={!busy} keyboardType="number-pad" onChange={setShares} />
+        <Field
+          label={COPY.SHARES}
+          value={shares}
+          editable={!busy && !held}
+          keyboardType="number-pad"
+          onChange={setShares}
+        />
+        <Text style={styles.heading}>Agreement and acceptance</Text>
         <Field
           label={`${COPY.TERMS_ON} (YYYY-MM-DD)`}
           accessibilityLabel={COPY.TERMS_ON}
           value={date}
-          editable={!busy && !fixed}
+          editable={!busy && !held && !fixed}
           onChange={setTermsOn}
         />
         <Field
           label={COPY.TERMS}
           value={summary}
-          editable={!busy && !fixed}
+          editable={!busy && !held && !fixed}
           multiline
           maxLength={1000}
           onChange={setTerms}
         />
+        <Text style={styles.heading}>Company authority</Text>
         <Field
           label={COPY.DIRECTOR}
           value={approvingDirector}
-          editable={!busy}
+          editable={!busy && !held}
           maxLength={255}
           onChange={setApprovingDirector}
         />
@@ -356,31 +487,38 @@ function PrepareRegisterGrant({ epoch }: { epoch: number }) {
         <Field
           label={COPY.AUTHORITY_REFERENCE}
           value={authorityReference}
-          editable={!busy}
+          editable={!busy && !held}
           maxLength={255}
           onChange={setAuthorityReference}
         />
-        <Field label={COPY.REASON} value={reason} editable={!busy} multiline maxLength={1000} onChange={setReason} />
+        <Field
+          label={COPY.REASON}
+          value={reason}
+          editable={!busy && !held}
+          multiline
+          maxLength={1000}
+          onChange={setReason}
+        />
         <Text style={styles.text}>
           Recipient acceptance: {acceptanceRequired ? 'Required by the terms' : 'Not required by the terms'}
         </Text>
         <Action
           label={acceptanceRequired ? 'Terms do not require acceptance' : COPY.ACCEPTANCE_REQUIRED}
-          disabled={busy}
+          disabled={busy || held}
           onPress={() => setAcceptanceRequired((value) => !value)}
         />
         <EvidencePicker
           title={COPY.AUTHORITY_DOCUMENT}
           noun="authority document"
           evidence={authority}
-          disabled={busy}
+          disabled={busy || held}
           onPick={() => void pick(authority)}
         />
         <EvidencePicker
           title={COPY.TERMS_DOCUMENT}
           noun="terms document"
           evidence={retainedTerms}
-          disabled={busy}
+          disabled={busy || held}
           onPick={() => void pick(retainedTerms)}
         />
         {acceptanceRequired && (
@@ -388,7 +526,7 @@ function PrepareRegisterGrant({ epoch }: { epoch: number }) {
             title={COPY.ACCEPTANCE_DOCUMENT}
             noun="acceptance document"
             evidence={acceptance}
-            disabled={busy}
+            disabled={busy || held}
             onPick={() => void pick(acceptance)}
           />
         )}
@@ -408,7 +546,7 @@ function PrepareRegisterGrant({ epoch }: { epoch: number }) {
           If a response is interrupted, prepare again with the same details to retrieve the same grant.
         </Text>
         <Action
-          label={submitting ? 'Preparing…' : COPY.SUBMIT}
+          label={submitting ? 'Preparing…' : held ? 'Retry original share issue' : 'Prepare share issue'}
           primary
           disabled={!ready}
           onPress={() => void submit()}

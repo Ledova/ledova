@@ -66,9 +66,15 @@ export function ParticularsRecord({
   steps,
   last,
   onSettled,
+  visible = true,
+  guard,
+  onHeldChange,
 }: {
   change: RegisterParticularsChange;
   member: string;
+  visible?: boolean;
+  guard?: () => void;
+  onHeldChange?: (key: string, held: boolean) => void;
   epoch: number;
   steps?: Record<RegisterStep, OwnCompanyAppointment | undefined>;
   last: boolean;
@@ -79,61 +85,68 @@ export function ParticularsRecord({
   const prepared = formatDateTime(change.createdAt);
   const description = `${stage.toLowerCase()} particulars change for ${member}, as at ${formatDate(change.asAt)}, prepared on ${prepared}`;
   return (
-    <View style={[styles.entry, last && styles.lastEntry]}>
-      <Text style={styles.heading}>
-        {stage} · {member}
-      </Text>
-      <Text style={styles.muted}>{COPY.PROVIDED_BY_COMPANY}</Text>
-      <Rows>
-        {particularsRows(change)}
-        <Row label={COPY.REASON}>{change.reason}</Row>
-        <Row label="Prepared by">{change.preparedByName || 'Name not recorded'}</Row>
-        <Row label="Prepared on">{prepared}</Row>
-        {change.decisions.map((decision) => (
-          <Row key={decision.uuid} label={DECIDED[decision.kind]}>
-            {[decision.decidedByName, formatDateTime(decision.decidedAt)].filter(Boolean).join(' · ')}
-          </Row>
-        ))}
-        {!!change.rejectionReason && <Row label="Rejection reason">{change.rejectionReason}</Row>}
-      </Rows>
-      <RegisterCopy
-        label={COPY.DOWNLOAD}
-        accessibilityLabel={`${COPY.DOWNLOAD} of the ${description}`}
-        filename={`supporting-${change.uuid}`}
-        epoch={epoch}
-        read={() =>
-          apiClient.get<ArrayBuffer>(COMPANY_TOKEN_ENDPOINTS.REGISTER_PARTICULARS_CHANGE_FILE(change.uuid), {
-            responseType: 'arraybuffer',
-            ledovaSessionEpoch: epoch,
-          })
-        }
-      />
-      {change.status === 'submitted' && steps && (
-        <View style={styles.choices}>
-          {DECISION_KINDS.map((kind) => {
-            const appointment = steps[kind];
-            return (
-              appointment && (
-                <RegisterDecision
-                  key={kind}
-                  family={REGISTER_PARTICULARS_DECISIONS}
-                  copy={COPY}
-                  noun="particulars change"
-                  proposal={change}
-                  kind={kind}
-                  appointment={appointment.uuid}
-                  epoch={epoch}
-                  description={description}
-                  onSettled={onSettled}
-                  onRefused={onSettled}
-                >
-                  {(preview) => <ParticularsPreview kind={kind} preview={preview} />}
-                </RegisterDecision>
-              )
-            );
-          })}
-        </View>
+    <View style={visible ? [styles.entry, last && styles.lastEntry] : undefined}>
+      {visible && (
+        <>
+          <Text style={styles.heading}>
+            {stage} · {member}
+          </Text>
+          <Text style={styles.muted}>{COPY.PROVIDED_BY_COMPANY}</Text>
+          <Rows>
+            {particularsRows(change)}
+            <Row label={COPY.REASON}>{change.reason}</Row>
+            <Row label="Prepared by">{change.preparedByName || 'Name not recorded'}</Row>
+            <Row label="Prepared on">{prepared}</Row>
+            {change.decisions.map((decision) => (
+              <Row key={decision.uuid} label={DECIDED[decision.kind]}>
+                {[decision.decidedByName, formatDateTime(decision.decidedAt)].filter(Boolean).join(' · ')}
+              </Row>
+            ))}
+            {!!change.rejectionReason && <Row label="Rejection reason">{change.rejectionReason}</Row>}
+          </Rows>
+          <RegisterCopy
+            label={COPY.DOWNLOAD}
+            accessibilityLabel={`${COPY.DOWNLOAD} of the ${description}`}
+            filename={`supporting-${change.uuid}`}
+            epoch={epoch}
+            guard={guard}
+            read={() =>
+              apiClient.get<ArrayBuffer>(COMPANY_TOKEN_ENDPOINTS.REGISTER_PARTICULARS_CHANGE_FILE(change.uuid), {
+                responseType: 'arraybuffer',
+                ledovaSessionEpoch: epoch,
+                ledovaSubmissionGuard: guard,
+              })
+            }
+          />
+        </>
       )}
+      <View style={styles.choices}>
+        {DECISION_KINDS.map((kind) => {
+          const appointment = steps?.[kind];
+          return (
+            <RegisterDecision
+              key={kind}
+              family={REGISTER_PARTICULARS_DECISIONS}
+              copy={COPY}
+              noun="particulars change"
+              proposal={change}
+              kind={kind}
+              appointment={appointment?.uuid}
+              visible={visible}
+              enabled={change.status === 'submitted'}
+              readGuard={guard}
+              newEffectGuard={guard}
+              onHeldChange={onHeldChange}
+              epoch={epoch}
+              description={description}
+              onSettled={onSettled}
+              onRefused={onSettled}
+            >
+              {(preview) => <ParticularsPreview kind={kind} preview={preview} />}
+            </RegisterDecision>
+          );
+        })}
+      </View>
     </View>
   );
 }

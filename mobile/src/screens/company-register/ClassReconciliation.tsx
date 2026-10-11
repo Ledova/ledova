@@ -1,4 +1,5 @@
-import { useState, type ReactNode } from 'react';
+import { useLayoutEffect, useRef, useState, type ReactNode } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Text, TextInput, View } from 'react-native';
 import * as Crypto from 'expo-crypto';
 import {
@@ -16,7 +17,7 @@ import { CustomModal } from '../../components/modal';
 import { apiClient } from '../../services/apiClient';
 import { assertSessionEpoch } from '../../services/sessionScope';
 import { useCompanyStyles } from './styles';
-import { useRegisterReconciliation } from './useCompanyRegister';
+import { reconciliationKey, useRegisterReconciliation } from './useCompanyRegister';
 
 type Field = keyof typeof COPY.FIELDS;
 
@@ -32,11 +33,15 @@ function Acknowledge({
   name,
   onSettled,
   onRefused,
+  visible = true,
+  guard,
 }: {
   reconciliation: RegisterReconciliation;
   index: number;
   kind: string;
-  appointment: string;
+  appointment?: string;
+  visible?: boolean;
+  guard?: () => void;
   epoch: number;
   name: string;
   onSettled: () => Promise<unknown>;
@@ -49,7 +54,10 @@ function Acknowledge({
   const acknowledgement = useDiscrepancyAcknowledgement(apiClient, reconciliation, {
     appointment,
     newKey: () => Crypto.randomUUID(),
-    guard: () => assertSessionEpoch(epoch),
+    guard: () => {
+      assertSessionEpoch(epoch);
+      guard?.();
+    },
     requestConfig: () => ({ ledovaSessionEpoch: epoch }),
     onAcknowledged: () => {
       setOpened(undefined);
@@ -60,12 +68,13 @@ function Acknowledge({
   const { busy, error } = acknowledgement;
   const current = opened === appointment;
   const ready = !!reason.trim() && !busy && current;
+  if (!visible) return null;
   return (
     <>
       <Action
         label={COPY.ACKNOWLEDGE}
         accessibilityLabel={`${COPY.ACKNOWLEDGE} discrepancy ${index + 1} of ${name}`}
-        disabled={busy}
+        disabled={busy || !appointment}
         onPress={() => {
           setReason('');
           setAttempted(false);
@@ -127,54 +136,62 @@ function Discrepancy({
   names,
   last,
   children,
+  visible = true,
 }: {
   row: RegisterDiscrepancy;
   index: number;
   names: Map<string, string | null>;
   last: boolean;
   children: ReactNode;
+  visible?: boolean;
 }) {
   const styles = useCompanyStyles();
   const shown = FIELDS.filter((field) => row[field] !== undefined);
   const { acknowledgement } = row;
   return (
-    <View style={[styles.entry, last && styles.lastEntry]}>
-      <Text style={styles.heading}>Discrepancy {index + 1}</Text>
-      <Text style={styles.text}>{COPY.KINDS[row.kind] ?? row.kind}</Text>
-      {shown.length > 0 && (
-        <Rows>
-          {shown.map((field) => (
-            <Row key={field} label={COPY.FIELDS[field]}>
-              {field === 'member'
-                ? names.get(String(row.member)) || String(row.member)
-                : COUNTS.includes(field)
-                  ? formatShareCount(String(row[field]))
-                  : String(row[field])}
-            </Row>
-          ))}
-        </Rows>
-      )}
-      {acknowledgement ? (
+    <View style={visible ? [styles.entry, last && styles.lastEntry] : undefined}>
+      {visible && (
         <>
-          <Text style={styles.muted}>{COPY.PROVIDED_BY[acknowledgement.providedBy] ?? acknowledgement.providedBy}</Text>
-          <Rows>
-            <Row label="Reason">{acknowledgement.reason}</Row>
-            {acknowledgement.acknowledgedByName !== null && (
-              <Row label="Acknowledged by">{acknowledgement.acknowledgedByName || 'Name not recorded'}</Row>
-            )}
-            <Row label="Acknowledged on">{formatDateTime(acknowledgement.acknowledgedAt)}</Row>
-          </Rows>
+          <Text style={styles.heading}>Discrepancy {index + 1}</Text>
+          <Text style={styles.text}>{COPY.KINDS[row.kind] ?? row.kind}</Text>
+          {shown.length > 0 && (
+            <Rows>
+              {shown.map((field) => (
+                <Row key={field} label={COPY.FIELDS[field]}>
+                  {field === 'member'
+                    ? names.get(String(row.member)) || String(row.member)
+                    : COUNTS.includes(field)
+                      ? formatShareCount(String(row[field]))
+                      : String(row[field])}
+                </Row>
+              ))}
+            </Rows>
+          )}
+          {acknowledgement ? (
+            <>
+              <Text style={styles.muted}>
+                {COPY.PROVIDED_BY[acknowledgement.providedBy] ?? acknowledgement.providedBy}
+              </Text>
+              <Rows>
+                <Row label="Reason">{acknowledgement.reason}</Row>
+                {acknowledgement.acknowledgedByName !== null && (
+                  <Row label="Acknowledged by">{acknowledgement.acknowledgedByName || 'Name not recorded'}</Row>
+                )}
+                <Row label="Acknowledged on">{formatDateTime(acknowledgement.acknowledgedAt)}</Row>
+              </Rows>
+            </>
+          ) : ATTRIBUTION_DISCREPANCIES.includes(row.kind) ? (
+            <Text style={styles.muted}>{COPY.ATTRIBUTION_NOTE}</Text>
+          ) : (
+            row.acknowledgeable && (
+              <>
+                <Text style={styles.muted}>{COPY.ACKNOWLEDGEABLE_NOTE}</Text>
+              </>
+            )
+          )}
         </>
-      ) : ATTRIBUTION_DISCREPANCIES.includes(row.kind) ? (
-        <Text style={styles.muted}>{COPY.ATTRIBUTION_NOTE}</Text>
-      ) : (
-        row.acknowledgeable && (
-          <>
-            <Text style={styles.muted}>{COPY.ACKNOWLEDGEABLE_NOTE}</Text>
-            {children}
-          </>
-        )
       )}
+      {children}
     </View>
   );
 }
@@ -185,20 +202,36 @@ export function ClassReconciliation({
   appointment,
   readOnly,
   refreshAppointments,
+  sourceReady = true,
+  guard,
 }: {
   epoch: number;
   register: TokenHoldersResponse;
+  sourceReady?: boolean;
+  guard?: () => void;
   appointment?: string;
   readOnly: boolean;
   refreshAppointments: () => Promise<unknown>;
 }) {
   const styles = useCompanyStyles();
+  const client = useQueryClient();
+  const sourceAvailable = useRef(sourceReady);
+  useLayoutEffect(() => {
+    sourceAvailable.current = sourceReady;
+  }, [sourceReady]);
   const name = register.token.name;
   const reconciliation = useRegisterReconciliation(epoch, register.token.uuid);
   const names = new Map(register.holders.map((holder) => [holder.member, holder.name]));
   const settle = () => reconciliation.refetch();
   const refused = () => Promise.all([reconciliation.refetch(), refreshAppointments()]);
   const record = reconciliation.data;
+  const privateReady = sourceReady && reconciliation.isSuccess && !reconciliation.isFetching;
+  const recordGuard = () => {
+    guard?.();
+    const state = client.getQueryState(reconciliationKey(epoch, register.token.uuid));
+    if (!sourceAvailable.current || state?.status !== 'success' || state.fetchStatus !== 'idle')
+      throw new Error('Refresh the current reconciliation before continuing.');
+  };
   return (
     <View style={styles.group}>
       <Text accessibilityRole="header" style={styles.heading}>
@@ -222,45 +255,53 @@ export function ClassReconciliation({
       ) : !record ? (
         <Text style={styles.muted}>{COPY.EMPTY}</Text>
       ) : (
-        <>
-          <Rows>
-            <Row label="Status">{COPY.STATUSES[record.status]}</Row>
-            <Row label="Chain block">{record.blockNumber === null ? 'Not recorded' : String(record.blockNumber)}</Row>
-            <Row label="Register sequence compared">
-              {record.registerSequence === null ? 'Not recorded' : String(record.registerSequence)}
-            </Row>
-            <Row label="Reconciled on">{formatDateTime(record.createdAt)}</Row>
-          </Rows>
-          {record.status === 'failed' && (
-            <>
-              <Text style={styles.text}>{COPY.FAILED_NOTE}</Text>
-              {!!record.failure && <Text style={styles.muted}>{record.failure}</Text>}
-            </>
-          )}
-          {record.discrepancies.map((row, index) => (
-            <Discrepancy
-              key={`${record.uuid}-${index}`}
-              row={row}
-              index={index}
-              names={names}
-              last={index === record.discrepancies.length - 1}
-            >
-              {appointment && (
-                <Acknowledge
-                  reconciliation={record}
-                  index={index}
-                  kind={row.kind}
-                  appointment={appointment}
-                  epoch={epoch}
-                  name={name}
-                  onSettled={settle}
-                  onRefused={refused}
-                />
-              )}
-            </Discrepancy>
-          ))}
-        </>
+        privateReady && (
+          <>
+            <Rows>
+              <Row label="Status">{COPY.STATUSES[record.status]}</Row>
+              <Row label="Chain block">{record.blockNumber === null ? 'Not recorded' : String(record.blockNumber)}</Row>
+              <Row label="Register sequence compared">
+                {record.registerSequence === null ? 'Not recorded' : String(record.registerSequence)}
+              </Row>
+              <Row label="Reconciled on">{formatDateTime(record.createdAt)}</Row>
+            </Rows>
+            {record.status === 'failed' && (
+              <>
+                <Text style={styles.text}>{COPY.FAILED_NOTE}</Text>
+                {!!record.failure && <Text style={styles.muted}>{record.failure}</Text>}
+              </>
+            )}
+          </>
+        )
       )}
+      {record?.discrepancies.map((row, index) => (
+        <Discrepancy
+          key={`${record.uuid}-${index}`}
+          row={row}
+          index={index}
+          names={names}
+          last={index === record.discrepancies.length - 1}
+          visible={privateReady}
+        >
+          <Acknowledge
+            reconciliation={record}
+            index={index}
+            kind={row.kind}
+            appointment={appointment}
+            epoch={epoch}
+            name={name}
+            onSettled={settle}
+            onRefused={refused}
+            guard={recordGuard}
+            visible={
+              privateReady &&
+              !row.acknowledgement &&
+              !ATTRIBUTION_DISCREPANCIES.includes(row.kind) &&
+              !!row.acknowledgeable
+            }
+          />
+        </Discrepancy>
+      ))}
     </View>
   );
 }

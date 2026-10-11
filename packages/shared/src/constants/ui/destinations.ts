@@ -9,8 +9,8 @@ export interface Destination {
 }
 
 export const DESTINATIONS = {
-  memberRecords: { path: '/member-records', title: 'Member records', audience: 'everyone' },
-  home: { path: '/home', title: 'Holdings', audience: 'everyone' },
+  memberRecords: { path: '/member-records', title: 'My shares', audience: 'everyone' },
+  home: { path: '/home', title: 'My shares', audience: 'everyone' },
   walletHoldings: { path: '/wallets/holdings', title: 'Wallet shares', audience: 'everyone' },
   wallets: { path: '/wallets', title: 'Wallets', audience: 'everyone' },
   transactions: { path: '/transactions', title: 'Activity', audience: 'everyone' },

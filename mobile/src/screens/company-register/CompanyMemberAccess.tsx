@@ -1,23 +1,29 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import * as Crypto from 'expo-crypto';
 import { Text, View } from 'react-native';
-import { isUuid, useCompanyMemberAccess } from '@ledova/shared';
-import { Action, Section } from '../../components/Ledger';
+import { getRegisterAwards, readEveryPage, useCompanyMemberAccess, type TokenHoldersResponse } from '@ledova/shared';
+import { Action, Choice, Section } from '../../components/Ledger';
 import { apiClient } from '../../services/apiClient';
 import { orderSubmissionSession } from '../../services/orderSubmissions';
 import { EvidencePicker, Field } from './RegisterFields';
 import { useRegisterEvidence } from './useRegisterEvidence';
 import { useCompanyStyles } from './styles';
-import { particularsKey } from './useCompanyRegister';
+import { particularsKey, registerKey } from './useCompanyRegister';
+import { invitationMembers } from './invitationMembers';
 
 export function CompanyMemberAccess({
   company,
   epoch,
   sourceReady = true,
+  registers,
+  onHeldChange,
 }: {
   company: string;
   epoch: number;
   sourceReady?: boolean;
+  registers: TokenHoldersResponse[];
+  onHeldChange?: (held: boolean) => void;
 }) {
   const access = useCompanyMemberAccess(
     apiClient,
@@ -29,8 +35,44 @@ export function CompanyMemberAccess({
   );
   const styles = useCompanyStyles();
   const evidence = useRegisterEvidence(company, 'supporting');
-  const [member, setMember] = useState('');
-  const [email, setEmail] = useState('');
+  const awards = useQuery({
+    queryKey: [...registerKey(epoch), 'invitation-awards', company],
+    enabled: !!access.admin && !!access.prepare && sourceReady,
+    queryFn: ({ signal }) =>
+      readEveryPage(async (page) => {
+        access.guardPrepare();
+        const response = await getRegisterAwards(
+          apiClient,
+          { company, page },
+          {
+            ledovaSessionEpoch: epoch,
+            ledovaSubmissionGuard: access.guardPrepare,
+            signal,
+          },
+        );
+        access.guardPrepare();
+        return response;
+      }),
+  });
+  let candidates: ReturnType<typeof invitationMembers> = [];
+  let recipientsError = '';
+  if (access.admin && sourceReady && awards.isSuccess && !awards.isFetching) {
+    try {
+      candidates = invitationMembers(registers, awards.data, company);
+    } catch (failure) {
+      recipientsError = failure instanceof Error ? failure.message : 'The company recipients could not be confirmed.';
+    }
+  }
+  const recipientsReady = !!access.admin && sourceReady && awards.isSuccess && !awards.isFetching && !recipientsError;
+  const [invitation, setInvitation] = useState({ company, member: '', email: '' });
+  const member = invitation.company === company ? candidates.find(({ uuid }) => uuid === invitation.member) : undefined;
+  const email = invitation.company === company ? invitation.email : '';
+  if (invitation.company !== company || (recipientsReady && invitation.member && !member))
+    setInvitation({ company, member: '', email: '' });
+  const memberName = (uuid: string) =>
+    candidates.find((item) => item.uuid === uuid)?.name ||
+    registers.flatMap((item) => item.holders).find((item) => item.member === uuid)?.name ||
+    'Company member';
   const [reason, setReason] = useState('');
   const [request, setRequest] = useState('');
   const [certificateInstruction, setCertificateInstruction] = useState('');
@@ -38,6 +80,10 @@ export function CompanyMemberAccess({
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState('');
   const held = access.busy || uploading || evidence.busy || !!access.retry;
+  useEffect(() => {
+    onHeldChange?.(held);
+  }, [held, onHeldChange]);
+  useEffect(() => () => onHeldChange?.(false), [onHeldChange]);
   const prepare = async () => {
     if (!access.prepare || uploading) return;
     setUploading(true);
@@ -57,7 +103,11 @@ export function CompanyMemberAccess({
         A current company administrator invites one exact member to their own records. This creates no company
         appointment, holding or wallet link. Share the code privately; Ledova does not email it.
       </Text>
-      <Action label="Refresh member access" disabled={access.busy || uploading} onPress={() => void access.refresh()} />
+      <Action
+        label="Refresh member access"
+        disabled={access.busy || uploading}
+        onPress={() => void Promise.all([access.refresh(), awards.refetch()])}
+      />
       {access.error && (
         <Text accessibilityRole="alert" style={styles.error}>
           {access.error}
@@ -73,22 +123,38 @@ export function CompanyMemberAccess({
       )}
       {access.admin && (
         <>
-          <Field label="Member UUID" value={member} editable={!held} onChange={setMember} />
-          <Text style={styles.muted}>
-            Use the member UUID recorded in this company&apos;s Register or employee award; an award-only recipient
-            needs no holding.
-          </Text>
+          <Text style={styles.heading}>Member or award recipient</Text>
+          {candidates.map((candidate) => (
+            <Choice
+              key={candidate.uuid}
+              label={`${candidate.name} · ${candidate.classes.join(', ')} · ${candidate.sources.join(', ')}${candidates.some((other) => other.uuid !== candidate.uuid && other.name === candidate.name) ? ` · ${candidate.uuid.slice(0, 8)}` : ''}`}
+              accessibilityRole="radio"
+              selected={member?.uuid === candidate.uuid}
+              disabled={held || !recipientsReady}
+              onPress={() => setInvitation({ company, member: candidate.uuid, email })}
+            />
+          ))}
+          {awards.isPending && <Text style={styles.muted}>Loading company recipients…</Text>}
+          {(awards.isError || recipientsError) && (
+            <Text accessibilityRole="alert" style={styles.error}>
+              {recipientsError || 'Refresh before inviting a company member.'}
+            </Text>
+          )}
+          {recipientsReady && candidates.length === 0 && (
+            <Text style={styles.muted}>Record a member or employee award before inviting its recipient.</Text>
+          )}
+          <Text style={styles.muted}>An award recipient can view their own award before any shares are issued.</Text>
           <Field
             label="Intended recipient email"
             value={email}
             editable={!held}
             keyboardType="email-address"
-            onChange={setEmail}
+            onChange={(value) => setInvitation({ company, member: member?.uuid ?? '', email: value })}
           />
           <Action
             label="Create member invitation"
-            disabled={held || !isUuid(member) || !email.trim()}
-            onPress={() => void access.invite(member, email.trim())}
+            disabled={held || !recipientsReady || !member || !email.trim()}
+            onPress={() => member && void access.invite(member.uuid, email.trim())}
           />
           {access.code && (
             <Text selectable style={styles.text}>
@@ -97,20 +163,19 @@ export function CompanyMemberAccess({
           )}
           {access.access?.invitations.map((invitation) => (
             <Text key={invitation.uuid} style={styles.text}>
-              Invitation {invitation.uuid} · Member {invitation.member} · {invitation.intendedEmail} ·{' '}
-              {invitation.status} · Until {invitation.acceptanceDeadline}
+              {memberName(invitation.member)} · {invitation.intendedEmail} · {invitation.status} · Until{' '}
+              {invitation.acceptanceDeadline}
             </Text>
           ))}
           <Field label="Company action reason" value={reason} editable={!held} multiline onChange={setReason} />
           {access.access?.associations.map((association) => (
             <View key={association.uuid} style={styles.entry}>
               <Text style={styles.text}>
-                Member {association.member} · Account {association.userAccount} ·{' '}
-                {association.current ? 'Current access' : 'Revoked access'}
+                {memberName(association.member)} · {association.current ? 'Current access' : 'Revoked access'}
               </Text>
               {association.current && (
                 <Action
-                  label={`Revoke member access ${association.uuid}`}
+                  label={`Revoke access for ${memberName(association.member)}`}
                   disabled={held || !reason.trim()}
                   onPress={() => void access.revoke(association.uuid, reason.trim())}
                 />

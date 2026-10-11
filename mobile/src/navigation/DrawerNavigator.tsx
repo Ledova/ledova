@@ -17,8 +17,10 @@ import {
   FileTextIcon,
   NewspaperIcon,
   ShieldCheckIcon,
+  FolderIcon,
+  DotsThreeIcon,
 } from 'phosphor-react-native';
-import { signout, describeFailure, DESTINATIONS, useNotifications } from '@ledova/shared';
+import { signout, describeFailure, DESTINATIONS, useNotifications, useUserPreferences } from '@ledova/shared';
 import { apiClient } from '../services/apiClient';
 import { notificationsService } from '../services/notificationsService';
 import { clearTokens } from '../services/tokenStorage';
@@ -36,6 +38,7 @@ import { useRole } from '../hooks/useRole';
 import { useRegisterAccess } from '../screens/company-register/useCompanyRegister';
 import { useUserProfile } from '../screens/user-profile/useUserProfile';
 import type { ComponentType } from 'react';
+import type { CompanyRegisterSection } from '../screens/company-register/CompanyRegisterScreen';
 
 export type DrawerParamList = {
   Main: undefined;
@@ -51,17 +54,30 @@ interface MenuItem {
   icon: ComponentType<any>;
   action: 'tab' | 'screen';
   target?: string;
+  section?: CompanyRegisterSection;
 }
 
 const SHARE_MENU_ITEMS: MenuItem[] = [
   { label: DESTINATIONS.home.title, icon: HouseIcon, action: 'tab', target: 'Home' },
-  { label: DESTINATIONS.publications.title, icon: NewspaperIcon, action: 'tab', target: 'Publications' },
-  { label: DESTINATIONS.transactions.title, icon: LinkIcon, action: 'tab', target: 'Transactions' },
 ];
 
 const COMPANY_MENU_ITEMS: MenuItem[] = [
-  { label: DESTINATIONS.companyRegister.title, icon: BookOpenIcon, action: 'tab', target: 'Register' },
-  { label: DESTINATIONS.companyOffering.title, icon: MegaphoneIcon, action: 'tab', target: 'CompanyOfferings' },
+  {
+    label: DESTINATIONS.companyRegister.title,
+    icon: BookOpenIcon,
+    action: 'tab',
+    target: 'CompanyRegister',
+    section: 'register',
+  },
+  { label: 'Employee awards', icon: CertificateIcon, action: 'tab', target: 'CompanyRegister', section: 'awards' },
+  { label: 'Documents', icon: FolderIcon, action: 'tab', target: 'CompanyRegister', section: 'documents' },
+  {
+    label: DESTINATIONS.company.title,
+    icon: BuildingsIcon,
+    action: 'tab',
+    target: 'CompanyRegister',
+    section: 'company',
+  },
 ];
 
 const INVEST_MENU_ITEMS: MenuItem[] = [
@@ -77,16 +93,20 @@ const INVEST_MENU_ITEMS: MenuItem[] = [
 ];
 
 const SECONDARY_ITEMS: MenuItem[] = [
-  { label: DESTINATIONS.company.title, icon: BuildingsIcon, action: 'tab', target: 'Company' },
-  { label: DESTINATIONS.companyTeam.title, icon: BuildingsIcon, action: 'tab', target: 'CompanyTeam' },
-  { label: DESTINATIONS.companyRegister.title, icon: BookOpenIcon, action: 'tab', target: 'CompanyRegister' },
+  { label: DESTINATIONS.companyOffering.title, icon: MegaphoneIcon, action: 'tab', target: 'CompanyOfferings' },
   { label: DESTINATIONS.wallets.title, icon: WalletIcon, action: 'tab', target: 'Wallets' },
-  { label: 'Profile', icon: UserIcon, action: 'tab', target: 'Profile' },
-  { label: 'Settings', icon: GearIcon, action: 'screen', target: 'Settings' },
+  { label: DESTINATIONS.publications.title, icon: NewspaperIcon, action: 'tab', target: 'Publications' },
+  { label: DESTINATIONS.transactions.title, icon: LinkIcon, action: 'tab', target: 'Transactions' },
+];
+
+const ACCOUNT_ITEMS: MenuItem[] = [
+  { label: DESTINATIONS.userProfile.title, icon: UserIcon, action: 'tab', target: 'Profile' },
+  { label: DESTINATIONS.settings.title, icon: GearIcon, action: 'screen', target: 'Settings' },
 ];
 
 function DrawerMenuContent({ onSignOut }: { onSignOut: () => void }) {
   const theme = useAppTheme();
+  const [more, setMore] = useState(false);
   const styles = useThemedStyles((theme) => ({
     drawerContent: {
       flex: 1,
@@ -187,7 +207,10 @@ function DrawerMenuContent({ onSignOut }: { onSignOut: () => void }) {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const { isEnabled } = useFeatureFlags();
   const { isCompany, isInvestor, isLoading } = useRole();
-  const readsRegister = useRegisterAccess(!isLoading && !isCompany);
+  const preferences = useUserPreferences();
+  const { allowed: readsRegister } = useRegisterAccess(
+    !preferences.isLoading && !preferences.isError && !!preferences.userAccount,
+  );
   const { userProfile } = useUserProfile();
   const person = userProfile?.fullName?.trim() || userProfile?.email;
   const insets = useSafeAreaInsets();
@@ -198,20 +221,16 @@ function DrawerMenuContent({ onSignOut }: { onSignOut: () => void }) {
       let params;
       if (item.target === 'Home') {
         params = { screen: 'Home', params: { screen: 'HomeMain' } };
-      } else if (item.target === 'CompanyTeam') {
-        params = { screen: 'Home', params: { screen: 'CompanyTeam' } };
       } else if (item.target === 'CompanyRegister') {
-        params = { screen: 'Home', params: { screen: 'CompanyRegister' } };
+        params = { screen: 'Company', params: { screen: 'CompanyMain', params: { section: item.section }, pop: true } };
       } else if (item.target === 'Directory') {
         params = { screen: 'Directory', params: { screen: 'DirectoryMain' } };
       } else if (item.target === 'Applications') {
         params = { screen: 'Applications', params: { screen: 'ApplicationsMain' } };
       } else if (item.target === 'Trading') {
         params = { screen: 'Trading', params: { screen: 'TradingMain' } };
-      } else if (item.target === 'Company') {
+      } else if (item.target === 'CompanyDetails') {
         params = { screen: 'Company', params: { screen: 'CompanyDetails' } };
-      } else if (item.target === 'Register') {
-        params = { screen: 'Company', params: { screen: 'CompanyMain' } };
       } else if (item.target === 'CompanyOfferings') {
         params = { screen: 'Company', params: { screen: 'CompanyOfferings' } };
       } else if (item.target === 'Wallets') {
@@ -219,7 +238,7 @@ function DrawerMenuContent({ onSignOut }: { onSignOut: () => void }) {
       } else {
         params = { screen: item.target as string };
       }
-      navigation.navigate('MainApp', { screen: 'Main', params } as never);
+      navigation.navigate('MainApp', { screen: 'Main', params, pop: true } as never);
     } else {
       navigation.navigate('MainApp', { screen: item.target } as never);
     }
@@ -238,17 +257,8 @@ function DrawerMenuContent({ onSignOut }: { onSignOut: () => void }) {
   );
 
   const groups = [
-    ...(isCompany ? [{ id: 'company', label: DESTINATIONS.company.title, items: COMPANY_MENU_ITEMS }] : []),
+    ...(readsRegister ? [{ id: 'company', label: DESTINATIONS.company.title, items: COMPANY_MENU_ITEMS }] : []),
     { id: 'shares', label: 'Your shares', items: SHARE_MENU_ITEMS },
-    ...(isInvestor
-      ? [
-          {
-            id: 'invest',
-            label: 'Invest',
-            items: INVEST_MENU_ITEMS.filter((item) => item.target !== 'Trading' || isEnabled('trading_enabled')),
-          },
-        ]
-      : []),
   ];
 
   return (
@@ -269,7 +279,40 @@ function DrawerMenuContent({ onSignOut }: { onSignOut: () => void }) {
             </View>
           ))}
         <View style={styles.divider} />
-        {SECONDARY_ITEMS.filter((item) => item.target !== 'CompanyRegister' || readsRegister).map(renderItem)}
+        {!isLoading &&
+          isCompany &&
+          !readsRegister &&
+          renderItem({
+            label: DESTINATIONS.company.title,
+            icon: BuildingsIcon,
+            action: 'tab',
+            target: 'CompanyDetails',
+          })}
+        {ACCOUNT_ITEMS.map(renderItem)}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityState={{ expanded: more }}
+          style={styles.menuItem}
+          onPress={() => setMore((value) => !value)}
+        >
+          <DotsThreeIcon {...ICON_PROPS} />
+          <Text style={styles.menuText}>More</Text>
+        </Pressable>
+        {more && (
+          <>
+            {!isLoading && isInvestor && (
+              <View style={styles.group}>
+                <Text accessibilityRole="header" style={styles.groupLabel}>
+                  Invest
+                </Text>
+                {INVEST_MENU_ITEMS.filter((item) => item.target !== 'Trading' || isEnabled('trading_enabled')).map(
+                  renderItem,
+                )}
+              </View>
+            )}
+            {SECONDARY_ITEMS.filter((item) => item.target !== 'CompanyOfferings' || isCompany).map(renderItem)}
+          </>
+        )}
         <Pressable
           accessibilityRole="link"
           style={styles.help}

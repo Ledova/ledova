@@ -27,7 +27,7 @@ preparation form has three groups:
 The received amount allocated to this fully paid allotment must equal its
 consideration. Preparing the records creates no holding or register entry.
 Preview and approve the exact allotment through the existing company decision
-flow; approval is separate from the company-recorded receipt. The web action
+flow; approval is separate from the company-recorded receipt. The action
 **Record issue** applies that approved decision, creating one genuine ISSUE,
 member position and register history effect. Its exact preview shows the
 recipient's holding and issued supply before and after the action. The
@@ -95,6 +95,6 @@ Migration `tokens/0004_external_allotments` belongs to the
 [fresh history](../../decisions.md#minimum-tests-and-fresh-migrations); PR #974
 carries the verification under the
 [minimum-test policy](../../development/testing.md).
-The single essential dashboard allotment case also checks original preparation
+The existing core allotment cases in both clients also check original preparation
 and issue recovery across failed refreshes, approval without a register effect,
 and private record and late-download refusal after source or authority loss.

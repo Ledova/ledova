@@ -413,8 +413,12 @@ it('retains original award, vesting and linked issue preparations through interr
   expect((screen.getByLabelText('Company') as HTMLSelectElement).disabled).toBe(true);
   preferencesFailed = true;
   await act(async () => client.refetchQueries({ queryKey: USER_PREFERENCES_QUERY_KEY, exact: true }));
-  expect(screen.queryByRole('button', { name: /^Recover record issue receipt/ })).toBeNull();
-  expect(document.body.textContent).not.toContain(AWARD_REQUEST.name);
+  expect(client.getQueryState(USER_PREFERENCES_QUERY_KEY)?.status).toBe('error');
+  await waitFor(() => {
+    expect(screen.getByText("We couldn't load the complete register.")).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /^Recover record issue receipt/ })).toBeNull();
+    expect(document.body.textContent).not.toContain(AWARD_REQUEST.name);
+  });
   listed = false;
   await act(async () =>
     client.refetchQueries({
@@ -446,6 +450,8 @@ it('retains original award, vesting and linked issue preparations through interr
   expect(effectCount).toBe(1);
   expect(awards[0].issuedShares).toBe('10');
   expect(awards[0].availableShares).toBe('90');
+  await waitFor(() => expect(within(screen.getByText(COPY.ISSUED).parentElement!).getByText('10 shares')).toBeTruthy());
+  expect(within(screen.getByText('Available to issue').parentElement!).getByText('90 shares')).toBeTruthy();
   preparedView.unmount();
   api.post.mockClear();
   retainedGrant = null;

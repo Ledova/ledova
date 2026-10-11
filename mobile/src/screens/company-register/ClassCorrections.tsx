@@ -9,7 +9,7 @@ import {
 import { Action } from '../../components/Ledger';
 import { CorrectionRecord } from './CorrectionRecord';
 import { useCompanyStyles } from './styles';
-import { entriesKey, useRegisterCorrections } from './useCompanyRegister';
+import { entriesKey, correctionsKey, useRegisterCorrections } from './useCompanyRegister';
 
 export function ClassCorrections({
   epoch,
@@ -18,7 +18,13 @@ export function ClassCorrections({
   steps,
   refreshHolders,
   refreshAppointments,
+  sourceReady = true,
+  guard,
+  onHeldChange,
 }: {
+  sourceReady?: boolean;
+  guard?: () => void;
+  onHeldChange?: (key: string, held: boolean) => void;
   epoch: number;
   company: string;
   register: TokenHoldersResponse;
@@ -30,6 +36,13 @@ export function ClassCorrections({
   const queryClient = useQueryClient();
   const name = register.token.name;
   const corrections = useRegisterCorrections(epoch, company, register.token.uuid);
+  const privateReady = sourceReady && corrections.isSuccess && !corrections.isFetching;
+  const recordGuard = () => {
+    guard?.();
+    const state = queryClient.getQueryState(correctionsKey(epoch, register.token.uuid));
+    if (state?.status !== 'success' || state.fetchStatus !== 'idle')
+      throw new Error('Refresh the register records before continuing.');
+  };
   const settle = () =>
     Promise.all([
       corrections.refetch(),
@@ -58,21 +71,23 @@ export function ClassCorrections({
             onPress={() => void corrections.refetch()}
           />
         </View>
-      ) : corrections.data.length === 0 ? (
+      ) : privateReady && corrections.data.length === 0 ? (
         <Text style={styles.muted}>{COPY.EMPTY}</Text>
-      ) : (
-        corrections.data.map(({ proposal, corrected }, index) => (
-          <CorrectionRecord
-            key={proposal.uuid}
-            proposal={proposal}
-            corrected={corrected}
-            epoch={epoch}
-            steps={steps}
-            last={index === corrections.data.length - 1}
-            onSettled={settle}
-          />
-        ))
-      )}
+      ) : null}
+      {corrections.data?.map(({ proposal, corrected }, index) => (
+        <CorrectionRecord
+          key={proposal.uuid}
+          proposal={proposal}
+          corrected={corrected}
+          epoch={epoch}
+          steps={steps}
+          last={index === corrections.data!.length - 1}
+          onSettled={settle}
+          visible={privateReady}
+          guard={recordGuard}
+          onHeldChange={onHeldChange}
+        />
+      ))}
     </View>
   );
 }

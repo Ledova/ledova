@@ -1,9 +1,11 @@
-import { useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Text, View } from 'react-native';
 import * as Crypto from 'expo-crypto';
 import {
   REGISTER_AWARD_COPY as COPY,
   apiErrorSentence,
+  appointmentForRegisterStep,
   createUserFriendlyError,
   failureStatus,
   getRegisterAward,
@@ -18,6 +20,7 @@ import { Action } from '../../components/Ledger';
 import { apiClient } from '../../services/apiClient';
 import { EvidencePicker, Field, isoDay, utcToday } from './RegisterFields';
 import { useCompanyStyles } from './styles';
+import { registerAppointmentsKey } from './useCompanyRegister';
 import { useRegisterEvidence } from './useRegisterEvidence';
 
 export function AwardForm({
@@ -30,6 +33,7 @@ export function AwardForm({
   blocked,
   onRecorded,
   onHeldChange,
+  visible = true,
 }: {
   company: string;
   token: string;
@@ -40,8 +44,10 @@ export function AwardForm({
   blocked: boolean;
   onRecorded: () => Promise<unknown>;
   onHeldChange?: (held: boolean) => void;
+  visible?: boolean;
 }) {
   const styles = useCompanyStyles();
+  const client = useQueryClient();
   const agreement = useRegisterEvidence(company, 'supporting');
   const [newMemberId] = useState(() => Crypto.randomUUID());
   const [member, setMember] = useState('new');
@@ -54,6 +60,10 @@ export function AwardForm({
   const [submitting, setSubmitting] = useState(false);
   const [held, setHeld] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const unavailable = useRef(blocked || !visible);
+  useLayoutEffect(() => {
+    unavailable.current = blocked || !visible;
+  }, [blocked, visible]);
   const live = useRef(true);
   const pending = useRef(false);
   const operation = useRef<{ request: RegisterAwardPreparation; confirmed: boolean; uncertain: boolean } | null>(null);
@@ -65,6 +75,8 @@ export function AwardForm({
   }, []);
   const check = () => {
     guard();
+    if (unavailable.current)
+      throw createUserFriendlyError('Refresh company access and the current records before continuing.');
     if (!live.current) throw createUserFriendlyError('This award form is closed. Reopen it before continuing.');
   };
   const date = termsOn.trim();
@@ -79,7 +91,17 @@ export function AwardForm({
           : !terms.trim() || !schedule.trim() || !agreement.name
             ? 'Give the agreement terms, recorded schedule and agreement document.'
             : null;
+  const beforeWrite = () => {
+    check();
+    const appointments = client.getQueryData<OwnCompanyAppointment[]>(registerAppointmentsKey(epoch)) ?? [];
+    if (appointmentForRegisterStep(appointments, company, 'prepare')?.uuid !== appointment.uuid)
+      throw createUserFriendlyError('Refresh your current preparation appointment before a new request.');
+  };
   const busy = submitting || agreement.busy;
+  useEffect(() => {
+    onHeldChange?.(busy || held);
+  }, [busy, held, onHeldChange]);
+  useEffect(() => () => onHeldChange?.(false), [onHeldChange]);
   const pick = async () => {
     try {
       check();
@@ -103,7 +125,7 @@ export function AwardForm({
       check();
       let command = operation.current;
       if (!command) {
-        const retained = await agreement.upload(appointment.uuid, check);
+        const retained = await agreement.upload(appointment.uuid, beforeWrite);
         const body = {
           appointment: appointment.uuid,
           tokenId: token,
@@ -121,32 +143,54 @@ export function AwardForm({
         setHeld(true);
         onHeldChange?.(true);
       }
-      if (command.uncertain && !command.confirmed) {
+      const lookup = async () => {
         try {
           check();
-          const { data } = await getRegisterAward(apiClient, command.request.operationId, {
+          const { data } = await getRegisterAward(apiClient, command!.request.operationId, {
             ledovaSessionEpoch: epoch,
             ledovaSubmissionGuard: check,
+          });
+          check();
+          if (!isRecordedRegisterAward(data, command!.request, company))
+            throw createUserFriendlyError(COPY.RECORDING_FAILED);
+          return true;
+        } catch (cause) {
+          check();
+          if (failureStatus(cause) !== 404) throw cause;
+          return false;
+        }
+      };
+      let absent = false;
+      if (command.uncertain && !command.confirmed) {
+        command.confirmed = await lookup();
+        absent = !command.confirmed;
+      }
+      if (!command.confirmed) {
+        try {
+          const writeGuard = command.uncertain ? check : beforeWrite;
+          writeGuard();
+          const { data } = await recordRegisterAward(apiClient, command.request, {
+            ledovaSessionEpoch: epoch,
+            ledovaSubmissionGuard: writeGuard,
           });
           check();
           if (!isRecordedRegisterAward(data, command.request, company))
             throw createUserFriendlyError(COPY.RECORDING_FAILED);
           command.confirmed = true;
         } catch (cause) {
-          check();
-          if (failureStatus(cause) !== 404) throw cause;
+          const status = failureStatus(cause);
+          if (!absent || !status || status < 400 || status >= 500) throw cause;
+          command.confirmed = await lookup();
+          if (!command.confirmed) {
+            operation.current = null;
+            setHeld(false);
+            onHeldChange?.(false);
+            setError(
+              'The original award was not recorded and the request was refused. Close this form and start again with current company authority.',
+            );
+            return;
+          }
         }
-      }
-      if (!command.confirmed) {
-        check();
-        const response = await recordRegisterAward(apiClient, command.request, {
-          ledovaSessionEpoch: epoch,
-          ledovaSubmissionGuard: check,
-        });
-        check();
-        if (!isRecordedRegisterAward(response.data, command.request, company))
-          throw createUserFriendlyError(COPY.RECORDING_FAILED);
-        command.confirmed = true;
       }
       await onRecorded();
       operation.current = null;
@@ -177,9 +221,10 @@ export function AwardForm({
       if (live.current) setSubmitting(false);
     }
   };
+  if (!visible) return null;
   return (
     <View style={styles.group}>
-      <Text style={styles.heading}>Promised recipient</Text>
+      <Text style={styles.heading}>Person and award</Text>
       <Text style={styles.text}>
         {member === 'new' ? 'New recipient' : members.find((row) => row.member === member)?.name || member}
       </Text>
@@ -226,6 +271,7 @@ export function AwardForm({
         maxLength={78}
         onChange={setShares}
       />
+      <Text style={styles.heading}>Agreement and vesting schedule</Text>
       <Field
         label={`${COPY.TERMS_ON} (YYYY-MM-DD)`}
         accessibilityLabel={COPY.TERMS_ON}
