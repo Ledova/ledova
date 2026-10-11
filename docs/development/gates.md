@@ -4,12 +4,9 @@
 
 Start here when a check fails. Each section states the rule, the remedy and
 what the check does and does not establish. The source owns exact matchers and
-exception inventories: when extending a checker or investigating a false result,
-run the relevant small gate controls when they guard a meaningful failure.
-The [minimum-test policy](testing.md) applies to these helpers too. Counted
-historical debt must shrink and stale counts must fail; a justified exclusion
-needs a reason and a review of its boundary. Commands run from the repository
-root unless stated otherwise.
+exception inventories; the [minimum-test policy](testing.md) and the
+[debt rules](standards.md#the-rules) apply to the gates' own small controls.
+Commands run from the repository root unless stated otherwise.
 
 ## Every gate, and where its rule is written
 
@@ -33,20 +30,13 @@ fails, and an entry naming no script fails.
 | `check-client-operations.mjs` | [The API type drift gate](#the-api-type-drift-gate)          | yes          | Source and client checks |
 | `check-self-imports.mjs`      | [Clients and the shared package](../architecture/clients.md) | yes          | Source and client checks |
 
-`check-port-free.py` is in `scripts/` and is not on this table: it refuses to
-start the chain test when its port is taken, which is Makefile plumbing rather
-than a rule anything is held to. `check-docs.py` carries it in `NOT_A_GATE`
-with that reason, so its absence is a recorded decision rather than an
-oversight, and documenting it here would fail the gate.
-
 Two rules are gated without a script of their own: migration drift through
 `makemigrations --check --dry-run` in the backend group, and generated design
 tokens through the non-writing `generate-css-tokens.mjs --check` in `make check`.
 The Makefile also runs the mobile test-await control, the real native dependency
 resolver (`npm --prefix mobile run check:resolution`) and the dashboard React
-singleton check. Jest and TypeScript resolution alone do not establish Metro
-resolution. `check-self-imports.mjs` prevents the shared package importing its
-own public barrel. Removed broad resolver fixtures remain in Git history.
+singleton check. `check-self-imports.mjs` prevents the shared package importing
+its own public barrel.
 
 ## The PR metadata gate
 
@@ -60,8 +50,7 @@ A `Refs` PR must close no issue: the gate refuses one whose
 message carries one of GitHub's
 [closing keywords](https://docs.github.com/en/issues/tracking-your-work-with-issues/using-issues/linking-a-pull-request-to-an-issue#linking-a-pull-request-to-an-issue-using-a-keyword)
 followed by `#N`, `OWNER/REPO#N` or an issue URL, because squash merges copy
-commit messages into the squash commit (that is how #170 was closed by #172's
-squash commit while #172's list was empty). The refusal names each issue, title
+commit messages into the squash commit. The refusal names each issue, title
 reference or commit; remove the phrase or link, or reword the title or commit.
 A `Closes` PR is checked against none of these, and a type prefix such as
 `fix(#123):` is not a closing phrase.
@@ -76,8 +65,8 @@ including bot PRs, under `pull_request_target` with read-only permissions: it
 checks out only the default branch and fetches titles, bodies and commits as
 data. The check needs GitHub access and is not part of `make check`; locally,
 run `python scripts/check-pr-metadata.py --repository OWNER/REPO --pr NUMBER`
-with an authenticated `gh` 2.72.0 or later. It verifies traceability, not
-whether the issue is a sensible match; review owns that.
+with an authenticated `gh`. It verifies traceability, not whether the issue is
+a sensible match; review owns that.
 
 For local wording checks, use
 `python scripts/check-pr-metadata.py --title-file TITLE --body-file BODY --base BASE`.
@@ -97,18 +86,13 @@ Configuration and documentation can retain comments. Root `scripts/` modules car
 docstrings. Python uses tokenize/AST; client parsing distinguishes strings, regexes,
 JSX and template expressions. CSS, Solidity and native templates have their own scans.
 
-The trees are, in full: `backend`, `dashboard/src`, `mobile/src`,
-`mobile/scripts`, `mobile/native-tests`, `mobile/plugins`, `mobile`, `packages/shared`, `packages/scripts`,
-`marketing/src`, `dashboard`, `dashboard/scripts`, `marketing`, `contracts`, `contracts/contracts`,
-`contracts/scripts`, `contracts/test`.
-
-That sentence is checked against `TREES`. Each tree's extension and recursion scope
-lives in the script; `NOT_SCANNED` names intentional omissions with reasons. The
-[small tree/parser control](../../scripts/tests/test_check_comments_trees.py)
-checks named source paths and representative functional syntax. It does not
-prove every tree or parser permutation. Functional native directives, URLs,
-regexes and JSX text are not comment exemptions. Admin templates are outside the scan and should also remain
-free of comments.
+The governed trees are `TREES` in `scripts/check-comments.py`; `NOT_SCANNED`
+names intentional omissions with reasons. The
+[tree/parser control](../../scripts/tests/test_check_comments_trees.py) checks
+that native templates and tests are reached and that URLs are not comments; it
+does not prove every tree or parser permutation. Functional native directives,
+URLs, regexes and JSX text are not comment exemptions. Admin templates are
+outside the scan and should also remain free of comments.
 
 Only functional directives are allowed: Python `# noqa`, `# type:`, `# pragma`,
 `# fmt:`, `# isort`, shebang/coding lines; JavaScript/TypeScript ESLint disable/enable,
@@ -146,7 +130,7 @@ another alias even when its own block rolls back. The checker refuses imports as
 well as known call spellings, including aliases and decorators; its allowances
 are the alias-aware helper implementation, principal handling and role checks,
 and tests and migrations have separate scope. Test settings can conceal a wrong
-alias; [scoped tests](testing.md#scoped-connection-evidence) prove the real boundary.
+alias; [real-app-login tests](testing.md#backend-verification) prove the real boundary.
 
 ## The schema response gate
 
@@ -159,7 +143,7 @@ be explicitly excluded. Non-DRF routes need another schema mechanism; the
 trading stream is covered by the
 [schema postprocessing hook](../../backend/shared/api/schema_hooks.py), which
 derives event names from the publisher catalogue. The API snapshot checks the
-resulting schema; the earlier hook unit matrix is retired.
+resulting schema.
 
 ## The test shadowing gate
 
@@ -207,7 +191,7 @@ CONTRIBUTING, SECURITY and CODE_OF_CONDUCT, plus **every Markdown document recur
 under docs/**. It holds the [job schedule](../operations/jobs.md#schedule) to the names
 of the backend's `@app.periodic` tasks, `def` or `async def`, and the gate inventory
 above to `scripts/check-*`, in both directions. `check-port-free` is deliberately not
-a gate.
+a gate (`NOT_A_GATE`: Makefile plumbing for `make chain-test`).
 
 The checker compares paths, anchors and names, with GitHub's space-to-hyphen
 heading behaviour. It does not verify external URLs, cron values, arbitrary
@@ -217,16 +201,9 @@ checks navigation and statements against source.
 
 ## Backend test discovery
 
-The backend group runs one small suite through normal Django discovery. The
-[runner](../../backend/shared/test_runner.py) refuses an empty suite; Django
-reports import failures as failed tests and removes duplicate test instances.
-The [shadowing gate](#the-test-shadowing-gate) checks assertion/fixture helpers that would shadow reserved TestCase
-methods. There is no separate discovery run, saved inventory or shard
-balancing configuration.
-
-At most five cases use real app login and non-bypassing credentials for the
-API/database tenant boundary. There is no separate strict runner or declared
-class inventory; record the actual case count and any skips.
+`make backend-test` runs the suite through Django discovery; the
+[runner](../../backend/shared/test_runner.py) refuses an empty suite. Case
+limits and the real-app-login rule are in [testing](testing.md#backend-verification).
 
 ## Dependency advisories
 
@@ -267,10 +244,9 @@ application routes and error-only compatibility routes still count.
 the committed snapshot with the pinned root `openapi-typescript` dependency and
 compares bytes; it does not write files. `make update-api-types` explicitly
 replaces the generated file, and `make update-api-schema` updates both.
-`API_TYPES_SCHEMA=...` selects another input. Read-only server fields are
-absent from generated requests and write-only inputs from responses;
-nullability, required fields, enums and exact decimal strings survive, binary
-payloads use `Blob`, and received objects remain mutable JavaScript data.
+`API_TYPES_SCHEMA=...` selects another input. Generated types keep nullability,
+required fields, enums and exact decimal strings; read-only fields are absent
+from requests and write-only inputs from responses.
 Trading event types come from the stream extension: the invalidation map must
 account for every event and must not retain a removed event. The shared,
 dashboard and mobile compiler checks validate
@@ -279,18 +255,11 @@ consumers against those contracts.
 `make check-client-operations` uses installed root Node dependencies and the
 committed schema to account for shared, dashboard and mobile HTTP operations and
 their successful response kinds, including 204, binary and streams. It
-recognises Axios through locked compiler declarations, not the name of a `.get`
-method. Request replay sites cannot change destination, method or origin; the
-mobile stored-file download has explicit binary-route accounting, externally
-linked documents are not registered operations, and browser/mobile stream
-builders are accounted for. Every member of a typed Axios call's claimed
-response union must accept a generated successful response variant from the
-operation it calls, which covers nested values and arrays and rejects invented
-required fields; literal `blob`/`arraybuffer` decoders use their browser result
-types and bodyless responses remain `void`. Unavailable generated operations and unresolved
-explicit types fail closed; untyped calls stay in the route census without
-claiming a response-type proof, and unresolved transports need explicit tested
-accounting, not a silent exemption. The checker does not establish which
+recognises Axios through compiler declarations, requires every member of a typed
+call's claimed response union to accept a generated successful response of the
+operation it calls, and fails closed on unavailable operations, unresolved
+explicit types and unaccounted transports; untyped calls stay in the route
+census without a response-type proof. The checker does not establish which
 response branch a runtime request selects or certify external destination
 policy. The type-generation decision and its checkpoint are recorded in
 [decisions](../decisions.md#clients-and-api-types).

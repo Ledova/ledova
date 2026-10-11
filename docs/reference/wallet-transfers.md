@@ -15,12 +15,31 @@ the same bytes reuses the transaction and deduction. Different bytes at a
 recorded nonce, and hashes represented only by history or legacy transaction
 rows, are refused before broadcast. The submission entry point requires the
 requesting user's ownership of the wallet and an outermost transaction boundary so
-that no caller can roll back the record after sending. A stablecoin transfer is
-also refused, before a journal or send RPC, unless the sending wallet and the
-recipient each hold a live approval with at least one company or the recipient
-is the operator's receiving wallet on its configured chain; see
-[whitelist changes](../architecture/outgoing-signing.md#whitelist-changes). A
-retry of recorded bytes is not checked again.
+that no caller can roll back the record after sending.
+
+`POST /api/wallets/{uuid}/prepare-transfer/` refuses with 400 a recipient that
+is not an address on the wallet's network. It answers an EVM transaction's
+`value` as a JSON-RPC hex quantity of wei, for example `"0x8ac7230235dc1c00"`
+for 9.99999999 ETH and `"0x0"` for a token transfer, so a client never reads an
+amount above 2^53 as an approximate JavaScript number; a native amount with
+more than 18 decimal places is refused with 400 instead of being rounded.
+
+Wallets > Send refuses a share class outright. A stablecoin sent from
+Wallets > Send has no company registry to ask, so
+`wallets.services.transaction_confirmation.require_stablecoin_approvals` checks
+instead that the sending wallet and the recipient each hold a live stored
+approval for at least one company: when the transfer is prepared, and again when
+the signed transfer is submitted, before the submission is recorded or
+broadcast. A transfer to the operator's receiving wallet, on the chain it is
+configured for, is exempt on both sides, because the stablecoin payment
+instruction names it and nothing approves it; an unset receiving wallet, or one
+on another chain, exempts nothing. The refusal is 403
+`stablecoin_approval_required` and says which side lacks an approval. The
+recipient's wallet belongs to another account, so the lookup runs on the
+operator connection and answers only yes or no. A submission already recorded
+is not checked again: a repeated request and the recovery sweep re-send the
+bytes the check admitted. Approvals themselves are described under
+[whitelist changes](../architecture/outgoing-signing.md#whitelist-changes).
 
 Before reserving a transfer, the wallet validates the signed gas limit against
 the intrinsic gas charge for its supported native or ERC-20 payload, including
@@ -63,11 +82,9 @@ This journal covers native and ERC-20 transfers signed by EVM wallet users.
 Legacy adoption, replacement policy, canonicality/finality and a full accounting
 ledger remain separate work. It retains the existing generation-fenced
 [balance reconciliation](wallet-reconciliation.md) and admits no operator
-signer; trading is enabled by default and unaffected by this journal.
-Earlier native/ERC-20 submission, settlement and process-timing test evidence
-remains in Git history. Under the [11 October policy](../decisions.md#minimum-tests-and-fresh-migrations),
-the ordinary suite retires those cases and `make chain-test` is one manual
-local EVM contract smoke.
+signer. The ordinary suite has no chain tests; `make chain-test` is one manual
+local EVM contract smoke
+([11 October policy](../decisions.md#minimum-tests-and-fresh-migrations)).
 
 ## Bitcoin
 
@@ -103,13 +120,8 @@ a mined receipt belongs to the confirmation writer. Unavailable evidence leaves
 recovery unresolved. Input reservations are retained after terminal states; a
 replacement/release policy is separate work.
 
-The [11 October testing decision](../decisions.md#minimum-tests-and-fresh-migrations)
-retires the broad Bitcoin regtest suite and takes chain tests out of CI. Earlier
-signature, mempool, recovery and confirmation evidence remains in the original
-PRs and Git history; it does not establish current automated coverage. The
-optional `make chain-test` is a narrow local EVM contract smoke.
-
 Fresh migrations install the current journal/input-reservation guards and unique
 transaction/signer identity constraints. Journal backups contain signed bytes
 that can be broadcast and need restricted access. Preserve those records and
-their original evidence under the approved rebuild plan.
+their original evidence under the
+[approved rebuild plan](../operations/upgrades.md#fresh-database-rebuild).

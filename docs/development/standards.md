@@ -48,9 +48,8 @@ behaviour beyond them.
   [migration drift step](gates.md#every-gate-and-where-its-rule-is-written). A
   schema change that changes the live RLS catalogue needs its policy-install
   migration too. Where anyone else is working, claim the migration number in a
-  comment on the plan issue before pushing it: two migrations have claimed the
-  same number here. Where two migrations fork off one parent, the second to
-  land re-points one dependency line in its rebase.
+  comment on the plan issue before pushing it. Where two migrations fork off one
+  parent, the second to land re-points one dependency line in its rebase.
 - Dependencies need an importer. Endpoints need a client, documented external
   consumer or platform staff use. Search shared services before declaring a
   route unused.
@@ -85,9 +84,9 @@ must be removed. Do not add an exception merely to make a check green.
   [#871](https://github.com/Ledova/ledova/issues/871) is replacing. Do not
   replace a staff check with unrestricted customer writes on an operator
   connection.
-- Product modes are retired: [`operators/0002`](../operations/upgrades.md#one-registry-product)
-  removed the field, its initial migration stays, and private hosting uses the
-  same product and authority model.
+- There is one product and no deployment-mode field; private hosting uses the
+  same product and authority model
+  ([decision](../decisions.md#company-managed-registers-and-one-product)).
 
 ## Admin boundaries and external consumers
 
@@ -108,16 +107,11 @@ self-service outcome.
 
 ## Shared TypeScript types
 
-Types and interfaces use PascalCase; properties use camelCase except wire/query
-names explicitly allowed by ESLint. Query parameters follow the API's snake_case
-names. Compose pagination, ordering and date-range types from shared API types.
-Entities use their bare name, queries `{Entity}QueryParams`, and non-CRUD calls
-`{Action}Request` / `{Action}Response`.
-
-The naming rule is an error; the query-parameter naming rule is a warning.
-The existing utility-type/payload preferences are not enforced: repeated
-`no-restricted-syntax` object keys leave only the last selector installed.
-Changing that behaviour requires a separate code change, not a stronger docs claim.
+Types and interfaces use PascalCase and properties camelCase; query parameters
+follow the API's snake_case names. Compose pagination, ordering and date-range
+types from shared API types. Entities use their bare name, queries
+`{Entity}QueryParams`, and non-CRUD calls `{Action}Request` / `{Action}Response`.
+These are conventions checked in review; ESLint does not enforce them.
 
 ## Documentation changes
 
