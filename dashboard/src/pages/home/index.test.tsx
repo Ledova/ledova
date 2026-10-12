@@ -179,7 +179,7 @@ it('puts own register shares and awards first without wallet reads, preserves se
   const invitation = screen.getByText('Accept another member invitation').closest('details');
   expect(invitation?.open).toBe(false);
   await screen.findByText('Recent changes · Ordinary');
-  fireEvent.click(screen.getByRole('button', { name: `Open ${MEMBER_RECORD.company.name} member record` }));
+  expect(screen.queryByRole('button', { name: `Open ${MEMBER_RECORD.company.name} member record` })).toBeNull();
   expect(screen.getByText('Recent changes · Ordinary')).toBeTruthy();
   record = {
     ...MEMBER_RECORD,

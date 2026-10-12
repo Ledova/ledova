@@ -174,7 +174,9 @@ function MemberRecords({
                             <div key={item.uuid} className="space-y-3 py-3">
                               <div className="flex flex-wrap items-baseline gap-x-6 gap-y-1">
                                 <p className="min-w-0 break-words font-medium">{item.name}</p>
-                                <p className="text-xl tabular-nums">{formatShareCount(item.shares)} issued shares</p>
+                                <p className="min-w-0 break-words text-xl tabular-nums">
+                                  {formatShareCount(item.shares)} issued shares
+                                </p>
                               </div>
                               {read.record?.uuid === record.uuid && (
                                 <PageAction
@@ -191,12 +193,13 @@ function MemberRecords({
                           ))}
                         </div>
                       )}
-                      <PageAction
-                        label={`Open ${record.company.name} member record`}
-                        active={read.record?.uuid === record.uuid}
-                        disabled={held}
-                        onClick={() => choose(record.uuid)}
-                      />
+                      {read.record?.uuid !== record.uuid && (
+                        <PageAction
+                          label={`Open ${record.company.name} member record`}
+                          disabled={held}
+                          onClick={() => choose(record.uuid)}
+                        />
+                      )}
                     </Section>
                     {record.awards.length > 0 && (
                       <Section title="Employee awards">
@@ -298,7 +301,7 @@ function MemberRecords({
                   <details ref={history} open={documentsOnly}>
                     <summary className={SUMMARY}>Your share history and certificate requests</summary>
                     <p className="text-sm text-text-muted">
-                      Read the own entries for a share class above to request a certificate for a receiving entry.
+                      Choose a share class to request a certificate for a receiving entry.
                     </p>
                     {documentsOnly && (
                       <div className="flex flex-wrap gap-2 py-3">

@@ -46,7 +46,7 @@ export function AwardStatus({
         {parts.map((part) => (
           <div key={part.label} className="min-w-0">
             <dt className="text-text-muted">{part.label}</dt>
-            <dd className="font-medium tabular-nums">{formatShareCount(String(part.quantity))} shares</dd>
+            <dd className="break-words font-medium tabular-nums">{formatShareCount(String(part.quantity))} shares</dd>
           </div>
         ))}
       </dl>
