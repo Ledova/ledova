@@ -177,11 +177,11 @@ it('retains original award, vesting and linked issue preparations through interr
     `award=${encodeURIComponent(awards[0].uuid)}`,
   );
   expect(submissions(URLS.REGISTER_GRANTS)).toHaveLength(0);
+  expect(screen.getByText('100 shares promised · 100 company-recorded vested')).toBeTruthy();
   for (const [label, quantity] of [
-    [COPY.PROMISED, '100'],
-    [COPY.VESTED, '100'],
-    [COPY.ISSUED, '0'],
-    ['Available to issue', '100'],
+    ['Unvested', '0'],
+    ['Issued from award', '0'],
+    ['Vested, awaiting issue', '100'],
   ])
     expect(within(screen.getByText(label).parentElement!).getByText(`${quantity} shares`)).toBeTruthy();
   view.unmount();
@@ -450,8 +450,10 @@ it('retains original award, vesting and linked issue preparations through interr
   expect(effectCount).toBe(1);
   expect(awards[0].issuedShares).toBe('10');
   expect(awards[0].availableShares).toBe('90');
-  await waitFor(() => expect(within(screen.getByText(COPY.ISSUED).parentElement!).getByText('10 shares')).toBeTruthy());
-  expect(within(screen.getByText('Available to issue').parentElement!).getByText('90 shares')).toBeTruthy();
+  await waitFor(() =>
+    expect(within(screen.getByText('Issued from award').parentElement!).getByText('10 shares')).toBeTruthy(),
+  );
+  expect(within(screen.getByText('Vested, awaiting issue').parentElement!).getByText('90 shares')).toBeTruthy();
   preparedView.unmount();
   api.post.mockClear();
   retainedGrant = null;

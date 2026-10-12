@@ -10,6 +10,7 @@ import {
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { AxiosInstance } from 'axios';
+import { MemoryRouter } from 'react-router-dom';
 import { webcrypto } from 'node:crypto';
 import { Buffer } from 'node:buffer';
 import { afterEach, expect, it, vi } from 'vitest';
@@ -193,7 +194,9 @@ it('invites and associates a walletless member, recovers one exact request and r
   });
   const wrapper = ({ children }: { children: React.ReactNode }) => (
     <QueryClientProvider client={client}>
-      <ApiClientProvider client={api as unknown as AxiosInstance}>{children}</ApiClientProvider>
+      <ApiClientProvider client={api as unknown as AxiosInstance}>
+        <MemoryRouter>{children}</MemoryRouter>
+      </ApiClientProvider>
     </QueryClientProvider>
   );
   const company = render(
@@ -254,7 +257,7 @@ it('invites and associates a walletless member, recovers one exact request and r
   await waitFor(() => expect(associated).toBe(true));
   fireEvent.click(await screen.findByRole('button', { name: `Open ${MEMBER_RECORD.company.name} member record` }));
   await screen.findByText(MEMBER_RECORD.name);
-  expect(screen.getByText(/5 awarded · 2 vested · 0 issued/)).toBeTruthy();
+  expect(screen.getByRole('img', { name: /3 unvested, 2 vested, awaiting issue, 0 issued from award/ })).toBeTruthy();
   fireEvent.click(await screen.findByRole('button', { name: /Download unsigned certificate/ }));
   await waitFor(() => expect(createObjectURL).toHaveBeenCalledWith(pdf));
   fireEvent.click(screen.getByText('Request a particulars update'));
