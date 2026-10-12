@@ -19,10 +19,15 @@ closed 11 October) first and orders the remaining register work; new integrated
 AUD payments, trading, advanced governance and filings are deferred.
 
 The [11 October journey cleanup](https://github.com/Ledova/ledova/issues/1000)
-organises these existing capabilities around My shares and four company
+organised these existing capabilities around My shares and four company
 destinations, with named invitations and focused investor and employee issue
-tasks. Signup remains unchanged. The guides below describe the delivered
-structure on web and mobile.
+tasks. The 12 October web increments
+([#1012](https://github.com/Ledova/ledova/issues/1012),
+[#1013](https://github.com/Ledova/ledova/issues/1013) and
+[#1014](https://github.com/Ledova/ledova/issues/1014)) add a compact sidebar,
+company ownership Dashboard, consolidated Settings and personal holdings and
+award charts. Native navigation and signup remain unchanged. The guides below
+describe the delivered structure on web and mobile.
 
 Verification references in the guides are each increment's original evidence;
 the [11 October minimum-test policy](../../decisions.md#minimum-tests-and-fresh-migrations)

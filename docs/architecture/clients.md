@@ -50,8 +50,8 @@ pages included. The audience is `everyone`, `investing` or `company`, and
 `canOpen(role, audience)` says who may open it: an investor opens the pages for
 everyone and for investing, a company those for everyone and for companies, and
 a dual-role account all of them. A role outside the API's list opens only the
-pages for everyone. Both clients land personal accounts on My shares. Every
-signed-in route is guarded by `ProtectedRoute` with its entry's audience. A signed-out
+pages for everyone. Personal accounts land on Dashboard on web and My shares
+on native. Every signed-in route is guarded by `ProtectedRoute` with its entry's audience. A signed-out
 visitor goes to sign in. Email verification issues a full session before
 sign-up is finished, so a signed-in account whose profile does not say
 `isSignupCompleted` goes back to the account-type step, the first after email
@@ -77,8 +77,8 @@ need no chart library.
 
 The compact web sidebar has Dashboard, Register, Employee awards and Documents
 for readable company workspaces, with a separate Your shares link for personal
-records. Other accounts have personal Dashboard; its focused Documents destination is
-added with the personal increment under #1014. Settings is a
+records. Other accounts have personal Dashboard and Documents at `/home#documents`.
+Settings is a
 separate configuration group: company details/classes, team appointments and
 member access, plus personal profile/security and existing account settings.
 Company setup remains reachable there even before a register exists. Optional
@@ -91,8 +91,20 @@ Employee awards, Documents and Company), personal My shares/Profile/Settings,
 and secondary More routes. Shared destination metadata and signup behavior are
 unchanged by the web layout increment.
 
-My shares at `/home` on web and the native Home tab reads the person's
-associated member holdings and awards without a wallet. `/member-records` remains an alias. Wallet shares move
+Personal Dashboard at `/home` on web and My shares in the native Home tab read the person's
+associated member holdings and awards without a wallet. `/member-records` remains an alias.
+The web dashboard uses compact panels for one selected company, with own issued
+shares by class, awards when present, the latest three own changes for the
+selected class, available certificates and visible request status. The first
+own class's history loads when a member record opens; choosing another class
+reads that class's own entries. A person can have both investor holdings and an
+employee award. Award status bars use disjoint unvested, vested but unissued,
+and issued quantities; issued award shares already belong to the holding.
+Inconsistent award quantities withhold the chart. Personal Documents focuses
+own certificates and receiving-entry requests without exposing company totals,
+other shareholders or private company files. Particulars, longer history and
+invitation acceptance stay reachable, with exact-request recovery and retained
+certificate integrity checks unchanged. Wallet shares move
 to `/wallets/holdings`, linked from Wallets. Employee awards and Documents use
 `/company/register#awards` and `#documents`; these switch the visible section
 without unmounting register forms or their original-request recovery. A failed
@@ -159,8 +171,9 @@ change retires a pending document action. The paragraphs below say what is
 specific to each page; the [register runbook](../operations/register-foundation.md)
 holds each register command's rules and API.
 
-**Register** is the company landing page on both clients and a page for every
-signed-in account on the web, at `/company/register`; the API decides which
+**Register** is the company's register workbench on web, the native company
+landing page, and a page for every signed-in account on the web at
+`/company/register`; the API decides which
 registers it shows, and with nothing readable the page says there is no company
 register to show. It reads the share classes the person may read, as the
 company owner or through a current appointment holding administration or a
@@ -174,7 +187,8 @@ Documents holds register CSV, inspection copies and the company pack. Member
 invitations use named company members or award recipients with exact IDs retained
 internally. Invitations, particulars, wallet links, other changes and technical
 history sit in secondary disclosures, which preserve their mounted recovery state.
-Each named award shows promised, vested, issued and available quantities,
+Each named award shows promised, vested, issued and available quantities. On
+web its chart separates unvested, vested but unissued, and issued shares,
 with Record vesting and Issue vested shares in context. Preparing its issue
 returns to the same company and expands the existing non-paid issue decisions;
 Approve and Record issue remain separate. Award, vesting, preparation and issue

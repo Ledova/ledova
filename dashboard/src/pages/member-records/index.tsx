@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import {
   formatDate,
   formatShareCount,
@@ -7,7 +7,7 @@ import {
   getMemberCertificateFile,
   type MemberCertificateRequest,
 } from '@ledova/shared';
-import { Row, Rows, Section } from '@components/Ledger';
+import { LinkRow, Row, Rows, Section } from '@components/Ledger';
 import { Page, PageAction } from '@components/Page';
 import { PageTitle } from '@components/PageTitle';
 import { FIELD_CLASS } from '@components/fieldClass';
@@ -260,14 +260,7 @@ function MemberRecords({
                       (request) => request.status === 'fulfilled' && request.fulfilment,
                     ) && <p className="text-sm text-text-muted">No issued certificates available.</p>}
                   {!read.requests && <p role="status">Loading your documents and requests…</p>}
-                  {!documentsOnly && (
-                    <Link
-                      to="/home#documents"
-                      className="w-fit text-sm font-medium text-brand-mid underline underline-offset-4"
-                    >
-                      View documents and certificate requests
-                    </Link>
-                  )}
+                  {!documentsOnly && <LinkRow to="/home#documents" label="View documents and certificate requests" />}
                 </Section>
                 <Section title={documentsOnly ? 'Certificate requests and share history' : 'Your member record'}>
                   {!documentsOnly && read.entries.length > 0 && (
