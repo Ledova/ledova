@@ -8,8 +8,8 @@ no company appointment, holding, wallet link or investment eligibility.
 
 ## Company and member journey
 
-On web, **Invite and manage member access** in Register, and on mobile the
-Company section, let a current company
+On web, Settings → **Member access** opens **Invite and manage member access**
+in Register; on mobile this sits in the Company section. Both let a current company
 administrator select a named company member or award recipient and supply the
 intended recipient email. The exact member UUID is retained internally. An award-only recipient can be invited before any shares are
 issued. The invitation retains the company's member identity and authority,
@@ -18,9 +18,14 @@ company supplies that code to the recipient; Ledova does not send an email in
 this increment. A retry of the recorded invitation returns its record without
 exposing the original code again.
 
-**My shares** is the personal home on both clients and immediately shows
-associated own holdings and awards. Particulars, requests and history are
-secondary details; optional wallet holdings stay under Wallets. Enter the company-supplied
+**Dashboard** is the web personal home; **My shares** remains the native home.
+Both show associated own holdings and awards. Web uses compact panels for one
+company, with issued shares separate from award entitlements and a status bar
+for unvested, vested but unissued, and issued award quantities. Issued award
+shares already belong to the holding. Available certificates, recent own
+changes and request status are visible; **Documents** focuses own certificates
+and receiving-entry requests. Particulars and longer history stay reachable;
+optional wallet holdings stay under Wallets. Enter the company-supplied
 code and confirm acceptance using the current signed-in account. The verified
 email must match the invitation. Acceptance binds one current account to one
 member in that company. An expired invitation, changed recorded identity,

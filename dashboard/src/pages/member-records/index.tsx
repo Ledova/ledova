@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import {
   formatDate,
   formatShareCount,
@@ -6,10 +7,11 @@ import {
   getMemberCertificateFile,
   type MemberCertificateRequest,
 } from '@ledova/shared';
-import { Row, Rows, Section } from '@components/Ledger';
+import { LinkRow, Row, Rows, Section } from '@components/Ledger';
 import { Page, PageAction } from '@components/Page';
 import { PageTitle } from '@components/PageTitle';
 import { FIELD_CLASS } from '@components/fieldClass';
+import { AwardStatus } from '@components/AwardStatus';
 import apiClient from '@services/apiClient';
 import { saveFile } from '../company/register/useCompanyRegister';
 
@@ -49,8 +51,29 @@ function MemberRecords({
   const [address, setAddress] = useState('');
   const [confirmed, setConfirmed] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [historyToken, setHistoryToken] = useState('');
   const history = useRef<HTMLDetailsElement>(null);
+  const initialHistory = useRef('');
+  const documentsOnly = useLocation().hash === '#documents';
   const held = read.busy || !!read.retry;
+  useEffect(() => {
+    if (read.record && read.record.uuid !== initialHistory.current && !held) {
+      initialHistory.current = read.record.uuid;
+      const item = read.record.classes[0];
+      if (item) {
+        read.selectToken(item.uuid);
+      }
+    }
+  }, [read.record, read.selectToken, held]);
+  const historyClass =
+    read.record?.classes.find((item) => item.uuid === historyToken)?.name ?? read.record?.classes[0]?.name ?? '';
+  const records = read.record ? [read.record] : read.records.length === 1 ? read.records : [];
+  const choose = (uuid: string) => {
+    if (uuid !== read.record?.uuid) select(uuid);
+    setName('');
+    setAddress('');
+    setConfirmed(false);
+  };
   const invitation = (
     <div className="space-y-3 pt-2">
       <p className="text-sm text-text-muted">
@@ -87,9 +110,13 @@ function MemberRecords({
     </div>
   );
   return (
-    <PageTitle.Provider value="Dashboard">
+    <PageTitle.Provider value={documentsOnly ? 'Documents' : 'Dashboard'}>
       <Page
-        lede="Your company-recorded shares and employee awards. No wallet is needed."
+        lede={
+          documentsOnly
+            ? 'Your certificates and company-reviewed requests. No wallet is needed.'
+            : 'Your company-recorded shares and employee awards. No wallet is needed.'
+        }
         actions={
           <PageAction
             label="Refresh member records"
@@ -115,183 +142,249 @@ function MemberRecords({
           <p role="status">Loading member records…</p>
         ) : (
           <>
-            {read.records.map((record) => (
-              <Section key={record.uuid} title={record.company.name}>
-                {record.classes.length === 0 ? (
-                  <p className="text-sm text-text-muted">No issued shares recorded.</p>
-                ) : (
-                  record.classes.map((item) => (
-                    <div key={item.uuid} className="flex flex-wrap items-center justify-between gap-3 py-2">
-                      <div>
-                        <p className="text-base text-text-primary">{item.name}</p>
-                        <p className="text-2xl tabular-nums text-text-primary">
-                          {formatShareCount(item.shares)} issued shares
-                        </p>
-                      </div>
-                      {read.record?.uuid === record.uuid && (
+            {read.records.length > 1 && (
+              <label className="block max-w-md space-y-1 text-sm">
+                Company member record
+                <select
+                  className={FIELD_CLASS}
+                  value={read.record?.uuid ?? ''}
+                  disabled={held}
+                  onChange={(event) => choose(event.target.value)}
+                >
+                  <option value="">Choose a company</option>
+                  {read.records.map((record) => (
+                    <option key={record.uuid} value={record.uuid}>
+                      {record.company.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
+            {records.map((record) => (
+              <div key={record.uuid} className="space-y-4">
+                <h2 className="break-words font-display text-xl text-text-primary">{record.company.name}</h2>
+                {!documentsOnly && (
+                  <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
+                    <Section title="Your issued shares">
+                      {record.classes.length === 0 ? (
+                        <p className="text-sm text-text-muted">No issued shares recorded.</p>
+                      ) : (
+                        <div className="divide-y divide-border-subtle">
+                          {record.classes.map((item) => (
+                            <div key={item.uuid} className="space-y-3 py-3">
+                              <div className="flex flex-wrap items-baseline gap-x-6 gap-y-1">
+                                <p className="min-w-0 break-words font-medium">{item.name}</p>
+                                <p className="min-w-0 break-words text-xl tabular-nums">
+                                  {formatShareCount(item.shares)} issued shares
+                                </p>
+                              </div>
+                              {read.record?.uuid === record.uuid && (
+                                <PageAction
+                                  label={`Read own entries for ${item.name}`}
+                                  disabled={held}
+                                  onClick={() => {
+                                    setHistoryToken(item.uuid);
+                                    read.selectToken(item.uuid);
+                                    if (history.current) history.current.open = true;
+                                  }}
+                                />
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {read.record?.uuid !== record.uuid && (
                         <PageAction
-                          label={`Read own entries for ${item.name}`}
+                          label={`Open ${record.company.name} member record`}
                           disabled={held}
-                          onClick={() => {
-                            read.selectToken(item.uuid);
-                            if (history.current) history.current.open = true;
-                          }}
+                          onClick={() => choose(record.uuid)}
                         />
                       )}
-                    </div>
-                  ))
-                )}
-                {record.awards.length > 0 && (
-                  <div className="space-y-2 border-t border-border-subtle pt-3">
-                    <h3 className="text-base font-medium">Employee awards</h3>
-                    <p className="text-sm text-text-muted">
-                      Promised and recorded vested shares are separate from issued shares.
-                    </p>
-                    {record.awards.map((award) => (
-                      <div key={award.uuid} className="space-y-1 py-2">
-                        <p className="text-sm tabular-nums">
-                          {formatShareCount(award.shares)} awarded · {formatShareCount(award.vestedShares)} vested ·{' '}
-                          {formatShareCount(award.issuedShares)} issued · {formatShareCount(award.availableShares)}{' '}
-                          available
-                        </p>
-                        <details>
-                          <summary className={SUMMARY}>Award terms and recorded vesting</summary>
-                          <div className="space-y-2 text-sm text-text-muted">
-                            <p>
-                              {formatDate(award.termsOn)} · {award.terms}
-                            </p>
-                            <p>{award.schedule}</p>
-                            <p>Dates do not vest an award automatically.</p>
-                            {award.vestings.map((vesting) => (
-                              <p key={vesting.uuid}>
-                                {formatDate(vesting.vestedOn)} · {formatShareCount(vesting.shares)} recorded vested
-                              </p>
-                            ))}
-                          </div>
-                        </details>
-                      </div>
-                    ))}
+                    </Section>
+                    {record.awards.length > 0 && (
+                      <Section title="Employee awards">
+                        <p className="text-sm text-text-muted">Promised shares are an entitlement until issued.</p>
+                        <div className="divide-y divide-border-subtle">
+                          {record.awards.map((award) => (
+                            <div key={award.uuid} className="space-y-3 py-3">
+                              {record.classes.find((item) => item.uuid === award.token) && (
+                                <h3 className="break-words text-sm font-medium">
+                                  {record.classes.find((item) => item.uuid === award.token)!.name}
+                                </h3>
+                              )}
+                              <AwardStatus {...award} />
+                              <details>
+                                <summary className={SUMMARY}>Award terms and recorded vesting</summary>
+                                <div className="space-y-2 text-sm text-text-muted">
+                                  <p>
+                                    {formatDate(award.termsOn)} · {award.terms}
+                                  </p>
+                                  <p className="break-words">{award.schedule}</p>
+                                  <p>Dates do not vest an award automatically.</p>
+                                  {award.vestings.map((vesting) => (
+                                    <p key={vesting.uuid}>
+                                      {formatDate(vesting.vestedOn)} · {formatShareCount(vesting.shares)} recorded
+                                      vested
+                                    </p>
+                                  ))}
+                                </div>
+                              </details>
+                            </div>
+                          ))}
+                        </div>
+                      </Section>
+                    )}
                   </div>
                 )}
-                <PageAction
-                  label={`Open ${record.company.name} member record`}
-                  active={read.record?.uuid === record.uuid}
-                  disabled={held}
-                  onClick={() => {
-                    select(record.uuid);
-                    setName('');
-                    setAddress('');
-                    setConfirmed(false);
-                  }}
-                />
-              </Section>
+              </div>
             ))}
             {read.record && (
-              <Section title="Documents and member details">
-                {read.requests?.certificates.some(
-                  (request) => request.status === 'fulfilled' && request.fulfilment,
-                ) && (
-                  <div className="space-y-3">
-                    <p className="text-sm text-text-muted">
-                      Your unsigned certificates. The company remains responsible for execution.
-                    </p>
-                    {read.requests.certificates
-                      .filter((request) => request.status === 'fulfilled' && request.fulfilment)
-                      .map((request) => (
-                        <div key={request.uuid} className="space-y-1">
-                          <p className="text-sm">Certificate requested {formatDate(request.createdAt)}</p>
-                          <MemberCertificateDownload read={read} request={request} />
-                        </div>
-                      ))}
-                  </div>
-                )}
-                <details>
-                  <summary className={SUMMARY}>Company-recorded particulars</summary>
-                  <p className="text-sm text-text-muted">
-                    Provided by the company, not verified by Ledova. Profile edits do not change this register.
-                  </p>
-                  <Rows>
-                    <Row label="Member">{read.record.name}</Row>
-                    <Row label="Residential address">{read.record.residentialAddress}</Row>
-                  </Rows>
-                  {read.record.classes.map((item) => (
-                    <p key={item.uuid} className="py-2 text-sm text-text-muted">
-                      {item.name} · Entered {item.enteredOn ?? 'not recorded'}
-                      {item.ceasedOn ? ` · Ceased ${item.ceasedOn}` : ''} · Amount paid{' '}
-                      {item.amountPaid ?? 'not recorded'}
-                    </p>
-                  ))}
-                </details>
-                <details ref={history}>
-                  <summary className={SUMMARY}>Your share history and certificate requests</summary>
-                  <p className="text-sm text-text-muted">
-                    Read the own entries for a share class above to request a certificate for a receiving entry.
-                  </p>
-                  {read.entries.map((entry) => (
-                    <div key={entry.uuid} className="space-y-2 py-3">
-                      <p className="text-sm">
-                        Entry {entry.sequence} · {entry.kind} · {formatDate(entry.effectiveOn)} · Own change{' '}
-                        {entry.delta}
+              <div className="grid items-start gap-4 xl:grid-cols-2">
+                <Section title="Documents">
+                  {read.requests?.certificates.some(
+                    (request) => request.status === 'fulfilled' && request.fulfilment,
+                  ) && (
+                    <div className="space-y-3">
+                      <p className="text-sm text-text-muted">
+                        Your unsigned certificates. The company remains responsible for execution.
                       </p>
-                      {['ISSUE', 'TRANSFER'].includes(entry.kind.toUpperCase()) && BigInt(entry.delta) > 0n && (
-                        <PageAction
-                          label={`Request certificate for entry ${entry.sequence}`}
-                          disabled={held}
-                          onClick={() => void read.requestCertificate(entry.uuid)}
-                        />
-                      )}
+                      {read.requests.certificates
+                        .filter((request) => request.status === 'fulfilled' && request.fulfilment)
+                        .map((request) => (
+                          <div key={request.uuid} className="space-y-1">
+                            <p className="text-sm">Certificate requested {formatDate(request.createdAt)}</p>
+                            <MemberCertificateDownload read={read} request={request} />
+                          </div>
+                        ))}
                     </div>
-                  ))}
-                </details>
-                <details>
-                  <summary className={SUMMARY}>Request a particulars update</summary>
-                  <div className="space-y-3 pt-2">
+                  )}
+                  {read.requests &&
+                    !read.requests.certificates.some(
+                      (request) => request.status === 'fulfilled' && request.fulfilment,
+                    ) && <p className="text-sm text-text-muted">No issued certificates available.</p>}
+                  {!read.requests && <p role="status">Loading your documents and requests…</p>}
+                  {!documentsOnly && <LinkRow to="/home#documents" label="View documents and certificate requests" />}
+                </Section>
+                <Section title={documentsOnly ? 'Certificate requests and share history' : 'Your member record'}>
+                  {!documentsOnly && read.entries.length > 0 && (
+                    <div className="space-y-2 border-b border-border-subtle pb-3 text-sm">
+                      <h3 className="font-medium">Recent changes · {historyClass}</h3>
+                      {[...read.entries]
+                        .sort((left, right) => right.sequence - left.sequence)
+                        .slice(0, 3)
+                        .map((entry) => (
+                          <p key={entry.uuid} className="text-text-muted">
+                            {formatDate(entry.effectiveOn)} · {entry.kind} · Own change {entry.delta}
+                          </p>
+                        ))}
+                    </div>
+                  )}
+                  {!documentsOnly && (
+                    <details>
+                      <summary className={SUMMARY}>Company-recorded particulars</summary>
+                      <p className="text-sm text-text-muted">
+                        Provided by the company, not verified by Ledova. Profile edits do not change this register.
+                      </p>
+                      <Rows>
+                        <Row label="Member">{read.record.name}</Row>
+                        <Row label="Residential address">{read.record.residentialAddress}</Row>
+                      </Rows>
+                      {read.record.classes.map((item) => (
+                        <p key={item.uuid} className="py-2 text-sm text-text-muted">
+                          {item.name} · Entered {item.enteredOn ?? 'not recorded'}
+                          {item.ceasedOn ? ` · Ceased ${item.ceasedOn}` : ''} · Amount paid{' '}
+                          {item.amountPaid ?? 'not recorded'}
+                        </p>
+                      ))}
+                    </details>
+                  )}
+                  <details ref={history} open={documentsOnly}>
+                    <summary className={SUMMARY}>Your share history and certificate requests</summary>
                     <p className="text-sm text-text-muted">
-                      The company reviews your request. Sending it changes no holding or register particulars.
+                      Choose a share class to request a certificate for a receiving entry.
                     </p>
-                    <label className="block space-y-1 text-sm">
-                      Requested name
-                      <input
-                        className={FIELD_CLASS}
-                        value={name}
-                        disabled={held}
-                        onChange={(event) => {
-                          setName(event.target.value);
-                          setConfirmed(false);
-                        }}
-                      />
-                    </label>
-                    <label className="block space-y-1 text-sm">
-                      Requested residential address
-                      <textarea
-                        className={FIELD_CLASS}
-                        value={address}
-                        disabled={held}
-                        onChange={(event) => {
-                          setAddress(event.target.value);
-                          setConfirmed(false);
-                        }}
-                      />
-                    </label>
-                    <label className="flex items-center gap-2 text-sm">
-                      <input
-                        type="checkbox"
-                        checked={confirmed}
-                        disabled={held}
-                        onChange={(event) => setConfirmed(event.target.checked)}
-                      />
-                      Share these requested particulars with this company for review.
-                    </label>
-                    <PageAction
-                      label="Send particulars request"
-                      disabled={held || !confirmed || !name.trim() || !address.trim()}
-                      onClick={() => void read.requestParticulars(name.trim(), address.trim())}
-                    />
-                  </div>
-                </details>
+                    {documentsOnly && (
+                      <div className="flex flex-wrap gap-2 py-3">
+                        {read.record.classes.map((item) => (
+                          <PageAction
+                            key={item.uuid}
+                            label={`Read own entries for ${item.name}`}
+                            disabled={held}
+                            onClick={() => {
+                              setHistoryToken(item.uuid);
+                              read.selectToken(item.uuid);
+                            }}
+                          />
+                        ))}
+                      </div>
+                    )}
+                    {read.entries.map((entry) => (
+                      <div key={entry.uuid} className="space-y-2 py-3">
+                        <p className="text-sm">
+                          Entry {entry.sequence} · {entry.kind} · {formatDate(entry.effectiveOn)} · Own change{' '}
+                          {entry.delta}
+                        </p>
+                        {['ISSUE', 'TRANSFER'].includes(entry.kind.toUpperCase()) && BigInt(entry.delta) > 0n && (
+                          <PageAction
+                            label={`Request certificate for entry ${entry.sequence}`}
+                            disabled={held}
+                            onClick={() => void read.requestCertificate(entry.uuid)}
+                          />
+                        )}
+                      </div>
+                    ))}
+                  </details>
+                  {!documentsOnly && (
+                    <details>
+                      <summary className={SUMMARY}>Request a particulars update</summary>
+                      <div className="space-y-3 pt-2">
+                        <p className="text-sm text-text-muted">
+                          The company reviews your request. Sending it changes no holding or register particulars.
+                        </p>
+                        <label className="block space-y-1 text-sm">
+                          Requested name
+                          <input
+                            className={FIELD_CLASS}
+                            value={name}
+                            disabled={held}
+                            onChange={(event) => {
+                              setName(event.target.value);
+                              setConfirmed(false);
+                            }}
+                          />
+                        </label>
+                        <label className="block space-y-1 text-sm">
+                          Requested residential address
+                          <textarea
+                            className={FIELD_CLASS}
+                            value={address}
+                            disabled={held}
+                            onChange={(event) => {
+                              setAddress(event.target.value);
+                              setConfirmed(false);
+                            }}
+                          />
+                        </label>
+                        <label className="flex items-center gap-2 text-sm">
+                          <input
+                            type="checkbox"
+                            checked={confirmed}
+                            disabled={held}
+                            onChange={(event) => setConfirmed(event.target.checked)}
+                          />
+                          Share these requested particulars with this company for review.
+                        </label>
+                        <PageAction
+                          label="Send particulars request"
+                          disabled={held || !confirmed || !name.trim() || !address.trim()}
+                          onClick={() => void read.requestParticulars(name.trim(), address.trim())}
+                        />
+                      </div>
+                    </details>
+                  )}
+                </Section>
                 {read.requests && (read.requests.particulars.length > 0 || read.requests.certificates.length > 0) && (
-                  <details>
-                    <summary className={SUMMARY}>Your request status</summary>
+                  <Section title="Your request status">
                     <div className="space-y-3 pt-2 text-sm">
                       {read.requests.particulars.map((request) => (
                         <div key={request.uuid}>
@@ -327,9 +420,9 @@ function MemberRecords({
                         </div>
                       ))}
                     </div>
-                  </details>
+                  </Section>
                 )}
-              </Section>
+              </div>
             )}
             {!read.error && read.records.length === 0 ? (
               <Section title="Get access to your shares">

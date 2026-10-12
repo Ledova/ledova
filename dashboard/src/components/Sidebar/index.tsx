@@ -47,7 +47,10 @@ const COMPANY: NavItem[] = [
   { destination: 'companyRegister', hash: 'documents', label: 'Documents', icon: FilesIcon },
 ];
 
-const PERSONAL: NavItem[] = [{ destination: 'home', label: 'Dashboard', icon: HouseIcon }];
+const PERSONAL: NavItem[] = [
+  { destination: 'home', label: 'Dashboard', icon: HouseIcon },
+  { destination: 'home', hash: 'documents', label: 'Documents', icon: FilesIcon },
+];
 
 const HISTORY: NavItem[] = [
   { destination: 'publications', icon: NewspaperIcon },

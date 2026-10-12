@@ -12,6 +12,7 @@ import {
 } from '@ledova/shared';
 import { LinkRow, Row, Rows } from '@components/Ledger';
 import { PageAction } from '@components/Page';
+import { AwardStatus } from '@components/AwardStatus';
 import apiClient from '@services/apiClient';
 import { retainedName, shareCount } from '../proposals';
 import { saveFile } from '../useCompanyRegister';
@@ -91,12 +92,7 @@ export function AwardRecord({
       {visible && (
         <>
           <h4 className="text-base font-medium text-text-primary">{award.name}</h4>
-          <Rows>
-            <Row label={COPY.PROMISED}>{shareCount(award.shares)}</Row>
-            <Row label={COPY.VESTED}>{shareCount(award.vestedShares)}</Row>
-            <Row label={COPY.ISSUED}>{shareCount(award.issuedShares)}</Row>
-            <Row label="Available to issue">{shareCount(award.availableShares)}</Row>
-          </Rows>
+          <AwardStatus {...award} />
           <div className="flex flex-wrap gap-2">
             {((appointment && BigInt(award.vestedShares) < BigInt(award.shares)) || (editing && formAppointment)) && (
               <PageAction
