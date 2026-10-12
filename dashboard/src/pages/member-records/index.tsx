@@ -87,7 +87,7 @@ function MemberRecords({
     </div>
   );
   return (
-    <PageTitle.Provider value="My shares">
+    <PageTitle.Provider value="Dashboard">
       <Page
         lede="Your company-recorded shares and employee awards. No wallet is needed."
         actions={

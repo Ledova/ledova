@@ -60,14 +60,29 @@ account whose profile cannot be read sees an error with a way to try again, not
 a guess. A signed-in person who cannot open the page goes to `landingFor(role)`,
 which replaces the refused address. Every page shows the session check until
 the profile is known, and an investing or company page until the role is known
-as well, so no page appears on the way. Once the role is known, the sidebar
-offers only pages the role can open. On both clients, readable register access
-supplies four company destinations: Register, Employee awards, Documents and Company.
-The account audience alone does not establish this workspace. Every account has
-My shares, Profile and Settings. More holds Notices, Activity, Wallets, permitted
-investing routes and Offerings; a person without register access reaches company
-setup through Company there. The native drawer follows the same structure;
-Company also links to the existing company information and team screens.
+as well, so no page appears on the way. The web front door and successful sign-in check confirmed readable register
+access before choosing a dashboard; a failed check offers retry instead of
+assuming a personal account. Account preference alone does not select a company
+workspace. The web-only `/company/dashboard` route uses the existing scoped
+register API and the ordinary completed-signup guard. In the first increment it
+lists readable companies and links to their register, awards and documents;
+company ownership totals/charts are the next increment under #1013.
+
+The compact web sidebar has Dashboard, Register, Employee awards and Documents
+for readable company workspaces, with a separate Your shares link for personal
+records. Other accounts have personal Dashboard; its focused Documents destination is
+added with the personal increment under #1014. Settings is a
+separate configuration group: company details/classes, team appointments and
+member access, plus personal profile/security and existing account settings.
+Company setup remains reachable there even before a register exists. Optional
+Notices, Activity, Wallets, investing routes and Offerings stay under More.
+The page content starts beside the 208-pixel sidebar in a bounded aligned grid,
+without the former centred gutter. The phone drawer uses the same width.
+
+Native navigation remains the delivered four company destinations (Register,
+Employee awards, Documents and Company), personal My shares/Profile/Settings,
+and secondary More routes. Shared destination metadata and signup behavior are
+unchanged by the web layout increment.
 
 My shares at `/home` on web and the native Home tab reads the person's
 associated member holdings and awards without a wallet. `/member-records` remains an alias. Wallet shares move
@@ -75,18 +90,19 @@ to `/wallets/holdings`, linked from Wallets. Employee awards and Documents use
 `/company/register#awards` and `#documents`; these switch the visible section
 without unmounting register forms or their original-request recovery. A failed
 source read still withholds stale records and actions. Page-specific titles
-reflect these views on both clients. Native register section parameters switch
+reflect these views on both clients. Web member access uses
+`/company/register#access`, reached from Settings or the register shortcut; it
+keeps existing register submissions mounted and their recovery scope retained. Native register section parameters switch
 the visible section while keeping the existing register subtree mounted.
 Wallet shares remain available from Wallets.
 Activity keeps `/transactions`, and Notices keeps `/publications`.
 
-`landingFor(role)` decides where a signed-in person lands: an investing account
-on `/home` (My shares), and a company or dual-role account on Register. Native
-company accounts with readable register access start on Register; those without
-access start on My shares and reach setup from More. The front door, sign-in, the end of sign-up, the signed-out pages and the trading fallback all
-use it; the front door and the signed-out pages wait for the role before
-choosing, and the trading fallback runs behind the guard, which has already
-waited for it. The eight steps after the create-account form are listed once,
+`landingFor(role)` retains the shared/native and signup destinations: an
+investing account on `/home`, and a company or dual-role account on Register.
+The web front door and sign-in use the confirmed-access dashboard choice above;
+shared signup, refused-route and trading fallback behavior remains unchanged.
+Native company accounts with readable register access start on Register; those
+without access start on My shares and reach setup from More. The eight steps after the create-account form are listed once,
 in `SIGNUP_STEPS` (`dashboard/src/routes/signupRoutes.tsx`), and `signupRoutes`
 places every one inside `SignupRoute`: an account that has finished sign-up
 goes to `landingFor(role)` instead of reopening one, while an account still

@@ -27,20 +27,29 @@ async function serveASignedInAccount(page: Page, role: Role) {
     if (path === '/api/v1/companies/') {
       return answer({ ...EMPTY, count: 1, results: [{ uuid: 'company', name: LONG_NAME }] });
     }
+    if (path === '/api/v1/tokens/register/' && role !== 'company')
+      return answer({
+        ...EMPTY,
+        count: 1,
+        results: [{ uuid: 'ordinary', companyUuid: 'company', companyName: LONG_NAME }],
+      });
     return answer(EMPTY);
   });
 }
 
 async function openTheSidebar(page: Page, role: Role) {
   await serveASignedInAccount(page, role);
-  await page.goto('/home');
-  await expect(page.getByRole('heading', { level: 1, name: 'My shares' })).toBeVisible();
+  await page.goto('/');
+  await expect(page).toHaveURL(new RegExp(role === 'company' ? '/home$' : '/company/dashboard$'));
+  await expect(page.getByRole('heading', { level: 1, name: 'Dashboard' })).toBeVisible();
   if (page.viewportSize()!.width < 1024) await page.getByRole('button', { name: 'Open navigation' }).click();
   const aside = page.locator('aside').filter({ visible: true });
   await expect(aside).toHaveCount(1);
   await expect(aside.getByRole('button', { name: 'Sign out' })).toBeInViewport();
   await aside.locator('summary').filter({ hasText: 'More' }).click();
-  await expect(aside.getByRole('button', { name: 'Company', exact: true })).toBeVisible();
+  await expect(aside.getByRole('button', { name: 'Settings', exact: true })).toBeVisible();
+  await expect(aside.getByRole('button', { name: 'Dashboard', exact: true })).toBeVisible();
+  await expect(aside.getByRole('button', { name: 'Register', exact: true })).toHaveCount(role === 'company' ? 0 : 1);
   await expect(aside.getByText(LONG_NAME)).toHaveCount(0);
   if (role !== 'company') await expect(aside.getByText('Invest', { exact: true })).toBeVisible();
   return aside;

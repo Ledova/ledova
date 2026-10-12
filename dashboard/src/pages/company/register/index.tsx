@@ -46,7 +46,14 @@ function RegisterPage({
   children: ReactNode;
 }) {
   const { hash } = useLocation();
-  const title = hash === '#awards' ? 'Employee awards' : hash === '#documents' ? 'Documents' : 'Register';
+  const title =
+    hash === '#awards'
+      ? 'Employee awards'
+      : hash === '#documents'
+        ? 'Documents'
+        : hash === '#access'
+          ? 'Member access'
+          : 'Register';
   return (
     <PageTitle.Provider value={title}>
       <Page
@@ -55,7 +62,9 @@ function RegisterPage({
             ? 'Record employee entitlements and vesting. Shares are issued through a separate company decision.'
             : hash === '#documents'
               ? 'Prepare permitted register copies, certificates and company packs.'
-              : 'Company-recorded ownership and share issue decisions.'
+              : hash === '#access'
+                ? 'Invite named members and manage their access to company records.'
+                : 'Company-recorded ownership and share issue decisions.'
         }
       >
         {selection}
@@ -183,15 +192,16 @@ function OwnRegister({
   const { hash } = location;
   const issueToken = typeof location.state?.awardIssueToken === 'string' ? location.state.awardIssueToken : '';
   const issueCompany = typeof location.state?.awardIssueCompany === 'string' ? location.state.awardIssueCompany : '';
+  const registerCompany =
+    typeof location.state?.registerCompany === 'string' ? location.state.registerCompany : issueCompany;
   const enteredIssue = useRef('');
   useEffect(() => {
     if (enteredIssue.current === location.key || !classes.isSuccess || classes.isFetching || held) return;
     if (
-      issueToken &&
-      issueCompany &&
-      classes.data.some((item) => item.uuid === issueToken && item.companyUuid === issueCompany)
+      registerCompany &&
+      classes.data.some((item) => item.companyUuid === registerCompany && (!issueToken || item.uuid === issueToken))
     )
-      selectCompany(issueCompany);
+      selectCompany(registerCompany);
     enteredIssue.current = location.key;
   }, [
     enteredIssue,
@@ -201,10 +211,11 @@ function OwnRegister({
     classes.data,
     held,
     issueToken,
-    issueCompany,
+    registerCompany,
     selectCompany,
   ]);
-  const view = hash === '#awards' ? 'awards' : hash === '#documents' ? 'documents' : 'register';
+  const view =
+    hash === '#awards' ? 'awards' : hash === '#documents' ? 'documents' : hash === '#access' ? 'access' : 'register';
 
   return (
     <RegisterPage
@@ -228,9 +239,8 @@ function OwnRegister({
       sections={
         scope && (
           <>
-            <div hidden={view !== 'register'}>
-              <details className="space-y-3 border-t border-border pt-4">
-                <summary className="cursor-pointer text-base font-medium">Invite and manage member access</summary>
+            <div hidden={view !== 'access'}>
+              <Section title="Invite and manage member access">
                 <CompanyMemberAccess
                   key={`members/${scope.company.uuid}`}
                   owner={owner}
@@ -240,7 +250,10 @@ function OwnRegister({
                   sourceReady={sourceReady}
                   onHeldChange={setMemberHeld}
                 />
-              </details>
+              </Section>
+            </div>
+            <div hidden={view !== 'register'}>
+              <LinkRow to="#access" label="Member access" />
               {readable && (
                 <details className="space-y-3 border-t border-border pt-4">
                   <summary className="cursor-pointer text-base font-medium">Particulars and wallet links</summary>
@@ -292,7 +305,7 @@ function OwnRegister({
         <Loading />
       ) : null}
       {scope && (
-        <ul className="space-y-6">
+        <ul hidden={view === 'access'} className="space-y-6">
           {scope.registers.map((register) => (
             <li key={register.token.uuid}>
               <Section title={readable ? `${register.token.name} · ${register.token.symbol}` : 'Share issue recovery'}>

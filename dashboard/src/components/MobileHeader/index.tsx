@@ -43,7 +43,7 @@ export function MobileHeader() {
       />
 
       <div
-        className={`fixed inset-y-0 left-0 z-50 w-60 transform transition-transform duration-300 ease-out ${
+        className={`fixed inset-y-0 left-0 z-50 w-52 transform transition-transform duration-300 ease-out ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >

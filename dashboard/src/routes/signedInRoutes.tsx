@@ -11,7 +11,7 @@ export function signedInRoutes(pages: Record<DestinationKey, ReactElement>) {
       key={key}
       path={DESTINATIONS[key].path}
       element={
-        <PageTitle.Provider value={DESTINATIONS[key].title}>
+        <PageTitle.Provider value={key === 'home' ? 'Dashboard' : DESTINATIONS[key].title}>
           <ProtectedRoute audience={DESTINATIONS[key].audience}>{pages[key]}</ProtectedRoute>
         </PageTitle.Provider>
       }

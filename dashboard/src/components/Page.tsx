@@ -1,5 +1,6 @@
 import { useContext, useId, type ReactNode } from 'react';
 import { PageTitle } from './PageTitle';
+import { InSignedInFrame } from './InSignedInFrame';
 
 interface PageProps {
   actions?: ReactNode;
@@ -10,10 +11,13 @@ interface PageProps {
 
 export function Page({ actions, lede, loading = false, children }: PageProps) {
   const title = useContext(PageTitle);
+  const inFrame = useContext(InSignedInFrame);
   const ledeId = useId();
 
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 px-4 pb-16 sm:gap-5 sm:px-6 md:gap-6 lg:px-8">
+    <div
+      className={`${inFrame ? 'ml-0 max-w-7xl' : 'mx-auto max-w-6xl'} flex w-full flex-col gap-4 px-4 pb-16 sm:gap-5 sm:px-6 md:gap-6 lg:px-8`}
+    >
       <header>
         <div className="flex min-h-16 flex-wrap items-center justify-between gap-x-4 gap-y-2 py-2">
           <h1

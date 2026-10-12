@@ -145,19 +145,26 @@ export function SettingsPage() {
 
   return (
     <Page>
+      <Section title="Company settings">
+        <div className="divide-y divide-border-subtle">
+          <LinkRow to={DESTINATIONS.company.path} label="Company details and share classes">
+            <p className="text-text-muted">Company setup and the classes you can administer.</p>
+          </LinkRow>
+          <LinkRow to={DESTINATIONS.companyTeam.path} label="Team and appointments">
+            <p className="text-text-muted">Accept a company invitation and manage permitted appointments.</p>
+          </LinkRow>
+          {registerEntry && (
+            <LinkRow to={`${DESTINATIONS.companyRegister.path}#access`} label="Member access">
+              <p className="text-text-muted">Invite named members and manage their access where authorised.</p>
+            </LinkRow>
+          )}
+        </div>
+      </Section>
       <Section title="Profile and security">
         <div className="divide-y divide-border-subtle">
           <LinkRow to={DESTINATIONS.userProfile.path} label={DESTINATIONS.userProfile.title}>
             <p className="text-text-muted">View your personal information and identity check.</p>
           </LinkRow>
-          <LinkRow to={DESTINATIONS.companyTeam.path} label={DESTINATIONS.companyTeam.title}>
-            <p className="text-text-muted">Accept a company invitation and read or manage your appointments.</p>
-          </LinkRow>
-          {registerEntry && (
-            <LinkRow to={DESTINATIONS.companyRegister.path} label={DESTINATIONS.companyRegister.title}>
-              <p className="text-text-muted">Read the company registers you have access to.</p>
-            </LinkRow>
-          )}
           <ActionRow
             description="Choose a new password for your account."
             label="Change password"

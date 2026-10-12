@@ -65,15 +65,24 @@ export function useCompanyRegister(
   return { classes, companies, company, selectCompany: setSelected, registers };
 }
 
-export function useRegisterEntry() {
-  const { owner } = useSubmissionOwner();
-  const access = useQuery({
+export function useRegisterEntryAccess(enabled = true) {
+  const { owner, boundary } = useSubmissionOwner();
+  return useQuery({
     queryKey: [...registerKey(owner), 'access'],
-    enabled: !!owner,
-    queryFn: async () => (await getRegisterClasses(apiClient, { page: 1 })).data.results.length > 0,
+    enabled: !!owner && enabled,
+    queryFn: async () => {
+      if (!owner || boundary.get() !== owner) throw new Error('Your signed-in account changed.');
+      const response = await getRegisterClasses(apiClient, { page: 1 });
+      if (boundary.get() !== owner) throw new Error('Your signed-in account changed.');
+      return response.data.results.length > 0;
+    },
     ...READ_TIMING,
   });
-  return access.isSuccess && access.data;
+}
+
+export function useRegisterEntry() {
+  const access = useRegisterEntryAccess();
+  return access.isSuccess && !access.isFetching && access.data;
 }
 
 export function saveFile(data: Blob, name: string) {
