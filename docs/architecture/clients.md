@@ -70,9 +70,10 @@ The selected class has a compact shareholder table with quantity bars and
 percentages of that class's issued shares. Multiple classes have an issued-count
 chart; class rights may differ. Unopened classes make company totals incomplete,
 and failed or inconsistent reads withhold totals and charts. Recent changes are
-the selected class's recorded entries, and task links retain its company/class
-context. Personal member views use their own projection, without company totals
-or other shareholders. New charts need no chart library.
+the selected class's recorded entries. Task links focus that class in its company
+register, and history links open its recorded history. Personal member views use
+their own projection, without company totals or other shareholders. New charts
+need no chart library.
 
 The compact web sidebar has Dashboard, Register, Employee awards and Documents
 for readable company workspaces, with a separate Your shares link for personal

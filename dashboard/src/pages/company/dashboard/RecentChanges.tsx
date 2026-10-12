@@ -53,7 +53,7 @@ export function RecentChanges({
       )}
       <Link
         to={DESTINATIONS.companyRegister.path}
-        state={{ registerCompany: company, registerToken: token }}
+        state={{ registerCompany: company, registerToken: token, registerHistory: true }}
         className="mt-2 w-fit text-sm font-medium text-brand-mid hover:underline"
       >
         View register history
