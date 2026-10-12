@@ -178,6 +178,9 @@ it('puts own register shares and awards first without wallet reads, preserves se
   expect(screen.queryByRole('heading', { name: 'Shares in your wallets' })).toBeNull();
   const invitation = screen.getByText('Accept another member invitation').closest('details');
   expect(invitation?.open).toBe(false);
+  await screen.findByText('Recent changes · Ordinary');
+  fireEvent.click(screen.getByRole('button', { name: `Open ${MEMBER_RECORD.company.name} member record` }));
+  expect(screen.getByText('Recent changes · Ordinary')).toBeTruthy();
   record = {
     ...MEMBER_RECORD,
     classes: [{ ...MEMBER_RECORD.classes[0], shares: '15' }],
@@ -188,9 +191,10 @@ it('puts own register shares and awards first without wallet reads, preserves se
   expect(screen.getByRole('img', { name: /0 unvested, 0 vested, awaiting issue, 5 issued from award/ })).toBeTruthy();
   expect(screen.queryByText('20 issued shares')).toBeNull();
   record = { ...MEMBER_RECORD, classes: [] };
-  fireEvent.click(screen.getByRole('button', { name: `Open ${MEMBER_RECORD.company.name} member record` }));
   fireEvent.click(screen.getByRole('button', { name: 'Refresh member records' }));
   expect(await screen.findByText('No issued shares recorded.')).toBeTruthy();
+  fireEvent.click(screen.getByRole('button', { name: `Open ${MEMBER_RECORD.company.name} member record` }));
+  await waitFor(() => expect(screen.queryByRole('alert')).toBeNull());
   expect(screen.getByRole('img', { name: /3 unvested, 2 vested, awaiting issue, 0 issued from award/ })).toBeTruthy();
   record = {
     ...record,

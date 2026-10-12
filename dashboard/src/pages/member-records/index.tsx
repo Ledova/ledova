@@ -69,7 +69,7 @@ function MemberRecords({
     read.record?.classes.find((item) => item.uuid === historyToken)?.name ?? read.record?.classes[0]?.name ?? '';
   const records = read.record ? [read.record] : read.records.length === 1 ? read.records : [];
   const choose = (uuid: string) => {
-    select(uuid);
+    if (uuid !== read.record?.uuid) select(uuid);
     setName('');
     setAddress('');
     setConfirmed(false);
