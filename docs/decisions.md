@@ -10,35 +10,36 @@ the architecture guides own the mechanisms. Sections are grouped by topic; the
 index gives each decision's date and whether it still stands. Superseded choices
 stay here as history and are marked where they appear.
 
-| Decision | Date | Status |
-| --- | --- | --- |
-| [Company-managed registers and one product](#company-managed-registers-and-one-product) | 3 October 2026 | Current; replaces routine register work by platform staff |
-| [Company-run register authority and evidence](#company-run-register-authority-and-evidence) | 5 October 2026 | Current |
-| [Company representative verification](#company-representative-verification) | 4 October 2026 | Current |
-| [Eligibility and ownership records](#eligibility-and-ownership-records) | September to 6 October 2026 | Current |
-| [The stored register](#the-stored-register) | September 2026; staff review retired 5 October | Current |
-| [Company-scoped approvals](#company-scoped-approvals) | 19 September 2026 | Current |
-| [Shareholder publications](#shareholder-publications) | 23 September 2026 | Current; expansion deferred (#870) |
-| [Splits and consolidations](#splits-and-consolidations) | 23 September 2026 | Design only; deferred |
-| [The company pack](#the-company-pack) | 23 September 2026 | Current |
-| [Essential registry and development workflow priority](#essential-registry-and-development-workflow-priority) | 9 October 2026 | Register priority current; workflow part superseded 11 October |
-| [First scopes for employee awards and external capital](#first-scopes-for-employee-awards-and-external-capital) | 10 October 2026 | Delivered 11 October (#973, #974) |
-| [Member invitations and account association](#member-invitations-and-account-association) | 11 October 2026 | Current; #866 implements it |
-| [Minimum tests and fresh migrations](#minimum-tests-and-fresh-migrations) | 11 October 2026 | Current |
-| [Dependency advisories in ordinary CI](#dependency-advisories-in-ordinary-ci) | 11 October 2026 | Current |
-| [GitHub runners and Mac retirement](#github-runners-and-mac-retirement) | 11 October 2026 | Current |
-| [Binding caps and backup authorisation](#binding-caps-and-backup-authorisation) | 11 October 2026 | Current |
-| [ledova.io rebuild and release authorisation](#ledovaio-rebuild-and-release-authorisation) | 11 October 2026 | Completed under #979; signer and funds decisions remain separate |
-| [Backend migration baseline](#backend-migration-baseline) | 10 October 2026 | Superseded 11 October |
-| [Registry priority, crypto on-ramp and AUD payments](#registry-priority-crypto-on-ramp-and-aud-payments) | 5 October 2026 | Payment scope superseded 9 October; on-ramp restriction stands |
-| [Payments and settlement](#payments-and-settlement) | 25 September to 2 October 2026 | Current behaviour; new mechanics deferred |
-| [Assets and portfolio presentation](#assets-and-portfolio-presentation) | 26 September 2026 | Current |
-| [The signed-in app](#the-signed-in-app) | 26 September to 2 October 2026 | Navigation superseded by 11 October journey direction |
-| [Simpler signed-in journeys](#simpler-signed-in-journeys) | 11 October 2026 | Current; incremental work under #1000 |
-| [The account-data export](#the-account-data-export) | 23 September 2026 | Current |
-| [Tenancy, sessions and deployment](#tenancy-sessions-and-deployment) | 3 October 2026 | Current |
-| [Contracts compiler and toolchain](#contracts-compiler-and-toolchain) | Undated | Current |
-| [Clients and API types](#clients-and-api-types) | 14 September 2026 | Current |
+| Decision                                                                                                        | Date                                           | Status                                                             |
+| --------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- | ------------------------------------------------------------------ |
+| [Company-managed registers and one product](#company-managed-registers-and-one-product)                         | 3 October 2026                                 | Current; replaces routine register work by platform staff          |
+| [Company-run register authority and evidence](#company-run-register-authority-and-evidence)                     | 5 October 2026                                 | Current                                                            |
+| [Company representative verification](#company-representative-verification)                                     | 4 October 2026                                 | Current                                                            |
+| [Eligibility and ownership records](#eligibility-and-ownership-records)                                         | September to 6 October 2026                    | Current                                                            |
+| [The stored register](#the-stored-register)                                                                     | September 2026; staff review retired 5 October | Current                                                            |
+| [Company-scoped approvals](#company-scoped-approvals)                                                           | 19 September 2026                              | Current                                                            |
+| [Shareholder publications](#shareholder-publications)                                                           | 23 September 2026                              | Current; expansion deferred (#870)                                 |
+| [Splits and consolidations](#splits-and-consolidations)                                                         | 23 September 2026                              | Design only; deferred                                              |
+| [The company pack](#the-company-pack)                                                                           | 23 September 2026                              | Current                                                            |
+| [Essential registry and development workflow priority](#essential-registry-and-development-workflow-priority)   | 9 October 2026                                 | Register priority current; workflow part superseded 11 October     |
+| [First scopes for employee awards and external capital](#first-scopes-for-employee-awards-and-external-capital) | 10 October 2026                                | Delivered 11 October (#973, #974)                                  |
+| [Member invitations and account association](#member-invitations-and-account-association)                       | 11 October 2026                                | Current; #866 implements it                                        |
+| [Minimum tests and fresh migrations](#minimum-tests-and-fresh-migrations)                                       | 11 October 2026                                | Current                                                            |
+| [Dependency advisories in ordinary CI](#dependency-advisories-in-ordinary-ci)                                   | 11 October 2026                                | Current                                                            |
+| [GitHub runners and Mac retirement](#github-runners-and-mac-retirement)                                         | 11 October 2026                                | Current                                                            |
+| [Binding caps and backup authorisation](#binding-caps-and-backup-authorisation)                                 | 11 October 2026                                | Current                                                            |
+| [ledova.io rebuild and release authorisation](#ledovaio-rebuild-and-release-authorisation)                      | 11 October 2026                                | Completed under #979; signer and funds decisions remain separate   |
+| [Backend migration baseline](#backend-migration-baseline)                                                       | 10 October 2026                                | Superseded 11 October                                              |
+| [Registry priority, crypto on-ramp and AUD payments](#registry-priority-crypto-on-ramp-and-aud-payments)        | 5 October 2026                                 | Payment scope superseded 9 October; on-ramp restriction stands     |
+| [Payments and settlement](#payments-and-settlement)                                                             | 25 September to 2 October 2026                 | Current behaviour; new mechanics deferred                          |
+| [Assets and portfolio presentation](#assets-and-portfolio-presentation)                                         | 26 September 2026                              | Current                                                            |
+| [The signed-in app](#the-signed-in-app)                                                                         | 26 September to 2 October 2026                 | Navigation superseded by 11 October journey direction              |
+| [Simpler signed-in journeys](#simpler-signed-in-journeys)                                                       | 11 October 2026                                | Web layout superseded 12 October; native journey remains delivered |
+| [Ownership dashboard and compact sidebar](#ownership-dashboard-and-compact-sidebar)                             | 12 October 2026                                | Current; increments #1012–#1014                                    |
+| [The account-data export](#the-account-data-export)                                                             | 23 September 2026                              | Current                                                            |
+| [Tenancy, sessions and deployment](#tenancy-sessions-and-deployment)                                            | 3 October 2026                                 | Current                                                            |
+| [Contracts compiler and toolchain](#contracts-compiler-and-toolchain)                                           | Undated                                        | Current                                                            |
+| [Clients and API types](#clients-and-api-types)                                                                 | 14 September 2026                              | Current                                                            |
 
 ## Company-managed registers and one product
 
@@ -933,7 +934,36 @@ generator, payment collection rail or filing integration in this direction.
 Delivered behaviour is described in [clients](architecture/clients.md) and each
 increment guide; later refinements remain planned until their PRs land.
 
+## Ownership dashboard and compact sidebar
+
+On 12 October 2026 the owner accepted the reviewed compact-sidebar proposal,
+including ownership and award charts, with signup unchanged. Deliver the shell,
+web landing and Settings grouping under [#1012](https://github.com/Ledova/ledova/issues/1012),
+then the company ownership dashboard/compact register under
+[#1013](https://github.com/Ledova/ledova/issues/1013), then personal holdings,
+awards and documents under [#1014](https://github.com/Ledova/ledova/issues/1014).
+Prepare independent work in parallel and merge focused reviewed increments in order.
+
+Company users with readable register access land on Dashboard. Everyday work is
+Dashboard, Register, Employee awards and Documents; company details, classes,
+appointments and named-member invitations belong in Settings. Personal views
+show own holdings and relevant awards/documents. Investor and employee relationships
+can overlap; account preference grants no company authority. Existing guarded
+task pages, retained evidence and original-request recovery remain in use.
+
+Use a bounded, aligned content grid and a compact sidebar. Show essential facts
+and next actions directly. Holder bars retain exact shares and percentages of
+issued shares in the selected class. Class-count charts appear only for multiple
+classes. Award bars use disjoint unvested, vested-unissued and issued quantities;
+issued award shares are already in holdings. Incomplete reads never imply zero
+ownership or complete totals. No valuation, forecast, chart dependency, new role
+or company-wide member disclosure is introduced. Broader personal visibility
+needs a separate owner decision. Current delivery is described in
+[clients](architecture/clients.md); signup and native landing remain as delivered.
+
 ## The signed-in app
+
+The web layout below is superseded by the [12 October dashboard decision](#ownership-dashboard-and-compact-sidebar).
 
 The signed-in app is rebuilt around the register; crypto stays supported but is
 no longer the core (owner decisions, 26 September 2026, on

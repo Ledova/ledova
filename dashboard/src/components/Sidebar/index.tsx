@@ -4,9 +4,7 @@ import {
   WalletIcon,
   ArrowsClockwiseIcon,
   LinkIcon,
-  UserIcon,
   GearIcon,
-  BuildingsIcon,
   ShieldCheckIcon,
   MegaphoneIcon,
   NewspaperIcon,
@@ -25,11 +23,12 @@ import { Logo } from '@components/Logo';
 import { NotificationBell } from '@components/NotificationBell';
 import { SignOutButton } from '@components/SignOutButton';
 import { useRegisterEntry } from '@pages/company/register/useCompanyRegister';
+import { COMPANY_DASHBOARD_PATH } from '../../routes/companyDashboard';
 
 type Icon = React.ComponentType<{ size?: number; weight?: 'regular' | 'fill' }>;
 
 interface NavItem {
-  destination: DestinationKey;
+  destination: DestinationKey | 'companyDashboard';
   icon: Icon;
   hash?: string;
   label?: string;
@@ -42,13 +41,16 @@ interface NavGroup {
 }
 
 const COMPANY: NavItem[] = [
+  { destination: 'companyDashboard', icon: HouseIcon },
   { destination: 'companyRegister', icon: BookOpenIcon },
   { destination: 'companyRegister', hash: 'awards', label: 'Employee awards', icon: UsersIcon },
   { destination: 'companyRegister', hash: 'documents', label: 'Documents', icon: FilesIcon },
-  { destination: 'company', icon: BuildingsIcon },
 ];
 
-const YOUR_SHARES: NavItem[] = [{ destination: 'home', label: 'My shares', icon: HouseIcon }];
+const PERSONAL: NavItem[] = [
+  { destination: 'home', label: 'Dashboard', icon: HouseIcon },
+  { destination: 'home', hash: 'documents', label: 'Documents', icon: FilesIcon },
+];
 
 const HISTORY: NavItem[] = [
   { destination: 'publications', icon: NewspaperIcon },
@@ -64,16 +66,14 @@ const INVEST: NavItem[] = [
   { destination: 'investorEligibility', icon: ShieldCheckIcon },
 ];
 
-const YOURS: NavItem[] = [
-  { destination: 'userProfile', icon: UserIcon },
-  { destination: 'settings', icon: GearIcon },
-];
+const YOURS: NavItem[] = [{ destination: 'settings', icon: GearIcon }];
 
 const ITEM_CLASS = 'flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors';
 const IDLE_CLASS = 'text-text-secondary hover:bg-surface-tertiary hover:text-text-primary';
 
 function itemPath(item: NavItem) {
-  return `${DESTINATIONS[item.destination].path}${item.hash ? `#${item.hash}` : ''}`;
+  const path = item.destination === 'companyDashboard' ? COMPANY_DASHBOARD_PATH : DESTINATIONS[item.destination].path;
+  return `${path}${item.hash ? `#${item.hash}` : ''}`;
 }
 
 function GroupLabel({ children }: { children: string }) {
@@ -84,7 +84,7 @@ function GroupLabel({ children }: { children: string }) {
 
 function NavButton({ item, active, onSelect }: { item: NavItem; active: boolean; onSelect: (path: string) => void }) {
   const Icon = item.icon;
-  const { title } = DESTINATIONS[item.destination];
+  const title = item.destination === 'companyDashboard' ? 'Dashboard' : DESTINATIONS[item.destination].title;
   return (
     <button
       onClick={() => onSelect(itemPath(item))}
@@ -114,8 +114,16 @@ export function Sidebar({ onNavigate, withNotifications = false }: SidebarProps 
 
   const groups: NavGroup[] = [
     ...(hasCompanyWorkspace ? [{ id: 'company', label: DESTINATIONS.company.title, items: COMPANY }] : []),
-    { id: 'shares', label: 'Your shares', items: YOUR_SHARES },
-    { id: 'yours', items: YOURS },
+    ...(hasCompanyWorkspace
+      ? [
+          {
+            id: 'shares',
+            label: 'Personal',
+            items: [{ destination: 'home' as const, label: 'Your shares', icon: HouseIcon }],
+          },
+        ]
+      : [{ id: 'shares', items: PERSONAL }]),
+    { id: 'yours', label: 'Configuration', items: YOURS },
   ];
   const secondaryGroups: NavGroup[] = [
     { id: 'history', items: HISTORY },
@@ -125,7 +133,6 @@ export function Sidebar({ onNavigate, withNotifications = false }: SidebarProps 
     {
       id: 'yours',
       items: [
-        ...(!hasCompanyWorkspace ? [{ destination: 'company' as const, icon: BuildingsIcon }] : []),
         ...(isCompany ? [{ destination: 'companyOffering' as const, icon: MegaphoneIcon }] : []),
         { destination: 'wallets', icon: WalletIcon },
       ],
@@ -139,7 +146,9 @@ export function Sidebar({ onNavigate, withNotifications = false }: SidebarProps 
       const [pathname, hash] = path.split('#');
       return (
         (location.pathname === pathname || location.pathname.startsWith(`${pathname}/`)) &&
-        (hash ? location.hash === `#${hash}` : !location.hash || pathname !== DESTINATIONS.companyRegister.path)
+        (hash
+          ? location.hash === `#${hash}`
+          : !location.hash || !allItems.some((item) => item.hash && itemPath(item).split('#')[0] === pathname))
       );
     })
     .sort((a, b) => b.length - a.length)[0];
@@ -150,7 +159,7 @@ export function Sidebar({ onNavigate, withNotifications = false }: SidebarProps 
   };
 
   return (
-    <aside className="flex h-full w-60 flex-col border-r border-border-subtle bg-surface-base">
+    <aside className="flex h-full w-52 flex-col border-r border-border-subtle bg-surface-base">
       <div className="flex h-16 flex-shrink-0 items-center justify-between pl-5 pr-3">
         <Logo />
         {withNotifications && <NotificationBell align="start" />}
@@ -165,7 +174,14 @@ export function Sidebar({ onNavigate, withNotifications = false }: SidebarProps 
                 <NavButton
                   key={itemPath(item)}
                   item={item}
-                  active={itemPath(item) === activePath}
+                  active={
+                    itemPath(item) === activePath ||
+                    (item.destination === 'settings' &&
+                      (location.pathname === '/company' ||
+                        location.pathname === '/company/team' ||
+                        location.pathname === '/company/authority' ||
+                        (location.pathname === DESTINATIONS.companyRegister.path && location.hash === '#access')))
+                  }
                   onSelect={handleNav}
                 />
               ))}
