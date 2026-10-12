@@ -194,12 +194,14 @@ function OwnRegister({
   const issueCompany = typeof location.state?.awardIssueCompany === 'string' ? location.state.awardIssueCompany : '';
   const registerCompany =
     typeof location.state?.registerCompany === 'string' ? location.state.registerCompany : issueCompany;
+  const registerToken = typeof location.state?.registerToken === 'string' ? location.state.registerToken : '';
+  const contextToken = registerToken || issueToken;
   const enteredIssue = useRef('');
   useEffect(() => {
     if (enteredIssue.current === location.key || !classes.isSuccess || classes.isFetching || held) return;
     if (
       registerCompany &&
-      classes.data.some((item) => item.companyUuid === registerCompany && (!issueToken || item.uuid === issueToken))
+      classes.data.some((item) => item.companyUuid === registerCompany && (!contextToken || item.uuid === contextToken))
     )
       selectCompany(registerCompany);
     enteredIssue.current = location.key;
@@ -210,12 +212,35 @@ function OwnRegister({
     classes.isFetching,
     classes.data,
     held,
-    issueToken,
+    contextToken,
     registerCompany,
     selectCompany,
   ]);
   const view =
     hash === '#awards' ? 'awards' : hash === '#documents' ? 'documents' : hash === '#access' ? 'access' : 'register';
+  const classSections = useRef(new Map<string, HTMLLIElement>());
+  const focusedContext = useRef('');
+  useEffect(() => {
+    if (
+      focusedContext.current === location.key ||
+      held ||
+      !sourceReady ||
+      view === 'access' ||
+      !registerToken ||
+      scope?.company.uuid !== registerCompany ||
+      !scope.registers.some(({ token }) => token.uuid === registerToken)
+    )
+      return;
+    const section = classSections.current.get(registerToken);
+    if (!section) return;
+    if (location.state?.registerHistory === true && view === 'register') {
+      const history = section.querySelector<HTMLDetailsElement>('details[data-register-history]');
+      if (history) history.open = true;
+    }
+    section.focus({ preventScroll: true });
+    section.scrollIntoView?.({ block: 'start' });
+    focusedContext.current = location.key;
+  }, [location.key, location.state, held, sourceReady, view, registerToken, registerCompany, scope]);
 
   return (
     <RegisterPage
@@ -307,7 +332,15 @@ function OwnRegister({
       {scope && (
         <ul hidden={view === 'access'} className="space-y-6">
           {scope.registers.map((register) => (
-            <li key={register.token.uuid}>
+            <li
+              key={register.token.uuid}
+              tabIndex={-1}
+              className="scroll-mt-6"
+              ref={(section) => {
+                if (section) classSections.current.set(register.token.uuid, section);
+                else classSections.current.delete(register.token.uuid);
+              }}
+            >
               <Section title={readable ? `${register.token.name} · ${register.token.symbol}` : 'Share issue recovery'}>
                 {readable && (
                   <p className="text-sm text-text-muted">
@@ -332,7 +365,7 @@ function OwnRegister({
                     onHeldChange={allotmentHeld}
                   />
                   {readable && (
-                    <details className="space-y-3 border-t border-border-subtle pt-4">
+                    <details data-register-history className="space-y-3 border-t border-border-subtle pt-4">
                       <summary className="cursor-pointer text-sm font-medium">
                         Other changes and register history
                       </summary>

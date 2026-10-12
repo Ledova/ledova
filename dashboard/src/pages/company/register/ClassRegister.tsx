@@ -43,50 +43,73 @@ export function ClassRegister({ register, prepare = false }: { register: TokenHo
           {register.holders.length === 0 ? (
             <p className="text-sm text-text-muted">No current members are recorded for this class.</p>
           ) : (
-            <ul className="divide-y divide-border-subtle">
-              {register.holders.map((holder) => (
-                <li key={holder.member} className="flex flex-col gap-2 py-4">
-                  <div className="flex flex-wrap items-baseline justify-between gap-2">
-                    <span className="min-w-0 break-words text-base text-text-primary">
-                      {holder.name || HOLDER_TYPE_LABELS[holder.holderType]}
-                    </span>
-                    <span className="ml-auto break-all text-right text-sm tabular-nums text-text-primary">
+            <table className="w-full table-fixed text-sm">
+              <caption className="sr-only">Current ownership in {register.token.name}</caption>
+              <thead className="border-b border-border-subtle text-text-muted">
+                <tr>
+                  <th scope="col" className="w-1/2 py-2 text-left font-normal">
+                    Member
+                  </th>
+                  <th scope="col" className="w-[30%] px-2 py-2 text-right font-normal">
+                    Issued shares
+                  </th>
+                  <th scope="col" className="w-[20%] py-2 text-right font-normal">
+                    % of class
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border-subtle">
+                {register.holders.map((holder) => (
+                  <tr key={holder.member}>
+                    <th scope="row" className="min-w-0 py-3 pr-3 text-left font-normal">
+                      <p className="break-words font-medium text-text-primary">
+                        {holder.name || HOLDER_TYPE_LABELS[holder.holderType]}
+                      </p>
+                      <p className="mt-1 text-xs text-text-muted">
+                        {HOLDER_TYPE_LABELS[holder.holderType]} · Entered {holder.enteredOn}
+                      </p>
+                      {holder.holderType === 'ambiguous' && (
+                        <p className="mt-1 text-xs text-text-muted">{REGISTER_COPY.AMBIGUOUS_NOTE}</p>
+                      )}
+                      {holder.holderType === 'unidentified' && (
+                        <p className="mt-1 text-xs text-text-muted">{REGISTER_COPY.UNIDENTIFIED_NOTE}</p>
+                      )}
+                      <details className="mt-1 text-xs text-text-muted">
+                        <summary className="cursor-pointer py-1">Optional wallet links</summary>
+                        {holder.wallets.length === 0 ? (
+                          <p>{REGISTER_COPY.NO_WALLET}</p>
+                        ) : (
+                          <ul className="flex flex-col gap-1">
+                            {holder.wallets.map((wallet) => (
+                              <li key={wallet.address} className="break-all">
+                                {wallet.address} · {wallet.whitelistStatus}
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </details>
+                      {prepare && (
+                        <LinkRow
+                          to={DESTINATIONS.companyRegisterParticulars.path.replace(':member', holder.member)}
+                          label={REGISTER_PARTICULARS_COPY.PREPARE}
+                          context={holder.name || HOLDER_TYPE_LABELS[holder.holderType]}
+                        />
+                      )}
+                    </th>
+                    <td className="break-all px-2 py-3 text-right align-top tabular-nums text-text-primary">
                       {formatShareCount(holder.balance)} {holder.balance === '1' ? 'share' : 'shares'}
-                    </span>
-                  </div>
-                  <p className="text-xs text-text-muted">
-                    {HOLDER_TYPE_LABELS[holder.holderType]} · Entered {holder.enteredOn}
-                  </p>
-                  {holder.holderType === 'ambiguous' && (
-                    <p className="text-sm text-text-muted">{REGISTER_COPY.AMBIGUOUS_NOTE}</p>
-                  )}
-                  {holder.holderType === 'unidentified' && (
-                    <p className="text-sm text-text-muted">{REGISTER_COPY.UNIDENTIFIED_NOTE}</p>
-                  )}
-                  <details className="text-xs text-text-muted">
-                    <summary className="cursor-pointer py-1">Optional wallet links</summary>
-                    {holder.wallets.length === 0 ? (
-                      <p className="text-xs text-text-muted">{REGISTER_COPY.NO_WALLET}</p>
-                    ) : (
-                      <ul className="flex flex-col gap-1 text-xs text-text-muted">
-                        {holder.wallets.map((wallet) => (
-                          <li key={wallet.address} className="break-all">
-                            {wallet.address} · {wallet.whitelistStatus}
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </details>
-                  {prepare && (
-                    <LinkRow
-                      to={DESTINATIONS.companyRegisterParticulars.path.replace(':member', holder.member)}
-                      label={REGISTER_PARTICULARS_COPY.PREPARE}
-                      context={holder.name || HOLDER_TYPE_LABELS[holder.holderType]}
-                    />
-                  )}
-                </li>
-              ))}
-            </ul>
+                    </td>
+                    <td className="break-words py-3 text-right align-top tabular-nums text-text-primary">
+                      {register.issuedSupply === null ||
+                      register.issuedSupply === '0' ||
+                      !Number.isFinite(holder.percentage)
+                        ? '—'
+                        : `${holder.percentage.toFixed(2)}%`}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           )}
           {!!register.formerMembers?.length && (
             <details className="space-y-3 border-t border-border-subtle pt-4">

@@ -208,12 +208,23 @@ it('shows an account without register access a calm empty state, reads no member
   expect(screen.queryByRole('link', { name: 'Register' })).toBeNull();
 });
 
-it("lets a person who can read several companies choose one and reads only that company's members", async () => {
+it("retains a dashboard's validated company/class context and reads only the chosen company's members", async () => {
   api.get.mockImplementation(async (url: string) => {
     if (url === REGISTER) return page([harbour('ordinary'), inland('preference')]);
     return noCommands(url) ?? { data: register(url.includes('preference') ? 'preference' : 'ordinary') };
   });
-  show('investor');
+  show(
+    'investor',
+    <>
+      <CompanyRegisterPage />
+      <Link to="/" state={{ registerCompany: 'inland', registerToken: 'ordinary' }}>
+        Open mismatched dashboard class
+      </Link>
+      <Link to="/" state={{ registerCompany: 'inland', registerToken: 'preference', registerHistory: true }}>
+        Open dashboard class
+      </Link>
+    </>,
+  );
   const select = (await screen.findByLabelText('Company')) as HTMLSelectElement;
   expect([...select.options].map((option) => option.textContent)).toEqual([
     'Select a company',
@@ -225,8 +236,15 @@ it("lets a person who can read several companies choose one and reads only that 
   expect(screen.queryByRole('button', { name: /shares/ })).toBeNull();
   expect(readUrls()).toEqual([REGISTER]);
 
-  fireEvent.change(select, { target: { value: 'inland' } });
+  fireEvent.click(screen.getByRole('link', { name: 'Open mismatched dashboard class' }));
+  expect(select.value).toBe('');
+  expect(readUrls()).toEqual([REGISTER]);
+  fireEvent.click(screen.getByRole('link', { name: 'Open dashboard class' }));
   const preference = await screen.findByRole('heading', { name: /^Preference shares ·/ });
+  await waitFor(() => expect(document.activeElement).toBe(preference.closest('li')));
+  expect(preference.closest('li')!.querySelector<HTMLDetailsElement>('details[data-register-history]')!.open).toBe(
+    true,
+  );
   expect(within(preference.closest('section')!).getByText(/^Inland Example Pty Ltd ·/)).toBeTruthy();
   expect(screen.queryByRole('heading', { name: /^Ordinary shares ·/ })).toBeNull();
   expect(readUrls()).toContain(COMPANY_TOKEN_ENDPOINTS.HOLDERS('preference'));

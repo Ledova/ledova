@@ -1,69 +1,196 @@
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { DESTINATIONS, useSubmissionOwner, useUserPreferences } from '@ledova/shared';
-import { Page, PageAction } from '@components/Page';
+import {
+  DESTINATIONS,
+  REGISTER_COPY,
+  appointmentForRegisterStep,
+  useSubmissionOwner,
+  useUserPreferences,
+  type OrderSubmissionOwner,
+  type TokenHoldersResponse,
+} from '@ledova/shared';
 import { Section } from '@components/Ledger';
-import { useRegisterClasses } from '../register/useCompanyRegister';
+import { Page, PageAction } from '@components/Page';
+import { PageTitle } from '@components/PageTitle';
+import { CompanySelection } from '../CompanySelection';
+import { Loading, Unavailable } from '../register/RegisterStatus';
+import { useCompanyRegister } from '../register/useCompanyRegister';
+import { ownerGuard, useOwnAppointments } from '../register/useRegisterImports';
+import { ClassCountPanel, OwnershipMetrics, ShareholderPanel } from './OwnershipPanels';
+import { RecentChanges } from './RecentChanges';
+import { ownershipSummary } from './summary';
 
-function CompanyOverview({ owner }: { owner: NonNullable<ReturnType<typeof useSubmissionOwner>['owner']> }) {
-  const classes = useRegisterClasses(owner);
-  const companies = [...new Map((classes.data ?? []).map((item) => [item.companyUuid, item.companyName])).entries()];
-  if (classes.isError)
-    return (
-      <div role="alert" className="space-y-3">
-        <p>Your company registers could not be loaded.</p>
-        <PageAction label="Try again" onClick={() => void classes.refetch()} disabled={classes.isFetching} />
-      </div>
-    );
-  if (classes.isPending || classes.isFetching) return <p role="status">Loading your company registers…</p>;
-  return companies.length === 0 ? (
-    <Section title="Company setup">
-      <p className="text-sm text-text-muted">No readable share register is available for this account.</p>
-      <Link className="text-sm text-brand-mid underline" to={DESTINATIONS.settings.path}>
-        Open Settings
-      </Link>
-    </Section>
-  ) : (
-    <div className="grid gap-6 xl:grid-cols-2">
-      {companies.map(([uuid, name]) => (
-        <Section key={uuid} title={name}>
-          <p className="text-sm text-text-muted">Company-recorded ownership and share issues.</p>
-          <div className="flex flex-wrap gap-4 py-3">
-            {[
-              ['Register', ''],
-              ['Employee awards', '#awards'],
-              ['Documents', '#documents'],
-            ].map(([label, hash]) => (
-              <Link
-                key={label}
-                to={`${DESTINATIONS.companyRegister.path}${hash}`}
-                state={{ registerCompany: uuid }}
-                className="text-sm text-brand-mid underline"
-              >
-                {label}
-              </Link>
-            ))}
-          </div>
-        </Section>
-      ))}
-    </div>
+export default function CompanyDashboardPage() {
+  const { owner, boundary } = useSubmissionOwner();
+  const preferences = useUserPreferences();
+  return (
+    <PageTitle.Provider value="Dashboard">
+      {owner ? (
+        <OwnDashboard key={`${owner.userUuid}/${owner.ownerAccountUuid}`} owner={owner} currentOwner={boundary.get} />
+      ) : (
+        <Page lede="Your company's recorded share ownership.">
+          {preferences.isLoading ? (
+            <Loading />
+          ) : (
+            <Unavailable retry={() => void preferences.refetch()} busy={preferences.isFetching} />
+          )}
+        </Page>
+      )}
+    </PageTitle.Provider>
   );
 }
 
-export default function CompanyDashboardPage() {
-  const { owner } = useSubmissionOwner();
+function OwnDashboard({
+  owner,
+  currentOwner,
+}: {
+  owner: OrderSubmissionOwner;
+  currentOwner: () => OrderSubmissionOwner | null;
+}) {
   const preferences = useUserPreferences();
+  const { classes, companies, company, selectCompany, registers } = useCompanyRegister(owner);
+  const guard = useMemo(() => ownerGuard(owner, currentOwner), [owner, currentOwner]);
+  const appointments = useOwnAppointments(owner, guard);
+  const [selection, setSelection] = useState<{ company: string; token: string } | null>(null);
+  const rows = registers.data ?? [];
+  const expected = classes.data?.filter((item) => item.companyUuid === company?.uuid) ?? [];
+  const scoped =
+    !!company &&
+    rows.length > 0 &&
+    rows.length === expected.length &&
+    rows.every(({ token }) => expected.some((item) => item.uuid === token.uuid));
+  let summary: ReturnType<typeof ownershipSummary> | null = null;
+  let invalid = !!company && registers.isSuccess && !scoped;
+  if (scoped) {
+    try {
+      summary = ownershipSummary(rows);
+    } catch {
+      invalid = true;
+    }
+  }
+  const preferencesReady = !!preferences.preferences && !preferences.isError && !preferences.isFetching;
+  const fresh =
+    preferencesReady && classes.isSuccess && !classes.isFetching && registers.isSuccess && !registers.isFetching;
+  const selected =
+    rows.find(({ token }) => selection?.company === company?.uuid && token.uuid === selection?.token) ?? rows[0];
+  const prepare =
+    fresh &&
+    company &&
+    appointments.isSuccess &&
+    !appointments.isFetching &&
+    appointmentForRegisterStep(appointments.data, company.uuid, 'prepare');
+  const refresh = () => {
+    void preferences.refetch();
+    void classes.refetch();
+    if (company) void registers.refetch();
+    void appointments.refetch();
+  };
   return (
-    <Page lede="Company-recorded ownership and the next register task.">
-      {preferences.isError ? (
-        <div role="alert" className="space-y-3">
-          <p>Your account could not be checked.</p>
-          <PageAction label="Try again" onClick={() => void preferences.refetch()} disabled={preferences.isFetching} />
-        </div>
-      ) : owner && preferences.preferences && !preferences.isFetching ? (
-        <CompanyOverview key={`${owner.userUuid}/${owner.ownerAccountUuid}`} owner={owner} />
-      ) : (
-        <p role="status">Checking your account…</p>
+    <Page
+      lede={company ? `${company.name} · Recorded share ownership` : "Your company's recorded share ownership."}
+      actions={
+        <PageAction
+          label="Refresh dashboard"
+          onClick={refresh}
+          disabled={preferences.isFetching || classes.isFetching || registers.isFetching}
+        />
+      }
+    >
+      {preferencesReady && classes.isSuccess && !classes.isFetching && companies.length > 1 && (
+        <CompanySelection read={{ companies, companyUuid: company?.uuid, selectionBlocked: false, selectCompany }} />
       )}
+      {preferences.isError || classes.isError || registers.isError || invalid ? (
+        <Unavailable retry={refresh} busy={preferences.isFetching || classes.isFetching || registers.isFetching} />
+      ) : preferences.isFetching || classes.isPending || (company && registers.isPending) || (company && !fresh) ? (
+        <Loading />
+      ) : companies.length === 0 ? (
+        <Section title="Start your company register">
+          <p className="text-sm text-text-muted">{REGISTER_COPY.NO_REGISTER}</p>
+          <Link
+            to={DESTINATIONS.company.path}
+            className="mt-2 w-fit text-sm font-medium text-brand-mid hover:underline"
+          >
+            Company settings
+          </Link>
+        </Section>
+      ) : !company ? (
+        <p className="py-3 text-sm text-text-muted">Select a company to show its ownership.</p>
+      ) : fresh && scoped && summary && selected ? (
+        <>
+          <OwnershipMetrics summary={summary} />
+          <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+            <div className="min-w-0 space-y-6">
+              <ShareholderPanel
+                company={company.uuid}
+                registers={rows}
+                selected={selected}
+                select={(token) => setSelection({ company: company.uuid, token })}
+              />
+              {selected.initialized && (
+                <RecentChanges
+                  key={`${company.uuid}/${selected.token.uuid}`}
+                  owner={owner}
+                  guard={guard}
+                  company={company.uuid}
+                  token={selected.token.uuid}
+                  className={selected.token.name}
+                />
+              )}
+            </div>
+            <div className="min-w-0 space-y-6">
+              <RegisterWork company={company.uuid} register={selected} prepare={!!prepare} />
+              <ClassCountPanel registers={rows} />
+            </div>
+          </div>
+        </>
+      ) : null}
     </Page>
+  );
+}
+
+function RegisterWork({
+  company,
+  register,
+  prepare,
+}: {
+  company: string;
+  register: TokenHoldersResponse;
+  prepare: boolean;
+}) {
+  const state = { registerCompany: company, registerToken: register.token.uuid };
+  return (
+    <Section title="Register work">
+      {!register.initialized && (
+        <p className="text-sm text-text-muted">Open this class&apos;s register before recording ownership changes.</p>
+      )}
+      {register.initialized && register.waitingEffects === null && (
+        <p role="status" className="text-sm text-text-muted">
+          {REGISTER_COPY.WAITING_UNKNOWN_NOTE}
+        </p>
+      )}
+      {register.waitingEffects !== null && register.waitingEffects > 0 && (
+        <p role="status" className="text-sm text-text-muted">
+          {REGISTER_COPY.WAITING_NOTE(register.waitingEffects)}
+        </p>
+      )}
+      <div className="flex flex-col items-start gap-3 py-2 text-sm font-medium text-brand-mid">
+        {prepare && (
+          <Link to={DESTINATIONS.companyRegister.path} state={state} className="hover:underline">
+            Issue investor shares
+          </Link>
+        )}
+        {prepare && (
+          <Link to={`${DESTINATIONS.companyRegister.path}#awards`} state={state} className="hover:underline">
+            Record an employee award
+          </Link>
+        )}
+        <Link to={DESTINATIONS.companyRegister.path} state={state} className="hover:underline">
+          Manage register
+        </Link>
+        <Link to={`${DESTINATIONS.companyRegister.path}#documents`} state={state} className="hover:underline">
+          Certificates and exports
+        </Link>
+      </div>
+    </Section>
   );
 }
