@@ -82,7 +82,7 @@ Count executed cases, including parameterized rows:
 
 | Suite          | Delivered cases | Maximum | Essential coverage               |
 | -------------- | --------------- | ------- | -------------------------------- |
-| Dashboard unit | 19              | 20      | Main pages, sign-in, core flows  |
+| Dashboard unit | 20              | 20      | Main pages, sign-in, core flows  |
 | Mobile Jest    | 10              | 10      | App starts, sign-in, core flows  |
 | Shared package | 8               | 10      | Essential shared behaviour       |
 | Contracts      | 14              | 20      | Who can mint, pause and transfer |

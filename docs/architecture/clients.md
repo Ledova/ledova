@@ -64,9 +64,15 @@ as well, so no page appears on the way. The web front door and successful sign-i
 access before choosing a dashboard; a failed check offers retry instead of
 assuming a personal account. Account preference alone does not select a company
 workspace. The web-only `/company/dashboard` route uses the existing scoped
-register API and the ordinary completed-signup guard. In the first increment it
-lists readable companies and links to their register, awards and documents;
-company ownership totals/charts are the next increment under #1013.
+register API and the ordinary completed-signup guard. It shows exact issued-share
+totals, current shareholders deduplicated across classes, and share-class counts.
+The selected class has a compact shareholder table with quantity bars and
+percentages of that class's issued shares. Multiple classes have an issued-count
+chart; class rights may differ. Unopened classes make company totals incomplete,
+and failed or inconsistent reads withhold totals and charts. Recent changes are
+the selected class's recorded entries, and task links retain its company/class
+context. Personal member views use their own projection, without company totals
+or other shareholders. New charts need no chart library.
 
 The compact web sidebar has Dashboard, Register, Employee awards and Documents
 for readable company workspaces, with a separate Your shares link for personal
