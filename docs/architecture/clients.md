@@ -70,7 +70,8 @@ company ownership totals/charts are the next increment under #1013.
 
 The compact web sidebar has Dashboard, Register, Employee awards and Documents
 for readable company workspaces, with a separate Your shares link for personal
-records. Other accounts have personal Dashboard and Documents. Settings is a
+records. Other accounts have personal Dashboard; its focused Documents destination is
+added with the personal increment under #1014. Settings is a
 separate configuration group: company details/classes, team appointments and
 member access, plus personal profile/security and existing account settings.
 Company setup remains reachable there even before a register exists. Optional

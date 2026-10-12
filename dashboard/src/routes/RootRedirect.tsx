@@ -4,13 +4,19 @@ import { useRegisterEntryAccess } from '@pages/company/register/useCompanyRegist
 import { Page, PageAction } from '@components/Page';
 import { PageTitle } from '@components/PageTitle';
 import { COMPANY_DASHBOARD_PATH } from './companyDashboard';
+import { useUserProfile } from '@pages/user-profile/useUserProfile';
+import { AccountUnavailable } from './AccountUnavailable';
+import { SIGNUP_RESUMES_AT } from './signupRoutes';
 
 export function RootRedirect() {
   const { isAuthenticated, isLoading } = useAuth();
   const preferences = useUserPreferences();
-  const access = useRegisterEntryAccess();
-  if (isLoading) return null;
+  const profile = useUserProfile();
+  const access = useRegisterEntryAccess(!!profile.userProfile?.isSignupCompleted && !profile.isFetching);
+  if (isLoading || (isAuthenticated && profile.isLoading)) return null;
   if (!isAuthenticated) return <Navigate to="/signin" replace />;
+  if (!profile.userProfile) return <AccountUnavailable onRetry={profile.refreshProfile} />;
+  if (!profile.userProfile.isSignupCompleted) return <Navigate to={SIGNUP_RESUMES_AT} replace />;
   if (
     preferences.isError ||
     access.isError ||

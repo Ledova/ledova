@@ -65,11 +65,11 @@ export function useCompanyRegister(
   return { classes, companies, company, selectCompany: setSelected, registers };
 }
 
-export function useRegisterEntryAccess() {
+export function useRegisterEntryAccess(enabled = true) {
   const { owner, boundary } = useSubmissionOwner();
   return useQuery({
     queryKey: [...registerKey(owner), 'access'],
-    enabled: !!owner,
+    enabled: !!owner && enabled,
     queryFn: async () => {
       if (!owner || boundary.get() !== owner) throw new Error('Your signed-in account changed.');
       const response = await getRegisterClasses(apiClient, { page: 1 });
