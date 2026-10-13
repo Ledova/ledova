@@ -71,6 +71,26 @@ it('reuses saved company details and clearly accepts authority and Terms through
   expect(screen.getByRole('alert').textContent).toMatch(/saved setup has expired/);
   fireEvent.click(screen.getByRole('button', { name: 'Update saved setup' }));
   expect(state.resetAuthorityRequest).toHaveBeenCalledTimes(1);
+  vi.mocked(useReview).mockReturnValue({
+    ...state,
+    authorityError: 'Your saved setup uses previous permissions or an expiry. Update the saved setup to continue.',
+    authorityRequest: {
+      status: 'pending',
+      requestedCapabilities: ['admin'],
+      delegatableCapabilities: ['admin'],
+      requestedExpiresAt: null,
+    },
+  } as never);
+  view.rerender(
+    <MemoryRouter>
+      <SignupReview />
+    </MemoryRouter>,
+  );
+  expect(screen.getByRole('alert').textContent).toMatch(/previous permissions/);
+  expect(screen.getByRole('button', { name: 'Complete company setup' }).hasAttribute('disabled')).toBe(true);
+  fireEvent.click(screen.getByRole('button', { name: 'Update saved setup' }));
+  expect(state.resetAuthorityRequest).toHaveBeenCalledTimes(2);
+  expect(state.completeSignup).not.toHaveBeenCalled();
 
   vi.mocked(useReview).mockReturnValue({ ...state, authorityReady: true, canCompleteSignup: true } as never);
   view.rerender(

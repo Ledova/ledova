@@ -60,6 +60,12 @@ other accounts retain the existing account-type entry. A retry must resolve
 the retained authority and current Terms outcome before completion; it cannot
 infer success from a submitted request or a lost response.
 
+A pending request is a proposal, not effective authority. If its personal scope
+is not exactly `admin`, its delegation does not contain all six capabilities, or
+it has an expiry, use **Update saved setup** before admission. That explicit
+action withdraws the old proposal and permits a fresh request with the signup
+defaults; it does not change an appointment.
+
 If the person already has a current personal `admin` appointment for that
 company, the final button uses it rather than another initial declaration.
 Older, narrower and invited administrator appointments keep their original

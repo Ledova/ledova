@@ -30,6 +30,8 @@ it('accepts current company terms only on explicit completion, resumes setup wit
   let companySaved = false;
   let preferencesMode: 'ready' | 'missing' | 'failed' = 'ready';
   let request: Record<string, unknown> | null = null;
+  const withdrawnRequests: Record<string, unknown>[] = [];
+  let requestSubmissions = 0;
   let effective = false;
   let declarationVersion = '2026-10-14';
   let source = 'initial';
@@ -76,7 +78,7 @@ it('accepts current company terms only on explicit completion, resumes setup wit
     if (url === '/api/v1/companies/company-a/') return { data: company };
     if (url === '/api/v1/company-authority/requests/') {
       if (refuseReads) throw new Error('Source refused');
-      return { data: { results: request ? [request] : [] } };
+      return { data: { results: [...withdrawnRequests, ...(request ? [request] : [])] } };
     }
     if (url === '/api/v1/company-authority/appointments/')
       return { data: { results: request?.status === 'admitted' ? [appointment()] : [] } };
@@ -93,22 +95,32 @@ it('accepts current company terms only on explicit completion, resumes setup wit
       throw new Error('Company response interrupted after saving');
     }
     if (url === '/api/v1/company-authority/requests/') {
+      requestSubmissions++;
       expect(body).toEqual({
         company: company.uuid,
-        idempotencyKey: '11111111-1111-4111-8111-111111111111',
+        idempotencyKey:
+          requestSubmissions === 1 ? '11111111-1111-4111-8111-111111111111' : '22222222-2222-4222-8222-222222222222',
         requestedCapabilities: ['admin'],
         delegatableCapabilities: ['admin', 'prepare', 'approve', 'apply', 'finance', 'read_register'],
       });
       request = {
         ...(body as Record<string, unknown>),
-        uuid: 'request-a',
+        uuid: requestSubmissions === 1 ? 'request-a' : 'request-b',
         status: 'pending',
         originalFilename: '',
         fileUrl: null,
       };
-      throw new Error('Response interrupted after saving');
+      if (requestSubmissions === 1) throw new Error('Response interrupted after saving');
+      return { data: request };
     }
-    if (url === '/api/v1/company-authority/requests/request-a/admit/') {
+    if (url === '/api/v1/company-authority/requests/request-a/withdraw/') {
+      expect(body).toEqual({});
+      const withdrawn = { ...request, status: 'withdrawn', withdrawnAt: '2026-10-14T00:00:00Z' };
+      withdrawnRequests.push(withdrawn);
+      request = null;
+      return { data: withdrawn };
+    }
+    if (url === '/api/v1/company-authority/requests/request-b/admit/') {
       expect(body).toEqual({ declarationVersion: '2026-10-14', acceptDeclaration: true });
       effective = true;
       request = { ...request, status: 'admitted', appointment: appointment() };
@@ -163,7 +175,10 @@ it('accepts current company terms only on explicit completion, resumes setup wit
   await waitFor(() => expect(registration.result.current.canSubmit).toBe(true));
   registration.unmount();
   const finished = jest.fn();
-  const newKey = jest.fn(() => '11111111-1111-4111-8111-111111111111');
+  const newKey = jest
+    .fn()
+    .mockReturnValueOnce('11111111-1111-4111-8111-111111111111')
+    .mockReturnValue('22222222-2222-4222-8222-222222222222');
   let mounted = renderHook(() => useSignupReview('company', finished, undefined, newKey), { wrapper });
   await waitFor(() => expect(mounted.result.current.isLoading).toBe(false));
   await waitFor(() => expect(mounted.result.current.canCompleteSignup).toBe(true));
@@ -174,7 +189,14 @@ it('accepts current company terms only on explicit completion, resumes setup wit
   });
   expect(completedProfiles()).toHaveLength(0);
   await waitFor(() => expect(mounted.result.current.authorityRequest?.uuid).toBe('request-a'));
-  request = { ...(request ?? {}), requestedExpiresAt: '2020-10-14T00:00:00Z' };
+  request = { ...(request ?? {}), delegatableCapabilities: ['admin'] };
+  await act(async () => expect(mounted.result.current.completeSignup()).rejects.toThrow('did not match'));
+  await waitFor(() => expect(mounted.result.current.authorityError).toMatch(/previous permissions/));
+  expect(mounted.result.current.canCompleteSignup).toBe(false);
+  await act(async () => mounted.result.current.completeSignup());
+  expect(completedProfiles()).toHaveLength(0);
+  expect(post.mock.calls.filter(([url]) => url.endsWith('/admit/'))).toHaveLength(0);
+  request = { ...request, requestedExpiresAt: '2020-10-14T00:00:00Z' };
   await act(async () => mounted.result.current.refreshAuthority());
   await waitFor(() => expect(mounted.result.current.authorityError).toMatch(/saved setup has expired/));
   expect(mounted.result.current.authorityRequest?.status).toBe('pending');
@@ -184,17 +206,24 @@ it('accepts current company terms only on explicit completion, resumes setup wit
   expect(post.mock.calls.filter(([url]) => url === '/api/v1/company-authority/requests/request-a/admit/')).toHaveLength(
     0,
   );
-  request = { ...request, requestedExpiresAt: null };
-  await act(async () => mounted.result.current.refreshAuthority());
+  await act(async () => mounted.result.current.resetAuthorityRequest());
+  expect(withdrawnRequests).toHaveLength(1);
+  expect(withdrawnRequests[0]).toMatchObject({
+    uuid: 'request-a',
+    status: 'withdrawn',
+    delegatableCapabilities: ['admin'],
+  });
+  await waitFor(() => expect(mounted.result.current.authorityRequest).toBeNull());
+  expect(post.mock.calls.filter(([url]) => url.endsWith('/admit/'))).toHaveLength(0);
   mounted.unmount();
   mounted = renderHook(() => useSignupReview('company', finished, undefined, newKey), { wrapper });
-  await waitFor(() => expect(mounted.result.current.authorityRequest?.uuid).toBe('request-a'));
   await waitFor(() => expect(mounted.result.current.canCompleteSignup).toBe(true));
+  expect(post.mock.calls.filter(([url]) => url === '/api/v1/company-authority/requests/')).toHaveLength(1);
   await act(async () => {
     await expect(mounted.result.current.completeSignup()).rejects.toThrow('Profile completion interrupted');
   });
   expect(finished).not.toHaveBeenCalled();
-  expect(post.mock.calls.filter(([url]) => url === '/api/v1/company-authority/requests/request-a/admit/')).toHaveLength(
+  expect(post.mock.calls.filter(([url]) => url === '/api/v1/company-authority/requests/request-b/admit/')).toHaveLength(
     1,
   );
   mounted.unmount();
@@ -203,11 +232,14 @@ it('accepts current company terms only on explicit completion, resumes setup wit
   failProfileCompletion = false;
   await waitFor(() => expect(mounted.result.current.canCompleteSignup).toBe(true));
   await act(async () => mounted.result.current.completeSignup());
-  expect(post.mock.calls.filter(([url]) => url === '/api/v1/company-authority/requests/request-a/admit/')).toHaveLength(
+  expect(post.mock.calls.filter(([url]) => url === '/api/v1/company-authority/requests/request-b/admit/')).toHaveLength(
     1,
   );
-  expect(post.mock.calls.filter(([url]) => url === '/api/v1/company-authority/requests/')).toHaveLength(1);
-  expect(newKey).toHaveBeenCalledTimes(1);
+  expect(post.mock.calls.filter(([url]) => url === '/api/v1/company-authority/requests/')).toHaveLength(2);
+  expect(post.mock.calls.filter(([url]) => url === '/api/v1/company-authority/requests/request-a/admit/')).toHaveLength(
+    0,
+  );
+  expect(newKey).toHaveBeenCalledTimes(2);
   expect(completedProfiles()).toHaveLength(2);
   expect(finished).toHaveBeenCalledTimes(1);
 
@@ -241,10 +273,11 @@ it('accepts current company terms only on explicit completion, resumes setup wit
   await act(async () => mounted.result.current.completeSignup());
   expect(termSubmissions()).toHaveLength(1);
   expect({ ...appointment(), signupTerms: null }).toEqual(originalAppointment);
-  expect(post.mock.calls.filter(([url]) => url === '/api/v1/company-authority/requests/request-a/admit/')).toHaveLength(
+  expect(post.mock.calls.filter(([url]) => url === '/api/v1/company-authority/requests/request-b/admit/')).toHaveLength(
     1,
   );
-  expect(post.mock.calls.filter(([url]) => url === '/api/v1/company-authority/requests/')).toHaveLength(1);
+  expect(post.mock.calls.filter(([url]) => url === '/api/v1/company-authority/requests/')).toHaveLength(2);
+  expect(post.mock.calls.filter(([url]) => url.endsWith('/admit/'))).toHaveLength(1);
   expect(completedProfiles()).toHaveLength(4);
   expect(finished).toHaveBeenCalledTimes(2);
 

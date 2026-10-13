@@ -168,12 +168,18 @@ export function useSignupCompanyAuthority(
           ? getErrorMessage(authority.error, 'Your administrator access could not be checked. Reload company setup.')
           : stopped
             ? 'Your company administrator appointment is no longer current. Another initial declaration cannot restore it.'
-            : !authorityReady && authorityRequest && !authorityRequest.requestedCapabilities.includes('admin')
-              ? 'This saved setup does not include administrator access. Update the saved setup to continue.'
+            : !authorityReady &&
+                authorityRequest?.requestedExpiresAt &&
+                !(Date.parse(authorityRequest.requestedExpiresAt) > Date.now())
+              ? 'Your saved setup has expired. Update the saved setup to continue.'
               : !authorityReady &&
-                  authorityRequest?.requestedExpiresAt &&
-                  !(Date.parse(authorityRequest.requestedExpiresAt) > Date.now())
-                ? 'Your saved setup has expired. Update the saved setup to continue.'
+                  authorityRequest &&
+                  !signupScopes(
+                    authorityRequest.requestedCapabilities,
+                    authorityRequest.delegatableCapabilities,
+                    authorityRequest.requestedExpiresAt,
+                  )
+                ? 'Your saved setup uses previous permissions or an expiry. Update the saved setup to continue.'
                 : null;
   const currentTerms = (appointment: OwnCompanyAppointment) => {
     const receipt = appointment.signupTerms;
@@ -232,7 +238,6 @@ export function useSignupCompanyAuthority(
     )
       throw new Error('Your initial administrator access is no longer current. Reload company setup.');
     let request: CompanyAuthorityRequest | undefined = state.requests.find((entry) => entry.status === 'pending');
-    const newRequest = !request;
     if (!request) {
       key.current ??= newKey();
       try {
@@ -255,9 +260,7 @@ export function useSignupCompanyAuthority(
     }
     if (
       request.company !== company!.uuid ||
-      !request.requestedCapabilities.includes('admin') ||
-      (newRequest &&
-        !signupScopes(request.requestedCapabilities, request.delegatableCapabilities, request.requestedExpiresAt))
+      !signupScopes(request.requestedCapabilities, request.delegatableCapabilities, request.requestedExpiresAt)
     )
       throw new Error('Your authority request did not match this company administrator setup.');
     const response = await admitCompanyAuthorityRequest(apiClient, request.uuid, { ledovaSubmissionGuard: guard });
