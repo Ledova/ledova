@@ -116,15 +116,19 @@ the visible section while keeping the existing register subtree mounted.
 Wallet shares remain available from Wallets.
 Activity keeps `/transactions`, and Notices keeps `/publications`.
 
-`landingFor(role)` retains the shared/native and signup destinations: an
+`landingFor(role)` retains the shared/native destinations: an
 investing account on `/home`, and a company or dual-role account on Register.
 The web front door and sign-in use the confirmed-access dashboard choice above;
-shared signup, refused-route and trading fallback behavior remains unchanged.
+refused-route and trading fallback behavior remains unchanged. Company signup
+keeps Company details → Review, with evidence, explicit initial admission and
+completion together as described in the
+[authority guide](../plans/company-managed-registers/authority-requests.md#company-signup).
 Native company accounts with readable register access start on Register; those
 without access start on My shares and reach setup from More. The eight steps after the create-account form are listed once,
 in `SIGNUP_STEPS` (`dashboard/src/routes/signupRoutes.tsx`), and `signupRoutes`
-places every one inside `SignupRoute`: an account that has finished sign-up
-goes to `landingFor(role)` instead of reopening one, while an account still
+places every one inside `SignupRoute`: a company account that has finished
+sign-up goes to the company dashboard, and other completed accounts go to
+`landingFor(role)`, instead of reopening a step. An account still
 signing up and a signed-out visitor move through them as before. Email
 verification refreshes the session answer before it moves on, as sign-in does,
 so in the in-app flow the steps read the profile once, before any form, and a

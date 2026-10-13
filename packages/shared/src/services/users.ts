@@ -19,8 +19,12 @@ export const updateUserProfile = (
     ? apiClient.patch<UserProfile>(USER_PROFILE_ENDPOINTS.DETAIL(uuid), data, config)
     : apiClient.patch<UserProfile>(USER_PROFILE_ENDPOINTS.DETAIL(uuid), data);
 
-export const updateUserProfileCompletion = (apiClient: AxiosInstance, uuid: string, data: CompleteUserProfile) =>
-  apiClient.patch<UserProfile>(USER_PROFILE_ENDPOINTS.DETAIL(uuid), data);
+export const updateUserProfileCompletion = (
+  apiClient: AxiosInstance,
+  uuid: string,
+  data: CompleteUserProfile,
+  config?: AxiosRequestConfig,
+) => apiClient.patch<UserProfile>(USER_PROFILE_ENDPOINTS.DETAIL(uuid), data, config);
 
 export const getUserProfiles = (apiClient: AxiosInstance, config?: AxiosRequestConfig) =>
   config

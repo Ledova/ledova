@@ -4,18 +4,25 @@ import type { RootStackParamList } from '../../../navigation/AppNavigator';
 
 import { useSignupReview } from '@ledova/shared';
 import { useRole } from '../../../hooks/useRole';
+import { orderSubmissionSession } from '../../../services/orderSubmissions';
+import { randomUUID } from 'expo-crypto';
 
 export const useReview = () => {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const queryClient = useQueryClient();
   const { role } = useRole();
 
-  return useSignupReview(role, () => {
-    queryClient.invalidateQueries({ queryKey: ['userProfiles'] });
-
-    navigation.reset({
-      index: 0,
-      routes: [{ name: 'MainApp' }],
-    });
-  });
+  return useSignupReview(
+    role,
+    async (guard) => {
+      await queryClient.invalidateQueries({ queryKey: ['userProfiles'] }, { throwOnError: true });
+      guard();
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'MainApp' }],
+      });
+    },
+    orderSubmissionSession,
+    randomUUID,
+  );
 };

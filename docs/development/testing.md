@@ -62,6 +62,8 @@ Keep at most **150 executed backend cases** in total. Cover:
 - One fake-scanner test refuses infected or unscannable uploads.
 
 The delivered suite has 19 cases, including five real-app-login tenant cases.
+Its company setup journey covers signup and initial representative admission;
+the retained identity, ABR, evidence and authority checks remain in that path.
 Member invitations, own records and company-reviewed requests have one core API
 journey; the existing tenant controls include foreign invitation and revoked
 association refusals. One core output case covers real company/member PDFs,
@@ -84,7 +86,7 @@ Count executed cases, including parameterized rows:
 | -------------- | --------------- | ------- | -------------------------------- |
 | Dashboard unit | 20              | 20      | Main pages, sign-in, core flows  |
 | Mobile Jest    | 10              | 10      | App starts, sign-in, core flows  |
-| Shared package | 8               | 10      | Essential shared behaviour       |
+| Shared package | 9               | 10      | Essential shared behaviour       |
 | Contracts      | 14              | 20      | Who can mint, pause and transfer |
 
 The nine Playwright smoke tests remain, as do mobile type-check and lint.

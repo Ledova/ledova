@@ -7,11 +7,18 @@ import { canOpen } from '../constants/ui/destinations';
 import { getCompanies, getCompany } from '../services/companies';
 import { getUserProfiles, updateUserProfileCompletion } from '../services/users';
 import type { AccountRole, ReviewData } from '../types';
-import { apiErrorSentence, describeFailure, unansweredSentence } from '../utils/errors';
+import { apiErrorSentence, describeFailure } from '../utils/errors';
 import { useApiClient } from './useApiClient';
 import { useFinancialProfile } from './useFinancialProfile';
+import type { OrderSubmissionSession } from './useOrderSubmissions';
+import { useSignupCompanyAuthority } from './useSignupCompanyAuthority';
 
-export function useSignupReview(role: AccountRole, onComplete: () => Promise<void> | void) {
+export function useSignupReview(
+  role: AccountRole,
+  onComplete: (guard: () => void) => Promise<void> | void,
+  session?: OrderSubmissionSession,
+  newKey?: () => string,
+) {
   const apiClient = useApiClient();
   const queryClient = useQueryClient();
   const isCompany = canOpen(role, 'company');
@@ -42,6 +49,13 @@ export function useSignupReview(role: AccountRole, onComplete: () => Promise<voi
     staleTime: CACHE_TIMING.DEFAULT_STALE_TIME,
   });
   const company = selectedUuid && detailQuery.data?.data.uuid === selectedUuid ? detailQuery.data.data : null;
+  const authority = useSignupCompanyAuthority(
+    company,
+    userProfile,
+    isCompany && !!company && !!userProfile,
+    session,
+    newKey,
+  );
 
   const data: ReviewData = {
     userProfile,
@@ -51,7 +65,7 @@ export function useSignupReview(role: AccountRole, onComplete: () => Promise<voi
   const isLoading = Boolean(
     userProfileQuery.isLoading ||
     (!isCompany && financialProfileLoading) ||
-    (isCompany && (companyQuery.isLoading || detailQuery.isLoading)),
+    (isCompany && (companyQuery.isLoading || detailQuery.isLoading || authority.authorityLoading)),
   );
 
   const loadFailure =
@@ -63,35 +77,53 @@ export function useSignupReview(role: AccountRole, onComplete: () => Promise<voi
       : null;
 
   const canCompleteSignup =
-    !isLoading && !error && (isCompany ? Boolean(userProfile && company) : Boolean(userProfile && financialProfile));
+    !isLoading &&
+    authority.completionOwnerReady &&
+    !error &&
+    !authority.authorityError &&
+    (isCompany
+      ? Boolean(userProfile && company && authority.canEstablishAuthority)
+      : Boolean(userProfile && financialProfile));
 
   const completeSignupMutation = useMutation({
     mutationFn: async () => {
       if (!userProfile) throw new Error('No user profile found');
+      if (isCompany) await authority.establishAuthority();
+      authority.guardCommandCompletion();
 
-      const profileUpdateResponse = await updateUserProfileCompletion(apiClient, userProfile.uuid, {
-        termsAndConditions: true,
-        isSignupCompleted: true,
-      });
+      const profileUpdateResponse = await updateUserProfileCompletion(
+        apiClient,
+        userProfile.uuid,
+        {
+          termsAndConditions: true,
+          isSignupCompleted: true,
+        },
+        { ledovaSubmissionGuard: authority.guardCompletion },
+      );
+      authority.guardCompletion();
 
       return profileUpdateResponse;
     },
     onSuccess: async () => {
+      authority.guardCompletion();
       queryClient.invalidateQueries({ queryKey: ['userPreferences'] });
-      await onComplete();
+      await onComplete(authority.guardCompletion);
     },
-    onError: (error) => {
+    onError: async (error) => {
       console.error(`Signup completion failed: ${describeFailure(error)}`);
+      if (isCompany) await authority.refreshAuthority().catch(() => undefined);
     },
   });
 
-  const completeSignup = () => {
+  const completeSignup = async () => {
     if (canCompleteSignup) {
-      completeSignupMutation.mutate();
+      await completeSignupMutation.mutateAsync();
     }
   };
 
   const retryLoad = useCallback(async () => {
+    authority.clearAuthorityError();
+    completeSignupMutation.reset();
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ['userProfiles'] }),
       ...(isCompany ? [queryClient.invalidateQueries({ queryKey: ['signup', 'company'] })] : []),
@@ -99,17 +131,25 @@ export function useSignupReview(role: AccountRole, onComplete: () => Promise<voi
       ...(selectedUuid
         ? [queryClient.invalidateQueries({ queryKey: ['signup', 'company-detail', selectedUuid] })]
         : []),
+      ...(isCompany
+        ? [
+            queryClient.invalidateQueries({ queryKey: ['auth'] }),
+            queryClient.invalidateQueries({ queryKey: ['userPreferences'] }),
+            queryClient.invalidateQueries({ queryKey: ['signup', 'authority'] }),
+          ]
+        : []),
     ]);
-  }, [queryClient, isCompany, selectedUuid]);
+  }, [queryClient, isCompany, selectedUuid, authority, completeSignupMutation]);
 
   return {
+    ...authority,
     data,
     company,
     isCompany,
     isLoading,
     error,
     completionError: completeSignupMutation.isError
-      ? (unansweredSentence(completeSignupMutation.error, SIGNUP_NETWORK_ERROR) ?? SIGNUP_COMPLETION_FAILED)
+      ? apiErrorSentence(completeSignupMutation.error, SIGNUP_COMPLETION_FAILED, SIGNUP_NETWORK_ERROR)
       : null,
     completeSignup,
     isSubmitting: completeSignupMutation.isPending,
