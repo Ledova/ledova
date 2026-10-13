@@ -36,6 +36,8 @@ team setup to the dashboard settings. Completing setup explicitly accepts that
 declaration without a checkbox. Initial personal `admin` and all six delegatable capabilities
 allow later team invitations; signup has no file or permission picker. Saved
 company/profile data and unfinished sign-in resumption keep the flow recoverable.
+Existing current administrator appointments resume without changing their
+original scopes; the final action records current Terms acceptance when needed.
 Identity, ABR and checked-file safeguards for actual uploads remain; completion
 neither activates the company nor issues shares. The
 [authority guide](authority-requests.md#company-signup) describes this flow.

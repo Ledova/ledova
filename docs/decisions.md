@@ -216,6 +216,15 @@ or failed required provider check cannot be treated as success. This replaces
 the mandatory signup file and optional administrator-delegation choice under
 #1020; it does not make evidence optional for later actions that require it.
 
+An unfinished signup with an existing current company administrator appointment
+can finish through the same final button. Its original declaration, capabilities,
+delegation and expiry remain unchanged; an older or narrower appointment is not
+replaced by a new bootstrap or silently expanded to the fresh-signup defaults.
+The action records acceptance of the current Terms against that appointment when
+needed and rechecks live authority. A fresh appointment that already records the
+same acceptance supplies its retained receipt without another acceptance record.
+Revoked, expired or otherwise ineffective authority cannot complete setup.
+
 The experimental-use Terms state company responsibilities plainly and preserve
 the synthetic-data, testnet and software-licence boundaries. This product
 decision is not professional legal approval or a finding that the deployment

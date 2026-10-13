@@ -5,6 +5,7 @@ import {
 } from '../constants/business/company-authority';
 import type {
   AcceptCompanyTeamInvitationRequest,
+  AcceptCompanySignupTermsRequest,
   CompanyAuthorityAdmission,
   CompanyAuthorityQueryParams,
   CompanyAuthorityRequest,
@@ -116,3 +117,13 @@ export const getCompanyTeam = (apiClient: AxiosInstance, company: string, config
 
 export const revokeCompanyAppointment = (apiClient: AxiosInstance, uuid: string, config: AxiosRequestConfig = {}) =>
   apiClient.post<OwnCompanyAppointment>(`${APPOINTMENTS}${uuid}/revoke/`, {}, config);
+
+export const acceptCompanySignupTerms = (apiClient: AxiosInstance, uuid: string, config: AxiosRequestConfig = {}) =>
+  apiClient.post<OwnCompanyAppointment>(
+    `${APPOINTMENTS}${uuid}/signup-terms/`,
+    {
+      declarationVersion: COMPANY_SIGNUP_DECLARATION_VERSION,
+      acceptDeclaration: true,
+    } satisfies AcceptCompanySignupTermsRequest,
+    config,
+  );

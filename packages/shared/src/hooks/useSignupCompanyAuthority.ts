@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import {
+  acceptCompanySignupTerms,
   admitCompanyAuthorityRequest,
   getCompanyAuthorityRequests,
   getOwnCompanyAppointments,
@@ -10,9 +11,10 @@ import {
 } from '../services/company-authority';
 import {
   COMPANY_AUTHORITY_CAPABILITIES,
+  COMPANY_SIGNUP_DECLARATION,
   COMPANY_SIGNUP_DECLARATION_VERSION,
 } from '../constants/business/company-authority';
-import type { CompanyAuthorityRequest, Company, CompanyCapability, UserProfile } from '../types';
+import type { CompanyAuthorityRequest, Company, CompanyCapability, OwnCompanyAppointment, UserProfile } from '../types';
 import { getErrorMessage } from '../utils/errors';
 import { readEveryPage } from '../utils/pagination';
 import { useApiClient } from './useApiClient';
@@ -27,6 +29,31 @@ function signupScopes(capabilities: CompanyCapability[], delegatable: CompanyCap
     delegatable.length === COMPANY_AUTHORITY_CAPABILITIES.length &&
     COMPANY_AUTHORITY_CAPABILITIES.every(({ value }) => delegatable.includes(value)) &&
     !expiresAt
+  );
+}
+
+function currentAdministrator(appointment: OwnCompanyAppointment, company: string) {
+  return (
+    appointment.company === company &&
+    appointment.status === 'active' &&
+    appointment.isEffective &&
+    appointment.capabilities.includes('admin') &&
+    (!appointment.expiresAt || Date.parse(appointment.expiresAt) > Date.now())
+  );
+}
+
+function sameAppointment(left: OwnCompanyAppointment, right: OwnCompanyAppointment) {
+  return (
+    left.uuid === right.uuid &&
+    left.company === right.company &&
+    left.source === right.source &&
+    left.declarationVersion === right.declarationVersion &&
+    left.declarationText === right.declarationText &&
+    left.createdAt === right.createdAt &&
+    left.expiresAt === right.expiresAt &&
+    JSON.stringify([...left.capabilities].sort()) === JSON.stringify([...right.capabilities].sort()) &&
+    JSON.stringify([...left.delegatableCapabilities].sort()) ===
+      JSON.stringify([...right.delegatableCapabilities].sort())
   );
 }
 
@@ -112,14 +139,8 @@ export function useSignupCompanyAuthority(
       }),
     ]);
     guard();
-    const appointment = appointments.find(
-      (entry) =>
-        entry.company === company!.uuid &&
-        entry.status === 'active' &&
-        entry.isEffective &&
-        entry.capabilities.includes('admin'),
-    );
-    return { requests, appointment };
+    const appointment = appointments.find((entry) => currentAdministrator(entry, company!.uuid));
+    return { requests, appointments, appointment };
   }, [apiClient, company, guard]);
   const authority = useQuery({
     queryKey: ['signup', 'authority', owner?.userUuid, owner?.ownerAccountUuid, company?.uuid],
@@ -131,16 +152,13 @@ export function useSignupCompanyAuthority(
   const authorityRequest = sourceAvailable
     ? (authority.data?.requests.find((request) => request.status === 'pending') ?? null)
     : null;
-  const currentAppointment = authority.data?.appointment;
-  const currentSignupAppointment =
-    currentAppointment?.declarationVersion === COMPANY_SIGNUP_DECLARATION_VERSION &&
-    signupScopes(
-      currentAppointment.capabilities,
-      currentAppointment.delegatableCapabilities,
-      currentAppointment.expiresAt,
-    );
-  const authorityReady = sourceAvailable && !!currentSignupAppointment;
-  const stopped = !authorityReady && authority.data?.requests.some((request) => request.status === 'admitted');
+  const authorityReady = sourceAvailable && !!authority.data?.appointment;
+  const stopped =
+    !authorityReady &&
+    (authority.data?.requests.some((request) => request.status === 'admitted') ||
+      authority.data?.appointments.some(
+        (appointment) => appointment.company === company?.uuid && appointment.capabilities.includes('admin'),
+      ));
   const authorityError =
     enabled && !owner && !preferences.isLoading
       ? 'Your session is unavailable. Sign in again to resume company setup.'
@@ -148,38 +166,73 @@ export function useSignupCompanyAuthority(
         ? 'Your signed-in account could not be checked. Reload company setup.'
         : authority.isError
           ? getErrorMessage(authority.error, 'Your administrator access could not be checked. Reload company setup.')
-          : currentAppointment && !currentSignupAppointment
-            ? 'Your saved appointment uses earlier signup terms or permissions. It cannot be replaced by another initial declaration. Contact the deployment operator to complete this older setup.'
-            : stopped
-              ? 'Your initial administrator appointment is no longer current. Another initial declaration cannot restore it.'
-              : authorityRequest &&
-                  !signupScopes(
-                    authorityRequest.requestedCapabilities,
-                    authorityRequest.delegatableCapabilities,
-                    authorityRequest.requestedExpiresAt,
-                  )
-                ? 'This saved setup uses previous permissions or an expiry. Update the saved setup to continue.'
+          : stopped
+            ? 'Your company administrator appointment is no longer current. Another initial declaration cannot restore it.'
+            : !authorityReady && authorityRequest && !authorityRequest.requestedCapabilities.includes('admin')
+              ? 'This saved setup does not include administrator access. Update the saved setup to continue.'
+              : !authorityReady &&
+                  authorityRequest?.requestedExpiresAt &&
+                  !(Date.parse(authorityRequest.requestedExpiresAt) > Date.now())
+                ? 'Your saved setup has expired. Update the saved setup to continue.'
                 : null;
+  const currentTerms = (appointment: OwnCompanyAppointment) => {
+    const receipt = appointment.signupTerms;
+    return (
+      receipt?.company === company!.uuid &&
+      receipt.appointment === appointment.uuid &&
+      receipt.acceptedProfile === profile!.uuid &&
+      !!receipt.acceptedBy &&
+      receipt.declarationVersion === COMPANY_SIGNUP_DECLARATION_VERSION &&
+      receipt.declarationText === COMPANY_SIGNUP_DECLARATION &&
+      Number.isFinite(Date.parse(receipt.acceptedAt))
+    );
+  };
+  const confirmTerms = async (appointment: OwnCompanyAppointment) => {
+    guard();
+    if (!currentAdministrator(appointment, company!.uuid))
+      throw new Error('Your company administrator appointment is no longer current. Refresh company setup.');
+    if (!currentTerms(appointment)) {
+      const response = await acceptCompanySignupTerms(apiClient, appointment.uuid, { ledovaSubmissionGuard: guard });
+      guard();
+      if (
+        !sameAppointment(appointment, response.data) ||
+        !currentAdministrator(response.data, company!.uuid) ||
+        !currentTerms(response.data)
+      )
+        throw new Error(
+          'Your current company Terms acceptance could not be confirmed. Refresh company setup before retrying.',
+        );
+    }
+    const confirmed = await authority.refetch({ throwOnError: true });
+    guard();
+    if (
+      !confirmed.data?.appointment ||
+      !sameAppointment(appointment, confirmed.data.appointment) ||
+      !currentAdministrator(confirmed.data.appointment, company!.uuid) ||
+      !currentTerms(confirmed.data.appointment)
+    )
+      throw new Error(
+        'Your current company authority and Terms acceptance could not be confirmed. Refresh company setup before retrying.',
+      );
+  };
   const canEstablishAuthority = enabled && !!owner && authority.isSuccess && !authority.isFetching && !authorityError;
   const establishAuthority = async () => {
     guard();
     if (!canEstablishAuthority) throw new Error('Company setup is not ready. Reload it before continuing.');
     let state = await read();
     if (state.appointment) {
-      if (
-        state.appointment.declarationVersion !== COMPANY_SIGNUP_DECLARATION_VERSION ||
-        !signupScopes(
-          state.appointment.capabilities,
-          state.appointment.delegatableCapabilities,
-          state.appointment.expiresAt,
-        )
-      )
-        throw new Error('Your saved appointment does not match this company setup. Reload company setup to continue.');
+      await confirmTerms(state.appointment);
       return;
     }
-    if (state.requests.some((request) => request.status === 'admitted'))
+    if (
+      state.requests.some((request) => request.status === 'admitted') ||
+      state.appointments.some(
+        (appointment) => appointment.company === company!.uuid && appointment.capabilities.includes('admin'),
+      )
+    )
       throw new Error('Your initial administrator access is no longer current. Reload company setup.');
     let request: CompanyAuthorityRequest | undefined = state.requests.find((entry) => entry.status === 'pending');
+    const newRequest = !request;
     if (!request) {
       key.current ??= newKey();
       try {
@@ -202,29 +255,29 @@ export function useSignupCompanyAuthority(
     }
     if (
       request.company !== company!.uuid ||
-      !signupScopes(request.requestedCapabilities, request.delegatableCapabilities, request.requestedExpiresAt)
+      !request.requestedCapabilities.includes('admin') ||
+      (newRequest &&
+        !signupScopes(request.requestedCapabilities, request.delegatableCapabilities, request.requestedExpiresAt))
     )
       throw new Error('Your authority request did not match this company administrator setup.');
     const response = await admitCompanyAuthorityRequest(apiClient, request.uuid, { ledovaSubmissionGuard: guard });
     guard();
-    if (
-      response.data.uuid !== request.uuid ||
-      response.data.status !== 'admitted' ||
-      response.data.appointment?.declarationVersion !== COMPANY_SIGNUP_DECLARATION_VERSION ||
-      !signupScopes(
-        response.data.appointment.capabilities,
-        response.data.appointment.delegatableCapabilities,
-        response.data.appointment.expiresAt,
-      )
-    )
+    if (response.data.uuid !== request.uuid || response.data.status !== 'admitted' || !response.data.appointment)
       throw new Error('Administrator access could not be confirmed. Reload company setup before retrying.');
     state = await read();
-    if (!state.appointment || state.appointment.uuid !== response.data.appointment?.uuid)
-      throw new Error('Your administrator appointment is not current. Reload company setup before retrying.');
-    const confirmed = await authority.refetch({ throwOnError: true });
-    guard();
-    if (confirmed.data?.appointment?.uuid !== response.data.appointment?.uuid)
-      throw new Error('Your administrator appointment is not current. Reload company setup before retrying.');
+    if (
+      !state.appointment ||
+      state.appointment.uuid !== response.data.appointment.uuid ||
+      state.appointment.expiresAt !== (request.requestedExpiresAt ?? null) ||
+      JSON.stringify([...state.appointment.capabilities].sort()) !==
+        JSON.stringify([...request.requestedCapabilities].sort()) ||
+      JSON.stringify([...state.appointment.delegatableCapabilities].sort()) !==
+        JSON.stringify([...request.delegatableCapabilities].sort())
+    )
+      throw new Error(
+        'Your administrator appointment did not match the retained setup. Reload company setup before retrying.',
+      );
+    await confirmTerms(state.appointment);
   };
   const reset = useMutation({
     mutationFn: async () => {

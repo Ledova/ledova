@@ -599,6 +599,10 @@ FRAMEWORK = {
 }
 
 OPERATOR_ONLY = {
+    "companies_companysignuptermsacceptance": "Immutable current signup Terms receipts bound to one company, "
+    "appointment and appointee. The bounded acceptance command writes them on the operator connection, and own "
+    "appointment serialization reads only that appointee's exact receipt on that connection. The app role has "
+    "no grants and forced row-level security admits no direct rows.",
     "tokens_membercertificatefulfilment": "Immutable private recipient-only certificates served through current "
     "own association or personal company register appointment, with original producing authority and export.",
     "tokens_memberinvitation": "Immutable intended-recipient company member invitations issued by current "

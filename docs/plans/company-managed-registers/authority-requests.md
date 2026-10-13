@@ -55,10 +55,19 @@ evidence in this experimental implementation.
    separate actions.
 
 An unfinished account can sign in again to resume signup. Web company accounts
-with saved personal details return to Company details with the saved draft;
+with saved personal details return to Company details with the saved company;
 other accounts retain the existing account-type entry. A retry must resolve
-the retained request and admission outcome before completion; it cannot infer
-success from a submitted request or a lost response.
+the retained authority and current Terms outcome before completion; it cannot
+infer success from a submitted request or a lost response.
+
+If the person already has a current personal `admin` appointment for that
+company, the final button uses it rather than another initial declaration.
+Older, narrower and invited administrator appointments keep their original
+declaration, capabilities, delegation and expiry. The action records current
+Terms acceptance against that appointment when needed; an appointment that
+already records the same acceptance supplies its existing receipt. It grants
+no additional authority. Revoked, expired or ineffective appointments cannot
+complete signup, and source failures withhold completion.
 
 ## Existing authority requests
 
@@ -201,8 +210,25 @@ The following authenticated operations supplement the initial-request workflow:
 | `GET /api/v1/company-authority/appointments/`                     | Paginated history of the caller's own initial, invited and legacy-owner appointments                         |
 | `GET /api/v1/company-authority/appointments/team/?company={uuid}` | Read that company's team as a current company administrator                                                  |
 | `POST /api/v1/company-authority/appointments/{uuid}/revoke/`      | Permanently revoke one's own appointment or, as a current administrator, another appointment in that company |
+| `POST /api/v1/company-authority/appointments/{uuid}/signup-terms/` | Accept current signup Terms using one's current personal administrator appointment, preserving its authority |
 
-Issuance requires `company`, `inviter_appointment`, a caller-scoped
+The `signup-terms/` action requires `declarationVersion: "2026-10-14"` and
+`acceptDeclaration: true`. It rechecks the caller's own exact-company personal
+`admin` appointment, active email-verified account and bound profile, configured
+identity requirement, expiry and revocation. It returns the own appointment with read-only
+`signupTerms: {company, appointment, acceptedBy, acceptedProfile,
+declarationVersion, declarationText, acceptedAt}`. The own-appointment list
+exposes the same receipt, or `null` when this version has not been accepted.
+
+For an initial appointment already carrying the exact current signup declaration,
+the receipt comes from that original record and admission time. Otherwise the
+action retains one immutable acceptance for that appointment/version, bound to
+the person, profile, company, declaration and time. Repeated acceptance returns
+the same receipt. It does not change the appointment, expand delegation, create
+another bootstrap or restore ineffective authority. Reads and resuming the page
+record no acceptance; only the explicit final action submits it.
+
+Invitation issuance requires `company`, `inviter_appointment`, a caller-scoped
 `idempotency_key`, and personal `capabilities`. Optional
 `delegatable_capabilities` remain separate from personal authority. The union of
 offered personal and delegatable capabilities must be within the selected
@@ -257,6 +283,10 @@ Supplied supporting files retain the [private-file lifecycle](../../architecture
 Earlier admitted declarations keep their original version/text. Team invitation
 acceptance and company activation retain their separate `2026-10-04` declaration;
 a person accepting a limited invitation does not declare workspace administration.
+An administrator's later current signup Terms acceptance is retained separately
+as `CompanySignupTermsAcceptance` when the original appointment does not already
+record it. Its actor, profile, company, appointment, version, text and time are
+immutable; it grants no capabilities and does not rewrite the appointment history.
 
 ## Boundaries
 

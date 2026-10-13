@@ -128,6 +128,12 @@ documents and team invitations are available afterwards from dashboard Settings;
 signup has no file upload or delegation picker. The
 [authority guide](../plans/company-managed-registers/authority-requests.md#company-signup)
 describes this flow.
+An unfinished signup can reuse any current personal administrator appointment
+for its company, retaining the appointment's original scope and declaration.
+The final action records current Terms acceptance when needed rather than
+requiring a new bootstrap or wider permissions. Acceptance already recorded
+on a fresh signup appointment is reused; stale or ineffective authority cannot
+complete signup.
 Native company accounts with readable register access start on Register; those
 without access start on My shares and reach setup from More. The eight steps after the create-account form are listed once,
 in `SIGNUP_STEPS` (`dashboard/src/routes/signupRoutes.tsx`), and `signupRoutes`

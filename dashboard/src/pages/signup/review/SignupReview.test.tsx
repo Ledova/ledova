@@ -53,12 +53,13 @@ it('reuses saved company details and clearly accepts authority and Terms through
 
   vi.mocked(useReview).mockReturnValue({
     ...state,
-    authorityError: 'This saved setup uses the previous team permissions. Update the saved setup to continue.',
+    authorityError: 'Your saved setup has expired. Update the saved setup to continue.',
     authorityRequest: {
       status: 'pending',
       originalFilename: 'saved.pdf',
       requestedCapabilities: ['admin'],
       delegatableCapabilities: ['admin'],
+      requestedExpiresAt: '2020-10-14T00:00:00Z',
     },
   } as never);
   view.rerender(
@@ -67,7 +68,7 @@ it('reuses saved company details and clearly accepts authority and Terms through
     </MemoryRouter>,
   );
   expect(screen.queryByLabelText('Supporting document')).toBeNull();
-  expect(screen.getByRole('alert').textContent).toMatch(/previous team permissions/);
+  expect(screen.getByRole('alert').textContent).toMatch(/saved setup has expired/);
   fireEvent.click(screen.getByRole('button', { name: 'Update saved setup' }));
   expect(state.resetAuthorityRequest).toHaveBeenCalledTimes(1);
 
