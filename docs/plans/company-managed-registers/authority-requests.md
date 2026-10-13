@@ -4,6 +4,9 @@
 
 Delivered under [#862](https://github.com/Ledova/ledova/issues/862); the final
 foundation landed in [PR #911](https://github.com/Ledova/ledova/pull/911).
+[#1020](https://github.com/Ledova/ledova/issues/1020) brings initial admission
+into company signup on web and mobile, following the
+[14 October decision](../../decisions.md#combined-company-signup-and-initial-authority).
 
 Private authority requests, withdrawal and initial self-declaration admission
 run on web and mobile. A pending request grants no authority. Admission records
@@ -19,9 +22,37 @@ entity facts; it does not make Ledova responsible for company information or
 establish the representative's mandate. Use synthetic people, companies and
 evidence in this experimental implementation.
 
-## What the company does
+## Company signup
 
-1. Sign up, verify your account email and register a draft company. Complete the
+1. Create your account, verify its email and complete the existing profile and
+   configured representative identity steps. Save the draft company at
+   **Company details**, then continue to **Review**. Resuming signup reuses the
+   saved profile and company.
+2. Review the company information and initial personal `admin` capability.
+   Permission to appoint other administrators is separate: the optional `admin`
+   delegation choice starts unchecked and is recorded only when explicitly
+   selected.
+3. Provide the supporting PDF, PNG or JPEG through the checked upload flow.
+   This is a platform requirement for retained authority evidence, not a
+   requirement to obtain an ASIC extract. The file remains private.
+4. Accept the displayed authorisation and company-responsibility declaration,
+   then complete signup from **Review**. The action retains the authority request,
+   admits that exact request through the existing identity and ABR checks, and
+   completes signup after the initial appointment is confirmed. A pending
+   request, missing evidence or provider failure grants no authority.
+5. Read the confirmed appointment's personal and delegatable scope in company
+   settings. The company remains Draft; admission neither activates it nor
+   issues shares. Team invitations and register decisions are separate actions.
+
+An unfinished account can sign in again to resume signup. Web company accounts
+with saved personal details return to Company details with the saved draft;
+other accounts retain the existing account-type entry. A retry must resolve
+the retained request and admission outcome before completion; it cannot infer
+success from a submitted request or a lost response.
+
+## Existing authority requests
+
+1. Use your existing verified account and owned draft company. Complete the
    existing representative identity check when configured for companies.
 2. Open **Representative authority** from the company details screen on web or
    mobile. Select the draft company you own; selection is explicit when you have
@@ -30,7 +61,8 @@ evidence in this experimental implementation.
    delegate. Initial admission requires personal `admin`. Set an expiry if
    required. Selecting scopes alone grants no authority.
 4. Upload supporting PDF, PNG or JPEG through the existing checked upload flow.
-   No ASIC extract is required. The file remains private and retained.
+   The platform requires this retained evidence; it does not require an ASIC
+   extract. The file remains private and retained.
 5. Submit the request. The platform freezes the company and representative
    identities, scopes, expiry and evidence bytes. Review the captured information.
 6. Accept the displayed declaration and choose the admission action. Version

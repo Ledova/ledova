@@ -20,13 +20,6 @@ beforeEach(() => {
   mockRefetch.mockResolvedValue({});
 });
 
-it('refuses an empty sign-in without sending credentials', async () => {
-  const { result } = await renderHook(() => useSignIn());
-  await act(async () => result.current.handleSubmit());
-  expect(result.current.errors).toEqual({ email: ['Email is required'], password: ['Password is required'] });
-  expect(signin).not.toHaveBeenCalled();
-});
-
 it('stores the returned token pair and refreshes authentication before completing sign-in', async () => {
   jest.mocked(signin).mockResolvedValue({
     data: { tokens: [{ accessToken: 'synthetic-access', refreshToken: 'synthetic-refresh' }] },

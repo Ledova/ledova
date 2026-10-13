@@ -26,8 +26,17 @@ tasks. The 12 October web increments
 [#1013](https://github.com/Ledova/ledova/issues/1013) and
 [#1014](https://github.com/Ledova/ledova/issues/1014)) add a compact sidebar,
 company ownership Dashboard, consolidated Settings and personal holdings and
-award charts. Native navigation and signup remain unchanged. The guides below
-describe the delivered structure on web and mobile.
+award charts. The
+[14 October signup increment](https://github.com/Ledova/ledova/issues/1020)
+combines company details, authority evidence and explicit initial admission in
+the existing Company details → Review flow on both clients. Personal `admin`
+and optional `admin` delegation are shown separately; delegation starts
+unchecked. Saved company/profile data and unfinished sign-in resumption keep
+the flow recoverable. Identity, ABR and checked-file requirements remain;
+completion neither activates the company nor issues shares. The
+[authority guide](authority-requests.md#company-signup) describes this flow.
+Native signed-in navigation is unchanged. The guides below describe the
+delivered structure on web and mobile.
 
 Verification references in the guides are each increment's original evidence;
 the [11 October minimum-test policy](../../decisions.md#minimum-tests-and-fresh-migrations)

@@ -11,7 +11,7 @@ import { FinancialProfileScreen } from '../screens/signup/financial-profile';
 import { ReviewScreen } from '../screens/signup/review';
 import { AccountTypeScreen } from '../screens/signup/account-type';
 import { CompanyRegistrationScreen } from '../screens/signup/company-registration';
-import { DrawerNavigator } from './DrawerNavigator';
+import { SignupCompletionGate } from './SignupCompletionGate';
 import { useAppTheme } from '../contexts';
 
 export type RootStackParamList = {
@@ -141,7 +141,7 @@ export const AppNavigator = () => {
         />
         <Stack.Screen
           name="MainApp"
-          component={DrawerNavigator}
+          component={SignupCompletionGate}
           options={{
             headerShown: false,
             gestureEnabled: false,

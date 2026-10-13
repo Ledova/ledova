@@ -1,6 +1,7 @@
 from uuid import uuid4
 
 from django.conf import settings
+from django.contrib.auth import get_user_model
 from django.db import IntegrityError, ProgrammingError, connections
 from django.test import override_settings
 from django.test.utils import CaptureQueriesContext
@@ -73,6 +74,51 @@ class ScopedAccessTest(CoreFixtures, APITransactionTestCase):
         self.assertIn(principal_of(APP_ALIAS), (None, ""))
         anonymous = APIClient().get(f"/api/user-profiles/{self.profile.pk}/")
         self.assertEqual(anonymous.status_code, 401, anonymous.content)
+        self.assertIn(principal_of(APP_ALIAS), (None, ""))
+        with use_operator():
+            self.profile.is_signup_completed = False
+            self.profile.save(update_fields=["is_signup_completed"])
+        self.sign_in(self.owner)
+        resumed = self.client.get("/api/user-profiles/")
+        self.assertEqual(resumed.status_code, 200, resumed.content)
+        self.assertEqual(resumed.json()["results"][0]["uuid"], str(self.profile.pk))
+        self.assertFalse(resumed.json()["results"][0]["isSignupCompleted"])
+        self.assertTrue(self.client.get("/api/auth/verify/").json()["valid"])
+        rejected = APIClient().post(
+            "/api/signin/", {"email": self.owner.email, "password": "wrong-password"}, format="json"
+        )
+        self.assertEqual(rejected.status_code, 400, rejected.content)
+        self.assertNotIn("access", rejected.cookies)
+        repeated = APIClient().post(
+            "/api/signup/",
+            {"email": self.owner.email, "password": "wrong-password", "password_confirm": "wrong-password"},
+            format="json",
+        )
+        self.assertEqual(repeated.status_code, 400, repeated.content)
+        self.assertNotIn("access", repeated.cookies)
+        with use_operator():
+            self.owner.refresh_from_db()
+            self.profile.refresh_from_db()
+            self.assertTrue(self.owner.check_password(PASSWORD))
+            self.assertFalse(self.profile.is_signup_completed)
+            self.owner.is_email_verified = False
+            self.owner.save(update_fields=["is_email_verified"])
+        unverified = APIClient().post("/api/signin/", {"email": self.owner.email, "password": PASSWORD}, format="json")
+        self.assertEqual(unverified.status_code, 400, unverified.content)
+        self.assertNotIn("access", unverified.cookies)
+        self.assertIn("Verify your email", str(unverified.json()))
+        with use_operator():
+            self.owner.is_active = False
+            self.owner.save(update_fields=["is_active"])
+            incomplete = get_user_model().objects.create_user(
+                email="missing-profile@example.test", password=PASSWORD, is_active=True, is_email_verified=True
+            )
+        disabled = APIClient().post("/api/signin/", {"email": self.owner.email, "password": PASSWORD}, format="json")
+        self.assertEqual(disabled.status_code, 400, disabled.content)
+        self.assertNotIn("access", disabled.cookies)
+        missing = APIClient().post("/api/signin/", {"email": incomplete.email, "password": PASSWORD}, format="json")
+        self.assertEqual(missing.status_code, 400, missing.content)
+        self.assertNotIn("access", missing.cookies)
         self.assertIn(principal_of(APP_ALIAS), (None, ""))
 
     def test_own_profile_edit_and_foreign_api_database_reads_and_writes_are_isolated(self):

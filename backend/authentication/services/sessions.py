@@ -46,8 +46,10 @@ class SessionService:
         if not user.is_active:
             raise serializers.ValidationError({"error": ["User account is disabled."]})
 
-        if not hasattr(user, "userprofile") or not user.userprofile.is_signup_completed:
-            raise serializers.ValidationError({"error": ["Please complete your signup before signing in."]})
+        if not hasattr(user, "userprofile"):
+            raise serializers.ValidationError({"error": ["Your signup profile is unavailable."]})
+        if not user.userprofile.is_signup_completed and not user.is_email_verified:
+            raise serializers.ValidationError({"error": ["Verify your email before continuing signup."]})
 
         user.last_login = timezone.now()
         user.save(update_fields=["last_login"])
@@ -70,6 +72,8 @@ class SessionService:
         existing_user = lookup.user
         if existing_user:
             set_principal(existing_user.pk)
+            if not existing_user.is_active or not existing_user.check_password(password):
+                raise serializers.ValidationError({"email": ["Email already registered"]})
         if existing_user and hasattr(existing_user, "userprofile") and existing_user.userprofile.is_signup_completed:
             raise serializers.ValidationError({"email": ["Email already registered"]})
 

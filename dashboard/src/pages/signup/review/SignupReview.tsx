@@ -7,6 +7,9 @@ import {
   parseAddress,
   formatSourceOfFunds,
   formatIntendedUse,
+  COMPANY_AUTHORITY_DECLARATION,
+  COMPANY_AUTHORITY_DECLARATION_VERSION,
+  COMPANY_AUTHORITY_CAPABILITIES,
 } from '@ledova/shared';
 import { ICON_LG } from '@components/iconSizes';
 import { useReview } from './useReview';
@@ -14,6 +17,7 @@ import { AuthLayout } from '@components/AuthLayout';
 import { Section } from '@components/Ledger';
 import { COMPANY_TYPES } from '../company-registration/constants';
 import { SITE_URL } from '@utils/siteUrl';
+import { FIELD_CLASS } from '@components/fieldClass';
 
 function displayCompanyType(companyType: string | undefined) {
   return COMPANY_TYPES.find((type) => type.value === companyType)?.label ?? companyType ?? '';
@@ -32,6 +36,17 @@ export function SignupReview() {
     isSubmitting,
     canCompleteSignup,
     retryLoad,
+    authorityRequest,
+    authorityReady,
+    authorityEvidenceLocked,
+    authorityError,
+    setAuthorityEvidence,
+    authorityAccepted,
+    setAuthorityAccepted,
+    allowTeamDelegation,
+    setAllowTeamDelegation,
+    resetAuthorityRequest,
+    isResettingAuthority,
   } = useReview();
 
   const handleBack = () => {
@@ -79,8 +94,14 @@ export function SignupReview() {
             <ClipboardTextIcon size={ICON_LG} className="text-text-muted" />
           </div>
         </div>
-        <h1 className="mb-2 font-display text-3xl tracking-[-0.01em] text-text-primary">Review & Confirm</h1>
-        <p className="text-sm text-text-muted">Please review your information before completing signup</p>
+        <h1 className="mb-2 font-display text-3xl tracking-[-0.01em] text-text-primary">
+          {isCompany ? 'Finish company setup' : 'Review & Confirm'}
+        </h1>
+        <p className="text-sm text-text-muted">
+          {isCompany
+            ? 'Your company details are saved. Confirm your authority to finish as its initial administrator.'
+            : 'Please review your information before completing signup'}
+        </p>
       </div>
 
       <div className="space-y-4">
@@ -186,6 +207,111 @@ export function SignupReview() {
           </Section>
         )}
 
+        {isCompany && company && (
+          <Section title="Your company authority">
+            {authorityError && (
+              <div role="alert" className="space-y-2 text-sm text-error-light">
+                <p>{authorityError}</p>
+                <button type="button" onClick={() => void retryLoad()} className="font-semibold underline">
+                  Refresh company setup
+                </button>
+              </div>
+            )}
+            {authorityReady ? (
+              <p role="status" className="text-sm text-text-primary">
+                Your administrator access to {company.name} is established. Finish signup to open your workspace.
+              </p>
+            ) : (
+              <div className="space-y-4 text-sm text-text-primary">
+                {authorityRequest ? (
+                  <div className="space-y-2">
+                    <p>Saved supporting document: {authorityRequest.originalFilename}</p>
+                    <p>
+                      Your recorded actions:{' '}
+                      {authorityRequest.requestedCapabilities
+                        .map(
+                          (capability) =>
+                            COMPANY_AUTHORITY_CAPABILITIES.find((item) => item.value === capability)?.label,
+                        )
+                        .join(', ')}
+                    </p>
+                    <p>
+                      Permission to delegate:{' '}
+                      {authorityRequest.delegatableCapabilities
+                        .map(
+                          (capability) =>
+                            COMPANY_AUTHORITY_CAPABILITIES.find((item) => item.value === capability)?.label,
+                        )
+                        .join(', ') || 'None'}
+                    </p>
+                    <button
+                      type="button"
+                      disabled={isSubmitting || isResettingAuthority}
+                      onClick={() => void resetAuthorityRequest().catch(() => undefined)}
+                      className="font-semibold text-brand-light underline disabled:opacity-50"
+                    >
+                      Use different evidence
+                    </button>
+                    <p className="text-text-muted">
+                      Replacing a pending request retains its original evidence and history.
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    <p>
+                      You will administer this company and its register. Company decisions and share issues remain
+                      separate actions.
+                    </p>
+                    <label className="block space-y-1">
+                      Supporting document
+                      <input
+                        type="file"
+                        accept="application/pdf,image/png,image/jpeg"
+                        disabled={isSubmitting || authorityEvidenceLocked}
+                        onChange={(event) => setAuthorityEvidence(event.target.files?.[0] ?? null)}
+                        className={FIELD_CLASS}
+                      />
+                    </label>
+                    <p className="text-text-muted">
+                      PDF, PNG or JPEG, up to 10 MB, supporting your authority. This is Ledova&apos;s retained evidence
+                      requirement; no ASIC extract is required.
+                    </p>
+                    <label className="flex items-start gap-2">
+                      <input
+                        type="checkbox"
+                        checked={allowTeamDelegation}
+                        disabled={isSubmitting || authorityEvidenceLocked}
+                        onChange={(event) => setAllowTeamDelegation(event.target.checked)}
+                      />
+                      Allow me to appoint company administrators
+                    </label>
+                    {authorityEvidenceLocked && (
+                      <p role="status" className="text-text-muted">
+                        The original upload is retained for retry. Reload your records before starting a different
+                        request.
+                      </p>
+                    )}
+                  </>
+                )}
+                <p>{COMPANY_AUTHORITY_DECLARATION}</p>
+                <label className="flex items-start gap-2">
+                  <input
+                    type="checkbox"
+                    checked={authorityAccepted}
+                    disabled={isSubmitting || isResettingAuthority}
+                    onChange={(event) => setAuthorityAccepted(event.target.checked)}
+                  />
+                  I am authorised to administer {company.name} and accept this declaration.
+                </label>
+                <p className="text-text-muted">
+                  Declaration {COMPANY_AUTHORITY_DECLARATION_VERSION}. Your required identity and company checks must
+                  pass. This establishes access; it does not activate the company or approve a share issue.
+                </p>
+              </div>
+            )}
+          </Section>
+        )}
+
         <div className="rounded-xl border border-border bg-surface-raised p-4 sm:p-5">
           <p className="text-sm text-text-body leading-relaxed mb-4">
             By completing signup, you accept the{' '}
@@ -220,8 +346,8 @@ export function SignupReview() {
           )}
           <button
             type="button"
-            onClick={completeSignup}
-            disabled={!canCompleteSignup || isSubmitting}
+            onClick={() => void completeSignup().catch(() => undefined)}
+            disabled={!canCompleteSignup || isSubmitting || isResettingAuthority}
             className="w-full bg-brand-mid hover:bg-brand disabled:bg-surface-disabled disabled:text-text-secondary disabled:cursor-not-allowed text-white font-semibold py-3 px-4 rounded-lg transition-colors shadow-lg shadow-brand-light/40 disabled:shadow-none focus:outline-none focus:ring-2 focus:ring-border-focus focus:ring-offset-2 focus:ring-offset-surface-base"
           >
             {isSubmitting ? (
@@ -229,6 +355,8 @@ export function SignupReview() {
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
                 <span>Completing...</span>
               </div>
+            ) : isCompany ? (
+              'Complete company signup'
             ) : (
               'Complete Signup'
             )}

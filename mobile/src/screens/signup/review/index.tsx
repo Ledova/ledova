@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, Linking, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { GradientBackground } from '../../../components/GradientBackground';
@@ -9,6 +10,10 @@ import { layout } from '../../../styles';
 import { useAppTheme, useThemedStyles } from '../../../contexts';
 import { useReview } from './useReview';
 import {
+  apiErrorSentence,
+  COMPANY_AUTHORITY_CAPABILITIES,
+  COMPANY_AUTHORITY_DECLARATION,
+  COMPANY_AUTHORITY_DECLARATION_VERSION,
   formatPhoneWithCountryCode,
   getAddressDisplayLines,
   parseAddress,
@@ -16,6 +21,9 @@ import {
   formatIntendedUse,
 } from '@ledova/shared';
 import { PUBLIC_LINKS } from '../../../config/publicLinks';
+import { Action, Choice } from '../../../components/Ledger';
+import { useDocumentUpload } from '../../../hooks/useDocumentUpload';
+import { getSessionEpoch } from '../../../services/sessionScope';
 
 export function ReviewScreen() {
   const theme = useAppTheme();
@@ -190,8 +198,63 @@ export function ReviewScreen() {
     },
   }));
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
-  const { data, company, isCompany, isLoading, error, completeSignup, isSubmitting, canCompleteSignup, retryLoad } =
-    useReview();
+  const {
+    data,
+    company,
+    isCompany,
+    isLoading,
+    error,
+    completionError,
+    completeSignup,
+    isSubmitting,
+    canCompleteSignup,
+    retryLoad,
+    authorityRequest,
+    authorityReady,
+    authorityError,
+    authorityEvidence,
+    authorityEvidenceLocked,
+    setAuthorityEvidence,
+    authorityAccepted,
+    setAuthorityAccepted,
+    allowTeamDelegation,
+    setAllowTeamDelegation,
+    resetAuthorityRequest,
+    isResettingAuthority,
+  } = useReview();
+  const document = useDocumentUpload(isCompany ? company?.uuid : null);
+  const [evidenceError, setEvidenceError] = useState<string | null>(null);
+  const busy = isSubmitting || isResettingAuthority || document.isPicking || document.isSubmitting;
+  useEffect(() => {
+    const file = document.file as unknown as Blob | null;
+    if (!authorityRequest && !authorityReady && authorityEvidence !== file) setAuthorityEvidence(file);
+  }, [document.file, authorityRequest, authorityReady, authorityEvidence, setAuthorityEvidence]);
+  const pickEvidence = async () => {
+    if (busy || authorityEvidenceLocked || authorityRequest || authorityReady) return;
+    const epoch = getSessionEpoch();
+    setEvidenceError(null);
+    try {
+      await document.pick();
+    } catch (cause) {
+      if (epoch === getSessionEpoch())
+        setEvidenceError(apiErrorSentence(cause, 'The evidence could not be selected. Try again.'));
+    }
+  };
+  const finish = async () => {
+    if (!canCompleteSignup || busy) return;
+    try {
+      if (isCompany && !authorityRequest && !authorityReady) {
+        await document.submit(async ({ assertCurrent }) => {
+          assertCurrent();
+          await completeSignup();
+        });
+      } else {
+        await completeSignup();
+      }
+    } catch {
+      return;
+    }
+  };
 
   const handleBack = () => {
     navigation.navigate(isCompany ? 'CompanyRegistration' : 'FinancialProfile');
@@ -377,6 +440,117 @@ export function ReviewScreen() {
             </View>
           )}
 
+          {isCompany && company && (
+            <View style={styles.card}>
+              <View style={styles.cardHeader}>
+                <Text style={styles.sectionTitle}>Company representative</Text>
+              </View>
+              <View style={styles.cardContent}>
+                <View style={styles.infoList}>
+                  {authorityReady ? (
+                    <Text style={styles.infoValueVertical}>
+                      Your current company administrator appointment is confirmed.
+                    </Text>
+                  ) : (
+                    <>
+                      {authorityRequest ? (
+                        <>
+                          <Text style={styles.infoValueVertical}>
+                            Retained evidence: {authorityRequest.originalFilename}
+                          </Text>
+                          <Text style={styles.infoLabel}>
+                            Your permissions:{' '}
+                            {authorityRequest.requestedCapabilities
+                              .map(
+                                (value) =>
+                                  COMPANY_AUTHORITY_CAPABILITIES.find((item) => item.value === value)?.label ?? value,
+                              )
+                              .join(', ')}
+                          </Text>
+                          <Text style={styles.infoLabel}>
+                            Permissions you can delegate:{' '}
+                            {authorityRequest.delegatableCapabilities
+                              .map(
+                                (value) =>
+                                  COMPANY_AUTHORITY_CAPABILITIES.find((item) => item.value === value)?.label ?? value,
+                              )
+                              .join(', ') || 'None'}
+                          </Text>
+                          {authorityRequest.status === 'pending' && (
+                            <Action
+                              label="Use different evidence"
+                              disabled={busy}
+                              onPress={() => {
+                                void resetAuthorityRequest()
+                                  .then(() => document.clear())
+                                  .catch(() => {});
+                              }}
+                            />
+                          )}
+                        </>
+                      ) : (
+                        <>
+                          <Text style={styles.infoLabel}>
+                            Choose a PDF, PNG or JPEG up to 10 MB that supports your authority to act for {company.name}
+                            . Your evidence stays private to your account.
+                          </Text>
+                          {document.file && <Text style={styles.infoValueVertical}>{document.file.name}</Text>}
+                          <Action
+                            label={document.file ? 'Replace evidence' : 'Choose representative evidence'}
+                            disabled={busy || authorityEvidenceLocked}
+                            onPress={() => void pickEvidence()}
+                          />
+                          {document.file && (
+                            <Action
+                              label="Remove selected evidence"
+                              disabled={busy || authorityEvidenceLocked}
+                              onPress={document.clear}
+                            />
+                          )}
+                          <Choice
+                            label="Allow me to appoint company administrators"
+                            accessibilityRole="checkbox"
+                            selected={allowTeamDelegation}
+                            disabled={busy || authorityEvidenceLocked}
+                            onPress={() => setAllowTeamDelegation(!allowTeamDelegation)}
+                          />
+                          <Text style={styles.infoLabel}>
+                            Your initial appointment manages company information and team. Delegation is granted only
+                            when you select this option and is retained with your declaration.
+                          </Text>
+                          {authorityEvidenceLocked && (
+                            <Text style={styles.infoLabel}>
+                              The upload outcome is not confirmed. Retry with the same evidence and permissions.
+                            </Text>
+                          )}
+                        </>
+                      )}
+                      <Text style={styles.termsText}>{COMPANY_AUTHORITY_DECLARATION}</Text>
+                      <Text style={styles.infoLabel}>Declaration version {COMPANY_AUTHORITY_DECLARATION_VERSION}.</Text>
+                      <Choice
+                        label={`Accept authorisation declaration for ${company.name}`}
+                        accessibilityRole="checkbox"
+                        selected={authorityAccepted}
+                        disabled={busy}
+                        onPress={() => setAuthorityAccepted(!authorityAccepted)}
+                      />
+                    </>
+                  )}
+                  <Text style={styles.infoLabel}>
+                    An appointment does not activate the company or approve a share issue. Those company decisions
+                    remain separate.
+                  </Text>
+                  {(authorityError || evidenceError) && (
+                    <Text accessibilityRole="alert" style={styles.errorText}>
+                      {authorityError || evidenceError}
+                    </Text>
+                  )}
+                  <Action label="Refresh setup" disabled={busy} onPress={() => void retryLoad()} />
+                </View>
+              </View>
+            </View>
+          )}
+
           <View style={styles.card}>
             <View style={styles.cardContent}>
               <Text style={styles.termsText}>
@@ -395,14 +569,19 @@ export function ReviewScreen() {
               {!canCompleteSignup && (
                 <Text style={styles.validationText}>Please ensure all information is complete to proceed.</Text>
               )}
+              {completionError && (
+                <Text accessibilityRole="alert" style={styles.errorText}>
+                  {completionError}
+                </Text>
+              )}
               <PrimaryButton
-                onPress={completeSignup}
-                loading={isSubmitting}
-                disabled={!canCompleteSignup}
+                onPress={() => void finish()}
+                loading={isSubmitting || document.isSubmitting || isResettingAuthority}
+                disabled={!canCompleteSignup || busy}
                 fullWidth
                 style={styles.completeButton}
               >
-                Complete Signup
+                {isCompany ? 'Finish company setup' : 'Complete Signup'}
               </PrimaryButton>
             </View>
           </View>
@@ -413,7 +592,7 @@ export function ReviewScreen() {
             <View style={styles.dividerLine} />
           </View>
 
-          <TouchableOpacity style={styles.backSection} onPress={handleBack} disabled={isSubmitting}>
+          <TouchableOpacity style={styles.backSection} onPress={handleBack} disabled={busy}>
             <Text style={styles.backLink}>Go Back</Text>
           </TouchableOpacity>
         </ScrollView>

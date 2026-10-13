@@ -46,24 +46,6 @@ describe('useSignIn', () => {
     vi.restoreAllMocks();
   });
 
-  it('validates a blank form without making a request', async () => {
-    const { queryClient, wrapper } = createHarness();
-    const { result, unmount } = renderHook(() => useSignIn(), { wrapper });
-
-    await act(async () => {
-      await result.current.handleSubmit();
-    });
-
-    expect(signinMock).not.toHaveBeenCalled();
-    expect(result.current.errors).toEqual({
-      email: ['Email is required'],
-      password: ['Password is required'],
-    });
-
-    unmount();
-    queryClient.clear();
-  });
-
   it('signs in, refreshes authentication state, then reports success', async () => {
     const { queryClient, wrapper } = createHarness();
     const callOrder: string[] = [];

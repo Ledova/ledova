@@ -7,6 +7,10 @@ import { getUserProfiles } from '../services/users';
 import type { CompanyRegistration, CompanyType } from '../types';
 import { apiErrorSentence, readApiError } from '../utils/errors';
 import { useApiClient } from './useApiClient';
+import { AUTH_QUERY_KEY, useAuth } from './useAuth';
+import type { OrderSubmissionSession } from './useOrderSubmissions';
+import { useSubmissionOwner } from './useSubmissionOwner';
+import { USER_PREFERENCES_QUERY_KEY, useUserPreferences } from './useUserPreferences';
 
 interface CompanyFormData {
   name: string;
@@ -32,6 +36,7 @@ export const COMPANY_REGISTRATION_FIELDS = Object.keys(initialFormData) as (keyo
 
 interface FormOwner {
   uuid: string | null | undefined;
+  account: ReturnType<typeof useSubmissionOwner>['owner'];
 }
 
 interface FormState {
@@ -58,28 +63,64 @@ const initialState = (owner: FormOwner): FormState => ({
   hydrated: owner.uuid === null,
 });
 
-export function useSignupCompanyRegistration() {
+export function useSignupCompanyRegistration(session?: OrderSubmissionSession) {
   const apiClient = useApiClient();
   const queryClient = useQueryClient();
+  const { owner: accountOwner, boundary } = useSubmissionOwner(session);
+  const auth = useAuth();
+  const preferences = useUserPreferences();
+  const guard = useCallback(() => {
+    if (
+      !accountOwner ||
+      boundary.get() !== accountOwner ||
+      queryClient.getQueryState(USER_PREFERENCES_QUERY_KEY)?.status !== 'success'
+    )
+      throw new Error('Your signed-in account changed. Reload company setup before continuing.');
+  }, [accountOwner, boundary, queryClient]);
   const profilesQuery = useQuery({
-    queryKey: ['userProfiles'],
-    queryFn: () => getUserProfiles(apiClient),
+    queryKey: ['userProfiles', accountOwner?.userUuid, accountOwner?.ownerAccountUuid],
+    queryFn: async () => {
+      guard();
+      const response = await getUserProfiles(apiClient, { ...session?.requestConfig(), ledovaSubmissionGuard: guard });
+      guard();
+      if (response.data.results.length !== 1 || response.data.results[0]?.uuid !== accountOwner?.userUuid)
+        throw new Error('Your own profile could not be confirmed. Reload company setup.');
+      return response;
+    },
+    enabled: !!accountOwner,
   });
   const companiesQuery = useQuery({
-    queryKey: ['signup', 'company'],
-    queryFn: () => getCompanies(apiClient),
+    queryKey: ['signup', 'company', accountOwner?.userUuid, accountOwner?.ownerAccountUuid],
+    queryFn: async () => {
+      guard();
+      const response = await getCompanies(apiClient, undefined, {
+        ...session?.requestConfig(),
+        ledovaSubmissionGuard: guard,
+      });
+      guard();
+      return response;
+    },
+    enabled: !!accountOwner,
     staleTime: 0,
   });
   const existingCompany = companiesQuery.data?.data.results[0] || null;
   const selectedUuid = companiesQuery.data ? (existingCompany?.uuid ?? null) : undefined;
   const detailQuery = useQuery({
-    queryKey: ['signup', 'company-detail', selectedUuid],
-    queryFn: () => getCompany(apiClient, selectedUuid!),
-    enabled: Boolean(selectedUuid),
+    queryKey: ['signup', 'company-detail', selectedUuid, accountOwner?.userUuid, accountOwner?.ownerAccountUuid],
+    queryFn: async () => {
+      guard();
+      const response = await getCompany(apiClient, selectedUuid!, {
+        ...session?.requestConfig(),
+        ledovaSubmissionGuard: guard,
+      });
+      guard();
+      return response;
+    },
+    enabled: !!accountOwner && Boolean(selectedUuid),
     staleTime: 0,
   });
   const detail = selectedUuid && detailQuery.data?.data.uuid === selectedUuid ? detailQuery.data.data : null;
-  const owner = useMemo(() => ({ uuid: selectedUuid }), [selectedUuid]);
+  const owner = useMemo(() => ({ uuid: selectedUuid, account: accountOwner }), [selectedUuid, accountOwner]);
   const currentOwner = useRef(owner);
   const mounted = useRef(true);
   const submission = useRef<Submission | null>(null);
@@ -137,22 +178,45 @@ export function useSignupCompanyRegistration() {
   }, [detail, updateState]);
 
   const userProfile = profilesQuery.data?.data.results?.[0] ?? null;
-  const loadFailure = profilesQuery.error ?? companiesQuery.error ?? (selectedUuid ? detailQuery.error : null);
+  const loadFailure =
+    preferences.error ?? profilesQuery.error ?? companiesQuery.error ?? (selectedUuid ? detailQuery.error : null);
   const loadError = loadFailure
     ? apiErrorSentence(loadFailure, SIGNUP_LOAD_FAILED, SIGNUP_LOAD_FAILED)
-    : selectedUuid && detailQuery.isSuccess && !detail
-      ? 'Company details did not match the selected company. Please try again.'
-      : null;
+    : !auth.isLoading && !preferences.isLoading && !accountOwner
+      ? 'Your signed-in account could not be confirmed. Sign in again or retry company setup.'
+      : selectedUuid && detailQuery.isSuccess && !detail
+        ? 'Company details did not match the selected company. Please try again.'
+        : null;
   const hasLoadedForm = state.hydrated;
   const isLoading =
-    profilesQuery.isLoading ||
-    companiesQuery.isLoading ||
-    Boolean(selectedUuid && detailQuery.isLoading) ||
-    (!hasLoadedForm && !loadError);
-  const canSubmit = hasLoadedForm && !loadError && !isLoading;
+    !loadError &&
+    (auth.isLoading ||
+      preferences.isLoading ||
+      profilesQuery.isLoading ||
+      companiesQuery.isLoading ||
+      Boolean(selectedUuid && detailQuery.isLoading) ||
+      !hasLoadedForm);
+  const canSubmit =
+    hasLoadedForm &&
+    !loadError &&
+    !isLoading &&
+    !preferences.isFetching &&
+    !profilesQuery.isFetching &&
+    !companiesQuery.isFetching &&
+    !detailQuery.isFetching &&
+    !!accountOwner &&
+    userProfile?.uuid === accountOwner.userUuid;
 
   const registerMutation = useMutation({
-    mutationFn: (data: CompanyRegistration) => registerCompany(apiClient, data),
+    mutationFn: async (data: CompanyRegistration) => {
+      guard();
+      const response = await registerCompany(apiClient, data, {
+        ...session?.requestConfig(),
+        ledovaSubmissionGuard: guard,
+      });
+      guard();
+      return response;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['auth'] });
       queryClient.invalidateQueries({ queryKey: ['userPreferences'] });
@@ -160,8 +224,15 @@ export function useSignupCompanyRegistration() {
     },
   });
   const updateMutation = useMutation({
-    mutationFn: (data: { uuid: string; update: Partial<CompanyRegistration> }) =>
-      updateCompany(apiClient, data.uuid, data.update),
+    mutationFn: async (data: { uuid: string; update: Partial<CompanyRegistration> }) => {
+      guard();
+      const response = await updateCompany(apiClient, data.uuid, data.update, {
+        ...session?.requestConfig(),
+        ledovaSubmissionGuard: guard,
+      });
+      guard();
+      return response;
+    },
     onSuccess: (_response, data) => {
       queryClient.invalidateQueries({ queryKey: ['signup', 'company'] });
       queryClient.invalidateQueries({ queryKey: ['signup', 'company-detail', data.uuid] });
@@ -192,8 +263,9 @@ export function useSignupCompanyRegistration() {
       submission.current === attempt &&
       attempt.owners.every(
         (seen) =>
-          seen === attempt.owner ||
-          (attempt.owner.uuid === null && registeredUuid !== undefined && seen.uuid === registeredUuid),
+          seen.account === attempt.owner.account &&
+          (seen === attempt.owner ||
+            (attempt.owner.uuid === null && registeredUuid !== undefined && seen.uuid === registeredUuid)),
       ),
     [],
   );
@@ -286,6 +358,7 @@ export function useSignupCompanyRegistration() {
         });
         setGeneralError(reading.generalError ?? '');
         setErrors(reading.fieldErrors ?? {});
+        await queryClient.invalidateQueries({ queryKey: ['signup', 'company'] });
       } finally {
         if (submission.current === attempt) submission.current = null;
       }
@@ -300,12 +373,18 @@ export function useSignupCompanyRegistration() {
       registerMutation,
       updateMutation,
       isCurrentSubmission,
+      queryClient,
       setGeneralError,
       setErrors,
     ],
   );
 
   const retryLoad = useCallback(async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: AUTH_QUERY_KEY }),
+      queryClient.invalidateQueries({ queryKey: USER_PREFERENCES_QUERY_KEY }),
+    ]);
+    if (queryClient.getQueryState(USER_PREFERENCES_QUERY_KEY)?.status !== 'success') return;
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ['userProfiles'] }),
       queryClient.invalidateQueries({ queryKey: ['signup', 'company'] }),

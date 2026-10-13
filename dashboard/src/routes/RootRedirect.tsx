@@ -1,5 +1,5 @@
 import { Navigate } from 'react-router-dom';
-import { DESTINATIONS, useAuth, useUserPreferences } from '@ledova/shared';
+import { DESTINATIONS, canOpen, useAuth, useUserPreferences } from '@ledova/shared';
 import { useRegisterEntryAccess } from '@pages/company/register/useCompanyRegister';
 import { Page, PageAction } from '@components/Page';
 import { PageTitle } from '@components/PageTitle';
@@ -16,7 +16,18 @@ export function RootRedirect() {
   if (isLoading || (isAuthenticated && profile.isLoading)) return null;
   if (!isAuthenticated) return <Navigate to="/signin" replace />;
   if (!profile.userProfile) return <AccountUnavailable onRetry={profile.refreshProfile} />;
-  if (!profile.userProfile.isSignupCompleted) return <Navigate to={SIGNUP_RESUMES_AT} replace />;
+  if (!profile.userProfile.isSignupCompleted)
+    return (
+      <Navigate
+        to={
+          canOpen(preferences.userAccount?.role ?? 'investor', 'company') &&
+          (profile.userProfile.fullName?.trim().split(/\s+/).length ?? 0) > 1
+            ? '/signup/company-registration'
+            : SIGNUP_RESUMES_AT
+        }
+        replace
+      />
+    );
   if (
     preferences.isError ||
     access.isError ||

@@ -15,6 +15,7 @@ stay here as history and are marked where they appear.
 | [Company-managed registers and one product](#company-managed-registers-and-one-product)                         | 3 October 2026                                 | Current; replaces routine register work by platform staff          |
 | [Company-run register authority and evidence](#company-run-register-authority-and-evidence)                     | 5 October 2026                                 | Current                                                            |
 | [Company representative verification](#company-representative-verification)                                     | 4 October 2026                                 | Current                                                            |
+| [Combined company signup and initial authority](#combined-company-signup-and-initial-authority)                 | 14 October 2026                                | Current; #1020                                                     |
 | [Eligibility and ownership records](#eligibility-and-ownership-records)                                         | September to 6 October 2026                    | Current                                                            |
 | [The stored register](#the-stored-register)                                                                     | September 2026; staff review retired 5 October | Current                                                            |
 | [Company-scoped approvals](#company-scoped-approvals)                                                           | 19 September 2026                              | Current                                                            |
@@ -160,6 +161,32 @@ requires it. If such a duty is identified, raise it with the owner with its sour
 rather than building a check; see [legal positions](legal/positions.md). The
 [accepted plan](architecture/company-managed-registers.md#representative-verification)
 records the implementation boundary.
+
+## Combined company signup and initial authority
+
+On 14 October 2026 the owner authorised
+[#1020](https://github.com/Ledova/ledova/issues/1020): company signup and initial
+representative authority should finish in one visible flow, keeping the existing
+**Company details → Review** routes. Review combines the retained evidence
+request, explicit declaration, initial admission and signup completion through
+the existing APIs. Saved company and profile data are reused, and an unfinished
+account can sign in to resume. Completion requires a confirmed appointment;
+submission alone is not admission.
+
+The initial personal scope is `admin`. Delegation is a separate visible choice:
+it is empty by default and includes `admin` only when explicitly selected.
+Existing representative identity, ABR and checked-file safeguards remain. The
+supporting file is a platform requirement for retained evidence, not an ASIC
+extract requirement. A missing file or failed provider does not establish
+authority. Admission does not activate the company, issue shares or invite team
+members, and no new platform-staff approval step is added.
+
+This replaces the earlier instruction to leave signup unchanged while retaining
+the delivered dashboard and native navigation. The
+[authority guide](plans/company-managed-registers/authority-requests.md#company-signup)
+owns the workflow. New browser evidence must record the actual flow and its
+environment; local synthetic provider responses do not establish production or
+genuine provider verification. Earlier galleries remain dated history.
 
 ## Eligibility and ownership records
 
@@ -960,6 +987,10 @@ ownership or complete totals. No valuation, forecast, chart dependency, new role
 or company-wide member disclosure is introduced. Broader personal visibility
 needs a separate owner decision. Current delivery is described in
 [clients](architecture/clients.md); signup and native landing remain as delivered.
+
+The signup constraint above was replaced by the
+[14 October combined signup decision](#combined-company-signup-and-initial-authority).
+The dashboard layout and native signed-in navigation remain as delivered.
 
 ## The signed-in app
 

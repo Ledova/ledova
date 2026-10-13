@@ -21,6 +21,7 @@ it('waits for actual register access, offers retry on refusal, and lands each ac
   let refused = true;
   let companyAccess = true;
   let signupComplete = true;
+  let personalDetailsSaved = false;
   api.get.mockImplementation((url: string) => {
     if (url === '/api/user-preferences/') return Promise.resolve({ data: companyPreferences('investor') });
     if (url === '/api/user-profiles/')
@@ -31,6 +32,7 @@ it('waits for actual register access, offers retry on refusal, and lands each ac
               uuid: client.getQueryData<{ data: { userProfile: string } }>(USER_PREFERENCES_QUERY_KEY)!.data
                 .userProfile,
               isSignupCompleted: signupComplete,
+              fullName: personalDetailsSaved ? 'Example Director' : '',
             },
           ],
           next: null,
@@ -75,7 +77,16 @@ it('waits for actual register access, offers retry on refusal, and lands each ac
                   </>
                 }
               />
-              <Route path={SIGNUP_RESUMES_AT} element={<p>Resume signup</p>} />
+              <Route
+                path={SIGNUP_RESUMES_AT}
+                element={
+                  <>
+                    <p>Resume signup</p>
+                    <Link to="/">Check signup progress</Link>
+                  </>
+                }
+              />
+              <Route path="/signup/company-registration" element={<p>Resume company setup</p>} />
             </Routes>
           </MemoryRouter>
         </ApiClientProvider>
@@ -109,6 +120,15 @@ it('waits for actual register access, offers retry on refusal, and lands each ac
     );
     fireEvent.click(screen.getByRole('link', { name: 'Check access' }));
     expect(await screen.findByText('Resume signup')).toBeTruthy();
+    expect(api.get.mock.calls.filter(([url]) => url === COMPANY_TOKEN_ENDPOINTS.REGISTER)).toHaveLength(registerReads);
+    personalDetailsSaved = true;
+    act(() =>
+      client.setQueryData(USER_PREFERENCES_QUERY_KEY, {
+        data: { ...other, userProfile: 'profile-four', userAccount: { ...other.userAccount!, uuid: 'account-four' } },
+      }),
+    );
+    fireEvent.click(screen.getByRole('link', { name: 'Check signup progress' }));
+    expect(await screen.findByText('Resume company setup')).toBeTruthy();
     expect(api.get.mock.calls.filter(([url]) => url === COMPANY_TOKEN_ENDPOINTS.REGISTER)).toHaveLength(registerReads);
   } finally {
     cleanup();
