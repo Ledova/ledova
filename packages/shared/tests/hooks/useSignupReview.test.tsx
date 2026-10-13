@@ -13,7 +13,7 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
-it('resumes saved company details and one retained authority request, refusing completion after authority is lost', async () => {
+it('accepts current company terms only on explicit completion, resumes setup without uploads and refuses completion after authority is lost', async () => {
   const api = axios.create();
   const query = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
   const wrapper = ({ children }: PropsWithChildren) => (
@@ -27,6 +27,8 @@ it('resumes saved company details and one retained authority request, refusing c
   let preferencesMode: 'ready' | 'missing' | 'failed' = 'ready';
   let request: Record<string, unknown> | null = null;
   let effective = false;
+  let declarationVersion = '2026-10-14';
+  let failProfileCompletion = true;
   let refuseReads = false;
   const appointment = () => ({
     uuid: 'appointment-a',
@@ -34,6 +36,8 @@ it('resumes saved company details and one retained authority request, refusing c
     status: 'active',
     capabilities: ['admin'],
     isEffective: effective,
+    declarationVersion,
+    delegatableCapabilities: ['admin', 'prepare', 'approve', 'apply', 'finance', 'read_register'],
   });
   jest.spyOn(api, 'get').mockImplementation(async (url) => {
     if (url === '/api/auth/verify/') return { data: { valid: true } };
@@ -65,24 +69,23 @@ it('resumes saved company details and one retained authority request, refusing c
       throw new Error('Company response interrupted after saving');
     }
     if (url === '/api/v1/company-authority/requests/') {
-      const form = body as FormData;
-      expect(form.get('company')).toBe(company.uuid);
-      expect(form.get('idempotency_key')).toBe('11111111-1111-4111-8111-111111111111');
-      expect(form.getAll('requested_capabilities')).toEqual(['admin']);
-      expect(form.getAll('delegatable_capabilities')).toEqual([]);
-      request = {
-        uuid: 'request-a',
-        idempotencyKey: form.get('idempotency_key'),
+      expect(body).toEqual({
         company: company.uuid,
-        status: 'pending',
+        idempotencyKey: '11111111-1111-4111-8111-111111111111',
         requestedCapabilities: ['admin'],
-        delegatableCapabilities: [],
-        originalFilename: 'authority.pdf',
+        delegatableCapabilities: ['admin', 'prepare', 'approve', 'apply', 'finance', 'read_register'],
+      });
+      request = {
+        ...(body as Record<string, unknown>),
+        uuid: 'request-a',
+        status: 'pending',
+        originalFilename: '',
+        fileUrl: null,
       };
       throw new Error('Response interrupted after saving');
     }
     if (url === '/api/v1/company-authority/requests/request-a/admit/') {
-      expect(body).toEqual({ declarationVersion: '2026-10-04', acceptDeclaration: true });
+      expect(body).toEqual({ declarationVersion: '2026-10-14', acceptDeclaration: true });
       effective = true;
       request = { ...request, status: 'admitted', appointment: appointment() };
       return { data: request };
@@ -94,7 +97,10 @@ it('resumes saved company details and one retained authority request, refusing c
       expect(body).toMatchObject({ name: company.name, acn: company.acn });
       return { data: company };
     }
-    if (url === '/api/user-profiles/profile-a/') return { data: { ...profile, isSignupCompleted: true } };
+    if (url === '/api/user-profiles/profile-a/') {
+      if (failProfileCompletion) throw new Error('Profile completion interrupted');
+      return { data: { ...profile, isSignupCompleted: true } };
+    }
     throw new Error('Unexpected update');
   });
   const completedProfiles = () => complete.mock.calls.filter(([url]) => url === '/api/user-profiles/profile-a/');
@@ -131,12 +137,9 @@ it('resumes saved company details and one retained authority request, refusing c
   const newKey = jest.fn(() => '11111111-1111-4111-8111-111111111111');
   let mounted = renderHook(() => useSignupReview('company', finished, undefined, newKey), { wrapper });
   await waitFor(() => expect(mounted.result.current.isLoading).toBe(false));
-  expect(mounted.result.current.canCompleteSignup).toBe(false);
-  act(() =>
-    mounted.result.current.setAuthorityEvidence(new File(['evidence'], 'authority.pdf', { type: 'application/pdf' })),
-  );
-  act(() => mounted.result.current.setAuthorityAccepted(true));
   await waitFor(() => expect(mounted.result.current.canCompleteSignup).toBe(true));
+  expect(post.mock.calls.filter(([url]) => url === '/api/v1/company-authority/requests/')).toHaveLength(0);
+  expect(completedProfiles()).toHaveLength(0);
   await act(async () => {
     await expect(mounted.result.current.completeSignup()).rejects.toThrow('Response interrupted');
   });
@@ -145,18 +148,35 @@ it('resumes saved company details and one retained authority request, refusing c
   mounted.unmount();
   mounted = renderHook(() => useSignupReview('company', finished, undefined, newKey), { wrapper });
   await waitFor(() => expect(mounted.result.current.authorityRequest?.uuid).toBe('request-a'));
-  expect(mounted.result.current.authorityEvidence).toBeNull();
-  expect(mounted.result.current.canCompleteSignup).toBe(false);
-  act(() => mounted.result.current.setAuthorityAccepted(true));
   await waitFor(() => expect(mounted.result.current.canCompleteSignup).toBe(true));
   await act(async () => {
-    await mounted.result.current.completeSignup();
+    await expect(mounted.result.current.completeSignup()).rejects.toThrow('Profile completion interrupted');
   });
+  expect(finished).not.toHaveBeenCalled();
+  expect(post.mock.calls.filter(([url]) => url === '/api/v1/company-authority/requests/request-a/admit/')).toHaveLength(
+    1,
+  );
+  mounted.unmount();
+  mounted = renderHook(() => useSignupReview('company', finished, undefined, newKey), { wrapper });
+  await waitFor(() => expect(mounted.result.current.authorityReady).toBe(true));
+  failProfileCompletion = false;
+  await waitFor(() => expect(mounted.result.current.canCompleteSignup).toBe(true));
+  await act(async () => mounted.result.current.completeSignup());
+  expect(post.mock.calls.filter(([url]) => url === '/api/v1/company-authority/requests/request-a/admit/')).toHaveLength(
+    1,
+  );
   expect(post.mock.calls.filter(([url]) => url === '/api/v1/company-authority/requests/')).toHaveLength(1);
   expect(newKey).toHaveBeenCalledTimes(1);
-  expect(completedProfiles()).toHaveLength(1);
+  expect(completedProfiles()).toHaveLength(2);
   expect(finished).toHaveBeenCalledTimes(1);
 
+  declarationVersion = '2026-10-04';
+  await act(async () => mounted.result.current.refreshAuthority());
+  await waitFor(() => expect(mounted.result.current.authorityError).toMatch(/earlier signup terms/));
+  expect(mounted.result.current.canCompleteSignup).toBe(false);
+  declarationVersion = '2026-10-14';
+  await act(async () => mounted.result.current.refreshAuthority());
+  await waitFor(() => expect(mounted.result.current.canCompleteSignup).toBe(true));
   effective = false;
   await act(async () => {
     await mounted.result.current.refreshAuthority();
@@ -169,7 +189,7 @@ it('resumes saved company details and one retained authority request, refusing c
   });
   expect(mounted.result.current.canCompleteSignup).toBe(false);
   await waitFor(() => expect(mounted.result.current.authorityReady).toBe(false));
-  expect(completedProfiles()).toHaveLength(1);
+  expect(completedProfiles()).toHaveLength(2);
   mounted.unmount();
   query.clear();
   preferencesMode = 'missing';

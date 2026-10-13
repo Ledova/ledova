@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { useNavigation, type NavigationProp } from '@react-navigation/native';
+import type { RootStackParamList } from '../../navigation/AppNavigator';
 import { ActivityIndicator, Alert, Text, TextInput, View } from 'react-native';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { USER_PREFERENCES_QUERY_KEY, upsertCurrentUserPreferences, useUserPreferences } from '@ledova/shared';
@@ -12,6 +14,7 @@ import { useSettings } from './useSettings';
 
 export function SettingsScreen() {
   const styles = useAccountStyles();
+  const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const lock = useAppLock();
   const preferences = useUserPreferences();
   const transactionAlerts = preferences.preferences?.transactionAlerts;
@@ -108,6 +111,29 @@ export function SettingsScreen() {
   return (
     <>
       <Page title="Settings">
+        <Section title="Company settings">
+          <Text style={styles.muted}>
+            Company details and optional supporting documents can be managed after signup.
+          </Text>
+          <Action
+            label="Company details and documents"
+            onPress={() =>
+              navigation.navigate('MainApp', {
+                screen: 'Main',
+                params: { screen: 'Company', params: { screen: 'CompanyDetails' } },
+              } as never)
+            }
+          />
+          <Action
+            label="Team and appointments"
+            onPress={() =>
+              navigation.navigate('MainApp', {
+                screen: 'Main',
+                params: { screen: 'Company', params: { screen: 'CompanyTeam' } },
+              } as never)
+            }
+          />
+        </Section>
         <Section title="Security">
           <SwitchRow
             label={`${lock.biometricType} sign in`}

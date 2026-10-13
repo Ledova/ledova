@@ -15,7 +15,8 @@ stay here as history and are marked where they appear.
 | [Company-managed registers and one product](#company-managed-registers-and-one-product)                         | 3 October 2026                                 | Current; replaces routine register work by platform staff          |
 | [Company-run register authority and evidence](#company-run-register-authority-and-evidence)                     | 5 October 2026                                 | Current                                                            |
 | [Company representative verification](#company-representative-verification)                                     | 4 October 2026                                 | Current                                                            |
-| [Combined company signup and initial authority](#combined-company-signup-and-initial-authority)                 | 14 October 2026                                | Current; #1020                                                     |
+| [Combined company signup and initial authority](#combined-company-signup-and-initial-authority)                 | 14 October 2026                                | Current; amended by #1022 below                                    |
+| [Simple signup, documents and team after registration](#simple-signup-documents-and-team-after-registration)     | 14 October 2026                                | Current; #1022                                                     |
 | [Eligibility and ownership records](#eligibility-and-ownership-records)                                         | September to 6 October 2026                    | Current                                                            |
 | [The stored register](#the-stored-register)                                                                     | September 2026; staff review retired 5 October | Current                                                            |
 | [Company-scoped approvals](#company-scoped-approvals)                                                           | 19 September 2026                              | Current                                                            |
@@ -173,6 +174,9 @@ the existing APIs. Saved company and profile data are reused, and an unfinished
 account can sign in to resume. Completion requires a confirmed appointment;
 submission alone is not admission.
 
+The [same-day amendment below](#simple-signup-documents-and-team-after-registration)
+supersedes the file and delegation choices in the original decision that follows.
+
 The initial personal scope is `admin`. Delegation is a separate visible choice:
 it is empty by default and includes `admin` only when explicitly selected.
 Existing representative identity, ABR and checked-file safeguards remain. The
@@ -187,6 +191,46 @@ the delivered dashboard and native navigation. The
 owns the workflow. New browser evidence must record the actual flow and its
 environment; local synthetic provider responses do not establish production or
 genuine provider verification. Earlier galleries remain dated history.
+
+### Simple signup, documents and team after registration
+
+Later on 14 October 2026, the owner approved
+[#1022](https://github.com/Ledova/ledova/issues/1022), amending the combined
+signup above. Review keeps the saved personal/company summary and one short
+authority/Terms statement beside **Complete company setup**. Choosing that
+button explicitly acknowledges that the representative already has authority
+to set up and administer that company's workspace, including its users, and
+accepts the linked Terms on the company's behalf. There is no separate authority
+checkbox; the declaration is visible at the action rather than hidden in legal
+text. Company responsibilities are stated in the Terms. The displayed Terms and retained acknowledgement
+use version `2026-10-14`; registration creates a software workspace, not an ASIC
+incorporation, director appointment, company activation or share issue.
+
+Signup requires no supporting file and has no separate administrator-delegation
+checkbox. The initial personal scope remains `admin`; its recorded delegation
+includes all six capabilities for team setup afterwards. Documents and invitations
+use the existing company dashboard settings, with current company authority and the checked
+private-file flow for actual uploads. Identity, ABR, immutable declarations,
+tenant isolation, revocation and action-specific approvals remain. A missing
+or failed required provider check cannot be treated as success. This replaces
+the mandatory signup file and optional administrator-delegation choice under
+#1020; it does not make evidence optional for later actions that require it.
+
+The experimental-use Terms state company responsibilities plainly and preserve
+the synthetic-data, testnet and software-licence boundaries. This product
+decision is not professional legal approval or a finding that the deployment
+is exempt from financial-service or AML obligations. Actual company mandate is
+still required; accepting Terms does not create it. The legal sources remain
+[the Corporations Act](https://www.legislation.gov.au/C2004A00818/latest/text),
+[electronic-signature guidance](https://www.ag.gov.au/legal-system/electronic-signatures-documents-and-transactions/electronic-signatures)
+and [AUSTRAC's actual-services approach](https://www.austrac.gov.au/new-austrac/who-and-what-we-regulate).
+
+The owner also explicitly authorised deletion of all local files under
+`~/Developer/ledova-artifacts`, replacing earlier instructions to preserve those
+local galleries and receipts. Retained application records and Git history are
+unaffected. Do not create a replacement gallery or PDF until requested later;
+the new flow is shown directly in Chrome. This increment authorises no live
+deployment or further backup work.
 
 ## Eligibility and ownership records
 

@@ -2,6 +2,8 @@ import {
   COMPANY_AUTHORITY_CAPABILITIES,
   COMPANY_AUTHORITY_DECLARATION,
   COMPANY_AUTHORITY_DECLARATION_VERSION,
+  COMPANY_SIGNUP_DECLARATION,
+  COMPANY_SIGNUP_DECLARATION_VERSION,
   type CompanyCapability,
   type CompanyTeamAppointment,
   type OrderSubmissionOwner,
@@ -50,8 +52,11 @@ export function appointmentReceipt(data: OwnCompanyAppointment) {
     ) &&
     (data.source === 'legacy_owner'
       ? data.declarationVersion === null && data.declarationText === null
-      : data.declarationVersion === COMPANY_AUTHORITY_DECLARATION_VERSION &&
-        data.declarationText === COMPANY_AUTHORITY_DECLARATION) &&
+      : (data.declarationVersion === COMPANY_AUTHORITY_DECLARATION_VERSION &&
+          data.declarationText === COMPANY_AUTHORITY_DECLARATION) ||
+        (data.source === 'initial' &&
+          data.declarationVersion === COMPANY_SIGNUP_DECLARATION_VERSION &&
+          data.declarationText === COMPANY_SIGNUP_DECLARATION)) &&
     Number.isFinite(Date.parse(data.createdAt)) &&
     (data.expiresAt === null || Number.isFinite(Date.parse(data.expiresAt))) &&
     (data.revokedAt === null || Number.isFinite(Date.parse(data.revokedAt))) &&

@@ -4383,7 +4383,7 @@ export interface ApiComponents {
       delegatableCapabilities: ApiComponents['schemas']['CompanyCapabilityEnum'][];
       fileSha256: string;
       fileSize: number;
-      fileUrl: string;
+      fileUrl: string | null;
       idempotencyKey: string;
       mimeType: string;
       originalFilename: string;
@@ -4400,14 +4400,15 @@ export interface ApiComponents {
       verificationStatus: ApiComponents['schemas']['CompanyAuthorityVerificationStatusEnum'];
       withdrawnAt: string | null;
     };
+    CompanyAuthorityRequestAdmissionDeclarationVersionEnum: '2026-10-14';
     CompanyAuthorityRequestAdmissionRequest: {
       acceptDeclaration: boolean;
-      declarationVersion: ApiComponents['schemas']['DeclarationVersionEnum'];
+      declarationVersion: ApiComponents['schemas']['CompanyAuthorityRequestAdmissionDeclarationVersionEnum'];
     };
     CompanyAuthorityRequestUploadRequest: {
       company: string;
       delegatableCapabilities?: ApiComponents['schemas']['CompanyCapabilityEnum'][];
-      file: Blob;
+      file?: Blob;
       idempotencyKey: string;
       requestedCapabilities?: ApiComponents['schemas']['CompanyCapabilityEnum'][];
       requestedExpiresAt?: string | null;
@@ -4714,10 +4715,11 @@ export interface ApiComponents {
       inviterAppointment: string;
       uuid: string;
     };
+    CompanyTeamInvitationAcceptDeclarationVersionEnum: '2026-10-04';
     CompanyTeamInvitationAcceptRequest: {
       acceptDeclaration: boolean;
       code: string;
-      declarationVersion: ApiComponents['schemas']['DeclarationVersionEnum'];
+      declarationVersion: ApiComponents['schemas']['CompanyTeamInvitationAcceptDeclarationVersionEnum'];
     };
     CompanyTeamInvitationCreateRequest: {
       acceptanceDeadline?: string | null;
@@ -4882,7 +4884,6 @@ export interface ApiComponents {
       value: string;
     };
     CurrencyEnum: 'AUD';
-    DeclarationVersionEnum: '2026-10-04';
     DeletedAccountResponse: {
       message: string;
     };

@@ -2,10 +2,13 @@ from pathlib import Path
 
 from django.conf import settings
 
+from companies.authority_guards import install as install_authority
+
 
 def install(apps, schema_editor):
     if schema_editor.connection.vendor != "postgresql":
         return
+    install_authority(apps, schema_editor)
     with schema_editor.connection.cursor() as cursor:
         table = "companies_companyregistrycheck"
         constraints = schema_editor.connection.introspection.get_constraints(cursor, table)

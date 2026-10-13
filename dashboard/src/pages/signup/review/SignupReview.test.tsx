@@ -4,10 +4,18 @@ import { MemoryRouter } from 'react-router-dom';
 import { expect, it, vi } from 'vitest';
 import { SignupReview } from './SignupReview';
 import { useReview } from './useReview';
+import {
+  COMPANY_AUTHORITY_DECLARATION,
+  COMPANY_AUTHORITY_DECLARATION_VERSION,
+  COMPANY_SIGNUP_DECLARATION,
+  COMPANY_SIGNUP_DECLARATION_VERSION,
+} from '@ledova/shared';
+import { APPOINTMENT } from '../../../../../packages/shared/tests/fixtures/employee-awards';
+import { appointmentReceipt } from '../../company/team/appointments';
 
 vi.mock('./useReview', () => ({ useReview: vi.fn() }));
 
-it('reuses saved company details and presents initial authority, retained scopes and confirmed completion', () => {
+it('reuses saved company details and clearly accepts authority and Terms through explicit completion without checkboxes or uploads', () => {
   const state = {
     data: { userProfile: { fullName: 'Example Director', residentialAddress: '' }, financialProfile: null },
     company: { uuid: 'company-a', name: 'Example Company', acn: '123456789', companyType: 'pty' },
@@ -21,13 +29,7 @@ it('reuses saved company details and presents initial authority, retained scopes
     retryLoad: vi.fn(),
     authorityRequest: null,
     authorityReady: false,
-    authorityEvidenceLocked: false,
     authorityError: null,
-    setAuthorityEvidence: vi.fn(),
-    authorityAccepted: false,
-    setAuthorityAccepted: vi.fn(),
-    allowTeamDelegation: false,
-    setAllowTeamDelegation: vi.fn(),
     resetAuthorityRequest: vi.fn().mockResolvedValue(undefined),
     isResettingAuthority: false,
   };
@@ -37,21 +39,21 @@ it('reuses saved company details and presents initial authority, retained scopes
       <SignupReview />
     </MemoryRouter>,
   );
-  expect(screen.getByRole('heading', { name: 'Finish company setup' })).toBeTruthy();
+  expect(screen.getByRole('heading', { name: 'Complete company setup' })).toBeTruthy();
   expect(screen.getByText('Example Company')).toBeTruthy();
-  expect(screen.getByRole('button', { name: 'Complete company signup' }).hasAttribute('disabled')).toBe(true);
-  const delegation = screen.getByRole('checkbox', {
-    name: 'Allow me to appoint company administrators',
-  }) as HTMLInputElement;
-  expect(delegation.checked).toBe(false);
-  const file = new File(['example'], 'authority.pdf', { type: 'application/pdf' });
-  fireEvent.change(screen.getByLabelText('Supporting document'), { target: { files: [file] } });
-  expect(state.setAuthorityEvidence).toHaveBeenCalledWith(file);
-  fireEvent.click(screen.getByRole('checkbox', { name: /I am authorised to administer/ }));
-  expect(state.setAuthorityAccepted).toHaveBeenCalledWith(true);
+  expect(screen.getByRole('button', { name: 'Complete company setup' }).hasAttribute('disabled')).toBe(true);
+  expect(screen.queryByRole('checkbox')).toBeNull();
+  expect(screen.queryByLabelText('Supporting document')).toBeNull();
+  expect(screen.queryByText('Allow me to appoint company administrators')).toBeNull();
+  expect(
+    screen.getByText(/By completing setup, you confirm that you are authorised to administer Example Company/),
+  ).toBeTruthy();
+  expect(screen.getByRole('link', { name: /Terms of Service/ }).getAttribute('href')).toMatch(/terms-of-service$/);
+  expect(state.completeSignup).not.toHaveBeenCalled();
 
   vi.mocked(useReview).mockReturnValue({
     ...state,
+    authorityError: 'This saved setup uses the previous team permissions. Update the saved setup to continue.',
     authorityRequest: {
       status: 'pending',
       originalFilename: 'saved.pdf',
@@ -64,10 +66,9 @@ it('reuses saved company details and presents initial authority, retained scopes
       <SignupReview />
     </MemoryRouter>,
   );
-  expect(screen.getByText('Saved supporting document: saved.pdf')).toBeTruthy();
   expect(screen.queryByLabelText('Supporting document')).toBeNull();
-  expect(screen.getByText(/Permission to delegate: Manage company information and team/)).toBeTruthy();
-  fireEvent.click(screen.getByRole('button', { name: 'Use different evidence' }));
+  expect(screen.getByRole('alert').textContent).toMatch(/previous team permissions/);
+  fireEvent.click(screen.getByRole('button', { name: 'Update saved setup' }));
   expect(state.resetAuthorityRequest).toHaveBeenCalledTimes(1);
 
   vi.mocked(useReview).mockReturnValue({ ...state, authorityReady: true, canCompleteSignup: true } as never);
@@ -76,9 +77,27 @@ it('reuses saved company details and presents initial authority, retained scopes
       <SignupReview />
     </MemoryRouter>,
   );
-  expect(screen.getByRole('status').textContent).toMatch(/administrator access.*established/);
   expect(screen.queryByLabelText('Supporting document')).toBeNull();
-  fireEvent.click(screen.getByRole('button', { name: 'Complete company signup' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Complete company setup' }));
   expect(state.completeSignup).toHaveBeenCalledTimes(1);
   view.unmount();
+  const revoked = {
+    ...APPOINTMENT,
+    source: 'initial' as const,
+    status: 'revoked' as const,
+    isEffective: false,
+    revokedAt: '2026-10-14T00:00:00Z',
+    declarationVersion: COMPANY_SIGNUP_DECLARATION_VERSION,
+    declarationText: COMPANY_SIGNUP_DECLARATION,
+  };
+  expect(appointmentReceipt(revoked)).toBe(true);
+  expect(appointmentReceipt({ ...revoked, source: 'invitation' })).toBe(false);
+  expect(appointmentReceipt({ ...revoked, declarationText: 'Changed terms' })).toBe(false);
+  expect(
+    appointmentReceipt({
+      ...revoked,
+      declarationVersion: COMPANY_AUTHORITY_DECLARATION_VERSION,
+      declarationText: COMPANY_AUTHORITY_DECLARATION,
+    }),
+  ).toBe(true);
 });

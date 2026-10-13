@@ -1340,6 +1340,7 @@
             "type": "integer"
           },
           "fileUrl": {
+            "nullable": true,
             "readOnly": true,
             "type": "string"
           },
@@ -1460,13 +1461,20 @@
         ],
         "type": "object"
       },
+      "CompanyAuthorityRequestAdmissionDeclarationVersionEnum": {
+        "description": "* `2026-10-14` - 2026-10-14",
+        "enum": [
+          "2026-10-14"
+        ],
+        "type": "string"
+      },
       "CompanyAuthorityRequestAdmissionRequest": {
         "properties": {
           "acceptDeclaration": {
             "type": "boolean"
           },
           "declarationVersion": {
-            "$ref": "#/components/schemas/DeclarationVersionEnum"
+            "$ref": "#/components/schemas/CompanyAuthorityRequestAdmissionDeclarationVersionEnum"
           }
         },
         "required": [
@@ -1509,7 +1517,6 @@
         },
         "required": [
           "company",
-          "file",
           "idempotencyKey"
         ],
         "type": "object"
@@ -3001,6 +3008,13 @@
         ],
         "type": "object"
       },
+      "CompanyTeamInvitationAcceptDeclarationVersionEnum": {
+        "description": "* `2026-10-04` - 2026-10-04",
+        "enum": [
+          "2026-10-04"
+        ],
+        "type": "string"
+      },
       "CompanyTeamInvitationAcceptRequest": {
         "properties": {
           "acceptDeclaration": {
@@ -3013,7 +3027,7 @@
             "writeOnly": true
           },
           "declarationVersion": {
-            "$ref": "#/components/schemas/DeclarationVersionEnum"
+            "$ref": "#/components/schemas/CompanyTeamInvitationAcceptDeclarationVersionEnum"
           }
         },
         "required": [
@@ -3890,13 +3904,6 @@
         "description": "* `AUD` - AUD",
         "enum": [
           "AUD"
-        ],
-        "type": "string"
-      },
-      "DeclarationVersionEnum": {
-        "description": "* `2026-10-04` - 2026-10-04",
-        "enum": [
-          "2026-10-04"
         ],
         "type": "string"
       },

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type MouseEvent } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   COMPANY_DOCUMENT_TYPES,
@@ -70,6 +71,11 @@ export function CompanyDocuments({
   onAction?: () => void;
 }) {
   const client = useQueryClient();
+  const documentsSection = useRef<HTMLDivElement | null>(null);
+  const documentsRequested = useLocation().hash === '#documents';
+  useEffect(() => {
+    if (documentsRequested && read.canAdmin) documentsSection.current?.scrollIntoView({ block: 'start' });
+  }, [documentsRequested, read.canAdmin, company.uuid]);
   const [upload, setUpload] = useState<{ type: DocumentType; label: string } | null>(null);
   const [removing, setRemoving] = useState<CompanyDocument | null>(null);
   const confirmation = useRef<CompanyDocument | null>(null);
@@ -168,40 +174,47 @@ export function CompanyDocuments({
       {!read.error &&
         read.canAdmin &&
         groups.map(({ title, types }) => (
-          <Section key={title} title={title}>
-            <ul className="divide-y divide-border-subtle">
-              {types.map(({ type, label }) => {
-                const matches = company.documents.filter((document) => document.documentType === type);
-                return (
-                  <li key={type} className="space-y-3 py-4">
-                    <div className="flex flex-wrap items-baseline justify-between gap-2">
-                      <h3 className="text-sm font-medium text-text-primary">{label}</h3>
-                      <Status tone={matches.length ? 'done' : 'waiting'}>
-                        {matches.length ? 'Uploaded' : 'No document'}
-                      </Status>
-                    </div>
-                    {matches.map((document) => (
-                      <DocumentRecord
-                        key={document.uuid}
-                        document={document}
-                        editable={editable}
-                        ready={ready}
-                        onView={viewDocument}
-                        onRemove={removeDocument}
-                      />
-                    ))}
-                    {editable && (matches.length === 0 || type === 'other') && (
-                      <PageAction
-                        label={`Upload ${label}`}
-                        disabled={!ready}
-                        onClick={() => setUpload({ type, label })}
-                      />
-                    )}
-                  </li>
-                );
-              })}
-            </ul>
-          </Section>
+          <div key={title} ref={documentsSection} id="documents" className="scroll-mt-4">
+            <Section title={title}>
+              <p className="text-sm text-text-muted">
+                Upload supporting documents when needed. Company setup does not require an upload; use Other documents
+                for representative authority records. Company administrators can access them; they do not change your
+                appointment or permissions.
+              </p>
+              <ul className="divide-y divide-border-subtle">
+                {types.map(({ type, label }) => {
+                  const matches = company.documents.filter((document) => document.documentType === type);
+                  return (
+                    <li key={type} className="space-y-3 py-4">
+                      <div className="flex flex-wrap items-baseline justify-between gap-2">
+                        <h3 className="text-sm font-medium text-text-primary">{label}</h3>
+                        <Status tone={matches.length ? 'done' : 'waiting'}>
+                          {matches.length ? 'Uploaded' : 'No document'}
+                        </Status>
+                      </div>
+                      {matches.map((document) => (
+                        <DocumentRecord
+                          key={document.uuid}
+                          document={document}
+                          editable={editable}
+                          ready={ready}
+                          onView={viewDocument}
+                          onRemove={removeDocument}
+                        />
+                      ))}
+                      {editable && (matches.length === 0 || type === 'other') && (
+                        <PageAction
+                          label={`Upload ${label}`}
+                          disabled={!ready}
+                          onClick={() => setUpload({ type, label })}
+                        />
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            </Section>
+          </div>
         ))}
       {error && (
         <p role="alert" className="text-sm text-error-light">

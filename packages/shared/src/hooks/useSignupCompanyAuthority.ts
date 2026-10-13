@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import {
@@ -8,13 +8,27 @@ import {
   submitCompanyAuthorityRequest,
   withdrawCompanyAuthorityRequest,
 } from '../services/company-authority';
-import type { CompanyAuthorityRequest, Company, UserProfile } from '../types';
+import {
+  COMPANY_AUTHORITY_CAPABILITIES,
+  COMPANY_SIGNUP_DECLARATION_VERSION,
+} from '../constants/business/company-authority';
+import type { CompanyAuthorityRequest, Company, CompanyCapability, UserProfile } from '../types';
 import { getErrorMessage } from '../utils/errors';
 import { readEveryPage } from '../utils/pagination';
 import { useApiClient } from './useApiClient';
 import type { OrderSubmissionSession } from './useOrderSubmissions';
 import { useSubmissionOwner } from './useSubmissionOwner';
 import { USER_PREFERENCES_QUERY_KEY, useUserPreferences } from './useUserPreferences';
+
+function signupScopes(capabilities: CompanyCapability[], delegatable: CompanyCapability[], expiresAt?: string | null) {
+  return (
+    capabilities.length === 1 &&
+    capabilities[0] === 'admin' &&
+    delegatable.length === COMPANY_AUTHORITY_CAPABILITIES.length &&
+    COMPANY_AUTHORITY_CAPABILITIES.every(({ value }) => delegatable.includes(value)) &&
+    !expiresAt
+  );
+}
 
 export function useSignupCompanyAuthority(
   company: Company | null,
@@ -27,10 +41,6 @@ export function useSignupCompanyAuthority(
   const client = useQueryClient();
   const { owner, boundary } = useSubmissionOwner(session);
   const preferences = useUserPreferences();
-  const [authorityEvidence, setEvidence] = useState<Blob | null>(null);
-  const [authorityAccepted, setAccepted] = useState(false);
-  const [allowTeamDelegation, setDelegation] = useState(false);
-  const [evidenceLocked, setEvidenceLocked] = useState(false);
   const key = useRef<string | null>(null);
   const current = useRef({ company, profile });
   current.current = { company, profile };
@@ -43,11 +53,16 @@ export function useSignupCompanyAuthority(
   }, []);
   useEffect(() => {
     key.current = null;
-    setEvidence(null);
-    setAccepted(false);
-    setDelegation(false);
-    setEvidenceLocked(false);
-  }, [owner, company?.uuid]);
+  }, [
+    owner,
+    company?.uuid,
+    company?.name,
+    company?.acn,
+    company?.abn,
+    company?.companyType,
+    profile?.uuid,
+    profile?.fullName,
+  ]);
   const guardSession = useCallback(() => {
     if (
       !owner ||
@@ -116,7 +131,15 @@ export function useSignupCompanyAuthority(
   const authorityRequest = sourceAvailable
     ? (authority.data?.requests.find((request) => request.status === 'pending') ?? null)
     : null;
-  const authorityReady = sourceAvailable && !!authority.data?.appointment;
+  const currentAppointment = authority.data?.appointment;
+  const currentSignupAppointment =
+    currentAppointment?.declarationVersion === COMPANY_SIGNUP_DECLARATION_VERSION &&
+    signupScopes(
+      currentAppointment.capabilities,
+      currentAppointment.delegatableCapabilities,
+      currentAppointment.expiresAt,
+    );
+  const authorityReady = sourceAvailable && !!currentSignupAppointment;
   const stopped = !authorityReady && authority.data?.requests.some((request) => request.status === 'admitted');
   const authorityError =
     enabled && !owner && !preferences.isLoading
@@ -125,40 +148,48 @@ export function useSignupCompanyAuthority(
         ? 'Your signed-in account could not be checked. Reload company setup.'
         : authority.isError
           ? getErrorMessage(authority.error, 'Your administrator access could not be checked. Reload company setup.')
-          : stopped
-            ? 'Your initial administrator appointment is no longer current. Another initial declaration cannot restore it.'
-            : authorityRequest && !authorityRequest.requestedCapabilities.includes('admin')
-              ? 'This request does not include administrator access. Use different evidence to replace the pending request.'
-              : null;
-  const canEstablishAuthority =
-    enabled &&
-    !!owner &&
-    authority.isSuccess &&
-    !authority.isFetching &&
-    !authorityError &&
-    (authorityReady || (authorityAccepted && (!!authorityRequest || !!authorityEvidence)));
+          : currentAppointment && !currentSignupAppointment
+            ? 'Your saved appointment uses earlier signup terms or permissions. It cannot be replaced by another initial declaration. Contact the deployment operator to complete this older setup.'
+            : stopped
+              ? 'Your initial administrator appointment is no longer current. Another initial declaration cannot restore it.'
+              : authorityRequest &&
+                  !signupScopes(
+                    authorityRequest.requestedCapabilities,
+                    authorityRequest.delegatableCapabilities,
+                    authorityRequest.requestedExpiresAt,
+                  )
+                ? 'This saved setup uses previous permissions or an expiry. Update the saved setup to continue.'
+                : null;
+  const canEstablishAuthority = enabled && !!owner && authority.isSuccess && !authority.isFetching && !authorityError;
   const establishAuthority = async () => {
     guard();
-    if (!canEstablishAuthority) throw new Error('Confirm your administrator authority before finishing company setup.');
+    if (!canEstablishAuthority) throw new Error('Company setup is not ready. Reload it before continuing.');
     let state = await read();
-    if (state.appointment) return;
+    if (state.appointment) {
+      if (
+        state.appointment.declarationVersion !== COMPANY_SIGNUP_DECLARATION_VERSION ||
+        !signupScopes(
+          state.appointment.capabilities,
+          state.appointment.delegatableCapabilities,
+          state.appointment.expiresAt,
+        )
+      )
+        throw new Error('Your saved appointment does not match this company setup. Reload company setup to continue.');
+      return;
+    }
     if (state.requests.some((request) => request.status === 'admitted'))
       throw new Error('Your initial administrator access is no longer current. Reload company setup.');
     let request: CompanyAuthorityRequest | undefined = state.requests.find((entry) => entry.status === 'pending');
-    if (!authorityAccepted) throw new Error('Accept the authorisation declaration to continue.');
     if (!request) {
-      if (!authorityEvidence) throw new Error('Choose a supporting document for your authority.');
       key.current ??= newKey();
-      setEvidenceLocked(true);
       try {
         const response = await submitCompanyAuthorityRequest(
           apiClient,
           {
             company: company!.uuid,
-            file: authorityEvidence,
             idempotencyKey: key.current,
             requestedCapabilities: ['admin'],
-            delegatableCapabilities: allowTeamDelegation ? ['admin'] : [],
+            delegatableCapabilities: COMPANY_AUTHORITY_CAPABILITIES.map(({ value }) => value),
           },
           { ledovaSubmissionGuard: guard },
         );
@@ -166,16 +197,26 @@ export function useSignupCompanyAuthority(
         request = response.data;
       } catch (error) {
         guard();
-        const status = (error as { response?: { status?: number } })?.response?.status;
-        if (status && status >= 400 && status < 500 && ![408, 409, 429].includes(status)) setEvidenceLocked(false);
         throw error;
       }
     }
-    if (request.company !== company!.uuid || !request.requestedCapabilities.includes('admin'))
+    if (
+      request.company !== company!.uuid ||
+      !signupScopes(request.requestedCapabilities, request.delegatableCapabilities, request.requestedExpiresAt)
+    )
       throw new Error('Your authority request did not match this company administrator setup.');
     const response = await admitCompanyAuthorityRequest(apiClient, request.uuid, { ledovaSubmissionGuard: guard });
     guard();
-    if (response.data.uuid !== request.uuid || response.data.status !== 'admitted')
+    if (
+      response.data.uuid !== request.uuid ||
+      response.data.status !== 'admitted' ||
+      response.data.appointment?.declarationVersion !== COMPANY_SIGNUP_DECLARATION_VERSION ||
+      !signupScopes(
+        response.data.appointment.capabilities,
+        response.data.appointment.delegatableCapabilities,
+        response.data.appointment.expiresAt,
+      )
+    )
       throw new Error('Administrator access could not be confirmed. Reload company setup before retrying.');
     state = await read();
     if (!state.appointment || state.appointment.uuid !== response.data.appointment?.uuid)
@@ -196,27 +237,9 @@ export function useSignupCompanyAuthority(
       if (response.data.uuid !== authorityRequest.uuid || response.data.status !== 'withdrawn')
         throw new Error('The pending request could not be replaced. Reload company setup before retrying.');
       key.current = null;
-      setEvidence(null);
-      setAccepted(false);
-      setEvidenceLocked(false);
       await authority.refetch({ throwOnError: true });
     },
   });
-  const setAuthorityEvidence = useCallback(
-    (file: Blob | null) => {
-      if (evidenceLocked || file === authorityEvidence) return;
-      key.current = null;
-      setEvidence(file);
-      setAccepted(false);
-    },
-    [authorityEvidence, evidenceLocked],
-  );
-  const setAllowTeamDelegation = (value: boolean) => {
-    if (evidenceLocked) return;
-    key.current = null;
-    setDelegation(value);
-    setAccepted(false);
-  };
   return {
     authorityRequest,
     authorityReady,
@@ -224,13 +247,6 @@ export function useSignupCompanyAuthority(
     authorityError: reset.isError
       ? getErrorMessage(reset.error, 'Your pending authority request could not be replaced.')
       : authorityError,
-    authorityEvidence,
-    authorityEvidenceLocked: evidenceLocked,
-    setAuthorityEvidence,
-    authorityAccepted,
-    setAuthorityAccepted: setAccepted,
-    allowTeamDelegation,
-    setAllowTeamDelegation,
     resetAuthorityRequest: () => reset.mutateAsync(),
     isResettingAuthority: reset.isPending,
     canEstablishAuthority,

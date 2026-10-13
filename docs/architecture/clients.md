@@ -120,9 +120,14 @@ Activity keeps `/transactions`, and Notices keeps `/publications`.
 investing account on `/home`, and a company or dual-role account on Register.
 The web front door and sign-in use the confirmed-access dashboard choice above;
 refused-route and trading fallback behavior remains unchanged. Company signup
-keeps Company details → Review, with evidence, explicit initial admission and
-completion together as described in the
-[authority guide](../plans/company-managed-registers/authority-requests.md#company-signup).
+keeps Company details → Review, with one visible workspace authority/Terms
+statement beside the final button, explicit initial admission and completion
+together. Choosing **Complete company setup** accepts that declaration; there
+is no separate checkbox. Supporting
+documents and team invitations are available afterwards from dashboard Settings;
+signup has no file upload or delegation picker. The
+[authority guide](../plans/company-managed-registers/authority-requests.md#company-signup)
+describes this flow.
 Native company accounts with readable register access start on Register; those
 without access start on My shares and reach setup from More. The eight steps after the create-account form are listed once,
 in `SIGNUP_STEPS` (`dashboard/src/routes/signupRoutes.tsx`), and `signupRoutes`

@@ -6,18 +6,14 @@ import { ReviewScreen } from '.';
 
 const mockReset = jest.fn();
 const mockComplete = jest.fn();
-const mockPick = jest.fn();
-const mockUpload = jest.fn();
 let mockProfileComplete = false;
 let mockProfileError = false;
-let mockLeases = 0;
 let mockSavedRequest: {
   originalFilename: string;
   requestedCapabilities: string[];
   delegatableCapabilities: string[];
   status: string;
 } | null = null;
-const mockFile = { uri: 'file:///synthetic/representative.pdf', name: 'representative.pdf', type: 'application/pdf' };
 
 jest.mock('@react-navigation/native', () => ({ useNavigation: () => ({ reset: mockReset, navigate: jest.fn() }) }));
 jest.mock('../../../navigation/DrawerNavigator', () => ({
@@ -42,12 +38,8 @@ jest.mock('@ledova/shared', () => {
     useAuth: () => ({ isAuthenticated: true, isLoading: false, isFetching: false, refetch: jest.fn() }),
     useUserPreferences: () => ({ refetch: jest.fn() }),
     useSignupReview: (_role: string, onComplete: (guard: () => void) => Promise<void>) => {
-      const [evidence, setEvidence] = useState<Blob | null>(null);
-      const [accepted, setAccepted] = useState(false);
-      const [delegation, setDelegation] = useState(false);
       const [request, setRequest] = useState(mockSavedRequest);
       const [ready, setReady] = useState(false);
-      const [locked, setLocked] = useState(false);
       const [error, setError] = useState<string | null>(null);
       return {
         data: { userProfile: { fullName: 'Alex Company' }, financialProfile: null },
@@ -57,36 +49,25 @@ jest.mock('@ledova/shared', () => {
         error: null,
         completionError: error,
         isSubmitting: false,
-        canCompleteSignup: ready || (accepted && !!(request || evidence)),
+        canCompleteSignup: true,
         authorityRequest: request,
         authorityReady: ready,
         authorityError: null,
-        authorityEvidence: evidence,
-        authorityEvidenceLocked: locked,
-        setAuthorityEvidence: setEvidence,
-        authorityAccepted: accepted,
-        setAuthorityAccepted: setAccepted,
-        allowTeamDelegation: delegation,
-        setAllowTeamDelegation: setDelegation,
         isResettingAuthority: false,
         resetAuthorityRequest: async () => {
           mockSavedRequest = null;
           setRequest(null);
-          setAccepted(false);
-          setEvidence(null);
         },
         retryLoad: jest.fn(),
         completeSignup: async () => {
           mockComplete();
           if (!request) {
-            expect(mockLeases).toBe(1);
             mockSavedRequest = {
-              originalFilename: mockFile.name,
+              originalFilename: '',
               requestedCapabilities: ['admin'],
-              delegatableCapabilities: [],
+              delegatableCapabilities: ['admin', 'prepare', 'approve', 'apply', 'finance', 'read_register'],
               status: 'pending',
             };
-            setLocked(true);
             setError('The response was interrupted. Retry the retained request.');
             throw new Error('Interrupted');
           }
@@ -98,74 +79,35 @@ jest.mock('@ledova/shared', () => {
     },
   };
 });
-jest.mock('../../../hooks/useDocumentUpload', () => {
-  const { useState } = jest.requireActual<typeof import('react')>('react');
-  return {
-    useDocumentUpload: () => {
-      const [file, setFile] = useState<typeof mockFile | null>(null);
-      return {
-        file,
-        isPicking: false,
-        isSubmitting: false,
-        clear: () => setFile(null),
-        pick: async () => {
-          mockPick();
-          setFile(mockFile);
-          return true;
-        },
-        submit: async (consume: (value: { assertCurrent: () => void }) => Promise<void>) => {
-          mockUpload();
-          mockLeases++;
-          try {
-            await consume({ assertCurrent: jest.fn() });
-            setFile(null);
-            return true;
-          } finally {
-            mockLeases--;
-          }
-        },
-      };
-    },
-  };
-});
-
 afterEach(async () => {
   await cleanup();
   jest.clearAllMocks();
 });
 
-it('requires company evidence and declaration, resumes a retained request without uploading again and keeps unfinished or refused profiles outside the account', async () => {
+it('accepts company authority and Terms through explicit completion without uploads or checkboxes, resumes setup and keeps unfinished profiles outside the account', async () => {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
   const wrapper = ({ children }: { children: React.ReactNode }) => (
     <QueryClientProvider client={client}>{children}</QueryClientProvider>
   );
   const first = await render(<ReviewScreen />, { wrapper });
-  expect(first.getByRole('button', { name: 'Finish company setup' })).toBeDisabled();
-  expect(first.getByRole('checkbox', { name: 'Allow me to appoint company administrators' })).not.toBeChecked();
-  await fireEvent.press(first.getByRole('button', { name: 'Choose representative evidence' }));
-  await first.findByText(mockFile.name);
-  expect(first.getByRole('button', { name: 'Finish company setup' })).toBeDisabled();
-  await fireEvent.press(first.getByRole('checkbox', { name: 'Accept authorisation declaration for Paper Company' }));
-  expect(first.getByRole('button', { name: 'Finish company setup' })).toBeEnabled();
-  await fireEvent.press(first.getByRole('button', { name: 'Finish company setup' }));
-  await first.findByText('The response was interrupted. Retry the retained request.');
-  expect(first.getByRole('button', { name: 'Replace evidence' })).toBeDisabled();
-  expect(first.getByRole('checkbox', { name: 'Allow me to appoint company administrators' })).toBeDisabled();
+  expect(first.getByRole('button', { name: 'Complete company setup' })).toBeEnabled();
+  expect(first.queryByRole('checkbox')).toBeNull();
   expect(
-    first.getByText('The upload outcome is not confirmed. Retry with the same evidence and permissions.'),
+    first.getByText(/By completing setup, you confirm that you are authorised to administer Paper Company/),
   ).toBeTruthy();
+  expect(first.queryByRole('button', { name: 'Choose representative evidence' })).toBeNull();
+  expect(mockComplete).not.toHaveBeenCalled();
+  await fireEvent.press(first.getByRole('button', { name: 'Complete company setup' }));
+  await first.findByText('The response was interrupted. Retry the retained request.');
   expect(mockReset).not.toHaveBeenCalled();
   await first.unmount();
 
   const resumed = await render(<ReviewScreen />, { wrapper });
-  expect(resumed.getByText('Retained evidence: representative.pdf')).toBeTruthy();
-  expect(resumed.getByText('Permissions you can delegate: None')).toBeTruthy();
-  expect(resumed.getByRole('button', { name: 'Finish company setup' })).toBeDisabled();
-  await fireEvent.press(resumed.getByRole('checkbox', { name: 'Accept authorisation declaration for Paper Company' }));
-  await fireEvent.press(resumed.getByRole('button', { name: 'Finish company setup' }));
+  expect(resumed.getByRole('button', { name: 'Complete company setup' })).toBeEnabled();
+  expect(resumed.queryByRole('checkbox')).toBeNull();
+  expect(mockComplete).toHaveBeenCalledTimes(1);
+  await fireEvent.press(resumed.getByRole('button', { name: 'Complete company setup' }));
   await waitFor(() => expect(mockReset).toHaveBeenCalledWith({ index: 0, routes: [{ name: 'MainApp' }] }));
-  expect(mockPick).toHaveBeenCalledTimes(1);
-  expect(mockUpload).toHaveBeenCalledTimes(1);
   expect(mockComplete).toHaveBeenCalledTimes(2);
   await resumed.unmount();
 

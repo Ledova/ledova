@@ -50,7 +50,7 @@ def _requester_principal(requester_id):
 def _require_requester(user):
     if not user.is_authenticated or not user.is_active or not user.is_email_verified:
         raise PermissionDenied(
-            "An active account with verified email is required to submit company authority evidence."
+            "An active account with verified email is required to submit a company authority request."
         )
 
 
@@ -85,7 +85,7 @@ def submit_authority_request(
     requester,
     company_id,
     idempotency_key,
-    file,
+    file=None,
     requested_capabilities,
     delegatable_capabilities=None,
     requested_expires_at=None
@@ -102,21 +102,27 @@ def submit_authority_request(
     if not replay:
         with use_operator(), _requester_principal(requester.pk):
             get_object_or_404(Company.objects.owned_by(requester), pk=company_id)
-    file.seek(0)
-    try:
-        raw = read_bounded(file)
-    except UploadRejected as error:
-        raise ValidationError({"file": str(error)}) from None
-    finally:
+    raw = b""
+    original_filename = ""
+    file_size = 0
+    mime_type = ""
+    file_sha256 = ""
+    if file is not None:
         file.seek(0)
-    original_filename = file.name
-    file_size = len(raw)
-    mime_type = getattr(file, "content_type", "")
-    if not replay:
-        captured = ContentFile(raw, name=original_filename)
-        captured.content_type = mime_type
-        file_size, mime_type = validate_upload(captured)
-    file_sha256 = hashlib.sha256(raw).hexdigest()
+        try:
+            raw = read_bounded(file)
+        except UploadRejected as error:
+            raise ValidationError({"file": str(error)}) from None
+        finally:
+            file.seek(0)
+        original_filename = file.name
+        file_size = len(raw)
+        mime_type = getattr(file, "content_type", "")
+        if not replay:
+            captured = ContentFile(raw, name=original_filename)
+            captured.content_type = mime_type
+            file_size, mime_type = validate_upload(captured)
+        file_sha256 = hashlib.sha256(raw).hexdigest()
     with use_operator(), _requester_principal(requester.pk), atomic():
         prior = CompanyAuthorityRequest.objects.filter(
             requester_id=requester.pk, idempotency_key=idempotency_key
@@ -142,9 +148,7 @@ def submit_authority_request(
             if replay:
                 raise AuthorityRequestConflictException()
             if company.status != CompanyStatus.DRAFT:
-                raise ValidationError(
-                    {"company": "Initial authority evidence can only be requested for your draft company."}
-                )
+                raise ValidationError({"company": "Initial authority can only be requested for your draft company."})
         raw_company, identity, raw_person, person = _snapshots(company, actor, profile)
         frozen = {
             "company": str(company.pk),
@@ -190,7 +194,8 @@ def submit_authority_request(
             file_sha256=file_sha256,
             request_digest=digest,
         )
-        proposal.file.save(original_filename, ContentFile(raw), save=False)
+        if file is not None:
+            proposal.file.save(original_filename, ContentFile(raw), save=False)
         proposal.save(force_insert=True)
     return proposal, True
 

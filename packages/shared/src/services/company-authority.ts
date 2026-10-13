@@ -1,5 +1,8 @@
 import { type AxiosInstance, type AxiosRequestConfig } from 'axios';
-import { COMPANY_AUTHORITY_DECLARATION_VERSION } from '../constants/business/company-authority';
+import {
+  COMPANY_AUTHORITY_DECLARATION_VERSION,
+  COMPANY_SIGNUP_DECLARATION_VERSION,
+} from '../constants/business/company-authority';
 import type {
   AcceptCompanyTeamInvitationRequest,
   CompanyAuthorityAdmission,
@@ -37,6 +40,7 @@ export const submitCompanyAuthorityRequest = (
   data: CompanyAuthoritySubmission,
   config?: AxiosRequestConfig,
 ) => {
+  if (!data.file) return apiClient.post<CompanyAuthorityRequest>(REQUESTS, data, config);
   const form = new FormData();
   form.append('company', data.company);
   form.append('idempotency_key', data.idempotencyKey);
@@ -63,7 +67,7 @@ export const admitCompanyAuthorityRequest = (apiClient: AxiosInstance, uuid: str
   apiClient.post<CompanyAuthorityRequest>(
     `${REQUESTS}${uuid}/admit/`,
     {
-      declarationVersion: COMPANY_AUTHORITY_DECLARATION_VERSION,
+      declarationVersion: COMPANY_SIGNUP_DECLARATION_VERSION,
       acceptDeclaration: true,
     } satisfies CompanyAuthorityAdmission,
     config,

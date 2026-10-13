@@ -12,6 +12,7 @@ from companies.serializers.authority_request import (
     CompanyAppointmentSerializer,
     CompanyAuthorityRequestAdmissionSerializer,
 )
+from companies.services.authority import DECLARATION_VERSION
 
 
 class StrictTeamSerializer(serializers.Serializer):
@@ -37,6 +38,7 @@ class CompanyTeamInvitationCreateSerializer(StrictTeamSerializer):
 
 
 class CompanyTeamInvitationAcceptSerializer(CompanyAuthorityRequestAdmissionSerializer):
+    declaration_version = serializers.ChoiceField(choices=[DECLARATION_VERSION])
     code = serializers.RegexField(r"^[A-Za-z0-9_-]{43}$", trim_whitespace=False, write_only=True)
 
 
