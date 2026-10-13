@@ -28,12 +28,18 @@ tasks. The 12 October web increments
 company ownership Dashboard, consolidated Settings and personal holdings and
 award charts. The
 [14 October signup increment](https://github.com/Ledova/ledova/issues/1020)
-combines company details, authority evidence and explicit initial admission in
-the existing Company details → Review flow on both clients. Personal `admin`
-and optional `admin` delegation are shown separately; delegation starts
-unchecked. Saved company/profile data and unfinished sign-in resumption keep
-the flow recoverable. Identity, ABR and checked-file requirements remain;
-completion neither activates the company nor issues shares. The
+combines company details and initial admission in the existing Company details →
+Review flow on both clients. Its
+[same-day simplification](https://github.com/Ledova/ledova/issues/1022) keeps one
+visible authority/Terms statement beside the final button and moves files and
+team setup to the dashboard settings. Completing setup explicitly accepts that
+declaration without a checkbox. Initial personal `admin` and all six delegatable capabilities
+allow later team invitations; signup has no file or permission picker. Saved
+company/profile data and unfinished sign-in resumption keep the flow recoverable.
+Existing current administrator appointments resume without changing their
+original scopes; the final action records current Terms acceptance when needed.
+Identity, ABR and checked-file safeguards for actual uploads remain; completion
+neither activates the company nor issues shares. The
 [authority guide](authority-requests.md#company-signup) describes this flow.
 Native signed-in navigation is unchanged. The guides below describe the
 delivered structure on web and mobile.
@@ -92,5 +98,6 @@ are in decisions.md. Closed [#645](https://github.com/Ledova/ledova/issues/645)
 and its phase tickets delivered the earlier foundation, closed
 [#846](https://github.com/Ledova/ledova/issues/846) the synthetic fixtures, and
 open [#624](https://github.com/Ledova/ledova/issues/624) keeps the separate
-physical-device/live release acceptance. The earlier staff-assisted
-screenshots, PDF, gallery and embedded artifact are preserved as dated evidence.
+physical-device/live release acceptance. Dated source and observation records
+remain in Git history; the owner authorised removal of the local journey
+galleries under the [14 October amendment](../../decisions.md#simple-signup-documents-and-team-after-registration).

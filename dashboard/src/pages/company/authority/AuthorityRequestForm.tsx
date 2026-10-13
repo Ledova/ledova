@@ -48,7 +48,7 @@ export function AuthorityRequestForm({
         apiClient,
         {
           company: company.uuid,
-          file: file!,
+          ...(file ? { file } : {}),
           idempotencyKey: key.current,
           requestedCapabilities: requested,
           delegatableCapabilities: delegatable,
@@ -67,7 +67,7 @@ export function AuthorityRequestForm({
     apply();
   };
   const busy = submission.isPending;
-  const ready = !disabled && !busy && !!file && (requested.length > 0 || delegatable.length > 0);
+  const ready = !disabled && !busy && (requested.length > 0 || delegatable.length > 0);
   const toggle = (values: CompanyCapability[], value: CompanyCapability) =>
     values.includes(value) ? values.filter((entry) => entry !== value) : [...values, value].sort();
   const send = async () => {
@@ -132,7 +132,7 @@ export function AuthorityRequestForm({
         />
       </label>
       <label className="block space-y-1 text-sm text-text-primary">
-        Representative evidence
+        Supporting document (optional)
         <input
           type="file"
           accept="application/pdf,image/png,image/jpeg"
@@ -142,7 +142,7 @@ export function AuthorityRequestForm({
         />
       </label>
       <p className="text-sm text-text-muted">
-        PDF or image, max 10 MB. Use a new request when evidence or terms change.
+        Optional PDF or image, max 10 MB. Supporting documents can also be uploaded later in Company settings.
       </p>
       {submission.isError && (
         <p role="alert" className="text-sm text-error-light">

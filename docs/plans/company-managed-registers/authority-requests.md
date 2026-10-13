@@ -7,6 +7,8 @@ foundation landed in [PR #911](https://github.com/Ledova/ledova/pull/911).
 [#1020](https://github.com/Ledova/ledova/issues/1020) brings initial admission
 into company signup on web and mobile, following the
 [14 October decision](../../decisions.md#combined-company-signup-and-initial-authority).
+[#1022](https://github.com/Ledova/ledova/issues/1022) simplifies that flow under
+the owner's [same-day amendment](../../decisions.md#simple-signup-documents-and-team-after-registration).
 
 Private authority requests, withdrawal and initial self-declaration admission
 run on web and mobile. A pending request grants no authority. Admission records
@@ -28,27 +30,50 @@ evidence in this experimental implementation.
    configured representative identity steps. Save the draft company at
    **Company details**, then continue to **Review**. Resuming signup reuses the
    saved profile and company.
-2. Review the company information and initial personal `admin` capability.
-   Permission to appoint other administrators is separate: the optional `admin`
-   delegation choice starts unchecked and is recorded only when explicitly
-   selected.
-3. Provide the supporting PDF, PNG or JPEG through the checked upload flow.
-   This is a platform requirement for retained authority evidence, not a
-   requirement to obtain an ASIC extract. The file remains private.
-4. Accept the displayed authorisation and company-responsibility declaration,
-   then complete signup from **Review**. The action retains the authority request,
-   admits that exact request through the existing identity and ABR checks, and
-   completes signup after the initial appointment is confirmed. A pending
-   request, missing evidence or provider failure grants no authority.
-5. Read the confirmed appointment's personal and delegatable scope in company
-   settings. The company remains Draft; admission neither activates it nor
-   issues shares. Team invitations and register decisions are separate actions.
+2. Review the saved information. A short statement beside **Complete company
+   setup** makes clear that choosing the button acknowledges your authority to
+   administer this company's workspace, including its users, and accepts the
+   linked Terms on its behalf. The Terms page shows version `2026-10-14`; company
+   responsibilities are in the Terms. No file or separate authority/delegation
+   checkbox is required.
+3. Choose **Complete company setup** from **Review**. The action explicitly
+   accepts the versioned declaration and retains the no-file authority
+   request, admits that exact request through the existing identity and ABR
+   checks, and completes signup only after the initial appointment is confirmed.
+   A pending request or provider failure grants no authority. The appointment
+   records personal `admin` and all six delegatable capabilities for subsequent
+   team setup, together with the person, company, declaration version/text and
+   admission time.
+4. On the dashboard, use **Settings → Company documents** for relevant optional
+   supporting files and **Settings → Team and appointments** to invite users.
+   Mobile reaches the existing documents and team screens from **Settings →
+   Company settings**. Actual uploads retain the checked private-file flow;
+   later documents do not alter the immutable signup request.
+5. Read the appointment's scope in company settings. The company remains Draft;
+   registration neither incorporates a company with ASIC, appoints a director,
+   activates it nor issues shares. Team invitations and register decisions are
+   separate actions.
 
 An unfinished account can sign in again to resume signup. Web company accounts
-with saved personal details return to Company details with the saved draft;
+with saved personal details return to Company details with the saved company;
 other accounts retain the existing account-type entry. A retry must resolve
-the retained request and admission outcome before completion; it cannot infer
-success from a submitted request or a lost response.
+the retained authority and current Terms outcome before completion; it cannot
+infer success from a submitted request or a lost response.
+
+A pending request is a proposal, not effective authority. If its personal scope
+is not exactly `admin`, its delegation does not contain all six capabilities, or
+it has an expiry, use **Update saved setup** before admission. That explicit
+action withdraws the old proposal and permits a fresh request with the signup
+defaults; it does not change an appointment.
+
+If the person already has a current personal `admin` appointment for that
+company, the final button uses it rather than another initial declaration.
+Older, narrower and invited administrator appointments keep their original
+declaration, capabilities, delegation and expiry. The action records current
+Terms acceptance against that appointment when needed; an appointment that
+already records the same acceptance supplies its existing receipt. It grants
+no additional authority. Revoked, expired or ineffective appointments cannot
+complete signup, and source failures withhold completion.
 
 ## Existing authority requests
 
@@ -60,19 +85,21 @@ success from a submitted request or a lost response.
 3. Choose personal capabilities and, separately, capabilities you intend to
    delegate. Initial admission requires personal `admin`. Set an expiry if
    required. Selecting scopes alone grants no authority.
-4. Upload supporting PDF, PNG or JPEG through the existing checked upload flow.
-   The platform requires this retained evidence; it does not require an ASIC
-   extract. The file remains private and retained.
+4. Supporting PDF, PNG or JPEG is optional. An actual upload uses the checked
+   private-file flow and remains retained; no ASIC extract is required. Files
+   can instead be added later as company documents.
 5. Submit the request. The platform freezes the company and representative
    identities, scopes, expiry and evidence bytes. Review the captured information.
-6. Accept the displayed declaration and choose the admission action. Version
-   `2026-10-04` records: “I am authorised to act for this company. The company is
-   responsible for the company and share information it provides, its ASIC filings
-   and legal obligations.” The existing configured identity and ABR checks must
-   pass; missing or mismatched results leave the request pending. Admission does
-   not activate the company.
+6. Accept the displayed initial-company authority and Terms declaration and
+   choose the admission action. Version `2026-10-14` records the workspace/team
+   authority, acceptance of that Terms version on the company's behalf, and the
+   company's responsibility for its information, ASIC filings and legal
+   obligations. The existing configured identity and ABR checks must pass;
+   missing or mismatched results leave the request pending. Admission does not
+   activate the company.
 7. Read the appointment's personal and delegatable capabilities, expiry and
-   current status. Download the retained evidence from your request history.
+   current status. An attached supporting file is available from request history;
+   a no-file request has no downloadable file.
 8. Withdraw an unwanted pending request. After admission, choose **Revoke
    appointment** and review the permanent loss of this appointment's company
    authority. Cancel to keep it, or confirm permanent revocation; its original
@@ -82,7 +109,7 @@ success from a submitted request or a lost response.
 
 ```mermaid
 flowchart LR
-    capture[Retain exact request and evidence] --> pending[Pending - no authority]
+    capture[Retain exact request and any supplied file] --> pending[Pending - no authority]
     pending --> withdraw[Withdraw request]
     pending --> declaration[Accept authorisation and responsibility declaration]
     declaration --> checks[Existing identity and ABR checks]
@@ -137,24 +164,27 @@ identity/financial evidence or bootstrap file.
 
 ## API
 
-`/api/v1/company-authority/requests/` provides authenticated multipart submission
-and paginated personal history. Detail and file actions resolve only the caller's
-own request. Active accounts with verified email are required. New submissions
+`/api/v1/company-authority/requests/` provides authenticated JSON submission
+without a file, checked multipart submission with an optional file, and paginated
+personal history. Detail and file actions resolve only the caller's own request.
+Active accounts with verified email are required. New submissions
 also require current ownership of the selected draft company. Public company
 visibility, shareholder records and platform staff permissions do not widen this
 scope.
 
-The server validates the upload and freezes raw and normalised identities,
-file SHA256/size/type, requested scopes and expiry. It accepts no caller-supplied
+The server validates any upload and freezes raw and normalised identities,
+file SHA256/size/type when supplied, requested scopes and expiry. A no-file request
+retains empty file metadata and returns `file_url: null`; it does not create a
+placeholder document. It accepts no caller-supplied
 verification result or representative account. Identical submission retries under
 the same requester-scoped idempotency key return the retained request, including
 after its company leaves draft or changes owner. Retries compare incoming bytes,
 filename, MIME type and terms with the retained digest and current identities;
-they do not rescan already retained evidence. New keys require upload validation
-and current draft-company ownership. Changed inputs conflict.
+they do not rescan already retained evidence. New keys require validation of any
+supplied file and current draft-company ownership. Changed inputs conflict.
 
 `POST /api/v1/company-authority/requests/{uuid}/admit/` requires
-`declaration_version: "2026-10-04"` and `accept_declaration: true`. The server
+`declaration_version: "2026-10-14"` and `accept_declaration: true`. The server
 checks the exact retained request, live requester and configured identity result,
 current draft-company ownership, unchanged captured identities and unexpired
 scope. It runs the existing ABR adapter under a separate authority purpose and
@@ -186,8 +216,25 @@ The following authenticated operations supplement the initial-request workflow:
 | `GET /api/v1/company-authority/appointments/`                     | Paginated history of the caller's own initial, invited and legacy-owner appointments                         |
 | `GET /api/v1/company-authority/appointments/team/?company={uuid}` | Read that company's team as a current company administrator                                                  |
 | `POST /api/v1/company-authority/appointments/{uuid}/revoke/`      | Permanently revoke one's own appointment or, as a current administrator, another appointment in that company |
+| `POST /api/v1/company-authority/appointments/{uuid}/signup-terms/` | Accept current signup Terms using one's current personal administrator appointment, preserving its authority |
 
-Issuance requires `company`, `inviter_appointment`, a caller-scoped
+The `signup-terms/` action requires `declarationVersion: "2026-10-14"` and
+`acceptDeclaration: true`. It rechecks the caller's own exact-company personal
+`admin` appointment, active email-verified account and bound profile, configured
+identity requirement, expiry and revocation. It returns the own appointment with read-only
+`signupTerms: {company, appointment, acceptedBy, acceptedProfile,
+declarationVersion, declarationText, acceptedAt}`. The own-appointment list
+exposes the same receipt, or `null` when this version has not been accepted.
+
+For an initial appointment already carrying the exact current signup declaration,
+the receipt comes from that original record and admission time. Otherwise the
+action retains one immutable acceptance for that appointment/version, bound to
+the person, profile, company, declaration and time. Repeated acceptance returns
+the same receipt. It does not change the appointment, expand delegation, create
+another bootstrap or restore ineffective authority. Reads and resuming the page
+record no acceptance; only the explicit final action submits it.
+
+Invitation issuance requires `company`, `inviter_appointment`, a caller-scoped
 `idempotency_key`, and personal `capabilities`. Optional
 `delegatable_capabilities` remain separate from personal authority. The union of
 offered personal and delegatable capabilities must be within the selected
@@ -238,7 +285,14 @@ fields in the own-record API, and are subject to the same account, identity,
 expiry and revocation checks. The fresh migration history creates none;
 administrators appoint through invitations.
 
-Supporting files retain the [private-file lifecycle](../../architecture/files-and-retention.md).
+Supplied supporting files retain the [private-file lifecycle](../../architecture/files-and-retention.md).
+Earlier admitted declarations keep their original version/text. Team invitation
+acceptance and company activation retain their separate `2026-10-04` declaration;
+a person accepting a limited invitation does not declare workspace administration.
+An administrator's later current signup Terms acceptance is retained separately
+as `CompanySignupTermsAcceptance` when the original appointment does not already
+record it. Its actor, profile, company, appointment, version, text and time are
+immutable; it grants no capabilities and does not rewrite the appointment history.
 
 ## Boundaries
 

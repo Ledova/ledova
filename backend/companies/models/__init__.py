@@ -21,6 +21,7 @@ from companies.models.registry_check import (
     RegistryCheckPurpose,
     RegistryCheckStatus,
 )
+from companies.models.signup_terms import CompanySignupTermsAcceptance
 from companies.models.team_invitation import CompanyTeamInvitation
 
 __all__ = [
@@ -32,6 +33,7 @@ __all__ = [
     "CompanyCapability",
     "CompanyLegacyOwnerSource",
     "CompanyTeamInvitation",
+    "CompanySignupTermsAcceptance",
     "CompanyStatus",
     "CompanyType",
     "CompanyDocument",

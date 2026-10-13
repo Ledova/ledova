@@ -12,6 +12,8 @@ from companies.serializers.authority_request import (
     CompanyAppointmentSerializer,
     CompanyAuthorityRequestAdmissionSerializer,
 )
+from companies.services.authority import DECLARATION_VERSION
+from companies.services.signup_terms import signup_terms_receipt
 
 
 class StrictTeamSerializer(serializers.Serializer):
@@ -37,6 +39,7 @@ class CompanyTeamInvitationCreateSerializer(StrictTeamSerializer):
 
 
 class CompanyTeamInvitationAcceptSerializer(CompanyAuthorityRequestAdmissionSerializer):
+    declaration_version = serializers.ChoiceField(choices=[DECLARATION_VERSION])
     code = serializers.RegexField(r"^[A-Za-z0-9_-]{43}$", trim_whitespace=False, write_only=True)
 
 
@@ -86,12 +89,23 @@ class CompanyTeamInvitationIssuedSerializer(CompanyTeamInvitationSerializer):
         read_only_fields = fields
 
 
+class CompanySignupTermsReceiptSerializer(serializers.Serializer):
+    company = serializers.UUIDField(read_only=True)
+    appointment = serializers.UUIDField(read_only=True)
+    accepted_by = serializers.IntegerField(read_only=True)
+    accepted_profile = serializers.UUIDField(read_only=True)
+    declaration_version = serializers.CharField(read_only=True)
+    declaration_text = serializers.CharField(read_only=True)
+    accepted_at = serializers.DateTimeField(read_only=True)
+
+
 class OwnCompanyAppointmentSerializer(CompanyAppointmentSerializer):
     company_name = serializers.CharField(source="company.name", read_only=True)
     source = serializers.SerializerMethodField()
+    signup_terms = serializers.SerializerMethodField()
 
     class Meta(CompanyAppointmentSerializer.Meta):
-        fields = [*CompanyAppointmentSerializer.Meta.fields, "company", "company_name", "source"]
+        fields = [*CompanyAppointmentSerializer.Meta.fields, "company", "company_name", "source", "signup_terms"]
         read_only_fields = fields
 
     @extend_schema_field(serializers.ChoiceField(choices=["initial", "invitation", "legacy_owner"]))
@@ -99,6 +113,14 @@ class OwnCompanyAppointmentSerializer(CompanyAppointmentSerializer):
         if obj.request_id:
             return "initial"
         return "legacy_owner" if obj.legacy_owner_id else "invitation"
+
+    @extend_schema_field(CompanySignupTermsReceiptSerializer(allow_null=True))
+    def get_signup_terms(self, obj):
+        request = self.context.get("request")
+        if request is None:
+            return None
+        receipt = signup_terms_receipt(obj, request.user)
+        return CompanySignupTermsReceiptSerializer(receipt).data if receipt else None
 
 
 class CompanyTeamAppointmentSerializer(OwnCompanyAppointmentSerializer):

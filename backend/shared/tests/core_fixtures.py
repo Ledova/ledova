@@ -6,12 +6,14 @@ from uuid import uuid4
 import pymupdf
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
-from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import override_settings
 from django.utils import timezone
 
 from companies.models import Company, CompanyCapability
-from companies.services.authority import DECLARATION_VERSION, admit_authority_request
+from companies.services.authority import (
+    SIGNUP_DECLARATION_VERSION,
+    admit_authority_request,
+)
 from companies.services.authority_requests import submit_authority_request
 from integrations.abr.client import RegistryObservation
 from shared.db import use_migrate, use_operator
@@ -68,7 +70,6 @@ def company_for(owner, name, acn):
         requester=owner,
         company_id=company.pk,
         idempotency_key=uuid4(),
-        file=SimpleUploadedFile("authority.pdf", pdf_bytes(), content_type="application/pdf"),
         requested_capabilities=[CompanyCapability.ADMIN],
         delegatable_capabilities=list(CompanyCapability.values),
     )
@@ -76,7 +77,7 @@ def company_for(owner, name, acn):
         appointment = admit_authority_request(
             requester=owner,
             request_id=proposal.pk,
-            declaration_version=DECLARATION_VERSION,
+            declaration_version=SIGNUP_DECLARATION_VERSION,
             accept_declaration=True,
         ).appointment
     return company, appointment

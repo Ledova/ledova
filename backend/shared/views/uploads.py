@@ -13,10 +13,13 @@ class UploadRequestTooLarge(APIException):
 
 class UploadProtectedView:
     upload_field = "file"
+    protect_json_requests = True
 
     def initialize_request(self, request, *args, **kwargs):
         self.upload_handler = None
-        if self.action_map.get(request.method.lower()) == "create":
+        if self.action_map.get(request.method.lower()) == "create" and (
+            self.protect_json_requests or request.content_type != "application/json"
+        ):
             self.upload_handler = BoundedUploadHandler(request, self.upload_field)
             request.upload_handlers = [self.upload_handler, *request.upload_handlers]
         return super().initialize_request(request, *args, **kwargs)

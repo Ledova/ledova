@@ -150,8 +150,13 @@ export function SettingsPage() {
           <LinkRow to={DESTINATIONS.company.path} label="Company details and share classes">
             <p className="text-text-muted">Company setup and the classes you can administer.</p>
           </LinkRow>
+          <LinkRow to={`${DESTINATIONS.company.path}#documents`} label="Company documents">
+            <p className="text-text-muted">Upload optional supporting documents after company setup.</p>
+          </LinkRow>
           <LinkRow to={DESTINATIONS.companyTeam.path} label="Team and appointments">
-            <p className="text-text-muted">Accept a company invitation and manage permitted appointments.</p>
+            <p className="text-text-muted">
+              Invite company users, accept an invitation and manage permitted appointments.
+            </p>
           </LinkRow>
           {registerEntry && (
             <LinkRow to={`${DESTINATIONS.companyRegister.path}#access`} label="Member access">

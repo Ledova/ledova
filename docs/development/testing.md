@@ -62,8 +62,11 @@ Keep at most **150 executed backend cases** in total. Cover:
 - One fake-scanner test refuses infected or unscannable uploads.
 
 The delivered suite has 19 cases, including five real-app-login tenant cases.
-Its company setup journey covers signup and initial representative admission;
-the retained identity, ABR, evidence and authority checks remain in that path.
+Its company setup journey covers signup without a supporting file, initial
+representative admission and later checked company documents. Identity, ABR,
+versioned acknowledgement and company authority checks remain in that path.
+Resuming signup uses current administrator authority and a retained current
+Terms receipt without rewriting historical permissions or declarations.
 Member invitations, own records and company-reviewed requests have one core API
 journey; the existing tenant controls include foreign invitation and revoked
 association refusals. One core output case covers real company/member PDFs,
