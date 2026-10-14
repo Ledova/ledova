@@ -233,8 +233,7 @@ function OwnTeam({
   return (
     <Page narrow>
       <p className="text-sm text-text-muted">
-        Company information is provided by the company. Appointments give only their recorded actions; they do not
-        activate a company or approve a register change.
+        Appointments allow only their recorded actions. They do not activate a company or approve a register change.
       </p>
       <Section title="Accept a company invitation">
         <AcceptInvitationForm

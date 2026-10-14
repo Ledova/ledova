@@ -53,7 +53,7 @@ export function AppointmentRecord({
         </div>
       </details>
       {appointment.status !== 'revoked' && (
-        <PageAction label={`Revoke appointment ${appointment.uuid}`} disabled={disabled} onClick={onRevoke} />
+        <PageAction label="Revoke appointment" context={appointment.uuid} disabled={disabled} onClick={onRevoke} />
       )}
     </li>
   );
