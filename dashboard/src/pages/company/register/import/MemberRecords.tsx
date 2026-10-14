@@ -10,7 +10,7 @@ export function MemberRecords({ members }: { members: RegisterImportMemberRow[] 
   const total = registerImportTotals(members).total;
   return (
     <>
-      <div className="max-w-full overflow-x-auto rounded-xl border border-border-subtle">
+      <div className="relative max-w-full overflow-x-auto rounded-xl border border-border-subtle">
         <table className="w-full text-left text-sm">
           <caption className="sr-only">Shareholders</caption>
           <thead className="bg-surface-tertiary text-xs text-text-muted">

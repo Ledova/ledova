@@ -140,7 +140,7 @@ export function BringRecords({
               </div>
             )}
             {draft.members.some((row) => started(row) && row.member !== editor?.member) && (
-              <div className="max-w-full overflow-x-auto rounded-xl border border-border-subtle">
+              <div className="relative max-w-full overflow-x-auto rounded-xl border border-border-subtle">
                 <table className="w-full text-left text-sm">
                   <caption className="sr-only">Draft shareholders</caption>
                   <thead className="bg-surface-tertiary text-xs text-text-muted">
