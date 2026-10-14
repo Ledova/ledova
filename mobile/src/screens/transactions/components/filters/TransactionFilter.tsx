@@ -95,7 +95,10 @@ export function TransactionFilter({
     help: { fontFamily: theme.fontFamily.regular, fontSize: 13, lineHeight: 20, color: theme.colors.text.muted },
     dropdown: { borderWidth: 1, borderColor: theme.colors.border.default, padding: 10, borderRadius: 6 },
     field: { backgroundColor: theme.colors.surface.raised },
-    menu: { backgroundColor: theme.colors.surface.base, borderColor: theme.colors.border.subtle },
+    menu: {
+      backgroundColor: theme.colors.surface.base,
+      ...(theme.mode === 'dark' ? { borderColor: theme.colors.border.subtle } : null),
+    },
   }));
   const change = (field: keyof TransactionFilters, value: string) =>
     onUpdateFilters({ ...filters, [field]: value || undefined });
@@ -153,7 +156,7 @@ export function TransactionFilter({
               accessibilityLabel="Wallet filter"
               style={styles.dropdown}
               containerStyle={styles.menu}
-              activeColor={theme.colors.surface.raised}
+              activeColor={theme.mode === 'dark' ? theme.colors.surface.raised : undefined}
               selectedTextStyle={styles.text}
               itemTextStyle={styles.text}
               placeholderStyle={styles.help}

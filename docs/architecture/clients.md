@@ -587,8 +587,8 @@ either. `brand-subtle` is the text hover and the text on `brand-tint`, and
 `useAppTheme()`, plus the spacing, radius, type, layout and icon scales, with the
 same roles: brand-coloured text, icons, spinners and pull-to-refresh tints on a
 surface use `brand.light` (`interactive.active` equals it), while solid fills
-under white text, selection borders and washes use `brand.default`
-(`interactive.default`) or `brand.mid` (`interactive.defaultSubtle`), and error
+under white text, selection borders and washes use `brand.default` or
+`brand.mid` (`interactive.defaultSubtle`), and error
 text uses `status.error.text` rather than the `error.default` fill.
 
 `make generate-tokens` runs `packages/scripts/generate-css-tokens.mjs` with
@@ -624,13 +624,14 @@ The mobile app has the same two looks. `ThemeProvider`
 (`mobile/src/contexts/ThemeContext.tsx`) reads `ledova.theme` from the device's
 AsyncStorage once, through `parseTheme`, and renders nothing until that read
 settles, so the first frame already has the stored look; a missing, unknown or
-unreadable value means Paper, and the `ledova-theme` key an older build used is
-not read. `useAppTheme()` returns one precomputed theme object per look with its
+unreadable value, or a read still pending after two seconds, means Paper, and
+the `ledova-theme` key an older build used is not read. `useAppTheme()` returns one precomputed theme object per look with its
 `mode`, and `useThemeChoice()` gives Settings > Appearance > Dark theme the mode
 and a setter. The choice is written only when someone picks a theme, stays on
 the device through sign-out and restarts, and is not stored on the account.
-Whenever the look is known or changes, the provider sets React Native's colour
-scheme to light or dark and the root view's background to the page ground, so
+When the look is first known, before the app's screens mount, and whenever it
+changes, the provider sets React Native's colour scheme to light or dark and the
+root view's background to the page ground, so
 alerts, switches and date pickers, and on iOS the keyboard and share sheet,
 follow the in-app choice rather than the device setting. The status bar is dark
 on Paper and light on Dark, navigation starts from React Navigation's light or

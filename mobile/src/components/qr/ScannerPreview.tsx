@@ -59,7 +59,17 @@ export function ScannerPreview(props: ScannerPreviewProps) {
     ) : null;
   }
   if (!NativeScanner)
-    return <Text style={{ color: theme.colors.utility.white }}>Camera unavailable. Update Ledova and try again.</Text>;
+    return (
+      <Text
+        style={{
+          color: theme.colors.utility.white,
+          backgroundColor: theme.colors.utility.black,
+          padding: theme.spacing.sm,
+        }}
+      >
+        Camera unavailable. Update Ledova and try again.
+      </Text>
+    );
 
   return (
     <NativeScanner

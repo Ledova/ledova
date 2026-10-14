@@ -25,6 +25,13 @@ const APP_THEMES = { paper: buildTheme('paper'), dark: buildTheme('dark') };
 
 type ThemeObject = ReturnType<typeof buildTheme>;
 
+const STORED_THEME_TIMEOUT_MS = 2000;
+
+function applyNativeAppearance(mode: ThemeName) {
+  Appearance.setColorScheme(mode === 'dark' ? 'dark' : 'light');
+  SystemUI.setBackgroundColorAsync(APP_THEMES[mode].colors.surface.base).catch(() => {});
+}
+
 const ThemeContext = createContext<ThemeObject>(APP_THEMES.paper);
 const ThemeChoiceContext = createContext<(mode: ThemeName) => void>(() => {});
 
@@ -32,24 +39,26 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [mode, setMode] = useState<ThemeName | null>(null);
 
   useEffect(() => {
-    let active = true;
+    let pending = true;
+    const settle = (stored: ThemeName) => {
+      if (!pending) return;
+      pending = false;
+      clearTimeout(timer);
+      applyNativeAppearance(stored);
+      setMode(stored);
+    };
+    const timer = setTimeout(() => settle('paper'), STORED_THEME_TIMEOUT_MS);
     AsyncStorage.getItem(THEME_STORAGE_KEY)
       .then(parseTheme, () => 'paper' as const)
-      .then((stored) => {
-        if (active) setMode(stored);
-      });
+      .then(settle);
     return () => {
-      active = false;
+      pending = false;
+      clearTimeout(timer);
     };
   }, []);
 
-  useEffect(() => {
-    if (!mode) return;
-    Appearance.setColorScheme(mode === 'dark' ? 'dark' : 'light');
-    SystemUI.setBackgroundColorAsync(APP_THEMES[mode].colors.surface.base).catch(() => {});
-  }, [mode]);
-
   const choose = useCallback((next: ThemeName) => {
+    applyNativeAppearance(next);
     setMode(next);
     AsyncStorage.setItem(THEME_STORAGE_KEY, next).catch(() => {});
   }, []);
