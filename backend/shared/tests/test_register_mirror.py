@@ -133,6 +133,16 @@ class RegisterMirrorTest(CoreFixtures, APITransactionTestCase):
         prepared = self.client.post(endpoint, metadata, format="json")
         self.assertEqual(prepared.status_code, 201, prepared.content)
         metadata_id = prepared.json()["uuid"]
+        reviewed = self.client.post(
+            f"{endpoint}{metadata_id}/decision-preview/",
+            {
+                "appointment": str(self.appointment.pk),
+                "kind": "approve",
+            },
+            format="json",
+        )
+        self.assertEqual(reviewed.status_code, 200, reviewed.content)
+        self.assertEqual(reviewed.json()["comparison"][0]["enteredOn"], "2020-01-01")
         self.decision(endpoint, metadata_id, "approve")
         self.decision(endpoint, metadata_id, "apply")
         self.assertEqual(RegisterEntry.objects.filter(register__token=token).count(), 2)
@@ -141,6 +151,37 @@ class RegisterMirrorTest(CoreFixtures, APITransactionTestCase):
         holders = self.client.get(f"/api/v1/tokens/{token.pk}/holders/")
         self.assertEqual(holders.status_code, 200, holders.content)
         self.assertEqual(holders.json()["holders"][0]["enteredOn"], "2018-01-01")
+        picker = self.client.get(f"/api/v1/tokens/{token.pk}/register/members/")
+        self.assertEqual(picker.status_code, 200, picker.content)
+        selected = next(row for row in picker.json()["members"] if row["member"] == payload["members"][0]["member"])
+        self.assertEqual(selected["enteredOn"], "2018-01-01")
+        exported = self.client.get(f"/api/v1/tokens/{token.pk}/register/export/")
+        self.assertEqual(exported.status_code, 200, exported.content)
+        self.assertIn("2018-01-01", exported.content.decode())
+        self.assertEqual(RegisterPosition.objects.get(register__token=token).entered_on, opening.effective_on)
+        invitation = self.client.post(
+            "/api/v1/tokens/member-invitations/",
+            self.invitation_payload(
+                member=payload["members"][0]["member"],
+            ),
+            format="json",
+        )
+        self.assertEqual(invitation.status_code, 201, invitation.content)
+        self.client.force_authenticate(self.foreign)
+        accepted = self.client.post(
+            "/api/v1/tokens/member-invitations/accept/",
+            {
+                "code": invitation.json()["code"],
+                "user_account": str(self.foreign_profile.user_account.pk),
+                "confirmation": True,
+            },
+            format="json",
+        )
+        self.assertEqual(accepted.status_code, 200, accepted.content)
+        member_record = self.client.get(f"/api/v1/tokens/member-records/{accepted.json()['uuid']}/")
+        self.assertEqual(member_record.status_code, 200, member_record.content)
+        self.assertEqual(member_record.json()["classes"][0]["enteredOn"], "2018-01-01")
+        self.client.force_authenticate(self.owner)
         self.assertEqual(
             [row["name"] for row in holders.json()["formerMembers"]], ["Corrected synthetic former member"]
         )

@@ -374,6 +374,26 @@ def _imported(token):
     return applied.register_sequence, {row["member"]: row for row in applied.members}, applied
 
 
+def imported_membership_dates(token, *, imported_at=None, imported=None):
+    if imported is None:
+        imported_at, imported, _ = _imported(token)
+    if not imported:
+        return {}
+    balances = {member: int(row["shares"]) for member, row in imported.items()}
+    dates = {member: date.fromisoformat(row["entered_on"]) for member, row in imported.items()}
+    entries = RegisterEntry.objects.filter(register__token=token, sequence__gt=imported_at).order_by("sequence")
+    for changes in entries.values_list("changes", flat=True):
+        for change in changes:
+            member = change["member"]
+            if member not in balances:
+                continue
+            delta = int(change["shares"])
+            if balances[member] == 0 and delta > 0:
+                dates.pop(member, None)
+            balances[member] += delta
+    return dates
+
+
 def _identity_sources(token, member_ids):
     particulars = {
         record.member_id: record for record in RegisterMemberParticulars.objects.filter(member_id__in=member_ids)
@@ -444,6 +464,7 @@ def _stored_register(token):
     )
     particulars, wallets, identities, stamps = _identity_sources(token, [position.member_id for position in positions])
     imported_at, imported, applied_import = _imported(token)
+    imported_dates = imported_membership_dates(token, imported_at=imported_at, imported=imported)
     external_paid = _external_amounts_paid(register, imported_at, imported)
     ceased, former = _cessations(
         token, {address.lower(): member for member, addresses in wallets.items() for address in addresses}
@@ -465,9 +486,9 @@ def _stored_register(token):
         former.extend(row for row in ceased[position.member_id] if row.ceased_on < entered_on)
         shares = int(position.shares)
         amount_paid = _amount_paid(allotment, shares, member in transferred or interrupted)
-        continuing = imported.get(member) if member in held else None
+        continuing = imported.get(member) if member in imported_dates else None
         if continuing is not None:
-            entered_on = date.fromisoformat(continuing["entered_on"])
+            entered_on = imported_dates[member]
             if position.last_entry.sequence <= imported_at:
                 amount_paid = None if continuing["amount_paid"] is None else Decimal(continuing["amount_paid"])
         if member in external_paid:

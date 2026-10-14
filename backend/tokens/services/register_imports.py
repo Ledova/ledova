@@ -36,7 +36,7 @@ from tokens.models import (
     ShareToken,
 )
 from tokens.services.former_holders import retention_cutoff
-from tokens.services.register import _member_identity
+from tokens.services.register import _member_identity, imported_membership_dates
 from tokens.services.register_authority import register_appointment, register_command
 from tokens.services.register_decisions import DecisionFamily, decide, preview
 from tokens.services.register_events import create_member, record_entry
@@ -487,13 +487,14 @@ def _holdings(token_id):
 
 def _comparison(proposal):
     stored = _holdings(proposal.token_id)
+    member_dates = imported_membership_dates(proposal.token)
     imported = {row["member"]: int(row["shares"]) for row in proposal.members}
     return [
         {
             "member": member,
             "imported": imported.get(member),
             "stored": int(stored[member].shares) if member in stored else None,
-            "entered_on": stored[member].entered_on if member in stored else None,
+            "entered_on": member_dates.get(member, stored[member].entered_on) if member in stored else None,
         }
         for member in sorted(set(stored) | set(imported))
     ]
