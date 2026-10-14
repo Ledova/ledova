@@ -37,9 +37,10 @@ stay here as history and are marked where they appear.
 | [Registry priority, crypto on-ramp and AUD payments](#registry-priority-crypto-on-ramp-and-aud-payments)        | 5 October 2026                                 | Payment scope superseded 9 October; on-ramp restriction stands     |
 | [Payments and settlement](#payments-and-settlement)                                                             | 25 September to 2 October 2026                 | Current behaviour; new mechanics deferred                          |
 | [Assets and portfolio presentation](#assets-and-portfolio-presentation)                                         | 26 September 2026                              | Current                                                            |
-| [The signed-in app](#the-signed-in-app)                                                                         | 26 September to 2 October 2026                 | Navigation superseded by 11 October journey direction              |
+| [The signed-in app](#the-signed-in-app)                                                                         | 26 September to 2 October 2026                 | Navigation superseded 11 October; one look superseded 14 October   |
 | [Simpler signed-in journeys](#simpler-signed-in-journeys)                                                       | 11 October 2026                                | Web layout superseded 12 October; native journey remains delivered |
 | [Ownership dashboard and compact sidebar](#ownership-dashboard-and-compact-sidebar)                             | 12 October 2026                                | Current; increments #1012–#1014                                    |
+| [Paper and Dark themes](#paper-and-dark-themes)                                                                 | 14 October 2026                                | Current; #1040                                                     |
 | [The account-data export](#the-account-data-export)                                                             | 23 September 2026                              | Current                                                            |
 | [Tenancy, sessions and deployment](#tenancy-sessions-and-deployment)                                            | 3 October 2026                                 | Current                                                            |
 | [Contracts compiler and toolchain](#contracts-compiler-and-toolchain)                                           | Undated                                        | Current                                                            |
@@ -1141,6 +1142,24 @@ The signup constraint above was replaced by the
 [14 October combined signup decision](#combined-company-signup-and-initial-authority).
 The dashboard layout and native signed-in navigation remain as delivered.
 
+## Paper and Dark themes
+
+On 14 October 2026 the owner directed under
+[#1040](https://github.com/Ledova/ledova/issues/1040): keep the existing bright
+Paper theme and add a Dark theme that users can switch to, with a consistent
+look across the web app (including sign-in and signup), the mobile app and the
+public website. Reuse the existing design system, avoid unnecessary complexity,
+and preserve each person's choice across sessions. The owner's answers in the
+same session: the choice is remembered on each device (browser storage on the
+web, device storage on mobile; no account field, API or migration), and Paper
+stays the default until someone picks Dark.
+
+This supersedes the "One look" choice under
+[the signed-in app](#the-signed-in-app) and the #792 reason for storing no theme
+preference. Dark is a second palette for the same semantic tokens. The web
+delivery is described in [clients](architecture/clients.md#design-tokens); the
+mobile increment is planned in the issue.
+
 ## The signed-in app
 
 The web layout below is superseded by the [12 October dashboard decision](#ownership-dashboard-and-compact-sidebar).
@@ -1184,7 +1203,9 @@ company authority.
   investor-only; companies must not use the on-ramp to buy cryptocurrency.
   Sending and authorised company share-wallet operations remain separate.
 - **One look.** Paper only, with no theme switch, and no test-network or
-  synthetic-data notices in the product.
+  synthetic-data notices in the product. The theme part is superseded by the
+  [14 October theme decision](#paper-and-dark-themes): Paper stays the default
+  and Dark can be chosen.
 - **Titles in the page.** For page titles the owner chose "Title in the page":
   "As shown: the title and the page's actions sit in one row on the content's
   own edge, at every width. The desktop header bar goes, and on long pages the
@@ -1270,7 +1291,9 @@ portfolio; and routes offer only the methods in use, which
 [#832](https://github.com/Ledova/ledova/pull/832) carried out by removing the
 33 operations no client called, taking the schema from 191 operations to 158.
 The [upgrade notes](operations/upgrades.md) record the key and preference
-removals.
+removals. The theme reason is superseded by the
+[14 October theme decision](#paper-and-dark-themes), which keeps a theme choice
+on each device rather than on the account.
 
 The owner chose the look of the signed-in pages on 29 September 2026:
 

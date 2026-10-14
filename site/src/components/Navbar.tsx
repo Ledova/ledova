@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { List as ListIcon, X as XIcon } from '@phosphor-icons/react';
 import { Logo } from './Logo';
+import { ThemeToggle } from './ThemeToggle';
 import { SIGN_IN_URL, SIGN_UP_URL } from '../appLinks';
 
 const NAV_LINKS = [
@@ -46,6 +47,7 @@ export function Navbar() {
         </div>
 
         <div className="col-start-3 flex items-center gap-1 justify-self-end md:gap-6">
+          <ThemeToggle />
           <a
             href={SIGN_IN_URL}
             className="hidden whitespace-nowrap text-[15px] font-medium text-text-primary transition-colors hover:text-brand-light md:inline"

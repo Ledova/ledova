@@ -29,6 +29,7 @@ export default tseslint.config(
     },
     rules: {
       'prettier/prettier': 'error',
+      'no-empty': ['error', { allowEmptyCatch: true }],
       ...reactPlugin.configs.recommended.rules,
       ...reactHooks.configs.recommended.rules,
       'react/react-in-jsx-scope': 'off',

@@ -435,8 +435,9 @@ preferences record, read through `useUserPreferences` and saved with a partial
 `POST` to `/api/user-preferences/`; mobile distinguishes an unavailable
 preferences record from disabled alerts. Account deletion keeps its
 confirmation dialog, states which records are retained, and clears the tab's
-account data after the server confirms. Mobile Settings adds biometric sign-in
-and app lock.
+account data after the server confirms. Web Settings adds Appearance, whose
+Dark theme switch is kept in the browser ([design tokens](#design-tokens)).
+Mobile Settings adds biometric sign-in and app lock.
 
 Where market values are shown, they are in AUD: the shared `useCurrency`
 converts the API's US-dollar values at the current rate, shows a dash while the
@@ -508,7 +509,7 @@ followed by the provider's web view.
 Pages are built from the ledger blocks in `dashboard/src/components/Ledger.tsx`
 and `mobile/src/components/Ledger.tsx`; each enforces one rule:
 
-- `Section`: every section is its own white card on the paper
+- `Section`: every section is its own raised card on the page ground
   (`bg-surface-raised`, a `border-border` hairline, `rounded-xl`) with its
   Newsreader title inside. Forms and things to act on are cards too, and a
   group inside a card is set off by a rule or a small heading, never a nested
@@ -538,11 +539,11 @@ and `mobile/src/components/Ledger.tsx`; each enforces one rule:
   `@ledova/shared`. A dialog is kept for work that sets the page aside: a form
   that creates or changes something, a signing step or a confirmation.
 - `SwitchRow`: the one control for a setting that takes effect as soon as it
-  changes (Transaction alerts; Show this company to eligible investors). The
-  On/Off pill or native switch is the switch itself (`role="switch"`), its
-  `aria-checked` is the saved value, it is disabled while saving, keeps the
-  saved value when refused, and the refusal is an alert in the same card. A
-  choice saved with a form stays a checkbox.
+  changes (Transaction alerts; Dark theme; Show this company to eligible
+  investors). The On/Off pill or native switch is the switch itself
+  (`role="switch"`), its `aria-checked` is the saved value, it is disabled
+  while saving, keeps the saved value when refused, and the refusal is an alert
+  in the same card. A choice saved with a form stays a checkbox.
 - `Status`: a status in words after a small mark; screen readers read only the
   words. `Timeline`: each event with its date.
 
@@ -556,10 +557,10 @@ before the one primary action, wrapping rather than stretching. On mobile the
 backdrop closes the dialog, and a busy dialog holds the backdrop, Android Back
 and Cancel.
 
-Inside cards and dialogs nothing is boxed: fields are white with a hairline
-border (`rounded-lg border border-border bg-surface-raised`; `useDialogStyles`
-on mobile), steps are numbered lines, a choice is an outlined `Choice` marked
-selected, and warnings and errors are text, warning-coloured beside an icon or
+Inside cards and dialogs nothing is boxed: fields share the card's surface with
+a hairline border (`rounded-lg border border-border bg-surface-raised`;
+`useDialogStyles` on mobile), steps are numbered lines, a choice is an outlined
+`Choice` marked selected, and warnings and errors are text, warning-coloured beside an icon or
 error-coloured, rather than tinted boxes. The exceptions are the tinted
 extraction-status pill beside a saved payslip on Profile and the dashed upload
 area that marks where a file goes. Addresses, hashes and signing summaries use
@@ -572,35 +573,59 @@ the shared scale lacks.
 ## Design tokens
 
 `packages/shared/src/constants/ui/design-tokens.ts` is the single source of
-design tokens. `buildColors()` turns a private paper palette into `PAPER_THEME`,
-one semantic colour vocabulary that the dashboard, the public site and mobile
-all use: `surface`, `text`, `brand`, `border` and the status colours. On the
-web, text utilities follow the suffix: a `-light` colour (`text-brand-light`,
-`text-error-light`) is text on a surface, while the bare name and `-mid`
-(`bg-brand`, `border-brand-mid`, `ring-brand-mid`) are solid fills under white
-text, borders and rings; translucent washes and outlines use either.
-`brand-subtle` is the text hover and the text on `brand-tint`, and `brand-hover`
-the fill hover. Mobile reads
-the same tokens through `useAppTheme()`, with solid fills on `brand.default`,
+design tokens. `buildColors()` turns a palette into one semantic colour
+vocabulary that the dashboard, the public site and mobile all use: `surface`,
+`text`, `brand`, `border` and the status colours. It builds both themes with the
+same names, `THEMES.paper` (`PAPER_THEME`, from a private paper palette) and
+`THEMES.dark`. On the web, text utilities follow the suffix: a `-light` colour
+(`text-brand-light`, `text-error-light`) is text on a surface, while the bare
+name and `-mid` (`bg-brand`, `border-brand-mid`, `ring-brand-mid`) are solid
+fills under white text, borders and rings; translucent washes and outlines use
+either. `brand-subtle` is the text hover and the text on `brand-tint`, and
+`brand-hover` the fill hover. Mobile reads the same tokens through
+`useAppTheme()`, with solid fills on `brand.default`,
 plus the spacing, radius, type, layout and icon scales.
 
 `make generate-tokens` runs `packages/scripts/generate-css-tokens.mjs` with
 `tsx` and writes `dashboard/src/styles/tokens.css` and `site/src/tokens.css`,
 raw generator output and prettier-ignored. That `@theme` block carries the
-semantic colours, the spacing steps and the `lg` and `xl` shadows; Tailwind v4
-derives the utility classes from it (`bg-surface-base`, `text-text-body`,
+Paper semantic colours, the spacing steps and the `lg` and `xl` shadows; Tailwind
+v4 derives the utility classes from it (`bg-surface-base`, `text-text-body`,
 `border-border-subtle`), and web radii, type sizes and font weights come from
-Tailwind's defaults. The public site uses the same semantic names as the
-dashboard, plus `bg-brand-tint` and `border-border-faint`. Never edit either
-file: `make check`, which CI runs, compares them with the generator's
-`--check` output and fails on any drift.
+Tailwind's defaults. After it the generator writes a `:root[data-theme='dark']`
+block that sets `color-scheme: dark` and gives every colour variable its Dark
+value, and it fails if the two themes would emit different variables. The
+public site uses the same semantic names as the dashboard, plus
+`border-border-faint` and `brand-tint`, which also marks the dashboard's active
+sidebar item in Dark. Never edit either file: `make check`, which CI runs,
+compares them with the generator's `--check` output and fails on any drift.
 
-The clients have one look, paper, and no theme switch. Both web clients bundle
-Newsreader for display text and Instrument Sans for everything else. Mobile
-also uses fixed paper and bundles these fonts with a finite loading/error/retry
-gate; the account stores no theme, and a theme an older build saved on the
-device is not read. Shared tokens and the CSS generator contain only paper; the
-retired dark and light palettes are removed.
+The web clients have two looks: Paper, the default, and Dark. Dark is the
+`data-theme="dark"` attribute on `<html>`; without it a page is Paper. A short
+script in each `index.html` reads `ledova.theme` (`THEME_STORAGE_KEY`) from the
+browser's storage before the first paint and applies Dark, with its
+`theme-color`, only for the exact value `dark`; a missing, unknown or unreadable
+value means Paper, as `parseTheme` decides, and the `ledova-theme` key of an
+earlier, removed switch is not read. The choice is written only when someone
+picks a theme, stays in that browser through reloads and sign-out, and is not
+stored on the account. The dashboard's switches are Settings > Appearance > Dark
+theme and the icon toggle in the signed-out and signup header (`ThemeToggle` in
+`AuthLayout`), both through `dashboard/src/hooks/useTheme.ts`; the public site's
+navbar toggle uses `site/src/theme.ts`. In production the site and the app share
+an origin, so one choice serves both.
+
+Colours come from the semantic tokens and their roles, so components need no
+per-theme classes. Both web stylesheets define a `dark:` variant that follows
+`data-theme`, never the operating-system setting, and it is kept for
+theme-specific adjustments: `QRCodeFrame` gives QR codes a white quiet zone, the
+active sidebar item uses `bg-brand-tint`, and the signed-out primary buttons
+drop their green glow. The identity check's widget opens in its dark theme when
+the page is Dark.
+
+Both web clients bundle Newsreader for display text and Instrument Sans for
+everything else. Mobile has one look, Paper, and bundles these fonts with a
+finite loading/error/retry gate; it stores no theme, and a theme an older build
+saved on the device is not read.
 
 Next: [authentication](authentication.md), [mobile security](mobile-security.md),
 [mobile lifecycles](mobile-lifecycles.md), and [mobile builds](../development/mobile-builds.md).

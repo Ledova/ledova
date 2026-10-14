@@ -1,5 +1,6 @@
 import { ReactNode, useContext } from 'react';
 import { Logo } from '@components/Logo';
+import { ThemeToggle } from '@components/ThemeToggle';
 import { SITE_URL } from '@utils/siteUrl';
 import { AuthLayoutAction } from './AuthLayoutAction';
 
@@ -16,7 +17,10 @@ export function AuthLayout({ children }: AuthLayoutProps) {
         <a href={SITE_URL}>
           <Logo />
         </a>
-        {action}
+        <div className="flex items-center gap-4">
+          <ThemeToggle />
+          {action}
+        </div>
       </header>
       <main className="flex flex-1 flex-col justify-center pb-16 pt-6">
         <div className="mx-auto w-full max-w-lg px-4 sm:px-6 lg:px-8">{children}</div>

@@ -4,7 +4,7 @@ import { marketAmount, useOrderActionSigning, type OrderAction, type Wallet } fr
 import { Modal, ModalActions } from '@components/Modal';
 import { PageAction } from '@components/Page';
 import { SeedPhraseInput } from '@components/SeedPhraseInput';
-import { QRScannerView, useQRScanner } from '@components/qr';
+import { QRCodeFrame, QRScannerView, useQRScanner } from '@components/qr';
 import { encodeEthereumTypedData } from '@utils/keystone/urEncoder';
 import { decodeKeystoneMessageSignature } from '@utils/keystone/urDecoder';
 import { deriveAddress, signEthereumTypedData } from '@utils/softwareWallet/localSigner';
@@ -144,9 +144,9 @@ export function OrderActionFlow({ action, wallets, onClose }: Props) {
             )}
             {view.step === 'software' && <SeedPhraseInput value={seedPhrase} onChange={setSeedPhrase} />}
             {view.step === 'show-qr' && view.qrData && (
-              <div className="flex justify-center py-2">
+              <QRCodeFrame>
                 <AnimatedQRCode cbor={view.qrData.cborHex} type={view.qrData.type} />
-              </div>
+              </QRCodeFrame>
             )}
             {view.step === 'scan-signature' && (
               <QRScannerView scannerId="order-action-signature" error={scannerError} />

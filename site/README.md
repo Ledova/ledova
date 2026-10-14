@@ -19,11 +19,21 @@ The `VITE_` values in `.env` are embedded in the browser bundle. Do not put a
 secret in one. The local `.env` is gitignored.
 
 `src/tokens.css` is generated from `packages/shared` by `make generate-tokens`
-at the repository root. It carries the dashboard's semantic colours, spacing
-steps and shadows, so the site uses the same names (`bg-surface-base`,
-`text-text-primary`, `border-border-subtle`, `text-brand-light`); radii, type
-sizes and weights come from Tailwind's defaults. Do not edit it: `make check`,
-which CI runs, fails when it drifts.
+at the repository root. It carries the dashboard's semantic colours, with their
+Dark values under `:root[data-theme='dark']`, spacing steps and shadows, so the
+site uses the same names (`bg-surface-base`, `text-text-primary`,
+`border-border-subtle`, `text-brand-light`); radii, type sizes and weights come
+from Tailwind's defaults. Do not edit it: `make check`, which CI runs, fails
+when it drifts.
+
+The navbar's moon/sun toggle switches between Paper and Dark through
+`src/theme.ts`, which sets `data-theme` and the `theme-color` and keeps the
+choice in the browser under `ledova.theme`; a short script in `index.html`
+applies a stored Dark before the first paint. The module repeats the
+dashboard's key, parsing rule and theme colours because the site's Docker
+context is `site/` and cannot import `@ledova/shared`. In production the site
+and the app share an origin, so one choice serves both
+([design tokens](../docs/architecture/clients.md#design-tokens)).
 
 ## Commands
 

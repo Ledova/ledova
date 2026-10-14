@@ -16,6 +16,7 @@ import { Modal } from '@components/Modal';
 import { Page, PageAction } from '@components/Page';
 import { LinkRow, Section, SwitchRow } from '@components/Ledger';
 import { FIELD_CLASS } from '@components/fieldClass';
+import { setTheme, useTheme } from '@hooks/useTheme';
 import { useRegisterEntry } from '@pages/company/register/useCompanyRegister';
 
 function ActionRow({ description, label, onClick }: { description: string; label: string; onClick: () => void }) {
@@ -73,6 +74,7 @@ export function SettingsPage() {
   const queryClient = useQueryClient();
   const preferences = useUserPreferences();
   const registerEntry = useRegisterEntry();
+  const theme = useTheme();
   const transactionAlerts = preferences.preferences?.transactionAlerts;
   const alerts = useMutation({
     mutationFn: (value: boolean) => upsertCurrentUserPreferences(apiClient, { transactionAlerts: value }),
@@ -185,6 +187,14 @@ export function SettingsPage() {
             Your password was changed.
           </p>
         )}
+      </Section>
+      <Section title="Appearance">
+        <SwitchRow
+          label="Dark theme"
+          description="Saved in this browser."
+          checked={theme === 'dark'}
+          onChange={(dark) => setTheme(dark ? 'dark' : 'paper')}
+        />
       </Section>
       <Section title="Notifications">
         {preferences.isError ? (
