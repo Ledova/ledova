@@ -1,4 +1,4 @@
-import { createUserFriendlyError, registerImportMoney, wholeShares } from '@ledova/shared';
+import { createUserFriendlyError, registerImportMoney, wholeShares, type RegisterTransferMember } from '@ledova/shared';
 import { blankAllotment, type MemberDraft } from './preparation';
 
 export const REGISTER_CSV_MAX_BYTES = 1024 * 1024;
@@ -89,7 +89,12 @@ function templateValue(value: string, row: number) {
   return value.slice(1);
 }
 
-export function readRegisterCsv(text: string, current: MemberDraft[] = [], preserveMembers = false): MemberDraft[] {
+export function readRegisterCsv(
+  text: string,
+  current: MemberDraft[] = [],
+  preserveMembers = false,
+  companyMembers: RegisterTransferMember[] = [],
+): MemberDraft[] {
   const rows = csvRows(text.replace(/^\uFEFF/, ''));
   const headers = rows.shift()?.map((header) => header.trim());
   const encoded = headers?.includes(ENCODING_COLUMN) ?? false;
@@ -118,9 +123,27 @@ export function readRegisterCsv(text: string, current: MemberDraft[] = [], prese
     if (!row.holder_reference || row.holder_reference.length > 100)
       throw createUserFriendlyError(`Row ${line}: give a shareholder reference of at most 100 characters.`);
     const known = current.find((member) => member.member === row.holder_reference);
+    const companyMember = companyMembers.find((member) => member.member === row.holder_reference);
     if (preserveMembers && !known)
       throw createUserFriendlyError(
         `Row ${line}: this shareholder reference does not match an existing member. Download the current template and keep its holder_reference values. Add new shareholders manually after the CSV import.`,
+      );
+    if (
+      encoded &&
+      !known &&
+      !companyMember &&
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(row.holder_reference)
+    )
+      throw createUserFriendlyError(
+        `Row ${line}: this member UUID is not in this company. Choose an existing company shareholder or add a new one manually.`,
+      );
+    if (
+      companyMember &&
+      ((companyMember.name && row.name !== companyMember.name) ||
+        (companyMember.residentialAddress && row.address !== companyMember.residentialAddress))
+    )
+      throw createUserFriendlyError(
+        `Row ${line}: keep this existing company shareholder’s name and address. Correct company particulars from Register separately.`,
       );
     if (!row.name || row.name.length > 255 || !row.address || row.address.length > 1000)
       throw createUserFriendlyError(`Row ${line}: give a name and address within the field limits.`);
@@ -163,7 +186,8 @@ export function readRegisterCsv(text: string, current: MemberDraft[] = [], prese
         );
     } else {
       member = {
-        member: known?.member ?? crypto.randomUUID(),
+        member: known?.member ?? companyMember?.member ?? crypto.randomUUID(),
+        identityChoice: companyMember ? 'existing' : known?.identityChoice,
         name: row.name,
         residentialAddress: row.address,
         enteredOn: row.entered_on,

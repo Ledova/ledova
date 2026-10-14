@@ -14,6 +14,7 @@ import {
   type OrderSubmissionOwner,
   type TokenCreate,
   type TokenType,
+  type RegisterTransferMember,
 } from '@ledova/shared';
 import { FIELD_CLASS } from '@components/fieldClass';
 import { Section } from '@components/Ledger';
@@ -24,10 +25,12 @@ import { Loading, Unavailable } from '../RegisterStatus';
 import { registerSteps } from '../proposals';
 import { readRegister, useRegisterClasses } from '../useCompanyRegister';
 import { ownerGuard, useOwnAppointments } from '../useRegisterImports';
+import { readTransferMembers, useTransferMembers } from '../useRegisterTransfers';
 import { ImportForm } from './ImportForm';
 
 const TECHNICAL_SHARE_LIMIT = (2n ** 256n - 1n).toString();
 const LABEL = 'block space-y-1 text-sm text-text-primary';
+const NO_MEMBERS: RegisterTransferMember[] = [];
 
 export function NewClassSetup({
   owner,
@@ -54,16 +57,21 @@ export function NewClassSetup({
     void read.refetch();
     void appointments.refetch();
     void classes.refetch();
+    if (anchor) void members.refetch();
   };
   const company = read.company;
   const steps = company && appointments.data ? registerSteps(appointments.data, company.uuid) : null;
+  const anchor = classes.data?.find((token) => token.companyUuid === company?.uuid)?.uuid;
+  const members = useTransferMembers(owner, anchor ?? '', guard, !!anchor && !!steps?.prepare);
   const ready =
     !read.error &&
     !read.isRefreshing &&
     classes.isSuccess &&
     !classes.isFetching &&
     appointments.isSuccess &&
-    !appointments.isFetching;
+    !appointments.isFetching &&
+    !!steps?.prepare &&
+    (!anchor || (members.isSuccess && !members.isFetching));
   if (
     !held &&
     ready &&
@@ -75,8 +83,13 @@ export function NewClassSetup({
   )
     setRetained({ company, steps });
   const context = held ? retained : company && steps ? { company, steps } : null;
-  if ((!held || !context) && (read.error || classes.isError || appointments.isError))
-    return <Unavailable retry={retry} busy={read.isRefreshing || classes.isFetching || appointments.isFetching} />;
+  if ((!held || !context) && (read.error || classes.isError || appointments.isError || members.isError))
+    return (
+      <Unavailable
+        retry={retry}
+        busy={read.isRefreshing || classes.isFetching || appointments.isFetching || members.isFetching}
+      />
+    );
   if (!context && (read.isLoading || !classes.data || !appointments.data)) return <Loading />;
   return (
     <div className="space-y-5">
@@ -93,6 +106,7 @@ export function NewClassSetup({
           company={context.company}
           read={read}
           classes={(classes.data ?? []).filter((token) => token.companyUuid === context.company.uuid)}
+          companyMembers={anchor ? (members.data ?? NO_MEMBERS) : NO_MEMBERS}
           steps={steps ?? context.steps}
           ready={ready && company?.uuid === context.company.uuid}
           onHeldChange={setHeld}
@@ -109,6 +123,7 @@ function FreshClass({
   read,
   company,
   classes,
+  companyMembers,
   steps,
   ready,
   onHeldChange,
@@ -119,6 +134,7 @@ function FreshClass({
   read: ReturnType<typeof useCompany>;
   company: Company;
   classes: { uuid: string; name: string; symbol: string; status: string }[];
+  companyMembers: RegisterTransferMember[];
   steps: ReturnType<typeof registerSteps>;
   ready: boolean;
   onHeldChange: (held: boolean) => void;
@@ -200,7 +216,9 @@ function FreshClass({
         throw createUserFriendlyError('The share class receipt did not match the requested company and details.');
       const register = await readRegister(token.uuid);
       check();
-      return register;
+      const members = await readTransferMembers(token.uuid, check);
+      check();
+      return { register, members };
     } catch (failure) {
       if (!operation.token && (failureStatus(failure) === 400 || failureStatus(failure) === 409)) {
         creation.current = null;
@@ -228,6 +246,7 @@ function FreshClass({
         guard={guard}
         newEffectGuard={check}
         company={company.uuid}
+        companyMembers={companyMembers}
         appointment={steps.prepare!}
         steps={steps}
         blocked={!ready}

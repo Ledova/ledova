@@ -1,4 +1,4 @@
-import { REGISTER_IMPORT_COPY, formatShareCount } from '@ledova/shared';
+import { REGISTER_IMPORT_COPY, formatShareCount, type RegisterTransferMember } from '@ledova/shared';
 import { PageAction } from '@components/Page';
 import { FIELD_CLASS } from '@components/fieldClass';
 import { saveFile } from '../useCompanyRegister';
@@ -21,6 +21,8 @@ export function BringRecords({
   setMember,
   setFormer,
   importCsv,
+  companyMembers,
+  preserveParticulars,
 }: {
   draft: PreparationDraft;
   today: string;
@@ -33,6 +35,8 @@ export function BringRecords({
   setMember: (index: number, patch: Partial<MemberDraft>) => void;
   setFormer: (index: number, patch: Partial<FormerDraft>) => void;
   importCsv: (file: File | null) => Promise<void>;
+  companyMembers: RegisterTransferMember[];
+  preserveParticulars: boolean;
 }) {
   return (
     <>
@@ -117,12 +121,22 @@ export function BringRecords({
             manually after importing the CSV.
           </p>
         )}
+        {companyMembers.length > 0 && !preserveMembers && (
+          <p className="text-xs text-text-muted">
+            Existing company shareholders keep the same member UUID across classes. Use that UUID as holder_reference;
+            unknown references need an explicit existing or new shareholder choice below. Names do not identify a person
+            uniquely.
+          </p>
+        )}
         {draft.members.map((row, index) => (
           <MemberFields
             key={row.member}
             row={row}
             index={index}
             asAt={draft.asAt}
+            companyMembers={companyMembers}
+            preserveParticulars={preserveParticulars}
+            usedMembers={draft.members.filter((_, at) => at !== index).map((member) => member.member)}
             update={(patch) => setMember(index, patch)}
             remove={
               draft.members.length > 1

@@ -370,6 +370,14 @@ missing rather than becoming zero. The review lists all copied particulars and
 checks holdings against allotments before any confirmation. Return to Bring
 records to correct a draft before confirming.
 
+Shareholders keep one company member identity across classes. Choose an existing
+company shareholder by its member UUID, or explicitly choose a new shareholder;
+names alone never link records. A known UUID in a new-class CSV reuses that member.
+Other source references remain unresolved until that choice when company members
+already exist. Existing names and addresses are kept; missing particulars can be
+supplied from the source. Membership dates and quantities always come from the
+new class's source records, rather than another class's holding.
+
 For an opened mirror, use its current template and keep each holder reference:
 these identify the existing Ledova member. An original source reference such as
 `H001` cannot silently allocate a replacement member during correction. Add new

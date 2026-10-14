@@ -10,6 +10,7 @@ import {
   type OrderSubmissionOwner,
   type RegisterImport,
   type TokenHoldersResponse,
+  type RegisterTransferMember,
 } from '@ledova/shared';
 import { Section } from '@components/Ledger';
 import { Page, PageAction } from '@components/Page';
@@ -19,6 +20,7 @@ import { registerSteps, type RegisterSteps } from '../proposals';
 import { READ_TIMING, readRegister, registerKey, useRegisterClasses } from '../useCompanyRegister';
 import { importsKey, ownerGuard, useOwnAppointments, useRegisterImports } from '../useRegisterImports';
 import { ownAppointmentsKey } from '../../team/appointments';
+import { transferMembersKey, useTransferMembers } from '../useRegisterTransfers';
 import { ImportForm } from './ImportForm';
 import { NewClassSetup } from './NewClassSetup';
 
@@ -66,6 +68,7 @@ type Retained = {
   steps: RegisterSteps;
   correction?: RegisterImport;
   saved?: RegisterImport;
+  members: RegisterTransferMember[];
 };
 
 function OwnImport({
@@ -88,6 +91,7 @@ function OwnImport({
   const steps = listed && appointments.data ? registerSteps(appointments.data, listed.companyUuid) : null;
   const readable = !!(steps?.prepare || steps?.approve || steps?.apply);
   const imports = useRegisterImports(owner, uuid, guard, readable);
+  const members = useTransferMembers(owner, uuid, guard, readable);
   const register = useQuery({
     queryKey: [...registerKey(owner), 'holders', 'class', uuid],
     enabled: readable,
@@ -103,9 +107,10 @@ function OwnImport({
         proposal.sourceConfirmed &&
         proposal.correctionOf === (correction?.uuid ?? null),
   );
-  const fetching = classes.isFetching || appointments.isFetching || register.isFetching || imports.isFetching;
-  const stale = classes.isError || appointments.isError || register.isError || imports.isError;
-  const fresh = !fetching && !stale && !!listed && readable && !!register.data && !!imports.data;
+  const fetching =
+    classes.isFetching || appointments.isFetching || register.isFetching || imports.isFetching || members.isFetching;
+  const stale = classes.isError || appointments.isError || register.isError || imports.isError || members.isError;
+  const fresh = !fetching && !stale && !!listed && readable && !!register.data && !!imports.data && !!members.data;
   const mirrorAllowed = register.data?.initialized || register.data?.token.status === 'draft';
   const correctable =
     mirrorAllowed &&
@@ -120,17 +125,26 @@ function OwnImport({
     (retained?.register !== register.data ||
       retained?.correction !== correction ||
       retained?.saved !== saved ||
+      retained?.members !== members.data ||
       retained?.steps.prepare?.uuid !== steps?.prepare?.uuid ||
       retained?.steps.approve?.uuid !== steps?.approve?.uuid ||
       retained?.steps.apply?.uuid !== steps?.apply?.uuid ||
       retained?.steps.reject?.uuid !== steps?.reject?.uuid)
   )
-    setRetained({ listed: listed!, register: register.data!, steps: steps!, correction, saved });
+    setRetained({
+      listed: listed!,
+      register: register.data!,
+      steps: steps!,
+      correction,
+      saved,
+      members: members.data!,
+    });
   const retry = () => {
     void classes.refetch();
     void appointments.refetch();
     void register.refetch();
     void imports.refetch();
+    void members.refetch();
   };
   const checkNew = () => {
     guard();
@@ -139,6 +153,7 @@ function OwnImport({
       ownAppointmentsKey(owner),
       [...registerKey(owner), 'holders', 'class', uuid],
       importsKey(owner, uuid),
+      transferMembersKey(owner, uuid),
     ]) {
       const state = client.getQueryState(key);
       if (state?.status !== 'success' || state.fetchStatus !== 'idle')
@@ -151,7 +166,12 @@ function OwnImport({
     return <p className="text-sm text-text-muted">This saved snapshot is not in the selected share class.</p>;
   if (!retained || (!held && (!fresh || !canOpen))) {
     if (stale) return <Unavailable retry={retry} busy={fetching} />;
-    if (!classes.data || !appointments.data || fetching || (readable && (!imports.data || !register.data)))
+    if (
+      !classes.data ||
+      !appointments.data ||
+      fetching ||
+      (readable && (!imports.data || !register.data || !members.data))
+    )
       return <Loading />;
     if (!listed) return <p className="text-sm text-text-muted">This share class is not in a register you can read.</p>;
     if (!readable) return <p className="text-sm text-text-muted">{REGISTER_IMPORT_COPY.READ_ONLY_NOTE}</p>;
@@ -190,6 +210,7 @@ function OwnImport({
         newEffectGuard={checkNew}
         company={retained.listed.companyUuid}
         register={retained.register}
+        companyMembers={members.data ?? retained.members}
         appointment={canPrepare ? steps?.prepare : undefined}
         steps={steps ?? retained.steps}
         correction={retained.correction}

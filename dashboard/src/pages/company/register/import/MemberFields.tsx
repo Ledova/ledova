@@ -1,4 +1,4 @@
-import { registerImportMoney } from '@ledova/shared';
+import { registerImportMoney, type RegisterTransferMember } from '@ledova/shared';
 import { FIELD_CLASS } from '@components/fieldClass';
 import { PageAction } from '@components/Page';
 import { blankAllotment, type AllotmentDraft, type MemberDraft } from './preparation';
@@ -11,13 +11,20 @@ export function MemberFields({
   asAt,
   update,
   remove,
+  companyMembers,
+  preserveParticulars,
+  usedMembers,
 }: {
   row: MemberDraft;
   index: number;
   asAt: string;
   update: (patch: Partial<MemberDraft>) => void;
   remove?: () => void;
+  companyMembers: RegisterTransferMember[];
+  preserveParticulars: boolean;
+  usedMembers: string[];
 }) {
+  const known = companyMembers.find((member) => member.member === row.member);
   const setAllotment = (at: number, patch: Partial<AllotmentDraft>) =>
     update({
       allotments: row.allotments.map((allotment, current) => (current === at ? { ...allotment, ...patch } : allotment)),
@@ -25,11 +32,47 @@ export function MemberFields({
   return (
     <fieldset className="space-y-4 rounded-lg border border-border-subtle p-4">
       <legend className="px-1 text-sm font-medium text-text-primary">Shareholder {index + 1}</legend>
+      {companyMembers.length > 0 && (
+        <label className={LABEL}>
+          Company shareholder
+          <select
+            className={FIELD_CLASS}
+            value={known?.member ?? (row.identityChoice === 'new' ? 'new' : '')}
+            onChange={(event) => {
+              if (event.target.value === 'new')
+                update({
+                  member: known ? crypto.randomUUID() : row.member,
+                  identityChoice: 'new',
+                  ...(known ? { name: '', residentialAddress: '' } : {}),
+                });
+              else {
+                const selected = companyMembers.find((member) => member.member === event.target.value);
+                if (selected && !usedMembers.includes(selected.member))
+                  update({
+                    member: selected.member,
+                    identityChoice: 'existing',
+                    name: selected.name ?? '',
+                    residentialAddress: selected.residentialAddress ?? '',
+                  });
+              }
+            }}
+          >
+            <option value="">Choose an existing shareholder or a new one</option>
+            {companyMembers.map((member) => (
+              <option key={member.member} value={member.member} disabled={usedMembers.includes(member.member)}>
+                {member.name || 'Name not recorded'} · {member.member}
+              </option>
+            ))}
+            <option value="new">New company shareholder</option>
+          </select>
+        </label>
+      )}
       <div className="grid gap-3 sm:grid-cols-2">
         <label className={LABEL}>
           Name
           <input
             value={row.name}
+            readOnly={preserveParticulars && !!known?.name}
             maxLength={255}
             className={FIELD_CLASS}
             onChange={(event) => update({ name: event.target.value })}
@@ -39,6 +82,7 @@ export function MemberFields({
           Address
           <input
             value={row.residentialAddress}
+            readOnly={preserveParticulars && !!known?.residentialAddress}
             maxLength={1000}
             className={FIELD_CLASS}
             onChange={(event) => update({ residentialAddress: event.target.value })}

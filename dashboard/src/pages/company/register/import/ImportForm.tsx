@@ -23,6 +23,7 @@ import {
   type RegisterImport,
   type RegisterImportPreparation,
   type TokenHoldersResponse,
+  type RegisterTransferMember,
 } from '@ledova/shared';
 import { Row, Rows } from '@components/Ledger';
 import { PageAction } from '@components/Page';
@@ -40,6 +41,7 @@ import {
   initialMembers,
   memberRows,
   preparationProblems,
+  memberIdentityProblems,
   statedFigures,
   type FormerDraft,
   type MemberDraft,
@@ -64,6 +66,7 @@ export function ImportForm({
   classFields,
   classProblems = [],
   resolveRegister,
+  companyMembers,
   visible = true,
   onHeldChange,
 }: {
@@ -80,13 +83,20 @@ export function ImportForm({
   saved?: RegisterImport;
   classFields?: ReactNode;
   classProblems?: string[];
-  resolveRegister?: () => Promise<TokenHoldersResponse>;
+  resolveRegister?: () => Promise<{ register: TokenHoldersResponse; members: RegisterTransferMember[] }>;
+  companyMembers: RegisterTransferMember[];
   visible?: boolean;
   onHeldChange?: (held: boolean) => void;
 }) {
   const client = useQueryClient();
   const navigate = useNavigate();
   const today = formatDateToString(new Date());
+  const [resolvedMembers, setResolvedMembers] = useState<{
+    source: RegisterTransferMember[];
+    members: RegisterTransferMember[];
+  } | null>(null);
+  const knownMembers = resolvedMembers?.source === companyMembers ? resolvedMembers.members : companyMembers;
+  const preserveParticulars = !correction && !register?.initialized;
   const reuseSavedCopies = !!saved?.preparingAppointment && saved.preparingAppointment === appointment?.uuid;
   const [draft, setDraft] = useState<PreparationDraft>(() => ({
     registerFile: null,
@@ -125,12 +135,14 @@ export function ImportForm({
   const mounted = useRef(true);
   const currentSteps = useRef(steps);
   const currentPreparation = useRef(appointment);
-  const currentContext = useRef({ newEffectGuard, blocked, visible });
+  const currentContext = useRef({ newEffectGuard, blocked, visible, companyMembers });
+  const currentMembers = useRef(knownMembers);
   useLayoutEffect(() => {
     currentSteps.current = steps;
     currentPreparation.current = appointment;
-    currentContext.current = { newEffectGuard, blocked, visible };
-  }, [steps, appointment, newEffectGuard, blocked, visible]);
+    currentContext.current = { newEffectGuard, blocked, visible, companyMembers };
+    currentMembers.current = knownMembers;
+  }, [steps, appointment, newEffectGuard, blocked, visible, knownMembers, companyMembers]);
   useEffect(() => {
     mounted.current = true;
     return () => {
@@ -251,7 +263,11 @@ export function ImportForm({
       ...current,
       former: current.former.map((row, at) => (at === index ? { ...row, ...patch } : row)),
     }));
-  const problems = [...classProblems, ...preparationProblems(draft, today)];
+  const problems = [
+    ...classProblems,
+    ...preparationProblems(draft, today),
+    ...memberIdentityProblems(draft.members, knownMembers, preserveParticulars),
+  ];
   const differs = figuresDiffer(draft);
   const imported = registerImportTotals(draft.members);
   const upload = async (kind: RegisterEvidenceKind, file: File) => {
@@ -288,7 +304,15 @@ export function ImportForm({
       checkPreparation();
       const preserveMembers = !!correction || register?.initialized === true;
       const known = register ? initialMembers(register, correction) : draft.members;
-      const members = readRegisterCsv(text, preserveMembers ? known : draft.members, preserveMembers);
+      const liveMembers = currentMembers.current;
+      const candidates = preserveMembers
+        ? known
+        : liveMembers.length
+          ? draft.members.filter(
+              (row) => row.identityChoice === 'new' || liveMembers.some((member) => member.member === row.member),
+            )
+          : draft.members;
+      const members = readRegisterCsv(text, candidates, preserveMembers, preserveMembers ? [] : liveMembers);
       const next = { ...draft, members };
       const invalid = preparationProblems(next, today).filter((problem) => problem.startsWith('Shareholder'));
       if (invalid.length) throw createUserFriendlyError(invalid.join(' '));
@@ -318,12 +342,33 @@ export function ImportForm({
       else checkPreparation();
       if (!preparation.current) {
         const preparingAppointment = checkPreparation();
-        const current = activeRegister.current ?? (await resolveRegister?.());
+        const resolved = !activeRegister.current ? await resolveRegister?.() : undefined;
+        const current = activeRegister.current ?? resolved?.register;
         checkPreparation();
         if (!current) throw createUserFriendlyError('Choose the share class before continuing.');
         activeRegister.current = current;
+        const known = resolved?.members ?? currentMembers.current;
+        const sourceAtResolution = currentContext.current.companyMembers;
+        if (resolved) setResolvedMembers({ source: sourceAtResolution, members: known });
+        const identityProblems = memberIdentityProblems(draft.members, known, preserveParticulars);
+        if (identityProblems.length) {
+          setUncertain(false);
+          setError(identityProblems.join(' '));
+          return;
+        }
         const registerEvidence = draft.registerFile ? await upload('share_register', draft.registerFile) : null;
         const asicEvidence = draft.asicFile ? await upload('asic_extract', draft.asicFile) : null;
+        checkPreparation();
+        const changedIdentity = memberIdentityProblems(
+          draft.members,
+          resolved && currentContext.current.companyMembers === sourceAtResolution ? known : currentMembers.current,
+          preserveParticulars,
+        );
+        if (changedIdentity.length) {
+          setUncertain(false);
+          setError(changedIdentity.join(' '));
+          return;
+        }
         const stated = statedFigures(draft);
         preparation.current = {
           operationId: crypto.randomUUID(),
@@ -431,6 +476,8 @@ export function ImportForm({
                     setMember={setMember}
                     setFormer={setFormer}
                     importCsv={importCsv}
+                    companyMembers={knownMembers}
+                    preserveParticulars={preserveParticulars}
                   />
                 </fieldset>
                 {attempted && problems.length > 0 && (

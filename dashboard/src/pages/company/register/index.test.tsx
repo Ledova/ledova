@@ -13,6 +13,7 @@ import {
   type AccountRole,
   type TokenHoldersResponse,
   type OwnCompanyAppointment,
+  type RegisterTransferMember,
 } from '@ledova/shared';
 import SettingsPage from '@pages/settings';
 import apiClient from '@services/apiClient';
@@ -26,7 +27,7 @@ import CompanyDashboardPage from '../dashboard';
 import CompanyRegisterImportPage from './import';
 import { ImportForm } from './import/ImportForm';
 import { REGISTER_CSV_COLUMNS, readRegisterCsv, registerCsvTemplate } from './import/csv';
-import { blankAllotment, preparationProblems } from './import/preparation';
+import { blankAllotment, memberIdentityProblems, preparationProblems } from './import/preparation';
 import { APPOINTMENT as CURRENT_APPOINTMENT } from '../../../../../packages/shared/tests/fixtures/employee-awards';
 import { companyRecord, companyPreferences, prepareCompanyClient, renderCompanyPage } from '../testSupport';
 
@@ -255,6 +256,8 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   let opened = false;
   let firstPreparation = true;
   let proposal: RegisterImport | undefined;
+  let companyMembers: RegisterTransferMember[] = [];
+  let membersUnavailable = false;
   const company = companyRecord();
   let appointment: OwnCompanyAppointment = {
     ...CURRENT_APPOINTMENT,
@@ -310,6 +313,10 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
     if (url === REGISTER || url === COMPANY_TOKEN_ENDPOINTS.BASE) return dataPage(visibleClass ? [token] : []);
     if (url === COMPANY_TOKEN_ENDPOINTS.DETAIL(token.uuid)) return { data: token };
     if (url === COMPANY_TOKEN_ENDPOINTS.HOLDERS(token.uuid)) return { data: holders() };
+    if (url === COMPANY_TOKEN_ENDPOINTS.REGISTER_MEMBERS(token.uuid)) {
+      if (membersUnavailable) throw new Error('Member choices unavailable');
+      return { data: { members: companyMembers } };
+    }
     if (url === IMPORTS) return dataPage(proposal ? [proposal] : []);
     return dataPage([]);
   });
@@ -567,6 +574,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
             guard={() => {}}
             company={company.uuid}
             register={holders()}
+            companyMembers={[]}
             appointment={preparationAppointment}
             steps={{ prepare: preparationAppointment }}
             saved={rejected}
@@ -644,6 +652,10 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
     if (url === APPOINTMENTS) return dataPage([appointment]);
     if (url === REGISTER || url === COMPANY_TOKEN_ENDPOINTS.BASE) return dataPage(setupClasses);
     if (url === COMPANY_TOKEN_ENDPOINTS.HOLDERS(token.uuid)) return { data: holders() };
+    if (url === COMPANY_TOKEN_ENDPOINTS.REGISTER_MEMBERS(token.uuid)) {
+      if (membersUnavailable) throw new Error('Member choices unavailable');
+      return { data: { members: companyMembers } };
+    }
     if (url === IMPORTS) return dataPage(proposal ? [proposal] : []);
     return dataPage([]);
   });
@@ -676,6 +688,81 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   showJourney(importPath);
   expect(await screen.findByLabelText('Source record reference')).toBeTruthy();
   expect(api.post).not.toHaveBeenCalled();
+  cleanup();
+  client.clear();
+  opened = false;
+  proposal = undefined;
+  token.status = 'draft';
+  companyMembers = [
+    {
+      member: rejected.members[0].member,
+      name: rejected.members[0].name,
+      residentialAddress: rejected.members[0].residentialAddress,
+      currentShares: '500',
+      enteredOn: '1990-01-01',
+      lastCeasedOn: null,
+      walletless: true,
+      particularsRetained: true,
+    },
+  ];
+  const memberCsv = csv.replace(/H001/g, companyMembers[0].member);
+  const unresolved = readRegisterCsv(csv, [], false, companyMembers);
+  expect(unresolved[0].member).not.toBe(companyMembers[0].member);
+  expect(memberIdentityProblems(unresolved, companyMembers, true)).toEqual(
+    expect.arrayContaining([expect.stringMatching(/explicitly choose/)]),
+  );
+  expect(readRegisterCsv(memberCsv, [], false, companyMembers)[0].member).toBe(companyMembers[0].member);
+  expect(() =>
+    readRegisterCsv(memberCsv.replace(/Example Shareholder/g, 'Different person'), [], false, companyMembers),
+  ).toThrow(/keep this existing company shareholder/);
+  const sameHolder = readRegisterCsv(memberCsv, [], false, companyMembers)[0];
+  expect(memberIdentityProblems([sameHolder, sameHolder], companyMembers, true)).toEqual(
+    expect.arrayContaining([expect.stringMatching(/only once/)]),
+  );
+  const opaque = crypto.randomUUID();
+  expect(readRegisterCsv(csv.replace(/H001/g, opaque))[0].member).not.toBe(opaque);
+  expect(() =>
+    readRegisterCsv(
+      registerCsvTemplate([sameHolder]).replace(new RegExp(sameHolder.member, 'g'), opaque),
+      [],
+      false,
+      companyMembers,
+    ),
+  ).toThrow(/not in this company/);
+  membersUnavailable = true;
+  showJourney(DESTINATIONS.companyRegisterSetup.path);
+  const retryChoices = await screen.findByRole('button', { name: 'Try again' });
+  expect(screen.queryByLabelText('Company shareholder')).toBeNull();
+  membersUnavailable = false;
+  fireEvent.click(retryChoices);
+  const existing = await screen.findByLabelText('Company shareholder');
+  expect((existing as HTMLSelectElement).value).toBe('');
+  fireEvent.change(existing, { target: { value: companyMembers[0].member } });
+  expect((screen.getByLabelText('Name') as HTMLInputElement).readOnly).toBe(true);
+  expect((screen.getByLabelText('Address') as HTMLInputElement).readOnly).toBe(true);
+  expect((screen.getByLabelText('Original membership date') as HTMLInputElement).value).toBe('');
+  expect((screen.getByLabelText('Current holding (shares)') as HTMLInputElement).value).toBe('');
+  const useExistingDraft = screen.getByLabelText('Share class');
+  fireEvent.change(useExistingDraft, { target: { value: token.uuid } });
+  await waitFor(() => expect(screen.queryByLabelText('Class code')).toBeNull());
+  fireEvent.change(await screen.findByLabelText('Source record reference'), {
+    target: { value: 'Company register held by the accountant' },
+  });
+  const secondClassFile = new File([csv], 'second-class.csv', { type: 'text/csv' });
+  Object.defineProperty(secondClassFile, 'arrayBuffer', {
+    value: async () => new TextEncoder().encode(csv).buffer,
+  });
+  fireEvent.change(screen.getByLabelText('Bring a CSV'), { target: { files: [secondClassFile] } });
+  await waitFor(() => expect(screen.getByDisplayValue('Example Shareholder')).toBeTruthy());
+  expect((screen.getByLabelText('Company shareholder') as HTMLSelectElement).value).toBe('');
+  fireEvent.click(screen.getByRole('button', { name: 'Continue to review' }));
+  expect(screen.getByText(/explicitly choose a new shareholder/)).toBeTruthy();
+  expect(api.post).not.toHaveBeenCalled();
+  fireEvent.change(screen.getByLabelText('Company shareholder'), { target: { value: companyMembers[0].member } });
+  expect((screen.getByLabelText('Original membership date') as HTMLInputElement).value).toBe('2020-01-01');
+  fireEvent.click(screen.getByRole('button', { name: 'Continue to review' }));
+  await waitFor(() => expect(api.post).toHaveBeenCalledOnce());
+  expect((api.post.mock.calls[0][1] as RegisterImportPreparation).members[0].member).toBe(companyMembers[0].member);
 });
 
 it('shows an account without register access a calm empty state, reads no members or CSV and offers no entry', async () => {
