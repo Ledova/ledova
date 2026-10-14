@@ -203,8 +203,8 @@ export function preparationProblems(draft: PreparationDraft, today: string) {
   const incomplete = (row: { name: string; residentialAddress: string; shares: string }) =>
     !row.name.trim() || !row.residentialAddress.trim() || positiveShares(row.shares) === null;
   if (!dated(draft.asAt) || draft.asAt > today) problems.push('Enter a record date that is not in the future.');
-  if (!draft.reference.trim() || !draft.reason.trim())
-    problems.push('Give the source record reference and the reason.');
+  if (!draft.reference.trim()) problems.push('The record attribution is unavailable. Reload the setup and try again.');
+  if (!draft.reason.trim()) problems.push('Give a reason for correcting the mirror.');
   if (draft.members.length === 0) problems.push('Add at least one current shareholder.');
   draft.members.forEach((row, index) => {
     const label = `Shareholder ${index + 1}`;

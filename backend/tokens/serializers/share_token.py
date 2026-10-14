@@ -144,10 +144,10 @@ class ShareTokenCreateSerializer(serializers.ModelSerializer):
         return create_share_token(actor=getattr(request, "user", None), company_id=company.pk, data=validated_data)
 
     def validate_symbol(self, value):
-        if not value.isalpha():
-            raise serializers.ValidationError("Symbol must contain only letters.")
-        if len(value) < 3 or len(value) > 5:
-            raise serializers.ValidationError("Symbol must be 3-5 characters.")
+        if not value.isascii() or not value.isalpha():
+            raise serializers.ValidationError("Class code must contain only ASCII letters.")
+        if len(value) < 1 or len(value) > 5:
+            raise serializers.ValidationError("Class code must be 1-5 letters.")
         if reserved_symbol(value):
             raise serializers.ValidationError(RESERVED_SYMBOL.format(symbol=value.upper()))
         return value.upper()

@@ -17,7 +17,8 @@ stay here as history and are marked where they appear.
 | [Company representative verification](#company-representative-verification)                                     | 4 October 2026                                 | Current                                                            |
 | [Combined company signup and initial authority](#combined-company-signup-and-initial-authority)                 | 14 October 2026                                | Current; amended by #1022 below                                    |
 | [Simple signup, documents and team after registration](#simple-signup-documents-and-team-after-registration)     | 14 October 2026                                | Current; #1022                                                     |
-| [Existing register mirror and simple setup](#existing-register-mirror-and-simple-setup)                         | 14 October 2026                                | Current; #1025                                                     |
+| [Existing register mirror and simple setup](#existing-register-mirror-and-simple-setup)                         | 14 October 2026                                | Current; setup amended by #1029                                    |
+| [Manual register setup: shares before shareholders](#manual-register-setup-shares-before-shareholders)         | 14 October 2026                                | Current; #1029                                                     |
 | [Eligibility and ownership records](#eligibility-and-ownership-records)                                         | September to 6 October 2026                    | Current                                                            |
 | [The stored register](#the-stored-register)                                                                     | September 2026; staff review retired 5 October | Current                                                            |
 | [Company-scoped approvals](#company-scoped-approvals)                                                           | 19 September 2026                              | Current                                                            |
@@ -268,6 +269,38 @@ Corrections preserve earlier snapshots and confirmations. A replacement is
 bound to the reviewed current mirror and must refuse to overwrite later share
 activity or deployment. The guided screen and correction delivery are tracked
 on #1025; this decision records accepted scope, not completed implementation.
+
+## Manual register setup: shares before shareholders
+
+On 14 October 2026 the owner approved
+[#1029](https://github.com/Ledova/ledova/issues/1029): simplify the manual setup
+into share details, shareholders, review and confirmation. Copy the company's
+existing class name, code and type first, then add and edit shareholders
+individually in the same forms. Codes such as A and B must not need invented
+aliases. Original membership and allotment dates, quantities, paid/unpaid
+amounts and relevant references remain part of the copied record.
+
+Select an already recorded company class, or choose Ordinary (ORD), Preference
+(PRF) or Redeemable (RED) to fill the common details. **Another class** keeps
+manual name/code/type entry for the company's own classes. These choices must
+match its existing records; the selector defines no legal share rights.
+
+Use a compact list and one shareholder editor at a time. Draft edits do not
+overwrite confirmed history or change a person's company member identity.
+Retained preparation, exact confirmation, authority and safe correction rules
+still apply. Remove the page's dashboard-return button, source-reference input
+and repeated legal-boundary paragraph. The copied snapshot retains company,
+record date and actor attribution; absent source labels use the neutral
+"Company-provided share records" metadata. Retained nonblank source labels stay
+unchanged. The Terms and register documentation keep the company's
+responsibilities explicit.
+
+Document import is a separate future feature: an inactive **Import** button
+beside **Continue**, with a tooltip explaining the feature and **Coming soon**.
+There is no extraction implementation in this increment. Future extracted values
+must populate these same editable forms for manual review and correction;
+extraction cannot confirm ownership or bypass validation. Optional retained
+supporting copies remain distinct from extraction.
 
 ## Eligibility and ownership records
 

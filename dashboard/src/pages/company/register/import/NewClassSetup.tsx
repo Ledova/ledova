@@ -31,6 +31,11 @@ import { ImportForm } from './ImportForm';
 const TECHNICAL_SHARE_LIMIT = (2n ** 256n - 1n).toString();
 const LABEL = 'block space-y-1 text-sm text-text-primary';
 const NO_MEMBERS: RegisterTransferMember[] = [];
+const COMMON_CLASSES: { type: TokenType; name: string; symbol: string; label: string }[] = [
+  { type: 'ordinary', name: 'Ordinary shares', symbol: 'ORD', label: 'Ordinary (ORD)' },
+  { type: 'preference', name: 'Preference shares', symbol: 'PRF', label: 'Preference (PRF)' },
+  { type: 'redeemable', name: 'Redeemable shares', symbol: 'RED', label: 'Redeemable (RED)' },
+];
 
 export function NewClassSetup({
   owner,
@@ -142,6 +147,7 @@ function FreshClass({
 }) {
   const navigate = useNavigate();
   const draftClasses = classes.filter((token) => token.status === 'draft');
+  const [choice, setChoice] = useState('ordinary');
   const [name, setName] = useState('Ordinary shares');
   const [symbol, setSymbol] = useState('ORD');
   const [tokenType, setTokenType] = useState<TokenType>('ordinary');
@@ -231,7 +237,7 @@ function FreshClass({
     ? ['The company owner creates new share classes. Select an existing class instead.']
     : [];
   if (!name.trim() || name.length > 100) problems.push('Enter a class name of at most 100 characters.');
-  if (!/^[A-Z]{3,5}$/.test(symbol)) problems.push('Enter a class code of 3–5 letters, such as ORD.');
+  if (!/^[A-Z]{1,5}$/.test(symbol)) problems.push('Enter the recorded class code of 1–5 letters, such as A or ORD.');
   const existingCode = classes.find((token) => token.symbol === symbol);
   if (existingCode && !classLocked)
     problems.push(
@@ -257,29 +263,51 @@ function FreshClass({
         classProblems={problems}
         classFields={
           <fieldset className="space-y-3">
-            {draftClasses.length > 0 ? (
-              <label className={LABEL}>
-                Share class
-                <select
-                  className={FIELD_CLASS}
-                  value=""
-                  disabled={classLocked}
-                  onChange={(event) => {
-                    if (draftClasses.some((token) => token.uuid === event.target.value))
-                      navigate(DESTINATIONS.companyRegisterImport.path.replace(':uuid', event.target.value));
-                  }}
-                >
-                  <option value="">Choose an existing draft share class</option>
-                  {draftClasses.map((token) => (
-                    <option key={token.uuid} value={token.uuid}>
-                      {token.name} · {token.symbol}
+            <label className={LABEL}>
+              Share class
+              <select
+                className={FIELD_CLASS}
+                value={choice}
+                disabled={classLocked}
+                onChange={(event) => {
+                  const selected = event.target.value;
+                  if (draftClasses.some((token) => token.uuid === selected)) {
+                    navigate(DESTINATIONS.companyRegisterImport.path.replace(':uuid', selected));
+                    return;
+                  }
+                  const common = COMMON_CLASSES.find((item) => item.type === selected);
+                  if (common) {
+                    setChoice(common.type);
+                    setName(common.name);
+                    setSymbol(common.symbol);
+                    setTokenType(common.type);
+                  } else if (selected === 'custom') {
+                    setChoice('custom');
+                    setName('');
+                    setSymbol('');
+                    setTokenType('ordinary');
+                  }
+                }}
+              >
+                {draftClasses.length > 0 && (
+                  <optgroup label="Existing company classes">
+                    {draftClasses.map((token) => (
+                      <option key={token.uuid} value={token.uuid}>
+                        {token.name} · {token.symbol}
+                      </option>
+                    ))}
+                  </optgroup>
+                )}
+                <optgroup label="New class">
+                  {COMMON_CLASSES.map((item) => (
+                    <option key={item.type} value={item.type}>
+                      {item.label}
                     </option>
                   ))}
-                </select>
-              </label>
-            ) : (
-              <p className="text-sm text-text-muted">No existing draft share classes are available for copied setup.</p>
-            )}
+                  <option value="custom">Another class</option>
+                </optgroup>
+              </select>
+            </label>
             {classes.some((token) => token.status !== 'draft') && (
               <p className="text-sm text-text-muted">
                 For existing chain classes,{' '}
@@ -293,44 +321,46 @@ function FreshClass({
                 to open their register or bring in shareholder particulars.
               </p>
             )}
-            <div className="grid gap-3 sm:grid-cols-2">
-              <label className={LABEL}>
-                Class name
-                <input
-                  maxLength={100}
-                  disabled={classLocked}
-                  className={FIELD_CLASS}
-                  value={name}
-                  onChange={(event) => setName(event.target.value)}
-                />
-              </label>
-              <label className={LABEL}>
-                Class code
-                <input
-                  maxLength={5}
-                  disabled={classLocked}
-                  className={FIELD_CLASS}
-                  value={symbol}
-                  onChange={(event) => setSymbol(event.target.value.toUpperCase())}
-                />
-              </label>
-              <label className={LABEL}>
-                Class type
-                <select
-                  className={FIELD_CLASS}
-                  value={tokenType}
-                  disabled={classLocked}
-                  onChange={(event) => setTokenType(event.target.value as TokenType)}
-                >
-                  <option value="ordinary">Ordinary</option>
-                  <option value="preference">Preference</option>
-                  <option value="redeemable">Redeemable</option>
-                </select>
-              </label>
-            </div>
+            {choice === 'custom' && (
+              <div className="grid gap-3 sm:grid-cols-2">
+                <label className={LABEL}>
+                  Class name
+                  <input
+                    maxLength={100}
+                    disabled={classLocked}
+                    className={FIELD_CLASS}
+                    value={name}
+                    onChange={(event) => setName(event.target.value)}
+                  />
+                </label>
+                <label className={LABEL}>
+                  Class code
+                  <input
+                    maxLength={5}
+                    disabled={classLocked}
+                    className={FIELD_CLASS}
+                    value={symbol}
+                    onChange={(event) => setSymbol(event.target.value.toUpperCase())}
+                  />
+                </label>
+                <label className={LABEL}>
+                  Class type
+                  <select
+                    className={FIELD_CLASS}
+                    value={tokenType}
+                    disabled={classLocked}
+                    onChange={(event) => setTokenType(event.target.value as TokenType)}
+                  >
+                    <option value="ordinary">Ordinary</option>
+                    <option value="preference">Preference</option>
+                    <option value="redeemable">Redeemable</option>
+                  </select>
+                </label>
+              </div>
+            )}
             <p className="text-xs text-text-muted">
-              Use the name and type already recorded by the company. The class code uses 3–5 letters, such as ORD. Set
-              up one class at a time; repeat for other classes.
+              Choose the class already recorded by the company. Set up one class at a time; repeat for other classes.
+              {choice === 'custom' && ' The class code uses 1–5 letters, such as A or ORD.'}
             </p>
           </fieldset>
         }

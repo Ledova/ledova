@@ -355,20 +355,33 @@ with the company. An import neither establishes legal ownership nor issues
 shares again. Shareholders need no account or wallet for a mirror opening.
 
 On the web, **Set up your share register** opens `/company/register/setup`.
-Bring records for one share class, review the full copied rows and totals, then
-confirm the mirror. The company owner can record an existing class here by its
-name, code and type; an appointee can select an already configured class. This
+Start with **Share details**, then **Shareholders**, **Review** and **Confirm**.
+The company owner can select a common class—Ordinary (ORD), Preference (PRF) or
+Redeemable (RED)—or use **Another class** to copy its name, code and type.
+Already configured draft classes are selectable. The selection must match the
+company's existing records. Class codes use one to five
+letters, including A, B and ORD, and are unique within the company. This
 creates no shares or legal company registration. New mirror classes use the
 technical integer ceiling internally, rather than asking for legal authorised
 capital or showing it as ownership. Repeat setup for each class.
 
-Enter shareholders and allotments manually or use the CSV template on Bring
-records. CSV input is UTF-8, at most 1 MB and 500 allotment rows, and is parsed
-locally. A repeated holder reference groups allotments; identity, original entry
+There is no manual source-reference field. New drafts use the neutral
+"Company-provided share records" attribution; the retained snapshot identifies
+the company, record date and actor. Existing nonblank source labels are kept.
+
+Add shareholders individually and edit one draft record at a time from the
+compact list. Each editor keeps the holding's underlying allotment particulars.
+The shareholder step also accepts the existing CSV template. CSV input is UTF-8,
+at most 1 MB and 500 allotment rows, and is parsed locally. A repeated holder
+reference groups allotments; identity, original entry
 date and current holding must agree across its rows. Blank money amounts remain
 missing rather than becoming zero. The review lists all copied particulars and
-checks holdings against allotments before any confirmation. Return to Bring
-records to correct a draft before confirming.
+checks holdings against allotments before any confirmation. Unsaved shareholder
+edits remain local; editing a saved preparation first retires it through **Edit
+records**, as described below. **Import** beside **Continue** is an inactive
+future extraction option, explained by its **Coming soon** tooltip; it uploads nothing. Future
+extraction will populate the same editable forms. Optional supporting copies
+retain source evidence without extracting or verifying their contents.
 
 Shareholders keep one company member identity across classes. Choose an existing
 company shareholder by its member UUID, or explicitly choose a new shareholder;

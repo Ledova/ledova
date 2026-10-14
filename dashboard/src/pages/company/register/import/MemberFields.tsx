@@ -10,7 +10,6 @@ export function MemberFields({
   index,
   asAt,
   update,
-  remove,
   companyMembers,
   preserveParticulars,
   usedMembers,
@@ -19,7 +18,6 @@ export function MemberFields({
   index: number;
   asAt: string;
   update: (patch: Partial<MemberDraft>) => void;
-  remove?: () => void;
   companyMembers: RegisterTransferMember[];
   preserveParticulars: boolean;
   usedMembers: string[];
@@ -216,7 +214,6 @@ export function MemberFields({
           label={`Add allotment for shareholder ${index + 1}`}
           onClick={() => update({ allotments: [...row.allotments, blankAllotment()] })}
         />
-        {remove && <PageAction label={`Remove shareholder ${index + 1}`} onClick={remove} />}
       </div>
     </fieldset>
   );

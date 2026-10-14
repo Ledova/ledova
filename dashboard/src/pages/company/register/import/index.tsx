@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   REGISTER_IMPORT_COPY,
@@ -12,8 +12,8 @@ import {
   type TokenHoldersResponse,
   type RegisterTransferMember,
 } from '@ledova/shared';
-import { Section } from '@components/Ledger';
-import { Page, PageAction } from '@components/Page';
+import { Row, Rows, Section } from '@components/Ledger';
+import { Page } from '@components/Page';
 import { PageTitle } from '@components/PageTitle';
 import { Loading, Unavailable } from '../RegisterStatus';
 import { registerSteps, type RegisterSteps } from '../proposals';
@@ -26,16 +26,12 @@ import { NewClassSetup } from './NewClassSetup';
 
 export default function CompanyRegisterImportPage() {
   const { uuid = '' } = useParams();
-  const navigate = useNavigate();
   const { owner, boundary } = useSubmissionOwner();
   const preferences = useUserPreferences();
   return (
     <PageTitle.Provider value="Set up your share register">
-      <Page
-        lede={REGISTER_IMPORT_COPY.MIRROR_NOTE}
-        actions={<PageAction label="Back to dashboard" onClick={() => navigate('/company/dashboard')} />}
-      >
-        <div className="max-w-4xl">
+      <div className="w-full max-w-4xl">
+        <Page>
           {owner && !preferences.isError ? (
             uuid ? (
               <OwnImport
@@ -56,8 +52,8 @@ export default function CompanyRegisterImportPage() {
           ) : (
             <Unavailable retry={() => void preferences.refetch()} busy={preferences.isFetching} />
           )}
-        </div>
-      </Page>
+        </Page>
+      </div>
     </PageTitle.Provider>
   );
 }
@@ -211,6 +207,13 @@ function OwnImport({
         company={retained.listed.companyUuid}
         register={retained.register}
         companyMembers={members.data ?? retained.members}
+        classFields={
+          <Rows>
+            <Row label="Share class">{retained.listed.name}</Row>
+            <Row label="Class code">{retained.listed.symbol}</Row>
+            <Row label="Class type">{retained.listed.tokenTypeDisplay || 'Not recorded'}</Row>
+          </Rows>
+        }
         appointment={canPrepare ? steps?.prepare : undefined}
         steps={steps ?? retained.steps}
         correction={retained.correction}

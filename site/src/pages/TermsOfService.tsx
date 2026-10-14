@@ -27,6 +27,11 @@ export function TermsOfService() {
               approvals, records, ASIC filings and legal obligations. Information stored in Ledova is not thereby
               verified by Ledova.
             </p>
+            <p className="mt-2">
+              Copied existing-register records mirror the company&apos;s supplied ownership information. The company
+              keeps its legal register, historical records, lawful register access arrangements and filings. Copying
+              records into Ledova does not replace those arrangements or establish legal ownership.
+            </p>
           </div>
           <div>
             <h2 className="font-display text-2xl text-ink">Registration and company decisions</h2>

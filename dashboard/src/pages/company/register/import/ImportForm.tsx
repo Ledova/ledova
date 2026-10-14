@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -49,6 +49,8 @@ import {
 } from './preparation';
 
 const CLOSED = 'This setup is closed. Reopen it before continuing.';
+const IMPORT_NOTE =
+  'Coming soon. Import will read a document into these same editable forms. Review and correct the records before saving.';
 type Upload = { file: File; appointment: string; key: string; receipt: RegisterEvidence | null };
 
 export function ImportForm({
@@ -90,6 +92,7 @@ export function ImportForm({
 }) {
   const client = useQueryClient();
   const navigate = useNavigate();
+  const importDescription = useId();
   const today = formatDateToString(new Date());
   const [resolvedMembers, setResolvedMembers] = useState<{
     source: RegisterTransferMember[];
@@ -105,7 +108,11 @@ export function ImportForm({
     asicEvidence: reuseSavedCopies ? (saved?.asicEvidence ?? undefined) : undefined,
     earlierCopiesNotReused: !reuseSavedCopies && !!(saved?.registerEvidence || saved?.asicEvidence),
     asAt: saved?.asAt ?? correction?.asAt ?? today,
-    reference: saved?.sourceReference ?? correction?.sourceReference ?? '',
+    reference: saved?.sourceReference?.trim()
+      ? saved.sourceReference
+      : correction?.sourceReference?.trim()
+        ? correction.sourceReference
+        : 'Company-provided share records',
     reason: saved?.reason ?? (correction ? '' : 'Mirror the company’s existing share records.'),
     members: register ? initialMembers(register, saved ?? correction) : [blankMember()],
     former: (saved ?? correction)?.formerMembers.map((row) => ({ ...row, id: crypto.randomUUID() })) ?? [],
@@ -115,9 +122,10 @@ export function ImportForm({
   const [proposal, setProposal] = useState<RegisterImport | undefined>(
     saved?.status === 'rejected' ? undefined : saved,
   );
-  const [phase, setPhase] = useState<'bring' | 'review' | 'confirm'>(
-    saved && saved.status !== 'rejected' ? 'review' : 'bring',
+  const [phase, setPhase] = useState<'details' | 'shareholders' | 'review' | 'confirm'>(
+    saved && saved.status !== 'rejected' ? 'review' : 'details',
   );
+  const [holderEditor, setHolderEditor] = useState(false);
   const [busy, setBusy] = useState(false);
   const [uncertain, setUncertain] = useState(false);
   const [attempted, setAttempted] = useState(false);
@@ -217,7 +225,7 @@ export function ImportForm({
       preparation.current = null;
       setAutoApply(false);
       setEditing(false);
-      setPhase('bring');
+      setPhase('details');
       await client.invalidateQueries({ queryKey: importsKey(owner, activeRegister.current!.token.uuid) });
     },
     onRefused: onConflict,
@@ -243,7 +251,8 @@ export function ImportForm({
   }, [autoApply, autoPreviewFinished, apply]);
   const deciding = approve.busy || apply.busy || reject.busy;
   const recovery = approve.recovery ? approve : apply.recovery ? apply : reject.recovery ? reject : null;
-  const held = busy || uncertain || deciding || !!recovery || phase !== 'bring';
+  const mutable = phase === 'details' || phase === 'shareholders';
+  const held = busy || uncertain || deciding || !!recovery || !mutable;
   useEffect(() => {
     onHeldChange?.(held);
     return () => onHeldChange?.(false);
@@ -268,6 +277,22 @@ export function ImportForm({
     ...preparationProblems(draft, today),
     ...memberIdentityProblems(draft.members, knownMembers, preserveParticulars),
   ];
+  const detailProblems = problems.filter(
+    (problem) =>
+      !problem.startsWith('Shareholder') &&
+      !problem.startsWith('Add at least') &&
+      !problem.startsWith('Each company') &&
+      !problem.startsWith('Attach the optional') &&
+      !problem.startsWith('Complete any former') &&
+      !problem.startsWith('Enter valid whole-number'),
+  );
+  const holderProblems = (index: number) =>
+    problems.filter(
+      (problem) =>
+        problem.startsWith(`Shareholder ${index + 1}:`) ||
+        problem.startsWith(`Shareholder ${index + 1},`) ||
+        problem.startsWith('Each company'),
+    );
   const differs = figuresDiffer(draft);
   const imported = registerImportTotals(draft.members);
   const upload = async (kind: RegisterEvidenceKind, file: File) => {
@@ -331,7 +356,7 @@ export function ImportForm({
     }
   };
   const prepare = async (recovering = false) => {
-    if (pending.current || busy || deciding) return;
+    if (pending.current || busy || deciding || (!recovering && holderEditor)) return;
     setAttempted(true);
     if (!recovering && (!canPrepare || blocked || problems.length || differs)) return;
     pending.current = true;
@@ -439,31 +464,51 @@ export function ImportForm({
     <div className="space-y-5">
       <ol
         aria-label="Share register setup steps"
-        className="grid grid-cols-3 gap-2 border-b border-border-subtle pb-4 text-sm"
+        className="grid grid-cols-2 gap-2 border-b border-border-subtle pb-4 text-sm sm:grid-cols-4"
       >
-        {(['bring', 'review', 'confirm'] as const).map((step, index) => (
+        {(['details', 'shareholders', 'review', 'confirm'] as const).map((step, index) => (
           <li
             key={step}
             aria-current={phase === step ? 'step' : undefined}
             className={phase === step ? 'font-medium text-text-primary' : 'text-text-muted'}
           >
-            {index + 1}. {step === 'bring' ? 'Bring records' : step === 'review' ? 'Review' : 'Confirm'}
+            {index + 1}.{' '}
+            {step === 'details'
+              ? 'Share details'
+              : step === 'shareholders'
+                ? 'Shareholders'
+                : step === 'review'
+                  ? 'Review'
+                  : 'Confirm'}
           </li>
         ))}
       </ol>
       {visible && (
         <>
-          {phase === 'bring' ? (
+          {mutable ? (
             canPrepare ? (
               <form
                 className="space-y-4"
                 onSubmit={(event) => {
                   event.preventDefault();
-                  void prepare();
+                  if (phase === 'details') {
+                    setAttempted(true);
+                    if (!detailProblems.length && !blocked) {
+                      setAttempted(false);
+                      setPhase('shareholders');
+                    }
+                  } else if (!holderEditor) void prepare();
                 }}
               >
                 <fieldset disabled={busy || uncertain || blocked} className="space-y-5">
-                  {classFields}
+                  {phase === 'details' &&
+                    (classFields ??
+                      (register && (
+                        <Rows>
+                          <Row label="Share class">{register.token.name}</Row>
+                          <Row label="Class code">{register.token.symbol}</Row>
+                        </Rows>
+                      )))}
                   <BringRecords
                     draft={draft}
                     today={today}
@@ -478,21 +523,60 @@ export function ImportForm({
                     importCsv={importCsv}
                     companyMembers={knownMembers}
                     preserveParticulars={preserveParticulars}
+                    step={phase === 'details' ? 'details' : 'shareholders'}
+                    validateMember={holderProblems}
+                    onEditorChange={setHolderEditor}
                   />
                 </fieldset>
-                {attempted && problems.length > 0 && (
+                {attempted && (phase === 'details' ? detailProblems : problems).length > 0 && (
                   <ul role="alert" className="space-y-1 text-sm text-error-light">
-                    {problems.map((problem) => (
+                    {(phase === 'details' ? detailProblems : problems).map((problem) => (
                       <li key={problem}>{problem}</li>
                     ))}
                   </ul>
                 )}
                 {!uncertain && (
-                  <PageAction
-                    label={busy ? 'Saving records…' : 'Continue to review'}
-                    disabled={busy || blocked}
-                    onClick={() => void prepare()}
-                  />
+                  <div className="flex flex-wrap gap-2">
+                    {phase === 'shareholders' && (
+                      <PageAction
+                        label="Back to share details"
+                        disabled={busy || blocked || holderEditor}
+                        onClick={() => {
+                          setAttempted(false);
+                          setPhase('details');
+                        }}
+                      />
+                    )}
+                    <PageAction
+                      label={phase === 'details' ? 'Continue' : busy ? 'Saving draft…' : 'Save draft and review'}
+                      disabled={busy || blocked || holderEditor}
+                      onClick={() => {
+                        if (phase === 'details') {
+                          setAttempted(true);
+                          if (!detailProblems.length) {
+                            setAttempted(false);
+                            setPhase('shareholders');
+                          }
+                        } else void prepare();
+                      }}
+                    />
+                    {phase === 'details' && (
+                      <>
+                        <button
+                          type="button"
+                          aria-disabled="true"
+                          aria-describedby={importDescription}
+                          title={IMPORT_NOTE}
+                          className="inline-flex rounded-lg border border-border px-3.5 py-2 text-sm font-medium text-text-muted opacity-60"
+                        >
+                          Import
+                        </button>
+                        <span id={importDescription} className="sr-only">
+                          {IMPORT_NOTE}
+                        </span>
+                      </>
+                    )}
+                  </div>
                 )}
               </form>
             ) : (
@@ -502,7 +586,9 @@ export function ImportForm({
             proposal && (
               <div className="space-y-4">
                 <Rows>
-                  <Row label="Source record">{proposal.sourceReference || proposal.authorityReference}</Row>
+                  {(proposal.sourceReference || proposal.authorityReference) !== 'Company-provided share records' && (
+                    <Row label="Source record">{proposal.sourceReference || proposal.authorityReference}</Row>
+                  )}
                   <Row label="Record date">{proposal.asAt}</Row>
                   <Row label="Copied shares">{formatShareCount(registerImportTotals(proposal.members).total)}</Row>
                   <Row label="Shareholders">{proposal.members.length}</Row>
