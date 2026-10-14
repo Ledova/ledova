@@ -6,17 +6,17 @@ import * as Crypto from 'expo-crypto';
 import {
   apiErrorSentence,
   createUserFriendlyError,
-  DESTINATIONS,
   formatDateToString,
   formatShareCount,
   getErrorMessage,
   isPreparedRegisterImport,
   prepareRegisterImport,
   REGISTER_IMPORT_COPY,
+  registerImportMoney,
   registerImportTotals,
   wholeShares,
-  type RegisterImportFormerRow,
-  type RegisterImportMemberRow,
+  type RegisterImportAllotment,
+  type RegisterImportCurrentMemberRow,
   type RegisterImportPreparation,
 } from '@ledova/shared';
 import { Action, Choice, Section } from '../../components/Ledger';
@@ -26,24 +26,102 @@ import { apiClient } from '../../services/apiClient';
 import { assertSessionEpoch, getSessionEpoch, subscribeSession } from '../../services/sessionScope';
 import { EvidencePicker, Field, isoDay } from './RegisterFields';
 import { useCompanyStyles } from './styles';
-import { importsKey, useClassRegister, useRegisterAppointments } from './useCompanyRegister';
+import { importsKey, useClassRegister, useRegisterAppointments, useRegisterImports } from './useCompanyRegister';
 import { useRegisterEvidence } from './useRegisterEvidence';
 
-type Authority = RegisterImportPreparation['authority'];
-type Particulars = { name: string; residentialAddress: string; enteredOn: string; amountPaid: string };
-type MemberDraft = Particulars & { member: string; shares: string };
-type FormerDraft = { key: number; name: string; residentialAddress: string; shares: string; ceasedOn: string };
+type AllotmentDraft = Omit<
+  RegisterImportAllotment,
+  'fullyPaid' | 'beneficiallyHeld' | 'shareReference' | 'certificateReference'
+> & {
+  shareReference: string;
+  certificateReference: string;
+  beneficiallyHeld: boolean | null;
+};
+type MemberDraft = Omit<RegisterImportCurrentMemberRow, 'allotments'> & { allotments: AllotmentDraft[] };
 
-const AUTHORITIES: [Authority, string][] = [
-  ['director_resolution', 'Director resolution'],
-  ['court_order', 'Court order'],
-];
-const MONEY = /^(0|[1-9]\d{0,17})(\.\d{1,2})?$/;
-const FAILED = 'The import could not be prepared. Retry with the same details.';
-
-function positiveShares(value: string) {
+const FAILED = 'The records could not be prepared. Retry with the same details.';
+const blankAllotment = (): AllotmentDraft => ({
+  allottedOn: '',
+  shares: '',
+  shareReference: '',
+  certificateReference: '',
+  amountPaid: '',
+  amountUnpaid: '',
+  beneficiallyHeld: null,
+});
+const blankMember = (): MemberDraft => ({
+  member: Crypto.randomUUID(),
+  name: '',
+  residentialAddress: '',
+  shares: '',
+  enteredOn: '',
+  allotments: [blankAllotment()],
+});
+const positiveShares = (value: string) => {
   const shares = wholeShares(value.trim());
   return shares !== null && shares > 0n ? shares.toString() : '';
+};
+
+function AllotmentFields({
+  row,
+  label,
+  busy,
+  change,
+}: {
+  row: AllotmentDraft;
+  label: string;
+  busy: boolean;
+  change: (value: Partial<AllotmentDraft>) => void;
+}) {
+  const styles = useCompanyStyles();
+  const fields: { key: keyof Omit<AllotmentDraft, 'beneficiallyHeld'>; text: string; numeric?: boolean }[] = [
+    { key: 'allottedOn', text: 'Original allotment date (YYYY-MM-DD)' },
+    { key: 'shares', text: 'Shares from this allotment still held', numeric: true },
+    { key: 'shareReference', text: 'Share numbers or reference, if recorded' },
+    { key: 'certificateReference', text: 'Certificate reference, if recorded' },
+    { key: 'amountPaid', text: 'Total amount paid on these shares', numeric: true },
+    { key: 'amountUnpaid', text: 'Total amount unpaid on these shares', numeric: true },
+  ];
+  return (
+    <View style={styles.group}>
+      <Text style={styles.heading}>{label}</Text>
+      {fields.map(({ key, text, numeric }) => (
+        <Field
+          key={key}
+          label={text}
+          accessibilityLabel={`${label} ${text}`}
+          value={row[key]}
+          editable={!busy}
+          keyboardType={numeric ? 'decimal-pad' : undefined}
+          onChange={(value) => change({ [key]: value })}
+        />
+      ))}
+      {registerImportMoney(row.amountUnpaid) !== null && (
+        <Text style={styles.muted}>
+          {registerImportMoney(row.amountUnpaid) === '0.00' ? 'Fully paid' : 'Partly paid'}
+        </Text>
+      )}
+      <Text style={styles.text}>Held for whose benefit?</Text>
+      <View style={styles.choices}>
+        <Choice
+          label="Registered holder’s own benefit"
+          accessibilityLabel={`${label} own benefit`}
+          accessibilityRole="radio"
+          selected={row.beneficiallyHeld === true}
+          disabled={busy}
+          onPress={() => change({ beneficiallyHeld: true })}
+        />
+        <Choice
+          label="Someone else (trustee or nominee)"
+          accessibilityLabel={`${label} someone else`}
+          accessibilityRole="radio"
+          selected={row.beneficiallyHeld === false}
+          disabled={busy}
+          onPress={() => change({ beneficiallyHeld: false })}
+        />
+      </View>
+    </View>
+  );
 }
 
 export function PrepareRegisterImportScreen() {
@@ -55,26 +133,25 @@ function PrepareRegisterImport({ epoch }: { epoch: number }) {
   const styles = useCompanyStyles();
   const queryClient = useQueryClient();
   const navigation = useNavigation();
-  const { tokenUuid, companyUuid } = useRoute<RouteProp<CompanyStackParamList, 'PrepareRegisterImport'>>().params;
+  const { tokenUuid, companyUuid, correctionOf } =
+    useRoute<RouteProp<CompanyStackParamList, 'PrepareRegisterImport'>>().params;
   const register = useClassRegister(epoch, tokenUuid);
+  const imports = useRegisterImports(epoch, companyUuid, tokenUuid);
   const { appointments, steps } = useRegisterAppointments(epoch, companyUuid);
   const shareRegister = useRegisterEvidence(companyUuid, 'share_register');
   const asicExtract = useRegisterEvidence(companyUuid, 'asic_extract');
   const [asAt, setAsAt] = useState(() => formatDateToString(new Date()));
-  const [edits, setEdits] = useState<Record<string, Partial<Particulars>>>({});
-  const [added, setAdded] = useState<MemberDraft[]>([]);
-  const [former, setFormer] = useState<FormerDraft[]>([]);
+  const [sourceReference, setSourceReference] = useState('');
+  const [sourceConfirmed, setSourceConfirmed] = useState(false);
+  const [drafts, setDrafts] = useState<MemberDraft[]>([]);
   const [statedTotal, setStatedTotal] = useState('');
   const [statedCount, setStatedCount] = useState('');
-  const [authority, setAuthority] = useState<Authority>('director_resolution');
-  const [approvingDirector, setApprovingDirector] = useState('');
-  const [authorityReference, setAuthorityReference] = useState('');
   const [reason, setReason] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const live = useRef(true);
   const pending = useRef(false);
-  const formerKeys = useRef(0);
+  const initialized = useRef(false);
   const retry = useRef<{ signature: string; operationId: string } | null>(null);
   useLayoutEffect(() => {
     live.current = true;
@@ -82,65 +159,101 @@ function PrepareRegisterImport({ epoch }: { epoch: number }) {
       live.current = false;
     };
   }, []);
+  const original = correctionOf
+    ? imports.data?.find((row) => row.uuid === correctionOf && row.status === 'applied')
+    : undefined;
   const opened = register.data?.initialized === true;
-  const drafts: MemberDraft[] = !register.data
-    ? []
-    : opened
-      ? register.data.holders.map((holder) => ({
+  useLayoutEffect(() => {
+    if (initialized.current || !register.isSuccess || !imports.isSuccess || (correctionOf && !original)) return;
+    initialized.current = true;
+    if (original) {
+      setAsAt(original.asAt);
+      setSourceReference(original.sourceReference);
+      setDrafts(
+        original.members.map((row) => ({
+          member: row.member,
+          name: row.name,
+          residentialAddress: row.residentialAddress,
+          shares: row.shares,
+          enteredOn: row.enteredOn,
+          allotments:
+            row.allotments?.map((allotment) => ({
+              ...allotment,
+              shareReference: allotment.shareReference ?? '',
+              certificateReference: allotment.certificateReference ?? '',
+            })) ?? [],
+        })),
+      );
+    } else if (opened) {
+      setDrafts(
+        register.data.holders.map((holder) => ({
           member: holder.member,
+          name: holder.name ?? '',
+          residentialAddress: '',
           shares: holder.balance,
-          name: edits[holder.member]?.name ?? holder.name ?? '',
-          residentialAddress: edits[holder.member]?.residentialAddress ?? '',
-          enteredOn: edits[holder.member]?.enteredOn ?? '',
-          amountPaid: edits[holder.member]?.amountPaid ?? '',
-        }))
-      : added;
-  const members: RegisterImportMemberRow[] = drafts.map((row) => ({
+          enteredOn: '',
+          allotments: [blankAllotment()],
+        })),
+      );
+    }
+  }, [register.isSuccess, register.data, imports.isSuccess, correctionOf, original, opened]);
+  const members: RegisterImportCurrentMemberRow[] = drafts.map((row) => ({
     member: row.member,
     name: row.name.trim(),
     residentialAddress: row.residentialAddress.trim(),
     shares: positiveShares(row.shares),
     enteredOn: row.enteredOn.trim(),
-    amountPaid: row.amountPaid.trim() || null,
-  }));
-  const formerMembers: RegisterImportFormerRow[] = former.map((row) => ({
-    name: row.name.trim(),
-    residentialAddress: row.residentialAddress.trim(),
-    shares: positiveShares(row.shares),
-    ceasedOn: row.ceasedOn.trim(),
+    allotments: row.allotments.map((allotment) => ({
+      allottedOn: allotment.allottedOn.trim(),
+      shares: positiveShares(allotment.shares),
+      shareReference: allotment.shareReference.trim() || null,
+      certificateReference: allotment.certificateReference.trim() || null,
+      amountPaid: registerImportMoney(allotment.amountPaid) ?? '',
+      amountUnpaid: registerImportMoney(allotment.amountUnpaid) ?? '',
+      fullyPaid: registerImportMoney(allotment.amountUnpaid) === '0.00',
+      beneficiallyHeld: allotment.beneficiallyHeld === true,
+    })),
   }));
   const date = asAt.trim();
   const dated = (value: string) => isoDay(value) && value <= date;
   const totals = registerImportTotals(members);
-  const statedShares = wholeShares(statedTotal.trim());
+  const statedShares = statedTotal.trim() ? wholeShares(statedTotal.trim()) : null;
   const statedMembers = /^\d{1,9}$/.test(statedCount.trim()) ? Number(statedCount.trim()) : null;
-  const mismatch =
-    statedShares !== null &&
-    statedMembers !== null &&
-    (statedShares.toString() !== totals.total || statedMembers !== totals.count);
-  const problem = !shareRegister.name
-    ? 'Choose the company’s share register.'
-    : !asicExtract.name
-      ? 'Choose the ASIC extract.'
-      : !isoDay(date) || date > formatDateToString(new Date())
-        ? 'Enter the register date as YYYY-MM-DD, no later than today.'
+  const mismatch = statedShares !== null && statedShares.toString() !== totals.total;
+  const problem =
+    !isoDay(date) || date > formatDateToString(new Date())
+      ? 'Enter the snapshot date as YYYY-MM-DD, no later than today.'
+      : !sourceReference.trim()
+        ? 'Name the existing company register or records this snapshot came from.'
         : members.length === 0
-          ? opened
-            ? REGISTER_IMPORT_COPY.NO_HOLDERS
-            : 'Add each current member of this class.'
+          ? 'Add the current shareholders in this share class.'
           : members.some((row) => !row.name || !row.residentialAddress || !row.shares || !dated(row.enteredOn))
-            ? 'Complete each current member’s name, residential address, shares and date entered, no later than the register date.'
-            : members.some((row) => row.amountPaid !== null && !MONEY.test(row.amountPaid))
-              ? 'Enter each amount paid as a plain amount such as 250.00, or leave it blank when it is not known.'
-              : formerMembers.some((row) => !row.name || !row.residentialAddress || !row.shares || !dated(row.ceasedOn))
-                ? 'Complete each former member’s name, residential address, shares and date ceased, no later than the register date.'
-                : statedShares === null || statedMembers === null
-                  ? 'State the issued total and member count the ASIC extract shows for this class.'
-                  : authority === 'director_resolution' && !approvingDirector.trim()
-                    ? 'Name the director who approved the resolution.'
-                    : !authorityReference.trim() || !reason.trim()
-                      ? 'Enter the authority reference and the reason for the import.'
-                      : null;
+            ? 'Complete each shareholder’s name, address, shares and original entry date.'
+            : members.some(
+                  (row) =>
+                    row.allotments.length === 0 ||
+                    row.allotments.some(
+                      (allotment) =>
+                        !dated(allotment.allottedOn) ||
+                        !allotment.shares ||
+                        !allotment.amountPaid ||
+                        !allotment.amountUnpaid,
+                    ),
+                )
+              ? 'Record each underlying allotment’s date, shares still held and total paid and unpaid amounts. Enter zero where appropriate.'
+              : drafts.some((row) => row.allotments.some((allotment) => allotment.beneficiallyHeld === null))
+                ? 'State whether each allotment is held for the registered holder’s own benefit or someone else.'
+                : members.some((row) => registerImportTotals(row.allotments).total !== row.shares)
+                  ? 'The shares still held from each shareholder’s allotments must add up to their holding.'
+                  : (statedTotal.trim() && statedShares === null) || (statedCount.trim() && statedMembers === null)
+                    ? 'Enter whole numbers for the optional ASIC cross-check.'
+                    : (statedTotal.trim() || statedCount.trim()) && !asicExtract.name
+                      ? 'Optional ASIC figures need their extract copy. Add it or clear the figures.'
+                      : !sourceConfirmed
+                        ? 'Confirm that these records mirror the company’s existing legal register.'
+                        : correctionOf && !reason.trim()
+                          ? 'Explain the opening error being corrected.'
+                          : null;
   const busy = submitting || shareRegister.busy || asicExtract.busy;
   const ready =
     !problem &&
@@ -149,14 +262,26 @@ function PrepareRegisterImport({ epoch }: { epoch: number }) {
     !!steps?.prepare &&
     register.isSuccess &&
     !register.isFetching &&
+    imports.isSuccess &&
+    !imports.isFetching &&
     appointments.isSuccess &&
-    !appointments.isFetching;
-  const changeMember = (member: string, change: Partial<MemberDraft>) => {
-    if (opened) setEdits((current) => ({ ...current, [member]: { ...current[member], ...change } }));
-    else setAdded((rows) => rows.map((row) => (row.member === member ? { ...row, ...change } : row)));
-  };
-  const changeFormer = (key: number, change: Partial<FormerDraft>) =>
-    setFormer((rows) => rows.map((row) => (row.key === key ? { ...row, ...change } : row)));
+    !appointments.isFetching &&
+    (!correctionOf || !!original);
+  const changeMember = (member: string, change: Partial<MemberDraft>) =>
+    setDrafts((rows) => rows.map((row) => (row.member === member ? { ...row, ...change } : row)));
+  const changeAllotment = (member: string, index: number, change: Partial<AllotmentDraft>) =>
+    setDrafts((rows) =>
+      rows.map((row) =>
+        row.member === member
+          ? {
+              ...row,
+              allotments: row.allotments.map((allotment, item) =>
+                item === index ? { ...allotment, ...change } : allotment,
+              ),
+            }
+          : row,
+      ),
+    );
   const pick = async (evidence: ReturnType<typeof useRegisterEvidence>) => {
     setError(null);
     try {
@@ -168,32 +293,36 @@ function PrepareRegisterImport({ epoch }: { epoch: number }) {
   };
   const submit = async () => {
     const appointment = steps?.prepare;
-    if (!ready || !appointment || statedShares === null || statedMembers === null || pending.current) return;
+    if (!ready || !appointment || pending.current) return;
     const guard = () => {
       assertSessionEpoch(epoch);
-      if (!live.current) throw new Error('This import is no longer open.');
+      if (!live.current) throw new Error('These records are no longer open.');
     };
     pending.current = true;
     setSubmitting(true);
     setError(null);
     try {
       guard();
-      const registerEvidence = await shareRegister.upload(appointment.uuid, guard);
-      const asicEvidence = await asicExtract.upload(appointment.uuid, guard);
-      const request = {
+      const registerEvidence = shareRegister.name ? await shareRegister.upload(appointment.uuid, guard) : null;
+      const asicEvidence = asicExtract.name ? await asicExtract.upload(appointment.uuid, guard) : null;
+      const request: Omit<RegisterImportPreparation, 'operationId'> = {
         appointment: appointment.uuid,
         tokenId: tokenUuid,
-        registerEvidence: registerEvidence.uuid,
-        asicEvidence: asicEvidence.uuid,
-        asicIssuedTotal: statedShares.toString(),
-        asicMemberCount: statedMembers,
         asAt: date,
+        sourceReference: sourceReference.trim(),
+        sourceConfirmed: true,
         members,
-        formerMembers,
-        authority,
-        approvingDirector: authority === 'director_resolution' ? approvingDirector.trim() : '',
-        authorityReference: authorityReference.trim(),
-        reason: reason.trim(),
+        formerMembers: original?.formerMembers ?? [],
+        reason: correctionOf ? reason.trim() : 'Mirror the company’s existing register',
+        ...(correctionOf ? { correctionOf } : {}),
+        ...(registerEvidence ? { registerEvidence: registerEvidence.uuid } : {}),
+        ...(asicEvidence
+          ? {
+              asicEvidence: asicEvidence.uuid,
+              ...(statedShares !== null ? { asicIssuedTotal: statedShares.toString() } : {}),
+              ...(statedMembers !== null ? { asicMemberCount: statedMembers } : {}),
+            }
+          : {}),
       };
       const signature = JSON.stringify(request);
       const operationId = retry.current?.signature === signature ? retry.current.operationId : Crypto.randomUUID();
@@ -225,33 +354,41 @@ function PrepareRegisterImport({ epoch }: { epoch: number }) {
       if (live.current) setSubmitting(false);
     }
   };
-  const title = DESTINATIONS.companyRegisterImport.title;
-  if (register.isPending || appointments.isPending)
+  const title = correctionOf ? REGISTER_IMPORT_COPY.CORRECT : REGISTER_IMPORT_COPY.PREPARE;
+  if (register.isPending || imports.isPending || appointments.isPending)
     return (
       <Page title={title}>
         <Text style={styles.muted}>Loading the share class…</Text>
       </Page>
     );
-  if (register.isError || appointments.isError)
+  if (register.isError || imports.isError || appointments.isError)
     return (
       <Page title={title}>
         <Text accessibilityRole="alert" style={styles.error}>
-          We couldn’t load this share class and your appointments.
+          We couldn’t load this share class and your company appointments.
         </Text>
         <Action
           label="Retry"
-          disabled={register.isFetching || appointments.isFetching}
+          disabled={register.isFetching || imports.isFetching || appointments.isFetching}
           onPress={() => {
             void register.refetch();
+            void imports.refetch();
             void appointments.refetch();
           }}
         />
       </Page>
     );
-  const name = register.data.token.name;
+  if (correctionOf && !original)
+    return (
+      <Page title={title}>
+        <Text accessibilityRole="alert" style={styles.error}>
+          The confirmed opening snapshot could not be found. Return to the register and refresh.
+        </Text>
+      </Page>
+    );
   if (!steps?.prepare)
     return (
-      <Page title={title} lede={`${REGISTER_IMPORT_COPY.PREPARE} for ${name}.`}>
+      <Page title={title}>
         <Text style={styles.muted}>{REGISTER_IMPORT_COPY.READ_ONLY_NOTE}</Text>
       </Page>
     );
@@ -259,250 +396,184 @@ function PrepareRegisterImport({ epoch }: { epoch: number }) {
     <Page
       testID="prepare-import-screen"
       title={title}
-      lede={`${REGISTER_IMPORT_COPY.PREPARE} for ${name}. The company provides its current share register and ASIC extract; Ledova staff verify neither, and each copy is shown as provided by the company.`}
+      lede={`${register.data.token.name}. ${REGISTER_IMPORT_COPY.MIRROR_NOTE}`}
       keyboardShouldPersistTaps="handled"
     >
-      <Section title="Evidence">
+      <Section title="Company records">
+        <Field
+          label="Existing register or source reference"
+          value={sourceReference}
+          editable={!busy}
+          maxLength={255}
+          onChange={setSourceReference}
+        />
+        <Field
+          label="Snapshot date (YYYY-MM-DD)"
+          accessibilityLabel="Register date"
+          value={asAt}
+          editable={!busy}
+          onChange={setAsAt}
+        />
+        {correctionOf && (
+          <Field
+            label="What opening error are you correcting?"
+            value={reason}
+            editable={!busy}
+            multiline
+            maxLength={1000}
+            onChange={setReason}
+          />
+        )}
+      </Section>
+      <Section title="Current shareholders">
+        <Text style={styles.muted}>
+          Copy the current holdings and original allotment particulars from the company’s records. No account or wallet
+          is needed.
+        </Text>
+        {drafts.map((row, index) => {
+          const number = index + 1;
+          const fields = [
+            { key: 'name' as const, label: 'Name' },
+            { key: 'residentialAddress' as const, label: 'Address' },
+            { key: 'enteredOn' as const, label: 'Original entry date (YYYY-MM-DD)' },
+          ];
+          return (
+            <View key={row.member} style={[styles.entry, index === drafts.length - 1 && styles.lastEntry]}>
+              <Text style={styles.heading}>Shareholder {number}</Text>
+              {fields.map(({ key, label }) => (
+                <Field
+                  key={key}
+                  label={label}
+                  accessibilityLabel={`Shareholder ${number} ${label}`}
+                  value={row[key]}
+                  editable={!busy}
+                  onChange={(value) => changeMember(row.member, { [key]: value })}
+                />
+              ))}
+              <Field
+                label="Current shares held"
+                accessibilityLabel={`Shareholder ${number} shares`}
+                value={row.shares}
+                editable={!busy && (!opened || !!correctionOf)}
+                keyboardType="number-pad"
+                onChange={(value) => changeMember(row.member, { shares: value })}
+              />
+              {row.allotments.map((allotment, item) => (
+                <View key={item} style={styles.group}>
+                  <AllotmentFields
+                    row={allotment}
+                    label={`Shareholder ${number} · allotment ${item + 1}`}
+                    busy={busy}
+                    change={(change) => changeAllotment(row.member, item, change)}
+                  />
+                  <Action
+                    label={`Remove allotment ${item + 1} for shareholder ${number}`}
+                    disabled={busy}
+                    onPress={() =>
+                      changeMember(row.member, { allotments: row.allotments.filter((_, i) => i !== item) })
+                    }
+                  />
+                </View>
+              ))}
+              {row.allotments.length === 0 && (
+                <Text style={styles.muted}>
+                  {REGISTER_IMPORT_COPY.UNKNOWN_ALLOTMENTS} Enter them from the source records before reviewing.
+                </Text>
+              )}
+              <Action
+                label={`Add an allotment for shareholder ${number}`}
+                disabled={busy}
+                onPress={() => changeMember(row.member, { allotments: [...row.allotments, blankAllotment()] })}
+              />
+              {(!opened || correctionOf) && (
+                <Action
+                  label={`Remove shareholder ${number}`}
+                  disabled={busy}
+                  onPress={() => setDrafts((rows) => rows.filter((item) => item.member !== row.member))}
+                />
+              )}
+            </View>
+          );
+        })}
+        {(!opened || correctionOf) && (
+          <Action
+            label="Add a shareholder"
+            disabled={busy}
+            onPress={() => setDrafts((rows) => [...rows, blankMember()])}
+          />
+        )}
+      </Section>
+      <Section title="Optional source documents">
+        <Text style={styles.muted}>
+          The source reference is enough to prepare a mirror. Documents, if supplied, stay company-provided and private.
+        </Text>
         <EvidencePicker
-          title="Share register"
+          title="Share register (optional)"
           noun="share register"
           evidence={shareRegister}
           disabled={busy}
           onPick={() => void pick(shareRegister)}
         />
         <EvidencePicker
-          title="ASIC extract"
+          title="ASIC extract (optional cross-check)"
           noun="ASIC extract"
           evidence={asicExtract}
           disabled={busy}
           onPick={() => void pick(asicExtract)}
         />
-        <Field
-          label="Register date (YYYY-MM-DD)"
-          accessibilityLabel="Register date"
-          value={asAt}
-          editable={!busy}
-          onChange={setAsAt}
-        />
-      </Section>
-      <Section title="Current members">
-        {!opened && <Text style={styles.muted}>{REGISTER_IMPORT_COPY.NOT_ON_CHAIN_NOTE}</Text>}
-        <Text style={styles.muted}>
-          {!opened
-            ? 'Add each current member in the company’s register, with their shares. Each gets a new member ID.'
-            : drafts.length > 0
-              ? 'Each current member of the stored register, with the shares it records. Enter their particulars from the company’s register.'
-              : REGISTER_IMPORT_COPY.NO_HOLDERS}
-        </Text>
-        {drafts.map((row, index) => {
-          const number = index + 1;
-          return (
-            <View key={row.member} style={[styles.entry, index === drafts.length - 1 && styles.lastEntry]}>
-              <Text style={styles.heading}>Member {number}</Text>
-              <Text selectable style={styles.muted}>
-                Member ID {row.member}
-              </Text>
-              {opened ? (
-                <Text style={styles.text}>
-                  {formatShareCount(row.shares)} {row.shares === '1' ? 'share' : 'shares'}
-                </Text>
-              ) : (
-                <Field
-                  label="Shares"
-                  accessibilityLabel={`Member ${number} shares`}
-                  value={row.shares}
-                  editable={!busy}
-                  keyboardType="number-pad"
-                  onChange={(value) => changeMember(row.member, { shares: value })}
-                />
-              )}
-              <Field
-                label="Name"
-                accessibilityLabel={`Member ${number} name`}
-                value={row.name}
-                editable={!busy}
-                onChange={(value) => changeMember(row.member, { name: value })}
-              />
-              <Field
-                label="Residential address"
-                accessibilityLabel={`Member ${number} residential address`}
-                value={row.residentialAddress}
-                editable={!busy}
-                onChange={(value) => changeMember(row.member, { residentialAddress: value })}
-              />
-              <Field
-                label="Date entered (YYYY-MM-DD)"
-                accessibilityLabel={`Member ${number} date entered`}
-                value={row.enteredOn}
-                editable={!busy}
-                onChange={(value) => changeMember(row.member, { enteredOn: value })}
-              />
-              <Field
-                label="Amount paid, if known"
-                accessibilityLabel={`Member ${number} amount paid`}
-                value={row.amountPaid}
-                editable={!busy}
-                keyboardType="decimal-pad"
-                onChange={(value) => changeMember(row.member, { amountPaid: value })}
-              />
-              {!opened && (
-                <Action
-                  label={`Remove member ${number}`}
-                  disabled={busy}
-                  onPress={() => setAdded((rows) => rows.filter((item) => item.member !== row.member))}
-                />
-              )}
-            </View>
-          );
-        })}
-        {!opened && (
-          <Action
-            label="Add a member"
-            disabled={busy}
-            onPress={() =>
-              setAdded((rows) => [
-                ...rows,
-                {
-                  member: Crypto.randomUUID(),
-                  shares: '',
-                  name: '',
-                  residentialAddress: '',
-                  enteredOn: '',
-                  amountPaid: '',
-                },
-              ])
-            }
-          />
+        {asicExtract.name && (
+          <>
+            <Field
+              label="Issued total shown for this class"
+              accessibilityLabel="ASIC issued total"
+              value={statedTotal}
+              editable={!busy}
+              keyboardType="number-pad"
+              onChange={setStatedTotal}
+            />
+            <Field
+              label="Listed shareholders, if recorded (may be partial)"
+              accessibilityLabel="ASIC listed shareholders"
+              value={statedCount}
+              editable={!busy}
+              keyboardType="number-pad"
+              onChange={setStatedCount}
+            />
+            <Text style={styles.muted}>
+              ASIC may show only the top 20 shareholders. Its listed count does not have to match the full register.
+            </Text>
+          </>
         )}
       </Section>
-      <Section title="Former members">
-        <Text style={styles.muted}>
-          Add the members who left before the register date, as the company’s register records them.
-        </Text>
-        {former.map((row, index) => {
-          const number = index + 1;
-          return (
-            <View key={row.key} style={[styles.entry, index === former.length - 1 && styles.lastEntry]}>
-              <Text style={styles.heading}>Former member {number}</Text>
-              <Field
-                label="Name"
-                accessibilityLabel={`Former member ${number} name`}
-                value={row.name}
-                editable={!busy}
-                onChange={(value) => changeFormer(row.key, { name: value })}
-              />
-              <Field
-                label="Residential address"
-                accessibilityLabel={`Former member ${number} residential address`}
-                value={row.residentialAddress}
-                editable={!busy}
-                onChange={(value) => changeFormer(row.key, { residentialAddress: value })}
-              />
-              <Field
-                label="Shares held when they ceased"
-                accessibilityLabel={`Former member ${number} shares`}
-                value={row.shares}
-                editable={!busy}
-                keyboardType="number-pad"
-                onChange={(value) => changeFormer(row.key, { shares: value })}
-              />
-              <Field
-                label="Date ceased (YYYY-MM-DD)"
-                accessibilityLabel={`Former member ${number} date ceased`}
-                value={row.ceasedOn}
-                editable={!busy}
-                onChange={(value) => changeFormer(row.key, { ceasedOn: value })}
-              />
-              <Action
-                label={`Remove former member ${number}`}
-                disabled={busy}
-                onPress={() => setFormer((rows) => rows.filter((item) => item.key !== row.key))}
-              />
-            </View>
-          );
-        })}
-        <Action
-          label="Add a former member"
-          disabled={busy}
-          onPress={() => {
-            formerKeys.current += 1;
-            const key = formerKeys.current;
-            setFormer((rows) => [...rows, { key, name: '', residentialAddress: '', shares: '', ceasedOn: '' }]);
-          }}
-        />
-      </Section>
-      <Section title="ASIC extract figures">
-        <Text style={styles.muted}>State the issued total and member count the ASIC extract shows for this class.</Text>
-        <Field
-          label="Issued shares"
-          accessibilityLabel="ASIC issued total"
-          value={statedTotal}
-          editable={!busy}
-          keyboardType="number-pad"
-          onChange={setStatedTotal}
-        />
-        <Field
-          label="Members"
-          accessibilityLabel="ASIC member count"
-          value={statedCount}
-          editable={!busy}
-          keyboardType="number-pad"
-          onChange={setStatedCount}
-        />
-        {statedShares !== null && statedMembers !== null && (
-          <Text style={styles.text}>
-            {REGISTER_IMPORT_COPY.STATED_FIGURES(formatShareCount(statedShares.toString()), statedMembers)}
-          </Text>
-        )}
+      <Section title="Review">
         <Text style={styles.text}>
           {REGISTER_IMPORT_COPY.IMPORTED_FIGURES(formatShareCount(totals.total), totals.count)}
         </Text>
         {mismatch && (
           <Text accessibilityRole="alert" style={styles.error}>
-            The ASIC extract figures differ from the import rows. Correct them before preparing the import.
+            The optional ASIC issued total differs from the current holdings. Check the source records.
           </Text>
         )}
-      </Section>
-      <Section title="Authority">
-        <View style={styles.choices}>
-          {AUTHORITIES.map(([value, label]) => (
-            <Choice
-              key={value}
-              label={label}
-              accessibilityRole="radio"
-              selected={authority === value}
-              disabled={busy}
-              onPress={() => setAuthority(value)}
-            />
-          ))}
-        </View>
-        {authority === 'director_resolution' && (
-          <Field
-            label="Approving director"
-            value={approvingDirector}
-            editable={!busy}
-            onChange={setApprovingDirector}
-          />
-        )}
-        <Field
-          label="Authority reference"
-          value={authorityReference}
-          editable={!busy}
-          onChange={setAuthorityReference}
+        <Choice
+          label={REGISTER_IMPORT_COPY.SOURCE_CONFIRMATION}
+          selected={sourceConfirmed}
+          disabled={busy}
+          onPress={() => setSourceConfirmed((value) => !value)}
         />
-        <Field label="Reason" value={reason} editable={!busy} multiline onChange={setReason} />
+        {original && (
+          <Text style={styles.muted}>
+            This appends a correction to the opening. Earlier snapshots and retained history remain unchanged; later
+            activity blocks an opening correction.
+          </Text>
+        )}
         {problem && <Text style={styles.muted}>{problem}</Text>}
         {error && (
           <Text accessibilityRole="alert" style={styles.error}>
             {error}
           </Text>
         )}
-        <Text style={styles.muted}>
-          If a response is interrupted, prepare again without changing anything to retrieve the same import. Any change
-          prepares a new one.
-        </Text>
         <Action
-          label={submitting ? 'Preparing…' : REGISTER_IMPORT_COPY.PREPARE}
+          label={submitting ? 'Preparing…' : 'Prepare for review'}
           primary
           disabled={!ready}
           onPress={() => void submit()}

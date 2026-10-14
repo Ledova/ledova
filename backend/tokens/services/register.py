@@ -345,6 +345,8 @@ def _history(register):
         for change in changes:
             if kind == RegisterEntryKind.TRANSFER:
                 transferred.add(change["member"])
+            if kind == RegisterEntryKind.MIRROR_CORRECTION:
+                running.setdefault(change["member"], 0)
             if change["member"] in running:
                 running[change["member"]] += int(change["shares"])
                 if not running[change["member"]]:
@@ -366,10 +368,30 @@ def _cessations(token, member_of):
 
 
 def _imported(token):
-    applied = RegisterImport.objects.filter(token=token, status="applied").first()
+    applied = RegisterImport.objects.filter(token=token, status="applied").order_by("-reviewed_at", "-uuid").first()
     if applied is None:
-        return -1, {}
-    return applied.register_sequence, {row["member"]: row for row in applied.members}
+        return -1, {}, None
+    return applied.register_sequence, {row["member"]: row for row in applied.members}, applied
+
+
+def imported_membership_dates(token, *, imported_at=None, imported=None):
+    if imported is None:
+        imported_at, imported, _ = _imported(token)
+    if not imported:
+        return {}
+    balances = {member: int(row["shares"]) for member, row in imported.items()}
+    dates = {member: date.fromisoformat(row["entered_on"]) for member, row in imported.items()}
+    entries = RegisterEntry.objects.filter(register__token=token, sequence__gt=imported_at).order_by("sequence")
+    for changes in entries.values_list("changes", flat=True):
+        for change in changes:
+            member = change["member"]
+            if member not in balances:
+                continue
+            delta = int(change["shares"])
+            if balances[member] == 0 and delta > 0:
+                dates.pop(member, None)
+            balances[member] += delta
+    return dates
 
 
 def _identity_sources(token, member_ids):
@@ -441,7 +463,8 @@ def _stored_register(token):
         .order_by("-shares", "member_id")
     )
     particulars, wallets, identities, stamps = _identity_sources(token, [position.member_id for position in positions])
-    imported_at, imported = _imported(token)
+    imported_at, imported, applied_import = _imported(token)
+    imported_dates = imported_membership_dates(token, imported_at=imported_at, imported=imported)
     external_paid = _external_amounts_paid(register, imported_at, imported)
     ceased, former = _cessations(
         token, {address.lower(): member for member, addresses in wallets.items() for address in addresses}
@@ -463,9 +486,9 @@ def _stored_register(token):
         former.extend(row for row in ceased[position.member_id] if row.ceased_on < entered_on)
         shares = int(position.shares)
         amount_paid = _amount_paid(allotment, shares, member in transferred or interrupted)
-        continuing = imported.get(member) if member in held else None
+        continuing = imported.get(member) if member in imported_dates else None
         if continuing is not None:
-            entered_on = date.fromisoformat(continuing["entered_on"])
+            entered_on = imported_dates[member]
             if position.last_entry.sequence <= imported_at:
                 amount_paid = None if continuing["amount_paid"] is None else Decimal(continuing["amount_paid"])
         if member in external_paid:
@@ -494,8 +517,11 @@ def _stored_register(token):
                 "amount_paid": amount_paid,
             }
         )
+    mirrored_former = ImportedFormerMember.objects.filter(token=token)
+    if applied_import is not None and applied_import.source_reference:
+        mirrored_former = mirrored_former.filter(source_import=applied_import)
     former.extend(
-        ImportedFormerMember.objects.filter(token=token).annotate(
+        mirrored_former.annotate(
             wallet_address=Value(None, output_field=CharField()),
             ceased_at_block=Value(None, output_field=BigIntegerField()),
             identity_source=Value(IDENTITY_PARTICULARS),

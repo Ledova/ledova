@@ -1,26 +1,69 @@
+import { useLayoutEffect, useRef } from 'react';
 import { Text, View } from 'react-native';
 import { useQueryClient } from '@tanstack/react-query';
-import { REGISTER_PARTICULARS_COPY as COPY, type TokenHoldersResponse } from '@ledova/shared';
+import {
+  REGISTER_PARTICULARS_COPY as COPY,
+  hasCurrentRegisterReadAuthority,
+  type OwnCompanyAppointment,
+  type TokenHoldersResponse,
+} from '@ledova/shared';
 import { Action, Section } from '../../components/Ledger';
 import { ParticularsRecord } from './ParticularsRecord';
 import { useCompanyStyles } from './styles';
-import { entriesKey, useRegisterAppointments, useRegisterParticulars } from './useCompanyRegister';
+import {
+  entriesKey,
+  particularsKey,
+  registerAppointmentsKey,
+  useRegisterAppointments,
+  useRegisterParticulars,
+} from './useCompanyRegister';
 
 export function CompanyParticulars({
   epoch,
   company,
   registers,
   refreshHolders,
+  sourceReady = true,
+  onHeldChange,
 }: {
+  sourceReady?: boolean;
+  onHeldChange?: (key: string, held: boolean) => void;
   epoch: number;
   company: string;
   registers: TokenHoldersResponse[];
   refreshHolders: () => Promise<unknown>;
 }) {
   const styles = useCompanyStyles();
+  const sourceAvailable = useRef(sourceReady);
+  useLayoutEffect(() => {
+    sourceAvailable.current = sourceReady;
+  }, [sourceReady]);
   const queryClient = useQueryClient();
   const changes = useRegisterParticulars(epoch, company);
   const { appointments, steps } = useRegisterAppointments(epoch, company);
+  const privateReady =
+    sourceReady &&
+    appointments.isSuccess &&
+    !appointments.isFetching &&
+    changes.isSuccess &&
+    !changes.isFetching &&
+    hasCurrentRegisterReadAuthority(appointments.data, company);
+  const guard = () => {
+    const authority = queryClient.getQueryState(registerAppointmentsKey(epoch));
+    const state = queryClient.getQueryState(particularsKey(epoch, company));
+    if (
+      !sourceAvailable.current ||
+      authority?.status !== 'success' ||
+      authority.fetchStatus !== 'idle' ||
+      state?.status !== 'success' ||
+      state.fetchStatus !== 'idle' ||
+      !hasCurrentRegisterReadAuthority(
+        queryClient.getQueryData<OwnCompanyAppointment[]>(registerAppointmentsKey(epoch)) ?? [],
+        company,
+      )
+    )
+      throw new Error('Refresh the company records and current appointments.');
+  };
   const names = new Map(
     registers.flatMap(({ holders }) => holders.flatMap(({ member, name }) => (name ? [[member, name] as const] : []))),
   );
@@ -60,21 +103,23 @@ export function CompanyParticulars({
             onPress={() => void changes.refetch()}
           />
         </View>
-      ) : changes.data.length === 0 ? (
+      ) : privateReady && changes.data.length === 0 ? (
         <Text style={styles.muted}>{COPY.EMPTY}</Text>
-      ) : (
-        changes.data.map((change, index) => (
-          <ParticularsRecord
-            key={change.uuid}
-            change={change}
-            member={names.get(change.member) ?? COPY.UNNAMED_MEMBER}
-            epoch={epoch}
-            steps={steps}
-            last={index === changes.data.length - 1}
-            onSettled={settle}
-          />
-        ))
-      )}
+      ) : null}
+      {changes.data?.map((change, index) => (
+        <ParticularsRecord
+          key={change.uuid}
+          change={change}
+          member={names.get(change.member) ?? COPY.UNNAMED_MEMBER}
+          epoch={epoch}
+          steps={steps}
+          last={index === changes.data!.length - 1}
+          onSettled={settle}
+          visible={privateReady}
+          guard={guard}
+          onHeldChange={onHeldChange}
+        />
+      ))}
     </Section>
   );
 }

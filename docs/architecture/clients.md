@@ -50,8 +50,8 @@ pages included. The audience is `everyone`, `investing` or `company`, and
 `canOpen(role, audience)` says who may open it: an investor opens the pages for
 everyone and for investing, a company those for everyone and for companies, and
 a dual-role account all of them. A role outside the API's list opens only the
-pages for everyone, on both clients, and lands on Holdings. Every signed-in
-route is guarded by `ProtectedRoute` with its entry's audience. A signed-out
+pages for everyone. Personal accounts land on Dashboard on web and My shares
+on native. Every signed-in route is guarded by `ProtectedRoute` with its entry's audience. A signed-out
 visitor goes to sign in. Email verification issues a full session before
 sign-up is finished, so a signed-in account whose profile does not say
 `isSignupCompleted` goes back to the account-type step, the first after email
@@ -60,32 +60,86 @@ account whose profile cannot be read sees an error with a way to try again, not
 a guess. A signed-in person who cannot open the page goes to `landingFor(role)`,
 which replaces the refused address. Every page shows the session check until
 the profile is known, and an investing or company page until the role is known
-as well, so no page appears on the way. Once the role is known, the sidebar
-offers only pages the role can open, in groups:
+as well, so no page appears on the way. The web front door and successful sign-in check confirmed readable register
+access before choosing a dashboard; a failed check offers retry instead of
+assuming a personal account. Account preference alone does not select a company
+workspace. The web-only `/company/dashboard` route uses the existing scoped
+register API and the ordinary completed-signup guard. It shows exact issued-share
+totals, current shareholders deduplicated across classes, and share-class counts.
+The selected class has a compact shareholder table with quantity bars and
+percentages of that class's issued shares. Multiple classes have an issued-count
+chart; class rights may differ. Unopened classes make company totals incomplete,
+and failed or inconsistent reads withhold totals and charts. Recent changes are
+the selected class's recorded entries. Task links focus that class in its company
+register, and history links open its recorded history. Personal member views use
+their own projection, without company totals or other shareholders. New charts
+need no chart library.
 
-- a company's own group first, labelled Company, with Register, Offerings and
-  Company;
-- _Your shares_ for every account;
-- _Invest_ for an investing account, with Market only while trading is on;
-- then Wallets, Profile and Settings.
+The compact web sidebar has Dashboard, Register, Employee awards and Documents
+for readable company workspaces, with a separate Your shares link for personal
+records. Other accounts have personal Dashboard and Documents at `/home#documents`.
+Settings is a
+separate configuration group: company details/classes, team appointments and
+member access, plus personal profile/security and existing account settings.
+Company setup remains reachable there even before a register exists. Optional
+Notices, Activity, Wallets, investing routes and Offerings stay under More.
+The page content starts beside the 208-pixel sidebar in a bounded aligned grid,
+without the former centred gutter. The phone drawer uses the same width.
 
-Each item takes its name and address from its entry in `DESTINATIONS`, so a
-menu label always matches the page's title. Activity keeps the `/transactions`
-address. Holdings replaces the crypto home at the existing `/home` address.
-Notices at `/publications` lists documents, resolutions and dividends addressed
-to the person. Accounts without the company role reach Register from Settings
-on the web and the drawer on mobile once they hold register access through a
-current appointment.
+Native navigation remains the delivered four company destinations (Register,
+Employee awards, Documents and Company), personal My shares/Profile/Settings,
+and secondary More routes. Shared destination metadata and signup behavior are
+unchanged by the web layout increment.
 
-`landingFor(role)` decides where a signed-in person lands: an investing account
-on Holdings, and a company or dual-role account on Register. The front door,
-sign-in, the end of sign-up, the signed-out pages and the trading fallback all
-use it; the front door and the signed-out pages wait for the role before
-choosing, and the trading fallback runs behind the guard, which has already
-waited for it. The eight steps after the create-account form are listed once,
+Personal Dashboard at `/home` on web and My shares in the native Home tab read the person's
+associated member holdings and awards without a wallet. `/member-records` remains an alias.
+The web dashboard uses compact panels for one selected company, with own issued
+shares by class, awards when present, the latest three own changes for the
+selected class, available certificates and visible request status. The first
+own class's history loads when a member record opens; choosing another class
+reads that class's own entries. A person can have both investor holdings and an
+employee award. Award status bars use disjoint unvested, vested but unissued,
+and issued quantities; issued award shares already belong to the holding.
+Inconsistent award quantities withhold the chart. Personal Documents focuses
+own certificates and receiving-entry requests without exposing company totals,
+other shareholders or private company files. Particulars, longer history and
+invitation acceptance stay reachable, with exact-request recovery and retained
+certificate integrity checks unchanged. Wallet shares move
+to `/wallets/holdings`, linked from Wallets. Employee awards and Documents use
+`/company/register#awards` and `#documents`; these switch the visible section
+without unmounting register forms or their original-request recovery. A failed
+source read still withholds stale records and actions. Page-specific titles
+reflect these views on both clients. Web member access uses
+`/company/register#access`, reached from Settings or the register shortcut; it
+keeps existing register submissions mounted and their recovery scope retained. Native register section parameters switch
+the visible section while keeping the existing register subtree mounted.
+Wallet shares remain available from Wallets.
+Activity keeps `/transactions`, and Notices keeps `/publications`.
+
+`landingFor(role)` retains the shared/native destinations: an
+investing account on `/home`, and a company or dual-role account on Register.
+The web front door and sign-in use the confirmed-access dashboard choice above;
+refused-route and trading fallback behavior remains unchanged. Company signup
+keeps Company details → Review, with one visible workspace authority/Terms
+statement beside the final button, explicit initial admission and completion
+together. Choosing **Complete company setup** accepts that declaration; there
+is no separate checkbox. Supporting
+documents and team invitations are available afterwards from dashboard Settings;
+signup has no file upload or delegation picker. The
+[authority guide](../plans/company-managed-registers/authority-requests.md#company-signup)
+describes this flow.
+An unfinished signup can reuse any current personal administrator appointment
+for its company, retaining the appointment's original scope and declaration.
+The final action records current Terms acceptance when needed rather than
+requiring a new bootstrap or wider permissions. Acceptance already recorded
+on a fresh signup appointment is reused; stale or ineffective authority cannot
+complete signup.
+Native company accounts with readable register access start on Register; those
+without access start on My shares and reach setup from More. The eight steps after the create-account form are listed once,
 in `SIGNUP_STEPS` (`dashboard/src/routes/signupRoutes.tsx`), and `signupRoutes`
-places every one inside `SignupRoute`: an account that has finished sign-up
-goes to `landingFor(role)` instead of reopening one, while an account still
+places every one inside `SignupRoute`: a company account that has finished
+sign-up goes to the company dashboard, and other completed accounts go to
+`landingFor(role)`, instead of reopening a step. An account still
 signing up and a signed-out visitor move through them as before. Email
 verification refreshes the session answer before it moves on, as sign-in does,
 so in the in-app flow the steps read the profile once, before any form, and a
@@ -132,16 +186,35 @@ change retires a pending document action. The paragraphs below say what is
 specific to each page; the [register runbook](../operations/register-foundation.md)
 holds each register command's rules and API.
 
-**Register** is the company landing page on both clients and a page for every
-signed-in account on the web, at `/company/register`; the API decides which
+**Register** is the company's register workbench on web, the native company
+landing page, and a page for every signed-in account on the web at
+`/company/register`; the API decides which
 registers it shows, and with nothing readable the page says there is no company
 register to show. It reads the share classes the person may read, as the
 company owner or through a current appointment holding administration or a
 register capability, groups them by company and, where the person can read
 more than one company, reads only the selected company's stored registers:
-current members, linked wallets, exact issued and authorised shares, the
-register CSV download and the inspection-copy preparation, with unopened
-registers and unknown or positive waiting-effect counts stated. Each class then
+current members, linked wallets, exact issued shares and configured class limits, with unopened
+registers and unknown or positive waiting-effect counts stated. On both clients,
+ownership appears first, followed by external allotments and their actual pending
+decisions. Employee awards and non-paid issues have their own destination;
+Documents holds register CSV, inspection copies and the company pack. The web
+dashboard
+and Register link to the guided Share details → Shareholders → Review setup for an
+existing ownership mirror. It accepts manual entry, resumes pending
+confirmations and offers a bounded correction of the latest opening; the
+company retains its legal records and access arrangements. Member
+invitations use named company members or award recipients with exact IDs retained
+internally. Invitations, particulars, wallet links, other changes and technical
+history sit in secondary disclosures, which preserve their mounted recovery state.
+Each named award shows promised, vested, issued and available quantities. On
+web its chart separates unvested, vested but unissued, and issued shares,
+with Record vesting and Issue vested shares in context. Preparing its issue
+returns to the same company and expands the existing non-paid issue decisions;
+Approve and Record issue remain separate. Award, vesting, preparation and issue
+recovery stay mounted through a failed read, with private content withheld until
+current access is restored. Native Company holds member access and links to
+company information and team; particulars and wallet links remain secondary. Each class then
 lists its register entries, newest first a page at a time with Load more (an
 entry a later page repeats is listed once, a page with a share change that is
 not whole fails, and an entry's corrected or reversing entry reads as not
@@ -200,15 +273,16 @@ visible label and the entry, proposal or discrepancy it concerns.
 
 Each preparation opens a page of its own (routes in the
 [shared client layer](#the-shared-client-layer)); on mobile it opens in the
-same stack. Every form takes the company's upload, keeps the upload's retry
-key and confirmed receipt, reuses its operation only for an identical request,
+same stack. A form that takes an upload keeps its retry key and confirmed
+receipt; mirror imports allow company source references without a file. Each
+form reuses its operation only for an identical request,
 refreshes the proposals once the receipt is confirmed, takes a new operation
 after a conflict, shows the server's words on a refusal, and gives way to the
 read-only note once a refusal as not found shows the appointment is gone.
 
 | Action                   | Offered to                                                                                                                 | What the form takes and does                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 | ------------------------ | -------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Prepare an import**    | Administration or `prepare`, while the class has no applied import                                                         | The company's current share register and ASIC extract, the register date, the authority, the member rows, former members and the stated ASIC figures. An opened class lists one row per current holder with member and shares fixed; a class whose register is not opened takes rows under new member IDs with editable shares. The stated figures must match the rows before preparation. The decision preview shows the comparison with the stored register, the stated and imported figures and, before an application that opens the register, the note that the class will not be on chain                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| **Prepare a mirror** | Administration or `prepare`, for an unopened class or eligible opening correction | Company source reference, record date and complete current holder/allotment rows. Original membership and allotment dates, quantities, paid/unpaid amounts, derived fully-paid status, beneficial ownership and any share/certificate references remain company-provided. Source copies and ASIC cross-checks are optional. Earlier imported fields stay unknown where absent. The latest eligible opening can be copied into a correction with a reason; the original remains retained. The preview compares imported and stored ownership before the existing approve/apply decisions. No member account, wallet, legal filing or new share issue is created by setup. |
 | **Correct this entry**   | Administration or `prepare`, on each correctable entry                                                                     | Reads the entry by its ID and shows it with the exact inverse a correction records; takes the authority document, the authority, the approving director of a resolution, the reference, the reason and an effective date no later than today (UTC), defaulting to today. The preview adds the original and compensating changes and the register sequence                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | **Open this register**   | Administration or `prepare`, while a deployed or paused class's register is not opened                                     | Reads the class's holdings on chain at the current block, largest first, and refuses holdings that are not whole shares; a chain that cannot be read says so with a retry, and a class the server will not open shows its reason instead of the form. The holdings are read again only on request (Reload the holdings or Retry) or after a conflict, never on focus or reconnect, and Prepare is held while the holdings, the appointments or the class are being read again. An address already linked keeps its member; every other address is assigned on the page to a linked member or to a new member under a client-generated ID that several addresses may share, labelled as the Register will list them. Choices are kept by address, dropped only when the address no longer holds or is now linked or its member is no longer offered, and the page then says the choices were reset. A refusal with the holdings-moved code shows the reason and offers to reload the holdings, keeping the authority details and every choice that still applies. The preview adds the opening entry's effective date and shares by member, with the boundary note before approval and the holdings note before application; a staff-era opening whose boundary was never captured says so |
 | **Change particulars**   | Administration or `prepare`, on each current member of an opened class                                                     | Finds the member among the current members of the companies where the person may prepare, names them as Register does or neutrally, and takes the company's supporting document, the new name and residential address, an as-at date no later than today (UTC), defaulting to today, and the reason. The preview shows the current particulars, or that none are recorded, beside the proposal, with the note that the latest as-at date wins between imports and changes while a live verified identity wins over both                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
@@ -257,7 +331,8 @@ and in the mobile app, reading the selected owned company's publications with
 [shareholder publications](shareholder-publications.md#in-the-members-everyday-views)
 describes it and **Notices**.
 
-**Holdings** reads every page of the person's wallets and lists their
+**Wallet shares** on both clients reads every page of the person's wallets and
+lists their
 tokenised security holdings by company and class, one row per asset across
 chains, using the API's current class and company names where available and
 the asset's combined name otherwise, so a missing class lookup never removes a
@@ -270,12 +345,12 @@ transfer; _Recently published to you_ lists the three latest notices, each
 with its company, kind, date and until when its vote is open. These are
 personal reads, and only a known investing role reads the applicant-filtered
 application list. Actions open the application detail or Notices; nothing
-submits, pays or votes from Holdings.
+submits, pays or votes from this wallet view.
 
 **Verification** shows the person's eligibility sources and complete claim
 history in a cache of its own, and **Your company eligibility** (**Eligibility
 requests** on mobile) lets them request a decision from one company or an
-approved offering; **Company eligibility**, reachable from Holdings and
+approved offering; **Company eligibility**, reachable from Company and
 Company team, lets a current company approver read the queue and accept,
 refuse or revoke
 ([company eligibility](../plans/company-managed-registers/company-eligibility.md)),

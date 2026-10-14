@@ -1,17 +1,12 @@
-import { useNavigation } from '@react-navigation/native';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import type { HomeStackParamList } from '../../navigation/HomeStackNavigator';
-import { Action } from '../../components/Ledger';
 import { useState } from 'react';
 import { ActivityIndicator, Pressable, RefreshControl, Text, View } from 'react-native';
 import { CaretDownIcon, CaretRightIcon } from 'phosphor-react-native';
-import { formatShareCount, getChainConfig, useShareHoldings, type ShareHoldingRow } from '@ledova/shared';
+import { DESTINATIONS, formatShareCount, getChainConfig, useShareHoldings, type ShareHoldingRow } from '@ledova/shared';
 import { useAppTheme, useThemedStyles } from '../../contexts';
 import { Section } from '../../components/Ledger';
 import { Page } from '../../components/Page';
 import { HoldingWork } from './components/HoldingWork';
 import { useHoldingWork } from './useHoldingWork';
-import { EligibilityLinks } from '../eligibility-records/EligibilityLinks';
 
 function ShareHolding({ holding }: { holding: ShareHoldingRow }) {
   const [expanded, setExpanded] = useState(false);
@@ -70,8 +65,7 @@ function ShareHolding({ holding }: { holding: ShareHoldingRow }) {
   );
 }
 
-export function HomeScreen() {
-  const navigation = useNavigation<NativeStackNavigationProp<HomeStackParamList>>();
+export function WalletHoldingsScreen() {
   const theme = useAppTheme();
   const work = useHoldingWork();
   const { data: holdings = [], isPending, isError, isFetching, refetch } = useShareHoldings();
@@ -90,8 +84,8 @@ export function HomeScreen() {
 
   return (
     <Page
-      title="Holdings"
-      actions={<EligibilityLinks company />}
+      title={DESTINATIONS.walletHoldings.title}
+      lede="Optional shares held in your wallets; company-recorded shares and awards are in My shares."
       refreshControl={
         <RefreshControl
           refreshing={(isFetching && !isPending) || work.isRefreshing}
@@ -100,12 +94,6 @@ export function HomeScreen() {
         />
       }
     >
-      <Section title="Your member records">
-        <Action
-          label="Read your company-recorded holdings and awards"
-          onPress={() => navigation.navigate('MemberRecords')}
-        />
-      </Section>
       <Section title="Shares in your wallets">
         {isPending ? (
           <View style={styles.state}>

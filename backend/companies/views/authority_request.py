@@ -26,6 +26,7 @@ from shared.views.uploads import UploadProtectedView
 class CompanyAuthorityRequestViewSet(
     UploadProtectedView, mixins.ListModelMixin, mixins.RetrieveModelMixin, AuthenticatedGenericViewSet
 ):
+    protect_json_requests = False
     queryset = CompanyAuthorityRequest.objects.none()
     serializer_class = CompanyAuthorityRequestSerializer
     scoped_model = CompanyAuthorityRequest

@@ -1,19 +1,24 @@
 import { useContext, useId, type ReactNode } from 'react';
 import { PageTitle } from './PageTitle';
+import { InSignedInFrame } from './InSignedInFrame';
 
 interface PageProps {
   actions?: ReactNode;
   lede?: string;
   loading?: boolean;
+  narrow?: boolean;
   children?: ReactNode;
 }
 
-export function Page({ actions, lede, loading = false, children }: PageProps) {
+export function Page({ actions, lede, loading = false, narrow = false, children }: PageProps) {
   const title = useContext(PageTitle);
+  const inFrame = useContext(InSignedInFrame);
   const ledeId = useId();
 
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 px-4 pb-16 sm:gap-5 sm:px-6 md:gap-6 lg:px-8">
+    <div
+      className={`${inFrame ? 'ml-0' : 'mx-auto'} ${narrow ? 'max-w-4xl' : inFrame ? 'max-w-7xl' : 'max-w-6xl'} flex w-full min-w-0 flex-col gap-4 px-4 pb-16 sm:gap-5 sm:px-6 md:gap-6 lg:px-8`}
+    >
       <header>
         <div className="flex min-h-16 flex-wrap items-center justify-between gap-x-4 gap-y-2 py-2">
           <h1
@@ -72,7 +77,7 @@ export function PageAction({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className={`inline-flex w-fit items-center gap-2 rounded-lg border px-3.5 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${look}`}
+      className={`relative inline-flex w-fit items-center gap-2 rounded-lg border px-3.5 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${look}`}
     >
       {icon}
       <span>{label}</span>

@@ -37,7 +37,7 @@ export default function CompanyRegisterTransferPage() {
       />
     );
   return (
-    <Page lede={LEDE} actions={back}>
+    <Page narrow lede={LEDE} actions={back}>
       {preferences.isLoading ? (
         <Loading />
       ) : (
@@ -114,7 +114,7 @@ function OwnTransfer({
       </>
     );
   return (
-    <Page lede={LEDE} actions={back}>
+    <Page narrow lede={LEDE} actions={back}>
       {content}
     </Page>
   );

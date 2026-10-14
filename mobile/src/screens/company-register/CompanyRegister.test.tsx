@@ -10,14 +10,22 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, cleanup, fireEvent, render, waitFor } from '@testing-library/react-native';
 import * as Sharing from 'expo-sharing';
 import React from 'react';
+import { APPOINTMENT } from '../../../../packages/shared/tests/fixtures/employee-awards';
 import { apiClient } from '../../services/apiClient';
 import { getSessionEpoch, invalidateSessionScope } from '../../services/sessionScope';
 import { cache, files, resetFiles } from '../../testSupport/documentFiles';
 import { CompanyRegisterScreen } from './CompanyRegisterScreen';
 
 const mockNavigate = jest.fn();
+let mockSection = 'register';
+const mockSetParams = jest.fn((params: { section: string }) => {
+  mockSection = params.section;
+});
 let mockPreferences: { userAccount?: { role: string }; isLoading: boolean; isError: boolean; refetch: jest.Mock };
-jest.mock('@react-navigation/native', () => ({ useNavigation: () => ({ navigate: mockNavigate }) }));
+jest.mock('@react-navigation/native', () => ({
+  useNavigation: () => ({ navigate: mockNavigate, setParams: mockSetParams }),
+  useRoute: () => ({ params: { section: mockSection } }),
+}));
 jest.mock('@ledova/shared', () => ({
   ...jest.requireActual('@ledova/shared'),
   getCompanyTokens: jest.fn(),
@@ -69,9 +77,9 @@ const registerOf = (target: typeof shareClass, changes: object) => ({
 });
 let client: QueryClient;
 let pages: unknown[][];
-let read: (url: string, page: number) => Promise<unknown>;
+let read: (url: string, page: number, token?: string) => Promise<unknown>;
 const page = (results: unknown[], next: string | null = null) => ({ data: { results, next, count: results.length } });
-function defaultRead(url: string, number: number): Promise<unknown> {
+function defaultRead(url: string, number: number, token?: string): Promise<unknown> {
   if (url === URLS.REGISTER)
     return Promise.resolve(
       page(pages[number - 1] ?? [], number < pages.length ? `https://api.example.test/?page=${number + 1}` : null),
@@ -83,7 +91,71 @@ function defaultRead(url: string, number: number): Promise<unknown> {
     });
   if (url === URLS.REGISTER_EXPORT('ordinary'))
     return Promise.resolve({ data: Uint8Array.from('member,shares', (c) => c.charCodeAt(0)).buffer });
-  if (url === URLS.REGISTER_IMPORTS || url === APPOINTMENTS) return Promise.resolve(page([]));
+  if (url === APPOINTMENTS)
+    return Promise.resolve(
+      page([{ ...APPOINTMENT, company: shareClass.companyUuid, capabilities: ['read_register'] }]),
+    );
+  if (url === URLS.REGISTER_IMPORTS)
+    return Promise.resolve(
+      page(
+        token === 'ordinary'
+          ? [
+              {
+                uuid: 'opening-mirror',
+                company: shareClass.companyUuid,
+                token: shareClass.uuid,
+                status: 'applied',
+                stage: 'applied',
+                sourceReference: 'Company’s existing legal register',
+                sourceConfirmed: true,
+                correctionOf: null,
+                correctionAllowed: false,
+                asAt: '2026-09-01',
+                createdAt: '2026-09-01T00:00:00Z',
+                preparedByName: 'Example Director',
+                providedBy: 'company',
+                asicIssuedTotal: null,
+                asicMemberCount: null,
+                decisions: [],
+                reviewedAt: '2026-09-01T00:00:00Z',
+                rejectionReason: '',
+                members: [
+                  {
+                    member: 'member-1',
+                    name: 'Alex Member',
+                    residentialAddress: '1 Example Street',
+                    shares: register.holders[0]!.balance,
+                    enteredOn: '2026-09-01',
+                    amountPaid: '0.00',
+                    allotments: [
+                      {
+                        allottedOn: '2020-01-01',
+                        shares: register.holders[0]!.balance,
+                        shareReference: null,
+                        certificateReference: 'certificate-1',
+                        amountPaid: '0.00',
+                        amountUnpaid: '0.00',
+                        fullyPaid: true,
+                        beneficiallyHeld: true,
+                      },
+                    ],
+                  },
+                ],
+                formerMembers: [],
+                registerEvidence: null,
+                sourceDocument: null,
+                asicSnapshot: null,
+              },
+            ]
+          : [],
+      ),
+    );
+  if (
+    [URLS.REGISTER_GRANTS, URLS.REGISTER_TRANSFERS, URLS.REGISTER_PARTICULARS_CHANGES, URLS.REGISTER_LINKS].includes(
+      url as never,
+    )
+  )
+    return Promise.resolve(page([]));
   if (url === URLS.REGISTER_ENTRIES('ordinary') || url === URLS.REGISTER_CORRECTIONS) return Promise.resolve(page([]));
   if (url === URLS.REGISTER_RECONCILIATIONS) return Promise.resolve(page([]));
   return Promise.reject(new Error(`Unexpected ${url}`));
@@ -99,6 +171,7 @@ function wrapper({ children }: { children: React.ReactNode }) {
 
 beforeEach(() => {
   mockPreferences = { userAccount: { role: 'company' }, isLoading: false, isError: false, refetch: jest.fn() };
+  mockSection = 'register';
   resetFiles();
   client = new QueryClient({
     defaultOptions: { queries: { retry: false, gcTime: Infinity }, mutations: { gcTime: 0 } },
@@ -113,7 +186,11 @@ beforeEach(() => {
   jest.mocked(apiClient.post).mockReset();
   get.mockImplementation(
     (url, config) =>
-      read(url, (config?.params as { page?: number } | undefined)?.page ?? 1) as ReturnType<typeof apiClient.get>,
+      read(
+        url,
+        (config?.params as { page?: number } | undefined)?.page ?? 1,
+        (config?.params as { token?: string } | undefined)?.token,
+      ) as ReturnType<typeof apiClient.get>,
   );
   jest.mocked(Sharing.shareAsync).mockClear();
 });
@@ -140,9 +217,15 @@ it('reads the company register and shares its CSV, but refuses a later CSV after
   expect(view.getByRole('button', { name: 'Open Ordinary shares' })).toBeTruthy();
   expect(view.getByText('Paper Company · ORD')).toBeTruthy();
   await fireEvent.press(view.getByRole('button', { name: 'Ordinary shares register' }));
-  expect(view.getByText('Alex Member')).toBeTruthy();
+  expect(view.getAllByText('Alex Member').length).toBeGreaterThan(0);
+  expect(view.getByText('Company’s existing legal register')).toBeTruthy();
+  expect(view.getByText('certificate-1')).toBeTruthy();
+  expect(view.getByText('Holder’s own benefit')).toBeTruthy();
+  expect(view.queryByRole('button', { name: 'Correct opening records for Ordinary shares' })).toBeNull();
   expect(view.getByText('9,007,199,254,740,992 shares')).toBeTruthy();
-  expect(view.getByText(REGISTER_COPY.PRIVACY_NOTE)).toBeTruthy();
+  await fireEvent.press(view.getByRole('button', { name: 'Documents' }));
+  await view.rerender(<CompanyRegisterScreen />);
+  expect(view.getAllByText(REGISTER_COPY.PRIVACY_NOTE).length).toBeGreaterThan(0);
   await fireEvent.press(view.getByRole('button', { name: 'Download CSV for Ordinary shares' }));
   await waitFor(() =>
     expect(Sharing.shareAsync).toHaveBeenCalledWith(`${cache}ledova-document-views-v1/register-ordinary.csv`, {
@@ -157,7 +240,7 @@ it('reads the company register and shares its CSV, but refuses a later CSV after
   });
   expect(files.size).toBe(1);
   await fireEvent.press(view.getByRole('button', { name: 'Preference shares register' }));
-  expect(view.getByText(REGISTER_COPY.NOT_OPENED_NOTE)).toBeTruthy();
+
   expect(view.getByRole('button', { name: 'Download CSV for Preference shares' })).toBeDisabled();
   let late: ((value: unknown) => void) | undefined;
   read = (url, number) =>
@@ -171,6 +254,8 @@ it('reads the company register and shares its CSV, but refuses a later CSV after
   await waitFor(() => expect(late).toBeDefined());
   await act(() => invalidateSessionScope());
   await view.findByRole('button', { name: 'Ordinary shares register' });
+  mockSection = 'register';
+  await view.rerender(<CompanyRegisterScreen />);
   expect(view.queryByRole('button', { name: 'Download CSV for Ordinary shares' })).toBeNull();
   await act(async () => late!(await defaultRead(URLS.REGISTER_EXPORT('ordinary'), 1)));
   expect(Sharing.shareAsync).not.toHaveBeenCalled();

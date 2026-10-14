@@ -84,12 +84,12 @@ export default function SubscriptionDetailPage() {
   const { subscription, isLoading, notFound, hasError, isRefreshing, retry, submit, withdraw } = useSubscription(uuid);
 
   if (isLoading) {
-    return <Page loading />;
+    return <Page narrow loading />;
   }
 
   if (hasError) {
     return (
-      <Page>
+      <Page narrow>
         <div role="alert" className="flex flex-col items-start gap-3 py-6">
           <p className="text-sm text-text-primary">
             This application could not be loaded. Try again before continuing.
@@ -103,6 +103,7 @@ export default function SubscriptionDetailPage() {
   if (!subscription || notFound) {
     return (
       <Page
+        narrow
         actions={<PageAction label="Back to Applications" onClick={() => navigate(DESTINATIONS.subscriptions.path)} />}
       >
         <Section title="Not available">
@@ -121,6 +122,7 @@ export default function SubscriptionDetailPage() {
 
   return (
     <Page
+      narrow
       actions={
         (canSubmit || canWithdraw) && (
           <>

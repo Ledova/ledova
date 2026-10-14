@@ -34,7 +34,7 @@ from tokens.models import (
     RegisterPosition,
 )
 from tokens.services.former_holders import retention_cutoff
-from tokens.services.register import _stored_register
+from tokens.services.register import _stored_register, imported_membership_dates
 from tokens.services.register_authority import register_appointment, register_command
 from tokens.services.register_awards import award_quantities
 from users.models import UserAccount
@@ -324,6 +324,7 @@ def own_record(association):
     for position in RegisterPosition.objects.filter(
         member_id=association.member, register__company=association.company
     ).select_related("register__token", "last_entry"):
+        entered_on = position.entered_on
         if position.shares == 0:
             ceased_on = (
                 RegisterMemberCessation.objects.filter(member_id=association.member, entry_id=position.last_entry_id)
@@ -334,18 +335,20 @@ def own_record(association):
             if ceased_on is None or ceased_on < retention_cutoff():
                 continue
             paid = None
+            entered_on = imported_membership_dates(position.register.token).get(str(association.member), entered_on)
         else:
             ceased_on = None
             register = _stored_register(position.register.token)
             row = next((row for row in register["rows"] if row["member"] == str(association.member)), None)
             paid = row["amount_paid"] if row else None
+            entered_on = row["entered_on"] if row else entered_on
         classes.append(
             {
                 "uuid": position.register.token_id,
                 "name": position.register.token.name,
                 "symbol": position.register.token.symbol,
                 "shares": position.shares,
-                "entered_on": position.entered_on,
+                "entered_on": entered_on,
                 "ceased_on": ceased_on,
                 "amount_paid": paid,
             }

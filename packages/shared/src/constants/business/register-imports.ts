@@ -6,10 +6,16 @@ export const REGISTER_IMPORT_UNMET_COPY: Record<string, string> = {
   company_provided_evidence_required:
     'This import was submitted for the retired staff review. It can only be rejected; prepare a new import instead.',
   already_approved: 'This import already has a current approval.',
-  approval_required: 'Approve this import before applying it.',
-  approval_lapsed: "The approver's appointment has ended. Approve this import again before applying it.",
+  approval_required: 'Review these records before confirming the mirror.',
+  approval_lapsed: 'The reviewer’s appointment has ended. Review these records again before confirming the mirror.',
   evidence_unavailable: 'A retained evidence copy no longer matches its record. Prepare a new import.',
   class_has_applied_import: 'This share class already has an applied import.',
+  mirror_snapshot_changed: 'These records are no longer the latest confirmed snapshot. Refresh before correcting them.',
+  register_changed: 'The stored ownership has changed since this correction was prepared. Refresh before continuing.',
+  mirror_correction_activity: 'This class has later activity. An opening correction cannot change it.',
+  mirror_correction_member_activity:
+    'Member access or particulars have changed since setup. An opening correction cannot change those records.',
+  deployment_pending: 'A share-class deployment is pending. Wait for its outcome before changing the mirror.',
   class_not_openable:
     'An issue was approved or a register instruction applied for this class, so an import can no longer open it. ' +
     'Open it from the chain, then import its particulars.',
@@ -22,38 +28,44 @@ export const REGISTER_IMPORT_UNMET_COPY: Record<string, string> = {
 };
 
 export const REGISTER_IMPORT_COPY = {
-  TITLE: 'Imports',
-  EMPTY: 'No import has been prepared for this share class.',
-  PREPARE: 'Prepare an import',
+  TITLE: 'Register mirror',
+  EMPTY: 'Bring in the company’s existing records for this share class.',
+  PREPARE: 'Bring records',
+  CORRECT: 'Correct opening records',
+  MIRROR_NOTE:
+    'Ledova mirrors the company’s existing share register. The company keeps its legal register, historical records, ' +
+    'lawful access arrangements and filings as before.',
   PROVIDED_BY_COMPANY: 'Provided by the company',
   STAFF_VERIFIED: 'Verified by Ledova staff before imports were company-run',
   READ_ONLY_NOTE:
-    'You can read these imports. Preparing, approving and applying an import needs an appointment with ' +
-    'administration or that step.',
+    'You can read these records. Bringing, reviewing and confirming records needs the company appointment for that step.',
   NO_HOLDERS: 'The stored register lists no current members, so this class has none to import.',
   NOT_ON_CHAIN_NOTE:
-    "Applying this import opens the share class's register from the company's own records. For a draft class " +
-    'without a contract, company-approved grants, allotments and direct transfers update this register. ' +
-    'Tokenising existing holdings remains planned.',
+    'Confirming records mirrors shares the company has already issued. It does not issue shares, replace its legal ' +
+    'register or require shareholder accounts or wallets.',
   STAGES: {
     submitted: 'Prepared',
-    approved: 'Approved',
-    applied: 'Applied',
+    approved: 'Reviewed',
+    applied: 'Confirmed',
     rejected: 'Rejected',
   } as Record<string, string>,
-  DECISIONS: { approve: 'Approve', apply: 'Apply', reject: 'Reject' } as Record<RegisterDecisionKind, string>,
+  DECISIONS: { approve: 'Review', apply: 'Confirm mirror', reject: 'Reject' } as Record<RegisterDecisionKind, string>,
   CONFIRMATIONS: {
-    approve: 'Approve this import exactly as prepared.',
-    apply: 'Apply this import to the register now. This cannot be undone.',
+    approve: 'Review these company-provided records exactly as prepared.',
+    apply: 'Confirm this exact mirror of the company’s existing register. Earlier snapshots remain retained.',
     reject: 'Reject this import with the reason given.',
   } as Record<RegisterDecisionKind, string>,
   REJECTION_REASON: 'Reason for rejection',
   STATED_FIGURES: (total: string, count: number) =>
-    `ASIC extract, as stated by the company: ${total} shares held by ${count} ${count === 1 ? 'member' : 'members'}`,
+    `Optional ASIC cross-check: ${total} issued shares; ${count} listed ${count === 1 ? 'shareholder' : 'shareholders'} (may be partial)`,
+  STATED_TOTAL: (total: string) => `Optional ASIC cross-check: ${total} issued shares`,
+  STATED_COUNT: (count: number) => `Optional ASIC cross-check: ${count} shareholders listed`,
   IMPORTED_FIGURES: (total: string, count: number) =>
-    `Import rows: ${total} shares held by ${count} ${count === 1 ? 'member' : 'members'}`,
+    `Company records: ${total} shares held by ${count} ${count === 1 ? 'member' : 'members'}`,
   DOWNLOAD_REGISTER: 'Download the register document',
   DOWNLOAD_ASIC: 'Download the ASIC extract',
+  SOURCE_CONFIRMATION: 'These records mirror the company’s existing legal register.',
+  UNKNOWN_ALLOTMENTS: 'Allotment particulars were not recorded in this earlier snapshot.',
   DECISION_RECEIPT_FAILED: 'The decision could not be confirmed. Refresh before retrying.',
   PREPARATION_RECEIPT_FAILED:
     'The prepared import could not be confirmed. Check the imports on Register before preparing again.',

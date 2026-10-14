@@ -13,6 +13,7 @@ class RegisterEntryKind(models.TextChoices):
     TRANSFER = "transfer", "Transfer"
     CESSATION = "cessation", "Cessation"
     CORRECTION = "correction", "Compensating correction"
+    MIRROR_CORRECTION = "mirror_correction", "Mirror snapshot correction"
 
 
 class RegisterMember(BaseModel):
@@ -31,7 +32,7 @@ class RegisterEntry(BaseModel):
     register = models.ForeignKey(ShareRegister, on_delete=models.PROTECT, related_name="entries")
     operation_id = models.UUIDField()
     sequence = models.PositiveBigIntegerField(default=0, editable=False)
-    kind = models.CharField(max_length=16, choices=RegisterEntryKind.choices)
+    kind = models.CharField(max_length=24, choices=RegisterEntryKind.choices)
     effective_on = models.DateField()
     changes = models.JSONField()
     corrects = models.OneToOneField("self", on_delete=models.PROTECT, null=True, related_name="correction")

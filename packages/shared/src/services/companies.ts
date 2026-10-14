@@ -23,8 +23,8 @@ export const getCompanies = (apiClient: AxiosInstance, page?: number, config?: A
         ...(page === undefined ? {} : { params: { page } }),
       });
 
-export const registerCompany = (apiClient: AxiosInstance, data: CompanyRegistration) =>
-  apiClient.post<CompanyRegistrationResponse>(COMPANY_ENDPOINTS.BASE, data);
+export const registerCompany = (apiClient: AxiosInstance, data: CompanyRegistration, config?: AxiosRequestConfig) =>
+  apiClient.post<CompanyRegistrationResponse>(COMPANY_ENDPOINTS.BASE, data, config);
 
 export const getCompany = (apiClient: AxiosInstance, uuid: string, config?: AxiosRequestConfig) =>
   config === undefined

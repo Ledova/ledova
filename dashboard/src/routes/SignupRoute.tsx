@@ -1,5 +1,5 @@
 import { Navigate, Outlet } from 'react-router-dom';
-import { landingFor, useAuth } from '@ledova/shared';
+import { canOpen, landingFor, useAuth } from '@ledova/shared';
 
 import { useRole } from '@hooks/useRole';
 import { useSignupFinished } from '@hooks/useSignupFinished';
@@ -14,7 +14,7 @@ export function SignupRoute() {
 
   if (isLoading || isProfileLoading || (finished && isRoleLoading)) return null;
 
-  if (finished) return <Navigate to={landingFor(role)} replace />;
+  if (finished) return <Navigate to={canOpen(role, 'company') ? '/company/dashboard' : landingFor(role)} replace />;
 
   if (isAuthenticated && !userProfile) return <AccountUnavailable onRetry={refreshProfile} />;
 

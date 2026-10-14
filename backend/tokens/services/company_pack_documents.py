@@ -23,7 +23,11 @@ def _path(folder, uuid, mime_type):
 
 
 def evidence_path(record):
-    return _path(f"{EVIDENCE_FOLDER}/{record._meta.model_name}", record.pk, record.evidence_snapshot.get("mime_type"))
+    if not record.file:
+        return None
+    return _path(
+        f"{EVIDENCE_FOLDER}/{record._meta.model_name}", record.pk, (record.evidence_snapshot or {}).get("mime_type")
+    )
 
 
 def asic_evidence_path(record):
@@ -71,6 +75,7 @@ def evidence(records) -> dict:
             "of": f"the evidence of {record._meta.verbose_name} {record.pk}",
         }
         for record in records
+        if record.file
     }
     for record in records:
         if getattr(record, "asic_file", None):

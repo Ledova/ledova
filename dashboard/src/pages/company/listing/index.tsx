@@ -34,6 +34,7 @@ function CompanyActivation({ read }: { read: ReturnType<typeof useCompany> }) {
   return (
     <>
       <Page
+        narrow
         loading={read.isLoading}
         actions={<PageAction label="Back to Company" onClick={() => navigate(DESTINATIONS.company.path)} />}
       >
@@ -73,6 +74,7 @@ function CompanyActivation({ read }: { read: ReturnType<typeof useCompany> }) {
               )}
               {action.canActivate && (
                 <PageAction
+                  primary
                   label={action.latestAttempt ? 'Try activation again' : 'Review activation'}
                   onClick={() => void action.open()}
                   disabled={action.busy || read.isRefreshing}

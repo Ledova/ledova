@@ -47,7 +47,7 @@ export default function CompanyRegisterCorrectionPage() {
       />
     );
   return (
-    <Page lede={LEDE} actions={back}>
+    <Page narrow lede={LEDE} actions={back}>
       {preferences.isLoading ? (
         <Loading />
       ) : (
@@ -146,7 +146,7 @@ function OwnCorrection({
       </>
     );
   return (
-    <Page lede={LEDE} actions={back}>
+    <Page narrow lede={LEDE} actions={back}>
       {content}
     </Page>
   );

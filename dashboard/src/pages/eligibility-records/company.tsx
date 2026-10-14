@@ -22,6 +22,7 @@ export default function CompanyEligibilityPage() {
     !!appointment && isCurrentEligibilityAppointment(appointment) && appointment.capabilities.includes('approve');
   return (
     <Page
+      narrow
       loading={read.loading}
       lede={ELIGIBILITY_RECORDS_NOTICE}
       actions={

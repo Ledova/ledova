@@ -11,12 +11,12 @@ from companies.models import (
     CompanyType,
 )
 from companies.services.authority import (
-    DECLARATION_VERSION,
+    SIGNUP_DECLARATION_VERSION,
     is_company_appointment_effective,
 )
 
 VERIFICATION_UNAVAILABLE = (
-    "Evidence retained. Accept the company authorisation declaration to establish initial authority after "
+    "Request retained. Accept the company authority and Terms acknowledgement to establish initial authority after "
     "the required identity and ABR company checks pass. This pending request grants no company authority."
 )
 WITHDRAWN_MESSAGE = (
@@ -28,7 +28,7 @@ WITHDRAWN_MESSAGE = (
 class CompanyAuthorityRequestUploadSerializer(serializers.Serializer):
     company = serializers.UUIDField()
     idempotency_key = serializers.UUIDField()
-    file = serializers.FileField()
+    file = serializers.FileField(required=False)
     requested_capabilities = serializers.ListField(
         child=serializers.ChoiceField(choices=CompanyCapability.choices), required=False, default=list
     )
@@ -63,7 +63,7 @@ class CompanyAuthorityRequestWithdrawalSerializer(serializers.Serializer):
 
 
 class CompanyAuthorityRequestAdmissionSerializer(serializers.Serializer):
-    declaration_version = serializers.ChoiceField(choices=[DECLARATION_VERSION])
+    declaration_version = serializers.ChoiceField(choices=[SIGNUP_DECLARATION_VERSION])
     accept_declaration = serializers.BooleanField()
 
     def to_internal_value(self, data):
@@ -167,7 +167,9 @@ class CompanyAuthorityRequestSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = fields
 
-    def get_file_url(self, obj) -> str:
+    def get_file_url(self, obj) -> str | None:
+        if not obj.file:
+            return None
         url = reverse("company-authority:requests-file", kwargs={"uuid": obj.pk})
         request = self.context.get("request")
         return request.build_absolute_uri(url) if request else url

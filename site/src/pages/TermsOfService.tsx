@@ -3,48 +3,70 @@ import { PageHeader } from '../components/PageHeader';
 export function TermsOfService() {
   return (
     <>
-      <PageHeader title="Developer preview notice" lead="No hosted financial service is offered" />
+      <PageHeader title="Terms of Service" lead="Experimental-use terms · Version 2026-10-14" />
       <section className="border-t border-rule">
         <div className="mx-auto max-w-3xl space-y-8 px-5 py-12 text-base leading-relaxed text-ink-muted md:px-8 lg:py-16">
           <p>
-            Ledova is unaudited source-available software supplied under the Ledova Noncommercial License 1.0 for the
-            permitted noncommercial purposes. It is not an exchange, custodian, broker, issuer, investment product, or
-            financial service.
-          </p>
-          <p>
-            Commercial use, including internal business use and paid services, and using the code for a competing
-            product or service, even for free, require a separate written license. Developers are welcome to study, test
-            and contribute under the{' '}
-            <a
-              href="https://github.com/Ledova/ledova/blob/main/LICENSE"
-              className="font-medium text-ink underline decoration-rule-strong underline-offset-4"
-            >
-              repository license
-            </a>
-            .
+            These terms apply to the experimental Ledova workspace. By completing registration, you accept this version.
+            Ledova provides software and tools; companies manage their own share information and decisions.
           </p>
           <div>
-            <h2 className="font-display text-2xl text-ink">Development use</h2>
+            <h2 className="font-display text-2xl text-ink">Company authority and team access</h2>
             <p className="mt-2">
-              Run the project locally or on supported public testnets with synthetic data and disposable keys. Do not
-              use it with real funds, assets, identity documents, or production accounts.
+              When registering a company workspace, you confirm that you are authorised to set it up and administer it,
+              including managing its users, and to accept these terms on the company&apos;s behalf. You must have that
+              authority already; accepting these terms does not create it. Use your own account, protect its credentials
+              and invite only people authorised for the company permissions you give them.
             </p>
           </div>
           <div>
             <h2 className="font-display text-2xl text-ink">Company responsibility</h2>
             <p className="mt-2">
-              Company and share information is provided by the company. The company remains responsible for the
-              information it provides, its ASIC filings and legal obligations.
+              Company and share information is provided by the company. Keep it accurate and upload relevant documents
+              when needed after registration. The company remains responsible for its register, share arrangements,
+              approvals, records, ASIC filings and legal obligations. Information stored in Ledova is not thereby
+              verified by Ledova.
+            </p>
+            <p className="mt-2">
+              Copied existing-register records mirror the company&apos;s supplied ownership information. The company
+              keeps its legal register, historical records, lawful register access arrangements and filings. Copying
+              records into Ledova does not replace those arrangements or establish legal ownership.
             </p>
           </div>
           <div>
-            <h2 className="font-display text-2xl text-ink">No deployment representation</h2>
+            <h2 className="font-display text-2xl text-ink">Registration and company decisions</h2>
             <p className="mt-2">
-              The repository does not identify or recommend live contracts, providers, reserves, legal entities, or
-              regulated services. Operators are responsible for the terms and controls of their own deployment.
+              Registration creates a software workspace. It does not incorporate a company with ASIC, appoint a
+              director, activate the company or issue shares. Each share issue, allotment, transfer and other supported
+              company action needs its own applicable company authority, approval and evidence. An award is an
+              entitlement, not issued shares, and a payment or receipt alone does not issue shares.
             </p>
           </div>
-          <p>This page is a project-status notice, not legal advice or terms for a third-party deployment.</p>
+          <div>
+            <h2 className="font-display text-2xl text-ink">Experimental use</h2>
+            <p className="mt-2">
+              The software is experimental and unaudited. Use synthetic data, disposable credentials and supported
+              testnets only. Do not submit real funds, securities, identity documents or personal data. Connected
+              providers retain their own terms and checks; registration does not satisfy those checks or guarantee legal
+              or regulatory compliance. These terms provide no legal, investment or tax advice.
+            </p>
+          </div>
+          <div>
+            <h2 className="font-display text-2xl text-ink">Software licence and other deployments</h2>
+            <p className="mt-2">
+              The{' '}
+              <a
+                href="https://github.com/Ledova/ledova/blob/main/LICENSE"
+                className="font-medium text-ink underline decoration-rule-strong underline-offset-4"
+              >
+                Ledova Noncommercial License 1.0
+              </a>{' '}
+              governs use of the source code. Commercial use, including internal business use and paid services, and a
+              competing product or service require separate written permission. These workspace terms grant no
+              additional software rights. Operators of other deployments must identify themselves and provide terms,
+              data practices and controls appropriate to their actual services and applicable law.
+            </p>
+          </div>
         </div>
       </section>
     </>

@@ -10,34 +10,40 @@ the architecture guides own the mechanisms. Sections are grouped by topic; the
 index gives each decision's date and whether it still stands. Superseded choices
 stay here as history and are marked where they appear.
 
-| Decision | Date | Status |
-| --- | --- | --- |
-| [Company-managed registers and one product](#company-managed-registers-and-one-product) | 3 October 2026 | Current; replaces routine register work by platform staff |
-| [Company-run register authority and evidence](#company-run-register-authority-and-evidence) | 5 October 2026 | Current |
-| [Company representative verification](#company-representative-verification) | 4 October 2026 | Current |
-| [Eligibility and ownership records](#eligibility-and-ownership-records) | September to 6 October 2026 | Current |
-| [The stored register](#the-stored-register) | September 2026; staff review retired 5 October | Current |
-| [Company-scoped approvals](#company-scoped-approvals) | 19 September 2026 | Current |
-| [Shareholder publications](#shareholder-publications) | 23 September 2026 | Current; expansion deferred (#870) |
-| [Splits and consolidations](#splits-and-consolidations) | 23 September 2026 | Design only; deferred |
-| [The company pack](#the-company-pack) | 23 September 2026 | Current |
-| [Essential registry and development workflow priority](#essential-registry-and-development-workflow-priority) | 9 October 2026 | Register priority current; workflow part superseded 11 October |
-| [First scopes for employee awards and external capital](#first-scopes-for-employee-awards-and-external-capital) | 10 October 2026 | Delivered 11 October (#973, #974) |
-| [Member invitations and account association](#member-invitations-and-account-association) | 11 October 2026 | Current; #866 implements it |
-| [Minimum tests and fresh migrations](#minimum-tests-and-fresh-migrations) | 11 October 2026 | Current |
-| [Dependency advisories in ordinary CI](#dependency-advisories-in-ordinary-ci) | 11 October 2026 | Current |
-| [GitHub runners and Mac retirement](#github-runners-and-mac-retirement) | 11 October 2026 | Current |
-| [Binding caps and backup authorisation](#binding-caps-and-backup-authorisation) | 11 October 2026 | Current |
-| [ledova.io rebuild and release authorisation](#ledovaio-rebuild-and-release-authorisation) | 11 October 2026 | Completed under #979; signer and funds decisions remain separate |
-| [Backend migration baseline](#backend-migration-baseline) | 10 October 2026 | Superseded 11 October |
-| [Registry priority, crypto on-ramp and AUD payments](#registry-priority-crypto-on-ramp-and-aud-payments) | 5 October 2026 | Payment scope superseded 9 October; on-ramp restriction stands |
-| [Payments and settlement](#payments-and-settlement) | 25 September to 2 October 2026 | Current behaviour; new mechanics deferred |
-| [Assets and portfolio presentation](#assets-and-portfolio-presentation) | 26 September 2026 | Current |
-| [The signed-in app](#the-signed-in-app) | 26 September to 2 October 2026 | Current |
-| [The account-data export](#the-account-data-export) | 23 September 2026 | Current |
-| [Tenancy, sessions and deployment](#tenancy-sessions-and-deployment) | 3 October 2026 | Current |
-| [Contracts compiler and toolchain](#contracts-compiler-and-toolchain) | Undated | Current |
-| [Clients and API types](#clients-and-api-types) | 14 September 2026 | Current |
+| Decision                                                                                                        | Date                                           | Status                                                             |
+| --------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- | ------------------------------------------------------------------ |
+| [Company-managed registers and one product](#company-managed-registers-and-one-product)                         | 3 October 2026                                 | Current; replaces routine register work by platform staff          |
+| [Company-run register authority and evidence](#company-run-register-authority-and-evidence)                     | 5 October 2026                                 | Current                                                            |
+| [Company representative verification](#company-representative-verification)                                     | 4 October 2026                                 | Current                                                            |
+| [Combined company signup and initial authority](#combined-company-signup-and-initial-authority)                 | 14 October 2026                                | Current; amended by #1022 below                                    |
+| [Simple signup, documents and team after registration](#simple-signup-documents-and-team-after-registration)     | 14 October 2026                                | Current; #1022                                                     |
+| [Existing register mirror and simple setup](#existing-register-mirror-and-simple-setup)                         | 14 October 2026                                | Current; setup amended by #1029                                    |
+| [Manual register setup: shares before shareholders](#manual-register-setup-shares-before-shareholders)         | 14 October 2026                                | Current; #1029, CSV entry removed under #1036                       |
+| [Eligibility and ownership records](#eligibility-and-ownership-records)                                         | September to 6 October 2026                    | Current                                                            |
+| [The stored register](#the-stored-register)                                                                     | September 2026; staff review retired 5 October | Current                                                            |
+| [Company-scoped approvals](#company-scoped-approvals)                                                           | 19 September 2026                              | Current                                                            |
+| [Shareholder publications](#shareholder-publications)                                                           | 23 September 2026                              | Current; expansion deferred (#870)                                 |
+| [Splits and consolidations](#splits-and-consolidations)                                                         | 23 September 2026                              | Design only; deferred                                              |
+| [The company pack](#the-company-pack)                                                                           | 23 September 2026                              | Current                                                            |
+| [Essential registry and development workflow priority](#essential-registry-and-development-workflow-priority)   | 9 October 2026                                 | Register priority current; workflow part superseded 11 October     |
+| [First scopes for employee awards and external capital](#first-scopes-for-employee-awards-and-external-capital) | 10 October 2026                                | Delivered 11 October (#973, #974)                                  |
+| [Member invitations and account association](#member-invitations-and-account-association)                       | 11 October 2026                                | Current; #866 implements it                                        |
+| [Minimum tests and fresh migrations](#minimum-tests-and-fresh-migrations)                                       | 11 October 2026                                | Current                                                            |
+| [Dependency advisories in ordinary CI](#dependency-advisories-in-ordinary-ci)                                   | 11 October 2026                                | Current                                                            |
+| [GitHub runners and Mac retirement](#github-runners-and-mac-retirement)                                         | 11 October 2026                                | Current                                                            |
+| [Binding caps and backup authorisation](#binding-caps-and-backup-authorisation)                                 | 11 October 2026                                | Current                                                            |
+| [ledova.io rebuild and release authorisation](#ledovaio-rebuild-and-release-authorisation)                      | 11 October 2026                                | Completed under #979; signer and funds decisions remain separate   |
+| [Backend migration baseline](#backend-migration-baseline)                                                       | 10 October 2026                                | Superseded 11 October                                              |
+| [Registry priority, crypto on-ramp and AUD payments](#registry-priority-crypto-on-ramp-and-aud-payments)        | 5 October 2026                                 | Payment scope superseded 9 October; on-ramp restriction stands     |
+| [Payments and settlement](#payments-and-settlement)                                                             | 25 September to 2 October 2026                 | Current behaviour; new mechanics deferred                          |
+| [Assets and portfolio presentation](#assets-and-portfolio-presentation)                                         | 26 September 2026                              | Current                                                            |
+| [The signed-in app](#the-signed-in-app)                                                                         | 26 September to 2 October 2026                 | Navigation superseded by 11 October journey direction              |
+| [Simpler signed-in journeys](#simpler-signed-in-journeys)                                                       | 11 October 2026                                | Web layout superseded 12 October; native journey remains delivered |
+| [Ownership dashboard and compact sidebar](#ownership-dashboard-and-compact-sidebar)                             | 12 October 2026                                | Current; increments #1012–#1014                                    |
+| [The account-data export](#the-account-data-export)                                                             | 23 September 2026                              | Current                                                            |
+| [Tenancy, sessions and deployment](#tenancy-sessions-and-deployment)                                            | 3 October 2026                                 | Current                                                            |
+| [Contracts compiler and toolchain](#contracts-compiler-and-toolchain)                                           | Undated                                        | Current                                                            |
+| [Clients and API types](#clients-and-api-types)                                                                 | 14 September 2026                              | Current                                                            |
 
 ## Company-managed registers and one product
 
@@ -158,6 +164,172 @@ requires it. If such a duty is identified, raise it with the owner with its sour
 rather than building a check; see [legal positions](legal/positions.md). The
 [accepted plan](architecture/company-managed-registers.md#representative-verification)
 records the implementation boundary.
+
+## Combined company signup and initial authority
+
+On 14 October 2026 the owner authorised
+[#1020](https://github.com/Ledova/ledova/issues/1020): company signup and initial
+representative authority should finish in one visible flow, keeping the existing
+**Company details → Review** routes. Review combines the retained evidence
+request, explicit declaration, initial admission and signup completion through
+the existing APIs. Saved company and profile data are reused, and an unfinished
+account can sign in to resume. Completion requires a confirmed appointment;
+submission alone is not admission.
+
+The [same-day amendment below](#simple-signup-documents-and-team-after-registration)
+supersedes the file and delegation choices in the original decision that follows.
+
+The initial personal scope is `admin`. Delegation is a separate visible choice:
+it is empty by default and includes `admin` only when explicitly selected.
+Existing representative identity, ABR and checked-file safeguards remain. The
+supporting file is a platform requirement for retained evidence, not an ASIC
+extract requirement. A missing file or failed provider does not establish
+authority. Admission does not activate the company, issue shares or invite team
+members, and no new platform-staff approval step is added.
+
+This replaces the earlier instruction to leave signup unchanged while retaining
+the delivered dashboard and native navigation. The
+[authority guide](plans/company-managed-registers/authority-requests.md#company-signup)
+owns the workflow. New browser evidence must record the actual flow and its
+environment; local synthetic provider responses do not establish production or
+genuine provider verification. Earlier galleries remain dated history.
+
+### Simple signup, documents and team after registration
+
+Later on 14 October 2026, the owner approved
+[#1022](https://github.com/Ledova/ledova/issues/1022), amending the combined
+signup above. Review keeps the saved personal/company summary and one short
+authority/Terms statement beside **Complete company setup**. Choosing that
+button explicitly acknowledges that the representative already has authority
+to set up and administer that company's workspace, including its users, and
+accepts the linked Terms on the company's behalf. There is no separate authority
+checkbox; the declaration is visible at the action rather than hidden in legal
+text. Company responsibilities are stated in the Terms. The displayed Terms and retained acknowledgement
+use version `2026-10-14`; registration creates a software workspace, not an ASIC
+incorporation, director appointment, company activation or share issue.
+
+Signup requires no supporting file and has no separate administrator-delegation
+checkbox. The initial personal scope remains `admin`; its recorded delegation
+includes all six capabilities for team setup afterwards. Documents and invitations
+use the existing company dashboard settings, with current company authority and the checked
+private-file flow for actual uploads. Identity, ABR, immutable declarations,
+tenant isolation, revocation and action-specific approvals remain. A missing
+or failed required provider check cannot be treated as success. This replaces
+the mandatory signup file and optional administrator-delegation choice under
+#1020; it does not make evidence optional for later actions that require it.
+
+An unfinished signup with an existing current company administrator appointment
+can finish through the same final button. Its original declaration, capabilities,
+delegation and expiry remain unchanged; an older or narrower appointment is not
+replaced by a new bootstrap or silently expanded to the fresh-signup defaults.
+The action records acceptance of the current Terms against that appointment when
+needed and rechecks live authority. A fresh appointment that already records the
+same acceptance supplies its retained receipt without another acceptance record.
+Revoked, expired or otherwise ineffective authority cannot complete setup.
+
+The experimental-use Terms state company responsibilities plainly and preserve
+the synthetic-data, testnet and software-licence boundaries. This product
+decision is not professional legal approval or a finding that the deployment
+is exempt from financial-service or AML obligations. Actual company mandate is
+still required; accepting Terms does not create it. The legal sources remain
+[the Corporations Act](https://www.legislation.gov.au/C2004A00818/latest/text),
+[electronic-signature guidance](https://www.ag.gov.au/legal-system/electronic-signatures-documents-and-transactions/electronic-signatures)
+and [AUSTRAC's actual-services approach](https://www.austrac.gov.au/new-austrac/who-and-what-we-regulate).
+
+The owner also explicitly authorised deletion of all local files under
+`~/Developer/ledova-artifacts`, replacing earlier instructions to preserve those
+local galleries and receipts. Retained application records and Git history are
+unaffected. Do not create a replacement gallery or PDF until requested later;
+the new flow is shown directly in Chrome. This increment authorises no live
+deployment or further backup work.
+
+## Existing register mirror and simple setup
+
+On 14 October 2026 the owner approved
+[#1025](https://github.com/Ledova/ledova/issues/1025): bring existing records,
+review them and confirm the company's ownership mirror. The owner clarified:
+"Ledova is proposing a place to mirror what is legally already registered" so
+investors and employees can understand the private company's share structure.
+
+The company keeps its legal register, historical records, lawful register access
+arrangements and filings where they already belong. Ledova does not replace
+them or establish legal ownership by copying their contents. A mirror opening
+records already-issued shares, never a fresh issue, payment or chain mint.
+Company-provided source references and any uploaded copies remain attributed to
+the company; Ledova does not verify them or label the mirror a statutory register.
+
+Setup records the existing classes, members, holdings and underlying allotment
+particulars, with their original dates, paid/unpaid amounts, payment status,
+share/certificate references where present and beneficial-ownership status.
+Member accounts and wallets are unnecessary. An ASIC extract is an optional
+cross-check, not a substitute for the company's complete records. Existing
+platform evidence, retention, isolation and company-authority safeguards remain.
+
+Corrections preserve earlier snapshots and confirmations. A replacement is
+bound to the reviewed current mirror and must refuse to overwrite later share
+activity or deployment. The guided screen and correction delivery are tracked
+on #1025; this decision records accepted scope, not completed implementation.
+
+## Manual register setup: shares before shareholders
+
+On 14 October 2026 the owner approved
+[#1029](https://github.com/Ledova/ledova/issues/1029): simplify the manual setup
+into share details, shareholders and one combined review/confirmation step. Copy
+the company's existing class name, code and type first, then add and edit
+shareholders individually in the same forms. Codes such as A and B must not need
+invented aliases. Original membership and allotment dates, quantities, paid/unpaid
+amounts and relevant references remain part of the copied record.
+
+Select an already recorded company class, or choose Ordinary (ORD), Preference
+(PRF) or Redeemable (RED) to fill the common details. **Another class** keeps
+manual name/code/type entry for the company's own classes. These choices must
+match its existing records; the selector defines no legal share rights.
+
+Use one cohesive workspace with a single page heading, compact progress,
+focused forms and a clear ownership summary. Use a compact list and one
+shareholder editor at a time. Draft edits do not overwrite confirmed history or
+change a person's company member identity.
+Use plain field labels, place optional share/certificate references together,
+and omit the redundant derived payment-status display. Keep the explicit
+trustee/nominee distinction as **Held for someone else?** with Yes/No, alongside
+the original dates, quantities and paid/unpaid amounts.
+Review uses one shareholder table with per-person particulars available when
+needed. One **Confirm** button performs the applicable decision after a fresh
+preview; it does not bypass separate approval/application authority or recovery.
+Retained preparation, exact confirmation, authority and safe correction rules
+still apply. Remove the page's dashboard-return button, source-reference input
+and repeated legal-boundary paragraph. The copied snapshot retains company,
+record date and actor attribution; absent source labels use the neutral
+"Company-provided share records" metadata. Retained nonblank source labels stay
+unchanged. The Terms and register documentation keep the company's
+responsibilities explicit.
+
+Document import is a separate future feature: an inactive **Import** button
+beside **Continue**, with a tooltip explaining the feature and **Coming soon**.
+There is no extraction implementation in this increment. Future extracted values
+must populate these same editable forms for manual review and correction;
+extraction cannot confirm ownership or bypass validation. Optional retained
+supporting copies remain distinct from extraction.
+
+The owner amended setup under
+[#1036](https://github.com/Ledova/ledova/issues/1036) on the same day: remove CSV
+entry, templates and parsing. Shareholders are entered and edited manually.
+Future LLM document extraction will populate these same forms for review; it is
+still deferred. This removes the setup input path, while existing register and
+inspection exports remain available.
+
+## Cohesive signed-in web experience
+
+On 14 October 2026 the owner approved
+[#1031](https://github.com/Ledova/ledova/issues/1031): refine the share-register
+workspace and apply its simple layout, spacing, typography and component
+principles across signed-in web pages. Use existing components, remove repeated
+headings and explanations, and keep important ownership and next actions
+visible. Completed records need a clear recorded state rather than instructions
+for an unfinished draft. Company and personal workflows retain their authority,
+privacy, confirmation and exact recovery boundaries. The owner limited this
+pass to signed-in web; signup, native clients and the public website remain
+outside its scope. The issue records each delivered increment.
 
 ## Eligibility and ownership records
 
@@ -912,7 +1084,60 @@ explicitly identify unpriced holdings
 chart presentation: Holdings lists shares by company and class, and crypto
 actions stay in Wallets.
 
+## Simpler signed-in journeys
+
+On 11 October 2026 the owner approved the reviewed journey proposal under
+[#1000](https://github.com/Ledova/ledova/issues/1000). Keep signup unchanged.
+Start with home/navigation and named-member invitations (#1003), then focused
+investor issuance (#1004) and employee award/vesting/issue flows (#1005), followed
+by mobile alignment (#1006). Use existing company processes and APIs, small
+increments, plain terms and the binding test caps.
+
+The web company workspace has Register, Employee awards, Documents and Company.
+Personal My shares starts with associated register holdings and awards; a wallet
+is optional. Optional investing, wallets and technical history are secondary.
+Named recipients replace manual IDs, while exact identity, company appointments,
+private evidence and original-request recovery remain required. An award,
+recorded vesting, approval, external capital receipt and issued ownership stay
+distinct. There is no extra Overview page, task engine, new role, legal document
+generator, payment collection rail or filing integration in this direction.
+Delivered behaviour is described in [clients](architecture/clients.md) and each
+increment guide; later refinements remain planned until their PRs land.
+
+## Ownership dashboard and compact sidebar
+
+On 12 October 2026 the owner accepted the reviewed compact-sidebar proposal,
+including ownership and award charts, with signup unchanged. Deliver the shell,
+web landing and Settings grouping under [#1012](https://github.com/Ledova/ledova/issues/1012),
+then the company ownership dashboard/compact register under
+[#1013](https://github.com/Ledova/ledova/issues/1013), then personal holdings,
+awards and documents under [#1014](https://github.com/Ledova/ledova/issues/1014).
+Prepare independent work in parallel and merge focused reviewed increments in order.
+
+Company users with readable register access land on Dashboard. Everyday work is
+Dashboard, Register, Employee awards and Documents; company details, classes,
+appointments and named-member invitations belong in Settings. Personal views
+show own holdings and relevant awards/documents. Investor and employee relationships
+can overlap; account preference grants no company authority. Existing guarded
+task pages, retained evidence and original-request recovery remain in use.
+
+Use a bounded, aligned content grid and a compact sidebar. Show essential facts
+and next actions directly. Holder bars retain exact shares and percentages of
+issued shares in the selected class. Class-count charts appear only for multiple
+classes. Award bars use disjoint unvested, vested-unissued and issued quantities;
+issued award shares are already in holdings. Incomplete reads never imply zero
+ownership or complete totals. No valuation, forecast, chart dependency, new role
+or company-wide member disclosure is introduced. Broader personal visibility
+needs a separate owner decision. Current delivery is described in
+[clients](architecture/clients.md); signup and native landing remain as delivered.
+
+The signup constraint above was replaced by the
+[14 October combined signup decision](#combined-company-signup-and-initial-authority).
+The dashboard layout and native signed-in navigation remain as delivered.
+
 ## The signed-in app
+
+The web layout below is superseded by the [12 October dashboard decision](#ownership-dashboard-and-compact-sidebar).
 
 The signed-in app is rebuilt around the register; crypto stays supported but is
 no longer the core (owner decisions, 26 September 2026, on

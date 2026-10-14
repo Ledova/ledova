@@ -32,6 +32,7 @@ export function AllotmentForm({
   blocked,
   onRecorded,
   onHeldChange,
+  visible = true,
 }: {
   company: string;
   token: string;
@@ -42,6 +43,7 @@ export function AllotmentForm({
   blocked: boolean;
   onRecorded: () => Promise<unknown>;
   onHeldChange: (held: boolean) => void;
+  visible?: boolean;
 }) {
   const today = new Date().toISOString().slice(0, 10);
   const [memberId] = useState(() => crypto.randomUUID());
@@ -78,6 +80,10 @@ export function AllotmentForm({
       live.current = false;
     };
   }, []);
+  useEffect(() => {
+    onHeldChange(busy || held);
+    return () => onHeldChange(false);
+  }, [busy, held, onHeldChange]);
   const check = () => {
     guard();
     if (!live.current) throw createUserFriendlyError('This allotment form is closed.');
@@ -174,8 +180,8 @@ export function AllotmentForm({
         };
         operation.current = command;
         setHeld(true);
-        onHeldChange(true);
       }
+      let absent = false;
       if (command.uncertain && !command.confirmed) {
         try {
           check();
@@ -189,23 +195,48 @@ export function AllotmentForm({
         } catch (cause) {
           check();
           if (failureStatus(cause) !== 404) throw cause;
+          absent = true;
         }
       }
       if (!command.confirmed) {
-        beforeWrite();
-        const { data } = await prepareRegisterAllotment(apiClient, command.request, {
-          ledovaSubmissionGuard: beforeWrite,
-        });
-        check();
-        if (!isPreparedRegisterAllotment(data, command.request, company))
-          throw createUserFriendlyError(COPY.PREPARATION_RECEIPT_FAILED);
-        command.confirmed = true;
+        const dispatchGuard = command.uncertain ? check : beforeWrite;
+        try {
+          dispatchGuard();
+          const { data } = await prepareRegisterAllotment(apiClient, command.request, {
+            ledovaSubmissionGuard: dispatchGuard,
+          });
+          check();
+          if (!isPreparedRegisterAllotment(data, command.request, company))
+            throw createUserFriendlyError(COPY.PREPARATION_RECEIPT_FAILED);
+          command.confirmed = true;
+        } catch (cause) {
+          const status = failureStatus(cause);
+          if (!absent || !status || status < 400 || status >= 500) throw cause;
+          check();
+          try {
+            const { data } = await getRegisterAllotment(apiClient, command.request.operationId, {
+              ledovaSubmissionGuard: check,
+            });
+            check();
+            if (!isPreparedRegisterAllotment(data, command.request, company))
+              throw createUserFriendlyError(COPY.PREPARATION_RECEIPT_FAILED);
+            command.confirmed = true;
+          } catch (lookup) {
+            check();
+            if (failureStatus(lookup) !== 404) throw lookup;
+            operation.current = null;
+            setHeld(false);
+            setError(
+              'The original allotment was not recorded and the request was refused. Close this form and start again with current company authority.',
+            );
+            return;
+          }
+        }
       }
       await onRecorded();
       operation.current = null;
       if (live.current) {
         setHeld(false);
-        onHeldChange(false);
       }
     } catch (cause) {
       const status = failureStatus(cause);
@@ -215,7 +246,6 @@ export function AllotmentForm({
           operation.current = null;
           if (live.current) {
             setHeld(false);
-            onHeldChange(false);
           }
         }
       }
@@ -230,85 +260,104 @@ export function AllotmentForm({
       if (live.current) setBusy(false);
     }
   };
+  const field = (key: keyof typeof fields) => (
+    <label key={key} className={LABEL}>
+      {
+        {
+          name: 'Investor name',
+          residentialAddress: 'Residential address',
+          shares: COPY.SHARES,
+          consideration: COPY.CONSIDERATION,
+          receivedAmount: COPY.RECEIVED_AMOUNT,
+          agreementReference: COPY.AGREEMENT_REFERENCE,
+          agreementOn: COPY.AGREEMENT_ON,
+          receivedOn: COPY.RECEIVED_ON,
+          terms: COPY.TERMS,
+          approvingDirector: COPY.DIRECTOR,
+          authorityReference: COPY.AUTHORITY_REFERENCE,
+          reason: COPY.REASON,
+        }[key]
+      }
+      <input
+        className={FIELD_CLASS}
+        type={key.endsWith('On') ? 'date' : 'text'}
+        max={key.endsWith('On') ? today : undefined}
+        value={fields[key]}
+        maxLength={key === 'shares' ? 78 : ['terms', 'reason', 'residentialAddress'].includes(key) ? 1000 : 255}
+        onChange={(event) => setFields((current) => ({ ...current, [key]: event.target.value }))}
+      />
+    </label>
+  );
+  const document = (kind: DocumentKind) => (
+    <label className={LABEL}>
+      {COPY.DOCUMENTS[kind]}
+      <input
+        className={FIELD_CLASS}
+        type="file"
+        accept="application/pdf,image/png,image/jpeg"
+        onChange={(event) => setFiles((current) => ({ ...current, [kind]: event.target.files?.[0] }))}
+      />
+    </label>
+  );
+  if (!visible) return null;
   return (
     <form
-      className="space-y-4"
+      className="space-y-5 rounded-xl border border-border-subtle bg-surface-tertiary p-4 sm:p-5"
       onSubmit={(event) => {
         event.preventDefault();
         void submit();
       }}
     >
       <fieldset disabled={busy || blocked || held} className="space-y-4">
-        <label className={LABEL}>
-          Investor/member
-          <select className={FIELD_CLASS} value={member} onChange={(event) => setMember(event.target.value)}>
-            <option value="new">New investor/member</option>
-            {members
-              .filter((row) => row.walletless && row.particularsRetained)
-              .map((row) => (
-                <option key={row.member} value={row.member}>
-                  {row.name} · {row.member}
-                </option>
-              ))}
-          </select>
-        </label>
-        {(
-          [
-            ...(member === 'new' ? (['name', 'residentialAddress'] as const) : []),
-            'shares',
-            'consideration',
-            'receivedAmount',
-            'agreementReference',
-            'agreementOn',
-            'receivedOn',
-            'terms',
-            'approvingDirector',
-            'authorityReference',
-            'reason',
-          ] as const
-        ).map((key) => {
-          const label = {
-            name: 'Investor name',
-            residentialAddress: 'Residential address',
-            shares: COPY.SHARES,
-            consideration: COPY.CONSIDERATION,
-            receivedAmount: COPY.RECEIVED_AMOUNT,
-            agreementReference: COPY.AGREEMENT_REFERENCE,
-            agreementOn: COPY.AGREEMENT_ON,
-            receivedOn: COPY.RECEIVED_ON,
-            terms: COPY.TERMS,
-            approvingDirector: COPY.DIRECTOR,
-            authorityReference: COPY.AUTHORITY_REFERENCE,
-            reason: COPY.REASON,
-          }[key];
-          return (
-            <label key={key} className={LABEL}>
-              {label}
-              <input
-                className={FIELD_CLASS}
-                type={key.endsWith('On') ? 'date' : 'text'}
-                max={key.endsWith('On') ? today : undefined}
-                value={fields[key]}
-                maxLength={key === 'shares' ? 78 : ['terms', 'reason', 'residentialAddress'].includes(key) ? 1000 : 255}
-                onChange={(event) => setFields((current) => ({ ...current, [key]: event.target.value }))}
-              />
-            </label>
-          );
-        })}
-        {(['authority', 'agreement', 'receipt'] as const).map((kind) => (
-          <label key={kind} className={LABEL}>
-            {COPY.DOCUMENTS[kind]}
-            <input
-              className={FIELD_CLASS}
-              type="file"
-              accept="application/pdf,image/png,image/jpeg"
-              onChange={(event) => setFiles((current) => ({ ...current, [kind]: event.target.files?.[0] }))}
-            />
+        <fieldset className="grid gap-4 rounded-xl border border-border-subtle bg-surface-raised p-4 sm:grid-cols-2 [&>p]:sm:col-span-2">
+          <legend className="px-1 text-sm font-medium">1. Person and shares</legend>
+          <label className={LABEL}>
+            Investor/member
+            <select className={FIELD_CLASS} value={member} onChange={(event) => setMember(event.target.value)}>
+              <option value="new">New investor/member</option>
+              {members
+                .filter((row) => row.walletless && row.particularsRetained)
+                .map((row) => (
+                  <option key={row.member} value={row.member}>
+                    {row.name}
+                    {members.some((other) => other.member !== row.member && other.name === row.name)
+                      ? ` · ${row.member.slice(0, 8)}`
+                      : ''}
+                  </option>
+                ))}
+            </select>
           </label>
-        ))}
-        <p className="text-sm text-text-muted">
-          {COPY.RECEIPT_NOTE} The approving director must not be the recipient. {COPY.EFFECTIVE_NOTE}
-        </p>
+          {member === 'new' && (
+            <>
+              {field('name')}
+              {field('residentialAddress')}
+            </>
+          )}
+          {field('shares')}
+          {field('consideration')}
+        </fieldset>
+        <fieldset className="grid gap-4 rounded-xl border border-border-subtle bg-surface-raised p-4 sm:grid-cols-2 [&>p]:sm:col-span-2">
+          <legend className="px-1 text-sm font-medium">2. Agreement and company receipt</legend>
+          {field('agreementReference')}
+          {field('agreementOn')}
+          {field('terms')}
+          {document('agreement')}
+          {field('receivedAmount')}
+          {field('receivedOn')}
+          {document('receipt')}
+          <p className="text-sm text-text-muted">{COPY.RECEIPT_NOTE}</p>
+        </fieldset>
+        <fieldset className="grid gap-4 rounded-xl border border-border-subtle bg-surface-raised p-4 sm:grid-cols-2 [&>p]:sm:col-span-2">
+          <legend className="px-1 text-sm font-medium">3. Company authority and review</legend>
+          {field('approvingDirector')}
+          {field('authorityReference')}
+          {field('reason')}
+          {document('authority')}
+          <p className="text-sm text-text-muted">
+            The approving director must not be the recipient. Preparation records the agreement and receipt; approval
+            and recording the share issue remain separate actions. {COPY.EFFECTIVE_NOTE}
+          </p>
+        </fieldset>
       </fieldset>
       {problem && <p className="text-sm text-text-muted">{problem}</p>}
       {error && (
@@ -316,12 +365,15 @@ export function AllotmentForm({
           {error}
         </p>
       )}
-      <p className="text-sm text-text-muted">{COPY.RECOVERY_NOTE}</p>
-      <PageAction
-        label={busy ? 'Preparing allotment…' : COPY.SUBMIT}
-        disabled={busy || blocked || (!held && !!problem)}
-        onClick={() => void submit()}
-      />
+      {held && <p className="text-sm text-text-muted">{COPY.RECOVERY_NOTE}</p>}
+      <div className="flex justify-end border-t border-border-subtle pt-4">
+        <PageAction
+          primary
+          label={busy ? 'Preparing allotment…' : COPY.SUBMIT}
+          disabled={busy || blocked || (!held && !!problem)}
+          onClick={() => void submit()}
+        />
+      </div>
     </form>
   );
 }

@@ -9,7 +9,7 @@ import {
 import { Action } from '../../components/Ledger';
 import { OpeningRecord } from './OpeningRecord';
 import { useCompanyStyles } from './styles';
-import { entriesKey, useRegisterOpenings } from './useCompanyRegister';
+import { entriesKey, openingsKey, useRegisterOpenings } from './useCompanyRegister';
 
 export function ClassOpenings({
   epoch,
@@ -19,7 +19,13 @@ export function ClassOpenings({
   refreshHolders,
   refreshAppointments,
   onOpen,
+  sourceReady = true,
+  guard,
+  onHeldChange,
 }: {
+  sourceReady?: boolean;
+  guard?: () => void;
+  onHeldChange?: (key: string, held: boolean) => void;
   epoch: number;
   company: string;
   register: TokenHoldersResponse;
@@ -32,6 +38,13 @@ export function ClassOpenings({
   const queryClient = useQueryClient();
   const name = register.token.name;
   const openings = useRegisterOpenings(epoch, company, register.token.uuid);
+  const privateReady = sourceReady && openings.isSuccess && !openings.isFetching;
+  const recordGuard = () => {
+    guard?.();
+    const state = queryClient.getQueryState(openingsKey(epoch, register.token.uuid));
+    if (state?.status !== 'success' || state.fetchStatus !== 'idle')
+      throw new Error('Refresh the register records before continuing.');
+  };
   const settle = () =>
     Promise.all([
       openings.refetch(),
@@ -62,25 +75,25 @@ export function ClassOpenings({
         </View>
       ) : (
         <>
-          {steps?.prepare && !register.initialized && (
+          {privateReady && steps?.prepare && !register.initialized && (
             <Action label={COPY.PREPARE} accessibilityLabel={`${COPY.PREPARE} for ${name}`} onPress={onOpen} />
           )}
-          {openings.data.length === 0 ? (
-            <Text style={styles.muted}>{COPY.EMPTY}</Text>
-          ) : (
-            openings.data.map((proposal, index) => (
-              <OpeningRecord
-                key={proposal.uuid}
-                proposal={proposal}
-                epoch={epoch}
-                steps={steps}
-                last={index === openings.data.length - 1}
-                onSettled={settle}
-              />
-            ))
-          )}
+          {privateReady && openings.data.length === 0 && <Text style={styles.muted}>{COPY.EMPTY}</Text>}
         </>
       )}
+      {openings.data?.map((proposal, index) => (
+        <OpeningRecord
+          key={proposal.uuid}
+          proposal={proposal}
+          epoch={epoch}
+          steps={steps}
+          last={index === openings.data!.length - 1}
+          onSettled={settle}
+          visible={privateReady}
+          guard={recordGuard}
+          onHeldChange={onHeldChange}
+        />
+      ))}
     </View>
   );
 }

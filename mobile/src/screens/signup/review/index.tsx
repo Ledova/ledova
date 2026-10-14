@@ -16,6 +16,7 @@ import {
   formatIntendedUse,
 } from '@ledova/shared';
 import { PUBLIC_LINKS } from '../../../config/publicLinks';
+import { Action } from '../../../components/Ledger';
 
 export function ReviewScreen() {
   const theme = useAppTheme();
@@ -190,8 +191,31 @@ export function ReviewScreen() {
     },
   }));
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
-  const { data, company, isCompany, isLoading, error, completeSignup, isSubmitting, canCompleteSignup, retryLoad } =
-    useReview();
+  const {
+    data,
+    company,
+    isCompany,
+    isLoading,
+    error,
+    completionError,
+    completeSignup,
+    isSubmitting,
+    canCompleteSignup,
+    retryLoad,
+    authorityRequest,
+    authorityError,
+    resetAuthorityRequest,
+    isResettingAuthority,
+  } = useReview();
+  const busy = isSubmitting || isResettingAuthority;
+  const finish = async () => {
+    if (!canCompleteSignup || busy) return;
+    try {
+      await completeSignup();
+    } catch {
+      return;
+    }
+  };
 
   const handleBack = () => {
     navigation.navigate(isCompany ? 'CompanyRegistration' : 'FinancialProfile');
@@ -264,8 +288,12 @@ export function ReviewScreen() {
                 weight={theme.icon.weights.regular}
               />
             </View>
-            <Text style={styles.title}>Review & Confirm</Text>
-            <Text style={styles.subtitle}>Please review your information before completing signup</Text>
+            <Text style={styles.title}>{isCompany ? 'Complete company setup' : 'Review & Confirm'}</Text>
+            <Text style={styles.subtitle}>
+              {isCompany
+                ? 'Review your saved details. Documents and team setup can wait until your dashboard.'
+                : 'Please review your information before completing signup'}
+            </Text>
           </View>
 
           <View style={styles.card}>
@@ -306,7 +334,6 @@ export function ReviewScreen() {
               <View style={styles.cardContent}>
                 {company ? (
                   <View style={styles.infoList}>
-                    <Text style={styles.infoLabel}>Company information is provided by the company.</Text>
                     <View style={styles.infoRow}>
                       <Text style={styles.infoLabel}>Company:</Text>
                       <Text style={styles.infoValue}>{company.name}</Text>
@@ -379,30 +406,63 @@ export function ReviewScreen() {
 
           <View style={styles.card}>
             <View style={styles.cardContent}>
-              <Text style={styles.termsText}>
-                By completing signup, you accept the{' '}
-                <Text style={styles.linkText} onPress={handleOpenTerms}>
-                  Terms of Service
-                </Text>{' '}
-                and{' '}
-                <Text style={styles.linkText} onPress={handleOpenPrivacyPolicy}>
-                  Privacy Policy
+              {isCompany && company ? (
+                <View style={styles.infoList}>
+                  <Text style={styles.termsText}>
+                    By completing setup, you confirm that you are authorised to administer {company.name}, including
+                    managing its users, and accept the{' '}
+                    <Text style={styles.linkText} onPress={handleOpenTerms}>
+                      Terms of Service
+                    </Text>{' '}
+                    on the company’s behalf.
+                  </Text>
+                  {authorityError && (
+                    <View style={styles.infoList}>
+                      <Text accessibilityRole="alert" style={styles.errorText}>
+                        {authorityError}
+                      </Text>
+                      {authorityRequest?.status === 'pending' && (
+                        <Action
+                          label="Update saved setup"
+                          disabled={busy}
+                          onPress={() => void resetAuthorityRequest().catch(() => {})}
+                        />
+                      )}
+                      <Action label="Refresh company setup" disabled={busy} onPress={() => void retryLoad()} />
+                    </View>
+                  )}
+                </View>
+              ) : (
+                <Text style={styles.termsText}>
+                  By completing signup, you accept the{' '}
+                  <Text style={styles.linkText} onPress={handleOpenTerms}>
+                    Terms of Service
+                  </Text>{' '}
+                  and{' '}
+                  <Text style={styles.linkText} onPress={handleOpenPrivacyPolicy}>
+                    Privacy Policy
+                  </Text>
+                  .
                 </Text>
-                .
-              </Text>
+              )}
             </View>
             <View style={styles.buttonContainer}>
               {!canCompleteSignup && (
                 <Text style={styles.validationText}>Please ensure all information is complete to proceed.</Text>
               )}
+              {completionError && (
+                <Text accessibilityRole="alert" style={styles.errorText}>
+                  {completionError}
+                </Text>
+              )}
               <PrimaryButton
-                onPress={completeSignup}
-                loading={isSubmitting}
-                disabled={!canCompleteSignup}
+                onPress={() => void finish()}
+                loading={busy}
+                disabled={!canCompleteSignup || busy}
                 fullWidth
                 style={styles.completeButton}
               >
-                Complete Signup
+                {isCompany ? 'Complete company setup' : 'Complete Signup'}
               </PrimaryButton>
             </View>
           </View>
@@ -413,7 +473,7 @@ export function ReviewScreen() {
             <View style={styles.dividerLine} />
           </View>
 
-          <TouchableOpacity style={styles.backSection} onPress={handleBack} disabled={isSubmitting}>
+          <TouchableOpacity style={styles.backSection} onPress={handleBack} disabled={busy}>
             <Text style={styles.backLink}>Go Back</Text>
           </TouchableOpacity>
         </ScrollView>

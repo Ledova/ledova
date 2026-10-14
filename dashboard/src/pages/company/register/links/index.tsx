@@ -39,7 +39,7 @@ export default function CompanyRegisterLinksPage() {
       />
     );
   return (
-    <Page lede={LEDE} actions={back}>
+    <Page narrow lede={LEDE} actions={back}>
       {preferences.isLoading ? (
         <Loading />
       ) : (
@@ -121,7 +121,7 @@ function OwnLinks({
       </>
     );
   return (
-    <Page lede={LEDE} actions={back}>
+    <Page narrow lede={LEDE} actions={back}>
       {content}
     </Page>
   );

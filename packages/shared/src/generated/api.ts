@@ -863,6 +863,22 @@ export interface ApiPaths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/company-authority/appointments/{uuid}/signup-terms/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: ApiOperations['api_v1_company_authority_appointments_signup_terms_create'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/company-authority/appointments/team/': {
     parameters: {
       query?: never;
@@ -4383,7 +4399,7 @@ export interface ApiComponents {
       delegatableCapabilities: ApiComponents['schemas']['CompanyCapabilityEnum'][];
       fileSha256: string;
       fileSize: number;
-      fileUrl: string;
+      fileUrl: string | null;
       idempotencyKey: string;
       mimeType: string;
       originalFilename: string;
@@ -4400,14 +4416,15 @@ export interface ApiComponents {
       verificationStatus: ApiComponents['schemas']['CompanyAuthorityVerificationStatusEnum'];
       withdrawnAt: string | null;
     };
+    CompanyAuthorityRequestAdmissionDeclarationVersionEnum: '2026-10-14';
     CompanyAuthorityRequestAdmissionRequest: {
       acceptDeclaration: boolean;
-      declarationVersion: ApiComponents['schemas']['DeclarationVersionEnum'];
+      declarationVersion: ApiComponents['schemas']['CompanyAuthorityRequestAdmissionDeclarationVersionEnum'];
     };
     CompanyAuthorityRequestUploadRequest: {
       company: string;
       delegatableCapabilities?: ApiComponents['schemas']['CompanyCapabilityEnum'][];
-      file: Blob;
+      file?: Blob;
       idempotencyKey: string;
       requestedCapabilities?: ApiComponents['schemas']['CompanyCapabilityEnum'][];
       requestedExpiresAt?: string | null;
@@ -4663,6 +4680,15 @@ export interface ApiComponents {
       primaryContact: ApiComponents['schemas']['_CompanyUserProfileCreateRequest'];
       tradingName?: string;
     };
+    CompanySignupTermsReceipt: {
+      acceptedAt: string;
+      acceptedBy: number;
+      acceptedProfile: string;
+      appointment: string;
+      company: string;
+      declarationText: string;
+      declarationVersion: string;
+    };
     CompanyStatusEnum:
       | 'draft'
       | 'submitted'
@@ -4714,10 +4740,11 @@ export interface ApiComponents {
       inviterAppointment: string;
       uuid: string;
     };
+    CompanyTeamInvitationAcceptDeclarationVersionEnum: '2026-10-04';
     CompanyTeamInvitationAcceptRequest: {
       acceptDeclaration: boolean;
       code: string;
-      declarationVersion: ApiComponents['schemas']['DeclarationVersionEnum'];
+      declarationVersion: ApiComponents['schemas']['CompanyTeamInvitationAcceptDeclarationVersionEnum'];
     };
     CompanyTeamInvitationCreateRequest: {
       acceptanceDeadline?: string | null;
@@ -4882,7 +4909,6 @@ export interface ApiComponents {
       value: string;
     };
     CurrencyEnum: 'AUD';
-    DeclarationVersionEnum: '2026-10-04';
     DeletedAccountResponse: {
       message: string;
     };
@@ -5743,6 +5769,7 @@ export interface ApiComponents {
       expiresAt: string | null;
       isEffective: boolean;
       revokedAt: string | null;
+      signupTerms: ApiComponents['schemas']['CompanySignupTermsReceipt'] | null;
       source: ApiComponents['schemas']['CompanyAppointmentSourceEnum'];
       status: ApiComponents['schemas']['CompanyAppointmentStatusEnum'];
       uuid: string;
@@ -7000,9 +7027,11 @@ export interface ApiComponents {
       asicIssuedTotal: string | null;
       asicMemberCount: number | null;
       asicSnapshot: unknown;
-      authority: ApiComponents['schemas']['RegisterCorrectionAuthorityEnum'];
+      authority: ApiComponents['schemas']['RegisterImportAuthorityEnum'];
       authorityReference: string;
       company: string;
+      correctionAllowed: boolean;
+      correctionOf: string | null;
       createdAt: string;
       decisions: ApiComponents['schemas']['RegisterImportDecision'][];
       evidenceFingerprint: string;
@@ -7018,22 +7047,23 @@ export interface ApiComponents {
       rejectionReason: string;
       reviewedAt: string | null;
       reviewedBy: number | null;
+      sourceConfirmed: boolean;
       sourceDocument: string | null;
+      sourceReference: string;
       stage: string;
       status: ApiComponents['schemas']['RegisterCorrectionStatusEnum'];
       submittedBy: number;
       token: string;
       uuid: string;
     };
+    RegisterImportAuthorityEnum: 'director_resolution' | 'court_order' | 'company_records';
     RegisterImportCreateRequest: {
       appointment: string;
-      approvingDirector?: string;
       asAt: string;
-      asicEvidence: string;
-      asicIssuedTotal: string;
-      asicMemberCount: number;
-      authority: ApiComponents['schemas']['RegisterCorrectionAuthorityEnum'];
-      authorityReference: string;
+      asicEvidence?: string | null;
+      asicIssuedTotal?: string | null;
+      asicMemberCount?: number | null;
+      correctionOf?: string | null;
       formerMembers: {
         [key: string]: unknown;
       }[];
@@ -7042,7 +7072,9 @@ export interface ApiComponents {
       }[];
       operationId: string;
       reason: string;
-      registerEvidence: string;
+      registerEvidence?: string | null;
+      sourceConfirmed: boolean;
+      sourceReference: string;
       tokenId: string;
     };
     RegisterImportDecideRequest: {
@@ -7067,11 +7099,14 @@ export interface ApiComponents {
     RegisterImportDecisionPreview: {
       canDecide: boolean;
       comparison: ApiComponents['schemas']['RegisterImportPreviewRow'][];
+      correctionAllowed: boolean;
+      correctionOf: string | null;
       importedMemberCount: number;
       importedTotal: string;
       opensRegister: boolean;
       previewDigest: string;
       registerSequence: number;
+      sourceReference: string;
       statedMemberCount: number | null;
       statedTotal: string | null;
       unmetRequirements: string[];
@@ -8198,7 +8233,7 @@ export interface ApiComponents {
       name: string | null;
       shares: string;
     };
-    ShareRegisterEntryKindEnum: 'opening' | 'issue' | 'transfer' | 'cessation' | 'correction';
+    ShareRegisterEntryKindEnum: 'opening' | 'issue' | 'transfer' | 'cessation' | 'correction' | 'mirror_correction';
     ShareRegisterHolder: {
       balance: string;
       enteredOn: string;
@@ -10318,6 +10353,33 @@ export interface ApiOperations {
       cookie?: never;
     };
     requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['OwnCompanyAppointment'];
+        };
+      };
+    };
+  };
+  api_v1_company_authority_appointments_signup_terms_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': ApiComponents['schemas']['CompanyAuthorityRequestAdmissionRequest'];
+        'application/x-www-form-urlencoded': ApiComponents['schemas']['CompanyAuthorityRequestAdmissionRequest'];
+        'multipart/form-data': ApiComponents['schemas']['CompanyAuthorityRequestAdmissionRequest'];
+      };
+    };
     responses: {
       200: {
         headers: {

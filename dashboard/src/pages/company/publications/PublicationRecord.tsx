@@ -99,6 +99,7 @@ export function PublicationRecord({
         </Rows>
       )}
       <PageAction
+        primary
         label={opening ? PUBLICATION_COPY.OPENING : PUBLICATION_COPY.OPEN}
         onClick={open}
         disabled={opening || blocked}

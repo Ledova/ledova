@@ -4,6 +4,8 @@ export type CompanyAuthorityRequest = ApiSchema<'CompanyAuthorityRequest'>;
 
 export type CompanyAuthorityAdmission = ApiRequest<'api_v1_company_authority_requests_admit_create'>;
 
+export type AcceptCompanySignupTermsRequest = ApiRequest<'api_v1_company_authority_appointments_signup_terms_create'>;
+
 export type CompanyCapability = ApiSchema<'CompanyCapabilityEnum'>;
 
 export type CompanyAuthoritySubmission = ApiRequest<'api_v1_company_authority_requests_create'> &

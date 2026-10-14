@@ -60,7 +60,10 @@ export function ShareClass({ uuid }: { uuid: string }) {
   const navigate = useNavigate();
   const data = useShareClass(uuid);
   return (
-    <Page actions={<PageAction label="Back to Register" onClick={() => navigate(DESTINATIONS.companyRegister.path)} />}>
+    <Page
+      narrow
+      actions={<PageAction label="Back to Register" onClick={() => navigate(DESTINATIONS.companyRegister.path)} />}
+    >
       <ShareClassDetails
         key={`${data.tokenKey.join('/')}/${data.token.data?.companyUuid}/${data.token.data?.isOwner === true}`}
         data={data}
@@ -127,8 +130,17 @@ function ShareClassDetails({ data }: { data: ReturnType<typeof useShareClass> })
                 {token.statusDisplay}
               </Status>
             </Row>
-            <Row label="Authorised shares">
-              <span className="break-all">{formatShareCount(token.totalSupply)}</span>
+            <Row
+              label={token.totalSupply !== (2n ** 256n - 1n).toString() ? 'Authorised shares' : 'Technical share limit'}
+            >
+              {token.totalSupply !== (2n ** 256n - 1n).toString() ? (
+                <span className="break-all">{formatShareCount(token.totalSupply)}</span>
+              ) : (
+                <details>
+                  <summary className="cursor-pointer">Internal quantity guard</summary>
+                  <span className="break-all">{formatShareCount(token.totalSupply)}</span>
+                </details>
+              )}
             </Row>
             <Row label="Issued shares">
               <span className="break-all">

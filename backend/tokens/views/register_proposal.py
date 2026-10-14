@@ -1,6 +1,7 @@
 from django.db.models import BooleanField, DateTimeField, F, Func
 from drf_spectacular.utils import OpenApiTypes, extend_schema
 from rest_framework.decorators import action
+from rest_framework.exceptions import NotFound
 
 from shared.views import AuthenticatedReadOnlyViewSet, stream_stored_file
 
@@ -33,4 +34,6 @@ class RegisterProposalViewSet(AuthenticatedReadOnlyViewSet):
     @action(detail=True, methods=["get"])
     def file(self, request, uuid=None):
         proposal = self.get_object()
+        if not proposal.file:
+            raise NotFound("This record keeps no uploaded document copy.")
         return stream_stored_file(proposal.file, proposal.evidence_snapshot["mime_type"], as_attachment=True)

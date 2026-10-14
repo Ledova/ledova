@@ -49,7 +49,7 @@ export const TransactionsPage = () => {
   };
 
   return (
-    <Page lede="Select an entry for its status and details.">
+    <Page narrow>
       <Section title="Transfers">
         <TransactionFilter
           ref={filterToggle}

@@ -42,11 +42,13 @@ class CompanyAuthorityRequest(BaseModel):
     requested_capabilities = models.JSONField(editable=False)
     delegatable_capabilities = models.JSONField(editable=False)
     requested_expires_at = models.DateTimeField(null=True, editable=False)
-    file = models.FileField(upload_to=authority_evidence_path, storage=private_storage, max_length=255)
-    original_filename = models.CharField(max_length=255, editable=False)
-    file_size = models.PositiveIntegerField(editable=False)
-    mime_type = models.CharField(max_length=100, editable=False)
-    file_sha256 = models.CharField(max_length=64, editable=False)
+    file = models.FileField(
+        upload_to=authority_evidence_path, storage=private_storage, max_length=255, blank=True, default=""
+    )
+    original_filename = models.CharField(max_length=255, editable=False, blank=True, default="")
+    file_size = models.PositiveIntegerField(editable=False, default=0)
+    mime_type = models.CharField(max_length=100, editable=False, blank=True, default="")
+    file_sha256 = models.CharField(max_length=64, editable=False, blank=True, default="")
     request_digest = models.CharField(max_length=64, editable=False)
 
     @property

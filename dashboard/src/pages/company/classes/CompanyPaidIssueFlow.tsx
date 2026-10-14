@@ -283,7 +283,10 @@ function Preparation({ commands }: { commands: Commands }) {
   };
   const candidates = commands.availableSubscriptions.data ?? [];
   return (
-    <fieldset disabled={waiting} className="space-y-4">
+    <fieldset
+      disabled={waiting}
+      className="grid gap-4 rounded-xl border border-border-subtle bg-surface-tertiary p-4 sm:grid-cols-2 [&>p]:sm:col-span-2 [&>h3]:sm:col-span-2 [&>dl]:sm:col-span-2"
+    >
       <h3 className="font-medium">Prepare a company paid issue</h3>
       <p className="text-sm text-text-muted">{COPY.PAYMENT_NOTE}</p>
       {commands.availableSubscriptions.isPending && <p role="status">Loading recorded paid sources…</p>}

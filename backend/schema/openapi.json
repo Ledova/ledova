@@ -1340,6 +1340,7 @@
             "type": "integer"
           },
           "fileUrl": {
+            "nullable": true,
             "readOnly": true,
             "type": "string"
           },
@@ -1460,13 +1461,20 @@
         ],
         "type": "object"
       },
+      "CompanyAuthorityRequestAdmissionDeclarationVersionEnum": {
+        "description": "* `2026-10-14` - 2026-10-14",
+        "enum": [
+          "2026-10-14"
+        ],
+        "type": "string"
+      },
       "CompanyAuthorityRequestAdmissionRequest": {
         "properties": {
           "acceptDeclaration": {
             "type": "boolean"
           },
           "declarationVersion": {
-            "$ref": "#/components/schemas/DeclarationVersionEnum"
+            "$ref": "#/components/schemas/CompanyAuthorityRequestAdmissionDeclarationVersionEnum"
           }
         },
         "required": [
@@ -1509,7 +1517,6 @@
         },
         "required": [
           "company",
-          "file",
           "idempotencyKey"
         ],
         "type": "object"
@@ -2760,6 +2767,52 @@
         ],
         "type": "object"
       },
+      "CompanySignupTermsReceipt": {
+        "properties": {
+          "acceptedAt": {
+            "format": "date-time",
+            "readOnly": true,
+            "type": "string"
+          },
+          "acceptedBy": {
+            "readOnly": true,
+            "type": "integer"
+          },
+          "acceptedProfile": {
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "appointment": {
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "company": {
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "declarationText": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "declarationVersion": {
+            "readOnly": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "acceptedAt",
+          "acceptedBy",
+          "acceptedProfile",
+          "appointment",
+          "company",
+          "declarationText",
+          "declarationVersion"
+        ],
+        "type": "object"
+      },
       "CompanyStatusEnum": {
         "description": "* `draft` - Draft\n* `submitted` - Submitted for Review\n* `review` - Under Review\n* `info_required` - Additional Information Required\n* `approved` - Approved\n* `active` - Active\n* `warning` - Compliance Warning\n* `suspended` - Suspended\n* `delisted` - Delisted\n* `rejected` - Rejected\n* `withdrawn` - Withdrawn",
         "enum": [
@@ -3001,6 +3054,13 @@
         ],
         "type": "object"
       },
+      "CompanyTeamInvitationAcceptDeclarationVersionEnum": {
+        "description": "* `2026-10-04` - 2026-10-04",
+        "enum": [
+          "2026-10-04"
+        ],
+        "type": "string"
+      },
       "CompanyTeamInvitationAcceptRequest": {
         "properties": {
           "acceptDeclaration": {
@@ -3013,7 +3073,7 @@
             "writeOnly": true
           },
           "declarationVersion": {
-            "$ref": "#/components/schemas/DeclarationVersionEnum"
+            "$ref": "#/components/schemas/CompanyTeamInvitationAcceptDeclarationVersionEnum"
           }
         },
         "required": [
@@ -3890,13 +3950,6 @@
         "description": "* `AUD` - AUD",
         "enum": [
           "AUD"
-        ],
-        "type": "string"
-      },
-      "DeclarationVersionEnum": {
-        "description": "* `2026-10-04` - 2026-10-04",
-        "enum": [
-          "2026-10-04"
         ],
         "type": "string"
       },
@@ -8394,6 +8447,15 @@
             "readOnly": true,
             "type": "string"
           },
+          "signupTerms": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CompanySignupTermsReceipt"
+              }
+            ],
+            "nullable": true,
+            "readOnly": true
+          },
           "source": {
             "allOf": [
               {
@@ -8428,6 +8490,7 @@
           "expiresAt",
           "isEffective",
           "revokedAt",
+          "signupTerms",
           "source",
           "status",
           "uuid"
@@ -14697,7 +14760,7 @@
           "authority": {
             "allOf": [
               {
-                "$ref": "#/components/schemas/RegisterCorrectionAuthorityEnum"
+                "$ref": "#/components/schemas/RegisterImportAuthorityEnum"
               }
             ],
             "readOnly": true
@@ -14709,6 +14772,17 @@
           "company": {
             "description": "Unique identifier (primary key)",
             "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "correctionAllowed": {
+            "readOnly": true,
+            "type": "boolean"
+          },
+          "correctionOf": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "nullable": true,
             "readOnly": true,
             "type": "string"
           },
@@ -14729,6 +14803,7 @@
             "type": "string"
           },
           "evidenceSnapshot": {
+            "nullable": true,
             "readOnly": true
           },
           "formerMembers": {
@@ -14784,9 +14859,17 @@
             "readOnly": true,
             "type": "integer"
           },
+          "sourceConfirmed": {
+            "readOnly": true,
+            "type": "boolean"
+          },
           "sourceDocument": {
             "format": "uuid",
             "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
+          "sourceReference": {
             "readOnly": true,
             "type": "string"
           },
@@ -14832,6 +14915,8 @@
           "authority",
           "authorityReference",
           "company",
+          "correctionAllowed",
+          "correctionOf",
           "createdAt",
           "decisions",
           "evidenceFingerprint",
@@ -14847,7 +14932,9 @@
           "rejectionReason",
           "reviewedAt",
           "reviewedBy",
+          "sourceConfirmed",
           "sourceDocument",
+          "sourceReference",
           "stage",
           "status",
           "submittedBy",
@@ -14856,15 +14943,19 @@
         ],
         "type": "object"
       },
+      "RegisterImportAuthorityEnum": {
+        "description": "* `director_resolution` - Director resolution\n* `court_order` - Court order\n* `company_records` - Company records",
+        "enum": [
+          "director_resolution",
+          "court_order",
+          "company_records"
+        ],
+        "type": "string"
+      },
       "RegisterImportCreateRequest": {
         "properties": {
           "appointment": {
             "format": "uuid",
-            "type": "string"
-          },
-          "approvingDirector": {
-            "default": "",
-            "maxLength": 255,
             "type": "string"
           },
           "asAt": {
@@ -14873,24 +14964,24 @@
           },
           "asicEvidence": {
             "format": "uuid",
+            "nullable": true,
             "type": "string"
           },
           "asicIssuedTotal": {
             "maxLength": 78,
             "minLength": 1,
+            "nullable": true,
             "pattern": "^(0|[1-9][0-9]{0,77})$",
             "type": "string"
           },
           "asicMemberCount": {
             "minimum": 0,
+            "nullable": true,
             "type": "integer"
           },
-          "authority": {
-            "$ref": "#/components/schemas/RegisterCorrectionAuthorityEnum"
-          },
-          "authorityReference": {
-            "maxLength": 255,
-            "minLength": 1,
+          "correctionOf": {
+            "format": "uuid",
+            "nullable": true,
             "type": "string"
           },
           "formerMembers": {
@@ -14920,6 +15011,15 @@
           },
           "registerEvidence": {
             "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "sourceConfirmed": {
+            "type": "boolean"
+          },
+          "sourceReference": {
+            "maxLength": 255,
+            "minLength": 1,
             "type": "string"
           },
           "tokenId": {
@@ -14930,16 +15030,12 @@
         "required": [
           "appointment",
           "asAt",
-          "asicEvidence",
-          "asicIssuedTotal",
-          "asicMemberCount",
-          "authority",
-          "authorityReference",
           "formerMembers",
           "members",
           "operationId",
           "reason",
-          "registerEvidence",
+          "sourceConfirmed",
+          "sourceReference",
           "tokenId"
         ],
         "type": "object"
@@ -15053,6 +15149,14 @@
             },
             "type": "array"
           },
+          "correctionAllowed": {
+            "type": "boolean"
+          },
+          "correctionOf": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
           "importedMemberCount": {
             "type": "integer"
           },
@@ -15067,6 +15171,9 @@
           },
           "registerSequence": {
             "type": "integer"
+          },
+          "sourceReference": {
+            "type": "string"
           },
           "statedMemberCount": {
             "nullable": true,
@@ -15086,11 +15193,14 @@
         "required": [
           "canDecide",
           "comparison",
+          "correctionAllowed",
+          "correctionOf",
           "importedMemberCount",
           "importedTotal",
           "opensRegister",
           "previewDigest",
           "registerSequence",
+          "sourceReference",
           "statedMemberCount",
           "statedTotal",
           "unmetRequirements"
@@ -20820,13 +20930,14 @@
         "type": "object"
       },
       "ShareRegisterEntryKindEnum": {
-        "description": "* `opening` - Opening state\n* `issue` - Issue\n* `transfer` - Transfer\n* `cessation` - Cessation\n* `correction` - Compensating correction",
+        "description": "* `opening` - Opening state\n* `issue` - Issue\n* `transfer` - Transfer\n* `cessation` - Cessation\n* `correction` - Compensating correction\n* `mirror_correction` - Mirror snapshot correction",
         "enum": [
           "opening",
           "issue",
           "transfer",
           "cessation",
-          "correction"
+          "correction",
+          "mirror_correction"
         ],
         "type": "string"
       },
@@ -27328,6 +27439,68 @@
             }
           }
         ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OwnCompanyAppointment"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": [],
+            "csrfCookie": [],
+            "csrfHeader": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/company-authority/appointments/{uuid}/signup-terms/": {
+      "post": {
+        "operationId": "api_v1_company_authority_appointments_signup_terms_create",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompanyAuthorityRequestAdmissionRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/CompanyAuthorityRequestAdmissionRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/CompanyAuthorityRequestAdmissionRequest"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "content": {

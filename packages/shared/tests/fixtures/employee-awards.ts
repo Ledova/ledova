@@ -8,6 +8,7 @@ import type {
 } from '../../src';
 
 export const APPOINTMENT: OwnCompanyAppointment = {
+  signupTerms: null,
   uuid: 'appointment-a',
   company: 'company-a',
   companyName: 'Synthetic Company',

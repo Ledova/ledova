@@ -38,7 +38,7 @@ export default function Layout({ children }: LayoutProps) {
               <MobileHeader />
             </div>
 
-            <main className="pt-14 lg:ml-60 lg:pt-0">{children}</main>
+            <main className="pt-14 lg:ml-52 lg:pt-0">{children}</main>
           </div>
         </SendTransferProvider>
       </BuyCryptoProvider>
