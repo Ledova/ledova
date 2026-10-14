@@ -573,19 +573,29 @@ the shared scale lacks.
 
 ## Design tokens
 
-The design tokens are the single source of colour, spacing and radius values.
+`packages/shared/src/constants/ui/design-tokens.ts` is the single source of
+design tokens. `buildColors()` turns a private paper palette into `PAPER_THEME`,
+one semantic colour vocabulary that the dashboard, the public site and mobile
+all use: `surface`, `text`, `brand`, `border` and the status colours. Roles are
+fixed by suffix: a `-light` colour (`text-brand-light`, `text-error-light`) is
+text or an icon on a surface; the bare name and `-mid` (`bg-brand`,
+`border-brand-mid`, `ring-brand-mid`) are fills, borders and rings;
+`brand-subtle` is the text hover and `brand-hover` the fill hover. Mobile reads
+the same tokens through `useAppTheme()`, with primary fills on `brand.default`,
+plus the spacing, radius, type, layout and icon scales.
+
 `make generate-tokens` runs `packages/scripts/generate-css-tokens.mjs` with
-`tsx` over `packages/shared/src/constants/ui/design-tokens.ts` and writes
-`dashboard/src/styles/tokens.css` and `site/src/tokens.css`, raw generator
-output and prettier-ignored. Tailwind v4 reads that `@theme` block and derives
-the utility classes (`bg-surface-base`, `text-text-body`,
-`border-border-subtle`). Never edit either file: CI regenerates them after `make
-build` and fails on any drift. The web clients have one look, paper, and no
-theme switch. `PAPER_COLORS` is the palette. The public site uses it
-directly (`bg-paper`, `text-ink`, `border-rule`, `bg-ledger`). `PAPER_THEME`
-maps it onto the theme tokens, which are the generated defaults, so the
-dashboard's `bg-surface-*`, `text-text-*` and `brand` classes, and any code
-that reads `PAPER_THEME` directly, render in paper. Both clients bundle
+`tsx` and writes `dashboard/src/styles/tokens.css` and `site/src/tokens.css`,
+raw generator output and prettier-ignored. That `@theme` block carries the
+semantic colours, the spacing steps and the `lg` and `xl` shadows; Tailwind v4
+derives the utility classes from it (`bg-surface-base`, `text-text-body`,
+`border-border-subtle`), and web radii, type sizes and font weights come from
+Tailwind's defaults. The public site uses the same semantic names as the
+dashboard, plus `bg-brand-tint` and `border-border-faint`. Never edit either
+file: `make check`, which CI runs, compares them with the generator's
+`--check` output and fails on any drift.
+
+The clients have one look, paper, and no theme switch. Both web clients bundle
 Newsreader for display text and Instrument Sans for everything else. Mobile
 also uses fixed paper and bundles these fonts with a finite loading/error/retry
 gate; the account stores no theme, and a theme an older build saved on the

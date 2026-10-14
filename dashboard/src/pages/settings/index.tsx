@@ -60,7 +60,7 @@ function PasswordInput({
         aria-pressed={visible}
         disabled={disabled}
         onClick={() => setVisible(!visible)}
-        className="text-sm text-brand-mid underline"
+        className="text-sm text-brand-light underline"
       >
         {visible ? 'Hide' : 'Show'}
       </button>
@@ -181,7 +181,7 @@ export function SettingsPage() {
           />
         </div>
         {passwordChanged && (
-          <p role="status" className="text-sm text-brand-mid">
+          <p role="status" className="text-sm text-brand-light">
             Your password was changed.
           </p>
         )}

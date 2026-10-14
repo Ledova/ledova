@@ -1,17 +1,18 @@
 import { PageHeader } from '../components/PageHeader';
+import { INLINE_LINK } from '../styles';
 
 export function TermsOfService() {
   return (
     <>
       <PageHeader title="Terms of Service" lead="Experimental-use terms · Version 2026-10-14" />
-      <section className="border-t border-rule">
-        <div className="mx-auto max-w-3xl space-y-8 px-5 py-12 text-base leading-relaxed text-ink-muted md:px-8 lg:py-16">
+      <section className="border-t border-border-subtle">
+        <div className="mx-auto max-w-3xl space-y-8 px-5 py-12 text-base leading-relaxed text-text-muted md:px-8 lg:py-16">
           <p>
             These terms apply to the experimental Ledova workspace. By completing registration, you accept this version.
             Ledova provides software and tools; companies manage their own share information and decisions.
           </p>
           <div>
-            <h2 className="font-display text-2xl text-ink">Company authority and team access</h2>
+            <h2 className="font-display text-2xl text-text-primary">Company authority and team access</h2>
             <p className="mt-2">
               When registering a company workspace, you confirm that you are authorised to set it up and administer it,
               including managing its users, and to accept these terms on the company&apos;s behalf. You must have that
@@ -20,7 +21,7 @@ export function TermsOfService() {
             </p>
           </div>
           <div>
-            <h2 className="font-display text-2xl text-ink">Company responsibility</h2>
+            <h2 className="font-display text-2xl text-text-primary">Company responsibility</h2>
             <p className="mt-2">
               Company and share information is provided by the company. Keep it accurate and upload relevant documents
               when needed after registration. The company remains responsible for its register, share arrangements,
@@ -34,7 +35,7 @@ export function TermsOfService() {
             </p>
           </div>
           <div>
-            <h2 className="font-display text-2xl text-ink">Registration and company decisions</h2>
+            <h2 className="font-display text-2xl text-text-primary">Registration and company decisions</h2>
             <p className="mt-2">
               Registration creates a software workspace. It does not incorporate a company with ASIC, appoint a
               director, activate the company or issue shares. Each share issue, allotment, transfer and other supported
@@ -43,7 +44,7 @@ export function TermsOfService() {
             </p>
           </div>
           <div>
-            <h2 className="font-display text-2xl text-ink">Experimental use</h2>
+            <h2 className="font-display text-2xl text-text-primary">Experimental use</h2>
             <p className="mt-2">
               The software is experimental and unaudited. Use synthetic data, disposable credentials and supported
               testnets only. Do not submit real funds, securities, identity documents or personal data. Connected
@@ -52,13 +53,10 @@ export function TermsOfService() {
             </p>
           </div>
           <div>
-            <h2 className="font-display text-2xl text-ink">Software licence and other deployments</h2>
+            <h2 className="font-display text-2xl text-text-primary">Software licence and other deployments</h2>
             <p className="mt-2">
               The{' '}
-              <a
-                href="https://github.com/Ledova/ledova/blob/main/LICENSE"
-                className="font-medium text-ink underline decoration-rule-strong underline-offset-4"
-              >
+              <a href="https://github.com/Ledova/ledova/blob/main/LICENSE" className={INLINE_LINK}>
                 Ledova Noncommercial License 1.0
               </a>{' '}
               governs use of the source code. Commercial use, including internal business use and paid services, and a

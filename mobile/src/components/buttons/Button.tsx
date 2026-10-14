@@ -2,7 +2,7 @@ import React from 'react';
 import { Pressable, Text, ActivityIndicator, View, ViewStyle, TextStyle } from 'react-native';
 import { useAppTheme, useThemedStyles } from '../../contexts';
 
-type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger';
+type ButtonVariant = 'primary' | 'secondary';
 type ButtonSize = 'small' | 'medium' | 'large';
 
 const BUTTON_SIZES = {
@@ -14,7 +14,7 @@ const BUTTON_SIZES = {
 function getButtonVariants(theme: ReturnType<typeof useAppTheme>) {
   return {
     primary: {
-      background: theme.colors.interactive.active,
+      background: theme.colors.brand.default,
       backgroundDisabled: theme.colors.interactive.disabled,
       text: theme.colors.utility.white,
       textDisabled: theme.colors.text.subtle,
@@ -26,20 +26,6 @@ function getButtonVariants(theme: ReturnType<typeof useAppTheme>) {
       text: theme.colors.text.primary,
       textDisabled: theme.colors.text.subtle,
       borderColor: theme.colors.border.default,
-    },
-    ghost: {
-      background: 'transparent',
-      backgroundDisabled: 'transparent',
-      text: theme.colors.interactive.default,
-      textDisabled: theme.colors.text.subtle,
-      borderColor: 'transparent',
-    },
-    danger: {
-      background: theme.colors.error.default,
-      backgroundDisabled: theme.colors.interactive.disabled,
-      text: theme.colors.utility.white,
-      textDisabled: theme.colors.text.subtle,
-      borderColor: 'transparent',
     },
   };
 }

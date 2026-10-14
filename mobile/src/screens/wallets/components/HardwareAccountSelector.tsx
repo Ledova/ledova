@@ -35,8 +35,8 @@ export function useAccountRowStyles() {
       alignItems: 'center',
     },
     checkboxSelected: {
-      backgroundColor: theme.colors.interactive.default,
-      borderColor: theme.colors.interactive.default,
+      backgroundColor: theme.colors.brand.default,
+      borderColor: theme.colors.brand.default,
     },
     info: {
       flex: 1,

@@ -57,7 +57,7 @@ export function SignupCompanyRegistration() {
       </div>
 
       {loadError && (
-        <div role="alert" className="mb-4 text-error">
+        <div role="alert" className="mb-4 text-error-light">
           <p>{loadError}</p>
           <button type="button" onClick={retryLoad} className="mt-2 font-semibold underline">
             Try Again

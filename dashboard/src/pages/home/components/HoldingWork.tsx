@@ -14,7 +14,7 @@ import { PageAction } from '@components/Page';
 import { useHoldingWork } from '../hooks/useHoldingWork';
 import type { ApplicationWork } from '../applicationWork';
 
-const LINK = 'text-sm font-medium text-brand-light underline underline-offset-4 hover:text-brand-mid';
+const LINK = 'text-sm font-medium text-brand-light underline underline-offset-4';
 
 function Applications({ rows }: { rows: ApplicationWork[] }) {
   return (

@@ -204,7 +204,7 @@ function RegisterWork({
           {REGISTER_COPY.WAITING_NOTE(register.waitingEffects)}
         </p>
       )}
-      <div className="flex flex-col items-start gap-3 py-2 text-sm font-medium text-brand-mid">
+      <div className="flex flex-col items-start gap-3 py-2 text-sm font-medium text-brand-light">
         {prepare && !register.initialized && (draft || deployed) && (
           <Link
             to={(draft ? DESTINATIONS.companyRegisterImport : DESTINATIONS.companyRegisterOpening).path.replace(

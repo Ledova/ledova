@@ -20,7 +20,7 @@ export function WalletChoice({ wallet, onChoose, disabled = false, busy = false 
       className="group flex w-full items-start gap-3 py-3 text-left disabled:cursor-not-allowed disabled:opacity-50"
     >
       <WalletSummary wallet={wallet} compact />
-      {busy && <SpinnerGapIcon size={ICON_SM} className="mt-0.5 shrink-0 animate-spin text-brand-mid" />}
+      {busy && <SpinnerGapIcon size={ICON_SM} className="mt-0.5 shrink-0 animate-spin text-brand-light" />}
     </button>
   );
 }

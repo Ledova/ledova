@@ -16,11 +16,10 @@ import {
   type RegisterTransferMember,
 } from '@ledova/shared';
 import { PageAction } from '@components/Page';
-import { FIELD_CLASS } from '@components/fieldClass';
+import { FIELD_CLASS, LABEL } from '@components/fieldClass';
 import apiClient from '@services/apiClient';
 
 type DocumentKind = 'authority' | 'agreement' | 'receipt';
-const LABEL = 'block space-y-1 text-sm text-text-primary';
 
 export function AllotmentForm({
   company,

@@ -7,11 +7,15 @@ import { fileURLToPath } from 'url';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '../..');
 
-const { DESIGN_TOKENS, PAPER_COLORS, PAPER_THEME } = await import('../shared/src/constants/ui/design-tokens.ts');
+const { DESIGN_TOKENS, PAPER_THEME } = await import('../shared/src/constants/ui/design-tokens.ts');
+
+function kebab(key) {
+  return key.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`);
+}
 
 function flattenColors(obj, prefix, lines) {
   for (const [key, value] of Object.entries(obj)) {
-    const name = key === 'default' ? prefix : `${prefix}-${key}`;
+    const name = key === 'default' ? prefix : `${prefix}-${kebab(key)}`;
     if (typeof value === 'string') {
       lines.push(`  --color-${name}: ${value};`);
     } else if (typeof value === 'object' && !Array.isArray(value)) {
@@ -49,22 +53,6 @@ function generateColorVars(colors) {
   flattenColors(colors.warning, 'warning', lines);
   flattenColors(colors.info, 'info', lines);
 
-  section(lines);
-  for (const [key, value] of Object.entries(colors.utility)) {
-    add(lines, `--color-${key}`, value);
-  }
-
-  return lines;
-}
-
-function generatePaperVars() {
-  const lines = [];
-
-  section(lines);
-  for (const [group, colors] of Object.entries(PAPER_COLORS)) {
-    flattenColors(colors, group, lines);
-  }
-
   return lines;
 }
 
@@ -77,49 +65,14 @@ function generateSharedVars() {
   }
 
   section(lines);
-  for (const [key, value] of Object.entries(DESIGN_TOKENS.borderRadius)) {
-    const unit = value === 0 ? '0' : typeof value === 'number' ? `${value}px` : value;
-    add(lines, `--border-radius-${key}`, unit);
-  }
-
-  section(lines);
-  for (const [key, value] of Object.entries(DESIGN_TOKENS.fontSize)) {
-    add(lines, `--font-size-${key}`, `${value}px`);
-  }
-
-  section(lines);
-  for (const [key, value] of Object.entries(DESIGN_TOKENS.fontWeight)) {
-    add(lines, `--font-weight-${key}`, value);
-  }
-
-  section(lines);
-  for (const [key, value] of Object.entries(DESIGN_TOKENS.lineHeight)) {
-    add(lines, `--line-height-${key}`, value);
-  }
-
-  section(lines);
   for (const [key, shadow] of Object.entries(DESIGN_TOKENS.shadows)) {
-    add(lines, `--shadow-${key}`, shadow.web);
-  }
-
-  section(lines);
-  for (const [key, value] of Object.entries(DESIGN_TOKENS.zIndex)) {
-    add(lines, `--z-${key}`, value);
-  }
-
-  section(lines);
-  for (const [key, value] of Object.entries(DESIGN_TOKENS.animation.duration)) {
-    add(lines, `--duration-${key}`, `${value}ms`);
+    add(lines, `--shadow-${key}`, shadow);
   }
 
   return lines;
 }
 
-const themeColorVars = generateColorVars(PAPER_THEME);
-const paperVars = generatePaperVars();
-const sharedVars = generateSharedVars();
-
-const css = `@theme {${[...themeColorVars, ...paperVars, ...sharedVars].join('\n')}
+const css = `@theme {${[...generateColorVars(PAPER_THEME), ...generateSharedVars()].join('\n')}
 }
 `;
 

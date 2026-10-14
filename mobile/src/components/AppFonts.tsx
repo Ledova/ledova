@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 import { loadAsync } from 'expo-font';
-import { PAPER_THEME } from '@ledova/shared';
+import { useAppTheme } from '../contexts';
 import Newsreader from '../../assets/fonts/Newsreader_500Medium.ttf';
 import InstrumentSans from '../../assets/fonts/InstrumentSans_400Regular.ttf';
 import InstrumentSansMedium from '../../assets/fonts/InstrumentSans_500Medium.ttf';
@@ -17,6 +17,7 @@ const FONTS = {
 };
 
 export function AppFonts({ children }: { children: ReactNode }) {
+  const theme = useAppTheme();
   const [attempt, setAttempt] = useState(0);
   const [status, setStatus] = useState<'loading' | 'ready' | 'failed'>('loading');
 
@@ -49,7 +50,7 @@ export function AppFonts({ children }: { children: ReactNode }) {
     <View
       style={{
         flex: 1,
-        backgroundColor: PAPER_THEME.surface.base,
+        backgroundColor: theme.colors.surface.base,
         justifyContent: 'center',
         alignItems: 'center',
         gap: 16,
@@ -57,12 +58,12 @@ export function AppFonts({ children }: { children: ReactNode }) {
     >
       {status === 'loading' ? (
         <>
-          <ActivityIndicator color={PAPER_THEME.brand.default} />
-          <Text style={{ color: PAPER_THEME.text.primary }}>Opening Ledova…</Text>
+          <ActivityIndicator color={theme.colors.brand.default} />
+          <Text style={{ color: theme.colors.text.primary }}>Opening Ledova…</Text>
         </>
       ) : (
         <>
-          <Text accessibilityRole="alert" style={{ color: PAPER_THEME.text.primary }}>
+          <Text accessibilityRole="alert" style={{ color: theme.colors.text.primary }}>
             We couldn&apos;t load the app&apos;s fonts.
           </Text>
           <Pressable
@@ -70,7 +71,7 @@ export function AppFonts({ children }: { children: ReactNode }) {
             onPress={() => setAttempt((value) => value + 1)}
             style={{ padding: 12 }}
           >
-            <Text style={{ color: PAPER_THEME.brand.default }}>Try again</Text>
+            <Text style={{ color: theme.colors.brand.default }}>Try again</Text>
           </Pressable>
         </>
       )}

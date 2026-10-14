@@ -170,7 +170,7 @@ export function BuyCryptoModal({ isOpen, onClose, onNavigateToWidget, userAccoun
                     <span className="text-sm font-medium text-text-primary">{asset.name}</span>
                   </div>
                   {isAssetProcessing ? (
-                    <SpinnerGapIcon size={ICON_SM} className="animate-spin text-brand-mid" />
+                    <SpinnerGapIcon size={ICON_SM} className="animate-spin text-brand-light" />
                   ) : (
                     currentPrice && <span className="text-sm tabular-nums text-text-muted">{currentPrice}</span>
                   )}

@@ -75,7 +75,6 @@ export function HelpScreen() {
               title="Deployment Support"
               description="Contact the support channel configured by this deployment's owner."
               actionLabel={SUPPORT_EMAIL}
-              actionType="link"
               onAction={handleEmailPress}
             />
           ) : null}
@@ -85,7 +84,6 @@ export function HelpScreen() {
             title="Help Center"
             description="Browse the reference documentation served by the configured public site."
             actionLabel="Visit Help Center"
-            actionType="link"
             onAction={handleVisitHelpCenter}
           />
 

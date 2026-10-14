@@ -1,11 +1,10 @@
 import { useLayoutEffect, useState } from 'react';
 import { REGISTER_IMPORT_COPY, formatDate, formatShareCount, type RegisterTransferMember } from '@ledova/shared';
 import { PageAction } from '@components/Page';
-import { FIELD_CLASS } from '@components/fieldClass';
+import { FIELD_CLASS, LABEL } from '@components/fieldClass';
 import { MemberFields } from './MemberFields';
 import { blankMember, blankFormer, type PreparationDraft, type MemberDraft, type FormerDraft } from './preparation';
 
-const LABEL = 'block space-y-1 text-sm text-text-primary';
 const EVIDENCE = 'application/pdf,image/png,image/jpeg';
 
 export function BringRecords({

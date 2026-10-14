@@ -26,10 +26,7 @@ import type { Wallet, WhitelistStatus } from '@ledova/shared';
 import { Modal } from '@components/Modal';
 import { useQRScanner, QRScannerView } from '@components/qr';
 import type { UnifiedAsset } from '../hooks/useTransferFlow';
-
-const FIELD_CLASS =
-  'block w-full rounded-lg border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary ' +
-  'placeholder:text-text-muted focus:border-brand-mid focus:outline-none focus:ring-1 focus:ring-brand-mid';
+import { FIELD_BASE } from '@components/fieldClass';
 
 interface SendFormModalProps {
   isOpen: boolean;
@@ -273,7 +270,7 @@ export function SendFormModal({
             <button
               type="button"
               onClick={() => setShowAddressScanner(!showAddressScanner)}
-              className="flex items-center gap-1 text-xs text-brand-mid hover:text-brand-light transition-colors"
+              className="flex items-center gap-1 text-xs text-brand-light transition-colors"
             >
               <QrCodeIcon size={ICON_SM} />
               <span>{showAddressScanner ? 'Hide' : 'Scan QR'}</span>
@@ -295,7 +292,7 @@ export function SendFormModal({
               value={toAddress}
               onChange={(e) => handleAddressChange(e.target.value)}
               placeholder={addressPlaceholder}
-              className={`${FIELD_CLASS} font-mono`}
+              className={`${FIELD_BASE} font-mono`}
             />
           )}
           {toAddress && !isValidAddress && (
@@ -352,7 +349,7 @@ export function SendFormModal({
               value={amount}
               onChange={handleAmountChange}
               placeholder={amountPlaceholder}
-              className={FIELD_CLASS}
+              className={FIELD_BASE}
             />
             {parseFiatValue(selectedAsset.marketValue) === null && (
               <p className="text-xs text-text-muted">Unpriced: no fiat estimate available.</p>
@@ -362,11 +359,7 @@ export function SendFormModal({
                 Max: {selectedAsset.displayBalance} {selectedAsset.symbol}
                 {isShareToken && ' (whole numbers only)'}
               </p>
-              <button
-                type="button"
-                onClick={handleUseMax}
-                className="text-xs text-brand-mid hover:text-brand-light font-medium"
-              >
+              <button type="button" onClick={handleUseMax} className="text-xs text-brand-light font-medium">
                 Use Max
               </button>
             </div>

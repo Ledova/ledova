@@ -29,7 +29,7 @@ export function WalletSummary({ wallet, compact = false }: WalletSummaryProps) {
       </span>
       <span className="flex min-w-0 flex-1 flex-wrap items-start justify-between gap-x-6 gap-y-2">
         <span className="min-w-0 flex-1 basis-56">
-          <span className="block break-all text-sm font-medium text-text-primary group-hover:text-brand-mid">
+          <span className="block break-all text-sm font-medium text-text-primary group-hover:text-brand-light">
             {wallet.name || (compact ? formatWalletAddressShort(wallet.address) : wallet.address)}
           </span>
           {wallet.name && !compact && <span className="block break-all text-xs text-text-muted">{wallet.address}</span>}

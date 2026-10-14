@@ -12,25 +12,25 @@ html {
 }
 
 body {
-  background-color: var(--color-paper);
-  color: var(--color-ink);
+  background-color: var(--color-surface-base);
+  color: var(--color-text-primary);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
 ::selection {
-  background: var(--color-ledger-tint);
-  color: var(--color-ink);
+  background: var(--color-brand-tint);
+  color: var(--color-text-primary);
 }
 
 :focus-visible {
-  outline: 2px solid var(--color-ledger);
+  outline: 2px solid var(--color-border-focus);
   outline-offset: 3px;
   border-radius: 4px;
 }
 
 * {
   scrollbar-width: thin;
-  scrollbar-color: var(--color-rule-strong) transparent;
+  scrollbar-color: var(--color-border) transparent;
 }

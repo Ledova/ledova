@@ -15,7 +15,7 @@ const RadioGroupField = <Value extends string>({
         <Field key={option.value} className="flex items-center gap-3 text-sm text-text-body">
           <Radio
             value={option.value}
-            className="group flex h-4 w-4 shrink-0 cursor-pointer items-center justify-center rounded-full border border-border bg-surface-tertiary focus:outline-none data-[checked]:border-brand data-[checked]:bg-brand data-[focus]:ring-2 data-[focus]:ring-border-focus data-[focus]:ring-offset-1"
+            className="group flex h-4 w-4 shrink-0 cursor-pointer items-center justify-center rounded-full border border-border bg-surface-tertiary focus:outline-none data-[checked]:border-brand data-[checked]:bg-brand data-[focus]:ring-2 data-[focus]:ring-border-focus data-[focus]:ring-offset-1 data-[focus]:ring-offset-surface-raised"
           >
             <span className="hidden h-2 w-2 rounded-full bg-white group-data-[checked]:block" />
           </Radio>

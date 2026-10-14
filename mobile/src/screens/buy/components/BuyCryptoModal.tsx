@@ -44,7 +44,7 @@ function getAssetIcon(symbol: string, theme: ReturnType<typeof useAppTheme>): Re
       return (
         <CurrencyBtcIcon
           size={theme.icon.sizes.md}
-          color={theme.icon.colors.primary}
+          color={theme.colors.text.primary}
           weight={theme.icon.weights.regular}
         />
       );
@@ -52,7 +52,7 @@ function getAssetIcon(symbol: string, theme: ReturnType<typeof useAppTheme>): Re
       return (
         <CurrencyEthIcon
           size={theme.icon.sizes.md}
-          color={theme.icon.colors.primary}
+          color={theme.colors.text.primary}
           weight={theme.icon.weights.regular}
         />
       );
@@ -61,7 +61,7 @@ function getAssetIcon(symbol: string, theme: ReturnType<typeof useAppTheme>): Re
       return (
         <CurrencyCircleDollarIcon
           size={theme.icon.sizes.md}
-          color={theme.icon.colors.primary}
+          color={theme.colors.text.primary}
           weight={theme.icon.weights.regular}
         />
       );
@@ -69,7 +69,7 @@ function getAssetIcon(symbol: string, theme: ReturnType<typeof useAppTheme>): Re
       return (
         <CurrencyCircleDollarIcon
           size={theme.icon.sizes.md}
-          color={theme.icon.colors.primary}
+          color={theme.colors.text.primary}
           weight={theme.icon.weights.regular}
         />
       );

@@ -50,7 +50,7 @@ export function AppLockScreen() {
       marginBottom: theme.spacing.xxl,
     },
     unlockButton: {
-      backgroundColor: theme.colors.interactive.default,
+      backgroundColor: theme.colors.brand.default,
       paddingVertical: theme.spacing.md,
       paddingHorizontal: theme.spacing.xl,
       borderRadius: theme.borderRadius.md,

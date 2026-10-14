@@ -1,17 +1,15 @@
 function buildColors(p: {
-  surface: { base: string; raised: string; tertiary: string; overlay: string; disabled: string };
+  surface: { base: string; raised: string; tertiary: string; disabled: string };
   text: { primary: string; secondary: string; body: string; muted: string; subtle: string };
-  brand: { subtle: string; light: string; mid: string; default: string; hover: string };
-  border: { default: string; subtle: string; strong: string; focus: string };
+  brand: { subtle: string; light: string; mid: string; default: string; hover: string; tint: string };
+  border: { default: string; subtle: string; faint: string; strong: string; focus: string };
   success: { light: string; default: string; dark: string };
   error: { light: string; default: string; dark: string; subtle: string; backgroundSubtle: string };
   warning: { light: string; default: string };
   info: { light: string; default: string };
-  badge: { successBg: string; infoBg: string };
-  interactive: { selectedBg: string };
 }) {
   const colors = {
-    surface: { ...p.surface, transparent: 'transparent' },
+    surface: p.surface,
     text: p.text,
     brand: p.brand,
     border: p.border,
@@ -22,30 +20,20 @@ function buildColors(p: {
     utility: { white: '#ffffff', black: '#000000', transparent: 'transparent' },
 
     status: {
-      success: { icon: p.success.light, text: p.success.default },
+      success: { icon: p.success.light, text: p.success.light },
       error: { icon: p.error.light, text: p.error.light },
       warning: { icon: p.warning.light, text: p.warning.light },
-      info: { icon: p.info.light, text: p.info.light },
+      info: { icon: p.info.light },
     },
     interactive: {
       default: p.brand.default,
       defaultSubtle: p.brand.mid,
       active: p.brand.light,
       disabled: p.surface.disabled,
-      selected: {
-        background: p.interactive.selectedBg,
-        border: p.brand.default,
-      },
-    },
-    badge: {
-      success: { background: `${p.success.dark}80`, text: p.success.light },
-      warning: { text: p.warning.light },
-      info: { background: p.badge.infoBg, text: p.text.secondary },
     },
     form: {
       placeholder: p.text.muted,
       error: p.error.light,
-      errorBackground: `${p.error.dark}80`,
       borderError: p.error.default,
     },
   } as const;
@@ -64,7 +52,6 @@ const PAPER_THEME = buildColors({
     base: PAPER_COLORS.paper.default,
     raised: PAPER_COLORS.paper.card,
     tertiary: PAPER_COLORS.paper.deep,
-    overlay: PAPER_COLORS.rule.default,
     disabled: PAPER_COLORS.rule.strong,
   },
   text: {
@@ -80,10 +67,12 @@ const PAPER_THEME = buildColors({
     mid: PAPER_COLORS.ledger.default,
     default: PAPER_COLORS.ledger.default,
     hover: PAPER_COLORS.ledger.hover,
+    tint: PAPER_COLORS.ledger.tint,
   },
   border: {
     default: PAPER_COLORS.rule.strong,
     subtle: PAPER_COLORS.rule.default,
+    faint: PAPER_COLORS.rule.soft,
     strong: '#b9b2a3',
     focus: PAPER_COLORS.ledger.default,
   },
@@ -97,20 +86,7 @@ const PAPER_THEME = buildColors({
   },
   warning: { light: '#92400e', default: '#92400e' },
   info: { light: '#0369a1', default: '#0369a1' },
-  badge: { successBg: '#16a34a20', infoBg: PAPER_COLORS.paper.deep },
-  interactive: { selectedBg: PAPER_COLORS.ledger.default + '1A' },
 });
-
-function shadow(offsetY: number, blurRadius: number, opacity: number, elevation: number) {
-  return {
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: offsetY },
-    shadowOpacity: opacity,
-    shadowRadius: blurRadius,
-    elevation,
-    web: `0 ${offsetY}px ${blurRadius}px 0 rgba(0, 0, 0, ${opacity})`,
-  } as const;
-}
 
 export const DESIGN_TOKENS = {
   colors: PAPER_THEME,
@@ -169,32 +145,9 @@ export const DESIGN_TOKENS = {
     screenHeaderHeight: 160,
   },
 
-  zIndex: {
-    base: 0,
-    dropdown: 1000,
-    sticky: 1020,
-    fixed: 1030,
-    backdrop: 1040,
-    modal: 1050,
-    popover: 1060,
-    tooltip: 1070,
-  },
-
-  animation: {
-    duration: { instant: 0, fast: 150, normal: 300, slow: 500 },
-    easing: {
-      linear: 'linear' as const,
-      easeIn: 'ease-in' as const,
-      easeOut: 'ease-out' as const,
-      easeInOut: 'ease-in-out' as const,
-    },
-  },
-
   shadows: {
-    sm: shadow(1, 2, 0.05, 1),
-    md: shadow(2, 4, 0.1, 3),
-    lg: shadow(4, 8, 0.15, 5),
-    xl: shadow(8, 16, 0.2, 8),
+    lg: '0 4px 8px 0 rgba(0, 0, 0, 0.15)',
+    xl: '0 8px 16px 0 rgba(0, 0, 0, 0.2)',
   },
 
   icon: {
@@ -206,13 +159,7 @@ export const DESIGN_TOKENS = {
       bold: 'bold' as const,
       fill: 'fill' as const,
     },
-    colors: {
-      primary: PAPER_THEME.text.primary,
-      muted: PAPER_THEME.text.subtle,
-    },
   },
 } as const;
 
-export { PAPER_COLORS, PAPER_THEME };
-
-export type Icon = typeof DESIGN_TOKENS.icon;
+export { PAPER_THEME };

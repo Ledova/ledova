@@ -26,7 +26,7 @@ export function Navbar() {
   }, [mobileOpen]);
 
   return (
-    <nav className="fixed inset-x-0 top-0 z-50 border-b border-rule bg-paper/90 backdrop-blur-md">
+    <nav className="fixed inset-x-0 top-0 z-50 border-b border-border-subtle bg-surface-base/90 backdrop-blur-md">
       <div className="mx-auto grid h-16 max-w-6xl grid-cols-[1fr_auto_1fr] items-center px-5 md:h-20 md:px-8">
         <Link to="/" onClick={closeMenu} className="col-start-1 justify-self-start">
           <Logo />
@@ -38,7 +38,7 @@ export function Navbar() {
               key={link.to}
               to={link.to}
               aria-current={link.to === pathname ? 'page' : undefined}
-              className="text-ink-muted transition-colors hover:text-ink"
+              className="text-text-muted transition-colors hover:text-text-primary"
             >
               {link.label}
             </Link>
@@ -48,20 +48,20 @@ export function Navbar() {
         <div className="col-start-3 flex items-center gap-1 justify-self-end md:gap-6">
           <a
             href={SIGN_IN_URL}
-            className="hidden whitespace-nowrap text-[15px] font-medium text-ink transition-colors hover:text-ledger md:inline"
+            className="hidden whitespace-nowrap text-[15px] font-medium text-text-primary transition-colors hover:text-brand-light md:inline"
           >
             Sign in
           </a>
           <a
             href={SIGN_UP_URL}
-            className="whitespace-nowrap rounded-lg bg-ledger px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-ledger-hover md:px-5 md:text-[15px]"
+            className="whitespace-nowrap rounded-lg bg-brand px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-brand-hover md:px-5 md:text-[15px]"
           >
             Register
           </a>
           <button
             type="button"
             onClick={() => setMobileOpen(!mobileOpen)}
-            className="-mr-3.5 flex h-11 w-11 items-center justify-center text-ink lg:hidden"
+            className="-mr-3.5 flex h-11 w-11 items-center justify-center text-text-primary lg:hidden"
             aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
             aria-expanded={mobileOpen}
             aria-controls="site-menu"
@@ -72,7 +72,7 @@ export function Navbar() {
       </div>
 
       {mobileOpen && (
-        <div id="site-menu" className="border-t border-rule bg-paper px-5 pb-6 md:px-8 lg:hidden">
+        <div id="site-menu" className="border-t border-border-subtle bg-surface-base px-5 pb-6 md:px-8 lg:hidden">
           <div className="mx-auto flex max-w-6xl flex-col">
             {NAV_LINKS.map((link) => (
               <Link
@@ -80,14 +80,14 @@ export function Navbar() {
                 to={link.to}
                 onClick={closeMenu}
                 aria-current={link.to === pathname ? 'page' : undefined}
-                className="border-b border-rule-soft py-3.5 text-base text-ink"
+                className="border-b border-border-faint py-3.5 text-base text-text-primary"
               >
                 {link.label}
               </Link>
             ))}
             <a
               href={SIGN_IN_URL}
-              className="mt-5 flex h-12 items-center justify-center rounded-lg border border-rule-strong text-base font-medium text-ink md:hidden"
+              className="mt-5 flex h-12 items-center justify-center rounded-lg border border-border text-base font-medium text-text-primary md:hidden"
             >
               Sign in
             </a>

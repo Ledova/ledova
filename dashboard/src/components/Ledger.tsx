@@ -34,7 +34,7 @@ export function LinkRow({
       <div className="min-w-0 flex-1">
         <Link
           to={to}
-          className="break-words font-medium text-text-primary after:absolute after:inset-0 group-hover:text-brand-mid"
+          className="break-words font-medium text-text-primary after:absolute after:inset-0 group-hover:text-brand-light"
         >
           {label}
           {context && (
@@ -47,7 +47,7 @@ export function LinkRow({
         {children}
       </div>
       {aside}
-      <CaretRightIcon aria-hidden="true" className="shrink-0 text-text-muted group-hover:text-brand-mid" />
+      <CaretRightIcon aria-hidden="true" className="shrink-0 text-text-muted group-hover:text-brand-light" />
     </div>
   );
 }
@@ -121,7 +121,7 @@ export function Disclosure({
       >
         <CaretRightIcon
           aria-hidden="true"
-          className={`mt-0.5 shrink-0 text-text-muted group-hover:text-brand-mid ${open ? 'rotate-90' : ''}`}
+          className={`mt-0.5 shrink-0 text-text-muted group-hover:text-brand-light ${open ? 'rotate-90' : ''}`}
         />
         <span className="min-w-0 flex-1">{summary}</span>
       </button>

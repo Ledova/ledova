@@ -4,6 +4,7 @@ import { Field, Label, Input, Description } from '@headlessui/react';
 import { EyeIcon, EyeSlashIcon, EnvelopeIcon, LockIcon, WarningIcon } from '@phosphor-icons/react';
 import { AuthLayout } from '@components/AuthLayout';
 import { ICON_MD } from '@components/iconSizes';
+import { AUTH_BUTTON_CLASS, AUTH_INPUT_CLASS, ERROR_BANNER_CLASS } from '@components/fieldClass';
 
 export function SignInPage() {
   const navigate = useNavigate();
@@ -30,7 +31,7 @@ export function SignInPage() {
         <div className="p-4 sm:p-5">
           <form onSubmit={handleSignIn} className="space-y-6">
             {generalError && (
-              <div className="bg-error-subtle border border-error-dark rounded-lg p-4">
+              <div className={ERROR_BANNER_CLASS}>
                 <div className="flex items-start">
                   <div className="flex-shrink-0">
                     <WarningIcon size={ICON_MD} className="text-error-light" />
@@ -55,7 +56,7 @@ export function SignInPage() {
                   name="email"
                   value={form.email}
                   onChange={(e) => setFieldValue('email', e.target.value)}
-                  className="w-full bg-surface-tertiary border border-border rounded-lg pl-10 pr-3 py-3 text-text-primary placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-brand-mid focus:border-transparent transition-colors"
+                  className={AUTH_INPUT_CLASS}
                   placeholder="your@email.com"
                   required
                   disabled={isLoading}
@@ -110,11 +111,7 @@ export function SignInPage() {
               )}
             </Field>
 
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full bg-brand-mid hover:bg-brand disabled:bg-surface-disabled disabled:text-text-secondary disabled:cursor-not-allowed text-white font-semibold py-3 px-4 rounded-lg transition-colors shadow-lg shadow-brand-light/40 disabled:shadow-none focus:outline-none focus:ring-2 focus:ring-border-focus focus:ring-offset-2 focus:ring-offset-surface-base"
-            >
+            <button type="submit" disabled={isLoading} className={AUTH_BUTTON_CLASS}>
               {isLoading ? (
                 <div className="flex items-center justify-center space-x-2">
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>

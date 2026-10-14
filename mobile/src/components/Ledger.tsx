@@ -242,13 +242,13 @@ export function Action({
       borderRadius: 6,
       paddingHorizontal: 14,
       paddingVertical: 11,
-      backgroundColor: primary ? theme.colors.brand.default : theme.colors.surface.transparent,
+      backgroundColor: primary ? theme.colors.brand.default : theme.colors.utility.transparent,
       opacity: disabled ? 0.5 : 1,
     },
     label: {
       fontFamily: theme.fontFamily.medium,
       fontSize: 14,
-      color: primary ? '#ffffff' : theme.colors.text.primary,
+      color: primary ? theme.colors.utility.white : theme.colors.text.primary,
     },
   }));
   return (
