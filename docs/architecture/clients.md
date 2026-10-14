@@ -574,15 +574,15 @@ the shared scale lacks.
 `packages/shared/src/constants/ui/design-tokens.ts` is the single source of
 design tokens. `buildColors()` turns a private paper palette into `PAPER_THEME`,
 one semantic colour vocabulary that the dashboard, the public site and mobile
-all use: `surface`, `text`, `brand`, `border` and the status colours. Roles
-follow the suffix: a `-light` colour (`text-brand-light`, `text-error-light`)
-is text, an icon or a light accent such as a translucent wash or outline on a
-surface; the bare name and `-mid` (`bg-brand`, `border-brand-mid`,
-`ring-brand-mid`) are solid fills under white text, borders and rings;
-`brand-subtle` is the text hover and `brand-hover` the fill hover. Mobile reads
-the same tokens through `useAppTheme()`, with solid fills on `brand.default`
-and brand text and icons on `brand.light`, plus the spacing, radius, type,
-layout and icon scales.
+all use: `surface`, `text`, `brand`, `border` and the status colours. On the
+web, text utilities follow the suffix: a `-light` colour (`text-brand-light`,
+`text-error-light`) is text on a surface, while the bare name and `-mid`
+(`bg-brand`, `border-brand-mid`, `ring-brand-mid`) are solid fills under white
+text, borders and rings; translucent washes and outlines use either.
+`brand-subtle` is the text hover and the text on `brand-tint`, and `brand-hover`
+the fill hover. Mobile reads
+the same tokens through `useAppTheme()`, with solid fills on `brand.default`,
+plus the spacing, radius, type, layout and icon scales.
 
 `make generate-tokens` runs `packages/scripts/generate-css-tokens.mjs` with
 `tsx` and writes `dashboard/src/styles/tokens.css` and `site/src/tokens.css`,
