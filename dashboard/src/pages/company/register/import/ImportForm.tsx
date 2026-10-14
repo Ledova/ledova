@@ -501,26 +501,28 @@ export function ImportForm({
           {shareClass?.name && shareClass.symbol && ` (${shareClass.symbol})`}
         </p>
       )}
-      <ol aria-label="Share register setup steps" className="grid grid-cols-3 gap-3">
-        {(['details', 'shareholders', 'review'] as const).map((step, index) => (
-          <li
-            key={step}
-            aria-current={phase === step ? 'step' : undefined}
-            className={`flex min-w-0 flex-col gap-2 border-b-2 pb-3 sm:flex-row sm:items-center ${phase === step ? 'border-brand-mid text-text-primary' : 'border-border-subtle text-text-muted'}`}
-          >
-            <span
-              aria-hidden="true"
-              className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-medium ${phase === step ? 'bg-brand-mid text-white' : 'bg-surface-tertiary text-text-muted'}`}
+      {(!visible || proposal?.status !== 'applied') && (
+        <ol aria-label="Share register setup steps" className="grid grid-cols-3 gap-3">
+          {(['details', 'shareholders', 'review'] as const).map((step, index) => (
+            <li
+              key={step}
+              aria-current={phase === step ? 'step' : undefined}
+              className={`flex min-w-0 flex-col gap-2 border-b-2 pb-3 sm:flex-row sm:items-center ${phase === step ? 'border-brand-mid text-text-primary' : 'border-border-subtle text-text-muted'}`}
             >
-              {index + 1}
-            </span>
-            <span className="text-xs font-medium [overflow-wrap:anywhere] sm:text-sm">
-              <span className="sr-only">{index + 1}. </span>
-              {step === 'details' ? 'Share details' : step === 'shareholders' ? 'Shareholders' : 'Review'}
-            </span>
-          </li>
-        ))}
-      </ol>
+              <span
+                aria-hidden="true"
+                className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-medium ${phase === step ? 'bg-brand-mid text-white' : 'bg-surface-tertiary text-text-muted'}`}
+              >
+                {index + 1}
+              </span>
+              <span className="text-xs font-medium [overflow-wrap:anywhere] sm:text-sm">
+                <span className="sr-only">{index + 1}. </span>
+                {step === 'details' ? 'Share details' : step === 'shareholders' ? 'Shareholders' : 'Review'}
+              </span>
+            </li>
+          ))}
+        </ol>
+      )}
       {visible && (
         <>
           {mutable ? (

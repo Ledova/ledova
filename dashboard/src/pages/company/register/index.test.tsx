@@ -699,6 +699,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   showJourney(`${importPath}?record=${proposal.uuid}`);
   const recorded = await screen.findByRole('region', { name: 'Recorded share register' });
   expect(within(recorded).getByRole('heading', { name: 'Recorded' })).toBeTruthy();
+  expect(screen.queryByRole('list', { name: 'Share register setup steps' })).toBeNull();
   expect(within(recorded).queryByText(/Editing retires this prepared draft/)).toBeNull();
   expect(within(recorded).queryByRole('button', { name: 'Confirm' })).toBeNull();
   const ownership = within(recorded).getByRole('button', { name: 'View company ownership' });
