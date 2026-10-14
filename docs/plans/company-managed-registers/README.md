@@ -55,12 +55,10 @@ owns copied particulars, source attribution and bounded opening corrections.
 correction safeguards. Web setup under
 [#1029](https://github.com/Ledova/ledova/issues/1029) guides Share details →
 Shareholders → Review, with a shareholder table and one Confirm action,
-individual draft editors, manual entry, recovered confirmations and
-a return to ownership. The inactive Import button's tooltip marks document
-extraction Coming soon; optional supporting copies do not extract data. Future
-extracted values use the same editable forms.
-[The owner's CSV removal](https://github.com/Ledova/ledova/issues/1036) keeps
-entry manual; CSV import and templates are not supported.
+individual draft editors, [manual entry](https://github.com/Ledova/ledova/issues/1036),
+recovered confirmations and a return to ownership. The inactive Import button's
+tooltip marks future document extraction into the same editable forms Coming soon.
+Optional supporting copies do not extract data.
 Native clients retain separate preparation and decision screens.
 
 The signed-in web refinement under [#1031](https://github.com/Ledova/ledova/issues/1031)
