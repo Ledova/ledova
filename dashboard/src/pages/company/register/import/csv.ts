@@ -37,7 +37,8 @@ function csvRows(text: string) {
   const line = () => {
     cell();
     if (row.some((value) => value.trim())) rows.push(row);
-    if (rows.length > REGISTER_CSV_MAX_ROWS + 1) throw createUserFriendlyError('A CSV can contain at most 500 allotment rows.');
+    if (rows.length > REGISTER_CSV_MAX_ROWS + 1)
+      throw createUserFriendlyError('A CSV can contain at most 500 allotment rows.');
     row = [];
   };
   for (let index = 0; index < text.length; index += 1) {
@@ -76,7 +77,9 @@ function flag(value: string, label: string, row: number) {
 function templateValue(value: string, row: number) {
   if (!value.startsWith("'")) {
     if (/^[=+\-@]/.test(value))
-      throw createUserFriendlyError(`Row ${row}: keep the template’s safety prefixes on values beginning with =, +, - or @.`);
+      throw createUserFriendlyError(
+        `Row ${row}: keep the template’s safety prefixes on values beginning with =, +, - or @.`,
+      );
     return value;
   }
   if (!/^'[=+\-@']/.test(value))
@@ -102,7 +105,8 @@ export function readRegisterCsv(text: string, current: MemberDraft[] = [], prese
   const members = new Map<string, MemberDraft>();
   for (const [index, values] of rows.entries()) {
     const line = index + 2;
-    if (values.length !== headers.length) throw createUserFriendlyError(`Row ${line}: the number of fields differs from the header.`);
+    if (values.length !== headers.length)
+      throw createUserFriendlyError(`Row ${line}: the number of fields differs from the header.`);
     if (encoded && values[headers.indexOf(ENCODING_COLUMN)] !== TEMPLATE_ENCODING)
       throw createUserFriendlyError(`Row ${line}: the template value_encoding marker must be ${TEMPLATE_ENCODING}.`);
     const row = Object.fromEntries(
@@ -121,7 +125,9 @@ export function readRegisterCsv(text: string, current: MemberDraft[] = [], prese
     if (!row.name || row.name.length > 255 || !row.address || row.address.length > 1000)
       throw createUserFriendlyError(`Row ${line}: give a name and address within the field limits.`);
     if (row.share_reference.length > 255 || row.certificate_reference.length > 255)
-      throw createUserFriendlyError(`Row ${line}: share and certificate references can contain at most 255 characters.`);
+      throw createUserFriendlyError(
+        `Row ${line}: share and certificate references can contain at most 255 characters.`,
+      );
     const shares = wholeShares(row.holding_shares);
     const allotted = wholeShares(row.allotment_shares);
     if (
@@ -132,13 +138,18 @@ export function readRegisterCsv(text: string, current: MemberDraft[] = [], prese
       allotted <= 0n ||
       allotted >= 2n ** 256n
     )
-      throw createUserFriendlyError(`Row ${line}: share quantities must be positive whole numbers within the supported limit.`);
+      throw createUserFriendlyError(
+        `Row ${line}: share quantities must be positive whole numbers within the supported limit.`,
+      );
     const paid = registerImportMoney(row.amount_paid);
     const unpaid = registerImportMoney(row.amount_unpaid);
     if (paid === null || unpaid === null)
-      throw createUserFriendlyError(`Row ${line}: enter paid and unpaid amounts explicitly, using 0 when none is recorded.`);
+      throw createUserFriendlyError(
+        `Row ${line}: enter paid and unpaid amounts explicitly, using 0 when none is recorded.`,
+      );
     const fullyPaid = flag(row.fully_paid, 'fully_paid', line);
-    if (fullyPaid !== (unpaid === '0.00')) throw createUserFriendlyError(`Row ${line}: fully_paid must agree with amount_unpaid.`);
+    if (fullyPaid !== (unpaid === '0.00'))
+      throw createUserFriendlyError(`Row ${line}: fully_paid must agree with amount_unpaid.`);
     let member = members.get(row.holder_reference);
     if (member) {
       if (
