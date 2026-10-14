@@ -1,5 +1,11 @@
 import { Link } from 'react-router-dom';
-import { DESTINATIONS, REGISTER_CORRECTION_COPY, formatDateTime, type OrderSubmissionOwner } from '@ledova/shared';
+import {
+  DESTINATIONS,
+  REGISTER_CORRECTION_COPY,
+  formatDateTime,
+  formatDate,
+  type OrderSubmissionOwner,
+} from '@ledova/shared';
 import { Section } from '@components/Ledger';
 import { PageAction } from '@components/Page';
 import { RegisterChanges } from '../register/RegisterChanges';
@@ -41,7 +47,7 @@ export function RecentChanges({
                 {REGISTER_CORRECTION_COPY.ENTRY_KINDS[entry.kind]} · Entry {entry.sequence}
               </p>
               <p className="text-xs text-text-muted">
-                Effective {entry.effectiveOn} · Recorded {formatDateTime(entry.recordedAt)}
+                Effective {formatDate(entry.effectiveOn)} · Recorded {formatDateTime(entry.recordedAt)}
               </p>
               <div className="text-text-primary">
                 <RegisterChanges changes={entry.changes} />

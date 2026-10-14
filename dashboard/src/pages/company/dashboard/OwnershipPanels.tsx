@@ -10,13 +10,13 @@ export function OwnershipMetrics({ summary }: { summary: ReturnType<typeof owner
       aria-label="Company ownership summary"
       className="rounded-xl border border-border bg-surface-raised p-4 sm:p-5"
     >
-      <dl className="grid grid-cols-1 gap-4 sm:grid-cols-3 sm:gap-6">
+      <dl className="grid grid-cols-2 gap-4 sm:grid-cols-3 sm:gap-6">
         {[
           ['Issued shares', summary.issued === null ? 'Not complete' : formatShareCount(summary.issued)],
           ['Current shareholders', summary.shareholders === null ? 'Not complete' : String(summary.shareholders)],
           ['Share classes', String(summary.classes)],
-        ].map(([label, value]) => (
-          <div key={label} className="min-w-0">
+        ].map(([label, value], index) => (
+          <div key={label} className={`min-w-0 ${index === 0 ? 'col-span-2 sm:col-span-1' : ''}`}>
             <dt className="text-sm text-text-muted">{label}</dt>
             <dd className="mt-1 break-words text-2xl font-medium tabular-nums text-text-primary">{value}</dd>
           </div>

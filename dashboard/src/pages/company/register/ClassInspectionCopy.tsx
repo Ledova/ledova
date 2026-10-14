@@ -161,7 +161,7 @@ function InspectionForm({
         Prepare an inspection CSV under your current company appointment. It includes residential addresses. The
         company&apos;s request and output provenance are retained.
       </p>
-      <fieldset disabled={blocked || !!target} className="space-y-3">
+      <fieldset disabled={blocked || !!target} className="grid gap-4 sm:grid-cols-2">
         <label className="block text-sm text-text-primary">
           Written instruction reference
           <input
@@ -193,6 +193,7 @@ function InspectionForm({
       </fieldset>
       {!target ? (
         <PageAction
+          primary
           label={busy === 'preview' ? 'Preparing preview…' : 'Preview inspection copy'}
           disabled={blocked || !valid}
           onClick={() => void preview()}
@@ -208,6 +209,7 @@ function InspectionForm({
           </Rows>
           <div className="flex flex-wrap gap-2">
             <PageAction
+              primary
               label={busy === 'download' ? 'Downloading inspection copy…' : 'Confirm and download inspection copy'}
               disabled={blocked}
               onClick={() => void download()}

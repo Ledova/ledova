@@ -431,19 +431,22 @@ export function GrantForm({
         If a response is interrupted, recover the original preparation before starting another. Preparation creates no
         issued shares.
       </p>
-      <PageAction
-        label={
-          busy
-            ? 'Preparing grant…'
-            : held
-              ? 'Recover original grant preparation'
-              : award
-                ? 'Prepare vested share issue'
-                : COPY.SUBMIT
-        }
-        disabled={busy || blocked || (!held && (!canPrepare || !!problem))}
-        onClick={() => void submit()}
-      />
+      <div className="flex justify-end border-t border-border-subtle pt-4">
+        <PageAction
+          primary
+          label={
+            busy
+              ? 'Preparing grant…'
+              : held
+                ? 'Recover original grant preparation'
+                : award
+                  ? 'Prepare vested share issue'
+                  : COPY.SUBMIT
+          }
+          disabled={busy || blocked || (!held && (!canPrepare || !!problem))}
+          onClick={() => void submit()}
+        />
+      </div>
     </form>
   );
 }

@@ -141,7 +141,7 @@ function OwnDashboard({
       ) : fresh && scoped && summary && selected ? (
         <>
           <OwnershipMetrics summary={summary} />
-          <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+          <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
             <div className="min-w-0 space-y-6">
               <ShareholderPanel
                 company={company.uuid}

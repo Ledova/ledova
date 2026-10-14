@@ -73,12 +73,16 @@ export function CompanyPack({
   return (
     <Section title="Company pack">
       <p className="text-sm text-text-muted">
-        The full company ZIP includes residential addresses and private company material. Preparation requires current
-        company administration. The written instruction and recipient are recorded. The archive describes the captured
-        records as at its generation time. Packs support non-tokenised core registers, employee awards and fully paid
-        external allotments. If unsupported records are included, the whole archive is unavailable. Use supported
-        inspection copies or unsigned certificates where applicable.
+        This company ZIP includes residential addresses and private records. Current company administration, a written
+        instruction and a named recipient are required; the captured records and generation time are retained.
       </p>
+      <details className="text-sm text-text-muted">
+        <summary className="cursor-pointer">Included records and limitations</summary>
+        <p className="mt-2">
+          Packs include non-tokenised registers, employee awards and fully paid external allotments. Unsupported records
+          make the whole archive unavailable; use supported inspection copies or unsigned certificates instead.
+        </p>
+      </details>
       {appointment ? (
         <PackForm
           key={JSON.stringify([company, appointment.uuid, sourceReady])}
@@ -170,7 +174,7 @@ function PackForm({
   };
   return (
     <div className="flex flex-col gap-3 pt-3">
-      <fieldset disabled={busy || !sourceReady} className="space-y-3">
+      <fieldset disabled={busy || !sourceReady} className="grid gap-4 sm:grid-cols-2">
         <label className="block text-sm text-text-primary">
           Pack instruction reference
           <input
@@ -191,6 +195,7 @@ function PackForm({
         </label>
       </fieldset>
       <PageAction
+        primary
         label={busy ? 'Preparing company pack…' : 'Prepare and download company pack'}
         disabled={busy || !sourceReady || !valid}
         onClick={() => void download()}

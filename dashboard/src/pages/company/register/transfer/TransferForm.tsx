@@ -351,11 +351,14 @@ export function TransferForm({
       <p className="text-sm text-text-muted">
         If the preparation response is interrupted, retry with unchanged details to retrieve the same transfer.
       </p>
-      <PageAction
-        label={busy ? 'Preparing transfer…' : COPY.SUBMIT}
-        disabled={busy || blocked || (!operation && !!problem)}
-        onClick={() => void submit()}
-      />
+      <div className="flex justify-end border-t border-border-subtle pt-4">
+        <PageAction
+          primary
+          label={busy ? 'Preparing transfer…' : COPY.SUBMIT}
+          disabled={busy || blocked || (!operation && !!problem)}
+          onClick={() => void submit()}
+        />
+      </div>
     </form>
   );
 }

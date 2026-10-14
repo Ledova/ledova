@@ -9,7 +9,6 @@ import {
   useUserPreferences,
   USER_PREFERENCES_QUERY_KEY,
   type OrderSubmissionOwner,
-  formatShareCount,
   type TokenHoldersResponse,
 } from '@ledova/shared';
 import { LinkRow, Section } from '@components/Ledger';
@@ -38,10 +37,12 @@ const ON_CHAIN = ['deployed', 'paused'];
 
 function RegisterPage({
   selection,
+  companyName,
   sections,
   children,
 }: {
   selection?: ReactNode;
+  companyName?: string;
   sections?: ReactNode;
   children: ReactNode;
 }) {
@@ -57,6 +58,7 @@ function RegisterPage({
   return (
     <PageTitle.Provider value={title}>
       <Page
+        narrow
         lede={
           hash === '#awards'
             ? 'Record employee entitlements and vesting. Shares are issued through a separate company decision.'
@@ -68,6 +70,7 @@ function RegisterPage({
         }
       >
         {selection}
+        {companyName && <p className="text-sm text-text-muted">{companyName}</p>}
         {children}
         {sections}
       </Page>
@@ -244,6 +247,7 @@ function OwnRegister({
 
   return (
     <RegisterPage
+      companyName={readable && sourceReady ? scope?.company.name : undefined}
       selection={
         preferences?.status === 'success' &&
         preferences.fetchStatus === 'idle' &&
@@ -265,17 +269,15 @@ function OwnRegister({
         scope && (
           <>
             <div hidden={view !== 'access'}>
-              <Section title="Invite and manage member access">
-                <CompanyMemberAccess
-                  key={`members/${scope.company.uuid}`}
-                  owner={owner}
-                  guard={guard}
-                  company={scope.company.uuid}
-                  registers={scope.registers}
-                  sourceReady={sourceReady}
-                  onHeldChange={setMemberHeld}
-                />
-              </Section>
+              <CompanyMemberAccess
+                key={`members/${scope.company.uuid}`}
+                owner={owner}
+                guard={guard}
+                company={scope.company.uuid}
+                registers={scope.registers}
+                sourceReady={sourceReady}
+                onHeldChange={setMemberHeld}
+              />
             </div>
             <div hidden={view !== 'register'}>
               <LinkRow to="#access" label="Member access" />
@@ -294,7 +296,7 @@ function OwnRegister({
               <details className="space-y-3 border-t border-border pt-4">
                 <summary className="cursor-pointer text-base font-medium">Register guidance</summary>
                 <p className="text-sm text-text-muted">
-                  Company appointees prepare, approve and record supported changes. The stored register establishes
+                  Company appointees prepare, approve and record supported changes. This view shows the company’s
                   recorded ownership; wallet balances do not replace it. Share class settings retain empty-class
                   deployment and supported tokenised workflows. Importing holdings does not tokenise them. Outputs are
                   company-provided, and certificates are unsigned. Publications retain their existing staff workflow.
@@ -342,15 +344,6 @@ function OwnRegister({
               }}
             >
               <Section title={readable ? `${register.token.name} · ${register.token.symbol}` : 'Share issue recovery'}>
-                {readable && (
-                  <p className="text-sm text-text-muted">
-                    {scope.company.name} ·{' '}
-                    {register.issuedSupply === null
-                      ? 'Issued quantity not recorded'
-                      : `${formatShareCount(register.issuedSupply)} issued shares`}{' '}
-                    · {register.totalHolders} current members
-                  </p>
-                )}
                 <div hidden={view !== 'register'} className="space-y-5">
                   {readable && (
                     <RegisterMembers owner={owner} guard={guard} register={register} company={scope.company.uuid} />

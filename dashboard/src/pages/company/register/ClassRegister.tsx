@@ -11,30 +11,43 @@ import { LinkRow, Rows, Row, Status } from '@components/Ledger';
 export function ClassRegister({ register, prepare = false }: { register: TokenHoldersResponse; prepare?: boolean }) {
   return (
     <div className="flex flex-col gap-4">
-      <Rows>
-        <Row label="Issued shares">
-          <span className="break-all">
-            {register.issuedSupply === null ? 'Not recorded' : formatShareCount(register.issuedSupply)}
+      <section aria-label={`${register.token.name} share summary`}>
+        <dl className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+          <div className="col-span-2 rounded-xl bg-surface-tertiary p-4 sm:col-span-1">
+            <dt className="text-xs text-text-muted">Issued shares</dt>
+            <dd className="mt-2 break-all text-2xl font-medium tabular-nums">
+              {register.issuedSupply === null ? 'Not recorded' : formatShareCount(register.issuedSupply)}
+            </dd>
+          </div>
+          <div className="rounded-xl bg-surface-tertiary p-4">
+            <dt className="text-xs text-text-muted">Current shareholders</dt>
+            <dd className="mt-2 text-2xl font-medium tabular-nums">
+              {register.initialized ? register.totalHolders : 'Not recorded'}
+            </dd>
+          </div>
+          <div className="rounded-xl bg-surface-tertiary p-4">
+            <dt className="text-xs text-text-muted">Register</dt>
+            <dd className="mt-2 text-sm">
+              <Status tone={register.initialized ? 'done' : 'waiting'}>
+                {register.initialized ? 'Opened' : 'Not opened'}
+              </Status>
+            </dd>
+          </div>
+        </dl>
+      </section>
+      {register.token.totalSupply !== (2n ** 256n - 1n).toString() ? (
+        <p className="text-sm text-text-muted">
+          Authorised shares ·{' '}
+          <span className="break-all font-medium text-text-primary">
+            {formatShareCount(register.token.totalSupply)}
           </span>
-        </Row>
-        {register.token.totalSupply !== (2n ** 256n - 1n).toString() ? (
-          <Row label="Authorised shares">
-            <span className="break-all">{formatShareCount(register.token.totalSupply)}</span>
-          </Row>
-        ) : (
-          <Row label="Technical share limit">
-            <details>
-              <summary className="cursor-pointer">Internal quantity guard</summary>
-              <span className="break-all">{formatShareCount(register.token.totalSupply)}</span>
-            </details>
-          </Row>
-        )}
-        <Row label="Register">
-          <Status tone={register.initialized ? 'done' : 'waiting'}>
-            {register.initialized ? 'Opened' : 'Not opened'}
-          </Status>
-        </Row>
-      </Rows>
+        </p>
+      ) : (
+        <details className="text-xs text-text-muted">
+          <summary className="cursor-pointer">Technical share limit</summary>
+          <p className="mt-2 break-all">{formatShareCount(register.token.totalSupply)}</p>
+        </details>
+      )}
       {!register.initialized ? (
         <p className="text-sm text-text-muted">{REGISTER_COPY.NOT_OPENED_NOTE}</p>
       ) : (
@@ -48,7 +61,7 @@ export function ClassRegister({ register, prepare = false }: { register: TokenHo
               {REGISTER_COPY.WAITING_NOTE(register.waitingEffects)}
             </p>
           ) : null}
-          <h3 className="text-sm font-medium text-text-primary">Current members · {register.totalHolders}</h3>
+          <h3 className="text-sm font-medium text-text-primary">Shareholders</h3>
           {register.holders.length === 0 ? (
             <p className="text-sm text-text-muted">No current members are recorded for this class.</p>
           ) : (

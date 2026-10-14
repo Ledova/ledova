@@ -60,7 +60,10 @@ export function ShareClass({ uuid }: { uuid: string }) {
   const navigate = useNavigate();
   const data = useShareClass(uuid);
   return (
-    <Page actions={<PageAction label="Back to Register" onClick={() => navigate(DESTINATIONS.companyRegister.path)} />}>
+    <Page
+      narrow
+      actions={<PageAction label="Back to Register" onClick={() => navigate(DESTINATIONS.companyRegister.path)} />}
+    >
       <ShareClassDetails
         key={`${data.tokenKey.join('/')}/${data.token.data?.companyUuid}/${data.token.data?.isOwner === true}`}
         data={data}

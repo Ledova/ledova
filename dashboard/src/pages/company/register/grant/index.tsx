@@ -47,7 +47,7 @@ export default function CompanyRegisterGrantPage() {
       />
     );
   return (
-    <Page lede={LEDE} actions={back}>
+    <Page narrow lede={LEDE} actions={back}>
       {preferences.isLoading ? (
         <Loading />
       ) : (

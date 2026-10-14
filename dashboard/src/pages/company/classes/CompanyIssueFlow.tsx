@@ -380,7 +380,10 @@ function Preparation({ commands }: { commands: Commands }) {
   };
   if (!commands.visible || !commands.steps.prepare) return null;
   return (
-    <fieldset disabled={waiting} className="space-y-4">
+    <fieldset
+      disabled={waiting}
+      className="grid gap-4 rounded-xl border border-border-subtle bg-surface-tertiary p-4 sm:grid-cols-2 [&>p]:sm:col-span-2 [&>h3]:sm:col-span-2 [&>dl]:sm:col-span-2"
+    >
       <label className="block text-sm">
         Nominated wallet
         <select
@@ -509,6 +512,7 @@ function Preparation({ commands }: { commands: Commands }) {
         </label>
       )}
       <PageAction
+        primary
         label={COPY.PREPARE}
         disabled={waiting || !commands.canPrepare || !!issueProblem || !!commands.recovery}
         onClick={() => void submit('issue')}
