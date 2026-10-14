@@ -44,6 +44,14 @@ neither activates the company nor issues shares. The
 Native signed-in navigation is unchanged. The guides below describe the
 delivered structure on web and mobile.
 
+The owner's [existing-register mirror decision](../../decisions.md#existing-register-mirror-and-simple-setup)
+under [#1025](https://github.com/Ledova/ledova/issues/1025) keeps the company's
+legal register, historical records, lawful access arrangements and filings with
+the company. Setup mirrors its supplied ownership records; it neither replaces
+those arrangements nor issues existing shares again. The
+[import guide](../../operations/register-foundation.md#importing-an-existing-register)
+owns copied particulars, source attribution and bounded opening corrections.
+
 Verification references in the guides are each increment's original evidence;
 the [11 October minimum-test policy](../../decisions.md#minimum-tests-and-fresh-migrations)
 governs current coverage.

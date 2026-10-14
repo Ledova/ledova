@@ -22,9 +22,10 @@ export function importsKey(owner: OrderSubmissionOwner, token: string) {
   return [...registerKey(owner), 'imports', token];
 }
 
-export function useRegisterImports(owner: OrderSubmissionOwner, token: string, guard: () => void) {
+export function useRegisterImports(owner: OrderSubmissionOwner, token: string, guard: () => void, enabled = true) {
   return useQuery({
     queryKey: importsKey(owner, token),
+    enabled,
     queryFn: async () => {
       const imports = await readEveryPage(async (page) => {
         guard();

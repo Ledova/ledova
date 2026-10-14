@@ -22,16 +22,23 @@ class RegisterImport(BaseModel):
     company = models.ForeignKey("companies.Company", on_delete=models.PROTECT, related_name="register_imports")
     token = models.ForeignKey("tokens.ShareToken", on_delete=models.PROTECT, related_name="register_imports")
     as_at = models.DateField()
+    source_reference = models.CharField(max_length=255, blank=True, default="")
+    source_confirmed = models.BooleanField(default=False)
+    correction_of = models.ForeignKey("self", on_delete=models.PROTECT, related_name="corrections", null=True)
+    base_sequence = models.PositiveBigIntegerField(null=True, editable=False)
+    base_hash = models.CharField(max_length=64, blank=True, default="", editable=False)
     members = models.JSONField()
     former_members = models.JSONField()
-    authority = models.CharField(max_length=24, choices=RegisterCorrectionAuthority.choices)
+    authority = models.CharField(
+        max_length=24, choices=[*RegisterCorrectionAuthority.choices, ("company_records", "Company records")]
+    )
     approving_director = models.CharField(max_length=255, blank=True)
     authority_reference = models.CharField(max_length=255)
     reason = models.CharField(max_length=1000)
     source_document = models.UUIDField(null=True)
     evidence_fingerprint = models.CharField(max_length=64)
-    evidence_snapshot = models.JSONField()
-    file = models.FileField(upload_to=import_evidence_path, storage=private_storage, max_length=255)
+    evidence_snapshot = models.JSONField(null=True)
+    file = models.FileField(upload_to=import_evidence_path, storage=private_storage, max_length=255, blank=True)
     asic_document = models.UUIDField(null=True)
     asic_fingerprint = models.CharField(max_length=64)
     asic_snapshot = models.JSONField(null=True)
@@ -57,12 +64,47 @@ class RegisterImport(BaseModel):
     class Meta:
         ordering = ["-created_at", "-uuid"]
         constraints = [
+            models.CheckConstraint(
+                condition=(
+                    models.Q(source_confirmed=True, authority="company_records")
+                    & ~models.Q(source_reference__regex=r"^\s*$")
+                    & (
+                        models.Q(correction_of__isnull=True, base_sequence__isnull=True, base_hash="")
+                        | models.Q(correction_of__isnull=False, base_sequence__gt=0, base_hash__regex="^[0-9a-f]{64}$")
+                    )
+                )
+                | models.Q(
+                    source_confirmed=False,
+                    source_reference="",
+                    correction_of__isnull=True,
+                    base_sequence__isnull=True,
+                    base_hash="",
+                ),
+                name="register_import_mirror_source",
+            ),
             models.UniqueConstraint(
-                fields=["token"], condition=models.Q(status="applied"), name="one_applied_register_import_per_class"
+                fields=["token"],
+                condition=models.Q(status="applied", correction_of__isnull=True),
+                name="one_applied_register_import_per_class",
+            ),
+            models.UniqueConstraint(
+                fields=["correction_of"],
+                condition=models.Q(status="applied", correction_of__isnull=False),
+                name="one_applied_mirror_correction_per_snapshot",
             ),
             models.CheckConstraint(
                 condition=(
                     models.Q(
+                        source_confirmed=True,
+                        authority="company_records",
+                        preparing_appointment__isnull=False,
+                        source_document__isnull=True,
+                        asic_document__isnull=True,
+                    )
+                    | models.Q(
+                        source_confirmed=False,
+                        source_reference="",
+                        correction_of__isnull=True,
                         preparing_appointment__isnull=True,
                         register_evidence__isnull=True,
                         asic_evidence__isnull=True,

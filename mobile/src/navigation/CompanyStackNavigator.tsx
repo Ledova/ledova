@@ -29,7 +29,7 @@ export type CompanyStackParamList = {
   CompanyEligibility: undefined;
   TokenDetail: { uuid: string; name?: string };
   PrepareRegisterOpening: { tokenUuid: string; companyUuid: string };
-  PrepareRegisterImport: { tokenUuid: string; companyUuid: string };
+  PrepareRegisterImport: { tokenUuid: string; companyUuid: string; correctionOf?: string };
   PrepareRegisterCorrection: { tokenUuid: string; companyUuid: string; entryUuid: string };
   PrepareRegisterParticulars: { tokenUuid: string; companyUuid: string; memberUuid: string };
   PrepareRegisterGrant: { tokenUuid: string; companyUuid: string; awardUuid?: string };

@@ -102,7 +102,7 @@ export {
   isRegisterEvidenceReceipt,
   type RegisterStep,
 } from './register-commands';
-export { isPreparedRegisterImport, registerImportTotals } from './register-imports';
+export { isPreparedRegisterImport, registerImportMoney, registerImportTotals } from './register-imports';
 export {
   formatRegisterChanges,
   isPreparedRegisterCorrection,

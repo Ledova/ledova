@@ -49,7 +49,7 @@ export function ClassRecords({
   register: TokenHoldersResponse;
   refreshHolders: () => Promise<unknown>;
   onOpen: () => void;
-  onPrepareImport: () => void;
+  onPrepareImport: (correctionOf?: string) => void;
   onPrepareGrant: () => void;
   onPrepareAwardGrant: (award: string) => void;
   sourceReady?: boolean;

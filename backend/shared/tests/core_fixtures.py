@@ -115,13 +115,23 @@ def import_payload(owner, appointment, token, member_id=None):
                 "residential_address": "1 Example Street, Sydney NSW 2000",
                 "shares": "100",
                 "entered_on": "2020-01-01",
-                "amount_paid": "100.00",
+                "allotments": [
+                    {
+                        "allotted_on": "2020-01-01",
+                        "shares": "100",
+                        "share_reference": "1-100",
+                        "certificate_reference": "SYNTHETIC-001",
+                        "amount_paid": "100.00",
+                        "amount_unpaid": "0.00",
+                        "fully_paid": True,
+                        "beneficially_held": True,
+                    }
+                ],
             }
         ],
         "former_members": [],
-        "authority": "director_resolution",
-        "approving_director": "Synthetic Independent Director",
-        "authority_reference": "SYNTHETIC-CORE-IMPORT",
+        "source_reference": "SYNTHETIC-CORE-IMPORT",
+        "source_confirmed": True,
         "reason": "Import the company-provided register",
     }
 

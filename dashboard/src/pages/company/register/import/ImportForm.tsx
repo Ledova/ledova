@@ -3,7 +3,6 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import {
   DESTINATIONS,
-  HOLDER_TYPE_LABELS,
   REGISTER_IMPORT_COPY,
   apiErrorSentence,
   createUserFriendlyError,
@@ -19,12 +18,14 @@ import {
   type OwnCompanyAppointment,
   type RegisterEvidence,
   type RegisterEvidenceKind,
+  type RegisterImport,
   type TokenHoldersResponse,
 } from '@ledova/shared';
 import { PageAction } from '@components/Page';
 import { FIELD_CLASS } from '@components/fieldClass';
 import apiClient from '@services/apiClient';
 import { importsKey } from '../useRegisterImports';
+import { MemberFields } from './MemberFields';
 import {
   blankFormer,
   blankMember,
@@ -34,7 +35,6 @@ import {
   memberRows,
   preparationProblems,
   statedFigures,
-  type Authority,
   type FormerDraft,
   type MemberDraft,
   type PreparationDraft,
@@ -55,6 +55,7 @@ export function ImportForm({
   appointment,
   blocked,
   onConflict,
+  correction,
 }: {
   owner: OrderSubmissionOwner;
   guard: () => void;
@@ -63,6 +64,7 @@ export function ImportForm({
   appointment: OwnCompanyAppointment;
   blocked: boolean;
   onConflict: () => void;
+  correction?: RegisterImport;
 }) {
   const client = useQueryClient();
   const navigate = useNavigate();
@@ -70,13 +72,11 @@ export function ImportForm({
   const [draft, setDraft] = useState<PreparationDraft>(() => ({
     registerFile: null,
     asicFile: null,
-    asAt: today,
-    authority: 'director_resolution',
-    director: '',
-    reference: '',
-    reason: '',
-    members: initialMembers(register),
-    former: [],
+    asAt: correction?.asAt ?? today,
+    reference: correction?.sourceReference ?? '',
+    reason: correction ? '' : 'Mirror the company’s existing share records.',
+    members: initialMembers(register, correction),
+    former: correction?.formerMembers.map((row) => ({ ...row, id: crypto.randomUUID() })) ?? [],
     statedTotal: '',
     statedCount: '',
   }));
@@ -138,29 +138,28 @@ export function ImportForm({
   };
 
   const submit = async () => {
-    if (pending.current || busy || blocked || problems.length > 0 || differs || !draft.registerFile || !draft.asicFile)
-      return;
-    const stated = statedFigures(draft)!;
+    if (pending.current || busy || blocked || problems.length > 0 || differs) return;
+    const stated = statedFigures(draft);
     pending.current = true;
     setBusy(true);
     setError('');
     try {
       check();
-      const registerEvidence = await upload('share_register', draft.registerFile);
-      const asicEvidence = await upload('asic_extract', draft.asicFile);
+      const registerEvidence = draft.registerFile ? await upload('share_register', draft.registerFile) : null;
+      const asicEvidence = draft.asicFile ? await upload('asic_extract', draft.asicFile) : null;
       const request = {
         appointment: appointment.uuid,
         tokenId: register.token.uuid,
-        registerEvidence: registerEvidence.uuid,
-        asicEvidence: asicEvidence.uuid,
-        asicIssuedTotal: stated.total,
-        asicMemberCount: stated.count,
+        registerEvidence: registerEvidence?.uuid,
+        asicEvidence: asicEvidence?.uuid,
+        asicIssuedTotal: stated?.total,
+        asicMemberCount: stated?.count,
         asAt: draft.asAt,
         members: memberRows(draft.members),
         formerMembers: formerRows(draft.former),
-        authority: draft.authority,
-        approvingDirector: draft.authority === 'director_resolution' ? draft.director.trim() : '',
-        authorityReference: draft.reference.trim(),
+        sourceReference: draft.reference.trim(),
+        sourceConfirmed: true as const,
+        correctionOf: correction?.uuid,
         reason: draft.reason.trim(),
       };
       const signature = JSON.stringify(request);
@@ -206,9 +205,9 @@ export function ImportForm({
     >
       <fieldset disabled={busy} className="space-y-5">
         <fieldset className="space-y-3">
-          <legend className="text-sm font-medium text-text-primary">Evidence provided by the company</legend>
+          <legend className="text-sm font-medium text-text-primary">Supporting copies (optional)</legend>
           <label className={LABEL}>
-            Current share register
+            Current share register (optional)
             <input
               type="file"
               accept={EVIDENCE}
@@ -220,7 +219,7 @@ export function ImportForm({
             />
           </label>
           <label className={LABEL}>
-            ASIC extract
+            ASIC extract (optional)
             <input
               type="file"
               accept={EVIDENCE}
@@ -234,169 +233,76 @@ export function ImportForm({
           <p className="text-sm text-text-muted">PDF or image, max 10 MB. Ledova does not verify either document.</p>
         </fieldset>
         <fieldset className="space-y-3">
-          <legend className="text-sm font-medium text-text-primary">Register date and authority</legend>
+          <legend className="text-sm font-medium text-text-primary">Source records</legend>
+          <p className="text-sm text-text-muted">
+            Ledova mirrors existing company records. The company keeps its legal register, history, access arrangements
+            and filings where they are.
+          </p>
           <label className={LABEL}>
-            Register date
+            Record date
             <input
               type="date"
               max={today}
               value={draft.asAt}
               className={FIELD_CLASS}
-              onChange={(event) => {
-                const asAt = event.target.value;
-                update((current) => ({ ...current, asAt }));
-              }}
+              onChange={(event) => update((current) => ({ ...current, asAt: event.target.value }))}
             />
           </label>
           <label className={LABEL}>
-            Authority
-            <select
-              value={draft.authority}
-              className={FIELD_CLASS}
-              onChange={(event) => {
-                const authority = event.target.value as Authority;
-                update((current) => ({ ...current, authority }));
-              }}
-            >
-              <option value="director_resolution">Director resolution</option>
-              <option value="court_order">Court order</option>
-            </select>
-          </label>
-          {draft.authority === 'director_resolution' && (
-            <label className={LABEL}>
-              Approving director
-              <input
-                value={draft.director}
-                maxLength={255}
-                className={FIELD_CLASS}
-                onChange={(event) => {
-                  const director = event.target.value;
-                  update((current) => ({ ...current, director }));
-                }}
-              />
-            </label>
-          )}
-          <label className={LABEL}>
-            Authority reference
+            Source record reference
             <input
               value={draft.reference}
               maxLength={255}
+              placeholder="Company register held by our accountant, version 14 October"
               className={FIELD_CLASS}
-              onChange={(event) => {
-                const reference = event.target.value;
-                update((current) => ({ ...current, reference }));
-              }}
+              onChange={(event) => update((current) => ({ ...current, reference: event.target.value }))}
             />
           </label>
           <label className={LABEL}>
-            Reason
+            {correction ? 'Reason for correcting the mirror' : 'Reason'}
             <textarea
-              rows={3}
+              rows={2}
               value={draft.reason}
               maxLength={1000}
               className={FIELD_CLASS}
-              onChange={(event) => {
-                const reason = event.target.value;
-                update((current) => ({ ...current, reason }));
-              }}
+              onChange={(event) => update((current) => ({ ...current, reason: event.target.value }))}
             />
           </label>
+          {correction && (
+            <p className="text-sm text-text-muted">
+              This corrects a copied opening. The earlier snapshot and evidence remain in history. It does not change
+              the company’s legal records.
+            </p>
+          )}
         </fieldset>
         <fieldset className="space-y-3">
-          <legend className="text-sm font-medium text-text-primary">Current members</legend>
-          <p className="text-sm text-text-muted">
-            {!register.initialized
-              ? "Each current member in the company's register, with their shares."
-              : register.holders.length > 0
-                ? 'Each current member of the stored register, with the shares it records.'
-                : REGISTER_IMPORT_COPY.NO_HOLDERS}
-          </p>
-          {draft.members.map((row, index) => {
-            const holder = register.initialized
-              ? register.holders.find((item) => item.member === row.member)
-              : undefined;
-            return (
-              <fieldset key={row.member} className="space-y-2 border-t border-border-subtle pt-3">
-                <legend className="text-sm text-text-primary">Member {index + 1}</legend>
-                {holder && (
-                  <p className="text-xs text-text-muted">
-                    {holder.name || HOLDER_TYPE_LABELS[holder.holderType]} · {formatShareCount(holder.balance)}{' '}
-                    {holder.balance === '1' ? 'share' : 'shares'}
-                  </p>
-                )}
-                <label className={LABEL}>
-                  Name
-                  <input
-                    value={row.name}
-                    maxLength={255}
-                    className={FIELD_CLASS}
-                    onChange={(event) => setMember(index, { name: event.target.value })}
-                  />
-                </label>
-                <label className={LABEL}>
-                  Residential address
-                  <input
-                    value={row.residentialAddress}
-                    maxLength={1000}
-                    className={FIELD_CLASS}
-                    onChange={(event) => setMember(index, { residentialAddress: event.target.value })}
-                  />
-                </label>
-                {!register.initialized && (
-                  <label className={LABEL}>
-                    Shares
-                    <input
-                      inputMode="numeric"
-                      value={row.shares}
-                      className={FIELD_CLASS}
-                      onChange={(event) => setMember(index, { shares: event.target.value })}
-                    />
-                  </label>
-                )}
-                <label className={LABEL}>
-                  Date entered
-                  <input
-                    type="date"
-                    max={draft.asAt}
-                    value={row.enteredOn}
-                    className={FIELD_CLASS}
-                    onChange={(event) => setMember(index, { enteredOn: event.target.value })}
-                  />
-                </label>
-                <label className={LABEL}>
-                  Amount paid (optional)
-                  <input
-                    inputMode="decimal"
-                    placeholder="250.00"
-                    value={row.amountPaid}
-                    className={FIELD_CLASS}
-                    onChange={(event) => setMember(index, { amountPaid: event.target.value })}
-                  />
-                </label>
-                {!register.initialized && draft.members.length > 1 && (
-                  <PageAction
-                    label={`Remove member ${index + 1}`}
-                    disabled={busy}
-                    onClick={() =>
+          <legend className="text-sm font-medium text-text-primary">Current shareholders</legend>
+          {draft.members.map((row, index) => (
+            <MemberFields
+              key={row.member}
+              row={row}
+              index={index}
+              asAt={draft.asAt}
+              update={(patch) => setMember(index, patch)}
+              remove={
+                draft.members.length > 1
+                  ? () =>
                       update((current) => ({ ...current, members: current.members.filter((_, at) => at !== index) }))
-                    }
-                  />
-                )}
-              </fieldset>
-            );
-          })}
-          {!register.initialized && (
-            <PageAction
-              label="Add a member"
-              disabled={busy}
-              onClick={() => update((current) => ({ ...current, members: [...current.members, blankMember()] }))}
+                  : undefined
+              }
             />
-          )}
+          ))}
+          <PageAction
+            label="Add a shareholder"
+            disabled={busy}
+            onClick={() => update((current) => ({ ...current, members: [...current.members, blankMember()] }))}
+          />
         </fieldset>
         <fieldset className="space-y-3">
           <legend className="text-sm font-medium text-text-primary">Former members</legend>
           <p className="text-sm text-text-muted">
-            Members who ceased within the last seven years, with the shares they held when they ceased.
+            Copy former shareholders only if useful. The company continues to retain its legal historical records
+            elsewhere.
           </p>
           {draft.former.map((row, index) => (
             <fieldset key={row.id} className="space-y-2 border-t border-border-subtle pt-3">
@@ -454,9 +360,13 @@ export function ImportForm({
           />
         </fieldset>
         <fieldset className="space-y-3">
-          <legend className="text-sm font-medium text-text-primary">ASIC extract figures</legend>
+          <legend className="text-sm font-medium text-text-primary">Comparison figures (optional)</legend>
+          <p className="text-sm text-text-muted">
+            An ASIC extract may list only some shareholders. Its listed count is a cross-check, not the source for the
+            full ownership record.
+          </p>
           <label className={LABEL}>
-            Issued shares in the ASIC extract
+            Issued shares in the comparison source (optional)
             <input
               inputMode="numeric"
               value={draft.statedTotal}
@@ -468,7 +378,7 @@ export function ImportForm({
             />
           </label>
           <label className={LABEL}>
-            Members in the ASIC extract
+            Shareholders listed in the comparison source (optional)
             <input
               inputMode="numeric"
               value={draft.statedCount}
@@ -484,8 +394,7 @@ export function ImportForm({
           </p>
           {differs && (
             <p role="alert" className="text-sm text-error-light">
-              The ASIC extract figures differ from the import rows. Correct the rows or the figures before preparing the
-              import.
+              The comparison figures differ from the copied rows. Check both against the source before continuing.
             </p>
           )}
         </fieldset>
@@ -503,7 +412,7 @@ export function ImportForm({
         </p>
       )}
       <PageAction
-        label={busy ? 'Preparing import…' : 'Prepare import'}
+        label={busy ? 'Preparing mirror…' : correction ? 'Prepare mirror correction' : 'Prepare mirror'}
         disabled={busy || blocked || problems.length > 0 || differs}
         onClick={() => void submit()}
       />

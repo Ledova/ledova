@@ -15,6 +15,13 @@ Ledova supplies infrastructure, software, records, workflows, validation,
 automation and tools. Routine company register work must not require Ledova
 staff to perform or approve it.
 
+The owner's [14 October clarification](../decisions.md#existing-register-mirror-and-simple-setup)
+defines existing-company setup as an ownership mirror. The company's legal
+register, historical records, lawful access arrangements and filings stay with
+the company. Ledova records the company's supplied snapshot and confirmations
+without replacing those arrangements or claiming to establish legal ownership.
+This changes no company-authority, isolation, evidence or execution safeguards.
+
 There is [one registry product](../decisions.md#company-managed-registers-and-one-product):
 a private internal instance uses the same software, features and authority
 model, and the decision changes neither the software licence nor any legal

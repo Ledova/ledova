@@ -34,9 +34,13 @@ function ImportPreview({ kind, preview }: { kind: RegisterDecisionKind; preview:
       {kind === 'apply' && preview.opensRegister && (
         <Text style={styles.text}>{REGISTER_IMPORT_COPY.NOT_ON_CHAIN_NOTE}</Text>
       )}
-      {preview.statedTotal !== null && preview.statedMemberCount !== null && (
+      {(preview.statedTotal !== null || preview.statedMemberCount !== null) && (
         <Text style={styles.text}>
-          {REGISTER_IMPORT_COPY.STATED_FIGURES(formatShareCount(preview.statedTotal), preview.statedMemberCount)}
+          {preview.statedTotal === null
+            ? REGISTER_IMPORT_COPY.STATED_COUNT(preview.statedMemberCount!)
+            : preview.statedMemberCount === null
+              ? REGISTER_IMPORT_COPY.STATED_TOTAL(formatShareCount(preview.statedTotal))
+              : REGISTER_IMPORT_COPY.STATED_FIGURES(formatShareCount(preview.statedTotal), preview.statedMemberCount)}
         </Text>
       )}
       <Text style={styles.text}>
@@ -103,6 +107,8 @@ export function ImportRecord({
               : REGISTER_IMPORT_COPY.STAFF_VERIFIED}
           </Text>
           <Rows>
+            {!!proposal.sourceReference && <Row label="Source records">{proposal.sourceReference}</Row>}
+            {!!proposal.correctionOf && <Row label="Corrects opening snapshot">{proposal.correctionOf}</Row>}
             {proposal.preparedByName !== null && (
               <Row label="Prepared by">{proposal.preparedByName || 'Name not recorded'}</Row>
             )}
@@ -117,31 +123,66 @@ export function ImportRecord({
             )}
             {!!proposal.rejectionReason && <Row label="Rejection reason">{proposal.rejectionReason}</Row>}
           </Rows>
-          {proposal.asicIssuedTotal !== null && proposal.asicMemberCount !== null && (
+          {(proposal.asicIssuedTotal !== null || proposal.asicMemberCount !== null) && (
             <Text style={styles.text}>
-              {REGISTER_IMPORT_COPY.STATED_FIGURES(
-                formatShareCount(proposal.asicIssuedTotal),
-                proposal.asicMemberCount,
-              )}
+              {proposal.asicIssuedTotal === null
+                ? REGISTER_IMPORT_COPY.STATED_COUNT(proposal.asicMemberCount!)
+                : proposal.asicMemberCount === null
+                  ? REGISTER_IMPORT_COPY.STATED_TOTAL(formatShareCount(proposal.asicIssuedTotal))
+                  : REGISTER_IMPORT_COPY.STATED_FIGURES(
+                      formatShareCount(proposal.asicIssuedTotal),
+                      proposal.asicMemberCount,
+                    )}
             </Text>
           )}
           <Text style={styles.text}>
             {REGISTER_IMPORT_COPY.IMPORTED_FIGURES(formatShareCount(totals.total), totals.count)}
           </Text>
-          <RegisterCopy
-            label={REGISTER_IMPORT_COPY.DOWNLOAD_REGISTER}
-            accessibilityLabel={`${REGISTER_IMPORT_COPY.DOWNLOAD_REGISTER} of the ${description}`}
-            filename={`register-${proposal.uuid}`}
-            epoch={epoch}
-            guard={guard}
-            read={() =>
-              apiClient.get<ArrayBuffer>(COMPANY_TOKEN_ENDPOINTS.REGISTER_IMPORT_FILE(proposal.uuid), {
-                responseType: 'arraybuffer',
-                ledovaSessionEpoch: epoch,
-                ledovaSubmissionGuard: guard,
-              })
-            }
-          />
+          <Text style={styles.muted}>{REGISTER_IMPORT_COPY.MIRROR_NOTE}</Text>
+          {proposal.members.map((member) => (
+            <View key={member.member} style={styles.group}>
+              <Text style={styles.heading}>{member.name}</Text>
+              <Rows>
+                <Row label="Address">{member.residentialAddress}</Row>
+                <Row label="Shares held">{formatShareCount(member.shares)}</Row>
+                <Row label="Original entry date">{member.enteredOn}</Row>
+              </Rows>
+              {member.allotments?.map((allotment, index) => (
+                <View key={index} style={styles.group}>
+                  <Text style={styles.text}>Allotment {index + 1}</Text>
+                  <Rows>
+                    <Row label="Original allotment date">{allotment.allottedOn}</Row>
+                    <Row label="Shares still held">{formatShareCount(allotment.shares)}</Row>
+                    <Row label="Share reference">{allotment.shareReference ?? 'Not recorded'}</Row>
+                    <Row label="Certificate reference">{allotment.certificateReference ?? 'Not recorded'}</Row>
+                    <Row label="Total paid">{allotment.amountPaid}</Row>
+                    <Row label="Total unpaid">{allotment.amountUnpaid}</Row>
+                    <Row label="Payment status">{allotment.fullyPaid ? 'Fully paid' : 'Partly paid'}</Row>
+                    <Row label="Held for">
+                      {allotment.beneficiallyHeld ? 'Holder’s own benefit' : 'Someone else (trustee or nominee)'}
+                    </Row>
+                  </Rows>
+                </View>
+              ))}
+              {!member.allotments && <Text style={styles.muted}>{REGISTER_IMPORT_COPY.UNKNOWN_ALLOTMENTS}</Text>}
+            </View>
+          ))}
+          {!!(proposal.registerEvidence || proposal.sourceDocument) && (
+            <RegisterCopy
+              label={REGISTER_IMPORT_COPY.DOWNLOAD_REGISTER}
+              accessibilityLabel={`${REGISTER_IMPORT_COPY.DOWNLOAD_REGISTER} of the ${description}`}
+              filename={`register-${proposal.uuid}`}
+              epoch={epoch}
+              guard={guard}
+              read={() =>
+                apiClient.get<ArrayBuffer>(COMPANY_TOKEN_ENDPOINTS.REGISTER_IMPORT_FILE(proposal.uuid), {
+                  responseType: 'arraybuffer',
+                  ledovaSessionEpoch: epoch,
+                  ledovaSubmissionGuard: guard,
+                })
+              }
+            />
+          )}
           {!!proposal.asicSnapshot && (
             <RegisterCopy
               label={REGISTER_IMPORT_COPY.DOWNLOAD_ASIC}

@@ -14,7 +14,7 @@ import { Row, Rows, Section, Status } from '@components/Ledger';
 import { Page, PageAction } from '@components/Page';
 import { Loading, Unavailable } from '../RegisterStatus';
 import { READ_TIMING, readRegister, registerKey, useRegisterClasses } from '../useCompanyRegister';
-import { ownerGuard, useOwnAppointments } from '../useRegisterImports';
+import { ownerGuard, useOwnAppointments, useRegisterImports } from '../useRegisterImports';
 import { ImportForm } from './ImportForm';
 
 const LEDE =
@@ -71,6 +71,8 @@ function OwnImport({
     listed && appointments.data
       ? appointmentForRegisterStep(appointments.data, listed.companyUuid, 'prepare')
       : undefined;
+  const imports = useRegisterImports(owner, uuid, guard, !!appointment);
+  const correction = imports.data?.find((proposal) => proposal.status === 'applied' && proposal.correctionAllowed);
   const register = useQuery({
     queryKey: [...registerKey(owner), 'holders', 'class', uuid],
     enabled: !!appointment,
@@ -81,17 +83,27 @@ function OwnImport({
     if (classes.isError) void classes.refetch();
     if (appointments.isError) void appointments.refetch();
     if (register.isError) void register.refetch();
+    if (imports.isError) void imports.refetch();
   };
-  const fetching = classes.isFetching || appointments.isFetching || register.isFetching;
-  const stale = classes.isError || appointments.isError || register.isError;
+  const fetching = classes.isFetching || appointments.isFetching || register.isFetching || imports.isFetching;
+  const stale = classes.isError || appointments.isError || register.isError || imports.isError;
   let content: ReactNode;
   if (!classes.data || !appointments.data)
     content = classes.isError || appointments.isError ? <Unavailable retry={retry} busy={fetching} /> : <Loading />;
+  else if (stale) content = <Unavailable retry={retry} busy={fetching} />;
   else if (!listed)
     content = <p className="py-3 text-sm text-text-muted">This share class is not in a register you can read.</p>;
   else if (!appointment)
     content = <p className="py-3 text-sm text-text-muted">{REGISTER_IMPORT_COPY.READ_ONLY_NOTE}</p>;
   else if (!register.data) content = register.isError ? <Unavailable retry={retry} busy={fetching} /> : <Loading />;
+  else if (!imports.data) content = imports.isError ? <Unavailable retry={retry} busy={fetching} /> : <Loading />;
+  else if (register.data.initialized && imports.data.some((proposal) => proposal.status === 'applied') && !correction)
+    content = (
+      <p className="py-3 text-sm text-text-muted">
+        This opening cannot be replaced safely. Later changes or linked member records need their own supported
+        correction.
+      </p>
+    );
   else
     content = (
       <>
@@ -112,18 +124,19 @@ function OwnImport({
           )}
         </Section>
         <Section title={REGISTER_IMPORT_COPY.PREPARE}>
-          {stale && <Unavailable retry={retry} busy={fetching} />}
           <ImportForm
-            key={holdersSignature(register.data)}
+            key={`${holdersSignature(register.data)}/${correction?.uuid ?? 'new'}`}
             owner={owner}
             guard={guard}
+            correction={correction}
             company={listed.companyUuid}
             register={register.data}
             appointment={appointment}
-            blocked={stale}
+            blocked={fetching}
             onConflict={() => {
               void register.refetch();
               void appointments.refetch();
+              void imports.refetch();
             }}
           />
         </Section>

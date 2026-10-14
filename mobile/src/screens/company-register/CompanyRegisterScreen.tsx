@@ -203,8 +203,12 @@ function CompanyRegister({ epoch }: { epoch: number }) {
                       onOpen={() =>
                         navigation.navigate('PrepareRegisterOpening', { tokenUuid: uuid, companyUuid: company.uuid })
                       }
-                      onPrepareImport={() =>
-                        navigation.navigate('PrepareRegisterImport', { tokenUuid: uuid, companyUuid: company.uuid })
+                      onPrepareImport={(correctionOf) =>
+                        navigation.navigate('PrepareRegisterImport', {
+                          tokenUuid: uuid,
+                          companyUuid: company.uuid,
+                          correctionOf,
+                        })
                       }
                       onPrepareGrant={() =>
                         navigation.navigate('PrepareRegisterGrant', { tokenUuid: uuid, companyUuid: company.uuid })

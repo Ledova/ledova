@@ -77,9 +77,9 @@ const registerOf = (target: typeof shareClass, changes: object) => ({
 });
 let client: QueryClient;
 let pages: unknown[][];
-let read: (url: string, page: number) => Promise<unknown>;
+let read: (url: string, page: number, token?: string) => Promise<unknown>;
 const page = (results: unknown[], next: string | null = null) => ({ data: { results, next, count: results.length } });
-function defaultRead(url: string, number: number): Promise<unknown> {
+function defaultRead(url: string, number: number, token?: string): Promise<unknown> {
   if (url === URLS.REGISTER)
     return Promise.resolve(
       page(pages[number - 1] ?? [], number < pages.length ? `https://api.example.test/?page=${number + 1}` : null),
@@ -95,14 +95,65 @@ function defaultRead(url: string, number: number): Promise<unknown> {
     return Promise.resolve(
       page([{ ...APPOINTMENT, company: shareClass.companyUuid, capabilities: ['read_register'] }]),
     );
+  if (url === URLS.REGISTER_IMPORTS)
+    return Promise.resolve(
+      page(
+        token === 'ordinary'
+          ? [
+              {
+                uuid: 'opening-mirror',
+                company: shareClass.companyUuid,
+                token: shareClass.uuid,
+                status: 'applied',
+                stage: 'applied',
+                sourceReference: 'Company’s existing legal register',
+                sourceConfirmed: true,
+                correctionOf: null,
+                correctionAllowed: false,
+                asAt: '2026-09-01',
+                createdAt: '2026-09-01T00:00:00Z',
+                preparedByName: 'Example Director',
+                providedBy: 'company',
+                asicIssuedTotal: null,
+                asicMemberCount: null,
+                decisions: [],
+                reviewedAt: '2026-09-01T00:00:00Z',
+                rejectionReason: '',
+                members: [
+                  {
+                    member: 'member-1',
+                    name: 'Alex Member',
+                    residentialAddress: '1 Example Street',
+                    shares: register.holders[0]!.balance,
+                    enteredOn: '2026-09-01',
+                    amountPaid: '0.00',
+                    allotments: [
+                      {
+                        allottedOn: '2020-01-01',
+                        shares: register.holders[0]!.balance,
+                        shareReference: null,
+                        certificateReference: 'certificate-1',
+                        amountPaid: '0.00',
+                        amountUnpaid: '0.00',
+                        fullyPaid: true,
+                        beneficiallyHeld: true,
+                      },
+                    ],
+                  },
+                ],
+                formerMembers: [],
+                registerEvidence: null,
+                sourceDocument: null,
+                asicSnapshot: null,
+              },
+            ]
+          : [],
+      ),
+    );
   if (
-    [
-      URLS.REGISTER_IMPORTS,
-      URLS.REGISTER_GRANTS,
-      URLS.REGISTER_TRANSFERS,
-      URLS.REGISTER_PARTICULARS_CHANGES,
-      URLS.REGISTER_LINKS,
-    ].includes(url as never)
+    [URLS.REGISTER_GRANTS, URLS.REGISTER_TRANSFERS, URLS.REGISTER_PARTICULARS_CHANGES, URLS.REGISTER_LINKS].includes(
+      url as never,
+    )
   )
     return Promise.resolve(page([]));
   if (url === URLS.REGISTER_ENTRIES('ordinary') || url === URLS.REGISTER_CORRECTIONS) return Promise.resolve(page([]));
@@ -135,7 +186,11 @@ beforeEach(() => {
   jest.mocked(apiClient.post).mockReset();
   get.mockImplementation(
     (url, config) =>
-      read(url, (config?.params as { page?: number } | undefined)?.page ?? 1) as ReturnType<typeof apiClient.get>,
+      read(
+        url,
+        (config?.params as { page?: number } | undefined)?.page ?? 1,
+        (config?.params as { token?: string } | undefined)?.token,
+      ) as ReturnType<typeof apiClient.get>,
   );
   jest.mocked(Sharing.shareAsync).mockClear();
 });
@@ -162,7 +217,11 @@ it('reads the company register and shares its CSV, but refuses a later CSV after
   expect(view.getByRole('button', { name: 'Open Ordinary shares' })).toBeTruthy();
   expect(view.getByText('Paper Company · ORD')).toBeTruthy();
   await fireEvent.press(view.getByRole('button', { name: 'Ordinary shares register' }));
-  expect(view.getByText('Alex Member')).toBeTruthy();
+  expect(view.getAllByText('Alex Member').length).toBeGreaterThan(0);
+  expect(view.getByText('Company’s existing legal register')).toBeTruthy();
+  expect(view.getByText('certificate-1')).toBeTruthy();
+  expect(view.getByText('Holder’s own benefit')).toBeTruthy();
+  expect(view.queryByRole('button', { name: 'Correct opening records for Ordinary shares' })).toBeNull();
   expect(view.getByText('9,007,199,254,740,992 shares')).toBeTruthy();
   await fireEvent.press(view.getByRole('button', { name: 'Documents' }));
   await view.rerender(<CompanyRegisterScreen />);

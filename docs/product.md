@@ -2,7 +2,7 @@
 
 [Documentation](README.md)
 
-Updated 11 October 2026 · Agreed product direction, paired with the
+Updated 14 October 2026 · Agreed product direction, paired with the
 [regulatory pathway](regulatory-pathway.md)
 
 ## Purpose
@@ -12,6 +12,14 @@ their relationship, company decisions and ownership records. Authorised company
 representatives maintain the register and direct issuance and ownership changes;
 shareholders manage their particulars, evidence, requests and holdings. The
 software records authority, applies approved actions and preserves their history.
+
+For an existing company, Ledova mirrors company-provided ownership records to
+help investors and employees understand its share structure. The company keeps
+its legal register, historical records, lawful access arrangements and filings;
+Ledova does not replace those arrangements or establish legal ownership by
+importing a snapshot. The [14 October setup decision](decisions.md#existing-register-mirror-and-simple-setup)
+sets this boundary. Opening the mirror records existing shares rather than
+issuing them again.
 
 The core is a simple private-company register: non-paid employee awards and
 vesting records, shares allotted for externally arranged investor capital,
@@ -110,10 +118,11 @@ Any party able to change eligibility, block transfers, recover holdings or
 upgrade contracts must have explicit, limited and auditable authority. Do not
 add an unrestricted Ledova key capable of seizing holdings.
 
-The working first-version design keeps the company member register
-authoritative and reconciles it with the blockchain representation, subject to
-legal confirmation. Detect discrepancies and retain authorised corrections; do
-not assume token possession alone establishes membership.
+The company's legal member register remains its source of ownership records.
+Ledova's stored register supplies the platform's ownership mirror and can be
+reconciled with a blockchain representation. Detect discrepancies and retain
+authorised corrections; neither a platform snapshot nor token possession alone
+establishes legal membership.
 
 ## 5. Verification and transaction controls
 

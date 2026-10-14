@@ -27,7 +27,7 @@ from tokens.models import (
     ShareToken,
     ShareTokenStatus,
 )
-from tokens.services.register import _snapshot
+from tokens.services.register import _snapshot, imported_membership_dates
 from tokens.services.register_authority import register_appointment, register_command
 from tokens.services.register_decisions import DecisionFamily, decide, preview
 from tokens.services.register_events import create_member, record_entry
@@ -63,6 +63,7 @@ def register_members(token):
             row.member_id: row for row in RegisterMemberParticulars.objects.filter(member__company_id=token.company_id)
         }
         positions = {row.member_id: row for row in RegisterPosition.objects.filter(register__token=token)}
+        imported_dates = imported_membership_dates(token)
         linked = set(
             RegisterMemberWallet.objects.filter(company_id=token.company_id).values_list("member_id", flat=True)
         )
@@ -77,7 +78,7 @@ def register_members(token):
                     "residential_address": held[member.pk].residential_address if member.pk in held else None,
                     "current_shares": str(positions[member.pk].shares) if member.pk in positions else "0",
                     "entered_on": (
-                        positions[member.pk].entered_on
+                        imported_dates.get(str(member.pk), positions[member.pk].entered_on)
                         if member.pk in positions and positions[member.pk].shares > 0
                         else None
                     ),

@@ -2,7 +2,10 @@
 
 [Architecture](README.md) · [Issuance](contracts-and-issuance.md)
 
-The current-members register of one share class is its stored register.
+The current-members register of one share class is its stored register for the
+platform's ownership mirror. The company's legal records remain its source;
+the [mirror decision](../decisions.md#existing-register-mirror-and-simple-setup)
+leaves statutory history, lawful access arrangements and filings with the company.
 [register.py](../../backend/tokens/services/register.py) serves the stored
 holdings with each member's linked wallets and the identity and allotment
 records, and reads no chain. Former members are stored separately.
@@ -96,13 +99,18 @@ state, including an explicitly empty state, and later entries are:
 | Transfer   | Subtract from one member and add the same quantity to another |
 | Cessation  | Remove a member's entire holding in this class                |
 | Correction | Compensate every quantity in one earlier entry exactly        |
+| Mirror correction | Record the exact difference from a reviewed opening snapshot, retaining earlier copied records |
 
 A transfer that empties a holding leaves a zero position; a cessation describes
 the class holding, not membership across the company's other classes. A
 correction can itself be compensated, but each original entry can be
 compensated only once and no change can make a position negative. Recording a
-cessation or correction burns, seizes or transfers nothing on chain. Partial
-corrections and replacement transactions are not built.
+cessation or correction burns, seizes or transfers nothing on chain. General
+partial corrections and replacement transactions are not built. A bounded
+mirror-opening correction retains the earlier copied snapshot and records the
+exact difference under a fresh company confirmation, refusing later share,
+deployment or member-access activity. A correction of copied particulars alone
+keeps the event head unchanged and is retained in its snapshot and decisions.
 
 PostgreSQL locks the register head, validates the event and member company,
 assigns the next sequence, hashes the event with its predecessor and updates the

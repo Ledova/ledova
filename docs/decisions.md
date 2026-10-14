@@ -17,6 +17,7 @@ stay here as history and are marked where they appear.
 | [Company representative verification](#company-representative-verification)                                     | 4 October 2026                                 | Current                                                            |
 | [Combined company signup and initial authority](#combined-company-signup-and-initial-authority)                 | 14 October 2026                                | Current; amended by #1022 below                                    |
 | [Simple signup, documents and team after registration](#simple-signup-documents-and-team-after-registration)     | 14 October 2026                                | Current; #1022                                                     |
+| [Existing register mirror and simple setup](#existing-register-mirror-and-simple-setup)                         | 14 October 2026                                | Current; #1025                                                     |
 | [Eligibility and ownership records](#eligibility-and-ownership-records)                                         | September to 6 October 2026                    | Current                                                            |
 | [The stored register](#the-stored-register)                                                                     | September 2026; staff review retired 5 October | Current                                                            |
 | [Company-scoped approvals](#company-scoped-approvals)                                                           | 19 September 2026                              | Current                                                            |
@@ -240,6 +241,33 @@ local galleries and receipts. Retained application records and Git history are
 unaffected. Do not create a replacement gallery or PDF until requested later;
 the new flow is shown directly in Chrome. This increment authorises no live
 deployment or further backup work.
+
+## Existing register mirror and simple setup
+
+On 14 October 2026 the owner approved
+[#1025](https://github.com/Ledova/ledova/issues/1025): bring existing records,
+review them and confirm the company's ownership mirror. The owner clarified:
+"Ledova is proposing a place to mirror what is legally already registered" so
+investors and employees can understand the private company's share structure.
+
+The company keeps its legal register, historical records, lawful register access
+arrangements and filings where they already belong. Ledova does not replace
+them or establish legal ownership by copying their contents. A mirror opening
+records already-issued shares, never a fresh issue, payment or chain mint.
+Company-provided source references and any uploaded copies remain attributed to
+the company; Ledova does not verify them or label the mirror a statutory register.
+
+Setup records the existing classes, members, holdings and underlying allotment
+particulars, with their original dates, paid/unpaid amounts, payment status,
+share/certificate references where present and beneficial-ownership status.
+Member accounts and wallets are unnecessary. An ASIC extract is an optional
+cross-check, not a substitute for the company's complete records. Existing
+platform evidence, retention, isolation and company-authority safeguards remain.
+
+Corrections preserve earlier snapshots and confirmations. A replacement is
+bound to the reviewed current mirror and must refuse to overwrite later share
+activity or deployment. The guided screen and correction delivery are tracked
+on #1025; this decision records accepted scope, not completed implementation.
 
 ## Eligibility and ownership records
 
