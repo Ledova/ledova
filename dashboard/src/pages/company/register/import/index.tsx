@@ -97,7 +97,7 @@ function OwnImport({
     content = <p className="py-3 text-sm text-text-muted">{REGISTER_IMPORT_COPY.READ_ONLY_NOTE}</p>;
   else if (!register.data) content = register.isError ? <Unavailable retry={retry} busy={fetching} /> : <Loading />;
   else if (!imports.data) content = imports.isError ? <Unavailable retry={retry} busy={fetching} /> : <Loading />;
-  else if (register.data.initialized && !correction)
+  else if (register.data.initialized && imports.data.some((proposal) => proposal.status === 'applied') && !correction)
     content = (
       <p className="py-3 text-sm text-text-muted">
         This opening cannot be replaced safely. Later changes or linked member records need their own supported
