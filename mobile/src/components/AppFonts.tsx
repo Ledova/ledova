@@ -58,7 +58,7 @@ export function AppFonts({ children }: { children: ReactNode }) {
     >
       {status === 'loading' ? (
         <>
-          <ActivityIndicator color={theme.colors.brand.default} />
+          <ActivityIndicator color={theme.colors.brand.light} />
           <Text style={{ color: theme.colors.text.primary }}>Opening Ledova…</Text>
         </>
       ) : (
@@ -71,7 +71,7 @@ export function AppFonts({ children }: { children: ReactNode }) {
             onPress={() => setAttempt((value) => value + 1)}
             style={{ padding: 12 }}
           >
-            <Text style={{ color: theme.colors.brand.default }}>Try again</Text>
+            <Text style={{ color: theme.colors.brand.light }}>Try again</Text>
           </Pressable>
         </>
       )}
