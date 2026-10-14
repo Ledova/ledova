@@ -1,6 +1,11 @@
 // @vitest-environment jsdom
 
-import { ApiClientProvider, USER_PREFERENCES_QUERY_KEY, COMPANY_TOKEN_ENDPOINTS } from '@ledova/shared';
+import {
+  ApiClientProvider,
+  USER_PREFERENCES_QUERY_KEY,
+  COMPANY_TOKEN_ENDPOINTS,
+  COMPANY_ENDPOINTS,
+} from '@ledova/shared';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import type { AxiosInstance } from 'axios';
@@ -39,6 +44,8 @@ it('waits for actual register access, offers retry on refusal, and lands each ac
           count: 1,
         },
       });
+    if (url === COMPANY_ENDPOINTS.BASE)
+      return Promise.resolve({ data: { results: [], next: null, previous: null, count: 0 } });
     if (url !== COMPANY_TOKEN_ENDPOINTS.REGISTER) throw new Error(`Unexpected read ${url}`);
     if (refused)
       return new Promise((_resolve, refuse) => {

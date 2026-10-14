@@ -127,8 +127,17 @@ function ShareClassDetails({ data }: { data: ReturnType<typeof useShareClass> })
                 {token.statusDisplay}
               </Status>
             </Row>
-            <Row label="Authorised shares">
-              <span className="break-all">{formatShareCount(token.totalSupply)}</span>
+            <Row
+              label={token.totalSupply !== (2n ** 256n - 1n).toString() ? 'Authorised shares' : 'Technical share limit'}
+            >
+              {token.totalSupply !== (2n ** 256n - 1n).toString() ? (
+                <span className="break-all">{formatShareCount(token.totalSupply)}</span>
+              ) : (
+                <details>
+                  <summary className="cursor-pointer">Internal quantity guard</summary>
+                  <span className="break-all">{formatShareCount(token.totalSupply)}</span>
+                </details>
+              )}
             </Row>
             <Row label="Issued shares">
               <span className="break-all">

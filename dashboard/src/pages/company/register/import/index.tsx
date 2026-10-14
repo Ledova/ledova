@@ -1,150 +1,225 @@
-import { useMemo, type ReactNode } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useMemo, useState } from 'react';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-  DESTINATIONS,
   REGISTER_IMPORT_COPY,
-  appointmentForRegisterStep,
+  createUserFriendlyError,
   useSubmissionOwner,
   useUserPreferences,
+  type CompanyShareTokenListItem,
   type OrderSubmissionOwner,
+  type RegisterImport,
   type TokenHoldersResponse,
+  type RegisterTransferMember,
 } from '@ledova/shared';
-import { Row, Rows, Section, Status } from '@components/Ledger';
+import { Section } from '@components/Ledger';
 import { Page, PageAction } from '@components/Page';
+import { PageTitle } from '@components/PageTitle';
 import { Loading, Unavailable } from '../RegisterStatus';
+import { registerSteps, type RegisterSteps } from '../proposals';
 import { READ_TIMING, readRegister, registerKey, useRegisterClasses } from '../useCompanyRegister';
-import { ownerGuard, useOwnAppointments, useRegisterImports } from '../useRegisterImports';
+import { importsKey, ownerGuard, useOwnAppointments, useRegisterImports } from '../useRegisterImports';
+import { ownAppointmentsKey } from '../../team/appointments';
+import { transferMembersKey, useTransferMembers } from '../useRegisterTransfers';
 import { ImportForm } from './ImportForm';
-
-const LEDE =
-  "Import a share class's existing register from the company's own records. The evidence and figures are provided " +
-  'by the company.';
-
-function holdersSignature(register: TokenHoldersResponse) {
-  return JSON.stringify([register.initialized, register.holders.map((holder) => [holder.member, holder.balance])]);
-}
+import { NewClassSetup } from './NewClassSetup';
 
 export default function CompanyRegisterImportPage() {
   const { uuid = '' } = useParams();
   const navigate = useNavigate();
   const { owner, boundary } = useSubmissionOwner();
   const preferences = useUserPreferences();
-  const back = <PageAction label="Back to Register" onClick={() => navigate(DESTINATIONS.companyRegister.path)} />;
-  if (owner && !preferences.isError)
-    return (
-      <OwnImport
-        key={`${owner.userUuid}/${owner.ownerAccountUuid}/${uuid}`}
-        uuid={uuid}
-        owner={owner}
-        currentOwner={boundary.get}
-        back={back}
-      />
-    );
   return (
-    <Page lede={LEDE} actions={back}>
-      {preferences.isLoading ? (
-        <Loading />
-      ) : (
-        <Unavailable retry={() => void preferences.refetch()} busy={preferences.isFetching} />
-      )}
-    </Page>
+    <PageTitle.Provider value="Set up your share register">
+      <Page
+        lede={REGISTER_IMPORT_COPY.MIRROR_NOTE}
+        actions={<PageAction label="Back to dashboard" onClick={() => navigate('/company/dashboard')} />}
+      >
+        <div className="max-w-4xl">
+          {owner && !preferences.isError ? (
+            uuid ? (
+              <OwnImport
+                key={`${owner.userUuid}/${owner.ownerAccountUuid}/${uuid}`}
+                uuid={uuid}
+                owner={owner}
+                currentOwner={boundary.get}
+              />
+            ) : (
+              <NewClassSetup
+                key={`${owner.userUuid}/${owner.ownerAccountUuid}`}
+                owner={owner}
+                currentOwner={boundary.get}
+              />
+            )
+          ) : preferences.isLoading ? (
+            <Loading />
+          ) : (
+            <Unavailable retry={() => void preferences.refetch()} busy={preferences.isFetching} />
+          )}
+        </div>
+      </Page>
+    </PageTitle.Provider>
   );
 }
+
+type Retained = {
+  listed: CompanyShareTokenListItem;
+  register: TokenHoldersResponse;
+  steps: RegisterSteps;
+  correction?: RegisterImport;
+  saved?: RegisterImport;
+  members: RegisterTransferMember[];
+};
 
 function OwnImport({
   uuid,
   owner,
   currentOwner,
-  back,
 }: {
   uuid: string;
   owner: OrderSubmissionOwner;
   currentOwner: () => OrderSubmissionOwner | null;
-  back: ReactNode;
 }) {
+  const client = useQueryClient();
+  const [search] = useSearchParams();
+  const [held, setHeld] = useState(false);
+  const [retained, setRetained] = useState<Retained | null>(null);
   const guard = useMemo(() => ownerGuard(owner, currentOwner), [owner, currentOwner]);
   const classes = useRegisterClasses(owner);
   const appointments = useOwnAppointments(owner, guard);
   const listed = classes.data?.find((item) => item.uuid === uuid);
-  const appointment =
-    listed && appointments.data
-      ? appointmentForRegisterStep(appointments.data, listed.companyUuid, 'prepare')
-      : undefined;
-  const imports = useRegisterImports(owner, uuid, guard, !!appointment);
-  const correction = imports.data?.find((proposal) => proposal.status === 'applied' && proposal.correctionAllowed);
+  const steps = listed && appointments.data ? registerSteps(appointments.data, listed.companyUuid) : null;
+  const readable = !!(steps?.prepare || steps?.approve || steps?.apply);
+  const imports = useRegisterImports(owner, uuid, guard, readable);
+  const members = useTransferMembers(owner, uuid, guard, readable);
   const register = useQuery({
     queryKey: [...registerKey(owner), 'holders', 'class', uuid],
-    enabled: !!appointment,
+    enabled: readable,
     queryFn: () => readRegister(uuid),
     ...READ_TIMING,
   });
+  const correction = imports.data?.find((proposal) => proposal.status === 'applied' && proposal.correctionAllowed);
+  const record = search.get('record');
+  const saved = imports.data?.find((proposal) =>
+    record
+      ? proposal.uuid === record
+      : proposal.status === 'submitted' &&
+        proposal.sourceConfirmed &&
+        proposal.correctionOf === (correction?.uuid ?? null),
+  );
+  const fetching =
+    classes.isFetching || appointments.isFetching || register.isFetching || imports.isFetching || members.isFetching;
+  const stale = classes.isError || appointments.isError || register.isError || imports.isError || members.isError;
+  const fresh = !fetching && !stale && !!listed && readable && !!register.data && !!imports.data && !!members.data;
+  const mirrorAllowed = register.data?.initialized || register.data?.token.status === 'draft';
+  const correctable =
+    mirrorAllowed &&
+    (!register.data?.initialized || !imports.data?.some((proposal) => proposal.status === 'applied') || !!correction);
+  const canPrepare = !!steps?.prepare && correctable;
+  const canOpen = saved ? saved.status !== 'rejected' || canPrepare : canPrepare;
+  if (
+    !held &&
+    fresh &&
+    canOpen &&
+    (!record || !!saved) &&
+    (retained?.register !== register.data ||
+      retained?.correction !== correction ||
+      retained?.saved !== saved ||
+      retained?.members !== members.data ||
+      retained?.steps.prepare?.uuid !== steps?.prepare?.uuid ||
+      retained?.steps.approve?.uuid !== steps?.approve?.uuid ||
+      retained?.steps.apply?.uuid !== steps?.apply?.uuid ||
+      retained?.steps.reject?.uuid !== steps?.reject?.uuid)
+  )
+    setRetained({
+      listed: listed!,
+      register: register.data!,
+      steps: steps!,
+      correction,
+      saved,
+      members: members.data!,
+    });
   const retry = () => {
-    if (classes.isError) void classes.refetch();
-    if (appointments.isError) void appointments.refetch();
-    if (register.isError) void register.refetch();
-    if (imports.isError) void imports.refetch();
+    void classes.refetch();
+    void appointments.refetch();
+    void register.refetch();
+    void imports.refetch();
+    void members.refetch();
   };
-  const fetching = classes.isFetching || appointments.isFetching || register.isFetching || imports.isFetching;
-  const stale = classes.isError || appointments.isError || register.isError || imports.isError;
-  let content: ReactNode;
-  if (!classes.data || !appointments.data)
-    content = classes.isError || appointments.isError ? <Unavailable retry={retry} busy={fetching} /> : <Loading />;
-  else if (stale) content = <Unavailable retry={retry} busy={fetching} />;
-  else if (!listed)
-    content = <p className="py-3 text-sm text-text-muted">This share class is not in a register you can read.</p>;
-  else if (!appointment)
-    content = <p className="py-3 text-sm text-text-muted">{REGISTER_IMPORT_COPY.READ_ONLY_NOTE}</p>;
-  else if (!register.data) content = register.isError ? <Unavailable retry={retry} busy={fetching} /> : <Loading />;
-  else if (!imports.data) content = imports.isError ? <Unavailable retry={retry} busy={fetching} /> : <Loading />;
-  else if (register.data.initialized && imports.data.some((proposal) => proposal.status === 'applied') && !correction)
-    content = (
-      <p className="py-3 text-sm text-text-muted">
-        This opening cannot be replaced safely. Later changes or linked member records need their own supported
-        correction.
-      </p>
-    );
-  else
-    content = (
-      <>
-        <Section title={register.data.token.name}>
-          <p className="text-sm text-text-muted">
-            {listed.companyName} · {register.data.token.symbol}
-          </p>
-          <Rows>
-            <Row label="Register">
-              <Status tone={register.data.initialized ? 'done' : 'waiting'}>
-                {register.data.initialized ? 'Opened' : 'Not opened'}
-              </Status>
-            </Row>
-            {register.data.initialized && <Row label="Current members">{register.data.totalHolders}</Row>}
-          </Rows>
-          {!register.data.initialized && (
-            <p className="text-sm text-text-muted">{REGISTER_IMPORT_COPY.NOT_ON_CHAIN_NOTE}</p>
-          )}
-        </Section>
-        <Section title={REGISTER_IMPORT_COPY.PREPARE}>
-          <ImportForm
-            key={`${holdersSignature(register.data)}/${correction?.uuid ?? 'new'}`}
-            owner={owner}
-            guard={guard}
-            correction={correction}
-            company={listed.companyUuid}
-            register={register.data}
-            appointment={appointment}
-            blocked={fetching}
-            onConflict={() => {
-              void register.refetch();
-              void appointments.refetch();
-              void imports.refetch();
-            }}
-          />
-        </Section>
-      </>
-    );
+  const checkNew = () => {
+    guard();
+    for (const key of [
+      [...registerKey(owner), 'classes'],
+      ownAppointmentsKey(owner),
+      [...registerKey(owner), 'holders', 'class', uuid],
+      importsKey(owner, uuid),
+      transferMembersKey(owner, uuid),
+    ]) {
+      const state = client.getQueryState(key);
+      if (state?.status !== 'success' || state.fetchStatus !== 'idle')
+        throw createUserFriendlyError('Refresh current company authority before continuing.');
+    }
+    if (!fresh || !canOpen || retained?.listed.companyUuid !== listed?.companyUuid)
+      throw createUserFriendlyError('Your company, authority or source records changed. Refresh before continuing.');
+  };
+  if (!held && fresh && record && !saved)
+    return <p className="text-sm text-text-muted">This saved snapshot is not in the selected share class.</p>;
+  if (!retained || (!held && (!fresh || !canOpen))) {
+    if (stale) return <Unavailable retry={retry} busy={fetching} />;
+    if (
+      !classes.data ||
+      !appointments.data ||
+      fetching ||
+      (readable && (!imports.data || !register.data || !members.data))
+    )
+      return <Loading />;
+    if (!listed) return <p className="text-sm text-text-muted">This share class is not in a register you can read.</p>;
+    if (!readable) return <p className="text-sm text-text-muted">{REGISTER_IMPORT_COPY.READ_ONLY_NOTE}</p>;
+    if (record && imports.data && !saved)
+      return <p className="text-sm text-text-muted">This saved snapshot is not in the selected share class.</p>;
+    if (!mirrorAllowed)
+      return (
+        <p className="text-sm text-text-muted">
+          This class cannot open from copied records.{' '}
+          <Link
+            to="/company/register"
+            state={{ registerCompany: listed.companyUuid }}
+            className="text-brand-light underline"
+          >
+            Open Register
+          </Link>{' '}
+          to open it from the chain or check its deployment state.
+        </p>
+      );
+    if (!correctable)
+      return (
+        <p className="text-sm text-text-muted">
+          This opening cannot be replaced safely. Later changes or linked member records need their own supported
+          correction.
+        </p>
+      );
+    if (!canOpen) return <p className="text-sm text-text-muted">{REGISTER_IMPORT_COPY.READ_ONLY_NOTE}</p>;
+    return <Loading />;
+  }
   return (
-    <Page lede={LEDE} actions={back}>
-      {content}
-    </Page>
+    <Section title={`${retained.listed.companyName} · ${retained.listed.name} (${retained.listed.symbol})`}>
+      <ImportForm
+        key={`${uuid}/${retained.correction?.uuid ?? 'new'}/${retained.saved?.uuid ?? 'draft'}`}
+        owner={owner}
+        guard={guard}
+        newEffectGuard={checkNew}
+        company={retained.listed.companyUuid}
+        register={retained.register}
+        companyMembers={members.data ?? retained.members}
+        appointment={canPrepare ? steps?.prepare : undefined}
+        steps={steps ?? retained.steps}
+        correction={retained.correction}
+        saved={retained.saved}
+        blocked={!fresh}
+        visible={fresh}
+        onConflict={retry}
+        onHeldChange={setHeld}
+      />
+    </Section>
   );
 }

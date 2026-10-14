@@ -48,6 +48,7 @@ export const PAGES: Record<DestinationKey, ReactElement> = {
   publications: <PublicationsPage />,
   companyClass: <ShareClassPage />,
   companyRegister: <CompanyRegisterPage />,
+  companyRegisterSetup: <CompanyRegisterImportPage />,
   companyRegisterImport: <CompanyRegisterImportPage />,
   companyRegisterCorrection: <CompanyRegisterCorrectionPage />,
   companyRegisterLinks: <CompanyRegisterLinksPage />,
