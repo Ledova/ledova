@@ -17,7 +17,7 @@ async function xml(file) {
 
 if (platform !== 'ios') {
   const strings = (await xml('android/app/src/main/res/values/strings.xml')).resources.string;
-  assert.equal(strings.find(({ $ }) => $.name === 'expo_system_ui_user_interface_style')?._, 'light');
+  assert.equal(strings.find(({ $ }) => $.name === 'expo_system_ui_user_interface_style')?._, 'automatic');
   const manifest = await xml('android/app/src/main/AndroidManifest.xml');
   const application = manifest.manifest.application[0].$;
   assert.equal(application['android:usesCleartextTraffic'], 'false');
@@ -70,8 +70,8 @@ if (platform !== 'android') {
   const source = IOSConfig.Paths.getSourceRoot(root);
   const release = plist.parse(fs.readFileSync(path.join(source, 'Info.plist'), 'utf8'));
   const debug = plist.parse(fs.readFileSync(path.join(source, 'Info-Debug.plist'), 'utf8'));
-  assert.equal(release.UIUserInterfaceStyle, 'Light');
-  assert.equal(debug.UIUserInterfaceStyle, 'Light');
+  assert.equal(release.UIUserInterfaceStyle, 'Automatic');
+  assert.equal(debug.UIUserInterfaceStyle, 'Automatic');
   assert.deepEqual(
     { ...release.NSAppTransportSecurity },
     {

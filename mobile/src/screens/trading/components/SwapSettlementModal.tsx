@@ -77,7 +77,7 @@ export function SwapSettlementModal({ settlement, wallet, visible = true, onClos
           {!current && (
             <Text style={text.text}>This signing view has ended. Close it and check the saved settlement again.</Text>
           )}
-          {!idle && <ActivityIndicator color={theme.colors.interactive.default} />}
+          {!idle && <ActivityIndicator color={theme.colors.interactive.active} />}
           {context && response && (
             <View style={styles.group}>
               <Text style={text.text}>

@@ -9,7 +9,12 @@ export const useCompanyStyles = () =>
     heading: { fontFamily: theme.fontFamily.medium, fontSize: 17, color: theme.colors.text.primary },
     text: { fontFamily: theme.fontFamily.regular, fontSize: 14, lineHeight: 21, color: theme.colors.text.primary },
     muted: { fontFamily: theme.fontFamily.regular, fontSize: 14, lineHeight: 21, color: theme.colors.text.muted },
-    error: { fontFamily: theme.fontFamily.regular, fontSize: 14, lineHeight: 21, color: theme.colors.error.default },
+    error: {
+      fontFamily: theme.fontFamily.regular,
+      fontSize: 14,
+      lineHeight: 21,
+      color: theme.colors.status.error.text,
+    },
     input: {
       fontFamily: theme.fontFamily.regular,
       fontSize: 16,

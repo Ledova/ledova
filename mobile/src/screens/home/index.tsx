@@ -90,14 +90,14 @@ export function WalletHoldingsScreen() {
         <RefreshControl
           refreshing={(isFetching && !isPending) || work.isRefreshing}
           onRefresh={() => void Promise.all([refetch(), work.refresh()])}
-          tintColor={theme.colors.brand.default}
+          tintColor={theme.colors.interactive.active}
         />
       }
     >
       <Section title="Shares in your wallets">
         {isPending ? (
           <View style={styles.state}>
-            <ActivityIndicator color={theme.colors.brand.default} />
+            <ActivityIndicator color={theme.colors.interactive.active} />
             <Text style={styles.message}>Loading your holdings…</Text>
           </View>
         ) : isError ? (

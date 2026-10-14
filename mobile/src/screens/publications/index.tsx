@@ -89,7 +89,7 @@ export function PublicationsScreen() {
         <RefreshControl
           refreshing={isRefreshing && !isLoading && !isLoadingMore}
           onRefresh={retry}
-          tintColor={theme.colors.brand.default}
+          tintColor={theme.colors.interactive.active}
         />
       }
     >
@@ -100,7 +100,7 @@ export function PublicationsScreen() {
       )}
       {isLoading ? (
         <View style={styles.state}>
-          <ActivityIndicator color={theme.colors.brand.default} />
+          <ActivityIndicator color={theme.colors.interactive.active} />
           <Text style={styles.message}>Loading publications…</Text>
         </View>
       ) : listFailed ? (

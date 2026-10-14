@@ -162,7 +162,7 @@ export function DeriveAddressModal({
         </>
       ) : (
         <View style={styles.loading}>
-          <ActivityIndicator size="small" color={theme.colors.interactive.default} />
+          <ActivityIndicator size="small" color={theme.colors.interactive.active} />
           <Text style={text.muted}>Deriving address...</Text>
         </View>
       )}

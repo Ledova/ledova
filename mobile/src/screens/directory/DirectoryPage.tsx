@@ -30,12 +30,12 @@ export function DirectoryPage({
         <RefreshControl
           refreshing={refreshing && !loading}
           onRefresh={refresh}
-          tintColor={theme.colors.brand.default}
+          tintColor={theme.colors.interactive.active}
         />
       }
     >
       {loading ? (
-        <ActivityIndicator accessibilityLabel="Loading directory" color={theme.colors.brand.default} />
+        <ActivityIndicator accessibilityLabel="Loading directory" color={theme.colors.interactive.active} />
       ) : (
         children
       )}

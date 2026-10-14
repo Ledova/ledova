@@ -31,7 +31,7 @@ export function ChallengeQRStep({ urEncodedChallenge }: ChallengeQRStepProps) {
         <QRDisplay data={urEncodedChallenge} isUR={true} />
       ) : (
         <View style={styles.loading}>
-          <ActivityIndicator size="small" color={theme.colors.interactive.default} />
+          <ActivityIndicator size="small" color={theme.colors.interactive.active} />
           <Text style={text.muted}>Generating challenge QR...</Text>
         </View>
       )}

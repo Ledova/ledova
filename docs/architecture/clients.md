@@ -435,9 +435,10 @@ preferences record, read through `useUserPreferences` and saved with a partial
 `POST` to `/api/user-preferences/`; mobile distinguishes an unavailable
 preferences record from disabled alerts. Account deletion keeps its
 confirmation dialog, states which records are retained, and clears the tab's
-account data after the server confirms. Web Settings adds Appearance, whose
-Dark theme switch is kept in the browser ([design tokens](#design-tokens)).
-Mobile Settings adds biometric sign-in and app lock.
+account data after the server confirms. Settings adds Appearance, whose
+Dark theme switch is kept in the browser on the web and on the device on mobile
+([design tokens](#design-tokens)). Mobile Settings also adds biometric sign-in
+and app lock.
 
 Where market values are shown, they are in AUD: the shared `useCurrency`
 converts the API's US-dollar values at the current rate, shows a dash while the
@@ -491,7 +492,7 @@ failure states, so each shows its page's title. The title block is one title
 row holding the title and the page's actions, with the lede, one muted
 sentence, directly under it when the page has one; a lede appears only where it
 says what the titles do not. The first section follows at the same gap as
-between sections. On mobile `Page` is a scroll view on the paper whose header
+between sections. On mobile `Page` is a scroll view on the page ground whose header
 sets the title in Newsreader at `theme.fontSize.xxxxl`, then the lede, then the
 screen actions as one wrapping row, because a phone's large title leaves no
 room beside it; loading, access and failure states render under the same title,
@@ -503,7 +504,7 @@ person above Sign out (the public layout's `SignOutButton` in its sidebar
 variant); mobile's drawer has the same shape. The mobile exceptions keep a
 frame of their own: Help & Support keeps its stack title; Send, Transfer, Verify
 Wallet and Recovery Phrase are titled inside their `Panel` card
-(`mobile/src/components/panel`); Buy crypto is its dialog over the plain paper
+(`mobile/src/components/panel`); Buy crypto is its dialog over the bare page ground
 followed by the provider's web view.
 
 Pages are built from the ledger blocks in `dashboard/src/components/Ledger.tsx`
@@ -576,15 +577,19 @@ the shared scale lacks.
 design tokens. `buildColors()` turns a palette into one semantic colour
 vocabulary that the dashboard, the public site and mobile all use: `surface`,
 `text`, `brand`, `border` and the status colours. It builds both themes with the
-same names, `THEMES.paper` (`PAPER_THEME`, from a private paper palette) and
-`THEMES.dark`. On the web, text utilities follow the suffix: a `-light` colour
+same names, `THEMES.paper` (from a private paper palette) and `THEMES.dark`. On
+the web, text utilities follow the suffix: a `-light` colour
 (`text-brand-light`, `text-error-light`) is text on a surface, while the bare
 name and `-mid` (`bg-brand`, `border-brand-mid`, `ring-brand-mid`) are solid
 fills under white text, borders and rings; translucent washes and outlines use
 either. `brand-subtle` is the text hover and the text on `brand-tint`, and
 `brand-hover` the fill hover. Mobile reads the same tokens through
-`useAppTheme()`, with solid fills on `brand.default`,
-plus the spacing, radius, type, layout and icon scales.
+`useAppTheme()`, plus the spacing, radius, type, layout and icon scales, with the
+same roles: brand-coloured text, icons, spinners and pull-to-refresh tints on a
+surface use `brand.light` (`interactive.active` equals it), while solid fills
+under white text, selection borders and washes use `brand.default`
+(`interactive.default`) or `brand.mid` (`interactive.defaultSubtle`), and error
+text uses `status.error.text` rather than the `error.default` fill.
 
 `make generate-tokens` runs `packages/scripts/generate-css-tokens.mjs` with
 `tsx` and writes `dashboard/src/styles/tokens.css` and `site/src/tokens.css`,
@@ -615,6 +620,27 @@ navbar toggle uses `site/src/theme.ts`. Browser storage is per origin: where the
 site and the app are served from one origin, as on ledova.io, one choice serves
 both; on separate origins, such as local development, each keeps its own.
 
+The mobile app has the same two looks. `ThemeProvider`
+(`mobile/src/contexts/ThemeContext.tsx`) reads `ledova.theme` from the device's
+AsyncStorage once, through `parseTheme`, and renders nothing until that read
+settles, so the first frame already has the stored look; a missing, unknown or
+unreadable value means Paper, and the `ledova-theme` key an older build used is
+not read. `useAppTheme()` returns one precomputed theme object per look with its
+`mode`, and `useThemeChoice()` gives Settings > Appearance > Dark theme the mode
+and a setter. The choice is written only when someone picks a theme, stays on
+the device through sign-out and restarts, and is not stored on the account.
+Whenever the look is known or changes, the provider sets React Native's colour
+scheme to light or dark and the root view's background to the page ground, so
+alerts, switches and date pickers, and on iOS the keyboard and share sheet,
+follow the in-app choice rather than the device setting. The status bar is dark
+on Paper and light on Dark, navigation starts from React Navigation's light or
+dark theme with the token colours, the identity check's widget opens in its
+dark theme on Dark, and the drawer and app-lock screen draw the logo mark in
+`text.primary` and `brand.light`. QR codes keep a white tile with black modules
+in both looks. The splash screen and the Android adaptive icon stay Paper
+because they show before JavaScript runs
+([mobile builds](../development/mobile-builds.md)).
+
 Colours come from the semantic tokens and their roles, so components need no
 per-theme classes. Both web stylesheets define a `dark:` variant that follows
 `data-theme`, never the operating-system setting, and it is kept for
@@ -624,9 +650,8 @@ drop their green glow. The identity check's widget opens in its dark theme when
 the page is Dark.
 
 Both web clients bundle Newsreader for display text and Instrument Sans for
-everything else. Mobile has one look, Paper, and bundles these fonts with a
-finite loading/error/retry gate; it stores no theme, and a theme an older build
-saved on the device is not read.
+everything else. Mobile bundles the same fonts with a finite
+loading/error/retry gate.
 
 Next: [authentication](authentication.md), [mobile security](mobile-security.md),
 [mobile lifecycles](mobile-lifecycles.md), and [mobile builds](../development/mobile-builds.md).

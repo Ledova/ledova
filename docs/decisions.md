@@ -1157,8 +1157,8 @@ stays the default until someone picks Dark.
 This supersedes the "One look" choice under
 [the signed-in app](#the-signed-in-app) and the #792 reason for storing no theme
 preference. Dark is a second palette for the same semantic tokens. The web
-delivery is described in [clients](architecture/clients.md#design-tokens); the
-mobile increment is planned in the issue.
+and mobile delivery is described in
+[clients](architecture/clients.md#design-tokens).
 
 ## The signed-in app
 

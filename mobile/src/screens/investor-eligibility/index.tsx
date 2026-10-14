@@ -150,13 +150,13 @@ export function InvestorEligibilityScreen() {
           <RefreshControl
             refreshing={isRefreshing && !isLoading}
             onRefresh={() => void refresh()}
-            tintColor={theme.colors.brand.default}
+            tintColor={theme.colors.interactive.active}
           />
         }
       >
         {isLoading ? (
           <View style={styles.group}>
-            <ActivityIndicator color={theme.colors.brand.default} />
+            <ActivityIndicator color={theme.colors.interactive.active} />
             <Text style={styles.message}>Loading verification…</Text>
           </View>
         ) : hasError ? (
@@ -243,7 +243,7 @@ export function InvestorEligibilityScreen() {
               if (!busy && !document.isPicking) void refresh();
             }}
             enabled={!busy && !document.isPicking}
-            tintColor={theme.colors.brand.default}
+            tintColor={theme.colors.interactive.active}
           />
         }
         actions={

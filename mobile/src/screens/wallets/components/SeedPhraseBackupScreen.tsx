@@ -133,7 +133,7 @@ export function SeedPhraseBackupScreen() {
     if (backupState === 'authenticating') {
       return (
         <View style={text.line}>
-          <ActivityIndicator size="small" color={theme.colors.interactive.default} />
+          <ActivityIndicator size="small" color={theme.colors.interactive.active} />
           <Text style={[styles.loadingText, text.lineText]}>Authenticating...</Text>
         </View>
       );

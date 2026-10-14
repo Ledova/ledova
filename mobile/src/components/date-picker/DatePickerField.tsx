@@ -152,7 +152,7 @@ export function DatePickerField({
                 onChange={handleChange}
                 minimumDate={minimumDate}
                 maximumDate={maximumDate}
-                themeVariant="light"
+                themeVariant={theme.mode === 'dark' ? 'dark' : 'light'}
               />
               <ModalActions>
                 <Action label="Cancel" onPress={handleCancel} />
@@ -170,7 +170,7 @@ export function DatePickerField({
             onChange={handleChange}
             minimumDate={minimumDate}
             maximumDate={maximumDate}
-            themeVariant="light"
+            themeVariant={theme.mode === 'dark' ? 'dark' : 'light'}
           />
         )
       )}

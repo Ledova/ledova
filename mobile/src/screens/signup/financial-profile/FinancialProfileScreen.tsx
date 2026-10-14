@@ -146,7 +146,7 @@ export function FinancialProfileScreen() {
       width: 8,
       height: 8,
       borderRadius: theme.borderRadius.sm,
-      backgroundColor: theme.colors.brand.default,
+      backgroundColor: theme.colors.interactive.active,
     },
     radioLabel: {
       fontSize: theme.fontSize.sm,

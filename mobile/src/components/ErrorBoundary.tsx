@@ -1,6 +1,6 @@
 import React from 'react';
-import { PAPER_THEME } from '@ledova/shared';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity } from 'react-native';
+import { useThemedStyles } from '../contexts';
 
 interface ErrorBoundaryProps {
   children: React.ReactNode;
@@ -31,50 +31,53 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
     if (this.state.hasError) {
       if (this.props.fallback) return this.props.fallback;
 
-      return (
-        <View style={styles.container}>
-          <Text style={styles.title}>Something went wrong</Text>
-          <Text style={styles.message}>{this.state.error?.message || 'An unexpected error occurred'}</Text>
-          <TouchableOpacity style={styles.button} onPress={this.handleRetry}>
-            <Text style={styles.buttonText}>Try Again</Text>
-          </TouchableOpacity>
-        </View>
-      );
+      return <ErrorFallback message={this.state.error?.message} onRetry={this.handleRetry} />;
     }
 
     return this.props.children;
   }
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 24,
-    backgroundColor: PAPER_THEME.surface.base,
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: PAPER_THEME.text.primary,
-    marginBottom: 8,
-  },
-  message: {
-    fontSize: 14,
-    color: PAPER_THEME.text.muted,
-    textAlign: 'center',
-    marginBottom: 20,
-  },
-  button: {
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    backgroundColor: PAPER_THEME.brand.default,
-    borderRadius: 8,
-  },
-  buttonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: PAPER_THEME.utility.white,
-  },
-});
+function ErrorFallback({ message, onRetry }: { message?: string; onRetry: () => void }) {
+  const styles = useThemedStyles((theme) => ({
+    container: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: 24,
+      backgroundColor: theme.colors.surface.base,
+    },
+    title: {
+      fontSize: 18,
+      fontWeight: '600',
+      color: theme.colors.text.primary,
+      marginBottom: 8,
+    },
+    message: {
+      fontSize: 14,
+      color: theme.colors.text.muted,
+      textAlign: 'center',
+      marginBottom: 20,
+    },
+    button: {
+      paddingHorizontal: 24,
+      paddingVertical: 12,
+      backgroundColor: theme.colors.brand.default,
+      borderRadius: 8,
+    },
+    buttonText: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.colors.utility.white,
+    },
+  }));
+  return (
+    <View style={styles.container}>
+      <Text style={styles.title}>Something went wrong</Text>
+      <Text style={styles.message}>{message || 'An unexpected error occurred'}</Text>
+      <TouchableOpacity style={styles.button} onPress={onRetry}>
+        <Text style={styles.buttonText}>Try Again</Text>
+      </TouchableOpacity>
+    </View>
+  );
+}

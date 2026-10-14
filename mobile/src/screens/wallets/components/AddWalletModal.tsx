@@ -70,7 +70,7 @@ export function AddWalletModal({
     scanButtonText: {
       fontFamily: theme.fontFamily.medium,
       fontSize: theme.fontSize.sm,
-      color: theme.colors.interactive.defaultSubtle,
+      color: theme.colors.interactive.active,
     },
     scannerContainer: {
       alignItems: 'center',
@@ -229,7 +229,7 @@ export function AddWalletModal({
                 <TouchableOpacity style={styles.scanButton} onPress={form.toggleScanner} disabled={isLoading}>
                   <QrCodeIcon
                     size={theme.icon.sizes.md}
-                    color={theme.colors.interactive.defaultSubtle}
+                    color={theme.colors.interactive.active}
                     weight={theme.icon.weights.regular}
                   />
                   <Text style={styles.scanButtonText}>{form.showScanner ? 'Hide Scanner' : 'Scan QR'}</Text>

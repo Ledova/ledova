@@ -82,7 +82,7 @@ export function VerificationInstructions({
         ) : (
           (isRequestingChallenge || isVerifying) && (
             <View style={text.line}>
-              <ActivityIndicator size="small" color={theme.colors.interactive.default} />
+              <ActivityIndicator size="small" color={theme.colors.interactive.active} />
               <Text style={[text.heading, text.lineText]}>Verifying...</Text>
             </View>
           )

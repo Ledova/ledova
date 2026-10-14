@@ -1,8 +1,9 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Text, TouchableOpacity, Image, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { LockKeyIcon } from 'phosphor-react-native';
 import { useAppLock } from '../../contexts/AppLockContext';
 import { GradientBackground } from '../GradientBackground';
+import { LogoMark } from '../LogoMark';
 import { useAppTheme, useThemedStyles } from '../../contexts';
 
 export function AppLockScreen() {
@@ -20,12 +21,11 @@ export function AppLockScreen() {
       maxWidth: 300,
     },
     logoContainer: {
-      marginBottom: theme.spacing.xl,
-    },
-    logo: {
       width: 80,
       height: 80,
-      borderRadius: theme.borderRadius.lg,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: theme.spacing.xl,
     },
     lockIconContainer: {
       width: 120,
@@ -95,12 +95,11 @@ export function AppLockScreen() {
         <View style={styles.container}>
           <View style={styles.content}>
             <View style={styles.logoContainer}>
-              {/* eslint-disable-next-line @typescript-eslint/no-require-imports */}
-              <Image source={require('../../../assets/icon.png')} style={styles.logo} resizeMode="contain" />
+              <LogoMark width={44} />
             </View>
 
             <View style={styles.lockIconContainer}>
-              <LockKeyIcon size={64} color={theme.colors.interactive.default} weight="regular" />
+              <LockKeyIcon size={64} color={theme.colors.interactive.active} weight="regular" />
             </View>
 
             <Text style={styles.title}>App Locked</Text>

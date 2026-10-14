@@ -178,5 +178,3 @@ export const DESIGN_TOKENS = {
     },
   },
 } as const;
-
-export { PAPER_THEME };

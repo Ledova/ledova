@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, Image, Alert, ScrollView, Pressable } from 'react-native';
+import { View, Text, TouchableOpacity, Alert, ScrollView, Pressable } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { useQueryClient } from '@tanstack/react-query';
@@ -26,6 +26,7 @@ import { notificationsService } from '../services/notificationsService';
 import { clearTokens } from '../services/tokenStorage';
 import { useAppTheme, useThemedStyles } from '../contexts';
 import { NotificationsModal } from '../components/notifications';
+import { LogoMark } from '../components/LogoMark';
 import type { RootStackParamList } from './AppNavigator';
 import { BottomTabNavigator } from './BottomTabNavigator';
 import { MainHeader, getMainHeaderStyle } from './headers';
@@ -155,10 +156,6 @@ function DrawerMenuContent({ onSignOut }: { onSignOut: () => void }) {
       borderBottomWidth: 1,
       borderBottomColor: theme.colors.border.default,
     },
-    logo: {
-      width: 40,
-      height: 32,
-    },
     drawerTitle: {
       fontSize: theme.fontSize.xl,
       fontFamily: theme.fontFamily.display,
@@ -265,8 +262,7 @@ function DrawerMenuContent({ onSignOut }: { onSignOut: () => void }) {
     <View style={styles.drawerContent}>
       <ScrollView style={styles.destinations} contentContainerStyle={{ paddingBottom: 16 }}>
         <View style={styles.drawerHeader}>
-          {/* eslint-disable-next-line @typescript-eslint/no-require-imports */}
-          <Image source={require('../../assets/logo.png')} style={styles.logo} resizeMode="contain" />
+          <LogoMark width={40} height={32} />
           <Text style={styles.drawerTitle}>Ledova</Text>
         </View>
         {!isLoading &&

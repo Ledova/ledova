@@ -147,7 +147,7 @@ export function SoftwareSignTransaction({
 
       {(signingState === 'authenticating' || signingState === 'signing') && (
         <View style={text.line}>
-          <ActivityIndicator size="small" color={theme.colors.interactive.default} />
+          <ActivityIndicator size="small" color={theme.colors.interactive.active} />
           <Text style={[text.heading, text.lineText]}>
             {signingState === 'authenticating' ? 'Authenticating...' : 'Signing Transaction...'}
           </Text>

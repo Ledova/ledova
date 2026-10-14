@@ -276,7 +276,7 @@ export function useSeedPhraseSetup({ visible, onClose, onComplete, onCancel, rea
       case SEED_STEP.STORING:
         return (
           <View style={styles.storing}>
-            <ActivityIndicator size="small" color={theme.colors.interactive.default} />
+            <ActivityIndicator size="small" color={theme.colors.interactive.active} />
             <Text style={styles.storingText}>Securing your wallet...</Text>
           </View>
         );

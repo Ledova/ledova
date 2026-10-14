@@ -2,7 +2,7 @@ import type { Ref } from 'react';
 import { Text, View } from 'react-native';
 import { Dropdown } from 'react-native-element-dropdown';
 import { BLOCKCHAIN, formatDate, type TransactionFilters, type Wallet } from '@ledova/shared';
-import { useThemedStyles } from '../../../../contexts';
+import { useAppTheme, useThemedStyles } from '../../../../contexts';
 import { Action, Choice, Disclosure } from '../../../../components/Ledger';
 import { DatePickerField } from '../../../../components/date-picker';
 import { ModalActions } from '../../../../components/modal';
@@ -70,6 +70,7 @@ export function TransactionFilter({
   onApplyFilters,
   onClearFilters,
 }: Props) {
+  const theme = useAppTheme();
   const styles = useThemedStyles((theme) => ({
     filter: { borderBottomWidth: 1, borderBottomColor: theme.colors.border.default },
     summary: {
@@ -94,7 +95,7 @@ export function TransactionFilter({
     help: { fontFamily: theme.fontFamily.regular, fontSize: 13, lineHeight: 20, color: theme.colors.text.muted },
     dropdown: { borderWidth: 1, borderColor: theme.colors.border.default, padding: 10, borderRadius: 6 },
     field: { backgroundColor: theme.colors.surface.raised },
-    menu: { backgroundColor: theme.colors.surface.base },
+    menu: { backgroundColor: theme.colors.surface.base, borderColor: theme.colors.border.subtle },
   }));
   const change = (field: keyof TransactionFilters, value: string) =>
     onUpdateFilters({ ...filters, [field]: value || undefined });
@@ -152,6 +153,7 @@ export function TransactionFilter({
               accessibilityLabel="Wallet filter"
               style={styles.dropdown}
               containerStyle={styles.menu}
+              activeColor={theme.colors.surface.raised}
               selectedTextStyle={styles.text}
               itemTextStyle={styles.text}
               placeholderStyle={styles.help}

@@ -7,7 +7,7 @@ import { GradientBackground } from '../../../components/GradientBackground';
 import { Panel } from '../../../components/panel';
 import { encodeEthereumMessage, encodeBitcoinMessage } from '../../../utils/keystone/urEncoder';
 import { decodeKeystoneMessageSignature } from '../../../utils/keystone/urDecoder';
-import { useThemedStyles } from '../../../contexts';
+import { useAppTheme, useThemedStyles } from '../../../contexts';
 import {
   getChainShortCode,
   BLOCKCHAIN,
@@ -28,6 +28,7 @@ import { getSessionEpoch, subscribeSession } from '../../../services/sessionScop
 type WalletVerificationRouteProp = RouteProp<WalletsStackParamList, 'WalletVerification'>;
 
 export function WalletVerificationScreen() {
+  const theme = useAppTheme();
   const route = useRoute<WalletVerificationRouteProp>();
   const { owner } = useSubmissionOwner(orderSubmissionSession);
   const epoch = useSyncExternalStore(subscribeSession, getSessionEpoch, getSessionEpoch);
@@ -50,7 +51,11 @@ export function WalletVerificationScreen() {
     return null;
   }
   if (!owner || wallet.userAccount !== owner.ownerAccountUuid)
-    return <Text>Your signed-in account must be checked before verifying this own wallet.</Text>;
+    return (
+      <Text style={{ color: theme.colors.text.primary }}>
+        Your signed-in account must be checked before verifying this own wallet.
+      </Text>
+    );
   return <WalletVerification key={scope.generation} wallet={wallet} nomination={nomination} />;
 }
 

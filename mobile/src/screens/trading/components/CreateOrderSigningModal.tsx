@@ -106,7 +106,7 @@ export function CreateOrderSigningModal({ submission, wallet, tokens, onClose, o
       >
         <View style={styles.content}>
           {['preparing', 'signing', 'submitting'].includes(state.phase) && (
-            <ActivityIndicator color={theme.colors.interactive.default} />
+            <ActivityIndicator color={theme.colors.interactive.active} />
           )}
           {state.phase === 'preparing' && (
             <Text style={text.text}>Checking order and preparing signing details...</Text>
