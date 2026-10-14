@@ -311,6 +311,19 @@ must populate these same editable forms for manual review and correction;
 extraction cannot confirm ownership or bypass validation. Optional retained
 supporting copies remain distinct from extraction.
 
+## Cohesive signed-in web experience
+
+On 14 October 2026 the owner approved
+[#1031](https://github.com/Ledova/ledova/issues/1031): refine the share-register
+workspace and apply its simple layout, spacing, typography and component
+principles across signed-in web pages. Use existing components, remove repeated
+headings and explanations, and keep important ownership and next actions
+visible. Completed records need a clear recorded state rather than instructions
+for an unfinished draft. Company and personal workflows retain their authority,
+privacy, confirmation and exact recovery boundaries. The owner limited this
+pass to signed-in web; signup, native clients and the public website remain
+outside its scope. The issue records each delivered increment.
+
 ## Eligibility and ownership records
 
 Under the 3 October decision, company

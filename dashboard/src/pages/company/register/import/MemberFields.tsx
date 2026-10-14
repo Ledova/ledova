@@ -76,7 +76,7 @@ export function MemberFields({
             value={row.name}
             readOnly={preserveParticulars && !!known?.name}
             maxLength={255}
-            className={FIELD_CLASS}
+            className={`${FIELD_CLASS} read-only:bg-surface-tertiary read-only:text-text-muted`}
             onChange={(event) => update({ name: event.target.value })}
           />
         </label>
@@ -86,7 +86,7 @@ export function MemberFields({
             value={row.residentialAddress}
             readOnly={preserveParticulars && !!known?.residentialAddress}
             maxLength={1000}
-            className={FIELD_CLASS}
+            className={`${FIELD_CLASS} read-only:bg-surface-tertiary read-only:text-text-muted`}
             onChange={(event) => update({ residentialAddress: event.target.value })}
           />
         </label>
@@ -206,7 +206,8 @@ export function MemberFields({
       ))}
       <div className="flex flex-wrap gap-2">
         <PageAction
-          label={`Add allotment for shareholder ${index + 1}`}
+          label="Add allotment"
+          context={`shareholder ${index + 1}`}
           onClick={() => update({ allotments: [...row.allotments, blankAllotment()] })}
         />
       </div>

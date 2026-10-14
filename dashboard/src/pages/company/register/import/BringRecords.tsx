@@ -244,7 +244,8 @@ export function BringRecords({
                     }}
                   />
                   <PageAction
-                    label="Cancel shareholder edit"
+                    label="Cancel"
+                    context="shareholder edit"
                     disabled={busy}
                     onClick={() => {
                       const original = editor?.original;

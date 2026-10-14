@@ -9,6 +9,7 @@ import {
   createUserFriendlyError,
   failureStatus,
   formatDateToString,
+  formatDate,
   formatShareCount,
   isPreparedRegisterImport,
   isRegisterEvidenceReceipt,
@@ -629,17 +630,19 @@ export function ImportForm({
           ) : (
             proposal && (
               <section
-                aria-label="Review share register"
+                aria-label={proposal.status === 'applied' ? 'Recorded share register' : 'Review share register'}
                 className="space-y-6 rounded-2xl border border-border bg-surface-raised p-4 sm:p-6"
               >
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
-                  <h2 className="font-display text-xl text-text-primary">Review</h2>
+                  <h2 className="font-display text-xl text-text-primary">
+                    {proposal.status === 'applied' ? 'Recorded' : 'Review'}
+                  </h2>
                   <p className="text-sm text-text-muted">
-                    Record date · <time dateTime={proposal.asAt}>{proposal.asAt}</time>
+                    Record date · <time dateTime={proposal.asAt}>{formatDate(proposal.asAt)}</time>
                   </p>
                 </div>
-                <dl aria-label="Share register summary" className="grid gap-3 sm:grid-cols-3">
-                  <div className="min-w-0 rounded-xl bg-surface-tertiary p-4">
+                <dl aria-label="Share register summary" className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                  <div className="col-span-2 min-w-0 rounded-xl bg-surface-tertiary p-4 sm:col-span-1">
                     <dt className="text-xs text-text-muted">Share class</dt>
                     <dd className="mt-2 break-words text-lg font-medium text-text-primary">
                       {shareClass?.name ?? register?.token.name ?? 'Share class'}
@@ -717,7 +720,7 @@ export function ImportForm({
                     ))}
                   </ul>
                 )}
-                {canPrepare && steps.reject && (
+                {proposal.status === 'submitted' && canPrepare && steps.reject && (
                   <p className="text-xs text-text-muted">
                     Editing retires this prepared draft before saving a replacement. Confirmed mirrors and earlier
                     evidence stay unchanged.
@@ -803,6 +806,11 @@ export function ImportForm({
                     </div>
                   </>
                 )}
+                {proposal.status === 'applied' && (
+                  <div className="flex justify-end border-t border-border-subtle pt-4">
+                    <PageAction label="View company ownership" primary onClick={() => void finish()} />
+                  </div>
+                )}
               </section>
             )
           )}
@@ -834,7 +842,6 @@ export function ImportForm({
           Refresh current company access before showing these records or starting another action.
         </p>
       )}
-      {proposal?.status === 'applied' && <PageAction label="View company ownership" onClick={() => void finish()} />}
     </div>
   );
 }

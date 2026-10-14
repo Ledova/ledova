@@ -29,30 +29,28 @@ export default function CompanyRegisterImportPage() {
   const preferences = useUserPreferences();
   return (
     <PageTitle.Provider value="Set up your share register">
-      <div className="w-full max-w-4xl">
-        <Page>
-          {owner && !preferences.isError ? (
-            uuid ? (
-              <OwnImport
-                key={`${owner.userUuid}/${owner.ownerAccountUuid}/${uuid}`}
-                uuid={uuid}
-                owner={owner}
-                currentOwner={boundary.get}
-              />
-            ) : (
-              <NewClassSetup
-                key={`${owner.userUuid}/${owner.ownerAccountUuid}`}
-                owner={owner}
-                currentOwner={boundary.get}
-              />
-            )
-          ) : preferences.isLoading ? (
-            <Loading />
+      <Page narrow>
+        {owner && !preferences.isError ? (
+          uuid ? (
+            <OwnImport
+              key={`${owner.userUuid}/${owner.ownerAccountUuid}/${uuid}`}
+              uuid={uuid}
+              owner={owner}
+              currentOwner={boundary.get}
+            />
           ) : (
-            <Unavailable retry={() => void preferences.refetch()} busy={preferences.isFetching} />
-          )}
-        </Page>
-      </div>
+            <NewClassSetup
+              key={`${owner.userUuid}/${owner.ownerAccountUuid}`}
+              owner={owner}
+              currentOwner={boundary.get}
+            />
+          )
+        ) : preferences.isLoading ? (
+          <Loading />
+        ) : (
+          <Unavailable retry={() => void preferences.refetch()} busy={preferences.isFetching} />
+        )}
+      </Page>
     </PageTitle.Provider>
   );
 }
