@@ -31,8 +31,8 @@ The navbar's moon/sun toggle switches between Paper and Dark through
 choice in the browser under `ledova.theme`; a short script in `index.html`
 applies a stored Dark before the first paint. The module repeats the
 dashboard's key, parsing rule and theme colours because the site's Docker
-context is `site/` and cannot import `@ledova/shared`. In production the site
-and the app share an origin, so one choice serves both
+context is `site/` and cannot import `@ledova/shared`. Where the site and the app
+share an origin, as on ledova.io, one choice serves both
 ([design tokens](../docs/architecture/clients.md#design-tokens)).
 
 ## Commands
