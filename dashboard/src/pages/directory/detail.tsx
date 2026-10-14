@@ -86,13 +86,13 @@ export default function DirectoryTokenPage() {
     navigate(DESTINATIONS.subscriptionDetail.path.replace(':uuid', created)),
   );
 
-  const back = <PageAction label="Back to Directory" onClick={() => navigate(DESTINATIONS.directory.path)} />;
+  const back = <PageAction label="Directory" onClick={() => navigate(DESTINATIONS.directory.path)} />;
 
-  if (isLoading) return <Page loading actions={back} />;
+  if (isLoading) return <Page narrow loading actions={back} />;
 
   if (hasError) {
     return (
-      <Page actions={back}>
+      <Page narrow actions={back}>
         <div role="alert" className="flex flex-col items-start gap-3 py-6">
           <p className="text-sm text-text-primary">
             This share class could not be loaded. Try again before continuing.
@@ -105,7 +105,7 @@ export default function DirectoryTokenPage() {
 
   if (!token || notFound) {
     return (
-      <Page actions={back}>
+      <Page narrow actions={back}>
         <Section title="Share class not available">
           <p className="py-2 text-sm text-text-muted">
             This share class is not available to you in the directory. It may have closed or your investor status may
@@ -119,7 +119,7 @@ export default function DirectoryTokenPage() {
   const offering = token.openOffering;
 
   return (
-    <Page actions={back} lede={token.company.displayName}>
+    <Page narrow actions={back} lede={token.company.displayName}>
       <div className="min-w-0 break-words">
         <Section title={token.name}>
           <Rows>

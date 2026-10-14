@@ -145,11 +145,12 @@ export function WalletsPage() {
   };
 
   if (isLoading) {
-    return <Page loading lede={LEDE} />;
+    return <Page narrow loading lede={LEDE} />;
   }
 
   return (
     <Page
+      narrow
       lede={LEDE}
       actions={
         <>

@@ -33,11 +33,11 @@ function ShareClassRow({ token }: { token: DirectoryToken }) {
 export default function DirectoryPage() {
   const { tokens, isReady, isLoading, hasError, isRefreshing, retry } = useDirectoryTokens();
 
-  if (isLoading) return <Page loading />;
+  if (isLoading) return <Page narrow loading />;
 
   if (hasError) {
     return (
-      <Page>
+      <Page narrow>
         <div role="alert" className="flex flex-col items-start gap-3 py-6">
           <p className="text-sm text-text-primary">The directory could not be loaded. Try again before continuing.</p>
           <PageAction label="Try again" onClick={() => void retry()} disabled={isRefreshing} />
@@ -48,7 +48,7 @@ export default function DirectoryPage() {
 
   if (!isReady) {
     return (
-      <Page>
+      <Page narrow>
         <Section title="Check your investor account">
           <p className="py-2 text-sm text-text-muted">
             Account and identity checks are prerequisites. Each company separately decides eligibility for its
@@ -65,7 +65,7 @@ export default function DirectoryPage() {
   for (const token of tokens) issuers.set(token.companyUuid, [...(issuers.get(token.companyUuid) ?? []), token]);
 
   return (
-    <Page>
+    <Page narrow>
       {tokens.length === 0 ? (
         <Section title="Share classes">
           <p className="py-3 text-sm text-text-muted">
