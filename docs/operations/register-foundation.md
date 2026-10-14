@@ -371,6 +371,9 @@ the company, record date and actor. Existing nonblank source labels are kept.
 
 Add shareholders individually and edit one draft record at a time from the
 compact list. Each editor keeps the holding's underlying allotment particulars.
+**Held for someone else?** records the source's beneficial-holding distinction:
+Yes means non-beneficial and No means beneficial. Optional share/certificate
+references stay in **References (optional)**, open when already populated.
 The shareholder step also accepts the existing CSV template. CSV input is UTF-8,
 at most 1 MB and 500 allotment rows, and is parsed locally. A repeated holder
 reference groups allotments; identity, original entry

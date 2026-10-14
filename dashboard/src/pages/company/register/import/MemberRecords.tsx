@@ -9,8 +9,8 @@ export function MemberRecords({ members }: { members: RegisterImportMemberRow[] 
           <h3 className="mb-2 text-sm font-medium text-text-primary">{member.name}</h3>
           <Rows>
             <Row label="Address">{member.residentialAddress}</Row>
-            <Row label="Original membership date">{member.enteredOn}</Row>
-            <Row label="Current holding">{formatShareCount(member.shares)} shares</Row>
+            <Row label="Date first added to register">{member.enteredOn}</Row>
+            <Row label="Shares held">{formatShareCount(member.shares)} shares</Row>
           </Rows>
           {member.allotments ? (
             <ul className="mt-3 divide-y divide-border-subtle">
@@ -18,16 +18,16 @@ export function MemberRecords({ members }: { members: RegisterImportMemberRow[] 
                 <li key={index} className="py-3">
                   <p className="mb-2 text-sm font-medium text-text-primary">Allotment {index + 1}</p>
                   <Rows>
-                    <Row label="Allotted on">{allotment.allottedOn}</Row>
-                    <Row label="Shares">{formatShareCount(allotment.shares)}</Row>
+                    <Row label="Allotment date">{allotment.allottedOn}</Row>
+                    <Row label="Shares in allotment">{formatShareCount(allotment.shares)}</Row>
                     <Row label="Amount paid">{allotment.amountPaid}</Row>
                     <Row label="Amount unpaid">{allotment.amountUnpaid}</Row>
                     <Row label="Payment status">{allotment.fullyPaid ? 'Fully paid' : 'Not fully paid'}</Row>
-                    <Row label="Held beneficially">
-                      {allotment.beneficiallyHeld ? 'Yes' : 'No, held for someone else'}
-                    </Row>
-                    <Row label="Share reference">{allotment.shareReference || 'Not recorded'}</Row>
-                    <Row label="Certificate reference">{allotment.certificateReference || 'Not recorded'}</Row>
+                    <Row label="Held for someone else?">{allotment.beneficiallyHeld ? 'No' : 'Yes'}</Row>
+                    {allotment.shareReference && <Row label="Share reference">{allotment.shareReference}</Row>}
+                    {allotment.certificateReference && (
+                      <Row label="Certificate reference">{allotment.certificateReference}</Row>
+                    )}
                   </Rows>
                 </li>
               ))}

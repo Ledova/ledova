@@ -287,6 +287,10 @@ match its existing records; the selector defines no legal share rights.
 
 Use a compact list and one shareholder editor at a time. Draft edits do not
 overwrite confirmed history or change a person's company member identity.
+Use plain field labels, place optional share/certificate references together,
+and omit the redundant derived payment-status display. Keep the explicit
+trustee/nominee distinction as **Held for someone else?** with Yes/No, alongside
+the original dates, quantities and paid/unpaid amounts.
 Retained preparation, exact confirmation, authority and safe correction rules
 still apply. Remove the page's dashboard-return button, source-reference input
 and repeated legal-boundary paragraph. The copied snapshot retains company,
