@@ -87,11 +87,13 @@ export function ImportForm({
   const client = useQueryClient();
   const navigate = useNavigate();
   const today = formatDateToString(new Date());
+  const reuseSavedCopies = !!saved?.preparingAppointment && saved.preparingAppointment === appointment?.uuid;
   const [draft, setDraft] = useState<PreparationDraft>(() => ({
     registerFile: null,
     asicFile: null,
-    registerEvidence: saved?.registerEvidence ?? undefined,
-    asicEvidence: saved?.asicEvidence ?? undefined,
+    registerEvidence: reuseSavedCopies ? (saved?.registerEvidence ?? undefined) : undefined,
+    asicEvidence: reuseSavedCopies ? (saved?.asicEvidence ?? undefined) : undefined,
+    earlierCopiesNotReused: !reuseSavedCopies && !!(saved?.registerEvidence || saved?.asicEvidence),
     asAt: saved?.asAt ?? correction?.asAt ?? today,
     reference: saved?.sourceReference ?? correction?.sourceReference ?? '',
     reason: saved?.reason ?? (correction ? '' : 'Mirror the company’s existing share records.'),

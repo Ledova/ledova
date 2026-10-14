@@ -35,6 +35,7 @@ export type PreparationDraft = {
   asicFile: File | null;
   registerEvidence?: string;
   asicEvidence?: string;
+  earlierCopiesNotReused?: boolean;
   asAt: string;
   reference: string;
   reason: string;

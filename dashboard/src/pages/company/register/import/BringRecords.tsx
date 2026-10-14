@@ -36,6 +36,12 @@ export function BringRecords({
 }) {
   return (
     <>
+      {draft.earlierCopiesNotReused && (
+        <p className="text-sm text-text-muted">
+          The earlier source copies stay with the earlier snapshot. This draft does not reuse them; choose optional
+          replacements below. To keep copied ASIC comparison figures, add an ASIC extract or leave out the comparison.
+        </p>
+      )}
       <fieldset className="space-y-3">
         <legend className="text-sm font-medium text-text-primary">Source records</legend>
         <label className={LABEL}>
@@ -264,6 +270,13 @@ export function BringRecords({
               }}
             />
           </label>
+          {(draft.statedTotal || draft.statedCount) && (
+            <PageAction
+              label="Leave out ASIC comparison"
+              disabled={busy}
+              onClick={() => update((current) => ({ ...current, statedTotal: '', statedCount: '' }))}
+            />
+          )}
           <p className="text-sm text-text-primary">
             {REGISTER_IMPORT_COPY.IMPORTED_FIGURES(formatShareCount(imported.total), imported.count)}
           </p>

@@ -376,12 +376,7 @@ function OwnRegister({
                       {ON_CHAIN.includes(register.token.status) && (
                         <ClassOpenings owner={owner} guard={guard} register={register} company={scope.company.uuid} />
                       )}
-                      <ClassImports
-                        owner={owner}
-                        guard={guard}
-                        token={register.token.uuid}
-                        company={scope.company.uuid}
-                      />
+                      <ClassImports owner={owner} guard={guard} register={register} company={scope.company.uuid} />
                       <ClassTransfers owner={owner} guard={guard} register={register} company={scope.company.uuid} />
                       <ClassCorrections
                         owner={owner}

@@ -159,11 +159,17 @@ function RegisterWork({
   prepare: boolean;
 }) {
   const state = { registerCompany: company, registerToken: register.token.uuid };
+  const draft = register.token.status === 'draft';
+  const deployed = register.token.status === 'deployed' || register.token.status === 'paused';
   return (
     <Section title="Register work">
       {!register.initialized && (
         <p className="text-sm text-text-muted">
-          Bring in this class’s existing ownership records before recording changes.
+          {draft
+            ? 'Bring in this class’s existing ownership records before recording changes.'
+            : deployed
+              ? 'Open this class’s register from its confirmed chain holdings before recording changes.'
+              : 'Deployment is in progress. Open this class’s register after confirmation.'}
         </p>
       )}
       {register.initialized && register.waitingEffects === null && (
@@ -177,12 +183,20 @@ function RegisterWork({
         </p>
       )}
       <div className="flex flex-col items-start gap-3 py-2 text-sm font-medium text-brand-mid">
-        {prepare && !register.initialized && (
+        {prepare && !register.initialized && (draft || deployed) && (
           <Link
-            to={DESTINATIONS.companyRegisterImport.path.replace(':uuid', register.token.uuid)}
+            to={(draft ? DESTINATIONS.companyRegisterImport : DESTINATIONS.companyRegisterOpening).path.replace(
+              ':uuid',
+              register.token.uuid,
+            )}
             className="hover:underline"
           >
-            Set up your share register
+            {draft ? 'Set up your share register' : 'Open register from chain'}
+          </Link>
+        )}
+        {!register.initialized && register.token.status === 'deploying' && (
+          <Link to={DESTINATIONS.companyClass.path.replace(':uuid', register.token.uuid)} className="hover:underline">
+            View share class
           </Link>
         )}
         {prepare && register.initialized && (

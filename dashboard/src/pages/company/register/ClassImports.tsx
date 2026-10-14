@@ -1,5 +1,10 @@
 import { useQueryClient, type QueryKey } from '@tanstack/react-query';
-import { DESTINATIONS, REGISTER_IMPORT_COPY, type OrderSubmissionOwner } from '@ledova/shared';
+import {
+  DESTINATIONS,
+  REGISTER_IMPORT_COPY,
+  type OrderSubmissionOwner,
+  type TokenHoldersResponse,
+} from '@ledova/shared';
 import { LinkRow } from '@components/Ledger';
 import { PageAction } from '@components/Page';
 import { ownAppointmentsKey } from '../team/appointments';
@@ -12,14 +17,15 @@ import { importsKey, useOwnAppointments, useRegisterImports } from './useRegiste
 export function ClassImports({
   owner,
   guard,
-  token,
+  register,
   company,
 }: {
   owner: OrderSubmissionOwner;
   guard: () => void;
-  token: string;
+  register: TokenHoldersResponse;
   company: string;
 }) {
+  const token = register.token.uuid;
   const client = useQueryClient();
   const imports = useRegisterImports(owner, token, guard);
   const appointments = useOwnAppointments(owner, guard);
@@ -54,6 +60,7 @@ export function ClassImports({
         )
       )}
       {steps?.prepare &&
+        (register.initialized || register.token.status === 'draft') &&
         imports.isSuccess &&
         (!imports.data.some((proposal) => proposal.status === 'applied') ||
           imports.data.some((proposal) => proposal.correctionAllowed)) && (

@@ -24,6 +24,7 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import CompanyRegisterPage from '.';
 import CompanyDashboardPage from '../dashboard';
 import CompanyRegisterImportPage from './import';
+import { ImportForm } from './import/ImportForm';
 import { REGISTER_CSV_COLUMNS, readRegisterCsv, registerCsvTemplate } from './import/csv';
 import { blankAllotment, preparationProblems } from './import/preparation';
 import { APPOINTMENT as CURRENT_APPOINTMENT } from '../../../../../packages/shared/tests/fixtures/employee-awards';
@@ -539,6 +540,91 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   expect(proposal!.decisions.map((decision) => decision.appointment)).toEqual(['approve-only', 'apply-only']);
   expect(api.post.mock.calls.filter(([url]) => url === IMPORTS)).toHaveLength(2);
   expect(api.post.mock.calls.filter(([url]) => url === COMPANY_TOKEN_ENDPOINTS.BASE)).toHaveLength(1);
+  const rejected: RegisterImport = {
+    ...proposal!,
+    uuid: 'rejected-copy',
+    preparingAppointment: 'original-preparer',
+    status: 'rejected',
+    stage: 'rejected',
+    registerEvidence: 'original-register-copy',
+    asicEvidence: 'original-asic-copy',
+    asicIssuedTotal: '600',
+    asicMemberCount: 1,
+  };
+  const showReplacement = (uuid: string) => {
+    cleanup();
+    client.clear();
+    const preparationAppointment: OwnCompanyAppointment = {
+      ...appointment,
+      uuid,
+      capabilities: ['prepare'],
+    };
+    render(
+      <QueryClientProvider client={client}>
+        <MemoryRouter>
+          <ImportForm
+            owner={{ userUuid: 'profile-one', ownerAccountUuid: 'account-one' }}
+            guard={() => {}}
+            company={company.uuid}
+            register={holders()}
+            appointment={preparationAppointment}
+            steps={{ prepare: preparationAppointment }}
+            saved={rejected}
+            blocked={false}
+            onConflict={() => {}}
+          />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+  };
+  showReplacement('original-preparer');
+  expect(screen.getByText(/retained source copy will be reused/)).toBeTruthy();
+  expect(screen.getByText(/retained ASIC copy and figures will be reused/)).toBeTruthy();
+  showReplacement('another-preparer');
+  expect(screen.getByText(/earlier source copies stay with the earlier snapshot/)).toBeTruthy();
+  expect(screen.queryByText(/will be reused/)).toBeNull();
+  expect((screen.getByLabelText('Issued shares in the comparison source (optional)') as HTMLInputElement).value).toBe(
+    '600',
+  );
+  api.post.mockClear();
+  fireEvent.click(screen.getByRole('button', { name: 'Continue to review' }));
+  expect(screen.getByText(/Attach the optional ASIC extract/)).toBeTruthy();
+  expect(api.post).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole('button', { name: 'Leave out ASIC comparison' }));
+  expect((screen.getByLabelText('Issued shares in the comparison source (optional)') as HTMLInputElement).value).toBe(
+    '',
+  );
+  expect(
+    (screen.getByLabelText('Shareholders listed in the comparison source (optional)') as HTMLInputElement).value,
+  ).toBe('');
+  api.post.mockImplementation(async (url: string, request: RegisterImportPreparation) => {
+    expect(url).toBe(IMPORTS);
+    return {
+      data: {
+        ...rejected,
+        uuid: request.operationId,
+        preparingAppointment: request.appointment,
+        status: 'submitted',
+        stage: 'submitted',
+        decisions: [],
+        registerEvidence: null,
+        asicEvidence: null,
+        asicIssuedTotal: null,
+        asicMemberCount: null,
+        members: request.members.map((member) => ({ ...member, amountPaid: '600.00' })),
+      },
+    };
+  });
+  fireEvent.click(screen.getByRole('button', { name: 'Continue to review' }));
+  await waitFor(() => expect(api.post).toHaveBeenCalledOnce());
+  const replacement = api.post.mock.calls[0][1] as RegisterImportPreparation;
+  expect(replacement.appointment).toBe('another-preparer');
+  expect(replacement.registerEvidence).toBeUndefined();
+  expect(replacement.asicEvidence).toBeUndefined();
+  expect(replacement.asicIssuedTotal).toBeUndefined();
+  expect(replacement.asicMemberCount).toBeUndefined();
+  expect(rejected.registerEvidence).toBe('original-register-copy');
+  expect(rejected.asicEvidence).toBe('original-asic-copy');
 });
 
 it('shows an account without register access a calm empty state, reads no members or CSV and offers no entry', async () => {
