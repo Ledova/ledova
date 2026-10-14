@@ -274,8 +274,8 @@ on #1025; this decision records accepted scope, not completed implementation.
 
 On 14 October 2026 the owner approved
 [#1029](https://github.com/Ledova/ledova/issues/1029): simplify the manual setup
-into share details, shareholders, review and confirmation. Copy the company's
-existing class name, code and type first, then add and edit shareholders
+into share details, shareholders and one combined review/confirmation step. Copy
+the company's existing class name, code and type first, then add and edit shareholders
 individually in the same forms. Codes such as A and B must not need invented
 aliases. Original membership and allotment dates, quantities, paid/unpaid
 amounts and relevant references remain part of the copied record.
@@ -291,6 +291,9 @@ Use plain field labels, place optional share/certificate references together,
 and omit the redundant derived payment-status display. Keep the explicit
 trustee/nominee distinction as **Held for someone else?** with Yes/No, alongside
 the original dates, quantities and paid/unpaid amounts.
+Review uses one shareholder table with per-person particulars available when
+needed. One **Confirm** button performs the applicable decision after a fresh
+preview; it does not bypass separate approval/application authority or recovery.
 Retained preparation, exact confirmation, authority and safe correction rules
 still apply. Remove the page's dashboard-return button, source-reference input
 and repeated legal-boundary paragraph. The copied snapshot retains company,

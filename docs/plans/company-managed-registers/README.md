@@ -54,10 +54,11 @@ owns copied particulars, source attribution and bounded opening corrections.
 [PR #1026](https://github.com/Ledova/ledova/pull/1026) delivers copied fields and
 correction safeguards. Web setup under
 [#1029](https://github.com/Ledova/ledova/issues/1029) guides Share details →
-Shareholders → Review → Confirm, with individual draft editors, manual or local
-CSV entry, recovered confirmations and a return to ownership. The inactive
-Import button's tooltip marks document extraction Coming soon; optional supporting copies do not extract
-data. Future extracted values use the same editable forms.
+Shareholders → Review, with a shareholder table and one Confirm action,
+individual draft editors, manual or local CSV entry, recovered confirmations and
+a return to ownership. The inactive Import button's tooltip marks document
+extraction Coming soon; optional supporting copies do not extract data. Future
+extracted values use the same editable forms.
 Native clients retain separate preparation and decision screens.
 
 Verification references in the guides are each increment's original evidence;

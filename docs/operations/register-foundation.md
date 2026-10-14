@@ -355,7 +355,7 @@ with the company. An import neither establishes legal ownership nor issues
 shares again. Shareholders need no account or wallet for a mirror opening.
 
 On the web, **Set up your share register** opens `/company/register/setup`.
-Start with **Share details**, then **Shareholders**, **Review** and **Confirm**.
+Start with **Share details**, then **Shareholders** and **Review**.
 The company owner can select a common class—Ordinary (ORD), Preference (PRF) or
 Redeemable (RED)—or use **Another class** to copy its name, code and type.
 Already configured draft classes are selectable. The selection must match the
@@ -378,8 +378,9 @@ The shareholder step also accepts the existing CSV template. CSV input is UTF-8,
 at most 1 MB and 500 allotment rows, and is parsed locally. A repeated holder
 reference groups allotments; identity, original entry
 date and current holding must agree across its rows. Blank money amounts remain
-missing rather than becoming zero. The review lists all copied particulars and
-checks holdings against allotments before any confirmation. Unsaved shareholder
+missing rather than becoming zero. Review shows a shareholder table, with full
+copied particulars available per person, and checks holdings against allotments
+before any confirmation. Unsaved shareholder
 edits remain local; editing a saved preparation first retires it through **Edit
 records**, as described below. **Import** beside **Continue** is an inactive
 future extraction option, explained by its **Coming soon** tooltip; it uploads nothing. Future
@@ -401,7 +402,9 @@ shareholders manually. Templates include a `value_encoding` column so
 spreadsheet-safe text round-trips exactly; keep that column. Raw source CSVs
 without it retain their literal text, including any leading apostrophes.
 
-Confirm records approval and application through the existing exact decisions.
+The final step loads a fresh decision preview; **Confirm** records approval and
+application through the existing exact decisions, without a separate confirmation
+screen. Review-only appointees still record approval separately from application.
 A failed or uncertain response retains its original retry receipt; return to
 setup to resume a prepared or approved snapshot. Current authority and fresh
 previews remain required. A separate appointee can resume review or confirmation

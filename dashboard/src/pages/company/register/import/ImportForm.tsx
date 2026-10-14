@@ -122,7 +122,7 @@ export function ImportForm({
   const [proposal, setProposal] = useState<RegisterImport | undefined>(
     saved?.status === 'rejected' ? undefined : saved,
   );
-  const [phase, setPhase] = useState<'details' | 'shareholders' | 'review' | 'confirm'>(
+  const [phase, setPhase] = useState<'details' | 'shareholders' | 'review'>(
     saved && saved.status !== 'rejected' ? 'review' : 'details',
   );
   const [holderEditor, setHolderEditor] = useState(false);
@@ -134,6 +134,7 @@ export function ImportForm({
   const [autoPreviewFinished, setAutoPreviewFinished] = useState(false);
   const [editing, setEditing] = useState(false);
   const applyOpened = useRef(false);
+  const previewAttempt = useRef('');
   const preparation = useRef<RegisterImportPreparation | null>(null);
   const activeRegister = useRef(register);
   const uploads = useRef<Partial<Record<RegisterEvidenceKind, Upload>>>({});
@@ -242,6 +243,7 @@ export function ImportForm({
       return;
     }
     applyOpened.current = true;
+    previewAttempt.current = JSON.stringify([proposal.uuid, proposal.stage, steps.apply.uuid]);
     void apply.open('apply').finally(() => setAutoPreviewFinished(true));
   }, [autoApply, approve.busy, apply.busy, apply, proposal?.stage, steps.apply]);
   useEffect(() => {
@@ -447,39 +449,57 @@ export function ImportForm({
       if (mounted.current) setBusy(false);
     }
   };
-  const review = async () => {
-    if (!proposal || deciding || blocked || !steps[proposal.stage === 'approved' ? 'apply' : 'approve']) return;
-    setPhase('confirm');
-    if (proposal.stage === 'approved') await apply.open('apply');
-    else await approve.open('approve');
-  };
   const decision = proposal?.stage === 'approved' ? apply : approve;
   const kind = proposal?.stage === 'approved' ? 'apply' : 'approve';
   const currentTarget = decision.target;
   const ready =
-    !!currentTarget?.preview.canDecide && currentTarget.request.appointment === steps[kind]?.uuid && !blocked;
+    !!currentTarget?.preview.canDecide &&
+    currentTarget.uuid === proposal?.uuid &&
+    currentTarget.request.kind === kind &&
+    currentTarget.request.appointment === steps[kind]?.uuid &&
+    proposal?.status === 'submitted' &&
+    visible &&
+    !blocked;
+  const loadPreview = async () => {
+    if (!proposal || deciding || recovery || autoApply || blocked || !visible || !steps[kind]) return;
+    previewAttempt.current = JSON.stringify([proposal.uuid, proposal.stage, steps[kind]?.uuid]);
+    await decision.open(kind);
+  };
+  useEffect(() => {
+    if (
+      phase !== 'review' ||
+      !proposal ||
+      proposal.status !== 'submitted' ||
+      busy ||
+      deciding ||
+      recovery ||
+      editing ||
+      autoApply ||
+      blocked ||
+      !visible ||
+      !steps[kind]
+    )
+      return;
+    const signature = JSON.stringify([proposal.uuid, proposal.stage, steps[kind]?.uuid]);
+    if (previewAttempt.current === signature) return;
+    previewAttempt.current = signature;
+    void decision.open(kind);
+  }, [phase, proposal, busy, deciding, recovery, editing, autoApply, blocked, visible, steps, kind, decision]);
   const preview = apply.target?.preview ?? approve.target?.preview;
   const errors = [error, approve.error, apply.error, reject.error].filter(Boolean);
   return (
     <div className="space-y-5">
       <ol
         aria-label="Share register setup steps"
-        className="grid grid-cols-2 gap-2 border-b border-border-subtle pb-4 text-sm sm:grid-cols-4"
+        className="grid grid-cols-1 gap-2 border-b border-border-subtle pb-4 text-sm sm:grid-cols-3"
       >
-        {(['details', 'shareholders', 'review', 'confirm'] as const).map((step, index) => (
+        {(['details', 'shareholders', 'review'] as const).map((step, index) => (
           <li
             key={step}
             aria-current={phase === step ? 'step' : undefined}
             className={phase === step ? 'font-medium text-text-primary' : 'text-text-muted'}
           >
-            {index + 1}.{' '}
-            {step === 'details'
-              ? 'Share details'
-              : step === 'shareholders'
-                ? 'Shareholders'
-                : step === 'review'
-                  ? 'Review'
-                  : 'Confirm'}
+            {index + 1}. {step === 'details' ? 'Share details' : step === 'shareholders' ? 'Shareholders' : 'Review'}
           </li>
         ))}
       </ol>
@@ -605,8 +625,8 @@ export function ImportForm({
                   {proposal.asicEvidence && <Row label="ASIC copy">Retained company-provided extract</Row>}
                   {proposal.correctionOf && <Row label="Correction reason">{proposal.reason}</Row>}
                 </Rows>
-                {phase === 'review' && <MemberRecords members={proposal.members} />}
-                {phase === 'review' && !!proposal.formerMembers.length && (
+                <MemberRecords members={proposal.members} />
+                {!!proposal.formerMembers.length && (
                   <ul className="divide-y divide-border-subtle">
                     {proposal.formerMembers.map((member, index) => (
                       <li key={index} className="py-3">
@@ -620,48 +640,25 @@ export function ImportForm({
                     ))}
                   </ul>
                 )}
-                {phase === 'review' && canPrepare && steps.reject && (
+                {canPrepare && steps.reject && (
                   <p className="text-xs text-text-muted">
                     Editing retires this prepared draft before saving a replacement. Confirmed mirrors and earlier
                     evidence stay unchanged.
                   </p>
                 )}
-                {phase === 'review' && (
-                  <div className="flex flex-wrap gap-2">
-                    <PageAction
-                      label="Edit records"
-                      disabled={deciding || !canPrepare || !steps.reject || blocked || proposal.status !== 'submitted'}
-                      onClick={() => {
-                        setEditing(true);
-                        void reject.open('reject', 'Replaced while editing the copied records.');
-                      }}
-                    />
-                    <PageAction
-                      label="Continue to confirmation"
-                      disabled={deciding || blocked || !steps[kind] || proposal.status !== 'submitted'}
-                      onClick={() => void review()}
-                    />
-                  </div>
-                )}
-                {phase === 'review' && proposal.status === 'submitted' && !steps[kind] && (
+                {proposal.status === 'submitted' && !steps[kind] && (
                   <p className="text-sm text-text-muted">
                     {kind === 'apply'
                       ? 'These records are reviewed. A company appointee with confirmation access must confirm the mirror before ownership is recorded.'
                       : 'These records are saved. A company appointee with review access must review them before confirmation.'}
                   </p>
                 )}
-                {phase === 'confirm' && (
+                {proposal.status === 'submitted' && (
                   <>
                     <p className="text-sm text-text-primary">
                       {REGISTER_IMPORT_COPY.SOURCE_CONFIRMATION} Confirming this mirror does not issue shares or change
                       the legal register.
                     </p>
-                    {proposal.stage === 'approved' && !steps.apply && (
-                      <p className="text-sm text-text-muted">
-                        These records are reviewed. A company appointee with confirmation access must confirm the mirror
-                        before ownership is recorded.
-                      </p>
-                    )}
                     {proposal.correctionOf && preview && (
                       <table className="w-full text-sm">
                         <caption className="pb-2 text-left text-text-muted">
@@ -702,30 +699,24 @@ export function ImportForm({
                     ) : null}
                     <div className="flex flex-wrap gap-2">
                       <PageAction
-                        label="Back to review"
-                        disabled={deciding || !!recovery}
+                        label="Edit records"
+                        disabled={deciding || !!recovery || autoApply || !canPrepare || !steps.reject || blocked}
                         onClick={() => {
-                          approve.cancel();
-                          apply.cancel();
-                          setAutoApply(false);
-                          setPhase('review');
+                          setEditing(true);
+                          void reject.open('reject', 'Replaced while editing the copied records.');
                         }}
                       />
                       {!currentTarget && !recovery && (
                         <PageAction
                           label={deciding ? 'Loading confirmation…' : 'Load confirmation'}
-                          disabled={deciding || blocked || !steps[kind]}
-                          onClick={() => void review()}
+                          disabled={deciding || busy || autoApply || blocked || !steps[kind]}
+                          onClick={() => void loadPreview()}
                         />
                       )}
                       {!recovery && (
                         <PageAction
                           label={
-                            deciding
-                              ? 'Confirming…'
-                              : kind === 'approve' && !steps.apply
-                                ? 'Record review'
-                                : 'Confirm mirror'
+                            deciding ? 'Confirming…' : kind === 'approve' && !steps.apply ? 'Record review' : 'Confirm'
                           }
                           disabled={deciding || !ready || autoApply}
                           onClick={() => void decision.confirm()}

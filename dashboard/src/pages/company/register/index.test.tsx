@@ -273,6 +273,8 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   let createdClass = false;
   let opened = false;
   let firstPreparation = true;
+  let failNextPreview = false;
+  let interruptNextApply = false;
   let proposal: RegisterImport | undefined;
   let companyMembers: RegisterTransferMember[] = [];
   let membersUnavailable = false;
@@ -393,7 +395,11 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
     const request = body as RegisterDecideRequest;
     expect(request.appointment).toBe(appointment.uuid);
     expect(appointment.capabilities).toContain(request.kind);
-    if (url.endsWith('/decision-preview/'))
+    if (url.endsWith('/decision-preview/')) {
+      if (failNextPreview) {
+        failNextPreview = false;
+        throw new Error('Interrupted preview response');
+      }
       return {
         data: {
           canDecide: true,
@@ -411,7 +417,10 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
           correctionAllowed: false,
         },
       };
+    }
     if (url.endsWith('/decide/')) {
+      if (proposal!.decisions.some((decision) => decision.idempotencyKey === request.idempotencyKey))
+        return { data: proposal };
       proposal = {
         ...proposal!,
         stage: request.kind === 'approve' ? 'approved' : 'applied',
@@ -432,7 +441,13 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
           },
         ],
       };
-      if (request.kind === 'apply') opened = true;
+      if (request.kind === 'apply') {
+        opened = true;
+        if (interruptNextApply) {
+          interruptNextApply = false;
+          throw new Error('Interrupted confirmation response');
+        }
+      }
       return { data: proposal };
     }
     throw new Error(`Unexpected write ${url}`);
@@ -542,7 +557,19 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
     expect((screen.getByRole('button', { name: 'Recover saved records' }) as HTMLButtonElement).disabled).toBe(false),
   );
   fireEvent.click(screen.getByRole('button', { name: 'Recover saved records' }));
-  expect(await screen.findByRole('button', { name: 'Continue to confirmation' })).toBeTruthy();
+  const shareholderTable = await screen.findByRole('table', { name: 'Shareholders' });
+  expect(within(shareholderTable).getByText('Example Shareholder')).toBeTruthy();
+  expect(within(shareholderTable).getByText('1 Example Street, Sydney NSW 2000')).toBeTruthy();
+  const rowDetails = within(shareholderTable).getByText('Details', { selector: 'summary' }).closest('details')!;
+  expect(rowDetails.open).toBe(false);
+  fireEvent.click(within(shareholderTable).getByText('Details', { selector: 'summary' }));
+  expect(rowDetails.open).toBe(true);
+  expect(within(rowDetails).getByText('CERT-001')).toBeTruthy();
+  const setupSteps = await screen.findByRole('list', { name: 'Share register setup steps' });
+  expect(within(setupSteps).getAllByRole('listitem')).toHaveLength(3);
+  expect(within(setupSteps).getByText('3. Review').getAttribute('aria-current')).toBe('step');
+  expect(screen.queryByRole('button', { name: 'Continue to confirmation' })).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Back to review' })).toBeNull();
   const preparations = api.post.mock.calls.filter(([url]) => url === IMPORTS).map(([, body]) => body);
   expect(preparations).toHaveLength(2);
   expect(preparations[0]).toEqual(preparations[1]);
@@ -558,18 +585,17 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
     ).toBeGreaterThan(1),
   );
   await waitFor(() => expect(client.isFetching()).toBe(0));
-  expect((screen.getByRole('button', { name: 'Continue to confirmation' }) as HTMLButtonElement).disabled).toBe(true);
+  expect((screen.getByRole('button', { name: 'Record review' }) as HTMLButtonElement).disabled).toBe(true);
   expect((screen.getByRole('button', { name: 'Edit records' }) as HTMLButtonElement).disabled).toBe(true);
   const importPath = DESTINATIONS.companyRegisterImport.path.replace(':uuid', token.uuid);
   reopen('apply', importPath);
   expect(await screen.findByText('Example Shareholder')).toBeTruthy();
-  expect((screen.getByRole('button', { name: 'Continue to confirmation' }) as HTMLButtonElement).disabled).toBe(true);
+  expect((screen.getByRole('button', { name: 'Confirm' }) as HTMLButtonElement).disabled).toBe(true);
   expect(screen.getByText(/review access must review them/)).toBeTruthy();
   reopen('approve', `${importPath}?record=${proposal!.uuid}`);
   expect(await screen.findByText('Example Shareholder')).toBeTruthy();
   expect((screen.getByRole('button', { name: 'Edit records' }) as HTMLButtonElement).disabled).toBe(true);
   expect(screen.queryByRole('button', { name: 'Save draft and review' })).toBeNull();
-  fireEvent.click(await screen.findByRole('button', { name: 'Continue to confirmation' }));
   const review = await screen.findByRole('button', { name: 'Record review' });
   await waitFor(() => expect((review as HTMLButtonElement).disabled).toBe(false));
   const previewGuard = api.post.mock.calls.find(([url]) => url.endsWith('/decision-preview/'))![2]
@@ -611,8 +637,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   reopen('apply', importPath);
   expect(await screen.findByText('Example Shareholder')).toBeTruthy();
   expect((screen.getByRole('button', { name: 'Edit records' }) as HTMLButtonElement).disabled).toBe(true);
-  fireEvent.click(screen.getByRole('button', { name: 'Continue to confirmation' }));
-  const confirm = await screen.findByRole('button', { name: 'Confirm mirror' });
+  const confirm = await screen.findByRole('button', { name: 'Confirm' });
   await waitFor(() => expect((confirm as HTMLButtonElement).disabled).toBe(false));
   fireEvent.click(confirm);
   const summary = await screen.findByRole('region', { name: 'Company ownership summary' });
@@ -623,6 +648,39 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   expect(proposal!.decisions.map((decision) => decision.appointment)).toEqual(['approve-only', 'apply-only']);
   expect(api.post.mock.calls.filter(([url]) => url === IMPORTS)).toHaveLength(2);
   expect(api.post.mock.calls.filter(([url]) => url === COMPANY_TOKEN_ENDPOINTS.BASE)).toHaveLength(1);
+  cleanup();
+  client.clear();
+  api.post.mockClear();
+  opened = false;
+  proposal = { ...proposal!, status: 'submitted', stage: 'submitted', decisions: [] };
+  appointment = { ...appointment, uuid: 'combined-confirmer', capabilities: ['prepare', 'approve', 'apply'] };
+  failNextPreview = true;
+  interruptNextApply = true;
+  showJourney(`${importPath}?record=${proposal.uuid}`);
+  expect(await screen.findByRole('table', { name: 'Shareholders' })).toBeTruthy();
+  expect(await screen.findByText('Interrupted preview response')).toBeTruthy();
+  expect(api.post.mock.calls.filter(([url]) => url.endsWith('/decision-preview/'))).toHaveLength(1);
+  expect(api.post.mock.calls.filter(([url]) => url.endsWith('/decide/'))).toHaveLength(0);
+  expect((screen.getByRole('button', { name: 'Confirm' }) as HTMLButtonElement).disabled).toBe(true);
+  fireEvent.click(screen.getByRole('button', { name: 'Load confirmation' }));
+  const oneConfirm = await screen.findByRole('button', { name: 'Confirm' });
+  await waitFor(() => expect((oneConfirm as HTMLButtonElement).disabled).toBe(false));
+  fireEvent.click(oneConfirm);
+  await screen.findByRole('button', { name: 'Recover confirmation' });
+  await waitFor(() =>
+    expect((screen.getByRole('button', { name: 'Recover confirmation' }) as HTMLButtonElement).disabled).toBe(false),
+  );
+  expect(proposal.decisions.map((decision) => decision.kind)).toEqual(['approve', 'apply']);
+  expect(screen.queryByRole('button', { name: 'Confirm' })).toBeNull();
+  expect((screen.getByRole('button', { name: 'Edit records' }) as HTMLButtonElement).disabled).toBe(true);
+  fireEvent.click(screen.getByRole('button', { name: 'Recover confirmation' }));
+  expect(await screen.findByRole('region', { name: 'Company ownership summary' })).toBeTruthy();
+  const applications = api.post.mock.calls
+    .filter(([url, body]) => url.endsWith('/decide/') && body.kind === 'apply')
+    .map(([, body]) => body);
+  expect(applications).toHaveLength(2);
+  expect(applications[0]).toEqual(applications[1]);
+  expect(proposal.decisions.map((decision) => decision.kind)).toEqual(['approve', 'apply']);
   const rejected: RegisterImport = {
     ...proposal!,
     uuid: 'rejected-copy',
