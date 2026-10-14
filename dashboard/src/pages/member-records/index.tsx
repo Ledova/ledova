@@ -327,8 +327,8 @@ function MemberRecords({
                       </Rows>
                       {read.record.classes.map((item) => (
                         <p key={item.uuid} className="py-2 text-sm text-text-muted">
-                          {item.name} · Entered {item.enteredOn ?? 'not recorded'}
-                          {item.ceasedOn ? ` · Ceased ${item.ceasedOn}` : ''} · Amount paid{' '}
+                          {item.name} · Entered {formatDate(item.enteredOn, 'Not recorded')}
+                          {item.ceasedOn ? ` · Ceased ${formatDate(item.ceasedOn)}` : ''} · Amount paid{' '}
                           {item.amountPaid ?? 'not recorded'}
                         </p>
                       ))}

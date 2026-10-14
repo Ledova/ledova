@@ -3,6 +3,7 @@ import {
   HOLDER_TYPE_LABELS,
   REGISTER_COPY,
   REGISTER_PARTICULARS_COPY,
+  formatDate,
   formatShareCount,
   type TokenHoldersResponse,
 } from '@ledova/shared';
@@ -88,7 +89,7 @@ export function ClassRegister({ register, prepare = false }: { register: TokenHo
                         {holder.name || HOLDER_TYPE_LABELS[holder.holderType]}
                       </p>
                       <p className="mt-1 text-xs text-text-muted">
-                        {HOLDER_TYPE_LABELS[holder.holderType]} · Entered {holder.enteredOn}
+                        {HOLDER_TYPE_LABELS[holder.holderType]} · Entered {formatDate(holder.enteredOn, 'Not recorded')}
                       </p>
                       {holder.holderType === 'ambiguous' && (
                         <p className="mt-1 text-xs text-text-muted">{REGISTER_COPY.AMBIGUOUS_NOTE}</p>

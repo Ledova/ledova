@@ -5,6 +5,7 @@ import {
   REGISTER_IMPORT_DECISIONS,
   apiErrorSentence,
   downloadRegisterImportFile,
+  formatDate,
   formatDateTime,
   formatShareCount,
   registerImportTotals,
@@ -49,8 +50,8 @@ function ImportPreview({ preview }: { preview: RegisterImportDecisionPreview }) 
               <Row label="Stored shares">
                 <span className="break-all">{row.stored === null ? 'Not stored' : formatShareCount(row.stored)}</span>
               </Row>
-              <Row label="Imported date entered">{row.importedEnteredOn ?? 'Not in the import'}</Row>
-              <Row label="Stored date entered">{row.enteredOn ?? 'Not stored'}</Row>
+              <Row label="Imported date entered">{formatDate(row.importedEnteredOn, 'Not in the import')}</Row>
+              <Row label="Stored date entered">{formatDate(row.enteredOn, 'Not stored')}</Row>
               <Row label="Live name">{row.liveName ?? 'No live identity'}</Row>
               {row.liveAddress && <Row label="Live address">{row.liveAddress}</Row>}
               <Row label="Wallets">
