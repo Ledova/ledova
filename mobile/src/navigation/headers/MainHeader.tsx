@@ -60,7 +60,7 @@ export function MainHeader({ theme, onNotifications, unreadCount = 0 }: MainHead
               minWidth: 18,
               height: 18,
               borderRadius: 9,
-              backgroundColor: theme.colors.status.error.icon,
+              backgroundColor: theme.colors.error.default,
               alignItems: 'center',
               justifyContent: 'center',
               paddingHorizontal: 4,

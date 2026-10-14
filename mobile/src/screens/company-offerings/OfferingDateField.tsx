@@ -3,6 +3,7 @@ import { Platform, Text, View } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { formatDateTime } from '@ledova/shared';
 import { Action } from '../../components/Ledger';
+import { useAppTheme } from '../../contexts';
 import { useCompanyStyles } from '../company-register/styles';
 
 export function OfferingDateField({
@@ -19,6 +20,7 @@ export function OfferingDateField({
   optional?: boolean;
 }) {
   const styles = useCompanyStyles();
+  const theme = useAppTheme();
   const [mode, setMode] = useState<'date' | 'time' | null>(null);
   const date = value ? new Date(value) : new Date();
   return (
@@ -37,7 +39,7 @@ export function OfferingDateField({
             value={date}
             mode={mode}
             display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-            themeVariant="light"
+            themeVariant={theme.mode === 'dark' ? 'dark' : 'light'}
             onChange={(event, selected) => {
               if (Platform.OS === 'android') setMode(null);
               if (event.type === 'set' && selected && !busy) onChange(selected.toISOString());

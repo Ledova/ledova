@@ -56,6 +56,9 @@ export function OnRampWebViewScreen() {
       fontSize: theme.fontSize.sm,
       color: theme.colors.text.muted,
     },
+    message: {
+      color: theme.colors.text.primary,
+    },
   }));
   const navigation = useNavigation();
   const route = useRoute<RouteProp<{ OnRampWebView: OnRampWebViewParams }, 'OnRampWebView'>>();
@@ -134,11 +137,11 @@ export function OnRampWebViewScreen() {
     <GradientBackground>
       <View style={styles.container}>
         {!canPurchase ? (
-          <Text>Crypto purchases require a personal investor account.</Text>
+          <Text style={styles.message}>Crypto purchases require a personal investor account.</Text>
         ) : !safeUrl ? (
-          <Text>Unable to open an insecure provider URL.</Text>
+          <Text style={styles.message}>Unable to open an insecure provider URL.</Text>
         ) : !lifecycle.admitted || !outcome.lifetime.isActive() ? (
-          <Text>Provider view paused.</Text>
+          <Text style={styles.message}>Provider view paused.</Text>
         ) : (
           <WebView
             key={`${lifecycle.key}:${navigationRevision}`}
@@ -150,7 +153,9 @@ export function OnRampWebViewScreen() {
             injectedJavaScript={INJECTED_JS}
             onMessage={handleMessage}
             onError={handleLoadError}
-            renderError={() => <Text>Could not load the purchase provider. Go back and try again.</Text>}
+            renderError={() => (
+              <Text style={styles.message}>Could not load the purchase provider. Go back and try again.</Text>
+            )}
             startInLoadingState
             renderLoading={() => (
               <View style={styles.loading}>

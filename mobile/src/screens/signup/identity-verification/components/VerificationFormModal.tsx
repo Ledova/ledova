@@ -26,7 +26,10 @@ const sameOrigin = (url: URL, origin: URL, hostname = origin.hostname) =>
 const isCompletionOrigin = (url: URL) =>
   sameOrigin(url, SITE_ORIGIN) || sameOrigin(url, SITE_ORIGIN, `www.${SITE_ORIGIN.hostname}`);
 
-function buildSumsubHtml(token: string, themeColors: { bg: string; muted: string; error: string }): string {
+function buildSumsubHtml(
+  token: string,
+  themeColors: { bg: string; muted: string; error: string; sdk: 'light' | 'dark' },
+): string {
   return `<!DOCTYPE html>
 <html>
 <head>
@@ -72,7 +75,7 @@ function buildSumsubHtml(token: string, themeColors: { bg: string; muted: string
           .init(ACCESS_TOKEN, function() {
             return Promise.resolve('');
           })
-          .withConf({ lang: 'en', theme: 'light' })
+          .withConf({ lang: 'en', theme: '${themeColors.sdk}' })
           .on('idCheck.onApplicantSubmitted', function() {
             window.ReactNativeWebView.postMessage(JSON.stringify({ event: 'FORM_COMPLETED' }));
           })
@@ -268,6 +271,7 @@ export function VerificationFormModal({
                       bg: theme.colors.surface.base,
                       muted: theme.colors.text.muted,
                       error: theme.colors.error.light,
+                      sdk: theme.mode === 'dark' ? 'dark' : 'light',
                     }),
                     baseUrl: SITE_URL,
                   }}

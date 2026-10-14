@@ -6,7 +6,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { USER_PREFERENCES_QUERY_KEY, upsertCurrentUserPreferences, useUserPreferences } from '@ledova/shared';
 import { Action, Section, SwitchRow } from '../../components/Ledger';
 import { Page } from '../../components/Page';
-import { useAppLock } from '../../contexts';
+import { useAppLock, useThemeChoice } from '../../contexts';
 import { apiClient } from '../../services/apiClient';
 import { CustomModal } from '../../components/modal';
 import { useAccountStyles } from '../account/styles';
@@ -16,6 +16,7 @@ export function SettingsScreen() {
   const styles = useAccountStyles();
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const lock = useAppLock();
+  const appearance = useThemeChoice();
   const preferences = useUserPreferences();
   const transactionAlerts = preferences.preferences?.transactionAlerts;
   const queryClient = useQueryClient();
@@ -157,6 +158,14 @@ export function SettingsScreen() {
               {securityError}
             </Text>
           )}
+        </Section>
+        <Section title="Appearance">
+          <SwitchRow
+            label="Dark theme"
+            description="Saved on this device."
+            checked={appearance.mode === 'dark'}
+            onChange={(dark) => appearance.setMode(dark ? 'dark' : 'paper')}
+          />
         </Section>
         <Section title="Notifications">
           {preferences.isLoading ? (

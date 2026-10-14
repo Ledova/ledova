@@ -1,7 +1,8 @@
 import React from 'react';
 import { View, Text } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
-import { useThemedStyles } from '../../contexts';
+import { THEMES } from '@ledova/shared';
+import { useAppTheme, useThemedStyles } from '../../contexts';
 
 interface QRDisplayProps {
   data: string | Buffer;
@@ -10,6 +11,7 @@ interface QRDisplayProps {
 }
 
 export function QRDisplay({ data, size = 300, isUR = false }: QRDisplayProps) {
+  const theme = useAppTheme();
   const styles = useThemedStyles((theme) => ({
     container: {
       backgroundColor: theme.colors.utility.white,
@@ -21,7 +23,7 @@ export function QRDisplay({ data, size = 300, isUR = false }: QRDisplayProps) {
     hint: {
       marginTop: theme.spacing.sm,
       fontSize: theme.fontSize.xs,
-      color: theme.colors.text.subtle,
+      color: THEMES.paper.text.subtle,
       textAlign: 'center',
     },
   }));
@@ -40,7 +42,14 @@ export function QRDisplay({ data, size = 300, isUR = false }: QRDisplayProps) {
 
   return (
     <View style={styles.container}>
-      <QRCode value={qrValue} size={effectiveSize} backgroundColor="white" color="black" ecl="L" quietZone={10} />
+      <QRCode
+        value={qrValue}
+        size={effectiveSize}
+        backgroundColor={theme.colors.utility.white}
+        color={theme.colors.utility.black}
+        ecl="L"
+        quietZone={10}
+      />
       {isUR && isLongData && <Text style={styles.hint}>Hold device steady while scanning</Text>}
     </View>
   );

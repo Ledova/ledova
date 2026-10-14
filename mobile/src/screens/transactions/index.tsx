@@ -60,7 +60,7 @@ export function TransactionsScreen() {
         <RefreshControl
           refreshing={isRefreshing && !isLoading && !isLoadingMore}
           onRefresh={() => void retry()}
-          tintColor={theme.colors.brand.default}
+          tintColor={theme.colors.interactive.active}
         />
       }
     >
@@ -82,7 +82,7 @@ export function TransactionsScreen() {
         />
         {isLoading ? (
           <View style={styles.state}>
-            <ActivityIndicator color={theme.colors.brand.default} />
+            <ActivityIndicator color={theme.colors.interactive.active} />
             <Text style={styles.message}>Loading activity…</Text>
           </View>
         ) : hasError ? (

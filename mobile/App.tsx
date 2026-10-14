@@ -2,7 +2,7 @@ import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { AppNavigator } from './src/navigation/AppNavigator';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { AppLockProvider, ThemeProvider } from './src/contexts';
+import { AppLockProvider, ThemeProvider, useAppTheme } from './src/contexts';
 import { AppLockScreen } from './src/components/app-lock';
 import { ErrorBoundary } from './src/components/ErrorBoundary';
 import { AppFonts } from './src/components/AppFonts';
@@ -22,24 +22,29 @@ const queryClient = new QueryClient({
   },
 });
 
+function ThemedStatusBar() {
+  const { mode } = useAppTheme();
+  return <StatusBar style={mode === 'dark' ? 'light' : 'dark'} />;
+}
+
 export default function App() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <ErrorBoundary>
-        <QueryClientProvider client={queryClient}>
-          <ApiClientProvider client={apiClient}>
-            <ThemeProvider>
-              <StatusBar style="dark" />
+      <ThemeProvider>
+        <ThemedStatusBar />
+        <ErrorBoundary>
+          <QueryClientProvider client={queryClient}>
+            <ApiClientProvider client={apiClient}>
               <AppFonts>
                 <AppLockProvider>
                   <AppNavigator />
                   <AppLockScreen />
                 </AppLockProvider>
               </AppFonts>
-            </ThemeProvider>
-          </ApiClientProvider>
-        </QueryClientProvider>
-      </ErrorBoundary>
+            </ApiClientProvider>
+          </QueryClientProvider>
+        </ErrorBoundary>
+      </ThemeProvider>
     </GestureHandlerRootView>
   );
 }

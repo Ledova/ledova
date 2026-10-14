@@ -26,7 +26,6 @@ function buildColors(p: {
       info: { icon: p.info.light },
     },
     interactive: {
-      default: p.brand.default,
       defaultSubtle: p.brand.mid,
       active: p.brand.light,
       disabled: p.surface.disabled,
@@ -106,8 +105,6 @@ export type ThemeName = keyof typeof THEMES;
 export const THEME_STORAGE_KEY = 'ledova.theme';
 
 export const DESIGN_TOKENS = {
-  colors: PAPER_THEME,
-
   spacing: {
     xs: 4,
     sm: 8,
@@ -178,5 +175,3 @@ export const DESIGN_TOKENS = {
     },
   },
 } as const;
-
-export { PAPER_THEME };

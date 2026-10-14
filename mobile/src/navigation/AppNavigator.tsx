@@ -1,5 +1,5 @@
 import React from 'react';
-import { DefaultTheme, NavigationContainer } from '@react-navigation/native';
+import { DarkTheme, DefaultTheme, NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { SignInScreen } from '../screens/signin';
 import { SignUpScreen } from '../screens/signup/user';
@@ -32,17 +32,19 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export const AppNavigator = () => {
   const theme = useAppTheme();
+  const base = theme.mode === 'dark' ? DarkTheme : DefaultTheme;
   return (
     <NavigationContainer
       theme={{
-        ...DefaultTheme,
+        ...base,
+        dark: theme.mode === 'dark',
         colors: {
-          ...DefaultTheme.colors,
+          ...base.colors,
           background: theme.colors.surface.base,
           card: theme.colors.surface.base,
           text: theme.colors.text.primary,
           border: theme.colors.border.default,
-          primary: theme.colors.brand.default,
+          primary: theme.colors.brand.light,
         },
       }}
     >

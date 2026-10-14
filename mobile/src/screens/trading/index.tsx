@@ -281,7 +281,7 @@ export function TradingScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={handleRefresh}
-            tintColor={theme.colors.interactive.default}
+            tintColor={theme.colors.interactive.active}
           />
         }
       >

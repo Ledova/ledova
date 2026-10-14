@@ -30,12 +30,12 @@ export function WalletsPage({
         <RefreshControl
           refreshing={refreshing && !loading}
           onRefresh={refresh}
-          tintColor={theme.colors.brand.default}
+          tintColor={theme.colors.interactive.active}
         />
       }
     >
       {loading ? (
-        <ActivityIndicator accessibilityLabel="Loading wallets" color={theme.colors.brand.default} />
+        <ActivityIndicator accessibilityLabel="Loading wallets" color={theme.colors.interactive.active} />
       ) : (
         children
       )}

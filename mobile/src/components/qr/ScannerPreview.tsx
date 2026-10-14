@@ -2,6 +2,7 @@ import React, { useLayoutEffect, useRef } from 'react';
 import { Platform, StyleSheet, Text, type NativeSyntheticEvent, type ViewProps } from 'react-native';
 import { CameraView } from 'expo-camera';
 import { requireNativeView, requireOptionalNativeModule } from 'expo';
+import { useAppTheme } from '../../contexts';
 import type { ScannerWindow } from './scannerWindow';
 
 type WindowEvent = { allowed: boolean; generation: number };
@@ -32,6 +33,7 @@ export type ScannerPreviewProps = {
 };
 
 export function ScannerPreview(props: ScannerPreviewProps) {
+  const theme = useAppTheme();
   const current = useRef<ScannerPreviewProps | null>(null);
   const native = useRef<NativeScannerHandle | null>(null);
   const lastWindowGeneration = useRef(-1);
@@ -56,7 +58,18 @@ export function ScannerPreview(props: ScannerPreviewProps) {
       />
     ) : null;
   }
-  if (!NativeScanner) return <Text>Camera unavailable. Update Ledova and try again.</Text>;
+  if (!NativeScanner)
+    return (
+      <Text
+        style={{
+          color: theme.colors.utility.white,
+          backgroundColor: theme.colors.utility.black,
+          padding: theme.spacing.sm,
+        }}
+      >
+        Camera unavailable. Update Ledova and try again.
+      </Text>
+    );
 
   return (
     <NativeScanner

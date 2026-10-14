@@ -13,9 +13,15 @@ the store identity through `app.config.js`; see
 to test these policies. Expo Go does not contain Ledova's native networking
 overrides.
 
-The `expo-system-ui` plugin applies the paper-only light appearance to Android
-native dialogs, including when the device uses dark mode. Generated-project
-checks verify the Android light resource and both iOS light appearance settings.
+`app.json` sets `userInterfaceStyle` to `automatic`, and once JavaScript runs
+the app sets the native appearance to the in-app Paper or Dark choice, so
+alerts, dialogs and date pickers, and on iOS the keyboard and share sheet,
+follow that choice rather than the device setting. Generated-project checks
+verify the Android `automatic` resource and both iOS `Automatic` appearance
+settings. What shows before JavaScript runs stays Paper: the splash screen, the
+Android adaptive-icon background and, on iOS, the dark launch status bar.
+Android's navigation bar buttons keep the style React Native gives them at
+launch from the device setting.
 
 iOS 27 stops an app built with the iOS 27 SDK at launch unless it uses the
 UIKit scene life cycle

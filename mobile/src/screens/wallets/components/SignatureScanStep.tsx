@@ -72,7 +72,7 @@ export function SignatureScanStep({
     return (
       <View style={styles.container}>
         <View style={text.line}>
-          <ActivityIndicator size="small" color={theme.colors.interactive.default} />
+          <ActivityIndicator size="small" color={theme.colors.interactive.active} />
           <Text style={[text.muted, text.lineText]}>Verifying signature...</Text>
         </View>
       </View>

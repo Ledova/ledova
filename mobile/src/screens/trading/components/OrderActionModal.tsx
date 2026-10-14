@@ -111,7 +111,7 @@ export function OrderActionModal({ action, wallets, onClose }: Props) {
       >
         <View style={styles.content}>
           {['loading', 'preparing', 'signing', 'submitting'].includes(state.phase) && (
-            <ActivityIndicator color={theme.colors.interactive.default} />
+            <ActivityIndicator color={theme.colors.interactive.active} />
           )}
           {state.phase === 'loading' && <Text style={text.text}>Loading current order details...</Text>}
           {state.phase === 'preparing' && (

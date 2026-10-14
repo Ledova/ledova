@@ -1,8 +1,10 @@
-import React, { createContext, useContext, useMemo } from 'react';
-import { Platform, StyleSheet } from 'react-native';
-import { DESIGN_TOKENS } from '@ledova/shared';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { Appearance, Platform, StyleSheet } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SystemUI from 'expo-system-ui';
+import { DESIGN_TOKENS, THEMES, THEME_STORAGE_KEY, parseTheme, type ThemeName } from '@ledova/shared';
 
-const THEME = {
+const BASE = {
   ...DESIGN_TOKENS,
   spacing: { ...DESIGN_TOKENS.spacing, smd: 12 },
   fontFamily: {
@@ -15,16 +17,66 @@ const THEME = {
   },
 } as const;
 
-type ThemeObject = typeof THEME;
+function buildTheme(mode: ThemeName) {
+  return { ...BASE, colors: THEMES[mode], mode };
+}
 
-const ThemeContext = createContext(THEME);
+const APP_THEMES = { paper: buildTheme('paper'), dark: buildTheme('dark') };
+
+type ThemeObject = ReturnType<typeof buildTheme>;
+
+const STORED_THEME_TIMEOUT_MS = 2000;
+
+function applyNativeAppearance(mode: ThemeName) {
+  Appearance.setColorScheme(mode === 'dark' ? 'dark' : 'light');
+  SystemUI.setBackgroundColorAsync(APP_THEMES[mode].colors.surface.base).catch(() => {});
+}
+
+const ThemeContext = createContext<ThemeObject>(APP_THEMES.paper);
+const ThemeChoiceContext = createContext<(mode: ThemeName) => void>(() => {});
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  return <ThemeContext.Provider value={THEME}>{children}</ThemeContext.Provider>;
+  const [mode, setMode] = useState<ThemeName | null>(null);
+
+  useEffect(() => {
+    let pending = true;
+    const settle = (stored: ThemeName) => {
+      if (!pending) return;
+      pending = false;
+      clearTimeout(timer);
+      applyNativeAppearance(stored);
+      setMode(stored);
+    };
+    const timer = setTimeout(() => settle('paper'), STORED_THEME_TIMEOUT_MS);
+    AsyncStorage.getItem(THEME_STORAGE_KEY)
+      .then(parseTheme, () => 'paper' as const)
+      .then(settle);
+    return () => {
+      pending = false;
+      clearTimeout(timer);
+    };
+  }, []);
+
+  const choose = useCallback((next: ThemeName) => {
+    applyNativeAppearance(next);
+    setMode(next);
+    AsyncStorage.setItem(THEME_STORAGE_KEY, next).catch(() => {});
+  }, []);
+
+  if (!mode) return null;
+  return (
+    <ThemeContext.Provider value={APP_THEMES[mode]}>
+      <ThemeChoiceContext.Provider value={choose}>{children}</ThemeChoiceContext.Provider>
+    </ThemeContext.Provider>
+  );
 }
 
 export function useAppTheme() {
   return useContext(ThemeContext);
+}
+
+export function useThemeChoice() {
+  return { mode: useContext(ThemeContext).mode, setMode: useContext(ThemeChoiceContext) };
 }
 
 export function useThemedStyles<T extends StyleSheet.NamedStyles<T>>(stylesFn: (theme: ThemeObject) => T): T {
