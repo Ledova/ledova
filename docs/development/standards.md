@@ -64,6 +64,23 @@ Rules name reference implementations and enforcement. Existing gate debt is
 counted separately from justified exceptions; counts may shrink and stale pins
 must be removed. Do not add an exception merely to make a check green.
 
+## Signed-in web presentation
+
+Use the existing `Page`, `Section`, `PageAction`, `Modal` and `FIELD_CLASS` for
+signed-in web pages. `Page narrow` bounds task forms, settings and detailed
+records; ownership dashboards and tables retain the standard workspace width.
+Keep one page heading, nearby labels and values, readable wrapping, balanced
+field groups and one primary next action. Section spacing is scoped to the
+signed-in frame; signup retains its existing presentation.
+
+Show core ownership, status and next actions directly. Put full audit identifiers
+and optional supporting detail behind the existing detail controls. Remove
+duplicated titles, repeated general explanations and simultaneous read/edit
+views. Keep action-specific authority, privacy, incomplete-data and original
+request recovery guidance visible when relevant. Presentation changes must not
+reset pending work, hide uncertainty or change what a confirmation authorises.
+The rollout is tracked in [#1031](https://github.com/Ledova/ledova/issues/1031).
+
 ## Company authority
 
 - Company users make register decisions within recorded appointments; software
