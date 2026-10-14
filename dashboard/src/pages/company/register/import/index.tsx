@@ -12,7 +12,6 @@ import {
   type TokenHoldersResponse,
   type RegisterTransferMember,
 } from '@ledova/shared';
-import { Row, Rows, Section } from '@components/Ledger';
 import { Page } from '@components/Page';
 import { PageTitle } from '@components/PageTitle';
 import { Loading, Unavailable } from '../RegisterStatus';
@@ -198,31 +197,38 @@ function OwnImport({
     return <Loading />;
   }
   return (
-    <Section title={`${retained.listed.companyName} · ${retained.listed.name} (${retained.listed.symbol})`}>
-      <ImportForm
-        key={`${uuid}/${retained.correction?.uuid ?? 'new'}/${retained.saved?.uuid ?? 'draft'}`}
-        owner={owner}
-        guard={guard}
-        newEffectGuard={checkNew}
-        company={retained.listed.companyUuid}
-        register={retained.register}
-        companyMembers={members.data ?? retained.members}
-        classFields={
-          <Rows>
-            <Row label="Share class">{retained.listed.name}</Row>
-            <Row label="Class code">{retained.listed.symbol}</Row>
-            <Row label="Class type">{retained.listed.tokenTypeDisplay || 'Not recorded'}</Row>
-          </Rows>
-        }
-        appointment={canPrepare ? steps?.prepare : undefined}
-        steps={steps ?? retained.steps}
-        correction={retained.correction}
-        saved={retained.saved}
-        blocked={!fresh}
-        visible={fresh}
-        onConflict={retry}
-        onHeldChange={setHeld}
-      />
-    </Section>
+    <ImportForm
+      key={`${uuid}/${retained.correction?.uuid ?? 'new'}/${retained.saved?.uuid ?? 'draft'}`}
+      owner={owner}
+      guard={guard}
+      newEffectGuard={checkNew}
+      company={retained.listed.companyUuid}
+      companyName={retained.listed.companyName}
+      shareClass={{ name: retained.listed.name, symbol: retained.listed.symbol }}
+      register={retained.register}
+      companyMembers={members.data ?? retained.members}
+      classFields={
+        <dl className="grid gap-4 sm:grid-cols-2">
+          {[
+            ['Share class', retained.listed.name],
+            ['Class code', retained.listed.symbol],
+            ['Class type', retained.listed.tokenTypeDisplay || 'Not recorded'],
+          ].map(([label, value]) => (
+            <div key={label}>
+              <dt className="text-sm text-text-muted">{label}</dt>
+              <dd className="mt-1 text-sm font-medium text-text-primary">{value}</dd>
+            </div>
+          ))}
+        </dl>
+      }
+      appointment={canPrepare ? steps?.prepare : undefined}
+      steps={steps ?? retained.steps}
+      correction={retained.correction}
+      saved={retained.saved}
+      blocked={!fresh}
+      visible={fresh}
+      onConflict={retry}
+      onHeldChange={setHeld}
+    />
   );
 }

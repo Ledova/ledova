@@ -275,9 +275,9 @@ on #1025; this decision records accepted scope, not completed implementation.
 On 14 October 2026 the owner approved
 [#1029](https://github.com/Ledova/ledova/issues/1029): simplify the manual setup
 into share details, shareholders and one combined review/confirmation step. Copy
-the company's existing class name, code and type first, then add and edit shareholders
-individually in the same forms. Codes such as A and B must not need invented
-aliases. Original membership and allotment dates, quantities, paid/unpaid
+the company's existing class name, code and type first, then add and edit
+shareholders individually in the same forms. Codes such as A and B must not need
+invented aliases. Original membership and allotment dates, quantities, paid/unpaid
 amounts and relevant references remain part of the copied record.
 
 Select an already recorded company class, or choose Ordinary (ORD), Preference
@@ -285,8 +285,10 @@ Select an already recorded company class, or choose Ordinary (ORD), Preference
 manual name/code/type entry for the company's own classes. These choices must
 match its existing records; the selector defines no legal share rights.
 
-Use a compact list and one shareholder editor at a time. Draft edits do not
-overwrite confirmed history or change a person's company member identity.
+Use one cohesive workspace with a single page heading, compact progress,
+focused forms and a clear ownership summary. Use a compact list and one
+shareholder editor at a time. Draft edits do not overwrite confirmed history or
+change a person's company member identity.
 Use plain field labels, place optional share/certificate references together,
 and omit the redundant derived payment-status display. Keep the explicit
 trustee/nominee distinction as **Held for someone else?** with Yes/No, alongside

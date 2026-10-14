@@ -58,6 +58,8 @@ export function ImportForm({
   guard,
   newEffectGuard = guard,
   company,
+  companyName,
+  shareClass,
   register,
   appointment,
   steps,
@@ -76,6 +78,8 @@ export function ImportForm({
   guard: () => void;
   newEffectGuard?: () => void;
   company: string;
+  companyName?: string;
+  shareClass?: { name: string; symbol: string };
   register?: TokenHoldersResponse;
   appointment?: OwnCompanyAppointment;
   steps: RegisterSteps;
@@ -488,18 +492,31 @@ export function ImportForm({
   const preview = apply.target?.preview ?? approve.target?.preview;
   const errors = [error, approve.error, apply.error, reject.error].filter(Boolean);
   return (
-    <div className="space-y-5">
-      <ol
-        aria-label="Share register setup steps"
-        className="grid grid-cols-1 gap-2 border-b border-border-subtle pb-4 text-sm sm:grid-cols-3"
-      >
+    <div className="space-y-6">
+      {visible && companyName && (
+        <p className="text-sm text-text-muted">
+          {companyName}
+          {shareClass?.name && ` · ${shareClass.name}`}
+          {shareClass?.name && shareClass.symbol && ` (${shareClass.symbol})`}
+        </p>
+      )}
+      <ol aria-label="Share register setup steps" className="grid grid-cols-3 gap-3">
         {(['details', 'shareholders', 'review'] as const).map((step, index) => (
           <li
             key={step}
             aria-current={phase === step ? 'step' : undefined}
-            className={phase === step ? 'font-medium text-text-primary' : 'text-text-muted'}
+            className={`flex min-w-0 flex-col gap-2 border-b-2 pb-3 sm:flex-row sm:items-center ${phase === step ? 'border-brand-mid text-text-primary' : 'border-border-subtle text-text-muted'}`}
           >
-            {index + 1}. {step === 'details' ? 'Share details' : step === 'shareholders' ? 'Shareholders' : 'Review'}
+            <span
+              aria-hidden="true"
+              className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-medium ${phase === step ? 'bg-brand-mid text-white' : 'bg-surface-tertiary text-text-muted'}`}
+            >
+              {index + 1}
+            </span>
+            <span className="text-xs font-medium [overflow-wrap:anywhere] sm:text-sm">
+              <span className="sr-only">{index + 1}. </span>
+              {step === 'details' ? 'Share details' : step === 'shareholders' ? 'Shareholders' : 'Review'}
+            </span>
           </li>
         ))}
       </ol>
@@ -508,7 +525,7 @@ export function ImportForm({
           {mutable ? (
             canPrepare ? (
               <form
-                className="space-y-4"
+                className="space-y-6 rounded-2xl border border-border bg-surface-raised p-4 sm:p-6"
                 onSubmit={(event) => {
                   event.preventDefault();
                   if (phase === 'details') {
@@ -520,7 +537,13 @@ export function ImportForm({
                   } else if (!holderEditor) void prepare();
                 }}
               >
-                <fieldset disabled={busy || uncertain || blocked} className="space-y-5">
+                <h2 className="font-display text-xl text-text-primary">
+                  {phase === 'details' ? 'Share details' : 'Shareholders'}
+                </h2>
+                <fieldset
+                  disabled={busy || uncertain || blocked}
+                  className={phase === 'details' ? 'grid items-start gap-6 md:grid-cols-2' : 'space-y-5'}
+                >
                   {phase === 'details' &&
                     (classFields ??
                       (register && (
@@ -555,8 +578,8 @@ export function ImportForm({
                     ))}
                   </ul>
                 )}
-                {!uncertain && (
-                  <div className="flex flex-wrap gap-2">
+                {!uncertain && !holderEditor && (
+                  <div className="flex flex-wrap items-center justify-end gap-2 border-t border-border-subtle pt-4">
                     {phase === 'shareholders' && (
                       <PageAction
                         label="Back to share details"
@@ -569,6 +592,7 @@ export function ImportForm({
                     )}
                     <PageAction
                       label={phase === 'details' ? 'Continue' : busy ? 'Saving draft…' : 'Save draft and review'}
+                      primary
                       disabled={busy || blocked || holderEditor}
                       onClick={() => {
                         if (phase === 'details') {
@@ -604,27 +628,80 @@ export function ImportForm({
             )
           ) : (
             proposal && (
-              <div className="space-y-4">
-                <Rows>
-                  {(proposal.sourceReference || proposal.authorityReference) !== 'Company-provided share records' && (
-                    <Row label="Source record">{proposal.sourceReference || proposal.authorityReference}</Row>
-                  )}
-                  <Row label="Record date">{proposal.asAt}</Row>
-                  <Row label="Copied shares">{formatShareCount(registerImportTotals(proposal.members).total)}</Row>
-                  <Row label="Shareholders">{proposal.members.length}</Row>
-                  {!!proposal.formerMembers.length && (
-                    <Row label="Copied former shareholders">{proposal.formerMembers.length}</Row>
-                  )}
-                  {proposal.asicIssuedTotal !== null && (
-                    <Row label="ASIC issued shares cross-check">{formatShareCount(proposal.asicIssuedTotal)}</Row>
-                  )}
-                  {proposal.asicMemberCount !== null && (
-                    <Row label="Shareholders listed by ASIC">{proposal.asicMemberCount}</Row>
-                  )}
-                  {proposal.registerEvidence && <Row label="Source copy">Retained company-provided register copy</Row>}
-                  {proposal.asicEvidence && <Row label="ASIC copy">Retained company-provided extract</Row>}
-                  {proposal.correctionOf && <Row label="Correction reason">{proposal.reason}</Row>}
-                </Rows>
+              <section
+                aria-label="Review share register"
+                className="space-y-6 rounded-2xl border border-border bg-surface-raised p-4 sm:p-6"
+              >
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                  <h2 className="font-display text-xl text-text-primary">Review</h2>
+                  <p className="text-sm text-text-muted">
+                    Record date · <time dateTime={proposal.asAt}>{proposal.asAt}</time>
+                  </p>
+                </div>
+                <dl aria-label="Share register summary" className="grid gap-3 sm:grid-cols-3">
+                  <div className="min-w-0 rounded-xl bg-surface-tertiary p-4">
+                    <dt className="text-xs text-text-muted">Share class</dt>
+                    <dd className="mt-2 break-words text-lg font-medium text-text-primary">
+                      {shareClass?.name ?? register?.token.name ?? 'Share class'}
+                    </dd>
+                    <dd className="mt-1 text-xs text-text-muted">{shareClass?.symbol ?? register?.token.symbol}</dd>
+                  </div>
+                  <div className="min-w-0 rounded-xl bg-surface-tertiary p-4">
+                    <dt className="text-xs text-text-muted">Shares held</dt>
+                    <dd className="mt-2 break-words text-2xl font-medium tabular-nums text-text-primary">
+                      {formatShareCount(registerImportTotals(proposal.members).total)}
+                    </dd>
+                  </div>
+                  <div className="min-w-0 rounded-xl bg-surface-tertiary p-4">
+                    <dt className="text-xs text-text-muted">Shareholders</dt>
+                    <dd className="mt-2 text-2xl font-medium tabular-nums text-text-primary">
+                      {proposal.members.length}
+                    </dd>
+                  </div>
+                </dl>
+                {proposal.correctionOf && <p className="text-sm text-text-muted">Correction: {proposal.reason}</p>}
+                {((proposal.sourceReference || proposal.authorityReference) !== 'Company-provided share records' ||
+                  proposal.asicIssuedTotal !== null ||
+                  proposal.asicMemberCount !== null ||
+                  proposal.registerEvidence ||
+                  proposal.asicEvidence) && (
+                  <details className="rounded-xl border border-border-subtle p-3">
+                    <summary className="cursor-pointer text-sm text-text-muted">Supporting records</summary>
+                    <dl className="grid gap-4 pt-4 sm:grid-cols-2">
+                      {(proposal.sourceReference || proposal.authorityReference) !==
+                        'Company-provided share records' && (
+                        <div>
+                          <dt className="text-xs text-text-muted">Source record</dt>
+                          <dd className="mt-1 text-sm">{proposal.sourceReference || proposal.authorityReference}</dd>
+                        </div>
+                      )}
+                      {proposal.asicIssuedTotal !== null && (
+                        <div>
+                          <dt className="text-xs text-text-muted">ASIC issued shares cross-check</dt>
+                          <dd className="mt-1 text-sm">{formatShareCount(proposal.asicIssuedTotal)}</dd>
+                        </div>
+                      )}
+                      {proposal.asicMemberCount !== null && (
+                        <div>
+                          <dt className="text-xs text-text-muted">Shareholders listed by ASIC</dt>
+                          <dd className="mt-1 text-sm">{proposal.asicMemberCount}</dd>
+                        </div>
+                      )}
+                      {proposal.registerEvidence && (
+                        <div>
+                          <dt className="text-xs text-text-muted">Source copy</dt>
+                          <dd className="mt-1 text-sm">Retained company-provided register copy</dd>
+                        </div>
+                      )}
+                      {proposal.asicEvidence && (
+                        <div>
+                          <dt className="text-xs text-text-muted">ASIC copy</dt>
+                          <dd className="mt-1 text-sm">Retained company-provided extract</dd>
+                        </div>
+                      )}
+                    </dl>
+                  </details>
+                )}
                 <MemberRecords members={proposal.members} />
                 {!!proposal.formerMembers.length && (
                   <ul className="divide-y divide-border-subtle">
@@ -697,7 +774,7 @@ export function ImportForm({
                         ))}
                       </ul>
                     ) : null}
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap items-center justify-end gap-2 border-t border-border-subtle pt-4">
                       <PageAction
                         label="Edit records"
                         disabled={deciding || !!recovery || autoApply || !canPrepare || !steps.reject || blocked}
@@ -718,6 +795,7 @@ export function ImportForm({
                           label={
                             deciding ? 'Confirming…' : kind === 'approve' && !steps.apply ? 'Record review' : 'Confirm'
                           }
+                          primary
                           disabled={deciding || !ready || autoApply}
                           onClick={() => void decision.confirm()}
                         />
@@ -725,7 +803,7 @@ export function ImportForm({
                     </div>
                   </>
                 )}
-              </div>
+              </section>
             )
           )}
         </>

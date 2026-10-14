@@ -90,7 +90,7 @@ export function BringRecords({
       )}
       {step === 'details' && (
         <fieldset className="space-y-3">
-          <legend className="text-sm font-medium text-text-primary">Share details</legend>
+          <legend className="sr-only">Record date</legend>
           <label className={LABEL}>
             Record date
             <input
@@ -124,7 +124,143 @@ export function BringRecords({
       {step === 'shareholders' && (
         <>
           <fieldset className="space-y-3">
-            <legend className="text-sm font-medium text-text-primary">Shareholders</legend>
+            <legend className="sr-only">Shareholders</legend>
+            {!editorOpen && (
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <p className="text-sm text-text-muted">
+                  {draft.members.filter(started).length}{' '}
+                  {draft.members.filter(started).length === 1 ? 'shareholder' : 'shareholders'} in this draft
+                </p>
+                <PageAction label="Add a shareholder" primary disabled={busy} onClick={add} />
+              </div>
+            )}
+            {!draft.members.some(started) && !editorOpen && (
+              <div className="rounded-xl border border-dashed border-border-subtle px-4 py-10 text-center">
+                <p className="text-sm text-text-muted">No shareholders added yet.</p>
+              </div>
+            )}
+            {draft.members.some((row) => started(row) && row.member !== editor?.member) && (
+              <div className="max-w-full overflow-x-auto rounded-xl border border-border-subtle">
+                <table className="w-full text-left text-sm">
+                  <caption className="sr-only">Draft shareholders</caption>
+                  <thead className="bg-surface-tertiary text-xs text-text-muted">
+                    <tr>
+                      <th scope="col" className="px-4 py-3 font-medium">
+                        Shareholder
+                      </th>
+                      <th scope="col" className="px-4 py-3 text-right font-medium">
+                        Shares held
+                      </th>
+                      <th scope="col" className="px-4 py-3 font-medium">
+                        Date added
+                      </th>
+                      <th scope="col" className="px-4 py-3">
+                        <span className="sr-only">Actions</span>
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border-subtle">
+                    {draft.members.map((row, index) =>
+                      started(row) && row.member !== editor?.member ? (
+                        <tr key={row.member}>
+                          <th scope="row" className="px-4 py-4 text-left font-normal">
+                            <p className="font-medium text-text-primary">
+                              {row.name || 'Shareholder details incomplete'}
+                            </p>
+                            <p className="mt-1 max-w-64 truncate text-xs text-text-muted">{row.residentialAddress}</p>
+                            {validateMember(index).length > 0 && (
+                              <p className="mt-1 text-xs text-error-light">Needs details</p>
+                            )}
+                          </th>
+                          <td className="px-4 py-4 text-right tabular-nums">
+                            {row.shares ? formatShareCount(row.shares) : '—'}
+                          </td>
+                          <td className="whitespace-nowrap px-4 py-4 text-text-muted">{row.enteredOn || '—'}</td>
+                          <td className="px-4 py-4">
+                            <div className="flex gap-2">
+                              <PageAction
+                                label="Edit"
+                                context={`shareholder ${index + 1}`}
+                                disabled={busy || editorOpen}
+                                onClick={() => {
+                                  setMemberErrors([]);
+                                  setEditor({ member: row.member, original: row });
+                                }}
+                              />
+                              <PageAction
+                                label="Remove"
+                                context={`shareholder ${index + 1}`}
+                                disabled={busy || editorOpen}
+                                onClick={() =>
+                                  update((current) => ({
+                                    ...current,
+                                    members: current.members.filter((_, at) => at !== index),
+                                  }))
+                                }
+                              />
+                            </div>
+                          </td>
+                        </tr>
+                      ) : null,
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
+            {editing && (
+              <div className="space-y-5 rounded-xl bg-surface-tertiary p-4 sm:p-5">
+                <h3 className="text-base font-medium text-text-primary">
+                  {editor?.original ? 'Edit shareholder' : 'Add shareholder'}
+                </h3>
+                <MemberFields
+                  key={editing.member}
+                  row={editing}
+                  index={editingIndex}
+                  asAt={draft.asAt}
+                  companyMembers={companyMembers}
+                  preserveParticulars={preserveParticulars}
+                  usedMembers={draft.members.filter((_, at) => at !== editingIndex).map((member) => member.member)}
+                  update={(patch) => {
+                    setMember(editingIndex, patch);
+                    if (patch.member) setEditor((current) => (current ? { ...current, member: patch.member! } : null));
+                  }}
+                />
+                {memberErrors.length > 0 && (
+                  <ul role="alert" className="space-y-1 text-sm text-error-light">
+                    {memberErrors.map((problem) => (
+                      <li key={problem}>{problem}</li>
+                    ))}
+                  </ul>
+                )}
+                <div className="flex flex-wrap justify-end gap-2 border-t border-border-subtle pt-4">
+                  <PageAction
+                    label={editor?.original ? 'Done editing' : 'Add to draft'}
+                    primary
+                    disabled={busy}
+                    onClick={() => {
+                      const errors = validateMember(editingIndex);
+                      setMemberErrors(errors);
+                      if (!errors.length) setEditor(null);
+                    }}
+                  />
+                  <PageAction
+                    label="Cancel shareholder edit"
+                    disabled={busy}
+                    onClick={() => {
+                      const original = editor?.original;
+                      update((current) => ({
+                        ...current,
+                        members: original
+                          ? current.members.map((row, index) => (index === editingIndex ? original : row))
+                          : current.members.filter((_, index) => index !== editingIndex),
+                      }));
+                      setEditor(null);
+                      setMemberErrors([]);
+                    }}
+                  />
+                </div>
+              </div>
+            )}
             {!editorOpen && (
               <details className="rounded-lg border border-border-subtle p-3">
                 <summary className="cursor-pointer text-sm text-text-muted">Use a CSV instead</summary>
@@ -169,93 +305,6 @@ export function BringRecords({
                 )}
               </details>
             )}
-            {!draft.members.some(started) && !editorOpen && (
-              <p className="text-sm text-text-muted">No shareholders added yet.</p>
-            )}
-            <ul className="divide-y divide-border-subtle">
-              {draft.members.map((row, index) =>
-                started(row) && row.member !== editor?.member ? (
-                  <li key={row.member} className="flex items-center gap-3 py-3">
-                    <div className="min-w-0 flex-1">
-                      <p className="break-words text-sm font-medium text-text-primary">
-                        {row.name || 'Shareholder details incomplete'}
-                      </p>
-                      <p className="text-xs text-text-muted">
-                        {row.shares ? `${formatShareCount(row.shares)} shares` : 'Shares not entered'} ·{' '}
-                        {row.allotments.length} {row.allotments.length === 1 ? 'allotment' : 'allotments'}
-                      </p>
-                      {validateMember(index).length > 0 && <p className="text-xs text-text-muted">Needs details</p>}
-                    </div>
-                    <PageAction
-                      label={`Edit shareholder ${index + 1}`}
-                      disabled={busy || editorOpen}
-                      onClick={() => {
-                        setMemberErrors([]);
-                        setEditor({ member: row.member, original: row });
-                      }}
-                    />
-                    <PageAction
-                      label={`Remove shareholder ${index + 1}`}
-                      disabled={busy || editorOpen}
-                      onClick={() =>
-                        update((current) => ({ ...current, members: current.members.filter((_, at) => at !== index) }))
-                      }
-                    />
-                  </li>
-                ) : null,
-              )}
-            </ul>
-            {editing && (
-              <>
-                <MemberFields
-                  key={editing.member}
-                  row={editing}
-                  index={editingIndex}
-                  asAt={draft.asAt}
-                  companyMembers={companyMembers}
-                  preserveParticulars={preserveParticulars}
-                  usedMembers={draft.members.filter((_, at) => at !== editingIndex).map((member) => member.member)}
-                  update={(patch) => {
-                    setMember(editingIndex, patch);
-                    if (patch.member) setEditor((current) => (current ? { ...current, member: patch.member! } : null));
-                  }}
-                />
-                {memberErrors.length > 0 && (
-                  <ul role="alert" className="space-y-1 text-sm text-error-light">
-                    {memberErrors.map((problem) => (
-                      <li key={problem}>{problem}</li>
-                    ))}
-                  </ul>
-                )}
-                <div className="flex flex-wrap gap-2">
-                  <PageAction
-                    label={editor?.original ? 'Done editing' : 'Add to draft'}
-                    disabled={busy}
-                    onClick={() => {
-                      const errors = validateMember(editingIndex);
-                      setMemberErrors(errors);
-                      if (!errors.length) setEditor(null);
-                    }}
-                  />
-                  <PageAction
-                    label="Cancel shareholder edit"
-                    disabled={busy}
-                    onClick={() => {
-                      const original = editor?.original;
-                      update((current) => ({
-                        ...current,
-                        members: original
-                          ? current.members.map((row, index) => (index === editingIndex ? original : row))
-                          : current.members.filter((_, index) => index !== editingIndex),
-                      }));
-                      setEditor(null);
-                      setMemberErrors([]);
-                    }}
-                  />
-                </div>
-              </>
-            )}
-            {!editorOpen && <PageAction label="Add a shareholder" disabled={busy} onClick={add} />}
           </fieldset>
           <details className="space-y-4 rounded-lg border border-border-subtle p-4">
             <summary className="cursor-pointer text-sm font-medium text-text-primary">

@@ -28,8 +28,8 @@ export function MemberFields({
       allotments: row.allotments.map((allotment, current) => (current === at ? { ...allotment, ...patch } : allotment)),
     });
   return (
-    <fieldset className="space-y-4 rounded-lg border border-border-subtle p-4">
-      <legend className="px-1 text-sm font-medium text-text-primary">Shareholder</legend>
+    <fieldset className="space-y-5">
+      <legend className="sr-only">Shareholder details</legend>
       {companyMembers.length > 0 && (
         <label className={LABEL}>
           Company shareholder
@@ -58,7 +58,11 @@ export function MemberFields({
             <option value="">Choose an existing shareholder or a new one</option>
             {companyMembers.map((member) => (
               <option key={member.member} value={member.member} disabled={usedMembers.includes(member.member)}>
-                {member.name || 'Name not recorded'} · {member.member}
+                {member.name || 'Name not recorded'}
+                {member.residentialAddress && ` · ${member.residentialAddress}`}
+                {companyMembers.filter(
+                  (other) => other.name === member.name && other.residentialAddress === member.residentialAddress,
+                ).length > 1 && ` · Record ${member.member.slice(-8)}`}
               </option>
             ))}
             <option value="new">New company shareholder</option>
@@ -107,8 +111,8 @@ export function MemberFields({
         </label>
       </div>
       {row.allotments.map((allotment, at) => (
-        <fieldset key={allotment.id} className="space-y-3 border-t border-border-subtle pt-3">
-          <legend className="text-sm text-text-primary">Allotment {at + 1}</legend>
+        <fieldset key={allotment.id} className="space-y-4 rounded-xl border border-border-subtle bg-surface-raised p-4">
+          <legend className="px-1 text-sm font-medium text-text-primary">Allotment {at + 1}</legend>
           <div className="grid gap-3 sm:grid-cols-2">
             <label className={LABEL}>
               Allotment date

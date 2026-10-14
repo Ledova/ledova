@@ -17,7 +17,6 @@ import {
   type RegisterTransferMember,
 } from '@ledova/shared';
 import { FIELD_CLASS } from '@components/fieldClass';
-import { Section } from '@components/Ledger';
 import apiClient from '@services/apiClient';
 import { CompanySelection } from '../../CompanySelection';
 import { useCompany } from '../../hooks/useCompany';
@@ -246,125 +245,124 @@ function FreshClass({
         : 'This class code already exists. Open its register or use the actual distinct code for a new class.',
     );
   return (
-    <Section title={`${company.name} · ${name} (${symbol})`}>
-      <ImportForm
-        owner={owner}
-        guard={guard}
-        newEffectGuard={check}
-        company={company.uuid}
-        companyMembers={companyMembers}
-        appointment={steps.prepare!}
-        steps={steps}
-        blocked={!ready}
-        visible={ready}
-        onConflict={onConflict}
-        onHeldChange={onHeldChange}
-        resolveRegister={resolveRegister}
-        classProblems={problems}
-        classFields={
-          <fieldset className="space-y-3">
-            <label className={LABEL}>
-              Share class
-              <select
-                className={FIELD_CLASS}
-                value={choice}
-                disabled={classLocked}
-                onChange={(event) => {
-                  const selected = event.target.value;
-                  if (draftClasses.some((token) => token.uuid === selected)) {
-                    navigate(DESTINATIONS.companyRegisterImport.path.replace(':uuid', selected));
-                    return;
-                  }
-                  const common = COMMON_CLASSES.find((item) => item.type === selected);
-                  if (common) {
-                    setChoice(common.type);
-                    setName(common.name);
-                    setSymbol(common.symbol);
-                    setTokenType(common.type);
-                  } else if (selected === 'custom') {
-                    setChoice('custom');
-                    setName('');
-                    setSymbol('');
-                    setTokenType('ordinary');
-                  }
-                }}
-              >
-                {draftClasses.length > 0 && (
-                  <optgroup label="Existing company classes">
-                    {draftClasses.map((token) => (
-                      <option key={token.uuid} value={token.uuid}>
-                        {token.name} · {token.symbol}
-                      </option>
-                    ))}
-                  </optgroup>
-                )}
-                <optgroup label="New class">
-                  {COMMON_CLASSES.map((item) => (
-                    <option key={item.type} value={item.type}>
-                      {item.label}
+    <ImportForm
+      owner={owner}
+      guard={guard}
+      newEffectGuard={check}
+      company={company.uuid}
+      companyName={company.name}
+      shareClass={{ name, symbol }}
+      companyMembers={companyMembers}
+      appointment={steps.prepare!}
+      steps={steps}
+      blocked={!ready}
+      visible={ready}
+      onConflict={onConflict}
+      onHeldChange={onHeldChange}
+      resolveRegister={resolveRegister}
+      classProblems={problems}
+      classFields={
+        <fieldset className="space-y-5">
+          <label className={LABEL}>
+            Share class
+            <select
+              className={FIELD_CLASS}
+              value={choice}
+              disabled={classLocked}
+              onChange={(event) => {
+                const selected = event.target.value;
+                if (draftClasses.some((token) => token.uuid === selected)) {
+                  navigate(DESTINATIONS.companyRegisterImport.path.replace(':uuid', selected));
+                  return;
+                }
+                const common = COMMON_CLASSES.find((item) => item.type === selected);
+                if (common) {
+                  setChoice(common.type);
+                  setName(common.name);
+                  setSymbol(common.symbol);
+                  setTokenType(common.type);
+                } else if (selected === 'custom') {
+                  setChoice('custom');
+                  setName('');
+                  setSymbol('');
+                  setTokenType('ordinary');
+                }
+              }}
+            >
+              {draftClasses.length > 0 && (
+                <optgroup label="Existing company classes">
+                  {draftClasses.map((token) => (
+                    <option key={token.uuid} value={token.uuid}>
+                      {token.name} · {token.symbol}
                     </option>
                   ))}
-                  <option value="custom">Another class</option>
                 </optgroup>
-              </select>
-            </label>
-            {classes.some((token) => token.status !== 'draft') && (
-              <p className="text-sm text-text-muted">
-                For existing chain classes,{' '}
-                <Link
-                  to={DESTINATIONS.companyRegister.path}
-                  state={{ registerCompany: company.uuid }}
-                  className="text-brand-light underline"
-                >
-                  open Register
-                </Link>{' '}
-                to open their register or bring in shareholder particulars.
-              </p>
-            )}
-            {choice === 'custom' && (
-              <div className="grid gap-3 sm:grid-cols-2">
-                <label className={LABEL}>
-                  Class name
-                  <input
-                    maxLength={100}
-                    disabled={classLocked}
-                    className={FIELD_CLASS}
-                    value={name}
-                    onChange={(event) => setName(event.target.value)}
-                  />
-                </label>
-                <label className={LABEL}>
-                  Class code
-                  <input
-                    maxLength={5}
-                    disabled={classLocked}
-                    className={FIELD_CLASS}
-                    value={symbol}
-                    onChange={(event) => setSymbol(event.target.value.toUpperCase())}
-                  />
-                </label>
-                <label className={LABEL}>
-                  Class type
-                  <select
-                    className={FIELD_CLASS}
-                    value={tokenType}
-                    disabled={classLocked}
-                    onChange={(event) => setTokenType(event.target.value as TokenType)}
-                  >
-                    <option value="ordinary">Ordinary</option>
-                    <option value="preference">Preference</option>
-                    <option value="redeemable">Redeemable</option>
-                  </select>
-                </label>
-              </div>
-            )}
-            <p className="text-xs text-text-muted">
-              Choose the class already recorded by the company. Set up one class at a time; repeat for other classes.
-              {choice === 'custom' && ' The class code uses 1–5 letters, such as A or ORD.'}
+              )}
+              <optgroup label="New class">
+                {COMMON_CLASSES.map((item) => (
+                  <option key={item.type} value={item.type}>
+                    {item.label}
+                  </option>
+                ))}
+                <option value="custom">Another class</option>
+              </optgroup>
+            </select>
+          </label>
+          {classes.some((token) => token.status !== 'draft') && (
+            <p className="text-sm text-text-muted">
+              For existing chain classes,{' '}
+              <Link
+                to={DESTINATIONS.companyRegister.path}
+                state={{ registerCompany: company.uuid }}
+                className="text-brand-light underline"
+              >
+                open Register
+              </Link>{' '}
+              to open their register or bring in shareholder particulars.
             </p>
-          </fieldset>
-        }
-      />
-    </Section>
+          )}
+          {choice === 'custom' && (
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label className={LABEL}>
+                Class name
+                <input
+                  maxLength={100}
+                  disabled={classLocked}
+                  className={FIELD_CLASS}
+                  value={name}
+                  onChange={(event) => setName(event.target.value)}
+                />
+              </label>
+              <label className={LABEL}>
+                Class code
+                <input
+                  maxLength={5}
+                  disabled={classLocked}
+                  className={FIELD_CLASS}
+                  value={symbol}
+                  onChange={(event) => setSymbol(event.target.value.toUpperCase())}
+                />
+              </label>
+              <label className={LABEL}>
+                Class type
+                <select
+                  className={FIELD_CLASS}
+                  value={tokenType}
+                  disabled={classLocked}
+                  onChange={(event) => setTokenType(event.target.value as TokenType)}
+                >
+                  <option value="ordinary">Ordinary</option>
+                  <option value="preference">Preference</option>
+                  <option value="redeemable">Redeemable</option>
+                </select>
+              </label>
+            </div>
+          )}
+          {choice === 'custom' && (
+            <p className="text-xs text-text-muted">Use the recorded class code of 1–5 letters, such as A or ORD.</p>
+          )}
+        </fieldset>
+      }
+    />
   );
 }

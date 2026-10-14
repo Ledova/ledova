@@ -378,9 +378,11 @@ The shareholder step also accepts the existing CSV template. CSV input is UTF-8,
 at most 1 MB and 500 allotment rows, and is parsed locally. A repeated holder
 reference groups allotments; identity, original entry
 date and current holding must agree across its rows. Blank money amounts remain
-missing rather than becoming zero. Review shows a shareholder table, with full
-copied particulars available per person, and checks holdings against allotments
-before any confirmation. Unsaved shareholder
+missing rather than becoming zero. Review summarises the copied shares,
+shareholders and record date above one table. Percentages refer to that class's
+copied holdings; each person's full particulars and original allotments remain
+available in **Details**. Holdings are checked against allotments before any
+confirmation. Unsaved shareholder
 edits remain local; editing a saved preparation first retires it through **Edit
 records**, as described below. **Import** beside **Continue** is an inactive
 future extraction option, explained by its **Coming soon** tooltip; it uploads nothing. Future

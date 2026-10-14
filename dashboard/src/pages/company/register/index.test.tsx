@@ -477,7 +477,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   };
   showJourney();
   fireEvent.click(await screen.findByRole('link', { name: 'Set up your share register' }));
-  expect(await screen.findByRole('heading', { name: `${company.name} · Ordinary shares (ORD)` })).toBeTruthy();
+  expect(await screen.findByText(`${company.name} · Ordinary shares (ORD)`)).toBeTruthy();
   expect(screen.queryByLabelText('Authorised shares')).toBeNull();
   expect(screen.queryByLabelText('Reason')).toBeNull();
   expect(screen.queryByLabelText('Record source')).toBeNull();
@@ -493,7 +493,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
   expect(screen.getByText('No shareholders added yet.')).toBeTruthy();
   fireEvent.click(screen.getByRole('button', { name: 'Add a shareholder' }));
-  expect((screen.getByRole('button', { name: 'Save draft and review' }) as HTMLButtonElement).disabled).toBe(true);
+  expect(screen.queryByRole('button', { name: 'Save draft and review' })).toBeNull();
   fireEvent.click(screen.getByRole('button', { name: 'Cancel shareholder edit' }));
   expect(screen.getByText('No shareholders added yet.')).toBeTruthy();
   expect(api.post).not.toHaveBeenCalled();
@@ -528,7 +528,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   expect(screen.getByText('Example Shareholder')).toBeTruthy();
   expect(screen.queryByLabelText('Name')).toBeNull();
   expect(api.post).not.toHaveBeenCalled();
-  fireEvent.click(screen.getByRole('button', { name: 'Edit shareholder 1' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Edit (shareholder 1)' }));
   expect((screen.getAllByLabelText('Share numbers or reference')[0] as HTMLInputElement).value).toBe('1–400');
   expect(screen.getAllByText('References (optional)')[0].closest('details')!.open).toBe(true);
   fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Discarded edit' } });
@@ -557,17 +557,25 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
     expect((screen.getByRole('button', { name: 'Recover saved records' }) as HTMLButtonElement).disabled).toBe(false),
   );
   fireEvent.click(screen.getByRole('button', { name: 'Recover saved records' }));
+  await waitFor(() =>
+    expect(
+      api.get.mock.calls.filter(([url]) => url === COMPANY_TOKEN_ENDPOINTS.HOLDERS(token.uuid)).length,
+    ).toBeGreaterThan(1),
+  );
+  await waitFor(() => expect(client.isFetching()).toBe(0));
   const shareholderTable = await screen.findByRole('table', { name: 'Shareholders' });
   expect(within(shareholderTable).getByText('Example Shareholder')).toBeTruthy();
   expect(within(shareholderTable).getByText('1 Example Street, Sydney NSW 2000')).toBeTruthy();
-  const rowDetails = within(shareholderTable).getByText('Details', { selector: 'summary' }).closest('details')!;
-  expect(rowDetails.open).toBe(false);
-  fireEvent.click(within(shareholderTable).getByText('Details', { selector: 'summary' }));
-  expect(rowDetails.open).toBe(true);
-  expect(within(rowDetails).getByText('CERT-001')).toBeTruthy();
+  expect(within(shareholderTable).getByText('100.00%')).toBeTruthy();
+  fireEvent.click(within(shareholderTable).getByRole('button', { name: 'Details (Example Shareholder)' }));
+  const shareholderDetails = await screen.findByRole('dialog', { name: 'Example Shareholder' });
+  expect(within(shareholderDetails).getByText('CERT-001')).toBeTruthy();
+  expect(within(shareholderDetails).getByText('1 Example Street, Sydney NSW 2000')).toBeTruthy();
+  fireEvent.click(within(shareholderDetails).getByRole('button', { name: 'Close' }));
+  await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
   const setupSteps = await screen.findByRole('list', { name: 'Share register setup steps' });
   expect(within(setupSteps).getAllByRole('listitem')).toHaveLength(3);
-  expect(within(setupSteps).getByText('3. Review').getAttribute('aria-current')).toBe('step');
+  expect(within(setupSteps).getAllByRole('listitem')[2].getAttribute('aria-current')).toBe('step');
   expect(screen.queryByRole('button', { name: 'Continue to confirmation' })).toBeNull();
   expect(screen.queryByRole('button', { name: 'Back to review' })).toBeNull();
   const preparations = api.post.mock.calls.filter(([url]) => url === IMPORTS).map(([, body]) => body);
@@ -579,12 +587,6 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   expect(proposal!.members[0].allotments?.map((allotment) => allotment.beneficiallyHeld)).toEqual([true, false]);
   expect(proposal!.members[0].allotments?.[0].shareReference).toBe('1–400');
   expect(proposal!.members[0].allotments?.[0].certificateReference).toBe('CERT-001');
-  await waitFor(() =>
-    expect(
-      api.get.mock.calls.filter(([url]) => url === COMPANY_TOKEN_ENDPOINTS.HOLDERS(token.uuid)).length,
-    ).toBeGreaterThan(1),
-  );
-  await waitFor(() => expect(client.isFetching()).toBe(0));
   expect((screen.getByRole('button', { name: 'Record review' }) as HTMLButtonElement).disabled).toBe(true);
   expect((screen.getByRole('button', { name: 'Edit records' }) as HTMLButtonElement).disabled).toBe(true);
   const importPath = DESTINATIONS.companyRegisterImport.path.replace(':uuid', token.uuid);
@@ -601,12 +603,16 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   const previewGuard = api.post.mock.calls.find(([url]) => url.endsWith('/decision-preview/'))![2]
     .ledovaSubmissionGuard;
   expect(screen.getAllByText(recordDate).length).toBeGreaterThan(0);
+  fireEvent.click(screen.getByRole('button', { name: 'Details (Example Shareholder)' }));
+  expect(await screen.findByRole('dialog', { name: 'Example Shareholder' })).toBeTruthy();
   visibleClass = false;
   await act(async () => {
     await client.invalidateQueries({ predicate: (query) => query.queryKey.at(-1) === 'classes' });
   });
   expect(await screen.findByText(/Refresh current company access before showing these records/)).toBeTruthy();
   expect(screen.queryAllByText(recordDate)).toHaveLength(0);
+  expect(screen.queryByRole('dialog')).toBeNull();
+  expect(screen.queryAllByText('1 Example Street, Sydney NSW 2000')).toHaveLength(0);
   expect(screen.queryByRole('button', { name: 'Record review' })).toBeNull();
   expect(() => previewGuard()).toThrow(/company, authority or source records changed/);
   expect(api.post.mock.calls.filter(([url]) => url.endsWith('/decide/'))).toHaveLength(0);
@@ -616,12 +622,16 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   });
   expect(await screen.findByRole('button', { name: 'Record review' })).toBeTruthy();
   expect(screen.getAllByText(recordDate).length).toBeGreaterThan(0);
+  fireEvent.click(screen.getByRole('button', { name: 'Details (Example Shareholder)' }));
+  expect(await screen.findByRole('dialog', { name: 'Example Shareholder' })).toBeTruthy();
   appointment = { ...appointment, status: 'revoked', isEffective: false, revokedAt: '2026-10-14T00:00:00Z' };
   await act(async () => {
     await client.invalidateQueries({ queryKey: ['company-appointments'] });
   });
   expect(await screen.findByText(/Refresh current company access before showing these records/)).toBeTruthy();
   expect(screen.queryAllByText(recordDate)).toHaveLength(0);
+  expect(screen.queryByRole('dialog')).toBeNull();
+  expect(screen.queryAllByText('1 Example Street, Sydney NSW 2000')).toHaveLength(0);
   expect(screen.queryByRole('button', { name: 'Record review' })).toBeNull();
   expect(api.post.mock.calls.filter(([url]) => url.endsWith('/decide/'))).toHaveLength(0);
   appointment = { ...appointment, status: 'active', isEffective: true, revokedAt: null };
@@ -811,15 +821,15 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   fireEvent.change(selector, { target: { value: 'custom' } });
   fireEvent.change(screen.getByLabelText('Class name'), { target: { value: 'Company A shares' } });
   fireEvent.change(screen.getByLabelText('Class code'), { target: { value: 'A' } });
-  expect(screen.getByRole('heading', { name: `${company.name} · Company A shares (A)` })).toBeTruthy();
+  expect(screen.getByText(`${company.name} · Company A shares (A)`)).toBeTruthy();
   expect((screen.getByLabelText('Class code') as HTMLInputElement).maxLength).toBe(5);
   fireEvent.change(selector, { target: { value: 'preference' } });
-  expect(screen.getByRole('heading', { name: `${company.name} · Preference shares (PRF)` })).toBeTruthy();
+  expect(screen.getByText(`${company.name} · Preference shares (PRF)`)).toBeTruthy();
   expect(screen.queryByLabelText('Class name')).toBeNull();
   expect(screen.queryByLabelText('Class code')).toBeNull();
   expect(screen.queryByLabelText('Class type')).toBeNull();
   fireEvent.change(selector, { target: { value: 'redeemable' } });
-  expect(screen.getByRole('heading', { name: `${company.name} · Redeemable shares (RED)` })).toBeTruthy();
+  expect(screen.getByText(`${company.name} · Redeemable shares (RED)`)).toBeTruthy();
   expect(api.post).not.toHaveBeenCalled();
   expect(screen.getByRole('link', { name: 'open Register' }).getAttribute('href')).toBe('/company/register');
   fireEvent.change(selector, { target: { value: token.uuid } });
@@ -922,7 +932,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   expect((screen.getByLabelText('Date first added to register') as HTMLInputElement).value).toBe('');
   expect((screen.getByLabelText('Shares held') as HTMLInputElement).value).toBe('');
   expect(screen.getByRole('button', { name: 'Add to draft' })).toBeTruthy();
-  expect((screen.getByRole('button', { name: 'Save draft and review' }) as HTMLButtonElement).disabled).toBe(true);
+  expect(screen.queryByRole('button', { name: 'Save draft and review' })).toBeNull();
   fireEvent.click(screen.getByRole('button', { name: 'Cancel shareholder edit' }));
   const secondClassFile = new File([ownTemplate], 'second-class.csv', { type: 'text/csv' });
   Object.defineProperty(secondClassFile, 'arrayBuffer', {
@@ -930,7 +940,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   });
   fireEvent.change(screen.getByLabelText('Bring a CSV'), { target: { files: [secondClassFile] } });
   await waitFor(() => expect(screen.getByText('Example Shareholder')).toBeTruthy());
-  fireEvent.click(screen.getByRole('button', { name: 'Edit shareholder 1' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Edit (shareholder 1)' }));
   expect((screen.getByLabelText('Company shareholder') as HTMLSelectElement).value).toBe('');
   fireEvent.click(screen.getByRole('button', { name: 'Done editing' }));
   expect(screen.getByText(/explicitly choose a new shareholder/)).toBeTruthy();
@@ -942,7 +952,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   fireEvent.click(screen.getByRole('button', { name: 'Save draft and review' }));
   expect(screen.getByText(/explicitly choose a new shareholder/)).toBeTruthy();
   expect(api.post).not.toHaveBeenCalled();
-  fireEvent.click(screen.getByRole('button', { name: 'Edit shareholder 1' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Edit (shareholder 1)' }));
   expect((screen.getByLabelText('Company shareholder') as HTMLSelectElement).value).toBe('');
   fireEvent.change(screen.getByLabelText('Company shareholder'), { target: { value: companyMembers[0].member } });
   fireEvent.click(screen.getByRole('button', { name: 'Done editing' }));
