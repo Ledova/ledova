@@ -625,6 +625,57 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   expect(replacement.asicMemberCount).toBeUndefined();
   expect(rejected.registerEvidence).toBe('original-register-copy');
   expect(rejected.asicEvidence).toBe('original-asic-copy');
+  cleanup();
+  client.clear();
+  api.post.mockClear();
+  opened = false;
+  proposal = undefined;
+  appointment = { ...appointment, capabilities: ['prepare'] };
+  const setupClasses = [
+    token,
+    { ...token, uuid: 'deployed-class', name: 'Deployed shares', symbol: 'DEP', status: 'deployed' },
+    { ...token, uuid: 'paused-class', name: 'Paused shares', symbol: 'PAU', status: 'paused' },
+    { ...token, uuid: 'deploying-class', name: 'Deploying shares', symbol: 'ING', status: 'deploying' },
+  ];
+  api.get.mockImplementation(async (url: string) => {
+    if (url === '/api/user-preferences/') return { data: companyPreferences() };
+    if (url === COMPANY_ENDPOINTS.BASE) return dataPage([company]);
+    if (url === COMPANY_ENDPOINTS.DETAIL(company.uuid)) return { data: company };
+    if (url === APPOINTMENTS) return dataPage([appointment]);
+    if (url === REGISTER || url === COMPANY_TOKEN_ENDPOINTS.BASE) return dataPage(setupClasses);
+    if (url === COMPANY_TOKEN_ENDPOINTS.HOLDERS(token.uuid)) return { data: holders() };
+    if (url === IMPORTS) return dataPage(proposal ? [proposal] : []);
+    return dataPage([]);
+  });
+  showJourney(DESTINATIONS.companyRegisterSetup.path);
+  const selector = (await screen.findByLabelText('Share class')) as HTMLSelectElement;
+  expect([...selector.options].map((option) => option.value)).toEqual(['', token.uuid]);
+  expect(screen.getByRole('link', { name: 'open Register' }).getAttribute('href')).toBe('/company/register');
+  fireEvent.change(selector, { target: { value: token.uuid } });
+  await waitFor(() => expect(screen.queryByLabelText('Class code')).toBeNull());
+  expect(await screen.findByLabelText('Source record reference')).toBeTruthy();
+  for (const status of ['deployed', 'paused', 'deploying']) {
+    cleanup();
+    client.clear();
+    token.status = status;
+    showJourney(importPath);
+    expect(await screen.findByText(/This class cannot open from copied records/)).toBeTruthy();
+    expect(screen.queryByLabelText('Source record reference')).toBeNull();
+    expect(screen.getByRole('link', { name: 'Open Register' }).getAttribute('href')).toBe('/company/register');
+  }
+  cleanup();
+  client.clear();
+  showJourney(DESTINATIONS.companyRegisterSetup.path);
+  expect(await screen.findByText(/No existing draft share classes are available/)).toBeTruthy();
+  expect(screen.queryByLabelText('Share class')).toBeNull();
+  cleanup();
+  client.clear();
+  token.status = 'deployed';
+  proposal = rejected;
+  opened = true;
+  showJourney(importPath);
+  expect(await screen.findByLabelText('Source record reference')).toBeTruthy();
+  expect(api.post).not.toHaveBeenCalled();
 });
 
 it('shows an account without register access a calm empty state, reads no members or CSV and offers no entry', async () => {

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   DESTINATIONS,
   REGISTER_IMPORT_COPY,
@@ -118,13 +118,14 @@ function FreshClass({
   guard: () => void;
   read: ReturnType<typeof useCompany>;
   company: Company;
-  classes: { uuid: string; name: string; symbol: string }[];
+  classes: { uuid: string; name: string; symbol: string; status: string }[];
   steps: ReturnType<typeof registerSteps>;
   ready: boolean;
   onHeldChange: (held: boolean) => void;
   onConflict: () => void;
 }) {
   const navigate = useNavigate();
+  const draftClasses = classes.filter((token) => token.status === 'draft');
   const [name, setName] = useState('Ordinary shares');
   const [symbol, setSymbol] = useState('ORD');
   const [tokenType, setTokenType] = useState<TokenType>('ordinary');
@@ -213,8 +214,13 @@ function FreshClass({
     : [];
   if (!name.trim() || name.length > 100) problems.push('Enter a class name of at most 100 characters.');
   if (!/^[A-Z]{3,5}$/.test(symbol)) problems.push('Enter a class code of 3–5 letters, such as ORD.');
-  if (classes.some((token) => token.symbol === symbol) && !classLocked)
-    problems.push('This class code already exists. Select the existing share class.');
+  const existingCode = classes.find((token) => token.symbol === symbol);
+  if (existingCode && !classLocked)
+    problems.push(
+      existingCode.status === 'draft'
+        ? 'This class code already exists. Select the existing draft share class.'
+        : 'This class code already exists. Open its register or use the actual distinct code for a new class.',
+    );
   return (
     <Section title={`${company.name} · ${name} (${symbol})`}>
       <ImportForm
@@ -232,7 +238,7 @@ function FreshClass({
         classProblems={problems}
         classFields={
           <fieldset className="space-y-3">
-            {classes.length > 0 && (
+            {draftClasses.length > 0 ? (
               <label className={LABEL}>
                 Share class
                 <select
@@ -240,18 +246,33 @@ function FreshClass({
                   value=""
                   disabled={classLocked}
                   onChange={(event) => {
-                    if (event.target.value)
+                    if (draftClasses.some((token) => token.uuid === event.target.value))
                       navigate(DESTINATIONS.companyRegisterImport.path.replace(':uuid', event.target.value));
                   }}
                 >
-                  <option value="">Add an existing company share class</option>
-                  {classes.map((token) => (
+                  <option value="">Choose an existing draft share class</option>
+                  {draftClasses.map((token) => (
                     <option key={token.uuid} value={token.uuid}>
                       {token.name} · {token.symbol}
                     </option>
                   ))}
                 </select>
               </label>
+            ) : (
+              <p className="text-sm text-text-muted">No existing draft share classes are available for copied setup.</p>
+            )}
+            {classes.some((token) => token.status !== 'draft') && (
+              <p className="text-sm text-text-muted">
+                For existing chain classes,{' '}
+                <Link
+                  to={DESTINATIONS.companyRegister.path}
+                  state={{ registerCompany: company.uuid }}
+                  className="text-brand-light underline"
+                >
+                  open Register
+                </Link>{' '}
+                to open their register or bring in shareholder particulars.
+              </p>
             )}
             <div className="grid gap-3 sm:grid-cols-2">
               <label className={LABEL}>

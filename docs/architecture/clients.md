@@ -194,7 +194,7 @@ register to show. It reads the share classes the person may read, as the
 company owner or through a current appointment holding administration or a
 register capability, groups them by company and, where the person can read
 more than one company, reads only the selected company's stored registers:
-current members, linked wallets, exact issued shares and technical class limits, with unopened
+current members, linked wallets, exact issued shares and configured class limits, with unopened
 registers and unknown or positive waiting-effect counts stated. On both clients,
 ownership appears first, followed by external allotments and their actual pending
 decisions. Employee awards and non-paid issues have their own destination;

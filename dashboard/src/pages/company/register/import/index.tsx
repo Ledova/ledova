@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   REGISTER_IMPORT_COPY,
@@ -106,8 +106,10 @@ function OwnImport({
   const fetching = classes.isFetching || appointments.isFetching || register.isFetching || imports.isFetching;
   const stale = classes.isError || appointments.isError || register.isError || imports.isError;
   const fresh = !fetching && !stale && !!listed && readable && !!register.data && !!imports.data;
+  const mirrorAllowed = register.data?.initialized || register.data?.token.status === 'draft';
   const correctable =
-    !register.data?.initialized || !imports.data?.some((proposal) => proposal.status === 'applied') || !!correction;
+    mirrorAllowed &&
+    (!register.data?.initialized || !imports.data?.some((proposal) => proposal.status === 'applied') || !!correction);
   const canPrepare = !!steps?.prepare && correctable;
   const canOpen = saved ? saved.status !== 'rejected' || canPrepare : canPrepare;
   if (
@@ -155,6 +157,20 @@ function OwnImport({
     if (!readable) return <p className="text-sm text-text-muted">{REGISTER_IMPORT_COPY.READ_ONLY_NOTE}</p>;
     if (record && imports.data && !saved)
       return <p className="text-sm text-text-muted">This saved snapshot is not in the selected share class.</p>;
+    if (!mirrorAllowed)
+      return (
+        <p className="text-sm text-text-muted">
+          This class cannot open from copied records.{' '}
+          <Link
+            to="/company/register"
+            state={{ registerCompany: listed.companyUuid }}
+            className="text-brand-light underline"
+          >
+            Open Register
+          </Link>{' '}
+          to open it from the chain or check its deployment state.
+        </p>
+      );
     if (!correctable)
       return (
         <p className="text-sm text-text-muted">
