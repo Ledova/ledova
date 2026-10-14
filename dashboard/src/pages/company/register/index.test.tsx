@@ -27,8 +27,7 @@ import CompanyRegisterPage from '.';
 import CompanyDashboardPage from '../dashboard';
 import CompanyRegisterImportPage from './import';
 import { ImportForm } from './import/ImportForm';
-import { REGISTER_CSV_COLUMNS, readRegisterCsv, registerCsvTemplate } from './import/csv';
-import { blankAllotment, blankMember, memberIdentityProblems, preparationProblems } from './import/preparation';
+import { blankAllotment, blankMember, preparationProblems, type MemberDraft } from './import/preparation';
 import { APPOINTMENT as CURRENT_APPOINTMENT } from '../../../../../packages/shared/tests/fixtures/employee-awards';
 import { companyRecord, companyPreferences, prepareCompanyClient, renderCompanyPage } from '../testSupport';
 
@@ -175,85 +174,34 @@ it('reads every register class page and renders exact stored shares with each me
 });
 
 it('brings complete mirror records, recovers uncertain requests and confirms one snapshot with separate company appointments', async () => {
-  const header = REGISTER_CSV_COLUMNS.join(',');
-  const row =
-    'H001,"Example Shareholder","1 Example Street, Sydney NSW 2000",2020-01-01,600,2015-01-01,400,400,0,yes,no,1-400,CERT-001';
-  const second = row.replace('2015-01-01,400,400', '2016-01-01,200,200').replace('1-400,CERT-001', '401-600,CERT-002');
-  const csv = `${header}\r\n${row}\r\n${second}\r\n`;
-  expect(readRegisterCsv(csv)).toHaveLength(1);
-  expect(readRegisterCsv(csv)[0].allotments).toHaveLength(2);
-  const existingMembers = readRegisterCsv(csv);
-  const existingId = existingMembers[0].member;
-  expect(() => readRegisterCsv(csv, existingMembers, true)).toThrow(/keep its holder_reference/);
-  const currentTemplate = registerCsvTemplate(existingMembers);
-  expect(readRegisterCsv(currentTemplate, existingMembers, true)[0].member).toBe(existingId);
-  const renamed = readRegisterCsv(
-    currentTemplate.replace(/Example Shareholder/g, 'Renamed Shareholder'),
-    existingMembers,
-    true,
-  );
-  expect(renamed[0].member).toBe(existingId);
-  expect(renamed[0].name).toBe('Renamed Shareholder');
-  const literalCases = [
-    '=Company',
-    '+Company',
-    '-Company',
-    '@Company',
-    "'=Company",
-    "'+Company",
-    "'-Company",
-    "'@Company",
-    "'Company",
-    "''=Company",
-    "'\tCompany",
-    "'\rCompany",
+  const manual: MemberDraft[] = [
+    {
+      ...blankMember(),
+      name: 'Example Shareholder',
+      residentialAddress: '1 Example Street, Sydney NSW 2000',
+      enteredOn: '2020-01-01',
+      shares: '600',
+      allotments: [
+        {
+          ...blankAllotment(),
+          allottedOn: '2015-01-01',
+          shares: '400',
+          amountPaid: '400',
+          amountUnpaid: '0',
+          shareReference: '1–400',
+          certificateReference: 'CERT-001',
+        },
+        {
+          ...blankAllotment(),
+          allottedOn: '2016-01-01',
+          shares: '200',
+          amountPaid: '200',
+          amountUnpaid: '0',
+          beneficiallyHeld: false,
+        },
+      ],
+    },
   ];
-  for (const literal of literalCases) {
-    const source = readRegisterCsv(csv);
-    source[0].name = literal;
-    source[0].residentialAddress = literal;
-    source[0].allotments[0].shareReference = literal;
-    source[0].allotments[0].certificateReference = literal;
-    const roundTrip = readRegisterCsv(registerCsvTemplate(source), source, true)[0];
-    expect(roundTrip.name).toBe(literal);
-    expect(roundTrip.residentialAddress).toBe(literal);
-    expect(roundTrip.allotments[0].shareReference).toBe(literal);
-    expect(roundTrip.allotments[0].certificateReference).toBe(literal);
-  }
-  for (const prefix of ['\t', '\r']) {
-    const source = readRegisterCsv(csv);
-    const literal = `${prefix}Company`;
-    source[0].name = literal;
-    source[0].residentialAddress = literal;
-    source[0].allotments[0].shareReference = literal;
-    source[0].allotments[0].certificateReference = literal;
-    const template = registerCsvTemplate(source);
-    expect(template).toContain(`"'${literal}"`);
-    const canonical = readRegisterCsv(template, source, true)[0];
-    expect(canonical.name).toBe(literal.trim());
-    expect(canonical.residentialAddress).toBe(literal.trim());
-    expect(canonical.allotments[0].shareReference).toBe(literal.trim());
-    expect(canonical.allotments[0].certificateReference).toBe(literal.trim());
-    expect(() => readRegisterCsv(template.split(`'${prefix}`).join(prefix), source, true)).toThrow(/safety prefixes/);
-  }
-  expect(readRegisterCsv(csv.replace(/Example Shareholder/g, "'=Company"))[0].name).toBe("'=Company");
-  expect(() => readRegisterCsv(currentTemplate.replace('ledova-excel-safe-v1', 'unknown'))).toThrow(
-    /value_encoding marker/,
-  );
-  expect(() => readRegisterCsv(currentTemplate.replace('ledova-excel-safe-v1', ''))).toThrow(/value_encoding marker/);
-  expect(() => readRegisterCsv(currentTemplate.replace('Example Shareholder', "'literal"))).toThrow(
-    /invalid escaped value/,
-  );
-
-  expect(() => readRegisterCsv(csv.replace('400,0,yes', '400,,yes'))).toThrow(/explicitly/);
-  expect(() => readRegisterCsv(`${header}\n${row}\n${second.replace('2020-01-01,600', '2020-01-01,601')}`)).toThrow(
-    /same name/,
-  );
-  expect(() => readRegisterCsv(`${header}\n${Array(501).fill(row).join('\n')}`)).toThrow(/500/);
-  expect(() => readRegisterCsv(`duplicate,duplicate\n1,2`)).toThrow(/column names/);
-  expect(blankAllotment().beneficiallyHeld).toBeNull();
-  const manual = readRegisterCsv(csv);
-  manual[0].allotments[0].beneficiallyHeld = null;
   expect(
     preparationProblems(
       {
@@ -717,7 +665,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
     asicIssuedTotal: '600',
     asicMemberCount: 1,
   };
-  const showReplacement = (uuid: string) => {
+  const showReplacement = (uuid: string, correction?: RegisterImport) => {
     cleanup();
     client.clear();
     const preparationAppointment: OwnCompanyAppointment = {
@@ -736,7 +684,8 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
             companyMembers={[]}
             appointment={preparationAppointment}
             steps={{ prepare: preparationAppointment }}
-            saved={rejected}
+            saved={correction ? undefined : rejected}
+            correction={correction}
             blocked={false}
             onConflict={() => {}}
           />
@@ -780,6 +729,8 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
         asicEvidence: null,
         asicIssuedTotal: null,
         asicMemberCount: null,
+        correctionOf: request.correctionOf ?? null,
+        reason: request.reason,
         members: request.members.map((member) => ({ ...member, amountPaid: '600.00' })),
       },
     };
@@ -793,8 +744,29 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   expect(replacement.asicEvidence).toBeUndefined();
   expect(replacement.asicIssuedTotal).toBeUndefined();
   expect(replacement.asicMemberCount).toBeUndefined();
+  expect(replacement.members[0].member).toBe(rejected.members[0].member);
   expect(rejected.registerEvidence).toBe('original-register-copy');
   expect(rejected.asicEvidence).toBe('original-asic-copy');
+  api.post.mockClear();
+  const opening: RegisterImport = { ...rejected, uuid: 'confirmed-opening', status: 'applied', stage: 'applied' };
+  showReplacement('another-preparer', opening);
+  fireEvent.change(screen.getByLabelText('Reason for correcting the mirror'), {
+    target: { value: 'Correct the copied shareholder name' },
+  });
+  fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Edit (shareholder 1)' }));
+  fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Renamed Shareholder' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Done editing' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Save draft and review' }));
+  await waitFor(() => expect(api.post).toHaveBeenCalledOnce());
+  const correction = api.post.mock.calls[0][1] as RegisterImportPreparation;
+  expect(correction.correctionOf).toBe(opening.uuid);
+  expect(correction.members[0].member).toBe(opening.members[0].member);
+  expect(correction.members[0].name).toBe('Renamed Shareholder');
+  expect(correction.sourceReference).toBe(opening.sourceReference);
+  expect(correction.asAt).toBe(opening.asAt);
+  expect(correction.members[0].enteredOn).toBe(opening.members[0].enteredOn);
+  expect(opening.members[0].name).toBe('Example Shareholder');
   cleanup();
   client.clear();
   api.post.mockClear();
@@ -894,38 +866,6 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
       particularsRetained: true,
     },
   ];
-  const memberCsv = csv.replace(/H001/g, companyMembers[0].member);
-  const unresolved = readRegisterCsv(csv, [], false, companyMembers);
-  expect(unresolved[0].member).not.toBe(companyMembers[0].member);
-  expect(memberIdentityProblems(unresolved, companyMembers, true)).toEqual(
-    expect.arrayContaining([expect.stringMatching(/explicitly choose/)]),
-  );
-  expect(readRegisterCsv(memberCsv, [], false, companyMembers)[0].member).toBe(companyMembers[0].member);
-  expect(() =>
-    readRegisterCsv(memberCsv.replace(/Example Shareholder/g, 'Different person'), [], false, companyMembers),
-  ).toThrow(/keep this existing company shareholder/);
-  const sameHolder = readRegisterCsv(memberCsv, [], false, companyMembers)[0];
-  expect(memberIdentityProblems([sameHolder, sameHolder], companyMembers, true)).toEqual(
-    expect.arrayContaining([expect.stringMatching(/only once/)]),
-  );
-  const opaque = crypto.randomUUID();
-  expect(readRegisterCsv(csv.replace(/H001/g, opaque))[0].member).not.toBe(opaque);
-  const placeholder = {
-    ...blankMember(),
-    name: sameHolder.name,
-    residentialAddress: sameHolder.residentialAddress,
-    enteredOn: sameHolder.enteredOn,
-    shares: sameHolder.shares,
-    allotments: sameHolder.allotments,
-  };
-  const ownTemplate = registerCsvTemplate([placeholder]);
-  const ownUnresolved = readRegisterCsv(ownTemplate, [], false, companyMembers);
-  expect(ownUnresolved[0].member).not.toBe(placeholder.member);
-  expect(ownUnresolved[0].identityChoice).toBeUndefined();
-  expect(memberIdentityProblems(ownUnresolved, companyMembers, true)).toEqual(
-    expect.arrayContaining([expect.stringMatching(/explicitly choose/)]),
-  );
-  expect(() => readRegisterCsv(ownTemplate, existingMembers, true)).toThrow(/keep its holder_reference/);
   membersUnavailable = true;
   showJourney(DESTINATIONS.companyRegisterSetup.path);
   const retryChoices = await screen.findByRole('button', { name: 'Try again' });
@@ -948,34 +888,49 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   expect(screen.getByRole('button', { name: 'Add to draft' })).toBeTruthy();
   expect(screen.queryByRole('button', { name: 'Save draft and review' })).toBeNull();
   fireEvent.click(screen.getByRole('button', { name: 'Cancel (shareholder edit)' }));
-  const secondClassFile = new File([ownTemplate], 'second-class.csv', { type: 'text/csv' });
-  Object.defineProperty(secondClassFile, 'arrayBuffer', {
-    value: async () => new TextEncoder().encode(ownTemplate).buffer,
-  });
-  fireEvent.change(screen.getByLabelText('Bring a CSV'), { target: { files: [secondClassFile] } });
-  await waitFor(() => expect(screen.getByText('Example Shareholder')).toBeTruthy());
-  fireEvent.click(screen.getByRole('button', { name: 'Edit (shareholder 1)' }));
-  expect((screen.getByLabelText('Company shareholder') as HTMLSelectElement).value).toBe('');
-  fireEvent.click(screen.getByRole('button', { name: 'Done editing' }));
+  const enterHolding = () => {
+    act(() => {
+      for (const [label, value] of [
+        ['Date first added to register', '2020-01-01'],
+        ['Shares held', '600'],
+        ['Allotment date', '2015-01-01'],
+        ['Shares in allotment', '600'],
+        ['Amount paid', '600'],
+        ['Amount unpaid', '0'],
+        ['Held for someone else?', 'no'],
+      ])
+        fireEvent.change(screen.getByLabelText(label), { target: { value } });
+    });
+  };
+  fireEvent.click(screen.getByRole('button', { name: 'Add a shareholder' }));
+  fireEvent.change(screen.getByLabelText('Name'), { target: { value: companyMembers[0].name } });
+  fireEvent.change(screen.getByLabelText('Address'), { target: { value: companyMembers[0].residentialAddress } });
+  enterHolding();
+  fireEvent.click(screen.getByRole('button', { name: 'Add to draft' }));
   expect(screen.getByText(/explicitly choose a new shareholder/)).toBeTruthy();
   expect(api.post).not.toHaveBeenCalled();
   fireEvent.change(screen.getByLabelText('Company shareholder'), { target: { value: companyMembers[0].member } });
   expect((screen.getByLabelText('Date first added to register') as HTMLInputElement).value).toBe('2020-01-01');
-  expect(screen.getByRole('button', { name: 'Done editing' })).toBeTruthy();
+  expect(screen.getByRole('button', { name: 'Add to draft' })).toBeTruthy();
   fireEvent.click(screen.getByRole('button', { name: 'Cancel (shareholder edit)' }));
-  fireEvent.click(screen.getByRole('button', { name: 'Save draft and review' }));
-  expect(screen.getByText(/explicitly choose a new shareholder/)).toBeTruthy();
-  expect(api.post).not.toHaveBeenCalled();
-  fireEvent.click(screen.getByRole('button', { name: 'Edit (shareholder 1)' }));
-  expect((screen.getByLabelText('Company shareholder') as HTMLSelectElement).value).toBe('');
+  expect(screen.getByText('No shareholders added yet.')).toBeTruthy();
+  fireEvent.click(screen.getByRole('button', { name: 'Add a shareholder' }));
   fireEvent.change(screen.getByLabelText('Company shareholder'), { target: { value: companyMembers[0].member } });
-  fireEvent.click(screen.getByRole('button', { name: 'Done editing' }));
+  enterHolding();
+  fireEvent.click(screen.getByRole('button', { name: 'Add to draft' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Add a shareholder' }));
+  const duplicateChoice = screen.getByLabelText('Company shareholder') as HTMLSelectElement;
+  expect([...duplicateChoice.options].find((option) => option.value === companyMembers[0].member)?.disabled).toBe(true);
+  fireEvent.change(duplicateChoice, { target: { value: companyMembers[0].member } });
+  expect(duplicateChoice.value).toBe('');
+  expect((screen.getByLabelText('Name') as HTMLInputElement).value).toBe('');
+  fireEvent.click(screen.getByRole('button', { name: 'Cancel (shareholder edit)' }));
   fireEvent.click(screen.getByRole('button', { name: 'Save draft and review' }));
   await waitFor(() => expect(api.post).toHaveBeenCalledOnce());
   expect((api.post.mock.calls[0][1] as RegisterImportPreparation).members[0].member).toBe(companyMembers[0].member);
 });
 
-it('shows an account without register access a calm empty state, reads no members or CSV and offers no entry', async () => {
+it('shows an account without register access a calm empty state, reads no members and offers no entry', async () => {
   api.get.mockImplementation(async (url: string) => {
     if (url === REGISTER || url === COMPANY_ENDPOINTS.BASE) return page([]);
     throw new Error(`Unexpected read ${url}`);
