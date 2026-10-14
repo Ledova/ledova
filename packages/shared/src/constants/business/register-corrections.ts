@@ -50,6 +50,7 @@ export const REGISTER_CORRECTION_COPY = {
   } as Record<RegisterDecisionKind, string>,
   REJECTION_REASON: 'Reason for rejection',
   ENTRY_KINDS: {
+    mirror_correction: 'Copied opening correction',
     opening: 'Opening state',
     issue: 'Issue',
     transfer: 'Transfer',

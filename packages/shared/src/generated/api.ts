@@ -7027,9 +7027,11 @@ export interface ApiComponents {
       asicIssuedTotal: string | null;
       asicMemberCount: number | null;
       asicSnapshot: unknown;
-      authority: ApiComponents['schemas']['RegisterCorrectionAuthorityEnum'];
+      authority: ApiComponents['schemas']['RegisterImportAuthorityEnum'];
       authorityReference: string;
       company: string;
+      correctionAllowed: boolean;
+      correctionOf: string | null;
       createdAt: string;
       decisions: ApiComponents['schemas']['RegisterImportDecision'][];
       evidenceFingerprint: string;
@@ -7045,22 +7047,23 @@ export interface ApiComponents {
       rejectionReason: string;
       reviewedAt: string | null;
       reviewedBy: number | null;
+      sourceConfirmed: boolean;
       sourceDocument: string | null;
+      sourceReference: string;
       stage: string;
       status: ApiComponents['schemas']['RegisterCorrectionStatusEnum'];
       submittedBy: number;
       token: string;
       uuid: string;
     };
+    RegisterImportAuthorityEnum: 'director_resolution' | 'court_order' | 'company_records';
     RegisterImportCreateRequest: {
       appointment: string;
-      approvingDirector?: string;
       asAt: string;
-      asicEvidence: string;
-      asicIssuedTotal: string;
-      asicMemberCount: number;
-      authority: ApiComponents['schemas']['RegisterCorrectionAuthorityEnum'];
-      authorityReference: string;
+      asicEvidence?: string | null;
+      asicIssuedTotal?: string | null;
+      asicMemberCount?: number | null;
+      correctionOf?: string | null;
       formerMembers: {
         [key: string]: unknown;
       }[];
@@ -7069,7 +7072,9 @@ export interface ApiComponents {
       }[];
       operationId: string;
       reason: string;
-      registerEvidence: string;
+      registerEvidence?: string | null;
+      sourceConfirmed: boolean;
+      sourceReference: string;
       tokenId: string;
     };
     RegisterImportDecideRequest: {
@@ -7094,11 +7099,14 @@ export interface ApiComponents {
     RegisterImportDecisionPreview: {
       canDecide: boolean;
       comparison: ApiComponents['schemas']['RegisterImportPreviewRow'][];
+      correctionAllowed: boolean;
+      correctionOf: string | null;
       importedMemberCount: number;
       importedTotal: string;
       opensRegister: boolean;
       previewDigest: string;
       registerSequence: number;
+      sourceReference: string;
       statedMemberCount: number | null;
       statedTotal: string | null;
       unmetRequirements: string[];
@@ -8225,7 +8233,7 @@ export interface ApiComponents {
       name: string | null;
       shares: string;
     };
-    ShareRegisterEntryKindEnum: 'opening' | 'issue' | 'transfer' | 'cessation' | 'correction';
+    ShareRegisterEntryKindEnum: 'opening' | 'issue' | 'transfer' | 'cessation' | 'correction' | 'mirror_correction';
     ShareRegisterHolder: {
       balance: string;
       enteredOn: string;

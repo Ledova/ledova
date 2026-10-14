@@ -61,7 +61,7 @@ Keep at most **150 executed backend cases** in total. Cover:
 - Issued shares equal holdings, and a repeated request produces one issue.
 - One fake-scanner test refuses infected or unscannable uploads.
 
-The delivered suite has 19 cases, including five real-app-login tenant cases.
+The delivered suite has 21 cases, including five real-app-login tenant cases.
 Its company setup journey covers signup without a supporting file, initial
 representative admission and later checked company documents. Identity, ABR,
 versioned acknowledgement and company authority checks remain in that path.
@@ -73,6 +73,12 @@ association refusals. One core output case covers real company/member PDFs,
 pack provenance and file integrity; the same tenant controls cover private
 output refusals. A request creates no output until company fulfilment retains
 the actual recipient-only file.
+
+Two mirror cases cover complete copied holdings and allotments, once-only
+opening corrections, retained earlier snapshots, stale and incomplete requests,
+and refusal after later ownership or member-access activity. They exercise the
+API and PostgreSQL guards; they establish no genuine legal register or source
+verification.
 
 Keep at most five real-app-login tenant cases; they must use real non-bypassing
 app credentials for their API/database boundaries: a privileged fixture
@@ -89,7 +95,7 @@ Count executed cases, including parameterized rows:
 | -------------- | --------------- | ------- | -------------------------------- |
 | Dashboard unit | 20              | 20      | Main pages, sign-in, core flows  |
 | Mobile Jest    | 10              | 10      | App starts, sign-in, core flows  |
-| Shared package | 9               | 10      | Essential shared behaviour       |
+| Shared package | 10              | 10      | Essential shared behaviour       |
 | Contracts      | 14              | 20      | Who can mint, pause and transfer |
 
 The nine Playwright smoke tests remain, as do mobile type-check and lint.

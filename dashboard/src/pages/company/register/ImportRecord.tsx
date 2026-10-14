@@ -18,13 +18,18 @@ import { DecisionTrail } from './DecisionTrail';
 import { RegisterDecisions } from './RegisterDecisions';
 import { DOWNLOAD_FAILED, STAGE_TONES, retainedName, type RegisterSteps } from './proposals';
 import { saveFile } from './useCompanyRegister';
+import { MemberRecords } from './import/MemberRecords';
 
 function ImportPreview({ preview }: { preview: RegisterImportDecisionPreview }) {
   return (
     <>
-      {preview.statedTotal !== null && preview.statedMemberCount !== null && (
+      {(preview.statedTotal !== null || preview.statedMemberCount !== null) && (
         <p className="text-sm text-text-primary">
-          {REGISTER_IMPORT_COPY.STATED_FIGURES(formatShareCount(preview.statedTotal), preview.statedMemberCount)}
+          {preview.statedTotal === null
+            ? REGISTER_IMPORT_COPY.STATED_COUNT(preview.statedMemberCount!)
+            : preview.statedMemberCount === null
+              ? REGISTER_IMPORT_COPY.STATED_TOTAL(formatShareCount(preview.statedTotal))
+              : REGISTER_IMPORT_COPY.STATED_FIGURES(formatShareCount(preview.statedTotal), preview.statedMemberCount)}
         </p>
       )}
       <p className="text-sm text-text-primary">
@@ -100,7 +105,10 @@ export function ImportRecord({
         </Row>
         {proposal.preparedByName !== null && <Row label="Prepared by">{proposal.preparedByName || 'Not provided'}</Row>}
         <Row label="Prepared on">{formatDateTime(proposal.createdAt)}</Row>
-        <Row label="Register date">{proposal.asAt}</Row>
+        <Row label="Record date">{proposal.asAt}</Row>
+        {proposal.sourceReference && <Row label="Source record">{proposal.sourceReference}</Row>}
+        {proposal.correctionOf && <Row label="Corrects copied opening">{proposal.correctionOf}</Row>}
+        <Row label="Reason">{proposal.reason}</Row>
         <DecisionTrail proposal={proposal} labels={REGISTER_IMPORT_COPY.DECISIONS} />
       </Rows>
       <p className="text-sm text-text-muted">
@@ -108,20 +116,30 @@ export function ImportRecord({
           ? REGISTER_IMPORT_COPY.PROVIDED_BY_COMPANY
           : REGISTER_IMPORT_COPY.STAFF_VERIFIED}
       </p>
-      {proposal.asicIssuedTotal !== null && proposal.asicMemberCount !== null && (
+      {(proposal.asicIssuedTotal !== null || proposal.asicMemberCount !== null) && (
         <p className="text-sm text-text-primary">
-          {REGISTER_IMPORT_COPY.STATED_FIGURES(formatShareCount(proposal.asicIssuedTotal), proposal.asicMemberCount)}
+          {proposal.asicIssuedTotal === null
+            ? REGISTER_IMPORT_COPY.STATED_COUNT(proposal.asicMemberCount!)
+            : proposal.asicMemberCount === null
+              ? REGISTER_IMPORT_COPY.STATED_TOTAL(formatShareCount(proposal.asicIssuedTotal))
+              : REGISTER_IMPORT_COPY.STATED_FIGURES(
+                  formatShareCount(proposal.asicIssuedTotal),
+                  proposal.asicMemberCount,
+                )}
         </p>
       )}
       <p className="text-sm text-text-primary">
         {REGISTER_IMPORT_COPY.IMPORTED_FIGURES(formatShareCount(totals.total), totals.count)}
       </p>
+      <MemberRecords members={proposal.members} />
       <div className="flex flex-wrap gap-2">
-        <PageAction
-          label={REGISTER_IMPORT_COPY.DOWNLOAD_REGISTER}
-          disabled={download.isPending}
-          onClick={() => download.mutate('register')}
-        />
+        {(proposal.registerEvidence || proposal.sourceDocument) && (
+          <PageAction
+            label={REGISTER_IMPORT_COPY.DOWNLOAD_REGISTER}
+            disabled={download.isPending}
+            onClick={() => download.mutate('register')}
+          />
+        )}
         {proposal.asicEvidence !== null && (
           <PageAction
             label={REGISTER_IMPORT_COPY.DOWNLOAD_ASIC}

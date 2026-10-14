@@ -47,7 +47,7 @@ def _ordered(records):
 
 
 def _evidence(record):
-    snapshot = record.evidence_snapshot
+    snapshot = record.evidence_snapshot or {}
     return {
         "document": getattr(record, "source_document", None),
         "document_type": snapshot.get("document_type"),
@@ -120,6 +120,11 @@ def authority(records) -> dict:
                 record,
                 record.authority,
                 as_at=record.as_at,
+                source_reference=record.source_reference,
+                source_confirmed=record.source_confirmed,
+                correction_of=record.correction_of_id,
+                base_sequence=record.base_sequence,
+                base_hash=record.base_hash,
                 members=record.members,
                 former_members=record.former_members,
                 asic={

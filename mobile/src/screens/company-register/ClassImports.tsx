@@ -32,7 +32,7 @@ export function ClassImports({
   steps?: Record<RegisterStep, OwnCompanyAppointment | undefined>;
   refreshHolders: () => Promise<unknown>;
   refreshAppointments: () => Promise<unknown>;
-  onPrepare: () => void;
+  onPrepare: (correctionOf?: string) => void;
 }) {
   const styles = useCompanyStyles();
   const queryClient = useQueryClient();
@@ -77,10 +77,19 @@ export function ClassImports({
             <Action
               label={REGISTER_IMPORT_COPY.PREPARE}
               accessibilityLabel={`${REGISTER_IMPORT_COPY.PREPARE} for ${name}`}
-              onPress={onPrepare}
+              onPress={() => onPrepare()}
             />
           )}
           {privateReady && imports.data.length === 0 && <Text style={styles.muted}>{REGISTER_IMPORT_COPY.EMPTY}</Text>}
+          {privateReady &&
+            steps?.prepare &&
+            imports.data.find((row) => row.status === 'applied')?.correctionAllowed && (
+              <Action
+                label={REGISTER_IMPORT_COPY.CORRECT}
+                accessibilityLabel={`${REGISTER_IMPORT_COPY.CORRECT} for ${name}`}
+                onPress={() => onPrepare(imports.data.find((row) => row.status === 'applied')!.uuid)}
+              />
+            )}
         </>
       )}
       {imports.data?.map((proposal, index) => (

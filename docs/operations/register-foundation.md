@@ -2,9 +2,12 @@
 
 [Operations](README.md) · [Register architecture](../architecture/register.md)
 
-The stored register is authoritative: company-scoped members with durable
-wallet links, an append-only hash-chained event log and the holdings projection
-the holders route and CSV serve. How the chain is written and checked is in
+The stored register supplies Ledova's ownership mirror: company-scoped members
+with durable wallet links, an append-only hash-chained event log and the holdings
+projection the holders route and CSV serve. The company's legal register,
+historical records and lawful access arrangements stay with the company under
+the [mirror decision](../decisions.md#existing-register-mirror-and-simple-setup).
+How the chain is written and checked is in
 [register architecture](../architecture/register.md#event-chain). Companies run
 openings, imports, corrections, wallet links, particulars changes and
 discrepancy acknowledgements through current appointments with company-provided
@@ -346,100 +349,85 @@ same person is aborted by PostgreSQL and can be retried.
 
 ### Importing an existing register
 
-A company that arrives with a register keeps its members' particulars and its
-pre-platform former members (owner decisions, 21 and 22 September 2026). For a
-class already opened from the chain, an import adds particulars and former
-members and leaves holdings to the stored register; for a class not yet on
-chain, the import is the opening, and that class then records
-[walletless grants](../plans/company-managed-registers/register-grants.md) and
-[direct transfers](../plans/company-managed-registers/register-transfers.md) as
-ledger entries but no chain issue or transfer until it is anchored on chain,
-which remains later work. A mistaken opening import strands its class until
-partial corrections exist; that is accepted during the synthetic experiment and
-settled before any real data. The command takes two uploads, the company's
-current share register as `share_register` and its ASIC extract as
-`asic_extract`, and the company's own statement of the extract's issued total
-and member count; Ledova staff verify neither. A share class takes one applied
-import. The [import screens](../architecture/clients.md#what-each-page-does) on
-Register in both clients are delivered.
+The company mirrors its existing legal records in Ledova. Its legal register,
+complete historical records, lawful access arrangements and ASIC filings stay
+with the company. An import neither establishes legal ownership nor issues
+shares again. Shareholders need no account or wallet for a mirror opening.
 
-| Method and route                        | Result                                                                                                                                                                                                                                                                                                                              |
-| --------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `POST /api/v1/tokens/register-imports/` | Prepare the import. `GET` lists, filterable by `company`, `token` and `status`; `{uuid}/` returns the request, rows, stated figures, stage and decisions; `{uuid}/file/` and `{uuid}/asic-file/` stream the import's copies of the register document and the ASIC extract; `{uuid}/decision-preview/` and `{uuid}/decide/` as above |
+A company appointee prepares the snapshot for one existing share class, reviews
+its rows and confirms it through the existing approval/application decisions.
+New snapshots use `source_reference` and `source_confirmed: true` to attribute
+copied records to the company. This is a confirmation of the company's records,
+not a new director resolution or a Ledova verification. Copies of the source
+register and ASIC extract are optional checked uploads. Any stated ASIC totals
+are a company-provided cross-check, not a claim that an extract lists every
+shareholder. Existing retained imports keep their original evidence and authority.
+
+| Method and route | Result |
+| --- | --- |
+| `POST /api/v1/tokens/register-imports/` | Prepare a new mirror or opening correction. `GET` lists the snapshots; `{uuid}/` reads one. `{uuid}/decision-preview/` and `{uuid}/decide/` retain exact review, approval and application. `{uuid}/file/` and `{uuid}/asic-file/` download an uploaded copy when present. |
+
+Each current member has a durable ID internal to Ledova, the registered holder's
+name and address, original membership date, whole-share holding and an
+`allotments` list. Each allotment records its original date, whole quantity,
+share/certificate references where present, total paid and unpaid amounts,
+fully-paid status and whether the registered holder holds beneficially. The
+allotment quantities must sum to the member's holding, and fully-paid status
+must agree with zero unpaid amount. Missing fields on earlier retained snapshots
+stay unknown; Ledova must not invent them. Optional former rows describe copied
+records, not a replacement for the company's historical register.
 
 ```json
 {
   "operation_id": "10000000-0000-4000-8000-000000000031",
   "appointment": "10000000-0000-4000-8000-000000000030",
   "token_id": "10000000-0000-4000-8000-000000000011",
-  "register_evidence": "10000000-0000-4000-8000-000000000032",
-  "asic_evidence": "10000000-0000-4000-8000-000000000033",
-  "asic_issued_total": "100",
-  "asic_member_count": 1,
-  "as_at": "2026-09-20",
-  "members": [
-    {
-      "member": "10000000-0000-4000-8000-000000000024",
-      "name": "Synthetic Member",
-      "residential_address": "1 Synthetic Street, Sydney NSW 2000",
+  "source_reference": "Synthetic company register, revision 1",
+  "source_confirmed": true,
+  "reason": "Mirror the company's current records",
+  "as_at": "2026-10-14",
+  "members": [{
+    "member": "10000000-0000-4000-8000-000000000024",
+    "name": "Synthetic Member",
+    "residential_address": "1 Example Street, Sydney NSW 2000",
+    "shares": "100",
+    "entered_on": "2019-05-01",
+    "allotments": [{
+      "allotted_on": "2019-05-01",
       "shares": "100",
-      "entered_on": "2019-05-01",
-      "amount_paid": "250.00"
-    }
-  ],
-  "former_members": [
-    {
-      "name": "Synthetic Former",
-      "residential_address": "2 Synthetic Road, Hobart TAS 7000",
-      "shares": "40",
-      "ceased_on": "2022-03-01"
-    }
-  ],
-  "authority": "director_resolution",
-  "approving_director": "Synthetic Director",
-  "authority_reference": "SYNTHETIC-RESOLUTION-IMPORT-1",
-  "reason": "Import the company's existing register"
+      "share_reference": null,
+      "certificate_reference": "SYNTHETIC-1",
+      "amount_paid": "250.00",
+      "amount_unpaid": "0.00",
+      "fully_paid": true,
+      "beneficially_held": true
+    }]
+  }],
+  "former_members": []
 }
 ```
 
-A class is not yet on chain while its register has no entries, no issuance
-request for it has ever been approved and no register instruction for it has
-been applied. Its import names each current member by a new member ID the
-company chooses or by an existing member, and a former member may have ceased
-on the register date itself. Once an issue has been approved or an instruction
-applied for such a class, open it from the chain instead, then import its
-particulars. Preparation refuses, naming the problem: stated figures that
-differ from the rows' total shares and member count; for an opened class, a
-current member who is not already a member with a stored holding, and for any
-class a member of another company; a name of more than 255 characters or an
-address of more than 1,000; `shares` that is not a whole number of at most 78
-digits; an `amount_paid` that is not a plain amount such as `250.00` (at most
-two decimal places and eighteen whole digits) or `null`; dates that follow the
-register date; for an opened class, a former member who ceased on or after the
-register's opening; and a former member who ceased before the former-member
-retention period (`FORMER_MEMBER_RETENTION_DAYS`, 2,557 days by default),
-because the retention job would purge them.
+On a class without a chain opening, application creates the members, one opening
+entry and their particulars atomically. On a chain-opened class, an import
+records particulars only and must match its stored holdings. Current authority,
+identity configuration, company/class/member boundaries, checked-file receipts,
+whole-share arithmetic, locks and retry protection remain enforced.
 
-The preview shows, for each member, the imported name beside the member's linked
-wallets and live identity, so names swapped between equal holdings show, the
-stored date entered beside the imported one, and each imported holding against
-the stored one; a class not yet on chain has nothing to compare. The digest
-binds, for application, the register's sequence and head hash. The import's own
-requirements are `class_has_applied_import`, `class_not_openable`,
-`holdings_differ` (including a member the import leaves out),
-`former_member_after_opening` and `former_member_before_retention`. For a class
-not yet on chain, application first opens the register in the same transaction:
-it creates the new members and records the opening entry, whose operation ID is
-the import's UUID, dated the register date and recorded by the person applying
-it, so the register's sequence is 1; it links no wallets, which a
-[wallet link](#linking-wallets-after-the-opening) does. Application then stores
-each member's particulars, dated the register date, except where the member
-already has particulars dated later, and the imported former members.
-[Membership and identity](../architecture/register.md#membership-and-identity)
-says how recorded particulars fill in. The daily retention job purges
-particulars once the member has held nothing in the company for the 2,557-day
-floor, and imported former members that long after their date ceased; it purges
-nothing else of an import ([data retention](uploads.md#data-retention)).
+A mistaken mirror opening can be corrected with `correction_of`, naming the
+latest applied snapshot. The correction includes the complete replacement rows,
+a current source reference and a reason. Its preview binds the current snapshot
+and register head. Application retains the previous snapshot, decisions and
+opening entry, adds the exact balance adjustment and records the new copied
+particulars. An unchanged retry returns the same result; a changed retry or
+stale snapshot conflicts. Corrections do not transfer, burn or mint on chain and
+do not change the company's legal records.
+
+Opening corrections refuse later share activity or deployment rather than
+replacing their effects. The preview reports why a correction is unavailable;
+the company must resolve the source records and use the appropriate supported
+workflow instead. Existing compensating corrections remain separate from this
+bounded opening correction. Platform history and private evidence safeguards
+remain in force; the mirror is not the company's statutory historical archive.
 
 ### Changing a member's particulars
 

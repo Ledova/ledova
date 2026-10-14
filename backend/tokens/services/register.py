@@ -345,6 +345,8 @@ def _history(register):
         for change in changes:
             if kind == RegisterEntryKind.TRANSFER:
                 transferred.add(change["member"])
+            if kind == RegisterEntryKind.MIRROR_CORRECTION:
+                running.setdefault(change["member"], 0)
             if change["member"] in running:
                 running[change["member"]] += int(change["shares"])
                 if not running[change["member"]]:
@@ -366,10 +368,10 @@ def _cessations(token, member_of):
 
 
 def _imported(token):
-    applied = RegisterImport.objects.filter(token=token, status="applied").first()
+    applied = RegisterImport.objects.filter(token=token, status="applied").order_by("-reviewed_at", "-uuid").first()
     if applied is None:
-        return -1, {}
-    return applied.register_sequence, {row["member"]: row for row in applied.members}
+        return -1, {}, None
+    return applied.register_sequence, {row["member"]: row for row in applied.members}, applied
 
 
 def _identity_sources(token, member_ids):
@@ -441,7 +443,7 @@ def _stored_register(token):
         .order_by("-shares", "member_id")
     )
     particulars, wallets, identities, stamps = _identity_sources(token, [position.member_id for position in positions])
-    imported_at, imported = _imported(token)
+    imported_at, imported, applied_import = _imported(token)
     external_paid = _external_amounts_paid(register, imported_at, imported)
     ceased, former = _cessations(
         token, {address.lower(): member for member, addresses in wallets.items() for address in addresses}
@@ -494,8 +496,11 @@ def _stored_register(token):
                 "amount_paid": amount_paid,
             }
         )
+    mirrored_former = ImportedFormerMember.objects.filter(token=token)
+    if applied_import is not None and applied_import.source_reference:
+        mirrored_former = mirrored_former.filter(source_import=applied_import)
     former.extend(
-        ImportedFormerMember.objects.filter(token=token).annotate(
+        mirrored_former.annotate(
             wallet_address=Value(None, output_field=CharField()),
             ceased_at_block=Value(None, output_field=BigIntegerField()),
             identity_source=Value(IDENTITY_PARTICULARS),
