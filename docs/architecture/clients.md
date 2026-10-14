@@ -199,10 +199,8 @@ registers and unknown or positive waiting-effect counts stated. On both clients,
 ownership appears first, followed by external allotments and their actual pending
 decisions. Employee awards and non-paid issues have their own destination;
 Documents holds register CSV, inspection copies and the company pack. The web
-dashboard
-and Register link to the guided Share details → Shareholders → Review setup for an
-existing ownership mirror. It accepts manual entry, resumes pending
-confirmations and offers a bounded correction of the latest opening; the
+Dashboard and Register link to [manual ownership setup](../operations/register-foundation.md#importing-an-existing-register),
+with confirmation recovery and bounded corrections of the latest opening; the
 company retains its legal records and access arrangements. Member
 invitations use named company members or award recipients with exact IDs retained
 internally. Invitations, particulars, wallet links, other changes and technical

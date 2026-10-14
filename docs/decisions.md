@@ -893,11 +893,17 @@ runners are free for this repository, so the earlier main self-hosted selection
 is superseded. Keep the fail-closed verdict, PR wording and source gates.
 
 Retire the Mac login service, deregister its remaining owned runners and close
-its two groups to repository/public access. Preserve the reusable
-[host source](../scripts/retired-mac-runner/README.md) in Git as retired manual
-tooling, with private configuration and evidence kept outside Git. Future reuse
+its two groups to repository/public access. The original decision also preserved
+the host source in Git as retired manual tooling, with private configuration
+and evidence kept outside Git. Future reuse
 requires a reviewed change and explicit host configuration; no Linux runner is
 activated by this decision. Local Mac preflight remains supported.
+
+**Owner cleanup amendment, 14 October 2026:**
+[#1039](https://github.com/Ledova/ledova/issues/1039) removes the unused Mac runner
+source from the current scripts tree, superseding the earlier source-preservation
+instruction. Git history retains it; no separate retired folder is kept. Private
+configuration and evidence outside the repository are unchanged.
 
 ## Binding caps and backup authorisation
 

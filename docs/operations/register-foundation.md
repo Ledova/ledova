@@ -369,32 +369,29 @@ There is no manual source-reference field. New drafts use the neutral
 "Company-provided share records" attribution; the retained snapshot identifies
 the company, record date and actor. Existing nonblank source labels are kept.
 
-Add shareholders individually and edit one draft record at a time from the
+Enter shareholders manually and edit one draft record at a time from the
 compact list. Each editor keeps the holding's underlying allotment particulars.
 **Held for someone else?** records the source's beneficial-holding distinction:
 Yes means non-beneficial and No means beneficial. Optional share/certificate
 references stay in **References (optional)**, open when already populated.
-Shareholders are entered manually; CSV input is not supported. Blank money
-amounts remain missing rather than becoming zero. Review summarises the copied
-shares,
-shareholders and record date above one table. Percentages refer to that class's
+Blank money amounts remain missing rather than becoming zero. Review summarises
+the copied shares, shareholders and record date above one table. Percentages refer to that class's
 copied holdings; each person's full particulars and original allotments remain
 available in **Details**. Holdings are checked against allotments before any
-confirmation. Unsaved shareholder
-edits remain local; editing a saved preparation first retires it through **Edit
-records**, as described below. **Import** beside **Continue** is an inactive
-future extraction option, explained by its **Coming soon** tooltip; it uploads nothing. Future
-extraction will populate the same editable forms. Optional supporting copies
+confirmation. Unsaved shareholder edits remain local; editing a saved preparation
+first retires it through **Edit
+records**, as described below. **Import** beside **Continue** is inactive; its
+**Coming soon** tooltip explains future document extraction into these editable
+forms. Optional supporting copies
 retain source evidence without extracting or verifying their contents.
 
 Shareholders keep one company member identity across classes. Choose an existing
-company shareholder by its member UUID, or explicitly choose a new shareholder;
+company shareholder record, or explicitly choose a new shareholder;
 names alone never link records. Existing names and addresses are kept; missing
-particulars can be supplied from the source. Membership dates and quantities always come from the
-new class's source records, rather than another class's holding.
+particulars can be supplied from the source. Membership dates and quantities come
+from the new class's source records, rather than another class's holding.
 
-Corrections use the same manual forms and preserve existing member identities.
-Draft edits never allocate a replacement identity for an existing shareholder.
+Corrections use the same forms and retain each shareholder's existing member identity.
 
 The final step loads a fresh decision preview; **Confirm** records approval and
 application through the existing exact decisions, without a separate confirmation
