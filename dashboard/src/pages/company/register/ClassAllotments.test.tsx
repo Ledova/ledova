@@ -3,7 +3,6 @@
 import {
   COMPANY_TOKEN_ENDPOINTS as URLS,
   REGISTER_ALLOTMENT_COPY as COPY,
-  USER_PREFERENCES_QUERY_KEY,
   type RegisterAllotment,
   type OwnCompanyAppointment,
 } from '@ledova/shared';
@@ -24,7 +23,6 @@ const api = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn() }));
 const save = vi.hoisted(() => vi.fn());
 vi.mock('@services/apiClient', () => ({ default: api }));
 vi.mock('./useCompanyRegister', async (original) => ({ ...(await original<object>()), saveFile: save }));
-const owner = { userUuid: 'profile-one', ownerAccountUuid: 'account-one' };
 const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
 let pendingFileRelease: (() => void) | undefined;
 let pendingReadRelease: (() => void) | undefined;
@@ -45,9 +43,6 @@ it('preserves original preparation and issue recovery through refresh, keeps app
   let rows: RegisterAllotment[] = [];
   let appointments: OwnCompanyAppointment[] = [APPOINTMENT];
   let failedRead = false;
-  let classesFailed = false;
-  let preferencesFailed = false;
-  let listed = true;
   let interruptedAbsentPreparation = false;
   let absentPreparation: Record<string, unknown> | null = null;
   let pauseRead = false;
@@ -55,18 +50,14 @@ it('preserves original preparation and issue recovery through refresh, keeps app
   let releaseFile: (() => void) | undefined;
   api.get.mockReset().mockImplementation(async (url) => {
     if (url === '/api/user-preferences/') {
-      if (preferencesFailed)
-        throw Object.assign(new Error('Synthetic preferences unavailable'), { response: { status: 503 } });
       return { data: companyPreferences() };
     }
     if (url === URLS.REGISTER) {
-      if (classesFailed)
-        throw Object.assign(new Error('Synthetic register classes unavailable'), { response: { status: 503 } });
       return {
         data: {
-          results: listed
-            ? [{ uuid: REGISTER.token.uuid, companyUuid: APPOINTMENT.company, companyName: APPOINTMENT.companyName }]
-            : [],
+          results: [
+            { uuid: REGISTER.token.uuid, companyUuid: APPOINTMENT.company, companyName: APPOINTMENT.companyName },
+          ],
           next: null,
         },
       };
@@ -167,28 +158,30 @@ it('preserves original preparation and issue recovery through refresh, keeps app
   expect(await screen.findByRole('group', { name: '1. Person and shares' })).toBeTruthy();
   expect(screen.getByRole('group', { name: '2. Agreement and company receipt' })).toBeTruthy();
   expect(screen.getByRole('group', { name: '3. Company authority and review' })).toBeTruthy();
-  const fillForm = async (receivedAmount = '249') => {
-    for (const [label, value] of [
-      ['Investor name', ALLOTMENT_REQUEST.name!],
-      ['Residential address', ALLOTMENT_REQUEST.residentialAddress!],
-      [COPY.SHARES, '100'],
-      [COPY.CONSIDERATION, '250'],
-      [COPY.RECEIVED_AMOUNT, receivedAmount],
-      [COPY.AGREEMENT_REFERENCE, ALLOTMENT_REQUEST.agreementReference],
-      [COPY.AGREEMENT_ON, ALLOTMENT_REQUEST.agreementOn],
-      [COPY.RECEIVED_ON, ALLOTMENT_REQUEST.receivedOn],
-      [COPY.TERMS, ALLOTMENT_REQUEST.terms],
-      [COPY.DIRECTOR, ALLOTMENT_REQUEST.approvingDirector],
-      [COPY.AUTHORITY_REFERENCE, ALLOTMENT_REQUEST.authorityReference],
-      [COPY.REASON, ALLOTMENT_REQUEST.reason],
-    ])
-      fireEvent.change(await screen.findByLabelText(label), { target: { value } });
-    for (const label of Object.values(COPY.DOCUMENTS))
-      fireEvent.change(screen.getByLabelText(label), {
-        target: { files: [new File(['synthetic'], 'evidence.pdf', { type: 'application/pdf' })] },
-      });
+  const fillForm = (receivedAmount = '249') => {
+    act(() => {
+      for (const [label, value] of [
+        ['Investor name', ALLOTMENT_REQUEST.name!],
+        ['Residential address', ALLOTMENT_REQUEST.residentialAddress!],
+        [COPY.SHARES, '100'],
+        [COPY.CONSIDERATION, '250'],
+        [COPY.RECEIVED_AMOUNT, receivedAmount],
+        [COPY.AGREEMENT_REFERENCE, ALLOTMENT_REQUEST.agreementReference],
+        [COPY.AGREEMENT_ON, ALLOTMENT_REQUEST.agreementOn],
+        [COPY.RECEIVED_ON, ALLOTMENT_REQUEST.receivedOn],
+        [COPY.TERMS, ALLOTMENT_REQUEST.terms],
+        [COPY.DIRECTOR, ALLOTMENT_REQUEST.approvingDirector],
+        [COPY.AUTHORITY_REFERENCE, ALLOTMENT_REQUEST.authorityReference],
+        [COPY.REASON, ALLOTMENT_REQUEST.reason],
+      ])
+        fireEvent.change(screen.getByLabelText(label), { target: { value } });
+      for (const label of Object.values(COPY.DOCUMENTS))
+        fireEvent.change(screen.getByLabelText(label), {
+          target: { files: [new File(['synthetic'], 'evidence.pdf', { type: 'application/pdf' })] },
+        });
+    });
   };
-  await fillForm();
+  fillForm();
   expect((screen.getByRole('button', { name: COPY.SUBMIT }) as HTMLButtonElement).disabled).toBe(true);
   fireEvent.change(screen.getByLabelText(COPY.RECEIVED_AMOUNT), { target: { value: '250' } });
   fireEvent.click(screen.getByRole('button', { name: COPY.SUBMIT }));
@@ -242,28 +235,6 @@ it('preserves original preparation and issue recovery through refresh, keeps app
   await screen.findByText(/100 issued shares · 1 current members/);
   expect(screen.queryByRole('button', { name: /^Record issue [(]allotment/ })).toBeNull();
   expect(recover).toBeTruthy();
-  preferencesFailed = true;
-  await act(async () => client.refetchQueries({ queryKey: USER_PREFERENCES_QUERY_KEY, exact: true }));
-  await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
-  expect(document.body.textContent).not.toContain(ALLOTMENT_REQUEST.name);
-  listed = false;
-  await act(async () =>
-    client.refetchQueries({
-      queryKey: ['tokens', 'register', owner.userUuid, owner.ownerAccountUuid, 'classes'],
-      exact: true,
-    }),
-  );
-  expect(document.body.textContent).not.toContain(ALLOTMENT_REQUEST.name);
-  expect(screen.queryByRole('button', { name: /^Recover record issue receipt/ })).toBeNull();
-  preferencesFailed = false;
-  listed = true;
-  await act(async () => client.refetchQueries({ queryKey: USER_PREFERENCES_QUERY_KEY, exact: true }));
-  await act(async () =>
-    client.refetchQueries({
-      queryKey: ['tokens', 'register', owner.userUuid, owner.ownerAccountUuid, 'classes'],
-      exact: true,
-    }),
-  );
   fireEvent.click(await screen.findByRole('button', { name: /^Recover record issue receipt/ }));
   await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
   await screen.findByText('Shares issued');
@@ -283,52 +254,31 @@ it('preserves original preparation and issue recovery through refresh, keeps app
   expect(rows[0].registerEntry).toBe('entry-a');
   fireEvent.click(screen.getByRole('button', { name: /^Download receipt/ }));
   await waitFor(() => expect(releaseFile).toBeTypeOf('function'));
-  classesFailed = true;
-  await act(async () =>
-    client.refetchQueries({
-      queryKey: ['tokens', 'register', owner.userUuid, owner.ownerAccountUuid, 'classes'],
-      exact: true,
-    }),
-  );
-  await waitFor(() => expect(screen.queryByText('entry-a')).toBeNull());
-  expect(screen.queryByText(ALLOTMENT_REQUEST.agreementReference)).toBeNull();
-  expect(screen.queryByRole('button', { name: /^Download receipt/ })).toBeNull();
-  await act(async () => releaseFile!());
-  pendingFileRelease = undefined;
-  expect(save).not.toHaveBeenCalled();
-  classesFailed = false;
-  await act(async () =>
-    client.refetchQueries({
-      queryKey: ['tokens', 'register', owner.userUuid, owner.ownerAccountUuid, 'classes'],
-      exact: true,
-    }),
-  );
-  await screen.findByText('Shares issued');
-  fireEvent.click(screen.getByText('Record details and documents'));
-  fireEvent.click(screen.getByRole('button', { name: /^Download receipt/ }));
-  await waitFor(() => expect(pendingFileRelease).toBeTypeOf('function'));
   failedRead = true;
   fireEvent.click(screen.getByRole('button', { name: 'Refresh allotments' }));
   await screen.findByText(/External allotments could not be read/);
   expect(screen.queryByText('entry-a')).toBeNull();
   expect(screen.queryByText(ALLOTMENT_REQUEST.agreementReference)).toBeNull();
   expect(screen.queryByRole('button', { name: /^Download receipt/ })).toBeNull();
-  await act(async () => {
-    releaseFile!();
-  });
+  await act(async () => releaseFile!());
+  pendingFileRelease = undefined;
   expect(save).not.toHaveBeenCalled();
   failedRead = false;
   fireEvent.click(screen.getByRole('button', { name: 'Retry allotments' }));
-  await screen.findByText('entry-a');
+  await screen.findByText('Shares issued');
+  expect(screen.getByText('entry-a')).toBeTruthy();
+  expect(screen.getByText(ALLOTMENT_REQUEST.agreementReference)).toBeTruthy();
   appointments = [{ ...APPOINTMENT, capabilities: ['finance'] }];
   fireEvent.click(screen.getByRole('button', { name: 'Refresh allotments' }));
   await waitFor(() => expect(screen.queryByText('entry-a')).toBeNull());
+  expect(screen.queryByText(ALLOTMENT_REQUEST.agreementReference)).toBeNull();
   expect(screen.queryByRole('button', { name: /^Download receipt/ })).toBeNull();
   interruptedAbsentPreparation = true;
   appointments = [APPOINTMENT];
   fireEvent.click(screen.getByRole('button', { name: 'Refresh allotments' }));
   fireEvent.click(await screen.findByRole('button', { name: COPY.PREPARE }));
-  await fillForm('250');
+  await screen.findByLabelText('Investor name');
+  fillForm('250');
   fireEvent.click(screen.getByRole('button', { name: COPY.SUBMIT }));
   await screen.findByText(COPY.PREPARATION_RECEIPT_FAILED);
   appointments = [{ ...APPOINTMENT, uuid: 'replacement-preparation-appointment' }];

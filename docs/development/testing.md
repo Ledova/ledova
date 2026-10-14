@@ -90,10 +90,11 @@ scoped count and any skips. One or two optional chain smoke tests run through
 ## Client limits
 
 The dashboard remains at 20 cases. Its empty-register-only case was replaced
-with the guided company/CSV mirror journey, interrupted-request recovery and
-confirmed ownership; the ownership dashboard case retains the unopened-class
-guard. Chrome observation uses fictional records and a local PostgreSQL app
-role, separate from the client mocks or genuine company/provider verification.
+with the guided company/CSV mirror journey, individual draft add/edit/cancel,
+interrupted-request recovery and confirmed ownership; the ownership dashboard
+case retains the unopened-class guard. Chrome observation uses fictional
+records and a local PostgreSQL app role, separate from the client mocks or
+genuine company/provider verification.
 
 Count executed cases, including parameterized rows:
 

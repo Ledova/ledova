@@ -355,20 +355,39 @@ with the company. An import neither establishes legal ownership nor issues
 shares again. Shareholders need no account or wallet for a mirror opening.
 
 On the web, **Set up your share register** opens `/company/register/setup`.
-Bring records for one share class, review the full copied rows and totals, then
-confirm the mirror. The company owner can record an existing class here by its
-name, code and type; an appointee can select an already configured class. This
+Start with **Share details**, then **Shareholders** and **Review**.
+The company owner can select a common class—Ordinary (ORD), Preference (PRF) or
+Redeemable (RED)—or use **Another class** to copy its name, code and type.
+Already configured draft classes are selectable. The selection must match the
+company's existing records. Class codes use one to five
+letters, including A, B and ORD, and are unique within the company. This
 creates no shares or legal company registration. New mirror classes use the
 technical integer ceiling internally, rather than asking for legal authorised
 capital or showing it as ownership. Repeat setup for each class.
 
-Enter shareholders and allotments manually or use the CSV template on Bring
-records. CSV input is UTF-8, at most 1 MB and 500 allotment rows, and is parsed
-locally. A repeated holder reference groups allotments; identity, original entry
+There is no manual source-reference field. New drafts use the neutral
+"Company-provided share records" attribution; the retained snapshot identifies
+the company, record date and actor. Existing nonblank source labels are kept.
+
+Add shareholders individually and edit one draft record at a time from the
+compact list. Each editor keeps the holding's underlying allotment particulars.
+**Held for someone else?** records the source's beneficial-holding distinction:
+Yes means non-beneficial and No means beneficial. Optional share/certificate
+references stay in **References (optional)**, open when already populated.
+The shareholder step also accepts the existing CSV template. CSV input is UTF-8,
+at most 1 MB and 500 allotment rows, and is parsed locally. A repeated holder
+reference groups allotments; identity, original entry
 date and current holding must agree across its rows. Blank money amounts remain
-missing rather than becoming zero. The review lists all copied particulars and
-checks holdings against allotments before any confirmation. Return to Bring
-records to correct a draft before confirming.
+missing rather than becoming zero. Review summarises the copied shares,
+shareholders and record date above one table. Percentages refer to that class's
+copied holdings; each person's full particulars and original allotments remain
+available in **Details**. Holdings are checked against allotments before any
+confirmation. Unsaved shareholder
+edits remain local; editing a saved preparation first retires it through **Edit
+records**, as described below. **Import** beside **Continue** is an inactive
+future extraction option, explained by its **Coming soon** tooltip; it uploads nothing. Future
+extraction will populate the same editable forms. Optional supporting copies
+retain source evidence without extracting or verifying their contents.
 
 Shareholders keep one company member identity across classes. Choose an existing
 company shareholder by its member UUID, or explicitly choose a new shareholder;
@@ -385,7 +404,9 @@ shareholders manually. Templates include a `value_encoding` column so
 spreadsheet-safe text round-trips exactly; keep that column. Raw source CSVs
 without it retain their literal text, including any leading apostrophes.
 
-Confirm records approval and application through the existing exact decisions.
+The final step loads a fresh decision preview; **Confirm** records approval and
+application through the existing exact decisions, without a separate confirmation
+screen. Review-only appointees still record approval separately from application.
 A failed or uncertain response retains its original retry receipt; return to
 setup to resume a prepared or approved snapshot. Current authority and fresh
 previews remain required. A separate appointee can resume review or confirmation

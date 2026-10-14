@@ -17,7 +17,6 @@ import {
   type RegisterTransferMember,
 } from '@ledova/shared';
 import { FIELD_CLASS } from '@components/fieldClass';
-import { Section } from '@components/Ledger';
 import apiClient from '@services/apiClient';
 import { CompanySelection } from '../../CompanySelection';
 import { useCompany } from '../../hooks/useCompany';
@@ -31,6 +30,11 @@ import { ImportForm } from './ImportForm';
 const TECHNICAL_SHARE_LIMIT = (2n ** 256n - 1n).toString();
 const LABEL = 'block space-y-1 text-sm text-text-primary';
 const NO_MEMBERS: RegisterTransferMember[] = [];
+const COMMON_CLASSES: { type: TokenType; name: string; symbol: string; label: string }[] = [
+  { type: 'ordinary', name: 'Ordinary shares', symbol: 'ORD', label: 'Ordinary (ORD)' },
+  { type: 'preference', name: 'Preference shares', symbol: 'PRF', label: 'Preference (PRF)' },
+  { type: 'redeemable', name: 'Redeemable shares', symbol: 'RED', label: 'Redeemable (RED)' },
+];
 
 export function NewClassSetup({
   owner,
@@ -142,6 +146,7 @@ function FreshClass({
 }) {
   const navigate = useNavigate();
   const draftClasses = classes.filter((token) => token.status === 'draft');
+  const [choice, setChoice] = useState('ordinary');
   const [name, setName] = useState('Ordinary shares');
   const [symbol, setSymbol] = useState('ORD');
   const [tokenType, setTokenType] = useState<TokenType>('ordinary');
@@ -231,7 +236,7 @@ function FreshClass({
     ? ['The company owner creates new share classes. Select an existing class instead.']
     : [];
   if (!name.trim() || name.length > 100) problems.push('Enter a class name of at most 100 characters.');
-  if (!/^[A-Z]{3,5}$/.test(symbol)) problems.push('Enter a class code of 3–5 letters, such as ORD.');
+  if (!/^[A-Z]{1,5}$/.test(symbol)) problems.push('Enter the recorded class code of 1–5 letters, such as A or ORD.');
   const existingCode = classes.find((token) => token.symbol === symbol);
   if (existingCode && !classLocked)
     problems.push(
@@ -240,59 +245,83 @@ function FreshClass({
         : 'This class code already exists. Open its register or use the actual distinct code for a new class.',
     );
   return (
-    <Section title={`${company.name} · ${name} (${symbol})`}>
-      <ImportForm
-        owner={owner}
-        guard={guard}
-        newEffectGuard={check}
-        company={company.uuid}
-        companyMembers={companyMembers}
-        appointment={steps.prepare!}
-        steps={steps}
-        blocked={!ready}
-        visible={ready}
-        onConflict={onConflict}
-        onHeldChange={onHeldChange}
-        resolveRegister={resolveRegister}
-        classProblems={problems}
-        classFields={
-          <fieldset className="space-y-3">
-            {draftClasses.length > 0 ? (
-              <label className={LABEL}>
-                Share class
-                <select
-                  className={FIELD_CLASS}
-                  value=""
-                  disabled={classLocked}
-                  onChange={(event) => {
-                    if (draftClasses.some((token) => token.uuid === event.target.value))
-                      navigate(DESTINATIONS.companyRegisterImport.path.replace(':uuid', event.target.value));
-                  }}
-                >
-                  <option value="">Choose an existing draft share class</option>
+    <ImportForm
+      owner={owner}
+      guard={guard}
+      newEffectGuard={check}
+      company={company.uuid}
+      companyName={company.name}
+      shareClass={{ name, symbol }}
+      companyMembers={companyMembers}
+      appointment={steps.prepare!}
+      steps={steps}
+      blocked={!ready}
+      visible={ready}
+      onConflict={onConflict}
+      onHeldChange={onHeldChange}
+      resolveRegister={resolveRegister}
+      classProblems={problems}
+      classFields={
+        <fieldset className="space-y-5">
+          <label className={LABEL}>
+            Share class
+            <select
+              className={FIELD_CLASS}
+              value={choice}
+              disabled={classLocked}
+              onChange={(event) => {
+                const selected = event.target.value;
+                if (draftClasses.some((token) => token.uuid === selected)) {
+                  navigate(DESTINATIONS.companyRegisterImport.path.replace(':uuid', selected));
+                  return;
+                }
+                const common = COMMON_CLASSES.find((item) => item.type === selected);
+                if (common) {
+                  setChoice(common.type);
+                  setName(common.name);
+                  setSymbol(common.symbol);
+                  setTokenType(common.type);
+                } else if (selected === 'custom') {
+                  setChoice('custom');
+                  setName('');
+                  setSymbol('');
+                  setTokenType('ordinary');
+                }
+              }}
+            >
+              {draftClasses.length > 0 && (
+                <optgroup label="Existing company classes">
                   {draftClasses.map((token) => (
                     <option key={token.uuid} value={token.uuid}>
                       {token.name} · {token.symbol}
                     </option>
                   ))}
-                </select>
-              </label>
-            ) : (
-              <p className="text-sm text-text-muted">No existing draft share classes are available for copied setup.</p>
-            )}
-            {classes.some((token) => token.status !== 'draft') && (
-              <p className="text-sm text-text-muted">
-                For existing chain classes,{' '}
-                <Link
-                  to={DESTINATIONS.companyRegister.path}
-                  state={{ registerCompany: company.uuid }}
-                  className="text-brand-light underline"
-                >
-                  open Register
-                </Link>{' '}
-                to open their register or bring in shareholder particulars.
-              </p>
-            )}
+                </optgroup>
+              )}
+              <optgroup label="New class">
+                {COMMON_CLASSES.map((item) => (
+                  <option key={item.type} value={item.type}>
+                    {item.label}
+                  </option>
+                ))}
+                <option value="custom">Another class</option>
+              </optgroup>
+            </select>
+          </label>
+          {classes.some((token) => token.status !== 'draft') && (
+            <p className="text-sm text-text-muted">
+              For existing chain classes,{' '}
+              <Link
+                to={DESTINATIONS.companyRegister.path}
+                state={{ registerCompany: company.uuid }}
+                className="text-brand-light underline"
+              >
+                open Register
+              </Link>{' '}
+              to open their register or bring in shareholder particulars.
+            </p>
+          )}
+          {choice === 'custom' && (
             <div className="grid gap-3 sm:grid-cols-2">
               <label className={LABEL}>
                 Class name
@@ -328,13 +357,12 @@ function FreshClass({
                 </select>
               </label>
             </div>
-            <p className="text-xs text-text-muted">
-              Use the name and type already recorded by the company. The class code uses 3–5 letters, such as ORD. Set
-              up one class at a time; repeat for other classes.
-            </p>
-          </fieldset>
-        }
-      />
-    </Section>
+          )}
+          {choice === 'custom' && (
+            <p className="text-xs text-text-muted">Use the recorded class code of 1–5 letters, such as A or ORD.</p>
+          )}
+        </fieldset>
+      }
+    />
   );
 }

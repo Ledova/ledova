@@ -10,7 +10,6 @@ export function MemberFields({
   index,
   asAt,
   update,
-  remove,
   companyMembers,
   preserveParticulars,
   usedMembers,
@@ -19,7 +18,6 @@ export function MemberFields({
   index: number;
   asAt: string;
   update: (patch: Partial<MemberDraft>) => void;
-  remove?: () => void;
   companyMembers: RegisterTransferMember[];
   preserveParticulars: boolean;
   usedMembers: string[];
@@ -30,8 +28,8 @@ export function MemberFields({
       allotments: row.allotments.map((allotment, current) => (current === at ? { ...allotment, ...patch } : allotment)),
     });
   return (
-    <fieldset className="space-y-4 rounded-lg border border-border-subtle p-4">
-      <legend className="px-1 text-sm font-medium text-text-primary">Shareholder {index + 1}</legend>
+    <fieldset className="space-y-5">
+      <legend className="sr-only">Shareholder details</legend>
       {companyMembers.length > 0 && (
         <label className={LABEL}>
           Company shareholder
@@ -60,7 +58,11 @@ export function MemberFields({
             <option value="">Choose an existing shareholder or a new one</option>
             {companyMembers.map((member) => (
               <option key={member.member} value={member.member} disabled={usedMembers.includes(member.member)}>
-                {member.name || 'Name not recorded'} · {member.member}
+                {member.name || 'Name not recorded'}
+                {member.residentialAddress && ` · ${member.residentialAddress}`}
+                {companyMembers.filter(
+                  (other) => other.name === member.name && other.residentialAddress === member.residentialAddress,
+                ).length > 1 && ` · Record ${member.member.slice(-8)}`}
               </option>
             ))}
             <option value="new">New company shareholder</option>
@@ -89,7 +91,7 @@ export function MemberFields({
           />
         </label>
         <label className={LABEL}>
-          Original membership date
+          Date first added to register
           <input
             type="date"
             max={asAt}
@@ -99,7 +101,7 @@ export function MemberFields({
           />
         </label>
         <label className={LABEL}>
-          Current holding (shares)
+          Shares held
           <input
             inputMode="numeric"
             value={row.shares}
@@ -108,13 +110,9 @@ export function MemberFields({
           />
         </label>
       </div>
-      <p className="text-xs text-text-muted">
-        Copy the allotments underlying this holding from the existing records. Their shares must add up to the current
-        holding.
-      </p>
       {row.allotments.map((allotment, at) => (
-        <fieldset key={allotment.id} className="space-y-3 border-t border-border-subtle pt-3">
-          <legend className="text-sm text-text-primary">Allotment {at + 1}</legend>
+        <fieldset key={allotment.id} className="space-y-4 rounded-xl border border-border-subtle bg-surface-raised p-4">
+          <legend className="px-1 text-sm font-medium text-text-primary">Allotment {at + 1}</legend>
           <div className="grid gap-3 sm:grid-cols-2">
             <label className={LABEL}>
               Allotment date
@@ -127,7 +125,7 @@ export function MemberFields({
               />
             </label>
             <label className={LABEL}>
-              Allotted shares in this holding
+              Shares in allotment
               <input
                 inputMode="numeric"
                 value={allotment.shares}
@@ -160,49 +158,44 @@ export function MemberFields({
                 }
               />
             </label>
-            <div className={LABEL}>
-              <span>Payment status</span>
-              <p className="py-2 text-text-muted">
-                {registerImportMoney(allotment.amountUnpaid) === null
-                  ? 'Enter the unpaid amount'
-                  : registerImportMoney(allotment.amountUnpaid) === '0.00'
-                    ? 'Fully paid'
-                    : 'Not fully paid'}
-              </p>
-            </div>
             <label className={LABEL}>
-              Held beneficially
+              Held for someone else?
               <select
-                value={allotment.beneficiallyHeld === null ? '' : allotment.beneficiallyHeld ? 'yes' : 'no'}
+                value={allotment.beneficiallyHeld === null ? '' : allotment.beneficiallyHeld ? 'no' : 'yes'}
                 className={FIELD_CLASS}
                 onChange={(event) =>
-                  setAllotment(at, { beneficiallyHeld: event.target.value ? event.target.value === 'yes' : null })
+                  setAllotment(at, { beneficiallyHeld: event.target.value ? event.target.value === 'no' : null })
                 }
               >
-                <option value="">Choose from the source record</option>
-                <option value="yes">Yes, for this shareholder</option>
-                <option value="no">No, held for someone else</option>
+                <option value="">Choose</option>
+                <option value="yes">Yes</option>
+                <option value="no">No</option>
               </select>
             </label>
-            <label className={LABEL}>
-              Share numbers or reference (if present)
-              <input
-                maxLength={255}
-                value={allotment.shareReference}
-                className={FIELD_CLASS}
-                onChange={(event) => setAllotment(at, { shareReference: event.target.value })}
-              />
-            </label>
-            <label className={LABEL}>
-              Certificate reference (if present)
-              <input
-                maxLength={255}
-                value={allotment.certificateReference}
-                className={FIELD_CLASS}
-                onChange={(event) => setAllotment(at, { certificateReference: event.target.value })}
-              />
-            </label>
           </div>
+          <details open={!!(allotment.shareReference || allotment.certificateReference)}>
+            <summary className="cursor-pointer text-sm text-text-muted">References (optional)</summary>
+            <div className="grid gap-3 pt-3 sm:grid-cols-2">
+              <label className={LABEL}>
+                Share numbers or reference
+                <input
+                  maxLength={255}
+                  value={allotment.shareReference}
+                  className={FIELD_CLASS}
+                  onChange={(event) => setAllotment(at, { shareReference: event.target.value })}
+                />
+              </label>
+              <label className={LABEL}>
+                Certificate reference
+                <input
+                  maxLength={255}
+                  value={allotment.certificateReference}
+                  className={FIELD_CLASS}
+                  onChange={(event) => setAllotment(at, { certificateReference: event.target.value })}
+                />
+              </label>
+            </div>
+          </details>
           {row.allotments.length > 1 && (
             <PageAction
               label={`Remove allotment ${at + 1} for shareholder ${index + 1}`}
@@ -216,7 +209,6 @@ export function MemberFields({
           label={`Add allotment for shareholder ${index + 1}`}
           onClick={() => update({ allotments: [...row.allotments, blankAllotment()] })}
         />
-        {remove && <PageAction label={`Remove shareholder ${index + 1}`} onClick={remove} />}
       </div>
     </fieldset>
   );

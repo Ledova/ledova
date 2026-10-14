@@ -65,10 +65,14 @@ class RegisterMirrorTest(CoreFixtures, APITransactionTestCase):
         }
 
     def test_mirror_records_full_allotments_and_corrects_without_rewriting_the_opening(self):
-        with use_operator():
-            token = ShareToken.objects.create(
-                company=self.company, name="Synthetic ordinary", symbol="MIRROR", total_supply="1000"
-            )
+        created = self.client.post(
+            "/api/v1/tokens/",
+            {"company": str(self.company.pk), "name": "Synthetic A shares", "symbol": "a", "total_supply": "1000"},
+            format="json",
+        )
+        self.assertEqual(created.status_code, 201, created.content)
+        self.assertEqual(created.json()["symbol"], "A")
+        token = ShareToken.objects.get(pk=created.json()["uuid"])
         endpoint = "/api/v1/tokens/register-imports/"
         payload = self.mirror_payload(token)
         payload["former_members"] = [

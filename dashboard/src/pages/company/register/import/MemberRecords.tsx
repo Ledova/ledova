@@ -1,44 +1,121 @@
-import { formatShareCount, type RegisterImportMemberRow } from '@ledova/shared';
-import { Row, Rows } from '@components/Ledger';
+import { useState } from 'react';
+import { formatShareCount, registerImportTotals, type RegisterImportMemberRow } from '@ledova/shared';
+import { Modal } from '@components/Modal';
+import { PageAction } from '@components/Page';
+import { countBarWidth } from '../../dashboard/summary';
 
 export function MemberRecords({ members }: { members: RegisterImportMemberRow[] }) {
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const selected = members.find((member) => member.member === selectedId);
+  const total = registerImportTotals(members).total;
   return (
-    <ul className="space-y-3">
-      {members.map((member) => (
-        <li key={member.member} className="rounded-lg border border-border-subtle p-4">
-          <h3 className="mb-2 text-sm font-medium text-text-primary">{member.name}</h3>
-          <Rows>
-            <Row label="Address">{member.residentialAddress}</Row>
-            <Row label="Original membership date">{member.enteredOn}</Row>
-            <Row label="Current holding">{formatShareCount(member.shares)} shares</Row>
-          </Rows>
-          {member.allotments ? (
-            <ul className="mt-3 divide-y divide-border-subtle">
-              {member.allotments.map((allotment, index) => (
-                <li key={index} className="py-3">
-                  <p className="mb-2 text-sm font-medium text-text-primary">Allotment {index + 1}</p>
-                  <Rows>
-                    <Row label="Allotted on">{allotment.allottedOn}</Row>
-                    <Row label="Shares">{formatShareCount(allotment.shares)}</Row>
-                    <Row label="Amount paid">{allotment.amountPaid}</Row>
-                    <Row label="Amount unpaid">{allotment.amountUnpaid}</Row>
-                    <Row label="Payment status">{allotment.fullyPaid ? 'Fully paid' : 'Not fully paid'}</Row>
-                    <Row label="Held beneficially">
-                      {allotment.beneficiallyHeld ? 'Yes' : 'No, held for someone else'}
-                    </Row>
-                    <Row label="Share reference">{allotment.shareReference || 'Not recorded'}</Row>
-                    <Row label="Certificate reference">{allotment.certificateReference || 'Not recorded'}</Row>
-                  </Rows>
-                </li>
+    <>
+      <div className="relative max-w-full overflow-x-auto rounded-xl border border-border-subtle">
+        <table className="w-full text-left text-sm">
+          <caption className="sr-only">Shareholders</caption>
+          <thead className="bg-surface-tertiary text-xs text-text-muted">
+            <tr>
+              <th scope="col" className="px-4 py-3 font-medium">
+                Shareholder
+              </th>
+              <th scope="col" className="px-4 py-3 text-right font-medium">
+                Shares held
+              </th>
+              <th scope="col" className="px-4 py-3 text-right font-medium">
+                % of class
+              </th>
+              <th scope="col" className="px-4 py-3 font-medium">
+                Date added
+              </th>
+              <th scope="col" className="px-4 py-3 font-medium">
+                <span className="sr-only">Details</span>
+              </th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border-subtle">
+            {members.map((member) => {
+              const percent = total !== '0' && /^\d+$/.test(member.shares) ? countBarWidth(member.shares, total) : null;
+              return (
+                <tr key={member.member}>
+                  <th scope="row" className="px-4 py-4 text-left font-normal">
+                    <p className="font-medium text-text-primary">{member.name}</p>
+                    <p className="mt-1 max-w-64 truncate text-xs text-text-muted">{member.residentialAddress}</p>
+                  </th>
+                  <td className="px-4 py-4 text-right font-medium tabular-nums">{formatShareCount(member.shares)}</td>
+                  <td className="whitespace-nowrap px-4 py-4 text-right tabular-nums text-text-muted">
+                    {percent === null
+                      ? 'Not recorded'
+                      : percent === 0 && BigInt(member.shares) > 0n
+                        ? '<0.01%'
+                        : `${percent.toFixed(2)}%`}
+                  </td>
+                  <td className="whitespace-nowrap px-4 py-4 text-text-muted">{member.enteredOn}</td>
+                  <td className="px-4 py-4">
+                    <PageAction label="Details" context={member.name} onClick={() => setSelectedId(member.member)} />
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      <Modal
+        isOpen={!!selected}
+        onClose={() => setSelectedId(null)}
+        title={selected?.name ?? 'Shareholder details'}
+        size="2xl"
+        showFooter
+        cancelLabel="Close"
+      >
+        {selected && (
+          <div className="space-y-6">
+            <dl className="grid gap-4 sm:grid-cols-2">
+              {[
+                ['Address', selected.residentialAddress],
+                ['Date first added to register', selected.enteredOn],
+                ['Shares held', formatShareCount(selected.shares)],
+              ].map(([label, value]) => (
+                <div key={label}>
+                  <dt className="text-xs text-text-muted">{label}</dt>
+                  <dd className="mt-1 break-words text-sm text-text-primary">{value}</dd>
+                </div>
               ))}
-            </ul>
-          ) : (
-            <p className="mt-3 text-sm text-text-muted">
-              Allotment particulars were not captured in this earlier snapshot.
-            </p>
-          )}
-        </li>
-      ))}
-    </ul>
+            </dl>
+            {selected.allotments ? (
+              <div className="space-y-4">
+                {selected.allotments.map((allotment, index) => (
+                  <section key={index} className="space-y-3 rounded-xl border border-border-subtle p-4">
+                    <h3 className="text-sm font-medium text-text-primary">Allotment {index + 1}</h3>
+                    <dl className="grid gap-4 sm:grid-cols-2">
+                      {[
+                        ['Allotment date', allotment.allottedOn],
+                        ['Shares in allotment', formatShareCount(allotment.shares)],
+                        ['Amount paid', allotment.amountPaid],
+                        ['Amount unpaid', allotment.amountUnpaid],
+                        ['Payment status', allotment.fullyPaid ? 'Fully paid' : 'Not fully paid'],
+                        ['Held for someone else?', allotment.beneficiallyHeld ? 'No' : 'Yes'],
+                        ...(allotment.shareReference ? [['Share reference', allotment.shareReference]] : []),
+                        ...(allotment.certificateReference
+                          ? [['Certificate reference', allotment.certificateReference]]
+                          : []),
+                      ].map(([label, value]) => (
+                        <div key={label}>
+                          <dt className="text-xs text-text-muted">{label}</dt>
+                          <dd className="mt-1 break-words text-sm text-text-primary">{value}</dd>
+                        </div>
+                      ))}
+                    </dl>
+                  </section>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-text-muted">
+                Allotment particulars were not captured in this earlier snapshot.
+              </p>
+            )}
+          </div>
+        )}
+      </Modal>
+    </>
   );
 }
