@@ -370,6 +370,13 @@ missing rather than becoming zero. The review lists all copied particulars and
 checks holdings against allotments before any confirmation. Return to Bring
 records to correct a draft before confirming.
 
+For an opened mirror, use its current template and keep each holder reference:
+these identify the existing Ledova member. An original source reference such as
+`H001` cannot silently allocate a replacement member during correction. Add new
+shareholders manually. Templates include a `value_encoding` column so
+spreadsheet-safe text round-trips exactly; keep that column. Raw source CSVs
+without it retain their literal text, including any leading apostrophes.
+
 Confirm records approval and application through the existing exact decisions.
 A failed or uncertain response retains its original retry receipt; return to
 setup to resume a prepared or approved snapshot. Current authority and fresh

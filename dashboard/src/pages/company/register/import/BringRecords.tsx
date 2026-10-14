@@ -13,6 +13,7 @@ export function BringRecords({
   draft,
   today,
   correction,
+  preserveMembers,
   busy,
   differs,
   imported,
@@ -24,6 +25,7 @@ export function BringRecords({
   draft: PreparationDraft;
   today: string;
   correction: boolean;
+  preserveMembers: boolean;
   busy: boolean;
   differs: boolean;
   imported: { total: string; count: number };
@@ -82,7 +84,9 @@ export function BringRecords({
             label="Download CSV template"
             onClick={() =>
               saveFile(
-                new Blob([registerCsvTemplate(correction ? draft.members : [])], { type: 'text/csv;charset=utf-8' }),
+                new Blob([registerCsvTemplate(preserveMembers ? draft.members : [])], {
+                  type: 'text/csv;charset=utf-8',
+                }),
                 'share-register-template.csv',
               )
             }
@@ -101,6 +105,12 @@ export function BringRecords({
           One row per allotment. Repeat the shareholder reference for multiple allotments. UTF-8 CSV, at most 1 MB and
           500 rows. Importing replaces the draft rows below.
         </p>
+        {preserveMembers && (
+          <p className="text-xs text-text-muted">
+            Keep the current template’s holder_reference values to identify existing shareholders. Add new shareholders
+            manually after importing the CSV.
+          </p>
+        )}
         {draft.members.map((row, index) => (
           <MemberFields
             key={row.member}

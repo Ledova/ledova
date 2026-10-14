@@ -3,6 +3,8 @@ import { blankAllotment, type MemberDraft } from './preparation';
 
 export const REGISTER_CSV_MAX_BYTES = 1024 * 1024;
 export const REGISTER_CSV_MAX_ROWS = 500;
+const ENCODING_COLUMN = 'value_encoding';
+const TEMPLATE_ENCODING = 'ledova-excel-safe-v1';
 export const REGISTER_CSV_COLUMNS = [
   'holder_reference',
   'name',
@@ -71,14 +73,29 @@ function flag(value: string, label: string, row: number) {
   throw new Error(`Row ${row}: ${label} must be yes or no.`);
 }
 
-export function readRegisterCsv(text: string, current: MemberDraft[] = []): MemberDraft[] {
+function templateValue(value: string, row: number) {
+  if (!value.startsWith("'")) {
+    if (/^[=+\-@]/.test(value))
+      throw new Error(`Row ${row}: keep the template’s safety prefixes on values beginning with =, +, - or @.`);
+    return value;
+  }
+  if (!/^'[=+\-@']/.test(value))
+    throw new Error(
+      `Row ${row}: the marked template contains an invalid escaped value. Use an unmarked source CSV for literal text.`,
+    );
+  return value.slice(1);
+}
+
+export function readRegisterCsv(text: string, current: MemberDraft[] = [], preserveMembers = false): MemberDraft[] {
   const rows = csvRows(text.replace(/^\uFEFF/, ''));
   const headers = rows.shift()?.map((header) => header.trim());
+  const encoded = headers?.includes(ENCODING_COLUMN) ?? false;
+  const expected = [...REGISTER_CSV_COLUMNS, ...(encoded ? [ENCODING_COLUMN] : [])];
   if (
     !headers ||
-    headers.length !== REGISTER_CSV_COLUMNS.length ||
+    headers.length !== expected.length ||
     new Set(headers).size !== headers.length ||
-    REGISTER_CSV_COLUMNS.some((column) => !headers.includes(column))
+    expected.some((column) => !headers.includes(column))
   )
     throw new Error('Use the template column names, with no missing, duplicate or additional columns.');
   if (!rows.length) throw new Error('Add at least one shareholder and allotment row.');
@@ -86,9 +103,21 @@ export function readRegisterCsv(text: string, current: MemberDraft[] = []): Memb
   for (const [index, values] of rows.entries()) {
     const line = index + 2;
     if (values.length !== headers.length) throw new Error(`Row ${line}: the number of fields differs from the header.`);
-    const row = Object.fromEntries(headers.map((header, at) => [header, values[at].trim()]));
+    if (encoded && values[headers.indexOf(ENCODING_COLUMN)] !== TEMPLATE_ENCODING)
+      throw new Error(`Row ${line}: the template value_encoding marker must be ${TEMPLATE_ENCODING}.`);
+    const row = Object.fromEntries(
+      headers.map((header, at) => [
+        header,
+        (encoded && header !== ENCODING_COLUMN ? templateValue(values[at], line) : values[at]).trim(),
+      ]),
+    );
     if (!row.holder_reference || row.holder_reference.length > 100)
       throw new Error(`Row ${line}: give a shareholder reference of at most 100 characters.`);
+    const known = current.find((member) => member.member === row.holder_reference);
+    if (preserveMembers && !known)
+      throw new Error(
+        `Row ${line}: this shareholder reference does not match an existing member. Download the current template and keep its holder_reference values. Add new shareholders manually after the CSV import.`,
+      );
     if (!row.name || row.name.length > 255 || !row.address || row.address.length > 1000)
       throw new Error(`Row ${line}: give a name and address within the field limits.`);
     if (row.share_reference.length > 255 || row.certificate_reference.length > 255)
@@ -123,7 +152,7 @@ export function readRegisterCsv(text: string, current: MemberDraft[] = []): Memb
         );
     } else {
       member = {
-        member: current.find((member) => member.member === row.holder_reference)?.member ?? crypto.randomUUID(),
+        member: known?.member ?? crypto.randomUUID(),
         name: row.name,
         residentialAddress: row.address,
         enteredOn: row.entered_on,
@@ -183,6 +212,11 @@ export function registerCsvTemplate(members: MemberDraft[] = []) {
           'CERT-001',
         ],
       ];
-  const escaped = (value: string) => `"${(/^[=+\-@]/.test(value) ? "'" : '') + value.replace(/"/g, '""')}"`;
-  return [REGISTER_CSV_COLUMNS.join(','), ...rows.map((row) => row.map(escaped).join(','))].join('\r\n') + '\r\n';
+  const escaped = (value: string) => `"${(/^[=+\-@']/.test(value) ? "'" : '') + value.replace(/"/g, '""')}"`;
+  return (
+    [
+      [...REGISTER_CSV_COLUMNS, ENCODING_COLUMN].join(','),
+      ...rows.map((row) => [...row.map(escaped), TEMPLATE_ENCODING].join(',')),
+    ].join('\r\n') + '\r\n'
+  );
 }

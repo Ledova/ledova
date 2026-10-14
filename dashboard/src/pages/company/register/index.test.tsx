@@ -23,7 +23,7 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import CompanyRegisterPage from '.';
 import CompanyDashboardPage from '../dashboard';
 import CompanyRegisterImportPage from './import';
-import { REGISTER_CSV_COLUMNS, readRegisterCsv } from './import/csv';
+import { REGISTER_CSV_COLUMNS, readRegisterCsv, registerCsvTemplate } from './import/csv';
 import { blankAllotment, preparationProblems } from './import/preparation';
 import { APPOINTMENT as CURRENT_APPOINTMENT } from '../../../../../packages/shared/tests/fixtures/employee-awards';
 import { companyRecord, companyPreferences, prepareCompanyClient, renderCompanyPage } from '../testSupport';
@@ -178,6 +178,51 @@ it('brings complete mirror records from CSV, holds uncertain requests and confir
   const csv = `${header}\r\n${row}\r\n${second}\r\n`;
   expect(readRegisterCsv(csv)).toHaveLength(1);
   expect(readRegisterCsv(csv)[0].allotments).toHaveLength(2);
+  const existingMembers = readRegisterCsv(csv);
+  const existingId = existingMembers[0].member;
+  expect(() => readRegisterCsv(csv, existingMembers, true)).toThrow(/keep its holder_reference/);
+  const currentTemplate = registerCsvTemplate(existingMembers);
+  expect(readRegisterCsv(currentTemplate, existingMembers, true)[0].member).toBe(existingId);
+  const renamed = readRegisterCsv(
+    currentTemplate.replace(/Example Shareholder/g, 'Renamed Shareholder'),
+    existingMembers,
+    true,
+  );
+  expect(renamed[0].member).toBe(existingId);
+  expect(renamed[0].name).toBe('Renamed Shareholder');
+  const literalCases = [
+    '=Company',
+    '+Company',
+    '-Company',
+    '@Company',
+    "'=Company",
+    "'+Company",
+    "'-Company",
+    "'@Company",
+    "'Company",
+    "''=Company",
+  ];
+  for (const literal of literalCases) {
+    const source = readRegisterCsv(csv);
+    source[0].name = literal;
+    source[0].residentialAddress = literal;
+    source[0].allotments[0].shareReference = literal;
+    source[0].allotments[0].certificateReference = literal;
+    const roundTrip = readRegisterCsv(registerCsvTemplate(source), source, true)[0];
+    expect(roundTrip.name).toBe(literal);
+    expect(roundTrip.residentialAddress).toBe(literal);
+    expect(roundTrip.allotments[0].shareReference).toBe(literal);
+    expect(roundTrip.allotments[0].certificateReference).toBe(literal);
+  }
+  expect(readRegisterCsv(csv.replace(/Example Shareholder/g, "'=Company"))[0].name).toBe("'=Company");
+  expect(() => readRegisterCsv(currentTemplate.replace('ledova-excel-safe-v1', 'unknown'))).toThrow(
+    /value_encoding marker/,
+  );
+  expect(() => readRegisterCsv(currentTemplate.replace('ledova-excel-safe-v1', ''))).toThrow(/value_encoding marker/);
+  expect(() => readRegisterCsv(currentTemplate.replace('Example Shareholder', "'literal"))).toThrow(
+    /invalid escaped value/,
+  );
+
   expect(() => readRegisterCsv(csv.replace('400,0,yes', '400,,yes'))).toThrow(/explicitly/);
   expect(() => readRegisterCsv(`${header}\n${row}\n${second.replace('2020-01-01,600', '2020-01-01,601')}`)).toThrow(
     /same name/,

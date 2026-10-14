@@ -254,7 +254,9 @@ export function ImportForm({
       const text = new TextDecoder('utf-8', { fatal: true }).decode(await file.arrayBuffer());
       if (generation !== csvGeneration.current) return;
       checkNew();
-      const members = readRegisterCsv(text, draft.members);
+      const preserveMembers = !!correction || register?.initialized === true;
+      const known = register ? initialMembers(register, correction) : draft.members;
+      const members = readRegisterCsv(text, preserveMembers ? known : draft.members, preserveMembers);
       const next = { ...draft, members };
       const invalid = preparationProblems(next, today).filter((problem) => problem.startsWith('Shareholder'));
       if (invalid.length) throw new Error(invalid.join(' '));
@@ -387,6 +389,7 @@ export function ImportForm({
                   draft={draft}
                   today={today}
                   correction={!!correction}
+                  preserveMembers={!!correction || register?.initialized === true}
                   busy={busy}
                   differs={differs}
                   imported={imported}
