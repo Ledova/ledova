@@ -76,13 +76,13 @@ function flag(value: string, label: string, row: number) {
 
 function templateValue(value: string, row: number) {
   if (!value.startsWith("'")) {
-    if (/^[=+\-@]/.test(value))
+    if (/^[=+\-@\t\r]/.test(value))
       throw createUserFriendlyError(
-        `Row ${row}: keep the template’s safety prefixes on values beginning with =, +, - or @.`,
+        `Row ${row}: keep the template’s safety prefixes on values beginning with =, +, -, @, tabs or carriage returns.`,
       );
     return value;
   }
-  if (!/^'[=+\-@']/.test(value))
+  if (!/^'[=+\-@'\t\r]/.test(value))
     throw createUserFriendlyError(
       `Row ${row}: the marked template contains an invalid escaped value. Use an unmarked source CSV for literal text.`,
     );
@@ -238,7 +238,7 @@ export function registerCsvTemplate(members: MemberDraft[] = []) {
           'CERT-001',
         ],
       ];
-  const escaped = (value: string) => `"${(/^[=+\-@']/.test(value) ? "'" : '') + value.replace(/"/g, '""')}"`;
+  const escaped = (value: string) => `"${(/^[=+\-@'\t\r]/.test(value) ? "'" : '') + value.replace(/"/g, '""')}"`;
   return (
     [
       [...REGISTER_CSV_COLUMNS, ENCODING_COLUMN].join(','),

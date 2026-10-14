@@ -204,6 +204,8 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
     "'@Company",
     "'Company",
     "''=Company",
+    "'\tCompany",
+    "'\rCompany",
   ];
   for (const literal of literalCases) {
     const source = readRegisterCsv(csv);
@@ -216,6 +218,22 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
     expect(roundTrip.residentialAddress).toBe(literal);
     expect(roundTrip.allotments[0].shareReference).toBe(literal);
     expect(roundTrip.allotments[0].certificateReference).toBe(literal);
+  }
+  for (const prefix of ['\t', '\r']) {
+    const source = readRegisterCsv(csv);
+    const literal = `${prefix}Company`;
+    source[0].name = literal;
+    source[0].residentialAddress = literal;
+    source[0].allotments[0].shareReference = literal;
+    source[0].allotments[0].certificateReference = literal;
+    const template = registerCsvTemplate(source);
+    expect(template).toContain(`"'${literal}"`);
+    const canonical = readRegisterCsv(template, source, true)[0];
+    expect(canonical.name).toBe(literal.trim());
+    expect(canonical.residentialAddress).toBe(literal.trim());
+    expect(canonical.allotments[0].shareReference).toBe(literal.trim());
+    expect(canonical.allotments[0].certificateReference).toBe(literal.trim());
+    expect(() => readRegisterCsv(template.split(`'${prefix}`).join(prefix), source, true)).toThrow(/safety prefixes/);
   }
   expect(readRegisterCsv(csv.replace(/Example Shareholder/g, "'=Company"))[0].name).toBe("'=Company");
   expect(() => readRegisterCsv(currentTemplate.replace('ledova-excel-safe-v1', 'unknown'))).toThrow(
