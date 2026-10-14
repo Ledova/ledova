@@ -27,7 +27,7 @@ import CompanyDashboardPage from '../dashboard';
 import CompanyRegisterImportPage from './import';
 import { ImportForm } from './import/ImportForm';
 import { REGISTER_CSV_COLUMNS, readRegisterCsv, registerCsvTemplate } from './import/csv';
-import { blankAllotment, memberIdentityProblems, preparationProblems } from './import/preparation';
+import { blankAllotment, blankMember, memberIdentityProblems, preparationProblems } from './import/preparation';
 import { APPOINTMENT as CURRENT_APPOINTMENT } from '../../../../../packages/shared/tests/fixtures/employee-awards';
 import { companyRecord, companyPreferences, prepareCompanyClient, renderCompanyPage } from '../testSupport';
 
@@ -721,14 +721,22 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   );
   const opaque = crypto.randomUUID();
   expect(readRegisterCsv(csv.replace(/H001/g, opaque))[0].member).not.toBe(opaque);
-  expect(() =>
-    readRegisterCsv(
-      registerCsvTemplate([sameHolder]).replace(new RegExp(sameHolder.member, 'g'), opaque),
-      [],
-      false,
-      companyMembers,
-    ),
-  ).toThrow(/not in this company/);
+  const placeholder = {
+    ...blankMember(),
+    name: sameHolder.name,
+    residentialAddress: sameHolder.residentialAddress,
+    enteredOn: sameHolder.enteredOn,
+    shares: sameHolder.shares,
+    allotments: sameHolder.allotments,
+  };
+  const ownTemplate = registerCsvTemplate([placeholder]);
+  const ownUnresolved = readRegisterCsv(ownTemplate, [], false, companyMembers);
+  expect(ownUnresolved[0].member).not.toBe(placeholder.member);
+  expect(ownUnresolved[0].identityChoice).toBeUndefined();
+  expect(memberIdentityProblems(ownUnresolved, companyMembers, true)).toEqual(
+    expect.arrayContaining([expect.stringMatching(/explicitly choose/)]),
+  );
+  expect(() => readRegisterCsv(ownTemplate, existingMembers, true)).toThrow(/keep its holder_reference/);
   membersUnavailable = true;
   showJourney(DESTINATIONS.companyRegisterSetup.path);
   const retryChoices = await screen.findByRole('button', { name: 'Try again' });
@@ -748,9 +756,9 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   fireEvent.change(await screen.findByLabelText('Source record reference'), {
     target: { value: 'Company register held by the accountant' },
   });
-  const secondClassFile = new File([csv], 'second-class.csv', { type: 'text/csv' });
+  const secondClassFile = new File([ownTemplate], 'second-class.csv', { type: 'text/csv' });
   Object.defineProperty(secondClassFile, 'arrayBuffer', {
-    value: async () => new TextEncoder().encode(csv).buffer,
+    value: async () => new TextEncoder().encode(ownTemplate).buffer,
   });
   fireEvent.change(screen.getByLabelText('Bring a CSV'), { target: { files: [secondClassFile] } });
   await waitFor(() => expect(screen.getByDisplayValue('Example Shareholder')).toBeTruthy());

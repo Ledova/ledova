@@ -129,15 +129,6 @@ export function readRegisterCsv(
         `Row ${line}: this shareholder reference does not match an existing member. Download the current template and keep its holder_reference values. Add new shareholders manually after the CSV import.`,
       );
     if (
-      encoded &&
-      !known &&
-      !companyMember &&
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(row.holder_reference)
-    )
-      throw createUserFriendlyError(
-        `Row ${line}: this member UUID is not in this company. Choose an existing company shareholder or add a new one manually.`,
-      );
-    if (
       companyMember &&
       ((companyMember.name && row.name !== companyMember.name) ||
         (companyMember.residentialAddress && row.address !== companyMember.residentialAddress))
