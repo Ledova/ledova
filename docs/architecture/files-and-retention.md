@@ -113,8 +113,10 @@ row deletion; the orphan sweep removes only unreferenced copies. The
 decision's workflow.
 
 A [representative authority request](../plans/company-managed-registers/authority-requests.md#what-is-recorded)
-retains its private upload with the immutable request, readable only by its
-requester and never purged automatically.
+retains any supplied private upload with the immutable request, readable only by
+its requester and never purged automatically. Signup requests need no file;
+documents uploaded later belong to the company document record and do not alter
+the retained authority request.
 
 ## Validation and extraction
 

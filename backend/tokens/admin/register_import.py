@@ -49,7 +49,7 @@ class RegisterImportAdmin(admin.ModelAdmin):
         ] + super().get_urls()
 
     def resolve_evidence(self, request, uuid):
-        proposal = get_object_or_404(self.get_queryset(request), pk=uuid)
+        proposal = get_object_or_404(self.get_queryset(request).exclude(file=""), pk=uuid)
         return proposal, proposal.file, proposal.evidence_snapshot["mime_type"]
 
     def resolve_asic(self, request, uuid):
@@ -58,6 +58,8 @@ class RegisterImportAdmin(admin.ModelAdmin):
 
     @admin.display(description="Retained register document")
     def evidence_link(self, obj):
+        if not obj.file:
+            return obj.source_reference or "No uploaded copy"
         return format_html(
             '<a href="{}">Open retained document</a>', reverse("admin:tokens_registerimport_evidence", args=[obj.pk])
         )
@@ -65,7 +67,7 @@ class RegisterImportAdmin(admin.ModelAdmin):
     @admin.display(description="Retained ASIC extract")
     def asic_link(self, obj):
         if not obj.asic_file:
-            return "Staff-verified company document"
+            return "No ASIC cross-check copy" if obj.source_reference else "Staff-verified company document"
         return format_html(
             '<a href="{}">Open retained extract</a>', reverse("admin:tokens_registerimport_asic", args=[obj.pk])
         )

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import {
   REGISTER_AWARD_COPY as COPY,
   apiErrorSentence,
@@ -27,6 +27,8 @@ export function AwardVestingForm({
   blocked,
   onRecorded,
   onHeldChange,
+  visible = true,
+  canPrepare = true,
 }: {
   award: RegisterAward;
   appointment: OwnCompanyAppointment;
@@ -34,6 +36,8 @@ export function AwardVestingForm({
   blocked: boolean;
   onRecorded: () => Promise<unknown>;
   onHeldChange?: (held: boolean) => void;
+  visible?: boolean;
+  canPrepare?: boolean;
 }) {
   const [shares, setShares] = useState('');
   const [vestedOn, setVestedOn] = useState(() => new Date().toISOString().slice(0, 10));
@@ -42,6 +46,10 @@ export function AwardVestingForm({
   const [held, setHeld] = useState(false);
   const [error, setError] = useState('');
   const live = useRef(true);
+  const unavailable = useRef(blocked || !visible);
+  useLayoutEffect(() => {
+    unavailable.current = blocked || !visible;
+  }, [blocked, visible]);
   const pending = useRef(false);
   const upload = useRef<{ file: File; key: string; receipt: RegisterEvidence | null } | null>(null);
   const operation = useRef<{ request: RegisterAwardVestingPreparation; confirmed: boolean; uncertain: boolean } | null>(
@@ -55,6 +63,8 @@ export function AwardVestingForm({
   }, []);
   const check = () => {
     guard();
+    if (unavailable.current)
+      throw createUserFriendlyError('Refresh company access and vesting records before continuing.');
     if (!live.current) throw createUserFriendlyError('This vesting form is closed. Reopen it before continuing.');
   };
   const today = new Date().toISOString().slice(0, 10);
@@ -70,11 +80,13 @@ export function AwardVestingForm({
     if (pending.current || busy || blocked || (!operation.current && (problem || !file))) return;
     pending.current = true;
     setBusy(true);
+    onHeldChange?.(true);
     setError('');
     try {
       check();
       let command = operation.current;
       if (!command) {
+        if (!canPrepare) throw createUserFriendlyError('Current preparation authority is required to record vesting.');
         if (!file) return;
         if (upload.current?.file !== file) upload.current = { file, key: crypto.randomUUID(), receipt: null };
         const request = {
@@ -108,6 +120,7 @@ export function AwardVestingForm({
         setHeld(true);
         onHeldChange?.(true);
       }
+      let absent = false;
       if (command.uncertain && !command.confirmed) {
         try {
           check();
@@ -121,15 +134,42 @@ export function AwardVestingForm({
         } catch (cause) {
           check();
           if (failureStatus(cause) !== 404) throw cause;
+          absent = true;
         }
       }
       if (!command.confirmed) {
-        check();
-        const { data } = await recordRegisterAwardVesting(apiClient, command.request, { ledovaSubmissionGuard: check });
-        check();
-        if (!isRecordedRegisterAwardVesting(data, command.request, award.company))
-          throw createUserFriendlyError(COPY.VESTING_FAILED);
-        command.confirmed = true;
+        try {
+          check();
+          const { data } = await recordRegisterAwardVesting(apiClient, command.request, {
+            ledovaSubmissionGuard: check,
+          });
+          check();
+          if (!isRecordedRegisterAwardVesting(data, command.request, award.company))
+            throw createUserFriendlyError(COPY.VESTING_FAILED);
+          command.confirmed = true;
+        } catch (cause) {
+          const status = failureStatus(cause);
+          if (!absent || !status || status < 400 || status >= 500) throw cause;
+          check();
+          try {
+            const { data } = await getRegisterAwardVesting(apiClient, command.request.operationId, {
+              ledovaSubmissionGuard: check,
+            });
+            check();
+            if (!isRecordedRegisterAwardVesting(data, command.request, award.company))
+              throw createUserFriendlyError(COPY.VESTING_FAILED);
+            command.confirmed = true;
+          } catch (lookup) {
+            check();
+            if (failureStatus(lookup) !== 404) throw lookup;
+            operation.current = null;
+            setHeld(false);
+            setError(
+              'The original vesting event was not recorded and the request was refused. Close this form and start again with current company authority.',
+            );
+            return;
+          }
+        }
       }
       await onRecorded();
       operation.current = null;
@@ -158,18 +198,28 @@ export function AwardVestingForm({
       setError(apiErrorSentence(cause, COPY.VESTING_FAILED, COPY.VESTING_FAILED));
     } finally {
       pending.current = false;
-      if (live.current) setBusy(false);
+      if (live.current) {
+        setBusy(false);
+        onHeldChange?.(!!operation.current);
+      }
     }
   };
+  if (!visible) return null;
   return (
     <form
-      className="space-y-4"
+      className="space-y-5 rounded-xl border border-border-subtle bg-surface-tertiary p-4 sm:p-5"
       onSubmit={(event) => {
         event.preventDefault();
         void submit();
       }}
     >
-      <fieldset disabled={busy || blocked || held} className="space-y-4">
+      <p className="text-sm text-text-muted">
+        Record the company-confirmed event for {award.name}; this creates no issued shares.
+      </p>
+      <fieldset
+        disabled={busy || blocked || held || !canPrepare}
+        className="grid gap-4 sm:grid-cols-2 [&>p]:sm:col-span-2"
+      >
         <label className={LABEL}>
           {COPY.VESTING_SHARES}
           <input
@@ -207,12 +257,15 @@ export function AwardVestingForm({
           {error}
         </p>
       )}
-      <p className="text-sm text-text-muted">{COPY.RECOVERY_NOTE}</p>
-      <PageAction
-        label={busy ? 'Recording vesting…' : COPY.VEST}
-        disabled={busy || blocked || (!held && !!problem)}
-        onClick={() => void submit()}
-      />
+      {held && <p className="text-sm text-text-muted">{COPY.RECOVERY_NOTE}</p>}
+      <div className="flex justify-end border-t border-border-subtle pt-4">
+        <PageAction
+          primary
+          label={busy ? 'Recording vesting…' : COPY.VEST}
+          disabled={busy || blocked || (!held && (!canPrepare || !!problem))}
+          onClick={() => void submit()}
+        />
+      </div>
     </form>
   );
 }

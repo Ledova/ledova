@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Text, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { getActiveChains, sortWallets, useWalletSort } from '@ledova/shared';
+import { DESTINATIONS, getActiveChains, sortWallets, useWalletSort } from '@ledova/shared';
 import type { WalletsStackParamList } from '../../navigation/WalletsStackNavigator';
 import { Section, Action } from '../../components/Ledger';
 import { WalletSort, WalletSummary } from '../../components/wallet-list';
@@ -43,6 +43,7 @@ export function WalletsScreen() {
             <>
               <CryptoActions wallets={crud.hasError || !crud.isSettled ? null : crud.wallets} />
               <Action label="Add wallet" onPress={form.openAddModal} disabled={blocked} primary />
+              <Action label={DESTINATIONS.walletHoldings.title} onPress={() => navigation.navigate('WalletShares')} />
               <Action
                 label={syncingAll ? 'Syncing wallets…' : 'Sync balances'}
                 onPress={() => void syncAll()}

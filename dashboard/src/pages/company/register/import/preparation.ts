@@ -1,12 +1,24 @@
 import {
   registerImportTotals,
+  registerImportMoney,
   wholeShares,
+  type RegisterImport,
+  type RegisterImportAllotment,
+  type RegisterImportCurrentMemberRow,
   type RegisterImportFormerRow,
-  type RegisterImportMemberRow,
   type TokenHoldersResponse,
+  type RegisterTransferMember,
 } from '@ledova/shared';
 
-export type Authority = 'director_resolution' | 'court_order';
+export type AllotmentDraft = Omit<
+  RegisterImportAllotment,
+  'shareReference' | 'certificateReference' | 'beneficiallyHeld'
+> & {
+  id: string;
+  shareReference: string;
+  certificateReference: string;
+  beneficiallyHeld: boolean | null;
+};
 
 export type MemberDraft = {
   member: string;
@@ -14,7 +26,8 @@ export type MemberDraft = {
   residentialAddress: string;
   shares: string;
   enteredOn: string;
-  amountPaid: string;
+  allotments: AllotmentDraft[];
+  identityChoice?: 'existing' | 'new';
 };
 
 export type FormerDraft = { id: string; name: string; residentialAddress: string; shares: string; ceasedOn: string };
@@ -22,9 +35,10 @@ export type FormerDraft = { id: string; name: string; residentialAddress: string
 export type PreparationDraft = {
   registerFile: File | null;
   asicFile: File | null;
+  registerEvidence?: string;
+  asicEvidence?: string;
+  earlierCopiesNotReused?: boolean;
   asAt: string;
-  authority: Authority;
-  director: string;
   reference: string;
   reason: string;
   members: MemberDraft[];
@@ -34,42 +48,122 @@ export type PreparationDraft = {
 };
 
 const DAY = /^\d{4}-\d{2}-\d{2}$/;
-const MONEY = /^(0|[1-9][0-9]{0,17})(\.[0-9]{1,2})?$/;
 
 export function positiveShares(value: string) {
   const shares = wholeShares(value.trim());
-  return shares !== null && shares > 0n ? shares.toString() : null;
+  return shares !== null && shares > 0n && shares < 2n ** 256n ? shares.toString() : null;
+}
+
+export function blankAllotment(): AllotmentDraft {
+  return {
+    id: crypto.randomUUID(),
+    allottedOn: '',
+    shares: '',
+    shareReference: '',
+    certificateReference: '',
+    amountPaid: '',
+    amountUnpaid: '',
+    fullyPaid: true,
+    beneficiallyHeld: null,
+  };
 }
 
 export function blankMember(): MemberDraft {
-  return { member: crypto.randomUUID(), name: '', residentialAddress: '', shares: '', enteredOn: '', amountPaid: '' };
+  return {
+    member: crypto.randomUUID(),
+    name: '',
+    residentialAddress: '',
+    shares: '',
+    enteredOn: '',
+    allotments: [blankAllotment()],
+  };
 }
 
 export function blankFormer(): FormerDraft {
   return { id: crypto.randomUUID(), name: '', residentialAddress: '', shares: '', ceasedOn: '' };
 }
 
-export function initialMembers(register: TokenHoldersResponse): MemberDraft[] {
+export function initialMembers(register: TokenHoldersResponse, correction?: RegisterImport): MemberDraft[] {
+  if (correction)
+    return correction.members.map((row) => ({
+      member: row.member,
+      name: row.name,
+      residentialAddress: row.residentialAddress,
+      shares: row.shares,
+      enteredOn: row.enteredOn,
+      allotments: row.allotments?.length
+        ? row.allotments.map((allotment) => ({
+            ...allotment,
+            id: crypto.randomUUID(),
+            shareReference: allotment.shareReference ?? '',
+            certificateReference: allotment.certificateReference ?? '',
+          }))
+        : [blankAllotment()],
+    }));
   if (!register.initialized) return [blankMember()];
   return register.holders.map((holder) => ({
     member: holder.member,
     name: holder.name ?? '',
     residentialAddress: '',
     shares: holder.balance,
-    enteredOn: '',
-    amountPaid: '',
+    enteredOn: holder.enteredOn,
+    allotments: [blankAllotment()],
   }));
 }
 
-export function memberRows(members: MemberDraft[]): RegisterImportMemberRow[] {
+export function memberRows(members: MemberDraft[]): RegisterImportCurrentMemberRow[] {
   return members.map((row) => ({
     member: row.member,
     name: row.name.trim(),
     residentialAddress: row.residentialAddress.trim(),
     shares: positiveShares(row.shares) ?? row.shares.trim(),
     enteredOn: row.enteredOn,
-    amountPaid: row.amountPaid.trim() || null,
+    allotments: row.allotments.map((allotment) => {
+      if (allotment.beneficiallyHeld === null)
+        throw new Error('Choose whether these shares are held beneficially from the source records.');
+      return {
+        allottedOn: allotment.allottedOn,
+        fullyPaid: allotment.fullyPaid,
+        beneficiallyHeld: allotment.beneficiallyHeld,
+        shares: positiveShares(allotment.shares) ?? allotment.shares.trim(),
+        amountPaid: registerImportMoney(allotment.amountPaid) ?? allotment.amountPaid.trim(),
+        amountUnpaid: registerImportMoney(allotment.amountUnpaid) ?? allotment.amountUnpaid.trim(),
+        shareReference: allotment.shareReference.trim() || null,
+        certificateReference: allotment.certificateReference.trim() || null,
+      };
+    }),
   }));
+}
+
+export function memberIdentityProblems(
+  members: MemberDraft[],
+  known: RegisterTransferMember[],
+  preserveParticulars: boolean,
+) {
+  const problems: string[] = [];
+  if (new Set(members.map((row) => row.member)).size !== members.length)
+    problems.push('Each company shareholder can appear only once in this class. Combine their allotments in one row.');
+  members.forEach((row, index) => {
+    const member = known.find((candidate) => candidate.member === row.member);
+    if (row.identityChoice === 'existing' && !member)
+      problems.push(
+        `Shareholder ${index + 1}: the existing company member is no longer available. Refresh before continuing.`,
+      );
+    if (known.length && !member && row.identityChoice !== 'new')
+      problems.push(
+        `Shareholder ${index + 1}: choose an existing company shareholder or explicitly choose a new shareholder.`,
+      );
+    if (
+      preserveParticulars &&
+      member &&
+      ((member.name && row.name !== member.name) ||
+        (member.residentialAddress && row.residentialAddress !== member.residentialAddress))
+    )
+      problems.push(
+        `Shareholder ${index + 1}: keep the existing company name and address. Correct company particulars from Register separately.`,
+      );
+  });
+  return problems;
 }
 
 export function formerRows(former: FormerDraft[]): RegisterImportFormerRow[] {
@@ -82,40 +176,68 @@ export function formerRows(former: FormerDraft[]): RegisterImportFormerRow[] {
 }
 
 export function statedFigures(draft: PreparationDraft) {
-  const total = wholeShares(draft.statedTotal.trim());
-  const count = /^\d+$/.test(draft.statedCount.trim()) ? Number(draft.statedCount.trim()) : null;
-  return total === null || count === null || !Number.isSafeInteger(count) ? null : { total: total.toString(), count };
+  const total = draft.statedTotal.trim() ? wholeShares(draft.statedTotal.trim()) : undefined;
+  const count = draft.statedCount.trim()
+    ? /^\d+$/.test(draft.statedCount.trim())
+      ? Number(draft.statedCount.trim())
+      : null
+    : undefined;
+  return total === null || count === null || (count !== undefined && !Number.isSafeInteger(count))
+    ? null
+    : { total: total?.toString(), count };
 }
 
 export function figuresDiffer(draft: PreparationDraft) {
   const stated = statedFigures(draft);
-  const imported = registerImportTotals(memberRows(draft.members));
-  return stated !== null && (stated.total !== imported.total || stated.count !== imported.count);
+  const imported = registerImportTotals(draft.members);
+  return stated?.total !== undefined && stated.total !== imported.total;
 }
 
 export function preparationProblems(draft: PreparationDraft, today: string) {
   const problems: string[] = [];
-  const dated = (day: string) => DAY.test(day) && day <= draft.asAt;
+  const dated = (day: string) =>
+    DAY.test(day) &&
+    Number.isFinite(Date.parse(`${day}T00:00:00Z`)) &&
+    new Date(`${day}T00:00:00Z`).toISOString().slice(0, 10) === day &&
+    day <= draft.asAt;
   const incomplete = (row: { name: string; residentialAddress: string; shares: string }) =>
     !row.name.trim() || !row.residentialAddress.trim() || positiveShares(row.shares) === null;
-  if (!draft.registerFile || !draft.asicFile) problems.push('Choose the current share register and the ASIC extract.');
-  if (!DAY.test(draft.asAt) || draft.asAt > today) problems.push('Enter a register date that is not in the future.');
-  if (draft.authority === 'director_resolution' && !draft.director.trim())
-    problems.push('Name the approving director for a resolution.');
-  if (!draft.reference.trim() || !draft.reason.trim()) problems.push('Give the authority reference and the reason.');
-  if (draft.members.length === 0) problems.push('The import needs at least one current member.');
-  if (draft.members.some((row) => incomplete(row) || !dated(row.enteredOn)))
-    problems.push(
-      "Complete each current member's name, residential address, shares and a date entered no later than the " +
-        'register date.',
-    );
-  if (draft.members.some((row) => row.amountPaid.trim() && !MONEY.test(row.amountPaid.trim())))
-    problems.push('Enter each amount paid as a plain amount such as 250.00, or leave it blank when it is not known.');
+  if (!dated(draft.asAt) || draft.asAt > today) problems.push('Enter a record date that is not in the future.');
+  if (!draft.reference.trim()) problems.push('The record attribution is unavailable. Reload the setup and try again.');
+  if (!draft.reason.trim()) problems.push('Give a reason for correcting the mirror.');
+  if (draft.members.length === 0) problems.push('Add at least one current shareholder.');
+  draft.members.forEach((row, index) => {
+    const label = `Shareholder ${index + 1}`;
+    if (incomplete(row) || !dated(row.enteredOn))
+      problems.push(
+        `${label}: enter a name, address, shares and original membership date no later than the record date.`,
+      );
+    if (row.allotments.length === 0) problems.push(`${label}: add the allotments underlying this holding.`);
+    let total = 0n;
+    row.allotments.forEach((allotment, at) => {
+      const prefix = `${label}, allotment ${at + 1}`;
+      const shares = positiveShares(allotment.shares);
+      if (allotment.beneficiallyHeld === null)
+        problems.push(`${prefix}: choose whether the shares are held beneficially from the source records.`);
+      if (!dated(allotment.allottedOn) || shares === null)
+        problems.push(`${prefix}: enter shares and an allotment date no later than the record date.`);
+      if (shares !== null) total += BigInt(shares);
+      if (registerImportMoney(allotment.amountPaid) === null || registerImportMoney(allotment.amountUnpaid) === null)
+        problems.push(`${prefix}: enter paid and unpaid amounts, using 0 where none is recorded.`);
+      if (
+        registerImportMoney(allotment.amountUnpaid) !== null &&
+        allotment.fullyPaid !== (registerImportMoney(allotment.amountUnpaid) === '0.00')
+      )
+        problems.push(`${prefix}: payment status must agree with the unpaid amount.`);
+    });
+    const shares = positiveShares(row.shares);
+    if (shares !== null && total !== BigInt(shares))
+      problems.push(`${label}: allotment shares must add up to the current holding.`);
+  });
   if (draft.former.some((row) => incomplete(row) || !dated(row.ceasedOn)))
-    problems.push(
-      "Complete each former member's name, residential address, shares and a date ceased no later than the register " +
-        'date.',
-    );
-  if (!statedFigures(draft)) problems.push("State the ASIC extract's issued shares and member count for this class.");
+    problems.push('Complete any former shareholder details copied from the source record.');
+  if ((draft.statedTotal.trim() || draft.statedCount.trim()) && !draft.asicFile && !draft.asicEvidence)
+    problems.push('Attach the optional ASIC extract when entering its comparison figures.');
+  if (!statedFigures(draft)) problems.push('Enter valid whole-number comparison figures or leave them blank.');
   return problems;
 }

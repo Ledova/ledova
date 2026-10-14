@@ -4,6 +4,9 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from companies.models import CompanyAppointment, CompanyTeamInvitation
+from companies.serializers.authority_request import (
+    CompanyAuthorityRequestAdmissionSerializer,
+)
 from companies.serializers.team import (
     CompanyAppointmentRevokeSerializer,
     CompanyTeamAppointmentSerializer,
@@ -15,6 +18,7 @@ from companies.serializers.team import (
     OwnCompanyAppointmentSerializer,
 )
 from companies.services.authority_requests import _require_requester
+from companies.services.signup_terms import accept_signup_terms
 from companies.services.team import (
     accept_team_invitation,
     company_team,
@@ -100,6 +104,8 @@ class CompanyAppointmentViewSet(mixins.ListModelMixin, AuthenticatedGenericViewS
         )
 
     def get_serializer_class(self):
+        if self.action == "signup_terms":
+            return CompanyAuthorityRequestAdmissionSerializer
         if self.action == "revoke":
             return CompanyAppointmentRevokeSerializer
         if self.action == "team":
@@ -124,4 +130,15 @@ class CompanyAppointmentViewSet(mixins.ListModelMixin, AuthenticatedGenericViewS
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         appointment = revoke_company_appointment(requester=request.user, appointment_id=uuid)
+        return Response(OwnCompanyAppointmentSerializer(appointment, context=self.get_serializer_context()).data)
+
+    @extend_schema(
+        request=CompanyAuthorityRequestAdmissionSerializer,
+        responses={200: OwnCompanyAppointmentSerializer},
+    )
+    @action(detail=True, methods=["post"], url_path="signup-terms")
+    def signup_terms(self, request, uuid=None):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        appointment = accept_signup_terms(requester=request.user, appointment_id=uuid, **serializer.validated_data)
         return Response(OwnCompanyAppointmentSerializer(appointment, context=self.get_serializer_context()).data)

@@ -3,9 +3,7 @@ import { useSignIn } from './useSignIn';
 import { Field, Label, Input, Description } from '@headlessui/react';
 import { EyeIcon, EyeSlashIcon, EnvelopeIcon, LockIcon, WarningIcon } from '@phosphor-icons/react';
 import { AuthLayout } from '@components/AuthLayout';
-import { getUserAccount, landingFor } from '@ledova/shared';
 import { ICON_MD } from '@components/iconSizes';
-import apiClient from '@services/apiClient';
 
 export function SignInPage() {
   const navigate = useNavigate();
@@ -14,14 +12,7 @@ export function SignInPage() {
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
-    await handleSubmit(async () => {
-      try {
-        const { data: account } = await getUserAccount(apiClient);
-        navigate(landingFor(account.role ?? 'investor'));
-      } catch {
-        navigate('/');
-      }
-    });
+    await handleSubmit(() => navigate('/'));
   };
 
   return (

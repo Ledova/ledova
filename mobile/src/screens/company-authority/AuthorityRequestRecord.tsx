@@ -1,11 +1,11 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { Alert, Text, View } from 'react-native';
+import { Alert, Linking, Text, View } from 'react-native';
 import * as Sharing from 'expo-sharing';
 import {
   apiErrorSentence,
   COMPANY_AUTHORITY_CAPABILITIES,
-  COMPANY_AUTHORITY_DECLARATION,
-  COMPANY_AUTHORITY_DECLARATION_VERSION,
+  COMPANY_SIGNUP_DECLARATION,
+  COMPANY_SIGNUP_DECLARATION_VERSION,
   downloadCompanyAuthorityFile,
   formatDateTime,
   type CompanyAuthorityRequest,
@@ -15,6 +15,7 @@ import { Action, Choice, Disclosure, Row, Rows } from '../../components/Ledger';
 import { apiClient } from '../../services/apiClient';
 import { EXTENSION_BY_MIME_TYPE, shareDocumentCopy, UTI_BY_MIME_TYPE } from '../../services/documentCopies';
 import { getSessionEpoch } from '../../services/sessionScope';
+import { PUBLIC_LINKS } from '../../config/publicLinks';
 import { useCompanyStyles } from '../company-register/styles';
 
 function scopeLabels(values: CompanyCapability[]) {
@@ -153,11 +154,11 @@ export function AuthorityRequestRecord({
   };
   return (
     <Disclosure
-      accessibilityLabel={`Request ${request.originalFilename}`}
+      accessibilityLabel={`Request ${request.originalFilename || request.companyIdentityRaw.name}`}
       summary={
         <View style={styles.group}>
           <Text style={styles.heading}>{request.companyIdentityRaw.name}</Text>
-          <Text style={styles.text}>{request.originalFilename}</Text>
+          {request.originalFilename && <Text style={styles.text}>{request.originalFilename}</Text>}
           <Text style={styles.muted}>
             {request.status === 'withdrawn' ? 'Withdrawn' : request.status === 'admitted' ? 'Admitted' : 'Pending'}
             {recordedAt && ` · ${formatDateTime(recordedAt)}`}
@@ -182,23 +183,35 @@ export function AuthorityRequestRecord({
           <Row label="Request" mono>
             {request.uuid}
           </Row>
-          <Row label="Evidence fingerprint" mono>
-            {request.fileSha256}
-          </Row>
+          {request.fileSha256 && (
+            <Row label="Evidence fingerprint" mono>
+              {request.fileSha256}
+            </Row>
+          )}
         </Rows>
-        <Action label="View retained evidence" disabled={blocked || opening} onPress={() => void open()} />
+        {request.fileUrl && (
+          <Action label="View retained evidence" disabled={blocked || opening} onPress={() => void open()} />
+        )}
         {request.status === 'pending' && (
           <View style={styles.group}>
             {request.requestedCapabilities.includes('admin') ? (
               <>
-                <Text style={styles.text}>{COMPANY_AUTHORITY_DECLARATION}</Text>
+                <Text style={styles.text}>{COMPANY_SIGNUP_DECLARATION}</Text>
                 <Text style={styles.muted}>
-                  Declaration version {COMPANY_AUTHORITY_DECLARATION_VERSION}. Your appointment uses the exact
-                  permissions, delegation and expiry of this request. It does not activate the company or approve any
-                  register action.
+                  Declaration version {COMPANY_SIGNUP_DECLARATION_VERSION}. Your appointment uses the exact permissions,
+                  delegation and expiry of this request. It does not activate the company or approve any register
+                  action.
                 </Text>
+                <Action
+                  label="Terms of Service"
+                  onPress={() =>
+                    void Linking.openURL(PUBLIC_LINKS.termsOfService).catch(() =>
+                      Alert.alert('Terms of Service', 'The terms could not be opened. Try again.'),
+                    )
+                  }
+                />
                 <Choice
-                  label="Accept authorisation declaration"
+                  label="Accept authority declaration and Terms"
                   accessibilityRole="checkbox"
                   selected={accepted}
                   disabled={blocked || !!changing}

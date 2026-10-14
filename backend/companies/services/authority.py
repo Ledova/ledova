@@ -35,10 +35,16 @@ DECLARATION_TEXT = (
     "I am authorised to act for this company. The company is responsible for the company and share information "
     "it provides, its ASIC filings and legal obligations."
 )
+SIGNUP_DECLARATION_VERSION = "2026-10-14"
+SIGNUP_DECLARATION_TEXT = (
+    "I am authorised to set up and administer this company’s workspace, including managing its users, "
+    "and I accept the Terms of Service (version 2026-10-14) on the company’s behalf. The company is responsible "
+    "for the company and share information it provides, its ASIC filings and legal obligations."
+)
 
 
-def _require_declaration(declaration_version, accept_declaration):
-    if declaration_version != DECLARATION_VERSION or accept_declaration is not True:
+def _require_declaration(declaration_version, accept_declaration, *, version=DECLARATION_VERSION):
+    if declaration_version != version or accept_declaration is not True:
         raise ValidationError({"accept_declaration": "Accept the current company authorisation declaration."})
 
 
@@ -93,7 +99,7 @@ def _retained_request(request_id):
 
 def admit_authority_request(*, requester, request_id, declaration_version, accept_declaration):
     _require_requester(requester)
-    _require_declaration(declaration_version, accept_declaration)
+    _require_declaration(declaration_version, accept_declaration, version=SIGNUP_DECLARATION_VERSION)
     with use_app(), _requester_principal(requester.pk):
         get_object_or_404(CompanyAuthorityRequest.objects.filter(requester=requester), pk=request_id)
     with use_operator(), _requester_principal(requester.pk):
@@ -129,8 +135,8 @@ def admit_authority_request(*, requester, request_id, declaration_version, accep
                 capabilities=proposal.requested_capabilities,
                 delegatable_capabilities=proposal.delegatable_capabilities,
                 expires_at=proposal.requested_expires_at,
-                declaration_version=DECLARATION_VERSION,
-                declaration_text=DECLARATION_TEXT,
+                declaration_version=SIGNUP_DECLARATION_VERSION,
+                declaration_text=SIGNUP_DECLARATION_TEXT,
             )
             return _retained_request(proposal.pk)
 

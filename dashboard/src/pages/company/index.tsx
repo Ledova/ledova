@@ -40,6 +40,7 @@ function CompanyDetails({ data }: { data: ReturnType<typeof useCompany> }) {
   return (
     <>
       <Page
+        narrow
         loading={data.isLoading}
         actions={
           !data.error &&
@@ -82,6 +83,8 @@ function CompanyDetails({ data }: { data: ReturnType<typeof useCompany> }) {
                   </Row>
                 )}
               </Rows>
+            </Section>
+            <Section title="Company administration">
               <div className="divide-y divide-border-subtle">
                 {data.ownerBusiness && (
                   <>
@@ -140,7 +143,9 @@ function CompanyDetails({ data }: { data: ReturnType<typeof useCompany> }) {
                             {token.symbol} · {token.tokenTypeDisplay}
                           </p>
                           <p className="break-all text-text-muted">
-                            {formatShareCount(token.totalSupply)} authorised shares
+                            {token.totalSupply !== (2n ** 256n - 1n).toString()
+                              ? `${formatShareCount(token.totalSupply)} authorised shares`
+                              : 'Internal quantity guard'}
                           </p>
                         </LinkRow>
                       </li>
@@ -152,6 +157,7 @@ function CompanyDetails({ data }: { data: ReturnType<typeof useCompany> }) {
                 )}
                 <PageAction
                   label="Create share class"
+                  primary
                   onClick={() => setCreating(company)}
                   disabled={data.isRefreshing}
                 />

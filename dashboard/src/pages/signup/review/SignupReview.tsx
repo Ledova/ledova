@@ -32,6 +32,10 @@ export function SignupReview() {
     isSubmitting,
     canCompleteSignup,
     retryLoad,
+    authorityRequest,
+    authorityError,
+    resetAuthorityRequest,
+    isResettingAuthority,
   } = useReview();
 
   const handleBack = () => {
@@ -79,8 +83,14 @@ export function SignupReview() {
             <ClipboardTextIcon size={ICON_LG} className="text-text-muted" />
           </div>
         </div>
-        <h1 className="mb-2 font-display text-3xl tracking-[-0.01em] text-text-primary">Review & Confirm</h1>
-        <p className="text-sm text-text-muted">Please review your information before completing signup</p>
+        <h1 className="mb-2 font-display text-3xl tracking-[-0.01em] text-text-primary">
+          {isCompany ? 'Complete company setup' : 'Review & Confirm'}
+        </h1>
+        <p className="text-sm text-text-muted">
+          {isCompany
+            ? 'Review your saved details. Documents and team setup can wait until your dashboard.'
+            : 'Please review your information before completing signup'}
+        </p>
       </div>
 
       <div className="space-y-4">
@@ -113,7 +123,6 @@ export function SignupReview() {
           <Section title="Company Information">
             {company ? (
               <div className="space-y-4">
-                <p className="text-sm text-text-muted">Company information is provided by the company.</p>
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-text-muted">Company Name:</span>
                   <span className="text-sm text-text-primary font-medium">{company.name}</span>
@@ -187,27 +196,63 @@ export function SignupReview() {
         )}
 
         <div className="rounded-xl border border-border bg-surface-raised p-4 sm:p-5">
-          <p className="text-sm text-text-body leading-relaxed mb-4">
-            By completing signup, you accept the{' '}
-            <a
-              href={`${SITE_URL}/terms-of-service`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-brand-light hover:text-brand-subtle underline"
-            >
-              Terms of Service
-            </a>{' '}
-            and{' '}
-            <a
-              href={`${SITE_URL}/privacy-policy`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-brand-light hover:text-brand-subtle underline"
-            >
-              Privacy Policy
-            </a>
-            .
-          </p>
+          {isCompany && company ? (
+            <div className="space-y-3 mb-4 text-sm text-text-body">
+              <p className="leading-relaxed">
+                By completing setup, you confirm that you are authorised to administer {company.name}, including
+                managing its users, and accept the{' '}
+                <a
+                  href={`${SITE_URL}/terms-of-service`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-brand-light hover:text-brand-subtle underline"
+                >
+                  Terms of Service
+                </a>{' '}
+                on the company’s behalf.
+              </p>
+              {authorityError && (
+                <div role="alert" className="space-y-2 text-error-light">
+                  <p>{authorityError}</p>
+                  {authorityRequest?.status === 'pending' && (
+                    <button
+                      type="button"
+                      disabled={isSubmitting || isResettingAuthority}
+                      onClick={() => void resetAuthorityRequest().catch(() => undefined)}
+                      className="font-semibold underline disabled:opacity-50"
+                    >
+                      Update saved setup
+                    </button>
+                  )}
+                  <button type="button" onClick={() => void retryLoad()} className="font-semibold underline">
+                    Refresh company setup
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <p className="text-sm text-text-body leading-relaxed mb-4">
+              By completing signup, you accept the{' '}
+              <a
+                href={`${SITE_URL}/terms-of-service`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-brand-light hover:text-brand-subtle underline"
+              >
+                Terms of Service
+              </a>{' '}
+              and{' '}
+              <a
+                href={`${SITE_URL}/privacy-policy`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-brand-light hover:text-brand-subtle underline"
+              >
+                Privacy Policy
+              </a>
+              .
+            </p>
+          )}
           {!canCompleteSignup && (
             <p className="text-sm text-error-light text-center mb-4">
               Please ensure all information is complete to proceed.
@@ -220,8 +265,8 @@ export function SignupReview() {
           )}
           <button
             type="button"
-            onClick={completeSignup}
-            disabled={!canCompleteSignup || isSubmitting}
+            onClick={() => void completeSignup().catch(() => undefined)}
+            disabled={!canCompleteSignup || isSubmitting || isResettingAuthority}
             className="w-full bg-brand-mid hover:bg-brand disabled:bg-surface-disabled disabled:text-text-secondary disabled:cursor-not-allowed text-white font-semibold py-3 px-4 rounded-lg transition-colors shadow-lg shadow-brand-light/40 disabled:shadow-none focus:outline-none focus:ring-2 focus:ring-border-focus focus:ring-offset-2 focus:ring-offset-surface-base"
           >
             {isSubmitting ? (
@@ -229,6 +274,8 @@ export function SignupReview() {
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
                 <span>Completing...</span>
               </div>
+            ) : isCompany ? (
+              'Complete company setup'
             ) : (
               'Complete Signup'
             )}
@@ -250,7 +297,7 @@ export function SignupReview() {
           <button
             type="button"
             onClick={handleBack}
-            disabled={isSubmitting}
+            disabled={isSubmitting || isResettingAuthority}
             className="font-semibold text-brand-light hover:text-brand-subtle transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Go Back

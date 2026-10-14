@@ -18,6 +18,58 @@ put the development workflow ([#943](https://github.com/Ledova/ledova/issues/943
 closed 11 October) first and orders the remaining register work; new integrated
 AUD payments, trading, advanced governance and filings are deferred.
 
+The [11 October journey cleanup](https://github.com/Ledova/ledova/issues/1000)
+organised these existing capabilities around My shares and four company
+destinations, with named invitations and focused investor and employee issue
+tasks. The 12 October web increments
+([#1012](https://github.com/Ledova/ledova/issues/1012),
+[#1013](https://github.com/Ledova/ledova/issues/1013) and
+[#1014](https://github.com/Ledova/ledova/issues/1014)) add a compact sidebar,
+company ownership Dashboard, consolidated Settings and personal holdings and
+award charts. The
+[14 October signup increment](https://github.com/Ledova/ledova/issues/1020)
+combines company details and initial admission in the existing Company details →
+Review flow on both clients. Its
+[same-day simplification](https://github.com/Ledova/ledova/issues/1022) keeps one
+visible authority/Terms statement beside the final button and moves files and
+team setup to the dashboard settings. Completing setup explicitly accepts that
+declaration without a checkbox. Initial personal `admin` and all six delegatable capabilities
+allow later team invitations; signup has no file or permission picker. Saved
+company/profile data and unfinished sign-in resumption keep the flow recoverable.
+Existing current administrator appointments resume without changing their
+original scopes; the final action records current Terms acceptance when needed.
+Identity, ABR and checked-file safeguards for actual uploads remain; completion
+neither activates the company nor issues shares. The
+[authority guide](authority-requests.md#company-signup) describes this flow.
+Native signed-in navigation is unchanged. The guides below describe the
+delivered structure on web and mobile.
+
+The owner's [existing-register mirror decision](../../decisions.md#existing-register-mirror-and-simple-setup)
+under [#1025](https://github.com/Ledova/ledova/issues/1025) keeps the company's
+legal register, historical records, lawful access arrangements and filings with
+the company. Setup mirrors its supplied ownership records; it neither replaces
+those arrangements nor issues existing shares again. The
+[import guide](../../operations/register-foundation.md#importing-an-existing-register)
+owns copied particulars, source attribution and bounded opening corrections.
+[PR #1026](https://github.com/Ledova/ledova/pull/1026) delivers copied fields and
+correction safeguards. Web setup under
+[#1029](https://github.com/Ledova/ledova/issues/1029) guides Share details →
+Shareholders → Review, with a shareholder table and one Confirm action,
+individual draft editors, manual entry, recovered confirmations and
+a return to ownership. The inactive Import button's tooltip marks document
+extraction Coming soon; optional supporting copies do not extract data. Future
+extracted values use the same editable forms.
+[The owner's CSV removal](https://github.com/Ledova/ledova/issues/1036) keeps
+entry manual; CSV import and templates are not supported.
+Native clients retain separate preparation and decision screens.
+
+The signed-in web refinement under [#1031](https://github.com/Ledova/ledova/issues/1031)
+uses the existing cards and controls with bounded task forms, aligned summaries,
+consistent dates and primary actions. Saved setup records show Recorded without
+an active setup step. Company operations, personal records, Profile and Settings
+share the same presentation; current status and permissions stay visible, with
+full audit details available separately. Signup and native presentation are unchanged.
+
 Verification references in the guides are each increment's original evidence;
 the [11 October minimum-test policy](../../decisions.md#minimum-tests-and-fresh-migrations)
 governs current coverage.
@@ -42,8 +94,8 @@ governs current coverage.
 | [#866](https://github.com/Ledova/ledova/issues/866) | Own Profile name and residential address                                                                        | [member-profile.md](member-profile.md)                                                           | [#953](https://github.com/Ledova/ledova/pull/953)                                                    |
 | #866                                                | Member-specific invitations, own records and company-reviewed particulars and certificate requests              | [member-access.md](member-access.md)                                                             | [#985](https://github.com/Ledova/ledova/pull/985)                                                    |
 | [#871](https://github.com/Ledova/ledova/issues/871) | Company inspection copies                                                                                       | [company-inspection-copies.md](company-inspection-copies.md)                                     | [#954](https://github.com/Ledova/ledova/pull/954)                                                    |
-| #871                                                | Company certificates, core pack provenance/download and recipient-only member fulfilment                        | [register-outputs.md](register-outputs.md)                                                       | [#986](https://github.com/Ledova/ledova/pull/986)                                                     |
-| [#873](https://github.com/Ledova/ledova/issues/873) | Fresh-schema essential company/member journey and actual outputs                                                | [11 October observation](../../operations/evidence/essential-register-2026-10-11.md)              | Final acceptance increment under #873                                                                |
+| #871                                                | Company certificates, core pack provenance/download and recipient-only member fulfilment                        | [register-outputs.md](register-outputs.md)                                                       | [#986](https://github.com/Ledova/ledova/pull/986)                                                    |
+| [#873](https://github.com/Ledova/ledova/issues/873) | Fresh-schema essential company/member journey and actual outputs                                                | [11 October observation](../../operations/evidence/essential-register-2026-10-11.md)             | Final acceptance increment under #873                                                                |
 
 Two guides describe non-paid grants: company-register-issues.md covers
 **on-chain** grants minted on a deployed class, and register-grants.md covers
@@ -51,10 +103,10 @@ Two guides describe non-paid grants: company-register-issues.md covers
 
 ## Remaining scope
 
-| Issue                                               | Remaining                                                                                                                                                                                                        | Current prerequisites                                                       |
-| --------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
-| [#624](https://github.com/Ledova/ledova/issues/624) | Physical-device and live human release acceptance                                                                                                                                                               | Genuine device/human and configured-chain evidence                         |
-| Deferred                                            | [#869](https://github.com/Ledova/ledova/issues/869) trading and settlement, [#870](https://github.com/Ledova/ledova/issues/870) advanced governance, [#872](https://github.com/Ledova/ledova/issues/872) filings | Scheduled by the owner; no essential increment waits for them               |
+| Issue                                               | Remaining                                                                                                                                                                                                        | Current prerequisites                                         |
+| --------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| [#624](https://github.com/Ledova/ledova/issues/624) | Physical-device and live human release acceptance                                                                                                                                                                | Genuine device/human and configured-chain evidence            |
+| Deferred                                            | [#869](https://github.com/Ledova/ledova/issues/869) trading and settlement, [#870](https://github.com/Ledova/ledova/issues/870) advanced governance, [#872](https://github.com/Ledova/ledova/issues/872) filings | Scheduled by the owner; no essential increment waits for them |
 
 ## Ownership boundaries
 
@@ -72,5 +124,6 @@ are in decisions.md. Closed [#645](https://github.com/Ledova/ledova/issues/645)
 and its phase tickets delivered the earlier foundation, closed
 [#846](https://github.com/Ledova/ledova/issues/846) the synthetic fixtures, and
 open [#624](https://github.com/Ledova/ledova/issues/624) keeps the separate
-physical-device/live release acceptance. The earlier staff-assisted
-screenshots, PDF, gallery and embedded artifact are preserved as dated evidence.
+physical-device/live release acceptance. Dated source and observation records
+remain in Git history; the owner authorised removal of the local journey
+galleries under the [14 October amendment](../../decisions.md#simple-signup-documents-and-team-after-registration).

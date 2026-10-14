@@ -61,6 +61,10 @@ export function CompanyDocuments({ read }: { read: CompanyActionRead }) {
       {company && !read.error && read.canAdmin && (
         <Section title="Company documents">
           <CompanyReadNotice read={read} />
+          <Text style={styles.muted}>
+            Upload supporting documents when needed. Company setup does not require an upload; use Other documents for
+            representative authority records. These documents do not change your appointment or permissions.
+          </Text>
           {company.documents.length === 0 && <Text style={styles.muted}>No company documents yet.</Text>}
           {company.documents.map((document) => (
             <DocumentEntry
@@ -118,6 +122,10 @@ export function CompanyDocuments({ read }: { read: CompanyActionRead }) {
           <View style={styles.group}>
             <Text style={styles.text}>{removing.name}</Text>
             <CompanyReadNotice read={read} />
+            <Text style={styles.muted}>
+              Upload supporting documents when needed. Company setup does not require an upload; use Other documents for
+              representative authority records. These documents do not change your appointment or permissions.
+            </Text>
             {actions.deletion.isError && (
               <Text accessibilityRole="alert" style={styles.error}>
                 {getErrorMessage(actions.deletion.error, 'The document could not be removed. Try again.')}

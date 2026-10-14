@@ -8,8 +8,9 @@ certificate. Generation creates no signature, issue, payment or filing.
 
 ## Company certificates
 
-In the Register, open a share class and choose **Prepare unsigned certificate**
-for an uncorrected ISSUE or TRANSFER. Enter the company's written instruction
+Open a share class's register history on web, or its entries in **Documents** on
+mobile, and choose **Prepare unsigned certificate** for an uncorrected ISSUE or
+TRANSFER. Enter the company's written instruction
 reference, preview the entry and register sequence, then confirm the PDF download
 or mobile share. A current personal register-reader appointment is required;
 ownership, member association and staff status supply no authority.
@@ -27,14 +28,15 @@ retains the instruction, sequence and PDF fingerprint.
 
 ## Member fulfilment
 
-In **Member access and requests**, a current company reader previews a requested
+In **Member access and requests** (Register on web, Company on mobile), a
+current company reader previews a requested
 receiving certificate using the written instruction, then confirms fulfilment.
 This creates one immutable recipient-only PDF with its exact request, producer,
 appointment, instruction, export, source digest and file digest/size. Filtering
 occurs before another member's particulars are read or rendered.
 
-The requester sees **fulfilled** only after a real file exists. From **Member
-records**, they download or share that retained PDF through their current
+The requester sees **fulfilled** only after a real file exists. From **My
+shares**, they download or share that retained PDF through their current
 association. File bytes must match the retained size/digest. Company readers
 can also obtain it; revoked member access stops file access while the original
 requester retains request status. A fulfilled request cannot be withdrawn.
@@ -49,7 +51,7 @@ particulars requests.
 ## Core company pack
 
 A current company administrator enters the written instruction and recipient
-in **Company pack** on the Register, then downloads or shares one captured ZIP.
+in **Company pack** under **Documents**, then downloads or shares one captured ZIP.
 `POST /api/v1/companies/{uuid}/pack/` records the archive's manifest digest against
 each captured class and rechecks the exact administrator before completion.
 

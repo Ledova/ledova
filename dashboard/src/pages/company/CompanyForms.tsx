@@ -134,17 +134,22 @@ export function EditCompanyForm(props: FormProps) {
             )}
           </p>
         )}
-        {EDIT_FIELDS.map(([key, label]) => (
-          <label key={key} className="block text-sm">
-            {label}
-            <input
-              className={FIELD_CLASS}
-              value={draft[key]}
-              disabled={key === 'name' && !canChangeName}
-              onChange={(event) => setDraft({ ...draft, [key]: event.target.value })}
-            />
-          </label>
-        ))}
+        <div className="grid gap-4 sm:grid-cols-2">
+          {EDIT_FIELDS.map(([key, label]) => (
+            <label
+              key={key}
+              className={`block text-sm ${['name', 'addressLine1', 'addressLine2'].includes(key) ? 'sm:col-span-2' : ''}`}
+            >
+              {label}
+              <input
+                className={FIELD_CLASS}
+                value={draft[key]}
+                disabled={key === 'name' && !canChangeName}
+                onChange={(event) => setDraft({ ...draft, [key]: event.target.value })}
+              />
+            </label>
+          ))}
+        </div>
       </fieldset>
     </Modal>
   );

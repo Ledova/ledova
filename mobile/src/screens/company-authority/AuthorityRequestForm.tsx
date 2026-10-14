@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Text, View } from 'react-native';
 import * as Crypto from 'expo-crypto';
 import {
@@ -33,7 +33,20 @@ export function AuthorityRequestForm({
   const [delegatable, setDelegatable] = useState<CompanyCapability[]>([]);
   const [expiresAt, setExpiresAt] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const busy = document.isPicking || document.isSubmitting;
+  const [submitting, setSubmitting] = useState(false);
+  const pending = useRef(false);
+  const mounted = useRef(true);
+  const current = useRef(!blocked && company.status === 'draft');
+  useLayoutEffect(() => {
+    current.current = !blocked && company.status === 'draft';
+  }, [blocked, company.status]);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
+  const busy = document.isPicking || document.isSubmitting || submitting;
   const disabled = blocked || busy || company.status !== 'draft';
   const resetKey = () => {
     setIdempotencyKey(Crypto.randomUUID());
@@ -53,39 +66,61 @@ export function AuthorityRequestForm({
     try {
       if (await document.pick()) resetKey();
     } catch (cause) {
-      if (epoch === getSessionEpoch())
+      if (mounted.current && epoch === getSessionEpoch())
         setError(apiErrorSentence(cause, 'The evidence could not be selected. Try again.'));
     }
   };
-  const valid = !!document.file && requested.length + delegatable.length > 0 && !disabled;
+  const valid = requested.length + delegatable.length > 0 && !disabled;
   const submit = async () => {
-    if (!valid) return;
+    if (!valid || pending.current) return;
+    pending.current = true;
+    setSubmitting(true);
     const epoch = getSessionEpoch();
     setError(null);
     try {
       let submitted: CompanyAuthorityRequest | undefined;
-      const completed = await document.submit(async ({ file, owner, sessionEpoch }) => {
+      const send = async (file?: CompanyAuthoritySubmission['file']) => {
+        if (!mounted.current || !current.current || epoch !== getSessionEpoch())
+          throw new Error('The request view changed. Reopen it to continue.');
         const response = await submitCompanyAuthorityRequest(
           apiClient,
           {
-            company: owner,
+            company: company.uuid,
             idempotencyKey,
-            file: file as unknown as CompanyAuthoritySubmission['file'],
+            ...(file ? { file } : {}),
             requestedCapabilities: requested,
             delegatableCapabilities: delegatable,
             ...(expiresAt ? { requestedExpiresAt: expiresAt } : {}),
           },
-          { ledovaSessionEpoch: sessionEpoch },
+          {
+            ledovaSessionEpoch: epoch,
+            ledovaSubmissionGuard: () => {
+              if (!mounted.current || !current.current || epoch !== getSessionEpoch())
+                throw new Error('The request view changed. Reopen it to continue.');
+            },
+          },
         );
+        if (!mounted.current || !current.current || epoch !== getSessionEpoch())
+          throw new Error('The request view changed. Reopen it to continue.');
         submitted = response.data;
-      });
-      if (completed && submitted && epoch === getSessionEpoch()) {
+      };
+      const completed = document.file
+        ? await document.submit(async ({ file, assertCurrent }) => {
+            assertCurrent();
+            await send(file as unknown as CompanyAuthoritySubmission['file']);
+            assertCurrent();
+          })
+        : await send().then(() => true);
+      if (completed && submitted && mounted.current && current.current && epoch === getSessionEpoch()) {
         onSubmitted(submitted);
         resetKey();
       }
     } catch (cause) {
-      if (epoch === getSessionEpoch())
+      if (mounted.current && epoch === getSessionEpoch())
         setError(apiErrorSentence(cause, 'The request could not be submitted. Retry with the same details.'));
+    } finally {
+      pending.current = false;
+      if (mounted.current && epoch === getSessionEpoch()) setSubmitting(false);
     }
   };
   return (
@@ -134,8 +169,10 @@ export function AuthorityRequestForm({
           resetKey();
         }}
       />
-      <Text style={styles.heading}>Representative evidence</Text>
-      <Text style={styles.muted}>Choose a PDF, PNG or JPEG up to 10 MB. The retained submission cannot be edited.</Text>
+      <Text style={styles.heading}>Supporting document (optional)</Text>
+      <Text style={styles.muted}>
+        Optional PDF, PNG or JPEG up to 10 MB. Supporting documents can also be uploaded later in Company settings.
+      </Text>
       {document.file && <Text style={styles.text}>{document.file.name}</Text>}
       <Action
         label={document.file ? 'Replace evidence' : 'Choose evidence'}
@@ -162,7 +199,7 @@ export function AuthorityRequestForm({
         company or permissions need a new request.
       </Text>
       <Action
-        label={document.isSubmitting ? 'Submitting request…' : 'Submit authority request'}
+        label={busy ? 'Submitting request…' : 'Submit authority request'}
         primary
         disabled={!valid}
         onPress={() => void submit()}

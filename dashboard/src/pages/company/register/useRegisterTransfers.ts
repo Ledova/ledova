@@ -15,21 +15,23 @@ export const transferMembersKey = (owner: OrderSubmissionOwner, token: string) =
   token,
 ];
 
+export async function readTransferMembers(token: string, guard: () => void) {
+  guard();
+  const { data } = await getRegisterTransferMembers(apiClient, token, { ledovaSubmissionGuard: guard });
+  guard();
+  if (
+    data.members.some((member) => !/^\d+$/.test(member.currentShares)) ||
+    new Set(data.members.map((member) => member.member)).size !== data.members.length
+  )
+    throw new Error('The member selector did not return exact distinct holdings.');
+  return data.members;
+}
+
 export function useTransferMembers(owner: OrderSubmissionOwner, token: string, guard: () => void, enabled = true) {
   return useQuery({
     queryKey: transferMembersKey(owner, token),
     enabled,
-    queryFn: async () => {
-      guard();
-      const { data } = await getRegisterTransferMembers(apiClient, token, { ledovaSubmissionGuard: guard });
-      guard();
-      if (
-        data.members.some((member) => !/^\d+$/.test(member.currentShares)) ||
-        new Set(data.members.map((member) => member.member)).size !== data.members.length
-      )
-        throw new Error('The member selector did not return exact distinct holdings.');
-      return data.members;
-    },
+    queryFn: () => readTransferMembers(token, guard),
     ...READ_TIMING,
   });
 }

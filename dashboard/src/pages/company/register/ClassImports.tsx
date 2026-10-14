@@ -1,5 +1,10 @@
 import { useQueryClient, type QueryKey } from '@tanstack/react-query';
-import { DESTINATIONS, REGISTER_IMPORT_COPY, type OrderSubmissionOwner } from '@ledova/shared';
+import {
+  DESTINATIONS,
+  REGISTER_IMPORT_COPY,
+  type OrderSubmissionOwner,
+  type TokenHoldersResponse,
+} from '@ledova/shared';
 import { LinkRow } from '@components/Ledger';
 import { PageAction } from '@components/Page';
 import { ownAppointmentsKey } from '../team/appointments';
@@ -12,14 +17,15 @@ import { importsKey, useOwnAppointments, useRegisterImports } from './useRegiste
 export function ClassImports({
   owner,
   guard,
-  token,
+  register,
   company,
 }: {
   owner: OrderSubmissionOwner;
   guard: () => void;
-  token: string;
+  register: TokenHoldersResponse;
   company: string;
 }) {
+  const token = register.token.uuid;
   const client = useQueryClient();
   const imports = useRegisterImports(owner, token, guard);
   const appointments = useOwnAppointments(owner, guard);
@@ -53,14 +59,22 @@ export function ClassImports({
           <p className="text-sm text-text-muted">{REGISTER_IMPORT_COPY.READ_ONLY_NOTE}</p>
         )
       )}
-      {steps?.prepare && imports.isSuccess && !imports.data.some((proposal) => proposal.status === 'applied') && (
-        <div className="border-b border-border-subtle">
-          <LinkRow
-            to={DESTINATIONS.companyRegisterImport.path.replace(':uuid', token)}
-            label={REGISTER_IMPORT_COPY.PREPARE}
-          />
-        </div>
-      )}
+      {steps?.prepare &&
+        (register.initialized || register.token.status === 'draft') &&
+        imports.isSuccess &&
+        (!imports.data.some((proposal) => proposal.status === 'applied') ||
+          imports.data.some((proposal) => proposal.correctionAllowed)) && (
+          <div className="border-b border-border-subtle">
+            <LinkRow
+              to={DESTINATIONS.companyRegisterImport.path.replace(':uuid', token)}
+              label={
+                imports.data.some((proposal) => proposal.correctionAllowed)
+                  ? 'Correct copied opening'
+                  : REGISTER_IMPORT_COPY.PREPARE
+              }
+            />
+          </div>
+        )}
       {imports.isPending ? (
         <p role="status" className="text-sm text-text-muted">
           Loading imports…

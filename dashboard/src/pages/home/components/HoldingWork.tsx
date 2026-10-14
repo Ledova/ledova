@@ -20,7 +20,7 @@ function Applications({ rows }: { rows: ApplicationWork[] }) {
   return (
     <ul className="divide-y divide-border-subtle">
       {rows.map(({ application, description }) => (
-        <li key={application.uuid} className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2 py-3">
+        <li key={application.uuid} className="grid items-start gap-3 py-4 sm:grid-cols-[minmax(0,1fr)_auto]">
           <div className="min-w-0 flex-1 basis-48 break-words">
             <p className="text-sm text-text-muted">{application.companyName}</p>
             <p className="text-base text-text-primary">{application.tokenName}</p>
@@ -43,7 +43,7 @@ function Applications({ rows }: { rows: ApplicationWork[] }) {
 function RecentNotice({ publication }: { publication: Publication }) {
   const open = useResolutionStatus(publication) === 'open';
   return (
-    <li className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1 py-3">
+    <li className="grid items-start gap-2 py-4 sm:grid-cols-[minmax(0,1fr)_auto]">
       <div className="min-w-0 flex-1 basis-48 break-words">
         <p className="text-sm text-text-muted">
           {publication.companyName} · {PUBLICATION_KIND_LABELS[publication.kind]}
@@ -115,7 +115,7 @@ export function HoldingWork() {
 
       <Section title="Needs you">
         {votes > 0 && (
-          <div className="flex flex-wrap items-baseline justify-between gap-3 py-3">
+          <div className="grid items-start gap-3 py-4 sm:grid-cols-[minmax(0,1fr)_auto]">
             <p className="text-sm text-text-primary">
               <Status tone="waiting">
                 {votes} {votes === 1 ? 'resolution awaits' : 'resolutions await'} your vote
@@ -142,7 +142,7 @@ export function HoldingWork() {
       <Section title="In progress">
         <Applications rows={inProgress} />
         {dividends > 0 && (
-          <div className="flex flex-wrap items-baseline justify-between gap-3 py-3">
+          <div className="grid items-start gap-3 py-4 sm:grid-cols-[minmax(0,1fr)_auto]">
             <p className="text-sm text-text-primary">
               <Status tone="moving">
                 {dividends} {dividends === 1 ? 'dividend awaits' : 'dividends await'} a payment record from the company

@@ -1,11 +1,15 @@
-import { useId, type ReactNode, type Ref } from 'react';
+import { useContext, useId, type ReactNode, type Ref } from 'react';
 import { Link } from 'react-router-dom';
 import { CaretRightIcon } from '@phosphor-icons/react';
 import { formatDate } from '@ledova/shared';
+import { InSignedInFrame } from './InSignedInFrame';
 
 export function Section({ title, children }: { title: string; children: ReactNode }) {
+  const inFrame = useContext(InSignedInFrame);
   return (
-    <section className="flex flex-col gap-2 rounded-xl border border-border bg-surface-raised p-4 sm:p-5">
+    <section
+      className={`flex flex-col border border-border bg-surface-raised p-4 ${inFrame ? 'min-w-0 gap-4 rounded-2xl sm:p-6' : 'gap-2 rounded-xl sm:p-5'}`}
+    >
       <h2 className="break-words font-display text-xl tracking-[-0.01em] text-text-primary">{title}</h2>
       {children}
     </section>
@@ -140,9 +144,9 @@ export function Rows({ children }: { children: ReactNode }) {
 
 export function Row({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <div className="flex items-baseline justify-between gap-6 py-2.5">
-      <dt className="flex-shrink-0 text-sm text-text-muted">{label}</dt>
-      <dd className="min-w-0 text-right text-sm tabular-nums text-text-primary">{children}</dd>
+    <div className="grid min-w-0 gap-1 py-3 sm:grid-cols-[minmax(0,10rem)_minmax(0,1fr)] sm:gap-6">
+      <dt className="min-w-0 break-words text-sm text-text-muted">{label}</dt>
+      <dd className="min-w-0 break-words text-sm tabular-nums text-text-primary">{children}</dd>
     </div>
   );
 }

@@ -6,8 +6,11 @@ Delivered by [PR #911](https://github.com/Ledova/ledova/pull/911) under
 [#862](https://github.com/Ledova/ledova/issues/862).
 
 A current company administrator can read and edit the company's basic information
-and manage its company documents on web and mobile. Open **Company** from the
-signed-in navigation, including an investor account's navigation. If several
+and manage its company documents on web and mobile. Web dashboard **Settings**
+separates **Company details and share classes**, **Company documents** and
+**Team and appointments**. Mobile **Settings → Company settings** reaches the
+existing company details/documents and team screens. Signup requires no file;
+optional supporting documents are added here afterwards. If several
 companies are available, select the company explicitly before opening an action.
 The screen reads every company-list page and the selected company's full document
 record; a partial or failed read does not establish that the company is absent.
@@ -28,7 +31,8 @@ setup exception.
    file, upload a checked replacement or additional document, or confirm removal
    of an eligible document. Document receipt IDs must belong to the selected
    company. A document retained by a published offering cannot be removed.
-4. Open **Company team** for invitations and appointments. Initial admission,
+4. Open **Team and appointments** on web or **Company team** on mobile for
+   invitations and appointments. Initial admission,
    subsequent delegation and permanent revocation follow the
    [authority guide](authority-requests.md#web-and-mobile).
 

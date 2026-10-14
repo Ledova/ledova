@@ -9,8 +9,9 @@ export interface Destination {
 }
 
 export const DESTINATIONS = {
-  memberRecords: { path: '/member-records', title: 'Your member records', audience: 'everyone' },
-  home: { path: '/home', title: 'Holdings', audience: 'everyone' },
+  memberRecords: { path: '/member-records', title: 'My shares', audience: 'everyone' },
+  home: { path: '/home', title: 'My shares', audience: 'everyone' },
+  walletHoldings: { path: '/wallets/holdings', title: 'Wallet shares', audience: 'everyone' },
   wallets: { path: '/wallets', title: 'Wallets', audience: 'everyone' },
   transactions: { path: '/transactions', title: 'Activity', audience: 'everyone' },
   trading: { path: '/trading', title: 'Market', audience: 'investing' },
@@ -23,6 +24,7 @@ export const DESTINATIONS = {
   publications: { path: '/publications', title: 'Notices', audience: 'everyone' },
   companyClass: { path: '/company/register/:uuid', title: 'Share class', audience: 'everyone' },
   companyRegister: { path: '/company/register', title: 'Register', audience: 'everyone' },
+  companyRegisterSetup: { path: '/company/register/setup', title: 'Set up share register', audience: 'everyone' },
   companyRegisterImport: { path: '/company/register/:uuid/import', title: 'Register', audience: 'everyone' },
   companyRegisterCorrection: {
     path: '/company/register/:uuid/correct/:entry',

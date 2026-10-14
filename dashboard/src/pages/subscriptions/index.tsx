@@ -41,10 +41,10 @@ export default function SubscriptionsPage() {
   const { subscriptions, isLoading, hasError, moreFailed, hasMore, isLoadingMore, isRefreshing, retry, loadMore } =
     useSubscriptions();
 
-  if (isLoading) return <Page loading />;
+  if (isLoading) return <Page narrow loading />;
 
   return (
-    <Page>
+    <Page narrow>
       {hasError ? (
         <div role="alert" className="flex flex-col items-start gap-3 py-6">
           <p className="text-sm text-text-primary">

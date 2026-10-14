@@ -18,6 +18,7 @@ import { ScreenHeader } from '../../../components/header';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import type { RootStackParamList } from '../../../navigation/AppNavigator';
 import { useSignupCompanyRegistration } from '@ledova/shared';
+import { orderSubmissionSession } from '../../../services/orderSubmissions';
 import { BuildingsIcon, WarningCircleIcon, CaretDownIcon, CheckIcon } from 'phosphor-react-native';
 import { layout } from '../../../styles';
 import { useAppTheme, useThemedStyles, overlayColors } from '../../../contexts';
@@ -246,7 +247,7 @@ export function CompanyRegistrationScreen() {
     setFieldValue,
     handleSubmit,
     retryLoad,
-  } = useSignupCompanyRegistration();
+  } = useSignupCompanyRegistration(orderSubmissionSession);
   const [showTypePicker, setShowTypePicker] = useState(false);
 
   const selectedType = COMPANY_TYPES.find((t) => t.value === form.companyType);

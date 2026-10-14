@@ -76,7 +76,8 @@ runtime source files. The signed arm64 Debug binary was preserved from the
 earlier native build; no new native build or complete transitive/Pods audit was
 performed. A temporary system password sheet blocked earlier input; later
 ordinary controls worked. The reviewed temporary XCTest draft was never built
-or run. Failed driver attempts and the original observations remain retained.
+or run. Failed driver attempts and original local observations were retained
+at the time of this observation.
 
 Identity and ABR transports supplied two exact synthetic identities and one
 company tuple; their normalizers/parsers remained real. Console email codes
@@ -88,5 +89,7 @@ live human acceptance remain under [#624](https://github.com/Ledova/ledova/issue
 
 The original web journey took about 13m27s including driver pauses; this is not
 a CI timing. Final preflight/CI timings and unchanged suite counts are recorded
-on the PR. Protected source/build, action, output and cleanup receipts stay
-outside Git. Earlier galleries, PDFs and artifacts are preserved.
+on the PR. Protected source/build, action, output and cleanup receipts were kept
+outside Git. On 14 October the owner authorised removal of all local journey
+artefacts under the [signup simplification decision](../../decisions.md#simple-signup-documents-and-team-after-registration);
+this dated observation and its Git history remain.

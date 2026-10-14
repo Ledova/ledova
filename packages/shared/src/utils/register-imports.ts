@@ -1,5 +1,7 @@
 import type {
   RegisterImport,
+  RegisterImportAllotment,
+  RegisterImportCurrentMemberRow,
   RegisterImportFormerRow,
   RegisterImportMemberRow,
   RegisterImportPreparation,
@@ -10,11 +12,53 @@ import { rowsOf } from './register-commands';
 const MEMBER_TEXT = ['member', 'name', 'residentialAddress', 'shares', 'enteredOn'];
 const FORMER_TEXT = ['name', 'residentialAddress', 'shares', 'ceasedOn'];
 
+export function registerImportMoney(value: string) {
+  const match = /^(0|[1-9]\d{0,17})(?:\.(\d{1,2}))?$/.exec(value.trim());
+  return match ? `${match[1]}.${(match[2] ?? '').padEnd(2, '0')}` : null;
+}
+
+function allotmentsOf(value: unknown): value is RegisterImportAllotment[] {
+  return (
+    rowsOf<RegisterImportAllotment>(
+      value,
+      ['allottedOn', 'shares', 'amountPaid', 'amountUnpaid'],
+      ['shareReference', 'certificateReference'],
+    ) &&
+    value.length > 0 &&
+    value.every(
+      (row) =>
+        typeof row.fullyPaid === 'boolean' &&
+        typeof row.beneficiallyHeld === 'boolean' &&
+        /^[1-9]\d*$/.test(row.shares) &&
+        registerImportMoney(row.amountPaid) !== null &&
+        registerImportMoney(row.amountUnpaid) !== null &&
+        row.fullyPaid === (registerImportMoney(row.amountUnpaid) === '0.00'),
+    )
+  );
+}
+
+function currentRowOf(row: RegisterImportMemberRow) {
+  if (!allotmentsOf(row.allotments)) return false;
+  const shares = row.allotments.reduce((sum, allotment) => sum + BigInt(allotment.shares), 0n);
+  const paid = row.allotments.reduce(
+    (sum, allotment) => sum + BigInt(registerImportMoney(allotment.amountPaid)!.replace('.', '')),
+    0n,
+  );
+  return (
+    row.shares === shares.toString() && row.amountPaid === `${paid / 100n}.${(paid % 100n).toString().padStart(2, '0')}`
+  );
+}
+
 export function registerImportOf(record: RegisterImportRecord): RegisterImport {
   const { members, formerMembers } = record;
   if (
     !rowsOf<RegisterImportMemberRow>(members, MEMBER_TEXT, ['amountPaid']) ||
-    !rowsOf<RegisterImportFormerRow>(formerMembers, FORMER_TEXT)
+    !rowsOf<RegisterImportFormerRow>(formerMembers, FORMER_TEXT) ||
+    members.some(
+      (row) =>
+        (row.allotments !== undefined && !currentRowOf(row)) ||
+        (record.sourceConfirmed === true && row.allotments === undefined),
+    )
   )
     throw new Error('The register import rows could not be read.');
   return { ...record, members, formerMembers };
@@ -25,11 +69,41 @@ export function registerImportTotals(members: Pick<RegisterImportMemberRow, 'sha
   return { total: total.toString(), count: members.length };
 }
 
-function memberRows(rows: RegisterImportMemberRow[]) {
+function allotmentRows(rows: RegisterImportAllotment[] | undefined) {
+  return rows
+    ?.map((row) =>
+      JSON.stringify([
+        row.allottedOn,
+        row.shares,
+        row.shareReference,
+        row.certificateReference,
+        registerImportMoney(row.amountPaid),
+        registerImportMoney(row.amountUnpaid),
+        row.fullyPaid,
+        row.beneficiallyHeld,
+      ]),
+    )
+    .sort();
+}
+
+function memberRows(rows: (RegisterImportMemberRow | RegisterImportCurrentMemberRow)[]) {
   return JSON.stringify(
     [...rows]
       .sort((left, right) => left.member.localeCompare(right.member))
-      .map((row) => [row.member, row.name, row.residentialAddress, row.shares, row.enteredOn, row.amountPaid]),
+      .map((row) => [
+        row.member,
+        row.name,
+        row.residentialAddress,
+        row.shares,
+        row.enteredOn,
+        allotmentRows(row.allotments),
+      ]),
+  );
+}
+
+function formerRows(rows: RegisterImportFormerRow[]) {
+  return JSON.stringify(
+    rows.map((row) => JSON.stringify([row.name, row.residentialAddress, row.shares, row.ceasedOn])).sort(),
   );
 }
 
@@ -38,13 +112,22 @@ export function isPreparedRegisterImport(proposal: RegisterImport, request: Regi
     proposal.uuid === request.operationId &&
     proposal.token === request.tokenId &&
     proposal.preparingAppointment === request.appointment &&
-    proposal.registerEvidence === request.registerEvidence &&
-    proposal.asicEvidence === request.asicEvidence &&
-    proposal.asicIssuedTotal === request.asicIssuedTotal &&
-    proposal.asicMemberCount === request.asicMemberCount &&
+    proposal.registerEvidence === (request.registerEvidence ?? null) &&
+    proposal.asicEvidence === (request.asicEvidence ?? null) &&
+    proposal.asicIssuedTotal === (request.asicIssuedTotal ?? null) &&
+    proposal.asicMemberCount === (request.asicMemberCount ?? null) &&
+    proposal.sourceReference === request.sourceReference &&
+    request.sourceConfirmed === true &&
+    proposal.sourceConfirmed === true &&
+    proposal.authority === 'company_records' &&
+    proposal.authorityReference === request.sourceReference &&
+    proposal.approvingDirector === '' &&
+    proposal.correctionOf === (request.correctionOf ?? null) &&
+    proposal.reason === request.reason &&
     proposal.asAt === request.asAt &&
     proposal.providedBy === 'company' &&
+    proposal.members.every(currentRowOf) &&
     memberRows(proposal.members) === memberRows(request.members) &&
-    proposal.formerMembers.length === request.formerMembers.length
+    formerRows(proposal.formerMembers) === formerRows(request.formerMembers)
   );
 }

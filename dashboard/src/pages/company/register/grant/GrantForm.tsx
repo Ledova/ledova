@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -7,9 +7,12 @@ import {
   apiErrorSentence,
   createUserFriendlyError,
   failureStatus,
+  formatShareCount,
+  getRegisterGrants,
   isPreparedRegisterGrant,
   isRegisterEvidenceReceipt,
   prepareRegisterGrant,
+  readEveryPage,
   uploadRegisterEvidence,
   type OrderSubmissionOwner,
   type OwnCompanyAppointment,
@@ -45,6 +48,9 @@ export function GrantForm({
   onRefused,
   award,
   awardMember,
+  visible = true,
+  onHeldChange,
+  canPrepare = true,
 }: {
   owner: OrderSubmissionOwner;
   guard: () => void;
@@ -56,6 +62,9 @@ export function GrantForm({
   onRefused: () => void;
   award?: RegisterAward;
   awardMember?: RegisterTransferMember | null;
+  visible?: boolean;
+  onHeldChange?: (held: boolean) => void;
+  canPrepare?: boolean;
 }) {
   const client = useQueryClient();
   const navigate = useNavigate();
@@ -73,11 +82,16 @@ export function GrantForm({
   const [acceptanceRequired, setAcceptanceRequired] = useState(false);
   const [files, setFiles] = useState<Partial<Record<DocumentKind, File>>>({});
   const [busy, setBusy] = useState(false);
+  const [held, setHeld] = useState(false);
   const [error, setError] = useState('');
   const mounted = useRef(true);
+  const unavailable = useRef(blocked || !visible);
+  useLayoutEffect(() => {
+    unavailable.current = blocked || !visible;
+  }, [blocked, visible]);
   const pending = useRef(false);
   const uploads = useRef<Partial<Record<DocumentKind, Uploaded>>>({});
-  const operation = useRef<{ signature: string; key: string } | null>(null);
+  const operation = useRef<{ request: RegisterGrantPreparation; confirmed: boolean; uncertain: boolean } | null>(null);
   useEffect(() => {
     mounted.current = true;
     return () => {
@@ -86,6 +100,8 @@ export function GrantForm({
   }, []);
   const check = () => {
     guard();
+    if (unavailable.current)
+      throw createUserFriendlyError('Refresh company access and register records before continuing.');
     if (!mounted.current) throw createUserFriendlyError('This grant form is closed. Reopen it before continuing.');
   };
   const documentKinds: DocumentKind[] = acceptanceRequired
@@ -140,50 +156,104 @@ export function GrantForm({
     uploads.current[kind] = { file, appointment: appointment.uuid, key, receipt: data };
     return data;
   };
+  const lookup = async (request: RegisterGrantPreparation) => {
+    const rows = await readEveryPage(async (page) => {
+      check();
+      const response = await getRegisterGrants(apiClient, { token, page }, { ledovaSubmissionGuard: check });
+      check();
+      return response;
+    });
+    if (rows.some((row) => row.company !== company || row.token !== token))
+      throw createUserFriendlyError('The grants did not identify this company and share class.');
+    const original = rows.find((row) => row.uuid === request.operationId);
+    if (original && !isPreparedRegisterGrant(original, request))
+      throw createUserFriendlyError(COPY.PREPARATION_RECEIPT_FAILED);
+    return original;
+  };
   const submit = async () => {
-    if (pending.current || busy || blocked || problem) return;
+    if (pending.current || busy || blocked || (!operation.current && problem)) return;
     pending.current = true;
     setBusy(true);
+    onHeldChange?.(true);
     setError('');
     try {
       check();
-      const authority = await upload('authority');
-      const retainedTerms = await upload('terms');
-      if (award && retainedTerms.sha256 !== award.agreementFingerprint)
-        throw createUserFriendlyError('Upload the same agreement document retained for this award.');
-      const acceptance = acceptanceRequired ? await upload('acceptance') : null;
-      const request = {
-        appointment: appointment.uuid,
-        tokenId: token,
-        member: award?.member ?? (newRecipient ? newMemberId : member),
-        newMember: newRecipient,
-        ...(newRecipient ? { name: recipientName, residentialAddress: recipientAddress } : {}),
-        ...(award ? { award: award.uuid } : {}),
-        shares,
-        termsOn: retainedDate,
-        terms: retainedSummary,
-        approvingDirector: approvingDirector.trim(),
-        authorityReference: authorityReference.trim(),
-        reason: reason.trim(),
-        authorityEvidence: authority.uuid,
-        termsEvidence: retainedTerms.uuid,
-        acceptanceRequired,
-        acceptanceEvidence: acceptance?.uuid ?? null,
-      };
-      const signature = JSON.stringify(request);
-      if (operation.current?.signature !== signature) operation.current = { signature, key: crypto.randomUUID() };
-      const preparation: RegisterGrantPreparation = { operationId: operation.current.key, ...request };
-      check();
-      const { data } = await prepareRegisterGrant(apiClient, preparation, { ledovaSubmissionGuard: check });
-      check();
-      if (!isPreparedRegisterGrant(data, preparation)) throw createUserFriendlyError(COPY.PREPARATION_RECEIPT_FAILED);
-      operation.current = null;
+      let command = operation.current;
+      if (!command) {
+        if (!canPrepare) throw createUserFriendlyError('Current preparation authority is required to prepare a grant.');
+        const authority = await upload('authority');
+        const retainedTerms = await upload('terms');
+        if (award && retainedTerms.sha256 !== award.agreementFingerprint)
+          throw createUserFriendlyError('Upload the same agreement document retained for this award.');
+        const acceptance = acceptanceRequired ? await upload('acceptance') : null;
+        const request: RegisterGrantPreparation = {
+          operationId: crypto.randomUUID(),
+          appointment: appointment.uuid,
+          tokenId: token,
+          member: award?.member ?? (newRecipient ? newMemberId : member),
+          newMember: newRecipient,
+          ...(newRecipient ? { name: recipientName, residentialAddress: recipientAddress } : {}),
+          ...(award ? { award: award.uuid } : {}),
+          shares,
+          termsOn: retainedDate,
+          terms: retainedSummary,
+          approvingDirector: approvingDirector.trim(),
+          authorityReference: authorityReference.trim(),
+          reason: reason.trim(),
+          authorityEvidence: authority.uuid,
+          termsEvidence: retainedTerms.uuid,
+          acceptanceRequired,
+          acceptanceEvidence: acceptance?.uuid ?? null,
+        };
+        command = { request, confirmed: false, uncertain: false };
+        operation.current = command;
+        setHeld(true);
+      }
+      let absent = false;
+      if (command.uncertain && !command.confirmed) {
+        command.confirmed = !!(await lookup(command.request));
+        absent = !command.confirmed;
+      }
+      if (!command.confirmed) {
+        try {
+          check();
+          const { data } = await prepareRegisterGrant(apiClient, command.request, { ledovaSubmissionGuard: check });
+          check();
+          if (!isPreparedRegisterGrant(data, command.request))
+            throw createUserFriendlyError(COPY.PREPARATION_RECEIPT_FAILED);
+          command.confirmed = true;
+        } catch (failure) {
+          const status = failureStatus(failure);
+          if (!absent || !status || status < 400 || status >= 500) throw failure;
+          command.confirmed = !!(await lookup(command.request));
+          if (!command.confirmed) {
+            operation.current = null;
+            setHeld(false);
+            setError(
+              'The original grant was not recorded and the request was refused. Close this form and start again with current company authority.',
+            );
+            return;
+          }
+        }
+      }
       await client.invalidateQueries({ queryKey: grantsKey(owner, token) });
       check();
-      navigate(DESTINATIONS.companyRegister.path);
+      operation.current = null;
+      setHeld(false);
+      onHeldChange?.(false);
+      navigate(
+        `${DESTINATIONS.companyRegister.path}${award ? '#awards' : ''}`,
+        award ? { state: { awardIssueToken: token, awardIssueCompany: company } } : undefined,
+      );
     } catch (failure) {
       const status = failureStatus(failure);
-      if (status && status < 500) operation.current = null;
+      if (operation.current && !operation.current.confirmed) {
+        if (!status || status >= 500) operation.current.uncertain = true;
+        else if (!operation.current.uncertain) {
+          operation.current = null;
+          setHeld(false);
+        }
+      }
       try {
         check();
       } catch {
@@ -193,9 +263,13 @@ export function GrantForm({
       if (status === 400 || status === 404 || status === 409) onRefused();
     } finally {
       pending.current = false;
-      if (mounted.current) setBusy(false);
+      if (mounted.current) {
+        setBusy(false);
+        onHeldChange?.(!!operation.current);
+      }
     }
   };
+  if (!visible) return null;
   return (
     <form
       className="space-y-5"
@@ -204,12 +278,22 @@ export function GrantForm({
         void submit();
       }}
     >
-      <fieldset disabled={busy || blocked} className="space-y-4">
+      <fieldset disabled={busy || blocked || held || !canPrepare} className="space-y-4">
         {award ? (
-          <p className="text-sm text-text-primary">
-            Award {award.uuid} · {recipientName} · {award.member}. The recipient and agreement are fixed; this grant
-            still requires separate company approval and application.
-          </p>
+          <div className="space-y-2">
+            <p className="text-base font-medium text-text-primary">{recipientName}</p>
+            <p className="text-sm text-text-muted">{recipientAddress}</p>
+            <p className="text-sm text-text-muted">
+              {formatShareCount(award.availableShares)} vested shares available to issue. The recipient and agreement
+              are fixed; company approval and recording the issue remain separate.
+            </p>
+            <details>
+              <summary className="cursor-pointer py-2 text-sm">Award record details</summary>
+              <p className="text-sm text-text-muted">
+                Award {award.uuid} · Member {award.member}
+              </p>
+            </details>
+          </div>
         ) : (
           <label className={LABEL}>
             Member
@@ -344,13 +428,25 @@ export function GrantForm({
         </p>
       )}
       <p className="text-sm text-text-muted">
-        If a response is interrupted, prepare again with the same details to retrieve the same grant.
+        If a response is interrupted, recover the original preparation before starting another. Preparation creates no
+        issued shares.
       </p>
-      <PageAction
-        label={busy ? 'Preparing grant…' : COPY.SUBMIT}
-        disabled={busy || blocked || !!problem}
-        onClick={() => void submit()}
-      />
+      <div className="flex justify-end border-t border-border-subtle pt-4">
+        <PageAction
+          primary
+          label={
+            busy
+              ? 'Preparing grant…'
+              : held
+                ? 'Recover original grant preparation'
+                : award
+                  ? 'Prepare vested share issue'
+                  : COPY.SUBMIT
+          }
+          disabled={busy || blocked || (!held && (!canPrepare || !!problem))}
+          onClick={() => void submit()}
+        />
+      </div>
     </form>
   );
 }

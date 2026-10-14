@@ -18,6 +18,10 @@ import { SignupReview } from '@pages/signup/review';
 
 import { SignupAccountType } from '@pages/signup/account-type';
 import { SignupCompanyRegistration } from '@pages/signup/company-registration';
+import CompanyDashboardPage from '@pages/company/dashboard';
+import { PageTitle } from '@components/PageTitle';
+import { ProtectedRoute } from './routes/ProtectedRoute';
+import { COMPANY_DASHBOARD_PATH } from './routes/companyDashboard';
 import Layout from '@components/Layout';
 
 function LoadingSpinner() {
@@ -32,11 +36,11 @@ interface RouteGuardProps {
   children: ReactNode;
 }
 
-function PublicOnlyRoute({ children }: RouteGuardProps) {
+function PublicOnlyRoute({ children, signIn = false }: RouteGuardProps & { signIn?: boolean }) {
   const { isAuthenticated, isLoading } = useAuth();
   const { role, isLoading: isRoleLoading } = useRole();
   if (isLoading || (isAuthenticated && isRoleLoading)) return <LoadingSpinner />;
-  if (isAuthenticated) return <Navigate to={landingFor(role)} replace />;
+  if (isAuthenticated) return <Navigate to={signIn ? '/' : landingFor(role)} replace />;
   return <>{children}</>;
 }
 
@@ -62,7 +66,7 @@ function App() {
         <Route
           path="/signin"
           element={
-            <PublicOnlyRoute>
+            <PublicOnlyRoute signIn>
               <SignInPage />
             </PublicOnlyRoute>
           }
@@ -79,6 +83,16 @@ function App() {
         {SIGNUP_ROUTES}
 
         {SIGNED_IN_ROUTES}
+        <Route
+          path={COMPANY_DASHBOARD_PATH}
+          element={
+            <PageTitle.Provider value="Dashboard">
+              <ProtectedRoute audience="everyone">
+                <CompanyDashboardPage />
+              </ProtectedRoute>
+            </PageTitle.Provider>
+          }
+        />
 
         <Route path="*" element={<NotFoundPage />} />
       </Routes>

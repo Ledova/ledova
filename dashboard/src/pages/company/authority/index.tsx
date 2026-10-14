@@ -26,7 +26,7 @@ export default function CompanyAuthorityPage() {
   const preferences = useUserPreferences();
   if (!owner)
     return (
-      <Page>
+      <Page narrow>
         <p className="text-sm text-text-muted">
           Verify your signed-in account before opening representative authority.
         </p>
@@ -133,7 +133,7 @@ function OwnAuthorityRequests({
     },
   });
   return (
-    <Page>
+    <Page narrow>
       <p className="text-sm text-text-muted">
         Establish your representative appointment by accepting an authorisation declaration for your company. Company
         information is provided by the company. Submitting evidence alone grants no authority.

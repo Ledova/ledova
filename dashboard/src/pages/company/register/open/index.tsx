@@ -52,7 +52,7 @@ export default function CompanyRegisterOpeningPage() {
       />
     );
   return (
-    <Page lede={LEDE} actions={back}>
+    <Page narrow lede={LEDE} actions={back}>
       {preferences.isLoading ? (
         <Loading />
       ) : (
@@ -149,7 +149,7 @@ function OwnOpening({
       </>
     );
   return (
-    <Page lede={LEDE} actions={back}>
+    <Page narrow lede={LEDE} actions={back}>
       {content}
     </Page>
   );

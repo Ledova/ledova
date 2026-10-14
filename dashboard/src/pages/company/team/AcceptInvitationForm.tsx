@@ -76,7 +76,7 @@ export function AcceptInvitationForm({
   };
   return (
     <form
-      className="space-y-3"
+      className="space-y-4"
       onSubmit={(event) => {
         event.preventDefault();
         void send();
@@ -126,6 +126,7 @@ export function AcceptInvitationForm({
       )}
       <PageAction
         label={busy ? 'Accepting invitation…' : 'Accept invitation'}
+        primary
         disabled={disabled || busy || !ready}
         onClick={() => void send()}
       />

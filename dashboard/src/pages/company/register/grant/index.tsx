@@ -1,4 +1,4 @@
-import { useLayoutEffect, useMemo, useRef, type ReactNode } from 'react';
+import { useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
@@ -30,8 +30,13 @@ export default function CompanyRegisterGrantPage() {
   const navigate = useNavigate();
   const { owner, boundary } = useSubmissionOwner();
   const preferences = useUserPreferences();
-  const back = <PageAction label="Back to Register" onClick={() => navigate(DESTINATIONS.companyRegister.path)} />;
-  if (owner && !preferences.isError)
+  const back = (
+    <PageAction
+      label={awardUuid ? 'Back to Employee awards' : 'Back to Register'}
+      onClick={() => navigate(`${DESTINATIONS.companyRegister.path}${awardUuid ? '#awards' : ''}`)}
+    />
+  );
+  if (owner)
     return (
       <OwnGrant
         key={`${owner.userUuid}/${owner.ownerAccountUuid}/${uuid}/${awardUuid}`}
@@ -39,11 +44,10 @@ export default function CompanyRegisterGrantPage() {
         awardUuid={awardUuid}
         owner={owner}
         currentOwner={boundary.get}
-        back={back}
       />
     );
   return (
-    <Page lede={LEDE} actions={back}>
+    <Page narrow lede={LEDE} actions={back}>
       {preferences.isLoading ? (
         <Loading />
       ) : (
@@ -58,14 +62,16 @@ function OwnGrant({
   awardUuid,
   owner,
   currentOwner,
-  back,
 }: {
   uuid: string;
   awardUuid: string;
   owner: OrderSubmissionOwner;
   currentOwner: () => OrderSubmissionOwner | null;
-  back: ReactNode;
 }) {
+  const navigate = useNavigate();
+  const [formAppointment, setFormAppointment] = useState<OwnCompanyAppointment | null>(null);
+  const [held, setHeld] = useState(false);
+  const preferences = useUserPreferences();
   const guard = useMemo(() => ownerGuard(owner, currentOwner), [owner, currentOwner]);
   const classes = useRegisterClasses(owner);
   const appointments = useOwnAppointments(owner, guard);
@@ -103,16 +109,19 @@ function OwnGrant({
     ).values(),
   ];
   const busy =
+    preferences.isFetching ||
     classes.isFetching ||
     appointments.isFetching ||
     registers.isFetching ||
     (!!awardUuid && (award.isFetching || retainedMembers.isFetching));
   const stale =
+    preferences.isError ||
     classes.isError ||
     appointments.isError ||
     registers.isError ||
     (!!awardUuid && (award.isError || retainedMembers.isError));
   const retry = () => {
+    void preferences.refetch();
     void classes.refetch();
     void appointments.refetch();
     void registers.refetch();
@@ -121,60 +130,103 @@ function OwnGrant({
       void retainedMembers.refetch();
     }
   };
+  const recipientReady =
+    !awardUuid ||
+    (readable &&
+      award.isSuccess &&
+      retainedMembers.isSuccess &&
+      !(
+        (awardMember && (!awardMember.walletless || !awardMember.particularsRetained)) ||
+        (!awardMember && (!award.data.newMember || BigInt(award.data.issuedShares) > 0n))
+      ));
+  const readReady =
+    !!listed && readable && !!register && (!awardUuid || (award.isSuccess && retainedMembers.isSuccess));
+  const ready =
+    readReady &&
+    (!!formAppointment ||
+      (!!appointment && register.initialized && register.token.status === 'draft' && recipientReady));
+  const visible = ready && !stale && !busy;
+  if (visible && appointment && (!formAppointment || (!held && formAppointment.uuid !== appointment.uuid)))
+    setFormAppointment(appointment);
   let content: ReactNode;
-  if (!classes.data || !appointments.data) content = stale ? <Unavailable retry={retry} busy={busy} /> : <Loading />;
+  if (stale) content = <Unavailable retry={retry} busy={busy} />;
+  else if (!classes.data || !appointments.data) content = <Loading />;
   else if (!listed)
     content = <p className="text-sm text-text-muted">This share class is not in a register you can read.</p>;
   else if (!appointment) content = <p className="text-sm text-text-muted">{COPY.READ_ONLY_NOTE}</p>;
-  else if (!register) content = stale ? <Unavailable retry={retry} busy={busy} /> : <Loading />;
+  else if (!register) content = <Loading />;
   else if (!register.initialized || register.token.status !== 'draft')
     content = (
       <p className="text-sm text-text-muted">
         This grant requires an opened register for a draft share class without a deployed contract.
       </p>
     );
-  else if (awardUuid && (!readable || !award.data || !retainedMembers.data))
-    content = stale ? <Unavailable retry={retry} busy={busy} /> : <Loading />;
-  else if (
-    awardUuid &&
-    ((awardMember && (!awardMember.walletless || !awardMember.particularsRetained)) ||
-      (!awardMember && (!award.data!.newMember || BigInt(award.data!.issuedShares) > 0n)))
-  )
+  else if (awardUuid && (!readable || !award.data || !retainedMembers.data)) content = <Loading />;
+  else if (!recipientReady)
     content = (
       <p className="text-sm text-text-muted">
         This award’s recipient needs current retained walletless particulars before a grant can be prepared.
       </p>
     );
   else
-    content = (
-      <>
-        <Section title={listed.name}>
-          <p className="text-sm text-text-muted">
-            {listed.companyName} · {listed.symbol}
-          </p>
-          <p className="text-sm text-text-muted">{COPY.NOTE}</p>
-        </Section>
-        <Section title={COPY.PREPARE}>
-          {stale && <Unavailable retry={retry} busy={busy} />}
-          <GrantForm
-            key={appointment.uuid}
-            owner={owner}
-            guard={awardUuid ? awardGuard : guard}
-            company={listed.companyUuid}
-            token={uuid}
-            members={members}
-            appointment={appointment}
-            blocked={stale || busy}
-            onRefused={retry}
-            award={awardUuid ? award.data : undefined}
-            awardMember={awardMember}
-          />
-        </Section>
-      </>
+    content = visible ? (
+      <Section title={listed.name}>
+        <p className="text-sm text-text-muted">
+          {listed.companyName} · {listed.symbol}
+        </p>
+        <p className="text-sm text-text-muted">
+          {awardUuid
+            ? 'Prepare the company’s issue of recorded vested shares. The employee does not purchase them; approval and recording the issue are separate steps.'
+            : COPY.NOTE}
+        </p>
+      </Section>
+    ) : (
+      <Loading />
     );
   return (
-    <Page lede={LEDE} actions={back}>
+    <Page
+      narrow
+      lede={LEDE}
+      actions={
+        <PageAction
+          label={awardUuid ? 'Back to Employee awards' : 'Back to Register'}
+          disabled={held}
+          onClick={() => navigate(`${DESTINATIONS.companyRegister.path}${awardUuid ? '#awards' : ''}`)}
+        />
+      }
+    >
       {content}
+      {formAppointment && (
+        <div hidden={!visible}>
+          <Section title={awardUuid ? 'Issue vested shares' : COPY.PREPARE}>
+            <GrantForm
+              key={formAppointment.uuid}
+              owner={owner}
+              guard={awardUuid ? awardGuard : guard}
+              company={company}
+              token={uuid}
+              members={members}
+              appointment={formAppointment}
+              blocked={!ready || stale || busy}
+              visible={visible}
+              onHeldChange={setHeld}
+              canPrepare={
+                !!register?.initialized &&
+                register.token.status === 'draft' &&
+                recipientReady &&
+                !!appointmentForRegisterStep(
+                  appointments.isSuccess ? appointments.data.filter((item) => item.uuid === formAppointment.uuid) : [],
+                  company,
+                  'prepare',
+                )
+              }
+              onRefused={retry}
+              award={awardUuid ? award.data : undefined}
+              awardMember={awardMember}
+            />
+          </Section>
+        </div>
+      )}
     </Page>
   );
 }

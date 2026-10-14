@@ -1,7 +1,6 @@
 from rest_framework import serializers
 
 from tokens.models import (
-    RegisterCorrectionAuthority,
     RegisterEvidence,
     RegisterEvidenceKind,
     RegisterImport,
@@ -53,16 +52,18 @@ class RegisterImportCreateSerializer(serializers.Serializer):
     operation_id = serializers.UUIDField()
     appointment = serializers.UUIDField()
     token_id = serializers.UUIDField()
-    register_evidence = serializers.UUIDField()
-    asic_evidence = serializers.UUIDField()
-    asic_issued_total = serializers.RegexField(regex=DIGITS, max_length=78)
-    asic_member_count = serializers.IntegerField(min_value=0)
+    source_reference = serializers.CharField(max_length=255)
+    source_confirmed = serializers.BooleanField()
+    correction_of = serializers.UUIDField(required=False, allow_null=True, default=None)
+    register_evidence = serializers.UUIDField(required=False, allow_null=True, default=None)
+    asic_evidence = serializers.UUIDField(required=False, allow_null=True, default=None)
+    asic_issued_total = serializers.RegexField(
+        regex=DIGITS, max_length=78, required=False, allow_null=True, default=None
+    )
+    asic_member_count = serializers.IntegerField(min_value=0, required=False, allow_null=True, default=None)
     as_at = serializers.DateField()
     members = serializers.ListField(child=serializers.DictField(), allow_empty=False, max_length=10000)
     former_members = serializers.ListField(child=serializers.DictField(), allow_empty=True, max_length=10000)
-    authority = serializers.ChoiceField(choices=RegisterCorrectionAuthority.choices)
-    approving_director = serializers.CharField(max_length=255, required=False, allow_blank=True, default="")
-    authority_reference = serializers.CharField(max_length=255)
     reason = serializers.CharField(max_length=1000)
 
 
@@ -91,6 +92,9 @@ class RegisterImportDecisionPreviewSerializer(serializers.Serializer):
     unmet_requirements = serializers.ListField(child=serializers.CharField())
     can_decide = serializers.BooleanField()
     opens_register = serializers.BooleanField()
+    correction_of = serializers.UUIDField(allow_null=True)
+    correction_allowed = serializers.BooleanField()
+    source_reference = serializers.CharField(allow_blank=True)
     register_sequence = serializers.IntegerField()
     comparison = RegisterImportPreviewRowSerializer(many=True)
     stated_total = serializers.CharField(allow_null=True)
@@ -105,6 +109,13 @@ class RegisterImportDecisionSerializer(RegisterDecisionSerializer):
 
 
 class RegisterImportSerializer(RegisterDecidedSerializer):
+    correction_allowed = serializers.SerializerMethodField()
+
+    def get_correction_allowed(self, obj) -> bool:
+        from tokens.services.register_imports import correction_allowed
+
+        return correction_allowed(obj)
+
     decisions = RegisterImportDecisionSerializer(many=True, read_only=True)
 
     class Meta:
@@ -114,6 +125,10 @@ class RegisterImportSerializer(RegisterDecidedSerializer):
             "company",
             "token",
             "as_at",
+            "source_reference",
+            "source_confirmed",
+            "correction_of",
+            "correction_allowed",
             "members",
             "former_members",
             "authority",

@@ -372,11 +372,14 @@ export function OpeningForm({
           />
         </div>
       )}
-      <PageAction
-        label={busy ? 'Preparing opening…' : COPY.SUBMIT}
-        disabled={busy || blocked || problems.length > 0}
-        onClick={() => void submit()}
-      />
+      <div className="flex justify-end border-t border-border-subtle pt-4">
+        <PageAction
+          primary
+          label={busy ? 'Preparing opening…' : COPY.SUBMIT}
+          disabled={busy || blocked || problems.length > 0}
+          onClick={() => void submit()}
+        />
+      </div>
     </form>
   );
 }

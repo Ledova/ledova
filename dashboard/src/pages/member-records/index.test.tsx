@@ -5,14 +5,17 @@ import {
   AUTH_QUERY_KEY,
   COMPANY_TOKEN_ENDPOINTS as URLS,
   USER_PREFERENCES_QUERY_KEY,
+  type TokenHoldersResponse,
 } from '@ledova/shared';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { AxiosInstance } from 'axios';
+import { MemoryRouter } from 'react-router-dom';
 import { webcrypto } from 'node:crypto';
 import { Buffer } from 'node:buffer';
 import { afterEach, expect, it, vi } from 'vitest';
 import { MEMBER_CODE, MEMBER_ENTRY, MEMBER_RECORD } from '../../../../packages/shared/tests/fixtures/member-access';
+import { AWARD_REQUEST, REGISTER, awardFrom } from '../../../../packages/shared/tests/fixtures/employee-awards';
 import {
   FULFILLED_CERTIFICATE,
   MEMBER_PDF,
@@ -35,6 +38,26 @@ afterEach(async () => {
   vi.unstubAllGlobals();
 });
 const page = (results: unknown[]) => ({ data: { results, next: null, count: results.length } });
+const memberRegister: TokenHoldersResponse = {
+  ...REGISTER,
+  token: { ...REGISTER.token, uuid: MEMBER_RECORD.classes[0].uuid },
+  issuedSupply: '10',
+  totalHolders: 1,
+  holders: [
+    {
+      member: MEMBER_RECORD.member,
+      name: MEMBER_RECORD.name,
+      holderType: 'member',
+      balance: '10',
+      shareClass: 'Ordinary',
+      source: 'register',
+      identitySource: 'company_recorded',
+      enteredOn: '2026-10-01',
+      percentage: 100,
+      wallets: [],
+    },
+  ],
+};
 
 it('invites and associates a walletless member, recovers one exact request and refuses cached records and a late action after current read loss', async () => {
   const preferences = { userProfile: 'profile-one', userAccount: { uuid: 'account-one', role: 'investor' } };
@@ -79,6 +102,7 @@ it('invites and associates a walletless member, recovers one exact request and r
     if (url === '/api/v1/company-authority/appointments/')
       return page([{ ...OUTPUT_APPOINTMENT, capabilities: ['admin', 'prepare'] }]);
     if (url === URLS.MEMBER_INVITATIONS) return page(invitation ? [invitation] : []);
+    if (url === URLS.REGISTER_AWARDS) return page([]);
     if (url === URLS.MEMBER_ASSOCIATIONS) return page([]);
     if (url === URLS.MEMBER_RECORDS) {
       if (refused) throw Object.assign(new Error('Current member access refused'), { response: { status: 404 } });
@@ -170,28 +194,34 @@ it('invites and associates a walletless member, recovers one exact request and r
   });
   const wrapper = ({ children }: { children: React.ReactNode }) => (
     <QueryClientProvider client={client}>
-      <ApiClientProvider client={api as unknown as AxiosInstance}>{children}</ApiClientProvider>
+      <ApiClientProvider client={api as unknown as AxiosInstance}>
+        <MemoryRouter>{children}</MemoryRouter>
+      </ApiClientProvider>
     </QueryClientProvider>
   );
   const company = render(
     <CompanyMemberAccess
       owner={{ userUuid: preferences.userProfile, ownerAccountUuid: preferences.userAccount.uuid }}
       company={MEMBER_RECORD.company.uuid}
+      guard={() => {}}
+      registers={[memberRegister]}
     />,
     { wrapper },
   );
-  fireEvent.change(await screen.findByLabelText('Member UUID'), { target: { value: MEMBER_RECORD.member } });
+  await screen.findByLabelText('Member or award recipient');
+  await waitFor(() => expect(screen.getByRole('option', { name: /Company Recorded Member/ })).toBeTruthy());
+  fireEvent.change(screen.getByLabelText('Member or award recipient'), { target: { value: MEMBER_RECORD.member } });
   fireEvent.change(screen.getByLabelText('Intended recipient email'), { target: { value: 'member@example.test' } });
   fireEvent.click(screen.getByRole('button', { name: 'Create member invitation' }));
   await screen.findByLabelText('One-time member invitation code');
-  expect(screen.getByText(/Private queued member name/)).toBeTruthy();
+  expect(screen.getByText(/Private queued member name · Private queued member address/)).toBeTruthy();
   expect(screen.getByText(/Private queued member address/)).toBeTruthy();
   expect(screen.getByText(/member@example.test/)).toBeTruthy();
   preferencesRefused = true;
   await act(async () => {
     await client.refetchQueries({ queryKey: USER_PREFERENCES_QUERY_KEY, exact: true });
   });
-  await waitFor(() => expect(screen.queryByText(/Private queued member name/)).toBeNull());
+  await waitFor(() => expect(screen.queryAllByText(/Private queued member name/)).toHaveLength(0));
   expect(screen.queryByText(/Private queued member address/)).toBeNull();
   expect(screen.queryByText(/member@example.test/)).toBeNull();
   expect(screen.queryByLabelText('One-time member invitation code')).toBeNull();
@@ -202,7 +232,7 @@ it('invites and associates a walletless member, recovers one exact request and r
   fireEvent.change(await screen.findByLabelText('Certificate instruction reference'), {
     target: { value: 'Synthetic recipient instruction' },
   });
-  fireEvent.click(screen.getByRole('button', { name: `Preview recipient certificate ${FULFILLED_CERTIFICATE.uuid}` }));
+  fireEvent.click(screen.getByRole('button', { name: `Preview certificate for ${MEMBER_RECORD.name}` }));
   fireEvent.click(await screen.findByRole('button', { name: 'Confirm recipient certificate fulfilment' }));
   await screen.findByText(/The unsigned recipient certificate is recorded/);
   expect(api.post).toHaveBeenCalledWith(
@@ -216,7 +246,7 @@ it('invites and associates a walletless member, recovers one exact request and r
   );
   company.unmount();
   render(<MemberRecordsPage />, { wrapper });
-  fireEvent.change(screen.getByLabelText('Member invitation code'), { target: { value: MEMBER_CODE } });
+  fireEvent.change(await screen.findByLabelText('Member invitation code'), { target: { value: MEMBER_CODE } });
   fireEvent.click(screen.getByRole('checkbox', { name: /I accept access/ }));
   await waitFor(() =>
     expect((screen.getByRole('button', { name: 'Accept member invitation' }) as HTMLButtonElement).disabled).toBe(
@@ -225,13 +255,12 @@ it('invites and associates a walletless member, recovers one exact request and r
   );
   fireEvent.click(screen.getByRole('button', { name: 'Accept member invitation' }));
   await waitFor(() => expect(associated).toBe(true));
-  fireEvent.click(await screen.findByRole('button', { name: `Open ${MEMBER_RECORD.company.name} member record` }));
+  await screen.findByRole('button', { name: 'Read own entries for Ordinary' });
   await screen.findByText(MEMBER_RECORD.name);
-  expect(screen.getByText(/5 awarded · 2 vested · 0 issued/)).toBeTruthy();
-  fireEvent.click(
-    await screen.findByRole('button', { name: `Download own unsigned certificate ${FULFILLED_CERTIFICATE.uuid}` }),
-  );
+  expect(screen.getByRole('img', { name: /3 unvested, 2 vested, awaiting issue, 0 issued from award/ })).toBeTruthy();
+  fireEvent.click(await screen.findByRole('button', { name: /Download unsigned certificate/ }));
   await waitFor(() => expect(createObjectURL).toHaveBeenCalledWith(pdf));
+  fireEvent.click(screen.getByText('Request a particulars update'));
   fireEvent.change(screen.getByLabelText('Requested name'), { target: { value: 'Requested Member Name' } });
   fireEvent.change(screen.getByLabelText('Requested residential address'), {
     target: { value: 'Requested synthetic address' },
@@ -257,6 +286,115 @@ it('invites and associates a walletless member, recovers one exact request and r
   expect(screen.queryByText(MEMBER_RECORD.residentialAddress)).toBeNull();
   expect(screen.queryByRole('button', { name: 'Request certificate for entry 1' })).toBeNull();
   await act(async () => release!());
-  expect(screen.queryByText(/Certificate request.*requested/)).toBeNull();
+  expect(screen.queryAllByText(/Certificate requested/)).toHaveLength(0);
   expect(api.post.mock.calls.filter(([url]) => url === URLS.MEMBER_CERTIFICATE_REQUESTS)).toHaveLength(1);
+});
+
+it('invites an exact award-only recipient, deduplicates members and clears unavailable and foreign company selections', async () => {
+  const preferences = { userProfile: 'profile-one', userAccount: { uuid: 'account-one', role: 'company' } };
+  const owner = { userUuid: preferences.userProfile, ownerAccountUuid: preferences.userAccount.uuid };
+  const company = MEMBER_RECORD.company.uuid;
+  const otherCompany = '99999999-9999-4999-8999-999999999999';
+  const awardMember = '88888888-8888-4888-8888-888888888888';
+  const otherClass = '77777777-7777-4777-8777-777777777777';
+  const award = {
+    ...awardFrom(AWARD_REQUEST),
+    company,
+    token: memberRegister.token.uuid,
+    member: awardMember,
+    name: 'Award Only Recipient',
+  };
+  let awards = [award];
+  let invitation: unknown;
+  client.setQueryData(AUTH_QUERY_KEY, { data: { valid: true } });
+  client.setQueryData(USER_PREFERENCES_QUERY_KEY, { data: preferences });
+  vi.stubGlobal('crypto', { randomUUID: () => webcrypto.randomUUID() });
+  api.get.mockReset().mockImplementation(async (url, config) => {
+    if (url === '/api/user-preferences/') return { data: preferences };
+    if (url === '/api/v1/company-authority/appointments/')
+      return page([
+        { ...OUTPUT_APPOINTMENT, company, capabilities: ['admin'] },
+        { ...OUTPUT_APPOINTMENT, company: otherCompany, capabilities: ['admin'] },
+      ]);
+    if (url === URLS.REGISTER_AWARDS) {
+      expect([company, otherCompany]).toContain(config.params.company);
+      return page(awards);
+    }
+    if (url === URLS.MEMBER_INVITATIONS) return page(invitation ? [invitation] : []);
+    if ([URLS.MEMBER_ASSOCIATIONS, URLS.MEMBER_PARTICULARS_REQUESTS, URLS.MEMBER_CERTIFICATE_REQUESTS].includes(url))
+      return page([]);
+    throw new Error(`Unexpected GET ${url}`);
+  });
+  api.post.mockReset().mockImplementation(async (url, body) => {
+    expect(url).toBe(URLS.MEMBER_INVITATIONS);
+    invitation = {
+      ...body,
+      uuid: body.operationId,
+      status: 'pending',
+      code: MEMBER_CODE,
+      acceptanceDeadline: '2026-10-18T00:00:00Z',
+    };
+    return { data: invitation };
+  });
+  const guard = () => {};
+  const onHeldChange = vi.fn();
+  const companyView = (uuid: string, registers: TokenHoldersResponse[], sourceReady = true) => (
+    <QueryClientProvider client={client}>
+      <ApiClientProvider client={api as unknown as AxiosInstance}>
+        <CompanyMemberAccess
+          owner={owner}
+          company={uuid}
+          registers={registers}
+          guard={guard}
+          sourceReady={sourceReady}
+          onHeldChange={onHeldChange}
+        />
+      </ApiClientProvider>
+    </QueryClientProvider>
+  );
+  const registers = [
+    memberRegister,
+    { ...memberRegister, token: { ...memberRegister.token, uuid: otherClass, symbol: 'PREF' } },
+  ];
+  const view = render(companyView(company, registers));
+  await screen.findByRole('option', { name: 'Award Only Recipient · ORD · Award recipient' });
+  expect(screen.getAllByRole('option', { name: /Company Recorded Member/ })).toHaveLength(1);
+  expect(screen.queryByLabelText('Member UUID')).toBeNull();
+  fireEvent.change(screen.getByLabelText('Member or award recipient'), { target: { value: awardMember } });
+  fireEvent.change(screen.getByLabelText('Intended recipient email'), { target: { value: 'employee@example.test' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Create member invitation' }));
+  await screen.findByLabelText('One-time member invitation code');
+  expect(api.post).toHaveBeenCalledWith(
+    URLS.MEMBER_INVITATIONS,
+    expect.objectContaining({ company, member: awardMember, intendedEmail: 'employee@example.test' }),
+    expect.any(Object),
+  );
+  expect(onHeldChange).toHaveBeenCalledWith(true);
+  expect(api.post).toHaveBeenCalledTimes(1);
+
+  awards = [];
+  await act(async () =>
+    client.refetchQueries({
+      queryKey: ['tokens', 'register', owner.userUuid, owner.ownerAccountUuid, 'invitation-awards', company],
+      exact: true,
+    }),
+  );
+  await waitFor(() => expect((screen.getByLabelText('Member or award recipient') as HTMLSelectElement).value).toBe(''));
+  expect((screen.getByLabelText('Intended recipient email') as HTMLInputElement).value).toBe('');
+  expect(screen.getByRole('button', { name: 'Create member invitation' }).matches(':disabled')).toBe(true);
+
+  fireEvent.change(screen.getByLabelText('Member or award recipient'), { target: { value: MEMBER_RECORD.member } });
+  fireEvent.change(screen.getByLabelText('Intended recipient email'), { target: { value: 'member@example.test' } });
+  awards = [{ ...award, name: 'Foreign Private Award Recipient' }];
+  invitation = undefined;
+  view.rerender(companyView(otherCompany, [{ ...REGISTER, token: { ...REGISTER.token, uuid: otherClass } }]));
+  await screen.findByText('The award recipients belong to another company.');
+  expect(screen.queryByRole('option', { name: /Foreign Private Award Recipient/ })).toBeNull();
+  expect(screen.queryByRole('option', { name: /Company Recorded Member/ })).toBeNull();
+  expect((screen.getByLabelText('Member or award recipient') as HTMLSelectElement).value).toBe('');
+  expect((screen.getByLabelText('Intended recipient email') as HTMLInputElement).value).toBe('');
+  expect(screen.getByRole('button', { name: 'Create member invitation' }).matches(':disabled')).toBe(true);
+  expect(api.post).toHaveBeenCalledTimes(1);
+  view.rerender(companyView(otherCompany, [], false));
+  await waitFor(() => expect(screen.queryByLabelText('Member or award recipient')).toBeNull());
 });

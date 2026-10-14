@@ -46,8 +46,14 @@ export function TransferRecord({
   steps,
   last,
   onSettled,
+  visible = true,
+  guard,
+  onHeldChange,
 }: {
   transfer: RegisterTransfer;
+  visible?: boolean;
+  guard?: () => void;
+  onHeldChange?: (key: string, held: boolean) => void;
   epoch: number;
   steps?: Record<RegisterStep, OwnCompanyAppointment | undefined>;
   last: boolean;
@@ -56,85 +62,97 @@ export function TransferRecord({
   const styles = useCompanyStyles();
   const description = `non-paid transfer from ${transfer.fromName} to ${transfer.name}, prepared ${formatDateTime(transfer.createdAt)}`;
   return (
-    <View style={[styles.entry, last && styles.lastEntry]}>
-      <Text style={styles.heading}>
-        {COPY.STAGES[transfer.stage] ?? transfer.stage} · {transfer.fromName} → {transfer.name}
-      </Text>
-      <Text style={styles.muted}>{COPY.PROVIDED_BY_COMPANY}</Text>
-      <TransferRows transfer={transfer} />
-      <Rows>
-        <Row label={COPY.AUTHORITY_REFERENCE}>{transfer.authorityReference}</Row>
-        <Row label={COPY.REASON}>{transfer.reason}</Row>
-        <Row label="Prepared by">{transfer.preparedByName || 'Name not recorded'}</Row>
-        <Row label="Prepared on">{formatDateTime(transfer.createdAt)}</Row>
-        {transfer.decisions.map((decision) => (
-          <Row key={decision.uuid} label={COPY.DECISIONS[decision.kind]}>
-            {[decision.decidedByName, formatDateTime(decision.decidedAt)].filter(Boolean).join(' · ')}
-          </Row>
-        ))}
-        {!!transfer.rejectionReason && <Row label="Rejection reason">{transfer.rejectionReason}</Row>}
-        {!!transfer.registerEntry && <Row label="Register entry">{transfer.registerEntry}</Row>}
-      </Rows>
-      {(['authority', 'instrument'] as const).map((kind) => (
-        <RegisterCopy
-          key={kind}
-          label={`Download ${kind} document`}
-          accessibilityLabel={`Download ${kind} document of ${description}`}
-          filename={`${kind}-${transfer.uuid}`}
-          epoch={epoch}
-          read={() => {
-            const config = { responseType: 'arraybuffer' as const, ledovaSessionEpoch: epoch };
-            if (kind === 'authority')
-              return apiClient.get<ArrayBuffer>(COMPANY_TOKEN_ENDPOINTS.REGISTER_TRANSFER_FILE(transfer.uuid), config);
-            return apiClient.get<ArrayBuffer>(
-              COMPANY_TOKEN_ENDPOINTS.REGISTER_TRANSFER_INSTRUMENT_FILE(transfer.uuid),
-              config,
-            );
-          }}
-        />
-      ))}
-      {transfer.status === 'submitted' && steps && (
-        <View style={styles.choices}>
-          {(['approve', 'apply', 'reject'] as RegisterDecisionKind[]).map(
-            (kind) =>
-              steps[kind] && (
-                <RegisterDecision
-                  key={kind}
-                  family={REGISTER_TRANSFER_DECISIONS}
-                  copy={COPY}
-                  noun="non-paid transfer"
-                  proposal={transfer}
-                  kind={kind}
-                  appointment={steps[kind]!.uuid}
-                  epoch={epoch}
-                  description={description}
-                  onSettled={onSettled}
-                  onRefused={onSettled}
-                >
-                  {(preview) => (
-                    <>
-                      <TransferRows transfer={preview} />
-                      <Text style={styles.muted}>{COPY.EFFECTIVE_NOTE}</Text>
-                      <Rows>
-                        <Row label="Register sequence">{preview.registerSequence}</Row>
-                        <Row label="Transferor holding">
-                          {preview.fromCurrentShares} → {preview.fromAfterShares}
-                        </Row>
-                        <Row label="Recipient holding">
-                          {preview.toCurrentShares} → {preview.toAfterShares}
-                        </Row>
-                        <Row label="Issued supply">
-                          {preview.issuedSupply} → {preview.afterIssuedSupply}
-                        </Row>
-                        <Row label="Authorised supply">{preview.authorisedSupply}</Row>
-                      </Rows>
-                    </>
-                  )}
-                </RegisterDecision>
-              ),
-          )}
-        </View>
+    <View style={visible ? [styles.entry, last && styles.lastEntry] : undefined}>
+      {visible && (
+        <>
+          <Text style={styles.heading}>
+            {COPY.STAGES[transfer.stage] ?? transfer.stage} · {transfer.fromName} → {transfer.name}
+          </Text>
+          <Text style={styles.muted}>{COPY.PROVIDED_BY_COMPANY}</Text>
+          <TransferRows transfer={transfer} />
+          <Rows>
+            <Row label={COPY.AUTHORITY_REFERENCE}>{transfer.authorityReference}</Row>
+            <Row label={COPY.REASON}>{transfer.reason}</Row>
+            <Row label="Prepared by">{transfer.preparedByName || 'Name not recorded'}</Row>
+            <Row label="Prepared on">{formatDateTime(transfer.createdAt)}</Row>
+            {transfer.decisions.map((decision) => (
+              <Row key={decision.uuid} label={COPY.DECISIONS[decision.kind]}>
+                {[decision.decidedByName, formatDateTime(decision.decidedAt)].filter(Boolean).join(' · ')}
+              </Row>
+            ))}
+            {!!transfer.rejectionReason && <Row label="Rejection reason">{transfer.rejectionReason}</Row>}
+            {!!transfer.registerEntry && <Row label="Register entry">{transfer.registerEntry}</Row>}
+          </Rows>
+          {(['authority', 'instrument'] as const).map((kind) => (
+            <RegisterCopy
+              key={kind}
+              label={`Download ${kind} document`}
+              accessibilityLabel={`Download ${kind} document of ${description}`}
+              filename={`${kind}-${transfer.uuid}`}
+              epoch={epoch}
+              guard={guard}
+              read={() => {
+                const config = {
+                  responseType: 'arraybuffer' as const,
+                  ledovaSessionEpoch: epoch,
+                  ledovaSubmissionGuard: guard,
+                };
+                if (kind === 'authority')
+                  return apiClient.get<ArrayBuffer>(
+                    COMPANY_TOKEN_ENDPOINTS.REGISTER_TRANSFER_FILE(transfer.uuid),
+                    config,
+                  );
+                return apiClient.get<ArrayBuffer>(
+                  COMPANY_TOKEN_ENDPOINTS.REGISTER_TRANSFER_INSTRUMENT_FILE(transfer.uuid),
+                  config,
+                );
+              }}
+            />
+          ))}
+        </>
       )}
+      <View style={styles.choices}>
+        {(['approve', 'apply', 'reject'] as RegisterDecisionKind[]).map((kind) => (
+          <RegisterDecision
+            key={kind}
+            family={REGISTER_TRANSFER_DECISIONS}
+            copy={COPY}
+            noun="non-paid transfer"
+            proposal={transfer}
+            kind={kind}
+            appointment={steps?.[kind]?.uuid}
+            visible={visible}
+            enabled={transfer.status === 'submitted'}
+            readGuard={guard}
+            newEffectGuard={guard}
+            onHeldChange={onHeldChange}
+            epoch={epoch}
+            description={description}
+            onSettled={onSettled}
+            onRefused={onSettled}
+          >
+            {(preview) => (
+              <>
+                <TransferRows transfer={preview} />
+                <Text style={styles.muted}>{COPY.EFFECTIVE_NOTE}</Text>
+                <Rows>
+                  <Row label="Register sequence">{preview.registerSequence}</Row>
+                  <Row label="Transferor holding">
+                    {preview.fromCurrentShares} → {preview.fromAfterShares}
+                  </Row>
+                  <Row label="Recipient holding">
+                    {preview.toCurrentShares} → {preview.toAfterShares}
+                  </Row>
+                  <Row label="Issued supply">
+                    {preview.issuedSupply} → {preview.afterIssuedSupply}
+                  </Row>
+                  <Row label="Authorised supply">{preview.authorisedSupply}</Row>
+                </Rows>
+              </>
+            )}
+          </RegisterDecision>
+        ))}
+      </View>
     </View>
   );
 }

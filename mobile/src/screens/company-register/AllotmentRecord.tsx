@@ -1,7 +1,9 @@
+import { useState } from 'react';
 import { Text, View } from 'react-native';
 import {
   COMPANY_TOKEN_ENDPOINTS,
   formatDateTime,
+  formatShareCount,
   REGISTER_ALLOTMENT_COPY as COPY,
   REGISTER_ALLOTMENT_DECISIONS,
   type OwnCompanyAppointment,
@@ -10,11 +12,17 @@ import {
   type RegisterAllotmentDecisionPreview,
   type RegisterStep,
 } from '@ledova/shared';
-import { Row, Rows } from '../../components/Ledger';
+import { Disclosure, Row, Rows } from '../../components/Ledger';
 import { apiClient } from '../../services/apiClient';
 import { RegisterCopy } from './RegisterCopy';
 import { RegisterDecision } from './RegisterDecision';
 import { useCompanyStyles } from './styles';
+
+const ISSUE_COPY = {
+  ...COPY,
+  DECISIONS: { ...COPY.DECISIONS, apply: 'Record issue' },
+  CONFIRMATIONS: { ...COPY.CONFIRMATIONS, apply: 'Record the approved shares in the register.' },
+};
 
 function AllotmentRows({ allotment }: { allotment: RegisterAllotment | RegisterAllotmentDecisionPreview }) {
   return (
@@ -52,6 +60,8 @@ export function AllotmentRecord({
   onSettled,
   guard,
   newEffectGuard,
+  visible = true,
+  onHeldChange,
 }: {
   allotment: RegisterAllotment;
   epoch: number;
@@ -59,102 +69,126 @@ export function AllotmentRecord({
   onSettled: () => Promise<unknown>;
   guard: () => void;
   newEffectGuard: (kind: RegisterDecisionKind) => void;
+  visible?: boolean;
+  onHeldChange?: (uuid: string, held: boolean) => void;
 }) {
   const styles = useCompanyStyles();
+  const [details, setDetails] = useState(false);
   const description = `external allotment for ${allotment.name}, prepared ${formatDateTime(allotment.createdAt)}`;
   const documents: ('authority' | 'agreement' | 'receipt')[] = ['authority', 'agreement', 'receipt'];
   return (
-    <View style={styles.entry}>
-      <Text style={styles.heading}>
-        {COPY.STAGES[allotment.stage] ?? allotment.stage} · {allotment.name}
-      </Text>
-      <Text style={styles.muted}>{COPY.RECEIPT_NOTE}</Text>
-      <AllotmentRows allotment={allotment} />
-      <Rows>
-        <Row label={COPY.AUTHORITY_REFERENCE}>{allotment.authorityReference}</Row>
-        <Row label={COPY.REASON}>{allotment.reason}</Row>
-        <Row label="Prepared by">{allotment.preparedByName || 'Name not recorded'}</Row>
-        <Row label="Prepared on">{formatDateTime(allotment.createdAt)}</Row>
-        {allotment.decisions.map((decision) => (
-          <Row key={decision.uuid} label={COPY.DECISIONS[decision.kind]}>
-            {[decision.decidedByName, formatDateTime(decision.decidedAt)].filter(Boolean).join(' · ')}
-          </Row>
-        ))}
-        {!!allotment.rejectionReason && <Row label="Rejection reason">{allotment.rejectionReason}</Row>}
-        {!!allotment.registerEntry && <Row label="Register entry">{allotment.registerEntry}</Row>}
-      </Rows>
-      {documents.map((kind) => (
-        <RegisterCopy
-          key={kind}
-          label={`Download ${kind} document`}
-          accessibilityLabel={`Download ${kind} document of ${description}`}
-          filename={`${kind}-${allotment.uuid}`}
-          epoch={epoch}
-          guard={guard}
-          read={() => {
-            const config = {
-              responseType: 'arraybuffer' as const,
-              ledovaSessionEpoch: epoch,
-              ledovaSubmissionGuard: guard,
-            };
-            if (kind === 'authority')
-              return apiClient.get<ArrayBuffer>(
-                COMPANY_TOKEN_ENDPOINTS.REGISTER_ALLOTMENT_FILE(allotment.uuid),
-                config,
-              );
-            if (kind === 'agreement')
-              return apiClient.get<ArrayBuffer>(
-                COMPANY_TOKEN_ENDPOINTS.REGISTER_ALLOTMENT_AGREEMENT_FILE(allotment.uuid),
-                config,
-              );
-            return apiClient.get<ArrayBuffer>(
-              COMPANY_TOKEN_ENDPOINTS.REGISTER_ALLOTMENT_RECEIPT_FILE(allotment.uuid),
-              config,
-            );
-          }}
-        />
-      ))}
-      {allotment.status === 'submitted' && steps && (
-        <View style={styles.choices}>
-          {(['approve', 'apply', 'reject'] as RegisterDecisionKind[]).map(
-            (kind) =>
-              steps[kind] && (
-                <RegisterDecision
-                  key={kind}
-                  family={REGISTER_ALLOTMENT_DECISIONS}
-                  copy={COPY}
-                  noun="external allotment"
-                  proposal={allotment}
-                  kind={kind}
-                  appointment={steps[kind]!.uuid}
-                  epoch={epoch}
-                  readGuard={guard}
-                  newEffectGuard={() => newEffectGuard(kind)}
-                  description={description}
-                  onSettled={onSettled}
-                  onRefused={onSettled}
-                >
-                  {(preview) => (
-                    <>
-                      <AllotmentRows allotment={preview} />
-                      <Text style={styles.muted}>{COPY.EFFECTIVE_NOTE}</Text>
-                      <Rows>
-                        <Row label="Register sequence">{preview.registerSequence}</Row>
-                        <Row label="Member holding">
-                          {preview.currentShares} → {preview.afterShares}
-                        </Row>
-                        <Row label="Issued supply">
-                          {preview.issuedSupply} → {preview.afterIssuedSupply}
-                        </Row>
-                        <Row label="Authorised supply">{preview.authorisedSupply}</Row>
-                      </Rows>
-                    </>
-                  )}
-                </RegisterDecision>
-              ),
-          )}
-        </View>
+    <View style={visible ? styles.entry : undefined}>
+      {visible && (
+        <>
+          <Text style={styles.heading}>
+            {COPY.STAGES[allotment.stage] ?? allotment.stage} · {allotment.name}
+          </Text>
+          <Text style={styles.text}>
+            {formatShareCount(allotment.shares)} shares · AUD {allotment.consideration}
+          </Text>
+          <Text style={styles.muted}>
+            {allotment.registerEntry
+              ? 'Shares recorded in the register.'
+              : allotment.stage === 'approved'
+                ? 'Approved. Record the issue to create the holding.'
+                : allotment.stage === 'rejected'
+                  ? 'Refused. The retained agreement and receipt remain available.'
+                  : 'Prepared. Company approval is required before the issue.'}
+          </Text>
+          <Disclosure
+            open={details}
+            onToggle={() => setDetails((value) => !value)}
+            accessibilityLabel={`Allotment records for ${allotment.name}`}
+            summary={<Text style={styles.muted}>Records and documents</Text>}
+          >
+            <Text style={styles.muted}>{COPY.RECEIPT_NOTE}</Text>
+            <AllotmentRows allotment={allotment} />
+            <Rows>
+              <Row label={COPY.AUTHORITY_REFERENCE}>{allotment.authorityReference}</Row>
+              <Row label={COPY.REASON}>{allotment.reason}</Row>
+              <Row label="Prepared by">{allotment.preparedByName || 'Name not recorded'}</Row>
+              <Row label="Prepared on">{formatDateTime(allotment.createdAt)}</Row>
+              {allotment.decisions.map((decision) => (
+                <Row key={decision.uuid} label={COPY.DECISIONS[decision.kind]}>
+                  {[decision.decidedByName, formatDateTime(decision.decidedAt)].filter(Boolean).join(' · ')}
+                </Row>
+              ))}
+              {!!allotment.rejectionReason && <Row label="Rejection reason">{allotment.rejectionReason}</Row>}
+              {!!allotment.registerEntry && <Row label="Register entry">{allotment.registerEntry}</Row>}
+            </Rows>
+            {documents.map((kind) => (
+              <RegisterCopy
+                key={kind}
+                label={`Download ${kind} document`}
+                accessibilityLabel={`Download ${kind} document of ${description}`}
+                filename={`${kind}-${allotment.uuid}`}
+                epoch={epoch}
+                guard={guard}
+                read={() => {
+                  const config = {
+                    responseType: 'arraybuffer' as const,
+                    ledovaSessionEpoch: epoch,
+                    ledovaSubmissionGuard: guard,
+                  };
+                  if (kind === 'authority')
+                    return apiClient.get<ArrayBuffer>(
+                      COMPANY_TOKEN_ENDPOINTS.REGISTER_ALLOTMENT_FILE(allotment.uuid),
+                      config,
+                    );
+                  if (kind === 'agreement')
+                    return apiClient.get<ArrayBuffer>(
+                      COMPANY_TOKEN_ENDPOINTS.REGISTER_ALLOTMENT_AGREEMENT_FILE(allotment.uuid),
+                      config,
+                    );
+                  return apiClient.get<ArrayBuffer>(
+                    COMPANY_TOKEN_ENDPOINTS.REGISTER_ALLOTMENT_RECEIPT_FILE(allotment.uuid),
+                    config,
+                  );
+                }}
+              />
+            ))}
+          </Disclosure>
+        </>
       )}
+      <View style={styles.choices}>
+        {(['approve', 'apply', 'reject'] as RegisterDecisionKind[]).map((kind) => (
+          <RegisterDecision
+            key={kind}
+            family={REGISTER_ALLOTMENT_DECISIONS}
+            copy={ISSUE_COPY}
+            noun="external allotment"
+            proposal={allotment}
+            kind={kind}
+            appointment={steps?.[kind]?.uuid}
+            visible={visible}
+            enabled={allotment.status === 'submitted' && (kind !== 'apply' || allotment.stage === 'approved')}
+            onHeldChange={onHeldChange}
+            epoch={epoch}
+            readGuard={guard}
+            newEffectGuard={() => newEffectGuard(kind)}
+            description={description}
+            onSettled={onSettled}
+            onRefused={onSettled}
+          >
+            {(preview) => (
+              <>
+                <AllotmentRows allotment={preview} />
+                <Text style={styles.muted}>{COPY.EFFECTIVE_NOTE}</Text>
+                <Rows>
+                  <Row label="Register sequence">{preview.registerSequence}</Row>
+                  <Row label="Member holding">
+                    {preview.currentShares} → {preview.afterShares}
+                  </Row>
+                  <Row label="Issued supply">
+                    {preview.issuedSupply} → {preview.afterIssuedSupply}
+                  </Row>
+                  <Row label="Authorised supply">{preview.authorisedSupply}</Row>
+                </Rows>
+              </>
+            )}
+          </RegisterDecision>
+        ))}
+      </View>
     </View>
   );
 }

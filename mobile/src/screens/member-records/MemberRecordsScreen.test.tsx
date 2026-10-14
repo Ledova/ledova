@@ -12,6 +12,7 @@ import type { AxiosInstance } from 'axios';
 import { apiClient } from '../../services/apiClient';
 import { getSessionEpoch } from '../../services/sessionScope';
 import { MEMBER_CODE, MEMBER_ENTRY, MEMBER_RECORD } from '../../../../packages/shared/tests/fixtures/member-access';
+import { AWARD_REQUEST, REGISTER, awardFrom } from '../../../../packages/shared/tests/fixtures/employee-awards';
 import {
   FULFILLED_CERTIFICATE,
   MEMBER_PDF,
@@ -83,6 +84,20 @@ it('invites and associates a walletless member, recovers one exact request and r
     if (url === '/api/v1/company-authority/appointments/')
       return page([{ ...OUTPUT_APPOINTMENT, capabilities: ['admin', 'prepare'] }]);
     if (url === URLS.MEMBER_INVITATIONS) return page(invitation ? [invitation] : []);
+    if (url === URLS.REGISTER_AWARDS)
+      return page([
+        {
+          ...awardFrom({
+            ...AWARD_REQUEST,
+            operationId: MEMBER_RECORD.awards[0].uuid,
+            tokenId: MEMBER_RECORD.classes[0].uuid,
+            member: MEMBER_RECORD.member,
+            name: MEMBER_RECORD.name,
+            residentialAddress: MEMBER_RECORD.residentialAddress,
+          }),
+          company: MEMBER_RECORD.company.uuid,
+        },
+      ]);
     if (url === URLS.MEMBER_ASSOCIATIONS) return page([]);
     if (url === URLS.MEMBER_RECORDS) {
       if (refused) throw Object.assign(new Error('Current member access refused'), { response: { status: 404 } });
@@ -179,10 +194,27 @@ it('invites and associates a walletless member, recovers one exact request and r
       <ApiClientProvider client={api as unknown as AxiosInstance}>{children}</ApiClientProvider>
     </QueryClientProvider>
   );
-  const company = await render(<CompanyMemberAccess company={MEMBER_RECORD.company.uuid} epoch={getSessionEpoch()} />, {
-    wrapper,
-  });
-  await fireEvent.changeText(await screen.findByLabelText('Member UUID'), MEMBER_RECORD.member);
+  const company = await render(
+    <CompanyMemberAccess
+      company={MEMBER_RECORD.company.uuid}
+      epoch={getSessionEpoch()}
+      registers={[
+        {
+          ...REGISTER,
+          token: {
+            ...REGISTER.token,
+            uuid: MEMBER_RECORD.classes[0].uuid,
+            name: MEMBER_RECORD.classes[0].name,
+            symbol: MEMBER_RECORD.classes[0].symbol,
+          },
+        },
+      ]}
+    />,
+    {
+      wrapper,
+    },
+  );
+  await fireEvent.press(await screen.findByRole('radio', { name: `${MEMBER_RECORD.name} · ORD · Award recipient` }));
   await fireEvent.changeText(screen.getByLabelText('Intended recipient email'), 'member@example.test');
   await fireEvent.press(screen.getByRole('button', { name: 'Create member invitation' }));
   await screen.findByText(`One-time member invitation code: ${MEMBER_CODE}`);
@@ -221,14 +253,13 @@ it('invites and associates a walletless member, recovers one exact request and r
   );
   await company.unmount();
   await render(<MemberRecordsScreen />, { wrapper });
-  await fireEvent.changeText(screen.getByLabelText('Member invitation code'), MEMBER_CODE);
+  await fireEvent.changeText(await screen.findByLabelText('Member invitation code'), MEMBER_CODE);
   await fireEvent.press(screen.getByRole('checkbox', { name: 'Accept access using my signed-in account' }));
   await fireEvent.press(screen.getByRole('button', { name: 'Accept member invitation' }));
-  await fireEvent.press(
-    await screen.findByRole('button', { name: `Open ${MEMBER_RECORD.company.name} member record` }),
-  );
-  await screen.findByText(MEMBER_RECORD.name);
+  await screen.findByRole('header', { name: 'My shares' });
+  await screen.findByText('Ordinary · 10 issued shares');
   expect(screen.getByText(/5 awarded · 2 vested · 0 issued/)).toBeTruthy();
+  expect(screen.queryByLabelText('Requested name')).toBeNull();
   await fireEvent.press(
     await screen.findByRole('button', { name: `Share own unsigned certificate ${FULFILLED_CERTIFICATE.uuid}` }),
   );
@@ -238,6 +269,8 @@ it('invites and associates a walletless member, recovers one exact request and r
       { mimeType: 'application/pdf', UTI: 'com.adobe.pdf' },
     ),
   );
+  await fireEvent.press(screen.getByRole('button', { name: 'Open member details' }));
+  expect(screen.getByText(MEMBER_RECORD.name)).toBeTruthy();
   await fireEvent.changeText(screen.getByLabelText('Requested name'), 'Requested Member Name');
   await fireEvent.changeText(screen.getByLabelText('Requested residential address'), 'Requested synthetic address');
   await fireEvent.press(screen.getByRole('checkbox', { name: 'Share these particulars with this company for review' }));
@@ -254,6 +287,10 @@ it('invites and associates a walletless member, recovers one exact request and r
   expect(commands[0][1]).toEqual(commands[1][1]);
   expect(screen.getByText(MEMBER_RECORD.name)).toBeTruthy();
   await fireEvent.press(screen.getByRole('button', { name: 'Read own entries for Ordinary' }));
+  await screen.findByRole('button', { name: 'Request certificate for entry 1' });
+  await fireEvent.press(screen.getByRole('button', { name: 'Refresh member records' }));
+  expect(await screen.findByRole('button', { name: 'Request certificate for entry 1' })).toBeEnabled();
+  expect(screen.getByLabelText('Requested name').props.value).toBe('Requested Member Name');
   await fireEvent.press(await screen.findByRole('button', { name: 'Request certificate for entry 1' }));
   await waitFor(() => expect(typeof release).toBe('function'));
   refused = true;
