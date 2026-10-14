@@ -4,7 +4,7 @@
 
 This archive holds the records Ledova kept for {{ company.name|md }} as at {{ as_at }} (UTC). It was produced on the written instruction or compelling document referenced as "{{ instruction|md }}", for {{ recipient|md }}.
 
-The stored register in this pack is Ledova's company-provided ownership mirror. The company's legal register, complete historical records and lawful access arrangements remain with the company. Neither this archive nor a blockchain representation establishes legal ownership.
+The stored registers describe Ledova's recorded ownership. Imported records copy the company's supplied register; chain openings record confirmed chain holdings. The company's legal register, complete historical records and lawful access arrangements remain with the company. Neither this archive nor a blockchain representation establishes legal ownership.
 
 The historical class field `authorised_shares` records the configured quantity limit. Classes created through the share-class form use a company-entered limit; a deployed contract enforces the configured cap. Mirror setup uses the supported integer ceiling as an internal quantity guard. These limits are neither the issued share count nor evidence of a legal capital mandate. Read the recorded issued supply and holdings for the copied ownership.
 
