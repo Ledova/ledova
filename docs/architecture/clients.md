@@ -200,8 +200,8 @@ ownership appears first, followed by external allotments and their actual pendin
 decisions. Employee awards and non-paid issues have their own destination;
 Documents holds register CSV, inspection copies and the company pack. The web
 dashboard
-and Register link to the guided Bring records → Review → Confirm setup for an
-existing ownership mirror. It accepts manual or local CSV rows, resumes pending
+and Register link to the guided Share details → Shareholders → Review setup for an
+existing ownership mirror. It accepts manual entry, resumes pending
 confirmations and offers a bounded correction of the latest opening; the
 company retains its legal records and access arrangements. Member
 invitations use named company members or award recipients with exact IDs retained

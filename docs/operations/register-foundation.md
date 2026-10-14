@@ -374,11 +374,9 @@ compact list. Each editor keeps the holding's underlying allotment particulars.
 **Held for someone else?** records the source's beneficial-holding distinction:
 Yes means non-beneficial and No means beneficial. Optional share/certificate
 references stay in **References (optional)**, open when already populated.
-The shareholder step also accepts the existing CSV template. CSV input is UTF-8,
-at most 1 MB and 500 allotment rows, and is parsed locally. A repeated holder
-reference groups allotments; identity, original entry
-date and current holding must agree across its rows. Blank money amounts remain
-missing rather than becoming zero. Review summarises the copied shares,
+Shareholders are entered manually; CSV input is not supported. Blank money
+amounts remain missing rather than becoming zero. Review summarises the copied
+shares,
 shareholders and record date above one table. Percentages refer to that class's
 copied holdings; each person's full particulars and original allotments remain
 available in **Details**. Holdings are checked against allotments before any
@@ -391,18 +389,12 @@ retain source evidence without extracting or verifying their contents.
 
 Shareholders keep one company member identity across classes. Choose an existing
 company shareholder by its member UUID, or explicitly choose a new shareholder;
-names alone never link records. A known UUID in a new-class CSV reuses that member.
-Other source references remain unresolved until that choice when company members
-already exist. Existing names and addresses are kept; missing particulars can be
-supplied from the source. Membership dates and quantities always come from the
+names alone never link records. Existing names and addresses are kept; missing
+particulars can be supplied from the source. Membership dates and quantities always come from the
 new class's source records, rather than another class's holding.
 
-For an opened mirror, use its current template and keep each holder reference:
-these identify the existing Ledova member. An original source reference such as
-`H001` cannot silently allocate a replacement member during correction. Add new
-shareholders manually. Templates include a `value_encoding` column so
-spreadsheet-safe text round-trips exactly; keep that column. Raw source CSVs
-without it retain their literal text, including any leading apostrophes.
+Corrections use the same manual forms and preserve existing member identities.
+Draft edits never allocate a replacement identity for an existing shareholder.
 
 The final step loads a fresh decision preview; **Confirm** records approval and
 application through the existing exact decisions, without a separate confirmation

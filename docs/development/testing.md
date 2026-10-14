@@ -90,7 +90,7 @@ scoped count and any skips. One or two optional chain smoke tests run through
 ## Client limits
 
 The dashboard remains at 20 cases. Its empty-register-only case was replaced
-with the guided company/CSV mirror journey, individual draft add/edit/cancel,
+with the guided manual company mirror journey, individual draft add/edit/cancel,
 interrupted-request recovery and confirmed ownership; the ownership dashboard
 case retains the unopened-class guard. Chrome observation uses fictional
 records and a local PostgreSQL app role, separate from the client mocks or
