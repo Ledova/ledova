@@ -68,7 +68,8 @@ must be removed. Do not add an exception merely to make a check green.
 
 Use the existing `Page`, `Section`, `PageAction`, `Modal` and `FIELD_CLASS` for
 signed-in web pages. `Page narrow` bounds task forms, settings and detailed
-records; ownership dashboards and tables retain the standard workspace width.
+records, including compact tables. Ownership dashboards and wide tables use
+the standard workspace width; tables scroll within their card on small screens.
 Keep one page heading, nearby labels and values, readable wrapping, balanced
 field groups and one primary next action. Section spacing is scoped to the
 signed-in frame; signup retains its existing presentation.

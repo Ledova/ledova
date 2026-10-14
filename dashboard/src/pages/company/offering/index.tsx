@@ -87,6 +87,7 @@ function OfferingRecord({
         {row.canBeEdited && (
           <>
             <PageAction
+              primary
               label={row.status === 'rejected' ? 'Submit again' : 'Submit for review'}
               disabled={busy}
               onClick={() => run('submit', row.uuid)}
@@ -215,9 +216,11 @@ function CompanyOfferings({ companyRead }: { companyRead: ReturnType<typeof useC
   return (
     <>
       <Page
+        narrow
         loading={companyRead.isLoading || data.isLoading}
         actions={
           <PageAction
+            primary
             label="New offering"
             disabled={!ready || !data.tokens.some((token) => token.status === 'deployed')}
             onClick={() => {

@@ -231,7 +231,10 @@ function Preparation({ commands }: { commands: Commands }) {
     }
   };
   return (
-    <fieldset disabled={waiting} className="space-y-4">
+    <fieldset
+      disabled={waiting}
+      className="grid gap-4 rounded-xl border border-border-subtle bg-surface-tertiary p-4 sm:grid-cols-2 [&>p]:sm:col-span-2 [&>h3]:sm:col-span-2 [&>dl]:sm:col-span-2"
+    >
       <h3 className="font-medium">Prepare a company pause change</h3>
       <p className="text-sm text-text-muted">{COPY.NOTE}</p>
       <PageAction

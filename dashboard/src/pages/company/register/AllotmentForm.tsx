@@ -302,14 +302,14 @@ export function AllotmentForm({
   if (!visible) return null;
   return (
     <form
-      className="space-y-4"
+      className="space-y-5 rounded-xl border border-border-subtle bg-surface-tertiary p-4 sm:p-5"
       onSubmit={(event) => {
         event.preventDefault();
         void submit();
       }}
     >
       <fieldset disabled={busy || blocked || held} className="space-y-4">
-        <fieldset className="space-y-3 rounded-lg border border-border-subtle p-4">
+        <fieldset className="grid gap-4 rounded-xl border border-border-subtle bg-surface-raised p-4 sm:grid-cols-2 [&>p]:sm:col-span-2">
           <legend className="px-1 text-sm font-medium">1. Person and shares</legend>
           <label className={LABEL}>
             Investor/member
@@ -336,7 +336,7 @@ export function AllotmentForm({
           {field('shares')}
           {field('consideration')}
         </fieldset>
-        <fieldset className="space-y-3 rounded-lg border border-border-subtle p-4">
+        <fieldset className="grid gap-4 rounded-xl border border-border-subtle bg-surface-raised p-4 sm:grid-cols-2 [&>p]:sm:col-span-2">
           <legend className="px-1 text-sm font-medium">2. Agreement and company receipt</legend>
           {field('agreementReference')}
           {field('agreementOn')}
@@ -347,7 +347,7 @@ export function AllotmentForm({
           {document('receipt')}
           <p className="text-sm text-text-muted">{COPY.RECEIPT_NOTE}</p>
         </fieldset>
-        <fieldset className="space-y-3 rounded-lg border border-border-subtle p-4">
+        <fieldset className="grid gap-4 rounded-xl border border-border-subtle bg-surface-raised p-4 sm:grid-cols-2 [&>p]:sm:col-span-2">
           <legend className="px-1 text-sm font-medium">3. Company authority and review</legend>
           {field('approvingDirector')}
           {field('authorityReference')}
@@ -365,12 +365,15 @@ export function AllotmentForm({
           {error}
         </p>
       )}
-      <p className="text-sm text-text-muted">{COPY.RECOVERY_NOTE}</p>
-      <PageAction
-        label={busy ? 'Preparing allotment…' : COPY.SUBMIT}
-        disabled={busy || blocked || (!held && !!problem)}
-        onClick={() => void submit()}
-      />
+      {held && <p className="text-sm text-text-muted">{COPY.RECOVERY_NOTE}</p>}
+      <div className="flex justify-end border-t border-border-subtle pt-4">
+        <PageAction
+          primary
+          label={busy ? 'Preparing allotment…' : COPY.SUBMIT}
+          disabled={busy || blocked || (!held && !!problem)}
+          onClick={() => void submit()}
+        />
+      </div>
     </form>
   );
 }

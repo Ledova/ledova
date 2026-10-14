@@ -59,7 +59,7 @@ export default function CompanyRegisterParticularsPage() {
       />
     );
   return (
-    <Page lede={LEDE} actions={back}>
+    <Page narrow lede={LEDE} actions={back}>
       {preferences.isLoading ? (
         <Loading />
       ) : (
@@ -135,7 +135,7 @@ function OwnParticulars({
       </>
     );
   return (
-    <Page lede={LEDE} actions={back}>
+    <Page narrow lede={LEDE} actions={back}>
       {content}
     </Page>
   );

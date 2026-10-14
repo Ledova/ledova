@@ -335,11 +335,14 @@ export function LinkForm({
           {error}
         </p>
       )}
-      <PageAction
-        label={busy ? 'Preparing wallet link…' : COPY.SUBMIT}
-        disabled={busy || blocked || problems.length > 0}
-        onClick={() => void submit()}
-      />
+      <div className="flex justify-end border-t border-border-subtle pt-4">
+        <PageAction
+          primary
+          label={busy ? 'Preparing wallet link…' : COPY.SUBMIT}
+          disabled={busy || blocked || problems.length > 0}
+          onClick={() => void submit()}
+        />
+      </div>
     </form>
   );
 }

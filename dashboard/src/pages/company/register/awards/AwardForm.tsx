@@ -220,14 +220,14 @@ export function AwardForm({
   if (!visible) return null;
   return (
     <form
-      className="space-y-4"
+      className="space-y-5 rounded-xl border border-border-subtle bg-surface-tertiary p-4 sm:p-5"
       onSubmit={(event) => {
         event.preventDefault();
         void submit();
       }}
     >
       <fieldset disabled={busy || blocked || held || !canPrepare} className="space-y-4">
-        <fieldset className="space-y-3">
+        <fieldset className="grid gap-4 sm:grid-cols-2">
           <legend className="pb-2 text-base font-medium">Person and promised shares</legend>
           <label className={LABEL}>
             Promised recipient
@@ -275,7 +275,7 @@ export function AwardForm({
             />
           </label>
         </fieldset>
-        <fieldset className="space-y-3 border-t border-border-subtle pt-3">
+        <fieldset className="grid gap-4 border-t border-border-subtle pt-4 sm:grid-cols-2 [&>p]:sm:col-span-2 [&>label:has(textarea)]:sm:col-span-2">
           <legend className="pb-2 text-base font-medium">Agreement</legend>
           <label className={LABEL}>
             {COPY.TERMS_ON}
@@ -307,7 +307,7 @@ export function AwardForm({
           </label>
           <p className="text-sm text-text-muted">PDF or image, max 10 MB. {COPY.NOTE}</p>
         </fieldset>
-        <fieldset className="space-y-3 border-t border-border-subtle pt-3">
+        <fieldset className="grid gap-4 border-t border-border-subtle pt-4 sm:grid-cols-2 [&>p]:sm:col-span-2 [&>label:has(textarea)]:sm:col-span-2">
           <legend className="pb-2 text-base font-medium">Vesting schedule</legend>
           <label className={LABEL}>
             {COPY.SCHEDULE}
@@ -330,12 +330,15 @@ export function AwardForm({
           {error}
         </p>
       )}
-      <p className="text-sm text-text-muted">{COPY.RECOVERY_NOTE}</p>
-      <PageAction
-        label={busy ? 'Recording award…' : COPY.SUBMIT}
-        disabled={busy || blocked || (!held && (!canPrepare || !!problem))}
-        onClick={() => void submit()}
-      />
+      {held && <p className="text-sm text-text-muted">{COPY.RECOVERY_NOTE}</p>}
+      <div className="flex justify-end border-t border-border-subtle pt-4">
+        <PageAction
+          primary
+          label={busy ? 'Recording award…' : COPY.SUBMIT}
+          disabled={busy || blocked || (!held && (!canPrepare || !!problem))}
+          onClick={() => void submit()}
+        />
+      </div>
     </form>
   );
 }

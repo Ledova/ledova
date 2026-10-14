@@ -179,7 +179,7 @@ export function ClassAwards({
         onClick={() => void refresh()}
       />
       {visible && awards.data?.length === 0 && <p className="text-sm text-text-muted">{COPY.EMPTY}</p>}
-      <ul className="divide-y divide-border-subtle">
+      <ul className="space-y-4">
         {awards.data?.map((award) => (
           <AwardRecord
             key={award.uuid}

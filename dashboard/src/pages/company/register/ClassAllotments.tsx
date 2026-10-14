@@ -208,7 +208,7 @@ export function ClassAllotments({
         disabled={allotments.isFetching || appointments.isFetching}
         onClick={() => void refresh().catch(() => {})}
       />
-      <ul className="divide-y divide-border-subtle">
+      <ul className="space-y-4">
         {allotments.data?.map((allotment) => (
           <AllotmentRecord
             key={allotment.uuid}

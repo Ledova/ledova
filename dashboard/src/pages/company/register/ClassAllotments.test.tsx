@@ -7,7 +7,7 @@ import {
   type OwnCompanyAppointment,
 } from '@ledova/shared';
 import { QueryClient } from '@tanstack/react-query';
-import { act, cleanup, fireEvent, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, expect, it, vi } from 'vitest';
 import { APPOINTMENT, REGISTER } from '../../../../../packages/shared/tests/fixtures/employee-awards';
 import {
@@ -232,7 +232,9 @@ it('preserves original preparation and issue recovery through refresh, keeps app
   appointments = [{ ...APPOINTMENT, capabilities: ['read_register'] }];
   fireEvent.click(screen.getByRole('button', { name: 'Retry allotments' }));
   const recover = await screen.findByRole('button', { name: /^Recover record issue receipt/ });
-  await screen.findByText(/100 issued shares · 1 current members/);
+  const shareSummary = await screen.findByRole('region', { name: `${REGISTER.token.name} share summary` });
+  expect(within(shareSummary).getByText('100')).toBeTruthy();
+  expect(within(shareSummary).getByText('1')).toBeTruthy();
   expect(screen.queryByRole('button', { name: /^Record issue [(]allotment/ })).toBeNull();
   expect(recover).toBeTruthy();
   fireEvent.click(await screen.findByRole('button', { name: /^Recover record issue receipt/ }));

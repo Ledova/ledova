@@ -147,7 +147,7 @@ it('reads every register class page and renders exact stored shares with each me
   expect(api.get).toHaveBeenCalledWith(REGISTER, { params: { page: 1 } });
   expect(api.get).toHaveBeenCalledWith(REGISTER, { params: { page: 2 } });
   expect(screen.queryByLabelText('Company')).toBeNull();
-  expect(screen.getAllByRole('heading', { name: 'Current members · 1' })).toHaveLength(2);
+  expect(screen.getAllByRole('heading', { name: 'Shareholders' })).toHaveLength(2);
   expect(screen.queryByRole('button', { name: /Ordinary shares|Preference shares/ })).toBeNull();
   expect(screen.queryByRole('button', { name: 'Download CSV' })).toBeNull();
   expect(screen.getAllByText('9,007,199,254,740,993 shares')).toHaveLength(2);
@@ -1030,14 +1030,14 @@ it("retains a dashboard's validated company/class context and reads only the cho
   expect(preference.closest('li')!.querySelector<HTMLDetailsElement>('details[data-register-history]')!.open).toBe(
     true,
   );
-  expect(within(preference.closest('section')!).getByText(/^Inland Example Pty Ltd ·/)).toBeTruthy();
+  expect(screen.getByText('Inland Example Pty Ltd', { selector: 'p' })).toBeTruthy();
   expect(screen.queryByRole('heading', { name: /^Ordinary shares ·/ })).toBeNull();
   expect(readUrls()).toContain(COMPANY_TOKEN_ENDPOINTS.HOLDERS('preference'));
   expect(readUrls()).not.toContain(COMPANY_TOKEN_ENDPOINTS.HOLDERS('ordinary'));
 
   fireEvent.change(select, { target: { value: 'harbour' } });
-  const ordinary = await screen.findByRole('heading', { name: /^Ordinary shares ·/ });
-  expect(within(ordinary.closest('section')!).getByText(/^Harbour Example Pty Ltd ·/)).toBeTruthy();
+  await screen.findByRole('heading', { name: /^Ordinary shares ·/ });
+  expect(screen.getByText('Harbour Example Pty Ltd', { selector: 'p' })).toBeTruthy();
   expect(screen.queryByRole('heading', { name: /^Preference shares ·/ })).toBeNull();
   expect(
     readUrls().filter(

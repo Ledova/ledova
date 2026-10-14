@@ -23,6 +23,7 @@ function CompanyPublications({ companyRead }: { companyRead: ReturnType<typeof u
   const publications = listing.data;
   return (
     <Page
+      narrow
       lede="Staff prepare and publish these records on your company's written instruction."
       loading={companyRead.isLoading || listing.isLoading}
       actions={

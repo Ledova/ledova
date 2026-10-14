@@ -207,7 +207,7 @@ export function AwardVestingForm({
   if (!visible) return null;
   return (
     <form
-      className="space-y-4"
+      className="space-y-5 rounded-xl border border-border-subtle bg-surface-tertiary p-4 sm:p-5"
       onSubmit={(event) => {
         event.preventDefault();
         void submit();
@@ -216,7 +216,10 @@ export function AwardVestingForm({
       <p className="text-sm text-text-muted">
         Record the company-confirmed event for {award.name}; this creates no issued shares.
       </p>
-      <fieldset disabled={busy || blocked || held || !canPrepare} className="space-y-4">
+      <fieldset
+        disabled={busy || blocked || held || !canPrepare}
+        className="grid gap-4 sm:grid-cols-2 [&>p]:sm:col-span-2"
+      >
         <label className={LABEL}>
           {COPY.VESTING_SHARES}
           <input
@@ -254,12 +257,15 @@ export function AwardVestingForm({
           {error}
         </p>
       )}
-      <p className="text-sm text-text-muted">{COPY.RECOVERY_NOTE}</p>
-      <PageAction
-        label={busy ? 'Recording vesting…' : COPY.VEST}
-        disabled={busy || blocked || (!held && (!canPrepare || !!problem))}
-        onClick={() => void submit()}
-      />
+      {held && <p className="text-sm text-text-muted">{COPY.RECOVERY_NOTE}</p>}
+      <div className="flex justify-end border-t border-border-subtle pt-4">
+        <PageAction
+          primary
+          label={busy ? 'Recording vesting…' : COPY.VEST}
+          disabled={busy || blocked || (!held && (!canPrepare || !!problem))}
+          onClick={() => void submit()}
+        />
+      </div>
     </form>
   );
 }

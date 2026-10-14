@@ -88,7 +88,9 @@ export function AwardRecord({
   };
   const eventReady = !events.isPending && !events.isFetching && !events.isError;
   return (
-    <li className="flex flex-col gap-3 py-4">
+    <li
+      className={`flex flex-col gap-4 ${visible ? 'rounded-xl border border-border-subtle bg-surface-raised p-4 sm:p-5' : ''}`}
+    >
       {visible && (
         <>
           <h4 className="text-base font-medium text-text-primary">{award.name}</h4>
