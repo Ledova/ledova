@@ -152,12 +152,13 @@ it('preserves original preparation and issue recovery through refresh, keeps app
     throw new Error(`Unexpected POST ${url}`);
   });
   renderCompanyPage(client, <CompanyRegisterPage />, 'Register');
-  const open = await screen.findByRole('button', { name: COPY.PREPARE });
+  const allotments = within((await screen.findByRole('heading', { name: COPY.TITLE })).parentElement!);
+  const open = await allotments.findByRole('button', { name: COPY.PREPARE });
   await waitFor(() => expect((open as HTMLButtonElement).disabled).toBe(false));
   fireEvent.click(open);
-  expect(await screen.findByRole('group', { name: '1. Person and shares' })).toBeTruthy();
-  expect(screen.getByRole('group', { name: '2. Agreement and company receipt' })).toBeTruthy();
-  expect(screen.getByRole('group', { name: '3. Company authority and review' })).toBeTruthy();
+  expect(await allotments.findByRole('group', { name: '1. Person and shares' })).toBeTruthy();
+  expect(allotments.getByRole('group', { name: '2. Agreement and company receipt' })).toBeTruthy();
+  expect(allotments.getByRole('group', { name: '3. Company authority and review' })).toBeTruthy();
   const fillForm = (receivedAmount = '249') => {
     act(() => {
       for (const [label, value] of [
@@ -174,72 +175,73 @@ it('preserves original preparation and issue recovery through refresh, keeps app
         [COPY.AUTHORITY_REFERENCE, ALLOTMENT_REQUEST.authorityReference],
         [COPY.REASON, ALLOTMENT_REQUEST.reason],
       ])
-        fireEvent.change(screen.getByLabelText(label), { target: { value } });
+        fireEvent.change(allotments.getByLabelText(label), { target: { value } });
       for (const label of Object.values(COPY.DOCUMENTS))
-        fireEvent.change(screen.getByLabelText(label), {
+        fireEvent.change(allotments.getByLabelText(label), {
           target: { files: [new File(['synthetic'], 'evidence.pdf', { type: 'application/pdf' })] },
         });
     });
   };
   fillForm();
-  expect((screen.getByRole('button', { name: COPY.SUBMIT }) as HTMLButtonElement).disabled).toBe(true);
-  fireEvent.change(screen.getByLabelText(COPY.RECEIVED_AMOUNT), { target: { value: '250' } });
-  fireEvent.click(screen.getByRole('button', { name: COPY.SUBMIT }));
-  await screen.findByRole('alert');
+  expect((allotments.getByRole('button', { name: COPY.SUBMIT }) as HTMLButtonElement).disabled).toBe(true);
+  fireEvent.change(allotments.getByLabelText(COPY.RECEIVED_AMOUNT), { target: { value: '250' } });
+  fireEvent.click(allotments.getByRole('button', { name: COPY.SUBMIT }));
+  await allotments.findByRole('alert');
   expect(rows[0].registerEntry).toBeNull();
-  expect(screen.getByLabelText(COPY.CONSIDERATION).matches(':disabled')).toBe(true);
+  expect(allotments.getByLabelText(COPY.CONSIDERATION).matches(':disabled')).toBe(true);
   failedRead = true;
-  fireEvent.click(screen.getByRole('button', { name: 'Refresh allotments' }));
-  await screen.findByText(/External allotments could not be read/);
-  expect(screen.queryByLabelText('Investor name')).toBeNull();
+  fireEvent.click(allotments.getByRole('button', { name: 'Refresh allotments' }));
+  await allotments.findByText(/External allotments could not be read/);
+  expect(allotments.queryByLabelText('Investor name')).toBeNull();
   failedRead = false;
-  fireEvent.click(screen.getByRole('button', { name: 'Retry allotments' }));
-  await screen.findByLabelText('Investor name');
-  fireEvent.click(screen.getByRole('button', { name: COPY.SUBMIT }));
-  await waitFor(() => expect(screen.queryByRole('button', { name: 'Close allotment form' })).toBeNull());
+  fireEvent.click(allotments.getByRole('button', { name: 'Retry allotments' }));
+  await allotments.findByLabelText('Investor name');
+  fireEvent.click(allotments.getByRole('button', { name: COPY.SUBMIT }));
+  await waitFor(() => expect(allotments.queryByRole('button', { name: 'Close allotment form' })).toBeNull());
   expect(api.post.mock.calls.filter(([url]) => url === URLS.REGISTER_ALLOTMENTS)).toHaveLength(1);
   expect(api.post.mock.calls.filter(([url]) => url === URLS.REGISTER_EVIDENCE)).toHaveLength(3);
-  expect(screen.queryByRole('button', { name: /^Record issue [(]allotment/ })).toBeNull();
+  expect(allotments.queryByRole('button', { name: /^Record issue [(]allotment/ })).toBeNull();
   for (const kind of ['approve', 'apply'] as const) {
     const label = kind === 'apply' ? 'Record issue' : COPY.DECISIONS[kind];
-    fireEvent.click(screen.getByRole('button', { name: new RegExp(`^${label} \\(allotment`) }));
-    const confirm = await screen.findByRole('button', { name: `${label} external allotment` });
+    fireEvent.click(allotments.getByRole('button', { name: new RegExp(`^${label} \\(allotment`) }));
+    const dialog = await screen.findByRole('dialog', { name: `${label} external allotment` });
+    const confirm = within(dialog).getByRole('button', { name: `${label} external allotment` });
     await waitFor(() => expect((confirm as HTMLButtonElement).disabled).toBe(false));
     fireEvent.click(confirm);
     await waitFor(() => expect(rows[0].decisions).toHaveLength(kind === 'approve' ? 1 : 2));
     if (kind === 'approve') {
       await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
       expect(rows[0].registerEntry).toBeNull();
-      await screen.findByText('Next: record the approved share issue. Approval has not changed ownership.');
+      await allotments.findByText('Next: record the approved share issue. Approval has not changed ownership.');
     }
   }
-  await screen.findByRole('button', { name: /^Recover record issue receipt/ });
+  await allotments.findByRole('button', { name: /^Recover record issue receipt/ });
   pauseRead = true;
   failedRead = true;
-  fireEvent.click(screen.getByRole('button', { name: 'Refresh allotments' }));
+  fireEvent.click(allotments.getByRole('button', { name: 'Refresh allotments' }));
   await waitFor(() => expect(releaseRead).toBeTypeOf('function'));
   await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
   expect(document.body.textContent).not.toContain(ALLOTMENT_REQUEST.name);
   expect(document.body.textContent).not.toContain(ALLOTMENT_REQUEST.residentialAddress);
   expect(document.body.textContent).not.toContain(ALLOTMENT_REQUEST.agreementReference);
-  expect(screen.queryByRole('button', { name: /^Recover record issue receipt/ })).toBeNull();
+  expect(allotments.queryByRole('button', { name: /^Recover record issue receipt/ })).toBeNull();
   await act(async () => releaseRead!());
   pendingReadRelease = undefined;
-  await screen.findByText(/External allotments could not be read/);
-  expect(screen.queryByText('entry-a')).toBeNull();
+  await allotments.findByText(/External allotments could not be read/);
+  expect(allotments.queryByText('entry-a')).toBeNull();
   pauseRead = false;
   failedRead = false;
   appointments = [{ ...APPOINTMENT, capabilities: ['read_register'] }];
-  fireEvent.click(screen.getByRole('button', { name: 'Retry allotments' }));
-  const recover = await screen.findByRole('button', { name: /^Recover record issue receipt/ });
+  fireEvent.click(allotments.getByRole('button', { name: 'Retry allotments' }));
+  const recover = await allotments.findByRole('button', { name: /^Recover record issue receipt/ });
   const shareSummary = await screen.findByRole('region', { name: `${REGISTER.token.name} share summary` });
   expect(within(shareSummary).getByText('100')).toBeTruthy();
   expect(within(shareSummary).getByText('1')).toBeTruthy();
-  expect(screen.queryByRole('button', { name: /^Record issue [(]allotment/ })).toBeNull();
+  expect(allotments.queryByRole('button', { name: /^Record issue [(]allotment/ })).toBeNull();
   expect(recover).toBeTruthy();
-  fireEvent.click(await screen.findByRole('button', { name: /^Recover record issue receipt/ }));
+  fireEvent.click(await allotments.findByRole('button', { name: /^Recover record issue receipt/ }));
   await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
-  await screen.findByText('Shares issued');
+  await allotments.findByText('Shares issued');
   const originalIssues = api.post.mock.calls.filter(
     ([url, body]) => url === URLS.REGISTER_ALLOTMENT_DECIDE(rows[0].uuid) && body.kind === 'apply',
   );
@@ -251,43 +253,43 @@ it('preserves original preparation and issue recovery through refresh, keeps app
     ),
   ).toHaveLength(1);
   expect(rows[0].decisions).toHaveLength(2);
-  fireEvent.click(screen.getByText('Record details and documents'));
-  await screen.findByText('entry-a');
+  fireEvent.click(allotments.getByText('Record details and documents'));
+  await allotments.findByText('entry-a');
   expect(rows[0].registerEntry).toBe('entry-a');
-  fireEvent.click(screen.getByRole('button', { name: /^Download receipt/ }));
+  fireEvent.click(allotments.getByRole('button', { name: /^Download receipt/ }));
   await waitFor(() => expect(releaseFile).toBeTypeOf('function'));
   failedRead = true;
-  fireEvent.click(screen.getByRole('button', { name: 'Refresh allotments' }));
-  await screen.findByText(/External allotments could not be read/);
-  expect(screen.queryByText('entry-a')).toBeNull();
-  expect(screen.queryByText(ALLOTMENT_REQUEST.agreementReference)).toBeNull();
-  expect(screen.queryByRole('button', { name: /^Download receipt/ })).toBeNull();
+  fireEvent.click(allotments.getByRole('button', { name: 'Refresh allotments' }));
+  await allotments.findByText(/External allotments could not be read/);
+  expect(allotments.queryByText('entry-a')).toBeNull();
+  expect(allotments.queryByText(ALLOTMENT_REQUEST.agreementReference)).toBeNull();
+  expect(allotments.queryByRole('button', { name: /^Download receipt/ })).toBeNull();
   await act(async () => releaseFile!());
   pendingFileRelease = undefined;
   expect(save).not.toHaveBeenCalled();
   failedRead = false;
-  fireEvent.click(screen.getByRole('button', { name: 'Retry allotments' }));
-  await screen.findByText('Shares issued');
-  expect(screen.getByText('entry-a')).toBeTruthy();
-  expect(screen.getByText(ALLOTMENT_REQUEST.agreementReference)).toBeTruthy();
+  fireEvent.click(allotments.getByRole('button', { name: 'Retry allotments' }));
+  await allotments.findByText('Shares issued');
+  expect(allotments.getByText('entry-a')).toBeTruthy();
+  expect(allotments.getByText(ALLOTMENT_REQUEST.agreementReference)).toBeTruthy();
   appointments = [{ ...APPOINTMENT, capabilities: ['finance'] }];
-  fireEvent.click(screen.getByRole('button', { name: 'Refresh allotments' }));
-  await waitFor(() => expect(screen.queryByText('entry-a')).toBeNull());
-  expect(screen.queryByText(ALLOTMENT_REQUEST.agreementReference)).toBeNull();
-  expect(screen.queryByRole('button', { name: /^Download receipt/ })).toBeNull();
+  fireEvent.click(allotments.getByRole('button', { name: 'Refresh allotments' }));
+  await waitFor(() => expect(allotments.queryByText('entry-a')).toBeNull());
+  expect(allotments.queryByText(ALLOTMENT_REQUEST.agreementReference)).toBeNull();
+  expect(allotments.queryByRole('button', { name: /^Download receipt/ })).toBeNull();
   interruptedAbsentPreparation = true;
   appointments = [APPOINTMENT];
-  fireEvent.click(screen.getByRole('button', { name: 'Refresh allotments' }));
-  fireEvent.click(await screen.findByRole('button', { name: COPY.PREPARE }));
-  await screen.findByLabelText('Investor name');
+  fireEvent.click(allotments.getByRole('button', { name: 'Refresh allotments' }));
+  fireEvent.click(await allotments.findByRole('button', { name: COPY.PREPARE }));
+  await allotments.findByLabelText('Investor name');
   fillForm('250');
-  fireEvent.click(screen.getByRole('button', { name: COPY.SUBMIT }));
-  await screen.findByText(COPY.PREPARATION_RECEIPT_FAILED);
+  fireEvent.click(allotments.getByRole('button', { name: COPY.SUBMIT }));
+  await allotments.findByText(COPY.PREPARATION_RECEIPT_FAILED);
   appointments = [{ ...APPOINTMENT, uuid: 'replacement-preparation-appointment' }];
-  fireEvent.click(screen.getByRole('button', { name: 'Refresh allotments' }));
-  await screen.findByLabelText('Investor name');
-  fireEvent.click(screen.getByRole('button', { name: COPY.SUBMIT }));
-  await screen.findByText(
+  fireEvent.click(allotments.getByRole('button', { name: 'Refresh allotments' }));
+  await allotments.findByLabelText('Investor name');
+  fireEvent.click(allotments.getByRole('button', { name: COPY.SUBMIT }));
+  await allotments.findByText(
     'The original allotment was not recorded and the request was refused. Close this form and start again with current company authority.',
   );
   const refusedPreparations = api.post.mock.calls.filter(
@@ -299,7 +301,7 @@ it('preserves original preparation and issue recovery through refresh, keeps app
   expect(
     api.get.mock.calls.filter(([url]) => url === URLS.REGISTER_ALLOTMENT(String(absentPreparation?.operationId))),
   ).toHaveLength(2);
-  const close = screen.getByRole('button', { name: 'Close allotment form' });
+  const close = allotments.getByRole('button', { name: 'Close allotment form' });
   await waitFor(() => expect(close.matches(':disabled')).toBe(false));
   fireEvent.click(close);
   expect(rows[0].registerEntry).toBe('entry-a');
