@@ -2,7 +2,7 @@
 
 import { COMPANY_TOKEN_ENDPOINTS, type Company } from '@ledova/shared';
 import { QueryClient } from '@tanstack/react-query';
-import { cleanup, screen } from '@testing-library/react';
+import { act, cleanup, screen } from '@testing-library/react';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import CompanyPage from '.';
 import { companyRecord, renderCompanyPage } from './testSupport';
@@ -26,19 +26,21 @@ const shareClass = {
   statusDisplay: 'Draft',
   totalSupply: '9007199254740993',
 };
+let shareClasses = [shareClass];
 function show() {
   return renderCompanyPage(client, <CompanyPage />, 'Company');
 }
 beforeEach(() => {
   vi.resetAllMocks();
   failed = null;
+  shareClasses = [shareClass];
   company = companyRecord();
   client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
   api.get.mockImplementation(async (url: string) => {
     if (url === failed) throw new Error('Unavailable');
     if (url === '/api/v1/companies/') return { data: { ...EMPTY, results: [company] } };
     if (url === COMPANY) return { data: { ...company } };
-    if (url === CLASSES) return { data: { ...EMPTY, count: 1, results: [shareClass] } };
+    if (url === CLASSES) return { data: { ...EMPTY, count: shareClasses.length, results: shareClasses } };
     throw new Error(`Unexpected request: ${url}`);
   });
   api.post.mockResolvedValue({ data: {} });
@@ -58,8 +60,8 @@ it('shows company details, exact draft share classes and the class/application d
   expect(screen.getByText(/Company information is provided by the company/)).toBeTruthy();
   expect(screen.getByRole('link', { name: /Company team/ }).getAttribute('href')).toBe('/company/team');
   expect(screen.getByText('company@example.invalid')).toBeTruthy();
-  expect(await screen.findByText('Internal quantity guard')).toBeTruthy();
-  expect(screen.queryByText('9,007,199,254,740,993 authorised shares')).toBeNull();
+  expect(await screen.findByText('9,007,199,254,740,993 authorised shares')).toBeTruthy();
+  expect(screen.queryByText('Internal quantity guard')).toBeNull();
   expect(screen.getByRole('link', { name: 'Ordinary shares' }).getAttribute('href')).toBe(
     '/company/register/class-one',
   );
@@ -69,4 +71,15 @@ it('shows company details, exact draft share classes and the class/application d
   );
   expect(screen.getByRole('link', { name: 'Register' }).getAttribute('href')).toBe('/company/register');
   expect(screen.getByRole('button', { name: 'Edit company' })).toBeTruthy();
+  shareClasses = [
+    { ...shareClass, status: 'deploying', statusDisplay: 'Deploying' },
+    { ...shareClass, uuid: 'mirror-class', name: 'Mirror shares', totalSupply: (2n ** 256n - 1n).toString() },
+  ];
+  await act(async () => {
+    await client.invalidateQueries({ queryKey: ['tokens'] });
+  });
+  expect(await screen.findByText('Deploying')).toBeTruthy();
+  expect(screen.getByText('9,007,199,254,740,993 authorised shares')).toBeTruthy();
+  expect(screen.getByText('Internal quantity guard')).toBeTruthy();
+  expect(screen.queryByText(`${(2n ** 256n - 1n).toLocaleString()} authorised shares`)).toBeNull();
 });

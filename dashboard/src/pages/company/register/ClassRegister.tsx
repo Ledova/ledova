@@ -17,7 +17,7 @@ export function ClassRegister({ register, prepare = false }: { register: TokenHo
             {register.issuedSupply === null ? 'Not recorded' : formatShareCount(register.issuedSupply)}
           </span>
         </Row>
-        {['deployed', 'paused'].includes(register.token.status) ? (
+        {register.token.totalSupply !== (2n ** 256n - 1n).toString() ? (
           <Row label="Authorised shares">
             <span className="break-all">{formatShareCount(register.token.totalSupply)}</span>
           </Row>

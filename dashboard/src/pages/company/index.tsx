@@ -140,7 +140,7 @@ function CompanyDetails({ data }: { data: ReturnType<typeof useCompany> }) {
                             {token.symbol} · {token.tokenTypeDisplay}
                           </p>
                           <p className="break-all text-text-muted">
-                            {token.contractAddress
+                            {token.totalSupply !== (2n ** 256n - 1n).toString()
                               ? `${formatShareCount(token.totalSupply)} authorised shares`
                               : 'Internal quantity guard'}
                           </p>
