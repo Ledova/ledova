@@ -89,7 +89,7 @@ function NavButton({ item, active, onSelect }: { item: NavItem; active: boolean;
     <button
       onClick={() => onSelect(itemPath(item))}
       aria-current={active ? 'page' : undefined}
-      className={`${ITEM_CLASS} ${active ? 'bg-brand-mid/10 text-brand-light' : IDLE_CLASS}`}
+      className={`${ITEM_CLASS} ${active ? 'bg-brand-mid/10 text-brand-light dark:bg-brand-tint' : IDLE_CLASS}`}
     >
       <Icon size={ICON_MD} weight={active ? 'fill' : 'regular'} />
       <span>{item.label ?? title}</span>

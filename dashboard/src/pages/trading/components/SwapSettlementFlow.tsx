@@ -5,7 +5,7 @@ import { WALLET_VERIFICATION_STATUS, type SwapSettlement, type Wallet } from '@l
 import { Modal, ModalActions } from '@components/Modal';
 import { PageAction } from '@components/Page';
 import { SeedPhraseInput } from '@components/SeedPhraseInput';
-import { QRScannerView, useQRScanner } from '@components/qr';
+import { QRCodeFrame, QRScannerView, useQRScanner } from '@components/qr';
 import {
   approvalTransactionForSigning,
   exactSettlementAmount,
@@ -308,9 +308,9 @@ export function SwapSettlementFlow({ settlement, wallets, onClose }: Props) {
           />
         )}
         {ready && canSign && view.step === 'qr' && liveQr && view.qr && (
-          <div className="flex justify-center py-2">
+          <QRCodeFrame>
             <AnimatedQRCode cbor={view.qr.cborHex} type={view.qr.type} />
-          </div>
+          </QRCodeFrame>
         )}
         {ready && view.step === 'scan' && liveQr && (
           <QRScannerView scannerId="swap-settlement-signature" error={scannerError} />

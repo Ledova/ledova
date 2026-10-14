@@ -7,7 +7,7 @@ import { fileURLToPath } from 'url';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '../..');
 
-const { DESIGN_TOKENS, PAPER_THEME } = await import('../shared/src/constants/ui/design-tokens.ts');
+const { DESIGN_TOKENS, THEMES } = await import('../shared/src/constants/ui/design-tokens.ts');
 
 function kebab(key) {
   return key.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`);
@@ -72,7 +72,24 @@ function generateSharedVars() {
   return lines;
 }
 
-const css = `@theme {${[...generateColorVars(PAPER_THEME), ...generateSharedVars()].join('\n')}
+const paperColors = generateColorVars(THEMES.paper);
+const darkColors = generateColorVars(THEMES.dark);
+
+const variableNames = (lines) =>
+  lines
+    .filter(Boolean)
+    .map((line) => line.split(':')[0])
+    .sort()
+    .join();
+if (variableNames(paperColors) !== variableNames(darkColors)) {
+  throw new Error('Paper and Dark themes emit different colour variables');
+}
+
+const css = `@theme {${[...paperColors, ...generateSharedVars()].join('\n')}
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;${darkColors.join('\n')}
 }
 `;
 

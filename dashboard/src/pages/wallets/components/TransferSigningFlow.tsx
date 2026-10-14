@@ -9,7 +9,7 @@ import {
   readWei,
 } from '@ledova/shared';
 import { ICON_XS, ICON_MD, ICON_XL } from '@components/iconSizes';
-import { useQRScanner, QRScannerView } from '@components/qr';
+import { useQRScanner, QRScannerView, QRCodeFrame } from '@components/qr';
 import { Row, Rows } from '@components/Ledger';
 import { Modal, ModalActions } from '@components/Modal';
 import { PageAction } from '@components/Page';
@@ -314,9 +314,9 @@ export function TransferSigningFlow({
             <p className="text-sm text-text-muted">Scan this QR code with your hardware wallet to sign the transfer.</p>
 
             {qrData && (
-              <div className="flex justify-center py-2">
+              <QRCodeFrame>
                 <AnimatedQRCode cbor={qrData.cborHex} type={qrData.type} />
-              </div>
+              </QRCodeFrame>
             )}
 
             {error && <p className="text-sm text-error-light">{error}</p>}

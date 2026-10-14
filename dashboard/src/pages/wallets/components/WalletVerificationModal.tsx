@@ -7,7 +7,7 @@ import type { Wallet } from '@ledova/shared';
 import { Modal, ModalActions } from '@components/Modal';
 import { PageAction } from '@components/Page';
 import { SeedPhraseInput } from '@components/SeedPhraseInput';
-import { useQRScanner, QRScannerView } from '@components/qr';
+import { useQRScanner, QRScannerView, QRCodeFrame } from '@components/qr';
 import { useWalletVerification } from '../hooks/useWalletVerification';
 import { decodeKeystoneMessageSignature } from '@utils/keystone/urDecoder';
 
@@ -141,9 +141,9 @@ export function WalletVerificationModal({ isOpen, wallet, guard, onClose }: Wall
             </div>
 
             {challengeQrData && (
-              <div className="flex justify-center py-2">
+              <QRCodeFrame>
                 <QRCodeSVG value={challengeQrData} size={220} level="M" />
-              </div>
+              </QRCodeFrame>
             )}
 
             {verificationError && <p className="text-sm text-error-light">{verificationError}</p>}

@@ -227,7 +227,7 @@ export function SignupIdentityVerification() {
               <button
                 type="button"
                 onClick={handleContinue}
-                className="w-full bg-brand-mid hover:bg-brand text-white font-semibold py-3 px-4 rounded-lg transition-colors shadow-lg shadow-brand-light/40 focus:outline-none focus:ring-2 focus:ring-border-focus focus:ring-offset-2 focus:ring-offset-surface-base"
+                className="w-full bg-brand-mid hover:bg-brand text-white font-semibold py-3 px-4 rounded-lg transition-colors shadow-lg shadow-brand-light/40 dark:shadow-none focus:outline-none focus:ring-2 focus:ring-border-focus focus:ring-offset-2 focus:ring-offset-surface-base"
               >
                 Continue
               </button>

@@ -88,6 +88,23 @@ const PAPER_THEME = buildColors({
   info: { light: '#0369a1', default: '#0369a1' },
 });
 
+const DARK_THEME = buildColors({
+  surface: { base: '#151410', raised: '#25231e', tertiary: '#2f2d27', disabled: '#3d3a33' },
+  text: { primary: '#efe9dd', secondary: '#e0d9cc', body: '#cec7b8', muted: '#b2ab9d', subtle: '#a09989' },
+  brand: { subtle: '#8ccaaf', light: '#6db497', mid: '#33836a', default: '#2f7a62', hover: '#2b7059', tint: '#1f3a30' },
+  border: { default: '#4e4a41', subtle: '#3c3931', faint: '#2d2b25', strong: '#686357', focus: '#6db497' },
+  success: { light: '#86c596', default: '#3e9358', dark: '#2a6a3e' },
+  error: { light: '#f0978b', default: '#bf4a3d', dark: '#973a31', subtle: '#3a1d19', backgroundSubtle: '#e0574a24' },
+  warning: { light: '#e8a85e', default: '#9c600f' },
+  info: { light: '#8fbbdb', default: '#3f7cab' },
+});
+
+export const THEMES = { paper: PAPER_THEME, dark: DARK_THEME } as const;
+
+export type ThemeName = keyof typeof THEMES;
+
+export const THEME_STORAGE_KEY = 'ledova.theme';
+
 export const DESIGN_TOKENS = {
   colors: PAPER_THEME,
 

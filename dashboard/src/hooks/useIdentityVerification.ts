@@ -9,6 +9,7 @@ import {
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
 import snsWebSdk from '@sumsub/websdk';
+import { currentTheme } from './useTheme';
 
 const START_FAILURE = 'Failed to start verification. Please try again.';
 
@@ -101,7 +102,7 @@ export function useIdentityVerification() {
           })
           .withConf({
             lang: 'en',
-            theme: 'light',
+            theme: currentTheme() === 'dark' ? 'dark' : 'light',
           })
           .on('idCheck.onApplicantSubmitted', () => {
             setJustSubmitted(true);
