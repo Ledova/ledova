@@ -4,7 +4,9 @@
 
 This archive holds the records Ledova kept for {{ company.name|md }} as at {{ as_at }} (UTC). It was produced on the written instruction or compelling document referenced as "{{ instruction|md }}", for {{ recipient|md }}.
 
-The stored register in this pack is the company's register of members. Where a share class is also on a blockchain, the chain is a mirror of the register and not the register itself.
+The stored register in this pack is Ledova's company-provided ownership mirror. The company's legal register, complete historical records and lawful access arrangements remain with the company. Neither this archive nor a blockchain representation establishes legal ownership.
+
+The historical class field `authorised_shares` is the configured technical share limit, not the issued share count or a legal capital mandate. A newly created mirror class uses the supported integer ceiling without asking the company to invent authorised capital. Read the recorded issued supply and holdings for the copied ownership.
 
 The pack carries the company, its share classes, each class's register of members with the history of entries behind it, the approvals and authority behind those entries, the transactions Ledova sent for each class and the settlements it executed, the company's documents with the copy Ledova kept of the evidence behind each approval, what the company published to its members with the roll each was addressed to, the record of each resolution's ballots and result and of each dividend's payment records, and the contract information needed to continue on chain. It does not carry members' email addresses, phone numbers, dates of birth, citizenship, financial details, account numbers, identity-verification evidence or platform account ids: those are what members gave Ledova, not what the register records. Nor does it carry investors' classification claims and evidence, their payslips, orders that have not settled, Ledova's own records of who took copies of the register, the signed bytes of any transaction, how any member voted, or which member opened which publication.
 
@@ -21,7 +23,7 @@ The pack carries the company, its share classes, each class's register of member
 | `documents.json` | Each document the company gave Ledova: its type, name, media type, validity, whether Ledova verified it, and the file that holds it or the address the company gave instead |
 | `documents/<document id>` | The bytes of each company document Ledova holds, as uploaded, named by the document's id with the extension of its media type |
 | `documents/evidence/<record kind>/<record id>` | The copy Ledova kept of the document an authority record relied on, as it was when the record was submitted, grouped by record kind and named by the record's id with the extension of its media type |
-| `classes/<class id>/class.json` | One share class: its terms, authorised shares, status, contract address and register head, with each capital increase and its execution, and each pause with the transaction it was for or the state it found |
+| `classes/<class id>/class.json` | One share class: its terms, configured share limit, status, contract address and register head, with each capital increase and its execution, and each pause with the transaction it was for or the state it found |
 | `classes/<class id>/register.csv` | The class's register of members, present once its register has been opened |
 | `classes/<class id>/entries.json` | Every entry in the class's register, in order, each with the exact text its hash was computed over |
 | `classes/<class id>/authority.json` | The class's register openings, imports, corrections and register instructions: each one's authority, terms, evidence and decision, and for an opening the chain boundary it was prepared against |

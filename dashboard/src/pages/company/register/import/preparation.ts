@@ -9,10 +9,14 @@ import {
   type TokenHoldersResponse,
 } from '@ledova/shared';
 
-export type AllotmentDraft = Omit<RegisterImportAllotment, 'shareReference' | 'certificateReference'> & {
+export type AllotmentDraft = Omit<
+  RegisterImportAllotment,
+  'shareReference' | 'certificateReference' | 'beneficiallyHeld'
+> & {
   id: string;
   shareReference: string;
   certificateReference: string;
+  beneficiallyHeld: boolean | null;
 };
 
 export type MemberDraft = {
@@ -29,6 +33,8 @@ export type FormerDraft = { id: string; name: string; residentialAddress: string
 export type PreparationDraft = {
   registerFile: File | null;
   asicFile: File | null;
+  registerEvidence?: string;
+  asicEvidence?: string;
   asAt: string;
   reference: string;
   reason: string;
@@ -42,7 +48,7 @@ const DAY = /^\d{4}-\d{2}-\d{2}$/;
 
 export function positiveShares(value: string) {
   const shares = wholeShares(value.trim());
-  return shares !== null && shares > 0n ? shares.toString() : null;
+  return shares !== null && shares > 0n && shares < 2n ** 256n ? shares.toString() : null;
 }
 
 export function blankAllotment(): AllotmentDraft {
@@ -55,7 +61,7 @@ export function blankAllotment(): AllotmentDraft {
     amountPaid: '',
     amountUnpaid: '',
     fullyPaid: true,
-    beneficiallyHeld: true,
+    beneficiallyHeld: null,
   };
 }
 
@@ -109,16 +115,20 @@ export function memberRows(members: MemberDraft[]): RegisterImportCurrentMemberR
     residentialAddress: row.residentialAddress.trim(),
     shares: positiveShares(row.shares) ?? row.shares.trim(),
     enteredOn: row.enteredOn,
-    allotments: row.allotments.map((allotment) => ({
-      allottedOn: allotment.allottedOn,
-      fullyPaid: allotment.fullyPaid,
-      beneficiallyHeld: allotment.beneficiallyHeld,
-      shares: positiveShares(allotment.shares) ?? allotment.shares.trim(),
-      amountPaid: registerImportMoney(allotment.amountPaid) ?? allotment.amountPaid.trim(),
-      amountUnpaid: registerImportMoney(allotment.amountUnpaid) ?? allotment.amountUnpaid.trim(),
-      shareReference: allotment.shareReference.trim() || null,
-      certificateReference: allotment.certificateReference.trim() || null,
-    })),
+    allotments: row.allotments.map((allotment) => {
+      if (allotment.beneficiallyHeld === null)
+        throw new Error('Choose whether these shares are held beneficially from the source records.');
+      return {
+        allottedOn: allotment.allottedOn,
+        fullyPaid: allotment.fullyPaid,
+        beneficiallyHeld: allotment.beneficiallyHeld,
+        shares: positiveShares(allotment.shares) ?? allotment.shares.trim(),
+        amountPaid: registerImportMoney(allotment.amountPaid) ?? allotment.amountPaid.trim(),
+        amountUnpaid: registerImportMoney(allotment.amountUnpaid) ?? allotment.amountUnpaid.trim(),
+        shareReference: allotment.shareReference.trim() || null,
+        certificateReference: allotment.certificateReference.trim() || null,
+      };
+    }),
   }));
 }
 
@@ -145,16 +155,20 @@ export function statedFigures(draft: PreparationDraft) {
 
 export function figuresDiffer(draft: PreparationDraft) {
   const stated = statedFigures(draft);
-  const imported = registerImportTotals(memberRows(draft.members));
+  const imported = registerImportTotals(draft.members);
   return stated?.total !== undefined && stated.total !== imported.total;
 }
 
 export function preparationProblems(draft: PreparationDraft, today: string) {
   const problems: string[] = [];
-  const dated = (day: string) => DAY.test(day) && day <= draft.asAt;
+  const dated = (day: string) =>
+    DAY.test(day) &&
+    Number.isFinite(Date.parse(`${day}T00:00:00Z`)) &&
+    new Date(`${day}T00:00:00Z`).toISOString().slice(0, 10) === day &&
+    day <= draft.asAt;
   const incomplete = (row: { name: string; residentialAddress: string; shares: string }) =>
     !row.name.trim() || !row.residentialAddress.trim() || positiveShares(row.shares) === null;
-  if (!DAY.test(draft.asAt) || draft.asAt > today) problems.push('Enter a record date that is not in the future.');
+  if (!dated(draft.asAt) || draft.asAt > today) problems.push('Enter a record date that is not in the future.');
   if (!draft.reference.trim() || !draft.reason.trim())
     problems.push('Give the source record reference and the reason.');
   if (draft.members.length === 0) problems.push('Add at least one current shareholder.');
@@ -169,6 +183,8 @@ export function preparationProblems(draft: PreparationDraft, today: string) {
     row.allotments.forEach((allotment, at) => {
       const prefix = `${label}, allotment ${at + 1}`;
       const shares = positiveShares(allotment.shares);
+      if (allotment.beneficiallyHeld === null)
+        problems.push(`${prefix}: choose whether the shares are held beneficially from the source records.`);
       if (!dated(allotment.allottedOn) || shares === null)
         problems.push(`${prefix}: enter shares and an allotment date no later than the record date.`);
       if (shares !== null) total += BigInt(shares);
@@ -186,7 +202,7 @@ export function preparationProblems(draft: PreparationDraft, today: string) {
   });
   if (draft.former.some((row) => incomplete(row) || !dated(row.ceasedOn)))
     problems.push('Complete any former shareholder details copied from the source record.');
-  if ((draft.statedTotal.trim() || draft.statedCount.trim()) && !draft.asicFile)
+  if ((draft.statedTotal.trim() || draft.statedCount.trim()) && !draft.asicFile && !draft.asicEvidence)
     problems.push('Attach the optional ASIC extract when entering its comparison figures.');
   if (!statedFigures(draft)) problems.push('Enter valid whole-number comparison figures or leave them blank.');
   return problems;

@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import {
   DESTINATIONS,
   REGISTER_COPY,
@@ -18,6 +18,7 @@ import { useCompanyRegister } from '../register/useCompanyRegister';
 import { ownerGuard, useOwnAppointments } from '../register/useRegisterImports';
 import { ClassCountPanel, OwnershipMetrics, ShareholderPanel } from './OwnershipPanels';
 import { RecentChanges } from './RecentChanges';
+import { RegisterSetup } from './RegisterSetup';
 import { ownershipSummary } from './summary';
 
 export default function CompanyDashboardPage() {
@@ -51,6 +52,14 @@ function OwnDashboard({
   const { classes, companies, company, selectCompany, registers } = useCompanyRegister(owner);
   const guard = useMemo(() => ownerGuard(owner, currentOwner), [owner, currentOwner]);
   const appointments = useOwnAppointments(owner, guard);
+  const location = useLocation();
+  const entered = useRef('');
+  useEffect(() => {
+    if (entered.current === location.key || !classes.isSuccess || classes.isFetching) return;
+    const wanted = location.state?.registerCompany;
+    if (typeof wanted === 'string' && classes.data.some((token) => token.companyUuid === wanted)) selectCompany(wanted);
+    entered.current = location.key;
+  }, [classes.isSuccess, classes.isFetching, classes.data, location.key, location.state, selectCompany]);
   const [selection, setSelection] = useState<{ company: string; token: string } | null>(null);
   const rows = registers.data ?? [];
   const expected = classes.data?.filter((item) => item.companyUuid === company?.uuid) ?? [];
@@ -104,15 +113,7 @@ function OwnDashboard({
       ) : preferences.isFetching || classes.isPending || (company && registers.isPending) || (company && !fresh) ? (
         <Loading />
       ) : companies.length === 0 ? (
-        <Section title="Start your company register">
-          <p className="text-sm text-text-muted">{REGISTER_COPY.NO_REGISTER}</p>
-          <Link
-            to={DESTINATIONS.company.path}
-            className="mt-2 w-fit text-sm font-medium text-brand-mid hover:underline"
-          >
-            Company settings
-          </Link>
-        </Section>
+        <RegisterSetup />
       ) : !company ? (
         <p className="py-3 text-sm text-text-muted">Select a company to show its ownership.</p>
       ) : fresh && scoped && summary && selected ? (
@@ -161,7 +162,9 @@ function RegisterWork({
   return (
     <Section title="Register work">
       {!register.initialized && (
-        <p className="text-sm text-text-muted">Open this class&apos;s register before recording ownership changes.</p>
+        <p className="text-sm text-text-muted">
+          Bring in this class’s existing ownership records before recording changes.
+        </p>
       )}
       {register.initialized && register.waitingEffects === null && (
         <p role="status" className="text-sm text-text-muted">
@@ -174,12 +177,20 @@ function RegisterWork({
         </p>
       )}
       <div className="flex flex-col items-start gap-3 py-2 text-sm font-medium text-brand-mid">
-        {prepare && (
+        {prepare && !register.initialized && (
+          <Link
+            to={DESTINATIONS.companyRegisterImport.path.replace(':uuid', register.token.uuid)}
+            className="hover:underline"
+          >
+            Set up your share register
+          </Link>
+        )}
+        {prepare && register.initialized && (
           <Link to={DESTINATIONS.companyRegister.path} state={state} className="hover:underline">
             Issue investor shares
           </Link>
         )}
-        {prepare && (
+        {prepare && register.initialized && (
           <Link to={`${DESTINATIONS.companyRegister.path}#awards`} state={state} className="hover:underline">
             Record an employee award
           </Link>

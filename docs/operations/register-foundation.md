@@ -354,8 +354,29 @@ complete historical records, lawful access arrangements and ASIC filings stay
 with the company. An import neither establishes legal ownership nor issues
 shares again. Shareholders need no account or wallet for a mirror opening.
 
-A company appointee prepares the snapshot for one existing share class, reviews
-its rows and confirms it through the existing approval/application decisions.
+On the web, **Set up your share register** opens `/company/register/setup`.
+Bring records for one share class, review the full copied rows and totals, then
+confirm the mirror. The company owner can record an existing class here by its
+name, code and type; an appointee can select an already configured class. This
+creates no shares or legal company registration. New mirror classes use the
+technical integer ceiling internally, rather than asking for legal authorised
+capital or showing it as ownership. Repeat setup for each class.
+
+Enter shareholders and allotments manually or use the CSV template on Bring
+records. CSV input is UTF-8, at most 1 MB and 500 allotment rows, and is parsed
+locally. A repeated holder reference groups allotments; identity, original entry
+date and current holding must agree across its rows. Blank money amounts remain
+missing rather than becoming zero. The review lists all copied particulars and
+checks holdings against allotments before any confirmation. Return to Bring
+records to correct a draft before confirming.
+
+Confirm records approval and application through the existing exact decisions.
+A failed or uncertain response retains its original retry receipt; return to
+setup to resume a prepared or approved snapshot. Current authority and fresh
+previews remain required. Completion returns to the ownership dashboard;
+member invitations are optional later work. Native clients retain their
+separate preparation and decision screens.
+
 New snapshots use `source_reference` and `source_confirmed: true` to attribute
 copied records to the company. This is a confirmation of the company's records,
 not a new director resolution or a Ledova verification. Copies of the source
@@ -422,8 +443,9 @@ particulars. An unchanged retry returns the same result; a changed retry or
 stale snapshot conflicts. Corrections do not transfer, burn or mint on chain and
 do not change the company's legal records.
 
-Opening corrections refuse later share activity or deployment rather than
-replacing their effects. The preview reports why a correction is unavailable;
+Opening corrections refuse later share activity, deployment or member-access
+activity rather than replacing their effects. The preview reports why a
+correction is unavailable;
 the company must resolve the source records and use the appropriate supported
 workflow instead. Existing compensating corrections remain separate from this
 bounded opening correction. Platform history and private evidence safeguards

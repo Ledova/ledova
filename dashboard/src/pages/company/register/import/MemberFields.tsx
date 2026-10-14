@@ -1,3 +1,4 @@
+import { registerImportMoney } from '@ledova/shared';
 import { FIELD_CLASS } from '@components/fieldClass';
 import { PageAction } from '@components/Page';
 import { blankAllotment, type AllotmentDraft, type MemberDraft } from './preparation';
@@ -107,27 +108,34 @@ export function MemberFields({
                 placeholder="0.00"
                 value={allotment.amountUnpaid}
                 className={FIELD_CLASS}
-                onChange={(event) => setAllotment(at, { amountUnpaid: event.target.value })}
+                onChange={(event) =>
+                  setAllotment(at, {
+                    amountUnpaid: event.target.value,
+                    fullyPaid: registerImportMoney(event.target.value) === '0.00',
+                  })
+                }
               />
             </label>
-            <label className={LABEL}>
-              Payment status
-              <select
-                value={allotment.fullyPaid ? 'fully' : 'partly'}
-                className={FIELD_CLASS}
-                onChange={(event) => setAllotment(at, { fullyPaid: event.target.value === 'fully' })}
-              >
-                <option value="fully">Fully paid</option>
-                <option value="partly">Not fully paid</option>
-              </select>
-            </label>
+            <div className={LABEL}>
+              <span>Payment status</span>
+              <p className="py-2 text-text-muted">
+                {registerImportMoney(allotment.amountUnpaid) === null
+                  ? 'Enter the unpaid amount'
+                  : registerImportMoney(allotment.amountUnpaid) === '0.00'
+                    ? 'Fully paid'
+                    : 'Not fully paid'}
+              </p>
+            </div>
             <label className={LABEL}>
               Held beneficially
               <select
-                value={allotment.beneficiallyHeld ? 'yes' : 'no'}
+                value={allotment.beneficiallyHeld === null ? '' : allotment.beneficiallyHeld ? 'yes' : 'no'}
                 className={FIELD_CLASS}
-                onChange={(event) => setAllotment(at, { beneficiallyHeld: event.target.value === 'yes' })}
+                onChange={(event) =>
+                  setAllotment(at, { beneficiallyHeld: event.target.value ? event.target.value === 'yes' : null })
+                }
               >
+                <option value="">Choose from the source record</option>
                 <option value="yes">Yes, for this shareholder</option>
                 <option value="no">No, held for someone else</option>
               </select>

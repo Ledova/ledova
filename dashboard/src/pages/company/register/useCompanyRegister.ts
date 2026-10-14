@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import {
   CACHE_TIMING,
+  canPersonallyAdministerCompany,
+  getCompanies,
   downloadTokenRegister,
   getCompanyTokenHolders,
   getRegisterClasses,
@@ -74,7 +76,17 @@ export function useRegisterEntryAccess(enabled = true) {
       if (!owner || boundary.get() !== owner) throw new Error('Your signed-in account changed.');
       const response = await getRegisterClasses(apiClient, { page: 1 });
       if (boundary.get() !== owner) throw new Error('Your signed-in account changed.');
-      return response.data.results.length > 0;
+      if (response.data.results.length > 0) return true;
+      const companies = await readEveryPage((page) => {
+        if (boundary.get() !== owner) throw new Error('Your signed-in account changed.');
+        return getCompanies(apiClient, page, {
+          ledovaSubmissionGuard: () => {
+            if (boundary.get() !== owner) throw new Error('Your signed-in account changed.');
+          },
+        });
+      });
+      if (boundary.get() !== owner) throw new Error('Your signed-in account changed.');
+      return companies.some(canPersonallyAdministerCompany);
     },
     ...READ_TIMING,
   });

@@ -26,8 +26,8 @@ export function MemberRecords({ members }: { members: RegisterImportMemberRow[] 
                     <Row label="Held beneficially">
                       {allotment.beneficiallyHeld ? 'Yes' : 'No, held for someone else'}
                     </Row>
-                    <Row label="Share reference">{allotment.shareReference || 'Not present in source'}</Row>
-                    <Row label="Certificate reference">{allotment.certificateReference || 'Not present in source'}</Row>
+                    <Row label="Share reference">{allotment.shareReference || 'Not recorded'}</Row>
+                    <Row label="Certificate reference">{allotment.certificateReference || 'Not recorded'}</Row>
                   </Rows>
                 </li>
               ))}

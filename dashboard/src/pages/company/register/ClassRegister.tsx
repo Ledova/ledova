@@ -17,9 +17,18 @@ export function ClassRegister({ register, prepare = false }: { register: TokenHo
             {register.issuedSupply === null ? 'Not recorded' : formatShareCount(register.issuedSupply)}
           </span>
         </Row>
-        <Row label="Authorised shares">
-          <span className="break-all">{formatShareCount(register.token.totalSupply)}</span>
-        </Row>
+        {['deployed', 'paused'].includes(register.token.status) ? (
+          <Row label="Authorised shares">
+            <span className="break-all">{formatShareCount(register.token.totalSupply)}</span>
+          </Row>
+        ) : (
+          <Row label="Technical share limit">
+            <details>
+              <summary className="cursor-pointer">Internal quantity guard</summary>
+              <span className="break-all">{formatShareCount(register.token.totalSupply)}</span>
+            </details>
+          </Row>
+        )}
         <Row label="Register">
           <Status tone={register.initialized ? 'done' : 'waiting'}>
             {register.initialized ? 'Opened' : 'Not opened'}

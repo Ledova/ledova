@@ -1,9 +1,10 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import {
   DESTINATIONS,
   REGISTER_IMPORT_COPY,
+  REGISTER_IMPORT_DECISIONS,
   apiErrorSentence,
   createUserFriendlyError,
   failureStatus,
@@ -14,20 +15,25 @@ import {
   prepareRegisterImport,
   registerImportTotals,
   uploadRegisterEvidence,
+  useRegisterDecision,
   type OrderSubmissionOwner,
   type OwnCompanyAppointment,
   type RegisterEvidence,
   type RegisterEvidenceKind,
   type RegisterImport,
+  type RegisterImportPreparation,
   type TokenHoldersResponse,
 } from '@ledova/shared';
+import { Row, Rows } from '@components/Ledger';
 import { PageAction } from '@components/Page';
-import { FIELD_CLASS } from '@components/fieldClass';
 import apiClient from '@services/apiClient';
 import { importsKey } from '../useRegisterImports';
-import { MemberFields } from './MemberFields';
+import { registerKey } from '../useCompanyRegister';
+import type { RegisterSteps } from '../proposals';
+import { BringRecords } from './BringRecords';
+import { MemberRecords } from './MemberRecords';
+import { REGISTER_CSV_MAX_BYTES, readRegisterCsv } from './csv';
 import {
-  blankFormer,
   blankMember,
   figuresDiffer,
   formerRows,
@@ -40,31 +46,43 @@ import {
   type PreparationDraft,
 } from './preparation';
 
+const CLOSED = 'This setup is closed. Reopen it before continuing.';
 type Upload = { file: File; appointment: string; key: string; receipt: RegisterEvidence | null };
-
-const FAILED = 'The import could not be prepared. Retry with the same details.';
-const CLOSED = 'This import form is closed. Reopen it before continuing.';
-const LABEL = 'block space-y-1 text-sm text-text-primary';
-const EVIDENCE = 'application/pdf,image/png,image/jpeg';
 
 export function ImportForm({
   owner,
   guard,
+  newEffectGuard = guard,
   company,
   register,
   appointment,
+  steps,
   blocked,
   onConflict,
   correction,
+  saved,
+  classFields,
+  classProblems = [],
+  resolveRegister,
+  visible = true,
+  onHeldChange,
 }: {
   owner: OrderSubmissionOwner;
   guard: () => void;
+  newEffectGuard?: () => void;
   company: string;
-  register: TokenHoldersResponse;
+  register?: TokenHoldersResponse;
   appointment: OwnCompanyAppointment;
+  steps: RegisterSteps;
   blocked: boolean;
   onConflict: () => void;
   correction?: RegisterImport;
+  saved?: RegisterImport;
+  classFields?: ReactNode;
+  classProblems?: string[];
+  resolveRegister?: () => Promise<TokenHoldersResponse>;
+  visible?: boolean;
+  onHeldChange?: (held: boolean) => void;
 }) {
   const client = useQueryClient();
   const navigate = useNavigate();
@@ -72,19 +90,36 @@ export function ImportForm({
   const [draft, setDraft] = useState<PreparationDraft>(() => ({
     registerFile: null,
     asicFile: null,
-    asAt: correction?.asAt ?? today,
-    reference: correction?.sourceReference ?? '',
-    reason: correction ? '' : 'Mirror the company’s existing share records.',
-    members: initialMembers(register, correction),
-    former: correction?.formerMembers.map((row) => ({ ...row, id: crypto.randomUUID() })) ?? [],
-    statedTotal: '',
-    statedCount: '',
+    registerEvidence: saved?.registerEvidence ?? undefined,
+    asicEvidence: saved?.asicEvidence ?? undefined,
+    asAt: saved?.asAt ?? correction?.asAt ?? today,
+    reference: saved?.sourceReference ?? correction?.sourceReference ?? '',
+    reason: saved?.reason ?? (correction ? '' : 'Mirror the company’s existing share records.'),
+    members: register ? initialMembers(register, saved ?? correction) : [blankMember()],
+    former: (saved ?? correction)?.formerMembers.map((row) => ({ ...row, id: crypto.randomUUID() })) ?? [],
+    statedTotal: saved?.asicIssuedTotal ?? '',
+    statedCount: saved?.asicMemberCount?.toString() ?? '',
   }));
+  const [proposal, setProposal] = useState<RegisterImport | undefined>(
+    saved?.status === 'rejected' ? undefined : saved,
+  );
+  const [phase, setPhase] = useState<'bring' | 'review' | 'confirm'>(
+    saved && saved.status !== 'rejected' ? 'review' : 'bring',
+  );
   const [busy, setBusy] = useState(false);
+  const [uncertain, setUncertain] = useState(false);
+  const [attempted, setAttempted] = useState(false);
   const [error, setError] = useState('');
+  const [autoApply, setAutoApply] = useState(false);
+  const [autoPreviewFinished, setAutoPreviewFinished] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const applyOpened = useRef(false);
+  const preparation = useRef<RegisterImportPreparation | null>(null);
+  const activeRegister = useRef(register);
   const uploads = useRef<Partial<Record<RegisterEvidenceKind, Upload>>>({});
-  const operation = useRef<{ signature: string; key: string } | null>(null);
   const pending = useRef(false);
+  const csvReading = useRef(false);
+  const csvGeneration = useRef(0);
   const mounted = useRef(true);
   useEffect(() => {
     mounted.current = true;
@@ -96,9 +131,87 @@ export function ImportForm({
     guard();
     if (!mounted.current) throw createUserFriendlyError(CLOSED);
   };
-  const update = (apply: (current: PreparationDraft) => PreparationDraft) => {
+  const checkNew = () => {
+    check();
+    newEffectGuard();
+    if (blocked || !visible)
+      throw createUserFriendlyError('Refresh current company authority and records before continuing.');
+  };
+  const finish = async () => {
+    check();
+    await client.invalidateQueries({ queryKey: registerKey(owner) });
+    check();
+    navigate('/company/dashboard', { state: { registerCompany: company } });
+  };
+  const approve = useRegisterDecision(apiClient, REGISTER_IMPORT_DECISIONS, proposal, {
+    appointment: steps.approve?.uuid,
+    newKey: () => crypto.randomUUID(),
+    guard: check,
+    newEffectGuard: checkNew,
+    requestConfig: () => ({ ledovaSubmissionGuard: check }),
+    onDecided: (receipt) => {
+      setProposal(receipt);
+      applyOpened.current = false;
+      setAutoPreviewFinished(false);
+      setAutoApply(true);
+    },
+    onRefused: onConflict,
+  });
+  const apply = useRegisterDecision(apiClient, REGISTER_IMPORT_DECISIONS, proposal, {
+    appointment: steps.apply?.uuid,
+    newKey: () => crypto.randomUUID(),
+    guard: check,
+    newEffectGuard: checkNew,
+    requestConfig: () => ({ ledovaSubmissionGuard: check }),
+    onDecided: finish,
+    onRefused: onConflict,
+  });
+  const reject = useRegisterDecision(apiClient, REGISTER_IMPORT_DECISIONS, proposal, {
+    appointment: steps.reject?.uuid,
+    newKey: () => crypto.randomUUID(),
+    guard: check,
+    newEffectGuard: checkNew,
+    requestConfig: () => ({ ledovaSubmissionGuard: check }),
+    onDecided: async () => {
+      setProposal(undefined);
+      preparation.current = null;
+      setAutoApply(false);
+      setEditing(false);
+      setPhase('bring');
+      await client.invalidateQueries({ queryKey: importsKey(owner, activeRegister.current!.token.uuid) });
+    },
+    onRefused: onConflict,
+  });
+  useEffect(() => {
+    if (!editing || !reject.target || reject.busy) return;
+    if (reject.target.preview.canDecide) void reject.confirm().finally(() => setEditing(false));
+    else void Promise.resolve().then(() => setEditing(false));
+  }, [editing, reject]);
+  useEffect(() => {
+    if (!autoApply || approve.busy || apply.busy || applyOpened.current || proposal?.stage !== 'approved') return;
+    if (!steps.apply) {
+      void Promise.resolve().then(() => setAutoApply(false));
+      return;
+    }
+    applyOpened.current = true;
+    void apply.open('apply').finally(() => setAutoPreviewFinished(true));
+  }, [autoApply, approve.busy, apply.busy, apply, proposal?.stage, steps.apply]);
+  useEffect(() => {
+    if (!autoApply || !autoPreviewFinished || apply.busy) return;
+    if (apply.target?.preview.canDecide) void apply.confirm().finally(() => setAutoApply(false));
+    else void Promise.resolve().then(() => setAutoApply(false));
+  }, [autoApply, autoPreviewFinished, apply]);
+  const deciding = approve.busy || apply.busy || reject.busy;
+  const recovery = approve.recovery ? approve : apply.recovery ? apply : reject.recovery ? reject : null;
+  const held = busy || uncertain || deciding || !!recovery || phase !== 'bring';
+  useEffect(() => {
+    onHeldChange?.(held);
+    return () => onHeldChange?.(false);
+  }, [held, onHeldChange]);
+  const update = (change: (current: PreparationDraft) => PreparationDraft) => {
+    if (held || pending.current) return;
     setError('');
-    setDraft(apply);
+    setDraft(change);
   };
   const setMember = (index: number, patch: Partial<MemberDraft>) =>
     update((current) => ({
@@ -110,10 +223,9 @@ export function ImportForm({
       ...current,
       former: current.former.map((row, at) => (at === index ? { ...row, ...patch } : row)),
     }));
-  const problems = preparationProblems(draft, today);
+  const problems = [...classProblems, ...preparationProblems(draft, today)];
   const differs = figuresDiffer(draft);
-  const imported = registerImportTotals(memberRows(draft.members));
-
+  const imported = registerImportTotals(draft.members);
   const upload = async (kind: RegisterEvidenceKind, file: File) => {
     const previous = uploads.current[kind];
     const same = previous?.file === file && previous.appointment === appointment.uuid;
@@ -121,301 +233,359 @@ export function ImportForm({
     const key = same ? previous.key : crypto.randomUUID();
     uploads.current[kind] = { file, appointment: appointment.uuid, key, receipt: null };
     const request = { companyId: company, appointment: appointment.uuid, kind, idempotencyKey: key };
+    checkNew();
+    const { data } = await uploadRegisterEvidence(apiClient, { ...request, file }, { ledovaSubmissionGuard: checkNew });
+    checkNew();
+    if (!isRegisterEvidenceReceipt(data, request, file.size))
+      throw createUserFriendlyError(REGISTER_IMPORT_COPY.UPLOAD_RECEIPT_FAILED);
+    uploads.current[kind] = { file, appointment: appointment.uuid, key, receipt: data };
+    return data;
+  };
+  const importCsv = async (file: File | null) => {
+    if (!file || held || (pending.current && !csvReading.current)) return;
+    const generation = ++csvGeneration.current;
+    csvReading.current = true;
+    pending.current = true;
+    setError('');
+    setBusy(true);
     try {
-      check();
-      const { data } = await uploadRegisterEvidence(apiClient, { ...request, file }, { ledovaSubmissionGuard: check });
-      check();
-      if (!isRegisterEvidenceReceipt(data, request, file.size)) {
-        delete uploads.current[kind];
-        throw createUserFriendlyError(REGISTER_IMPORT_COPY.UPLOAD_RECEIPT_FAILED);
-      }
-      uploads.current[kind] = { file, appointment: appointment.uuid, key, receipt: data };
-      return data;
+      checkNew();
+      if (file.size > REGISTER_CSV_MAX_BYTES) throw new Error('Choose a UTF-8 CSV no larger than 1 MB.');
+      const text = new TextDecoder('utf-8', { fatal: true }).decode(await file.arrayBuffer());
+      if (generation !== csvGeneration.current) return;
+      checkNew();
+      const members = readRegisterCsv(text, draft.members);
+      const next = { ...draft, members };
+      const invalid = preparationProblems(next, today).filter((problem) => problem.startsWith('Shareholder'));
+      if (invalid.length) throw new Error(invalid.join(' '));
+      setDraft(next);
     } catch (failure) {
-      if (failureStatus(failure) === 409) delete uploads.current[kind];
-      throw failure;
+      if (mounted.current && generation === csvGeneration.current)
+        setError(
+          apiErrorSentence(failure, 'The CSV could not be read. Use the template.', 'The CSV could not be read.'),
+        );
+    } finally {
+      if (generation === csvGeneration.current) {
+        csvReading.current = false;
+        pending.current = false;
+        if (mounted.current) setBusy(false);
+      }
     }
   };
-
-  const submit = async () => {
-    if (pending.current || busy || blocked || problems.length > 0 || differs) return;
-    const stated = statedFigures(draft);
+  const prepare = async (recovering = false) => {
+    if (pending.current || busy || deciding) return;
+    setAttempted(true);
+    if (!recovering && (blocked || problems.length || differs)) return;
     pending.current = true;
     setBusy(true);
     setError('');
     try {
-      check();
-      const registerEvidence = draft.registerFile ? await upload('share_register', draft.registerFile) : null;
-      const asicEvidence = draft.asicFile ? await upload('asic_extract', draft.asicFile) : null;
-      const request = {
-        appointment: appointment.uuid,
-        tokenId: register.token.uuid,
-        registerEvidence: registerEvidence?.uuid,
-        asicEvidence: asicEvidence?.uuid,
-        asicIssuedTotal: stated?.total,
-        asicMemberCount: stated?.count,
-        asAt: draft.asAt,
-        members: memberRows(draft.members),
-        formerMembers: formerRows(draft.former),
-        sourceReference: draft.reference.trim(),
-        sourceConfirmed: true as const,
-        correctionOf: correction?.uuid,
-        reason: draft.reason.trim(),
-      };
-      const signature = JSON.stringify(request);
-      if (operation.current?.signature !== signature) operation.current = { signature, key: crypto.randomUUID() };
-      const preparation = { operationId: operation.current.key, ...request };
-      try {
-        check();
-        const { data } = await prepareRegisterImport(apiClient, preparation, { ledovaSubmissionGuard: check });
-        check();
-        if (!isPreparedRegisterImport(data, preparation))
-          throw createUserFriendlyError(REGISTER_IMPORT_COPY.PREPARATION_RECEIPT_FAILED);
-      } catch (failure) {
-        if (failureStatus(failure) === 409) {
-          operation.current = null;
-          onConflict();
-        }
-        throw failure;
+      if (recovering) check();
+      else checkNew();
+      if (!preparation.current) {
+        const current = activeRegister.current ?? (await resolveRegister?.());
+        checkNew();
+        if (!current) throw createUserFriendlyError('Choose the share class before continuing.');
+        activeRegister.current = current;
+        const registerEvidence = draft.registerFile ? await upload('share_register', draft.registerFile) : null;
+        const asicEvidence = draft.asicFile ? await upload('asic_extract', draft.asicFile) : null;
+        const stated = statedFigures(draft);
+        preparation.current = {
+          operationId: crypto.randomUUID(),
+          appointment: appointment.uuid,
+          tokenId: current.token.uuid,
+          registerEvidence: registerEvidence?.uuid ?? draft.registerEvidence,
+          asicEvidence: asicEvidence?.uuid ?? draft.asicEvidence,
+          asicIssuedTotal: stated?.total,
+          asicMemberCount: stated?.count,
+          asAt: draft.asAt,
+          members: memberRows(draft.members),
+          formerMembers: formerRows(draft.former),
+          sourceReference: draft.reference.trim(),
+          sourceConfirmed: true,
+          correctionOf: correction?.uuid,
+          reason: draft.reason.trim(),
+        };
       }
+      const request = preparation.current;
+      const { data } = await prepareRegisterImport(apiClient, request, {
+        ledovaSubmissionGuard: recovering ? check : checkNew,
+      });
       check();
-      await client.invalidateQueries({ queryKey: importsKey(owner, register.token.uuid) });
+      if (!isPreparedRegisterImport(data, request))
+        throw createUserFriendlyError(REGISTER_IMPORT_COPY.PREPARATION_RECEIPT_FAILED);
+      setUncertain(false);
+      setProposal(data);
+      setPhase('review');
+      await client.invalidateQueries({ queryKey: registerKey(owner) });
       check();
-      navigate(DESTINATIONS.companyRegister.path);
+      navigate(`${DESTINATIONS.companyRegisterImport.path.replace(':uuid', request.tokenId)}?record=${data.uuid}`, {
+        replace: true,
+      });
     } catch (failure) {
-      try {
-        check();
-        setError(apiErrorSentence(failure, FAILED, FAILED));
-      } catch {
-        return;
-      }
+      const status = failureStatus(failure);
+      if (status === 400 || status === 404 || status === 409) {
+        preparation.current = null;
+        setUncertain(false);
+        onConflict();
+      } else setUncertain(true);
+      if (mounted.current)
+        setError(
+          apiErrorSentence(
+            failure,
+            'The records could not be saved. Retry the same request.',
+            'The records could not be confirmed. Recover the original request.',
+          ),
+        );
     } finally {
       pending.current = false;
       if (mounted.current) setBusy(false);
     }
   };
-
+  const review = async () => {
+    if (!proposal || deciding || blocked) return;
+    setPhase('confirm');
+    if (proposal.stage === 'approved') await apply.open('apply');
+    else await approve.open('approve');
+  };
+  const decision = proposal?.stage === 'approved' ? apply : approve;
+  const kind = proposal?.stage === 'approved' ? 'apply' : 'approve';
+  const currentTarget = decision.target;
+  const ready =
+    !!currentTarget?.preview.canDecide && currentTarget.request.appointment === steps[kind]?.uuid && !blocked;
+  const preview = apply.target?.preview ?? approve.target?.preview;
+  const errors = [error, approve.error, apply.error, reject.error].filter(Boolean);
   return (
-    <form
-      className="space-y-5"
-      onSubmit={(event) => {
-        event.preventDefault();
-        void submit();
-      }}
-    >
-      <fieldset disabled={busy} className="space-y-5">
-        <fieldset className="space-y-3">
-          <legend className="text-sm font-medium text-text-primary">Supporting copies (optional)</legend>
-          <label className={LABEL}>
-            Current share register (optional)
-            <input
-              type="file"
-              accept={EVIDENCE}
-              className={FIELD_CLASS}
-              onChange={(event) => {
-                const file = event.target.files?.[0] ?? null;
-                update((current) => ({ ...current, registerFile: file }));
+    <div className="space-y-5">
+      <ol
+        aria-label="Share register setup steps"
+        className="grid grid-cols-3 gap-2 border-b border-border-subtle pb-4 text-sm"
+      >
+        {(['bring', 'review', 'confirm'] as const).map((step, index) => (
+          <li
+            key={step}
+            aria-current={phase === step ? 'step' : undefined}
+            className={phase === step ? 'font-medium text-text-primary' : 'text-text-muted'}
+          >
+            {index + 1}. {step === 'bring' ? 'Bring records' : step === 'review' ? 'Review' : 'Confirm'}
+          </li>
+        ))}
+      </ol>
+      {visible && (
+        <>
+          {phase === 'bring' ? (
+            <form
+              className="space-y-4"
+              onSubmit={(event) => {
+                event.preventDefault();
+                void prepare();
               }}
-            />
-          </label>
-          <label className={LABEL}>
-            ASIC extract (optional)
-            <input
-              type="file"
-              accept={EVIDENCE}
-              className={FIELD_CLASS}
-              onChange={(event) => {
-                const file = event.target.files?.[0] ?? null;
-                update((current) => ({ ...current, asicFile: file }));
-              }}
-            />
-          </label>
-          <p className="text-sm text-text-muted">PDF or image, max 10 MB. Ledova does not verify either document.</p>
-        </fieldset>
-        <fieldset className="space-y-3">
-          <legend className="text-sm font-medium text-text-primary">Source records</legend>
-          <p className="text-sm text-text-muted">
-            Ledova mirrors existing company records. The company keeps its legal register, history, access arrangements
-            and filings where they are.
-          </p>
-          <label className={LABEL}>
-            Record date
-            <input
-              type="date"
-              max={today}
-              value={draft.asAt}
-              className={FIELD_CLASS}
-              onChange={(event) => update((current) => ({ ...current, asAt: event.target.value }))}
-            />
-          </label>
-          <label className={LABEL}>
-            Source record reference
-            <input
-              value={draft.reference}
-              maxLength={255}
-              placeholder="Company register held by our accountant, version 14 October"
-              className={FIELD_CLASS}
-              onChange={(event) => update((current) => ({ ...current, reference: event.target.value }))}
-            />
-          </label>
-          <label className={LABEL}>
-            {correction ? 'Reason for correcting the mirror' : 'Reason'}
-            <textarea
-              rows={2}
-              value={draft.reason}
-              maxLength={1000}
-              className={FIELD_CLASS}
-              onChange={(event) => update((current) => ({ ...current, reason: event.target.value }))}
-            />
-          </label>
-          {correction && (
-            <p className="text-sm text-text-muted">
-              This corrects a copied opening. The earlier snapshot and evidence remain in history. It does not change
-              the company’s legal records.
-            </p>
+            >
+              <fieldset disabled={busy || uncertain || blocked} className="space-y-5">
+                {classFields}
+                <BringRecords
+                  draft={draft}
+                  today={today}
+                  correction={!!correction}
+                  busy={busy}
+                  differs={differs}
+                  imported={imported}
+                  update={update}
+                  setMember={setMember}
+                  setFormer={setFormer}
+                  importCsv={importCsv}
+                />
+              </fieldset>
+              {attempted && problems.length > 0 && (
+                <ul role="alert" className="space-y-1 text-sm text-error-light">
+                  {problems.map((problem) => (
+                    <li key={problem}>{problem}</li>
+                  ))}
+                </ul>
+              )}
+              {!uncertain && (
+                <PageAction
+                  label={busy ? 'Saving records…' : 'Continue to review'}
+                  disabled={busy || blocked}
+                  onClick={() => void prepare()}
+                />
+              )}
+            </form>
+          ) : (
+            proposal && (
+              <div className="space-y-4">
+                <Rows>
+                  <Row label="Source record">{proposal.sourceReference || proposal.authorityReference}</Row>
+                  <Row label="Record date">{proposal.asAt}</Row>
+                  <Row label="Copied shares">{formatShareCount(registerImportTotals(proposal.members).total)}</Row>
+                  <Row label="Shareholders">{proposal.members.length}</Row>
+                  {!!proposal.formerMembers.length && (
+                    <Row label="Copied former shareholders">{proposal.formerMembers.length}</Row>
+                  )}
+                  {proposal.asicIssuedTotal !== null && (
+                    <Row label="ASIC issued shares cross-check">{formatShareCount(proposal.asicIssuedTotal)}</Row>
+                  )}
+                  {proposal.asicMemberCount !== null && (
+                    <Row label="Shareholders listed by ASIC">{proposal.asicMemberCount}</Row>
+                  )}
+                  {proposal.registerEvidence && <Row label="Source copy">Retained company-provided register copy</Row>}
+                  {proposal.asicEvidence && <Row label="ASIC copy">Retained company-provided extract</Row>}
+                  {proposal.correctionOf && <Row label="Correction reason">{proposal.reason}</Row>}
+                </Rows>
+                {phase === 'review' && <MemberRecords members={proposal.members} />}
+                {phase === 'review' && !!proposal.formerMembers.length && (
+                  <ul className="divide-y divide-border-subtle">
+                    {proposal.formerMembers.map((member, index) => (
+                      <li key={index} className="py-3">
+                        <Rows>
+                          <Row label="Former shareholder">{member.name}</Row>
+                          <Row label="Address">{member.residentialAddress}</Row>
+                          <Row label="Shares at cessation">{formatShareCount(member.shares)}</Row>
+                          <Row label="Ceased on">{member.ceasedOn}</Row>
+                        </Rows>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                {phase === 'review' && (
+                  <p className="text-xs text-text-muted">
+                    Editing retires this prepared draft before saving a replacement. Confirmed mirrors and earlier
+                    evidence stay unchanged.
+                  </p>
+                )}
+                {phase === 'review' && (
+                  <div className="flex flex-wrap gap-2">
+                    <PageAction
+                      label="Edit records"
+                      disabled={deciding || !steps.reject || blocked || proposal.status !== 'submitted'}
+                      onClick={() => {
+                        setEditing(true);
+                        void reject.open('reject', 'Replaced while editing the copied records.');
+                      }}
+                    />
+                    <PageAction
+                      label="Continue to confirmation"
+                      disabled={deciding || blocked || proposal.status !== 'submitted'}
+                      onClick={() => void review()}
+                    />
+                  </div>
+                )}
+                {phase === 'confirm' && (
+                  <>
+                    <p className="text-sm text-text-primary">
+                      {REGISTER_IMPORT_COPY.SOURCE_CONFIRMATION} Confirming this mirror does not issue shares or change
+                      the legal register.
+                    </p>
+                    {proposal.stage === 'approved' && !steps.apply && (
+                      <p className="text-sm text-text-muted">
+                        These records are reviewed. A company appointee with confirmation access must confirm the mirror
+                        before ownership is recorded.
+                      </p>
+                    )}
+                    {proposal.correctionOf && preview && (
+                      <table className="w-full text-sm">
+                        <caption className="pb-2 text-left text-text-muted">
+                          Correction compared with the current mirror
+                        </caption>
+                        <thead>
+                          <tr>
+                            <th className="text-left">Shareholder</th>
+                            <th className="text-right">Before</th>
+                            <th className="text-right">After</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {preview.comparison.map((row) => (
+                            <tr key={row.member}>
+                              <th className="py-2 text-left font-normal">
+                                {row.name ?? row.liveName ?? 'Earlier shareholder'}
+                              </th>
+                              <td className="text-right">
+                                {row.stored === null ? 'Not held' : formatShareCount(row.stored)}
+                                <p className="text-xs text-text-muted">{row.enteredOn ?? 'Not recorded'}</p>
+                              </td>
+                              <td className="text-right">
+                                {row.imported === null ? 'Not held' : formatShareCount(row.imported)}
+                                <p className="text-xs text-text-muted">{row.importedEnteredOn ?? 'Not recorded'}</p>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    )}
+                    {preview?.unmetRequirements.length ? (
+                      <ul role="alert" className="space-y-1 text-sm text-error-light">
+                        {preview.unmetRequirements.map((code) => (
+                          <li key={code}>{REGISTER_IMPORT_DECISIONS.unmet[code] ?? code}</li>
+                        ))}
+                      </ul>
+                    ) : null}
+                    <div className="flex flex-wrap gap-2">
+                      <PageAction
+                        label="Back to review"
+                        disabled={deciding || !!recovery}
+                        onClick={() => {
+                          approve.cancel();
+                          apply.cancel();
+                          setAutoApply(false);
+                          setPhase('review');
+                        }}
+                      />
+                      {!currentTarget && !recovery && (
+                        <PageAction
+                          label={deciding ? 'Loading confirmation…' : 'Load confirmation'}
+                          disabled={deciding || blocked}
+                          onClick={() => void review()}
+                        />
+                      )}
+                      {!recovery && (
+                        <PageAction
+                          label={
+                            deciding
+                              ? 'Confirming…'
+                              : kind === 'approve' && !steps.apply
+                                ? 'Record review'
+                                : 'Confirm mirror'
+                          }
+                          disabled={deciding || !ready || autoApply}
+                          onClick={() => void decision.confirm()}
+                        />
+                      )}
+                    </div>
+                  </>
+                )}
+              </div>
+            )
           )}
-        </fieldset>
-        <fieldset className="space-y-3">
-          <legend className="text-sm font-medium text-text-primary">Current shareholders</legend>
-          {draft.members.map((row, index) => (
-            <MemberFields
-              key={row.member}
-              row={row}
-              index={index}
-              asAt={draft.asAt}
-              update={(patch) => setMember(index, patch)}
-              remove={
-                draft.members.length > 1
-                  ? () =>
-                      update((current) => ({ ...current, members: current.members.filter((_, at) => at !== index) }))
-                  : undefined
-              }
-            />
-          ))}
-          <PageAction
-            label="Add a shareholder"
-            disabled={busy}
-            onClick={() => update((current) => ({ ...current, members: [...current.members, blankMember()] }))}
-          />
-        </fieldset>
-        <fieldset className="space-y-3">
-          <legend className="text-sm font-medium text-text-primary">Former members</legend>
-          <p className="text-sm text-text-muted">
-            Copy former shareholders only if useful. The company continues to retain its legal historical records
-            elsewhere.
-          </p>
-          {draft.former.map((row, index) => (
-            <fieldset key={row.id} className="space-y-2 border-t border-border-subtle pt-3">
-              <legend className="text-sm text-text-primary">Former member {index + 1}</legend>
-              <label className={LABEL}>
-                Name
-                <input
-                  value={row.name}
-                  maxLength={255}
-                  className={FIELD_CLASS}
-                  onChange={(event) => setFormer(index, { name: event.target.value })}
-                />
-              </label>
-              <label className={LABEL}>
-                Residential address
-                <input
-                  value={row.residentialAddress}
-                  maxLength={1000}
-                  className={FIELD_CLASS}
-                  onChange={(event) => setFormer(index, { residentialAddress: event.target.value })}
-                />
-              </label>
-              <label className={LABEL}>
-                Shares
-                <input
-                  inputMode="numeric"
-                  value={row.shares}
-                  className={FIELD_CLASS}
-                  onChange={(event) => setFormer(index, { shares: event.target.value })}
-                />
-              </label>
-              <label className={LABEL}>
-                Date ceased
-                <input
-                  type="date"
-                  max={draft.asAt}
-                  value={row.ceasedOn}
-                  className={FIELD_CLASS}
-                  onChange={(event) => setFormer(index, { ceasedOn: event.target.value })}
-                />
-              </label>
-              <PageAction
-                label={`Remove former member ${index + 1}`}
-                disabled={busy}
-                onClick={() =>
-                  update((current) => ({ ...current, former: current.former.filter((_, at) => at !== index) }))
-                }
-              />
-            </fieldset>
-          ))}
-          <PageAction
-            label="Add a former member"
-            disabled={busy}
-            onClick={() => update((current) => ({ ...current, former: [...current.former, blankFormer()] }))}
-          />
-        </fieldset>
-        <fieldset className="space-y-3">
-          <legend className="text-sm font-medium text-text-primary">Comparison figures (optional)</legend>
-          <p className="text-sm text-text-muted">
-            An ASIC extract may list only some shareholders. Its listed count is a cross-check, not the source for the
-            full ownership record.
-          </p>
-          <label className={LABEL}>
-            Issued shares in the comparison source (optional)
-            <input
-              inputMode="numeric"
-              value={draft.statedTotal}
-              className={FIELD_CLASS}
-              onChange={(event) => {
-                const statedTotal = event.target.value;
-                update((current) => ({ ...current, statedTotal }));
-              }}
-            />
-          </label>
-          <label className={LABEL}>
-            Shareholders listed in the comparison source (optional)
-            <input
-              inputMode="numeric"
-              value={draft.statedCount}
-              className={FIELD_CLASS}
-              onChange={(event) => {
-                const statedCount = event.target.value;
-                update((current) => ({ ...current, statedCount }));
-              }}
-            />
-          </label>
-          <p className="text-sm text-text-primary">
-            {REGISTER_IMPORT_COPY.IMPORTED_FIGURES(formatShareCount(imported.total), imported.count)}
-          </p>
-          {differs && (
-            <p role="alert" className="text-sm text-error-light">
-              The comparison figures differ from the copied rows. Check both against the source before continuing.
-            </p>
-          )}
-        </fieldset>
-      </fieldset>
-      {problems.length > 0 && (
-        <ul className="flex flex-col gap-1 text-sm text-text-muted">
-          {problems.map((problem) => (
-            <li key={problem}>{problem}</li>
-          ))}
-        </ul>
+        </>
       )}
-      {error && (
-        <p role="alert" className="text-sm text-error-light">
-          {error}
+      {uncertain && (
+        <div className="space-y-2">
+          <p className="text-sm text-text-muted">
+            The save result is uncertain. Keep the original details and recover the same request.
+          </p>
+          <PageAction label="Recover saved records" disabled={busy} onClick={() => void prepare(true)} />
+        </div>
+      )}
+      {recovery && (
+        <div className="space-y-2">
+          <p className="text-sm text-text-muted">
+            The confirmation result is uncertain. Recover the original request before continuing.
+          </p>
+          <PageAction label="Recover confirmation" disabled={deciding} onClick={() => void recovery.recover()} />
+        </div>
+      )}
+      {errors.map((message, index) => (
+        <p key={index} role="alert" className="text-sm text-error-light">
+          {message}
+        </p>
+      ))}
+      {!visible && (
+        <p className="text-sm text-text-muted">
+          Refresh current company access before showing these records or starting another action.
         </p>
       )}
-      <PageAction
-        label={busy ? 'Preparing mirror…' : correction ? 'Prepare mirror correction' : 'Prepare mirror'}
-        disabled={busy || blocked || problems.length > 0 || differs}
-        onClick={() => void submit()}
-      />
-    </form>
+      {proposal?.status === 'applied' && <PageAction label="View company ownership" onClick={() => void finish()} />}
+    </div>
   );
 }

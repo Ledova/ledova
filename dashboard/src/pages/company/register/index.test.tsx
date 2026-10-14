@@ -2,21 +2,33 @@
 
 import {
   COMPANY_TOKEN_ENDPOINTS,
+  COMPANY_ENDPOINTS,
+  ApiClientProvider,
+  DESTINATIONS,
+  type RegisterImport,
+  type RegisterImportPreparation,
+  type RegisterDecideRequest,
   REGISTER_COPY,
   USER_PREFERENCES_QUERY_KEY,
   type AccountRole,
   type TokenHoldersResponse,
 } from '@ledova/shared';
 import SettingsPage from '@pages/settings';
-import { QueryClient } from '@tanstack/react-query';
-import { act, cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
+import apiClient from '@services/apiClient';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import type { ReactNode } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import CompanyRegisterPage from '.';
-import { companyPreferences, prepareCompanyClient, renderCompanyPage } from '../testSupport';
+import CompanyDashboardPage from '../dashboard';
+import CompanyRegisterImportPage from './import';
+import { REGISTER_CSV_COLUMNS, readRegisterCsv } from './import/csv';
+import { blankAllotment, preparationProblems } from './import/preparation';
+import { APPOINTMENT as CURRENT_APPOINTMENT } from '../../../../../packages/shared/tests/fixtures/employee-awards';
+import { companyRecord, companyPreferences, prepareCompanyClient, renderCompanyPage } from '../testSupport';
 
-const api = vi.hoisted(() => ({ get: vi.fn() }));
+const api = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn() }));
 vi.mock('@services/apiClient', () => ({ default: api }));
 const REGISTER = COMPANY_TOKEN_ENDPOINTS.REGISTER;
 const IMPORTS = COMPANY_TOKEN_ENDPOINTS.REGISTER_IMPORTS;
@@ -101,16 +113,13 @@ function show(role: AccountRole = 'company', content: ReactNode = <CompanyRegist
   return renderCompanyPage(client, content, title);
 }
 
-function serve(value = register()) {
-  api.get.mockImplementation(async (url: string) => noCommands(url) ?? (url === REGISTER ? page() : { data: value }));
-}
-
 function readUrls() {
   return api.get.mock.calls.map(([url]) => String(url));
 }
 
 beforeEach(() => {
   api.get.mockReset();
+  api.post.mockReset();
   client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
 });
 
@@ -161,38 +170,264 @@ it('reads every register class page and renders exact stored shares with each me
   expect(readUrls()).not.toContain(COMPANY_TOKEN_ENDPOINTS.BASE);
 });
 
-it('does not present an unopened register as an empty opened register, zero issued shares or a download', async () => {
-  serve(
-    register('ordinary', {
-      initialized: false,
-      issuedSupply: null,
-      holders: [],
-      totalHolders: 0,
-      waitingEffects: null,
-    }),
+it('brings complete mirror records from CSV, holds uncertain requests and confirms one ownership snapshot from an empty company', async () => {
+  const header = REGISTER_CSV_COLUMNS.join(',');
+  const row =
+    'H001,"Example Shareholder","1 Example Street, Sydney NSW 2000",2020-01-01,600,2015-01-01,400,400,0,yes,no,1-400,CERT-001';
+  const second = row.replace('2015-01-01,400,400', '2016-01-01,200,200').replace('1-400,CERT-001', '401-600,CERT-002');
+  const csv = `${header}\r\n${row}\r\n${second}\r\n`;
+  expect(readRegisterCsv(csv)).toHaveLength(1);
+  expect(readRegisterCsv(csv)[0].allotments).toHaveLength(2);
+  expect(() => readRegisterCsv(csv.replace('400,0,yes', '400,,yes'))).toThrow(/explicitly/);
+  expect(() => readRegisterCsv(`${header}\n${row}\n${second.replace('2020-01-01,600', '2020-01-01,601')}`)).toThrow(
+    /same name/,
   );
-  show(
-    'company',
-    <>
-      <CompanyRegisterPage />
-      <Link to="#documents">Company documents</Link>
-    </>,
+  expect(() => readRegisterCsv(`${header}\n${Array(501).fill(row).join('\n')}`)).toThrow(/500/);
+  expect(() => readRegisterCsv(`duplicate,duplicate\n1,2`)).toThrow(/column names/);
+  expect(blankAllotment().beneficiallyHeld).toBeNull();
+  const manual = readRegisterCsv(csv);
+  manual[0].allotments[0].beneficiallyHeld = null;
+  expect(
+    preparationProblems(
+      {
+        registerFile: null,
+        asicFile: null,
+        asAt: '2026-02-31',
+        reference: 'Original company register',
+        reason: 'Mirror',
+        members: manual,
+        former: [],
+        statedTotal: '',
+        statedCount: '',
+      },
+      '2026-10-14',
+    ),
+  ).toEqual(expect.arrayContaining([expect.stringMatching(/record date/), expect.stringMatching(/beneficially/)]));
+  let visibleClass = false;
+  let createdClass = false;
+  let opened = false;
+  let firstPreparation = true;
+  let proposal: RegisterImport | undefined;
+  const company = companyRecord();
+  const appointment = { ...CURRENT_APPOINTMENT, company: company.uuid };
+  const token = {
+    uuid: 'mirror-class',
+    company: company.uuid,
+    companyUuid: company.uuid,
+    companyName: company.name,
+    name: 'Ordinary shares',
+    symbol: 'ORD',
+    tokenType: 'ordinary',
+    totalSupply: (2n ** 256n - 1n).toString(),
+    status: 'draft',
+    contractAddress: null,
+  };
+  const dataPage = (results: unknown[]) => ({ data: { results, count: results.length, next: null, previous: null } });
+  const holders = (): TokenHoldersResponse => ({
+    token: { ...token },
+    initialized: opened,
+    issuedSupply: opened ? '600' : null,
+    totalHolders: opened ? 1 : 0,
+    waitingEffects: opened ? 0 : null,
+    holders: opened
+      ? [
+          {
+            member: proposal!.members[0].member,
+            name: 'Example Shareholder',
+            balance: '600',
+            percentage: 100,
+            holderType: 'member',
+            enteredOn: '2020-01-01',
+            identitySource: 'particulars',
+            shareClass: token.uuid,
+            source: 'register',
+            wallets: [],
+          },
+        ]
+      : [],
+    formerMembers: [],
+    formerMembersAsAt: null,
+    formerMembersBlock: null,
+    formerMembersStale: false,
+  });
+  api.get.mockImplementation(async (url: string) => {
+    if (url === '/api/user-preferences/') return { data: companyPreferences() };
+    if (url === COMPANY_ENDPOINTS.BASE) return dataPage([company]);
+    if (url === COMPANY_ENDPOINTS.DETAIL(company.uuid)) return { data: company };
+    if (url === APPOINTMENTS) return dataPage([appointment]);
+    if (url === REGISTER || url === COMPANY_TOKEN_ENDPOINTS.BASE) return dataPage(visibleClass ? [token] : []);
+    if (url === COMPANY_TOKEN_ENDPOINTS.DETAIL(token.uuid)) return { data: token };
+    if (url === COMPANY_TOKEN_ENDPOINTS.HOLDERS(token.uuid)) return { data: holders() };
+    if (url === IMPORTS) return dataPage(proposal ? [proposal] : []);
+    return dataPage([]);
+  });
+  api.post.mockImplementation(async (url: string, body: RegisterImportPreparation | RegisterDecideRequest) => {
+    if (url === COMPANY_TOKEN_ENDPOINTS.BASE) {
+      createdClass = true;
+      throw new Error('Interrupted class creation response');
+    }
+    if (url === IMPORTS) {
+      const request = body as RegisterImportPreparation;
+      proposal ??= {
+        uuid: request.operationId,
+        company: company.uuid,
+        token: token.uuid,
+        asAt: request.asAt,
+        registerEvidence: null,
+        sourceDocument: null,
+        asicEvidence: null,
+        asicDocument: null,
+        asicIssuedTotal: null,
+        asicMemberCount: null,
+        asicSnapshot: {},
+        asicFingerprint: '',
+        evidenceSnapshot: {},
+        evidenceFingerprint: '',
+        providedBy: 'company',
+        authority: 'company_records',
+        approvingDirector: '',
+        authorityReference: request.sourceReference,
+        sourceReference: request.sourceReference,
+        sourceConfirmed: true,
+        correctionOf: null,
+        correctionAllowed: false,
+        reason: request.reason,
+        members: request.members.map((member) => ({ ...member, amountPaid: '600.00' })),
+        formerMembers: [],
+        preparingAppointment: request.appointment,
+        preparedByName: 'Example Director',
+        submittedBy: 1,
+        createdAt: '2026-10-14T00:00:00Z',
+        stage: 'submitted',
+        status: 'submitted',
+        decisions: [],
+        rejectionReason: '',
+        reviewedAt: null,
+        reviewedBy: null,
+        registerSequence: null,
+      };
+      if (firstPreparation) {
+        firstPreparation = false;
+        throw new Error('Interrupted preparation response');
+      }
+      return { data: proposal };
+    }
+    const request = body as RegisterDecideRequest;
+    if (url.endsWith('/decision-preview/'))
+      return {
+        data: {
+          canDecide: true,
+          unmetRequirements: [],
+          previewDigest: 'a'.repeat(64),
+          comparison: [],
+          opensRegister: !opened,
+          registerSequence: 0,
+          importedTotal: '600',
+          importedMemberCount: 1,
+          statedTotal: null,
+          statedMemberCount: null,
+          sourceReference: proposal!.sourceReference,
+          correctionOf: null,
+          correctionAllowed: false,
+        },
+      };
+    if (url.endsWith('/decide/')) {
+      proposal = {
+        ...proposal!,
+        stage: request.kind === 'approve' ? 'approved' : 'applied',
+        status: request.kind === 'approve' ? 'submitted' : 'applied',
+        reviewedAt: request.kind === 'approve' ? null : '2026-10-14T00:00:00Z',
+        decisions: [
+          ...proposal!.decisions,
+          {
+            uuid: crypto.randomUUID(),
+            appointment: request.appointment,
+            idempotencyKey: request.idempotencyKey,
+            kind: request.kind,
+            digest: request.previewDigest,
+            reason: request.reason ?? '',
+            decidedAt: '2026-10-14T00:00:00Z',
+            decidedBy: 1,
+            decidedByName: 'Example Director',
+          },
+        ],
+      };
+      if (request.kind === 'apply') opened = true;
+      return { data: proposal };
+    }
+    throw new Error(`Unexpected write ${url}`);
+  });
+  prepareCompanyClient(client);
+  render(
+    <QueryClientProvider client={client}>
+      <ApiClientProvider client={apiClient}>
+        <MemoryRouter>
+          <Routes>
+            <Route path="/" element={<CompanyDashboardPage />} />
+            <Route path="/company/dashboard" element={<CompanyDashboardPage />} />
+            <Route path={DESTINATIONS.companyRegisterSetup.path} element={<CompanyRegisterImportPage />} />
+            <Route path={DESTINATIONS.companyRegisterImport.path} element={<CompanyRegisterImportPage />} />
+          </Routes>
+        </MemoryRouter>
+      </ApiClientProvider>
+    </QueryClientProvider>,
   );
-  await screen.findByRole('heading', { name: /^Ordinary shares ·/ });
-  expect(screen.getByText('Not opened')).toBeTruthy();
-  expect(screen.getByText('Not recorded')).toBeTruthy();
-  expect(screen.queryByText(/Current members/)).toBeNull();
-  expect(screen.getByText(REGISTER_COPY.NOT_OPENED_NOTE)).toBeTruthy();
-  expect(screen.queryByText('0 issued shares')).toBeNull();
-  expect(screen.queryByRole('button', { name: 'Download CSV' })).toBeNull();
-  fireEvent.click(screen.getByRole('link', { name: 'Company documents' }));
-  expect(await screen.findByRole('heading', { name: 'Documents' })).toBeTruthy();
-  expect((screen.getByRole('button', { name: 'Download CSV' }) as HTMLButtonElement).disabled).toBe(true);
+  fireEvent.click(await screen.findByRole('link', { name: 'Set up your share register' }));
+  expect(await screen.findByRole('heading', { name: `${company.name} · Ordinary shares (ORD)` })).toBeTruthy();
+  expect(screen.queryByLabelText('Authorised shares')).toBeNull();
+  expect(screen.queryByLabelText('Reason')).toBeNull();
+  fireEvent.change(screen.getByLabelText('Source record reference'), {
+    target: { value: 'Company register held by the accountant' },
+  });
+  const file = new File([csv], 'opening.csv', { type: 'text/csv' });
+  Object.defineProperty(file, 'arrayBuffer', { value: async () => new TextEncoder().encode(csv).buffer });
+  fireEvent.change(screen.getByLabelText('Bring a CSV'), { target: { files: [file] } });
+  await waitFor(() => expect(screen.getByDisplayValue('Example Shareholder')).toBeTruthy());
+  expect(screen.getAllByLabelText('Held beneficially').map((field) => (field as HTMLSelectElement).value)).toEqual([
+    'no',
+    'no',
+  ]);
+  fireEvent.click(screen.getByRole('button', { name: 'Continue to review' }));
+  const recover = await screen.findByRole('button', { name: 'Recover saved records' });
+  expect(createdClass).toBe(true);
+  expect((screen.getByLabelText('Class code') as HTMLInputElement).disabled).toBe(true);
+  fireEvent.click(recover);
+  await screen.findByText(/original class creation result is still uncertain/);
+  expect(api.post.mock.calls.filter(([url]) => url === COMPANY_TOKEN_ENDPOINTS.BASE)).toHaveLength(1);
+  visibleClass = true;
+  fireEvent.click(screen.getByRole('button', { name: 'Recover saved records' }));
+  await waitFor(() => expect(api.post.mock.calls.filter(([url]) => url === IMPORTS)).toHaveLength(1));
+  await waitFor(() =>
+    expect((screen.getByRole('button', { name: 'Recover saved records' }) as HTMLButtonElement).disabled).toBe(false),
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'Recover saved records' }));
+  expect(await screen.findByRole('button', { name: 'Continue to confirmation' })).toBeTruthy();
+  const preparations = api.post.mock.calls.filter(([url]) => url === IMPORTS).map(([, body]) => body);
+  expect(preparations).toHaveLength(2);
+  expect(preparations[0]).toEqual(preparations[1]);
+  expect(proposal!.members[0].enteredOn).toBe('2020-01-01');
+  expect(proposal!.members[0].allotments?.[0].allottedOn).toBe('2015-01-01');
+  await waitFor(() =>
+    expect(
+      api.get.mock.calls.filter(([url]) => url === COMPANY_TOKEN_ENDPOINTS.HOLDERS(token.uuid)).length,
+    ).toBeGreaterThan(1),
+  );
+  await waitFor(() => expect(client.isFetching()).toBe(0));
+  fireEvent.click(await screen.findByRole('button', { name: 'Continue to confirmation' }));
+  const confirm = await screen.findByRole('button', { name: 'Confirm mirror' });
+  await waitFor(() => expect((confirm as HTMLButtonElement).disabled).toBe(false));
+  fireEvent.click(confirm);
+  const summary = await screen.findByRole('region', { name: 'Company ownership summary' });
+  expect(within(summary).getByText('600')).toBeTruthy();
+  expect(screen.getByText('100.00%')).toBeTruthy();
+  expect(proposal!.status).toBe('applied');
+  expect(proposal!.decisions.map((decision) => decision.kind)).toEqual(['approve', 'apply']);
+  expect(api.post.mock.calls.filter(([url]) => url === COMPANY_TOKEN_ENDPOINTS.BASE)).toHaveLength(1);
 });
 
 it('shows an account without register access a calm empty state, reads no members or CSV and offers no entry', async () => {
   api.get.mockImplementation(async (url: string) => {
-    if (url === REGISTER) return page([]);
+    if (url === REGISTER || url === COMPANY_ENDPOINTS.BASE) return page([]);
     throw new Error(`Unexpected read ${url}`);
   });
   show('investor');
@@ -203,7 +438,7 @@ it('shows an account without register access a calm empty state, reads no member
   cleanup();
   show('investor', <SettingsPage />, 'Settings');
   expect(await screen.findByRole('link', { name: 'Team and appointments' })).toBeTruthy();
-  await waitFor(() => expect(readUrls()).toEqual([REGISTER, REGISTER]));
+  await waitFor(() => expect(readUrls()).toEqual([REGISTER, REGISTER, COMPANY_ENDPOINTS.BASE]));
   await waitFor(() => expect(client.isFetching()).toBe(0));
   expect(screen.queryByRole('link', { name: 'Register' })).toBeNull();
 });

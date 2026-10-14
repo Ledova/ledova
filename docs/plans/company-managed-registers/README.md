@@ -51,6 +51,10 @@ the company. Setup mirrors its supplied ownership records; it neither replaces
 those arrangements nor issues existing shares again. The
 [import guide](../../operations/register-foundation.md#importing-an-existing-register)
 owns copied particulars, source attribution and bounded opening corrections.
+[PR #1026](https://github.com/Ledova/ledova/pull/1026) delivers copied fields and
+correction safeguards. Web setup guides Bring records → Review → Confirm, with
+manual or local CSV entry, recovered confirmations and a return to ownership.
+Native clients retain separate preparation and decision screens.
 
 Verification references in the guides are each increment's original evidence;
 the [11 October minimum-test policy](../../decisions.md#minimum-tests-and-fresh-migrations)
