@@ -52,7 +52,7 @@ export function EmailConfirmationScreen() {
       alignItems: 'center',
       backgroundColor: `${theme.colors.status.success.icon}20`,
       borderWidth: 1,
-      borderColor: theme.colors.badge.success.background,
+      borderColor: `${theme.colors.success.dark}80`,
       borderRadius: theme.borderRadius.md,
       padding: theme.spacing.md,
       marginBottom: theme.spacing.lg,

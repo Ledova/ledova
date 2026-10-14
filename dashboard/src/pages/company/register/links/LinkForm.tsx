@@ -20,7 +20,7 @@ import {
   type TokenHoldersResponse,
 } from '@ledova/shared';
 import { PageAction } from '@components/Page';
-import { FIELD_CLASS } from '@components/fieldClass';
+import { FIELD_CLASS, LABEL } from '@components/fieldClass';
 import apiClient from '@services/apiClient';
 import { WalletStatus } from '../WalletStatus';
 import { linksKey } from '../useRegisterLinks';
@@ -38,7 +38,6 @@ type Upload = { file: File; appointment: string; key: string; receipt: RegisterE
 const COPY = REGISTER_LINK_COPY;
 const FAILED = 'The wallet link could not be prepared. Retry with the same details.';
 const CLOSED = 'This wallet link form is closed. Reopen it before continuing.';
-const LABEL = 'block space-y-1 text-sm text-text-primary';
 const EVIDENCE = 'application/pdf,image/png,image/jpeg';
 const NEW = 'new:';
 const AUTHORITIES = Object.entries(COPY.AUTHORITIES) as [RegisterCorrectionAuthority, string][];

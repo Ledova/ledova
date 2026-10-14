@@ -93,7 +93,7 @@ export function StatusBanners({
       paddingHorizontal: theme.spacing.lg,
       backgroundColor: `${theme.colors.status.success.icon}20`,
       borderWidth: 1,
-      borderColor: theme.colors.badge.success.background,
+      borderColor: `${theme.colors.success.dark}80`,
       borderRadius: theme.borderRadius.lg,
       marginBottom: theme.spacing.lg,
     },

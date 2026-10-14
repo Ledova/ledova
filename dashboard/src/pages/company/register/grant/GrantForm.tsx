@@ -23,13 +23,12 @@ import {
   type TokenHoldersResponse,
 } from '@ledova/shared';
 import { PageAction } from '@components/Page';
-import { FIELD_CLASS } from '@components/fieldClass';
+import { FIELD_CLASS, LABEL } from '@components/fieldClass';
 import apiClient from '@services/apiClient';
 import { grantsKey } from '../useRegisterGrants';
 
 type DocumentKind = 'authority' | 'terms' | 'acceptance';
 type Uploaded = { file: File; appointment: string; key: string; receipt: RegisterEvidence | null };
-const LABEL = 'block space-y-1 text-sm text-text-primary';
 const FAILED = 'The grant preparation response could not be confirmed. Retry with the same details.';
 const DOCUMENTS: Record<DocumentKind, string> = {
   authority: COPY.AUTHORITY_DOCUMENT,

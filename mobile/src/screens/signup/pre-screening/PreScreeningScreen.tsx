@@ -104,8 +104,8 @@ export function PreScreeningScreen() {
       marginTop: 2,
     },
     checkboxChecked: {
-      backgroundColor: theme.colors.interactive.defaultSubtle,
-      borderColor: theme.colors.interactive.defaultSubtle,
+      backgroundColor: theme.colors.brand.default,
+      borderColor: theme.colors.brand.default,
     },
     checkboxTextContainer: {
       flex: 1,

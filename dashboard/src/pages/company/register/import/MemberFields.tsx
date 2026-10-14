@@ -1,9 +1,7 @@
 import { registerImportMoney, type RegisterTransferMember } from '@ledova/shared';
-import { FIELD_CLASS } from '@components/fieldClass';
+import { FIELD_CLASS, LABEL } from '@components/fieldClass';
 import { PageAction } from '@components/Page';
 import { blankAllotment, type AllotmentDraft, type MemberDraft } from './preparation';
-
-const LABEL = 'block space-y-1 text-sm text-text-primary';
 
 export function MemberFields({
   row,

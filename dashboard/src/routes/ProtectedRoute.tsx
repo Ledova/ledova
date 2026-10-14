@@ -6,6 +6,7 @@ import { useRole } from '@hooks/useRole';
 import { useUserProfile } from '@pages/user-profile/useUserProfile';
 import { InSignedInFrame } from '@components/InSignedInFrame';
 import { Page } from '@components/Page';
+import { FullScreenSpinner } from '@components/FullScreenSpinner';
 import { AccountUnavailable } from './AccountUnavailable';
 import { SIGNUP_RESUMES_AT } from './signupRoutes';
 
@@ -26,18 +27,6 @@ function RoleUnavailable({ onRetry }: { onRetry: () => void }) {
   );
 }
 
-function CheckingSession() {
-  return (
-    <div
-      role="status"
-      aria-label="Checking your session"
-      className="flex items-center justify-center min-h-screen bg-surface-raised"
-    >
-      <div className="h-8 w-8 border-4 border-brand-subtle border-t-brand rounded-full animate-spin" />
-    </div>
-  );
-}
-
 export function ProtectedRoute({ audience, children }: { audience: Audience; children: ReactNode }) {
   const { isAuthenticated, isLoading, isFetching } = useAuth();
   const { role, isKnown, isUnavailable, retry } = useRole();
@@ -47,7 +36,7 @@ export function ProtectedRoute({ audience, children }: { audience: Audience; chi
   const inFrame = useContext(InSignedInFrame);
 
   if (isLoading || (!isAuthenticated && isFetching) || waitingForAccount) {
-    return inFrame ? <Page loading /> : <CheckingSession />;
+    return inFrame ? <Page loading /> : <FullScreenSpinner label="Checking your session" />;
   }
 
   if (!isAuthenticated) return <Navigate to="/signin" replace />;
@@ -60,7 +49,7 @@ export function ProtectedRoute({ audience, children }: { audience: Audience; chi
 
   if (!canOpen(role, audience)) return <Navigate to={landingFor(role)} replace />;
 
-  if (!inFrame) return <CheckingSession />;
+  if (!inFrame) return <FullScreenSpinner label="Checking your session" />;
 
   return <>{children}</>;
 }

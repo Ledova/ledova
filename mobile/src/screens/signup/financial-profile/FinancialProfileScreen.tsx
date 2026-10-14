@@ -146,7 +146,7 @@ export function FinancialProfileScreen() {
       width: 8,
       height: 8,
       borderRadius: theme.borderRadius.sm,
-      backgroundColor: theme.colors.interactive.default,
+      backgroundColor: theme.colors.brand.default,
     },
     radioLabel: {
       fontSize: theme.fontSize.sm,
@@ -175,8 +175,8 @@ export function FinancialProfileScreen() {
       alignItems: 'center',
     },
     checkboxChecked: {
-      backgroundColor: theme.colors.interactive.default,
-      borderColor: theme.colors.interactive.default,
+      backgroundColor: theme.colors.brand.default,
+      borderColor: theme.colors.brand.default,
     },
     checkboxLabel: {
       fontSize: theme.fontSize.sm,

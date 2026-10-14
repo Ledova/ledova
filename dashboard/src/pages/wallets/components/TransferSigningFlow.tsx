@@ -251,7 +251,7 @@ export function TransferSigningFlow({
       return (
         <div className="space-y-4">
           <div className="flex flex-col items-center justify-center py-8 gap-3">
-            <SpinnerGapIcon size={ICON_XL} className="text-brand-mid animate-spin" />
+            <SpinnerGapIcon size={ICON_XL} className="text-brand-light animate-spin" />
             <p className="text-sm text-text-muted">Preparing transaction...</p>
           </div>
           <ModalActions>{cancel}</ModalActions>
@@ -361,7 +361,7 @@ export function TransferSigningFlow({
         return (
           <div className="space-y-4">
             <div className="flex flex-col items-center justify-center py-8 gap-3">
-              <SpinnerGapIcon size={ICON_XL} className="text-brand-mid animate-spin" />
+              <SpinnerGapIcon size={ICON_XL} className="text-brand-light animate-spin" />
               <p className="text-sm text-text-muted">Broadcasting transaction...</p>
               <p className="text-xs text-text-subtle">This may take a moment</p>
             </div>
@@ -390,7 +390,7 @@ export function TransferSigningFlow({
                     href={explorerUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-xs font-medium text-brand-mid hover:text-brand-light"
+                    className="inline-flex items-center gap-1 text-xs font-medium text-brand-light"
                   >
                     View on block explorer
                     <ArrowSquareOutIcon size={ICON_XS} />

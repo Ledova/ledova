@@ -15,7 +15,7 @@ import {
 import { Row, Rows, Status, type Tone } from '@components/Ledger';
 import { Modal } from '@components/Modal';
 import { PageAction } from '@components/Page';
-import { FIELD_CLASS } from '@components/fieldClass';
+import { FIELD_CLASS, LABEL } from '@components/fieldClass';
 import apiClient from '@services/apiClient';
 import { ownAppointmentsKey } from '../team/appointments';
 import { reconciliationKey, useLatestReconciliation } from './useRegisterCorrections';
@@ -212,7 +212,7 @@ export function ClassReconciliation({
           <div className="flex flex-col gap-3">
             {row && <Discrepancy row={row} holders={holders} />}
             <p className="text-sm text-text-muted">{COPY.ACKNOWLEDGEMENT_NOTE}</p>
-            <label className="block space-y-1 text-sm text-text-primary">
+            <label className={LABEL}>
               {COPY.ACKNOWLEDGE_REASON}
               <textarea
                 className={FIELD_CLASS}

@@ -7,20 +7,11 @@ interface ContactCardProps {
   title: string;
   description: string;
   actionLabel?: string;
-  actionType?: 'link' | 'button';
   onAction?: () => void;
   children?: React.ReactNode;
 }
 
-export function ContactCard({
-  icon,
-  title,
-  description,
-  actionLabel,
-  actionType = 'link',
-  onAction,
-  children,
-}: ContactCardProps) {
+export function ContactCard({ icon, title, description, actionLabel, onAction, children }: ContactCardProps) {
   const theme = useAppTheme();
   const styles = useThemedStyles((theme) => ({
     card: {
@@ -52,18 +43,6 @@ export function ContactCard({
       fontWeight: theme.fontWeight.medium,
       color: theme.colors.info.light,
     },
-    button: {
-      backgroundColor: theme.colors.info.default,
-      paddingVertical: theme.spacing.sm,
-      paddingHorizontal: theme.spacing.md,
-      borderRadius: theme.borderRadius.md,
-      alignSelf: 'flex-start',
-    },
-    buttonText: {
-      fontSize: theme.fontSize.sm,
-      fontWeight: theme.fontWeight.semibold,
-      color: theme.colors.text.primary,
-    },
   }));
 
   const styledIcon =
@@ -87,17 +66,9 @@ export function ContactCard({
       {children}
 
       {actionLabel && onAction && (
-        <>
-          {actionType === 'button' ? (
-            <TouchableOpacity style={styles.button} onPress={onAction} activeOpacity={0.8}>
-              <Text style={styles.buttonText}>{actionLabel}</Text>
-            </TouchableOpacity>
-          ) : (
-            <TouchableOpacity onPress={onAction} activeOpacity={0.7}>
-              <Text style={styles.linkText}>{actionLabel}</Text>
-            </TouchableOpacity>
-          )}
-        </>
+        <TouchableOpacity onPress={onAction} activeOpacity={0.7}>
+          <Text style={styles.linkText}>{actionLabel}</Text>
+        </TouchableOpacity>
       )}
     </View>
   );

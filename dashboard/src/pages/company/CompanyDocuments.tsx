@@ -12,7 +12,7 @@ import {
   type DocumentType,
 } from '@ledova/shared';
 import { Section } from '@components/Ledger';
-import { FIELD_CLASS } from '@components/fieldClass';
+import { FIELD_CLASS, LABEL } from '@components/fieldClass';
 import { PageAction } from '@components/Page';
 import { Modal } from '@components/Modal';
 import apiClient from '@services/apiClient';
@@ -211,7 +211,7 @@ export function CompanyDocuments({
             )}
             {editable && (
               <div className="grid items-end gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
-                <label className="block space-y-1 text-sm text-text-primary">
+                <label className={LABEL}>
                   Document type
                   <select
                     className={FIELD_CLASS}

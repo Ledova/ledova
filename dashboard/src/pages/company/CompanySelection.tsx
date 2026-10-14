@@ -1,4 +1,4 @@
-import { FIELD_CLASS } from '@components/fieldClass';
+import { FIELD_CLASS, LABEL } from '@components/fieldClass';
 import type { useCompany } from './hooks/useCompany';
 
 type Selection = Pick<ReturnType<typeof useCompany>, 'companyUuid' | 'selectionBlocked' | 'selectCompany'> & {
@@ -8,7 +8,7 @@ type Selection = Pick<ReturnType<typeof useCompany>, 'companyUuid' | 'selectionB
 export function CompanySelection({ read }: { read: Selection }) {
   if (read.companies.length < 2 && read.companyUuid) return null;
   return (
-    <label className="block space-y-1 text-sm text-text-primary">
+    <label className={LABEL}>
       Company
       <select
         className={FIELD_CLASS}

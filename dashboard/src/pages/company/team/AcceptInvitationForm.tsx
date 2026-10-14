@@ -5,7 +5,7 @@ import {
   acceptCompanyTeamInvitation,
   getErrorMessage,
 } from '@ledova/shared';
-import { FIELD_CLASS } from '@components/fieldClass';
+import { FIELD_CLASS, LABEL } from '@components/fieldClass';
 import { PageAction } from '@components/Page';
 import apiClient from '@services/apiClient';
 import { appointmentReceipt } from './appointments';
@@ -86,7 +86,7 @@ export function AcceptInvitationForm({
         Enter the code the company gave you. Acceptance uses your signed-in account and the existing account, email and
         configured identity checks.
       </p>
-      <label className="block space-y-1 text-sm text-text-primary">
+      <label className={LABEL}>
         Invitation code
         <input
           className={FIELD_CLASS}

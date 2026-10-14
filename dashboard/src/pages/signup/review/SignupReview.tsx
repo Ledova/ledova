@@ -14,6 +14,7 @@ import { AuthLayout } from '@components/AuthLayout';
 import { Section } from '@components/Ledger';
 import { COMPANY_TYPES } from '../company-registration/constants';
 import { SITE_URL } from '@utils/siteUrl';
+import { AUTH_BUTTON_CLASS } from '@components/fieldClass';
 
 function displayCompanyType(companyType: string | undefined) {
   return COMPANY_TYPES.find((type) => type.value === companyType)?.label ?? companyType ?? '';
@@ -62,8 +63,8 @@ export function SignupReview() {
       <AuthLayout>
         <div className="flex flex-col items-center justify-center py-8">
           <div className="text-center">
-            <h3 className="text-lg font-medium text-error mb-2">Error Loading Data</h3>
-            <p className="text-error">{error}</p>
+            <h3 className="text-lg font-medium text-error-light mb-2">Error Loading Data</h3>
+            <p className="text-error-light">{error}</p>
             <button type="button" onClick={retryLoad} className="mt-4 font-semibold text-brand-light underline">
               Try Again
             </button>
@@ -267,7 +268,7 @@ export function SignupReview() {
             type="button"
             onClick={() => void completeSignup().catch(() => undefined)}
             disabled={!canCompleteSignup || isSubmitting || isResettingAuthority}
-            className="w-full bg-brand-mid hover:bg-brand disabled:bg-surface-disabled disabled:text-text-secondary disabled:cursor-not-allowed text-white font-semibold py-3 px-4 rounded-lg transition-colors shadow-lg shadow-brand-light/40 disabled:shadow-none focus:outline-none focus:ring-2 focus:ring-border-focus focus:ring-offset-2 focus:ring-offset-surface-base"
+            className={AUTH_BUTTON_CLASS}
           >
             {isSubmitting ? (
               <div className="flex items-center justify-center space-x-2">

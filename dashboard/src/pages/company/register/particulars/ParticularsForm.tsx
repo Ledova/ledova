@@ -16,7 +16,7 @@ import {
   type RegisterEvidence,
 } from '@ledova/shared';
 import { PageAction } from '@components/Page';
-import { FIELD_CLASS } from '@components/fieldClass';
+import { FIELD_CLASS, LABEL } from '@components/fieldClass';
 import apiClient from '@services/apiClient';
 import { particularsKey } from '../useRegisterParticulars';
 
@@ -27,7 +27,6 @@ type Upload = { file: File; appointment: string; key: string; receipt: RegisterE
 const COPY = REGISTER_PARTICULARS_COPY;
 const FAILED = 'The change could not be prepared. Retry with the same details.';
 const CLOSED = 'This particulars form is closed. Reopen it before continuing.';
-const LABEL = 'block space-y-1 text-sm text-text-primary';
 const EVIDENCE = 'application/pdf,image/png,image/jpeg';
 const DAY = /^\d{4}-\d{2}-\d{2}$/;
 

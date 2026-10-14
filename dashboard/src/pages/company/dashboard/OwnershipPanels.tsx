@@ -130,7 +130,7 @@ export function ShareholderPanel({
       <Link
         to={DESTINATIONS.companyRegister.path}
         state={{ registerCompany: company, registerToken: selected.token.uuid }}
-        className="mt-2 w-fit text-sm font-medium text-brand-mid hover:underline"
+        className="mt-2 w-fit text-sm font-medium text-brand-light hover:underline"
       >
         View full register
       </Link>

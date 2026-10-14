@@ -48,7 +48,7 @@ export function AnimatedQRScanner({ onComplete, active = true }: AnimatedQRScann
       alignItems: 'center',
     },
     progressText: {
-      backgroundColor: theme.colors.interactive.default,
+      backgroundColor: theme.colors.brand.default,
       color: theme.colors.utility.white,
       paddingHorizontal: theme.spacing.lg,
       paddingVertical: theme.spacing.sm,

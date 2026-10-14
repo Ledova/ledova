@@ -6,6 +6,7 @@ import ErrorState from '@components/signup/ErrorState';
 import { AuthLayout } from '@components/AuthLayout';
 import { useSignupPreScreening } from '@ledova/shared';
 import { ICON_MD } from '@components/iconSizes';
+import { AUTH_BUTTON_CLASS, ERROR_BANNER_CLASS } from '@components/fieldClass';
 
 export function SignupPreScreening() {
   const navigate = useNavigate();
@@ -87,7 +88,7 @@ export function SignupPreScreening() {
         <div className="p-4 sm:p-5">
           <form onSubmit={handleContinue} className="space-y-6">
             {generalError && (
-              <div className="bg-error-subtle border border-error-dark rounded-lg p-4">
+              <div className={ERROR_BANNER_CLASS}>
                 <div className="flex items-start">
                   <div className="flex-shrink-0">
                     <WarningIcon size={ICON_MD} className="text-error-light" />
@@ -106,7 +107,7 @@ export function SignupPreScreening() {
                 <Checkbox
                   checked={declaration.checked}
                   onChange={declaration.onChange}
-                  className="group mt-0.5 flex h-6 w-6 shrink-0 cursor-pointer items-center justify-center rounded-sm border-2 border-border bg-surface-tertiary transition-colors focus:outline-none data-[checked]:border-brand-mid data-[checked]:bg-brand-mid data-[focus]:ring-2 data-[focus]:ring-border-focus data-[focus]:ring-offset-2"
+                  className="group mt-0.5 flex h-6 w-6 shrink-0 cursor-pointer items-center justify-center rounded-sm border-2 border-border bg-surface-tertiary transition-colors focus:outline-none data-[checked]:border-brand-mid data-[checked]:bg-brand-mid data-[focus]:ring-2 data-[focus]:ring-border-focus data-[focus]:ring-offset-2 data-[focus]:ring-offset-surface-raised"
                 >
                   <CheckCircleIcon size={ICON_MD} className="hidden text-white group-data-[checked]:block" />
                 </Checkbox>
@@ -119,11 +120,7 @@ export function SignupPreScreening() {
               </Field>
             ))}
 
-            <button
-              type="submit"
-              disabled={!isFormValid || isSubmitting}
-              className="w-full bg-brand-mid hover:bg-brand disabled:bg-surface-disabled disabled:text-text-secondary disabled:cursor-not-allowed text-white font-semibold py-3 px-4 rounded-lg transition-colors shadow-lg shadow-brand-light/40 disabled:shadow-none focus:outline-none focus:ring-2 focus:ring-border-focus focus:ring-offset-2 focus:ring-offset-surface-base"
-            >
+            <button type="submit" disabled={!isFormValid || isSubmitting} className={AUTH_BUTTON_CLASS}>
               {isSubmitting ? (
                 <div className="flex items-center justify-center space-x-2">
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>

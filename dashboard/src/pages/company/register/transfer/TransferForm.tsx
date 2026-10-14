@@ -18,7 +18,7 @@ import {
   type RegisterTransferMember,
 } from '@ledova/shared';
 import { PageAction } from '@components/Page';
-import { FIELD_CLASS } from '@components/fieldClass';
+import { FIELD_CLASS, LABEL } from '@components/fieldClass';
 import apiClient from '@services/apiClient';
 import { transfersKey } from '../useRegisterTransfers';
 
@@ -37,7 +37,6 @@ type Draft = {
 };
 type DocumentKind = 'authority' | 'instrument';
 type Uploaded = { file: File; appointment: string; key: string; receipt: RegisterEvidence | null };
-const LABEL = 'block space-y-1 text-sm text-text-primary';
 const FAILED = 'The preparation response could not be confirmed. Retry with the same details.';
 
 export function TransferForm({

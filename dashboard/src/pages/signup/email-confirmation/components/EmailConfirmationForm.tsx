@@ -2,6 +2,7 @@ import { Field, Label, Input, Description } from '@headlessui/react';
 import { KeyIcon, WarningIcon, CheckCircleIcon } from '@phosphor-icons/react';
 import type { FormErrors } from '@ledova/shared';
 import { ICON_MD } from '@components/iconSizes';
+import { AUTH_BUTTON_CLASS, ERROR_BANNER_CLASS } from '@components/fieldClass';
 
 interface EmailConfirmationFormProps {
   verificationCode: string;
@@ -34,7 +35,7 @@ export function EmailConfirmationForm({
         <div className="p-4 sm:p-5">
           <form onSubmit={onSubmit} className="space-y-6">
             {generalError && (
-              <div className="bg-error-subtle border border-error-dark rounded-lg p-4">
+              <div className={ERROR_BANNER_CLASS}>
                 <div className="flex items-start">
                   <div className="flex-shrink-0">
                     <WarningIcon size={ICON_MD} className="text-error-light" />
@@ -49,7 +50,7 @@ export function EmailConfirmationForm({
             )}
 
             {successMessage && (
-              <div className="bg-success-subtle border border-success-dark rounded-lg p-4">
+              <div className="border border-success-dark rounded-lg p-4">
                 <div className="flex items-start">
                   <div className="flex-shrink-0">
                     <CheckCircleIcon size={ICON_MD} className="text-success-light" />
@@ -90,11 +91,7 @@ export function EmailConfirmationForm({
               )}
             </Field>
 
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full bg-brand-mid hover:bg-brand disabled:bg-surface-disabled disabled:text-text-secondary disabled:cursor-not-allowed text-white font-semibold py-3 px-4 rounded-lg transition-colors shadow-lg shadow-brand-light/40 disabled:shadow-none focus:outline-none focus:ring-2 focus:ring-border-focus focus:ring-offset-2 focus:ring-offset-surface-base"
-            >
+            <button type="submit" disabled={isLoading} className={AUTH_BUTTON_CLASS}>
               {isLoading ? (
                 <div className="flex items-center justify-center space-x-2">
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>

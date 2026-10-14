@@ -19,8 +19,11 @@ The `VITE_` values in `.env` are embedded in the browser bundle. Do not put a
 secret in one. The local `.env` is gitignored.
 
 `src/tokens.css` is generated from `packages/shared` by `make generate-tokens`
-at the repository root. Do not edit it: `make check`, which CI runs, fails when
-it drifts.
+at the repository root. It carries the dashboard's semantic colours, spacing
+steps and shadows, so the site uses the same names (`bg-surface-base`,
+`text-text-primary`, `border-border-subtle`, `text-brand-light`); radii, type
+sizes and weights come from Tailwind's defaults. Do not edit it: `make check`,
+which CI runs, fails when it drifts.
 
 ## Commands
 

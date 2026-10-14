@@ -16,7 +16,7 @@ import {
   type TokenType,
   type RegisterTransferMember,
 } from '@ledova/shared';
-import { FIELD_CLASS } from '@components/fieldClass';
+import { FIELD_CLASS, LABEL } from '@components/fieldClass';
 import apiClient from '@services/apiClient';
 import { CompanySelection } from '../../CompanySelection';
 import { useCompany } from '../../hooks/useCompany';
@@ -28,7 +28,6 @@ import { readTransferMembers, useTransferMembers } from '../useRegisterTransfers
 import { ImportForm } from './ImportForm';
 
 const TECHNICAL_SHARE_LIMIT = (2n ** 256n - 1n).toString();
-const LABEL = 'block space-y-1 text-sm text-text-primary';
 const NO_MEMBERS: RegisterTransferMember[] = [];
 const COMMON_CLASSES: { type: TokenType; name: string; symbol: string; label: string }[] = [
   { type: 'ordinary', name: 'Ordinary shares', symbol: 'ORD', label: 'Ordinary (ORD)' },

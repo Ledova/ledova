@@ -9,7 +9,7 @@ import {
   type CompanyListItem,
 } from '@ledova/shared';
 import { PageAction } from '@components/Page';
-import { FIELD_CLASS } from '@components/fieldClass';
+import { FIELD_CLASS, LABEL } from '@components/fieldClass';
 import apiClient from '@services/apiClient';
 
 export function AuthorityRequestForm({
@@ -124,7 +124,7 @@ export function AuthorityRequestForm({
           );
         })}
       </div>
-      <label className="block space-y-1 text-sm text-text-primary">
+      <label className={LABEL}>
         Requested expiry date (UTC, optional)
         <input
           type="date"
@@ -134,7 +134,7 @@ export function AuthorityRequestForm({
           className={FIELD_CLASS}
         />
       </label>
-      <label className="block space-y-1 text-sm text-text-primary">
+      <label className={LABEL}>
         Supporting document (optional)
         <input
           type="file"

@@ -25,7 +25,7 @@ const CheckboxGroupField = ({ label, value, options, error, onChange }: Checkbox
             <Checkbox
               checked={value.includes(option.value)}
               onChange={(checked) => handleCheckboxChange(option.value, checked)}
-              className="group flex h-4 w-4 shrink-0 cursor-pointer items-center justify-center rounded border border-border bg-surface-tertiary focus:outline-none data-[checked]:border-brand data-[checked]:bg-brand data-[focus]:ring-2 data-[focus]:ring-border-focus data-[focus]:ring-offset-1"
+              className="group flex h-4 w-4 shrink-0 cursor-pointer items-center justify-center rounded border border-border bg-surface-tertiary focus:outline-none data-[checked]:border-brand data-[checked]:bg-brand data-[focus]:ring-2 data-[focus]:ring-border-focus data-[focus]:ring-offset-1 data-[focus]:ring-offset-surface-raised"
             >
               <svg
                 className="hidden h-3 w-3 text-white group-data-[checked]:block"

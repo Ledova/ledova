@@ -60,7 +60,7 @@ function StatusPill({ status }: { status: ExtractionStatus | undefined }) {
   }
   if (status === 'succeeded') {
     return (
-      <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-success/10 text-xs text-success">
+      <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-success/10 text-xs text-success-light">
         <CheckCircleIcon size={ICON_SM} weight="fill" /> Extracted
       </span>
     );
@@ -112,7 +112,7 @@ function PayslipResult({ data, durationMs }: { data: object; durationMs: number 
       </div>
 
       {readableWarnings.length > 0 && (
-        <div className="mt-2 flex items-start gap-2 text-xs text-warning">
+        <div className="mt-2 flex items-start gap-2 text-xs text-warning-light">
           <WarningIcon size={ICON_SM} weight="bold" className="mt-0.5 flex-shrink-0" />
           <span>{readableWarnings.join(' · ')}</span>
         </div>

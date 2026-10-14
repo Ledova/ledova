@@ -50,7 +50,7 @@ function NotificationItem({
       width: 8,
       height: 8,
       borderRadius: 4,
-      backgroundColor: theme.colors.interactive.active,
+      backgroundColor: theme.colors.brand.default,
       marginTop: 6,
     },
     textContainer: {

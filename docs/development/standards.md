@@ -66,13 +66,13 @@ must be removed. Do not add an exception merely to make a check green.
 
 ## Signed-in web presentation
 
-Use the existing `Page`, `Section`, `PageAction`, `Modal` and `FIELD_CLASS` for
-signed-in web pages. `Page narrow` bounds task forms, settings and detailed
-records, including compact tables. Ownership dashboards and wide tables use
-the standard workspace width; tables scroll within their card on small screens.
-Keep one page heading, nearby labels and values, readable wrapping, balanced
-field groups and one primary next action. Section spacing is scoped to the
-signed-in frame; signup retains its existing presentation.
+Use the existing `Page`, `Section`, `PageAction`, `Modal`, `FIELD_CLASS` and
+`LABEL` for signed-in web pages. `Page narrow` bounds task forms, settings and
+detailed records, including compact tables. Ownership dashboards and wide tables
+use the standard workspace width; tables scroll within their card on small
+screens. Keep one page heading, nearby labels and values, readable wrapping,
+balanced field groups and one primary next action. Section spacing is scoped to
+the signed-in frame; signup retains its existing presentation.
 
 Show core ownership, status and next actions directly. Put full audit identifiers
 and optional supporting detail behind the existing detail controls. Remove

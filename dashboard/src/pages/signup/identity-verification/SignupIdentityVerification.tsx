@@ -10,6 +10,7 @@ import LoadingState from '@components/signup/LoadingState';
 import { useIdentityVerification } from '@hooks/useIdentityVerification';
 import { AuthLayout } from '@components/AuthLayout';
 import { ICON_MD, ICON_LG } from '@components/iconSizes';
+import { AUTH_BUTTON_CLASS } from '@components/fieldClass';
 
 export function SignupIdentityVerification() {
   const navigate = useNavigate();
@@ -191,7 +192,7 @@ export function SignupIdentityVerification() {
                 type="button"
                 onClick={() => launchVerification('#sumsub-websdk-container')}
                 disabled={isLaunching || isLoadingStatus}
-                className="w-full bg-brand-mid hover:bg-brand disabled:bg-surface-disabled disabled:text-text-secondary disabled:cursor-not-allowed text-white font-semibold py-3 px-4 rounded-lg transition-colors shadow-lg shadow-brand-light/40 disabled:shadow-none focus:outline-none focus:ring-2 focus:ring-border-focus focus:ring-offset-2 focus:ring-offset-surface-base"
+                className={AUTH_BUTTON_CLASS}
               >
                 {isLaunching ? (
                   <div className="flex items-center justify-center space-x-2">

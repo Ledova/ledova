@@ -112,7 +112,7 @@ export function AddWalletModal({
               type="button"
               onClick={form.toggleScanner}
               disabled={isLoading}
-              className="flex items-center gap-1 text-sm text-brand-mid hover:text-brand-light transition-colors"
+              className="flex items-center gap-1 text-sm text-brand-light transition-colors"
             >
               <QrCodeIcon size={ICON_SM} />
               <span>{form.showScanner ? 'Hide Scanner' : 'Scan QR'}</span>

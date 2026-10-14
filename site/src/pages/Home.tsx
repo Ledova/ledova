@@ -62,19 +62,21 @@ const EXAMPLE_REGISTER = [
 
 function ExampleRegister() {
   return (
-    <figure className="flex flex-col gap-5 rounded-2xl border border-rule bg-paper-card p-5 shadow-[0_24px_48px_-32px_rgba(23,25,30,0.25)] sm:p-8">
+    <figure className="flex flex-col gap-5 rounded-2xl border border-border-subtle bg-surface-raised p-5 shadow-[0_24px_48px_-32px_rgba(23,25,30,0.25)] sm:p-8">
       <figcaption className="flex items-start justify-between gap-4">
         <span className="flex flex-col gap-1">
-          <span className="font-display text-[21px] leading-tight text-ink sm:text-[26px]">Example Co Pty Ltd</span>
-          <span className="text-[13px] text-ink-muted sm:text-sm">Share register · Ordinary shares</span>
+          <span className="font-display text-[21px] leading-tight text-text-primary sm:text-[26px]">
+            Example Co Pty Ltd
+          </span>
+          <span className="text-[13px] text-text-muted sm:text-sm">Share register · Ordinary shares</span>
         </span>
-        <span className="hidden shrink-0 rounded-full bg-ledger-tint px-3 py-1.5 text-[13px] font-medium text-ledger-hover sm:inline">
+        <span className="hidden shrink-0 rounded-full bg-brand-tint px-3 py-1.5 text-[13px] font-medium text-brand-subtle sm:inline">
           4 members
         </span>
       </figcaption>
       <table className="w-full text-[15px]">
         <thead>
-          <tr className="border-b border-rule text-left text-xs uppercase tracking-[0.08em] text-ink-muted">
+          <tr className="border-b border-border-subtle text-left text-xs uppercase tracking-[0.08em] text-text-muted">
             <th className="py-2.5 font-normal">Member</th>
             <th className="py-2.5 text-right font-normal">Shares</th>
             <th className="hidden py-2.5 text-right font-normal sm:table-cell">Held since</th>
@@ -82,20 +84,20 @@ function ExampleRegister() {
         </thead>
         <tbody>
           {EXAMPLE_REGISTER.map((row) => (
-            <tr key={row.member} className="border-b border-rule-soft last:border-b-0">
+            <tr key={row.member} className="border-b border-border-faint last:border-b-0">
               <td className="py-3">{row.member}</td>
               <td className="py-3 text-right tabular-nums">{row.shares}</td>
-              <td className="hidden py-3 text-right text-ink-muted sm:table-cell">{row.since}</td>
+              <td className="hidden py-3 text-right text-text-muted sm:table-cell">{row.since}</td>
             </tr>
           ))}
         </tbody>
       </table>
-      <p className="flex items-center gap-2.5 border-t border-rule pt-4 text-sm text-ink-muted">
+      <p className="flex items-center gap-2.5 border-t border-border-subtle pt-4 text-sm text-text-muted">
         <svg viewBox="0 0 18 18" fill="none" aria-hidden="true" className="h-[18px] w-[18px] shrink-0">
-          <circle cx="9" cy="9" r="8" className="stroke-ledger" strokeWidth="1.5" />
+          <circle cx="9" cy="9" r="8" className="stroke-brand-light" strokeWidth="1.5" />
           <path
             d="M5.5 9.2l2.3 2.3 4.7-4.9"
-            className="stroke-ledger"
+            className="stroke-brand-light"
             strokeWidth="1.5"
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -111,11 +113,11 @@ function Audience({ id, title, points }: { id: string; title: string; points: { 
   return (
     <div id={id} className="flex scroll-mt-24 flex-col gap-8 md:scroll-mt-28">
       <h2 className={SECTION_HEADING}>{title}</h2>
-      <ul className="border-b border-rule">
+      <ul className="border-b border-border-subtle">
         {points.map((point) => (
-          <li key={point.title} className="flex flex-col gap-1.5 border-t border-rule py-5 lg:py-6">
-            <h3 className="text-base font-semibold text-ink lg:text-lg">{point.title}</h3>
-            <p className="text-[15px] leading-relaxed text-ink-muted lg:text-base">{point.body}</p>
+          <li key={point.title} className="flex flex-col gap-1.5 border-t border-border-subtle py-5 lg:py-6">
+            <h3 className="text-base font-semibold text-text-primary lg:text-lg">{point.title}</h3>
+            <p className="text-[15px] leading-relaxed text-text-muted lg:text-base">{point.body}</p>
           </li>
         ))}
       </ul>
@@ -128,13 +130,13 @@ export function Home() {
     <>
       <section className="mx-auto grid max-w-6xl gap-14 px-5 pb-20 pt-14 md:px-8 lg:grid-cols-2 lg:items-center lg:gap-20 lg:pb-28 lg:pt-24">
         <div className="flex flex-col gap-6 lg:gap-7">
-          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-ledger lg:text-[13px]">
+          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-brand-light lg:text-[13px]">
             Share registry and marketplace
           </p>
-          <h1 className="font-display text-[44px] leading-[1.04] tracking-[-0.02em] text-ink sm:text-6xl lg:text-[76px] lg:leading-[1.02]">
+          <h1 className="font-display text-[44px] leading-[1.04] tracking-[-0.02em] text-text-primary sm:text-6xl lg:text-[76px] lg:leading-[1.02]">
             The share register for private companies.
           </h1>
-          <p className="max-w-[520px] text-[17px] leading-relaxed text-ink-muted lg:text-xl">
+          <p className="max-w-[520px] text-[17px] leading-relaxed text-text-muted lg:text-xl">
             Keep your shareholder records in one place, issue shares, and give approved investors a way to buy and sell,
             with every change recorded and checkable.
           </p>
@@ -150,25 +152,25 @@ export function Home() {
         <ExampleRegister />
       </section>
 
-      <section className="border-t border-rule">
+      <section className="border-t border-border-subtle">
         <div className="mx-auto grid max-w-6xl gap-16 px-5 py-20 md:px-8 lg:grid-cols-2 lg:gap-20 lg:py-24">
           <Audience id="companies" title="For companies" points={COMPANY_POINTS} />
           <Audience id="investors" title="For investors" points={INVESTOR_POINTS} />
         </div>
       </section>
 
-      <section id="how-it-works" className="scroll-mt-16 border-t border-rule md:scroll-mt-20">
+      <section id="how-it-works" className="scroll-mt-16 border-t border-border-subtle md:scroll-mt-20">
         <div className="mx-auto max-w-6xl px-5 py-20 md:px-8 lg:py-24">
           <h2 className={SECTION_HEADING}>How it works</h2>
           <ol className="mt-10 grid gap-8 sm:grid-cols-2 lg:mt-12 lg:grid-cols-4 lg:gap-10">
             {STEPS.map((step, index) => (
               <li key={step.title} className="flex items-baseline gap-4 lg:flex-col lg:items-start lg:gap-3">
-                <span className="w-10 shrink-0 font-display text-[28px] leading-none text-ledger lg:text-[40px]">
+                <span className="w-10 shrink-0 font-display text-[28px] leading-none text-brand-light lg:text-[40px]">
                   {String(index + 1).padStart(2, '0')}
                 </span>
                 <div className="flex flex-col gap-1.5">
-                  <h3 className="text-base font-semibold text-ink lg:text-lg">{step.title}</h3>
-                  <p className="text-[15px] leading-relaxed text-ink-muted lg:text-base">{step.body}</p>
+                  <h3 className="text-base font-semibold text-text-primary lg:text-lg">{step.title}</h3>
+                  <p className="text-[15px] leading-relaxed text-text-muted lg:text-base">{step.body}</p>
                 </div>
               </li>
             ))}
@@ -177,12 +179,12 @@ export function Home() {
       </section>
 
       <section className="mx-auto max-w-6xl px-5 pb-20 md:px-8 lg:pb-24">
-        <div className="flex flex-col gap-7 rounded-2xl bg-paper-deep px-6 py-9 md:px-12 md:py-14 lg:flex-row lg:items-center lg:justify-between lg:px-16 lg:py-[72px]">
+        <div className="flex flex-col gap-7 rounded-2xl bg-surface-tertiary px-6 py-9 md:px-12 md:py-14 lg:flex-row lg:items-center lg:justify-between lg:px-16 lg:py-[72px]">
           <div className="flex flex-col gap-3">
-            <h2 className="font-display text-[32px] leading-[1.1] tracking-[-0.01em] text-ink lg:text-5xl">
+            <h2 className="font-display text-[32px] leading-[1.1] tracking-[-0.01em] text-text-primary lg:text-5xl">
               Bring your register to Ledova.
             </h2>
-            <p className="text-base text-ink-muted lg:text-lg">Companies and investors start with the same account.</p>
+            <p className="text-base text-text-muted lg:text-lg">Companies and investors start with the same account.</p>
           </div>
           <div className="flex flex-col gap-4 sm:flex-row-reverse sm:items-center sm:justify-end sm:gap-7 lg:shrink-0">
             <a href={SIGN_UP_URL} className={PRIMARY_BUTTON}>
