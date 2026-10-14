@@ -6,7 +6,7 @@ import {
   type CompanyCapability,
   type OwnCompanyAppointment,
 } from '@ledova/shared';
-import { FIELD_CLASS } from '@components/fieldClass';
+import { FIELD_CLASS, LABEL } from '@components/fieldClass';
 import { PageAction } from '@components/Page';
 import apiClient from '@services/apiClient';
 import { sameScope } from './appointments';
@@ -188,7 +188,7 @@ export function TeamInvitationForm({
         })}
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
-        <label className="block space-y-1 text-sm text-text-primary">
+        <label className={LABEL}>
           Invitation deadline (UTC, optional)
           <input
             className={FIELD_CLASS}
@@ -198,7 +198,7 @@ export function TeamInvitationForm({
             onChange={(event) => change(() => setDeadline(event.target.value))}
           />
         </label>
-        <label className="block space-y-1 text-sm text-text-primary">
+        <label className={LABEL}>
           Appointment expiry (UTC, optional)
           <input
             className={FIELD_CLASS}

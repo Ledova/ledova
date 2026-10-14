@@ -15,7 +15,7 @@ import {
   type OrderSubmissionOwner,
   type OwnCompanyAppointment,
 } from '@ledova/shared';
-import { FIELD_CLASS } from '@components/fieldClass';
+import { FIELD_CLASS, LABEL } from '@components/fieldClass';
 import { LinkRow, Row, Rows, Section } from '@components/Ledger';
 import { Modal } from '@components/Modal';
 import { Page, PageAction } from '@components/Page';
@@ -275,7 +275,7 @@ function OwnTeam({
         )}
       </Section>
       <Section title="Invite and manage a company team">
-        <label className="block space-y-1 text-sm text-text-primary">
+        <label className={LABEL}>
           Company
           <select
             className={FIELD_CLASS}
@@ -297,7 +297,7 @@ function OwnTeam({
         </label>
         {company && (
           <>
-            <label className="block space-y-1 text-sm text-text-primary">
+            <label className={LABEL}>
               Delegating appointment
               <select
                 className={FIELD_CLASS}

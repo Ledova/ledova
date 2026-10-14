@@ -16,7 +16,7 @@ import {
 } from '@ledova/shared';
 import { Page, PageAction } from '@components/Page';
 import { Section } from '@components/Ledger';
-import { FIELD_CLASS } from '@components/fieldClass';
+import { FIELD_CLASS, LABEL } from '@components/fieldClass';
 import apiClient from '@services/apiClient';
 import { AuthorityRequestForm } from './AuthorityRequestForm';
 import { AuthorityRequestRecord } from './AuthorityRequestRecord';
@@ -155,7 +155,7 @@ function OwnAuthorityRequests({
         ) : drafts.length === 0 ? (
           <p className="text-sm text-text-muted">No draft company is available for an authority request.</p>
         ) : (
-          <label className="block space-y-1 text-sm text-text-primary">
+          <label className={LABEL}>
             Draft company
             <select
               value={selected}

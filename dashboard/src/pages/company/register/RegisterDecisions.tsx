@@ -2,7 +2,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { useRegisterDecision, type RegisterDecisionFamily, type RegisterDecisionKind } from '@ledova/shared';
 import { Modal } from '@components/Modal';
 import { PageAction } from '@components/Page';
-import { FIELD_CLASS } from '@components/fieldClass';
+import { FIELD_CLASS, LABEL } from '@components/fieldClass';
 import apiClient from '@services/apiClient';
 import { STEP_CHANGED, type RegisterSteps } from './proposals';
 
@@ -164,7 +164,7 @@ export function RegisterDecisions<Shown extends Proposal, Previewed extends Prev
             )}
             {active === 'reject' && (
               <>
-                <label className="block space-y-1 text-sm text-text-primary">
+                <label className={LABEL}>
                   {copy.REJECTION_REASON}
                   <textarea
                     className={FIELD_CLASS}

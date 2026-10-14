@@ -23,6 +23,7 @@ import { ICON_SM } from '@components/iconSizes';
 import type { Wallet as WalletType } from '@ledova/shared';
 import { Modal } from '@components/Modal';
 import { Row, Rows } from '@components/Ledger';
+import { FIELD_BASE } from '@components/fieldClass';
 
 interface EditWalletModalProps {
   readBlocked?: boolean;
@@ -121,7 +122,7 @@ export function EditWalletModal({
             maxLength={100}
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="block w-full rounded-lg border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:border-brand-mid focus:outline-none focus:ring-1 focus:ring-brand-mid"
+            className={FIELD_BASE}
             placeholder="Enter wallet name (optional)"
           />
           <p className="text-xs text-text-muted">Give your wallet a memorable name</p>
