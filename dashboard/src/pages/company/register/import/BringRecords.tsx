@@ -2,9 +2,7 @@ import { useLayoutEffect, useState } from 'react';
 import { REGISTER_IMPORT_COPY, formatDate, formatShareCount, type RegisterTransferMember } from '@ledova/shared';
 import { PageAction } from '@components/Page';
 import { FIELD_CLASS } from '@components/fieldClass';
-import { saveFile } from '../useCompanyRegister';
 import { MemberFields } from './MemberFields';
-import { registerCsvTemplate } from './csv';
 import { blankMember, blankFormer, type PreparationDraft, type MemberDraft, type FormerDraft } from './preparation';
 
 const LABEL = 'block space-y-1 text-sm text-text-primary';
@@ -14,14 +12,12 @@ export function BringRecords({
   draft,
   today,
   correction,
-  preserveMembers,
   busy,
   differs,
   imported,
   update,
   setMember,
   setFormer,
-  importCsv,
   companyMembers,
   preserveParticulars,
   step,
@@ -31,14 +27,12 @@ export function BringRecords({
   draft: PreparationDraft;
   today: string;
   correction: boolean;
-  preserveMembers: boolean;
   busy: boolean;
   differs: boolean;
   imported: { total: string; count: number };
   update: (apply: (current: PreparationDraft) => PreparationDraft) => void;
   setMember: (index: number, patch: Partial<MemberDraft>) => void;
   setFormer: (index: number, patch: Partial<FormerDraft>) => void;
-  importCsv: (file: File | null) => Promise<void>;
   companyMembers: RegisterTransferMember[];
   preserveParticulars: boolean;
   step: 'details' | 'shareholders';
@@ -263,50 +257,6 @@ export function BringRecords({
                   />
                 </div>
               </div>
-            )}
-            {!editorOpen && (
-              <details className="rounded-lg border border-border-subtle p-3">
-                <summary className="cursor-pointer text-sm text-text-muted">Use a CSV instead</summary>
-                <div className="flex flex-wrap items-center gap-3">
-                  <PageAction
-                    label="Download CSV template"
-                    onClick={() =>
-                      saveFile(
-                        new Blob([registerCsvTemplate(preserveMembers ? draft.members : [])], {
-                          type: 'text/csv;charset=utf-8',
-                        }),
-                        'share-register-template.csv',
-                      )
-                    }
-                  />
-                  <label className={LABEL}>
-                    Bring a CSV
-                    <input
-                      type="file"
-                      accept=".csv,text/csv"
-                      className={FIELD_CLASS}
-                      onChange={(event) => void importCsv(event.target.files?.[0] ?? null)}
-                    />
-                  </label>
-                </div>
-                <p className="text-xs text-text-muted">
-                  One row per allotment. Repeat the shareholder reference for multiple allotments. UTF-8 CSV, at most 1
-                  MB and 500 rows. Importing replaces the draft rows below.
-                </p>
-                {preserveMembers && (
-                  <p className="text-xs text-text-muted">
-                    Keep the current template’s holder_reference values to identify existing shareholders. Add new
-                    shareholders manually after importing the CSV.
-                  </p>
-                )}
-                {companyMembers.length > 0 && !preserveMembers && (
-                  <p className="text-xs text-text-muted">
-                    Existing company shareholders keep the same member UUID across classes. Use that UUID as
-                    holder_reference; unknown references need an explicit existing or new shareholder choice below.
-                    Names do not identify a person uniquely.
-                  </p>
-                )}
-              </details>
             )}
           </fieldset>
           <details className="space-y-4 rounded-lg border border-border-subtle p-4">

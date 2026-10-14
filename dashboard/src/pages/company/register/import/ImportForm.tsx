@@ -34,7 +34,6 @@ import { registerKey } from '../useCompanyRegister';
 import type { RegisterSteps } from '../proposals';
 import { BringRecords } from './BringRecords';
 import { MemberRecords } from './MemberRecords';
-import { REGISTER_CSV_MAX_BYTES, readRegisterCsv } from './csv';
 import {
   blankMember,
   figuresDiffer,
@@ -144,8 +143,6 @@ export function ImportForm({
   const activeRegister = useRef(register);
   const uploads = useRef<Partial<Record<RegisterEvidenceKind, Upload>>>({});
   const pending = useRef(false);
-  const csvReading = useRef(false);
-  const csvGeneration = useRef(0);
   const mounted = useRef(true);
   const currentSteps = useRef(steps);
   const currentPreparation = useRef(appointment);
@@ -320,47 +317,6 @@ export function ImportForm({
       throw createUserFriendlyError(REGISTER_IMPORT_COPY.UPLOAD_RECEIPT_FAILED);
     uploads.current[kind] = { file, appointment: preparingAppointment.uuid, key, receipt: data };
     return data;
-  };
-  const importCsv = async (file: File | null) => {
-    if (!file || held || !canPrepare || (pending.current && !csvReading.current)) return;
-    const generation = ++csvGeneration.current;
-    csvReading.current = true;
-    pending.current = true;
-    setError('');
-    setBusy(true);
-    try {
-      checkPreparation();
-      if (file.size > REGISTER_CSV_MAX_BYTES) throw createUserFriendlyError('Choose a UTF-8 CSV no larger than 1 MB.');
-      const text = new TextDecoder('utf-8', { fatal: true }).decode(await file.arrayBuffer());
-      if (generation !== csvGeneration.current) return;
-      checkPreparation();
-      const preserveMembers = !!correction || register?.initialized === true;
-      const known = register ? initialMembers(register, correction) : draft.members;
-      const liveMembers = currentMembers.current;
-      const candidates = preserveMembers
-        ? known
-        : liveMembers.length
-          ? draft.members.filter(
-              (row) => row.identityChoice === 'new' || liveMembers.some((member) => member.member === row.member),
-            )
-          : draft.members;
-      const members = readRegisterCsv(text, candidates, preserveMembers, preserveMembers ? [] : liveMembers);
-      const next = { ...draft, members };
-      const invalid = preparationProblems(next, today).filter((problem) => problem.startsWith('Shareholder'));
-      if (invalid.length) throw createUserFriendlyError(invalid.join(' '));
-      setDraft(next);
-    } catch (failure) {
-      if (mounted.current && generation === csvGeneration.current)
-        setError(
-          apiErrorSentence(failure, 'The CSV could not be read. Use the template.', 'The CSV could not be read.'),
-        );
-    } finally {
-      if (generation === csvGeneration.current) {
-        csvReading.current = false;
-        pending.current = false;
-        if (mounted.current) setBusy(false);
-      }
-    }
   };
   const prepare = async (recovering = false) => {
     if (pending.current || busy || deciding || (!recovering && holderEditor)) return;
@@ -559,14 +515,12 @@ export function ImportForm({
                     draft={draft}
                     today={today}
                     correction={!!correction}
-                    preserveMembers={!!correction || register?.initialized === true}
                     busy={busy}
                     differs={differs}
                     imported={imported}
                     update={update}
                     setMember={setMember}
                     setFormer={setFormer}
-                    importCsv={importCsv}
                     companyMembers={knownMembers}
                     preserveParticulars={preserveParticulars}
                     step={phase === 'details' ? 'details' : 'shareholders'}

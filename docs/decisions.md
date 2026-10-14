@@ -18,7 +18,7 @@ stay here as history and are marked where they appear.
 | [Combined company signup and initial authority](#combined-company-signup-and-initial-authority)                 | 14 October 2026                                | Current; amended by #1022 below                                    |
 | [Simple signup, documents and team after registration](#simple-signup-documents-and-team-after-registration)     | 14 October 2026                                | Current; #1022                                                     |
 | [Existing register mirror and simple setup](#existing-register-mirror-and-simple-setup)                         | 14 October 2026                                | Current; setup amended by #1029                                    |
-| [Manual register setup: shares before shareholders](#manual-register-setup-shares-before-shareholders)         | 14 October 2026                                | Current; #1029                                                     |
+| [Manual register setup: shares before shareholders](#manual-register-setup-shares-before-shareholders)         | 14 October 2026                                | Current; #1029, CSV entry removed under #1036                       |
 | [Eligibility and ownership records](#eligibility-and-ownership-records)                                         | September to 6 October 2026                    | Current                                                            |
 | [The stored register](#the-stored-register)                                                                     | September 2026; staff review retired 5 October | Current                                                            |
 | [Company-scoped approvals](#company-scoped-approvals)                                                           | 19 September 2026                              | Current                                                            |
@@ -310,6 +310,13 @@ There is no extraction implementation in this increment. Future extracted values
 must populate these same editable forms for manual review and correction;
 extraction cannot confirm ownership or bypass validation. Optional retained
 supporting copies remain distinct from extraction.
+
+The owner amended setup under
+[#1036](https://github.com/Ledova/ledova/issues/1036) on the same day: remove CSV
+entry, templates and parsing. Shareholders are entered and edited manually.
+Future LLM document extraction will populate these same forms for review; it is
+still deferred. This removes the setup input path, while existing register and
+inspection exports remain available.
 
 ## Cohesive signed-in web experience
 
