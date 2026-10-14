@@ -185,6 +185,7 @@ function OwnGrant({
     );
   return (
     <Page
+      narrow
       lede={LEDE}
       actions={
         <PageAction
