@@ -151,7 +151,7 @@ export function TeamInvitationForm({
     );
   return (
     <form
-      className="space-y-3"
+      className="space-y-4"
       onSubmit={(event) => {
         event.preventDefault();
         void send();
@@ -161,50 +161,57 @@ export function TeamInvitationForm({
         Personal actions and permission to delegate are separate. Choose only actions your selected appointment may
         delegate.
       </p>
-      {(['personal', 'delegatable'] as const).map((scope) => {
-        const values = scope === 'personal' ? personal : delegatable;
-        const set = scope === 'personal' ? setPersonal : setDelegatable;
-        return (
-          <fieldset key={scope} disabled={disabled || busy} className="space-y-2">
-            <legend className="text-sm font-medium text-text-primary">
-              {scope === 'personal' ? 'Actions for the appointee' : 'Actions the appointee may delegate'}
-            </legend>
-            {COMPANY_AUTHORITY_CAPABILITIES.filter(({ value }) => available.includes(value)).map(({ value, label }) => (
-              <label key={value} className="flex items-center gap-2 text-sm text-text-primary">
-                <input
-                  type="checkbox"
-                  checked={values.includes(value)}
-                  onChange={() => change(() => set(toggle(values, value)))}
-                />
-                {label}
-              </label>
-            ))}
-          </fieldset>
-        );
-      })}
-      <label className="block space-y-1 text-sm text-text-primary">
-        Invitation deadline (UTC, optional)
-        <input
-          className={FIELD_CLASS}
-          type="date"
-          value={deadline}
-          disabled={disabled || busy}
-          onChange={(event) => change(() => setDeadline(event.target.value))}
-        />
-      </label>
+      <div className="grid gap-5 sm:grid-cols-2">
+        {(['personal', 'delegatable'] as const).map((scope) => {
+          const values = scope === 'personal' ? personal : delegatable;
+          const set = scope === 'personal' ? setPersonal : setDelegatable;
+          return (
+            <fieldset key={scope} disabled={disabled || busy} className="space-y-2">
+              <legend className="text-sm font-medium text-text-primary">
+                {scope === 'personal' ? 'Actions for the appointee' : 'Actions the appointee may delegate'}
+              </legend>
+              {COMPANY_AUTHORITY_CAPABILITIES.filter(({ value }) => available.includes(value)).map(
+                ({ value, label }) => (
+                  <label key={value} className="flex items-start gap-2 text-sm text-text-primary">
+                    <input
+                      type="checkbox"
+                      className="mt-1 shrink-0"
+                      checked={values.includes(value)}
+                      onChange={() => change(() => set(toggle(values, value)))}
+                    />
+                    {label}
+                  </label>
+                ),
+              )}
+            </fieldset>
+          );
+        })}
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <label className="block space-y-1 text-sm text-text-primary">
+          Invitation deadline (UTC, optional)
+          <input
+            className={FIELD_CLASS}
+            type="date"
+            value={deadline}
+            disabled={disabled || busy}
+            onChange={(event) => change(() => setDeadline(event.target.value))}
+          />
+        </label>
+        <label className="block space-y-1 text-sm text-text-primary">
+          Appointment expiry (UTC, optional)
+          <input
+            className={FIELD_CLASS}
+            type="date"
+            value={expiry}
+            disabled={disabled || busy}
+            onChange={(event) => change(() => setExpiry(event.target.value))}
+          />
+        </label>
+      </div>
       <p className="text-sm text-text-muted">
         The default acceptance deadline is seven days. A chosen deadline must be within 30 days.
       </p>
-      <label className="block space-y-1 text-sm text-text-primary">
-        Appointment expiry (UTC, optional)
-        <input
-          className={FIELD_CLASS}
-          type="date"
-          value={expiry}
-          disabled={disabled || busy}
-          onChange={(event) => change(() => setExpiry(event.target.value))}
-        />
-      </label>
       {error && (
         <p role="alert" className="text-sm text-error-light">
           {error}
@@ -212,6 +219,7 @@ export function TeamInvitationForm({
       )}
       <PageAction
         label={busy ? 'Creating invitation…' : 'Create invitation'}
+        primary
         disabled={disabled || busy || (!personal.length && !delegatable.length)}
         onClick={() => void send()}
       />

@@ -11,6 +11,7 @@ export default function ParticipantEligibilityPage() {
   const source = read.sources.find((item) => item.uuid === read.draft.source);
   return (
     <Page
+      narrow
       loading={read.loading}
       lede={ELIGIBILITY_RECORDS_NOTICE}
       actions={

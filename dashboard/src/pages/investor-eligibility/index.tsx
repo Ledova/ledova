@@ -40,7 +40,7 @@ export default function InvestorEligibilityPage() {
 
   return (
     <>
-      <Page loading={isLoading}>
+      <Page narrow loading={isLoading}>
         {hasError ? (
           <div role="alert" className="flex flex-col items-start gap-3 py-6">
             <p className="text-sm text-text-primary">
@@ -142,18 +142,11 @@ export default function InvestorEligibilityPage() {
                   </div>
                 ))}
               </div>
-            </Section>
-
-            <Section title="What happens next">
-              <ol className="list-decimal space-y-2 py-2 pl-5 text-sm text-text-muted">
-                <li>Choose the category that applies to you and attach the evidence.</li>
-                <li>
-                  Choose the exact company or known offering in Eligibility requests and consent to sharing your
-                  evidence.
-                </li>
-                <li>The company records its decision. New investment actions recheck that decision and its scope.</li>
-                <li>Your submitted sources and historical reviews remain separate from company decisions.</li>
-              </ol>
+              <p className="text-sm text-text-muted">
+                After adding evidence, request eligibility for the exact company or offering and consent to sharing it.
+                The company records its own decision; new investment actions recheck that decision and its scope.
+              </p>
+              <LinkRow to={DESTINATIONS.eligibilityRequests.path} label="Request company eligibility" />
             </Section>
           </>
         )}

@@ -74,6 +74,40 @@ function MemberRecords({
     setAddress('');
     setConfirmed(false);
   };
+  const shareHistory = read.record && (
+    <div className="space-y-3">
+      <p className="text-sm text-text-muted">Choose a share class to request a certificate for a receiving entry.</p>
+      {documentsOnly && (
+        <div className="flex flex-wrap gap-2 py-3">
+          {read.record.classes.map((item) => (
+            <PageAction
+              key={item.uuid}
+              label={`Read own entries for ${item.name}`}
+              disabled={held}
+              onClick={() => {
+                setHistoryToken(item.uuid);
+                read.selectToken(item.uuid);
+              }}
+            />
+          ))}
+        </div>
+      )}
+      {read.entries.map((entry) => (
+        <div key={entry.uuid} className="space-y-2 py-3">
+          <p className="text-sm">
+            Entry {entry.sequence} · {entry.kind} · {formatDate(entry.effectiveOn)} · Own change {entry.delta}
+          </p>
+          {['ISSUE', 'TRANSFER'].includes(entry.kind.toUpperCase()) && BigInt(entry.delta) > 0n && (
+            <PageAction
+              label={`Request certificate for entry ${entry.sequence}`}
+              disabled={held}
+              onClick={() => void read.requestCertificate(entry.uuid)}
+            />
+          )}
+        </div>
+      ))}
+    </div>
+  );
   const invitation = (
     <div className="space-y-3 pt-2">
       <p className="text-sm text-text-muted">
@@ -104,6 +138,7 @@ function MemberRecords({
       </label>
       <PageAction
         label="Accept member invitation"
+        primary
         disabled={held || !accepted || !/^[A-Za-z0-9_-]{43}$/.test(code)}
         onClick={() => void read.accept(code)}
       />
@@ -112,6 +147,7 @@ function MemberRecords({
   return (
     <PageTitle.Provider value={documentsOnly ? 'Documents' : 'Dashboard'}>
       <Page
+        narrow={documentsOnly}
         lede={
           documentsOnly
             ? 'Your certificates and company-reviewed requests. No wallet is needed.'
@@ -172,9 +208,9 @@ function MemberRecords({
                         <div className="divide-y divide-border-subtle">
                           {record.classes.map((item) => (
                             <div key={item.uuid} className="space-y-3 py-3">
-                              <div className="flex flex-wrap items-baseline gap-x-6 gap-y-1">
-                                <p className="min-w-0 break-words font-medium">{item.name}</p>
-                                <p className="min-w-0 break-words text-xl tabular-nums">
+                              <div className="space-y-1">
+                                <p className="break-words text-sm text-text-muted">{item.name}</p>
+                                <p className="break-words text-2xl font-medium tabular-nums">
                                   {formatShareCount(item.shares)} issued shares
                                 </p>
                               </div>
@@ -239,8 +275,8 @@ function MemberRecords({
               </div>
             ))}
             {read.record && (
-              <div className="grid items-start gap-4 xl:grid-cols-2">
-                <Section title="Documents">
+              <div className={`grid items-start gap-4 ${documentsOnly ? '' : 'xl:grid-cols-2'}`}>
+                <Section title="Certificates">
                   {read.requests?.certificates.some(
                     (request) => request.status === 'fulfilled' && request.fulfilment,
                   ) && (
@@ -265,7 +301,7 @@ function MemberRecords({
                   {!read.requests && <p role="status">Loading your documents and requests…</p>}
                   {!documentsOnly && <LinkRow to="/home#documents" label="View documents and certificate requests" />}
                 </Section>
-                <Section title={documentsOnly ? 'Certificate requests and share history' : 'Your member record'}>
+                <Section title={documentsOnly ? 'Share history' : 'Your member record'}>
                   {!documentsOnly && read.entries.length > 0 && (
                     <div className="space-y-2 border-b border-border-subtle pb-3 text-sm">
                       <h3 className="font-medium">Recent changes · {historyClass}</h3>
@@ -280,7 +316,7 @@ function MemberRecords({
                     </div>
                   )}
                   {!documentsOnly && (
-                    <details>
+                    <details open>
                       <summary className={SUMMARY}>Company-recorded particulars</summary>
                       <p className="text-sm text-text-muted">
                         Provided by the company, not verified by Ledova. Profile edits do not change this register.
@@ -291,49 +327,21 @@ function MemberRecords({
                       </Rows>
                       {read.record.classes.map((item) => (
                         <p key={item.uuid} className="py-2 text-sm text-text-muted">
-                          {item.name} · Entered {item.enteredOn ?? 'not recorded'}
-                          {item.ceasedOn ? ` · Ceased ${item.ceasedOn}` : ''} · Amount paid{' '}
+                          {item.name} · Entered {formatDate(item.enteredOn, 'Not recorded')}
+                          {item.ceasedOn ? ` · Ceased ${formatDate(item.ceasedOn)}` : ''} · Amount paid{' '}
                           {item.amountPaid ?? 'not recorded'}
                         </p>
                       ))}
                     </details>
                   )}
-                  <details ref={history} open={documentsOnly}>
-                    <summary className={SUMMARY}>Your share history and certificate requests</summary>
-                    <p className="text-sm text-text-muted">
-                      Choose a share class to request a certificate for a receiving entry.
-                    </p>
-                    {documentsOnly && (
-                      <div className="flex flex-wrap gap-2 py-3">
-                        {read.record.classes.map((item) => (
-                          <PageAction
-                            key={item.uuid}
-                            label={`Read own entries for ${item.name}`}
-                            disabled={held}
-                            onClick={() => {
-                              setHistoryToken(item.uuid);
-                              read.selectToken(item.uuid);
-                            }}
-                          />
-                        ))}
-                      </div>
-                    )}
-                    {read.entries.map((entry) => (
-                      <div key={entry.uuid} className="space-y-2 py-3">
-                        <p className="text-sm">
-                          Entry {entry.sequence} · {entry.kind} · {formatDate(entry.effectiveOn)} · Own change{' '}
-                          {entry.delta}
-                        </p>
-                        {['ISSUE', 'TRANSFER'].includes(entry.kind.toUpperCase()) && BigInt(entry.delta) > 0n && (
-                          <PageAction
-                            label={`Request certificate for entry ${entry.sequence}`}
-                            disabled={held}
-                            onClick={() => void read.requestCertificate(entry.uuid)}
-                          />
-                        )}
-                      </div>
-                    ))}
-                  </details>
+                  {documentsOnly ? (
+                    shareHistory
+                  ) : (
+                    <details ref={history}>
+                      <summary className={SUMMARY}>Your share history and certificate requests</summary>
+                      {shareHistory}
+                    </details>
+                  )}
                   {!documentsOnly && (
                     <details>
                       <summary className={SUMMARY}>Request a particulars update</summary>
@@ -376,6 +384,7 @@ function MemberRecords({
                         </label>
                         <PageAction
                           label="Send particulars request"
+                          primary
                           disabled={held || !confirmed || !name.trim() || !address.trim()}
                           onClick={() => void read.requestParticulars(name.trim(), address.trim())}
                         />
@@ -391,7 +400,7 @@ function MemberRecords({
                           <p>Particulars update · {request.status}</p>
                           <details>
                             <summary className={SUMMARY}>Record details</summary>
-                            <p>
+                            <p className="break-all">
                               Request {request.uuid}
                               {request.change ? ` · Company instruction ${request.change}` : ''}
                             </p>
@@ -413,7 +422,7 @@ function MemberRecords({
                           )}
                           <details>
                             <summary className={SUMMARY}>Record details</summary>
-                            <p>
+                            <p className="break-all">
                               Request {request.uuid} · Entry {request.entry}
                             </p>
                           </details>

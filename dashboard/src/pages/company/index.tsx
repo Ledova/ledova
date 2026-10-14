@@ -40,6 +40,7 @@ function CompanyDetails({ data }: { data: ReturnType<typeof useCompany> }) {
   return (
     <>
       <Page
+        narrow
         loading={data.isLoading}
         actions={
           !data.error &&
@@ -82,6 +83,8 @@ function CompanyDetails({ data }: { data: ReturnType<typeof useCompany> }) {
                   </Row>
                 )}
               </Rows>
+            </Section>
+            <Section title="Company administration">
               <div className="divide-y divide-border-subtle">
                 {data.ownerBusiness && (
                   <>
@@ -154,6 +157,7 @@ function CompanyDetails({ data }: { data: ReturnType<typeof useCompany> }) {
                 )}
                 <PageAction
                   label="Create share class"
+                  primary
                   onClick={() => setCreating(company)}
                   disabled={data.isRefreshing}
                 />

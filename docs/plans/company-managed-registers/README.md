@@ -61,6 +61,13 @@ extraction Coming soon; optional supporting copies do not extract data. Future
 extracted values use the same editable forms.
 Native clients retain separate preparation and decision screens.
 
+The signed-in web refinement under [#1031](https://github.com/Ledova/ledova/issues/1031)
+uses the existing cards and controls with bounded task forms, aligned summaries,
+consistent dates and primary actions. Saved setup records show Recorded without
+an active setup step. Company operations, personal records, Profile and Settings
+share the same presentation; current status and permissions stay visible, with
+full audit details available separately. Signup and native presentation are unchanged.
+
 Verification references in the guides are each increment's original evidence;
 the [11 October minimum-test policy](../../decisions.md#minimum-tests-and-fresh-migrations)
 governs current coverage.

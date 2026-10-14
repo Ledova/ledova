@@ -761,11 +761,13 @@ export function ImportForm({
                               </th>
                               <td className="text-right">
                                 {row.stored === null ? 'Not held' : formatShareCount(row.stored)}
-                                <p className="text-xs text-text-muted">{row.enteredOn ?? 'Not recorded'}</p>
+                                <p className="text-xs text-text-muted">{formatDate(row.enteredOn, 'Not recorded')}</p>
                               </td>
                               <td className="text-right">
                                 {row.imported === null ? 'Not held' : formatShareCount(row.imported)}
-                                <p className="text-xs text-text-muted">{row.importedEnteredOn ?? 'Not recorded'}</p>
+                                <p className="text-xs text-text-muted">
+                                  {formatDate(row.importedEnteredOn, 'Not recorded')}
+                                </p>
                               </td>
                             </tr>
                           ))}

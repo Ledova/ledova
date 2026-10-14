@@ -8,7 +8,7 @@ export function HomePage() {
   const rows = useOpenRows();
 
   return (
-    <Page lede="Wallet holdings and optional investing activity. Company-recorded shares are shown in My shares.">
+    <Page narrow lede="Wallet holdings. Company-recorded shares are shown in Your shares.">
       <Section title="Shares in your wallets">
         {isPending ? (
           <p role="status" className="py-3 text-sm text-text-muted">
@@ -21,8 +21,7 @@ export function HomePage() {
           </div>
         ) : holdings.length === 0 ? (
           <p className="py-3 text-sm text-text-muted">
-            None of your wallets holds shares yet. The company&apos;s register is the record of what you hold; shares
-            appear here once they are in one of your wallets.
+            No wallet shares yet. See Your shares for company-recorded ownership.
           </p>
         ) : (
           <ul className="divide-y divide-border-subtle">

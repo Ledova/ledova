@@ -81,10 +81,10 @@ export default function PublicationsPage() {
     castError,
   } = usePublications();
 
-  if (isLoading) return <Page loading />;
+  if (isLoading) return <Page narrow loading />;
 
   return (
-    <Page>
+    <Page narrow>
       {openError && (
         <p role="alert" className="text-sm text-error-light">
           {openError}
