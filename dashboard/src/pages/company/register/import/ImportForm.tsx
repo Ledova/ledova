@@ -250,7 +250,7 @@ export function ImportForm({
     setBusy(true);
     try {
       checkNew();
-      if (file.size > REGISTER_CSV_MAX_BYTES) throw new Error('Choose a UTF-8 CSV no larger than 1 MB.');
+      if (file.size > REGISTER_CSV_MAX_BYTES) throw createUserFriendlyError('Choose a UTF-8 CSV no larger than 1 MB.');
       const text = new TextDecoder('utf-8', { fatal: true }).decode(await file.arrayBuffer());
       if (generation !== csvGeneration.current) return;
       checkNew();
@@ -259,7 +259,7 @@ export function ImportForm({
       const members = readRegisterCsv(text, preserveMembers ? known : draft.members, preserveMembers);
       const next = { ...draft, members };
       const invalid = preparationProblems(next, today).filter((problem) => problem.startsWith('Shareholder'));
-      if (invalid.length) throw new Error(invalid.join(' '));
+      if (invalid.length) throw createUserFriendlyError(invalid.join(' '));
       setDraft(next);
     } catch (failure) {
       if (mounted.current && generation === csvGeneration.current)
