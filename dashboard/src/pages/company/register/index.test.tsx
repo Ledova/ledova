@@ -12,6 +12,7 @@ import {
   USER_PREFERENCES_QUERY_KEY,
   type AccountRole,
   type TokenHoldersResponse,
+  type OwnCompanyAppointment,
 } from '@ledova/shared';
 import SettingsPage from '@pages/settings';
 import apiClient from '@services/apiClient';
@@ -170,7 +171,7 @@ it('reads every register class page and renders exact stored shares with each me
   expect(readUrls()).not.toContain(COMPANY_TOKEN_ENDPOINTS.BASE);
 });
 
-it('brings complete mirror records from CSV, holds uncertain requests and confirms one ownership snapshot from an empty company', async () => {
+it('brings complete mirror records, recovers uncertain requests and confirms one snapshot with separate company appointments', async () => {
   const header = REGISTER_CSV_COLUMNS.join(',');
   const row =
     'H001,"Example Shareholder","1 Example Street, Sydney NSW 2000",2020-01-01,600,2015-01-01,400,400,0,yes,no,1-400,CERT-001';
@@ -254,7 +255,12 @@ it('brings complete mirror records from CSV, holds uncertain requests and confir
   let firstPreparation = true;
   let proposal: RegisterImport | undefined;
   const company = companyRecord();
-  const appointment = { ...CURRENT_APPOINTMENT, company: company.uuid };
+  let appointment: OwnCompanyAppointment = {
+    ...CURRENT_APPOINTMENT,
+    company: company.uuid,
+    uuid: 'prepare-only',
+    capabilities: ['prepare'],
+  };
   const token = {
     uuid: 'mirror-class',
     company: company.uuid,
@@ -313,6 +319,7 @@ it('brings complete mirror records from CSV, holds uncertain requests and confir
     }
     if (url === IMPORTS) {
       const request = body as RegisterImportPreparation;
+      expect(request.appointment).toBe('prepare-only');
       proposal ??= {
         uuid: request.operationId,
         company: company.uuid,
@@ -358,6 +365,8 @@ it('brings complete mirror records from CSV, holds uncertain requests and confir
       return { data: proposal };
     }
     const request = body as RegisterDecideRequest;
+    expect(request.appointment).toBe(appointment.uuid);
+    expect(appointment.capabilities).toContain(request.kind);
     if (url.endsWith('/decision-preview/'))
       return {
         data: {
@@ -402,21 +411,30 @@ it('brings complete mirror records from CSV, holds uncertain requests and confir
     }
     throw new Error(`Unexpected write ${url}`);
   });
-  prepareCompanyClient(client);
-  render(
-    <QueryClientProvider client={client}>
-      <ApiClientProvider client={apiClient}>
-        <MemoryRouter>
-          <Routes>
-            <Route path="/" element={<CompanyDashboardPage />} />
-            <Route path="/company/dashboard" element={<CompanyDashboardPage />} />
-            <Route path={DESTINATIONS.companyRegisterSetup.path} element={<CompanyRegisterImportPage />} />
-            <Route path={DESTINATIONS.companyRegisterImport.path} element={<CompanyRegisterImportPage />} />
-          </Routes>
-        </MemoryRouter>
-      </ApiClientProvider>
-    </QueryClientProvider>,
-  );
+  const showJourney = (path = '/') => {
+    prepareCompanyClient(client);
+    render(
+      <QueryClientProvider client={client}>
+        <ApiClientProvider client={apiClient}>
+          <MemoryRouter initialEntries={[path]}>
+            <Routes>
+              <Route path="/" element={<CompanyDashboardPage />} />
+              <Route path="/company/dashboard" element={<CompanyDashboardPage />} />
+              <Route path={DESTINATIONS.companyRegisterSetup.path} element={<CompanyRegisterImportPage />} />
+              <Route path={DESTINATIONS.companyRegisterImport.path} element={<CompanyRegisterImportPage />} />
+            </Routes>
+          </MemoryRouter>
+        </ApiClientProvider>
+      </QueryClientProvider>,
+    );
+  };
+  const reopen = (capability: 'approve' | 'apply', path: string) => {
+    cleanup();
+    client.clear();
+    appointment = { ...appointment, uuid: `${capability}-only`, capabilities: [capability] };
+    showJourney(path);
+  };
+  showJourney();
   fireEvent.click(await screen.findByRole('link', { name: 'Set up your share register' }));
   expect(await screen.findByRole('heading', { name: `${company.name} · Ordinary shares (ORD)` })).toBeTruthy();
   expect(screen.queryByLabelText('Authorised shares')).toBeNull();
@@ -458,7 +476,58 @@ it('brings complete mirror records from CSV, holds uncertain requests and confir
     ).toBeGreaterThan(1),
   );
   await waitFor(() => expect(client.isFetching()).toBe(0));
+  expect((screen.getByRole('button', { name: 'Continue to confirmation' }) as HTMLButtonElement).disabled).toBe(true);
+  expect((screen.getByRole('button', { name: 'Edit records' }) as HTMLButtonElement).disabled).toBe(true);
+  const importPath = DESTINATIONS.companyRegisterImport.path.replace(':uuid', token.uuid);
+  reopen('apply', importPath);
+  expect(await screen.findByText('Example Shareholder')).toBeTruthy();
+  expect((screen.getByRole('button', { name: 'Continue to confirmation' }) as HTMLButtonElement).disabled).toBe(true);
+  expect(screen.getByText(/review access must review them/)).toBeTruthy();
+  reopen('approve', `${importPath}?record=${proposal!.uuid}`);
+  expect(await screen.findByText('Example Shareholder')).toBeTruthy();
+  expect((screen.getByRole('button', { name: 'Edit records' }) as HTMLButtonElement).disabled).toBe(true);
+  expect(screen.queryByRole('button', { name: 'Continue to review' })).toBeNull();
   fireEvent.click(await screen.findByRole('button', { name: 'Continue to confirmation' }));
+  const review = await screen.findByRole('button', { name: 'Record review' });
+  await waitFor(() => expect((review as HTMLButtonElement).disabled).toBe(false));
+  const previewGuard = api.post.mock.calls.find(([url]) => url.endsWith('/decision-preview/'))![2]
+    .ledovaSubmissionGuard;
+  visibleClass = false;
+  await act(async () => {
+    await client.invalidateQueries({ predicate: (query) => query.queryKey.at(-1) === 'classes' });
+  });
+  expect(await screen.findByText(/Refresh current company access before showing these records/)).toBeTruthy();
+  expect(screen.queryByText('Company register held by the accountant')).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Record review' })).toBeNull();
+  expect(() => previewGuard()).toThrow(/company, authority or source records changed/);
+  expect(api.post.mock.calls.filter(([url]) => url.endsWith('/decide/'))).toHaveLength(0);
+  visibleClass = true;
+  await act(async () => {
+    await client.invalidateQueries({ predicate: (query) => query.queryKey.at(-1) === 'classes' });
+  });
+  expect(await screen.findByRole('button', { name: 'Record review' })).toBeTruthy();
+  appointment = { ...appointment, status: 'revoked', isEffective: false, revokedAt: '2026-10-14T00:00:00Z' };
+  await act(async () => {
+    await client.invalidateQueries({ queryKey: ['company-appointments'] });
+  });
+  expect(await screen.findByText(/Refresh current company access before showing these records/)).toBeTruthy();
+  expect(screen.queryByText('Company register held by the accountant')).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Record review' })).toBeNull();
+  expect(api.post.mock.calls.filter(([url]) => url.endsWith('/decide/'))).toHaveLength(0);
+  appointment = { ...appointment, status: 'active', isEffective: true, revokedAt: null };
+  await act(async () => {
+    await client.invalidateQueries({ queryKey: ['company-appointments'] });
+  });
+  const restoredReview = await screen.findByRole('button', { name: 'Record review' });
+  await waitFor(() => expect((restoredReview as HTMLButtonElement).disabled).toBe(false));
+  fireEvent.click(restoredReview);
+  expect(await screen.findByText(/These records are reviewed/)).toBeTruthy();
+  expect(opened).toBe(false);
+  expect(proposal!.decisions.map((decision) => decision.kind)).toEqual(['approve']);
+  reopen('apply', importPath);
+  expect(await screen.findByText('Example Shareholder')).toBeTruthy();
+  expect((screen.getByRole('button', { name: 'Edit records' }) as HTMLButtonElement).disabled).toBe(true);
+  fireEvent.click(screen.getByRole('button', { name: 'Continue to confirmation' }));
   const confirm = await screen.findByRole('button', { name: 'Confirm mirror' });
   await waitFor(() => expect((confirm as HTMLButtonElement).disabled).toBe(false));
   fireEvent.click(confirm);
@@ -467,6 +536,8 @@ it('brings complete mirror records from CSV, holds uncertain requests and confir
   expect(screen.getByText('100.00%')).toBeTruthy();
   expect(proposal!.status).toBe('applied');
   expect(proposal!.decisions.map((decision) => decision.kind)).toEqual(['approve', 'apply']);
+  expect(proposal!.decisions.map((decision) => decision.appointment)).toEqual(['approve-only', 'apply-only']);
+  expect(api.post.mock.calls.filter(([url]) => url === IMPORTS)).toHaveLength(2);
   expect(api.post.mock.calls.filter(([url]) => url === COMPANY_TOKEN_ENDPOINTS.BASE)).toHaveLength(1);
 });
 

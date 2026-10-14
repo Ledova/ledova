@@ -86,10 +86,11 @@ function OwnImport({
   const appointments = useOwnAppointments(owner, guard);
   const listed = classes.data?.find((item) => item.uuid === uuid);
   const steps = listed && appointments.data ? registerSteps(appointments.data, listed.companyUuid) : null;
-  const imports = useRegisterImports(owner, uuid, guard, !!steps?.prepare);
+  const readable = !!(steps?.prepare || steps?.approve || steps?.apply);
+  const imports = useRegisterImports(owner, uuid, guard, readable);
   const register = useQuery({
     queryKey: [...registerKey(owner), 'holders', 'class', uuid],
-    enabled: !!steps?.prepare,
+    enabled: readable,
     queryFn: () => readRegister(uuid),
     ...READ_TIMING,
   });
@@ -104,20 +105,25 @@ function OwnImport({
   );
   const fetching = classes.isFetching || appointments.isFetching || register.isFetching || imports.isFetching;
   const stale = classes.isError || appointments.isError || register.isError || imports.isError;
-  const fresh = !fetching && !stale && !!listed && !!steps?.prepare && !!register.data && !!imports.data;
+  const fresh = !fetching && !stale && !!listed && readable && !!register.data && !!imports.data;
   const correctable =
     !register.data?.initialized || !imports.data?.some((proposal) => proposal.status === 'applied') || !!correction;
+  const canPrepare = !!steps?.prepare && correctable;
+  const canOpen = saved ? saved.status !== 'rejected' || canPrepare : canPrepare;
   if (
     !held &&
     fresh &&
-    correctable &&
+    canOpen &&
     (!record || !!saved) &&
     (retained?.register !== register.data ||
       retained?.correction !== correction ||
       retained?.saved !== saved ||
-      retained?.steps.prepare?.uuid !== steps.prepare?.uuid)
+      retained?.steps.prepare?.uuid !== steps?.prepare?.uuid ||
+      retained?.steps.approve?.uuid !== steps?.approve?.uuid ||
+      retained?.steps.apply?.uuid !== steps?.apply?.uuid ||
+      retained?.steps.reject?.uuid !== steps?.reject?.uuid)
   )
-    setRetained({ listed, register: register.data!, steps, correction, saved });
+    setRetained({ listed: listed!, register: register.data!, steps: steps!, correction, saved });
   const retry = () => {
     void classes.refetch();
     void appointments.refetch();
@@ -136,17 +142,17 @@ function OwnImport({
       if (state?.status !== 'success' || state.fetchStatus !== 'idle')
         throw createUserFriendlyError('Refresh current company authority before continuing.');
     }
-    if (!fresh || !correctable || retained?.listed.companyUuid !== listed?.companyUuid)
+    if (!fresh || !canOpen || retained?.listed.companyUuid !== listed?.companyUuid)
       throw createUserFriendlyError('Your company, authority or source records changed. Refresh before continuing.');
   };
   if (!held && fresh && record && !saved)
     return <p className="text-sm text-text-muted">This saved snapshot is not in the selected share class.</p>;
-  if (!retained || (!held && (!fresh || !correctable))) {
+  if (!retained || (!held && (!fresh || !canOpen))) {
     if (stale) return <Unavailable retry={retry} busy={fetching} />;
-    if (!classes.data || !appointments.data || fetching || (steps?.prepare && (!imports.data || !register.data)))
+    if (!classes.data || !appointments.data || fetching || (readable && (!imports.data || !register.data)))
       return <Loading />;
     if (!listed) return <p className="text-sm text-text-muted">This share class is not in a register you can read.</p>;
-    if (!steps?.prepare) return <p className="text-sm text-text-muted">{REGISTER_IMPORT_COPY.READ_ONLY_NOTE}</p>;
+    if (!readable) return <p className="text-sm text-text-muted">{REGISTER_IMPORT_COPY.READ_ONLY_NOTE}</p>;
     if (record && imports.data && !saved)
       return <p className="text-sm text-text-muted">This saved snapshot is not in the selected share class.</p>;
     if (!correctable)
@@ -156,6 +162,7 @@ function OwnImport({
           correction.
         </p>
       );
+    if (!canOpen) return <p className="text-sm text-text-muted">{REGISTER_IMPORT_COPY.READ_ONLY_NOTE}</p>;
     return <Loading />;
   }
   return (
@@ -167,7 +174,7 @@ function OwnImport({
         newEffectGuard={checkNew}
         company={retained.listed.companyUuid}
         register={retained.register}
-        appointment={retained.steps.prepare!}
+        appointment={canPrepare ? steps?.prepare : undefined}
         steps={steps ?? retained.steps}
         correction={retained.correction}
         saved={retained.saved}

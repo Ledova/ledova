@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -72,7 +72,7 @@ export function ImportForm({
   newEffectGuard?: () => void;
   company: string;
   register?: TokenHoldersResponse;
-  appointment: OwnCompanyAppointment;
+  appointment?: OwnCompanyAppointment;
   steps: RegisterSteps;
   blocked: boolean;
   onConflict: () => void;
@@ -121,6 +121,14 @@ export function ImportForm({
   const csvReading = useRef(false);
   const csvGeneration = useRef(0);
   const mounted = useRef(true);
+  const currentSteps = useRef(steps);
+  const currentPreparation = useRef(appointment);
+  const currentContext = useRef({ newEffectGuard, blocked, visible });
+  useLayoutEffect(() => {
+    currentSteps.current = steps;
+    currentPreparation.current = appointment;
+    currentContext.current = { newEffectGuard, blocked, visible };
+  }, [steps, appointment, newEffectGuard, blocked, visible]);
   useEffect(() => {
     mounted.current = true;
     return () => {
@@ -133,9 +141,27 @@ export function ImportForm({
   };
   const checkNew = () => {
     check();
-    newEffectGuard();
-    if (blocked || !visible)
+    const context = currentContext.current;
+    context.newEffectGuard();
+    if (context.blocked || !context.visible)
       throw createUserFriendlyError('Refresh current company authority and records before continuing.');
+  };
+  const canPrepare = !!appointment && steps.prepare?.uuid === appointment.uuid;
+  const checkPreparation = () => {
+    checkNew();
+    if (
+      !appointment ||
+      currentPreparation.current?.uuid !== appointment.uuid ||
+      currentSteps.current.prepare?.uuid !== appointment.uuid
+    )
+      throw createUserFriendlyError('Current preparation access is required to change these records.');
+    return appointment;
+  };
+  const checkDecision = (kind: 'approve' | 'apply' | 'reject') => {
+    checkNew();
+    if (!steps[kind] || currentSteps.current[kind]?.uuid !== steps[kind]?.uuid)
+      throw createUserFriendlyError('Your appointment for this decision changed. Refresh before continuing.');
+    if (kind === 'reject') checkPreparation();
   };
   const finish = async () => {
     check();
@@ -147,7 +173,7 @@ export function ImportForm({
     appointment: steps.approve?.uuid,
     newKey: () => crypto.randomUUID(),
     guard: check,
-    newEffectGuard: checkNew,
+    newEffectGuard: () => checkDecision('approve'),
     requestConfig: () => ({ ledovaSubmissionGuard: check }),
     onDecided: (receipt) => {
       setProposal(receipt);
@@ -161,7 +187,7 @@ export function ImportForm({
     appointment: steps.apply?.uuid,
     newKey: () => crypto.randomUUID(),
     guard: check,
-    newEffectGuard: checkNew,
+    newEffectGuard: () => checkDecision('apply'),
     requestConfig: () => ({ ledovaSubmissionGuard: check }),
     onDecided: finish,
     onRefused: onConflict,
@@ -170,7 +196,7 @@ export function ImportForm({
     appointment: steps.reject?.uuid,
     newKey: () => crypto.randomUUID(),
     guard: check,
-    newEffectGuard: checkNew,
+    newEffectGuard: () => checkDecision('reject'),
     requestConfig: () => ({ ledovaSubmissionGuard: check }),
     onDecided: async () => {
       setProposal(undefined);
@@ -209,7 +235,7 @@ export function ImportForm({
     return () => onHeldChange?.(false);
   }, [held, onHeldChange]);
   const update = (change: (current: PreparationDraft) => PreparationDraft) => {
-    if (held || pending.current) return;
+    if (held || pending.current || !canPrepare) return;
     setError('');
     setDraft(change);
   };
@@ -227,33 +253,37 @@ export function ImportForm({
   const differs = figuresDiffer(draft);
   const imported = registerImportTotals(draft.members);
   const upload = async (kind: RegisterEvidenceKind, file: File) => {
+    const preparingAppointment = checkPreparation();
     const previous = uploads.current[kind];
-    const same = previous?.file === file && previous.appointment === appointment.uuid;
+    const same = previous?.file === file && previous.appointment === preparingAppointment.uuid;
     if (same && previous.receipt) return previous.receipt;
     const key = same ? previous.key : crypto.randomUUID();
-    uploads.current[kind] = { file, appointment: appointment.uuid, key, receipt: null };
-    const request = { companyId: company, appointment: appointment.uuid, kind, idempotencyKey: key };
-    checkNew();
-    const { data } = await uploadRegisterEvidence(apiClient, { ...request, file }, { ledovaSubmissionGuard: checkNew });
-    checkNew();
+    uploads.current[kind] = { file, appointment: preparingAppointment.uuid, key, receipt: null };
+    const request = { companyId: company, appointment: preparingAppointment.uuid, kind, idempotencyKey: key };
+    const { data } = await uploadRegisterEvidence(
+      apiClient,
+      { ...request, file },
+      { ledovaSubmissionGuard: checkPreparation },
+    );
+    checkPreparation();
     if (!isRegisterEvidenceReceipt(data, request, file.size))
       throw createUserFriendlyError(REGISTER_IMPORT_COPY.UPLOAD_RECEIPT_FAILED);
-    uploads.current[kind] = { file, appointment: appointment.uuid, key, receipt: data };
+    uploads.current[kind] = { file, appointment: preparingAppointment.uuid, key, receipt: data };
     return data;
   };
   const importCsv = async (file: File | null) => {
-    if (!file || held || (pending.current && !csvReading.current)) return;
+    if (!file || held || !canPrepare || (pending.current && !csvReading.current)) return;
     const generation = ++csvGeneration.current;
     csvReading.current = true;
     pending.current = true;
     setError('');
     setBusy(true);
     try {
-      checkNew();
+      checkPreparation();
       if (file.size > REGISTER_CSV_MAX_BYTES) throw createUserFriendlyError('Choose a UTF-8 CSV no larger than 1 MB.');
       const text = new TextDecoder('utf-8', { fatal: true }).decode(await file.arrayBuffer());
       if (generation !== csvGeneration.current) return;
-      checkNew();
+      checkPreparation();
       const preserveMembers = !!correction || register?.initialized === true;
       const known = register ? initialMembers(register, correction) : draft.members;
       const members = readRegisterCsv(text, preserveMembers ? known : draft.members, preserveMembers);
@@ -277,16 +307,17 @@ export function ImportForm({
   const prepare = async (recovering = false) => {
     if (pending.current || busy || deciding) return;
     setAttempted(true);
-    if (!recovering && (blocked || problems.length || differs)) return;
+    if (!recovering && (!canPrepare || blocked || problems.length || differs)) return;
     pending.current = true;
     setBusy(true);
     setError('');
     try {
       if (recovering) check();
-      else checkNew();
+      else checkPreparation();
       if (!preparation.current) {
+        const preparingAppointment = checkPreparation();
         const current = activeRegister.current ?? (await resolveRegister?.());
-        checkNew();
+        checkPreparation();
         if (!current) throw createUserFriendlyError('Choose the share class before continuing.');
         activeRegister.current = current;
         const registerEvidence = draft.registerFile ? await upload('share_register', draft.registerFile) : null;
@@ -294,7 +325,7 @@ export function ImportForm({
         const stated = statedFigures(draft);
         preparation.current = {
           operationId: crypto.randomUUID(),
-          appointment: appointment.uuid,
+          appointment: preparingAppointment.uuid,
           tokenId: current.token.uuid,
           registerEvidence: registerEvidence?.uuid ?? draft.registerEvidence,
           asicEvidence: asicEvidence?.uuid ?? draft.asicEvidence,
@@ -311,7 +342,7 @@ export function ImportForm({
       }
       const request = preparation.current;
       const { data } = await prepareRegisterImport(apiClient, request, {
-        ledovaSubmissionGuard: recovering ? check : checkNew,
+        ledovaSubmissionGuard: recovering ? check : checkPreparation,
       });
       check();
       if (!isPreparedRegisterImport(data, request))
@@ -345,7 +376,7 @@ export function ImportForm({
     }
   };
   const review = async () => {
-    if (!proposal || deciding || blocked) return;
+    if (!proposal || deciding || blocked || !steps[proposal.stage === 'approved' ? 'apply' : 'approve']) return;
     setPhase('confirm');
     if (proposal.stage === 'approved') await apply.open('apply');
     else await approve.open('approve');
@@ -376,44 +407,48 @@ export function ImportForm({
       {visible && (
         <>
           {phase === 'bring' ? (
-            <form
-              className="space-y-4"
-              onSubmit={(event) => {
-                event.preventDefault();
-                void prepare();
-              }}
-            >
-              <fieldset disabled={busy || uncertain || blocked} className="space-y-5">
-                {classFields}
-                <BringRecords
-                  draft={draft}
-                  today={today}
-                  correction={!!correction}
-                  preserveMembers={!!correction || register?.initialized === true}
-                  busy={busy}
-                  differs={differs}
-                  imported={imported}
-                  update={update}
-                  setMember={setMember}
-                  setFormer={setFormer}
-                  importCsv={importCsv}
-                />
-              </fieldset>
-              {attempted && problems.length > 0 && (
-                <ul role="alert" className="space-y-1 text-sm text-error-light">
-                  {problems.map((problem) => (
-                    <li key={problem}>{problem}</li>
-                  ))}
-                </ul>
-              )}
-              {!uncertain && (
-                <PageAction
-                  label={busy ? 'Saving records…' : 'Continue to review'}
-                  disabled={busy || blocked}
-                  onClick={() => void prepare()}
-                />
-              )}
-            </form>
+            canPrepare ? (
+              <form
+                className="space-y-4"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  void prepare();
+                }}
+              >
+                <fieldset disabled={busy || uncertain || blocked} className="space-y-5">
+                  {classFields}
+                  <BringRecords
+                    draft={draft}
+                    today={today}
+                    correction={!!correction}
+                    preserveMembers={!!correction || register?.initialized === true}
+                    busy={busy}
+                    differs={differs}
+                    imported={imported}
+                    update={update}
+                    setMember={setMember}
+                    setFormer={setFormer}
+                    importCsv={importCsv}
+                  />
+                </fieldset>
+                {attempted && problems.length > 0 && (
+                  <ul role="alert" className="space-y-1 text-sm text-error-light">
+                    {problems.map((problem) => (
+                      <li key={problem}>{problem}</li>
+                    ))}
+                  </ul>
+                )}
+                {!uncertain && (
+                  <PageAction
+                    label={busy ? 'Saving records…' : 'Continue to review'}
+                    disabled={busy || blocked}
+                    onClick={() => void prepare()}
+                  />
+                )}
+              </form>
+            ) : (
+              <p className="text-sm text-text-muted">{REGISTER_IMPORT_COPY.READ_ONLY_NOTE}</p>
+            )
           ) : (
             proposal && (
               <div className="space-y-4">
@@ -450,7 +485,7 @@ export function ImportForm({
                     ))}
                   </ul>
                 )}
-                {phase === 'review' && (
+                {phase === 'review' && canPrepare && steps.reject && (
                   <p className="text-xs text-text-muted">
                     Editing retires this prepared draft before saving a replacement. Confirmed mirrors and earlier
                     evidence stay unchanged.
@@ -460,7 +495,7 @@ export function ImportForm({
                   <div className="flex flex-wrap gap-2">
                     <PageAction
                       label="Edit records"
-                      disabled={deciding || !steps.reject || blocked || proposal.status !== 'submitted'}
+                      disabled={deciding || !canPrepare || !steps.reject || blocked || proposal.status !== 'submitted'}
                       onClick={() => {
                         setEditing(true);
                         void reject.open('reject', 'Replaced while editing the copied records.');
@@ -468,10 +503,17 @@ export function ImportForm({
                     />
                     <PageAction
                       label="Continue to confirmation"
-                      disabled={deciding || blocked || proposal.status !== 'submitted'}
+                      disabled={deciding || blocked || !steps[kind] || proposal.status !== 'submitted'}
                       onClick={() => void review()}
                     />
                   </div>
+                )}
+                {phase === 'review' && proposal.status === 'submitted' && !steps[kind] && (
+                  <p className="text-sm text-text-muted">
+                    {kind === 'apply'
+                      ? 'These records are reviewed. A company appointee with confirmation access must confirm the mirror before ownership is recorded.'
+                      : 'These records are saved. A company appointee with review access must review them before confirmation.'}
+                  </p>
                 )}
                 {phase === 'confirm' && (
                   <>
@@ -537,7 +579,7 @@ export function ImportForm({
                       {!currentTarget && !recovery && (
                         <PageAction
                           label={deciding ? 'Loading confirmation…' : 'Load confirmation'}
-                          disabled={deciding || blocked}
+                          disabled={deciding || blocked || !steps[kind]}
                           onClick={() => void review()}
                         />
                       )}

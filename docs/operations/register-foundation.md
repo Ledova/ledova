@@ -380,7 +380,9 @@ without it retain their literal text, including any leading apostrophes.
 Confirm records approval and application through the existing exact decisions.
 A failed or uncertain response retains its original retry receipt; return to
 setup to resume a prepared or approved snapshot. Current authority and fresh
-previews remain required. Completion returns to the ownership dashboard;
+previews remain required. A separate appointee can resume review or confirmation
+without preparation access. Editing first retires the saved draft and needs
+preparation and rejection authority. Completion returns to the ownership dashboard;
 member invitations are optional later work. Native clients retain their
 separate preparation and decision screens.
 
