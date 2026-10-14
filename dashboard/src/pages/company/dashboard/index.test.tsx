@@ -2,7 +2,7 @@
 
 import { COMPANY_TOKEN_ENDPOINTS, USER_PREFERENCES_ENDPOINTS, type TokenHoldersResponse } from '@ledova/shared';
 import { QueryClient } from '@tanstack/react-query';
-import { cleanup, fireEvent, screen, within } from '@testing-library/react';
+import { cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, expect, it, vi } from 'vitest';
 import CompanyDashboardPage from '.';
 import { companyPreferences, prepareCompanyClient, renderCompanyPage } from '../testSupport';
@@ -71,9 +71,26 @@ it('shows exact complete company ownership, deduplicates shareholders and refuse
   let mode = 'complete';
   const page = (results: unknown[]) => ({ data: { count: results.length, results, next: null, previous: null } });
   api.get.mockImplementation(async (url: string) => {
-    if (url === USER_PREFERENCES_ENDPOINTS.BASE) return { data: companyPreferences() };
+    if (url === USER_PREFERENCES_ENDPOINTS.BASE)
+      return { data: companyPreferences(mode.startsWith('mixed') ? 'investor' : 'company') };
     if (url === '/api/v1/company-authority/appointments/')
-      return page(mode === 'complete' ? [] : [{ ...APPOINTMENT, company: 'company-one' }]);
+      return page(
+        mode.startsWith('mixed')
+          ? [
+              {
+                ...APPOINTMENT,
+                company: 'company-without-classes',
+                companyName: 'New Company',
+                capabilities: mode === 'mixed-prepare' ? ['prepare'] : ['admin'],
+                isEffective: mode !== 'mixed-revoked',
+                status: mode === 'mixed-revoked' ? 'revoked' : 'active',
+                revokedAt: mode === 'mixed-revoked' ? '2026-10-14T00:00:00Z' : null,
+              },
+            ]
+          : mode === 'complete'
+            ? []
+            : [{ ...APPOINTMENT, company: 'company-one' }],
+      );
     if (url === COMPANY_TOKEN_ENDPOINTS.REGISTER)
       return page(
         [ordinary, preference].map(({ token }) => ({
@@ -111,6 +128,7 @@ it('shows exact complete company ownership, deduplicates shareholders and refuse
   expect(screen.getByText('100.00%')).toBeTruthy();
   expect(screen.getByRole('heading', { name: 'Shares by class' })).toBeTruthy();
   expect(screen.queryByRole('link', { name: 'Issue investor shares' })).toBeNull();
+  expect(screen.queryByRole('link', { name: 'Set up another register' })).toBeNull();
   expect(screen.getByRole('link', { name: 'View full register' }).getAttribute('href')).toBe('/company/register');
 
   mode = 'unopened';
@@ -147,6 +165,22 @@ it('shows exact complete company ownership, deduplicates shareholders and refuse
   expect(await screen.findByText(/couldn't load the complete register/)).toBeTruthy();
   expect(screen.queryByRole('region', { name: 'Company ownership summary' })).toBeNull();
   expect(screen.queryByText('Example Shareholder')).toBeNull();
+  mode = 'mixed';
+  fireEvent.click(screen.getByRole('button', { name: 'Refresh dashboard' }));
+  expect((await screen.findByRole('link', { name: 'Set up another register' })).getAttribute('href')).toBe(
+    '/company/register/setup',
+  );
+  expect(screen.queryByLabelText('Company')).toBeNull();
+  expect(screen.queryByRole('link', { name: 'Issue investor shares' })).toBeNull();
+  expect(api.get.mock.calls.map(([url]) => url)).not.toContain('/api/v1/companies/');
+  mode = 'mixed-prepare';
+  fireEvent.click(screen.getByRole('button', { name: 'Refresh dashboard' }));
+  await waitFor(() => expect(client.isFetching()).toBe(0));
+  await waitFor(() => expect(screen.queryByRole('link', { name: 'Set up another register' })).toBeNull());
+  mode = 'mixed-revoked';
+  fireEvent.click(screen.getByRole('button', { name: 'Refresh dashboard' }));
+  await waitFor(() => expect(client.isFetching()).toBe(0));
+  await waitFor(() => expect(screen.queryByRole('link', { name: 'Set up another register' })).toBeNull());
   view.unmount();
   client.clear();
 });
