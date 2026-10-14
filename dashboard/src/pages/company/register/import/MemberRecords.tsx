@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { formatShareCount, registerImportTotals, type RegisterImportMemberRow } from '@ledova/shared';
+import { formatDate, formatShareCount, registerImportTotals, type RegisterImportMemberRow } from '@ledova/shared';
 import { Modal } from '@components/Modal';
 import { PageAction } from '@components/Page';
 import { countBarWidth } from '../../dashboard/summary';
@@ -49,7 +49,7 @@ export function MemberRecords({ members }: { members: RegisterImportMemberRow[] 
                         ? '<0.01%'
                         : `${percent.toFixed(2)}%`}
                   </td>
-                  <td className="whitespace-nowrap px-4 py-4 text-text-muted">{member.enteredOn}</td>
+                  <td className="whitespace-nowrap px-4 py-4 text-text-muted">{formatDate(member.enteredOn, '—')}</td>
                   <td className="px-4 py-4">
                     <PageAction label="Details" context={member.name} onClick={() => setSelectedId(member.member)} />
                   </td>
@@ -72,7 +72,7 @@ export function MemberRecords({ members }: { members: RegisterImportMemberRow[] 
             <dl className="grid gap-4 sm:grid-cols-2">
               {[
                 ['Address', selected.residentialAddress],
-                ['Date first added to register', selected.enteredOn],
+                ['Date first added to register', formatDate(selected.enteredOn, '—')],
                 ['Shares held', formatShareCount(selected.shares)],
               ].map(([label, value]) => (
                 <div key={label}>
@@ -88,7 +88,7 @@ export function MemberRecords({ members }: { members: RegisterImportMemberRow[] 
                     <h3 className="text-sm font-medium text-text-primary">Allotment {index + 1}</h3>
                     <dl className="grid gap-4 sm:grid-cols-2">
                       {[
-                        ['Allotment date', allotment.allottedOn],
+                        ['Allotment date', formatDate(allotment.allottedOn, '—')],
                         ['Shares in allotment', formatShareCount(allotment.shares)],
                         ['Amount paid', allotment.amountPaid],
                         ['Amount unpaid', allotment.amountUnpaid],

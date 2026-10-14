@@ -1,5 +1,5 @@
 import { useLayoutEffect, useState } from 'react';
-import { REGISTER_IMPORT_COPY, formatShareCount, type RegisterTransferMember } from '@ledova/shared';
+import { REGISTER_IMPORT_COPY, formatDate, formatShareCount, type RegisterTransferMember } from '@ledova/shared';
 import { PageAction } from '@components/Page';
 import { FIELD_CLASS } from '@components/fieldClass';
 import { saveFile } from '../useCompanyRegister';
@@ -175,7 +175,9 @@ export function BringRecords({
                           <td className="px-4 py-4 text-right tabular-nums">
                             {row.shares ? formatShareCount(row.shares) : '—'}
                           </td>
-                          <td className="whitespace-nowrap px-4 py-4 text-text-muted">{row.enteredOn || '—'}</td>
+                          <td className="whitespace-nowrap px-4 py-4 text-text-muted">
+                            {formatDate(row.enteredOn, '—')}
+                          </td>
                           <td className="px-4 py-4">
                             <div className="flex gap-2">
                               <PageAction
