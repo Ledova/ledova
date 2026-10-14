@@ -185,11 +185,11 @@ export function CompanyDocuments({
                 {types.map(({ type, label }) => {
                   const matches = company.documents.filter((document) => document.documentType === type);
                   return (
-                    <li key={type} className="space-y-3 py-4">
-                      <div className="flex flex-wrap items-baseline justify-between gap-2">
+                    <li key={type} className="space-y-4 py-4">
+                      <div className="flex flex-wrap items-baseline gap-x-4 gap-y-2">
                         <h3 className="text-sm font-medium text-text-primary">{label}</h3>
                         <Status tone={matches.length ? 'done' : 'waiting'}>
-                          {matches.length ? 'Uploaded' : 'No document'}
+                          {matches.length ? 'Uploaded' : 'Optional'}
                         </Status>
                       </div>
                       {matches.map((document) => (

@@ -104,6 +104,7 @@ function MemberRecords({
       </label>
       <PageAction
         label="Accept member invitation"
+        primary
         disabled={held || !accepted || !/^[A-Za-z0-9_-]{43}$/.test(code)}
         onClick={() => void read.accept(code)}
       />
@@ -112,6 +113,7 @@ function MemberRecords({
   return (
     <PageTitle.Provider value={documentsOnly ? 'Documents' : 'Dashboard'}>
       <Page
+        narrow={documentsOnly}
         lede={
           documentsOnly
             ? 'Your certificates and company-reviewed requests. No wallet is needed.'
@@ -172,9 +174,9 @@ function MemberRecords({
                         <div className="divide-y divide-border-subtle">
                           {record.classes.map((item) => (
                             <div key={item.uuid} className="space-y-3 py-3">
-                              <div className="flex flex-wrap items-baseline gap-x-6 gap-y-1">
-                                <p className="min-w-0 break-words font-medium">{item.name}</p>
-                                <p className="min-w-0 break-words text-xl tabular-nums">
+                              <div className="space-y-1">
+                                <p className="break-words text-sm text-text-muted">{item.name}</p>
+                                <p className="break-words text-2xl font-medium tabular-nums">
                                   {formatShareCount(item.shares)} issued shares
                                 </p>
                               </div>
@@ -239,7 +241,7 @@ function MemberRecords({
               </div>
             ))}
             {read.record && (
-              <div className="grid items-start gap-4 xl:grid-cols-2">
+              <div className={`grid items-start gap-4 ${documentsOnly ? '' : 'xl:grid-cols-2'}`}>
                 <Section title="Documents">
                   {read.requests?.certificates.some(
                     (request) => request.status === 'fulfilled' && request.fulfilment,
@@ -280,7 +282,7 @@ function MemberRecords({
                     </div>
                   )}
                   {!documentsOnly && (
-                    <details>
+                    <details open>
                       <summary className={SUMMARY}>Company-recorded particulars</summary>
                       <p className="text-sm text-text-muted">
                         Provided by the company, not verified by Ledova. Profile edits do not change this register.
@@ -376,6 +378,7 @@ function MemberRecords({
                         </label>
                         <PageAction
                           label="Send particulars request"
+                          primary
                           disabled={held || !confirmed || !name.trim() || !address.trim()}
                           onClick={() => void read.requestParticulars(name.trim(), address.trim())}
                         />
@@ -391,7 +394,7 @@ function MemberRecords({
                           <p>Particulars update · {request.status}</p>
                           <details>
                             <summary className={SUMMARY}>Record details</summary>
-                            <p>
+                            <p className="break-all">
                               Request {request.uuid}
                               {request.change ? ` · Company instruction ${request.change}` : ''}
                             </p>
@@ -413,7 +416,7 @@ function MemberRecords({
                           )}
                           <details>
                             <summary className={SUMMARY}>Record details</summary>
-                            <p>
+                            <p className="break-all">
                               Request {request.uuid} · Entry {request.entry}
                             </p>
                           </details>

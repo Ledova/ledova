@@ -48,9 +48,8 @@ export function AuthorityRequestRecord({
     setConfirmingRevocation(null);
   };
   return (
-    <li className="space-y-2 py-3">
+    <li className="space-y-4 py-4">
       <Rows>
-        <Row label="Request">{request.uuid}</Row>
         <Row label="Company information (provided by the company)">
           {request.companyIdentityRaw.name} · {request.companyIdentityRaw.acn}
         </Row>
@@ -59,14 +58,20 @@ export function AuthorityRequestRecord({
             {request.status === 'withdrawn' ? 'Withdrawn' : request.status === 'admitted' ? 'Admitted' : 'Pending'}
           </Status>
         </Row>
-        <Row label="Submitted">{formatDateTime(request.createdAt)}</Row>
-        {request.withdrawnAt && <Row label="Withdrawn">{formatDateTime(request.withdrawnAt)}</Row>}
         <Row label="Requested expiry">
           {request.requestedExpiresAt ? formatDateTime(request.requestedExpiresAt) : 'No requested expiry'}
         </Row>
         <Row label="Requested actions">{scopeLabels(request.requestedCapabilities)}</Row>
         <Row label="Requested delegation">{scopeLabels(request.delegatableCapabilities)}</Row>
       </Rows>
+      <details className="text-sm">
+        <summary className="cursor-pointer text-text-muted">Request record</summary>
+        <Rows>
+          <Row label="Request">{request.uuid}</Row>
+          <Row label="Submitted">{formatDateTime(request.createdAt)}</Row>
+          {request.withdrawnAt && <Row label="Withdrawn">{formatDateTime(request.withdrawnAt)}</Row>}
+        </Rows>
+      </details>
       <p className="text-sm text-text-muted">{request.verificationMessage}</p>
       {request.fileUrl && (
         <PageAction
@@ -103,6 +108,7 @@ export function AuthorityRequestRecord({
               </label>
               <PageAction
                 label={`${action === 'admit' ? 'Admitting' : 'Establish'} appointment ${request.originalFilename || request.companyIdentityRaw.name}`}
+                primary
                 disabled={blocked || !accepted}
                 onClick={onAdmit}
               />
@@ -124,7 +130,6 @@ export function AuthorityRequestRecord({
       {appointment && (
         <>
           <Rows>
-            <Row label="Appointment">{appointment.uuid}</Row>
             <Row label="Appointment status">{appointment.status}</Row>
             <Row label="Current company authority">{appointment.isEffective ? 'Current' : 'Not current'}</Row>
             <Row label="Admitted">{formatDateTime(appointment.createdAt)}</Row>
@@ -134,13 +139,21 @@ export function AuthorityRequestRecord({
               {appointment.expiresAt ? formatDateTime(appointment.expiresAt) : 'No expiry'}
             </Row>
             {appointment.revokedAt && <Row label="Revoked">{formatDateTime(appointment.revokedAt)}</Row>}
-            <Row label="Declaration version">{appointment.declarationVersion}</Row>
           </Rows>
-          <p className="text-sm text-text-primary">{appointment.declarationText}</p>
-          <p className="text-sm text-text-muted">
-            This is your recorded self-declaration. Company information is provided by the company. An appointment does
-            not activate the company or approve any register action.
-          </p>
+          <details className="text-sm">
+            <summary className="cursor-pointer text-text-muted">Appointment and declaration record</summary>
+            <div className="space-y-3 pt-3">
+              <Rows>
+                <Row label="Appointment">{appointment.uuid}</Row>
+                <Row label="Declaration version">{appointment.declarationVersion}</Row>
+              </Rows>
+              <p className="text-text-primary">{appointment.declarationText}</p>
+              <p className="text-text-muted">
+                This is your recorded self-declaration. Company information is provided by the company. An appointment
+                does not activate the company or approve any register action.
+              </p>
+            </div>
+          </details>
           <p className="text-sm text-text-muted">
             Revocation permanently removes this appointment&apos;s company authority. You cannot restore it by making
             another initial self-declaration. Its declaration and evidence remain retained.

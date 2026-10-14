@@ -15,12 +15,13 @@ import apiClient from '@services/apiClient';
 import { Modal } from '@components/Modal';
 import { Page, PageAction } from '@components/Page';
 import { LinkRow, Section, SwitchRow } from '@components/Ledger';
+import { FIELD_CLASS } from '@components/fieldClass';
 import { useRegisterEntry } from '@pages/company/register/useCompanyRegister';
 
 function ActionRow({ description, label, onClick }: { description: string; label: string; onClick: () => void }) {
   return (
-    <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2 py-3">
-      <p className="min-w-0 flex-1 basis-64 text-sm text-text-muted">{description}</p>
+    <div className="grid items-center gap-3 py-3 sm:grid-cols-[minmax(0,1fr)_auto]">
+      <p className="min-w-0 text-sm text-text-muted">{description}</p>
       <PageAction label={label} onClick={onClick} />
     </div>
   );
@@ -50,7 +51,7 @@ function PasswordInput({
           onChange={(event) => onChange(event.target.value)}
           autoComplete={autoComplete}
           disabled={disabled}
-          className="min-w-0 rounded-lg border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary focus:border-brand-mid focus:outline-none focus:ring-1 focus:ring-brand-mid"
+          className={FIELD_CLASS}
         />
       </label>
       <button
@@ -144,7 +145,7 @@ export function SettingsPage() {
   }
 
   return (
-    <Page>
+    <Page narrow>
       <Section title="Company settings">
         <div className="divide-y divide-border-subtle">
           <LinkRow to={DESTINATIONS.company.path} label="Company details and share classes">

@@ -3,6 +3,7 @@ import { formatDate, formatDateTime, getUserVerificationStatus } from '@ledova/s
 import { Page, PageAction } from '@components/Page';
 import { Row, Rows, Section, Status } from '@components/Ledger';
 import { DocumentsPanel } from '@components/DocumentsPanel';
+import { FIELD_CLASS } from '@components/fieldClass';
 import { useUserProfile } from './useUserProfile';
 import { IdentityVerificationModal } from './components/IdentityVerificationModal';
 
@@ -37,10 +38,10 @@ export function UserProfilePage() {
     setEditing({ source: sourceKey, owner: ownerKey });
   }
 
-  if (isLoading) return <Page loading />;
+  if (isLoading) return <Page narrow loading />;
   if (isError) {
     return (
-      <Page>
+      <Page narrow>
         <p role="alert" className="text-sm text-error-light">
           Your profile could not be loaded.
         </p>
@@ -50,7 +51,7 @@ export function UserProfilePage() {
   }
   if (!userProfile)
     return (
-      <Page>
+      <Page narrow>
         <p className="text-sm text-text-muted">No profile data is available.</p>
       </Page>
     );
@@ -62,25 +63,29 @@ export function UserProfilePage() {
     : 'Not provided';
 
   return (
-    <Page>
+    <Page narrow>
       <Section title="Personal information">
         <Rows>
-          <Row label="Full name">
-            <span className="break-words">{userProfile.fullName || 'Not provided'}</span>
-          </Row>
+          {!isEditing && (
+            <Row label="Full name">
+              <span className="break-words">{userProfile.fullName || 'Not provided'}</span>
+            </Row>
+          )}
           <Row label="Email">
             <span className="break-all">{userProfile.email || 'Not provided'}</span>
           </Row>
-          <Row label="Phone">{phone}</Row>
+          {!isEditing && <Row label="Phone">{phone}</Row>}
           <Row label="Date of birth">{formatDate(userProfile.dateOfBirth, 'Not provided')}</Row>
-          <Row label="Address">
-            <span className="break-words">{userProfile.residentialAddress || 'Not provided'}</span>
-          </Row>
+          {!isEditing && (
+            <Row label="Address">
+              <span className="break-words">{userProfile.residentialAddress || 'Not provided'}</span>
+            </Row>
+          )}
           <Row label="Citizenship">{userProfile.citizenshipCountryName || 'Not provided'}</Row>
         </Rows>
         {isEditing ? (
           <form
-            className="space-y-3 border-t border-border-subtle py-4"
+            className="space-y-4 border-t border-border-subtle pt-4"
             onSubmit={(event) => {
               event.preventDefault();
               if (!blocked)
@@ -107,7 +112,7 @@ export function UserProfilePage() {
                 maxLength={100}
                 disabled={blocked}
                 onChange={(event) => setFullName(event.target.value)}
-                className="rounded-lg border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary"
+                className={FIELD_CLASS}
               />
             </label>
             <label className="flex flex-col gap-1 text-sm text-text-muted">
@@ -117,7 +122,7 @@ export function UserProfilePage() {
                 value={residentialAddress}
                 disabled={blocked}
                 onChange={(event) => setResidentialAddress(event.target.value)}
-                className="rounded-lg border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary"
+                className={FIELD_CLASS}
               />
             </label>
             <div className="flex flex-wrap gap-3">
@@ -129,7 +134,7 @@ export function UserProfilePage() {
                   value={phoneCode}
                   disabled={blocked}
                   onChange={(event) => setPhoneCode(event.target.value)}
-                  className="min-w-0 rounded-lg border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary focus:border-brand-mid focus:outline-none focus:ring-1 focus:ring-brand-mid"
+                  className={FIELD_CLASS}
                 />
               </label>
               <label className="flex min-w-0 flex-1 flex-col gap-1 text-sm text-text-muted">
@@ -140,7 +145,7 @@ export function UserProfilePage() {
                   value={phoneNumber}
                   disabled={blocked}
                   onChange={(event) => setPhoneNumber(event.target.value)}
-                  className="min-w-0 rounded-lg border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary focus:border-brand-mid focus:outline-none focus:ring-1 focus:ring-brand-mid"
+                  className={FIELD_CLASS}
                 />
               </label>
             </div>
@@ -149,11 +154,11 @@ export function UserProfilePage() {
                 Your personal details could not be saved. Try again.
               </p>
             )}
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <button
                 type="submit"
                 disabled={blocked}
-                className="rounded-lg border border-brand-mid bg-brand-mid px-3.5 py-2 text-sm text-white disabled:opacity-50"
+                className="inline-flex items-center rounded-lg border border-brand-mid bg-brand-mid px-3.5 py-2 text-sm font-medium text-white transition-colors hover:bg-brand disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {isUpdating ? 'Saving…' : 'Save personal details'}
               </button>

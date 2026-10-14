@@ -98,29 +98,32 @@ export function AuthorityRequestForm({
         Initial admission requires Manage company information and team in your own requested actions. Your evidence and
         request history remain private to your account; no ASIC extract is required.
       </p>
-      {(['requested', 'delegatable'] as const).map((scope) => {
-        const values = scope === 'requested' ? requested : delegatable;
-        const set = scope === 'requested' ? setRequested : setDelegatable;
-        return (
-          <fieldset key={scope} disabled={disabled || busy} className="space-y-2">
-            <legend className="text-sm font-medium text-text-primary">
-              {scope === 'requested'
-                ? 'Actions you request for yourself'
-                : 'Actions you request permission to delegate'}
-            </legend>
-            {COMPANY_AUTHORITY_CAPABILITIES.map(({ value, label }) => (
-              <label key={value} className="flex items-center gap-2 text-sm text-text-primary">
-                <input
-                  type="checkbox"
-                  checked={values.includes(value)}
-                  onChange={() => change(() => set(toggle(values, value)))}
-                />
-                {label}
-              </label>
-            ))}
-          </fieldset>
-        );
-      })}
+      <div className="grid gap-5 sm:grid-cols-2">
+        {(['requested', 'delegatable'] as const).map((scope) => {
+          const values = scope === 'requested' ? requested : delegatable;
+          const set = scope === 'requested' ? setRequested : setDelegatable;
+          return (
+            <fieldset key={scope} disabled={disabled || busy} className="space-y-2">
+              <legend className="text-sm font-medium text-text-primary">
+                {scope === 'requested'
+                  ? 'Actions you request for yourself'
+                  : 'Actions you request permission to delegate'}
+              </legend>
+              {COMPANY_AUTHORITY_CAPABILITIES.map(({ value, label }) => (
+                <label key={value} className="flex items-start gap-2 text-sm text-text-primary">
+                  <input
+                    type="checkbox"
+                    className="mt-1 shrink-0"
+                    checked={values.includes(value)}
+                    onChange={() => change(() => set(toggle(values, value)))}
+                  />
+                  {label}
+                </label>
+              ))}
+            </fieldset>
+          );
+        })}
+      </div>
       <label className="block space-y-1 text-sm text-text-primary">
         Requested expiry date (UTC, optional)
         <input
@@ -151,6 +154,7 @@ export function AuthorityRequestForm({
       )}
       <PageAction
         label={busy ? 'Submitting…' : 'Submit authority request'}
+        primary
         onClick={() => void send()}
         disabled={!ready}
       />

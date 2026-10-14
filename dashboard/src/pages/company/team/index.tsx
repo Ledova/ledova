@@ -30,7 +30,7 @@ export default function CompanyTeamPage() {
   const preferences = useUserPreferences();
   if (!owner || preferences.isError)
     return (
-      <Page>
+      <Page narrow>
         <p className="text-sm text-text-muted">Your signed-in account must be checked before opening company team.</p>
         <PageAction label="Retry your account" onClick={() => void preferences.refetch()} />
       </Page>
@@ -231,10 +231,7 @@ function OwnTeam({
   };
   const companyName = companies.find(([uuid]) => uuid === company)?.[1] ?? '';
   return (
-    <Page>
-      <Section title="Company eligibility">
-        <LinkRow to={DESTINATIONS.companyEligibility.path} label="Read your company eligibility queue" />
-      </Section>
+    <Page narrow>
       <p className="text-sm text-text-muted">
         Company information is provided by the company. Appointments give only their recorded actions; they do not
         activate a company or approve a register change.
@@ -387,17 +384,23 @@ function OwnTeam({
               <li key={item.uuid} className="py-3">
                 <Rows>
                   <Row label="Company (provided by the company)">{item.companyName}</Row>
-                  <Row label="Invitation">{item.uuid}</Row>
                   <Row label="Personal actions">{scopeLabels(item.capabilities)}</Row>
                   <Row label="May delegate">{scopeLabels(item.delegatableCapabilities)}</Row>
                   <Row label="Acceptance deadline">{item.acceptanceDeadline}</Row>
                   <Row label="Accepted">{item.acceptedAt || 'Not yet accepted'}</Row>
                   <Row label="Appointment expiry">{item.appointmentExpiresAt || 'No expiry'}</Row>
                 </Rows>
+                <details className="pt-2 text-sm">
+                  <summary className="cursor-pointer text-text-muted">Invitation record</summary>
+                  <p className="break-all pt-2">{item.uuid}</p>
+                </details>
               </li>
             ))}
           </ul>
         )}
+      </Section>
+      <Section title="Company eligibility">
+        <LinkRow to={DESTINATIONS.companyEligibility.path} label="Read your company eligibility queue" />
       </Section>
       {error && (
         <p role="alert" className="text-sm text-error-light">

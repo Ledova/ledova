@@ -158,7 +158,8 @@ export function CompanyMemberAccess({
         />
       )}
       {access.admin && (
-        <>
+        <div className="space-y-4 border-t border-border-subtle pt-4">
+          <h3 className="text-base font-medium">Invite a member</h3>
           <label className="block space-y-1 text-sm">
             Member or award recipient
             <select
@@ -212,6 +213,7 @@ export function CompanyMemberAccess({
           </label>
           <PageAction
             label="Create member invitation"
+            primary
             disabled={held || !recipientsReady || !member || !email.trim()}
             onClick={() => member && void access.invite(member.uuid, email.trim())}
           />
@@ -234,6 +236,7 @@ export function CompanyMemberAccess({
               </details>
             </div>
           ))}
+          <h3 className="border-t border-border-subtle pt-4 text-base font-medium">Current member access</h3>
           <label className="block space-y-1 text-sm">
             Company action reason
             <textarea
@@ -263,10 +266,11 @@ export function CompanyMemberAccess({
               )}
             </div>
           ))}
-        </>
+        </div>
       )}
       {access.requests && (
-        <>
+        <div className="space-y-4 border-t border-border-subtle pt-4">
+          <h3 className="text-base font-medium">Particulars requests</h3>
           <p className="text-sm text-text-muted">
             Member particulars requests are proposals. Prepare a separate company instruction with your supporting
             evidence; approval and application use Register particulars changes below.
@@ -340,11 +344,13 @@ export function CompanyMemberAccess({
                 )}
                 <PageAction
                   label="Record company particulars instruction"
+                  primary
                   disabled={held || !file || !reason.trim() || !asAt}
                   onClick={() => void prepare()}
                 />
               </div>
             )}
+          <h3 className="border-t border-border-subtle pt-4 text-base font-medium">Certificate requests</h3>
           <p className="text-sm text-text-muted">
             Fulfil a genuine receiving issue or transfer with an unsigned recipient-only PDF. The company remains
             responsible for execution and permitted use.
@@ -368,6 +374,7 @@ export function CompanyMemberAccess({
               </p>
               <PageAction
                 label="Confirm recipient certificate fulfilment"
+                primary
                 disabled={held}
                 onClick={() => void access.fulfilCertificate()}
               />
@@ -400,7 +407,7 @@ export function CompanyMemberAccess({
               )}
             </div>
           ))}
-        </>
+        </div>
       )}
     </Section>
   );
