@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 
-import { COMPANY_TOKEN_ENDPOINTS, type Company } from '@ledova/shared';
+import { COMPANY_TOKEN_ENDPOINTS, type Company, type CompanyDocument } from '@ledova/shared';
 import { QueryClient } from '@tanstack/react-query';
-import { act, cleanup, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import CompanyPage from '.';
 import { companyRecord, renderCompanyPage } from './testSupport';
@@ -54,7 +54,7 @@ afterEach(() => {
   client.clear();
 });
 
-it('shows company details, exact draft share classes and the class/application destinations', async () => {
+it('shows exact company classes and destinations, and uploads documents to the selected company and type', async () => {
   show();
   await screen.findByText(company.name);
   expect(screen.getByText(/Company information is provided by the company/)).toBeTruthy();
@@ -82,4 +82,37 @@ it('shows company details, exact draft share classes and the class/application d
   expect(screen.getByText('9,007,199,254,740,993 authorised shares')).toBeTruthy();
   expect(screen.getByText('Internal quantity guard')).toBeTruthy();
   expect(screen.queryByText(`${(2n ** 256n - 1n).toLocaleString()} authorised shares`)).toBeNull();
+  const file = new File(['Synthetic company supporting copy'], 'company-constitution.pdf', { type: 'application/pdf' });
+  const document: CompanyDocument = {
+    uuid: 'document-one',
+    company: company.uuid,
+    documentType: 'constitution',
+    documentTypeDisplay: 'Company Constitution',
+    name: file.name,
+    fileUrl: '/private/company-constitution.pdf',
+    createdAt: '2026-10-14T00:00:00Z',
+    isVerified: false,
+    verifiedAt: null,
+  };
+  api.post.mockImplementation(async (url: string, body: FormData, config: { ledovaSubmissionGuard: () => void }) => {
+    config.ledovaSubmissionGuard();
+    expect(url).toBe(`${COMPANY}documents/`);
+    expect(body.get('document_type')).toBe('constitution');
+    expect(body.get('name')).toBe(file.name);
+    expect((body.get('file') as File).name).toBe(file.name);
+    expect((body.get('file') as File).size).toBe(file.size);
+    company = { ...company, documents: [document] };
+    return { data: document };
+  });
+  fireEvent.change(screen.getByLabelText('Document type'), { target: { value: 'constitution' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Upload document' }));
+  const dialog = await screen.findByRole('dialog', { name: 'Upload Company Constitution' });
+  fireEvent.change(within(dialog).getByLabelText('Document file'), { target: { files: [file] } });
+  fireEvent.click(within(dialog).getByRole('button', { name: 'Upload' }));
+  await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Upload Company Constitution' })).toBeNull());
+  expect(api.post).toHaveBeenCalledTimes(1);
+  expect(screen.getByRole('link', { name: `View ${file.name}` }).getAttribute('href')).toBe(document.fileUrl);
+  expect(screen.queryByRole('option', { name: 'Company Constitution' })).toBeNull();
+  expect(screen.getByRole('option', { name: 'Other documents' })).toBeTruthy();
+  expect((screen.getByLabelText('Document type') as HTMLSelectElement).value).toBe('other');
 });

@@ -11,7 +11,8 @@ import {
   type CompanyDocument,
   type DocumentType,
 } from '@ledova/shared';
-import { Section, Status } from '@components/Ledger';
+import { Section } from '@components/Ledger';
+import { FIELD_CLASS } from '@components/fieldClass';
 import { PageAction } from '@components/Page';
 import { Modal } from '@components/Modal';
 import apiClient from '@services/apiClient';
@@ -76,6 +77,7 @@ export function CompanyDocuments({
   useEffect(() => {
     if (documentsRequested && read.canAdmin) documentsSection.current?.scrollIntoView({ block: 'start' });
   }, [documentsRequested, read.canAdmin, company.uuid]);
+  const [selectedType, setSelectedType] = useState<DocumentType>('other');
   const [upload, setUpload] = useState<{ type: DocumentType; label: string } | null>(null);
   const [removing, setRemoving] = useState<CompanyDocument | null>(null);
   const confirmation = useRef<CompanyDocument | null>(null);
@@ -163,7 +165,14 @@ export function CompanyDocuments({
     setRemoving(next);
   };
   const ready = editable && !read.error && !read.isRefreshing && !remove.isPending;
-  const groups = [{ title: 'Company documents', types: COMPANY_DOCUMENT_TYPES }];
+  const documentTypes = COMPANY_DOCUMENT_TYPES.map((item) => ({
+    ...item,
+    documents: company.documents.filter((document) => document.documentType === item.type),
+  }));
+  const populatedTypes = documentTypes.filter((item) => item.documents.length > 0);
+  const availableTypes = documentTypes.filter((item) => item.type === 'other' || item.documents.length === 0);
+  const uploadChoice =
+    availableTypes.find((item) => item.type === selectedType) ?? availableTypes.find((item) => item.type === 'other');
   return (
     <>
       {!read.error && !read.isRefreshing && !read.canAdmin && (
@@ -171,51 +180,66 @@ export function CompanyDocuments({
           Current company administration is required to access company documents.
         </p>
       )}
-      {!read.error &&
-        read.canAdmin &&
-        groups.map(({ title, types }) => (
-          <div key={title} ref={documentsSection} id="documents" className="scroll-mt-4">
-            <Section title={title}>
-              <p className="text-sm text-text-muted">
-                Upload supporting documents when needed. Company setup does not require an upload; use Other documents
-                for representative authority records. Company administrators can access them; they do not change your
-                appointment or permissions.
-              </p>
+      {!read.error && read.canAdmin && (
+        <div ref={documentsSection} id="documents" className="scroll-mt-4">
+          <Section title="Company documents">
+            <p className="text-sm text-text-muted">
+              Upload supporting documents when needed. Company setup does not require an upload; use Other documents for
+              representative authority records. Company administrators can access them; they do not change your
+              appointment or permissions.
+            </p>
+            {populatedTypes.length === 0 ? (
+              <p className="text-sm text-text-muted">No supporting documents yet.</p>
+            ) : (
               <ul className="divide-y divide-border-subtle">
-                {types.map(({ type, label }) => {
-                  const matches = company.documents.filter((document) => document.documentType === type);
-                  return (
-                    <li key={type} className="space-y-4 py-4">
-                      <div className="flex flex-wrap items-baseline gap-x-4 gap-y-2">
-                        <h3 className="text-sm font-medium text-text-primary">{label}</h3>
-                        <Status tone={matches.length ? 'done' : 'waiting'}>
-                          {matches.length ? 'Uploaded' : 'Optional'}
-                        </Status>
-                      </div>
-                      {matches.map((document) => (
-                        <DocumentRecord
-                          key={document.uuid}
-                          document={document}
-                          editable={editable}
-                          ready={ready}
-                          onView={viewDocument}
-                          onRemove={removeDocument}
-                        />
-                      ))}
-                      {editable && (matches.length === 0 || type === 'other') && (
-                        <PageAction
-                          label={`Upload ${label}`}
-                          disabled={!ready}
-                          onClick={() => setUpload({ type, label })}
-                        />
-                      )}
-                    </li>
-                  );
-                })}
+                {populatedTypes.map(({ type, label, documents }) => (
+                  <li key={type} className="space-y-4 py-4">
+                    <h3 className="text-sm font-medium text-text-primary">{label}</h3>
+                    {documents.map((document) => (
+                      <DocumentRecord
+                        key={document.uuid}
+                        document={document}
+                        editable={editable}
+                        ready={ready}
+                        onView={viewDocument}
+                        onRemove={removeDocument}
+                      />
+                    ))}
+                  </li>
+                ))}
               </ul>
-            </Section>
-          </div>
-        ))}
+            )}
+            {editable && (
+              <div className="grid items-end gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
+                <label className="block space-y-1 text-sm text-text-primary">
+                  Document type
+                  <select
+                    className={FIELD_CLASS}
+                    value={uploadChoice?.type ?? 'other'}
+                    disabled={!ready}
+                    onChange={(event) => {
+                      const choice = availableTypes.find((item) => item.type === event.target.value);
+                      if (choice) setSelectedType(choice.type);
+                    }}
+                  >
+                    {availableTypes.map(({ type, label }) => (
+                      <option key={type} value={type}>
+                        {label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <PageAction
+                  label="Upload document"
+                  primary
+                  disabled={!ready || !uploadChoice}
+                  onClick={() => uploadChoice && setUpload({ type: uploadChoice.type, label: uploadChoice.label })}
+                />
+              </div>
+            )}
+          </Section>
+        </div>
+      )}
       {error && (
         <p role="alert" className="text-sm text-error-light">
           {error}
