@@ -10,7 +10,7 @@ import {
   type TokenHoldersResponse,
 } from '@ledova/shared';
 import { Section } from '@components/Ledger';
-import { Page, PageAction } from '@components/Page';
+import { Page } from '@components/Page';
 import { PageTitle } from '@components/PageTitle';
 import { CompanySelection } from '../CompanySelection';
 import { Loading, Unavailable } from '../register/RegisterStatus';
@@ -88,18 +88,6 @@ function OwnDashboard({
     appointments.isSuccess &&
     !appointments.isFetching &&
     appointmentForRegisterStep(appointments.data, company.uuid, 'prepare');
-  const canSetUpAnother =
-    preferencesReady &&
-    classes.isSuccess &&
-    !classes.isFetching &&
-    companies.length > 0 &&
-    appointments.isSuccess &&
-    !appointments.isFetching &&
-    appointments.data.some(
-      (appointment) =>
-        appointment.capabilities.includes('admin') &&
-        appointmentForRegisterStep([appointment], appointment.company, 'prepare'),
-    );
   const refresh = () => {
     void preferences.refetch();
     void classes.refetch();
@@ -107,26 +95,7 @@ function OwnDashboard({
     void appointments.refetch();
   };
   return (
-    <Page
-      lede={company ? `${company.name} · Recorded share ownership` : "Your company's recorded share ownership."}
-      actions={
-        <>
-          {canSetUpAnother && (
-            <Link
-              to={DESTINATIONS.companyRegisterSetup.path}
-              className="inline-flex rounded-lg border border-border px-3.5 py-2 text-sm font-medium text-text-primary hover:bg-surface-tertiary"
-            >
-              Set up another register
-            </Link>
-          )}
-          <PageAction
-            label="Refresh dashboard"
-            onClick={refresh}
-            disabled={preferences.isFetching || classes.isFetching || registers.isFetching}
-          />
-        </>
-      }
-    >
+    <Page lede={company ? `${company.name} · Recorded share ownership` : "Your company's recorded share ownership."}>
       {preferencesReady && classes.isSuccess && !classes.isFetching && companies.length > 1 && (
         <CompanySelection read={{ companies, companyUuid: company?.uuid, selectionBlocked: false, selectCompany }} />
       )}
