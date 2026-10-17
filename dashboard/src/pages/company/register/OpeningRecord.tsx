@@ -1,3 +1,4 @@
+import { useLayoutEffect, useRef } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import {
   REGISTER_OPENING_COPY,
@@ -26,18 +27,30 @@ export function OpeningRecord({
   guard,
   onDecided,
   onRefused,
+  visible = true,
+  onHeldChange,
 }: {
   proposal: RegisterOpening;
   steps: RegisterSteps;
   guard: () => void;
   onDecided: () => Promise<unknown>;
   onRefused: () => Promise<unknown>;
+  visible?: boolean;
+  onHeldChange?: (uuid: string, held: boolean) => void;
 }) {
+  const available = useRef(visible);
+  useLayoutEffect(() => {
+    available.current = visible;
+  }, [visible]);
+  const check = () => {
+    guard();
+    if (!available.current) throw new Error('Open the current register task before reading or deciding this record.');
+  };
   const download = useMutation({
     mutationFn: async () => {
-      guard();
-      const { data } = await downloadRegisterOpeningFile(apiClient, proposal.uuid, { ledovaSubmissionGuard: guard });
-      guard();
+      check();
+      const { data } = await downloadRegisterOpeningFile(apiClient, proposal.uuid, { ledovaSubmissionGuard: check });
+      check();
       saveFile(data, retainedName(proposal.evidenceSnapshot, `register-opening-${proposal.uuid}`));
     },
   });
@@ -46,65 +59,72 @@ export function OpeningRecord({
   const labels = openingMemberLabels(holdings);
   const context = `opening prepared ${formatDateTime(proposal.createdAt)}`;
   return (
-    <li className="flex flex-col gap-3 py-4">
-      <Rows>
-        <Row label="Stage">
-          <Status tone={STAGE_TONES[proposal.stage] ?? 'waiting'}>
-            {COPY.STAGES[proposal.stage] ?? proposal.stage}
-          </Status>
-        </Row>
-        {proposal.preparedByName !== null && <Row label="Prepared by">{proposal.preparedByName || 'Not provided'}</Row>}
-        <Row label="Prepared on">{formatDateTime(proposal.createdAt)}</Row>
-        <Row label={COPY.BOUNDARY}>
-          {summary ? COPY.BOUNDARY_BLOCK(summary.blockNumber, summary.date) : 'Not captured'}
-        </Row>
-      </Rows>
-      {summary && (
-        <div className="flex flex-col gap-1">
-          <p className="text-sm text-text-muted">{COPY.HOLDINGS}</p>
-          {holdings.length === 0 ? (
-            <p className="text-sm text-text-primary">{COPY.NO_HOLDINGS}</p>
-          ) : (
-            <ul className="divide-y divide-border-subtle">
-              {holdings.map((holding) => (
-                <li key={holding.address} className="flex flex-col gap-1 py-2">
-                  <div className="flex flex-wrap items-baseline justify-between gap-2">
-                    <span className="min-w-0 break-words text-sm text-text-primary">
-                      {(holding.member !== null && labels.get(holding.member)) || COPY.NEW_MEMBER}
-                    </span>
-                    <span className="ml-auto break-all text-right text-sm tabular-nums text-text-primary">
-                      {shareCount(holding.shares)}
-                    </span>
-                  </div>
-                  <span className="break-all text-xs text-text-muted">{holding.address}</span>
-                </li>
-              ))}
-            </ul>
+    <li hidden={!visible} className="flex flex-col gap-3 py-4">
+      {visible && (
+        <details open={proposal.status === 'submitted'} className="space-y-3">
+          <summary className="cursor-pointer text-sm font-medium text-text-primary">{`Chain opening · ${formatDateTime(proposal.createdAt)} · ${COPY.STAGES[proposal.stage] ?? proposal.stage}`}</summary>
+          <Rows>
+            <Row label="Stage">
+              <Status tone={STAGE_TONES[proposal.stage] ?? 'waiting'}>
+                {COPY.STAGES[proposal.stage] ?? proposal.stage}
+              </Status>
+            </Row>
+            {proposal.preparedByName !== null && (
+              <Row label="Prepared by">{proposal.preparedByName || 'Not provided'}</Row>
+            )}
+            <Row label="Prepared on">{formatDateTime(proposal.createdAt)}</Row>
+            <Row label={COPY.BOUNDARY}>
+              {summary ? COPY.BOUNDARY_BLOCK(summary.blockNumber, summary.date) : 'Not captured'}
+            </Row>
+          </Rows>
+          {summary && (
+            <div className="flex flex-col gap-1">
+              <p className="text-sm text-text-muted">{COPY.HOLDINGS}</p>
+              {holdings.length === 0 ? (
+                <p className="text-sm text-text-primary">{COPY.NO_HOLDINGS}</p>
+              ) : (
+                <ul className="divide-y divide-border-subtle">
+                  {holdings.map((holding) => (
+                    <li key={holding.address} className="flex flex-col gap-1 py-2">
+                      <div className="flex flex-wrap items-baseline justify-between gap-2">
+                        <span className="min-w-0 break-words text-sm text-text-primary">
+                          {(holding.member !== null && labels.get(holding.member)) || COPY.NEW_MEMBER}
+                        </span>
+                        <span className="ml-auto break-all text-right text-sm tabular-nums text-text-primary">
+                          {shareCount(holding.shares)}
+                        </span>
+                      </div>
+                      <span className="break-all text-xs text-text-muted">{holding.address}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
           )}
-        </div>
-      )}
-      <Rows>
-        <Row label={COPY.AUTHORITY}>{COPY.AUTHORITIES[proposal.authority] ?? proposal.authority}</Row>
-        {proposal.approvingDirector && <Row label={COPY.APPROVING_DIRECTOR}>{proposal.approvingDirector}</Row>}
-        <Row label={COPY.AUTHORITY_REFERENCE}>{proposal.authorityReference}</Row>
-        <Row label={COPY.REASON}>{proposal.reason}</Row>
-        <DecisionTrail proposal={proposal} labels={COPY.DECISIONS} />
-      </Rows>
-      <p className="text-sm text-text-muted">
-        {proposal.providedBy === 'company' ? COPY.PROVIDED_BY_COMPANY : COPY.STAFF_VERIFIED}
-      </p>
-      <div className="flex flex-wrap gap-2">
-        <PageAction
-          label={COPY.DOWNLOAD}
-          context={context}
-          disabled={download.isPending}
-          onClick={() => download.mutate()}
-        />
-      </div>
-      {download.isError && (
-        <p role="alert" className="text-sm text-error-light">
-          {apiErrorSentence(download.error, DOWNLOAD_FAILED, DOWNLOAD_FAILED)}
-        </p>
+          <Rows>
+            <Row label={COPY.AUTHORITY}>{COPY.AUTHORITIES[proposal.authority] ?? proposal.authority}</Row>
+            {proposal.approvingDirector && <Row label={COPY.APPROVING_DIRECTOR}>{proposal.approvingDirector}</Row>}
+            <Row label={COPY.AUTHORITY_REFERENCE}>{proposal.authorityReference}</Row>
+            <Row label={COPY.REASON}>{proposal.reason}</Row>
+            <DecisionTrail proposal={proposal} labels={COPY.DECISIONS} />
+          </Rows>
+          <p className="text-sm text-text-muted">
+            {proposal.providedBy === 'company' ? COPY.PROVIDED_BY_COMPANY : COPY.STAFF_VERIFIED}
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <PageAction
+              label={COPY.DOWNLOAD}
+              context={context}
+              disabled={download.isPending}
+              onClick={() => download.mutate()}
+            />
+          </div>
+          {download.isError && (
+            <p role="alert" className="text-sm text-error-light">
+              {apiErrorSentence(download.error, DOWNLOAD_FAILED, DOWNLOAD_FAILED)}
+            </p>
+          )}
+        </details>
       )}
       <RegisterDecisions
         family={REGISTER_OPENING_DECISIONS}
@@ -113,6 +133,9 @@ export function OpeningRecord({
         proposal={proposal}
         steps={steps}
         guard={guard}
+        newEffectGuard={check}
+        visible={visible}
+        onHeldChange={onHeldChange}
         context={context}
         onDecided={onDecided}
         onRefused={onRefused}

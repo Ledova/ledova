@@ -1,5 +1,10 @@
 import { useQueryClient } from '@tanstack/react-query';
-import { REGISTER_PARTICULARS_COPY, type OrderSubmissionOwner, type TokenHoldersResponse } from '@ledova/shared';
+import {
+  REGISTER_PARTICULARS_COPY,
+  hasCurrentRegisterReadAuthority,
+  type OrderSubmissionOwner,
+  type TokenHoldersResponse,
+} from '@ledova/shared';
 import { Section } from '@components/Ledger';
 import { PageAction } from '@components/Page';
 import { ownAppointmentsKey } from '../team/appointments';
@@ -16,16 +21,27 @@ export function RegisterParticulars({
   guard,
   company,
   registers,
+  visible = true,
+  onHeldChange,
 }: {
   owner: OrderSubmissionOwner;
   guard: () => void;
   company: string;
   registers: TokenHoldersResponse[];
+  visible?: boolean;
+  onHeldChange?: (uuid: string, held: boolean) => void;
 }) {
   const client = useQueryClient();
   const changes = useRegisterParticulars(owner, company, guard);
   const appointments = useOwnAppointments(owner, guard);
   const steps = appointments.isSuccess ? registerSteps(appointments.data, company) : null;
+  const privateReady =
+    visible &&
+    changes.isSuccess &&
+    changes.fetchStatus === 'idle' &&
+    appointments.isSuccess &&
+    appointments.fetchStatus === 'idle' &&
+    hasCurrentRegisterReadAuthority(appointments.data, company);
   const names = registerMembers(registers);
   const refresh = async () => {
     try {
@@ -42,6 +58,7 @@ export function RegisterParticulars({
       ].map((queryKey) => client.invalidateQueries({ queryKey })),
     );
   };
+  if (changes.isSuccess && changes.data.length === 0) return null;
   return (
     <Section title={COPY.TITLE}>
       {appointments.isError ? (
@@ -69,23 +86,22 @@ export function RegisterParticulars({
             disabled={changes.isFetching}
           />
         </div>
-      ) : changes.data.length === 0 ? (
-        <p className="text-sm text-text-muted">{COPY.EMPTY}</p>
-      ) : (
-        <ul className="divide-y divide-border-subtle">
-          {changes.data.map((change) => (
-            <ParticularsRecord
-              key={change.uuid}
-              change={change}
-              member={names.get(change.member) || COPY.UNNAMED_MEMBER}
-              steps={steps ?? {}}
-              guard={guard}
-              onDecided={refresh}
-              onRefused={refresh}
-            />
-          ))}
-        </ul>
-      )}
+      ) : null}
+      <ul className="divide-y divide-border-subtle">
+        {(changes.data ?? []).map((change) => (
+          <ParticularsRecord
+            key={change.uuid}
+            change={change}
+            visible={privateReady}
+            onHeldChange={onHeldChange}
+            member={names.get(change.member) || COPY.UNNAMED_MEMBER}
+            steps={steps ?? {}}
+            guard={guard}
+            onDecided={refresh}
+            onRefused={refresh}
+          />
+        ))}
+      </ul>
     </Section>
   );
 }

@@ -1,3 +1,4 @@
+import { useLayoutEffect, useRef } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import {
   REGISTER_PARTICULARS_COPY,
@@ -43,6 +44,8 @@ export function ParticularsRecord({
   guard,
   onDecided,
   onRefused,
+  visible = true,
+  onHeldChange,
 }: {
   change: RegisterParticularsChange;
   member: string;
@@ -50,46 +53,61 @@ export function ParticularsRecord({
   guard: () => void;
   onDecided: () => Promise<unknown>;
   onRefused: () => Promise<unknown>;
+  visible?: boolean;
+  onHeldChange?: (uuid: string, held: boolean) => void;
 }) {
+  const available = useRef(visible);
+  useLayoutEffect(() => {
+    available.current = visible;
+  }, [visible]);
+  const check = () => {
+    guard();
+    if (!available.current) throw new Error('Open the current register task before reading or deciding this record.');
+  };
   const download = useMutation({
     mutationFn: async () => {
-      guard();
+      check();
       const { data } = await downloadRegisterParticularsChangeFile(apiClient, change.uuid, {
-        ledovaSubmissionGuard: guard,
+        ledovaSubmissionGuard: check,
       });
-      guard();
+      check();
       saveFile(data, retainedName(change.evidenceSnapshot, `particulars-change-${change.uuid}`));
     },
   });
   const context = `change for ${member} prepared ${formatDateTime(change.createdAt)}`;
   return (
-    <li className="flex flex-col gap-3 py-4">
-      <Rows>
-        <Row label={COPY.MEMBER}>{member}</Row>
-        <Row label="Stage">
-          <Status tone={STAGE_TONES[change.stage] ?? 'waiting'}>{COPY.STAGES[change.stage] ?? change.stage}</Status>
-        </Row>
-        {change.preparedByName !== null && <Row label="Prepared by">{change.preparedByName || 'Not provided'}</Row>}
-        <Row label="Prepared on">{formatDateTime(change.createdAt)}</Row>
-      </Rows>
-      <Particulars title={COPY.PROPOSED_PARTICULARS} held={change} />
-      <Rows>
-        <Row label={COPY.REASON}>{change.reason}</Row>
-        <DecisionTrail proposal={change} labels={COPY.DECISIONS} />
-      </Rows>
-      <p className="text-sm text-text-muted">{COPY.PROVIDED_BY_COMPANY}</p>
-      <div className="flex flex-wrap gap-2">
-        <PageAction
-          label={COPY.DOWNLOAD}
-          context={context}
-          disabled={download.isPending}
-          onClick={() => download.mutate()}
-        />
-      </div>
-      {download.isError && (
-        <p role="alert" className="text-sm text-error-light">
-          {apiErrorSentence(download.error, DOWNLOAD_FAILED, DOWNLOAD_FAILED)}
-        </p>
+    <li hidden={!visible} className="flex flex-col gap-3 py-4">
+      {visible && (
+        <details open={change.status === 'submitted'} className="space-y-3">
+          <summary className="cursor-pointer text-sm font-medium text-text-primary">{`${member} · ${COPY.STAGES[change.stage] ?? change.stage}`}</summary>
+          <Rows>
+            <Row label={COPY.MEMBER}>{member}</Row>
+            <Row label="Stage">
+              <Status tone={STAGE_TONES[change.stage] ?? 'waiting'}>{COPY.STAGES[change.stage] ?? change.stage}</Status>
+            </Row>
+            {change.preparedByName !== null && <Row label="Prepared by">{change.preparedByName || 'Not provided'}</Row>}
+            <Row label="Prepared on">{formatDateTime(change.createdAt)}</Row>
+          </Rows>
+          <Particulars title={COPY.PROPOSED_PARTICULARS} held={change} />
+          <Rows>
+            <Row label={COPY.REASON}>{change.reason}</Row>
+            <DecisionTrail proposal={change} labels={COPY.DECISIONS} />
+          </Rows>
+          <p className="text-sm text-text-muted">{COPY.PROVIDED_BY_COMPANY}</p>
+          <div className="flex flex-wrap gap-2">
+            <PageAction
+              label={COPY.DOWNLOAD}
+              context={context}
+              disabled={download.isPending}
+              onClick={() => download.mutate()}
+            />
+          </div>
+          {download.isError && (
+            <p role="alert" className="text-sm text-error-light">
+              {apiErrorSentence(download.error, DOWNLOAD_FAILED, DOWNLOAD_FAILED)}
+            </p>
+          )}
+        </details>
       )}
       <RegisterDecisions
         family={REGISTER_PARTICULARS_DECISIONS}
@@ -98,6 +116,9 @@ export function ParticularsRecord({
         proposal={change}
         steps={steps}
         guard={guard}
+        newEffectGuard={check}
+        visible={visible}
+        onHeldChange={onHeldChange}
         context={context}
         onDecided={onDecided}
         onRefused={onRefused}
