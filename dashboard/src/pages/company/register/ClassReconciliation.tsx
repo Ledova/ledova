@@ -61,6 +61,7 @@ export function ClassReconciliation({
   token,
   company,
   holders,
+  status,
   visible = true,
   onHeldChange,
 }: {
@@ -69,6 +70,7 @@ export function ClassReconciliation({
   token: string;
   company: string;
   holders: Holders;
+  status: TokenHoldersResponse['token']['status'];
   visible?: boolean;
   onHeldChange?: (token: string, uuid: string, held: boolean) => void;
 }) {
@@ -122,7 +124,7 @@ export function ClassReconciliation({
   }, [onHeldChange, token, heldUuid, held]);
   const row = open && record?.uuid === open.record ? record.discrepancies[open.index] : undefined;
   const current = !!open && !!row?.acknowledgeable && acknowledger?.uuid === open.appointment;
-  const ready = current && !!reason.trim() && !acknowledgement.busy;
+  const ready = privateReady && current && !!reason.trim() && !acknowledgement.busy;
   const offered = (item: RegisterDiscrepancy) =>
     !!acknowledger && item.acknowledgeable && ACKNOWLEDGEABLE_DISCREPANCIES.includes(item.kind);
   const begin = (index: number) => {
@@ -134,7 +136,16 @@ export function ClassReconciliation({
   const close = () => {
     if (!acknowledgement.busy) setOpen(null);
   };
-  if (!visible || (reconciliation.isSuccess && !record)) return null;
+  if (
+    !visible ||
+    (reconciliation.isSuccess &&
+      reconciliation.fetchStatus === 'idle' &&
+      !record &&
+      !['deployed', 'paused'].includes(status) &&
+      !open &&
+      !held)
+  )
+    return null;
   return (
     <div className="mt-4 flex flex-col gap-3 border-t border-border-subtle pt-4">
       <h3 className="text-sm font-medium text-text-primary">{COPY.TITLE}</h3>
@@ -163,7 +174,9 @@ export function ClassReconciliation({
             disabled={reconciliation.isFetching}
           />
         </div>
-      ) : !record || !privateReady ? null : (
+      ) : !privateReady ? null : !record ? (
+        <p className="text-sm text-text-muted">{COPY.EMPTY}</p>
+      ) : (
         <>
           <Rows>
             <Row label="Status">
@@ -218,7 +231,7 @@ export function ClassReconciliation({
           )}
         </>
       )}
-      {privateReady && (
+      {open && (
         <Modal
           isOpen={!!open}
           onClose={close}
@@ -234,7 +247,7 @@ export function ClassReconciliation({
           }}
           size="lg"
         >
-          {open && (
+          {privateReady ? (
             <div className="flex flex-col gap-3">
               {row && <Discrepancy row={row} holders={holders} />}
               <p className="text-sm text-text-muted">{COPY.ACKNOWLEDGEMENT_NOTE}</p>
@@ -263,6 +276,10 @@ export function ClassReconciliation({
                 </p>
               )}
             </div>
+          ) : (
+            <p role="alert" className="text-sm text-error-light">
+              {CHANGED}
+            </p>
           )}
         </Modal>
       )}

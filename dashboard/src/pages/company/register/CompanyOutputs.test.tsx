@@ -3,6 +3,7 @@
 import { COMPANY_ENDPOINTS, COMPANY_TOKEN_ENDPOINTS, USER_PREFERENCES_QUERY_KEY } from '@ledova/shared';
 import { QueryClient } from '@tanstack/react-query';
 import { act, cleanup, fireEvent, screen, waitFor } from '@testing-library/react';
+import { useState } from 'react';
 import { afterEach, expect, it, vi } from 'vitest';
 import {
   OUTPUT_APPOINTMENT,
@@ -27,7 +28,7 @@ afterEach(async () => {
   vi.unstubAllGlobals();
 });
 
-it('downloads the exact unsigned entry certificate and company pack, refusing a late pack after current account preferences fail', async () => {
+it('downloads exact unsigned outputs and refuses late files after source or current account read loss', async () => {
   prepareCompanyClient(client);
   const certificate = COMPANY_TOKEN_ENDPOINTS.REGISTER_CERTIFICATE(OUTPUT_REGISTER.token.uuid);
   const pack = COMPANY_ENDPOINTS.PACK(OUTPUT_APPOINTMENT.company);
@@ -43,25 +44,30 @@ it('downloads the exact unsigned entry certificate and company pack, refusing a 
     throw new Error(`Unexpected GET ${url}`);
   });
   api.post.mockReset().mockImplementation(async (url) => ({ data: url === certificate ? pdf : zip }));
-  renderCompanyPage(
-    client,
-    <>
-      <ClassCertificate
-        sourceKey="synthetic"
-        register={OUTPUT_REGISTER}
-        entry={OUTPUT_ENTRY}
-        guard={() => {}}
-        sourceReady
-      />
-      <CompanyPack
-        owner={{ userUuid: 'profile-one', ownerAccountUuid: 'account-one' }}
-        guard={() => {}}
-        company={OUTPUT_APPOINTMENT.company}
-        sourceReady
-      />
-    </>,
-    'Register outputs',
-  );
+  function Outputs() {
+    const [certificateReady, setCertificateReady] = useState(true);
+    return (
+      <>
+        <button type="button" onClick={() => setCertificateReady(false)}>
+          Hide certificate task
+        </button>
+        <ClassCertificate
+          sourceKey="synthetic"
+          register={OUTPUT_REGISTER}
+          entry={OUTPUT_ENTRY}
+          guard={() => {}}
+          sourceReady={certificateReady}
+        />
+        <CompanyPack
+          owner={{ userUuid: 'profile-one', ownerAccountUuid: 'account-one' }}
+          guard={() => {}}
+          company={OUTPUT_APPOINTMENT.company}
+          sourceReady
+        />
+      </>
+    );
+  }
+  renderCompanyPage(client, <Outputs />, 'Register outputs');
   fireEvent.click(screen.getByRole('button', { name: /Prepare unsigned certificate/ }));
   fireEvent.change(screen.getByLabelText('Certificate instruction reference'), {
     target: { value: 'Synthetic certificate instruction' },
@@ -79,6 +85,23 @@ it('downloads the exact unsigned entry certificate and company pack, refusing a 
     },
     expect.objectContaining({ responseType: 'blob', ledovaSubmissionGuard: expect.any(Function) }),
   );
+  api.post.mockImplementationOnce(
+    () =>
+      new Promise((resolve) => {
+        release = () => resolve({ data: pdf });
+      }),
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'Preview unsigned certificate' }));
+  fireEvent.click(await screen.findByRole('button', { name: 'Confirm and download unsigned PDF' }));
+  await waitFor(() => expect(release).toBeTypeOf('function'));
+  const certificateSignal = api.post.mock.calls.at(-1)![2].signal as AbortSignal;
+  fireEvent.click(screen.getByRole('button', { name: 'Hide certificate task' }));
+  expect(certificateSignal.aborted).toBe(true);
+  expect(screen.queryByLabelText('Certificate instruction reference')).toBeNull();
+  expect(screen.getByRole('button', { name: /Prepare unsigned certificate/ }).matches(':disabled')).toBe(true);
+  await act(async () => release!());
+  release = undefined;
+  expect(createObjectURL).toHaveBeenCalledTimes(1);
   fireEvent.change(await screen.findByLabelText('Pack instruction reference'), {
     target: { value: 'Synthetic pack instruction' },
   });

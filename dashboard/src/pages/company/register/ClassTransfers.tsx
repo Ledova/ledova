@@ -72,7 +72,7 @@ export function ClassTransfers({
         <p className="text-sm text-text-muted">
           {register.token.status === 'draft'
             ? 'Set up this share register before recording a transfer.'
-            : 'Tokenised transfer controls remain in Share class settings.'}
+            : 'Tokenised share transfers use wallet and chain controls. This task records non-paid transfers for a non-tokenised register.'}
         </p>
       )}
       {!supported && privateReady && steps?.prepare && (

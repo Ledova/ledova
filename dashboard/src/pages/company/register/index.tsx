@@ -614,6 +614,7 @@ function OwnRegister({
                         token={register.token.uuid}
                         company={scope.company.uuid}
                         holders={register.holders}
+                        status={register.token.status}
                         visible={
                           view === 'register' &&
                           selectedTask === 'history' &&

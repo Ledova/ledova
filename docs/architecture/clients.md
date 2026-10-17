@@ -215,7 +215,7 @@ and recovery controls. Native ownership retains its per-class view. Employee awa
 non-paid issues have their own destination;
 Documents holds register CSV, inspection copies and the company pack. The web
 Dashboard links to [manual ownership setup](../operations/register-foundation.md#importing-an-existing-register)
-before a register exists; History offers bounded corrections of the latest
+when no share classes are readable; History offers bounded corrections of the latest
 copied opening, retaining confirmation recovery. The
 company retains its legal records and access arrangements. Member
 invitations use named company members or award recipients with exact IDs retained

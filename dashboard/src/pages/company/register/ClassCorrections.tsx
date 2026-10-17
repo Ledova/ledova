@@ -117,7 +117,7 @@ function EntryHistory({
                   register={register}
                   entry={entry}
                   guard={certificateGuard}
-                  sourceReady={sourceReady && !history.isFetching && !history.moreFailed}
+                  sourceReady={visible && sourceReady && !history.isFetching && !history.moreFailed}
                 />
               </details>
             </li>
