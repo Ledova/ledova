@@ -1,8 +1,8 @@
+import { useId } from 'react';
 import { Link } from 'react-router-dom';
-import { DESTINATIONS, HOLDER_TYPE_LABELS, formatShareCount, type TokenHoldersResponse } from '@ledova/shared';
+import { DESTINATIONS, REGISTER_COPY, formatShareCount, type TokenHoldersResponse } from '@ledova/shared';
 import { Section } from '@components/Ledger';
-import { FIELD_CLASS } from '@components/fieldClass';
-import { countBarWidth, ownershipSummary } from './summary';
+import { ownershipSegments, ownershipSummary } from './summary';
 
 export function OwnershipMetrics({ summary }: { summary: ReturnType<typeof ownershipSummary> }) {
   return (
@@ -32,142 +32,174 @@ export function OwnershipMetrics({ summary }: { summary: ReturnType<typeof owner
   );
 }
 
-export function ShareholderPanel({
-  company,
-  registers,
-  selected,
-  select,
+const SERIES = [
+  'var(--color-brand-light)',
+  'var(--color-info-light)',
+  'var(--color-warning-light)',
+  'var(--color-error-light)',
+  'color-mix(in srgb, var(--color-info-light) 60%, var(--color-error-light))',
+];
+
+function OwnershipDonut({
+  register,
+  segments,
+  colors,
 }: {
-  company: string;
-  registers: TokenHoldersResponse[];
-  selected: TokenHoldersResponse;
-  select: (uuid: string) => void;
+  register: TokenHoldersResponse;
+  segments: ReturnType<typeof ownershipSegments>;
+  colors: Map<string, string>;
 }) {
-  const holders = [...selected.holders]
-    .sort((left, right) => {
-      const difference = BigInt(right.balance) - BigInt(left.balance);
-      return difference === 0n ? left.member.localeCompare(right.member) : difference > 0n ? 1 : -1;
-    })
-    .slice(0, 5);
+  const id = useId();
+  const total = BigInt(register.issuedSupply!);
+  const slices = segments.map((segment, index) => {
+    const previous = segments.slice(0, index).reduce((sum, row) => sum + BigInt(row.shares), 0n);
+    return {
+      segment,
+      start: Number((previous * 1000000000n) / total) / 10000000,
+      end: Number(((previous + BigInt(segment.shares)) * 1000000000n) / total) / 10000000,
+    };
+  });
   return (
-    <Section title="Share ownership">
-      {registers.length > 1 ? (
-        <label className="mb-2 block space-y-1 text-sm text-text-primary">
-          Share class
-          <select className={FIELD_CLASS} value={selected.token.uuid} onChange={(event) => select(event.target.value)}>
-            {registers.map(({ token }) => (
-              <option key={token.uuid} value={token.uuid}>
-                {token.name} · {token.symbol}
-              </option>
-            ))}
-          </select>
-        </label>
-      ) : (
-        <p className="text-sm text-text-muted">
-          {selected.token.name} · {selected.token.symbol}
-        </p>
-      )}
-      {!selected.initialized ? (
-        <p className="py-4 text-sm text-text-muted">
-          This share class has no opened register. Issued shares are not recorded.
-        </p>
-      ) : holders.length === 0 ? (
-        <p className="py-4 text-sm text-text-muted">
-          No issued shares or current shareholders are recorded for this class.
-        </p>
-      ) : (
-        <>
-          <p className="text-sm text-text-muted">
-            {formatShareCount(selected.issuedSupply!)} issued shares · Percentages of this class&apos;s issued shares
-          </p>
-          <table className="mt-2 w-full table-fixed text-sm">
-            <caption className="sr-only">Largest shareholders in {selected.token.name}</caption>
-            <thead className="text-text-muted">
-              <tr className="border-b border-border-subtle">
-                <th scope="col" className="w-1/2 py-2 text-left font-normal">
-                  Shareholder
-                </th>
-                <th scope="col" className="w-[30%] px-2 py-2 text-right font-normal">
-                  Shares
-                </th>
-                <th scope="col" className="w-[20%] py-2 text-right font-normal">
-                  % of class
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border-subtle">
-              {holders.map((holder) => (
-                <tr key={holder.member}>
-                  <th scope="row" className="min-w-0 py-3 pr-3 text-left font-medium text-text-primary">
-                    <span className="break-words">{holder.name || HOLDER_TYPE_LABELS[holder.holderType]}</span>
-                    <span
-                      aria-hidden="true"
-                      className="mt-2 block h-1.5 overflow-hidden rounded-full bg-surface-tertiary"
-                    >
-                      <span
-                        className="block h-full rounded-full bg-brand-mid"
-                        style={{ width: `${holder.percentage}%` }}
-                      />
-                    </span>
-                  </th>
-                  <td className="break-all px-2 py-3 text-right tabular-nums text-text-primary">
-                    {formatShareCount(holder.balance)}
-                  </td>
-                  <td className="break-words py-3 text-right tabular-nums text-text-primary">
-                    {holder.percentage.toFixed(2)}%
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {selected.holders.length > holders.length && (
-            <p className="text-sm text-text-muted">
-              Showing the five largest shareholders. The register lists every member.
-            </p>
-          )}
-        </>
-      )}
-      <Link
-        to={DESTINATIONS.companyRegister.path}
-        state={{ registerCompany: company, registerToken: selected.token.uuid }}
-        className="mt-2 w-fit text-sm font-medium text-brand-light hover:underline"
-      >
-        View full register
-      </Link>
-    </Section>
+    <svg
+      role="img"
+      aria-labelledby={`${id}-title ${id}-description`}
+      viewBox="0 0 160 160"
+      className="mx-auto h-40 w-40 shrink-0"
+    >
+      <title id={`${id}-title`}>{register.token.name} share ownership</title>
+      <desc id={`${id}-description`}>
+        {formatShareCount(register.issuedSupply!)} issued shares held by {register.totalHolders}{' '}
+        {register.totalHolders === 1 ? 'shareholder' : 'shareholders'}. Percentages are of this class&apos;s issued
+        shares. The legend lists the five largest shareholders and any others.
+      </desc>
+      {slices.map(({ segment, start, end }) => (
+        <circle
+          key={segment.member ?? 'others'}
+          aria-hidden="true"
+          cx="80"
+          cy="80"
+          r="60"
+          fill="none"
+          stroke={segment.member ? colors.get(segment.member) : 'var(--color-text-muted)'}
+          strokeWidth="26"
+          pathLength="100"
+          strokeDasharray={`${end - start} ${100 - end + start}`}
+          strokeDashoffset={-start}
+          transform="rotate(-90 80 80)"
+        />
+      ))}
+      <text x="80" y="78" textAnchor="middle" className="fill-text-primary text-xl font-medium tabular-nums">
+        {register.totalHolders}
+      </text>
+      <text x="80" y="97" textAnchor="middle" className="fill-text-muted text-xs">
+        {register.totalHolders === 1 ? 'shareholder' : 'shareholders'}
+      </text>
+    </svg>
   );
 }
 
-export function ClassCountPanel({ registers }: { registers: TokenHoldersResponse[] }) {
-  if (registers.length < 2) return null;
-  const maximum = registers.reduce(
-    (largest, { issuedSupply }) =>
-      issuedSupply !== null && BigInt(issuedSupply) > BigInt(largest) ? issuedSupply : largest,
-    '0',
-  );
+export function ShareholderPanels({ company, registers }: { company: string; registers: TokenHoldersResponse[] }) {
+  const distributions = registers.map((register) => {
+    const segments = ownershipSegments(register);
+    return {
+      register,
+      segments,
+      colors: new Map(segments.map((segment, index) => [segment.member ?? 'others', SERIES[index]])),
+    };
+  });
   return (
-    <Section title="Shares by class">
-      <p className="text-sm text-text-muted">Issued quantities by class. Class rights may differ.</p>
-      <ul className="divide-y divide-border-subtle">
-        {registers.map(({ token, issuedSupply, initialized }) => (
-          <li key={token.uuid} className="space-y-2 py-3">
-            <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 text-sm">
-              <span className="min-w-0 flex-1 break-words font-medium text-text-primary">{token.name}</span>
-              <span className="break-all tabular-nums text-text-primary">
-                {initialized && issuedSupply !== null ? `${formatShareCount(issuedSupply)} shares` : 'Not opened'}
-              </span>
-            </div>
-            {initialized && issuedSupply !== null && (
-              <div aria-hidden="true" className="h-2 overflow-hidden rounded-full bg-surface-tertiary">
-                <div
-                  className="h-full rounded-full bg-brand-mid"
-                  style={{ width: `${countBarWidth(issuedSupply, maximum)}%` }}
-                />
-              </div>
+    <section aria-label="Share ownership" className="space-y-4">
+      <h2 className="font-display text-xl tracking-[-0.01em] text-text-primary">Share ownership</h2>
+      <div className="grid items-start gap-5 md:grid-cols-2">
+        {distributions.map(({ register, segments, colors }) => (
+          <Section key={register.token.uuid} title={`${register.token.name} · ${register.token.symbol}`}>
+            {!register.initialized ? (
+              <p className="text-sm text-text-muted">
+                This share class has no opened register. Issued shares are not recorded.
+              </p>
+            ) : segments.length === 0 ? (
+              <p className="text-sm text-text-muted">
+                No issued shares or current shareholders are recorded for this class.
+              </p>
+            ) : (
+              <>
+                <p className="break-words text-sm tabular-nums text-text-muted">
+                  {formatShareCount(register.issuedSupply!)} issued shares
+                </p>
+                <div className="grid min-w-0 items-center gap-4 sm:grid-cols-[10rem_minmax(0,1fr)] md:grid-cols-1 xl:grid-cols-[10rem_minmax(0,1fr)]">
+                  <OwnershipDonut register={register} segments={segments} colors={colors} />
+                  <table className="w-full table-fixed text-sm">
+                    <caption className="sr-only">Largest shareholders in {register.token.name}</caption>
+                    <thead className="text-text-muted">
+                      <tr className="border-b border-border-subtle">
+                        <th scope="col" className="w-1/2 pb-2 text-left font-normal">
+                          Shareholder
+                        </th>
+                        <th scope="col" className="w-[30%] px-2 pb-2 text-right font-normal">
+                          Shares
+                        </th>
+                        <th scope="col" className="w-[20%] pb-2 text-right font-normal">
+                          % of class
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border-subtle">
+                      {segments.map((segment) => (
+                        <tr key={segment.member ?? 'others'}>
+                          <th scope="row" className="py-2 pr-2 text-left font-medium text-text-primary">
+                            <span className="flex min-w-0 items-baseline gap-2">
+                              <span
+                                aria-hidden="true"
+                                className="h-2 w-2 shrink-0"
+                                style={{
+                                  backgroundColor: segment.member
+                                    ? colors.get(segment.member)
+                                    : 'var(--color-text-muted)',
+                                }}
+                              />
+                              <span className="min-w-0 break-words">
+                                {segment.name}
+                                {segment.member === null && (
+                                  <span className="block text-xs font-normal text-text-muted">
+                                    {segment.holders} shareholders
+                                  </span>
+                                )}
+                              </span>
+                            </span>
+                          </th>
+                          <td className="break-all px-2 py-2 text-right tabular-nums text-text-primary">
+                            {formatShareCount(segment.shares)}
+                          </td>
+                          <td className="break-words py-2 text-right tabular-nums text-text-primary">
+                            {segment.percentage === 0 ? '<0.01' : segment.percentage.toFixed(2)}%
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
             )}
-          </li>
+            {register.initialized && register.waitingEffects === null && (
+              <p role="status" className="text-sm text-text-muted">
+                {REGISTER_COPY.WAITING_UNKNOWN_NOTE}
+              </p>
+            )}
+            {register.waitingEffects !== null && register.waitingEffects > 0 && (
+              <p role="status" className="text-sm text-text-muted">
+                {REGISTER_COPY.WAITING_NOTE(register.waitingEffects)}
+              </p>
+            )}
+            <Link
+              to={DESTINATIONS.companyRegister.path}
+              state={{ registerCompany: company, registerToken: register.token.uuid }}
+              className="w-fit text-sm font-medium text-brand-light hover:underline"
+            >
+              View full register <span className="sr-only">for {register.token.name}</span>
+            </Link>
+          </Section>
         ))}
-      </ul>
-    </Section>
+      </div>
+    </section>
   );
 }
