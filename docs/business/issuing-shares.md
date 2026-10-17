@@ -11,8 +11,8 @@ learning the domain. The register the issues land on is described in
 Contents:
 
 - [Terms used here](#terms-used-here)
-- [Ways to issue shares](#ways-to-issue-shares)
 - [Share classes](#share-classes)
+- [Ways to issue shares](#ways-to-issue-shares)
 - [Grants to walletless members](#grants-to-walletless-members)
 - [Employee awards and vesting](#employee-awards-and-vesting)
 - [External investor allotments](#external-investor-allotments)
@@ -26,68 +26,17 @@ Contents:
 
 ## Terms used here
 
-The [product glossary](../product.md#terms-that-must-stay-distinct) keeps these apart.
-Authorised shares are a class's cap; issued shares are actual register ownership. An allotment is
-the company's decision to issue shares to a person, an issue is the resulting register entry, and
-issuance or a mint is its execution on a chain. A grant is a non-paid issue. An award is a promised
-entitlement, not shares, until the company approves an issue
-([10 October decision](../decisions.md#first-scopes-for-employee-awards-and-external-capital)).
-An offering invites eligible investors to apply for new shares; an investor's application is a
-subscription.
-
-## Ways to issue shares
-
-Which path a company uses depends on whether the class has a contract.
-
-| Path                                                                                     | Class                                                   | Recipient                                       | Money                                        |
-| ---------------------------------------------------------------------------------------- | ------------------------------------------------------- | ----------------------------------------------- | -------------------------------------------- |
-| [Non-paid grant](#grants-to-walletless-members)          | Opened by an import, no contract                        | A new or existing member with no linked wallet  | None                                         |
-| [Employee award, then grant](#employee-awards-and-vesting) | Opened by an import, no contract                      | A member with no linked wallet                  | None; vesting is recorded first              |
-| [External allotment](#external-investor-allotments)      | Opened by an import, no contract                        | A new or existing member with no linked wallet  | Fully paid in AUD, receipt recorded by the company |
-| [Non-paid chain grant](#non-paid-chain-grants)           | Deployed, register opened from the chain                | A member's nominated, company-approved wallet   | None                                         |
-| [Paid issue](#company-paid-issues)                       | Deployed                                                | The subscriber's wallet                         | A subscription recorded as Paid              |
-
-Two kinds of non-paid grant exist. A grant on a class with no contract is a register entry only; a
-chain grant mints shares on a deployed class and the register records the issue once the mint is
-final. Neither can be used on the other kind of class.
-
-### Rules every issue follows
-
-- Each path is prepared, approved and applied as a company decision
-  ([how a company decision works](README.md#how-a-company-decision-works)). Approval
-  alone never creates a holding, and a changed preview needs a new approval.
-- The register entry is dated the actual day the issue is recorded, in UTC. A terms, agreement,
-  vesting or receipt date the company supplies is kept beside it and never backdates the entry, a
-  publication roll or a certificate deadline.
-- The issue must fit within the class's authorised shares. Quantities are whole shares, and a chain
-  request is at most 2,147,483,647.
-- A payment or receipt never authorises an issue, and non-paid terms never create an amount paid.
-- Proposals, their documents and history are read only within current company register authority. A
-  publication roll already frozen keeps the recipients it recorded.
-- Documents are provided by the company, kept privately with their fingerprints and never labelled
-  as verified by Ledova.
-- After an issue the company remains responsible for its
-  [ASIC notifications](https://www.asic.gov.au/for-business-and-companies/companies/company-share-and-shareholder-rules-and-changes/company-share-issues)
-  and for executing and delivering certificates; Ledova's
-  [certificates](member-records.md#certificates) are unsigned, and it lodges nothing.
-
-### The named-director rule
-
-Every grant, allotment, paid issue and non-paid transfer names the approving director, and that
-director cannot be the recipient (or either party to a transfer). A company appointment supplies the
-capability to record the decision; it does not establish that the appointee is that director. The
-director need not have a Ledova account, so the company can record an external board resolution
-without every director signing up, and no two-person rule is added. Each decision keeps its actual
-actor and appointment. Names are compared ignoring letter case and spacing. The
-[owner's decisions](../decisions.md#company-run-register-authority-and-evidence) give the
-reasons.
+Terms follow the [product glossary](../product.md#terms-that-must-stay-distinct). An offering
+invites eligible investors to apply for new shares; an investor's application is a subscription.
 
 ## Share classes
 
 A share class is a company's equity instrument, with a name, a class code, a type (Ordinary,
 Preference or Redeemable) and authorised shares. Shares are whole units in the register and on
-chain. A class starts as a draft with no contract; a draft class opened by an import stays without
-one. A class with a contract is deployed, and can be paused.
+chain. A class starts as a draft with no contract. A class opened by an import with holdings stays
+without one; an empty imported register can be deployed, but it still cannot be opened from the
+chain or take chain issues ([deploying an empty class](#deploying-an-empty-class)). A class with a
+contract is deployed, and can be paused.
 
 Only the company owner creates a class, with Create share class on the Company page or in register
 setup ([bringing in existing records](register.md#bringing-in-existing-records)).
@@ -134,10 +83,11 @@ A company appointee can raise the authorised shares of a deployed class, includi
 
 Raising the cap mints no shares and changes no holding. It approves no grant, allotment or payment,
 and the optional shareholder reference sets no new approval threshold. Ledova does not verify the
-resolution. Applying admits the original change; it is complete only when that transaction succeeds
-on chain and is final, and a matching cap alone does not show that. Rejection also rejects the
-original request. Another increase cannot be prepared while one is in progress, and the cap can
-never go below the shares already issued. Direct capital requests by the owner or staff are retired.
+resolution. Applying admits the original change. It is complete only when that original transaction
+succeeds on chain with its cap-change event; a matching cap alone does not show that. Rejection also
+rejects the original request. Another increase cannot be prepared while one is in progress, and the
+cap can never go below the shares already issued. Direct capital requests by the owner or staff are
+retired.
 
 ### Pausing and unpausing a class
 
@@ -152,6 +102,41 @@ requested state and its outcome separately from the class's current state. If th
 in the requested state, the outcome is recorded as observed, with no transaction. Direct pause
 actions by the owner or staff are retired; earlier records stay readable. A paused class keeps its
 members, and publications still reach them.
+
+## Ways to issue shares
+
+Which path a company uses depends on whether the class has a contract.
+
+| Path                                                                                     | Class                                                   | Recipient                                       | Money                                        |
+| ---------------------------------------------------------------------------------------- | ------------------------------------------------------- | ----------------------------------------------- | -------------------------------------------- |
+| [Non-paid grant](#grants-to-walletless-members)          | Opened by an import, no contract                        | A new or existing member with no linked wallet  | None                                         |
+| [Employee award, then grant](#employee-awards-and-vesting) | Opened by an import, no contract                      | A member with no linked wallet                  | None; vesting is recorded first              |
+| [External allotment](#external-investor-allotments)      | Opened by an import, no contract                        | A new or existing member with no linked wallet  | Fully paid in AUD, receipt recorded by the company |
+| [Non-paid chain grant](#non-paid-chain-grants)           | Deployed, register opened from the chain                | A member's nominated, company-approved wallet   | None                                         |
+| [Paid issue](#company-paid-issues)                       | Deployed                                                | The subscriber's wallet                         | A subscription recorded as Paid              |
+
+Two kinds of non-paid grant exist. A grant on a class with no contract is a register entry only; a
+chain grant mints shares on a deployed class and the register records the issue once the mint is
+final. Neither can be used on the other kind of class.
+
+### Rules every issue follows
+
+Each path is a [company decision](README.md#how-a-company-decision-works); in addition:
+
+- Every grant, allotment and paid issue names the approving director, who cannot be the recipient
+  ([named directors](README.md#how-a-company-decision-works)).
+- The register entry is dated the actual day the issue is recorded, in UTC. A terms, agreement,
+  vesting or receipt date the company supplies is kept beside it and never backdates the entry, a
+  publication roll or a certificate deadline.
+- The issue must fit within the class's authorised shares. Quantities are whole shares, and a chain
+  request is at most 2,147,483,647.
+- A payment or receipt never authorises an issue, and non-paid terms never create an amount paid.
+- Proposals, their documents and history are read only within current company register authority. A
+  publication roll already frozen keeps the recipients it recorded.
+- After an issue the company remains responsible for its
+  [ASIC notifications](https://www.asic.gov.au/for-business-and-companies/companies/company-share-and-shareholder-rules-and-changes/company-share-issues)
+  and for executing and delivering certificates; Ledova's
+  [certificates](member-records.md#certificates) are unsigned, and it lodges nothing.
 
 ## Grants to walletless members
 
@@ -218,8 +203,9 @@ approved grants reserve neither vested shares nor authorised shares, and a later
 correction does not return shares to the award. After the first issue, later grants use the
 recipient's existing member record, including a former-member record.
 
-Recording awards and vesting needs Company administration or Prepare register decisions; issuing
-keeps the grant's approval, application and director rules. Award, vesting and award-linked grant
+Recording awards and vesting needs administration or prepare
+([company capabilities](README.md#company-capabilities)); issuing keeps the grant's approval,
+application and director rules. Award, vesting and award-linked grant
 records and their documents are read only by a current appointment for the company that holds
 administration or a register capability. Awards and vesting events are kept unchanged with their
 original actor, appointment and time. Not built: restrictions or forfeiture on issued shares,
@@ -249,7 +235,8 @@ Preparing creates no holding. Approval is separate from the company's receipt, a
 one Issue. The agreement, receipt, decision and resulting ownership stay separate records, and
 Record details and documents shows each. Rejecting an allotment keeps its agreement and receipt and
 performs no refund. A receipt is shown as attested by the company: it grants no authority to issue
-and is not Ledova verification.
+and is not Ledova verification. The register's Amount paid then includes the consideration
+([amount paid](register.md#amount-paid-and-date-entered)).
 
 Lists, details and the three documents need a current appointment for the company; owners and
 platform staff have no automatic access to these financial records. Accepted members read their own
@@ -310,7 +297,9 @@ not withdraw an offering under review.
 
 An offering names one deployed class and sets:
 
-- the price per share;
+- the price per share, in AUD (an offering created before AUD pricing keeps the currency it was
+  given, and its applications' amounts use that currency;
+  [decision](../decisions.md#the-signed-in-app));
 - minimum, target and cap in whole shares (minimum at most target, target at most cap) and an
   optional maximum per investor, no more than the cap;
 - an opening time and an optional closing time after it;
@@ -345,10 +334,12 @@ invisible to them, and approval publishes its terms.
 
 ### Offer documents
 
-The company uploads offer documents in Company information, and the offering form lists only the
-offer types: prospectus or information memorandum, risk disclosure, business plan, financial
-statements, auditor report, constitution and shareholder agreement. Personal records such as the
-share register or a director's identification are never one click from investors.
+The company uploads offer documents under Company documents
+([company information and documents](companies.md#company-information-and-documents)), and the
+offering form lists only the offer types: prospectus or information memorandum, risk disclosure,
+business plan, financial statements, auditor report, constitution and shareholder agreement.
+Personal records such as the share register or a director's identification are never one click
+from investors.
 
 Approval publishes the attached documents to anyone the directory admits to the class, whether the
 offering is upcoming, open, past its closing time or closed. Drafts and submitted, under-review,
@@ -426,13 +417,13 @@ the money the cut strands becomes a refund owed.
 ### Company paid issues
 
 The company issues the shares for a Paid application itself. On the Share class page, under Company
-paid issue decisions, someone with Company administration or Prepare register decisions chooses a
-Paid application. The proposal captures the application, class, recipient, whole shares to allot,
-price, payment dates and references, money held and refund facts; a partial receipt and a
-scaled-back quantity stay distinct from the requested shares, and a refund owed stays distinct from
-a refund paid. The preparer adds the company's authority document, the approving director, the
-authority reference and the reason. No new eligibility decision, wallet nomination, member choice,
-grant terms or acceptance is needed. Then Approve and Apply.
+paid issue decisions, someone with administration or prepare chooses a Paid application. The
+proposal captures the application, class, recipient, whole shares to allot, price, payment dates
+and references, money held and refund facts; a partial receipt and a scaled-back quantity stay
+distinct from the requested shares, and a refund owed stays distinct from a refund paid. The
+preparer adds the company's authority document, the approving director, the authority reference
+and the reason. No new eligibility decision, wallet nomination, member choice, grant terms or
+acceptance is needed. Then Approve and Apply.
 
 Preparation and approval admit nothing; applying admits the original mint. The issue must fit both
 the offering's remaining cap and the class's authorised shares less those issued and still to be
@@ -457,8 +448,7 @@ shows that AUD pricing or a stablecoin is a direct AUD payment
 Each application records when it was submitted, accepted, given its payment instruction, allotted,
 refunded and closed by rejection or withdrawal, and the date the money arrived as staff recorded it.
 The investor's application page lists these under History in step order; older applications leave
-out steps that were never stamped rather than guessing. On the Offerings page the company sees each
-application's requested and allotted shares, including zero allotments, read-only.
+out steps that were never stamped rather than guessing.
 
 ## Retained issue instructions
 
@@ -471,8 +461,10 @@ owner's single register instruction decision of 22 September 2026
 1. The company owner submits an instruction listing each retained issue by its request, recipient
    wallet and whole shares, naming the approving director, with the authority reference, a reason
    and a company document that platform staff have
-   [verified](member-records.md#reviewing-company-documents). Ledova keeps
-   a private copy. It is submitted through Ledova's API; neither app has a form for it.
+   [verified](companies.md#staff-verification-of-a-company-document). Ledova keeps a private copy.
+   It is submitted through Ledova's API
+   ([retained instructions API](../engineering/records.md#retained-register-instructions-api));
+   neither app has a form for it.
 2. Platform staff open it under Register instructions in admin, inspect the retained document, the
    director, the reference and the company identity, check each item's exact terms and that the
    director is not a recipient, then confirm within 15 minutes and choose Approve and apply, or
@@ -499,8 +491,11 @@ where the contract requires them.
 
 Today shares are whole units at every layer, so there is no fraction to round into and no cash rail
 to pay one out, and a corporate action that leaves a remainder cannot be recorded. No register entry
-records a split: a cessation removes a whole holding and a correction exactly reverses an earlier
-entry, so nothing reduces a holding partially. A split could be carried out only as one issue per
+records a split: a cessation removes a whole holding, a transfer only moves shares to another
+member, and a correction exactly reverses an earlier entry. Only a
+[copied opening correction](register.md#correcting-the-copied-opening) records other differences,
+and it is refused once the register has any later activity, so on a register in use nothing can
+cancel part of a holding. A split could be carried out only as one issue per
 holder after a capital increase; a consolidation cannot be carried out at all, because nothing but
 the holder can destroy shares
 ([why](../engineering/chain.md#why-splits-and-consolidations-cannot-run-on-a-live-class)).
@@ -533,10 +528,10 @@ locked and sends only new choices; if the offering has since left approved or cl
 says so and sends nothing.
 
 Applications shows each application's requested and allotted shares, including zero allotments, as a
-read-only record: payment recording is a platform staff task, and the company's paid issues are on
-the Share class page ([company paid issues](#company-paid-issues)).
+read-only record; the company's paid issues are on the Share class page
+([company paid issues](#company-paid-issues)).
 
 Next: [register of members](register.md),
 [member records and register outputs](member-records.md),
 [participants and eligibility](participants.md) and
-[offering and subscription mechanics](../engineering/backend.md).
+[offering and subscription mechanics](../engineering/backend.md#offerings-and-subscriptions).

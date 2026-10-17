@@ -22,9 +22,7 @@ The app uses the versions resolved by `mobile/package-lock.json`, currently Expo
 Native 0.81. Native projects are generated from `mobile/app.json` and the local config plugins in
 `mobile/plugins/`; `android/` and `ios/` are not committed. An explicit iOS distribution environment
 can override the store identity through `mobile/app.config.js`
-([iOS distribution builds](#ios-distribution-builds)). Use a
-native development build to test the native policies; Expo Go does not contain Ledova's native
-networking overrides.
+([iOS distribution builds](#ios-distribution-builds)).
 
 The exact toolchain is pinned in [mobile-native.yml](../../.github/workflows/mobile-native.yml), which
 selects
@@ -356,13 +354,6 @@ The configured-host result must be repeated on a physical iPhone, with permissio
 recorded separately from
 [ATS local-network policy](https://developer.apple.com/documentation/bundleresources/information-property-list/nsapptransportsecurity/nsallowslocalnetworking).
 
-### Recording native results
-
-Jest and native probe outcomes are recorded separately. A simulator does not establish physical
-biometric enrolment or change, hardware-backed key properties, OEM backup or transfer, store
-distribution or behaviour on every supported OS. Record those limits, any failed native build and the
-exact tested head in the PR; JavaScript tests alone do not close a native hardening claim.
-
 ## What automated checks do not establish
 
 The mobile Jest suite covers none of the screen and file lifetimes in
@@ -373,7 +364,12 @@ camera shutdown and WebView media release, device settings and OEM behaviour, gl
 input stacking, native frame, POST, popup, timeout and prompt behaviour, vendor origins, iframe message
 provenance, third-party payment redirects, local or cloud provider pickers, low storage and
 physical-device checks remain device work under [#13](https://github.com/Ledova/ledova/issues/13), and
-a form-completion signal is not server verification approval.
+a form-completion signal is not server verification approval. A simulator also does not establish
+physical biometric enrolment or change, hardware-backed key properties, OEM backup or transfer, store
+distribution or behaviour on every supported OS.
+
+Record Jest and native probe outcomes separately, and record these limits, any failed native build
+and the exact tested head in the PR; JavaScript tests alone do not close a native hardening claim.
 
 ## Pre-release device checks
 
@@ -438,10 +434,9 @@ biometric-protected; Android's write prompt is the only visible sign.
 
 ### Push delivery
 
-Push testing needs an Expo project ID (`extra.eas.projectId` in `mobile/app.json`, not configured
-today) and the device build. Supported emulators and simulators can also exercise delivery; the
-[SDK 54 notification documentation](https://docs.expo.dev/versions/v54.0.0/sdk/notifications/)
-describes their requirements and the Android Expo Go restriction.
+Push delivery needs the Expo project ID and a device build
+([push notifications](../operations/configuration.md#push-notifications)); supported emulators and
+simulators can also exercise delivery.
 
 ### Keystone ownership on a Mac
 
@@ -585,8 +580,8 @@ environment, set these values before every prebuild, bundle, archive or export c
 | `EXPO_PUBLIC_MARKETING_URL` | Public HTTPS website base URL                |
 
 Unset `EXPO_PUBLIC_DEV_API_HOST` and every `EXPO_PUBLIC_NATIVE_PROBE_*` variable. Set
-`EXPO_PUBLIC_SUPPORT_EMAIL` and `EXPO_PUBLIC_APP_STORE_URL` when preparing the shipped experience.
-`EXPO_PUBLIC_*` values are embedded in the app and must never contain secrets. The release config
+`EXPO_PUBLIC_SUPPORT_EMAIL` and `EXPO_PUBLIC_APP_STORE_URL` when preparing the shipped experience
+([client variables](../operations/configuration.md#clients)). The release config
 (`mobile/app.config.js`) refuses a missing or malformed identity, the development placeholder, HTTP
 endpoints, URL credentials, a query or fragment (even an empty one), whitespace or backslashes inside
 a URL, a development API host and native probe flags. Without `LEDOVA_IOS_RELEASE`, the development

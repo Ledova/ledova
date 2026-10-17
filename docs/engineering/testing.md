@@ -23,7 +23,7 @@ the replaced cases or the approval, and independent review checks them
 
 | Suite | Delivered cases | Maximum | Essential coverage |
 | --- | --- | --- | --- |
-| Backend, PostgreSQL | 21 | 150 | Core API happy paths, tenant isolation with at most five real-app-login cases, company authority, ownership totals and issuance idempotency, one fake-scanner refusal |
+| Backend, PostgreSQL | 21 | 150 | Core API happy paths, tenant isolation, company authority, ownership totals and issuance idempotency, one fake-scanner refusal |
 | Dashboard unit | 20 | 20 | Main pages, sign-in, core flows |
 | Mobile Jest | 10 | 10 | App start, sign-in, core flows |
 | Shared package | 10 | 10 | Essential shared behaviour |
@@ -66,7 +66,10 @@ system and migration checks, the RLS role and catalogue checks (`check_rls_roles
 `check_rls_catalogue`, against the deployed connections and schema) and the API schema snapshot.
 The fresh migrations create the current schema and database guards. The command owns its scratch
 database and roles and preserves developer resources. It runs the suite through Django discovery,
-and the [runner](../../backend/shared/test_runner.py) refuses an empty suite.
+and the [runner](../../backend/shared/test_runner.py) refuses an empty suite. The test settings fix
+`BLOCKCHAIN_CHAIN_ID=84532` with the approved finality policies, so an accepted
+`LOCAL_CHAIN_FINALITY_DEPTH` in `backend/.env` has no effect on the suites, while a value the
+backend refuses stops them as it stops every other command.
 
 The backend suite covers:
 
@@ -140,10 +143,9 @@ local and online boundaries separately in the PR.
 
 Independent review reads the final changed behaviour and the claims made about it, under the
 [review and merge](../../CONTRIBUTING.md#review-and-merge) protocol. Documentation review checks
-navigation and statements against source; a page needs no tests mirroring its prose. Removed test
-names do not establish current coverage, and product authority, privacy and ownership rules remain
-behaviour even where exhaustive test permutations are retired. Record meaningful results and gaps
-in short, plain PR descriptions.
+navigation and statements against source. Removed test names do not establish current coverage,
+and product authority, privacy and ownership rules remain behaviour even where exhaustive test
+permutations are retired. Record meaningful results and gaps in short, plain PR descriptions.
 
 Next: [gates](gates.md), [backend](backend.md),
 [security model](security.md) and [contributing](../../CONTRIBUTING.md).

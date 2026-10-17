@@ -55,25 +55,23 @@ finished, and a failed, cancelled or aborted job thirty days after. A job still 
 never removed, however old, so a job that keeps retrying stays until it finishes.
 
 Staff retry a failed job from the admin's Procrastinate jobs page with Retry Job, which needs the
-record. A failed `reconcile_every_register` is one to look at: it is the signal that some share
-class could not be reconciled
-([reconciling a register](recovery.md#reconciling-a-register-on-demand)). To keep
-older records for an investigation or an audit, copy them out of `procrastinate_jobs` and
-`procrastinate_events` before the next run.
+record. A failed `reconcile_every_register` needs attention
+([reconciling a register](recovery.md#reconciling-a-register-on-demand)). To keep older records for
+an investigation or an audit, copy them out of `procrastinate_jobs` and `procrastinate_events`
+before the next run.
 
 ## Private storage
 
-Uploaded evidence uses private storage and authenticated streaming endpoints; no upload is served
-by `/media/`, in either debug mode. Local evidence lives under `PRIVATE_MEDIA_ROOT`, which also
-works with `DEBUG=false`; cloud evidence uses private S3 or GCS objects. Private storage is backed
-up and restored with the database. How files are served, who may read them and when they are
-deleted is in [uploaded files](../engineering/security.md#private-files).
+Local evidence lives under `PRIVATE_MEDIA_ROOT`, also with `DEBUG=false` (the `private_media_data`
+volume in Compose); cloud evidence uses private S3 or GCS objects. Private storage is backed up and
+restored with the database. How files are served, who may read them and when they are deleted is in
+[private files](../engineering/security.md#private-files).
 
 ### Previewing the upload sweep
 
 `sweep_private_uploads` deletes private files under `companies/` and `documents/` that no row
 references and that have not changed for 24 hours
-([why](../engineering/security.md#deletion-and-retention)). Each run logs how many
+([why](../engineering/security.md#ordinary-deletion-and-orphans)). Each run logs how many
 files it found, deleted and failed to delete, and a file it failed to delete is tried again on the
 next run.
 
@@ -136,15 +134,14 @@ ClamAV's [INSTREAM protocol](https://docs.clamav.net/manual/Usage/ClamdProtocol.
 authentication or transport encryption. Keep it on a trusted private network reachable only by the
 application services, and follow the
 [official Docker guidance](https://docs.clamav.net/manual/Installing/Docker.html) for signature
-storage and resource provisioning. Only an exact clean verdict is accepted; connection errors,
-malformed replies and unavailable scanning fail closed, and a detected file is refused with 400 and
-never saved. There is no quarantine or bypass switch.
+storage and resource provisioning. Verdicts and failure handling are in
+[upload validation](../engineering/security.md#upload-validation).
 
 ## Upload limits
 
-The limits are integer environment settings shared by the backend and worker. Each decoder or
-scanner child refuses to run unless its address-space, CPU and file-size limits are positive
-integers, so a setting below 1 fails every upload instead of lifting a limit.
+The limits are integer environment settings shared by the backend and worker. A decoder or scanner
+child's address-space, CPU or file-size limit below 1 fails every upload instead of lifting the
+limit ([upload validation](../engineering/security.md#upload-validation)).
 
 | Variable | Default | Bound |
 | --- | --- | --- |
@@ -171,22 +168,17 @@ runs without it and the parent logs
 refuses any address-space limit below what a process has already mapped, so there the children run
 without the `UPLOAD_PROCESS_MEMORY_BYTES` cap, and its CPU limit does not stop a child that spends
 its time in system calls; the parent's wall deadline applies on every platform. On Linux the warning
-is a fault to investigate. Resource limits contain work; they are not a security sandbox or an
-aggregate concurrency limit.
+is a fault to investigate.
 
-The two hourly quotas reserve count and bytes atomically in Redis, using its clock; accepted and
-rejected authenticated attempts both consume quota, and a denial returns 429 with `Retry-After`.
-Unavailable Redis returns 503. Worker restarts keep the quota; Redis data loss resets it. Only one
-file is accepted per request. How the quotas are charged during authentication is in
-[validation and extraction](../engineering/security.md#upload-validation).
+The hourly quotas live in Redis: without Redis uploads answer 503, and Redis data loss resets the
+quotas ([quota charging](../engineering/security.md#upload-validation)).
 
-The entrypoint bounds apply to resolved upload-create routes, including chunked ASGI bodies and
-falsely small declared sizes. WSGI cannot interrupt a blocked socket read, so configure the HTTP
-server or proxy body timeout. Configure proxy or server body, connection and concurrency limits for
-both entrypoints, since unauthenticated clients and many users can each consume a bounded request,
-and keep the proxy's cap at least the configured request limit if clients should receive the API's
-error body. Changing the file limits also means aligning `StreamMaxLength`, `MaxFileSize` and the
-other scan limits in `backend/.deployment/clamd.conf`; the stricter bound wins.
+WSGI cannot interrupt a blocked socket read, so configure the HTTP server or proxy body timeout.
+Configure proxy or server body, connection and concurrency limits for both entrypoints, since
+unauthenticated clients and many users can each consume a bounded request, and keep the proxy's cap
+at least the configured request limit if clients should receive the API's error body. Changing the
+file limits also means aligning `StreamMaxLength`, `MaxFileSize` and the other scan limits in
+`backend/.deployment/clamd.conf`; the stricter bound wins.
 
 Next: [recovery](recovery.md), [configuration](configuration.md)
-or [uploaded files](../engineering/security.md#private-files).
+or [private files](../engineering/security.md#private-files).

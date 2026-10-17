@@ -20,9 +20,8 @@ are described with that workflow, linked in the table below.
 | Start workers, read the schedule, operate private storage, scanning and upload limits | [Jobs and storage](jobs-and-storage.md) |
 | Configure the operator record, read the console, seed reference data, work the review queues | [Operator console](operator-console.md) |
 | Recover unresolved work and verify stored registers and publications | [Recovery](recovery.md) |
-| Read the company-scoped approval controls and their dated bypass evidence | [Approval controls](approval-controls.md) |
 | Publish to members on a company's written instruction | [Publishing to members](../business/publications.md#publishing-on-the-companys-instruction) |
-| Prepare notice figures, work the due list or produce a company pack on written instruction | [Outputs on written instruction](../business/member-records.md#outputs-at-a-glance) |
+| Prepare notice figures, work the due list or produce a company pack on written instruction | [Notice figures](../business/member-records.md#preparing-notice-figures), [due list](../business/member-records.md#working-the-due-list), [company pack](../business/member-records.md#producing-the-broader-pack-in-admin) |
 | Check a release on native builds, physical devices and a real Keystone wallet | [Native probes](../engineering/mobile-releases.md#native-probes), [Keystone on a Mac](../engineering/mobile-releases.md#keystone-ownership-on-a-mac) |
 
 ## Bring up an instance
@@ -39,7 +38,7 @@ are described with that workflow, linked in the table below.
 5. Open the [operator console](operator-console.md) and resolve its configuration
    warnings. Confirm a worker is running and scheduled work advances.
 6. Confirm `trading_enabled` matches this deployment's intent: it is seeded on, and an operator can
-   turn it off in the admin ([trading](../business/trading.md)).
+   turn it off in the admin ([trading](../business/trading.md#what-trading-is-today)).
 
 The [legal positions](../legal/positions.md) describe the unresolved assumptions to settle
 before any real use.

@@ -25,7 +25,7 @@ Contents:
 
 Ledova keeps one stored register for each share class. It is the platform's ownership mirror: the
 company keeps its legal register, historical records, lawful access arrangements and filings
-([what stays with the company](README.md)), and the
+([what stays with the company](README.md#what-ledova-does-and-what-stays-with-the-company)), and the
 [mirror decision](../decisions.md#existing-register-mirror-and-simple-setup) records why.
 Copying records into Ledova neither establishes legal ownership nor issues shares again.
 
@@ -41,11 +41,12 @@ shareholder record, not a company appointment: it grants no company authority.
 
 A register is opened once, either by bringing in the company's existing records (an import) or, for
 a class that already has a contract, from the chain. Until then the class has no members and its
-register cannot be downloaded. A class opened by an import has no contract: its issues and transfers
-are register entries only, a wallet is needed only for a chain action, and it takes no chain issue
-or settled-transfer instruction. Tokenising it later is
-[planned](issuing-shares.md#planned-tokenising-an-imported-register) and must not
-issue the shares a second time.
+register cannot be downloaded. A class opened by an import takes no chain opening, chain issue or
+settled-transfer instruction, even if an empty one is later
+[deployed](issuing-shares.md#deploying-an-empty-class). While it has no contract, its issues and
+transfers are register entries only and a wallet is needed only for a chain action. Tokenising it
+later is [planned](issuing-shares.md#planned-tokenising-an-imported-register) and must not issue
+the shares a second time.
 
 ## Who runs what
 
@@ -58,29 +59,24 @@ steps.
 
 | Work                                                                       | Who does it                                                                                                                       |
 | -------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| Read the register, its proposals, decisions and evidence copies            | The company owner, or a current appointment holding Company administration, Read company register, or Prepare, Approve or Apply register decisions |
+| Read the register, its proposals, decisions and evidence copies            | The company owner, or a current appointment holding administration or any register capability: read, prepare, approve or apply ([company capabilities](README.md#company-capabilities)) |
 | Open from the chain, import, correct, link wallets, change particulars      | Company appointees: prepare, approve and apply                                                                                    |
 | Record a non-paid transfer between walletless members                       | Company appointees: prepare, approve and apply                                                                                    |
-| Acknowledge a reconciliation discrepancy                                   | One step by an appointment holding Company administration or Approve register decisions                                         |
+| Acknowledge a reconciliation discrepancy                                   | One step by an appointment holding administration or approve                                                                      |
 | Issue shares, deploy a class, raise its authorised shares, pause it        | Company appointees ([issuing shares](issuing-shares.md))                                                          |
 | Register a settled market transfer                                         | The company owner submits the directors' instruction; platform staff review and apply it ([below](#settled-transfer-instructions)) |
-| Inspection copies and unsigned certificates                                | Any current appointment that reads the register ([member records](member-records.md))                             |
-| Core company pack                                                          | A current company administrator                                                                                                   |
-| Notice figures and the broader restricted pack                             | Platform staff, on the company's written instruction                                                                              |
-| Reconcile a class on chain with the chain                                  | Ledova, every six hours; the operator can also run one ([verifying stored records](../operations/recovery.md#verifying-stored-records)) |
+| Register outputs (CSV, inspection copies, certificates, notice figures, company packs) | See [outputs at a glance](member-records.md#outputs-at-a-glance)                                                    |
+| Reconcile a class on chain with the chain                                  | Ledova, every six hours; the operator can also run one ([reconciling on demand](../operations/recovery.md#reconciling-a-register-on-demand)) |
 
-Holders of Prepare, Approve or Apply register decisions read the full register, including
-residential addresses in the CSV and the evidence copies, because they work from members' details.
-When the operator requires company representatives to verify their identity, every register step
-also needs the appointee's verified identity
-([company setup and authority](companies.md)). Platform staff see imports, openings,
-corrections and wallet links in admin as read-only history; particulars changes have no admin page.
+When the operator requires it, every register step also needs the appointee's
+[verified identity](companies.md#representative-identity-requirement). Platform staff see imports,
+openings, corrections and wallet links in admin as read-only history; particulars changes have no
+admin page.
 
 ### Company evidence
 
-Each register change carries evidence the company provides. Ledova keeps a private copy with its
-fingerprint, shows it as "Provided by the company" and verifies nothing. An owner account is not
-proof of director authority.
+Each change carries evidence the company provides, shown as "Provided by the company"
+([company-provided evidence](README.md#how-a-company-decision-works)):
 
 | Change                                       | Evidence                                                                                                                      |
 | -------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
@@ -89,12 +85,9 @@ proof of director authority.
 | Particulars change                           | One supporting document, such as a deed poll or the member's notice of a new address, and a reason                           |
 | Non-paid transfer                            | A director resolution and the signed transfer instrument                                                                     |
 
-Uploads are PDF, PNG or JPEG files within the upload limit (10 MB by default), checked like every
-other upload. A proposal keeps its own copy, so a later change to the upload cannot change what was
-decided; if a retained copy no longer matches its record, the proposal cannot be decided and a new
-one is needed. Evidence downloads are not logged. A proposal submitted for the retired staff review
-and still waiting can only be rejected; it says it was "Verified by Ledova staff" before the work
-became company-run.
+Uploads are PDF, PNG or JPEG files within the upload limit (10 MB by default). A later change to the
+upload cannot change what was decided; if a retained copy no longer matches its record, the
+proposal cannot be decided and a new one is needed. Evidence downloads are not logged.
 
 ## What the register records
 
@@ -116,7 +109,8 @@ The rules every entry follows:
 
 - Entries are never edited or deleted. A mistake is put right by a new entry, and the original stays
   with its evidence. Each entry is linked to the one before it, so altering history is detected when
-  the register is verified ([how the entry chain is kept](../engineering/records.md)).
+  the register is verified
+  ([how the entry chain is kept](../engineering/records.md#entries-and-the-hash-chain)).
 - Shares are whole numbers, and no change can take a holding below zero.
 - A transfer that empties a holding leaves a zero position. A cessation describes this class only,
   not the member's holdings in the company's other classes.
@@ -162,8 +156,10 @@ Treasury; without them the label names it with no address. A treasury address be
 identity is Ambiguous. The CSV, inspection copies, certificates, notice figures, publication rolls
 and former-member records all read a member the same way.
 
-The Register page shows names, holder types and holdings. Residential addresses appear only in the
-downloaded CSV, and every download is recorded.
+The shareholder table and its Details show names, holder types and holdings but no residential
+address. Addresses appear in the downloaded CSV and the other register outputs, each of which is
+recorded, and in the import, particulars-change, grant, transfer, allotment and award records that
+carry them.
 
 ### Amount paid and date entered
 
@@ -174,7 +170,11 @@ allotment and the opening, touches it; a transfer before the opening that emptie
 wallets and left its quantity unchanged cannot be seen. Unallotted applications, holdings without
 allotments and quantity mismatches leave it blank. A pending refund never inflates it, zero never
 stands in for an unknown amount, and non-paid terms establish none. An imported amount paid applies
-while the holding is unchanged since the import.
+while the holding is unchanged since the import. An external investor allotment adds its
+consideration: a member the import carried shows the imported amount plus the consideration (blank
+if the imported amount was blank), and a member the import did not carry shows the consideration.
+This holds while only such allotments have changed the member's holding since the import; any other
+later entry for the member, such as a non-paid grant or transfer, leaves it blank.
 
 Date entered is the date the member went from no shares to some. The earliest completed allotment to
 one of the member's wallets replaces it only when that allotment is earlier and the holding has been
@@ -186,12 +186,13 @@ chain.
 
 ### Former members
 
-When a holding becomes zero, the register keeps a former-member record of the particulars and
-holding at that exit. A later return keeps the same member ID and records the return date. Exit and
-return use the actual day of the change, so a backdated correction cannot shorten retention or date
-a return before the exit, and particulars edits and invitations do not reset the exit clock.
+On a register an import opened, when a member with no linked wallet falls to zero, the register
+keeps a former-member record of their recorded particulars and the holding at that exit. A later
+return keeps the same member ID and records the return date. Exit and return use the actual day of
+the change, so a backdated correction cannot shorten retention or date a return before the exit,
+and particulars edits and invitations do not reset the exit clock.
 
-For a class on chain, Ledova also reads the chain's transfer history every six hours and records
+For a class on chain, Ledova instead reads the chain's transfer history every six hours and records
 each wallet that ceases to hold. Particulars are frozen at the first recorded cessation, taken from
 the person's current profile, else the identity recorded at allotment, else the member's recorded
 particulars, else a name recorded at allotment; a labelled treasury address takes its recorded
@@ -308,10 +309,13 @@ block's date; a boundary with no holdings records an explicitly empty register. 
 chain. Until an opening is applied, the register reads as not opened.
 
 The mapping must cover exactly the addresses holding at the boundary: if holdings moved, reload them
-and map again, keeping the choices that still apply. One address belongs to one member in a company,
-and an existing link must agree with the mapping. An opening is refused if a completed issue or
-transfer is not represented at its boundary. If the chain no longer confirms the boundary, or a
-mapped wallet has since been linked elsewhere, reject the opening and prepare a new one.
+and map again, keeping the choices that still apply. The holdings are read again only on request or
+after a conflict, and Prepare waits while they or the appointments are read again; a choice resets,
+with a notice, only when its address no longer holds or its member is no longer offered. One
+address belongs to one member in a company, and an existing link must agree with the mapping. An
+opening is refused if a completed issue or transfer is not represented at its boundary. If the
+chain no longer confirms the boundary, or a mapped wallet has since been linked elsewhere, reject
+the opening and prepare a new one.
 
 ## Changing the register after the opening
 
@@ -369,6 +373,8 @@ the same way before any shares are minted.
    new one; choose the same member for wallets that belong to one person. For a wallet on the
    company's whitelist, the page also shows whether its holder proved control on Ledova and the
    holder's name, for information only: a link needs neither, and the company chooses each member.
+   A choice resets, with a notice, only when its wallet no longer waits or its member is no longer
+   offered.
 3. Upload the authority document and give the authority, approving director, reference and reason,
    then Approve and Apply.
 
@@ -397,7 +403,7 @@ creates no wallet, account, payment, application or chain transaction.
    before and after, and unchanged issued shares. Then Apply.
 
 The transferor must hold enough shares. The approving director cannot be either party
-([named-director rule](issuing-shares.md#the-named-director-rule)). Applying records
+([named directors](README.md#how-a-company-decision-works)). Applying records
 one Transfer entry on the actual day, in UTC, with the applier as its recorder; the signing and
 lodgement dates stay separate, and the certificate falls due one calendar month after lodgement
 ([certificates](member-records.md#certificates)). A holding that becomes zero creates
@@ -457,9 +463,9 @@ review:
    waiting list: its settlement, the seller's then the buyer's wallet, and the shares.
 2. The company owner submits an instruction listing the exact settlements a named director approved,
    with the authority reference, a reason and a company document that platform staff have
-   [verified](member-records.md#reviewing-company-documents). Ledova keeps
+   [verified](companies.md#staff-verification-of-a-company-document). Ledova keeps
    a private copy of it. Neither app has a form for this; it is submitted through Ledova's API
-   ([register commands](../engineering/records.md#register-commands)).
+   ([retained instructions API](../engineering/records.md#retained-register-instructions-api)).
 3. Platform staff open the instruction under Register instructions in admin, inspect the retained
    document, the named director, the reference and the company, and check each settlement's wallets,
    the member each is linked to and the name it identifies, the shares, the class and the completion
@@ -507,18 +513,15 @@ changes the register and not the chain.
 ### Acknowledging a discrepancy
 
 Once the company has investigated a discrepancy and accepted it, a person whose appointment holds
-Company administration or Approve register decisions chooses Acknowledge on that row of the class's
-latest reconciliation and gives a reason of up to 1,000 characters. There is no staff step and no
-second person.
+administration or approve chooses Acknowledge on that row of the class's latest reconciliation and
+gives a reason of up to 1,000 characters. There is no staff step and no second person.
 
 - Only the latest reconciliation can be acknowledged; for an older one, wait for the next run.
 - Attribution and missing-transfer rows cannot be acknowledged, and a row is acknowledged once.
 - Later runs treat the row as explained: an acknowledged unrecognised transfer is not reported again
   for that transaction, and an acknowledged member, unlinked or supply difference is added to what
-  is expected, so a further change shows as a new difference. Accepting an outside transfer
-  therefore means acknowledging its unrecognised-transfer row and the member or unlinked rows it
-  causes; a correction's effect is acknowledged through the member and supply rows it leaves. Once
-  every row is acknowledged, the next run is Matched.
+  is expected, so a further change shows as a new difference. Once every row is acknowledged, the
+  next run is Matched.
 - An acknowledgement records nothing in the register, whose holdings stay as recorded.
 
 Each acknowledgement is kept with the reconciliation, the exact row, the reason, the person, their
@@ -564,38 +567,17 @@ missing holdings are zero, and a failed read hides private details and actions w
 unfinished requests. Each proposal shows its stage (Prepared, Approved, Applied or Rejected; an
 import shows Reviewed and Confirmed), preparer, dates, terms, authority, decision trail, any
 rejection reason and its document, and whether the company provided the evidence or, before the work
-became company-run, Ledova staff verified it. A reconciliation shows its status, block, compared
-entry, time, any failure and each discrepancy in words with its acknowledgement.
+became company-run, was "Verified by Ledova staff". A reconciliation shows its status, block,
+compared entry, time, any failure and each discrepancy in words with its acknowledgement. Each
+preparation opens a page of its own and shows the server's words on a refusal. A form that uploads a
+document keeps its upload if the response is interrupted.
 
-The person's own current appointments decide which steps are offered: Approve and Reject need
-Company administration or Approve, Apply needs administration or Apply, and preparing needs
-administration or Prepare. Someone with none of these sees the history with a read-only note. Every
-decision opens a preview first, which lists in words anything the decision still lacks and what
-applying records; a rejection takes a reason of up to 1,000 characters. An interrupted decision is
-recovered as described in
-[how a company decision works](README.md#how-a-company-decision-works). The mobile
-app keeps its own per-class ownership view and separate preparation and decision screens, holds
-member access under Company, and hides every register action while it cannot read the person's
-appointments ([frontend](../engineering/frontend.md)).
-
-### Register task forms
-
-Each preparation opens a page of its own and shows the server's words on a refusal. A form that
-uploads a document keeps its upload if the response is interrupted.
-
-| Action                 | Offered to                                                        | What it takes                                                                                       |
-| ---------------------- | ----------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| Bring records          | Administration or Prepare, for an unopened class or the latest import | The company's shareholder and allotment records ([bringing in records](#bringing-in-existing-records)) |
-| Correct this entry     | Administration or Prepare, on each correctable entry              | Authority document and details, effective date ([corrections](#compensating-corrections)) |
-| Open this register     | Administration or Prepare, for a deployed or paused class not yet opened | Each holding address mapped to a member, authority document and details ([opening](#opening-from-the-chain)) |
-| Change particulars     | Administration or Prepare, on each current member                 | Supporting document, new name and address, "as at" date and reason                                 |
-| Link waiting wallets   | Administration or Prepare, once a wallet waits                    | Each waiting wallet mapped to a member, authority document and details                             |
-| Acknowledge            | Administration or Approve, on an acknowledgeable discrepancy      | A reason                                                                                            |
-
-The holdings read for an opening is refreshed only on request or after a conflict, never on its own,
-and Prepare is held while the holdings or appointments are being read again. Member choices are kept
-by address and reset, with a notice, only when the address no longer holds or waits, or its member
-is no longer offered.
+The person's own current appointments decide which steps are offered
+([how a company decision works](README.md#how-a-company-decision-works)); someone with none of them
+sees the history with a read-only note. A rejection takes a reason of up to 1,000 characters. The
+mobile app keeps its own per-class ownership view and separate preparation and decision screens,
+holds member access under Company, and hides every register action while it cannot read the
+person's appointments ([frontend](../engineering/frontend.md#page-mechanics)).
 
 ### The Share class page
 
@@ -608,15 +590,10 @@ numbers, and a quantity or resulting total above 2,147,483,647 is refused rather
 ## Limits and work not built
 
 - The register is the company's ownership mirror, not its statutory register or historical archive.
-- Not built: partial corrections and replacement transactions, the attribution procedure, a declined
-  settled transfer, court-directed, paid or chain non-paid transfers, and tokenising an imported
-  register.
-- Publications go only to a class on chain, deployed or paused
-  ([shareholder publications](publications.md)).
-- Splits and consolidations are not built
-  ([splits and consolidations](issuing-shares.md#splits-and-consolidations)).
 - Ledova runs on synthetic data only. Production retention of evidence, and how a mistaken opening
   import is undone beyond the bounded correction, are decided before real data is admitted.
+
+Work not built is marked in each section.
 
 Next: [share classes and issuing shares](issuing-shares.md),
 [member records and register outputs](member-records.md),

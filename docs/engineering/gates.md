@@ -28,7 +28,7 @@ fails, and an entry naming no script fails.
 | `check-api-schema.py`         | [The API type drift gate](#the-api-type-drift-gate)          | no           | Backend verification     |
 | `check-api-types.mjs`         | [The API type drift gate](#the-api-type-drift-gate)          | yes          | Source and client checks |
 | `check-client-operations.mjs` | [The API type drift gate](#the-api-type-drift-gate)          | yes          | Source and client checks |
-| `check-self-imports.mjs`      | [Shared package imports](frontend.md)     | yes          | Source and client checks |
+| `check-self-imports.mjs`      | [Shared package imports](frontend.md#clients-and-the-shared-package) | yes          | Source and client checks |
 
 Two rules are gated without a script of their own: migration drift through
 `makemigrations --check --dry-run` in the backend group, and generated design
@@ -36,7 +36,9 @@ tokens through the non-writing `generate-css-tokens.mjs --check` in `make check`
 The Makefile also runs the mobile test-await control, the real native dependency
 resolver (`npm --prefix mobile run check:resolution`) and the dashboard React
 singleton check. `check-self-imports.mjs` prevents the shared package importing
-its own public barrel.
+its own public barrel. Dependency advisories are checked by
+`scripts/audit-dependencies.py` inside `make ci-checks` and `make backend-test`
+([dependency advisories](#dependency-advisories)).
 
 ## Gate debt and exceptions
 

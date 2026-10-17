@@ -15,8 +15,8 @@ Contents:
 - [Creating an order](#creating-an-order)
 - [Cancelling or modifying an order](#cancelling-or-modifying-an-order)
 - [The trading lock graph](#the-trading-lock-graph)
-- [Swap settlement context](#swap-settlement-context),
-  [the reviewed intent](#the-reviewed-intent) and
+- [The reviewed intent](#the-reviewed-intent),
+  [swap settlement context](#swap-settlement-context) and
   [the settlement admission matrix](#the-settlement-admission-matrix)
 - [Payment units](#payment-units)
 - [Participant approvals](#participant-approvals)
@@ -33,35 +33,19 @@ flag is off; an operator can switch it per deployment in Django admin. The read-
 the per-class whitelist status sit outside those prefixes. The flag is an operations switch, not a
 product mode, and does not establish safety.
 
-Private orders stay visible and editable only to their owners; staff see every order and settlement
-read-only in the admin ([the market pages](../operations/operator-console.md#the-market)).
-Eligible market readers see aggregated prices and remaining quantities from open or partially filled
-orders that meet the same signed admission and current-authority checks as foreign matching.
-Unjournaled, stale-domain, unverified-wallet and inactive-owner orders do not advertise liquidity.
-Quotes use the same uniquely configured, active settlement asset and live deployment as new orders;
-absent or ambiguous configuration suppresses quotes. Quotes are a snapshot, not a reservation or a
-guarantee that a submitted order will match.
+Who may trade, who sees orders and what a quote promises are business rules:
+[who may trade and who sees orders](../business/trading.md#who-may-trade-and-who-sees-orders).
+Market readers see aggregated prices and remaining quantities from open or partially filled orders
+that meet the same signed admission and current-authority checks as foreign matching. Unjournaled,
+stale-domain, unverified-wallet and inactive-owner orders do not advertise liquidity. Quotes use the
+same uniquely configured, active settlement asset and live deployment as new orders; absent or
+ambiguous configuration suppresses quotes.
 
-The bounded create service can match across accounts after authorising the caller's exact
-submission. A foreign candidate needs a recorded signed create admission with the current wallet,
-account, token and chain identity, the same payment asset, a verified EVM wallet and an active
-account owner; a busy or concurrently changed candidate returns a retryable response that keeps the
-submission UUID. Unjournaled orders keep their same-account behaviour and gain no cross-account
-matching authority. Both participants still approve and sign the captured settlement before
-execution.
-
-Creating an order, modifying one and signing a swap all require the acting party to hold a current
-[eligibility decision](../business/participants.md#company-eligibility-decisions) from
-the share class's company, in addition to the wallet, registry and balance checks. Either party may
-relay the other's captured signature, so the check follows the signature rather than the caller: the
-account that signed must hold the decision, not whoever submits it. A party whose decision lapses or
-is revoked between the two keeps their signature but cannot add another, and the share token itself
-refuses the settlement.
-
-Deliberate new orders receive account-scoped submission UUIDs; cancel and modify actions use separate
-action UUIDs. Retries keep those identities, and equal terms do not make two deliberate actions the
-same action. Immutable intent and recorded outcomes survive changes to the current order. An
-inaccessible or missing recovery lookup never proves that an earlier request failed to commit.
+Order creation, modification and swap signing each call `TradingAdmission.require_current`
+(`backend/tokens/services/trading_admission.py`) for the account that signed, not the caller,
+beside the wallet, registry and balance checks; it refuses without a current
+[eligibility decision](../business/participants.md#company-eligibility-decisions) from the class's
+company with `investor_not_eligible`, which create and modify record as a terminal refusal.
 
 Owned order lists and details keep rows when the current share class becomes inaccessible. They show
 the visible class identity where available, otherwise the recorded create-admission identity; legacy
@@ -70,9 +54,7 @@ visible class identity and the owner's recorded admission identity. Pending swap
 V1 display; inaccessible legacy class names and symbols are null. These reads keep the order and
 wallet ownership checks and neither make a hidden class public nor authorise a new trading action.
 
-Matching captures the settlement domain, exact signed values and participant context. New signatures
-and approvals recheck a current authorised participant against that context. Once a swap completes,
-both parties' share and settlement-asset holdings are written from the chain
+Once a swap completes, both parties' share and settlement-asset holdings are written from the chain
 ([holdings written from the chain](chain.md#holdings-written-from-the-chain)).
 
 Selling reads the chosen wallet's balance of every deployed class and of the settlement asset from
@@ -124,7 +106,10 @@ owner-scoped lookup; no second commit or matching queue is introduced. The app c
 insert swap rows: its row-level write policy on `tokens_swaporder` is `false`, installed with the
 other policies and grants by `shared/0002_database_guards`.
 
-Foreign candidates must still have verified EVM wallets and active account owners. The database
+Foreign candidates need a recorded signed create admission with the current wallet, account, token
+and chain identity, the same payment asset, a verified EVM wallet and an active account owner.
+Unjournaled orders keep same-account matching only and gain no cross-account matching authority.
+The database
 orders candidates by price, creation time and primary key. The matcher streams batches of 100 rows
 and yields compatible candidates one at a time, closing the iterator on success or refusal; it does
 not materialise the whole book or a second match list. Each attempt has its own savepoint. It acquires
@@ -146,7 +131,7 @@ while spend and refusal commit together; the database accepts only these five co
 | --- | --- | --- |
 | A negative whitelist result | `not_whitelisted` | The submission |
 | Insufficient seller share or buyer payment balance | `insufficient_balance` | The submission |
-| An investor classification not live for the class's company | `investor_not_eligible` | Token-wide |
+| No current [eligibility decision](../business/participants.md#company-eligibility-decisions) from the class's company, including one that lapses or is revoked before commit; the refusal detail carries the reasons (usually `no_live_company_decision`) | `investor_not_eligible` | Token-wide |
 | A share token whose recorded deployment names a chain other than the domain about to be signed, or whose deployment row cannot be read | `settlement_chain_disagreement` | Token-wide: matching refuses at the first candidate |
 | Every compatible fill fails the amount check | `invalid_settlement_amount` | Matching tries later candidates when one fill fails, keeping price and time priority among usable fills |
 
@@ -258,7 +243,9 @@ create path only. And matching runs only inside creation and the held-order swee
 deciding whether it may rest from the orders already committed, so two crossing orders created
 concurrently can both rest unmatched. The minute's sweep bounds that liveness limit without a new
 lock: it holds back the newer of any two listed orders that cross and matches it on its next run.
-Every placement, settlement, lapse, revert and modification checks the
+A held order the sweep lists publishes `order_listed`, one it matches publishes `order_matched`,
+and the newer order of a crossing pair it holds back publishes `order_held`; both clients refresh
+the book and the owner's orders on each. Every placement, settlement, lapse, revert and modification checks the
 [book it would rest in](../business/trading.md#one-match-never-crossed).
 
 The competing pairs the graph must hold are below. No process-level test proves them; they were
@@ -278,6 +265,28 @@ retired under the [minimum-test policy](../decisions.md#minimum-tests-and-fresh-
 These are [PostgreSQL row-lock semantics](https://www.postgresql.org/docs/16/explicit-locking.html#LOCKING-ROWS),
 not a replacement for the account-ownership, wallet-address, verification, deployment and balance
 checks that run under the locks.
+
+## The reviewed intent
+
+V1, the EIP-712 `SwapOrder` typed data over the `LedovaAtomicSwap` domain, is the only signed
+protocol; unsupported protocols cannot be adopted, replayed or re-signed.
+
+A newly matched swap captures its settlement context before anything is signed: the typed domain
+(name, version, `chainId`, `verifyingContract`) and message (seller, buyer, share token, payment
+token, share amount, payment amount, nonce, deadline), the parties bound to their exact order,
+account, wallet and payment asset, the deployment that priced the payment, the digest and the
+`order_hash`. `capture_settlement_context` (`backend/tokens/services/settlement_context.py`) refuses
+a share token whose recorded deployment names a chain other than the domain about to be signed,
+including one whose deployment row cannot be read, with the terminal `settlement_chain_disagreement`
+refusal that [order creation](#creating-an-order) records.
+Newly matched swaps use the owner-selected 15-minute signing window (`SWAP_ORDER_EXPIRY_HOURS`,
+default 0.25); every recorded deadline and issued signature predating that decision keeps its own.
+Two deliberate orders with equal terms remain two submissions, two orders and two swaps. Order
+creation resolves the operator's single active, deployed, supported settlement asset, so two signed
+orders form a swap. The captured context is what the parties review; every stage re-checks it under
+its locks through the admission matrix below, and
+[what PostgreSQL freezes](#what-postgresql-freezes) maps the
+guards that hold it.
 
 ## Swap settlement context
 
@@ -304,28 +313,6 @@ request. The lookup checks current ownership and verification again; a list entr
 authorisation. Same-address wallets cannot substitute for the recorded wallet. List rows offer
 review; exact amounts come from the fetched context before signing, never from rounded numeric list
 fields. Signed sides stay visible only while another owned side still needs a signature.
-
-## The reviewed intent
-
-V1, the EIP-712 `SwapOrder` typed data over the `LedovaAtomicSwap` domain, is the only signed
-protocol; unsupported protocols cannot be adopted, replayed or re-signed.
-
-A newly matched swap captures its settlement context before anything is signed: the typed domain
-(name, version, `chainId`, `verifyingContract`) and message (seller, buyer, share token, payment
-token, share amount, payment amount, nonce, deadline), the parties bound to their exact order,
-account, wallet and payment asset, the deployment that priced the payment, the digest and the
-`order_hash`. `capture_settlement_context` (`backend/tokens/services/settlement_context.py`) refuses
-a share token whose recorded deployment names a chain other than the domain about to be signed,
-including one whose deployment row cannot be read, with the terminal `settlement_chain_disagreement`
-refusal that [order creation](#creating-an-order) records.
-Newly matched swaps use the owner-selected 15-minute signing window (`SWAP_ORDER_EXPIRY_HOURS`,
-default 0.25); every recorded deadline and issued signature predating that decision keeps its own.
-Two deliberate orders with equal terms remain two submissions, two orders and two swaps. Order
-creation resolves the operator's single active, deployed, supported settlement asset, so two signed
-orders form a swap. The captured context is what the parties review; every stage re-checks it under
-its locks through the admission matrix below, and
-[what PostgreSQL freezes](#what-postgresql-freezes) maps the
-guards that hold it.
 
 ## The settlement admission matrix
 
@@ -515,8 +502,9 @@ records the verified final block number and hash, gas and policy in the same tra
 completion or final failure and the parent updates. A same-outcome reinclusion may have a different
 block from the first receipt; the common operation and the transaction both keep their immutable
 first summaries. Register integration must use the swap's final inclusion when comparing settlement
-against an opening boundary, and company-run register openings from the chain read it
-([the register](../business/register.md#who-runs-what)). The database validates the evidence
+against an opening boundary
+([recording completions](records.md#recording-completions-after-the-opening)), and company-run
+[register openings](records.md#openings-api) from the chain read it. The database validates the evidence
 shape and freezes it on settlement; provider evidence is verified by the service, not proven by those
 database checks. `finalized_receipt` is nullable: swaps completed without it keep no evidence, and
 the guards refuse ordinary backfills. New signed settlement requires evidence; unsigned preparation
@@ -576,10 +564,9 @@ match, and no execution claim, transaction record, hash or other active match ex
 commits each release separately. It keeps previously filled quantities and signed terms, marks the
 swap `expired`, and publishes `swap_expired` so both clients refresh their orders and swaps. A retry
 cannot release the same reservation twice. Signing still stops at the recorded deadline; the worker
-makes eligible orders available on its next sweep. The two orders return oldest first: each rests in
-the book, which counts only its remaining quantity, unless its price would cross the book, when it is
-held back. The two still cross each other, so the one placed later, usually the order that took the
-match, is held, and the held-order sweep never pairs them again.
+makes eligible orders available on its next sweep, returning the two orders oldest first under the
+[one-match rule](../business/trading.md#one-match-never-crossed), and the held-order sweep never
+pairs them again.
 
 The expiry-eligibility marker is immutable. Do not backfill it: missing transaction data does not
 establish that nothing was sent. The marker describes the current service's durable claim protocol.

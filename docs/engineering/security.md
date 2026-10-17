@@ -34,20 +34,12 @@ secrets are in [mobile](mobile.md).
   clear resets it. An unreachable cache returns 503 before credentials are checked. The other DRF
   rate limits keep DRF's approximate counting; the strict atomic windows apply to `auth_email` and
   uploads. Test settings use `LocMemCache`.
-- The Django admin uses ordinary Django sessions, not the JWT stack above.
+- The Django admin uses ordinary Django sessions, not the JWT stack above. Company users use the
+  client transport, not an admin session, and authentication confers no company mandate
+  ([company authority boundaries](README.md#company-authority-boundaries)).
 
 How the clients hold and refresh these sessions is in [frontend](frontend.md)
 and [mobile](mobile.md).
-
-### Company authority after authentication
-
-A successful login, a company account role or a global staff permission grants no company
-mandate. Appointments come from the
-[authority workflows](../business/companies.md) and are
-rechecked at the service and commit boundary, so revocation stops new actions from a still-valid
-session. Company users use the normal client authentication transport, without a Django admin
-session. The boundaries are in
-[company authority boundaries](README.md#company-authority-boundaries).
 
 ## Tenancy model
 
@@ -57,10 +49,7 @@ keep narrower company, account and eligibility rules where database read scopes 
 visibility does not decide investor eligibility: directory and market selectors apply the
 [eligibility consumers](backend.md#eligibility-decisions).
 
-The roles below are PostgreSQL connection roles, not human job titles. Customer requests never gain
-unrestricted `BYPASSRLS` or direct ledger writes. Bounded privileged services execute a
-company-authorised command after exact company and commit-time mandate checks, and enqueued
-unsigned work rechecks authority after revocation
+The roles below are PostgreSQL connection roles, not human job titles
 ([company authority boundaries](README.md#company-authority-boundaries)).
 
 ### Roles and principal
@@ -103,8 +92,11 @@ caller's principal, lock the company before the live account, profile, identity 
 appointments, and check the clock after the wait. Policies scope authority requests to their
 requester, appointments to their appointee and invitations to their inviter; team reads go
 through the administration check and exclude private identity, financial and authority evidence.
-Publication selectors bind the exact retained company owner or named roll recipient
-([who may read a publication](../business/publications.md#who-may-read-a-publication)).
+Triggers attached in `companies/database_guards.sql`, with functions there and in
+`companies/authority_guards.sql`, refuse any update or deletion of authority requests, withdrawals,
+appointments, invitations, revocations and legacy-owner sources, and check admission, withdrawal,
+acceptance and revocation. Publication selectors bind the exact retained company owner or named
+roll recipient ([who may read a publication](../business/publications.md#who-may-read-a-publication)).
 
 ### Policy catalogue
 
@@ -129,8 +121,7 @@ receiving blanket grants. The `AWAITING_R0` and `AWAITING_RLS` sets are empty.
   not expose its owner's profile to an ordinary viewer of that company.
 - A member reads a company's row only through an account resolved once and stored, never through a
   live join. `Wallet` is unique per (account, chain, address), so two accounts can hold one
-  address and an address join would cross tenants. Shareholder publications were the first table
-  to carry such a term.
+  address and an address join would cross tenants.
 - `shared/0002_database_guards` installs the catalogue's roles, grants, policies and helpers on a
   fresh database; there is no in-place adoption path for an older one.
 
@@ -168,7 +159,8 @@ transaction. The worker explicitly selects operator authority and commits alerts
 Deployment captures the applying principal and the company's exact approval and scopes token
 lifecycle writes. Its operator-only broadcast journal commits independently before sending,
 rechecking the consumed approval under a lock; an outer transaction cannot undo that durable
-boundary ([chain](chain.md), [recovery](../operations/recovery.md)).
+boundary ([share-class deployment](chain.md#share-class-deployment),
+[recovery](../operations/recovery.md)).
 
 Three bounded operator reads serve product behaviour that ownership alone would refuse: resolving
 a supplied active company UUID for an associated-person claim, fetching public market prices for
@@ -194,11 +186,10 @@ and retention safeguards on hosted and private instances.
 ### Storage
 
 Private `FileField`s declare `storage=private_storage` and `max_length=255`.
-`PrivateMediaStorage.base_url` is null, so `.url` raises. Local evidence lives under
-`PRIVATE_MEDIA_ROOT`, which works with `DEBUG=false` too; cloud evidence uses private S3 or GCS
-objects, and discovery follows the storage declaration and alias for each adapter. Stored keys end
-in a fresh UUID and extension; no email or original filename is embedded. Company, account and
-classification UUIDs in prefixes remain pseudonymous identifiers.
+`PrivateMediaStorage.base_url` is null, so `.url` raises. Discovery follows the storage declaration
+and alias for each adapter ([where files live](../operations/jobs-and-storage.md#private-storage)).
+Stored keys end in a fresh UUID and extension; no email or original filename is embedded. Company,
+account and classification UUIDs in prefixes remain pseudonymous identifiers.
 
 | Upload | Storage prefix and lifecycle |
 | --- | --- |
@@ -224,13 +215,9 @@ document and classification evidence are read only through admin. The dashboard 
 top-level navigation with its session cookie. Mobile fetches with its bearer client and shares a
 temporary cached copy ([mobile](mobile.md)).
 
-A company document attached to an approved or closed offering is also served to the investors the
-directory admits to that share class, through the directory's own route and `file_url`
-([offering data flow](backend.md#offering-data-flow)), under the same rules: the
-row resolves before streaming, and a document not published through that class answers the same
-404 as a phantom. Only stored files are served there; a document held as an external link is not
-offered to investors. While an approved or closed offering carries a document, the company cannot
-delete it: the delete answers 409 `offered_document`, and admin refuses it too.
+Documents of a class's published offerings are also streamed to the investors the directory
+admits, through the directory route under these serving rules
+([offering data flow](backend.md#offering-data-flow)).
 
 Admin downloads are attachments. Customer serving is inline only for the allowed PDF, PNG and JPEG
 MIME types; other or absent types become attachments. `stream_stored_file`, which every customer
@@ -283,6 +270,17 @@ classified as retained, with a reason.
 | Former members, member particulars and register export records | `FORMER_MEMBER_RETENTION_DAYS`, at least 2,557 days | `purge_former_members_past_the_clock`, below |
 | Publications to members | The same setting and floor, from the publication | `purge_publications_past_the_clock` removes the publication, its roll, event chain and read records, and with them its files |
 | Register decisions, uploads and copies; authority-request uploads | No automatic expiry | None, below |
+
+The classification-evidence and payslip purges remove due private files and derived extraction
+payloads only after fresh database checks under the source and document locks; a caller-supplied
+future batch time or retention setting cannot authorise early deletion. The guard migration
+(`shared/0002_database_guards`, through `users/database_guards.py`) copies
+`CLASSIFICATION_EVIDENCE_RETENTION_DAYS` and `UNATTACHED_DOCUMENT_RETENTION_DAYS` into the users
+database guards and refuses a negative or non-integer value. Payslip attachment, both evidence
+purges, eligibility requests, decisions and evaluations, and approval refreshes compare the settings
+with the installed values and refuse to run on a mismatch (`ImproperlyConfigured`), so changing
+either clock needs a new migration that re-runs `users.database_guards.install`. The certificate
+time zone (`TIME_ZONE`, fixed at UTC) is copied and checked the same way.
 
 2,557 days is seven calendar years including two leap days. The classification reading is
 unadvised ([legal position 3](../legal/positions.md#3-the-evidence-retention-period)); neither
@@ -353,25 +351,19 @@ identity to charge but have the same body and file caps. A missing atomic cache 
 unavailable Redis returns 503; quota denial returns 429 with `Retry-After`. Worker restarts keep
 the quota; Redis data loss resets it.
 
-ClamAV's [INSTREAM protocol](https://docs.clamav.net/manual/Usage/ClamdProtocol.html) has no
-authentication or transport encryption, so the daemon stays on a trusted private network reachable
-only by application services. An exact clean verdict is mandatory; connection errors, malformed
-replies and unavailable scanning fail closed with 503. The client runs in a child with a parent
-deadline that also covers DNS resolution. Detected files return 400 and are never saved to
-permanent storage; there is no retained quarantine or bypass switch. Malware scanning cannot prove
-arbitrary content harmless.
+The scanner client streams each file to clamd with the
+[INSTREAM protocol](https://docs.clamav.net/manual/Usage/ClamdProtocol.html)
+([scanner deployment](../operations/jobs-and-storage.md#malware-scanning)). An exact clean verdict
+is mandatory; connection errors, malformed replies and unavailable scanning fail closed with 503.
+The client runs in a child with a parent deadline that also covers DNS resolution. Detected files
+return 400 and are never saved to permanent storage; there is no retained quarantine or bypass
+switch. Malware scanning cannot prove arbitrary content harmless.
 
 Each decoder or scanner child refuses to run unless its address-space, CPU and file-size limits
 are positive integers, so a setting below 1 fails every upload instead of lifting a limit. It turns
-core dumps off and sets the limits before reading the upload. On Linux every limit applies. When
-the kernel refuses to lower the address-space limit, the child runs without it and the parent logs
-`Upload workers run without RLIMIT_AS, which this platform refuses to set` once per process. macOS
-refuses any address-space limit below what a process has already mapped, so there the children run
-without the `UPLOAD_PROCESS_MEMORY_BYTES` cap, and its CPU limit does not stop a child that spends
-its time in system calls; the parent's wall deadline applies on every platform. Resource limits
-contain work; they are not a security sandbox or an aggregate concurrency limit. The limits, the
-scanner deployment and the proxy and clamd alignment are in
-[upload limits](../operations/jobs-and-storage.md#upload-limits).
+core dumps off and sets the limits before reading the upload. The limits contain work; they are not
+a security sandbox or an aggregate concurrency limit. Platform behaviour, the settings and the proxy
+and clamd alignment are in [upload limits](../operations/jobs-and-storage.md#upload-limits).
 
 Extraction rereads and rescans the stored bytes, renders the first page inside a resource-limited
 child and sends a bounded PNG to the configured local model. The child shares the service's OS

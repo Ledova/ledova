@@ -6,7 +6,7 @@ What a company publishes to its members through Ledova: holding statements, meet
 resolutions with online ballots, and dividends with their payment records. It states the rules, what
 members and the company see, and the procedure platform staff follow to publish on a company's
 written instruction. How publications are stored, audited and chained is in
-[publication records](../engineering/records.md#publication-storage).
+[publication records](../engineering/records.md#publications).
 
 Contents:
 
@@ -43,7 +43,7 @@ kinds are the **Annual holding statement**, the **Meeting notice**, the **Resolu
 - the document itself: the statement or notice, a resolution with its explanatory statement, or the
   company's dividend notice;
 - the company's written instruction and its authority, which is a
-  [verified company document](member-records.md#reviewing-company-documents) of the
+  [verified company document](companies.md#staff-verification-of-a-company-document) of the
   same company carrying the directors' authority;
 - the roll of members it was addressed to, frozen when it was made;
 - the company's name and the share class's name and symbol as they were then.
@@ -161,8 +161,9 @@ withdrawn.
 ### Closing a resolution
 
 A resolution closes automatically within five minutes after its window ends, and the tally then
-appears. Ballots are refused once the window has passed, so a late close changes only when the tally
-appears, never what it says.
+appears; staff need do nothing. Ballots are refused once the window has passed, so a late close
+changes only when the tally appears, never what it says. Without a running background worker
+nothing closes, though ballots are still refused.
 
 ### Who may see ballots and results
 
@@ -247,7 +248,7 @@ record payments; **Can view publication** to open a published document; and **Ca
 event** to see ballots and payment records. Check that the share class
 [can be published to](#which-classes-can-be-published-to) and that
 the company has a
-[verified company document](member-records.md#reviewing-company-documents) carrying
+[verified company document](companies.md#staff-verification-of-a-company-document) carrying
 the directors' authority.
 
 ### Making a publication
@@ -335,12 +336,6 @@ member, on the wrong date or with the wrong reference, or one the company says d
 To correct a record, withdraw it and then record the correct one; the member sees the new record in
 place of the old, and the original stays in the history.
 
-### Closing a resolution and reading the tally
-
-Nothing needs doing: the background worker closes each resolution whose window has passed, and the
-tally then appears on the resolution's page. Without a running worker nothing closes, but ballots are
-still refused once the window has passed.
-
 ### Opening a published document
 
 Open a publication and choose **Open the published document**. It downloads rather than displaying,
@@ -357,25 +352,24 @@ see [verifying stored records](../operations/recovery.md#verifying-stored-record
 
 ## The Published page
 
-**Published to your members** (web `/company/publications`; on mobile from **Company**) is the
-company's read-only view of what it has published, opened from **Company**. It is available to the
-company owner's account and lists the selected owned company's publications in one **Publications**
-card whose title carries the complete count. Each shows its title, kind, the company and class names
-as frozen at publication, the record date and when it was published, and opens the stored document.
-A resolution adds its question, kind, basis, window and status and, once closed, whether it was
-carried, the shares for, against and abstaining, the eligible shares and turnout. A dividend adds
-its rate, declaration date and payment date. The page offers no ballot or publishing controls.
-Members read and vote on what was published to them on
-[the Notices page](#the-notices-page).
+**Published to your members** is the company's read-only view of what it has published, opened from
+**Company** on both clients. It is available to the company owner's account and lists the selected
+owned company's publications in one **Publications** card whose title carries the complete count.
+Each shows its title, kind, the company and class names as frozen at publication, the record date
+and when it was published, and opens the stored document. A resolution adds its question, kind,
+basis, window and status and, once closed, whether it was carried, the shares for, against and
+abstaining, the eligible shares and turnout. A dividend adds its rate, declaration date and payment
+date. The page offers no ballot or publishing controls. Members read and vote on what was published
+to them on [the Notices page](#the-notices-page).
 
 ## The Notices page
 
-**Notices** (web `/publications`, under **More** on both clients) lists, newest first,
-what was published to the signed-in person as a member, with older items loaded on request. Each
-notice shows its title, company, class, kind and record date, and opens the stored document. A
-resolution shows the question, the basis, the person's votes, the window and, while voting is open,
-the ballot choices; afterwards it shows the person's ballot and the result. A dividend shows the
-declared rate, the payment date, the person's entitlement and what the company has recorded.
+**Notices** (under **More** on both clients) lists, newest first, what was published to the
+signed-in person as a member, with older items loaded on request. Each notice shows its title,
+company, class, kind and record date, and opens the stored document. A resolution shows the
+question, the basis, the person's votes, the window and, while voting is open, the ballot choices;
+afterwards it shows the person's ballot and the result. A dividend shows the declared rate, the
+payment date, the person's entitlement and what the company has recorded.
 
 What waits on the person as a member is counted on
 [the Wallet shares page](member-records.md#the-wallet-shares-page): resolutions open
@@ -387,4 +381,4 @@ not a member of its company counts nothing.
 
 Next: [member records and register outputs](member-records.md),
 [the register of members](register.md) and
-[publication records](../engineering/records.md#event-chain).
+[publication records](../engineering/records.md#publications).

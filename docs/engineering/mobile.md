@@ -27,12 +27,10 @@ overrides and scanner module.
 
 ## Architecture
 
-The app uses the versions resolved by `mobile/package-lock.json`, currently Expo SDK 54 on React
-Native 0.81. Its native projects are generated at prebuild and never committed
+Native projects are generated at prebuild
 ([toolchain](mobile-releases.md#toolchain-and-generated-projects)). Screens live in
 `mobile/src/screens`, shared components in `mobile/src/components`, and the network, storage and
-session services in `mobile/src/services`. Its `QueryClient` (`mobile/App.tsx`) revalidates on
-reconnect but not on focus.
+session services in `mobile/src/services`.
 
 ### Shared package resolution
 
@@ -50,12 +48,15 @@ Metro resolution from `App.tsx` and one from a shared hook disagree. Run
 Navigation is declared in `mobile/src/navigation`: the root stack with sign-in and the sign-up
 screens (`AppNavigator`), a gate that sends an unfinished account back into sign-up
 (`SignupCompletionGate`), the drawer (`DrawerNavigator`), the bottom tabs (`BottomTabNavigator`) and
-a stack per area. The tab bar and drawer take their titles from the shared
-`DESTINATIONS` table, so a page has one name on both clients. The dashboard's routes and guards do not
-apply here: the tab navigator starts a company account with readable register access
-(`useRegisterAccess`) on its Register tab and every other account on Home (My shares), and the Market
-tab appears only for an investing account while `trading_enabled` is on. What each destination holds
-is described in [the app at a glance](../business/README.md#the-app-at-a-glance).
+a stack per area. The tab bar and drawer take their labels from the shared `DESTINATIONS` titles;
+native screens set their own page titles, so a few differ from the web (the eligibility-requests
+screen is titled Eligibility requests). The dashboard's routes and guards do not apply here: the tab
+navigator starts a company account with readable register access (`useRegisterAccess`) on its
+Register tab and every other account on Home (My shares). The visible tabs are Home, Register (only
+with that access) and Wallets; the other destinations, Market included, are hidden tab routes
+(`tabBarItemStyle: { display: 'none' }`) opened from the drawer. Market is registered only for an
+investing account while `trading_enabled` is on, and the drawer lists it under Invest. What each
+destination holds is described in [the app at a glance](../business/README.md#the-app-at-a-glance).
 
 ## Theme and appearance
 
@@ -115,21 +116,20 @@ revocation are in [authentication](security.md#authentication-and-sessions).
 ## Native transport
 
 This is the single home for the app's network policy; the related settings are listed in
-[configuration](../operations/configuration.md).
+[client variables](../operations/configuration.md#clients).
 
 Release builds require HTTPS for API requests, trading SSE and provider WebViews. The shared URL
 policy (`mobile/src/config/networkPolicy.ts`) refuses credentials embedded in URLs, fragments,
 malformed URLs and any bearer destination outside `EXPO_PUBLIC_API_URL`'s origin. Axios absolute URLs
 and `baseURL` overrides pass through the same check. An absent stored session removes an existing
-Authorization header before dispatch. The app sends `X-Auth-Transport: bearer`, so the API returns
-tokens in the body rather than setting cookies.
+Authorization header before dispatch. The app uses the bearer transport
+([authentication](security.md#authentication-and-sessions)).
 
 Native Debug allows exact `localhost`, `127.0.0.1`, `::1` and `10.0.2.2` hosts. For a physical
 development device, set `EXPO_PUBLIC_DEV_API_HOST` to one private LAN IPv4 and set the API and site
-URLs to that host before prebuild. Ports are not restricted by the native allowlist. Do not put
-credentials in `EXPO_PUBLIC_` variables; Expo embeds them in the bundle. Changing the native allowance
-requires regeneration and rebuilding. A Release build made from a Debug-configured prebuild still
-denies cleartext.
+URLs to that host before prebuild. Ports are not restricted by the native allowlist. Changing the
+native allowance requires regeneration and rebuilding. A Release build made from a Debug-configured
+prebuild still denies cleartext.
 
 Android uses separate main and Debug network security resources. iOS uses separate Release and Debug
 plists and a compile-time HTTP guard in its request handler (`LedovaHTTPRequestHandler`, installed by
@@ -187,8 +187,9 @@ Android retains SecureStore's exclusions in both legacy backup XML and Android 1
 device-transfer rules. Existing non-secret preference backups remain enabled. iOS device-only
 accessibility prevents transfer of the selected secret items to another device; it does not disable
 backups of the entire app container. SecureStore can persist across iOS uninstall and reinstall, and
-biometric enrolment or passcode changes can invalidate gated items. Keep a recovery phrase outside
-the app under the wallet recovery procedure. These platform semantics are documented by
+biometric enrolment or passcode changes can invalidate gated items. Keep the wallet's recovery phrase
+outside the app (the Recovery Phrase screen shows it): after a reinstall or an invalidated gated item,
+importing the phrase is the only way back to the wallet. These platform semantics are documented by
 [Expo SecureStore](https://docs.expo.dev/versions/v54.0.0/sdk/securestore/) and
 [Android backup rules](https://developer.android.com/identity/data/autobackup).
 
@@ -248,8 +249,7 @@ criterion, the absence threshold and the biometric or passcode fallback are unch
 
 The three QR placements use the local Expo module in `mobile/modules/ledova-scanner`. Its native view
 stays mounted while permission is pending or the preview is paused, so it can observe its own
-window's focus, attachment and visibility. The iOS placements use Expo Camera. Android requires a
-rebuilt Ledova app; Expo Go does not contain the local module and cannot open these scanners.
+window's focus, attachment and visibility. The iOS placements use Expo Camera.
 
 The Android view owns a CameraX lifecycle for each admitted scan. Window loss, hidden ancestors,
 detachment, disposal or inactive preview props retire that session and unbind only its preview and
@@ -310,10 +310,9 @@ reported upper-case host would be refused. Both views refuse new windows: `onOpe
 nothing, multiple windows are disabled and automatic JavaScript window opening stays off.
 
 On iOS, camera and microphone requests reach WebKit's own prompt instead of a silent grant, and
-`NSMicrophoneUsageDescription` stays. On Android a page gets the camera without an origin check once
-the app holds `CAMERA`. Android blocks `RECORD_AUDIO` app-wide, although Expo Camera's plugin and
-library manifest declare it; nothing in the app records audio. The app's config plugin declares the
-`IMAGE_CAPTURE` and `GET_CONTENT` intent queries, and no permission with them. Without
+`NSMicrophoneUsageDescription` stays. Android blocks `RECORD_AUDIO` app-wide, although Expo Camera's
+plugin and library manifest declare it; nothing in the app records audio. The app's config plugin
+declares the `IMAGE_CAPTURE` and `GET_CONTENT` intent queries, and no permission with them. Without
 `expo-image-picker`, iOS carries no `NSPhotoLibraryUsageDescription`.
 
 Five expectations rest on platform documentation or library source, not on a device run:

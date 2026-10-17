@@ -80,6 +80,8 @@ Resuming an unfinished signup:
   original declaration, capabilities, delegation and expiry. The action records your acceptance of
   the current Terms against that appointment when it does not already record it, and grants nothing
   more. Revoked, expired or otherwise ineffective appointments cannot complete signup.
+- Opening or resuming the review records nothing; only choosing **Complete company setup** records
+  the acceptance.
 
 ## Representative authority requests
 
@@ -175,20 +177,14 @@ Revocation rules:
   is no last-administrator exception: revoking the last administrator leaves the company without
   one, and no new self-declaration can restore it.
 
-A refresh failure hides authority and team results until a retry succeeds, and an account change
-cancels pending submissions and late replies.
-
 ## What an appointment records
 
 An appointment names its appointee and their profile and has exactly one source: an admitted
 initial request, an accepted invitation, or the retired owner upgrade (a legacy-owner appointment).
 It records the personal capabilities, the delegatable capabilities, any expiry and the declaration
 the person accepted. Appointments, requests, withdrawals, invitations and revocations cannot be
-edited or deleted
-([company authority boundaries](../engineering/README.md#company-authority-boundaries)).
+edited or deleted ([how company rows are protected](../engineering/security.md#company-rows)).
 
-- The six capabilities are independent; delegatable capabilities supply no administration of
-  their own ([company capabilities](README.md#company-capabilities)).
 - Signup admission records the 2026-10-14 workspace and Terms declaration. Invitation acceptance
   and company activation each keep their own 2026-10-04 declaration; a person accepting a limited
   invitation does not declare workspace administration. Earlier admitted declarations keep their
@@ -213,7 +209,8 @@ Editing basic company information and uploading, reading or removing company doc
 current personal appointment with Manage company information and team for that exact company, or
 the draft setup exception below. Initial, invited and legacy-owner appointments all pass the same
 live account, verified-email, identity, expiry and revocation checks. Delegatable-only capabilities,
-ownership, shareholding and platform staff permissions supply no administration.
+ownership, shareholding and platform staff permissions supply no administration
+([company capabilities](README.md#company-capabilities)).
 
 ### The draft setup exception
 
@@ -223,7 +220,7 @@ appointment, closes the exception for good; a revoked, expired or hidden initial
 later change of owner cannot reopen it. A pending request leaves the draft editable, which is why
 admission rechecks the captured details against the current company.
 
-Privacy of authority records:
+### Privacy of authority records
 
 - An authority request is visible only to its requester, an appointment to its appointee and an
   invitation to its inviter.
@@ -236,9 +233,8 @@ Privacy of authority records:
 ## Company information and documents
 
 A current company administrator reads and edits the company's basic information and manages its
-documents on web and mobile. On the web, Settings separates **Company details and share classes**,
-**Company documents** and **Team and appointments**; on mobile, **Settings → Company settings**
-reaches company details and documents and the team. If several companies are available, select the
+documents from Company settings on web and mobile
+([Settings](participants.md#profile-and-settings)). If several companies are available, select the
 company explicitly first.
 
 1. Select the company and read its name, address, contact details and status. The company provides
@@ -259,22 +255,40 @@ Rules:
 - Changing the registered name, ACN, ABN or company type sets the registry check back to pending, so
   the next activation runs a fresh lookup.
 - A document attached to an approved or closed offering cannot be removed, because investors may
-  already have read it ([issuing shares](issuing-shares.md)).
-- A failed refresh keeps an open draft or chosen upload but disables its actions until a refresh
-  succeeds. Changing the account or the selected company closes old forms, so an old confirmation or
-  late reply never acts for the newly selected company.
+  already have read it ([offer documents](issuing-shares.md#offer-documents)).
 
 Managing company information does not activate the company, issue shares, approve a payment or
-publish an offering. Share-class creation, offerings, finance and publication keep their existing
-owner and platform-staff checks; no delivered workflow has moved them to appointments yet.
+publish an offering ([who does what](README.md#who-does-what)).
+
+### Staff verification of a company document
+
+Settled-transfer and retained issue instructions
+([register](register.md#settled-transfer-instructions);
+[issuing shares](issuing-shares.md#retained-issue-instructions)) and
+[shareholder publications](publications.md) rely on a company document that platform staff have
+verified. Company register commands use the company's own evidence instead.
+
+1. In **Admin → Companies → Company documents**, choose **Review and verify document**. You need an
+   active staff account with **Can change company document**.
+2. Open the private file and review its company, document type and validity details.
+3. Confirm. The confirmation is bound to you and the document and expires after 15 minutes.
+
+Confirmation re-reads the file and records a fingerprint of its bytes and of the document's and
+company's identifying details. It is refused when the preview changed, the file is missing, empty
+or the wrong size, the document is rejected or its validity is not current; a web address alone
+cannot establish content. Ledova clears the verification automatically when the company's
+identity, the document's details or its rejection reason change; the company may revoke a
+verification but cannot grant one. Every use rechecks the current file against the fingerprint,
+the company and the validity dates.
 
 ## Activation and the registry check
 
 A current personal administrator activates the company on web or mobile after accepting the exact
 activation declaration and meeting the identity and registry requirements. Activation is what
-allows participants to request the company's eligibility decisions and, once it is open to
-investors, to apply for its offerings. It establishes no offering, share issue, payment,
-participant eligibility or wallet approval.
+allows participants to request the company's eligibility decisions and, once it is
+[open to investors](issuing-shares.md#listing-the-company-in-the-directory), to apply for its
+offerings. It establishes no offering, share issue, payment, participant eligibility or wallet
+approval.
 
 1. Establish your authority first, through signup or an accepted administrator invitation.
 2. Open **Company → Activation** (shown only to personal administrators) and refresh the company
@@ -286,11 +300,11 @@ participant eligibility or wallet approval.
    unconfigured check leaves the status unchanged and stays in the record; resolve the stated
    requirement, then choose **Try activation again**.
 
-Changing the account, session, selected company, appointment, company details or declaration
-invalidates an open confirmation, and a failed read disables submission. If the reply is lost, the
-same unchanged request can be recovered without another lookup; a confirmed pending or failed result
-can be followed by a newly reviewed attempt. Activation readiness and attempt details disappear when
-personal administration ends. Activation sends no notification.
+A change to your appointment, the company details or the declaration invalidates an open
+confirmation. If the reply is lost, the same unchanged request can be recovered without another
+lookup; a confirmed pending or failed result can be followed by a newly reviewed attempt.
+Activation readiness and attempt details disappear when personal administration ends. Activation
+sends no notification.
 
 The earlier owner submission and platform-staff review is retired. Its dates, reasons, files and
 actors remain as history, and older companies may still show its states (Submitted for Review,
@@ -300,10 +314,10 @@ Under Review, Additional Information Required, Approved, Rejected or Withdrawn).
 
 The registry check looks the company up in the Australian Business Register (ABR). The instance
 must have the lookup configured
-([configuration](#how-the-registry-check-matches)); without it every
-attempt stays pending and nothing is sent to ABR. The lookup uses the ABN, or the ACN when the ABN is
-blank. An ABN the register reports is recorded with the attempt but does not replace the identifier
-the company supplied.
+([configuration](../operations/configuration.md#company-registry-lookup)); without it every
+attempt stays pending and nothing is sent to ABR. The lookup uses the ABN, or the ACN when the ABN
+is blank. An ABN the register reports is recorded with the attempt but does not replace the
+identifier the company supplied.
 
 A check passes only when all of these hold:
 
@@ -337,15 +351,14 @@ admin.
 
 ## Representative identity requirement
 
-Each instance chooses whether company representatives must have a verified identity
-([setting](../operations/operator-console.md#operator-configuration)); it is off by default.
-When it is on, the person's verified identity is required for every act of company authority:
-initial admission, accepting an invitation, activation, company administration, eligibility
-decisions, member invitations, and register and wallet decisions. Staff technical recovery of a
-company is not affected. A representative becomes verified only through the configured identity
-provider, so the requirement should be turned on only with a provider configured; otherwise every
-company decision is refused. The investor requirement is separate
-([participants](participants.md#account-readiness)).
+Each instance chooses whether company representatives must have a verified identity; it is off by
+default. When it is on, the person's verified identity is required for every act of company
+authority: initial admission, accepting an invitation, activation, company administration,
+eligibility decisions, member invitations, and register and wallet decisions. Staff technical
+recovery of a company is not affected. A representative becomes verified only through the
+configured identity provider; with the requirement on and no provider, every company decision is
+refused ([operator configuration](../operations/operator-console.md#operator-configuration)). The
+investor requirement is separate ([participants](participants.md#account-readiness)).
 
 ## The Company page
 
@@ -362,7 +375,7 @@ Its Company administration section links to:
 
 For the company's owner it lists every share class with its status, code, type and authorised
 shares, links to the Register and offers **Create share class**
-([issuing shares](issuing-shares.md)). Company documents follow for administrators.
+([share classes](issuing-shares.md#share-classes)). Company documents follow for administrators.
 On mobile, Company eligibility is reached from Company team.
 
 Next: [participants and eligibility](participants.md) ·

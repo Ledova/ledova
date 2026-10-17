@@ -1,6 +1,6 @@
 # Company-managed register implementation
 
-[Accepted plan](plan.md) · [Business processes](../../business/README.md) · [Owner decisions](../../decisions.md#company-managed-registers-and-one-product)
+[Documentation](../../README.md) · [Accepted plan](plan.md) · [Owner decisions](../../decisions.md#company-managed-registers-and-one-product)
 
 The [accepted plan](plan.md) (3 October 2026, reprioritised on 9 October)
 sets the direction: companies run their own registers through recorded appointments, and Ledova supplies the
@@ -54,3 +54,6 @@ log; new integrated AUD payments, trading, advanced governance and filings are d
 Programme [#860](https://github.com/Ledova/ledova/issues/860), now closed, tracked the transition to one registry
 product; closed [#645](https://github.com/Ledova/ledova/issues/645) delivered the earlier foundation and
 [#846](https://github.com/Ledova/ledova/issues/846) the synthetic fixtures.
+
+Next: [accepted plan](plan.md), [business processes](../../business/README.md) or
+[roadmap](../../roadmap.md).

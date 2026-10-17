@@ -6,7 +6,7 @@ The durable contracts behind user-signed wallet transfers, the chain evidence th
 about them, receipt attribution, wallet history imports and balance repair. For engineers changing
 wallet code; the operator response to an unresolved transfer is in
 [recovery](../operations/recovery.md#wallet-transfers-and-trading), and what a member can send
-from the app is in [the Wallets page](../business/trading.md#the-wallets-page).
+from the app is in [wallets and wallet sends](../business/trading.md#wallets-and-wallet-sends).
 
 Contents:
 
@@ -15,17 +15,17 @@ Contents:
   [stablecoin approval check](#stablecoin-approval-check)
 - [Bitcoin transfers](#bitcoin-transfers)
 - [Wallet chain observations](#wallet-chain-observations)
+- [Settling submitted transfers](#settling-submitted-transfers)
 - [Receipt attribution](#receipt-attribution)
 - [EVM nonce-spend evidence](#evm-nonce-spend-evidence)
-- [History imports and previews](#history-imports-and-previews)
-- [Settling submitted transfers](#settling-submitted-transfers)
 - [Balance repair](#balance-repair)
+- [History imports and previews](#history-imports-and-previews)
 
 ## Transfer lifecycle
 
 Wallet transfer preparation and broadcast support selected native and crypto asset transfers on
 allowed test networks. Share classes are refused by these routes; share movement has its own
-issuance and trading mechanisms ([why](../business/trading.md#the-wallets-page)). The refusal
+issuance and trading mechanisms ([why](../business/trading.md#wallets-and-wallet-sends)). The refusal
 resolves the destination through the caller's view of the class and then through the global asset
 catalogue, so it holds while a class is paused and hidden from non-issuers. A class marked deployed
 whose address the factory never attested has no catalogue entry yet; until recovery re-projects the
@@ -193,6 +193,23 @@ watches. Preserve this history when investigating reorgs or recovering a stopped
 transaction's latest observation also travels in its owner's
 [account-data export](records.md#account-data-export).
 
+## Settling submitted transfers
+
+Local submitted transfers settle from the immutable chain observations. The observation must match
+the journal's network and transaction hash, a canonical receipt block, and the
+[approved finality policy](#wallet-chain-observations) for
+that network. Legacy attribution remains operator work.
+
+The principal-bearing confirmation task first resolves its scoped wallet and transaction. A bounded
+operator step records chain evidence outside financial writes; the consumer then returns to the
+captured principal. Under the wallet then transaction locks, it rechecks the observation generation,
+full target fingerprint and current policy. Starting a newer observation invalidates an older
+consumer even before the newer RPC returns. Missing, orphaned, malformed or unavailable evidence
+keeps `pending` and every deduction. A different outcome for the same hash is held for attribution
+against its first included observation. Same-outcome reinclusion can settle after its earlier block
+is proven orphaned and the new inclusion satisfies policy. Nonce consumption alone cannot refund
+funds; replacement admission and synthetic reorg refunds are not supported.
+
 ## Receipt attribution
 
 A receipt changes a transaction's status or accounting only when it identifies the requested
@@ -288,6 +305,41 @@ inconsistent provider responses stay unknown. This is one provider's internally 
 not an independent consensus proof, and the receipt's execution charge is recorded apart from
 complete fee accounting. Bitcoin replacement discovery is not part of this reader.
 
+## Balance repair
+
+Ordinary holding refreshes enforce the owner's conservative availability policy. An affected holding
+may decrease but cannot increase while any relevant local transfer remains unresolved. Token amounts
+and native fee holdings are affected independently; unrelated holdings can still refresh. Imported
+history creates no hold. A capped refresh records its actual held quantity and advances the balance
+version, but does not advance the complete-sync generation or report successful repair, so general
+wallet sync reports a partial refresh while a cap is active. Incoming funds and unused fee headroom in
+that holding can stay unavailable indefinitely while an earlier transfer awaits attribution.
+
+Balance RPCs run outside row locks. Wallet identity and holding balance-version checks discard reads
+that overlap a newer debit or wallet change. For journaled wallets, balance reads must still identify
+the recorded network before and after RPC; a changed token contract or decimal scale cannot repair
+the old transfer. The existing holding and deduction representation is kept; this is not a ledger or
+a separate observed and available balance model.
+
+Final outcomes persist `finality_observation` and a balance-reconciliation token with the status and
+notification job. No estimated amount or fee is refunded arithmetically. Successful balance repair
+releases availability, clears recorded deductions and removes the repair token after rechecking the
+transaction target and every returned holding version; a capped or failed read cannot clear that
+token. Token and native balances can repair independently, and the transaction's repair stays pending
+until both have succeeded without a concurrent change. If the approved policy changes while repair is
+unfinished, the task obtains fresh canonical evidence under the new policy. Only an already
+attributable terminal outcome can renew its repair authority, and only for the same outcome after
+the new policy is satisfied; this replaces the observation link without repeating the notification,
+and earlier immutable observations stay in the watch's history. Unknown evidence keeps holding
+availability, and legacy rows gain no authority.
+
+A worker interruption or provider outage leaves durable repair work for the five-minute sweep,
+including for terminal transactions; a retry cannot enqueue a second lifecycle notification.
+Unattributed legacy rows receive no new finality authority: `finality_observation` is a nullable link
+that is never backfilled. Legacy pending, reorged or replaced holds and terminal repair tokens
+without attributable finality stay conservative until operator attribution; current configuration
+cannot supply missing historical provenance.
+
 ## History imports and previews
 
 Manual wallet sync returns `success: false` with an actionable `syncResult.error` when verification
@@ -329,59 +381,8 @@ transfer. Existing historical rows, including legacy `success` statuses, are pre
 them, and adopting a locally submitted transfer after history imported its hash first, need operator
 attribution. The transaction table holds one row per wallet and hash, so it does not represent
 several transfer events within one transaction. Imported history reports receipt outcomes; it does
-not apply the settlement finality policy below.
-
-## Settling submitted transfers
-
-Local submitted transfers settle from the immutable chain observations. The observation must match
-the journal's network and transaction hash, a canonical receipt block, and the
-[approved finality policy](#wallet-chain-observations) for
-that network. Legacy attribution remains operator work.
-
-The principal-bearing confirmation task first resolves its scoped wallet and transaction. A bounded
-operator step records chain evidence outside financial writes; the consumer then returns to the
-captured principal. Under the wallet then transaction locks, it rechecks the observation generation,
-full target fingerprint and current policy. Starting a newer observation invalidates an older
-consumer even before the newer RPC returns. Missing, orphaned, malformed or unavailable evidence
-keeps `pending` and every deduction. A different outcome for the same hash is held for attribution
-against its first included observation. Same-outcome reinclusion can settle after its earlier block
-is proven orphaned and the new inclusion satisfies policy. Nonce consumption alone cannot refund
-funds; replacement admission and synthetic reorg refunds are not supported.
-
-## Balance repair
-
-Ordinary holding refreshes enforce the owner's conservative availability policy. An affected holding
-may decrease but cannot increase while any relevant local transfer remains unresolved. Token amounts
-and native fee holdings are affected independently; unrelated holdings can still refresh. Imported
-history creates no hold. A capped refresh records its actual held quantity and advances the balance
-version, but does not advance the complete-sync generation or report successful repair, so general
-wallet sync reports a partial refresh while a cap is active. Incoming funds and unused fee headroom in
-that holding can stay unavailable indefinitely while an earlier transfer awaits attribution.
-
-Balance RPCs run outside row locks. Wallet identity and holding balance-version checks discard reads
-that overlap a newer debit or wallet change. For journaled wallets, balance reads must still identify
-the recorded network before and after RPC; a changed token contract or decimal scale cannot repair
-the old transfer. The existing holding and deduction representation is kept; this is not a ledger or
-a separate observed and available balance model.
-
-Final outcomes persist `finality_observation` and a balance-reconciliation token with the status and
-notification job. No estimated amount or fee is refunded arithmetically. Successful balance repair
-releases availability, clears recorded deductions and removes the repair token after rechecking the
-transaction target and every returned holding version; a capped or failed read cannot clear that
-token. Token and native balances can repair independently, and the transaction's repair stays pending
-until both have succeeded without a concurrent change. If the approved policy changes while repair is
-unfinished, the task obtains fresh canonical evidence under the new policy. Only an already
-attributable terminal outcome can renew its repair authority, and only for the same outcome after
-the new policy is satisfied; this replaces the observation link without repeating the notification,
-and earlier immutable observations stay in the watch's history. Unknown evidence keeps holding
-availability, and legacy rows gain no authority.
-
-A worker interruption or provider outage leaves durable repair work for the five-minute sweep,
-including for terminal transactions; a retry cannot enqueue a second lifecycle notification.
-Unattributed legacy rows receive no new finality authority: `finality_observation` is a nullable link
-that is never backfilled. Legacy pending, reorged or replaced holds and terminal repair tokens
-without attributable finality stay conservative until operator attribution; current configuration
-cannot supply missing historical provenance.
+not apply the finality policy for
+[settling submitted transfers](#settling-submitted-transfers).
 
 Next: [contracts and chain](chain.md),
 [trading protocols](trading-protocols.md) and

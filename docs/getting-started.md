@@ -46,9 +46,6 @@ holds request quotas and trading events. ClamAV must finish loading signatures b
 | API and admin | <http://localhost:8000> |
 | Local chain (JSON-RPC, chain id 31337) | <http://127.0.0.1:8545> |
 
-Rebuild changed services: the dashboard is a built image with no source volume, so restarting alone
-does not pick up edited code. Keep the API and worker builds consistent.
-
 ## First sign-in
 
 Signup requires an emailed six-digit code. The local debug stack prints the verification message to
@@ -59,7 +56,7 @@ the template includes `http://localhost:5174`.
 For issuance beyond the demo data, the stack has already deployed the core contracts and admitted
 the signer. Use the Register for the company-authorised chain actions listed in the
 [implementation index](plans/company-managed-registers/README.md); the
-[issuance guide](engineering/chain.md) explains how the company's
+[issuance guide](engineering/chain.md#issuance-data-flow) explains how the company's
 decision, technical execution and chain confirmation stay distinct.
 
 ## The local chain
@@ -73,8 +70,7 @@ gives the network settings and which account the demo uses where.
 The chain keeps its contracts, blocks and balances across `make dev-down`, and every start checks
 that the core contracts are the ones it deployed
 ([the local stack's chain](operations/chains.md#the-local-stacks-chain) says what it checks
-and what to do when a check refuses). While the stack is up the chain holds port 8545, so give the
-chain smoke test another one: `make chain-test CHAIN_TEST_PORT=8546`.
+and what to do when a check refuses).
 
 ## Demo data
 
@@ -142,6 +138,24 @@ the sync reads the public testnets and replaces the seeded balances with what th
 there, normally nothing. Unattached payslips are purged 30 days after upload, as in production, so
 the seeded ones, uploaded up to 26 days before the run, disappear over the following weeks; a rerun
 does not bring them back.
+
+For a development database only, `register_foundation load-synthetic-opening` opens a share
+class's register from a JSON file with synthetic UUIDs and whole-share amounts, attributed to an
+active staff user. Loading the same file twice records one opening; invalid input rolls back the
+opening and the member references it created. A loaded opening initialises the register the HTTP
+routes serve for that class. From `backend/`:
+
+```json
+{
+  "operation_id": "78e39ef6-4c7c-4b38-8311-268ac67086b5",
+  "effective_on": "2026-09-20",
+  "holdings": [{ "member": "b0169d39-35b2-4f97-aa0a-fb027c1b167f", "shares": "100" }]
+}
+```
+
+```bash
+python manage.py register_foundation load-synthetic-opening --token TOKEN_UUID --actor STAFF_USER_ID --input opening.json
+```
 
 ## Stop and clean up
 

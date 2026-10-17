@@ -104,11 +104,12 @@ engineering boundaries are:
   establishes company authority.
 - Staff checks remain where no company-run replacement has landed:
   [settlement-asset and yield-token minting](chain.md#mint-requests),
-  technical retries of already admitted work, the review of retained register instructions for
-  issues and transfers, notice figures, and company packs carrying records beyond the core
-  register. Company appointees with register access prepare unsigned certificates, and a current
-  company administrator downloads the core register pack. Do not replace a staff check with
-  unrestricted customer writes on an operator connection.
+  [NAV updates](chain.md#nav-updates), [signer admission](chain.md#signer-admission),
+  infrastructure recovery, technical retries of already admitted work, the review of retained
+  register instructions for issues and transfers, notice figures, and company packs carrying
+  records beyond the core register. Company appointees with register access prepare unsigned
+  certificates, and a current company administrator downloads the core register pack. Do not
+  replace a staff check with unrestricted customer writes on an operator connection.
 - There is one product and no deployment-mode field; private hosting uses the same product and
   authority model ([decision](../decisions.md#company-managed-registers-and-one-product)).
 

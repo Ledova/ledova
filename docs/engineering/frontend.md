@@ -158,15 +158,16 @@ The session itself (tokens, cookies, CSRF and revocation) is described in
 
 `packages/shared/src/hooks/useAuth.ts` owns the authentication query and exports `AUTH_QUERY_KEY`.
 `ApiClientProvider` supplies each client's API instance, and that client's `QueryClient` sets focus
-and reconnect behaviour: the dashboard revalidates on both, mobile only on reconnect. Authentication
-does not retry a failed request automatically; a later mount may recheck a previous failure. The hook
-exposes fetching separately from the first session check, so a retry after a failure does not restore
-initial loading, and public forms keep their nested authentication consumers mounted so a failure
-cannot create a remount loop. The protected route hides protected content while a cached negative is
+and reconnect behaviour: the dashboard revalidates on both, mobile (`mobile/App.tsx`) only on
+reconnect. Authentication does not retry a failed request automatically; a later mount may recheck a
+previous failure. The hook exposes fetching separately from the first session check, so a retry after
+a failure does not restore initial loading, and public forms keep their nested authentication
+consumers mounted so a failure cannot create a remount loop. The protected route hides protected content while a cached negative is
 rechecked and redirects after a negative answer or failure.
 
-Signing in, and verifying an email, which also signs a new person in, remove every cached query except
-the authentication query; signing out and account deletion clear the whole cache. A new person is
+On the web, signing in and verifying an email (which also signs a new person in) remove every cached
+query except the authentication query; mobile clears the whole cache whenever the sign-in screen
+gains focus. Signing out and account deletion clear the whole cache on both. A new person is
 therefore never guarded by, or signs up against, the previous person's account. Mobile adds a session
 epoch that every read and write carries
 ([session scope](mobile.md#session-scope)).
@@ -186,8 +187,7 @@ Every list follows the same rules:
   inconsistent read withholds totals and charts rather than drawing a partial picture.
 - An open form keeps its draft through a failed refresh while holding its write until a read
   succeeds.
-- A failed file delivery is distinguished from an unavailable stored document. On mobile a company,
-  account or session change retires a pending document action.
+- A failed file delivery is distinguished from an unavailable stored document.
 
 A list that reads every page does so through `readEveryPage`
 (`packages/shared/src/utils/pagination.ts`): it asks for page 1, follows each `next` link by the page
@@ -204,11 +204,10 @@ integers (`wholeShares`, `requestShares`), and a quantity or resulting cap above
 bound.
 
 Market values are shown in AUD: `useCurrency` converts the API's US-dollar values at the current
-exchange rate, shows a dash while the rate is unknown, and neither client offers another currency. An
-offering's prices and an application's amounts are in the offering's currency: a new offering is
-priced in AUD, and one created before that rule keeps the currency it was given
-([decision](../decisions.md#the-signed-in-app)). Every amount names its currency (`formatMoney`).
-Charts are drawn without a chart library; do not add one.
+exchange rate, shows a dash while the rate is unknown, and neither client offers another currency.
+Offering prices and application amounts carry their offering's currency
+([offerings](../business/issuing-shares.md#creating-and-submitting-an-offering)), and every amount
+names its currency (`formatMoney`). Charts are drawn without a chart library; do not add one.
 
 ## Recovering a submitted company request
 
@@ -286,8 +285,8 @@ characters for a rejection, and confirms it with a retry key reused only for the
 the step's appointment is still the one previewed; on mobile the dialog closes when a refresh
 withdraws its step. A discrepancy is acknowledged through `useDiscrepancyAcknowledgement` with a
 reason of up to 1,000 characters; the dialog keeps the appointment it opened with and holds
-confirmation if a refresh changes it. The forms each command takes are described on
-[the Register page](../business/register.md#the-register-page).
+confirmation if a refresh changes it. What each command's form takes is described with its procedure
+in [the register of members](../business/register.md).
 
 ## Signed-in page conventions
 
@@ -434,11 +433,9 @@ use their bare name, queries `{Entity}QueryParams`, and non-CRUD calls `{Action}
 naming rules, the snake_case query-parameter fields and the utility-type preferences as errors on the
 shared `src/types/` files.
 
-Clients and shared types are API consumers: their keys, statuses and URLs are contracts
-([principles](README.md#principles)). The generated contracts in
-`packages/shared/src/generated/api.ts` come from the committed OpenAPI document, and the shared,
-dashboard and mobile compiler checks validate consumers against them
-([the API type drift gate](gates.md#the-api-type-drift-gate)).
+The generated contracts in `packages/shared/src/generated/api.ts` come from the committed OpenAPI
+document, and the shared, dashboard and mobile compiler checks validate consumers against them
+([principles](README.md#principles), [the API type drift gate](gates.md#the-api-type-drift-gate)).
 
 ## Pages
 
@@ -448,12 +445,13 @@ Each page's purpose, audience and rules are in its business section. The audienc
 | Page                                                        | Routes                                                                                                    | Audience          | Business section                                                                   |
 | ----------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- | ----------------- | ---------------------------------------------------------------------------------- |
 | Company dashboard                                           | `/company/dashboard` (web only)                                                                           | everyone          | [The app at a glance](../business/README.md#the-app-at-a-glance)               |
-| Personal dashboard (My shares on native)                    | `/home`, `/home#documents`, alias `/member-records`                                                       | everyone          | [The app at a glance](../business/README.md#the-app-at-a-glance)               |
+| Personal dashboard (My shares on native)                    | `/home`, `/home#documents`, alias `/member-records`                                                       | everyone          | [What a member can read](../business/member-records.md#what-a-member-can-read) |
 | Register, Employee awards, Documents, member access         | `/company/register` and `#awards`, `#documents`, `#access`; `/company/register/:uuid`; preparation routes | everyone          | [The Register page](../business/register.md#the-register-page)                 |
 | Company, Representative authority, Company team, Activation | `/company`, `/company/authority` (company), `/company/team`, `/company/listing`                           | everyone          | [The Company page](../business/companies.md#the-company-page)                  |
 | Company eligibility                                         | `/company/eligibility`                                                                                    | everyone          | [The Verification page](../business/participants.md#the-verification-page)     |
 | Offerings                                                   | `/company/offering`                                                                                       | company           | [The Offerings page](../business/issuing-shares.md#the-offerings-page)         |
-| Published to your members, Notices                          | `/company/publications` (company), `/publications`                                                        | company, everyone | [The Published page](../business/publications.md#the-published-page)           |
+| Published to your members                                   | `/company/publications`                                                                                   | company           | [The Published page](../business/publications.md#the-published-page)           |
+| Notices                                                     | `/publications`                                                                                           | everyone          | [The Notices page](../business/publications.md#the-notices-page)               |
 | Wallet shares                                               | `/wallets/holdings`                                                                                       | everyone          | [The Wallet shares page](../business/member-records.md#the-wallet-shares-page) |
 | Verification, Your company eligibility                      | `/investor-eligibility`, `/eligibility-requests`                                                          | investing         | [The Verification page](../business/participants.md#the-verification-page)     |
 | Directory, Applications                                     | `/directory`, `/directory/:uuid`, `/subscriptions`, `/subscriptions/:uuid`                                | investing         | [The Directory page](../business/participants.md#the-directory-page)           |
@@ -470,9 +468,8 @@ Page-specific technical notes, beyond the conventions above:
   and computes issued-share totals, holders deduplicated across classes and each class's shares with
   `BigInt` arithmetic (`dashboard/src/pages/company/dashboard/summary.ts`); it draws each class's
   donut itself.
-- Personal dashboard: reads the person's own member projection, never company totals or other
-  shareholders; the first own class's history loads when a member record opens, and choosing another
-  class reads that class's own entries.
+- Personal dashboard: reads the person's own member projection; the first own class's history loads
+  when a member record opens, and choosing another class reads that class's own entries.
 - Register: the web reads the person's appointments through the same account-bound cache as Company
   team; mobile Register reads them itself and hides every register action while they cannot be read.
   Both read them again after a revocation on Company team or Representative authority, after a
@@ -490,10 +487,6 @@ Page-specific technical notes, beyond the conventions above:
   subtree mounted.
 - Company: reads the selected company's complete detail and every page of its share classes and
   team; an edit sends only changed fields.
-- Offerings: the create and edit forms check price, ordered bounds, dates and the available settlement
-  choices before submission and set the window in the device's local time on mobile; Add documents
-  sends only the new choices, and a dialog opened on an offering that has since changed state sends
-  nothing.
 - Published to your members: reads the selected company's publications with `issuer` set, every page,
   so the card title carries the complete count.
 - Wallet shares: reads every page of the person's wallets and lists one row per asset across chains,
@@ -502,30 +495,27 @@ Page-specific technical notes, beyond the conventions above:
   conversion. Only a known investing role reads the applicant-filtered application list.
 - Verification: the claim history has a cache of its own, and every claim page loads before a
   submission is offered, so a pending claim on a later page still prevents a second one.
-- Directory and Applications: a draft application reads every verified Base wallet page, computes its
-  fixed-price total in integer cents and is scoped to the offering, so a replacement offering starts
-  fresh; the server still selects the applicant and enforces quantity and eligibility. Applications
-  shows the recorded values unaltered, independent of current Directory access, and a copy failure
-  keeps the value available.
+- Directory and Applications: a draft application reads every verified Base wallet page and computes
+  its fixed-price total in integer cents with `BigInt`
+  (`dashboard/src/pages/subscriptions/SubscribeForm.tsx`,
+  `mobile/src/screens/applications/presentation.ts`); Applications shows the recorded values without
+  recomputing them, and a copy failure keeps the value available.
 - Market: owned order history reads independently of listed classes and wallets. Saved orders,
   cancellations, changes, signatures and approvals are records on the device for the signed-in
   account ([create-order recovery](mobile.md#create-order-recovery),
   [order submissions](trading-protocols.md)), read when Market loads and after each
-  recovery, with one refresh that reads all three again.
-- Wallets: reads every wallet page into a ledger of its own. Native balances show at most eight
-  decimal places (`formatCryptoBalance` in `packages/shared/src/utils/formatting.ts`), ordered by
-  decimal-string comparison (`sortWallets` in `packages/shared/src/hooks/useWalletSort.ts`). On the
-  web every Sync waits while one runs. Add, edit, derive and delete keep refused input and stay open
-  until success; imports run one address at a time and remember confirmed additions for retry within
-  the same import; mobile's software registration waits for the server after the authenticated local
-  seed storage. A purchase page that cannot be opened shows the server's reason (`readApiError` in
-  `packages/shared/src/utils/errors.ts`) or a fixed message, never a proxy's error page. When Send
-  or Buy crypto decides whether to skip its wallet chooser, the web counts the wallets last read even
-  while re-reading, and mobile asks which wallet until the read has finished; mobile's Send forms keep
-  Continue unavailable until the chosen wallet's balances are read.
+  recovery.
+- Wallets: reads every wallet page into a ledger of its own. Native balances are formatted by
+  `formatCryptoBalance` (`packages/shared/src/utils/formatting.ts`) and ordered by decimal-string
+  comparison (`sortWallets` in `packages/shared/src/hooks/useWalletSort.ts`). On the web every Sync
+  waits while one runs. Imports run one address at a time, and mobile's software registration waits
+  for the server after the authenticated local seed storage. Purchase-page errors are read with
+  `readApiError` (`packages/shared/src/utils/errors.ts`), never a proxy's error page. Send on the web
+  counts the wallets last read even while re-reading; Buy crypto (`walletsSettled`) and mobile Send
+  skip the wallet chooser only after a finished read, and mobile's Send forms keep Continue
+  unavailable until the chosen wallet's balances are read.
 - Activity: the history read does not depend on the wallet filter read; filters use only supported API
-  fields, with date bounds covering whole local days (block time on mobile, excluding records without
-  one).
+  fields.
 - Profile and Settings: the transaction-alerts switch is the `transactionAlerts` field of the one
   user preferences record, read through `useUserPreferences` and saved with a partial `POST` to
   `/api/user-preferences/`; mobile distinguishes an unavailable preferences record from disabled

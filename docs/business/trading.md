@@ -44,8 +44,8 @@ an AUDY balance is not a direct AUD payment method, and no AUD settlement exists
 ([decision](../decisions.md#payments-and-settlement)).
 
 The company's own decisions feed the checks a trade must pass: its
-[eligibility decisions](participants.md) about each participant and its
-[approvals of their wallets](participants.md#wallet-nominations-and-company-wallet-approvals).
+[eligibility decisions](participants.md#company-eligibility-decisions) about each participant and
+its [approvals of their wallets](participants.md#wallet-nominations-and-company-wallet-approvals).
 A company appointment gives no access to investors' private orders and no authority to sign for
 their wallets.
 
@@ -58,8 +58,8 @@ decisions on settled transfers are deferred under #869.
 
 ## Who may trade and who sees orders
 
-Creating an order and signing a settlement both require the acting person to hold a current
-eligibility decision from the share class's company, in addition to a wallet the company has
+Creating or changing an order and signing a settlement all require the acting person to hold a
+current eligibility decision from the share class's company, in addition to a wallet the company has
 approved and the balance to cover the order. Either party may pass on the other's signature, so the
 check follows the signature, not whoever submits it: the account that signed must hold the decision.
 A party whose decision lapses or is revoked between the two keeps their signature but cannot add
@@ -94,7 +94,8 @@ Filled, Remainder Held Back**.
 
 An order takes one match at a time: once when it is placed, and once more each time its current
 match settles with shares left over. While a match is pending, the whole order, its remainder
-included, is out of the book. An order rests in the book only at a price that does not cross the
+included, is out of the book, and its owner cannot cancel or change it until the match settles with
+shares left, lapses or reverts. An order rests in the book only at a price that does not cross the
 other side's listed orders: a bid below the best ask, or an ask above the best bid. Otherwise it is
 held back: it is not listed and no other order matches it, but it still counts against the wallet's
 balance and its owner can change or cancel it. The rule applies wherever an order would rest: when
@@ -156,12 +157,12 @@ money through Ledova.
 
 ## The Market page
 
-**Market** (web `/trading`, for investing accounts) shows each share class's **For sale** and
-**Wanted** lists, places buy and sell orders, and lists **Your orders**, which stay when a class is
-no longer listed. Orders match automatically, and a buyer funds their payment wallet before placing
-an offer. The chosen wallet's approval for the class's company decides whether an order can be
-created. Selling needs the wallet's share and settlement balances from the chain; if they cannot be
-read, selling is unavailable rather than showing nothing held.
+**Market** (for investing accounts, under **More** while trading is enabled) shows each share
+class's **For sale** and **Wanted** lists, places buy and sell orders, and lists **Your orders**,
+which stay when a class is no longer listed. Orders match automatically, and a buyer funds their
+payment wallet before placing an offer. The chosen wallet's approval for the class's company decides
+whether an order can be created. Selling needs the wallet's share and settlement balances from the
+chain; if they cannot be read, selling is unavailable rather than showing nothing held.
 
 **Trades awaiting signatures** lists matches the person must review and sign. Orders, cancellations,
 changes, signatures and approvals the person started are kept on the device for the signed-in
@@ -171,32 +172,33 @@ web or pulled to refresh on mobile.
 
 ## The Wallets page
 
-**Wallets** (web `/wallets`) lists the person's wallets on one card per network, each with its
-verification and signing preference, when it last synced, its native balance to at most eight
-decimal places and its value in AUD (**Value** on web, **Estimated value** on mobile). On the web
-each wallet has **Edit**, **Sync** and **Delete**, with **Verify** and **Derive address** where they
-apply, and **Add wallet** is a page action. On mobile each wallet opens its own screen with **Verify
-address**, **Sync balances**, **Derive address** and **Delete wallet**, and the page adds **Sync
-balances** for every wallet. Adding, editing, deriving and deleting keep what was entered and stay
-open until they succeed; an import of several addresses remembers the ones already added if it is
-retried.
+**Wallets** lists the person's wallets on one card per network, each with its verification and
+signing preference, when it last synced, its native balance to at most eight decimal places and its
+value in AUD (**Value** on web, **Estimated value** on mobile). On the web each wallet has **Edit**,
+**Sync** and **Delete**, with **Verify** and **Derive address** where they apply, and **Add wallet**
+is a page action. On mobile each wallet opens its own screen with **Verify address**, **Sync
+balances**, **Derive address** and **Delete wallet**, and the page adds **Sync balances** for every
+wallet. Adding, editing, deriving and deleting keep what was entered and stay open until they
+succeed, and on mobile one in progress cannot be sent twice; an import of several addresses
+remembers the ones already added if it is retried. A failed sync is reported in that wallet's row.
 
-**Buy crypto** and **Send** are Wallets actions. **Send** opens its form directly when the person has
-exactly one verified wallet on the networks it supports (Ethereum, Bitcoin and Base) and otherwise
-asks which wallet; it offers crypto and payment tokens, including AUDY, and never shares
-([why](#wallets-and-wallet-sends)). **Buy crypto** goes straight to the
-provider when exactly one verified wallet is on the chosen asset's network. When the purchase page
-cannot be opened, the page gives the server's reason or "The purchase page could not be opened. Try
-again." **View shares in your wallets** opens
-[the Wallet shares page](member-records.md#the-wallet-shares-page).
+**Buy crypto** and **Send** are Wallets actions. **Send** opens its form directly when the person
+has exactly one verified wallet on the networks it supports (Ethereum, Bitcoin and Base) and
+otherwise asks which wallet; it offers crypto and payment tokens, including AUDY, and never shares
+([why](#wallets-and-wallet-sends)). When Send skips the chooser it offers Cancel rather than Back,
+and on mobile a lone Bitcoin wallet opens the Bitcoin send form. Each wallet chooser lists only the
+networks Wallets lists. **Buy crypto** goes straight to the provider when exactly one verified
+wallet is on the chosen asset's network. When the purchase page cannot be opened, the page gives the
+server's reason or "The purchase page could not be opened. Try again." **View shares in your
+wallets** opens [the Wallet shares page](member-records.md#the-wallet-shares-page).
 
 ## The Activity page
 
-**Activity** (web `/transactions`) lists recorded wallet transfers, read-only, with exact amounts,
-network fees and status. A share transfer's amount carries its class's own symbol. Filters cover
-whole local days (on mobile by block time, leaving out records without one), and each entry opens
-in place to its detail and a block-explorer link. Dividends are not transfers and do not appear
-here; they are on [Notices](publications.md#the-notices-page).
+**Activity** lists recorded wallet transfers, read-only, with exact amounts, network fees and
+status. A share transfer's amount carries its class's own symbol. Filters cover whole local days (on
+mobile by block time, leaving out records without one), and each entry opens in place to its detail
+and a block-explorer link. Dividends are not transfers and do not appear here; they are on
+[Notices](publications.md#the-notices-page).
 
 Next: [the register of members](register.md),
 [investors and eligibility](participants.md) and

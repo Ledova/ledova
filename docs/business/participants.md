@@ -11,7 +11,6 @@ register records is in [member records](member-records.md).
 - [Accounts and identity verification](#accounts-and-identity-verification)
 - [Company eligibility decisions](#company-eligibility-decisions)
 - [Wallet nominations and company wallet approvals](#wallet-nominations-and-company-wallet-approvals)
-- [Member profile](#member-profile)
 - [Transaction monitoring](#transaction-monitoring)
 - [The Verification page](#the-verification-page)
 - [The Directory page](#the-directory-page)
@@ -28,7 +27,7 @@ every company ([eligibility decision](../decisions.md#eligibility-and-ownership-
 
 1. Create your account, verify your email and choose **Individual Investor** as the account type.
    Company representatives follow [company signup](companies.md#company-signup).
-2. At **Eligibility Check**, confirm that you are over 18, an Australian resident and opening an
+2. At **Eligibility Check**, confirm that you are 18 or older, an Australian resident and opening an
    individual account.
 3. Complete identity verification with the configured provider, or choose **Skip for Now** and
    finish it later from Profile.
@@ -96,20 +95,13 @@ identity status and Profile show "UNABLE_TO_VERIFY" once in its place; every oth
 as it is. The stored result keeps every reason, staff see them in admin, and identity notifications
 name none.
 
-After approval, KYCAID's ongoing database screening can report a match on a sanctions, PEP, wanted,
-lost-or-stolen-document or internal list. Each new match raises one compliance alert for staff
-review (critical for sanctions and wanted lists, high otherwise) and leaves the account, the
-identity result and the risk assessment as they are.
-
 ## Company eligibility decisions
 
 Eligibility is one company's decision about one participant. The participant shares a
 classification source with one company and asks for its decision; a current company approver
 accepts it with a bounded expiry or refuses it, and can later revoke it. A decision is per company:
-another company's acceptance supplies no permission. It is also separate from the company's
-on-chain wallet approval
-([wallet nominations](#wallet-nominations-and-company-wallet-approvals)).
-Staff classification review is retired; historical review fields remain as history.
+another company's acceptance supplies no permission. Staff classification review is retired;
+historical review fields remain as history.
 
 ### Evidence sources
 
@@ -182,7 +174,7 @@ Rules:
   financial basis, identity-provider results or document metadata.
 - Requests, decisions, withdrawals and revocations cannot be edited or deleted and keep their
   actual person, appointment and time. A lost reply follows the
-  [uncertain-outcome rule](README.md#how-a-company-decision-works).
+  [uncertain-outcome rule](README.md#when-the-outcome-is-uncertain).
 
 ### What a decision opens
 
@@ -201,8 +193,7 @@ standing and expiry.
 - Payment instructions: the platform operator's bank and stablecoin payment details are shown only
   to platform staff and to people holding a current general decision from at least one company.
 
-Account readiness concerns login, account standing and identity only; it supplies no company
-permission. Company-run offering publication is not delivered.
+Company-run offering publication is not delivered.
 
 ### When eligibility ends
 
@@ -216,16 +207,15 @@ account standing, identity or wallet is lost. Then:
   company still covers the wallet;
 - until the removal lands on chain, a direct contract call could still move shares; pausing the
   share class is the available lever
-  ([approval refresh](../engineering/chain.md#refreshing-an-approval));
+  ([whitelist changes](../engineering/chain.md#whitelist-changes));
 - none of the holder's retained subscriptions, orders or swaps is hidden.
 
 ## Wallet nominations and company wallet approvals
 
-Possessing a wallet, being eligible and having the company approve the wallet are separate facts.
-A participant proves possession; a company appointment supplies the mandate to approve a wallet
-for that company's share operations. That mandate gives no permission to buy cryptocurrency through
-the on-ramp, records no payment, authorises no issue and links no register member to an account
-([on-ramp decision](../decisions.md#registry-priority-crypto-on-ramp-and-aud-payments)). Neither
+A participant proves possession of a wallet; a company appointment supplies the mandate to approve
+it for that company's share operations. That mandate gives no permission to buy cryptocurrency
+through the on-ramp, records no payment, authorises no issue and links no register member to an
+account ([on-ramp decision](../decisions.md#registry-priority-crypto-on-ramp-and-aud-payments)). Neither
 a company appointment nor a signing preference gives anyone control of a participant's key.
 Imported and walletless register members need no wallet: grants and transfers recorded in the
 register create no wallet holding ([register](register.md)).
@@ -279,25 +269,10 @@ can still burn their own shares. While a change is pending or has failed, every 
 treats the wallet as not approved
 ([company-scoped approvals decision](../decisions.md#company-scoped-approvals)).
 
-## Member profile
-
-Profile on web and mobile shows the signed-in person's full name, residential address and phone.
-Choose **Edit personal details**, change them and choose **Save personal details**. The form needs
-a successfully loaded Profile and blocks a second submission while one is saving; changing the
-signed-in person or session discards an old form.
-
-These are self-reported details. Editing them does not verify your identity, and existing identity
-results and signup requirements keep their rules. A Profile save creates no company appointment,
-member association, register instruction or change to your register particulars. The company
-changes register particulars only through its own evidenced workflow
-([register](register.md)), and members ask for such a change, read their own
-records and obtain their own certificates through a company-issued invitation
-([member records](member-records.md)).
-
 ## Transaction monitoring
 
-The platform monitors recorded wallet transactions for compliance review. Amounts are in
-Australian dollars.
+The platform raises compliance alerts for staff review from recorded wallet transactions and from
+ongoing identity screening. Amounts are in Australian dollars.
 
 | Rule    | Name                         | Raises an alert for                                                                    | Severity |
 | ------- | ---------------------------- | -------------------------------------------------------------------------------------- | -------- |
@@ -334,8 +309,12 @@ sanctions signal makes the alert a sanctioned-address one. A completed result is
 provider that cannot screen addresses (Sum&Sub today) fails every screening, which the address rule
 reports as unverified ([provider configuration](../operations/configuration.md#identity-verification-providers)).
 
-An alert changes nothing by itself: staff review it in admin, and the account, the transaction and
-any company decision stay as they are.
+After an identity approval, KYCAID's ongoing database screening can report a match on a sanctions,
+PEP, wanted, lost-or-stolen-document or internal list. Each new match raises one compliance alert:
+critical for sanctions and wanted lists, high otherwise.
+
+An alert changes nothing by itself: staff review it in admin, and the account, the identity result,
+the risk assessment, the transaction and any company decision stay as they are.
 
 ## The Verification page
 
@@ -370,33 +349,48 @@ covered classes it explains how to request eligibility.
 A share class shows its symbol, authorised and issued shares, and its current offering: **Open for
 applications** with the price per share and dates, or **No offering open** until an offering has
 been approved and its opening time has arrived. The documents attached to the class's approved
-offerings follow. While an offering is open, a participant can prepare a draft application by
-choosing a verified Base receiving wallet and a whole-share quantity; the total is worked out in
-whole cents, a draft belongs to that offering only, and the server still decides the applicant,
-quantity and eligibility. Creating a draft sends no payment: the operator reviews the application,
-and the accepted application shows the exact amount and payment reference.
+offerings follow. While an offering is open, a participant can prepare a draft application
+([applying for shares](issuing-shares.md#applying-for-shares)). A draft belongs to that offering
+only and sends no payment; its total is worked out in whole cents, and the server still decides the
+applicant, quantity and eligibility. The accepted application shows the exact amount and payment
+reference.
 
 Applications shows each application's recorded company, class, currency and payment instruction
 even if Directory access has since ended, keeping the exact reference, bank details or settlement
 amount. A recorded partial payment shows the amount outstanding and asks the investor to confirm
 any further payment with the operator. Offerings, applications, payments and allotment are
-described in [issuing shares](issuing-shares.md).
+described in [issuing shares](issuing-shares.md#applications-payments-and-paid-issues).
 
 ## Profile and Settings
 
-Profile shows Personal information (full name, email, phone, date of birth, address and
-citizenship) with **Edit personal details**
-([member profile](#member-profile)), Account status (identity
-check, member since and last login) with **Review identity check**, and Supporting payslips.
+### Member profile
+
+Profile on web and mobile shows Personal information (full name, email, phone, date of birth,
+address and citizenship) and Account status (identity check, member since and last login) with
+**Review identity check**; the web adds Supporting payslips.
+
+To change your full name, residential address or phone, choose **Edit personal details**, change
+them and choose **Save personal details**. The form blocks a second submission while one is saving.
+These are self-reported details. Editing them does not verify your identity, and existing identity
+results and signup requirements keep their rules. A Profile save creates no company appointment,
+member association, register instruction or change to your register particulars. The company
+changes register particulars only through its own evidenced workflow
+([particulars](register.md#changing-a-members-particulars)), and members ask for such a change,
+read their own records and obtain their own certificates through a company-issued invitation
+([member access](member-records.md#member-access)).
+
 Payslips are private to the person and permitted platform staff; companies cannot see them. A
 payslip can be attached to a submitted claim, and an unattached one is removed under the retention
-policy ([retention](../engineering/security.md#deletion-and-retention)). Uploading or
-reading a payslip never establishes eligibility.
+policy ([retention clocks](../engineering/security.md#retention-clocks)). Uploading or reading a
+payslip never establishes eligibility.
 
-Settings holds Company settings ([company setup](companies.md)), Profile and
-security (Profile and **Change password**), Appearance (**Dark theme**, remembered in this browser
-or on this device; Paper is the default), Notifications (**Transaction alerts** for transaction
-status changes) and Data and privacy:
+### Settings
+
+Settings holds Company settings (Company details and share classes, Company documents, Team and
+appointments, and Member access for people who can use the register;
+[company setup](companies.md)), Profile and security (Profile and **Change password**), Appearance
+(**Dark theme**, remembered in this browser or on this device; Paper is the default), Notifications
+(**Transaction alerts** for transaction status changes) and Data and privacy:
 
 - **Export data** downloads the person's account data as a JSON file
   ([account-data export](../engineering/records.md#account-data-export)).
@@ -405,9 +399,9 @@ status changes) and Data and privacy:
   register entries are kept. The confirmation says so, and the browser's copy of the account's data
   is cleared once the server confirms.
 
-Mobile Settings also offers biometric sign-in, **App lock** (biometrics after the app goes into the
-background), **Rate the app** and **Share with friends**, and groups password, export and deletion
-under Account.
+On mobile, Company settings reaches company details, documents and the team, and Settings also
+offers biometric sign-in, **App lock** (biometrics after the app goes into the background), **Rate
+the app** and **Share with friends**, and groups password, export and deletion under Account.
 
 Next: [company setup](companies.md) ·
 [issuing shares](issuing-shares.md) ·

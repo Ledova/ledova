@@ -114,6 +114,24 @@ positions, `entered_on` dates, head and supply against storage. An uninitialised
 ([verifying stored records](../operations/recovery.md#verifying-stored-records));
 it proves storage integrity, not chain reconciliation or director approval.
 
+For a development database only, `register_foundation load-synthetic-opening` records an opening
+from a JSON file with synthetic member UUIDs and whole-share amounts, attributed to an active
+staff user, then verifies the register. Loading the same file twice records one opening; invalid
+input rolls back the opening and the member references it created. A loaded opening initialises
+the register the HTTP routes serve for that class.
+
+```json
+{
+  "operation_id": "78e39ef6-4c7c-4b38-8311-268ac67086b5",
+  "effective_on": "2026-09-20",
+  "holdings": [{ "member": "b0169d39-35b2-4f97-aa0a-fb027c1b167f", "shares": "100" }]
+}
+```
+
+```bash
+python manage.py register_foundation load-synthetic-opening --token TOKEN_UUID --actor STAFF_USER_ID --input opening.json
+```
+
 ### Hash preimages
 
 A register entry's hash is the lowercase hex SHA-256 of the UTF-8 text of a PostgreSQL JSONB
@@ -187,59 +205,49 @@ transfer-only holders, so it is not a substitute for the register.
 completed issuance and settlement against the opening's captured boundary: `opening` (its
 transaction is in the captured history at the same block and hash, so the opening holds it),
 `after_opening` (a later block, absent from the history), `attribution` (the evidence cannot
-place it) or `unopened`. An opening whose captured boundary does not represent a completed effect
-is refused. The `register_inclusions` command prints the classification and whether each effect
-is `recorded`.
+place it, so an operator must attribute it) or `unopened` (no applied opening). An opening whose
+captured boundary does not represent a completed effect is refused. The `register_inclusions`
+command prints the classification and whether each effect is `recorded`.
 
 Each `after_opening` completion is recorded in chain order, in its own completion transaction,
 with the issuance or settlement id as the entry's operation id, so recording is idempotent, and
-dated the UTC day it is made. The recorder is the appointee who applied the grant or paid issue,
-the original staff reviewer under a retained register instruction, or, for a settlement, the
-transferor. An effect the opening already represents records nothing, nor does a settlement
-between two wallets of one member.
-
-Recording stops at the first effect it cannot record (the waiting reasons in
-[waiting effects](#waiting-effects)), so the stored holdings never
-skip ahead of the chain. The completion itself still commits, because a register record must not
-stall the workflow; the reason is logged. Recording resumes at the next completion in that class,
-the next applied wallet link in the company or the next applied register instruction for the
-class. Each takes the share-class lock first, a wallet link every class of its company in order,
-so a completion in progress cannot miss the new link or cover. Settlement completion takes the
-same share-class lock as issuance completion, so neither interleaves with an opening. Because no
-issue or transfer may be dated before the latest entry, while the latest entry is dated after
-today (as with an opening whose boundary block's time runs ahead of the platform's clock) the
-next one waits as `refused`. What waiting means to the company:
+dated the UTC day it is made. Who is recorded as recorder, which effects record nothing, and why
+recording stops and resumes:
 [recording](../business/register.md#recording-completed-issues-and-transfers).
+
+Recording stops at the first effect it cannot record ([waiting effects](#waiting-effects)). The
+completion itself still commits, because a register record must not stall the workflow; the
+reason is logged. A recording pass runs again on the next completion in that class, the next
+applied wallet link in the company or the next applied register instruction for the class. Each
+takes the share-class lock first, a wallet link every class of its company in order, so a
+completion in progress cannot miss the new link or cover. Settlement completion takes the same
+share-class lock as issuance completion, so neither interleaves with an opening. Because no issue
+or transfer may be dated before the latest entry, while the latest entry is dated after today (as
+with an opening whose boundary block's time runs ahead of the platform's clock) the next one waits
+as `refused`.
 
 ### Reconciliation job
 
 `reconcile_every_register` runs every six hours at :50 UTC
-([schedule](../operations/jobs-and-storage.md#schedule)) for each class with an applied chain opening; a
-class an import opened has none and is not reconciled. It captures a fresh canonical snapshot at
+([schedule](../operations/jobs-and-storage.md#schedule)) for each class with an applied chain
+opening; a class an import opened has none and is not reconciled. It captures a fresh canonical snapshot at
 the finality boundary, then takes the share-class lock that completions take and the register
-row, and compares:
+row. It compares the stored register with the chain as
+[reconciliation](../business/register.md#reconciliation-with-the-chain) describes, counting an
+executing issuance or settlement only when its current signed transaction is the one on chain,
+and requiring each completed effect in the block its receipt names.
 
-- every chain transfer after the boundary must be a recorded effect, a completed effect still
-  waiting, or an executing issuance or settlement whose current signed transaction is the one on
-  chain;
-- every completed effect must be on chain in the block its receipt names;
-- each member's linked wallets must hold its stored shares plus pending movements, and the issued
-  supply must equal the stored supply plus pending issues.
-
-A transfer of zero shares is ignored. An acknowledged `unrecognised_transfer` is ignored by its
-transaction hash, and an acknowledged `member`, `unlinked` or `supply` row's difference is added
-to the expected side. A snapshot below the opening's boundary block is never compared. The job
-writes only `RegisterReconciliation` rows (`matched`, `discrepant` with its discrepancies, or
-`failed` with the reason), with the block and register sequence compared; a trigger keeps each
-status consistent with its fields and refuses rewrites. A chain failure fails the
-reconciliation, never the register. Discrepancies are logged at error level, which is the alert.
-The job tries every class, then fails if any could not be reconciled; a class whose run raised
-keeps its previous result in the CSV. The discrepancy kinds (`unrecognised_transfer`,
-`missing_transfer`, `member`, `unlinked`, `supply`, `attribution`) and what each asks of the
-company are in
-[reconciling with the chain](../business/register.md#reconciliation-with-the-chain);
-the on-demand `register_reconcile` command is in
-[verifying stored records](../operations/recovery.md#verifying-stored-records).
+An acknowledged `unrecognised_transfer` is ignored by its transaction hash, and an acknowledged
+`member`, `unlinked` or `supply` row's difference is added to the expected side. A snapshot below
+the opening's boundary block is never compared. The job writes only `RegisterReconciliation` rows
+(`matched`, `discrepant` with its discrepancies, or `failed` with the reason), with the block and
+register sequence compared; a trigger keeps each status consistent with its fields and refuses
+rewrites. A chain failure fails the reconciliation, never the register. The discrepancy kinds
+(`unrecognised_transfer`, `missing_transfer`, `member`, `unlinked`, `supply`, `attribution`) and
+what each asks of the company are in
+[what each discrepancy means](../business/register.md#what-each-discrepancy-means); the on-demand
+`register_reconcile` command and the alerting are in
+[reconciling a register on demand](../operations/recovery.md#reconciling-a-register-on-demand).
 
 ### Former-member fold
 
@@ -273,11 +281,8 @@ the head entry's creation time, with no block, and never stale.
 
 `FormerHolder`'s application-role read term is the company owner alone; register appointees read
 former members through the register reads on the operator connection, and no application role
-writes them. `purge_former_members_past_the_clock` runs daily at 03:40 and removes folded former
-members, imported former members, member particulars of members who have held nothing for the
-period, ledger cessations of members not holding now, and export records, all on one clock:
-`FORMER_MEMBER_RETENTION_DAYS`, whose 2,557-day floor `retention_cutoff` enforces by raising
-`ImproperlyConfigured` ([data retention](security.md#retention-clocks)).
+writes them. `purge_former_members_past_the_clock` runs daily at 03:40 and applies the
+former-member clock ([retention clocks](security.md#retention-clocks)).
 
 ### Deletion protection
 
@@ -308,8 +313,9 @@ and the steps a company takes are in [the register of members](../business/regis
 part lists the register routes, payloads and family-specific rules. Routes are under
 `/api/v1/tokens/` ([urls.py](../../backend/tokens/urls.py)); every command also meets the
 [`issuer_kyc_required`](../operations/operator-console.md#operator-configuration) identity
-check for the appointee. Responses are rendered in camelCase (`djangorestframework_camel_case`);
-request bodies may use the serializers' snake_case names, as the examples here do.
+check for the appointee. Request fields here are the serializers' snake_case names, as the import
+example uses; responses are camelCase ([wire casing](backend.md#backend-rules)). Request bodies
+are in the [OpenAPI schema](../../backend/schema/openapi.json).
 
 ### Evidence uploads
 
@@ -342,8 +348,9 @@ verifies none of it.
 | `GET register-<family>/` | Page the proposals of companies whose register the caller may read, with the family's filters |
 | `GET register-<family>/{uuid}/` | The proposal with its evidence, stage and decisions |
 | `GET register-<family>/{uuid}/file/` | The proposal's private copy of its document, as an authenticated attachment |
-| `POST register-<family>/{uuid}/decision-preview/` | What the decision lacks, and the digest to decide with |
-| `POST register-<family>/{uuid}/decide/` | Approve, reject or apply |
+
+Each family also has the shared `decision-preview/` and `decide/` routes and requirement codes in
+[register decisions](backend.md#register-decisions).
 
 | Family | Route | Filters | Extra files | Digest also binds | Own requirement codes |
 | --- | --- | --- | --- | --- | --- |
@@ -352,20 +359,19 @@ verifies none of it.
 | Wallet link | `register-links/` | `company`, `status` | | For application, the current links of the mapped addresses | `wallet_linked_elsewhere` |
 | Import | `register-imports/` | `company`, `token`, `status` | `asic-file/` | For an opening correction, the current snapshot and head | `class_has_applied_import`, `class_not_openable`, `holdings_differ`, `former_member_after_opening`, `former_member_before_retention`, `deployment_pending`, `mirror_snapshot_changed`, `register_changed`, `mirror_correction_activity`, `mirror_correction_member_activity` |
 | Particulars change | `register-particulars-changes/` | `company`, `member`, `status` | | For application, the member's current particulars, date and source | `member_left_retention`, `newer_particulars_exist`, `member_request_no_longer_current` |
-| Grant | `register-grants/` | `company`, `token`, `member`, `status` | `terms-file/`, `acceptance-file/` | The register row, the class's supply and chain fields, the recipient's particulars and the UTC day; for an award, the award, its vesting events and its applied grants | `imported_non_tokenised_register_required`, `authorised_headroom_required`, `effective_date_before_latest_entry`, `approving_director_conflict`, `member_wallet_linked`, `member_reference_conflict`, `identified_company_member_required`, `member_particulars_changed`, `recorded_vested_quantity_required`, `award_evidence_unavailable` |
+| Grant | `register-grants/` | `company`, `token`, `member`, `status` | `terms-file/`, `acceptance-file/` | The register row, the class's supply and chain fields, the recipient's particulars and the UTC day; for an award, the award, its vesting events and its applied grants | `imported_non_tokenised_register_required`, `authorised_headroom_required`, `effective_date_before_latest_entry`, `approving_director_conflict`, `member_wallet_linked`, `member_reference_conflict`, `identified_company_member_required`, `member_particulars_changed`, `recorded_vested_quantity_required`, `award_binding_required`, `award_evidence_unavailable` |
 | Transfer | `register-transfers/` | `company`, `token`, `from_member`, `to_member`, `status` | `instrument-file/` | The register row, the class's supply and chain fields, both members' particulars and the UTC day | `imported_non_tokenised_register_required`, `sufficient_holding_required`, `share_limit_required`, `effective_date_before_latest_entry`, `identified_company_member_required`, `member_particulars_changed`, `member_reference_conflict`, `member_wallet_linked`, `director_is_party` |
 | Allotment | `register-allotments/` | `company`, `token`, `member`, `status` | `agreement-file/`, `receipt-file/` | The agreement and contribution, the register row, the class's supply and chain fields, the recipient's particulars and the UTC day | The grant's register-state codes, `fully_paid_company_receipt_required` |
 
-Every family also reports `evidence_unavailable` when a retained copy no longer matches its size
-or SHA-256, and `<subject>_decided` once applied or rejected, where the subject is `correction`,
-`opening`, `link`, `import`, `change`, `grant`, `transfer` or `allotment`. A proposal submitted
-for the retired staff review and still waiting reports `company_provided_evidence_required` and
-can only be rejected; it keeps its staff-verified copy and reviewer as `staff_verified`. Admin
-shows corrections, openings, wallet links and imports as read-only history; particulars changes
-have no admin page. Application commits the effect, the decision
-and, where holdings change, the projection atomically. The chain families (`register-issues/`,
-`register-paid-issues/`, `register-deployments/`, `register-capital-increases/`,
-`register-pause-changes/`) are in [chain](chain.md).
+An award-linked grant reports `award_binding_required` when the award no longer matches the
+grant's company, class, member, terms date, terms or agreement fingerprint. The subject of the
+shared `<subject>_decided` code is `correction`, `opening`, `link`, `import`, `change`, `grant`,
+`transfer` or `allotment`. A staff-era proposal keeps its staff-verified copy and reviewer and
+reports `providedBy: staff_verified`. Admin shows corrections, openings, wallet links and imports
+as read-only history; particulars changes have no admin page. Application commits the effect, the
+decision and, where holdings change, the projection atomically. The chain families
+(`register-issues/`, `register-paid-issues/`, `register-deployments/`,
+`register-capital-increases/`, `register-pause-changes/`) are in [chain](chain.md).
 
 ### Corrections API
 
@@ -373,29 +379,11 @@ What a correction does:
 [compensating corrections](../business/register.md#compensating-corrections).
 The evidence is an `authority` upload.
 
-```json
-{
-  "operation_id": "10000000-0000-4000-8000-000000000001",
-  "appointment": "10000000-0000-4000-8000-000000000030",
-  "corrects_id": "10000000-0000-4000-8000-000000000002",
-  "authority_evidence": "10000000-0000-4000-8000-000000000003",
-  "effective_on": "2026-09-20",
-  "authority": "director_resolution",
-  "approving_director": "Synthetic Director",
-  "authority_reference": "SYNTHETIC-RESOLUTION-1",
-  "reason": "Reverse the identified erroneous synthetic entry"
-}
-```
-
-An entry is `correctable` while it has changes and no correction reverses it. Preparation derives
-the exact inverse changes and captures the register's sequence and head hash. The effective date
-may be today (UTC) or earlier; a later one is refused because it would hold back later issues and
-transfers. Preparation refuses an entry of a company where the caller holds no current
-appointment, an entry already corrected or with no changes, and an inverse that would take a
-holding below zero. The preview shows the original changes beside their inverse. A correction the
-register has moved past cannot be applied: reject it and prepare a new one. Application records
-the compensating entry, whose operation id is the correction's UUID; it broadcasts nothing, and
-the next reconciliation reports the difference as `member` and `supply` rows.
+An entry is `correctable` while it has changes and no correction reverses it. Preparation refuses
+an entry of a company where the caller holds no current appointment, derives the exact inverse
+changes and captures the register's sequence and head hash, which the application digest binds.
+Application records the compensating entry, whose operation id is the correction's UUID; it
+broadcasts nothing.
 
 ### Openings API
 
@@ -412,34 +400,16 @@ anyone else gets the same 404 as an unknown class. A class that is not deployed 
 whose register has an entry, is refused with 400 before the chain is read; an unreadable chain
 answers 503 and records nothing.
 
-```json
-{
-  "operation_id": "10000000-0000-4000-8000-000000000011",
-  "appointment": "10000000-0000-4000-8000-000000000030",
-  "token_id": "10000000-0000-4000-8000-000000000012",
-  "authority_evidence": "10000000-0000-4000-8000-000000000013",
-  "mapping": [
-    { "address": "0x1111111111111111111111111111111111111111", "member": "10000000-0000-4000-8000-000000000014" }
-  ],
-  "authority": "director_resolution",
-  "approving_director": "Synthetic Director",
-  "authority_reference": "SYNTHETIC-RESOLUTION-OPENING-1",
-  "reason": "Establish the register from the attributed deployment boundary"
-}
-```
-
-Preparation captures a fresh canonical snapshot, with the transfer history later classification
-needs, before it takes the company lock. It refuses a mapped member of another company or an
-address linked to another member, a mapping that does not cover exactly the boundary's holding
-addresses (`opening_holdings_moved`, so clients can offer to read the holders again), a completed
-effect the boundary does not represent, and an unreadable chain (503). Approval and application
-read the chain again before the company lock; rejection never reads it. `boundary_changed` means
-the boundary block is no longer canonical or covered by the finality policy, or the policy or
-chain changed. The boundary is frozen at preparation, so a pending opening that no longer
-represents a completion is replaced by a fresh one. Application commits the members, the wallet
-links, the opening entry (dated on the boundary block's date, explicitly empty for an empty
-boundary), the decision and the projection atomically. Until an opening applies, the holders and
-CSV routes report the register as not initialised.
+An opening, like a wallet link, takes a `mapping` list of `{address, member}`. Preparation
+captures a fresh canonical snapshot, with the transfer history later classification needs, before
+it takes the company lock. It refuses a mapped member of another company or an address linked to
+another member, a mapping that does not cover exactly the boundary's holding addresses
+(`opening_holdings_moved`, so clients can offer to read the holders again), a completed effect the
+boundary does not represent, and an unreadable chain (503). Approval and application read the
+chain again before the company lock, and an unreadable chain refuses them with 503 and records
+nothing; rejection never reads it. `boundary_changed` means the boundary block is no longer
+canonical or covered by the finality policy, or the policy or chain changed. Application commits
+the members, the wallet links, the opening entry, the decision and the projection atomically.
 
 ### Wallet links API
 
@@ -451,35 +421,18 @@ What a link does:
 | `GET register-links/waiting-wallets/?company=` | `wallets`: each wallet a completed effect of the company's opened classes waits for, as the waiting list names it in `unlinkedWallets`, with `waiting`, the number of effects naming it, ordered by address. Reads only the database; only for a current appointment holding `admin` or `prepare`, anyone else gets 404 |
 | `POST register-links/` | Prepare the link; the detail adds the mapping and `mappingSummary` |
 
-```json
-{
-  "operation_id": "10000000-0000-4000-8000-000000000021",
-  "appointment": "10000000-0000-4000-8000-000000000030",
-  "company_id": "10000000-0000-4000-8000-000000000022",
-  "authority_evidence": "10000000-0000-4000-8000-000000000023",
-  "mapping": [
-    { "address": "0x3333333333333333333333333333333333333333", "member": "10000000-0000-4000-8000-000000000024" }
-  ],
-  "authority": "director_resolution",
-  "approving_director": "Synthetic Director",
-  "authority_reference": "SYNTHETIC-RESOLUTION-LINK-1",
-  "reason": "Link the new subscriber's wallet to their member record"
-}
-```
-
 Preparation stores each address checksummed, in address order, and refuses an empty mapping, one
 that is not a list of addresses and member UUIDs or repeats an address in any letter case, a
 member of another company and an address already linked in the company. A company where the
 caller holds no `admin` or `prepare` appointment is answered as not found. `mappingSummary` gives
 each address with its member and `memberExists`. For an address with a whitelist approval for the
 company, the preview and the waiting-wallets read also show `walletProof` and the live identity's
-`holderType` and `holderName`, which are informational and never choose a member. A link made in
-between conflicts unless it linked the same member. Application takes the company lock and then
-every share class of the company in order, records the new members and links (skipping an address
-since linked to the same member), records whatever was waiting for the link in each class with its
-own recorder, and marks the link applied. It makes no register entry of its own, changes no
-whitelist approval and creates no proof of possession. An application that deadlocks with a
-completion recorded by the same person is aborted by PostgreSQL and can be retried.
+`holderType` and `holderName`, which are informational and never choose a member. Application
+takes the company lock and then every share class of the company in order, records the new
+members and links (skipping an address since linked to the same member), records whatever was
+waiting for the link in each class with its own recorder, and marks the link applied. An
+application that deadlocks with a completion recorded by the same person is aborted by PostgreSQL
+and can be retried.
 
 ### Imports API
 
@@ -530,12 +483,11 @@ Up to 10,000 members and 10,000 former rows; names up to 255 characters. Earlier
 snapshots keep their missing fields unknown. `tokens_mirror_members_valid` checks the stored
 shape again in PostgreSQL.
 
-On a class without a chain opening, application creates the members, one opening entry and their
-particulars atomically; on a chain-opened class an import records particulars only and must match
-the stored holdings. An opening correction's preview binds the current snapshot and head;
-application keeps the previous snapshot, decisions and opening entry, adds the
-`mirror_correction` entry and records the new particulars. An unchanged retry returns the same
-result; a changed retry or stale snapshot conflicts.
+Application creates the members, any opening entry and the particulars in one transaction. An
+opening correction's preview binds the current snapshot and head; application keeps the previous
+snapshot, decisions and opening entry, adds the `mirror_correction` entry and records the new
+particulars. An unchanged retry returns the same result; a changed retry or stale snapshot
+conflicts.
 
 ### Particulars changes API
 
@@ -543,29 +495,11 @@ What a change does:
 [changing a member's particulars](../business/register.md#changing-a-members-particulars).
 The evidence is one `supporting` upload.
 
-```json
-{
-  "operation_id": "10000000-0000-4000-8000-000000000041",
-  "appointment": "10000000-0000-4000-8000-000000000030",
-  "member": "10000000-0000-4000-8000-000000000024",
-  "supporting_evidence": "10000000-0000-4000-8000-000000000042",
-  "name": "Synthetic Member Renamed",
-  "residential_address": "8 Synthetic Street, Melbourne VIC 3000",
-  "as_at": "2026-09-20",
-  "reason": "The member changed their name by deed poll and moved"
-}
-```
-
 Preparation trims the fields and refuses a member of a company where the caller holds no current
-appointment, an empty name, address or reason, a name over 255 characters, an address or reason
-over 1,000, an `as_at` after today (UTC) or before the member's current particulars, and a member
-who has held nothing since the retention cutoff. The preview shows the change beside the
-member's current particulars, their date and source. Application records the name, address and
-date as the member's particulars, naming the change as their source; the database writes
-particulars only while applying the import or change that names them. The daily purge removes a
-member's particulars once the member has held nothing in the company for the floor, and nothing
-else of a change. A change prepared from a member's request carries `member_request`; that
-column is nullable, so earlier changes keep their digests.
+appointment and an empty name, address or reason. Application records the name, address and date
+as the member's particulars, naming the change as their source; the database writes particulars
+only while applying the import or change that names them. A change prepared from a member's
+request carries `member_request`; that column is nullable, so earlier changes keep their digests.
 
 ### Reconciliation acknowledgements API
 
@@ -578,15 +512,6 @@ What an acknowledgement means:
 | `GET register-reconciliations/{uuid}/` | Status, block, register sequence, any failure, whether it is the class's `latest`, and each discrepancy as stored with `acknowledgeable` and its `acknowledgement` |
 | `POST register-reconciliations/{uuid}/acknowledge/` | Acknowledge one discrepancy; return the reconciliation |
 
-```json
-{
-  "appointment": "10000000-0000-4000-8000-000000000030",
-  "discrepancy": 0,
-  "reason": "The directors accept the transfer the two holders made outside the platform",
-  "idempotency_key": "10000000-0000-4000-8000-000000000051"
-}
-```
-
 `discrepancy` counts from zero through the record's `discrepancies` in API order. A row is
 `acknowledgeable` while its reconciliation is the class's latest, its kind can be acknowledged
 and nothing acknowledges it yet. Its `acknowledgement` is `null`, or `reason`, `appointment`,
@@ -596,10 +521,9 @@ acknowledgement answers 201; an identical retry with the same `idempotency_key` 
 after a later reconciliation; the same key with any change answers 409. The request records
 nothing and refuses: a reconciliation the caller cannot read, or an appointment that is not the
 caller's current one holding `admin` or `approve` (as not found); a caller who does not meet
-`issuer_kyc_required`; a reconciliation that is not the latest; a position outside the
-discrepancies; an `attribution` or `missing_transfer` row; a row already acknowledged; and a blank
-reason or one over 1,000 characters. Each acknowledgement is retained with the reconciliation,
-row, reason, person, appointment and time; an acknowledgement records nothing in the register.
+`issuer_kyc_required`; a position outside the discrepancies; a blank reason; and a row the
+[acknowledgement rules](../business/register.md#acknowledging-a-discrepancy) exclude. Each
+acknowledgement is retained with the reconciliation, row, reason, person, appointment and time.
 
 ### Grants and transfers API
 
@@ -607,25 +531,15 @@ What the company does: [non-paid grants](../business/issuing-shares.md#grants-to
 and [non-paid transfers](../business/register.md#non-paid-transfers-between-members). Both work
 only on an opened, imported, non-tokenised register and between walletless members.
 
-`POST register-grants/` takes `operation_id`, `appointment`, `token_id`, an optional `award`,
-`member`, `new_member`, `name`, `residential_address`, `shares`, `terms_on`,
-`approving_director`, `terms`, `authority_reference`, `reason`, `authority_evidence`,
-`terms_evidence`, `acceptance_required` and `acceptance_evidence`. `POST register-transfers/`
-takes `operation_id`, `appointment`, `token_id`, `from_member`, `to_member`, `new_member`, `name`,
-`residential_address`, `shares`, `signed_on`, `lodged_on`, `terms`, `authority`
-(`director_resolution`), `approving_director`, `authority_reference`, `reason`,
-`authority_evidence` and `instrument_evidence`. Shares are positive whole-number strings of up to
-78 digits; names and references are up to 255 characters, addresses, terms and reasons up to
-1,000.
+In both requests, shares are positive whole-number strings of up to 78 digits; names and
+references are up to 255 characters, addresses, terms and reasons up to 1,000.
 
-Application rechecks authority, evidence, identity, the director-conflict rule, register state
-and authorised headroom, records one ISSUE or TRANSFER dated the actual UTC application day (the
-terms, instrument and lodgement dates stay separate and never backdate the entry), updates
-holdings in the same transaction and creates a new member and its particulars there too. The
-recorder is the company applier. A grant linked to an award must fit within the award's recorded
-vested quantity: `tokens_employee_award_grant_allocation` refuses applied grants beyond it at
-commit. A transfer that empties a holding writes a `RegisterMemberCessation`. Identical retries
-return the original receipt; changed retries conflict.
+Application rechecks every requirement and, in one transaction, records one ISSUE or TRANSFER
+with the company applier as recorder, updates holdings and creates any new member and its
+particulars. A grant linked to an award must fit within the award's recorded vested quantity:
+`tokens_employee_award_grant_allocation` refuses applied grants beyond it at commit. A transfer
+that empties a holding writes a `RegisterMemberCessation`. Identical retries return the original
+receipt; changed retries conflict.
 
 `GET {uuid}/register/members/` lists a class's company members for these forms: each member's
 recorded `name` and `residentialAddress` (or null), `currentShares` in the class, `enteredOn`,
@@ -637,9 +551,9 @@ What an award is: [employee awards](../business/issuing-shares.md#employee-award
 
 | Method and route | Result |
 | --- | --- |
-| `POST register-awards/` | Record an award: `operation_id`, `appointment`, `token_id`, `member`, `new_member`, `name`, `residential_address`, `shares`, `terms_on`, `terms`, `schedule`, `agreement_evidence` |
+| `POST register-awards/` | Record an award |
 | `GET register-awards/`, `{uuid}/`, `{uuid}/file/` | Awards (filters `company`, `token`, `member`) with `vestedShares`, `issuedShares` and `availableShares`, and the retained agreement |
-| `POST register-award-vestings/` | Record a vesting event: `operation_id`, `appointment`, `award`, `shares`, `vested_on`, `evidence` |
+| `POST register-award-vestings/` | Record a vesting event |
 | `GET register-award-vestings/`, `{uuid}/`, `{uuid}/file/` | Vesting events (filters `company`, `award`) and their retained evidence |
 
 `register-grants/` with an `award` is the only issue path for an award. An award records no
@@ -655,13 +569,10 @@ whole. The tables are operator-only.
 What an allotment records:
 [external allotments](../business/issuing-shares.md#external-investor-allotments).
 
-`POST register-allotments/` takes `operation_id`, `appointment`, `token_id`, `member`,
-`new_member`, `name`, `residential_address`, `shares`, `consideration` and `received_amount` (up
-to 18 integer digits and two decimals), `currency` (`AUD`), `agreement_reference`,
-`agreement_on`, `terms`, `agreement_evidence`, `received_on`, `receipt_evidence`,
-`approving_director`, `authority_reference`, `reason` and `authority_evidence`. The detail nests
-the read-only agreement and contribution, the contribution naming its company provenance; the
-files are `file/` (authority), `agreement-file/` and `receipt-file/`.
+In `POST register-allotments/`, `consideration` and `received_amount` take up to 18 integer
+digits and two decimals, in `AUD` only. The detail nests the read-only agreement and contribution, the
+contribution naming its company provenance; the files are `file/` (authority), `agreement-file/`
+and `receipt-file/`.
 
 The agreement (`RegisterAgreement`) and receipt attestation (`RegisterContribution`) are immutable
 retained sources: the receipt must be an exact positive AUD amount allocated to the agreement,
@@ -676,14 +587,14 @@ effect. The tables are operator-only. Amount paid follows from the allotment as 
 
 What member access gives: [member access](../business/member-records.md#member-access).
 
-| Route | Methods and body |
+| Route | Methods |
 | --- | --- |
-| `member-invitations/` | `GET` (filters `company`, `member`) for current personal `admin` appointees. `POST` with `operation_id`, `company`, `appointment`, `member`, `intended_email` and optional `acceptance_deadline` (default 7 days, at most 30) answers 201 with a one-time `code`; a retry answers 200 without it |
-| `member-invitations/accept/` | `POST` with `code` (43 URL-safe characters), `user_account` and `confirmation` |
-| `member-associations/` | `GET` (filters `company`, `member`) for `admin` appointees; `{uuid}/revoke/` with `appointment`, `idempotency_key` and `reason` (up to 1,000 characters) |
+| `member-invitations/` | `GET` (filters `company`, `member`) for current personal `admin` appointees. `POST` (optional `acceptance_deadline`, default 7 days, at most 30) answers 201 with a one-time `code`; a retry answers 200 without it |
+| `member-invitations/accept/` | `POST` with the `code` (43 URL-safe characters) |
+| `member-associations/` | `GET` (filters `company`, `member`) for `admin` appointees; `{uuid}/revoke/` with a `reason` of up to 1,000 characters |
 | `member-records/` | `GET` the caller's own associations: company, recorded identity, each class's `shares`, `enteredOn`, `ceasedOn` (within retention) and `amountPaid`, and awards with vesting and quantities; `{uuid}/entries/?token=` the caller's own entry deltas |
-| `member-particulars-requests/` | `GET` (filters `company`, `member`, `association`). `POST` with `operation_id`, `association`, `name`, `residential_address` and `confirmation`; `{uuid}/prepare/` with `operation_id`, `appointment`, `supporting_evidence`, `as_at` and `reason` prepares the linked particulars change |
-| `member-certificate-requests/` | `GET` (filters as above). `POST` with `operation_id`, `association` and `entry`; `{uuid}/withdraw/` with `idempotency_key`; `{uuid}/fulfilment-preview/`, `{uuid}/fulfil/` and `{uuid}/file/` as in [output routes](#output-routes) |
+| `member-particulars-requests/` | `GET` (filters `company`, `member`, `association`) and `POST`; `{uuid}/prepare/` prepares the linked particulars change |
+| `member-certificate-requests/` | `GET` (filters as above) and `POST`; `{uuid}/withdraw/`; `{uuid}/fulfilment-preview/`, `{uuid}/fulfil/` and `{uuid}/file/` as in [output routes](#output-routes) |
 
 Only the code's SHA-256 is stored. Fresh migrations install the association and the append-only
 invitation, revocation, request and withdrawal records with RLS forced and no application-role
@@ -708,25 +619,7 @@ and [for transfers](../business/register.md#settled-transfer-instructions).
 | `GET register-instructions/{uuid}/` | Instruction, items and decision |
 | `GET register-instructions/{uuid}/file/` | The retained authority file, as an authenticated attachment |
 
-```json
-{
-  "operation_id": "10000000-0000-4000-8000-000000000041",
-  "token_id": "10000000-0000-4000-8000-000000000011",
-  "document_id": "10000000-0000-4000-8000-000000000013",
-  "kind": "issue",
-  "items": [
-    {
-      "request": "10000000-0000-4000-8000-000000000042",
-      "recipient": "0x3333333333333333333333333333333333333333",
-      "amount": "100"
-    }
-  ],
-  "approving_director": "Synthetic Director",
-  "authority_reference": "SYNTHETIC-RESOLUTION-ISSUE-1",
-  "reason": "Record the retained non-paid issue the board approved"
-}
-```
-
+An `issue` instruction's `items` are `{"request": "<uuid>", "recipient": "0x…", "amount": "100"}`.
 A `transfer` instruction lists settlements instead, each item
 `{"settlement": "<uuid>", "seller": "0x…", "buyer": "0x…", "amount": "25"}`, taken from the
 waiting list (a waiting transfer's `source` is the settlement, its `wallets` the seller's then the
@@ -760,7 +653,7 @@ comparison.
 | Method and route | Result |
 | --- | --- |
 | `GET /api/v1/tokens/register/` | Share classes whose register the caller may read, filterable by `company_uuid` |
-| `GET /api/v1/tokens/{uuid}/holders/` | `initialized`, `holders` (each `member`, `wallets`, `name`, `balance`, `percentage`, `source`, `holderType`, `enteredOn`, `shareClass`, `identitySource`), `totalHolders`, `issuedSupply`, `waitingEffects`, `formerMembers` and `formerMembersAsAt`, `formerMembersBlock`, `formerMembersStale` |
+| `GET /api/v1/tokens/{uuid}/holders/` | The `ShareRegister` response: `initialized`, the holders and totals, `waitingEffects` and the former members with their as-at time, block and staleness |
 | `GET /api/v1/tokens/{uuid}/register/entries/` | Recorded entries, newest first, each change naming its member as the register does, with `corrects`, `correctedBy` and `correctable`; repeat `entry` with UUIDs to read just those |
 | `GET /api/v1/tokens/{uuid}/register/waiting/` | `effects`, the [waiting effects](#waiting-effects) |
 | `GET /api/v1/tokens/{uuid}/register/members/` | The class's company members, for preparation forms |
@@ -806,14 +699,14 @@ and both are `null` once something has. What resolves each reason is in
 
 | Method and route | Result |
 | --- | --- |
-| `GET /api/v1/tokens/{uuid}/register/inspection-copy/` | Preview: `token`, `appointment`, `registerSequence`, `sourceDigest` |
-| `POST /api/v1/tokens/{uuid}/register/inspection-copy/` | `appointment`, `source_digest`, `instruction`, `requested_on`, `recipient`; answers `register-<symbol>-inspection-copy.csv` |
-| `GET /api/v1/tokens/{uuid}/register/certificate/?sequence=N` | Preview: `token`, `appointment`, `entry`, `sequence`, `registerSequence`, `pageCount`, `sourceDigest` |
-| `POST /api/v1/tokens/{uuid}/register/certificate/` | `sequence`, `appointment`, `source_digest`, `instruction`; answers `certificate-<symbol>-<sequence>.pdf`, `Cache-Control: private, no-store` |
+| `GET /api/v1/tokens/{uuid}/register/inspection-copy/` | Preview with the source digest |
+| `POST /api/v1/tokens/{uuid}/register/inspection-copy/` | Answers `register-<symbol>-inspection-copy.csv` |
+| `GET /api/v1/tokens/{uuid}/register/certificate/?sequence=N` | Preview with the page count and source digest |
+| `POST /api/v1/tokens/{uuid}/register/certificate/` | Answers `certificate-<symbol>-<sequence>.pdf`, `Cache-Control: private, no-store` |
 | `GET /api/v1/tokens/member-certificate-requests/{uuid}/fulfilment-preview/` | The certificate preview for one member request |
-| `POST /api/v1/tokens/member-certificate-requests/{uuid}/fulfil/` | `operation_id`, `appointment`, `source_digest`, `instruction`; retains the file |
+| `POST /api/v1/tokens/member-certificate-requests/{uuid}/fulfil/` | Retains the file |
 | `GET /api/v1/tokens/member-certificate-requests/{uuid}/file/` | The retained PDF, `member-certificate-<uuid>.pdf` |
-| `POST /api/v1/companies/{uuid}/pack/` | `appointment`, `instruction`, `recipient`; answers the [company pack](#company-pack-format) zip |
+| `POST /api/v1/companies/{uuid}/pack/` | Answers the [company pack](#company-pack-format) zip |
 
 Inspection copies and certificates run inside a locked company operation that binds the exact
 current register-reading appointment, before and after the output is built; ownership and staff
@@ -849,18 +742,18 @@ Check constraints require each kind's fields and refuse another kind's:
 | `company_pack` | Each class's head, one row per class | SHA-256 of `manifest.json`, instruction and recipient |
 
 A trigger refuses every update. The table is operator-only: no company or customer route reads it,
-and staff query it in admin. The daily former-member purge deletes records older than the
-2,557-day floor.
+and staff query it in admin. The daily former-member purge removes records on the
+[former-member clock](security.md#retention-clocks).
 
 ## Output formats
 
 Every output reads one snapshot of the stored register through the export's own code. Days are
-counted in Sydney's calendar (`STATUTORY_CALENDAR`). No state or territory capital's date is ever
-ahead of Sydney's, so for a company elsewhere a late flag or due date can err only towards late,
-and a request dated that company's today is never refused as a future date. Text the company or
-staff entered goes through `csv_cell`, which puts a leading apostrophe before a value that opens
-with a formula character. The statutory deadlines behind each output are in
-[member records](../business/member-records.md).
+counted in Sydney's calendar (`STATUTORY_CALENDAR`), so for a company elsewhere a late flag or due
+date can only err towards late
+([inspection copies](../business/member-records.md#inspection-copies)). Text the company or staff
+entered goes through `csv_cell`, which puts a leading apostrophe before a value that opens with a
+formula character. The statutory deadlines behind each output are in
+[outputs at a glance](../business/member-records.md#outputs-at-a-glance).
 
 ### Register CSV
 
@@ -892,23 +785,14 @@ Every cell goes through `csv_cell`.
 `prepare_inspection_copy` builds the register CSV above, with its header row, and adds a fourth
 section headed "Inspection copy under s173(3) of the Corporations Act": Requested on, Company's
 written instruction, Recipient, Produced on, and "Produced more than 7 days after the request"
-(`yes` or `no`). The flag counts calendar days and does not extend a limit that ends on a weekend
-or public holiday, which errs towards late. A register with no opening, a request date after today
-and a blank field are refused.
+(`yes` or `no`).
 
 ### Certificate format
 
-`prepare_certificate` reads one entry of the class's own register by its number. Only an issue or
-a transfer has a certificate; a number the register lacks, and an entry a correction has reversed
-(the refusal names the correction), are refused. The PDF has a page for the member the entry moved
-shares to and, for a transfer, a balance page for the transferor when they still hold shares.
-Pages are numbered from the entry, the moved shares first, as 12-1 and 12-2, so no counter is
-kept. Each page shows the company, its ACN, the share class, the member's name and residential
-address, the shares it certifies, the member's holding after the entry, and the entry's number,
-date and hash, then an unsigned execution block. Holdings are replayed from the entries up to and
-including the certified one. Names and addresses are the ones the register gives when the
-certificate is prepared; a member whose wallets resolve to different people, or who has no name or
-residential address, stops the whole certificate.
+`prepare_certificate` reads one entry of the class's own register by its number, from one
+snapshot. Holdings are replayed from the entries up to and including the certified one. Page
+content, numbering and refusals are in
+[what a certificate shows](../business/member-records.md#what-a-certificate-shows).
 
 PyMuPDF renders each page from
 [share_certificate.html](../../backend/tokens/templates/tokens/share_certificate.html),
@@ -935,33 +819,24 @@ opening is never listed. The CSV has four sections, each after a heading row:
    Shares held (0 for a member who no longer holds any) and Amount paid, in member-id order.
 
 An issue's amount paid is the money backing of the issuance it recorded; a member's is the
-register's own. Either reads `not recorded` where it is not established exactly, never zero, and
-so does the class total unless every current member's is established. A transfer or correction
-carries none. A member who cannot be named is printed as the register prints them, not refused.
-Counts, entry numbers and changes are plain numbers, so a negative change reads as one. A register
-with no opening and a period starting after today are refused; a period with no entries is not.
+register's own. Either reads the literal `not recorded` where it is not established exactly.
+Counts, entry numbers and changes are plain numbers, so a negative change reads as one. The
+content rules are in
+[what the figures contain](../business/member-records.md#what-the-figures-contain) and the
+refusals in [preparing notice figures](../business/member-records.md#preparing-notice-figures).
 
 ### Outputs due computation
 
-`outputs_due` derives the due list from one snapshot of the register entries, their settlement
-orders, their direct transfers and the export records, ordered by due date, then company, class
-and entry number. It stores and records nothing. Given a company it reads only that company's
-entries; the admin due page calls it without one.
-
-- Certificates: each issue or transfer entry no correction has reversed, until a `certificate`
-  record of its class names its number. An issue is due two calendar months after its effective
-  date. A company-recorded transfer (`RegisterTransfer`) is due one calendar month after its
-  lodgement date. A settled chain transfer is due one calendar month after its settlement order
-  was created, by Sydney's date; the order precedes the transfer's lodgement, so that date errs
-  early.
-- Notice figures: each issue entry, and each transfer entry of a proprietary company, no
-  correction has reversed, until a `notice_figures` record of its class starts on or before the
-  entry's effective date and runs to its number or later. Due 28 days after the effective date.
-
-A calendar month ends on the same day number, or on the month's last day when that month is
-shorter (31 January plus one month is 28 or 29 February). An item is overdue once its due date is
-before today in Sydney. Openings and corrections are never listed. An entry whose record the daily
-purge removed is listed again.
+`outputs_due` reads, in one snapshot, the issue and transfer entries no correction has reversed.
+It annotates each entry `certified` when a `certificate` export of its class has the entry's
+sequence as its `register_sequence`, and `noticed` when a `notice_figures` export of its class has
+`period_from` on or before the entry's `effective_on` and `register_sequence` at or after the
+entry's. A company-recorded transfer is dated from the applied `RegisterTransfer.lodged_on`, and a
+settled one from its `SwapOrder`'s `created_at` in `STATUTORY_CALENDAR`, both through
+`months_after`. It sorts by due date, company name, class symbol and sequence, compares due dates
+against today in `STATUTORY_CALENDAR`, and stores and records nothing. Given a company it reads
+only that company's entries; the admin due page calls it without one. The due rules are in
+[the due list](../business/member-records.md#the-due-list).
 
 ## Company pack format
 
@@ -999,13 +874,10 @@ A pack is recorded as one `company_pack` export per class, each with the SHA-256
 `manifest.json`, only once the archive is complete, so a failure while writing records nothing.
 The download is `company-pack-<ACN>-<YYYYMMDDTHHMMSSZ>.zip`, named for the as-at time in UTC.
 
-A refusal records nothing: a company with no share classes; a blank field; a register entry that
-no longer matches its stored hash (naming the class and entry); a publication event that no longer
-matches its hash or a roll that no longer matches its digest (naming the publication); stored
-files over the ceiling (naming the total); a stored file missing from private storage; an
-evidence copy, publication document or remittance evidence that no longer matches its recorded
-digest (naming the record); and, for company decision records, a source whose company, evidence,
-appointment or entry binding is inconsistent.
+A refusal records nothing; the refusals are listed in
+[recording and refusals](../business/member-records.md#recording-and-refusals). The builder also
+refuses a company decision record whose company, evidence, appointment, approval or entry binding
+is inconsistent.
 
 ### Archive and manifest
 
@@ -1105,8 +977,7 @@ and paid issues), `deployments`, `capital_increases`, `pause_changes`, `wallet_i
   capabilities, creation and expiry, its source (request, invitation, legacy owner, declaration
   version and text) and any revocation.
 
-The builder refuses the pack when a record's company, evidence, appointment, approval or entry
-binding is inconsistent. These records carry platform account numbers (`prepared_by_id`,
+These records carry platform account numbers (`prepared_by_id`,
 `decided_by_id`, `recorded_by`, `appointee_id`) as well as names. Evidence copies are carried for
 openings, imports (with the ASIC extract), corrections, register instructions' authority, wallet
 links, particulars changes, awards, vesting events, agreements, contributions, allotments, grants
@@ -1153,10 +1024,8 @@ joins are its only tenancy guard.
 - Reconciliation acknowledgements carry `provided_by` `company`, or `staff` for one recorded
   before acknowledgement was company-run.
 
-The README's restrictions and filings sections are filled from these files: each approval with
-its expiry and listing, paused classes, each class's waiting count or that it could not be
-established, each former member with its keep-until date, each output still due, and each class's
-subscriptions awaiting allotment or refund.
+The README's restrictions and filings sections are filled from these files (see the
+[template](../../backend/tokens/templates/tokens/company_pack_readme.md)).
 
 ### Chain evidence
 
@@ -1214,15 +1083,11 @@ creates the registry with its first class's owner and refuses a later class with
 empty when no record exists or the records disagree. Interfaces are the files committed under
 `backend/contracts/`, never a local `contracts/artifacts/` build.
 
-The README's section 5 explains how to hand over control and does not perform it: confirm each
-owner with `owner()`; wait until nothing Ledova admitted is unresolved; call
-`setShareTokenApproval(classAddress, false)` for each deployed class on the settlement contract
-its approval targeted, or, where none is recorded, on the configured one if `approvedShareTokens`
-says it is approved there; call `transferOwnership(newOwner)` on each deployed class; and last on
-the registry, or on the address `registryOf(acn)` returns. A record is unresolved while a class is
-`deploying`, its swap approval `pending` or `executing`, an issue's execution `queued` or
-`executing`, a capital increase `executing`, a pause `pending` or `executing`, a settlement
-`executing`, or an approval change `pending` or `executing`.
+The README's section 5 explains how to hand over control on chain and does not perform it (see the
+[template](../../backend/tokens/templates/tokens/company_pack_readme.md)). A record is unresolved
+while a class is `deploying`, its swap approval `pending` or `executing`, an issue's execution
+`queued` or `executing`, a capital increase `executing`, a pause `pending` or `executing`, a
+settlement `executing`, or an approval change `pending` or `executing`.
 
 ### Documents and evidence copies
 
@@ -1278,17 +1143,14 @@ notice has no events.
 
 ### Technical limits of the pack
 
-- No offline consumer ships; the README's recipe checks the current members against the entries
-  and does not recompute the supply summary or the former members. The earlier consumer remains in
-  the [10 October tree](https://github.com/Ledova/ledova/tree/5f40e3cd896afc3f3a55a14e359224156735a417/backend/tokens/tests)
-  as history.
-- An approval change's outgoing operation is not carried, only its status and, once confirmed,
-  its transaction hash; the README counts one still `executing` as unresolved.
+Limits a reader sees are in [limits of the pack](../business/member-records.md#limits-of-the-pack);
+these are the builder's own. No offline consumer ships; the earlier one remains in the
+[10 October tree](https://github.com/Ledova/ledova/tree/5f40e3cd896afc3f3a55a14e359224156735a417/backend/tokens/tests)
+as history.
+
 - A swap approval observed already in place, a legacy settlement with no transaction record and a
   legacy mint journal are not exercised; a pause observed already in place is carried with its
   block and no operation.
-- Unresolved records, registry owners and deployment owners are Ledova's records at the as-at
-  time, not chain reads, so ownership moved outside Ledova would not show.
 - The ceiling counts a company document by its recorded size, which staff can edit; uploads are
   bounded at 10 MiB each (`UPLOAD_MAX_BYTES` by default), so the error is bounded by the number
   of documents.
@@ -1299,10 +1161,8 @@ notice has no events.
 - The README predates the decision records: its file table omits `company_mandates.json`, and
   its opening and preimage notes say no platform account ids leave, although that file carries
   them.
-- A withheld ballot's hash cannot be recomputed and a tally cannot be recounted: a reader checks
-  the ballots' links, the close's hash, which covers the last ballot's, and the tally against the
-  roll and the number of ballots. A roll's audience digest covers account ids that do not leave,
-  so only the builder can check it.
+- The close's hash covers the last ballot's, so a reader can check the withheld ballots' links.
+  A roll's audience digest covers account ids that do not leave, so only the builder can check it.
 - Production near the ceiling has not been measured; a proxy in front of the backend could time
   out a large download.
 
@@ -1367,8 +1227,11 @@ entitlement that is wrong or on a non-distribution row.
 Both tables are read-only to the application role. The publication's read term is the company
 that made it or a roll row naming this principal; the roll row's term is the principal it names or
 the publishing company, on the row's own copied company column, so the two policies do not read
-each other in a circle. Staff read in admin on the operator connection; there is no staff API
-route.
+each other in a circle. On the event chain, a member reads their own ballots and payment records
+through the roll row each names, and the close of a resolution they are on the roll of; the
+company reads the close and its payment records on the event's copied company, and no ballot. The
+roll's policy reads nothing back. Staff read in admin on the operator connection; there is no
+staff API route.
 
 Each delivery writes an append-only `PublicationRead` on the operator connection, naming the
 reader, publication, roll row where there is one, `event_uuid` for remittance evidence, and
@@ -1377,7 +1240,7 @@ content and has no admin mutation path. The stored file is opened first and the 
 second, so a record always names a file that could be served: a file that cannot be opened
 answers 503 `publication_unopened` and records nothing, and a read that cannot be recorded
 answers 503 `publication_read_unrecorded` and serves nothing, as
-[document reads](security.md#deletion-and-retention) do. Staff open
+[document reads](security.md#read-audit) do. Staff open
 a document or remittance evidence through `admin_file_path` routes in the publication admin;
 remittance evidence needs view permission on publications and on their events.
 
@@ -1427,8 +1290,9 @@ Both clients read it through `@ledova/shared` (`getPublications`, `openPublicati
 `downloadPublication`, `publicationFilename`, which names the `.bin` stored object from the type
 served); `useResolutionStatus` keeps one timer for the next opening or close, capped at the
 longest delay a timer holds and re-armed, so an open page offers or withdraws the ballot without
-reloading. The member's notices read the listing with `addressed=me`, the home page counts what
-waits through `usePublicationSummary`, and the company's
+reloading. The member's notices read the listing with `addressed=me`, the
+[Wallet shares page](../business/member-records.md#the-wallet-shares-page) counts what waits
+through `usePublicationSummary`, and the company's
 [Published page](../business/publications.md#the-published-page) reads an owned company's
 publications with `issuer` and offers no ballot or publishing controls.
 
@@ -1443,11 +1307,11 @@ only the caller's own roll rows by account:
 | `nextClosesAt` | The soonest close among those, or null |
 | `dividendsWithoutRecord` | Distributions on which at least one of the caller's holdings is owed a cent or more and has no standing payment record |
 
-A person on a roll twice is counted until each holding is settled; a withdrawn record makes the
-holding wait again, and a holding whose entitlement rounds to nothing never waits. An owner who is
-not on its own roll counts nothing. For a member the policies are a second wall under the account
-filter; for an owner on its own roll they admit every row, so the filter is the only wall here and
-in the listing's per-caller fields.
+What waits on a member is in [the Notices page](../business/publications.md#the-notices-page).
+In the summary, which runs under the row policies, those policies are a second wall under the
+account filter for a member, and for an owner on its own roll they admit every row, so the filter
+is the only wall. The listing runs on the operator connection, so its per-caller fields rely on
+the account filter in `seen_by` alone for every reader.
 
 ### Announcements
 
@@ -1480,7 +1344,8 @@ each copying its publication's company. The `BEFORE INSERT` trigger
   is not a standing payment, with evidence stored at
   `companies/<company>/publications/<publication>/payments/<event>/<uuid>.bin`; a `payment_void`
   only for a row whose latest record is a payment;
-- it sets `entry_hash` with `shareholders_publication_event_hash`.
+- it sets `entry_hash` with `shareholders_publication_event_hash`
+  ([hash preimages](#hash-preimages)).
 
 The trigger refuses every update and refuses deletion by the application role. Unique indexes hold
 one event per sequence, one ballot per roll row and one close per resolution, so a second ballot
@@ -1494,8 +1359,8 @@ a resolution that does not exist and nothing is written. Only the insert runs on
 connection, because the application role may write nothing to the chain; the trigger's actor check
 keeps the guarantee in the database. A resolution not open yet, a closed one, a second ballot and
 an unknown choice are 400s that say which. The route has its own `ballot` throttle scope, 10 a
-minute per user. Staff enter a ballot in admin for a member who cannot cast one online, naming the
-authority relied on.
+minute per user. Who may cast and when staff enter a ballot instead:
+[casting a ballot](../business/publications.md#casting-a-ballot).
 
 `close_resolutions_past_their_window` runs every five minutes and closes each resolution whose
 window has passed and has no close. Two runs at once close it once: the second waits on the
@@ -1505,42 +1370,40 @@ in [the tally](../business/publications.md#the-tally).
 
 ### Distribution arithmetic and payment records
 
-The rate (at most six decimal places) is the input and the declared total a check figure. Each
-roll row's `entitlement` is its shares times the rate rounded down to the cent; there is no
-entitlement table, and the remainder is `undistributed` on the publication, never negative and
-less than one cent per member. The arithmetic is exact at any size, and a total too large to
-record is refused. The roll guard refuses a row whose entitlement is not its shares times the rate
-rounded down, and any other kind's row that carries one. Because the publication row is inserted
-before its roll, the deferred constraint trigger `shareholders_distribution_adds_up` runs at commit
-and refuses a distribution whose declared total is not the roll's shares times the rate rounded
-down, or whose entitlements and remainder do not add up to it. Why the rate, rounding and records
-work this way: [decisions](../decisions.md#shareholder-publications).
+The rate, at most six decimal places, is the input. Each roll row stores its `entitlement` and the
+publication its `undistributed` remainder; there is no entitlement table. The arithmetic and
+rounding rules are in
+[the rate and the declared total](../business/publications.md#the-rate-and-the-declared-total) and
+[entitlements](../business/publications.md#entitlements-and-the-undistributed-remainder). The roll
+guard refuses a row whose entitlement is not its shares times the rate rounded down, and any other
+kind's row that carries one. Because the publication row is inserted before its roll, the deferred
+constraint trigger `shareholders_distribution_adds_up` runs at commit and refuses a distribution
+whose declared total is not the roll's shares times the rate rounded down, or whose entitlements
+and remainder do not add up to it. Why the rate, rounding and records work this way:
+[decisions](../decisions.md#shareholder-publications).
 
 A payment record is a `payment` event naming the roll row, the date the company says it paid, its
 reference, the remittance evidence (stored privately with its SHA-256 and the type the upload
 validator found), the staff actor and authority; `payment_void` withdraws the standing record
-with a reason. A record is never changed: a correction is a withdrawal followed by a new record. A
-member's payment term reads the roll row each record names; the company's reads the record's
-copied company. What a record does and does not claim:
+with a reason. How a record is corrected and what it claims:
+[payment records](../business/publications.md#payment-records) and
 [what is recorded and what is claimed](../business/publications.md#what-is-recorded-and-what-is-claimed).
 
 ### Publication retention
 
-A publication, its roll, its read records and its event chain are kept for the register's
-seven-year floor, measured from the publication. `purge_publications_past_the_clock` runs daily at
-03:50 ([schedule](../operations/jobs-and-storage.md#schedule)) and purges them together, deleting the chain
-before the roll it points at. It shares `FORMER_MEMBER_RETENTION_DAYS` and its 2,557-day floor
-with the register's outputs and refuses to run below it with `ImproperlyConfigured`
-([data retention](security.md#retention-clocks)). Removing a publication or payment
-row deletes its stored bytes through the ordinary private-file lifecycle receiver, under the swept
-`companies/` prefix.
+`purge_publications_past_the_clock` runs daily at 03:50
+([schedule](../operations/jobs-and-storage.md#schedule)) and, on the
+[publication clock](security.md#retention-clocks), purges a publication, its roll, its read
+records and its event chain together, deleting the chain before the roll it points at. Removing a
+publication or payment row deletes its stored bytes through the ordinary private-file lifecycle
+receiver, under the swept `companies/` prefix.
 
 ### Verifying publications
 
 `verify_publication` replays a chain on the operator connection and raises
 `PublicationIntegrityError` on a sequence gap, a broken previous-hash link, a stored hash that
-differs from the one recomputed in SQL, an event under another company, or an event of a kind the
-publication does not take. For a resolution it also refuses a ballot whose member or shares differ
+differs from the one recomputed in SQL ([hash preimages](#hash-preimages)), an event under another
+company, or an event of a kind the publication does not take. For a resolution it also refuses a ballot whose member or shares differ
 from the roll, a ballot not entered by staff whose actor is not the row's account, two ballots for
 one member, an event after the close, and a close whose tally differs from the tally recomputed in
 Python. For a distribution it also refuses a payment record for a row it does not owe, a second
@@ -1590,12 +1453,10 @@ each with its latest chain observation in the same query.
 
 | Field | Meaning |
 | --- | --- |
-| `uuid` | Ledova's id for the row |
 | `txHash`, `chain` | The transaction's hash and Ledova's chain name |
 | `status` | Ledova's recorded outcome: `pending`, `confirmed`, `failed`, `reorged` or `replaced` |
 | `asset`, `amount` | The asset symbol and amount moved. Amounts and fees are plain decimal strings with every stored digit, no exponent and no trailing zeros, such as `"1.5"` or `"0.000000000000000001"` |
 | `transactionFee` | The actual native fee, from the receipt or the imported history, never the estimate; `null` only when unknown, `"0"` for zero |
-| `fromAddress`, `toAddress` | The two parties' addresses |
 | `blockTimestamp`, `blockNumber`, `blockHash` | The block the receipt placed it in, where recorded |
 | `nonce` | The sender's nonce, for an EVM transaction submitted through Ledova. The nonce and block number are decimal strings, because a JSON number loses digits past 2^53 |
 | `importedFromHistory` | `true` when the row came from the provider's transfer history rather than a submission through Ledova |

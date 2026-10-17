@@ -5,8 +5,9 @@
 How members reach their own records, and how a company obtains copies of its register: inspection
 copies, certificates, notice figures and the company pack. It is for company representatives,
 support and platform staff, and engineers learning the domain, and it includes the staff procedures
-done on a company's written instruction. The file formats and how each output is recorded are in
-[register records](../engineering/records.md#export-records).
+done on a company's written instruction. The file formats are in
+[output formats](../engineering/records.md#output-formats), and how each output is recorded is in
+[export records](../engineering/records.md#export-records).
 
 Contents:
 
@@ -18,7 +19,6 @@ Contents:
 - [Notice figures](#notice-figures)
 - [The due list](#the-due-list)
 - [The company pack](#the-company-pack)
-- [Reviewing company documents](#reviewing-company-documents)
 - [The Wallet shares page](#the-wallet-shares-page)
 
 ## Outputs at a glance
@@ -44,6 +44,11 @@ output authority, except where the table says the company owner may read the reg
 | Notice figures        | Platform staff, on the company's written instruction     | Admin, **Register outputs**                    | 28 days (s254X; s178A, s178C and s178D)                        | Their SHA-256, the period and the instruction                   |
 | Core company pack     | A company administrator                                  | **Register**, **Documents**: **Company pack**  | None                                                           | The SHA-256 of its manifest, the instruction and recipient, per class |
 | Broader company pack  | Platform staff, on the company's written instruction     | Admin, **Company packs**                       | None                                                           | As for a core pack                                              |
+
+Staff procedures on a company's written instruction:
+[preparing notice figures](#preparing-notice-figures),
+[working the due list](#working-the-due-list) and
+[producing the broader pack](#producing-the-broader-pack-in-admin).
 
 Ledova keeps a fingerprint, not the file, except for a member's certificate, which the member
 downloads later. Records of outputs cannot be rewritten, are read only by platform staff and are
@@ -258,7 +263,7 @@ total reads `not recorded` unless every current member's amount is established. 
 correction carries no amount paid. Names and addresses are the ones the register gives when the
 figures are prepared; an unidentified or ambiguous member is printed as the register prints them
 rather than refused. A period with no entries is not refused: it lists none. Column details are in
-[notice figures format](#notice-figures).
+[notice figures format](../engineering/records.md#notice-figures-format).
 
 ### Preparing notice figures
 
@@ -341,15 +346,18 @@ stated limits, not proof of a bank payment, current contract ownership or a lodg
   particulars changes, grants, transfers, employee awards and vesting, external agreements,
   contributions and allotments, register instructions, deployments, capital increases, pause
   changes, and wallet nominations and instructions, each with who prepared and decided it under
-  which appointment, its decisions and its supporting files.
+  which appointment, its decisions and, where Ledova retained one, its supporting file
+  ([which records carry files](../engineering/records.md#company-decision-records)). Capital
+  increases, pause changes and the terms of a chain grant name a file the pack does not carry;
+  deployments and wallet nominations and instructions have none.
 - Issues, and subscriptions with a recorded payment still to be allotted or refunded. Payment is
   labelled as recorded by staff, not proved: the company inherits an obligation to allot or refund.
 - Wallet approvals, the transactions Ledova sent for the company and the settlements it executed.
 - What the company published to its members, with each resolution's result, each dividend's payment
   records and read counts.
-- The contract information a successor needs, and a README that explains each file, how to check
-  it and how control of the contracts would be handed over. The pack explains the handover and does
-  not perform it; the handover itself is not built.
+- The contract information a successor needs, and a README that explains the files, how to check
+  them and how control of the contracts would be handed over. The pack explains the handover and
+  does not perform it; the handover itself is not built.
 
 The README ends with the owner's statement: "The company, and a provider it names in writing, may
 use the records and the contract interface files in this pack to operate and move the company's
@@ -436,10 +444,7 @@ Ledova keeps no copy of the pack. Unzip it and compare the SHA-256 of `manifest.
 recorded digest; the manifest lists the SHA-256 of every other file. A reader then checks the
 register offline with a JSON parser and SHA-256, as the README describes: each entry against its
 fields, each link to the entry before it, the last fingerprint against the manifest, and the
-entries replayed into the current members. No offline checking tool ships with Ledova; the earlier
-one remains in the
-[10 October tree](https://github.com/Ledova/ledova/tree/5f40e3cd896afc3f3a55a14e359224156735a417/backend/tokens/tests)
-as history.
+entries replayed into the current members. No offline checking tool ships with Ledova.
 
 ### Limits of the pack
 
@@ -453,8 +458,9 @@ as history.
 - A company document has no fingerprint of its own apart from the manifest's, so a reader can check
   an evidence copy against its record but a document only against the manifest. A document held
   only as a web address is listed, not fetched.
-- The ceiling counts a company document by its recorded size, which staff can edit; uploads are
-  bounded at 10 MiB each, so the error is bounded by the number of documents.
+- The README predates the company's decision records: it does not describe them, and it says no
+  platform account numbers leave, although those records carry them
+  ([technical limits](../engineering/records.md#technical-limits-of-the-pack)).
 - A withheld ballot's fingerprint cannot be recomputed and a tally cannot be recounted from the
   pack: a reader checks the ballots' links, the close and the tally against the roll and the number
   of ballots, and the division between for, against and abstain rests on Ledova's own verifier. A
@@ -462,34 +468,12 @@ as history.
   count and its rows against the register instead.
 - In a small company a tally, set against the roll's holdings, can show how members voted.
   Withholding ballots adds nothing to what the company can already infer from Ledova.
-- Production near the ceiling has not been measured; a proxy in front of the service could time out
-  a large download.
-
-## Reviewing company documents
-
-Retained register instructions and [shareholder publications](publications.md)
-rely on a company document that platform staff have verified. Company register commands use the
-company's own evidence instead.
-
-1. In **Admin → Companies → Company documents**, choose **Review and verify document**. You need an
-   active staff account with **Can change company document**.
-2. Open the private file and review its company, document type and validity details.
-3. Confirm. The confirmation is bound to you and the document and expires after 15 minutes.
-
-Confirmation re-reads the file and records a fingerprint of its bytes and of the document's and
-company's identifying details. It is refused when the preview changed, the file is missing, empty
-or the wrong size, the document is rejected or its validity is not current; a web address alone
-cannot establish content. Ledova clears the verification automatically when the company's
-identity, the document's details or its rejection reason change; the company may revoke a
-verification but cannot grant one. Every use rechecks the current file against the fingerprint,
-the company and the validity dates.
 
 ## The Wallet shares page
 
-**Wallet shares** (web `/wallets/holdings`, reached from **Wallets** as **View shares in your
-wallets**; on mobile from **Wallets**) lists the share-class tokens in the person's own wallets,
-by company and class, one row per class across networks, expanding into each network's and
-wallet's balance. A holding whose class details cannot be read is still listed under the asset's
+**Wallet shares** (reached from **Wallets**: **View shares in your wallets** on the web, **Wallet
+shares** on mobile) lists the share-class tokens in the person's own wallets, by company and class,
+one row per class across networks, expanding into each network's and wallet's balance. A holding whose class details cannot be read is still listed under the asset's
 name. Company-recorded shares, including those held without a wallet, are on **Dashboard** or **My
 shares** instead.
 
@@ -509,4 +493,4 @@ this page.
 Next: [the register of members](register.md),
 [shareholder publications](publications.md),
 [legal positions](../legal/positions.md) and
-[register records](../engineering/records.md#export-records).
+[register output formats](../engineering/records.md#output-formats).

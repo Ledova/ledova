@@ -15,8 +15,9 @@ Contents:
   contracts allow and refuse, and why a split or consolidation cannot run on a live class.
 - [Issuance data flow](#issuance-data-flow): from a draft class to a
   recorded holding.
-- [Outgoing signing foundation](#outgoing-signing-foundation): signer
-  authority, admission, local chain admission, signing, receipts and guards.
+- [Outgoing signing foundation](#outgoing-signing-foundation): locks and
+  holds, signer admission, fresh Base Sepolia and local chain admission, signing, receipts and
+  guards.
 - [Signing families](#signing-families): deployment, automatic swap
   approval, whitelist changes and refresh, capital increases, share issuances, pause, mints and NAV.
 - [Wallets](#wallets): ownership proof, client signing paths and network
@@ -33,7 +34,7 @@ the allowed chain ids are operations work: see [chain setup](../operations/chain
 
 The contracts in `contracts/contracts/` are Solidity, OpenZeppelin-based and owned by the operator
 key: the factory makes each class and its company's registry owned by the address the backend signs
-with.
+with. Company-run decisions change neither contract ownership nor bytecode.
 
 | Contract                | Responsibility |
 | ----------------------- | -------------- |
@@ -41,7 +42,7 @@ with.
 | `ShareToken.sol`        | One share class. ERC-20 with 0 decimals, burnable, pausable, bound at construction to its company's registry (`whitelist()`). `authorizedShares` is the cap; `mint` reverts with `ExceedsAuthorizedShares` unless the cap holds; `_update` refuses any movement to a wallet the registry does not list and any transfer from one, so an expired or removed holder can neither receive nor send, directly or through `transferFrom`. Burning is not checked. `setAuthorizedShares` cannot go below `totalSupply()` and emits `AuthorizedSharesUpdated(oldAmount, newAmount)` |
 | `ShareTokenFactory.sol` | `createShareToken(name, symbol, identifier, acn, authorizedShares, owner)`, `getTokenByIdentifier(identifier)` and `registryOf(acn)`. The identifier is the deduplication key; the factory refuses one that does not begin with the company's `<acn>:`, and the backend always sends `<acn>:<symbol>`. A company's first class creates its `WhitelistRegistry`, owned by the class owner, and emits `WhitelistRegistryCreated(acn, registry)`; its later classes share that registry and must have the same owner. Each class emits `ShareTokenCreated(token, identifier, symbol, authorizedShares)` |
 | `AtomicSwap.sol`        | EIP-712 swap settlement (domain `LedovaAtomicSwap`, version 1) between an approved share token and an approved payment token, executed by an authorised relayer. It holds no registry: the share token's own `_update` checks both parties |
-| `AUDY.sol`              | Minter-gated AUD stablecoin, 2 decimals, the payment token. Its `assets.Asset` row plus its `AssetChainDeployment` on the operator's receiving chain are the only representation of a settlement token; `backend/operators/settlement.py` resolves them |
+| `AUDY.sol`              | Minter-gated AUD stablecoin, 2 decimals, the payment token. Its `assets.Asset` row plus its `AssetChainDeployment` on the operator's receiving chain are the only representation of a settlement token; `backend/operators/settlement.py` (`deployment_for`, `require_deployment`) resolves them on that chain. The asset API's `contractAddress` is only an asset's single active deployment, which may be on another chain |
 | `AUSG.sol`              | NAV-bearing token, 6 decimals, with a redemption queue and `NAVUpdated` events; not part of the issuance flow |
 
 The deployment scripts, the addresses they write and the chain ids they accept are in
@@ -117,18 +118,10 @@ differences, but only against an imported register's applied snapshot, before de
 any entry other than the opening and earlier mirror corrections, under
 `backend/tokens/database_mirror_guards.sql`. No kind can reduce a holding partially on a live class.
 
-[`ShareToken.sol`](../../contracts/contracts/ShareToken.sol) is the whole of what a deployed class can do:
-
-| Member                                     | Effect |
-| ------------------------------------------ | ------ |
-| `authorizedShares`                         | The cap, readable by anyone |
-| `mint(address, uint256)`                   | `onlyOwner`, `whenNotPaused`, reverts `ExceedsAuthorizedShares` when `totalSupply() + amount > authorizedShares` |
-| `setAuthorizedShares(uint256)`             | `onlyOwner`, refuses any amount below `totalSupply()` |
-| `pause` / `unpause`                        | `onlyOwner`; the pause reaches every movement through `ERC20Pausable._update` |
-| `burn` / `burnFrom` (from `ERC20Burnable`) | Holder-side: `burn` destroys the caller's own shares, `burnFrom` spends an allowance the holder granted |
-| `_update`                                  | Refuses a recipient the company registry does not list, and a sender it does not list, on every movement |
-
-There is no rebase, balance scaling factor, owner-initiated burn, snapshot extension or supply-wide
+[`ShareToken.sol`](../../contracts/contracts/ShareToken.sol), as listed under
+[contracts](#contracts), is the whole of what a deployed class can do: `mint`,
+`setAuthorizedShares` and `pause` are `onlyOwner`, `mint` is also `whenNotPaused`, and burns are
+holder-side only. There is no rebase, balance scaling factor, owner-initiated burn, snapshot extension or supply-wide
 write, and the factory deploys with `new ShareToken(...)` behind no proxy, so a deployed class is its
 bytecode permanently. A split is therefore executable today only as one issuance per holder,
 sequenced after a capital increase that lifts the cap to at least the post-split supply: `mint` and
@@ -145,10 +138,9 @@ is refused rather than attempted.
 
 1. The company owner creates a `ShareToken` in `DRAFT` through `POST /api/v1/tokens/` with a name,
    symbol and `total_supply` (the authorised cap). The historical API key `totalSupply` is this same
-   cap; `issuedSupply` and the contract's `totalSupply()` are shares actually issued. Shares use
-   whole units: model validation and the `share_token_whole_units` constraint require
-   `ShareToken.decimals` to be zero, matching the contract; settlement assets keep their own
-   decimals. Through the API a new symbol is 1 to 5 ASCII letters, stored in capitals. Neither the
+   cap; `issuedSupply` and the contract's `totalSupply()` are shares actually issued. Shares are
+   whole units at every layer ([how](#why-splits-and-consolidations-cannot-run-on-a-live-class));
+   settlement assets keep their own decimals. Through the API a new symbol is 1 to 5 ASCII letters, stored in capitals. Neither the
    API nor admin accepts a new or changed symbol that a supported asset uses (`SUPPORTED_ASSETS` in
    `backend/assets/services/sync.py`: BTC, ETH, USDC, USDT, AUDY, AUSG), in any letter case; existing
    classes keep their symbols. A company may have several classes.
@@ -209,21 +201,6 @@ delivery is journaled and replayed as exact bytes by `tokens.SwapApprovalSubmiss
 transfers signed by users have their own journals
 ([wallet protocols](wallet-protocols.md)) and admit no operator signer.
 
-### Signer authority and uncertain replies
-
-Company appointees decide deployments, wallet instructions, grants, paid issues, capital increases
-and pauses through the [company workflow API](backend.md#company-workflow-api);
-the signer and the PostgreSQL operator role execute bounded accepted instructions and confer no
-company appointment
-([company authority boundaries](README.md#company-authority-boundaries)).
-Settlement-asset and yield-token minting, NAV updates, signer admission and infrastructure recovery
-are platform-staff work, not delegated to company administrators.
-
-An uncertain preparation or decision reply keeps its exact original body and key. Current read
-access recovers the retained receipt, including after the step's appointment has expired or the
-proposal has changed stage; a changed retry conflicts, and no replay after process loss is promised.
-Clients scope saved request state to the current account and session.
-
 ### Locks, holds and recovery
 
 Every family takes its source and class locks before the outgoing operation and signer locks, and
@@ -240,7 +217,7 @@ recorded identity. None of these projections is taken over by the generic transa
 
 Signing needs explicit admission. Existing and new `SigningAccount` rows start `closed`, and a
 missing row is also closed. A nonce counter, a successful legacy status or an inventory capture never
-grants admission. The [fresh Base Sepolia bootstrap](../operations/chains.md#fresh-signer-admission)
+grants admission. The [fresh Base Sepolia bootstrap](#fresh-base-sepolia-admission)
 (`bootstrap_fresh_signer`) is the only first-admission command for a public testnet, and
 [local chain admission](#local-chain-admission) the only one for the local
 development chain. Neither can reopen a signer or authorise legacy cutover, and there is no admin
@@ -273,6 +250,55 @@ and each adapter's durable transaction boundary still require proof. After signe
 cannot restore legacy sending with that key. Admission and the
 [legacy inventory](../operations/chains.md#legacy-inventory) do not establish a
 global nonce guarantee or resolve old business operations.
+
+### Fresh Base Sepolia admission
+
+`bootstrap_fresh_signer --manifest PATH` (`backend/blockchain/services/fresh_signer.py`) admits
+the operator key on Base Sepolia from the five transactions that deployed the core contracts,
+reading the chain without signing. When to run it is in
+[fresh signer admission](../operations/chains.md#fresh-signer-admission).
+
+The version-1 JSON manifest has exactly `version`, `chain_id`, `operator_address`,
+`environment_id`, `authorization_reference`, `attestations`, `contracts` and `transactions`.
+Version is integer `1`, chain is integer `84532`, and the environment and authorisation strings are
+nonempty and at most 200 and 500 characters. The three attestations are exactly `fresh_key`,
+`isolated_environment` and `producers_stopped`, all literal `true`. Contracts are exactly
+`share_token_factory`, `stablecoin` and `atomic_swap`, with distinct nonzero lowercase or
+checksummed addresses. Transactions are five distinct hashes in deployment order. Unknown or
+duplicate JSON keys are refused. Addresses and hashes are normalised to lowercase for the canonical
+manifest digest.
+
+The verifier compares the configuration and the configured key's public address, reads the
+provider's chain id without the client cache, and requires the exact zero-value transaction
+sequence from that sender: nonce 0 creates `ShareTokenFactory(sender)`; nonce 1 creates
+`AUDY(sender)`; nonce 2 calls `AUDY.addMinter(sender)`; nonce 3 creates `AtomicSwap(sender)`;
+nonce 4 calls `AtomicSwap.setPaymentTokenApproval(AUDY, true)`. Creation bytes come from the local
+Hardhat artifacts bound to their build-info, and creation addresses must match the
+sender-and-nonce CREATE derivation.
+
+Every receipt must succeed and have complete canonical evidence satisfying the configured
+`evm:84532` finalized policy; depth fallback is refused, and receipt identity is fetched again
+after evidence collection. Runtime bytecode must match the same build outside compiler-declared
+immutable slots, and exact constructor bytes bind those slots' initialisation. Contract owners, the
+AUDY minter, the swap relayer and the payment-token approval must match. Both latest and pending
+sender nonces must be exactly five. Provider uncertainty, missing artifacts or mismatched evidence
+leaves admission closed.
+
+The command refuses legacy source rows, unattributed chain transactions, imported outgoing
+evidence, current outgoing operations or attempts, other signer state, and any substantive
+inventory hold. The stopped-producer attestation is necessary: opening an unsigned outgoing
+operation does not take the signer lock, and the command cannot prove that another process or
+offline key holder has stopped.
+
+The final transaction takes a deployment-wide admission lock, then locks the signer and rechecks
+database history, so different fresh keys cannot both admit against one apparently empty database.
+Only a missing signer, or a closed generation-zero, nonce-zero row, can enter generation one with
+next nonce five. The unique bootstrap receipt, manifest digest, artifact and build identities and
+chain evidence commit with admission; the receipt is operator-only and PostgreSQL refuses UPDATE or
+DELETE on it. An exact manifest replay is recognised before the fresh-history and nonce checks and
+returns unchanged only while the same signer remains admitted at generation one; it preserves an
+advanced nonce. Closure, any earlier admission or a different manifest cannot be undone through
+this command, and the existing close and generation fences remain in force.
 
 ### Local chain admission
 
@@ -324,7 +350,7 @@ receipt must name a nonzero block hash that matches the canonical block read by 
 service rereads the receipt and that block, and checks the endpoint's chain directly before and after
 those reads. Missing, provisional, changed or noncanonical evidence leaves the original signed attempt
 unresolved; Base's provisional all-zero block hash is one such case
-([recovery](../operations/recovery.md)). All these RPC reads finish before the recording
+([recovery](../operations/recovery.md#before-recovering-anything)). All these RPC reads finish before the recording
 transaction, whose claim and attempt fences are checked again under the lock.
 
 A recorded revert permits a new claim and nonce while retaining the immutable earlier attempt.
@@ -390,7 +416,8 @@ identifier, separate from the deployment, outgoing operation, claim and transact
 retained consumed approval identifies the decision used by application. The public review snapshot
 holds company, class, register and transaction facts and the selected address; the captured wallet,
 account, profile and user identifiers stay private. Current register-read capability controls
-proposal reads; class metadata access grants no access to private legacy owner histories.
+proposal reads; class metadata access grants no access to private legacy owner histories or to
+company issue, capital or pause decisions.
 
 Application consumes the exact approval; the original deployment UUID, `DEPLOYING` status and the
 actual applying principal's job commit together, and an exact replay returns the retained receipt
@@ -450,8 +477,9 @@ claim. The app role cannot read or write approval metadata.
 
 ### Whitelist changes
 
-The participant's nomination and the company's decision are described in
-[participants](../business/participants.md#wallet-nominations-and-company-wallet-approvals).
+The participant's nomination and the company's decision are business rules:
+[nominating a wallet](../business/participants.md#nominating-a-wallet) and
+[company wallet instructions](../business/participants.md#company-wallet-instructions).
 
 `WhitelistEntry` is the one identity row per wallet: it either points at a `Wallet` or carries a
 bare `address` plus a `label` for an operator-held treasury address, and a database constraint
@@ -465,20 +493,17 @@ requires one of the two and makes bare addresses unique. Each company approval i
 | `company-wallet-instructions/` | Company: create, list, detail, `decision-preview/` and `decide/` |
 | `company-wallet-targets/` | Company: the retained CONFIRMED or UNCHANGED ADD targets a REMOVE can name |
 
-A participant nominates one own Base wallet, with its genuine retained possession proof, to the exact
-company and its current GENERAL eligibility source. Company reads expose that nomination's minimal
-facts (address, chain, eligibility source, proof completion time, expiry and readiness), not an
-account wallet directory. The private proof, nominee associations and signature bytes remain
+A nomination binds one own Base wallet's retained possession proof to the exact company and its
+current GENERAL eligibility source. The proof, nominee associations and signature bytes are
 operator-only, and historical VERIFIED status is not backfilled into a proof.
 
-A current personal company `admin` appointment satisfies each step; narrower prepare, approve, apply
-and read capabilities remain. ADD freezes the nomination, company, address, chain, actual registry,
-finite expiry (in the registry's whole seconds, never beyond the captured eligibility expiry) and
-exact transaction intent; the factory's `registryOf(acn)` must identify the company's actual deployed
-registry. REMOVE freezes a genuine retained CONFIRMED or UNCHANGED ADD journal and its exact company,
-registry and address, including historical NULL-source ADDs; deleting the mutable wallet, entry or
-approval does not erase that target, and an approval-only historical row with no ADD journal is not
-promoted into command history.
+ADD freezes the nomination, company, address, chain, actual registry, finite expiry (in the
+registry's whole seconds, never beyond the captured eligibility expiry) and exact transaction
+intent; the factory's `registryOf(acn)` must identify the company's actual deployed registry.
+REMOVE freezes a retained CONFIRMED or UNCHANGED ADD journal and its exact company, registry and
+address, including historical NULL-source ADDs; deleting the mutable wallet, entry or approval does
+not erase that target, and an approval-only historical row with no ADD journal is not promoted into
+command history.
 
 Application consumes the retained approval and atomically admits and queues one original
 `WhitelistChange`: applied status means admission, not chain approval. The one write is
@@ -611,24 +636,19 @@ What the company does for a
 | `register-issues/` | create, list, detail, `decision-preview`, `decide`, and the retained authority (`file`), terms (`terms-file`) and acceptance (`acceptance-file`) files |
 | `register-paid-issues/` | create, list, detail, authority `file`, `decision-preview`, `decide`, and `ready-subscriptions` |
 
-A non-paid chain grant needs a genuine CHAIN opening, an exact same-company member link, the
-participant's current nomination and a finite company ADD that the preparation names explicitly;
-matching an address alone does not identify that approval. Its review identifies the company, class,
-member, nomination, original wallet approval, quantity, documentary fingerprints, opening and
-transaction intent; private account, profile, user and proof identifiers stay internal. Preparation
-retains authority, terms and any required acceptance evidence and freezes one genuine
-`ShareIssuanceRequest` in its existing `UNDER_REVIEW` state without reserving shares; it creates no
-paid subscription or receipt. An import-origin book, including an imported zero book after
-deployment, cannot use this route.
+A non-paid chain grant's preparation binds the genuine CHAIN opening, the exact same-company member
+LINK, the participant's current nomination and the finite company ADD it names explicitly; its
+review adds the quantity, documentary fingerprints and transaction intent, while private account,
+profile, user and proof identifiers stay internal. Preparation retains authority, terms and any
+required acceptance evidence and freezes one `ShareIssuanceRequest` in its existing `UNDER_REVIEW`
+state without reserving shares; it creates no paid subscription or receipt. An import-origin book,
+including an imported zero book after deployment, is refused.
 
-A paid issue works the same way over an existing subscription recorded as PAID. Preparation captures
-the subscription, class, recipient, whole-share quantity, price, payment dates and references, money
-held and refund facts; partial receipts and scale-back quantities stay distinct from the original
-requested quantity, and a refund owed from a recorded refund. `ready-subscriptions` is an
-unpaginated selector for a current `admin` or `prepare` appointee in the exact company and class;
-approvers, appliers and register readers inspect existing proposals without it or the wider
-financial ledger. Paid fulfilment does not reapply participant eligibility, nomination or grant
-requirements.
+A paid issue works the same way over an existing subscription recorded as PAID; what its preparation
+captures, and which requirements it does not reapply, are in
+[company paid issues](../business/issuing-shares.md#company-paid-issues). `ready-subscriptions` is
+an unpaginated selector limited to a current `admin` or `prepare` appointee in the exact company and
+class.
 
 For both, preparation and approval create no execution effect. Application consumes the exact
 approval and atomically makes the request approved and admits its original execution:
@@ -638,11 +658,11 @@ approval, the request (and for a paid issue the original subscription), a privat
 reservation and offering headroom checks remain; issued supply, holdings, the cap and reservations
 are separate quantities. Fresh staff paid admission is retired; historical accepted commands keep
 their original actor and source. App connections cannot read or write private commands, and public
-company reads keep their existing shape. Current exact-company register-read capability controls
-proposals and retained files; class metadata access exposes no private legacy owner history,
-participant wallet or eligibility directory, and company administration grants no access to the
-financial ledger. Private account, profile, wallet-lock and reserved dispatch identifiers stay
-internal. The request reservation, the actual mint, finality, `ALLOTTED` status, the wallet holding
+company reads keep their existing shape. Reads of proposals and retained files follow the
+[issue rules](../business/issuing-shares.md#rules-every-issue-follows); class metadata access
+exposes no private legacy owner history, participant wallet or eligibility directory. Private
+account, profile, wallet-lock and reserved dispatch identifiers stay internal. The request
+reservation, the actual mint, finality, `ALLOTTED` status, the wallet holding
 and the register entry remain separately visible outcomes.
 
 Admission leaves the public request approved and the private command queued. A refund that wins
@@ -678,7 +698,8 @@ preserves that outcome, and a holding refresh uses the admitted contract address
 `check_executing_issuance_requests` recovers bounded batches every five minutes. Completion calls
 `record_completed_effects` in the same transaction, and register recording may keep the effect
 waiting for its opening, wallet link, attribution or applied instruction
-([the register](../business/register.md#who-runs-what)). A grant records its member's ISSUE
+([recording completions](records.md#recording-completions-after-the-opening),
+[waiting effects](records.md#waiting-effects)). A grant records its member's ISSUE
 once, after the outcome transaction, through the existing wallet-to-member LINK; no member is
 inferred from names or addresses. An executed but unentered allocation stays reserved until that
 entry exists, because chain completion alone does not establish register recording, and actual
@@ -700,7 +721,8 @@ authority `file`, decision preview and decision. A current personal company appo
 strict boolean target state, reason, authority reference and private AUTHORITY evidence; the
 proposal freezes the company, class, actor, appointment, configured contract, signer, exact intent
 and a copied evidence fingerprint and snapshot. Preparation and approval create no `PauseChange`,
-job, signature, nonce or state change. Application consumes the exact approval and current applier
+job, signature, nonce or state change, and rejection changes only the retained proposal.
+Application consumes the exact approval and current applier
 authority and admits one source-bound PENDING `PauseChange` and its durable job atomically under the
 original proposal UUID. An unresolved target refuses application before the proposal is consumed;
 identical replay recovers the original result and changed terms conflict. Ownership and staff
@@ -714,8 +736,8 @@ against an executing peer. Failing a never-signed original after revocation or e
 approval releases its target slot; definite preparation failures keep their technical meaning.
 `confirmed` needs the original canonical successful receipt from the admitted contract and sender
 with a unique matching `Paused` or `Unpaused` event, and completed projection; no finality policy is
-applied. Current chain state cannot replace that transaction's outcome, and missing or duplicate
-events stay unresolved.
+applied. Neither current chain state nor a `completedAt` value alone can replace that
+transaction's outcome, and missing or duplicate events stay unresolved.
 
 The incomplete command reserves its chain and contract, including a confirmed or observed outcome
 awaiting public projection. Company projection locks target, company, class, source and journal on
@@ -742,10 +764,9 @@ requests. Execution checks current deployment eligibility, signer configuration 
 permission before signing. Signed recovery uses the recorded intent after configuration changes; it
 never switches the recorded signer or deployment.
 
-Once a settlement-asset mint is executed, by its execution or by recovery, the AUDY holding of each
-verified Base wallet registered at the recipient address is written from `balanceOf` after the mint
-has committed; a holding that cannot be written is logged and leaves the mint executed. A yield-token
-mint writes none.
+Once a settlement-asset mint executes, by execution or recovery, its AUDY holdings are written as
+in [holdings written from the chain](#holdings-written-from-the-chain); a holding that cannot be
+written is logged and leaves the mint executed. A yield-token mint writes none.
 
 A missing receipt or lost send acknowledgement leaves the request **Outcome unresolved**; use
 **Recover** on the same request. `recover_mint_requests` selects at most 100 admitted unresolved
@@ -836,11 +857,9 @@ JavaScript and native probes exercise encoding, decoding and scanner boundaries;
 establish the combined camera and firmware journey, which stays a
 [pre-release device check](mobile-releases.md#pre-release-device-checks).
 
-Reference: `backend/wallets/services/verification.py`,
-`dashboard/src/pages/wallets/hooks/useWalletVerification.ts`,
-`packages/shared/src/utils/local-signer.ts`, `dashboard/src/utils/softwareWallet/localSigner.ts`,
-`mobile/src/utils/softwareWallet/localSigner.ts`, `mobile/src/screens/wallets/useWalletVerification.ts`,
-`mobile/src/services/secureKeyStorage.ts`.
+The client code is in `dashboard/src/pages/wallets/hooks/useWalletVerification.ts`,
+`dashboard/src/utils/softwareWallet/localSigner.ts`, `mobile/src/utils/softwareWallet/localSigner.ts`,
+`mobile/src/screens/wallets/useWalletVerification.ts` and `mobile/src/services/secureKeyStorage.ts`.
 
 ### Network identity
 
@@ -946,28 +965,19 @@ and source fields are read-only in the admin.
 
 ### Transaction values and monitoring windows
 
-Each wallet transaction, imported by sync or sent from the app, records its USD and AUD values when
-it is recorded (`transaction_values` in `backend/assets/services/valuation.py`). The USD value is the
-amount at the asset's USD price at the block time, and the AUD value is that converted at the USD/AUD
-rate stored at that moment; an asset with an AUD par, AUDY, is valued at par whatever its USD price.
-A transfer sent from the app is recorded before it is mined, so it is valued when it is sent, and
-wallet sync later finds the hash already recorded and skips it, so it counts once.
-
-`sync_exchange_rates` refreshes the rate every 10 minutes and keeps no rate history. The
-per-transaction monitoring rules check only transactions whose block time is less than an hour old
-(`TRANSACTION_MONITORING_WINDOW_HOURS`), or that are not mined yet, so for them the rate is the one
-in effect when they happened. History imported later, such as a newly verified wallet's past
-transfers, is converted at the rate stored when it is imported. A transaction with no USD price, or
-recorded while no rate was stored, has no AUD value, and no amount rule counts it. Rule windows run
-on when a transaction happened (its block time or, for a transfer not mined yet, when it was
-recorded), so imported history counts when it happened, not as a burst of recent activity.
-
-A customer is new for `NEW_CUSTOMER_DAYS` after their account first became active, and an account
-with no activation date counts as new. The account records that moment once, whichever path
-activates it, and the `users_keep_first_activation` trigger keeps the earliest date through
+What a monitoring rule counts, its windows and the new-customer period are business rules in
+[transaction monitoring](../business/participants.md#transaction-monitoring).
+`transaction_values` (`backend/assets/services/valuation.py`) values each wallet transaction in USD
+and AUD when it is recorded, imported or sent from the app: the USD price at the block time,
+converted at the USD/AUD rate stored then, so history imported later uses the rate stored at import.
+An asset with an AUD par (AUDY) is valued at par whatever its USD price. `sync_exchange_rates`
+refreshes the rate every 10 minutes and keeps no rate history. A transfer sent from the app is
+recorded before it is mined, and wallet sync later skips its hash. Rule windows use the block time
+or, before mining, the recorded time; `TRANSACTION_MONITORING_WINDOW_HOURS` and `NEW_CUSTOMER_DAYS`
+are in `backend/compliance/constants.py`. An account records its first activation once, whichever
+path activates it, and the `users_keep_first_activation` trigger keeps the earliest date through
 suspension and reactivation; it can still move earlier, which is how the demo seed dates its testers
-from their identity decision. The rules, their thresholds and what they mean for an account are in
-[participants](../business/participants.md#transaction-monitoring).
+from their identity decision.
 
 ### Portfolio history
 

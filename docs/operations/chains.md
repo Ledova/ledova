@@ -16,7 +16,6 @@ for a public network needs the owner's explicit direction
 - [The local stack's chain](#the-local-stacks-chain)
 - [A chain of your own](#a-chain-of-your-own)
 - [Fresh-start redeploy](#fresh-start-redeploy)
-- [Fresh signer admission](#fresh-signer-admission)
 - [Reaching the node from Compose](#reaching-the-node-from-compose)
 
 ## Key management
@@ -62,11 +61,6 @@ issuance or swap on it stays `executing` after its receipt, and a register canno
 it. The setting makes one final once that many blocks, counted inclusively from the receipt's
 block, sit on a stable tip. It is refused when `BLOCKCHAIN_CHAIN_ID` names a public testnet, whose
 policies stay the approved ones.
-
-The backend test settings fix `BLOCKCHAIN_CHAIN_ID=84532` with the approved policies, so an accepted
-`LOCAL_CHAIN_FINALITY_DEPTH` has no effect on the suites, while a value the backend refuses stops
-them as it stops every other command
-([backend verification](../engineering/testing.md#backend-verification)).
 
 ## The local stack's chain
 
@@ -193,9 +187,9 @@ local rehearsal of this procedure, what each check answered, and the authorised 
 
 Steps 6 and 7 sign, so the owner must explicitly authorise signer admission for the fresh
 environment. The bootstrap in step 4 verifies the five core deployment transactions before first
-admission and cannot reopen an old signer, and the local stack's `admit_local_signer` refuses every
-chain but 31337. The fresh migrations install the current PostgreSQL guards on the empty database
-but do not check whether stored classes belong to a retired factory; step 8 does.
+admission and cannot reopen an old signer. The fresh migrations install the current PostgreSQL
+guards on the empty database but do not check whether stored classes belong to a retired factory;
+step 8 does.
 
 1. Stop the backend, workers and every other producer using the new operator key. Prepare a new
    key used only for this fresh, isolated environment; do not reuse a signer with previous
@@ -240,8 +234,8 @@ but do not check whether stored classes belong to a retired factory; step 8 does
    Success prints the immutable bootstrap UUID, the manifest digest and `unchanged: false`; an
    exact replay prints `unchanged: true`. A verification failure leaves admission closed and
    creates no bootstrap record: resolve the reported problem while retaining the original manifest.
-   [Fresh signer admission](#fresh-signer-admission) lists what the
-   command checks.
+   [Fresh Base Sepolia admission](../engineering/chain.md#fresh-base-sepolia-admission) lists what
+   the command checks.
 5. After successful admission, start the backend and workers and recreate companies and users
    through the browser. `createsuperuser` and admin wallet verification are the other steps outside
    it.
@@ -361,47 +355,12 @@ sends a transaction. It must run before application processes, workers, companie
 rows or outgoing records exist. The deploying key must be unused before the five core deployment
 sends, exclusive to this environment, and the configured backend operator key.
 
-The version-1 JSON manifest has exactly `version`, `chain_id`, `operator_address`,
-`environment_id`, `authorization_reference`, `attestations`, `contracts` and `transactions`.
-Version is integer `1`, chain is integer `84532`, and the environment and authorisation strings are
-nonempty and at most 200 and 500 characters. The three attestations are exactly `fresh_key`,
-`isolated_environment` and `producers_stopped`, all literal `true`. Contracts are exactly
-`share_token_factory`, `stablecoin` and `atomic_swap`, with distinct nonzero lowercase or
-checksummed addresses. Transactions are five distinct hashes in deployment order. Unknown or
-duplicate JSON keys are refused. Addresses and hashes are normalised to lowercase for the canonical
-manifest digest.
-
-The verifier compares the configuration and the configured key's public address, reads the
-provider's chain id without the client cache, and requires the exact zero-value transaction
-sequence from that sender: nonce 0 creates `ShareTokenFactory(sender)`; nonce 1 creates
-`AUDY(sender)`; nonce 2 calls `AUDY.addMinter(sender)`; nonce 3 creates `AtomicSwap(sender)`;
-nonce 4 calls `AtomicSwap.setPaymentTokenApproval(AUDY, true)`. Creation bytes come from the local
-Hardhat artifacts bound to their build-info, and creation addresses must match the
-sender-and-nonce CREATE derivation.
-
-Every receipt must succeed and have complete canonical evidence satisfying the configured
-`evm:84532` finalized policy; depth fallback is refused, and receipt identity is fetched again
-after evidence collection. Runtime bytecode must match the same build outside compiler-declared
-immutable slots, and exact constructor bytes bind those slots' initialisation. Contract owners, the
-AUDY minter, the swap relayer and the payment-token approval must match. Both latest and pending
-sender nonces must be exactly five. Provider uncertainty, missing artifacts or mismatched evidence
-leaves admission closed.
-
-The command refuses legacy source rows, unattributed chain transactions, imported outgoing
-evidence, current outgoing operations or attempts, other signer state, and any substantive
-inventory hold. The stopped-producer attestation is necessary: opening an unsigned outgoing
-operation does not take the signer lock, and the command cannot prove that another process or
-offline key holder has stopped, so keep those producers stopped throughout verification and commit.
-
-The final transaction takes a deployment-wide admission lock, then locks the signer and rechecks
-database history, so different fresh keys cannot both admit against one apparently empty database.
-Only a missing signer, or a closed generation-zero, nonce-zero row, can enter generation one with
-next nonce five. The unique bootstrap receipt, manifest digest, artifact and build identities and
-chain evidence commit with admission; the receipt is operator-only and PostgreSQL refuses UPDATE or
-DELETE on it. An exact manifest replay is recognised before the fresh-history and nonce checks and
-returns unchanged only while the same signer remains admitted at generation one; it preserves an
-advanced nonce. Closure, any earlier admission or a different manifest cannot be undone through
-this command, and the existing close and generation fences remain in force.
+It refuses any legacy source row, outgoing evidence or operation, other signer state or inventory
+hold. It cannot prove that another process or offline key holder has stopped, so keep every
+producer stopped throughout verification and commit, as the stopped-producer attestation records.
+A verification failure leaves admission closed and creates no record. The manifest format and every
+check the command makes are in
+[fresh Base Sepolia admission](../engineering/chain.md#fresh-base-sepolia-admission).
 
 ### Legacy inventory
 

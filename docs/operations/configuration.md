@@ -47,7 +47,6 @@ one `x-backend-environment` anchor, so the three cannot drift: `POSTGRES_HOST=po
 under [the local stack's chain](chains.md#the-local-stacks-chain)). These are
 `environment:` entries, so they win over `backend/.env`: an `s3` storage backend, `DEBUG=false`, a
 custom `REDIS_URL` or other chain settings in that file are silently ignored inside the stack.
-Uploaded evidence uses private storage and authenticated routes in both debug modes.
 
 `backend/.env` is still needed, because `SECRET_KEY` and `POSTGRES_PASSWORD` come only from it and
 no committed file supplies them. Without it `migrate` stops on `KeyError: 'SECRET_KEY'` before
@@ -71,13 +70,11 @@ token and the other DRF rate limits, and it carries the trading event stream (`t
 `tokens/views/trading_events.py`). Background work is Procrastinate on PostgreSQL, not Redis. Redis
 is required even with trading disabled: with the cache unreachable, sign-in answers 503 before
 checking credentials and uploads answer 503, and the backend and worker containers wait for the
-Redis healthcheck. Test settings use `LocMemCache`.
+Redis healthcheck.
 
-The per-address sign-in limit (`auth_email`) allows 10 attempts in a rolling hour. Successful and
-unsuccessful credential checks both consume an attempt, and a request over the limit gets 429 with
-`Retry-After`. It and the upload quotas reserve each attempt atomically in Redis, using Redis's
-clock, so they hold across backend workers and restarts; Redis data loss or a cache clear resets
-them. The other DRF rate limits keep DRF's approximate counting.
+How the per-address sign-in limit (`auth_email`) counts is in
+[authentication and sessions](../engineering/security.md#authentication-and-sessions); the upload
+quotas are in [upload limits](jobs-and-storage.md#upload-limits).
 
 ## Sessions and cookies
 
@@ -185,8 +182,8 @@ finality is decided are under
 | `AWS_STORAGE_BUCKET_NAME` | none | Yes when `STORAGE_BACKEND=s3` |
 | `AWS_S3_REGION_NAME` | `ap-southeast-2` | No |
 | `GS_BUCKET_NAME` | none | Yes when `STORAGE_BACKEND=gcs` |
-| `CLASSIFICATION_EVIDENCE_RETENTION_DAYS` | `2557` | No; `0` retains indefinitely and purges nothing |
-| `UNATTACHED_DOCUMENT_RETENTION_DAYS` | `30` | No; lifetime of an unattached payslip from upload; `0` retains indefinitely |
+| `CLASSIFICATION_EVIDENCE_RETENTION_DAYS` | `2557` | No; `0` retains indefinitely and purges nothing; changing it needs a new guard migration ([retention clocks](../engineering/security.md#retention-clocks)) |
+| `UNATTACHED_DOCUMENT_RETENTION_DAYS` | `30` | No; lifetime of an unattached payslip from upload; `0` retains indefinitely; changing it needs a new guard migration ([retention clocks](../engineering/security.md#retention-clocks)) |
 | `FORMER_MEMBER_RETENTION_DAYS` | `2557` | No; a value below 2557, including `0`, raises `ImproperlyConfigured` and refuses the fold and the purge |
 
 What each retention clock measures from and what each purge removes is stated once in
@@ -232,19 +229,17 @@ stored balances and the hourly wallet sync logs a warning for each of them.
 | `CRYPTO_RISK_THRESHOLD_HIGH` | `0.6` | No |
 
 Identity verification is off until configured: with any other `KYC_PROVIDER` value, blank
-included, the integration answers `503 Service not configured`. Turning on the operator's
-`issuer_kyc_required` without a provider refuses every company decision
+included, the integration answers `503 Service not configured`. The operator's
+`issuer_kyc_required` needs a configured provider
 ([operator configuration](operator-console.md#operator-configuration)).
 
-A crypto screening recorded while `KYCAID_CRYPTO_MONITORING_ENABLED` is off is sent nowhere and
-fails with "Crypto monitoring is disabled"; it names the configured `KYC_PROVIDER`, or `disabled`
-when that is blank. Retrying it from the screening admin once screening is on sends it to the
-configured provider and records that provider, which is the one the KYCAID callback
-(`/webhooks/kycaid/crypto/`) looks it up by. A provider that cannot screen, such as Sum&Sub today,
-fails every screening. How each provider's results, scores and callbacks are read is in
-[identity verification](../engineering/backend.md#identity-providers); what the monitoring rules
-compare is under
-[transaction monitoring](../business/participants.md#transaction-monitoring).
+Only KYCAID screens addresses; under Sum&Sub every screening fails
+([transaction monitoring](../business/participants.md#transaction-monitoring)). With
+`KYCAID_CRYPTO_MONITORING_ENABLED` off, screenings fail with "Crypto monitoring is disabled"; after
+turning it on, retry them from the screening admin
+([crypto address screening](../engineering/backend.md#crypto-address-screening)). How each
+provider's results, scores and callbacks are read is in
+[identity verification](../engineering/backend.md#identity-providers).
 
 ## Email
 
@@ -310,11 +305,12 @@ action too. Extraction supplements human review and never verifies a claim.
 Without it, company activation retains a pending, unconfigured attempt without contacting ABR and
 leaves the company unchanged. Development inputs must stay synthetic.
 
-Each lookup uses the supplied ABN, or the ACN when the ABN is blank, and has a 15-second whole-call
-deadline, DNS and response reads included, in a supervised subprocess with a 1 MiB streamed
-response cap. The GUID travels through the subprocess's input pipe, never its command line or
-inherited environment. What a lookup must match, and the staff controls that remain, are in
-[company registry verification](../business/companies.md#how-the-registry-check-matches).
+Each lookup has a 15-second whole-call deadline, DNS and response reads included, in a supervised
+subprocess with a 1 MiB streamed response cap. The GUID travels through the subprocess's input
+pipe, never its command line or inherited environment. What a lookup must match is in
+[how the registry check matches](../business/companies.md#how-the-registry-check-matches), and the
+staff controls that remain are in
+[staff registry controls](../business/companies.md#staff-registry-controls).
 
 ## Push notifications
 

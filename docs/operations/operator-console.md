@@ -41,19 +41,15 @@ Externally arranged capital is recorded by the company under
 [external allotments](../business/issuing-shares.md#external-investor-allotments).
 
 Settlement assets must be stablecoins with an active contract deployment on
-`receiving_wallet_chain`; the form refuses any other. The resolver is `operators/settlement.py`; do
-not use `Asset.contract_address`, which can select another chain's deployment. Order creation needs
-exactly one active, deployed asset in `supported_settlement_assets`: with none or several, order
-messages and executions are refused until the list holds one, and every created order records that
-asset.
+`receiving_wallet_chain`; the form refuses any other. Order creation needs exactly one active,
+deployed asset in `supported_settlement_assets`: with none or several, order messages and
+executions are refused until the list holds one, and every created order records that asset.
 
-What the two eligibility flags require of investors and company representatives is stated in
-[participant eligibility](../business/participants.md#company-eligibility-decisions)
-and [company activation](../business/companies.md#activation-and-the-registry-check). Turn on
-`issuer_kyc_required` only with a
-[KYC provider configured](configuration.md#identity-verification-providers): a
-representative becomes verified only through the provider, so with none configured every company
-decision is refused. Staff technical recovery of a company is not affected.
+What the flags require is in [account readiness](../business/participants.md#account-readiness)
+(`investor_kyc_required`) and the
+[representative identity requirement](../business/companies.md#representative-identity-requirement)
+(`issuer_kyc_required`). Turn on `issuer_kyc_required` only with a
+[KYC provider configured](configuration.md#identity-verification-providers).
 
 The authenticated operator API (`GET /api/operator/`) exposes the identity, settlement assets,
 eligibility flags and `paymentInstructions`. Payment instructions are non-null only for staff or
@@ -127,18 +123,20 @@ The Document operations group is created empty. Assign only the active platform 
 evidence review: it grants view permissions on documents, extractions and investor
 classifications, not classification approval or editing. Company owners and accounts with company
 roles cannot use cross-customer document review even with document permissions.
-[Storage and serving](../engineering/security.md#storage) explains the
-review permissions and audit writes. Attached payslips supplement human review; extraction never
+[Read audit](../engineering/security.md#read-audit) explains the review permissions and audit
+writes. Attached payslips supplement human review; extraction never
 verifies a claim.
 
 Staff keep the technical controls on companies (warning, suspension, delisting, registry retry,
 resolving a warning and reinstatement) described under
-[company registry verification](../business/companies.md#how-the-registry-check-matches).
-Offering review, recorded payments and the publishing, output and company-pack procedures that
-staff perform on a company's written instruction are described with their business process:
+[staff registry controls](../business/companies.md#staff-registry-controls). Offering review,
+recorded payments and the publishing, output and company-pack procedures that staff perform on a
+company's written instruction are described with their business process:
 [offerings](../business/issuing-shares.md#offerings),
-[publishing to members](../business/publications.md#publishing-on-the-companys-instruction) and
-[outputs on written instruction](../business/member-records.md#outputs-at-a-glance).
+[publishing to members](../business/publications.md#publishing-on-the-companys-instruction),
+[notice figures](../business/member-records.md#preparing-notice-figures),
+[the due list](../business/member-records.md#working-the-due-list) and
+[the company pack](../business/member-records.md#producing-the-broader-pack-in-admin).
 The holder standing queue is worked under
 [recovery](recovery.md#holder-standing-review).
 

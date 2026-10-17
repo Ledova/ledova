@@ -107,8 +107,8 @@ awkwardly: do not add one.
 - Test helpers never override reserved `TestCase` methods
   ([the test shadowing gate](gates.md#the-test-shadowing-gate)).
 - Keep `TextChoices` beside their model and numeric thresholds in app constants.
-- JSON is camel-case on the wire: `djangorestframework_camel_case` renders responses and parses
-  requests. This document names fields as the serializers spell them.
+- JSON is camel-case on the wire: `djangorestframework_camel_case` renders responses in camelCase
+  and parses requests in either spelling. This document uses the serializers' snake_case names.
 
 ## Admin row actions
 
@@ -129,6 +129,10 @@ helper allowance.
 Admin fields keep the API's edit boundaries. On `Company` those are the
 [company information rules](../business/companies.md#company-information-and-documents): admin
 edits go through the same bounded `update_company` service and its `EDITABLE_FIELDS`.
+`CompanyAdmin` cannot add or delete a company and always shows the owner read-only; its
+`EDITABLE_FIELDS` are read-only unless the staff member personally holds a current `admin`
+appointment for that company or the draft-setup exception (`companies/admin/company.py`).
+Registration uses its bounded service, and admin offers no owner reassignment.
 
 ## External API consumers
 
@@ -165,17 +169,22 @@ The history starts from fresh initial migrations generated from current models
 PostgreSQL roles and grants, RLS policies, functions and triggers, and the history, share-total and
 issuance safeguards; `shared/0002_database_guards` installs the catalogue, and later guard
 migrations (`shared/0003_member_certificate_guards`, `shared/0004_register_mirror_guards`) add
-their families' guards. `make backend-test` checks migration drift, roles and catalogue and the
-API schema snapshot ([backend verification](testing.md#backend-verification));
-no old-chain rewind, equivalence or adoption suite or per-migration upgrade test is required.
-There is no older-database adoption path: a database on an older initial graph needs a
+their families' guards. No old-chain rewind, equivalence or adoption suite or per-migration upgrade
+test is required ([backend verification](testing.md#backend-verification)). There is no
+older-database adoption path: a database on an older initial graph needs a
 [fresh rebuild](../operations/README.md#rebuild-a-database).
 
 ## Company workflow API
 
-Company-run workflows share one shape. Who may take each step is in
-[how a company decision works](../business/README.md#how-a-company-decision-works); the
-mechanism is:
+Register decisions, share-class chain decisions, company wallet instructions and company
+eligibility decisions follow the four steps below. Other families use part of it: employee awards,
+vesting events and member-access commands prepare under a retry key and take no decision;
+activation, authority requests and team commands take a retry key and, where needed, an exact
+declaration; company detail edits and document uploads act on the caller's current administration.
+Every step that needs company authority rechecks it after taking the company lock, so a revocation
+that commits first refuses the step and records nothing. Who may take each step is in
+[how a company decision works](../business/README.md#how-a-company-decision-works); each family's
+subsection or [register commands](records.md#register-commands) gives the specifics.
 
 1. Prepare. The caller supplies a caller-scoped retry key (`idempotency_key` or, for register
    proposals, `operation_id`) and, where the step needs company authority, names their exact
@@ -193,16 +202,16 @@ mechanism is:
 4. Apply. The final transaction locks the company before the actor and affected rows, rechecks the
    appointment, uses the database clock after lock waits, and commits the effect, the decision
    and any projection (such as holdings) together. Work that needs the chain becomes a bounded
-   operator job that rechecks before signing ([chain](chain.md)).
+   operator job that rechecks before signing
+   ([locks, holds and recovery](chain.md#locks-holds-and-recovery)).
 
-Every step rechecks the appointment after taking the company lock, so a revocation that commits
-first refuses the step and records nothing. Requests, decisions, withdrawals and revocations are
-append-only and keep their actual actor, appointment, retry key, digest and database-stamped time;
-database triggers check each decision, and customer requests reach these tables only through the
-bounded services. An uncertain preparation or decision reply is resolved by resending the exact
-original body and key: current read access recovers the retained receipt, even after the step's
-appointment has expired or the proposal has changed stage. Changed retries conflict, no replay
-after process loss is promised, and a client never infers success from a lost response.
+Requests, decisions, withdrawals and revocations are append-only and keep their actual actor,
+appointment, retry key, digest and database-stamped time; database triggers check each decision,
+and customer requests reach these tables only through the bounded services. An uncertain
+preparation or decision reply is resolved by resending the exact original body and key: current
+read access recovers the retained receipt, even after the step's appointment has expired or the
+proposal has changed stage. Changed retries conflict, no replay after process loss is promised,
+and a client never infers success from a lost response.
 
 | Family | Route prefix | App | Business rules |
 | --- | --- | --- | --- |
@@ -221,7 +230,7 @@ after process loss is promised, and a client never infers success from a lost re
 
 The register routes, payloads and family requirement codes are in
 [register commands](records.md#register-commands); the chain
-families' admission and execution are in [signing](chain.md#outgoing-signing-foundation). The
+families' admission and execution are in [signing families](chain.md#signing-families). The
 subsections below hold only what is specific to each family.
 
 ### Register decisions
@@ -246,8 +255,7 @@ from the family's SQL digest function. `POST .../{uuid}/decide/` adds `idempoten
 | `reason_required`, `reason_not_allowed` | Rejection needs a reason (at most 1,000 characters); approval and application take none |
 
 `evidence_unavailable` is checked by each family that retains evidence; each family adds its own
-effect requirements. Employee awards and vesting events are recorded in one step by an appointee
-and take no decision.
+effect requirements.
 
 ### Activation
 
@@ -260,37 +268,25 @@ representative's attempts. With `issuer_kyc_required` on, an administrator whose
 identity-verified receives 400 `issuer_identity_verification_required` before an attempt or
 provider request, and readiness is redacted.
 
-`POST /api/v1/companies/{uuid}/activate/` accepts:
-
-```json
-{
-  "idempotencyKey": "request UUID",
-  "appointment": "current appointment UUID",
-  "lifecycleRevision": 0,
-  "declarationVersion": "2026-10-04",
-  "acceptDeclaration": true
-}
-```
-
-A 200 response carries `message`, `company` and `attempt`. The attempt records its UUID, request
-key, appointment, source revision, pending, passed or failed status, reason, start, completion and
-application times and the exact declaration; a pending or failed attempt is retained, not an
-activation. Stale or changed requests answer 409 `company_activation_conflict`; reusing the key
-with the exact request returns the attempt without another provider call. A passed but unapplied
-attempt can resume its final effect after a transient commit failure, subject to every current
-check.
+`POST /api/v1/companies/{uuid}/activate/` takes `idempotency_key` (a UUID), `appointment`,
+`lifecycle_revision`, `declaration_version` (`"2026-10-04"`) and `accept_declaration: true`. A 200
+response carries `message`, `company` and the retained `attempt`; a pending or failed attempt is
+retained, not an activation. Stale or changed requests answer 409 `company_activation_conflict`;
+reusing the key with the exact request returns the attempt without another provider call. A passed
+but unapplied attempt can resume its final effect after a transient commit failure, subject to
+every current check.
 
 The service locks the company and current actor, profile and settings, validates the exact
 appointment and records the attempt before releasing the transaction. ABR runs outside SQL locks
 and transactions. The final transaction locks and rechecks those inputs and the attempt; the
-`ACTIVE` transition and the immutable `appliedAt` receipt commit together. Database guards refuse
+`ACTIVE` transition and the immutable `applied_at` receipt commit together. Database guards refuse
 forged provider decisions, raw application-role effects and orphan applied receipts; the receipt
 identity must match the exact company snapshot, and receipt and projection times come from the
 database clock. Staff warning recovery and reinstatement stay in
-`companies/services/company.py:_registry_transition`, which requires a fresh matching registry
-pass and either the company's genuine applied initial activation or its historical officeholder
-attestation, and cannot initially activate a draft. Lookup limits and matching rules are in
-[registry verification](../business/companies.md#how-the-registry-check-matches).
+`companies/services/company.py:_registry_transition`
+([rule](../business/companies.md#staff-registry-controls)). Lookup limits are in
+[company registry lookup](../operations/configuration.md#company-registry-lookup); matching rules
+are in [registry verification](../business/companies.md#how-the-registry-check-matches).
 
 ### Authority requests and team
 
@@ -330,25 +326,21 @@ optional `delegatable_capabilities`, `acceptance_deadline` and `appointment_expi
 response returns a random code once, with `Cache-Control: private, no-store`; the database keeps
 only its SHA-256. An identical retry returns the invitation with `code: null`; a changed company,
 source, scope or explicit date conflicts. There is no email delivery or code-bearing URL. Acceptance
-takes `code`, `declaration_version: "2026-10-04"` and `accept_declaration: true`, and checks the
-accepting account and profile, the identity requirement, the deadline and the inviter's current
-authority; no ABR check runs for an invitation. Concurrent acceptance creates one effect, and the
-same account's retry returns its retained appointment. `signup-terms/` rechecks the caller's own
-exact-company personal `admin` appointment, account, profile, identity requirement, expiry and
-revocation, takes `declarationVersion: "2026-10-14"` and `acceptDeclaration: true` and returns the
-appointment with a read-only `signupTerms` receipt (`company`, `appointment`, `acceptedBy`,
-`acceptedProfile`, `declarationVersion`, `declarationText`, `acceptedAt`; `null` in the list until
-accepted). The receipt comes from the original admission when it already records this version and
-is otherwise retained once as an immutable `CompanySignupTermsAcceptance`. Delegation, deadline
-and acceptance rules are in [team rules](../business/companies.md#team-invitations-and-appointments).
+takes `code`, `declaration_version: "2026-10-04"` and `accept_declaration: true`. `signup-terms/`
+rechecks the caller's own exact-company personal `admin` appointment, account, profile, identity
+requirement, expiry and revocation, takes `declaration_version: "2026-10-14"` and
+`accept_declaration: true` and returns the appointment with a read-only `signup_terms` receipt
+(`null` in the list until accepted). The receipt comes from the original admission when it already
+records this version and is otherwise retained once as an immutable `CompanySignupTermsAcceptance`.
+Delegation, deadline and acceptance rules are in
+[team rules](../business/companies.md#team-invitations-and-appointments).
 
-An appointment names its appointee and profile and has exactly one source: an initial request, an
-invitation or `legacy_owner`. Legacy-owner appointments came from the retired owner upgrade, return
-null declaration fields and pass the same checks; the fresh migrations create none. Personal
-capabilities are six independent values (`admin`, `prepare`, `approve`, `apply`, `finance`,
-`read_register`). Company responses expose `is_owner` and
-`administrative_access: {capabilities, draft_setup}`; PATCH returns the complete company detail,
-and document responses include their read-only company UUID.
+An appointment's `source` is `initial`, `invitation` or `legacy_owner`; legacy-owner appointments
+return null declaration fields. Personal capabilities are six independent values (`admin`,
+`prepare`, `approve`, `apply`, `finance`, `read_register`)
+([what an appointment records](../business/companies.md#what-an-appointment-records)). Company
+responses expose `is_owner` and `administrative_access: {capabilities, draft_setup}`; PATCH returns
+the complete company detail, and document responses include their read-only company UUID.
 
 ### Eligibility decisions
 
@@ -375,11 +367,10 @@ checks account standing and the configured identity requirement, `directory_admi
 admits a participant to the companies and exact products their current decisions cover (and
 decides who opens an offered class's documents), and `secondary_company_ids(user)` bounds the
 market the same way. Inaccessible list and detail querysets give empty lists or 404, never a 403
-that confirms a hidden row. The account-readiness response (`account`, `isReady`, `reasons`)
-supplies no company permission. Retention of eligibility evidence removes due private files and
-derived extraction payloads after fresh database checks under the source and document locks; a
-caller-supplied future batch time or retention setting cannot authorise early deletion. The rules
-are in [eligibility](../business/participants.md#company-eligibility-decisions).
+that confirms a hidden row. The account-readiness response (`account`, `is_ready`, `reasons`)
+supplies no company permission. The rules are in
+[eligibility](../business/participants.md#company-eligibility-decisions); evidence purges are in
+[retention clocks](security.md#retention-clocks).
 
 ## Company identifiers
 
@@ -387,18 +378,22 @@ An ACN and an ABN are checked for their check digits, not only their length, on 
 serializer write paths: the fields carry the algorithms in
 [validators.py](../../backend/companies/validators.py) as `validators=[...]`, so the admin's
 `ModelForm.full_clean` and the serializers both run them and the API answers 400. A direct ORM
-write runs no validator, and the database has no checksum constraint. `Company.clean()` carries the
-one rule needing both fields: an ASIC-registered company's ABN is its ACN with two check digits in
-front, which does not hold for ABNs in general. The ABN check is a modulus of 89 and catches every
-single-digit error; the ACN check is a weighted modulus of 10 and does not. A checksum is a typo
-filter, not verification: only a registry lookup says a number belongs to a real company.
+write skips the field validators, but the `companies_administration` trigger
+(`companies_valid_identifiers` in `companies/database_guards.sql`) refuses a new company, or an
+edit that changes the ACN or ABN, whose check digits fail or whose non-empty ABN is not the ACN
+with two check digits in front; only the migration role bypasses it. `Company.clean()` applies the
+one rule needing both fields, `abn_carries_acn`
+([company information rules](../business/companies.md#company-information-and-documents)). The
+ABN check is a modulus of 89 and catches every single-digit error; the ACN check is a weighted
+modulus of 10 and does not.
 
 ## Offerings and subscriptions
 
 The business rules are in [offerings](../business/issuing-shares.md#offerings) and
-[subscriptions](../business/issuing-shares.md#applications-payments-and-paid-issues). Offering writes (create, edit, delete,
-submit, withdraw, attach documents) run inside `company_owner_operation`, which requires the active
-company owner; they are not appointment-based.
+[subscriptions](../business/issuing-shares.md#applications-payments-and-paid-issues). Offering
+writes (create, edit, delete, submit, withdraw, attach documents) run inside
+`company_owner_operation`, which requires the active company owner; they are not
+appointment-based.
 
 ### Offering data flow
 
@@ -427,7 +422,7 @@ company owner; they are not appointment-based.
   accepts draft, submitted, under-review and rejected offerings and keeps the review fields.
 - There is no `OPEN` status and no scheduler: `OfferingQuerySet.open_now()` is approved with
   `opens_at <= now` and `closes_at` null or future, and `ShareTokenQuerySet.with_open_offering()`
-  annotates the directory from it. Reaching the cap does not close an offering.
+  annotates the directory from it.
 - `OfferingQuerySet.published()` (approved or closed) decides which attached documents investors
   may open. `GET /api/v1/directory/tokens/{uuid}/documents/` lists them, newest first, once each;
   `.../documents/{document}/file/` streams one, inline for a PDF or image. The class resolves
@@ -439,11 +434,11 @@ company owner; they are not appointment-based.
   ([requests and jobs](security.md#requests-and-jobs)) and record no read.
 - `POST /api/v1/offerings/{uuid}/documents/` attaches `OFFER_DOCUMENT_TYPES` documents of the
   class's company to a draft, rejected, approved or closed offering and refuses a submitted,
-  under-review or withdrawn one with a 400 naming its status. Saving the form drops an attachment
-  that is not among the company's documents. Deleting a document an approved or closed offering
-  carries answers 409 `offered_document`; admin's picker and delete pages apply the same rule, and
-  `offerings/database_guards.sql` refuses to delete or re-point such an attachment or move its
-  document to another company.
+  under-review or withdrawn one with a 400 naming its status
+  ([offer documents](../business/issuing-shares.md#offer-documents)). Deleting a document an
+  approved or closed offering carries answers 409 `offered_document`; admin's picker and delete
+  pages apply the same rule, and `offerings/database_guards.sql` refuses to delete or re-point such
+  an attachment or move its document to another company.
 - `UniqueConstraint(token)` `WHERE status IN (submitted, under_review, approved)` is the backstop
   for one live offering per class; `submit_offering` refuses the second by name first. Two tranches
   at once would need a migration relaxing it.
@@ -479,14 +474,13 @@ company owner; they are not appointment-based.
   is required, lower-cased and must be `0x` plus 64 hexadecimal characters; the partial unique
   index is on `Lower("payment_tx_hash")`, and `confirm_payment` catches the index's
   `IntegrityError` so a concurrent duplicate gets the same refusal rather than a 500. The hash is
-  not verified against the chain. On the bank rail a statement line already recorded elsewhere is
-  a warning, not a refusal. Acceptance, confirmation, refund, rejection, technical retry and
+  not verified against the chain. Acceptance, confirmation, refund, rejection, technical retry and
   scale-back each write a `LogEntry`, so a restated `amount_received` leaves the earlier figure in
   the history; restating downwards also warns.
 - `has_money_in` compares `amount_received` with refunds actually returned; reject and withdraw
-  are refused while it holds. A refund is above zero and within what is still returnable: before
-  allotment the whole amount, unwinding the allotment; after allotment only the residual no
-  allotted share paid for, a cent more being refused as a claimed mint. `refund_amount`
+  are refused while it holds. A refund before allotment unwinds the allotment; after allotment a
+  cent above the residual no allotted share paid for is refused as a claimed mint
+  ([refund rule](../business/issuing-shares.md#payments-refunds-and-scale-back)). `refund_amount`
   accumulates once `refunded_at` is set, and the row closes only when every cent is back. A queued
   allotment refund retains a cancelled private admission and rejects its approved request
   atomically, and a delayed task cannot revive it; once the worker commits its executing claim, a
@@ -514,7 +508,7 @@ company owner; they are not appointment-based.
   reads its offering's subscriptions read-only at `GET /api/v1/offerings/{uuid}/subscriptions/`,
   scoped by `subscribed_by(user)`. `register-paid-issues/ready-subscriptions/` is the narrow source
   selector for current `admin` or `prepare` appointees, and `ShareIssuanceListSerializer` carries
-  `subscriptionReference` back to the payment.
+  `subscription_reference` back to the payment.
 - `Subscription.offering`, `.user_account` and `.wallet` are `PROTECT`; the handler turns the
   `ProtectedError` into a 409 that counts the holding rows.
 - Each transition stamps its own time: `submitted_at`, `accepted_at`,
@@ -525,8 +519,8 @@ company owner; they are not appointment-based.
 ## Identity providers
 
 How a KYC provider's result reaches the profile. Provider settings are in
-[provider configuration](../operations/configuration.md#identity-verification-providers); what applicants see and
-the PEP rules are in
+[provider configuration](../operations/configuration.md#identity-verification-providers); what
+applicants see and the PEP rules are in
 [identity verification rules](../business/participants.md#pep-rules).
 
 ### Profile fields
@@ -535,6 +529,12 @@ Both providers write the same profile fields: `verification_status`, one of `ini
 `queued`, `prechecked`, `onHold` and `completed`; `review_result`, which is `GREEN`, `RED` or
 `YELLOW`, or null while there is no result (never an empty string); `rejection_labels`; the
 identity document's type and country; and, for an approval, the PEP type the risk policy reads.
+`rejection_labels` keeps every reason; the applicant-facing serializer
+(`users/serializers/identity_verification.py`) shows any in `SCREENING_REJECTION_LABELS`
+(`integrations/kyc/constants.py`: Sum&Sub's `PEP`, `SANCTIONS`, `COMPROMISED_PERSONS`,
+`ADVERSE_MEDIA`, `CRIMINAL`, `BLOCKLIST` and `RESTRICTED_PERSON`, and KYCAID's `COMPROMISED_PERSON`)
+once as `NEUTRAL_REJECTION_LABEL` (`UNABLE_TO_VERIFY`)
+([what applicants see](../business/participants.md#what-applicants-see)).
 
 | The provider reports | KYCAID | Sum&Sub |
 | --- | --- | --- |
@@ -586,9 +586,9 @@ extra read.
 
 A PEP hit counts unless marked `false_positive` or `no_match`; a case that omits its hits can
 supply the `pep` case label. Only the hit ID, match status and labels are retained, without names
-or source URLs. Sum&Sub gives no PEP locality or category here, so the risk assessment records PEP
-category not provided (`unknown`) with `approved_by_provider` and adds the accepted-PEP score
-adjustment of two under `provider_approved_pep`; the classifier for rejected PEP evidence is
+or source URLs. Sum&Sub gives no PEP locality or category here, so the risk assessment records
+category `unknown` with `approved_by_provider` and applies the `provider_approved_pep` adjustment
+([PEP rules](../business/participants.md#pep-rules)); the classifier for rejected PEP evidence is
 `integrations/kyc/pep.py`. The authenticated callback always replaces any supplied AML or document
 fields with fetched evidence; unsigned callbacks never cause a read.
 
@@ -605,9 +605,9 @@ interpretable flag is recorded as `pending` with no result and logged.
 
 KYCAID's `DATABASE_SCREENING` callback reports a match its monitoring finds on a sanctions, PEP,
 wanted, lost-or-stolen-document or internal list. Each raises a compliance alert under rule
-`KYC-SCREEN` for staff review and leaves the account, identity result and risk assessment
-unchanged. A sanctions match is a critical `sanctions_match`, a wanted-list match a critical
-`watchlist_match`, a PEP match a high `pep_match` and any other list a high `watchlist_match`;
+`KYC-SCREEN`: a sanctions match as `sanctions_match`, a PEP match as `pep_match`, and a wanted-list
+or any other match as `watchlist_match`. Severities and what the alert leaves unchanged are in
+[what applicants see](../business/participants.md#what-applicants-see);
 `sync_procedure_templates` loads a staff procedure for each type. The alert keeps the list types,
 databases, accuracy, verification and document ids and the matched person's details. The account
 is locked while an existing alert is looked for, so a repeated, retried or concurrent delivery of a
@@ -625,14 +625,13 @@ pending; a submission reply that is not an object fails it, and the callback ref
 HTTP 400. A KYCAID submission reply without a score therefore waits, pending, for the callback,
 and alerts follow the configured `CRYPTO_RISK_THRESHOLD_MEDIUM` and `CRYPTO_RISK_THRESHOLD_HIGH`
 when it arrives. A completed result is final: a repeated or late callback, a retry or a provider
-error leaves it unchanged. A provider that cannot screen, such as Sum&Sub today, fails every
-screening, and the address rule reports it as unverified.
+error leaves it unchanged.
 
 A screening names the provider that screens it. One recorded while
-`KYCAID_CRYPTO_MONITORING_ENABLED` is off is sent nowhere, fails with "Crypto monitoring is
-disabled" and names the configured `KYC_PROVIDER`, or `disabled`; retrying it from the screening
-admin once screening is on sends it to the configured provider and records that provider. KYCAID
-answers an address check with `data.service_request_id` and delivers the result later in a
+`KYCAID_CRYPTO_MONITORING_ENABLED` is off is sent nowhere and names the configured `KYC_PROVIDER`,
+or `disabled`; a retry from the screening admin sends it to the configured provider and records
+that provider ([operating note](../operations/configuration.md#identity-verification-providers)).
+KYCAID answers an address check with `data.service_request_id` and delivers the result later in a
 `SERVICE_RESULT` callback carrying the same id
 ([address verification](https://docs.kycaid.com/risks-check/crypto),
 [result callback](https://docs-v1.kycaid.com/#crypto-result-callback)); the screening records it

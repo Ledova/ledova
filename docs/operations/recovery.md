@@ -129,14 +129,16 @@ deliberate new company preparation
 
 ## Wallet transfers and trading
 
-Use the recorded journal and the matching [EVM](../engineering/wallet-protocols.md#evm-transfers) or
-[Bitcoin](../engineering/wallet-protocols.md#bitcoin-transfers) protocol. Receipt confirmation and balance
-reconciliation are separate; a five-minute sweep requeues durable balance repair even after a
-transaction's status changes ([wallet reconciliation](../engineering/wallet-protocols.md#history-imports-and-previews)).
-Do not infer compensation from timeouts;
-[transaction evidence](../engineering/wallet-protocols.md#wallet-chain-observations) explains receipt, canonicality and
-finality limits. [Order submissions](../engineering/trading-protocols.md) and
-[swap settlement](../engineering/trading-protocols.md#swap-settlement-context) describe their own recovery.
+Use the recorded journal and the matching [EVM](../engineering/wallet-protocols.md#evm-transfers)
+or [Bitcoin](../engineering/wallet-protocols.md#bitcoin-transfers) protocol. Receipt confirmation
+and balance reconciliation are separate; a five-minute sweep requeues durable balance repair even
+after a transaction's status changes
+([balance repair](../engineering/wallet-protocols.md#balance-repair)). Do not infer compensation
+from timeouts; [transaction evidence](../engineering/wallet-protocols.md#wallet-chain-observations)
+explains receipt, canonicality and finality limits.
+[Order submissions](../engineering/trading-protocols.md) and
+[swap settlement](../engineering/trading-protocols.md#swap-settlement-context) describe their own
+recovery.
 
 ## Stale registers
 
@@ -155,8 +157,8 @@ Private storage is backed up and restored with the database.
 Notification senders only defer a job, so the in-app inbox stays empty until a worker drains the
 queue ([notifications](../engineering/backend.md#notifications)). Check the
 provider's configuration before retrying a review or an extraction
-([configuration](configuration.md)). `GET /health/` is answered before database
-access; a 200 does not prove that workers, Redis, PostgreSQL or the chain are healthy.
+([configuration](configuration.md)). A 200 from `GET /health/` proves nothing beyond the process
+([bring up an instance](README.md#bring-up-an-instance)).
 
 ## Verifying stored records
 
@@ -174,23 +176,6 @@ reconciliation nor director approval.
 
 ```bash
 python manage.py register_foundation verify --token TOKEN_UUID
-```
-
-For a development database only, `load-synthetic-opening` loads an opening from a JSON file with
-synthetic UUIDs and whole-share amounts, attributed to a staff user. Loading the same file twice
-records one opening; invalid input rolls back the opening and the member references it created. A
-loaded opening initialises the register the HTTP routes serve for that class.
-
-```json
-{
-  "operation_id": "78e39ef6-4c7c-4b38-8311-268ac67086b5",
-  "effective_on": "2026-09-20",
-  "holdings": [{ "member": "b0169d39-35b2-4f97-aa0a-fb027c1b167f", "shares": "100" }]
-}
-```
-
-```bash
-python manage.py register_foundation load-synthetic-opening --token TOKEN_UUID --actor STAFF_USER_ID --input opening.json
 ```
 
 ### Inspecting a canonical chain snapshot
@@ -215,13 +200,10 @@ exports no event history, entry dates or evidence of complete membership.
 python manage.py register_inclusions --token TOKEN_UUID
 ```
 
-The read-only command prints a share class's captured boundary and classifies each completed
-issuance and settlement against it: `unopened` (no applied opening), `opening` (its transaction is
-in the captured history at the same block and hash, so the opening already holds it),
-`after_opening` (a later block, absent from the history) or `attribution` (the evidence cannot place
-it, so an operator must attribute it). It flags whether each is already `recorded` in the register.
-Where completions cannot be classified it prints the refusal or a null boundary
-([register mechanism](../business/register.md#who-runs-what)).
+The read-only command prints a share class's captured boundary, classifies each completed issuance
+and settlement against it and flags whether each is already `recorded` in the register. Where
+completions cannot be classified it prints the refusal or a null boundary. The classes are defined
+by the [classification rule](../engineering/records.md#recording-completions-after-the-opening).
 
 ### Reconciling a register on demand
 
@@ -235,8 +217,7 @@ python manage.py register_reconcile --token TOKEN_UUID
 
 It reads the chain, writes only the reconciliation record and prints it: status, block, register
 sequence, discrepancies and any failure. A class without an applied opening from the chain is
-refused; an import-opened register has no chain boundary and is never reconciled. Only the
-operator records reconciliations; the company reads and acknowledges its own. Discrepancies are
+refused; an import-opened register has no chain boundary and is never reconciled. Discrepancies are
 logged at error level, which is the alert. The scheduled job tries every class and then fails if any
 could not be reconciled; a class whose run raised keeps its previous result in the CSV summary, so
 the failed job is the signal to look at.
@@ -261,8 +242,7 @@ chain's head hash, the number of ballots and the tally, `null` until it has clos
 it replays its payment records, rechecks the arithmetic and prints the number of events, the head
 hash, the number of standing payment records and the undistributed amount. It fails, naming the
 publication, on any fault listed under
-[verifying a resolution](../engineering/records.md#verifying-publications) or
-[verifying a distribution](../engineering/records.md#verifying-publications).
+[verifying publications](../engineering/records.md#verifying-publications).
 Nothing the application does can cause these faults: they mean someone with the schema owner's
 rights rewrote the chain.
 
