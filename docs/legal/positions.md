@@ -60,7 +60,7 @@ stopped being a member within the last seven years, the information the register
 held about them and the date they stopped. The Act expressly permits those
 entries to be **kept separately** from the rest of the register.
 
-**Implementation.** See [current and former members](../business/register.md),
+**Implementation.** See [current and former members](../business/register.md#former-members),
 including the seven-year minimum and the separate former-member export.
 
 **The position.** A derived current-holders view does not on its own satisfy
@@ -94,7 +94,7 @@ members. The obligation is expressed as the company's. The note to the section
 says the register may be kept on computer, pointing to s1306.
 
 **Implementation.** See [operator setup](../operations/operator-console.md) and
-[register protection](../business/register.md).
+[register protection](../engineering/records.md#deletion-protection).
 
 **The position.** The company carries the obligation and the platform keeps the
 register as its agent. That is the plain reading. In a
@@ -137,9 +137,9 @@ records of this kind: the Corporations Act's financial-records provision, and
 the AML/CTF customer-identification record requirements. Seven years is the
 conventional Australian answer and the reason 2557 days was chosen.
 
-**Implementation.** [Retention configuration](../operations/jobs-and-storage.md) owns the
+**Implementation.** [Retention configuration](../operations/configuration.md#storage-uploads-and-retention) owns the
 independent evidence and former-member settings;
-[file lifecycles](../engineering/security.md#private-files) owns the serving and
+[file lifecycles](../engineering/security.md#deletion-and-retention) owns the serving and
 purge rules.
 
 **The position.** Seven years, from review or expiry. The basis is the
@@ -376,7 +376,7 @@ register corrected. Section 176 makes the register proof of its contents in the
 absence of contrary evidence.
 
 **What the code does.** The current-members register is
-[stored](../business/register.md): each share class keeps an append-only,
+[stored](../engineering/records.md#register-ledger): each share class keeps an append-only,
 hash-chained event log and the holdings it produces, and the register is read
 from them with the chain unreachable. A correction is a compensating entry that
 those holdings already reflect. A scheduled job reconciles the stored register
@@ -742,6 +742,6 @@ decision 6); the reading awaits the owner's sign-off.
 ## Related documents
 
 [Product decisions](../decisions.md), [operator setup](../operations/operator-console.md),
-[retention configuration](../operations/jobs-and-storage.md), [register design](../business/register.md),
+[retention configuration](../operations/configuration.md#storage-uploads-and-retention), [register design](../business/register.md),
 the [regulatory pathway](../regulatory-pathway.md),
 and the authoritative [LICENSE](../../LICENSE).

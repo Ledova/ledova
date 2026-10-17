@@ -1096,7 +1096,7 @@ policies ([tenancy](security.md#tenancy-model)), and `export_account_data` in
 clients call `exportAccountData` in `@ledova/shared` and name the file `ledova-data-export-<UTC
 date>.json`; the dashboard saves it from Settings, and the mobile app writes one private cache copy
 bound to the session current when the export was requested and hands it to the share sheet
-([document copies](mobile.md#document-upload-copies)).
+([document copies](mobile.md#document-view-copies)).
 
 ### Export contents
 

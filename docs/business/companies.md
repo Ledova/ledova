@@ -216,7 +216,8 @@ company explicitly first.
 Rules:
 
 - The ACN, ABN and company type can change only while the company is Draft. The registered name
-  can change only while it is Draft or, for an older company, Additional Information Required.
+  and the officeholder declaration (the declarant's name and the board resolution reference) can
+  change only while it is Draft or, for an older company, Additional Information Required.
 - An ACN and an ABN must pass their check digits, and an ASIC-registered company's ABN must be its
   ACN with two check digits in front. A check-digit pass is a typo filter, not verification: only
   the registry lookup says a number belongs to a real company.

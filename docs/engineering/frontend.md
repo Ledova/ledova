@@ -336,7 +336,7 @@ roles ([mobile theme](mobile.md#theme-and-appearance)).
 `@theme` block holds the Paper semantic colours, spacing steps and `lg` and `xl` shadows, from which
 Tailwind v4 derives the utilities; web radii, type sizes and font weights are Tailwind's defaults. A
 following `:root[data-theme='dark']` block sets `color-scheme: dark` and each colour variable's Dark
-value; the generator fails if the themes would emit different variables. The site adds
+value; the generator fails if the themes would emit different variables. The site also uses
 `border-border-faint` and `brand-tint`. Never edit either file: `make check`, which CI runs, fails
 when they differ from the generator's `--check` output.
 

@@ -217,7 +217,8 @@ check whether stored classes belong to a retired factory; step 8 does.
 7. Approve wallets only through the
    [company wallet workflow](../business/participants.md#wallet-nominations-and-company-wallet-approvals):
    a company appointee prepares, approves and applies a finite-expiry ADD for a wallet the
-   participant nominated. Staff APIs, admin overrides and a blank expiry are no substitute.
+   participant nominated after proving possession of it. Staff APIs, admin overrides and a blank expiry
+   are no substitute.
 8. Verify, from `backend/`; the expected answer follows each command. The chain and database
    probes are read-only.
 

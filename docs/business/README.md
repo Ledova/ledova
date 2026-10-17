@@ -75,7 +75,7 @@ Platform staff still perform these tasks, each described where linked:
 - publish documents, resolutions, dividends and payment records, and enter represented ballots, on
   the company's written instruction ([publications](publications.md));
 - work the due list, and prepare notice figures and broader restricted company packs on written
-  instruction ([member records](member-records.md#the-due-list));
+  instruction ([due list](member-records.md#the-due-list); [company pack](member-records.md#the-company-pack));
 - review the director instructions behind settled market transfers and retained issues
   ([settled transfers](register.md#settled-transfer-instructions);
   [retained issues](register.md#retained-issue-instructions));

@@ -65,8 +65,9 @@ before the next run.
 
 Local evidence lives under `PRIVATE_MEDIA_ROOT`, also with `DEBUG=false` (the `private_media_data`
 volume in Compose); cloud evidence uses private S3 or GCS objects. Private storage is backed up and
-restored with the database. How files are served, who may read them and when they are deleted is in
-[private files](../engineering/security.md#private-files).
+restored with the database. How files are served and who may read them is in
+[private files](../engineering/security.md#private-files), and when they are deleted in
+[deletion and retention](../engineering/security.md#deletion-and-retention).
 
 ### Previewing the upload sweep
 

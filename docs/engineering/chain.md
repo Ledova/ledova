@@ -93,7 +93,8 @@ reduce a holding without ending the membership, and a holder who will not cooper
 1. The company owner creates a `ShareToken` in `DRAFT` through `POST /api/v1/tokens/` with a name,
    symbol and `total_supply`, the authorised cap (also the API key `totalSupply`; `issuedSupply` and
    the contract's `totalSupply()` count shares issued); settlement assets keep their own decimals. A
-   new API symbol is 1 to 5 ASCII letters, stored in capitals, and the API and admin refuse a new or
+   new API symbol is 1 to 5 ASCII letters, stored in capitals
+   ([class codes](../business/issuing-shares.md#share-classes)), and the API and admin refuse a new or
    changed symbol, in any case, that a supported asset uses (`SUPPORTED_ASSETS` in
    `backend/assets/services/sync.py`: BTC, ETH, USDC, USDT, AUDY, AUSG); existing classes keep theirs.
 2. Each later step is a [signing family](#signing-families).
@@ -487,9 +488,12 @@ headroom and refunds: [subscription data flow](backend.md#subscription-data-flow
 A chain grant's preparation binds the CHAIN opening, the same-company member LINK, the participant's
 current nomination and the finite company ADD it names, with authority, terms and any required
 acceptance evidence, freezing one `ShareIssuanceRequest` in `UNDER_REVIEW` without reserving shares
-or creating a subscription or receipt. A paid issue does the same over an existing PAID subscription;
-`ready-subscriptions` is an unpaginated selector limited to a current `admin` or `prepare` appointee
-in the exact company and class.
+or creating a subscription or receipt. A paid issue's preparation instead captures an existing PAID
+subscription's facts (paid in full, not refunded, not yet admitted, its wallet and account unchanged,
+the class deployed on Base) and binds no opening, member link, nomination or wallet approval; its
+`ShareIssuanceRequest` is created only when the decision is applied. `ready-subscriptions` is an
+unpaginated selector limited to a current `admin` or `prepare` appointee in the exact company and
+class.
 
 Application approves the request and admits its execution: `tokens.services.issuance_execution`
 binds the applied `RegisterInstruction` ISSUE, the consumed approval, the request (and any
@@ -502,8 +506,9 @@ same transaction, and delayed jobs return that cancellation without an operation
 The worker commits executing state and its public `ShareIssuance` (keyed `issuance-request:<uuid>`)
 before opening the operation; from then on, uncertainty blocks refunds. A definite unsigned failure
 or policy-final revert permits refund cancellation or **Retry Execute** on that exact claim.
-Execution checks registry membership, the cap and pause state, and the fresh-signature recheck covers
-the member, nomination, finite wallet approval and evidence.
+Execution checks registry membership, the cap and pause state. For a chain grant the fresh-signature
+recheck covers the member, nomination, finite wallet approval and evidence; for a paid issue it
+covers the consumed authority, evidence, subscription and exact transaction.
 
 PostgreSQL guards freeze approved terms, dispatch identity, subscription linkage and payment and
 share quantities; recorded refunds cannot be reduced or undone, and token identity stays fixed while

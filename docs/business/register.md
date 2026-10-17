@@ -94,8 +94,8 @@ shares; a member can have no linked wallet or several. Holder types:
 
 - Member: resolves to one person, as below.
 - Treasury: held at a labelled company treasury address, such as an employee share trust.
-- Ambiguous: its wallets point to more than one person, so no name is shown and the Register says
-  the identity needs review.
+- Ambiguous: its wallets point to more than one person, or two wallet records share its address, so
+  no name is shown and the Register says the identity needs review.
 - Unidentified: no wallet resolves to a person and no particulars are recorded, so the Register
   suggests asking the participant to verify and nominate the wallet for approval.
 
@@ -154,7 +154,8 @@ holds again and section 169(3) keeps it, and so does a rotation before the openi
 told from a cessation. The list is marked as needing a refresh when last read over 24 hours ago.
 
 An import records former members from before Ledova, which the chain cannot rebuild. They must have
-ceased before the import's register date or the chain opening and within the retention period, and
+ceased no later than the import's register date (and before the opening, where the class was already
+opened from the chain) and within the retention period, and
 are listed without a wallet address and purged on the same clock from the date they ceased.
 
 Only the company owner, current register appointees and the operator read former members, in the CSV
@@ -189,8 +190,8 @@ Ledova, and its holdings must match the stored register. On the web:
    Confirm loads a fresh preview and records approval and application together; an appointee who may
    only review records the approval for another to apply.
 
-Inviting members is optional ([member access](member-records.md#member-access)). Unsaved edits stay
-on the device. After a failed or uncertain response, use Recover saved records or Recover
+Inviting members is optional ([member access](member-records.md#member-access)). Unsaved edits are
+kept only in the open page and are lost if you leave it. After a failed or uncertain response, use Recover saved records or Recover
 confirmation in setup ([uncertain outcomes](README.md#when-the-outcome-is-uncertain)); another
 appointee can resume review or confirmation without preparation access. Edit records retires a saved
 preparation for editing and needs preparation and rejection authority.
@@ -207,7 +208,7 @@ stay unknown.
 An import is refused when the class already has an applied import; once an issue was approved or an
 instruction applied for the class (open it from the chain, then import particulars); when its
 holdings differ from the stored register of a class opened from the chain; when a former member
-ceased on or after the opening or before the retention period; and while a deployment of the class
+ceased after the register date, on or after an existing opening, or before the retention period; and while a deployment of the class
 is pending.
 
 ### Correcting the copied opening
@@ -240,7 +241,8 @@ block's date (an explicitly empty register if nothing was held), and changes not
 The mapping must cover exactly the addresses holding at the boundary; if holdings moved, reload and
 map again. A choice resets, with a notice, only when its address no longer holds or its member is no
 longer offered. An address belongs to one member per company, and an existing link must agree. An
-opening is refused if a completed issue or transfer is not represented at its boundary; if the chain
+opening is refused if a completed issue or transfer is not represented at its boundary, including
+one completed after the opening was prepared; if the chain
 no longer confirms the boundary, or a mapped wallet was linked elsewhere since, reject it and
 prepare another.
 
@@ -326,7 +328,11 @@ The transferor must hold enough shares, and the director cannot be either party
 ([named directors](README.md#named-directors)). Applying records one Transfer entry, with the
 applier as recorder; the certificate falls due a calendar month after lodgement
 ([certificates](member-records.md#certificates)), and a holding reaching zero creates a
-[former-member record](#former-members). Court-directed, paid and chain transfers are not built;
+[former-member record](#former-members). The class's issued shares stay the same. Ledova does not
+check the class's declared transfer restriction, the constitution or any shareholder agreement:
+whether a transfer is permitted is the company's decision (a check of the declared restriction is
+planned under [#1061](https://github.com/Ledova/ledova/issues/1061)). Court-directed, paid and chain
+transfers are not built;
 court-backed [corrections](#compensating-corrections) remain. An imported register takes no
 Cessation entry, and its corrections are ordinary company corrections.
 
@@ -355,7 +361,7 @@ reason in recording order; the first is where recording stopped.
 | ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
 | Attribution  | The opening's boundary cannot place the completion                                                                                              | An attribution procedure, not yet built                            |
 | Unlinked     | A wallet it names is linked to no member                                                                                                        | A [wallet link](#linking-wallets-to-members)                       |
-| Unreviewed   | An older issue records no approving reviewer, as when that account was deleted                                                                  | Nothing: Ledova does not invent a recorder                         |
+| Unreviewed   | An issue records no approving reviewer, as when that account was deleted                                                                        | Nothing: Ledova does not invent a recorder                         |
 | Uninstructed | No applied instruction covers it                                                                                                                | A [retained director instruction](#retained-director-instructions) |
 | Refused      | The register refused the entry, for example because the seller's holding no longer covers the transfer or the latest entry is dated after today | The cause; recording tries again at its next run                   |
 | Behind       | An earlier effect in the class waits                                                                                                            | Resolving the earlier effect                                       |
@@ -372,7 +378,8 @@ review, for settled transfers until [#869](https://github.com/Ledova/ledova/issu
    [verified](companies.md#staff-verification-of-a-company-document), of which Ledova keeps a
    private copy. Neither app has a form for it; it goes through Ledova's API
    ([retained instructions API](../engineering/records.md#retained-register-instructions-api)).
-2. Platform staff open it under Register instructions in admin, inspect the retained document, the
+2. Platform staff with permission to change register instructions open it under Register
+   instructions in admin, inspect the retained document, the
    director, the reference, the company and each item's exact terms, then confirm within 15 minutes
    and choose Approve and apply, or reject with a reason.
 

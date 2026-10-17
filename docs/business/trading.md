@@ -66,8 +66,9 @@ accepts an unfunded offer.
 
 An order is private: only its owner sees and changes it. Platform staff see every order and
 settlement read-only in admin ([the market pages](../operations/operator-console.md#the-market)).
-Investing accounts see the market as aggregated prices and remaining quantities, from orders that
-passed the same checks a match needs. A quote is a snapshot, not a reservation or a promise of a
+Investors who hold a current general eligibility decision from a class's company see that class's
+market ([what a decision opens](participants.md#what-a-decision-opens)) as aggregated prices and
+remaining quantities, from orders that passed the same checks a match needs. A quote is a snapshot, not a reservation or a promise of a
 match. An owner's orders stay listed for them when the share class is no longer listed or
 visible, under the class identity recorded when the order was placed; this makes no hidden class
 public and authorises no new trade. Unmatched orders never leave in a

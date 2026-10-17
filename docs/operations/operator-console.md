@@ -34,6 +34,8 @@ is 2 to 10 letters or digits, uppercased, leaving room for an eight-character co
 The bank-transfer and stablecoin payment instructions and staff-attested subscription receipts are
 retained controls; new integrated AUD payment work is deferred
 ([9 October decision](../decisions.md#essential-registry-and-development-workflow-priority)).
+Externally arranged capital is recorded by the company as an
+[external allotment](../business/issuing-shares.md#external-investor-allotments).
 
 Settlement assets must be stablecoins with an active contract deployment on
 `receiving_wallet_chain`; the form refuses any other. Order creation needs exactly one active,

@@ -379,7 +379,8 @@ share class and only once the archive is complete. Either route refuses, and rec
 - a register entry no longer matches its stored fingerprint (the refusal names the class and entry;
   do not produce a pack until the register
   [verifies](../operations/recovery.md#verifying-stored-records));
-- a publication's events or roll no longer verify (the refusal names the publication);
+- a publication's roll digest or an event's hash no longer matches what was recorded (the refusal
+  names the publication);
 - the stored files it would carry exceed 256 MiB (the refusal names the total; background
   production is not built until a real pack exceeds it);
 - a document's or evidence copy's file is missing from private storage, or a stored file no longer

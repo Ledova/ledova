@@ -18,6 +18,7 @@ Contents:
 - [Offerings](#offerings)
 - [Applications, payments and paid issues](#applications-payments-and-paid-issues)
 - [Retained issue instructions](#retained-issue-instructions)
+- [What these flows do not cover](#what-these-flows-do-not-cover)
 - [Splits and consolidations](#splits-and-consolidations)
 - [Planned: tokenising an imported register](#planned-tokenising-an-imported-register)
 - [The Offerings page](#the-offerings-page)
@@ -54,7 +55,8 @@ completion. The issuer address is contract information, separate from the techni
 future recipient.
 
 Only a draft class of an active company can be deployed, once. A class with no register, or with an
-opened register holding no shares, can be deployed; an unopened register or issued shares refuse it,
+opened register holding no shares, can be deployed; an unopened or unreadable register, or issued
+shares, refuse it,
 because deployment cannot mirror populated holdings. Deployment never resets an empty register or
 creates a second opening, and while it is admitted the register cannot change, including imports and
 corrections. Company share operations grant no crypto on-ramp purchase permission. How the signer
@@ -102,6 +104,20 @@ members, and publications still reach them.
 
 A grant on a class with no contract is a register entry only; a chain grant mints shares, and the
 register records the issue once the mint is final.
+
+### What each record changes
+
+| Record                                                            | Effect on issued shares and holdings                                                                                         |
+| ----------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| Copying existing records (the opening)                            | Sets the opening balance; it is never an issue                                                                               |
+| Employee award and vesting                                        | None: an award is a promised entitlement and vesting a company record                                                        |
+| Investor agreement and receipt                                    | None on their own; applying the allotment makes the issue                                                                    |
+| Any issue: grant, award-linked grant, allotment, chain or paid issue | Increases the issued shares and the recipient's holding once                                                              |
+| Transfer                                                          | Moves shares between members; the class's issued shares stay the same ([transfers](register.md#non-paid-transfers-between-members)) |
+| Correction                                                        | Keeps the earlier entry and records an exact reversal or opening difference ([corrections](register.md#compensating-corrections)) |
+
+Investor and employee issues use the same register: one member, one set of holdings and one history
+serve both.
 
 ### Rules every issue follows
 
@@ -208,7 +224,8 @@ Rejecting an allotment keeps its agreement and receipt and performs no refund. A
 attested by the company, not verified by Ledova. The register's amount paid then includes the
 consideration ([amount paid](register.md#amount-paid-and-date-entered)).
 
-Lists, details and the three documents need a current appointment for the company; owners and
+Lists, details and the three documents need a current appointment that can read the company's
+register; owners and
 platform staff have no automatic access to these financial records. Accepted members read their own
 resulting holdings and history, while the documents stay with the company. Not built: partly paid
 allotments, calls, outstanding amounts, collection, payment providers and refunds
@@ -411,6 +428,35 @@ that were never stamped rather than guessing.
 Direct issues on a class on chain approved before issues became company-run that still wait for
 register cover need a [retained director instruction](register.md#retained-director-instructions),
 which the company owner submits and platform staff review.
+
+## What these flows do not cover
+
+The company and its advisers decide valuation, class rights, offers, consents, employee terms,
+approvals, the actual issue and transfer dates and filings; Ledova records the facts supplied and the
+exact effects authorised
+([what stays with the company](README.md#what-ledova-does-and-what-stays-with-the-company)). A
+class's code or type is a label and does not define the rights attached to its shares.
+
+Not built: options and their exercise, shares issued upfront with restrictions or forfeiture, partly
+paid allotments and calls, convertible instruments, buy-backs, redemptions and capital reductions,
+[splits and consolidations](#splits-and-consolidations), class conversions or variations of class
+rights, transmission, and ending or correcting an award's unissued entitlement.
+
+Current limits, each tracked as planned work under the share lifecycle review
+([#1060](https://github.com/Ledova/ledova/issues/1060)):
+
+- A new class with no shareholders cannot receive its first issue: an import needs at least one
+  current member, and grants, awards and allotments need an opened import. Planned under
+  [#1061](https://github.com/Ledova/ledova/issues/1061), which also plans class creation through
+  company appointments rather than ownership and a check of the class's declared transfer
+  restriction, which direct transfers do not check today.
+- An issue or transfer is dated the day it is recorded rather than the company's effective date, and
+  the investor issue review shows the shares and consideration but no implied unit price or
+  ownership before and after. Planned under [#1062](https://github.com/Ledova/ledova/issues/1062).
+- An award-linked grant asks for its agreement again, and an award's unissued entitlement cannot be
+  ended or corrected. Planned under [#1063](https://github.com/Ledova/ledova/issues/1063).
+- Joint, corporate and trust holdings have no separate structure: a member is one name and
+  residential address, with the beneficial status the company records.
 
 ## Splits and consolidations
 

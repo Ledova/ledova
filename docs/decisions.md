@@ -351,7 +351,7 @@ An `associated_person` claim reaches only its named company's directory entries;
 it does not widen the secondary market. A holder who lacks market eligibility
 cannot see the market for shares they own. Revisit that trade-off before live
 operation with real participants.
-[Eligibility](business/companies.md) owns enforcement details.
+[Eligibility](engineering/backend.md#eligibility-decisions) owns enforcement details.
 
 Anyone eligible to see an offering in the directory can open the documents
 attached to its approved offerings, whether upcoming, open or closed (owner
@@ -372,7 +372,7 @@ The register leaves amount paid blank when it cannot be established exactly;
 zero would assert an amount that is not known. Classification evidence has a
 fixed retention horizon, independent of account deletion. The legal basis and
 uncertain clock are in [legal positions](legal/positions.md#3-the-evidence-retention-period); implementation belongs to
-[the register](business/register.md) and [file retention](engineering/security.md#private-files).
+[the register](engineering/records.md#former-member-fold) and [file retention](engineering/security.md#classification-evidence-and-payslips).
 
 The owner chose on 21 September 2026 in
 [#647](https://github.com/Ledova/ledova/issues/647#issuecomment-5766230810)
@@ -381,7 +381,8 @@ company for review and activating it, with every later action relying on that
 gate rather than checking again. Since staff review was retired the switch is
 checked wherever an appointment is exercised: admission, invitation acceptance,
 activation, eligibility decisions and each register command;
-[eligibility](business/companies.md) owns the mechanism.
+[the representative identity requirement](business/companies.md#representative-identity-requirement)
+states where it applies.
 
 ## The stored register
 
@@ -449,7 +450,7 @@ since become company decisions under the
 [company-run rules](#company-run-register-authority-and-evidence): non-paid
 register grants, chain grants and paid issues. The instruction route remains for
 settled transfers until [#869](https://github.com/Ledova/ledova/issues/869).
-[The register](business/register.md) owns the mechanisms.
+[The register](engineering/records.md#register-commands) owns the mechanisms.
 
 The same day the owner chose how the register's outputs are produced:
 certificates, notice figures and inspection copies
@@ -488,7 +489,7 @@ second import for the particulars. A class it opens records no issue, transfer
 or cessation until it is anchored on chain or a company-run non-paid grant or
 transfer enters one. A mistaken opening import strands its class until partial
 corrections exist; that is accepted during the synthetic experiment and settled
-before any real data. [The register](business/register.md) owns the
+before any real data. [The register](engineering/records.md#register-ledger) owns the
 mechanism.
 
 ## Company-scoped approvals
@@ -652,7 +653,7 @@ proxies the issue's non-goals exclude.
   votes and dividends are waiting on it. A person holding through two register
   members is counted as waiting while either holding is.
 
-[Shareholder publications](business/publications.md) owns the
+[Shareholder publications](engineering/records.md#publications) owns the
 mechanism and [publishing to members](business/publications.md#publishing-on-the-companys-instruction) the procedure.
 
 ## Splits and consolidations
@@ -708,7 +709,7 @@ for reporting and portability, recorded in
   contract interface files in this pack to operate and move the company's own
   register and contracts."
 
-[The company pack](business/member-records.md#the-company-pack) owns the mechanism and
+[The company pack](engineering/records.md#company-pack-format) owns the mechanism and
 [producing a company pack](business/member-records.md#producing-the-broader-pack-in-admin)
 the procedure.
 
