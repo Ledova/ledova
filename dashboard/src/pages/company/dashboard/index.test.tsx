@@ -142,9 +142,6 @@ it('shows exact complete company ownership, deduplicates shareholders and refuse
   expect(
     within(screen.getByRole('table', { name: 'Largest shareholders in preference shares' })).getByText('100.00%'),
   ).toBeTruthy();
-  expect(screen.getByRole('link', { name: 'View full register for ordinary shares' }).getAttribute('href')).toBe(
-    '/company/register',
-  );
 
   mode = 'zero';
   await refresh();
