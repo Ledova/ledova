@@ -4,7 +4,7 @@
 
 **Regulatory pathway, assessed 19 September 2026; product direction updated
 9 October 2026.** The
-[3 October 2026 one-product decision](architecture/company-managed-registers.md),
+[3 October 2026 one-product decision](plans/company-managed-registers/plan.md),
 the [4 October 2026 minimal-involvement decision](decisions.md#company-representative-verification)
 and the [9 October 2026 essential-registry decision](decisions.md#essential-registry-and-development-workflow-priority)
 postdate the assessment; validate its responsibility allocation against the

@@ -63,7 +63,7 @@ class TheDeadLinkRuleSeesBothDirections(unittest.TestCase):
 class TheGateRefusesToPassByFindingNothing(unittest.TestCase):
 
     def test_a_missing_schedule_table_finds_every_task_rather_than_none(self):
-        with a_tree({"docs/operations/jobs.md": "# Operations\n\nNo table here.\n"}) as root:
+        with a_tree({"docs/operations/jobs-and-storage.md": "# Operations\n\nNo table here.\n"}) as root:
             a_backend_task(root, "tokens/tasks/fold.py", "0 3 * * *", "a_real_task")
             findings = gate.periodic_findings()
         self.assertEqual(len(findings), 1)

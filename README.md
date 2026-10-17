@@ -30,8 +30,10 @@ human checks in [#624](https://github.com/Ledova/ledova/issues/624). The
 | `packages/` | Shared client types, services, hooks and design tokens |
 | `site/` | Public landing page and website |
 
-The [architecture overview](docs/architecture/README.md) shows how these pieces
-work together and links to their technical details.
+The [engineering overview](docs/engineering/README.md) shows how these pieces
+work together and links to each area's guide. The
+[business processes](docs/business/README.md) explain how companies, members and
+platform staff use them.
 
 ## Get started
 

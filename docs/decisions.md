@@ -66,7 +66,7 @@ platform staff and the two-mode product distinction. Historical decisions and
 recordings retain the implementation they described. Authority, evidence,
 isolation, audit and retention controls must be adapted to company actors rather
 than discarded. The software licence and legal positions are not changed. The
-[company-managed register plan](architecture/company-managed-registers.md)
+[company-managed register plan](plans/company-managed-registers/plan.md)
 records the decision; the [implementation index](plans/company-managed-registers/README.md)
 lists what has been delivered under it.
 
@@ -156,14 +156,14 @@ block #862–#873. A declaration can establish the initial representative's
 authority in the initial admission workflow. The existing representative identity
 check and ABR company lookup remain unchanged, as do tenant isolation and
 signed-transaction safeguards. The
-[authority guide](plans/company-managed-registers/authority-requests.md)
+[authority guide](business/companies.md)
 describes the delivered admission, invitation, delegation and revocation
 workflows.
 
 Do not add impersonation or fraud verification unless a legal duty on Ledova
 requires it. If such a duty is identified, raise it with the owner with its source
 rather than building a check; see [legal positions](legal/positions.md). The
-[accepted plan](architecture/company-managed-registers.md#representative-verification)
+[accepted plan](plans/company-managed-registers/plan.md#representative-verification)
 records the implementation boundary.
 
 ## Combined company signup and initial authority
@@ -190,7 +190,7 @@ members, and no new platform-staff approval step is added.
 
 This replaces the earlier instruction to leave signup unchanged while retaining
 the delivered dashboard and native navigation. The
-[authority guide](plans/company-managed-registers/authority-requests.md#company-signup)
+[authority guide](business/companies.md#company-signup)
 owns the workflow. New browser evidence must record the actual flow and its
 environment; local synthetic provider responses do not establish production or
 genuine provider verification. Earlier galleries remain dated history.
@@ -335,8 +335,8 @@ outside its scope. The issue records each delivered increment.
 ## Eligibility and ownership records
 
 Under the 3 October decision, company
-[activation](plans/company-managed-registers/company-activation.md) and
-[company eligibility decisions](plans/company-managed-registers/company-eligibility.md)
+[activation](business/companies.md#activation-and-the-registry-check) and
+[company eligibility decisions](business/participants.md#company-eligibility-decisions)
 replaced staff company activation and classification review on 6 October 2026
 (#863). The scope, privacy and expiry requirements below remain; a reusable
 identity fact is not approval for every company.
@@ -351,7 +351,7 @@ An `associated_person` claim reaches only its named company's directory entries;
 it does not widen the secondary market. A holder who lacks market eligibility
 cannot see the market for shares they own. Revisit that trade-off before live
 operation with real participants.
-[Eligibility](architecture/companies-and-eligibility.md) owns enforcement details.
+[Eligibility](business/companies.md) owns enforcement details.
 
 Anyone eligible to see an offering in the directory can open the documents
 attached to its approved offerings, whether upcoming, open or closed (owner
@@ -366,13 +366,13 @@ may already have read. The company's picker keeps to the offer document types:
 prospectus or information memorandum, risk disclosure, business plan, financial
 statements, auditor report, constitution and shareholder agreement (owner
 decision, the same day).
-[Offerings](architecture/offerings.md) owns the routes.
+[Offerings](business/issuing-shares.md#offerings) owns the routes.
 
 The register leaves amount paid blank when it cannot be established exactly;
 zero would assert an amount that is not known. Classification evidence has a
 fixed retention horizon, independent of account deletion. The legal basis and
 uncertain clock are in [legal positions](legal/positions.md#3-the-evidence-retention-period); implementation belongs to
-[the register](architecture/register.md) and [file retention](architecture/files-and-retention.md).
+[the register](business/register.md) and [file retention](engineering/security.md#private-files).
 
 The owner chose on 21 September 2026 in
 [#647](https://github.com/Ledova/ledova/issues/647#issuecomment-5766230810)
@@ -381,7 +381,7 @@ company for review and activating it, with every later action relying on that
 gate rather than checking again. Since staff review was retired the switch is
 checked wherever an appointment is exercised: admission, invitation acceptance,
 activation, eligibility decisions and each register command;
-[eligibility](architecture/companies-and-eligibility.md) owns the mechanism.
+[eligibility](business/companies.md) owns the mechanism.
 
 ## The stored register
 
@@ -449,7 +449,7 @@ since become company decisions under the
 [company-run rules](#company-run-register-authority-and-evidence): non-paid
 register grants, chain grants and paid issues. The instruction route remains for
 settled transfers until [#869](https://github.com/Ledova/ledova/issues/869).
-[The register](architecture/register.md) owns the mechanisms.
+[The register](business/register.md) owns the mechanisms.
 
 The same day the owner chose how the register's outputs are produced:
 certificates, notice figures and inspection copies
@@ -462,10 +462,10 @@ are kept. One certificate covers the shares one entry moved to one member, with 
 balance certificate for a seller who keeps shares, and PyMuPDF renders it. The
 alternatives were certificates generated automatically, stored and served to the
 company, and figures without documents. The register owns the mechanisms of
-[inspection copies](architecture/register.md#inspection-copies),
-[certificates](architecture/register.md#certificates),
-[notice figures](architecture/register.md#notice-figures) and
-[outputs due](architecture/register.md#outputs-due);
+[inspection copies](business/member-records.md#inspection-copies),
+[certificates](business/member-records.md#certificates),
+[notice figures](business/member-records.md#notice-figures) and
+[outputs due](business/member-records.md#the-due-list);
 [#871](https://github.com/Ledova/ledova/issues/871) moves their preparation to
 company appointments, and inspection copies came first
 ([PR #954](https://github.com/Ledova/ledova/pull/954)).
@@ -488,13 +488,13 @@ second import for the particulars. A class it opens records no issue, transfer
 or cessation until it is anchored on chain or a company-run non-paid grant or
 transfer enters one. A mistaken opening import strands its class until partial
 corrections exist; that is accepted during the synthetic experiment and settled
-before any real data. [The register](architecture/register.md) owns the
+before any real data. [The register](business/register.md) owns the
 mechanism.
 
 ## Company-scoped approvals
 
 Company appointees authorise wallet approvals through the
-[wallet nomination and instruction workflow](plans/company-managed-registers/company-wallet-approvals.md);
+[wallet nomination and instruction workflow](business/participants.md#wallet-nominations-and-company-wallet-approvals);
 the staff-entered approval below is its history. The fresh-start deployment was
 a one-time cutover, not the migration policy for company authority, which
 preserves existing data.
@@ -546,7 +546,7 @@ on 22 September in
   wallet would make every holder ambiguous. Approval state lives in a separate
   row for each entry and company that only the operator connection writes.
 
-[Contracts and issuance](architecture/contracts-and-issuance.md#contracts) owns
+[Contracts and issuance](engineering/chain.md#contracts) owns
 the mechanism and [chain setup](operations/chains.md#fresh-start-redeploy) the
 redeploy.
 
@@ -614,7 +614,7 @@ proxies the issue's non-goals exclude.
   caller's rights and the member's own policy would narrow what it could read.
   The guarantee that a member casts only their own ballot stays in the database,
   and members, staff and the closing job share one write path and one lock.
-  [Shareholder publications](architecture/shareholder-publications.md#resolutions)
+  [Shareholder publications](business/publications.md#resolutions)
   describes the mechanism.
 
 - **Dividends round down to the cent for each holder**, and what rounding leaves
@@ -652,8 +652,8 @@ proxies the issue's non-goals exclude.
   votes and dividends are waiting on it. A person holding through two register
   members is counted as waiting while either holding is.
 
-[Shareholder publications](architecture/shareholder-publications.md) owns the
-mechanism and [publishing to members](operations/publications.md) the procedure.
+[Shareholder publications](business/publications.md) owns the
+mechanism and [publishing to members](business/publications.md#publishing-on-the-companys-instruction) the procedure.
 
 ## Splits and consolidations
 
@@ -665,7 +665,7 @@ The issue's own acceptance asks for the design to be written and reviewed before
 implementation, and the work is larger than a design: a deployed share class has
 no function that could perform either action, and a consolidation cannot be
 executed at all, because nothing but the holder can destroy shares.
-[Splits and consolidations](architecture/splits-and-consolidations.md) owns the
+[Splits and consolidations](business/issuing-shares.md#splits-and-consolidations) owns the
 reasoning and lists what an implementation issue must still decide.
 
 ## The company pack
@@ -708,8 +708,8 @@ for reporting and portability, recorded in
   contract interface files in this pack to operate and move the company's own
   register and contracts."
 
-[The company pack](architecture/company-pack.md) owns the mechanism and
-[producing a company pack](operations/register-foundation.md#producing-a-company-pack)
+[The company pack](business/member-records.md#the-company-pack) owns the mechanism and
+[producing a company pack](business/member-records.md#producing-the-broader-pack-in-admin)
 the procedure.
 
 ## Essential registry and development workflow priority
@@ -797,8 +797,8 @@ the licence or legal findings. #624 still needs genuine human release acceptance
   are deferred; the existing amount-paid row shape stays so a later increment
   needs no migration. No collection, provider or refund mechanics.
 
-_Delivered on 11 October: [employee awards](plans/company-managed-registers/employee-awards.md)
-(#973) and [external allotments](plans/company-managed-registers/external-allotments.md)
+_Delivered on 11 October: [employee awards](business/issuing-shares.md#employee-awards-and-vesting)
+(#973) and [external allotments](business/issuing-shares.md#external-investor-allotments)
 (#974)._
 
 ### Member invitations and account association
@@ -857,7 +857,7 @@ adoption. Package-owned migrations stay with their dependencies. Held product
 work, including #867, rebases onto the fresh migrations after this work lands.
 
 At this initial checkpoint, ledova.io was left untouched and every part of its
-[backup/export/rebuild/re-seed plan](operations/upgrades.md#fresh-database-rebuild)
+[backup/export/rebuild/re-seed plan](operations/README.md#rebuild-a-database)
 needed owner approval. The later [backup permission](#binding-caps-and-backup-authorisation)
 and [release direction](#ledovaio-rebuild-and-release-authorisation) supersede
 those restrictions for the completed operation.
@@ -932,7 +932,7 @@ At this checkpoint, live selective-record export, stopping writers, rebuild,
 migrations, re-seeding, configuration and release still required the owner's
 go-ahead, supplied in the [later direction below](#ledovaio-rebuild-and-release-authorisation). Signer activation
 and real-funds use remain separate decisions.
-The [short rebuild plan](operations/upgrades.md#fresh-database-rebuild) preserves
+The [short rebuild plan](operations/README.md#rebuild-a-database) preserves
 the original database/storage and matching release/configuration for recovery.
 A firm downtime estimate needed the actual database/storage inventory and sizes,
 owner-confirmed record mappings and a measured safe isolated rehearsal; none was
@@ -950,7 +950,7 @@ no repeat permission request. Signer activation and real-funds use remain
 separate decisions.
 
 The authorised operation completed under [#979](https://github.com/Ledova/ledova/issues/979).
-Its [operational record](operations/upgrades.md#completed-ledovaio-rebuild-11-october-2026)
+Its [operational record](operations/evidence/ledova-io-rebuild-2026-10-11.md)
 owns the release, retained setup, checks and limits. Existing protected backups
 and private evidence remain retained; this decision does not claim later product
 PRs were deployed.
@@ -1049,7 +1049,7 @@ not cross the book, otherwise it is held back. Smallest change, no advanced
 trading mechanisms. A held order takes its next single match from a sweep every
 minute; a lapsed or reverted pair is never matched again, since re-pairing it
 would let the party who did not sign lock the other's order in fifteen-minute
-windows it could not cancel. [Secondary trading](architecture/trading.md#one-match-never-crossed)
+windows it could not cancel. [Secondary trading](business/trading.md#one-match-never-crossed)
 states the rule. The same day the owner removed four statuses no code ever
 wrote: an order's `executing`, `expired` and `failed`, and a mint request's
 `approved`. Answering the change's open questions, also on 2 October 2026, the
@@ -1076,7 +1076,7 @@ Shares are issued through allotment; generic wallet send endpoints refuse share
 tokens. On-chain recipient whitelisting and the register's Transfer-event read
 also account for subsequent share movements. Bitcoin sends remain externally
 built and signed; the backend decodes and verifies them before admission.
-See [transfers](architecture/transfers.md).
+See [transfers](engineering/wallet-protocols.md#transfer-lifecycle).
 
 ## Assets and portfolio presentation
 
@@ -1108,7 +1108,7 @@ private evidence and original-request recovery remain required. An award,
 recorded vesting, approval, external capital receipt and issued ownership stay
 distinct. There is no extra Overview page, task engine, new role, legal document
 generator, payment collection rail or filing integration in this direction.
-Delivered behaviour is described in [clients](architecture/clients.md) and each
+Delivered behaviour is described in [clients](engineering/frontend.md) and each
 increment guide; later refinements remain planned until their PRs land.
 
 ## Ownership dashboard and compact sidebar
@@ -1136,7 +1136,7 @@ issued award shares are already in holdings. Incomplete reads never imply zero
 ownership or complete totals. No valuation, forecast, chart dependency, new role
 or company-wide member disclosure is introduced. Broader personal visibility
 needs a separate owner decision. Current delivery is described in
-[clients](architecture/clients.md); signup and native landing remain as delivered.
+[clients](engineering/frontend.md); signup and native landing remain as delivered.
 
 The signup constraint above was replaced by the
 [14 October combined signup decision](#combined-company-signup-and-initial-authority).
@@ -1165,7 +1165,7 @@ This supersedes the "One look" choice under
 [the signed-in app](#the-signed-in-app) and the #792 reason for storing no theme
 preference. Dark is a second palette for the same semantic tokens. The web
 and mobile delivery is described in
-[clients](architecture/clients.md#design-tokens).
+[clients](engineering/frontend.md#design-tokens-and-themes).
 
 ## The signed-in app
 
@@ -1297,7 +1297,7 @@ portfolio preference, because paper is the only look and no client read the
 portfolio; and routes offer only the methods in use, which
 [#832](https://github.com/Ledova/ledova/pull/832) carried out by removing the
 33 operations no client called, taking the schema from 191 operations to 158.
-The [upgrade notes](operations/upgrades.md) record the key and preference
+The [upgrade notes](operations/README.md#rebuild-a-database) record the key and preference
 removals. The theme reason is superseded by the
 [14 October theme decision](#paper-and-dark-themes), which keeps a theme choice
 on each device rather than on the account.
@@ -1345,7 +1345,7 @@ the same decision a fee of zero stays zero rather than reading as unknown, and
 the mobile app shares the export as a file instead of a message, which a
 complete history would make impractical. The export is not recorded, because it
 carries only the requester's own data.
-[The account-data export](reference/account-data-export.md) owns the contents
+[The account-data export](engineering/records.md#account-data-export) owns the contents
 and limits.
 
 ## Tenancy, sessions and deployment
@@ -1358,7 +1358,7 @@ the field and its API, client and evidence branches, and the fresh migrations
 carry no mode column. Private evidence, unrelated configuration and
 register/payment history are preserved.
 PostgreSQL RLS enforces row isolation; product selectors still distinguish company
-management, personal accounts and discovery. See [tenancy](architecture/tenancy.md).
+management, personal accounts and discovery. See [tenancy](engineering/security.md#tenancy-model).
 
 There is one authentication path: simplejwt sessions with browser and mobile
 transports. The unused v2 session design was withdrawn; its historical ADRs remain
@@ -1371,7 +1371,7 @@ thresholds and evasion-sensitive rules belong outside this repository.
 ## Contracts compiler and toolchain
 
 The compiler settings and the OpenZeppelin pin recorded in
-[contracts and issuance](architecture/contracts-and-issuance.md#contracts) are
+[contracts and issuance](engineering/chain.md#contracts) are
 a contract, not a default: any change to them moves the bytecode of every
 contract, so a dependency update that needs one is a toolchain change.
 
@@ -1412,7 +1412,7 @@ counterparts and partial drift parser retire with their generated replacements;
 client state and cryptographic utilities retain their own types. See
 [B7e](https://github.com/Ledova/ledova/issues/115#issuecomment-5575002254),
 [the checkpoint approval](https://github.com/Ledova/ledova/issues/115#issuecomment-5656632666)
-and [API gates](development/gates.md#the-api-type-drift-gate).
+and [API gates](engineering/gates.md#the-api-type-drift-gate).
 
 The source no-comments/no-docstrings rule remains an explicit repository choice;
-[development standards](development/standards.md) defines its scope.
+[development standards](engineering/README.md) defines its scope.

@@ -33,7 +33,7 @@ applies a stored Dark before the first paint. The module repeats the
 dashboard's key, parsing rule and theme colours because the site's Docker
 context is `site/` and cannot import `@ledova/shared`. Where the site and the app
 share an origin, as on ledova.io, one choice serves both
-([design tokens](../docs/architecture/clients.md#design-tokens)).
+([design tokens](../docs/engineering/frontend.md#design-tokens-and-themes)).
 
 ## Commands
 

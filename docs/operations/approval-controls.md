@@ -1,6 +1,6 @@
 # Company-scoped approval controls
 
-[Operations](README.md) · [Chains and keys](chains.md) · [Refreshing an approval](../architecture/outgoing-signing.md#refreshing-an-approval)
+[Operations](README.md) · [Chains and keys](chains.md) · [Refreshing an approval](../engineering/chain.md#refreshing-an-approval)
 
 This page is the dated evidence record for
 [product §5](../product.md#5-verification-and-transaction-controls).
@@ -13,8 +13,8 @@ the bypass review asked and answered, what the
 [fresh-start redeploy](chains.md#fresh-start-redeploy) rehearsal found and the
 authorised Base Sepolia run. The staff actors and commands in this evidence are
 history: company appointees now authorise wallet approvals through the
-[company wallet workflow](../plans/company-managed-registers/company-wallet-approvals.md),
-and [refreshing an approval](../architecture/outgoing-signing.md#refreshing-an-approval)
+[company wallet workflow](../business/participants.md#wallet-nominations-and-company-wallet-approvals),
+and [refreshing an approval](../engineering/chain.md#refreshing-an-approval)
 states what the controls do not do.
 
 ## The six required behaviours
@@ -31,7 +31,7 @@ states what the controls do not do.
 The original Mocha and Django cases are in those pull requests and in commit
 `c42402e7` (5 October 2026), which renamed the stage-check tests after the #863
 eligibility cutover; the current suites are smaller
-([backend verification](../development/testing.md#backend-verification)).
+([backend verification](../engineering/testing.md#backend-verification)).
 
 §5 also asks that screening providers be replaceable while effective
 restrictions are preserved. Only the KYCAID adapter implements crypto

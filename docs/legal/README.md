@@ -3,7 +3,7 @@
 [Documentation](../README.md) · [Positions](positions.md) · [Regulatory pathway](../regulatory-pathway.md)
 
 **Folder index, first written 15 September 2026.** The
-[3 October 2026 one-product decision](../architecture/company-managed-registers.md)
+[3 October 2026 one-product decision](../plans/company-managed-registers/plan.md)
 and the [4 October 2026 minimal-involvement decision](../decisions.md#company-representative-verification)
 postdate the readings in this folder, which have not been reconfirmed against
 the current company-managed workflows. Neither product decision establishes a

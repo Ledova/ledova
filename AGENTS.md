@@ -1,7 +1,7 @@
 # Working guidance
 
 Read this file, [CONTRIBUTING.md](CONTRIBUTING.md), the
-[accepted company-managed register plan](docs/architecture/company-managed-registers.md)
+[accepted company-managed register plan](docs/plans/company-managed-registers/plan.md)
 and its [implementation index](docs/plans/company-managed-registers/README.md)
 when starting or resuming work, including after context compaction.
 
@@ -34,13 +34,13 @@ when starting or resuming work, including after context compaction.
 - Update documentation to describe what is actually delivered, keeping planned
   capabilities distinct from current behaviour.
 - Keep only tests guarding the worst failures, within the binding suite caps of
-  the [minimum-test policy](docs/development/testing.md). At capacity, a new
+  the [minimum-test policy](docs/engineering/testing.md). At capacity, a new
   core test replaces an existing case or needs an explicit owner-approved cap
   increase in the same PR; record before/after counts and the replacement or
   approval for review. Never exceed a cap temporarily.
 - Run `make preflight` before pushing. Every PR runs the same lean checks on
   GitHub's runners; native Android/iOS builds are manual before a mobile
-  release ([CI](docs/development/testing.md#ci)).
+  release ([CI](docs/engineering/testing.md#ci)).
 - Use focused pull requests, independent review at the merging commit, and green
   required CI on a branch up to date with main. Do not push directly to main.
 

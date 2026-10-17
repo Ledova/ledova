@@ -103,7 +103,7 @@ service. This model is the second line.
 ## Getting an operator to market
 
 This sequence belongs to the earlier clerk-only service assumption, not to the
-company-managed registers of the accepted [plan](../architecture/company-managed-registers.md).
+company-managed registers of the accepted [plan](../plans/company-managed-registers/plan.md).
 On the positions as drafted, a clerk-only service needs none of the financial
 services permissions below while it stays within that boundary, but must still
 meet the [live-operation conditions](../regulatory-pathway.md).
