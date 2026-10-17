@@ -81,7 +81,7 @@ function OwnDashboard({ owner }: { owner: OrderSubmissionOwner }) {
       ) : fresh && scoped && summary ? (
         <>
           <OwnershipMetrics summary={summary} />
-          <ShareholderPanels company={company.uuid} registers={rows} />
+          <ShareholderPanels registers={rows} />
         </>
       ) : null}
     </Page>

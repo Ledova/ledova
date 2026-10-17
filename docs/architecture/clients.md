@@ -69,9 +69,9 @@ totals, current shareholders deduplicated across classes, and share-class counts
 Each class has a donut and readable legend for its five largest holders and
 Others, with exact share counts and percentages of that class's issued shares.
 The class cards stay visible together; class rights may differ. Unopened classes make company totals incomplete,
-and failed or inconsistent reads withhold totals and charts. Each class links to
-its full register; register work and recorded history stay there rather than on
-the dashboard. Personal member views use
+and failed or inconsistent reads withhold totals and charts. The sidebar opens
+Register, which holds register work and recorded history; ownership cards have
+no duplicate navigation. Personal member views use
 their own projection, without company totals or other shareholders. New charts
 need no chart library.
 

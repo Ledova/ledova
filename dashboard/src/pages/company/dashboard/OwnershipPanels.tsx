@@ -1,6 +1,5 @@
 import { useId } from 'react';
-import { Link } from 'react-router-dom';
-import { DESTINATIONS, REGISTER_COPY, formatShareCount, type TokenHoldersResponse } from '@ledova/shared';
+import { REGISTER_COPY, formatShareCount, type TokenHoldersResponse } from '@ledova/shared';
 import { Section } from '@components/Ledger';
 import { ownershipSegments, ownershipSummary } from './summary';
 
@@ -98,7 +97,7 @@ function OwnershipDonut({
   );
 }
 
-export function ShareholderPanels({ company, registers }: { company: string; registers: TokenHoldersResponse[] }) {
+export function ShareholderPanels({ registers }: { registers: TokenHoldersResponse[] }) {
   const distributions = registers.map((register) => {
     const segments = ownershipSegments(register);
     return {
@@ -190,13 +189,6 @@ export function ShareholderPanels({ company, registers }: { company: string; reg
                 {REGISTER_COPY.WAITING_NOTE(register.waitingEffects)}
               </p>
             )}
-            <Link
-              to={DESTINATIONS.companyRegister.path}
-              state={{ registerCompany: company, registerToken: register.token.uuid }}
-              className="w-fit text-sm font-medium text-brand-light hover:underline"
-            >
-              View full register <span className="sr-only">for {register.token.name}</span>
-            </Link>
           </Section>
         ))}
       </div>
