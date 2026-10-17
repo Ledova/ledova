@@ -152,6 +152,10 @@ it('preserves original preparation and issue recovery through refresh, keeps app
     throw new Error(`Unexpected POST ${url}`);
   });
   renderCompanyPage(client, <CompanyRegisterPage />, 'Register');
+  const tasks = (
+    await screen.findByRole('heading', { name: `${REGISTER.token.name} · ${REGISTER.token.symbol}` })
+  ).closest('details[data-register-tasks]')!;
+  fireEvent.click(tasks.querySelector('summary')!);
   const allotments = within((await screen.findByRole('heading', { name: COPY.TITLE })).parentElement!);
   const open = await allotments.findByRole('button', { name: COPY.PREPARE });
   await waitFor(() => expect((open as HTMLButtonElement).disabled).toBe(false));

@@ -24,6 +24,7 @@ export function useUserPreferences() {
     userAccount: preferences?.userAccount ?? null,
     isLoading: query.isLoading,
     isFetching: query.isFetching,
+    fetchStatus: query.fetchStatus,
     isError: query.isError,
     error: query.error,
     refetch: query.refetch,

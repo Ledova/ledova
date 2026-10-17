@@ -9,12 +9,15 @@ import {
   useUserPreferences,
   USER_PREFERENCES_QUERY_KEY,
   type OrderSubmissionOwner,
+  type OwnCompanyAppointment,
   type TokenHoldersResponse,
 } from '@ledova/shared';
-import { LinkRow, Section } from '@components/Ledger';
+import { LinkRow } from '@components/Ledger';
 import { PageTitle } from '@components/PageTitle';
 import { Page, PageAction } from '@components/Page';
 import { CompanySelection } from '../CompanySelection';
+import { ownAppointmentsKey } from '../team/appointments';
+import { ownershipSummary } from '../dashboard/summary';
 import { ClassCorrections } from './ClassCorrections';
 import { ClassImports } from './ClassImports';
 import { ClassGrants } from './ClassGrants';
@@ -24,13 +27,14 @@ import { ClassTransfers } from './ClassTransfers';
 import { ClassOpenings } from './ClassOpenings';
 import { ClassReconciliation } from './ClassReconciliation';
 import { ClassRegister } from './ClassRegister';
+import { CompanyShareholders } from './CompanyShareholders';
 import { ClassInspectionCopy } from './ClassInspectionCopy';
 import { CompanyMemberAccess } from './CompanyMemberAccess';
 import { CompanyPack } from './CompanyPack';
 import { RegisterLinks } from './RegisterLinks';
 import { RegisterParticulars } from './RegisterParticulars';
 import { Loading, Unavailable } from './RegisterStatus';
-import { useCompanyRegister, useRegisterDownload } from './useCompanyRegister';
+import { registerKey, registersQuery, useCompanyRegister, useRegisterDownload } from './useCompanyRegister';
 import { ownerGuard, useOwnAppointments } from './useRegisterImports';
 
 const ON_CHAIN = ['deployed', 'paused'];
@@ -97,20 +101,48 @@ function RegisterDownload({ register }: { register: TokenHoldersResponse }) {
   );
 }
 
-function RegisterMembers({
+function RegisterShareholders({
   owner,
   guard,
-  register,
+  registers,
   company,
 }: {
   owner: OrderSubmissionOwner;
   guard: () => void;
-  register: TokenHoldersResponse;
+  registers: TokenHoldersResponse[];
   company: string;
 }) {
   const appointments = useOwnAppointments(owner, guard);
-  const prepare = appointments.isSuccess && !!appointmentForRegisterStep(appointments.data, company, 'prepare');
-  return <ClassRegister register={register} prepare={prepare} />;
+  const client = useQueryClient();
+  const prepare =
+    appointments.isSuccess &&
+    !appointments.isFetching &&
+    !!appointmentForRegisterStep(appointments.data, company, 'prepare');
+  const guardPreparation = () => {
+    guard();
+    for (const key of [
+      USER_PREFERENCES_QUERY_KEY,
+      [...registerKey(owner), 'classes'],
+      registersQuery(
+        owner,
+        registers.map(({ token }) => token.uuid),
+      ).queryKey,
+      ownAppointmentsKey(owner),
+    ]) {
+      const current = client.getQueryState(key);
+      if (current?.status !== 'success' || current.fetchStatus !== 'idle')
+        throw new Error('Refresh the register and your current preparation appointment.');
+    }
+    if (
+      !appointmentForRegisterStep(
+        client.getQueryData<OwnCompanyAppointment[]>(ownAppointmentsKey(owner)) ?? [],
+        company,
+        'prepare',
+      )
+    )
+      throw new Error('A current company preparation appointment is required.');
+  };
+  return <CompanyShareholders registers={registers} guardPreparation={prepare ? guardPreparation : undefined} />;
 }
 
 export default function CompanyRegisterPage() {
@@ -168,7 +200,24 @@ function OwnRegister({
     scope.registers.every(({ token }) =>
       classes.data.some((item) => item.uuid === token.uuid && item.companyUuid === scope.company.uuid),
     );
-  const sourceReady = readable && preferences?.fetchStatus === 'idle' && !classes.isFetching && !registers.isFetching;
+  const sourceReady =
+    readable &&
+    preferences?.fetchStatus === 'idle' &&
+    classes.fetchStatus === 'idle' &&
+    registers.fetchStatus === 'idle';
+  let ownershipReady = false;
+  let ownershipInvalid = false;
+  if (sourceReady && scope) {
+    try {
+      const expected = classes.data.filter((item) => item.companyUuid === scope.company.uuid);
+      if (scope.registers.length !== expected.length)
+        throw new Error('The company register did not include every share class.');
+      ownershipSummary(scope.registers);
+      ownershipReady = true;
+    } catch {
+      ownershipInvalid = true;
+    }
+  }
   if (
     !held &&
     sourceReady &&
@@ -236,6 +285,8 @@ function OwnRegister({
       return;
     const section = classSections.current.get(registerToken);
     if (!section) return;
+    const tasks = section.querySelector<HTMLDetailsElement>('details[data-register-tasks]');
+    if (tasks) tasks.open = true;
     if (location.state?.registerHistory === true && view === 'register') {
       const history = section.querySelector<HTMLDetailsElement>('details[data-register-history]');
       if (history) history.open = true;
@@ -331,6 +382,43 @@ function OwnRegister({
       ) : registers.isPending ? (
         <Loading />
       ) : null}
+      {scope && view === 'register' && (
+        <>
+          {ownershipInvalid ? (
+            <Unavailable
+              retry={() => {
+                void classes.refetch();
+                void registers.refetch();
+              }}
+              busy={classes.isFetching || registers.isFetching}
+            />
+          ) : ownershipReady ? (
+            <>
+              <div aria-label="Share class summaries" className="grid items-start gap-4 sm:grid-cols-2">
+                {scope.registers.map((register) => (
+                  <section
+                    key={register.token.uuid}
+                    className="min-w-0 space-y-4 rounded-xl border border-border bg-surface-raised p-4 sm:p-5"
+                  >
+                    <p className="break-words text-base font-medium text-text-primary">
+                      {register.token.name} · {register.token.symbol}
+                    </p>
+                    <ClassRegister register={register} />
+                  </section>
+                ))}
+              </div>
+              <RegisterShareholders
+                key={scope.company.uuid}
+                owner={owner}
+                guard={guard}
+                company={scope.company.uuid}
+                registers={scope.registers}
+              />
+            </>
+          ) : null}
+          <h2 className="font-display text-xl tracking-[-0.01em] text-text-primary">Register tasks</h2>
+        </>
+      )}
       {scope && (
         <ul hidden={view === 'access'} className="space-y-6">
           {scope.registers.map((register) => (
@@ -343,90 +431,104 @@ function OwnRegister({
                 else classSections.current.delete(register.token.uuid);
               }}
             >
-              <Section title={readable ? `${register.token.name} · ${register.token.symbol}` : 'Share issue recovery'}>
-                <div hidden={view !== 'register'} className="space-y-5">
-                  {readable && (
-                    <RegisterMembers owner={owner} guard={guard} register={register} company={scope.company.uuid} />
-                  )}
-                  <ClassAllotments
-                    key={`allotments/${scope.company.uuid}/${register.token.uuid}`}
-                    owner={owner}
-                    guard={guard}
-                    register={register}
-                    company={scope.company.uuid}
-                    sourceReady={sourceReady}
-                    onHeldChange={allotmentHeld}
-                  />
-                  {readable && (
-                    <details data-register-history className="space-y-3 border-t border-border-subtle pt-4">
-                      <summary className="cursor-pointer text-sm font-medium">
-                        Other changes and register history
-                      </summary>
-                      <LinkRow
-                        to={DESTINATIONS.companyClass.path.replace(':uuid', register.token.uuid)}
-                        label={DESTINATIONS.companyClass.title}
-                      />
-                      {ON_CHAIN.includes(register.token.status) && (
-                        <ClassOpenings owner={owner} guard={guard} register={register} company={scope.company.uuid} />
-                      )}
-                      <ClassImports owner={owner} guard={guard} register={register} company={scope.company.uuid} />
-                      <ClassTransfers owner={owner} guard={guard} register={register} company={scope.company.uuid} />
-                      <ClassCorrections
-                        owner={owner}
-                        guard={guard}
-                        token={register.token.uuid}
-                        company={scope.company.uuid}
-                        register={register}
-                        sourceReady={sourceReady}
-                      />
-                      <ClassReconciliation
-                        owner={owner}
-                        guard={guard}
-                        token={register.token.uuid}
-                        company={scope.company.uuid}
-                        holders={register.holders}
-                      />
-                    </details>
-                  )}
-                </div>
-                <div hidden={view !== 'awards'} className="space-y-5">
-                  <ClassAwards
-                    key={`${scope.company.uuid}/${register.token.uuid}`}
-                    owner={owner}
-                    guard={guard}
-                    register={register}
-                    company={scope.company.uuid}
-                    sourceReady={sourceReady}
-                    onHeldChange={awardHeld}
-                  />
-                  <details
-                    open={issueToken === register.token.uuid}
-                    className="space-y-3 border-t border-border-subtle pt-4"
-                  >
-                    <summary className="cursor-pointer text-sm font-medium">Non-paid share issues</summary>
-                    <ClassGrants
+              <details
+                data-register-tasks
+                open={
+                  view !== 'register' ||
+                  ['allotments', 'awards', 'grants'].some((kind) =>
+                    heldClasses.has(`${kind}/${register.token.uuid}`),
+                  ) ||
+                  (scope.company.uuid === registerCompany && contextToken === register.token.uuid)
+                }
+                className="rounded-xl border border-border bg-surface-raised"
+              >
+                <summary className="cursor-pointer p-4 sm:p-5">
+                  <h2 className="inline break-words font-display text-xl tracking-[-0.01em] text-text-primary">
+                    {readable ? `${register.token.name} · ${register.token.symbol}` : 'Share issue recovery'}
+                  </h2>
+                </summary>
+                <div className="space-y-5 px-4 pb-4 sm:px-5 sm:pb-5">
+                  <div hidden={view !== 'register'} className="space-y-5">
+                    <ClassAllotments
+                      key={`allotments/${scope.company.uuid}/${register.token.uuid}`}
                       owner={owner}
                       guard={guard}
                       register={register}
                       company={scope.company.uuid}
                       sourceReady={sourceReady}
-                      onHeldChange={grantHeld}
+                      onHeldChange={allotmentHeld}
                     />
-                  </details>
-                </div>
-                <div hidden={view !== 'documents'} className="space-y-5">
-                  {readable && (
-                    <>
-                      <RegisterDownload register={register} />
-                      <ClassInspectionCopy
-                        register={register}
+                    {readable && (
+                      <details data-register-history className="space-y-3 border-t border-border-subtle pt-4">
+                        <summary className="cursor-pointer text-sm font-medium">
+                          Other changes and register history
+                        </summary>
+                        <LinkRow
+                          to={DESTINATIONS.companyClass.path.replace(':uuid', register.token.uuid)}
+                          label={DESTINATIONS.companyClass.title}
+                        />
+                        {ON_CHAIN.includes(register.token.status) && (
+                          <ClassOpenings owner={owner} guard={guard} register={register} company={scope.company.uuid} />
+                        )}
+                        <ClassImports owner={owner} guard={guard} register={register} company={scope.company.uuid} />
+                        <ClassTransfers owner={owner} guard={guard} register={register} company={scope.company.uuid} />
+                        <ClassCorrections
+                          owner={owner}
+                          guard={guard}
+                          token={register.token.uuid}
+                          company={scope.company.uuid}
+                          register={register}
+                          sourceReady={sourceReady}
+                        />
+                        <ClassReconciliation
+                          owner={owner}
+                          guard={guard}
+                          token={register.token.uuid}
+                          company={scope.company.uuid}
+                          holders={register.holders}
+                        />
+                      </details>
+                    )}
+                  </div>
+                  <div hidden={view !== 'awards'} className="space-y-5">
+                    <ClassAwards
+                      key={`${scope.company.uuid}/${register.token.uuid}`}
+                      owner={owner}
+                      guard={guard}
+                      register={register}
+                      company={scope.company.uuid}
+                      sourceReady={sourceReady}
+                      onHeldChange={awardHeld}
+                    />
+                    <details
+                      open={issueToken === register.token.uuid}
+                      className="space-y-3 border-t border-border-subtle pt-4"
+                    >
+                      <summary className="cursor-pointer text-sm font-medium">Non-paid share issues</summary>
+                      <ClassGrants
+                        owner={owner}
                         guard={guard}
-                        sourceReady={!classes.isFetching && !registers.isFetching}
+                        register={register}
+                        company={scope.company.uuid}
+                        sourceReady={sourceReady}
+                        onHeldChange={grantHeld}
                       />
-                    </>
-                  )}
+                    </details>
+                  </div>
+                  <div hidden={view !== 'documents'} className="space-y-5">
+                    {readable && (
+                      <>
+                        <RegisterDownload register={register} />
+                        <ClassInspectionCopy
+                          register={register}
+                          guard={guard}
+                          sourceReady={!classes.isFetching && !registers.isFetching}
+                        />
+                      </>
+                    )}
+                  </div>
                 </div>
-              </Section>
+              </details>
             </li>
           ))}
         </ul>
