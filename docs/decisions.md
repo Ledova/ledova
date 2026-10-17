@@ -372,7 +372,7 @@ The register leaves amount paid blank when it cannot be established exactly;
 zero would assert an amount that is not known. Classification evidence has a
 fixed retention horizon, independent of account deletion. The legal basis and
 uncertain clock are in [legal positions](legal/positions.md#3-the-evidence-retention-period); implementation belongs to
-[the register](engineering/records.md#former-member-fold) and [file retention](engineering/security.md#classification-evidence-and-payslips).
+[the register](engineering/records.md#holdings-and-identity-resolution) and [file retention](engineering/security.md#classification-evidence-and-payslips).
 
 The owner chose on 21 September 2026 in
 [#647](https://github.com/Ledova/ledova/issues/647#issuecomment-5766230810)
