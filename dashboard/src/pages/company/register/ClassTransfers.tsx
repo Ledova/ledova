@@ -1,6 +1,8 @@
+import { useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   DESTINATIONS,
+  hasCurrentRegisterReadAuthority,
   REGISTER_TRANSFER_COPY as COPY,
   type OrderSubmissionOwner,
   type TokenHoldersResponse,
@@ -20,17 +22,32 @@ export function ClassTransfers({
   guard,
   register,
   company,
+  visible = true,
+  onHeldChange,
 }: {
   owner: OrderSubmissionOwner;
   guard: () => void;
   register: TokenHoldersResponse;
   company: string;
+  visible?: boolean;
+  onHeldChange?: (token: string, uuid: string, held: boolean) => void;
 }) {
   const client = useQueryClient();
   const token = register.token.uuid;
   const transfers = useRegisterTransfers(owner, company, token, guard);
   const appointments = useOwnAppointments(owner, guard);
   const steps = appointments.isSuccess ? registerSteps(appointments.data, company) : null;
+  const privateReady =
+    visible &&
+    transfers.isSuccess &&
+    transfers.fetchStatus === 'idle' &&
+    appointments.isSuccess &&
+    appointments.fetchStatus === 'idle' &&
+    hasCurrentRegisterReadAuthority(appointments.data, company);
+  const recordHeld = useCallback(
+    (uuid: string, held: boolean) => onHeldChange?.(token, uuid, held),
+    [onHeldChange, token],
+  );
   const refresh = async () => {
     try {
       guard();
@@ -51,7 +68,23 @@ export function ClassTransfers({
   return (
     <div className="mt-4 flex flex-col gap-3 border-t border-border-subtle pt-4">
       <h3 className="text-sm font-medium text-text-primary">{COPY.TITLE}</h3>
-      {steps?.prepare && supported && (
+      {!supported && visible && (
+        <p className="text-sm text-text-muted">
+          {register.token.status === 'draft'
+            ? 'Set up this share register before recording a transfer.'
+            : 'Tokenised transfer controls remain in Share class settings.'}
+        </p>
+      )}
+      {!supported && privateReady && steps?.prepare && (
+        <LinkRow
+          to={(register.token.status === 'draft'
+            ? DESTINATIONS.companyRegisterImport
+            : DESTINATIONS.companyClass
+          ).path.replace(':uuid', token)}
+          label={register.token.status === 'draft' ? 'Set up share register' : 'Share class settings'}
+        />
+      )}
+      {privateReady && steps?.prepare && supported && (
         <LinkRow to={DESTINATIONS.companyRegisterTransfer.path.replace(':uuid', token)} label={COPY.PREPARE} />
       )}
       {appointments.isError && (
@@ -83,29 +116,20 @@ export function ClassTransfers({
             }}
           />
         </div>
-      ) : transfers.data.length === 0 ? (
-        <p className="text-sm text-text-muted">{COPY.EMPTY}</p>
-      ) : (
-        <>
-          <p className="text-sm text-text-muted">{COPY.RECOVERY_NOTE}</p>
-          <PageAction
-            label="Refresh transfers"
-            disabled={transfers.isFetching || appointments.isFetching}
-            onClick={() => void refresh()}
+      ) : null}
+      <ul className="divide-y divide-border-subtle">
+        {(transfers.data ?? []).map((transfer) => (
+          <TransferRecord
+            key={transfer.uuid}
+            transfer={transfer}
+            visible={privateReady}
+            onHeldChange={recordHeld}
+            steps={steps ?? {}}
+            guard={guard}
+            onSettled={refresh}
           />
-          <ul className="divide-y divide-border-subtle">
-            {transfers.data.map((transfer) => (
-              <TransferRecord
-                key={transfer.uuid}
-                transfer={transfer}
-                steps={steps ?? {}}
-                guard={guard}
-                onSettled={refresh}
-              />
-            ))}
-          </ul>
-        </>
-      )}
+        ))}
+      </ul>
     </div>
   );
 }

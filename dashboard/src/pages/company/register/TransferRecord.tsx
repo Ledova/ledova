@@ -1,3 +1,4 @@
+import { useLayoutEffect, useRef } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import {
   REGISTER_TRANSFER_COPY as COPY,
@@ -45,19 +46,31 @@ export function TransferRecord({
   steps,
   guard,
   onSettled,
+  visible = true,
+  onHeldChange,
 }: {
   transfer: RegisterTransfer;
   steps: RegisterSteps;
   guard: () => void;
   onSettled: () => Promise<unknown>;
+  visible?: boolean;
+  onHeldChange?: (uuid: string, held: boolean) => void;
 }) {
+  const available = useRef(visible);
+  useLayoutEffect(() => {
+    available.current = visible;
+  }, [visible]);
+  const check = () => {
+    guard();
+    if (!available.current) throw new Error('Open the current register task before reading or deciding this record.');
+  };
   const download = useMutation({
     mutationFn: async (kind: 'authority' | 'instrument') => {
-      guard();
+      check();
       const { data } = await downloadRegisterTransferFile(apiClient, transfer.uuid, kind, {
-        ledovaSubmissionGuard: guard,
+        ledovaSubmissionGuard: check,
       });
-      guard();
+      check();
       saveFile(
         data,
         retainedName(
@@ -69,37 +82,42 @@ export function TransferRecord({
   });
   const context = `transfer from ${transfer.fromName} to ${transfer.name} prepared ${formatDateTime(transfer.createdAt)}`;
   return (
-    <li className="flex flex-col gap-3 py-4">
-      <Rows>
-        <Row label="Stage">
-          <Status tone={STAGE_TONES[transfer.stage] ?? 'waiting'}>
-            {COPY.STAGES[transfer.stage] ?? transfer.stage}
-          </Status>
-        </Row>
-        <Row label="Prepared by">{transfer.preparedByName || 'Name not recorded'}</Row>
-        <Row label="Prepared on">{formatDateTime(transfer.createdAt)}</Row>
-        <Row label={COPY.AUTHORITY_REFERENCE}>{transfer.authorityReference}</Row>
-        <Row label={COPY.REASON}>{transfer.reason}</Row>
-        <DecisionTrail proposal={transfer} labels={COPY.DECISIONS} />
-        {!!transfer.registerEntry && <Row label="Register entry">{transfer.registerEntry}</Row>}
-      </Rows>
-      <TransferRows transfer={transfer} />
-      <p className="text-sm text-text-muted">{COPY.PROVIDED_BY_COMPANY}</p>
-      <div className="flex flex-wrap gap-2">
-        {(['authority', 'instrument'] as const).map((kind) => (
-          <PageAction
-            key={kind}
-            label={`Download ${kind} document`}
-            context={context}
-            disabled={download.isPending}
-            onClick={() => download.mutate(kind)}
-          />
-        ))}
-      </div>
-      {download.isError && (
-        <p role="alert" className="text-sm text-error-light">
-          {apiErrorSentence(download.error, DOWNLOAD_FAILED, DOWNLOAD_FAILED)}
-        </p>
+    <li hidden={!visible} className="flex flex-col gap-3 py-4">
+      {visible && (
+        <details open={transfer.status === 'submitted'} className="space-y-3">
+          <summary className="cursor-pointer text-sm font-medium text-text-primary">{`Transfer · ${formatDateTime(transfer.createdAt)} · ${COPY.STAGES[transfer.stage] ?? transfer.stage}`}</summary>
+          <Rows>
+            <Row label="Stage">
+              <Status tone={STAGE_TONES[transfer.stage] ?? 'waiting'}>
+                {COPY.STAGES[transfer.stage] ?? transfer.stage}
+              </Status>
+            </Row>
+            <Row label="Prepared by">{transfer.preparedByName || 'Name not recorded'}</Row>
+            <Row label="Prepared on">{formatDateTime(transfer.createdAt)}</Row>
+            <Row label={COPY.AUTHORITY_REFERENCE}>{transfer.authorityReference}</Row>
+            <Row label={COPY.REASON}>{transfer.reason}</Row>
+            <DecisionTrail proposal={transfer} labels={COPY.DECISIONS} />
+            {!!transfer.registerEntry && <Row label="Register entry">{transfer.registerEntry}</Row>}
+          </Rows>
+          <TransferRows transfer={transfer} />
+          <p className="text-sm text-text-muted">{COPY.PROVIDED_BY_COMPANY}</p>
+          <div className="flex flex-wrap gap-2">
+            {(['authority', 'instrument'] as const).map((kind) => (
+              <PageAction
+                key={kind}
+                label={`Download ${kind} document`}
+                context={context}
+                disabled={download.isPending}
+                onClick={() => download.mutate(kind)}
+              />
+            ))}
+          </div>
+          {download.isError && (
+            <p role="alert" className="text-sm text-error-light">
+              {apiErrorSentence(download.error, DOWNLOAD_FAILED, DOWNLOAD_FAILED)}
+            </p>
+          )}
+        </details>
       )}
       <RegisterDecisions
         family={REGISTER_TRANSFER_DECISIONS}
@@ -108,6 +126,9 @@ export function TransferRecord({
         proposal={transfer}
         steps={steps}
         guard={guard}
+        newEffectGuard={check}
+        visible={visible}
+        onHeldChange={onHeldChange}
         context={context}
         onDecided={onSettled}
         onRefused={onSettled}

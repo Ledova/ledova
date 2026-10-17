@@ -204,6 +204,10 @@ it('reads every class page and groups exact holdings by member identity with sea
   expect(api.get).toHaveBeenCalledWith(REGISTER, { params: { page: 2 } });
   expect(screen.queryByLabelText('Company')).toBeNull();
   expect(screen.getAllByRole('heading', { name: 'Shareholders' })).toHaveLength(1);
+  for (const name of ['Record investor share issue', 'Transfer shares', 'History'])
+    expect(screen.getByRole('button', { name })).toBeTruthy();
+  expect(screen.queryByRole('heading', { name: /^Ordinary shares ·/ })).toBeNull();
+  expect(screen.queryByRole('heading', { name: /^Preference shares ·/ })).toBeNull();
   expect(screen.queryByRole('button', { name: 'Download CSV' })).toBeNull();
   expect(within(table).getAllByRole('row')).toHaveLength(11);
   const namesakes = within(table).getAllByRole('row', { name: /Example Member/ });
@@ -870,6 +874,29 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   expect(api.post.mock.calls.filter(([url]) => url === COMPANY_TOKEN_ENDPOINTS.BASE)).toHaveLength(1);
   cleanup();
   client.clear();
+  show();
+  fireEvent.click(await screen.findByRole('button', { name: 'History' }));
+  const copiedSummary = await screen.findByText(/^Copied opening ·/);
+  const copiedOpening = copiedSummary.closest('details')!;
+  expect(copiedOpening.open).toBe(false);
+  fireEvent.click(copiedSummary);
+  expect(copiedOpening.open).toBe(true);
+  const copiedMembers = within(copiedOpening).getByRole('table', { name: 'Shareholders' });
+  expect(within(copiedMembers).getByText('Example Shareholder')).toBeTruthy();
+  expect(within(copiedMembers).getByText('600')).toBeTruthy();
+  expect(within(copiedMembers).getByText(formatDate('2020-01-01'))).toBeTruthy();
+  const transferTask = screen.getByRole('button', { name: 'Transfer shares' });
+  fireEvent.click(within(copiedMembers).getByRole('button', { name: 'Details (Example Shareholder)' }));
+  const copiedDetails = await screen.findByRole('dialog', { name: 'Example Shareholder' });
+  expect(within(copiedDetails).getByText('CERT-001')).toBeTruthy();
+  expect(within(copiedDetails).getAllByRole('heading', { name: /^Allotment / })).toHaveLength(2);
+  fireEvent.click(transferTask);
+  expect(screen.queryByRole('dialog')).toBeNull();
+  expect(screen.queryByRole('table', { name: 'Shareholders' })).toBeNull();
+  expect(proposal!.status).toBe('applied');
+  expect(proposal!.decisions.map((decision) => decision.kind)).toEqual(['approve', 'apply']);
+  cleanup();
+  client.clear();
   api.post.mockClear();
   opened = false;
   proposal = { ...proposal!, status: 'submitted', stage: 'submitted', decisions: [] };
@@ -1242,7 +1269,6 @@ it("retains a dashboard's validated company/class context and reads only the cho
   fireEvent.click(screen.getByRole('link', { name: 'Open dashboard class' }));
   const preference = await screen.findByRole('heading', { name: /^Preference shares ·/ });
   await waitFor(() => expect(document.activeElement).toBe(preference.closest('li')));
-  expect(preference.closest('li')!.querySelector<HTMLDetailsElement>('details[data-register-tasks]')!.open).toBe(true);
   expect(preference.closest('li')!.querySelector<HTMLDetailsElement>('details[data-register-history]')!.open).toBe(
     true,
   );
@@ -1250,8 +1276,15 @@ it("retains a dashboard's validated company/class context and reads only the cho
   expect(screen.queryByRole('heading', { name: /^Ordinary shares ·/ })).toBeNull();
   expect(readUrls()).toContain(COMPANY_TOKEN_ENDPOINTS.HOLDERS('preference'));
   expect(readUrls()).not.toContain(COMPANY_TOKEN_ENDPOINTS.HOLDERS('ordinary'));
+  const table = await screen.findByRole('table', { name: 'Company shareholders' });
+  fireEvent.click(within(table).getByRole('button', { name: 'Details (Example Member)' }));
+  expect(await screen.findByRole('dialog', { name: 'Example Member' })).toBeTruthy();
 
   fireEvent.change(select, { target: { value: 'harbour' } });
+  expect(screen.queryByRole('dialog')).toBeNull();
+  expect(screen.queryByText(`0x${'1'.repeat(40)} · Active`)).toBeNull();
+  await screen.findByRole('table', { name: 'Company shareholders' });
+  fireEvent.click(screen.getByRole('button', { name: 'History' }));
   await screen.findByRole('heading', { name: /^Ordinary shares ·/ });
   expect(screen.getByText('Harbour Example Pty Ltd', { selector: 'p' })).toBeTruthy();
   expect(screen.queryByRole('heading', { name: /^Preference shares ·/ })).toBeNull();
@@ -1276,8 +1309,9 @@ it("starts again for another signed-in account without showing the previous acco
   });
   show('investor');
   fireEvent.change(await screen.findByLabelText('Company'), { target: { value: 'inland' } });
-  expect(await screen.findByRole('heading', { name: /^Preference shares ·/ })).toBeTruthy();
   const table = await screen.findByRole('table', { name: 'Company shareholders' });
+  fireEvent.click(screen.getByRole('button', { name: 'History' }));
+  expect(await screen.findByRole('heading', { name: /^Preference shares ·/ })).toBeTruthy();
   fireEvent.click(within(table).getByRole('button', { name: 'Details (Example Member)' }));
   const details = await screen.findByRole('dialog', { name: 'Example Member' });
   expect(within(details).getByText(`0x${'1'.repeat(40)} · Active`)).toBeTruthy();

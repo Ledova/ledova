@@ -15,6 +15,7 @@ import {
 import { LinkRow } from '@components/Ledger';
 import { PageTitle } from '@components/PageTitle';
 import { Page, PageAction } from '@components/Page';
+import { FIELD_CLASS, LABEL } from '@components/fieldClass';
 import { CompanySelection } from '../CompanySelection';
 import { ownAppointmentsKey } from '../team/appointments';
 import { ownershipSummary } from '../dashboard/summary';
@@ -38,6 +39,12 @@ import { registerKey, registersQuery, useCompanyRegister, useRegisterDownload } 
 import { ownerGuard, useOwnAppointments } from './useRegisterImports';
 
 const ON_CHAIN = ['deployed', 'paused'];
+const TASKS = [
+  ['investor', 'Record investor share issue'],
+  ['transfer', 'Transfer shares'],
+  ['history', 'History'],
+] as const;
+type RegisterTask = (typeof TASKS)[number][0];
 
 function RegisterPage({
   selection,
@@ -171,6 +178,12 @@ function OwnRegister({
 }) {
   const [memberHeld, setMemberHeld] = useState(false);
   const [heldClasses, setHeldClasses] = useState<ReadonlySet<string>>(() => new Set());
+  const [taskSelection, setTaskSelection] = useState<{
+    company: string;
+    token: string;
+    task: RegisterTask;
+    locationKey: string;
+  } | null>(null);
   const [retainedScope, setRetainedScope] = useState<{
     company: { uuid: string; name: string };
     registers: TokenHoldersResponse[];
@@ -239,6 +252,18 @@ function OwnRegister({
   );
   const awardHeld = useCallback((token: string, held: boolean) => classHeld(`awards/${token}`, held), [classHeld]);
   const grantHeld = useCallback((token: string, held: boolean) => classHeld(`grants/${token}`, held), [classHeld]);
+  const transferHeld = useCallback(
+    (token: string, uuid: string, held: boolean) => classHeld(`transfer/${token}/${uuid}`, held),
+    [classHeld],
+  );
+  const historyHeld = useCallback(
+    (token: string, uuid: string, held: boolean) => classHeld(`history/${token}/${uuid}`, held),
+    [classHeld],
+  );
+  const companyHistoryHeld = useCallback(
+    (uuid: string, held: boolean) => classHeld(`history/company/${uuid}`, held),
+    [classHeld],
+  );
   const location = useLocation();
   const { hash } = location;
   const issueToken = typeof location.state?.awardIssueToken === 'string' ? location.state.awardIssueToken : '';
@@ -269,6 +294,34 @@ function OwnRegister({
   ]);
   const view =
     hash === '#awards' ? 'awards' : hash === '#documents' ? 'documents' : hash === '#access' ? 'access' : 'register';
+  const requestedToken =
+    scope && scope.company.uuid === registerCompany && scope.registers.some(({ token }) => token.uuid === registerToken)
+      ? registerToken
+      : undefined;
+  const localSelection =
+    taskSelection?.company === scope?.company.uuid && taskSelection?.locationKey === location.key
+      ? taskSelection
+      : null;
+  const pinned = [...heldClasses].find((key) => /^(allotments|transfer|history)\//.test(key));
+  const pinnedParts = pinned?.split('/');
+  const selectedTask =
+    pinnedParts?.[0] === 'allotments'
+      ? 'investor'
+      : pinnedParts?.[0] === 'transfer'
+        ? 'transfer'
+        : pinnedParts?.[0] === 'history'
+          ? 'history'
+          : (localSelection?.task ??
+            (requestedToken ? (location.state?.registerHistory === true ? 'history' : 'investor') : undefined));
+  const candidateToken =
+    pinnedParts && pinnedParts[1] !== 'company' ? pinnedParts[1] : (localSelection?.token ?? requestedToken);
+  const selectedToken = scope?.registers.some(({ token }) => token.uuid === candidateToken)
+    ? candidateToken
+    : scope?.registers[0]?.token.uuid;
+  const chooseTask = (task: RegisterTask) => {
+    if (held || !sourceReady || !scope || !selectedToken) return;
+    setTaskSelection({ company: scope.company.uuid, token: selectedToken, task, locationKey: location.key });
+  };
   const classSections = useRef(new Map<string, HTMLLIElement>());
   const focusedContext = useRef('');
   useEffect(() => {
@@ -284,8 +337,6 @@ function OwnRegister({
       return;
     const section = classSections.current.get(registerToken);
     if (!section) return;
-    const tasks = section.querySelector<HTMLDetailsElement>('details[data-register-tasks]');
-    if (tasks) tasks.open = true;
     if (location.state?.registerHistory === true && view === 'register') {
       const history = section.querySelector<HTMLDetailsElement>('details[data-register-history]');
       if (history) history.open = true;
@@ -329,29 +380,23 @@ function OwnRegister({
                 onHeldChange={setMemberHeld}
               />
             </div>
-            <div hidden={view !== 'register'}>
-              <LinkRow to="#access" label="Member access" />
-              {readable && (
-                <details className="space-y-3 border-t border-border pt-4">
-                  <summary className="cursor-pointer text-base font-medium">Particulars and wallet links</summary>
-                  <RegisterParticulars
-                    owner={owner}
-                    guard={guard}
-                    company={scope.company.uuid}
-                    registers={scope.registers}
-                  />
-                  <RegisterLinks owner={owner} guard={guard} company={scope.company.uuid} registers={scope.registers} />
-                </details>
-              )}
-              <details className="space-y-3 border-t border-border pt-4">
-                <summary className="cursor-pointer text-base font-medium">Register guidance</summary>
-                <p className="text-sm text-text-muted">
-                  Company appointees prepare, approve and record supported changes. This view shows the company’s
-                  recorded ownership; wallet balances do not replace it. Share class settings retain empty-class
-                  deployment and supported tokenised workflows. Importing holdings does not tokenise them. Outputs are
-                  company-provided, and certificates are unsigned. Publications retain their existing staff workflow.
-                </p>
-              </details>
+            <div hidden={view !== 'register' || selectedTask !== 'history'}>
+              <RegisterParticulars
+                owner={owner}
+                guard={guard}
+                company={scope.company.uuid}
+                registers={scope.registers}
+                visible={view === 'register' && selectedTask === 'history' && sourceReady}
+                onHeldChange={companyHistoryHeld}
+              />
+              <RegisterLinks
+                owner={owner}
+                guard={guard}
+                company={scope.company.uuid}
+                registers={scope.registers}
+                visible={view === 'register' && selectedTask === 'history' && sourceReady}
+                onHeldChange={companyHistoryHeld}
+              />
             </div>
             <div hidden={view !== 'documents'}>
               {readable && (
@@ -415,7 +460,44 @@ function OwnRegister({
               />
             </>
           ) : null}
-          <h2 className="font-display text-xl tracking-[-0.01em] text-text-primary">Register tasks</h2>
+          <section aria-label="Register tasks" className="space-y-4">
+            <div className="flex flex-wrap gap-2">
+              {TASKS.map(([task, label]) => (
+                <PageAction
+                  key={task}
+                  label={label}
+                  active={selectedTask === task}
+                  disabled={held || !sourceReady}
+                  onClick={() => chooseTask(task)}
+                />
+              ))}
+            </div>
+            {selectedTask && sourceReady && scope.registers.length > 1 && (
+              <label className={`${LABEL} max-w-sm`}>
+                Task share class
+                <select
+                  className={FIELD_CLASS}
+                  value={selectedToken}
+                  disabled={held}
+                  onChange={(event) => {
+                    if (!held && sourceReady)
+                      setTaskSelection({
+                        company: scope.company.uuid,
+                        token: event.target.value,
+                        task: selectedTask,
+                        locationKey: location.key,
+                      });
+                  }}
+                >
+                  {scope.registers.map(({ token }) => (
+                    <option key={token.uuid} value={token.uuid}>
+                      {token.name} · {token.symbol}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
+          </section>
         </>
       )}
       {scope && (
@@ -430,24 +512,16 @@ function OwnRegister({
                 else classSections.current.delete(register.token.uuid);
               }}
             >
-              <details
+              <section
                 data-register-tasks
-                open={
-                  view !== 'register' ||
-                  ['allotments', 'awards', 'grants'].some((kind) =>
-                    heldClasses.has(`${kind}/${register.token.uuid}`),
-                  ) ||
-                  (scope.company.uuid === registerCompany && contextToken === register.token.uuid)
-                }
-                className="rounded-xl border border-border bg-surface-raised"
+                hidden={view === 'register' && (!selectedTask || selectedToken !== register.token.uuid)}
+                className="space-y-5 rounded-xl border border-border bg-surface-raised p-4 sm:p-5"
               >
-                <summary className="cursor-pointer p-4 sm:p-5">
-                  <h2 className="inline break-words font-display text-xl tracking-[-0.01em] text-text-primary">
-                    {readable ? `${register.token.name} · ${register.token.symbol}` : 'Share issue recovery'}
-                  </h2>
-                </summary>
-                <div className="space-y-5 px-4 pb-4 sm:px-5 sm:pb-5">
-                  <div hidden={view !== 'register'} className="space-y-5">
+                <h2 className="break-words font-display text-xl tracking-[-0.01em] text-text-primary">
+                  {sourceReady ? `${register.token.name} · ${register.token.symbol}` : 'Register task recovery'}
+                </h2>
+                <div className="space-y-5">
+                  <div hidden={view !== 'register' || selectedTask !== 'investor'}>
                     <ClassAllotments
                       key={`allotments/${scope.company.uuid}/${register.token.uuid}`}
                       owner={owner}
@@ -455,39 +529,98 @@ function OwnRegister({
                       register={register}
                       company={scope.company.uuid}
                       sourceReady={sourceReady}
+                      visible={
+                        view === 'register' && selectedTask === 'investor' && selectedToken === register.token.uuid
+                      }
                       onHeldChange={allotmentHeld}
                     />
-                    {readable && (
-                      <details data-register-history className="space-y-3 border-t border-border-subtle pt-4">
-                        <summary className="cursor-pointer text-sm font-medium">
-                          Other changes and register history
-                        </summary>
+                  </div>
+                  <div hidden={view !== 'register' || selectedTask !== 'transfer'}>
+                    <ClassTransfers
+                      owner={owner}
+                      guard={guard}
+                      register={register}
+                      company={scope.company.uuid}
+                      visible={
+                        view === 'register' &&
+                        selectedTask === 'transfer' &&
+                        selectedToken === register.token.uuid &&
+                        sourceReady
+                      }
+                      onHeldChange={transferHeld}
+                    />
+                  </div>
+                  <div hidden={view !== 'register' || selectedTask !== 'history'}>
+                    <details
+                      data-register-history
+                      open={view === 'register' && selectedTask === 'history'}
+                      className="space-y-4"
+                    >
+                      <summary className="cursor-pointer text-sm font-medium">Recorded changes</summary>
+                      {sourceReady && (
                         <LinkRow
                           to={DESTINATIONS.companyClass.path.replace(':uuid', register.token.uuid)}
                           label={DESTINATIONS.companyClass.title}
                         />
-                        {ON_CHAIN.includes(register.token.status) && (
-                          <ClassOpenings owner={owner} guard={guard} register={register} company={scope.company.uuid} />
-                        )}
-                        <ClassImports owner={owner} guard={guard} register={register} company={scope.company.uuid} />
-                        <ClassTransfers owner={owner} guard={guard} register={register} company={scope.company.uuid} />
-                        <ClassCorrections
+                      )}
+                      {ON_CHAIN.includes(register.token.status) && (
+                        <ClassOpenings
                           owner={owner}
                           guard={guard}
-                          token={register.token.uuid}
-                          company={scope.company.uuid}
                           register={register}
-                          sourceReady={sourceReady}
-                        />
-                        <ClassReconciliation
-                          owner={owner}
-                          guard={guard}
-                          token={register.token.uuid}
                           company={scope.company.uuid}
-                          holders={register.holders}
+                          visible={
+                            view === 'register' &&
+                            selectedTask === 'history' &&
+                            selectedToken === register.token.uuid &&
+                            sourceReady
+                          }
+                          onHeldChange={historyHeld}
                         />
-                      </details>
-                    )}
+                      )}
+                      <ClassImports
+                        owner={owner}
+                        guard={guard}
+                        register={register}
+                        company={scope.company.uuid}
+                        visible={
+                          view === 'register' &&
+                          selectedTask === 'history' &&
+                          selectedToken === register.token.uuid &&
+                          sourceReady
+                        }
+                        onHeldChange={historyHeld}
+                      />
+                      <ClassCorrections
+                        owner={owner}
+                        guard={guard}
+                        token={register.token.uuid}
+                        company={scope.company.uuid}
+                        register={register}
+                        sourceReady={sourceReady}
+                        visible={
+                          view === 'register' &&
+                          selectedTask === 'history' &&
+                          selectedToken === register.token.uuid &&
+                          sourceReady
+                        }
+                        onHeldChange={historyHeld}
+                      />
+                      <ClassReconciliation
+                        owner={owner}
+                        guard={guard}
+                        token={register.token.uuid}
+                        company={scope.company.uuid}
+                        holders={register.holders}
+                        visible={
+                          view === 'register' &&
+                          selectedTask === 'history' &&
+                          selectedToken === register.token.uuid &&
+                          sourceReady
+                        }
+                        onHeldChange={historyHeld}
+                      />
+                    </details>
                   </div>
                   <div hidden={view !== 'awards'} className="space-y-5">
                     <ClassAwards
@@ -527,7 +660,7 @@ function OwnRegister({
                     )}
                   </div>
                 </div>
-              </details>
+              </section>
             </li>
           ))}
         </ul>

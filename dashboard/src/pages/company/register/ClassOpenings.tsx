@@ -1,6 +1,8 @@
+import { useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   DESTINATIONS,
+  hasCurrentRegisterReadAuthority,
   REGISTER_OPENING_COPY,
   type OrderSubmissionOwner,
   type TokenHoldersResponse,
@@ -22,17 +24,32 @@ export function ClassOpenings({
   guard,
   register,
   company,
+  visible = true,
+  onHeldChange,
 }: {
   owner: OrderSubmissionOwner;
   guard: () => void;
   register: TokenHoldersResponse;
   company: string;
+  visible?: boolean;
+  onHeldChange?: (token: string, uuid: string, held: boolean) => void;
 }) {
   const client = useQueryClient();
   const token = register.token.uuid;
   const openings = useRegisterOpenings(owner, token, guard);
   const appointments = useOwnAppointments(owner, guard);
   const steps = appointments.isSuccess ? registerSteps(appointments.data, company) : null;
+  const privateReady =
+    visible &&
+    openings.isSuccess &&
+    openings.fetchStatus === 'idle' &&
+    appointments.isSuccess &&
+    appointments.fetchStatus === 'idle' &&
+    hasCurrentRegisterReadAuthority(appointments.data, company);
+  const recordHeld = useCallback(
+    (uuid: string, held: boolean) => onHeldChange?.(token, uuid, held),
+    [onHeldChange, token],
+  );
   const refresh = async () => {
     try {
       guard();
@@ -63,7 +80,7 @@ export function ClassOpenings({
       ) : (
         steps && !Object.values(steps).some(Boolean) && <p className="text-sm text-text-muted">{COPY.READ_ONLY_NOTE}</p>
       )}
-      {steps?.prepare && !register.initialized && (
+      {privateReady && steps?.prepare && !register.initialized && (
         <div className="border-b border-border-subtle">
           <LinkRow to={DESTINATIONS.companyRegisterOpening.path.replace(':uuid', token)} label={COPY.PREPARE} />
         </div>
@@ -77,22 +94,21 @@ export function ClassOpenings({
           <p>We couldn&apos;t load the openings for this share class.</p>
           <PageAction label="Retry openings" onClick={() => void openings.refetch()} disabled={openings.isFetching} />
         </div>
-      ) : openings.data.length === 0 ? (
-        <p className="text-sm text-text-muted">{COPY.EMPTY}</p>
-      ) : (
-        <ul className="divide-y divide-border-subtle">
-          {openings.data.map((proposal) => (
-            <OpeningRecord
-              key={proposal.uuid}
-              proposal={proposal}
-              steps={steps ?? {}}
-              guard={guard}
-              onDecided={refresh}
-              onRefused={refresh}
-            />
-          ))}
-        </ul>
-      )}
+      ) : null}
+      <ul className="divide-y divide-border-subtle">
+        {(openings.data ?? []).map((proposal) => (
+          <OpeningRecord
+            key={proposal.uuid}
+            proposal={proposal}
+            visible={privateReady}
+            onHeldChange={recordHeld}
+            steps={steps ?? {}}
+            guard={guard}
+            onDecided={refresh}
+            onRefused={refresh}
+          />
+        ))}
+      </ul>
     </div>
   );
 }
