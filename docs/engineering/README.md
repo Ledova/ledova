@@ -102,14 +102,9 @@ engineering boundaries are:
   enough: database guards also refuse customer decisions that bypass the service. A technical
   privileged role does not imply human Ledova approval, and removing a staff check alone never
   establishes company authority.
-- Staff checks remain where no company-run replacement has landed:
-  [settlement-asset and yield-token minting](chain.md#mint-requests),
-  [NAV updates](chain.md#nav-updates), [signer admission](chain.md#signer-admission),
-  infrastructure recovery, technical retries of already admitted work, the review of retained
-  register instructions for issues and transfers, notice figures, and company packs carrying
-  records beyond the core register. Company appointees with register access prepare unsigned
-  certificates, and a current company administrator downloads the core register pack. Do not
-  replace a staff check with unrestricted customer writes on an operator connection.
+- Platform staff keep the tasks listed in [who does what](../business/README.md#who-does-what)
+  until a company-run replacement lands, and that replacement follows the bounded-service rule
+  above, never unrestricted customer writes on an operator connection.
 - There is one product and no deployment-mode field; private hosting uses the same product and
   authority model ([decision](../decisions.md#company-managed-registers-and-one-product)).
 
@@ -135,10 +130,9 @@ How selectors, policies and database guards enforce these boundaries is in the
 - Overviews introduce a topic; procedures state prerequisites, steps and expected results;
   references state invariants and limits.
 - Give each page a parent and useful next links. Use descriptive link labels and headings that can
-  be anchored. Update the [documentation gate](gates.md#the-documentation-gate)
-  when moving its canonical inventories. Avoid hand-maintained counts in prose.
-- [Documents against code](testing.md#documents-against-code) states how
-  documentation is reviewed.
+  be anchored. Avoid hand-maintained counts in prose. The
+  [documentation gate](gates.md#the-documentation-gate) states what is checked mechanically and how
+  documentation is reviewed; update it when moving its canonical inventories.
 
 ## Area map
 
@@ -159,7 +153,7 @@ The exact protocols behind particular flows:
 | --- | --- |
 | EVM and Bitcoin signed identity, input ownership and durable recovery | [Wallet transfers](wallet-protocols.md) |
 | Receipt attribution, chain observations, finality policies and nonce evidence | [Transaction evidence](wallet-protocols.md#wallet-chain-observations) |
-| Wallet history and balance effects | [Wallet reconciliation](wallet-protocols.md#history-imports-and-previews) |
+| Wallet history and balance effects | [History imports](wallet-protocols.md#history-imports-and-previews) · [balance repair](wallet-protocols.md#balance-repair) |
 | Create, cancel and modify intent and replay | [Order protocols](trading-protocols.md) |
 | Captured settlement context, execution and the PostgreSQL freeze map | [Swap settlement](trading-protocols.md#swap-settlement-context) |
 | A person's own data export and the evidence it carries | [Account-data export](records.md#account-data-export) |

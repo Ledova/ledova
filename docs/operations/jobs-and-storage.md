@@ -43,9 +43,10 @@ recovery and every task below wait until a worker is running.
 | daily 04:00 | `check_periodic_reviews` |
 | daily 04:30 | `remove_old_jobs` |
 
-Some deferred jobs also retry on their own schedule: `refresh_whitelist_targets` retries a deleted
-wallet's removal every five minutes with no attempt ceiling. What each recovery task does, and the
-admin action that goes with it, is in [recovery](recovery.md).
+`refresh_whitelist_targets` is deferred rather than scheduled: it retries a deleted wallet's removal
+every five minutes with no attempt ceiling
+([refreshing an approval](../engineering/chain.md#refreshing-an-approval)). What each recovery task
+does, and the admin action that goes with it, is in [recovery](recovery.md).
 
 ## Job records
 
@@ -139,9 +140,9 @@ storage and resource provisioning. Verdicts and failure handling are in
 
 ## Upload limits
 
-The limits are integer environment settings shared by the backend and worker. A decoder or scanner
-child's address-space, CPU or file-size limit below 1 fails every upload instead of lifting the
-limit ([upload validation](../engineering/security.md#upload-validation)).
+The limits are integer environment settings shared by the backend and worker; how they are
+enforced, including why a child limit below 1 fails every upload, is in
+[upload validation](../engineering/security.md#upload-validation).
 
 | Variable | Default | Bound |
 | --- | --- | --- |
@@ -170,8 +171,7 @@ without the `UPLOAD_PROCESS_MEMORY_BYTES` cap, and its CPU limit does not stop a
 its time in system calls; the parent's wall deadline applies on every platform. On Linux the warning
 is a fault to investigate.
 
-The hourly quotas live in Redis: without Redis uploads answer 503, and Redis data loss resets the
-quotas ([quota charging](../engineering/security.md#upload-validation)).
+The hourly quotas live in Redis ([quota charging](../engineering/security.md#upload-validation)).
 
 WSGI cannot interrupt a blocked socket read, so configure the HTTP server or proxy body timeout.
 Configure proxy or server body, connection and concurrency limits for both entrypoints, since

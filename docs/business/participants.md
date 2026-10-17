@@ -2,9 +2,9 @@
 
 [Business processes](README.md) · [Documentation](../README.md)
 
-How people take part in Ledova: their accounts and identity checks, each company's own eligibility
-decisions, wallet nominations and company wallet approvals, self-reported profile details and the
-monitoring that runs on wallet transactions. It is written for investors, company approvers,
+How people take part in Ledova: accounts and identity checks, each company's own eligibility
+decisions, wallet nominations and company wallet approvals, transaction monitoring and the
+self-reported profile. It is written for investors, company approvers,
 support and compliance staff, and engineers learning the domain. Members' access to their own
 register records is in [member records](member-records.md).
 
@@ -34,8 +34,7 @@ every company ([eligibility decision](../decisions.md#eligibility-and-ownership-
 4. Complete your personal profile and financial profile, review them and choose **Complete
    Signup**, which accepts the Terms of Service and Privacy Policy.
 
-An unfinished account can sign in again and resume. One account can hold both investing and
-company roles; the role chooses navigation, never company authority.
+An unfinished account can sign in again and resume.
 
 ### Account readiness
 
@@ -47,22 +46,19 @@ needs an investing account with an active login and a verified email, in good st
 - With it off, a Pending Verification account is also ready and identity is not required.
 - Rejected, Suspended and Terminated accounts are never ready.
 
-The Verification page states the reasons an account is not ready. Readiness grants no access to
-any company's offerings or market: each company decides that separately
-([company eligibility decisions](#company-eligibility-decisions)).
-The equivalent requirement for company representatives is separate
-([representative identity requirement](companies.md#representative-identity-requirement)).
+The Verification page states the reasons an account is not ready. Readiness alone opens no
+company's offerings or market. Company representatives have a separate
+[identity requirement](companies.md#representative-identity-requirement).
 
 ### Identity check results
 
 The instance uses one configured identity provider, KYCAID or Sum&Sub; without one, identity
 verification is unavailable
 ([provider configuration](../operations/configuration.md#identity-verification-providers)).
-A result counts only once the provider reports the check as completed. A provisional answer, a
-status poll that brings no result, or a status the provider does not document records nothing
-final; the check stays pending. A KYCAID approval counts only once the person's politically exposed
-person (PEP) flag is known to be yes or no. How each provider's statuses are read is under
-[identity providers](../engineering/backend.md#when-a-result-counts).
+A result counts only once the provider reports the check as completed; a provisional answer, an
+empty status poll or an undocumented status leaves the check pending. A KYCAID approval counts only
+once the person's politically exposed person (PEP) flag is known to be yes or no
+([how statuses are read](../engineering/backend.md#when-a-result-counts)).
 
 When a check is approved, the person's identity becomes verified and the account policy runs once:
 
@@ -82,9 +78,8 @@ The person is notified when the result changes, and the notice opens Profile.
 - A domestic PEP is accepted with a risk-score adjustment of two.
 - When Sum&Sub approves a person whose screening shows a PEP match without a category, the risk
   assessment records "PEP category not provided" as provider-approved and applies the same
-  adjustment of two. This is the owner's decision to respect the compliance officer's clearance
-  while keeping the PEP risk weighting; Ledova neither invents a domestic category nor overturns the
-  provider's approval. Any other uncleared PEP without a category is rejected.
+  adjustment of two, by the owner's decision, respecting the compliance officer's clearance while
+  keeping the PEP risk weighting. Any other uncleared PEP without a category is rejected.
 - No sanctions rejection is overridden, and the FATF black-list rejection still applies.
 
 ### What applicants see
@@ -97,11 +92,10 @@ name none.
 
 ## Company eligibility decisions
 
-Eligibility is one company's decision about one participant. The participant shares a
-classification source with one company and asks for its decision; a current company approver
-accepts it with a bounded expiry or refuses it, and can later revoke it. A decision is per company:
-another company's acceptance supplies no permission. Staff classification review is retired;
-historical review fields remain as history.
+Eligibility is one company's decision about one participant: the participant shares an evidence
+source with that company and asks for its decision, and a current company approver accepts it with
+a bounded expiry or refuses it, and can later revoke it. Another company's acceptance supplies no
+permission and marks no source as verified.
 
 ### Evidence sources
 
@@ -118,9 +112,7 @@ page ([legal positions](../legal/positions.md#4b-issuance-payments-and-transfers
 
 Each submission is its own source, and a person may hold several. An associated-person source names
 its company by the identifier the company supplies, and only an active company is accepted; this
-lookup reveals nothing about the company. A submitted source can be withdrawn. A company's
-acceptance never marks a source as verified for anyone else. Sources verified under the retired
-staff review show as Historical verification.
+lookup reveals nothing about the company. A submitted source can be withdrawn.
 
 ### Kinds of decision
 
@@ -139,20 +131,19 @@ staff review show as Historical verification.
 2. Select your evidence source. Enter the exact company identifier the company gave you or, for a
    large-investment claim, the approved offering's identifier and a whole-share quantity. Set the
    expiry you are asking for.
-3. Choose **Preview company eligibility request**. The server works out the company and, for a
-   product-value claim, the share class, price, currency, amount and terms, and lists any unmet
+3. Choose **Preview company eligibility request**. The preview shows the company and, for a
+   product-value claim, the share class, price, currency, amount and terms, with any unmet
    requirement.
 4. Confirm the sharing summary and the declaration separately, then submit. The request keeps that
    summary, fingerprints of the evidence and its metadata, the requested expiry and you as holder.
 
 Once a source has been shared with a company in a request, no further supporting documents can be
-attached to it. Your request list keeps each request's outcome history. You can withdraw a pending
-or accepted request; a refusal stays visible.
+attached to it. You can withdraw a pending or accepted request; a refusal stays visible.
 
 ### Deciding, withdrawing and revoking
 
-Company approvers open **Company eligibility** from the Company page or from Company team on the
-web, and from Company team on mobile. Company choices come from your own current appointments.
+Company approvers open **Company eligibility** from the Company page or Company team (on mobile,
+from Company team).
 
 1. Choose your exact appointment and the company, then read the request queue and a request's
    summary.
@@ -162,38 +153,31 @@ web, and from Company team on mobile. Company choices come from your own current
 
 Rules:
 
-- Reading the queue and preparing a decision need prepare or approve personally. Recording a
+- Reading the queue and preparing a decision need prepare or approve personally; recording a
   decision or revocation needs approve personally. Administration, delegatable-only capabilities,
-  ownership, shareholding and platform staff status do not supply this approval, so a
-  prepare-only person sees the unmet approval and cannot confirm.
+  ownership, shareholding and staff status do not supply it.
 - Acceptance needs the participant's current identity and account standing, the evidence available
   and unchanged, and the exact scope requested. Its expiry cannot exceed the requested expiry, the
   source's limits or, for an accountant's certificate, two years from its issue.
-- A refusal records its reason and grants nothing. A revocation records its reason.
+- A refusal or revocation records its reason; a refusal grants nothing.
 - Company readers see the shared summary and the outcome history only: never private files, the
   financial basis, identity-provider results or document metadata.
-- Requests, decisions, withdrawals and revocations cannot be edited or deleted and keep their
-  actual person, appointment and time. A lost reply follows the
-  [uncertain-outcome rule](README.md#when-the-outcome-is-uncertain).
+- Requests, decisions, withdrawals and revocations cannot be edited or deleted; a lost reply
+  follows the [uncertain-outcome rule](README.md#when-the-outcome-is-uncertain).
 
 ### What a decision opens
 
 Decisions apply at the moment of each action, against the current decision, evidence, account
 standing and expiry.
 
-- Directory: a participant sees the share classes of the companies, and the exact offerings, that
-  their current decisions cover, and can open the documents of a class's approved offerings
-  ([the Directory page](#the-directory-page)).
-- Market: only a current general decision opens a company's market. A holder without one cannot see
-  the market for shares they already own, a trade-off the owner recorded for review before live
-  operation ([trading](trading.md)).
+- Market: a holder without a current general decision cannot see a company's market even for
+  shares they already own, a trade-off the owner recorded for review before live operation
+  ([trading](trading.md)).
 - Applications, orders and signatures: each new subscription, order, order change and swap
   signature needs the matching current decision for that company and keeps a record of it
   ([issuing shares](issuing-shares.md)).
 - Payment instructions: the platform operator's bank and stablecoin payment details are shown only
   to platform staff and to people holding a current general decision from at least one company.
-
-Company-run offering publication is not delivered.
 
 ### When eligibility ends
 
@@ -202,9 +186,9 @@ account standing, identity or wallet is lost. Then:
 
 - the platform refuses new orders and signatures for that company at once;
 - the affected company wallet approvals are queued for removal from the company's on-chain
-  registry, recording the actual cause; the platform only ever removes, never adds or renews an
-  approval on its own, and no removal happens while another current general decision from that
-  company still covers the wallet;
+  registry, recording the actual cause; the platform only removes, never adds or renews, an
+  approval on its own, and removes none while another current general decision from that company
+  covers the wallet;
 - until the removal lands on chain, a direct contract call could still move shares; pausing the
   share class is the available lever
   ([whitelist changes](../engineering/chain.md#whitelist-changes));
@@ -215,10 +199,10 @@ account standing, identity or wallet is lost. Then:
 A participant proves possession of a wallet; a company appointment supplies the mandate to approve
 it for that company's share operations. That mandate gives no permission to buy cryptocurrency
 through the on-ramp, records no payment, authorises no issue and links no register member to an
-account ([on-ramp decision](../decisions.md#registry-priority-crypto-on-ramp-and-aud-payments)). Neither
-a company appointment nor a signing preference gives anyone control of a participant's key.
-Imported and walletless register members need no wallet: grants and transfers recorded in the
-register create no wallet holding ([register](register.md)).
+account; neither it nor a signing preference gives anyone control of a participant's key
+([on-ramp decision](../decisions.md#registry-priority-crypto-on-ramp-and-aud-payments)). A grant,
+allotment or transfer on a class with no contract is a register entry only: it needs no wallet and
+creates no wallet holding ([register](register.md)).
 
 ### Nominating a wallet
 
@@ -228,37 +212,32 @@ register create no wallet holding ([register](register.md)).
    is your signed challenge, and an old verified status set without one is not enough.
 3. Review and submit the nomination, confirming that the address is shared with that exact company.
 
-A nomination needs the exact current accepted general decision for that company and its source,
-account and identity conditions. One nomination selects one wallet; there is no set maximum,
-withdrawal or replacement policy. The company sees only the nominated wallet's address and chain,
-the eligibility source, when possession was proved, the eligibility expiry and readiness. Your
-other wallets, account and identity details, balances and the proof itself stay private, and
-earlier consent to share an evidence summary shares no wallets.
+A nomination needs the company's current general decision, with its source, account and identity
+conditions met. One nomination selects one wallet, with no set maximum, withdrawal or replacement
+policy. The company sees only the nominated wallet's address and chain, the eligibility source,
+when possession was proved, the eligibility expiry and readiness; your other wallets, account and
+identity details, balances and the proof stay private, and consent to share an evidence summary
+shares no wallets.
 
 ### Company wallet instructions
 
 The company adds or removes a wallet on its own on-chain approval registry through a company
-decision in **Company wallet approvals** on the Company eligibility page. It follows the
-[prepare, approve and apply pattern](README.md#how-a-company-decision-works) and
-the [owner's authority rules](../decisions.md#company-run-register-authority-and-evidence).
+decision in **Company wallet approvals** on the Company eligibility page, following the
+[prepare, approve and apply pattern](README.md#how-a-company-decision-works).
 
-- Add prepares from one exact retained nomination. The instruction freezes the company, chain,
-  registry, address, eligibility and proof source, a finite expiry and the transaction to be sent.
-  The expiry cannot exceed the current eligibility expiry. The company must already have its
-  on-chain registry; missing registry data never counts as ready.
-- Remove prepares from a wallet whose addition was confirmed on chain, including an addition made
-  before this workflow existed, even after the wallet record itself has been deleted. It needs no
-  fresh proof or current eligibility, but the company's mandate is still checked. A historical
-  approval with no confirmed addition behind it cannot be removed this way.
-- Applying the approved instruction queues the chain change. Before signing, the platform rechecks
-  the approving and applying mandates, the proof, the nomination and the general decision; a lost
-  source holds unsigned work, and signed work is followed to its outcome
+- Add prepares from one exact retained nomination and fixes the wallet, its eligibility and proof,
+  and a finite expiry no later than the current eligibility expiry. The company must already have
+  its on-chain registry; missing registry data never counts as ready.
+- Remove prepares from a wallet whose addition was confirmed on chain, including one made before
+  this workflow existed or whose wallet record has since been deleted. It needs no fresh proof or
+  current eligibility, but the company's mandate is still checked; a historical approval with no
+  confirmed addition cannot be removed this way.
+- Applying the approved instruction queues the chain change
+  ([chain effects](README.md#chain-effects)). Before signing, the platform also rechecks the proof,
+  the nomination and the general decision, and a lost source holds unsigned work
   ([whitelist changes](../engineering/chain.md#whitelist-changes)).
-- Reading nominations is a limited register read and does not widen access to private eligibility
-  evidence.
-
-The earlier staff-run additions and removals and the subscription-admin approval action are
-replaced by this workflow; their records remain.
+- Reading nominations is a register read: whoever can read the company's register sees them, and
+  it does not widen access to private eligibility evidence.
 
 ### What an approval means on chain
 
@@ -272,7 +251,7 @@ treats the wallet as not approved
 ## Transaction monitoring
 
 The platform raises compliance alerts for staff review from recorded wallet transactions and from
-ongoing identity screening. Amounts are in Australian dollars.
+ongoing identity screening.
 
 | Rule    | Name                         | Raises an alert for                                                                    | Severity |
 | ------- | ---------------------------- | -------------------------------------------------------------------------------------- | -------- |
@@ -291,53 +270,48 @@ ongoing identity screening. Amounts are in Australian dollars.
 How transactions are valued and timed:
 
 - Each transaction is valued when it is recorded, at the asset's US-dollar price at the block time
-  converted at the exchange rate stored then. AUDY is valued at par. A transaction with no price, or
-  recorded while no rate was stored, has no AUD value and no amount rule counts it.
+  and the exchange rate stored then (AUDY at par). One with no price, or recorded while no rate was
+  stored, has no AUD value and no amount rule counts it.
 - A transfer sent from the app is recorded before it is mined and counted once.
 - The single-transaction rules look only at transactions less than an hour old, or not yet mined.
-  The windows use when a transaction happened, so a newly verified wallet's imported history counts
-  when it happened rather than as a burst of recent activity.
+  The windows use when a transaction happened, so a newly verified wallet's imported history is not
+  a burst of recent activity.
 - A customer is new for 30 days after their account first became active, and an account never
   activated counts as new. The first activation date survives suspension and reactivation.
 
 The address rules screen a transaction's address when the customer is rated high or extreme risk,
-when the transaction is worth AUD 5,000 or more, or when the customer is new. A screening approves
-only with a valid risk score: a score at or above the high threshold is rejected with a high alert,
-one at or above the medium threshold goes to review with a medium alert, and a lower score is
-approved. A result without a score stays pending for staff rather than being approved. Only a
-sanctions signal makes the alert a sanctioned-address one. A completed result is final, and a
-provider that cannot screen addresses (Sum&Sub today) fails every screening, which the address rule
-reports as unverified ([provider configuration](../operations/configuration.md#identity-verification-providers)).
+when the transaction is worth AUD 5,000 or more, or when the customer is new. A screening needs a
+valid risk score: at or above the high threshold it is rejected with a high alert, at or above the
+medium threshold it goes to review with a medium alert, below that it is approved, and without a
+score it stays pending for staff. Only a sanctions signal makes the alert a sanctioned-address one.
+A completed result is final, and a provider that cannot screen addresses (Sum&Sub today) fails
+every screening, which the address rule reports as unverified
+([provider configuration](../operations/configuration.md#identity-verification-providers)).
 
 After an identity approval, KYCAID's ongoing database screening can report a match on a sanctions,
 PEP, wanted, lost-or-stolen-document or internal list. Each new match raises one compliance alert:
 critical for sanctions and wanted lists, high otherwise.
 
-An alert changes nothing by itself: staff review it in admin, and the account, the identity result,
-the risk assessment, the transaction and any company decision stay as they are.
+An alert changes nothing by itself: staff review it in admin, and the account, identity result,
+risk assessment, transaction and any company decision stay as they are.
 
 ## The Verification page
 
 Verification (investing accounts) has three sections:
 
-- Account readiness: **Account ready** or **Account checks needed** with the reasons, a link to Your
-  company eligibility, the Directory when ready, and the reminders that readiness grants no
-  investment access and that offers are made to wholesale and sophisticated investors only.
-- Your claims: each source with its status (Available to share for a submitted source, Historical
-  verification for one verified under the retired staff review, or its recorded status such as
-  Withdrawn) and dates, and **Withdraw claim** for one still submitted.
-- How you qualify: the four categories with the evidence each needs, **Submit evidence** or **Add
-  evidence**, and **Request company eligibility**.
+- Account readiness: **Account ready** or **Account checks needed** with the reasons, and links to
+  Your company eligibility and, when ready, the Directory.
+- Your claims: each source's status and dates, with **Withdraw claim** while it is submitted. A
+  submitted source shows Available to share; one verified under the retired staff review shows
+  Historical verification.
+- How you qualify: the four categories, **Submit evidence** or **Add evidence**, and **Request
+  company eligibility**.
 
-Your company eligibility (Eligibility requests on mobile) prepares a request for one company, lists
-your company requests with their outcome history, offers **Prepare request withdrawal**, and holds
-the wallet nomination for a selected request
-([requesting a decision](#requesting-a-decision)).
-
-Company eligibility, for company approvers and preparers, holds Your personal company authority,
-the Company request queue, decision and revocation forms, and Company wallet approvals
-([deciding](#deciding-withdrawing-and-revoking),
-[wallet instructions](#company-wallet-instructions)).
+Your company eligibility (Eligibility requests on mobile) holds your requests with their outcome
+history, **Prepare request withdrawal** and the wallet nomination. Company eligibility, for company
+approvers and preparers, holds Your personal company authority, the Company request queue, the
+decision and revocation forms and Company wallet approvals
+([deciding](#deciding-withdrawing-and-revoking)).
 
 ## The Directory page
 
@@ -349,17 +323,15 @@ covered classes it explains how to request eligibility.
 A share class shows its symbol, authorised and issued shares, and its current offering: **Open for
 applications** with the price per share and dates, or **No offering open** until an offering has
 been approved and its opening time has arrived. The documents attached to the class's approved
-offerings follow. While an offering is open, a participant can prepare a draft application
-([applying for shares](issuing-shares.md#applying-for-shares)). A draft belongs to that offering
-only and sends no payment; its total is worked out in whole cents, and the server still decides the
-applicant, quantity and eligibility. The accepted application shows the exact amount and payment
-reference.
+offerings follow. While an offering is open, a participant can prepare a draft application for
+that offering only; it sends no payment and its total is worked out in whole cents
+([applying for shares](issuing-shares.md#applying-for-shares)).
 
 Applications shows each application's recorded company, class, currency and payment instruction
-even if Directory access has since ended, keeping the exact reference, bank details or settlement
-amount. A recorded partial payment shows the amount outstanding and asks the investor to confirm
-any further payment with the operator. Offerings, applications, payments and allotment are
-described in [issuing shares](issuing-shares.md#applications-payments-and-paid-issues).
+(the exact reference, bank details or settlement amount) even if Directory access has since ended.
+A recorded partial payment shows the amount outstanding and asks the investor to confirm any
+further payment with the operator
+([payments](issuing-shares.md#applications-payments-and-paid-issues)).
 
 ## Profile and Settings
 
@@ -370,14 +342,13 @@ address and citizenship) and Account status (identity check, member since and la
 **Review identity check**; the web adds Supporting payslips.
 
 To change your full name, residential address or phone, choose **Edit personal details**, change
-them and choose **Save personal details**. The form blocks a second submission while one is saving.
-These are self-reported details. Editing them does not verify your identity, and existing identity
-results and signup requirements keep their rules. A Profile save creates no company appointment,
-member association, register instruction or change to your register particulars. The company
-changes register particulars only through its own evidenced workflow
-([particulars](register.md#changing-a-members-particulars)), and members ask for such a change,
-read their own records and obtain their own certificates through a company-issued invitation
-([member access](member-records.md#member-access)).
+them and choose **Save personal details**. These details are self-reported: editing them verifies
+nothing and leaves existing identity results unchanged. A Profile save creates no company
+appointment, member association or register instruction and does not change your register
+particulars, which the
+company changes only through its own evidenced workflow
+([particulars](register.md#changing-a-members-particulars);
+[member access](member-records.md#member-access)).
 
 Payslips are private to the person and permitted platform staff; companies cannot see them. A
 payslip can be attached to a submitted claim, and an unattached one is removed under the retention

@@ -4,9 +4,9 @@
 
 What to do when work is left unresolved, family by family, and how to verify that stored registers
 and publications are intact. It is for platform staff and operators. Each section names the sweep,
-the admin action and what never to do; the invariants every sweep follows are in
-[outgoing signing](../engineering/chain.md#outgoing-signing-foundation), and the schedule is in
-[jobs and storage](jobs-and-storage.md#schedule).
+the admin action and what never to do; every sweep follows the
+[outgoing signing](../engineering/chain.md#outgoing-signing-foundation) invariants and runs on the
+[schedule](jobs-and-storage.md#schedule).
 
 - [Before recovering anything](#before-recovering-anything)
 - [Deployment and issuance](#deployment-and-issuance)
@@ -23,25 +23,22 @@ the admin action and what never to do; the invariants every sweep follows are in
 
 Start with the affected record and its durable evidence. Restart a stopped worker with current code
 and let the five-minute sweeps run; a timeout or a missing provider response does not prove a
-transaction was never submitted. Platform staff recover an exact admitted operation and never
-decide a new deployment, wallet approval, issue, capital change, pause, transfer, correction or
-payment: a company appointee prepares, approves and applies those
-([how a company decision works](../business/README.md#how-a-company-decision-works)), and a
-technical retry keeps the original actor, company source and signed history rather than supplying
-a new mandate. When a client lost a reply, replay the original company command with its body and
-key and read its receipt. Backups that hold signed payloads hold transactions that can be
-broadcast.
+transaction was never submitted. Staff recover an exact admitted operation and never decide a new
+company action ([how a company decision works](../business/README.md#how-a-company-decision-works)):
+a technical retry keeps the original actor, company source and signed history and supplies no new
+mandate. When a client lost a reply, replay the original company command with its body and key and
+read its receipt. Backups that hold signed payloads hold transactions that can be broadcast.
 
 Base's Flashblocks-enabled RPC can return a provisional receipt with an all-zero block hash before
 the block is sealed
 ([Flashblocks RPC specification](https://specs.optimism.io/protocol/flashblocks.html#flashblock-json-rpc-apis)).
 Such a receipt completes nothing: recovery keeps the signed bytes, claim and nonce until the receipt
 and canonical block agree across rereads, and a canonical receipt is still separate from the
-finalized head. An older terminal record left with an all-zero block hash is not repaired by normal
-recovery, which preserves terminal outcomes: an audited metadata correction must independently
-establish the original signed intent, canonical receipt and expected events, then update the
-inclusion metadata atomically. Never reset the status, release the nonce, redeploy a contract or
-replace that signed attempt merely to replace the placeholder.
+finalized head. Normal recovery preserves terminal outcomes, so an older terminal record left with
+an all-zero block hash needs an audited metadata correction that independently establishes the
+original signed intent, canonical receipt and expected events, then updates the inclusion metadata
+atomically. Never reset the status, release the nonce, redeploy a contract or replace that signed
+attempt merely to replace the placeholder.
 
 ## Deployment and issuance
 
@@ -57,14 +54,12 @@ replace that signed attempt merely to replace the placeholder.
 - Share issuance (`check_executing_issuance_requests`, bounded batches). A company chain grant or
   paid issue admits the private issuance execution; completion waits for the finality policy, and
   the register may still leave the effect
-  [waiting](../business/register.md#why-a-completed-effect-waits). A known unsigned
-  failure or a policy-final original revert allows Retry Execute on the request, bound to that exact
-  failed claim, or a refund that cancels the allotment; after the worker's executing claim,
-  uncertainty keeps the refund hold
-  ([share issuances](../engineering/chain.md#share-issuances)).
+  [waiting](../business/register.md#why-a-completed-effect-waits). A known unsigned failure or a
+  policy-final original revert allows Retry Execute on the request, bound to that exact failed
+  claim, or a refund that cancels the allotment; after the worker's executing claim, uncertainty
+  keeps the refund hold ([share issuances](../engineering/chain.md#share-issuances)).
 - Import-opened registers admit no issuance execution, failed retry or unsigned signing; their
-  retained requests and journals remain, and deploying an imported zero book supplies no issuance
-  workflow for it.
+  retained requests and journals remain.
 - Settlement-asset and yield-token mints (`recover_mint_requests`). Use Recover on a request whose
   outcome is unresolved and Retry after a recorded failure or revert, tied to the claim the form
   shows ([mint requests](../engineering/chain.md#mint-requests)).
@@ -85,79 +80,63 @@ approved transaction executed or was never sent
 request has executed, repairing historical gaps; new admitted issuance projects both atomically.
 `expire_unpaid_subscriptions` touches only overdue, awaiting-payment rows with no recorded payment.
 A part-paid subscription needs staff review. Read the
-[subscription rules](../business/issuing-shares.md#applications-payments-and-paid-issues) before refunding or retrying an
-allotment.
+[subscription rules](../business/issuing-shares.md#applications-payments-and-paid-issues) before
+refunding or retrying an allotment.
 
 ## Whitelist changes
 
 `recover_whitelist_changes` processes at most 100 unresolved commands each run, oldest update first,
-broadcasting only original signed bytes. `refresh_whitelist_approvals` sweeps surviving approvals
-and submits only REMOVE under a retained cause. `refresh_whitelist_targets` retries a deleted
-wallet's removal every five minutes without an attempt ceiling, and must be kept, because the
-approval sweep cannot rediscover deleted targets. Current membership, a missing receipt or elapsed
-time releases nothing, and an opposite change waits for the original to resolve.
+broadcasting only original signed bytes. `refresh_whitelist_approvals` submits only REMOVE under a
+retained cause, and `refresh_whitelist_targets` keeps retrying a deleted wallet's removal
+([refreshing an approval](../engineering/chain.md#refreshing-an-approval)). Current membership, a
+missing receipt or elapsed time releases nothing, and an opposite change waits for the original to
+resolve.
 
 Never replace a UUID, infer chain approval from applied status, alter a job to impersonate another
-actor or mark an uncertain outcome complete. Verify actual absence before retiring a blocked
-removal job. The rules are in
-[whitelist changes](../engineering/chain.md#whitelist-changes) and
-[refreshing an approval](../engineering/chain.md#refreshing-an-approval).
-
-### Holder standing review
-
-The console's Whitelist entries needing holder standing review counts investor accounts with an
-inactive login, or a rejected, suspended or terminated investment standing, that still hold a live
-or uncertain company approval, each once, from the last observation and without reading the chain;
-the approval inline keeps the last observed company status and expiry. A removed or expired
-approval stays listed while a live company decision remains and standing is not refused, so staff
-inspect the specific company and current eligibility before acting; the worklist authorises
-nothing. Self-deletion disables login and keeps evidence without terminating the account or
-revoking an approval: review the account and decisions, record the staff decision, then use the
-attributed refresh or the company's removal. Treasury and company-only accounts are outside this
-queue.
+actor or mark an uncertain outcome complete. Verify actual absence on chain before retiring a
+blocked removal job ([whitelist changes](../engineering/chain.md#whitelist-changes)).
 
 ## Pause and unpause
 
 `check_pending_pause_changes` runs the admitted job and recovers up to 100 incomplete commands
 untouched for ten minutes, oldest update first, keeping the original signed bytes and nonce or
-finishing an already recorded outcome without provider access. Approval alone admits no execution,
-and a pending result does not mean transfers have stopped or resumed. A request saved on the
-device keeps Check outcome and Retry same request in both clients, for an existing exact row only;
-a never-admitted UUID gets an explicit fresh-admission refusal. A completed failure permits a
-deliberate new company preparation
+finishing an already recorded outcome without provider access. Approval alone admits no execution;
+what a pending result does and does not mean is in
+[pausing and unpausing a class](../business/issuing-shares.md#pausing-and-unpausing-a-class). A
+request saved on the device keeps Check outcome and Retry same request in both clients, for an
+existing exact row only. A completed failure permits a deliberate new company preparation
 ([pause and unpause](../engineering/chain.md#pause-and-unpause)).
 
 ## Wallet transfers and trading
 
 Use the recorded journal and the matching [EVM](../engineering/wallet-protocols.md#evm-transfers)
 or [Bitcoin](../engineering/wallet-protocols.md#bitcoin-transfers) protocol. Receipt confirmation
-and balance reconciliation are separate; a five-minute sweep requeues durable balance repair even
-after a transaction's status changes
-([balance repair](../engineering/wallet-protocols.md#balance-repair)). Do not infer compensation
-from timeouts; [transaction evidence](../engineering/wallet-protocols.md#wallet-chain-observations)
-explains receipt, canonicality and finality limits.
-[Order submissions](../engineering/trading-protocols.md) and
-[swap settlement](../engineering/trading-protocols.md#swap-settlement-context) describe their own
+and balance reconciliation are separate: a five-minute sweep requeues durable
+[balance repair](../engineering/wallet-protocols.md#balance-repair) even after a transaction's
+status changes. Do not infer compensation from timeouts;
+[transaction evidence](../engineering/wallet-protocols.md#wallet-chain-observations) explains
+receipt, canonicality and finality limits. [Order submissions](../engineering/trading-protocols.md)
+and [swap settlement](../engineering/trading-protocols.md#swap-settlement-context) describe their own
 recovery.
 
 ## Stale registers
 
-`fold_every_share_class` reads through the provider's finalized block. An unreadable class keeps its
-last successful timestamp and block, the job fails afterwards so it retries, and a never-read class
-or a fold older than 24 hours is marked stale; register reads never clear the marker. Check provider
-availability and retry the job. [Former members](../business/register.md#former-members)
-explains what the fold can and cannot reconstruct.
+`fold_every_share_class` reads through the provider's finalized block. A class it cannot read keeps
+its last fold and fails the job, and a fold older than 24 hours, or never completed, is marked stale
+([former-member fold](../engineering/records.md#former-member-fold)). Check provider availability
+and retry the job. [Former members](../business/register.md#former-members) explains what the fold
+can and cannot reconstruct.
 
 ## Private files, notifications and providers
 
-Private storage is backed up and restored with the database.
+Back up and restore [private storage](jobs-and-storage.md#private-storage) with the database.
 `python manage.py reconcile_private_media --check` reports stray local uploads
 ([repairing stray uploads](jobs-and-storage.md#repairing-stray-uploads)).
 
 Notification senders only defer a job, so the in-app inbox stays empty until a worker drains the
-queue ([notifications](../engineering/backend.md#notifications)). Check the
-provider's configuration before retrying a review or an extraction
-([configuration](configuration.md)). A 200 from `GET /health/` proves nothing beyond the process
+queue ([notifications](../engineering/backend.md#notifications)). Check the provider's
+[configuration](configuration.md) before retrying a review or an extraction. A 200 from
+`GET /health/` proves nothing beyond the process
 ([bring up an instance](README.md#bring-up-an-instance)).
 
 ## Verifying stored records
@@ -168,15 +147,14 @@ read only their company's rows. None signs a transaction, and only `register_sna
 
 ### Verifying the stored register
 
-`register_foundation verify` replays a share class's stored event chain, rechecking each entry's
-hash and the holdings projection, and prints the register and token ids, event count,
-positive-holding member count, issued supply and head hash. A successful
-verification proves storage integrity with the chain unavailable; it proves neither chain
-reconciliation nor director approval.
-
 ```bash
 python manage.py register_foundation verify --token TOKEN_UUID
 ```
+
+The command replays a share class's stored event chain, rechecking each entry's hash and the
+holdings projection, and prints the register and token ids, event count, positive-holding member
+count, issued supply and head hash. Success proves storage integrity with the chain unavailable; it
+proves neither chain reconciliation nor director approval.
 
 ### Inspecting a canonical chain snapshot
 
@@ -201,50 +179,46 @@ python manage.py register_inclusions --token TOKEN_UUID
 ```
 
 The read-only command prints a share class's captured boundary, classifies each completed issuance
-and settlement against it and flags whether each is already `recorded` in the register. Where
-completions cannot be classified it prints the refusal or a null boundary. The classes are defined
-by the [classification rule](../engineering/records.md#recording-completions-after-the-opening).
+and settlement against it under the
+[classification rule](../engineering/records.md#recording-completions-after-the-opening) and flags
+whether each is already `recorded` in the register. Where completions cannot be classified it
+prints the refusal or a null boundary.
 
 ### Reconciling a register on demand
 
 `reconcile_every_register` reconciles every opened share class every six hours
-([what reconciliation compares](../business/register.md#reconciliation-with-the-chain)).
-To reconcile one class now:
+([what reconciliation compares](../business/register.md#reconciliation-with-the-chain)). To
+reconcile one class now:
 
 ```bash
 python manage.py register_reconcile --token TOKEN_UUID
 ```
 
 It reads the chain, writes only the reconciliation record and prints it: status, block, register
-sequence, discrepancies and any failure. A class without an applied opening from the chain is
-refused; an import-opened register has no chain boundary and is never reconciled. Discrepancies are
-logged at error level, which is the alert. The scheduled job tries every class and then fails if any
-could not be reconciled; a class whose run raised keeps its previous result in the CSV summary, so
-the failed job is the signal to look at.
+sequence, discrepancies and any failure. A class without an applied chain opening, which includes
+every import-opened register, is refused. Discrepancies are logged at error level, which is the
+alert. The scheduled job tries every class and then fails if any could not be reconciled; a class
+whose run raised keeps its previous result in the CSV summary, so the failed job is the signal to
+look at.
 
 ### Verifying publications
-
-The roll is frozen when a publication is made, and the publication records how many rows it held
-and a digest of them.
 
 ```bash
 python manage.py publications verify --publication PUBLICATION_UUID
 ```
 
-Leaving `--publication` out checks every publication. The command prints the row count and digest
-it recomputed for each, and fails naming the publication whose roll no longer matches what it
-recorded. It reads the stored roll only: it proves that the audience a publication was addressed to
-has not changed since, not that the register itself is sound, which `register_foundation verify`
-answers.
+Leaving `--publication` out checks every publication. The command recomputes each publication's
+frozen roll and prints its row count and digest, failing and naming the publication whose roll no
+longer matches what it recorded. That proves the audience a publication was addressed to has not
+changed since, not that the register is sound, which `register_foundation verify` answers.
 
 For a resolution the command also replays its event chain and prints the number of events, the
-chain's head hash, the number of ballots and the tally, `null` until it has closed. For a dividend
-it replays its payment records, rechecks the arithmetic and prints the number of events, the head
+head hash, the number of ballots and the tally, `null` until it has closed. For a dividend it
+replays its payment records, rechecks the arithmetic and prints the number of events, the head
 hash, the number of standing payment records and the undistributed amount. It fails, naming the
 publication, on any fault listed under
-[verifying publications](../engineering/records.md#verifying-publications).
-Nothing the application does can cause these faults: they mean someone with the schema owner's
-rights rewrote the chain.
+[verifying publications](../engineering/records.md#verifying-publications). Nothing the application
+does can cause these faults: they mean someone with the schema owner's rights rewrote the chain.
 
 Next: [jobs and storage](jobs-and-storage.md),
 [outgoing signing](../engineering/chain.md#outgoing-signing-foundation) or

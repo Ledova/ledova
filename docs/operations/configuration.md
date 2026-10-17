@@ -2,9 +2,8 @@
 
 [Operations](README.md) · [Documentation](../README.md)
 
-Every environment variable a Ledova instance reads, the PostgreSQL roles it needs, and the operating
-notes for each provider. It is for whoever configures a local or public-testnet instance. Run only
-with synthetic data, configure only the integrations the flow you are exercising needs, and keep
+Every environment variable a Ledova instance reads, the PostgreSQL roles it needs and each
+provider's operating notes, for whoever configures an instance. Use only synthetic data and keep
 credentials server-side.
 
 - [Environment files](#environment-files)
@@ -27,30 +26,26 @@ credentials server-side.
 
 ## Environment files
 
-`backend/.env.example` is the backend template. `make init-local` (`python3
-scripts/init-local-env.py`) copies it and the dashboard, site and mobile templates to owner-only
-(0600), gitignored `.env` files and fills `SECRET_KEY` and `POSTGRES_PASSWORD` with generated
-secrets. It never overwrites an existing file. `make dev-up` first runs the same script with
-`--check`, which refuses to start when a file is missing or either secret is blank. The backend
-variables below are read in `backend/ledova_backend/settings/` unless a row says otherwise.
+`make init-local` (`python3 scripts/init-local-env.py`) copies the backend, dashboard, site and
+mobile `.env.example` templates to owner-only (0600), gitignored `.env` files, fills `SECRET_KEY`
+and `POSTGRES_PASSWORD` with generated secrets and never overwrites an existing file. `make dev-up`
+first runs it with `--check`, which refuses to start when a file is missing or either secret is
+blank. Backend variables are read in `backend/ledova_backend/settings/` unless a row says
+otherwise.
 
-`DEBUG`, `COOKIE_SECURE` and `EVM_ASSET_TRANSFER_HISTORY_ENABLED` go through `read_bool`, which
-strips and lowercases the value, so `true`, `TRUE` and ` true ` are all accepted; anything other
-than `true` or `false` raises `ImproperlyConfigured` at startup. `KYCAID_CRYPTO_MONITORING_ENABLED`
-is lowercased and compared with `true`, and anything else is off.
+`DEBUG`, `COOKIE_SECURE` and `EVM_ASSET_TRANSFER_HISTORY_ENABLED` accept `true` or `false` in any
+case and with surrounding spaces; anything else raises `ImproperlyConfigured` at startup.
+`KYCAID_CRYPTO_MONITORING_ENABLED` is on only for `true`, in any case.
 
-Inside the local stack, `docker-compose.yml` gives the `migrate`, `backend` and `worker` services
-one `x-backend-environment` anchor, so the three cannot drift: `POSTGRES_HOST=postgres`,
+In the local stack, `docker-compose.yml` gives `migrate`, `backend` and `worker` one
+`x-backend-environment` anchor: `POSTGRES_HOST=postgres`,
 `REDIS_URL=redis://redis:6379/0`, `UPLOAD_SCANNER_HOST=clamav`, `STORAGE_BACKEND=local`,
-`DEBUG=true`, and the stack's own chain (`BLOCKCHAIN_RPC_URL`, `BLOCKCHAIN_CHAIN_ID`,
-`BLOCKCHAIN_OPERATOR_KEY`, the three contract addresses and `LOCAL_CHAIN_FINALITY_DEPTH`, described
-under [the local stack's chain](chains.md#the-local-stacks-chain)). These are
-`environment:` entries, so they win over `backend/.env`: an `s3` storage backend, `DEBUG=false`, a
-custom `REDIS_URL` or other chain settings in that file are silently ignored inside the stack.
-
-`backend/.env` is still needed, because `SECRET_KEY` and `POSTGRES_PASSWORD` come only from it and
-no committed file supplies them. Without it `migrate` stops on `KeyError: 'SECRET_KEY'` before
-anything serves requests. Run `make init-local` first.
+`DEBUG=true` and the stack's chain settings
+([the local stack's chain](chains.md#the-local-stacks-chain)). These `environment:` entries win
+over `backend/.env`, so an `s3` storage backend, `DEBUG=false`, a custom `REDIS_URL` or other chain
+settings in that file are silently ignored inside the stack. `backend/.env` is still needed:
+`SECRET_KEY` and `POSTGRES_PASSWORD` come only from it, and without it `migrate` stops on
+`KeyError: 'SECRET_KEY'`.
 
 ## Django core and Redis
 
@@ -65,16 +60,12 @@ anything serves requests. Run `make init-local` first.
 | `OPERATOR_NAME` | `Ledova operator` | No; used only when the operator row is created |
 | `REDIS_URL` | `redis://redis:6379/0` | Yes |
 
-`REDIS_URL` is `CACHES["default"]`, which holds the sign-in and upload quotas, the Transak access
-token and the other DRF rate limits, and it carries the trading event stream (`tokens/events.py`,
-`tokens/views/trading_events.py`). Background work is Procrastinate on PostgreSQL, not Redis. Redis
-is required even with trading disabled: with the cache unreachable, sign-in answers 503 before
-checking credentials and uploads answer 503, and the backend and worker containers wait for the
-Redis healthcheck.
-
-How the per-address sign-in limit (`auth_email`) counts is in
-[authentication and sessions](../engineering/security.md#authentication-and-sessions); the upload
-quotas are in [upload limits](jobs-and-storage.md#upload-limits).
+`REDIS_URL` is the default cache: it holds the sign-in and upload quotas, the Transak access token
+and the other DRF rate limits, and carries the trading event stream (`tokens/events.py`,
+`tokens/views/trading_events.py`); background work runs on PostgreSQL. Redis is required even
+with trading disabled: without it sign-in answers 503 before checking credentials, uploads answer
+503, and the backend and worker containers wait for its healthcheck. The upload quotas are in
+[upload limits](jobs-and-storage.md#upload-limits).
 
 ## Sessions and cookies
 
@@ -87,8 +78,8 @@ quotas are in [upload limits](jobs-and-storage.md#upload-limits).
 | `ACCESS_TOKEN_LIFETIME` | `604800` seconds | No |
 | `REFRESH_TOKEN_LIFETIME` | `604800` seconds | No |
 
-How sessions are transported, checked and revoked is in the
-[authentication model](../engineering/security.md#authentication-and-sessions).
+Session transport, checks and revocation, and how the per-address sign-in limit (`auth_email`)
+counts, are in [authentication and sessions](../engineering/security.md#authentication-and-sessions).
 
 ## Database
 
@@ -102,9 +93,8 @@ How sessions are transported, checked and revoked is in the
 | `POSTGRES_SSLMODE` | `prefer` | No |
 
 Every connection uses a 10-second connect timeout and TCP keepalives. The default (migration) and
-operator aliases keep connections for 300 seconds (`CONN_MAX_AGE`); the scoped app alias disables
-connection reuse. How the three aliases are chosen is in
-[tenancy](../engineering/security.md#roles-and-principal).
+operator aliases keep connections for 300 seconds (`CONN_MAX_AGE`). How the aliases are chosen is
+in [tenancy](../engineering/security.md#roles-and-principal).
 
 ## Row-level security roles
 
@@ -118,36 +108,32 @@ connection reuse. How the three aliases are chosen is in
 
 `shared/0002_database_guards` creates `ledova_app` and `ledova_operator` when they are absent, with
 `LOGIN` and no password, grants them what they need and installs the helpers and a policy on every
-tenant table. Whoever applies it needs superuser rights, because `ALTER ROLE ... BYPASSRLS` requires
-them; without them the roles come out without the attributes the policies assume, and
-`check_rls_roles` refuses them. The deployment requirements are:
+tenant table. Apply it as a superuser, which `ALTER ROLE ... BYPASSRLS` requires; otherwise the
+roles lack the attributes the policies assume and `check_rls_roles` refuses them.
 
-- Provision the roles' credentials out of band and point the aliases at them with the variables
-  above. The migration never sets a password. Local work uses `POSTGRES_HOST_AUTH_METHOD=trust`,
-  which `docker-compose.yml` sets on the `postgres` service.
-- `POSTGRES_HOST_AUTH_METHOD` is read by `initdb` on the first start only, and changing it later
-  does not rewrite the cluster's authentication. A cluster initialised without it authenticates
-  `scram-sha-256` for anything but loopback, and the Compose bridge is not loopback, so the two
-  passwordless roles are refused there; a successful loopback connection proves nothing about the
-  bridge. On an existing volume, give the roles the password the settings send rather than
-  recreating the database:
+- Provision the roles' credentials out of band; the migration never sets a password. Local work
+  uses `POSTGRES_HOST_AUTH_METHOD=trust`, which `docker-compose.yml` sets on the `postgres` service.
+- `initdb` reads `POSTGRES_HOST_AUTH_METHOD` on the first start only. A cluster initialised
+  without it authenticates `scram-sha-256` for anything but loopback, and the Compose bridge is not
+  loopback, so the passwordless roles are refused there even when a loopback connection succeeds.
+  On an existing volume, give the roles the password the settings send (both fall back to
+  `POSTGRES_PASSWORD`) instead of recreating the database; `manage.py check_rls_roles` prints these
+  statements when a connection is refused:
 
   ```sql
   ALTER ROLE ledova_app      LOGIN PASSWORD '<the POSTGRES_PASSWORD in backend/.env>';
   ALTER ROLE ledova_operator LOGIN PASSWORD '<the POSTGRES_PASSWORD in backend/.env>';
   ```
 
-  Both role passwords fall back to `POSTGRES_PASSWORD`, so that is the value each connection sends;
-  `manage.py check_rls_roles` prints these statements when a connection is refused.
-- Use session-level connection pooling or none. The principal is a session-level `SET`, which a
-  transaction-pooled handover does not carry; the symptom is one request reading another user's
-  principal, not an error.
-- Run `manage.py check_rls_roles` immediately after `migrate` and before the first command that
-  touches the ORM, as the Compose `migrate` service does. It connects on each alias and asserts
-  that the app role lacks `BYPASSRLS` and owns no table, the operator role has `BYPASSRLS`, the
-  migration role owns the tables and a fresh app connection carries no principal.
-  `manage.py check_rls_catalogue` asserts that the installed policies and helpers are the ones
-  `shared/db/policies.py` describes.
+- Use session-level connection pooling or none
+  ([principal](../engineering/security.md#roles-and-principal)): under transaction pooling one
+  request can read another user's principal, with no error.
+- Run `manage.py check_rls_roles` right after `migrate` and before any command that touches the
+  ORM, as the Compose `migrate` service does. On each alias it asserts that the app role lacks
+  `BYPASSRLS` and owns no table, the operator role has `BYPASSRLS`, the migration role owns the
+  tables and a fresh app connection carries no principal. `manage.py check_rls_catalogue` compares
+  the installed policies and helpers with the
+  [policy catalogue](../engineering/security.md#policy-catalogue).
 - Put the subcommand before `--settings`: `manage.py runserver --settings=x`. With a global option
   first, `manage.py` sets the operator ambient alias and the server refuses to start, reporting
   `RLS_AMBIENT_ALIAS is 'operator'`.
@@ -166,13 +152,12 @@ them; without them the roles come out without the attributes the policies assume
 | `ATOMIC_SWAP_ADDRESS` | empty | Only for settlement |
 | `STABLECOIN_CONTRACT_ADDRESS` | empty | Only for stablecoin payment; seeds the `AUDY` deployment on `base` |
 | `SWAP_ORDER_EXPIRY_HOURS` | `0.25` (15 minutes) | No; finite fractional hours are accepted |
-| `LOCAL_CHAIN_FINALITY_DEPTH` | empty | No; a positive block depth at which an issuance, swap or register opening on a local chain (1337, 31337) is final. The local stack sets `1`. Refused for any other chain id |
+| `LOCAL_CHAIN_FINALITY_DEPTH` | empty | No; the positive block depth at which work on a local chain (1337, 31337) is final; refused for any other chain id. The local stack sets `1` |
 | `SIGNING_CHALLENGE_TTL_SECONDS` | `300` | No; lifetime of a wallet signing challenge |
 | `SIGNING_CHALLENGE_RETENTION_SECONDS` | `86400` | No; how long after expiry an unspent challenge is kept before `purge_signing_challenges` deletes it |
 
-Malformed and non-finite values are refused at settings import. Which chains are allowed and how
-finality is decided are under
-[allowed chains and finality](chains.md#allowed-chains-and-finality).
+Malformed and non-finite values are refused at settings import.
+[Allowed chains and finality](chains.md#allowed-chains-and-finality) explains both rules.
 
 ## Storage, uploads and retention
 
@@ -186,9 +171,7 @@ finality is decided are under
 | `UNATTACHED_DOCUMENT_RETENTION_DAYS` | `30` | No; lifetime of an unattached payslip from upload; `0` retains indefinitely; changing it needs a new guard migration ([retention clocks](../engineering/security.md#retention-clocks)) |
 | `FORMER_MEMBER_RETENTION_DAYS` | `2557` | No; a value below 2557, including `0`, raises `ImproperlyConfigured` and refuses the fold and the purge |
 
-What each retention clock measures from and what each purge removes is stated once in
-[data retention](../engineering/security.md#retention-clocks). Private storage, scanning and the
-sixteen `UPLOAD_*` limits are in
+Private storage, scanning and the sixteen `UPLOAD_*` limits are in
 [jobs and storage](jobs-and-storage.md#upload-limits).
 
 ## Market data and chain providers
@@ -203,17 +186,16 @@ sixteen `UPLOAD_*` limits are in
 | `BLOCKSTREAM_API_URL` | `https://blockstream.info/testnet/api` | No |
 | `BLOCKSTREAM_TIMEOUT` | `30` seconds | No |
 
-Alchemy wallet webhooks must include `event.network`, as the
-[Address Activity payload](https://www.alchemy.com/docs/reference/address-activity-webhook)
-supplies. `BASE_SEPOLIA` is accepted only with `BLOCKCHAIN_CHAIN_ID=84532`, and `ETH_SEPOLIA` only
-with `ETHEREUM_CHAIN_ID=11155111`. Missing, unknown, mainnet or locally mismatched networks get
-HTTP 400 after signature verification. Accepted events enqueue each matching wallet on that
-network, including both transfer participants and separate accounts sharing an address. Receipt
-workers fetch chain state themselves; webhook balances and block numbers are not settlement
-evidence.
+Alchemy wallet webhooks must carry `event.network`, as the
+[Address Activity payload](https://www.alchemy.com/docs/reference/address-activity-webhook) does.
+`BASE_SEPOLIA` is accepted only with `BLOCKCHAIN_CHAIN_ID=84532`, and `ETH_SEPOLIA` only with
+`ETHEREUM_CHAIN_ID=11155111`; any other network gets HTTP 400 after signature verification. An
+accepted event enqueues every matching wallet on that network, including both transfer
+participants and separate accounts sharing an address. Receipt workers fetch chain state themselves;
+webhook balances and block numbers are not settlement evidence.
 
 While `ALCHEMY_ETH_URL` and `ALCHEMY_BTC_URL` are empty, Ethereum and Bitcoin wallets keep their
-stored balances and the hourly wallet sync logs a warning for each of them.
+stored balances and the hourly wallet sync logs a warning for each.
 
 ## Identity verification providers
 
@@ -229,17 +211,16 @@ stored balances and the hourly wallet sync logs a warning for each of them.
 | `CRYPTO_RISK_THRESHOLD_HIGH` | `0.6` | No |
 
 Identity verification is off until configured: with any other `KYC_PROVIDER` value, blank
-included, the integration answers `503 Service not configured`. The operator's
+included, the integration answers `503 Service not configured`, and the operator's
 `issuer_kyc_required` needs a configured provider
-([operator configuration](operator-console.md#operator-configuration)).
-
-Only KYCAID screens addresses; under Sum&Sub every screening fails
+([operator configuration](operator-console.md#operator-configuration)). Only KYCAID screens
+addresses; under Sum&Sub every screening fails
 ([transaction monitoring](../business/participants.md#transaction-monitoring)). With
 `KYCAID_CRYPTO_MONITORING_ENABLED` off, screenings fail with "Crypto monitoring is disabled"; after
 turning it on, retry them from the screening admin
 ([crypto address screening](../engineering/backend.md#crypto-address-screening)). How each
 provider's results, scores and callbacks are read is in
-[identity verification](../engineering/backend.md#identity-providers).
+[identity providers](../engineering/backend.md#identity-providers).
 
 ## Email
 
@@ -250,17 +231,17 @@ provider's results, scores and callbacks are read is in
 | `SENDGRID_API_URL` | empty | With `SENDGRID_API_KEY`; an `https` URL, or `http` to a local host, with no credentials, query or fragment |
 | `SENDGRID_TIMEOUT` | `10` seconds | No |
 
-With `SENDGRID_API_KEY` set, mail goes to SendGrid; an invalid or missing `SENDGRID_API_URL` then
-fails each send and logs the error. Without a key, mail goes through Django's email backend, which
-follows `DEBUG`: the console backend with `DEBUG=true`, which prints the sign-up verification code
-to the backend log, and SMTP with Django's defaults otherwise.
+With `SENDGRID_API_KEY` set, mail goes to SendGrid, and an invalid or missing `SENDGRID_API_URL`
+fails each send and logs the error. Without a key, mail goes through Django's email backend: the
+console backend with `DEBUG=true`, which prints the sign-up verification code to the backend log,
+and SMTP with Django's defaults otherwise.
 
 ## On-ramp
 
-The on-ramp is an optional personal investor feature outside the register. Companies must not buy
-cryptocurrency through it: the API and both clients admit only a current `investor` or `both`
-personal account ([#920](https://github.com/Ledova/ledova/issues/920)), and configuring Transak
-selects no AUD share-payment provider
+The on-ramp is an optional personal investor feature outside the register. The API and both
+clients admit only a current `investor` or `both` personal account, so companies cannot buy
+cryptocurrency through it ([#920](https://github.com/Ledova/ledova/issues/920)); configuring
+Transak selects no AUD share-payment provider
 ([decision](../decisions.md#registry-priority-crypto-on-ramp-and-aud-payments)).
 
 | Variable | Default | Required |
@@ -277,55 +258,51 @@ selects no AUD share-payment provider
 | `LLM_MODEL` | `qwen2.5vl:7b` | No |
 | `LLM_EXTRA_HOSTS` | empty | No; comma-separated bare hostnames |
 
-The default points at a service on the host. A host firewall that drops bridge-to-host traffic, as
-`ufw` does by default on Arch and Ubuntu, makes `host.docker.internal` and the bridge gateway time
-out from the worker with no route error to say why; a chain node on the host fails the same way.
-Two remedies: run the service inside the Compose network and name it in the variable, or open the
-bridge to the host port (`ufw allow in on docker0 to any port 11434`). The first is preferred.
+The default is a service on the host. A host firewall that drops bridge-to-host traffic, as `ufw`
+does by default on Arch and Ubuntu, makes `host.docker.internal` and the bridge gateway time out
+from the worker with no route error; a chain node on the host fails the same way. Prefer running
+the service inside the Compose network and naming it in the variable; otherwise open the bridge to
+the host port (`ufw allow in on docker0 to any port 11434`).
 
-`LLM_EXTRA_HOSTS` makes the first remedy expressible. `_validate_local_base_url` admits
-`localhost`, `127.0.0.1`, `::1` and `host.docker.internal` and nothing else until an operator names
-a hostname there: `LLM_EXTRA_HOSTS=ollama` with `LLM_BASE_URL=http://ollama:11434/v1` points
-extraction at a sibling container. Entries are compared with the URL's host only, and there is no
-wildcard; name only hosts you control. Operator diagnostics name the settings to inspect,
-`LLM_BASE_URL` and `LLM_MODEL`, never their values, and the member API never sends the stored
-diagnostic; the operator reads it in the extraction admin.
+The base URL may name only `localhost`, `127.0.0.1`, `::1`, `host.docker.internal` or a hostname in
+`LLM_EXTRA_HOSTS`: `LLM_EXTRA_HOSTS=ollama` with `LLM_BASE_URL=http://ollama:11434/v1` points
+extraction at a sibling container. Entries are compared with the URL's host only, with no wildcard;
+name only hosts you control. Operator diagnostics name `LLM_BASE_URL` and `LLM_MODEL`, never their
+values, and the member API never sends the stored diagnostic; the operator reads it in the
+extraction admin.
 
-Connection failures, timeouts, rate limits and upstream server errors are retried by the extraction
-task, up to three attempts thirty seconds apart, each making one upstream request. Invalid
-requests, model or configuration errors and invalid extracted output stop after one attempt. Every
-attempt stays in the extraction history. After correcting a terminal failure, select the failed
-attempt in the extraction admin and re-run it; storage and rendering failures need that operator
-action too. Extraction supplements human review and never verifies a claim.
+The extraction task retries connection failures, timeouts, rate limits and upstream server errors,
+up to three attempts thirty seconds apart, one upstream request each; invalid requests, model or
+configuration errors and invalid output stop after one attempt. Every attempt stays in the
+extraction history. After correcting a terminal failure, or after a storage or rendering failure,
+re-run the failed attempt from the extraction admin.
 
 ## Company registry lookup
 
-`ABR_AUTH_GUID` is blank by default. Obtain the free authentication GUID through
-[ABR Web Services](https://abr.business.gov.au/Tools/WebServices) and configure it server-side.
-Without it, company activation retains a pending, unconfigured attempt without contacting ABR and
-leaves the company unchanged. Development inputs must stay synthetic.
+`ABR_AUTH_GUID` is blank by default; obtain the free GUID from
+[ABR Web Services](https://abr.business.gov.au/Tools/WebServices). Without it, company activation
+retains a pending, unconfigured attempt without contacting ABR and leaves the company unchanged.
 
 Each lookup has a 15-second whole-call deadline, DNS and response reads included, in a supervised
-subprocess with a 1 MiB streamed response cap. The GUID travels through the subprocess's input
-pipe, never its command line or inherited environment. What a lookup must match is in
-[how the registry check matches](../business/companies.md#how-the-registry-check-matches), and the
-staff controls that remain are in
+subprocess with a 1 MiB streamed response cap; the GUID reaches it through its input pipe, never
+its command line or inherited environment. What a lookup must match and the staff controls that
+remain are in
+[how the registry check matches](../business/companies.md#how-the-registry-check-matches) and
 [staff registry controls](../business/companies.md#staff-registry-controls).
 
 ## Push notifications
 
 Push registration needs `extra.eas.projectId` in the Expo configuration (`mobile/app.json`), which
 is not set in this repository. On Android, remote push is unavailable in Expo Go from SDK 53 onward
-and needs a development or production build; see the
-[SDK 54 notification documentation](https://docs.expo.dev/versions/v54.0.0/sdk/notifications/).
-The in-app inbox works without push configuration but needs a running worker
+and needs a development or production build
+([SDK 54 notifications](https://docs.expo.dev/versions/v54.0.0/sdk/notifications/)). The in-app
+inbox works without push configuration but needs a running worker
 ([notifications](../engineering/backend.md#notifications)).
 
 ## Clients
 
-Client variables are public build configuration. They are embedded in the bundle and must never
-hold a secret. Dashboard and mobile keep the `VITE_MARKETING_URL` and `EXPO_PUBLIC_MARKETING_URL`
-names for the public site's URL.
+Client variables are public build configuration embedded in the bundle, so they must never hold a
+secret. `VITE_MARKETING_URL` and `EXPO_PUBLIC_MARKETING_URL` hold the public site's URL.
 
 | File | Variables |
 | --- | --- |
@@ -333,28 +310,24 @@ names for the public site's URL.
 | `site/.env` | `VITE_LEDOVA_URL`, `VITE_HOST`, `VITE_PORT`, `VITE_ALLOWED_HOSTS` |
 | `mobile/.env` | `EXPO_PUBLIC_API_URL`, `EXPO_PUBLIC_DEV_API_HOST`, `EXPO_PUBLIC_MARKETING_URL`, `EXPO_PUBLIC_SUPPORT_EMAIL`, `EXPO_PUBLIC_APP_STORE_URL` |
 
-The production images never read these files: the `.dockerignore` files keep every `.env` out of
-the build context. Pass the public origins as build arguments instead:
-
-- `dashboard/.deployment/Dockerfile.prod` takes `VITE_API_URL` and `VITE_MARKETING_URL`.
-- `site/.deployment/Dockerfile.prod` takes `VITE_LEDOVA_URL`, the dashboard origin its Register and
-  Sign in links open.
-
-Each defaults to its local address, so a build without them links to `localhost`. Mobile Release
-builds require HTTPS; which hosts a native Debug build may reach, and how
-`EXPO_PUBLIC_DEV_API_HOST` selects one LAN address before prebuild, is in
+The production images never read these files, because the `.dockerignore` files keep every `.env`
+out of the build context. Pass the public origins as build arguments instead:
+`dashboard/.deployment/Dockerfile.prod` takes `VITE_API_URL` and `VITE_MARKETING_URL`, and
+`site/.deployment/Dockerfile.prod` takes `VITE_LEDOVA_URL`, the dashboard origin its Register and
+Sign in links open. Each defaults to its local address, so a build without them links to
+`localhost`. Mobile Release builds require HTTPS; the hosts a Debug build may reach, including the
+LAN address `EXPO_PUBLIC_DEV_API_HOST` selects, are in
 [mobile transport](../engineering/mobile.md#native-transport).
 
 ## Contracts
 
 Hardhat loads nothing from a file: `contracts/hardhat.config.ts` and the deploy scripts read
-`process.env` directly, and the package has no dotenv loader. Export the values you need in the
-deploying shell. `contracts/.env.example` is a checklist of the names, not a file Hardhat reads;
-`scripts/init-local-env.py` does not create `contracts/.env`, and nothing would load it.
+`process.env` directly, so export the values in the deploying shell. `contracts/.env.example` is
+only a checklist of the names; nothing creates or loads `contracts/.env`.
 
 | Variable | Used by |
 | --- | --- |
-| `DEPLOYER_PRIVATE_KEY` (secret) | the `localhost` and `baseSepolia` account lists; [key management](chains.md#key-management) says why it must be the backend's operator key |
+| `DEPLOYER_PRIVATE_KEY` (secret) | the `localhost` and `baseSepolia` deployer; it must be the backend's operator key ([key management](chains.md#key-management)) |
 | `LOCALHOST_RPC_URL` | the `localhost` network URL (default `http://127.0.0.1:8545`) |
 | `LEDOVA_DEPLOY_ENV_FILE` | where `deploy-all.ts` writes the deployed addresses (default `../.deployed-contracts.env`) |
 | `BASE_SEPOLIA_RPC_URL` | the `baseSepolia` network URL (default `https://sepolia.base.org`) |
@@ -370,6 +343,5 @@ deploying shell. `contracts/.env.example` is a checklist of the names, not a fil
 | `LEDOVA_DEMO_PASSWORD` | `seed_demo`, when `--password` is not given ([demo data](../getting-started.md#demo-data)) | a generated password, printed |
 | `CHAIN_TEST_PORT` | `make chain-test` and `make contracts-deploy-local` | `8545` |
 
-Next: [chains and keys](chains.md),
-[jobs and storage](jobs-and-storage.md) or
+Next: [chains and keys](chains.md), [jobs and storage](jobs-and-storage.md) or
 [bring up an instance](README.md#bring-up-an-instance).

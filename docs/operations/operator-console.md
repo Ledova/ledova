@@ -3,26 +3,23 @@
 [Operations](README.md) · [Documentation](../README.md)
 
 How platform staff configure the operator record, read the operator console and the market pages,
-seed reference data, and work the review queues that remain staff work. It is for platform staff
-and whoever runs an instance. Company decisions are company-run through appointments
-([how a company decision works](../business/README.md#how-a-company-decision-works)); the
-demonstration data is described under [demo data](../getting-started.md#demo-data).
+seed reference data and work the review queues that remain staff work. It is for platform staff
+and whoever runs an instance.
 
-The operator record is a singleton that represents the platform operator organisation and its
-technical configuration; staff accounts are individual people working within their granted
-permissions. Neither makes an employee a company-appointed register administrator or director. The
-console's Company registers card still names the operator as the keeper of each active company's
-register; that is a legacy label, not the allocation of the register to the company and its
-appointees, and it does not decide who carries the section 168 obligation.
+The operator record is a singleton for the platform operator organisation and its technical
+configuration; staff accounts are people working within their granted permissions. Neither makes an
+employee a company appointee. The console's Company registers card still names the operator as the
+keeper of each active company's register: a legacy label that neither allocates the register nor
+decides who carries the section 168 obligation.
 
 ## Operator configuration
 
-Enter through `/admin/operators/operator/`. It creates the singleton if missing and opens the
-console, with a link to `/admin/operators/operator/1/change/`. Opening the change URL alone on a
-fresh installation redirects to the admin index. `GET /api/operator/` also creates the row lazily,
-using `OPERATOR_NAME`. The console needs the operator's view or change permission, as the
-configuration page does; any other staff member gets the admin's refusal and nothing is created.
-Adding the row by hand also needs the add permission, and the row cannot be deleted.
+Enter through `/admin/operators/operator/`, which creates the singleton if missing and opens the
+console, with a link to `/admin/operators/operator/1/change/`; the change URL alone on a fresh
+installation redirects to the admin index. `GET /api/operator/` also creates the row lazily, using
+`OPERATOR_NAME`. The console needs the operator's view or change permission, as the configuration
+page does; other staff get the admin's refusal and nothing is created. Adding the row by hand also
+needs the add permission, and the row cannot be deleted.
 
 | Admin section | Fields |
 | --- | --- |
@@ -37,8 +34,6 @@ is 2 to 10 letters or digits, uppercased, leaving room for an eight-character co
 The bank-transfer and stablecoin payment instructions and staff-attested subscription receipts are
 retained controls; new integrated AUD payment work is deferred
 ([9 October decision](../decisions.md#essential-registry-and-development-workflow-priority)).
-Externally arranged capital is recorded by the company under
-[external allotments](../business/issuing-shares.md#external-investor-allotments).
 
 Settlement assets must be stablecoins with an active contract deployment on
 `receiving_wallet_chain`; the form refuses any other. Order creation needs exactly one active,
@@ -51,42 +46,41 @@ What the flags require is in [account readiness](../business/participants.md#acc
 (`issuer_kyc_required`). Turn on `issuer_kyc_required` only with a
 [KYC provider configured](configuration.md#identity-verification-providers).
 
-The authenticated operator API (`GET /api/operator/`) exposes the identity, settlement assets,
-eligibility flags and `paymentInstructions`. Payment instructions are non-null only for staff or
-for investors eligible with at least one company; anonymous requests get 401. Configure the payment
-fields and investor eligibility together.
+`GET /api/operator/` returns `paymentInstructions` as null except to staff and to holders of a
+current secondary-market eligibility decision from at least one company, and 401 to anonymous
+requests, so configure the payment fields and investor eligibility together.
 
 ## The operator console
 
 The configuration health strip checks the operator's identity fields, `SHARE_TOKEN_FACTORY_ADDRESS`,
 the payment-reference prefix and the settlement deployments before an offering opens. An empty
-settlement asset set is reported; it leaves only bank-transfer payment available.
+settlement asset set is reported, leaving only bank-transfer payment.
 
 The worklists count company applications waiting, investor classifications awaiting verification,
 offerings awaiting review and offerings at their cap and still open, subscriptions awaiting
 payment, paid and not allotted, or with an unresolved mint, pending whitelist approvals, whitelist
-entries needing [holder standing review](recovery.md#holder-standing-review),
+entries needing [holder standing review](#holder-standing-review),
 share issuance and capital increase requests needing attention, share classes stuck deploying, and
-two register identity queues. Each opens the matching admin list. They read the database without
+two register identity queues. Each opens the matching admin list and reads the database without
 contacting RPC providers.
 
-The two register identity queues count completed allotment addresses, using current whitelist and
+The two register identity queues count completed allotment addresses by current whitelist and
 profile identity: addresses with two wallets, so no member can be named, and addresses with no
 member behind them. They can include former holders and miss transfer-only holders or identities
-available only from a retained stamp, so they are not a complete register audit. Both open the
-unfiltered whitelist changelist, because missing entries cannot be represented by a filter. Use the
-company's register view to locate the address, then resolve duplicates or link the correct named
-wallet ([register identity](../business/register.md#members-holder-types-and-identity)).
+only a retained stamp holds, so they are not a complete register audit. Both open the unfiltered
+whitelist changelist, since a filter cannot show missing entries. Locate the address in the
+company's register view, then resolve duplicates or link the correct named wallet
+([register identity](../business/register.md#members-holder-types-and-identity)).
 
 ### The market
 
 The console's Orders and Settlements buttons open the admin's transfer orders and swap orders, and
-the Order submissions admin page lists every signed request to place an order, refused ones
-included. All three are read-only, because an order changes only through its owner's signed actions
-and the worker. An order links to its share class, owner, wallet, signed actions and settlements; a
-settlement links to both orders and shows the relayed transaction with its status, block and the
-participants' approvals. The admin runs on the operator connection, so these pages show every
-trader's records; like the worklists, they read only the database.
+the Order submissions page lists every signed request to place an order, refused ones included.
+All three are read-only: an order changes only through its owner's signed actions and the worker.
+An order links to its share class, owner, wallet, signed actions and settlements; a settlement links
+to both orders and shows the relayed transaction with its status, block and the participants'
+approvals. Running on the operator connection, these pages show every trader's records, read from
+the database only.
 
 ## Seeding reference data
 
@@ -104,11 +98,11 @@ python manage.py admit_local_signer
 
 The last command admits the operator signer for the local chain (31337) and refuses any other
 chain id; outside Docker, run it only when the backend points at a local chain
-([local chain admission](../engineering/chain.md#local-chain-admission)). The seed
-commands are idempotent. `sync_monitoring_rules` seeds the monitoring rules, whose amounts are AUD;
-without them no rule raises an alert. `sync_procedure_templates` seeds the alert procedure
-templates. The public compliance seed is not a deployment's private monitoring policy. Run them
-before the demo seed, whose alerts link to the monitoring rules when they exist.
+([local chain admission](../engineering/chain.md#local-chain-admission)). The seed commands are
+idempotent. `sync_monitoring_rules` seeds the monitoring rules, whose amounts are AUD; without them
+no rule raises an alert. `sync_procedure_templates` seeds the alert procedure templates. The public
+compliance seed is not a deployment's private monitoring policy. Run them before the demo seed,
+whose alerts link to the monitoring rules when they exist.
 
 `asset_sync --seed-only` upserts the supported assets and their chain deployments and touches no
 network; without it, supported native assets stay unverified and unpriced. It preserves disabled
@@ -119,26 +113,27 @@ unavailable until repaired; a missing or unavailable deployment is not a zero ba
 
 ## Staff review queues
 
+The business tasks staff still perform, with their procedures, are listed under
+[who does what](../business/README.md#who-does-what).
+
 The Document operations group is created empty. Assign only the active platform staff who need
 evidence review: it grants view permissions on documents, extractions and investor
 classifications, not classification approval or editing. Company owners and accounts with company
 roles cannot use cross-customer document review even with document permissions.
 [Read audit](../engineering/security.md#read-audit) explains the review permissions and audit
-writes. Attached payslips supplement human review; extraction never
-verifies a claim.
+writes. Attached payslips supplement human review; extraction never verifies a claim.
 
-Staff keep the technical controls on companies (warning, suspension, delisting, registry retry,
-resolving a warning and reinstatement) described under
-[staff registry controls](../business/companies.md#staff-registry-controls). Offering review,
-recorded payments and the publishing, output and company-pack procedures that staff perform on a
-company's written instruction are described with their business process:
-[offerings](../business/issuing-shares.md#offerings),
-[publishing to members](../business/publications.md#publishing-on-the-companys-instruction),
-[notice figures](../business/member-records.md#preparing-notice-figures),
-[the due list](../business/member-records.md#working-the-due-list) and
-[the company pack](../business/member-records.md#producing-the-broader-pack-in-admin).
-The holder standing queue is worked under
-[recovery](recovery.md#holder-standing-review).
+### Holder standing review
+
+The console's Whitelist entries needing holder standing review counts investor accounts with an
+inactive login, or a rejected, suspended or terminated investment standing, that still hold a live
+or uncertain company approval, each once, from the last observation and without reading the chain;
+the approval inline keeps the last observed company status and expiry. A removed or expired
+approval stays listed while a live company decision remains and standing is not refused, so inspect
+the company and current eligibility before acting; the worklist authorises nothing.
+Self-deletion disables login and keeps evidence without terminating the account or revoking an
+approval: review the account and decisions, record the staff decision, then use the attributed
+refresh or the company's removal. Treasury and company-only accounts are outside this queue.
 
 Next: [recovery](recovery.md), [configuration](configuration.md)
 or [demo data](../getting-started.md#demo-data).

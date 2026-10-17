@@ -28,8 +28,7 @@ are described with that workflow, linked in the table below.
 
 1. Use a clean, reviewed commit with its required CI checks passing.
 2. Configure the PostgreSQL roles, Redis, origin and CSRF settings and the integrations the flow
-   needs ([configuration](configuration.md)). Redis is required even with
-   trading disabled.
+   needs ([configuration](configuration.md)).
 3. Apply the migrations, the role checks and the seed commands
    ([seeding reference data](operator-console.md#seeding-reference-data)).
 4. Confirm `GET /health/` answers 200 and an anonymous `GET /api/operator/` answers 401. The health
@@ -49,8 +48,8 @@ Follow [bring up an instance](#bring-up-an-instance) for the commit,
 configuration, seeds and health checks, on synthetic data and a supported local or public test
 network. A release adds:
 
-1. Back up the database and private storage together, and rehearse the release's migrations on a
-   restored copy before touching the instance.
+1. Back up the database and [private storage](jobs-and-storage.md#private-storage) together, and
+   rehearse the release's migrations on a restored copy before touching the instance.
 2. Stop the API and worker writers where the release says a coordinated cutover is needed. From
    `backend/`, run `python manage.py migrate`, `python manage.py check_rls_roles` and
    `python manage.py check_rls_catalogue`, run the
