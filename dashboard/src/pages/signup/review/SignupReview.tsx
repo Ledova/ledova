@@ -1,13 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 
 import { ClipboardTextIcon } from '@phosphor-icons/react';
-import {
-  formatPhoneWithCountryCode,
-  getAddressDisplayLines,
-  parseAddress,
-  formatSourceOfFunds,
-  formatIntendedUse,
-} from '@ledova/shared';
+import { formatPhoneWithCountryCode, formatSourceOfFunds, formatIntendedUse } from '@ledova/shared';
 import { ICON_LG } from '@components/iconSizes';
 import { useReview } from './useReview';
 import { AuthLayout } from '@components/AuthLayout';
@@ -108,12 +102,12 @@ export function SignupReview() {
                   {formatPhoneWithCountryCode(userProfile.phoneCountryCode, userProfile.phoneNumber)}
                 </span>
               </div>
-              {getAddressDisplayLines(parseAddress(userProfile.residentialAddress ?? '')).map((line, index) => (
-                <div key={index} className="flex justify-between items-center">
-                  <span className="text-sm text-text-muted">{line.label}</span>
-                  <span className="text-sm text-text-primary font-medium">{line.value}</span>
-                </div>
-              ))}
+              <div className="flex justify-between items-start gap-4">
+                <span className="text-sm text-text-muted">Residential address:</span>
+                <span className="min-w-0 whitespace-pre-wrap break-words text-right text-sm text-text-primary font-medium">
+                  {userProfile.residentialAddress || 'Not provided'}
+                </span>
+              </div>
             </div>
           ) : (
             <p className="text-sm text-error-light">No personal information found.</p>

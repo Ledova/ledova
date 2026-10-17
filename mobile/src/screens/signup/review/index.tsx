@@ -8,13 +8,7 @@ import { ClipboardIcon } from 'phosphor-react-native';
 import { layout } from '../../../styles';
 import { useAppTheme, useThemedStyles } from '../../../contexts';
 import { useReview } from './useReview';
-import {
-  formatPhoneWithCountryCode,
-  getAddressDisplayLines,
-  parseAddress,
-  formatSourceOfFunds,
-  formatIntendedUse,
-} from '@ledova/shared';
+import { formatPhoneWithCountryCode, formatSourceOfFunds, formatIntendedUse } from '@ledova/shared';
 import { PUBLIC_LINKS } from '../../../config/publicLinks';
 import { Action } from '../../../components/Ledger';
 
@@ -313,12 +307,10 @@ export function ReviewScreen() {
                       {formatPhoneWithCountryCode(userProfile.phoneCountryCode, userProfile.phoneNumber)}
                     </Text>
                   </View>
-                  {getAddressDisplayLines(parseAddress(userProfile.residentialAddress ?? '')).map((line, index) => (
-                    <View key={index} style={styles.infoRow}>
-                      <Text style={styles.infoLabel}>{line.label}</Text>
-                      <Text style={styles.infoValue}>{line.value}</Text>
-                    </View>
-                  ))}
+                  <View style={styles.infoRow}>
+                    <Text style={styles.infoLabel}>Residential address:</Text>
+                    <Text style={styles.infoValue}>{userProfile.residentialAddress || 'Not provided'}</Text>
+                  </View>
                 </View>
               ) : (
                 <Text style={styles.errorText}>No personal information found.</Text>
