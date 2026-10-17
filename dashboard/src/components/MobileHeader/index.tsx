@@ -4,6 +4,7 @@ import { ListIcon, XIcon } from '@phosphor-icons/react';
 import { NotificationBell } from '@components/NotificationBell';
 import { Sidebar } from '@components/Sidebar';
 import { Logo } from '@components/Logo';
+import { ThemeToggle } from '@components/ThemeToggle';
 import { ICON_MD } from '@components/iconSizes';
 
 export function MobileHeader() {
@@ -29,7 +30,8 @@ export function MobileHeader() {
           <ListIcon size={ICON_MD} />
         </button>
         <Logo />
-        <div className="ml-auto">
+        <div className="ml-auto flex items-center gap-1">
+          <ThemeToggle />
           <NotificationBell align="end" />
         </div>
       </div>
