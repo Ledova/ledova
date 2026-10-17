@@ -61,7 +61,8 @@ export function CompanyShareholders({
   const term = search.trim().toLocaleLowerCase();
   const filtered = shareholders.filter(
     (member) =>
-      member.name.toLocaleLowerCase().includes(term) &&
+      (member.name.toLocaleLowerCase().includes(term) ||
+        member.holdings.some(({ holder }) => holder.name?.toLocaleLowerCase().includes(term))) &&
       (classFilter === 'all' || member.holdings.some(({ register }) => register.token.uuid === classFilter)),
   );
   const visibleClasses =

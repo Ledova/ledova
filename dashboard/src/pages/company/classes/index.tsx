@@ -101,6 +101,14 @@ function ShareClassDetails({ data }: { data: ReturnType<typeof useShareClass> })
   const [copyError, setCopyError] = useState(false);
   const preferences = useUserPreferences();
   const preferencesRead = useQueryClient().getQueryState(USER_PREFERENCES_QUERY_KEY);
+  const registerReady =
+    !!preferences.preferences &&
+    preferencesRead?.status === 'success' &&
+    preferences.fetchStatus === 'idle' &&
+    data.token.isSuccess &&
+    data.token.fetchStatus === 'idle' &&
+    data.register.isSuccess &&
+    data.register.fetchStatus === 'idle';
   const token = data.token.data;
   const content = () => {
     if (data.token.isPending) return <p role="status">Loading share class…</p>;
@@ -224,16 +232,10 @@ function ShareClassDetails({ data }: { data: ReturnType<typeof useShareClass> })
             </p>
           )}
           <ReadResult query={data.register} label="register">
-            {data.register.data && <ClassRegister register={data.register.data} />}
+            {registerReady && data.register.data && <ClassRegister register={data.register.data} />}
           </ReadResult>
         </Section>
-        {!!preferences.preferences &&
-          preferencesRead?.status === 'success' &&
-          preferences.fetchStatus === 'idle' &&
-          data.token.isSuccess &&
-          data.token.fetchStatus === 'idle' &&
-          data.register.isSuccess &&
-          data.register.fetchStatus === 'idle' && <CompanyShareholders registers={[data.register.data]} />}
+        {registerReady && data.register.data && <CompanyShareholders registers={[data.register.data]} />}
         {data.isOwner && (
           <Section title="Issuance requests">
             <ReadResult query={data.requests} label="issuance requests">
