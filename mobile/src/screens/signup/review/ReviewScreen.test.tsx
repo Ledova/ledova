@@ -6,6 +6,7 @@ import { ReviewScreen } from '.';
 
 const mockReset = jest.fn();
 const mockComplete = jest.fn();
+const mockResidentialAddress = '17 Example Street,\nSydney NSW 2000, Australia';
 let mockProfileComplete = false;
 let mockProfileError = false;
 let mockSavedRequest: {
@@ -42,7 +43,10 @@ jest.mock('@ledova/shared', () => {
       const [ready, setReady] = useState(false);
       const [error, setError] = useState<string | null>(null);
       return {
-        data: { userProfile: { fullName: 'Alex Company' }, financialProfile: null },
+        data: {
+          userProfile: { fullName: 'Alex Company', residentialAddress: mockResidentialAddress },
+          financialProfile: null,
+        },
         company: { uuid: 'company-one', name: 'Paper Company', acn: '123456789' },
         isCompany: true,
         isLoading: false,
@@ -91,6 +95,10 @@ it('accepts company authority and Terms through explicit completion without uplo
   );
   const first = await render(<ReviewScreen />, { wrapper });
   expect(first.getByRole('button', { name: 'Complete company setup' })).toBeEnabled();
+  expect(first.getByText('Residential address:')).toBeTruthy();
+  expect(first.getByText(mockResidentialAddress, { normalizer: (value) => value }).props.children).toBe(
+    mockResidentialAddress,
+  );
   expect(first.queryByRole('checkbox')).toBeNull();
   expect(
     first.getByText(/By completing setup, you confirm that you are authorised to administer Paper Company/),

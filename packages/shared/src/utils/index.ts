@@ -27,7 +27,6 @@ export {
   formatWalletAddressMedium,
 } from './validation/wallets';
 export { hasActiveFilters } from './filters';
-export { parseAddress, getAddressDisplayLines } from './address';
 export { formatPhoneForDisplay, formatPhoneWithCountryCode, cleanPhoneNumber } from './phoneFormatting';
 export { formatSourceOfFunds, sourceOfFundsChoices, formatIntendedUse } from './formatting-labels';
 export { validateUserProfileField } from './user-validation';

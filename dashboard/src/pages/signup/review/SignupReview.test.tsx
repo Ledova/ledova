@@ -16,8 +16,9 @@ import { appointmentReceipt } from '../../company/team/appointments';
 vi.mock('./useReview', () => ({ useReview: vi.fn() }));
 
 it('reuses saved company details and clearly accepts authority and Terms through explicit completion without checkboxes or uploads', () => {
+  const address = '17 Example Street,\nSydney NSW 2000, Australia';
   const state = {
-    data: { userProfile: { fullName: 'Example Director', residentialAddress: '' }, financialProfile: null },
+    data: { userProfile: { fullName: 'Example Director', residentialAddress: address }, financialProfile: null },
     company: { uuid: 'company-a', name: 'Example Company', acn: '123456789', companyType: 'pty' },
     isCompany: true,
     isLoading: false,
@@ -41,6 +42,8 @@ it('reuses saved company details and clearly accepts authority and Terms through
   );
   expect(screen.getByRole('heading', { name: 'Complete company setup' })).toBeTruthy();
   expect(screen.getByText('Example Company')).toBeTruthy();
+  expect(screen.getByText('Residential address:')).toBeTruthy();
+  expect(screen.getByText(address, { normalizer: (value) => value }).textContent).toBe(address);
   expect(screen.getByRole('button', { name: 'Complete company setup' }).hasAttribute('disabled')).toBe(true);
   expect(screen.queryByRole('checkbox')).toBeNull();
   expect(screen.queryByLabelText('Supporting document')).toBeNull();
