@@ -1,3 +1,4 @@
+import { useLayoutEffect, useRef } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import {
   REGISTER_COPY,
@@ -73,20 +74,32 @@ export function ImportRecord({
   guard,
   onDecided,
   onRefused,
+  visible = true,
+  onHeldChange,
 }: {
   proposal: RegisterImport;
   steps: RegisterSteps;
   guard: () => void;
   onDecided: () => Promise<unknown>;
   onRefused: () => Promise<unknown>;
+  visible?: boolean;
+  onHeldChange?: (uuid: string, held: boolean) => void;
 }) {
+  const available = useRef(visible);
+  useLayoutEffect(() => {
+    available.current = visible;
+  }, [visible]);
+  const check = () => {
+    guard();
+    if (!available.current) throw new Error('Open the current register task before reading or deciding this record.');
+  };
   const download = useMutation({
     mutationFn: async (copy: 'register' | 'asic') => {
-      guard();
+      check();
       const { data } = await downloadRegisterImportFile(apiClient, proposal.uuid, copy, {
-        ledovaSubmissionGuard: guard,
+        ledovaSubmissionGuard: check,
       });
-      guard();
+      check();
       saveFile(
         data,
         copy === 'asic'
@@ -97,62 +110,69 @@ export function ImportRecord({
   });
   const totals = registerImportTotals(proposal.members);
   return (
-    <li className="flex flex-col gap-3 py-4">
-      <Rows>
-        <Row label="Stage">
-          <Status tone={STAGE_TONES[proposal.stage] ?? 'waiting'}>
-            {REGISTER_IMPORT_COPY.STAGES[proposal.stage] ?? proposal.stage}
-          </Status>
-        </Row>
-        {proposal.preparedByName !== null && <Row label="Prepared by">{proposal.preparedByName || 'Not provided'}</Row>}
-        <Row label="Prepared on">{formatDateTime(proposal.createdAt)}</Row>
-        <Row label="Record date">{proposal.asAt}</Row>
-        {proposal.sourceReference && <Row label="Source record">{proposal.sourceReference}</Row>}
-        {proposal.correctionOf && <Row label="Corrects copied opening">{proposal.correctionOf}</Row>}
-        <Row label="Reason">{proposal.reason}</Row>
-        <DecisionTrail proposal={proposal} labels={REGISTER_IMPORT_COPY.DECISIONS} />
-      </Rows>
-      <p className="text-sm text-text-muted">
-        {proposal.providedBy === 'company'
-          ? REGISTER_IMPORT_COPY.PROVIDED_BY_COMPANY
-          : REGISTER_IMPORT_COPY.STAFF_VERIFIED}
-      </p>
-      {(proposal.asicIssuedTotal !== null || proposal.asicMemberCount !== null) && (
-        <p className="text-sm text-text-primary">
-          {proposal.asicIssuedTotal === null
-            ? REGISTER_IMPORT_COPY.STATED_COUNT(proposal.asicMemberCount!)
-            : proposal.asicMemberCount === null
-              ? REGISTER_IMPORT_COPY.STATED_TOTAL(formatShareCount(proposal.asicIssuedTotal))
-              : REGISTER_IMPORT_COPY.STATED_FIGURES(
-                  formatShareCount(proposal.asicIssuedTotal),
-                  proposal.asicMemberCount,
-                )}
-        </p>
-      )}
-      <p className="text-sm text-text-primary">
-        {REGISTER_IMPORT_COPY.IMPORTED_FIGURES(formatShareCount(totals.total), totals.count)}
-      </p>
-      <MemberRecords members={proposal.members} />
-      <div className="flex flex-wrap gap-2">
-        {(proposal.registerEvidence || proposal.sourceDocument) && (
-          <PageAction
-            label={REGISTER_IMPORT_COPY.DOWNLOAD_REGISTER}
-            disabled={download.isPending}
-            onClick={() => download.mutate('register')}
-          />
-        )}
-        {proposal.asicEvidence !== null && (
-          <PageAction
-            label={REGISTER_IMPORT_COPY.DOWNLOAD_ASIC}
-            disabled={download.isPending}
-            onClick={() => download.mutate('asic')}
-          />
-        )}
-      </div>
-      {download.isError && (
-        <p role="alert" className="text-sm text-error-light">
-          {apiErrorSentence(download.error, DOWNLOAD_FAILED, DOWNLOAD_FAILED)}
-        </p>
+    <li hidden={!visible} className="flex flex-col gap-3 py-4">
+      {visible && (
+        <details open={proposal.status === 'submitted'} className="space-y-3">
+          <summary className="cursor-pointer text-sm font-medium text-text-primary">{`${proposal.correctionOf ? 'Copied opening correction' : 'Copied opening'} · ${formatDate(proposal.asAt)} · ${REGISTER_IMPORT_COPY.STAGES[proposal.stage] ?? proposal.stage}`}</summary>
+          <Rows>
+            <Row label="Stage">
+              <Status tone={STAGE_TONES[proposal.stage] ?? 'waiting'}>
+                {REGISTER_IMPORT_COPY.STAGES[proposal.stage] ?? proposal.stage}
+              </Status>
+            </Row>
+            {proposal.preparedByName !== null && (
+              <Row label="Prepared by">{proposal.preparedByName || 'Not provided'}</Row>
+            )}
+            <Row label="Prepared on">{formatDateTime(proposal.createdAt)}</Row>
+            <Row label="Record date">{proposal.asAt}</Row>
+            {proposal.sourceReference && <Row label="Source record">{proposal.sourceReference}</Row>}
+            {proposal.correctionOf && <Row label="Corrects copied opening">{proposal.correctionOf}</Row>}
+            <Row label="Reason">{proposal.reason}</Row>
+            <DecisionTrail proposal={proposal} labels={REGISTER_IMPORT_COPY.DECISIONS} />
+          </Rows>
+          <p className="text-sm text-text-muted">
+            {proposal.providedBy === 'company'
+              ? REGISTER_IMPORT_COPY.PROVIDED_BY_COMPANY
+              : REGISTER_IMPORT_COPY.STAFF_VERIFIED}
+          </p>
+          {(proposal.asicIssuedTotal !== null || proposal.asicMemberCount !== null) && (
+            <p className="text-sm text-text-primary">
+              {proposal.asicIssuedTotal === null
+                ? REGISTER_IMPORT_COPY.STATED_COUNT(proposal.asicMemberCount!)
+                : proposal.asicMemberCount === null
+                  ? REGISTER_IMPORT_COPY.STATED_TOTAL(formatShareCount(proposal.asicIssuedTotal))
+                  : REGISTER_IMPORT_COPY.STATED_FIGURES(
+                      formatShareCount(proposal.asicIssuedTotal),
+                      proposal.asicMemberCount,
+                    )}
+            </p>
+          )}
+          <p className="text-sm text-text-primary">
+            {REGISTER_IMPORT_COPY.IMPORTED_FIGURES(formatShareCount(totals.total), totals.count)}
+          </p>
+          <MemberRecords members={proposal.members} />
+          <div className="flex flex-wrap gap-2">
+            {(proposal.registerEvidence || proposal.sourceDocument) && (
+              <PageAction
+                label={REGISTER_IMPORT_COPY.DOWNLOAD_REGISTER}
+                disabled={download.isPending}
+                onClick={() => download.mutate('register')}
+              />
+            )}
+            {proposal.asicEvidence !== null && (
+              <PageAction
+                label={REGISTER_IMPORT_COPY.DOWNLOAD_ASIC}
+                disabled={download.isPending}
+                onClick={() => download.mutate('asic')}
+              />
+            )}
+          </div>
+          {download.isError && (
+            <p role="alert" className="text-sm text-error-light">
+              {apiErrorSentence(download.error, DOWNLOAD_FAILED, DOWNLOAD_FAILED)}
+            </p>
+          )}
+        </details>
       )}
       <RegisterDecisions
         family={REGISTER_IMPORT_DECISIONS}
@@ -161,6 +181,9 @@ export function ImportRecord({
         proposal={proposal}
         steps={steps}
         guard={guard}
+        newEffectGuard={check}
+        visible={visible}
+        onHeldChange={onHeldChange}
         onDecided={onDecided}
         onRefused={onRefused}
         note={(kind, preview) =>

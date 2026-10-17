@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
+  DESTINATIONS,
   REGISTER_ALLOTMENT_COPY as COPY,
   appointmentForRegisterStep,
   hasCurrentRegisterReadAuthority,
@@ -12,6 +13,7 @@ import { registerSteps } from './proposals';
 import { entriesKey } from './useRegisterCorrections';
 import { registerKey } from './useCompanyRegister';
 import { PageAction } from '@components/Page';
+import { LinkRow } from '@components/Ledger';
 import { AllotmentForm } from './AllotmentForm';
 import { AllotmentRecord } from './AllotmentRecord';
 import { useOwnAppointments } from './useRegisterImports';
@@ -25,6 +27,7 @@ export function ClassAllotments({
   register,
   guard,
   sourceReady = true,
+  visible = true,
   onHeldChange,
 }: {
   owner: OrderSubmissionOwner;
@@ -32,6 +35,7 @@ export function ClassAllotments({
   register: TokenHoldersResponse;
   guard: () => void;
   sourceReady?: boolean;
+  visible?: boolean;
   onHeldChange?: (token: string, held: boolean) => void;
 }) {
   const client = useQueryClient();
@@ -91,9 +95,9 @@ export function ClassAllotments({
     appointments.isError ||
     !supported;
   useLayoutEffect(() => {
-    writeReady.current = !blocked;
-    privateAvailable.current = privateReady;
-  }, [blocked, privateReady]);
+    writeReady.current = !blocked && visible;
+    privateAvailable.current = privateReady && visible;
+  }, [blocked, privateReady, visible]);
   const recordHeld = useCallback((uuid: string, held: boolean) => {
     setDecisionHolds((current) => (current[uuid] === held ? current : { ...current, [uuid]: held }));
   }, []);
@@ -118,6 +122,22 @@ export function ClassAllotments({
     <div className="mt-4 flex flex-col gap-3 border-t border-border-subtle pt-4">
       <h3 className="text-sm font-medium text-text-primary">{COPY.TITLE}</h3>
       <p className="text-sm text-text-muted">{COPY.NOTE}</p>
+      {!supported && sourceReady && (
+        <p className="text-sm text-text-muted">
+          {register.token.status === 'draft'
+            ? 'Set up this share register before recording an investor share issue.'
+            : 'Tokenised share issue controls remain in Share class settings.'}
+        </p>
+      )}
+      {!supported && appointment && privateReady && (
+        <LinkRow
+          to={(register.token.status === 'draft'
+            ? DESTINATIONS.companyRegisterImport
+            : DESTINATIONS.companyClass
+          ).path.replace(':uuid', token)}
+          label={register.token.status === 'draft' ? 'Set up share register' : 'Share class settings'}
+        />
+      )}
       {appointments.isError && (
         <>
           <p role="alert" className="text-sm text-error-light">
@@ -175,7 +195,7 @@ export function ClassAllotments({
               throw new Error('Refresh the register and your preparation appointment.');
           }}
           blocked={blocked || members.isFetching}
-          visible={privateReady && members.isSuccess && !members.isFetching}
+          visible={visible && privateReady && members.isSuccess && !members.isFetching}
           onHeldChange={setFormHeld}
           onRecorded={async () => {
             check();
@@ -200,14 +220,15 @@ export function ClassAllotments({
               External allotments could not be read. A current company register appointment is required.
             </p>
           )}
-          {privateReady && allotments.data?.length === 0 && <p className="text-sm text-text-muted">{COPY.EMPTY}</p>}
         </>
       )}
-      <PageAction
-        label={allotments.isError ? 'Retry allotments' : 'Refresh allotments'}
-        disabled={allotments.isFetching || appointments.isFetching}
-        onClick={() => void refresh().catch(() => {})}
-      />
+      {allotments.isError && (
+        <PageAction
+          label="Retry allotments"
+          disabled={allotments.isFetching || appointments.isFetching}
+          onClick={() => void refresh().catch(() => {})}
+        />
+      )}
       <ul className="space-y-4">
         {allotments.data?.map((allotment) => (
           <AllotmentRecord
@@ -215,7 +236,7 @@ export function ClassAllotments({
             allotment={allotment}
             steps={registerSteps(appointments.isSuccess ? appointments.data : [], company)}
             guard={financialGuard}
-            visible={privateReady}
+            visible={visible && privateReady}
             onHeldChange={recordHeld}
             newEffectGuard={(kind) => {
               check();

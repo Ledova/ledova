@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useQueryClient, type QueryKey } from '@tanstack/react-query';
 import {
   ACKNOWLEDGEABLE_DISCREPANCIES,
@@ -6,6 +6,7 @@ import {
   REGISTER_RECONCILIATION_COPY,
   appointmentForAcknowledgement,
   formatDateTime,
+  hasCurrentRegisterReadAuthority,
   formatShareCount,
   useDiscrepancyAcknowledgement,
   type OrderSubmissionOwner,
@@ -60,12 +61,18 @@ export function ClassReconciliation({
   token,
   company,
   holders,
+  status,
+  visible = true,
+  onHeldChange,
 }: {
   owner: OrderSubmissionOwner;
   guard: () => void;
   token: string;
   company: string;
   holders: Holders;
+  status: TokenHoldersResponse['token']['status'];
+  visible?: boolean;
+  onHeldChange?: (token: string, uuid: string, held: boolean) => void;
 }) {
   const client = useQueryClient();
   const appointments = useOwnAppointments(owner, guard);
@@ -75,6 +82,21 @@ export function ClassReconciliation({
   const [open, setOpen] = useState<{ record: string; index: number; appointment: string } | null>(null);
   const [reason, setReason] = useState('');
   const [attempted, setAttempted] = useState(false);
+  const privateReady =
+    visible &&
+    reconciliation.isSuccess &&
+    reconciliation.fetchStatus === 'idle' &&
+    appointments.isSuccess &&
+    appointments.fetchStatus === 'idle' &&
+    hasCurrentRegisterReadAuthority(appointments.data, company);
+  const available = useRef(privateReady);
+  useLayoutEffect(() => {
+    available.current = privateReady;
+  }, [privateReady]);
+  const check = () => {
+    guard();
+    if (!available.current) throw new Error('Refresh the current reconciliation and company appointment.');
+  };
   const refresh = async (keys: QueryKey[]) => {
     try {
       guard();
@@ -86,17 +108,23 @@ export function ClassReconciliation({
   const acknowledgement = useDiscrepancyAcknowledgement(apiClient, record, {
     appointment: acknowledger?.uuid,
     newKey: () => crypto.randomUUID(),
-    guard,
-    requestConfig: () => ({ ledovaSubmissionGuard: guard }),
+    guard: check,
+    requestConfig: () => ({ ledovaSubmissionGuard: check }),
     onAcknowledged: async () => {
       setOpen(null);
       await refresh([reconciliationKey(owner, token)]);
     },
     onRefused: () => refresh([reconciliationKey(owner, token), ownAppointmentsKey(owner)]),
   });
+  const held = acknowledgement.busy || (!!open && attempted && !!acknowledgement.error);
+  const heldUuid = open?.record ?? 'reconciliation';
+  useEffect(() => {
+    onHeldChange?.(token, heldUuid, held);
+    return () => onHeldChange?.(token, heldUuid, false);
+  }, [onHeldChange, token, heldUuid, held]);
   const row = open && record?.uuid === open.record ? record.discrepancies[open.index] : undefined;
   const current = !!open && !!row?.acknowledgeable && acknowledger?.uuid === open.appointment;
-  const ready = current && !!reason.trim() && !acknowledgement.busy;
+  const ready = privateReady && current && !!reason.trim() && !acknowledgement.busy;
   const offered = (item: RegisterDiscrepancy) =>
     !!acknowledger && item.acknowledgeable && ACKNOWLEDGEABLE_DISCREPANCIES.includes(item.kind);
   const begin = (index: number) => {
@@ -108,6 +136,16 @@ export function ClassReconciliation({
   const close = () => {
     if (!acknowledgement.busy) setOpen(null);
   };
+  if (
+    !visible ||
+    (reconciliation.isSuccess &&
+      reconciliation.fetchStatus === 'idle' &&
+      !record &&
+      !['deployed', 'paused'].includes(status) &&
+      !open &&
+      !held)
+  )
+    return null;
   return (
     <div className="mt-4 flex flex-col gap-3 border-t border-border-subtle pt-4">
       <h3 className="text-sm font-medium text-text-primary">{COPY.TITLE}</h3>
@@ -136,7 +174,7 @@ export function ClassReconciliation({
             disabled={reconciliation.isFetching}
           />
         </div>
-      ) : !record ? (
+      ) : !privateReady ? null : !record ? (
         <p className="text-sm text-text-muted">{COPY.EMPTY}</p>
       ) : (
         <>
@@ -193,52 +231,58 @@ export function ClassReconciliation({
           )}
         </>
       )}
-      <Modal
-        isOpen={!!open}
-        onClose={close}
-        title={TITLE}
-        showFooter
-        confirmLabel={TITLE}
-        confirmLoading={acknowledgement.busy}
-        confirmDisabled={!ready}
-        onConfirm={() => {
-          if (!ready || !open) return;
-          setAttempted(true);
-          void acknowledgement.acknowledge(open.index, reason.trim());
-        }}
-        size="lg"
-      >
-        {open && (
-          <div className="flex flex-col gap-3">
-            {row && <Discrepancy row={row} holders={holders} />}
-            <p className="text-sm text-text-muted">{COPY.ACKNOWLEDGEMENT_NOTE}</p>
-            <label className={LABEL}>
-              {COPY.ACKNOWLEDGE_REASON}
-              <textarea
-                className={FIELD_CLASS}
-                rows={3}
-                maxLength={1000}
-                value={reason}
-                disabled={acknowledgement.busy}
-                onChange={(event) => {
-                  setAttempted(false);
-                  setReason(event.target.value);
-                }}
-              />
-            </label>
-            {attempted && acknowledgement.error && (
-              <p role="alert" className="text-sm text-error-light">
-                {acknowledgement.error}
-              </p>
-            )}
-            {!current && (
-              <p role="alert" className="text-sm text-error-light">
-                {CHANGED}
-              </p>
-            )}
-          </div>
-        )}
-      </Modal>
+      {open && (
+        <Modal
+          isOpen={!!open}
+          onClose={close}
+          title={TITLE}
+          showFooter
+          confirmLabel={TITLE}
+          confirmLoading={acknowledgement.busy}
+          confirmDisabled={!ready}
+          onConfirm={() => {
+            if (!ready || !open) return;
+            setAttempted(true);
+            void acknowledgement.acknowledge(open.index, reason.trim());
+          }}
+          size="lg"
+        >
+          {privateReady ? (
+            <div className="flex flex-col gap-3">
+              {row && <Discrepancy row={row} holders={holders} />}
+              <p className="text-sm text-text-muted">{COPY.ACKNOWLEDGEMENT_NOTE}</p>
+              <label className={LABEL}>
+                {COPY.ACKNOWLEDGE_REASON}
+                <textarea
+                  className={FIELD_CLASS}
+                  rows={3}
+                  maxLength={1000}
+                  value={reason}
+                  disabled={acknowledgement.busy}
+                  onChange={(event) => {
+                    setAttempted(false);
+                    setReason(event.target.value);
+                  }}
+                />
+              </label>
+              {attempted && acknowledgement.error && (
+                <p role="alert" className="text-sm text-error-light">
+                  {acknowledgement.error}
+                </p>
+              )}
+              {!current && (
+                <p role="alert" className="text-sm text-error-light">
+                  {CHANGED}
+                </p>
+              )}
+            </div>
+          ) : (
+            <p role="alert" className="text-sm text-error-light">
+              {CHANGED}
+            </p>
+          )}
+        </Modal>
+      )}
     </div>
   );
 }

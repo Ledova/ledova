@@ -18,6 +18,8 @@ import {
 } from '../../../../../packages/shared/tests/fixtures/external-allotments';
 import CompanyRegisterPage from '.';
 import { companyPreferences, renderCompanyPage } from '../testSupport';
+import { ownAppointmentsKey } from '../team/appointments';
+import { allotmentsKey } from './useRegisterAllotments';
 
 const api = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn() }));
 const save = vi.hoisted(() => vi.fn());
@@ -48,7 +50,20 @@ it('preserves original preparation and issue recovery through refresh, keeps app
   let pauseRead = false;
   let releaseRead: (() => void) | undefined;
   let releaseFile: (() => void) | undefined;
-  api.get.mockReset().mockImplementation(async (url) => {
+  const preference = {
+    ...REGISTER,
+    token: { ...REGISTER.token, uuid: 'preference', name: 'Preference shares', symbol: 'PRF' },
+  };
+  const owner = { userUuid: 'profile-one', ownerAccountUuid: 'account-one' };
+  const refreshAllotments = async () => {
+    await act(async () => {
+      await client.refetchQueries({ queryKey: ownAppointmentsKey(owner), exact: true });
+    });
+    act(() => {
+      void client.refetchQueries({ queryKey: allotmentsKey(owner, REGISTER.token.uuid), exact: true });
+    });
+  };
+  api.get.mockReset().mockImplementation(async (url, config?: { params?: { token?: string } }) => {
     if (url === '/api/user-preferences/') {
       return { data: companyPreferences() };
     }
@@ -57,6 +72,7 @@ it('preserves original preparation and issue recovery through refresh, keeps app
         data: {
           results: [
             { uuid: REGISTER.token.uuid, companyUuid: APPOINTMENT.company, companyName: APPOINTMENT.companyName },
+            { uuid: preference.token.uuid, companyUuid: APPOINTMENT.company, companyName: APPOINTMENT.companyName },
           ],
           next: null,
         },
@@ -86,9 +102,11 @@ it('preserves original preparation and issue recovery through refresh, keeps app
             }
           : REGISTER,
       };
+    if (url === URLS.HOLDERS(preference.token.uuid)) return { data: preference };
     if (url === URLS.REGISTER_LINK_WAITING_WALLETS) return { data: { wallets: [] } };
     if (url === '/api/v1/company-authority/appointments/') return { data: { results: appointments, next: null } };
     if (url === URLS.REGISTER_ALLOTMENTS) {
+      if (config?.params?.token === preference.token.uuid) return { data: { results: [], next: null } };
       if (pauseRead)
         return new Promise((resolve, reject) => {
           releaseRead = () =>
@@ -152,10 +170,12 @@ it('preserves original preparation and issue recovery through refresh, keeps app
     throw new Error(`Unexpected POST ${url}`);
   });
   renderCompanyPage(client, <CompanyRegisterPage />, 'Register');
-  const tasks = (
-    await screen.findByRole('heading', { name: `${REGISTER.token.name} · ${REGISTER.token.symbol}` })
-  ).closest('details[data-register-tasks]')!;
-  fireEvent.click(tasks.querySelector('summary')!);
+  const investorTask = await screen.findByRole('button', { name: 'Record investor share issue' });
+  const transferTask = screen.getByRole('button', { name: 'Transfer shares' });
+  const historyTask = screen.getByRole('button', { name: 'History' });
+  fireEvent.click(investorTask);
+  const taskClass = (await screen.findByLabelText('Task share class')) as HTMLSelectElement;
+  fireEvent.change(taskClass, { target: { value: REGISTER.token.uuid } });
   const allotments = within((await screen.findByRole('heading', { name: COPY.TITLE })).parentElement!);
   const open = await allotments.findByRole('button', { name: COPY.PREPARE });
   await waitFor(() => expect((open as HTMLButtonElement).disabled).toBe(false));
@@ -193,8 +213,15 @@ it('preserves original preparation and issue recovery through refresh, keeps app
   await allotments.findByRole('alert');
   expect(rows[0].registerEntry).toBeNull();
   expect(allotments.getByLabelText(COPY.CONSIDERATION).matches(':disabled')).toBe(true);
+  expect(taskClass.disabled).toBe(true);
+  expect(investorTask.matches(':disabled')).toBe(true);
+  expect(transferTask.matches(':disabled')).toBe(true);
+  expect(historyTask.matches(':disabled')).toBe(true);
+  fireEvent.click(historyTask);
+  expect(taskClass.value).toBe(REGISTER.token.uuid);
+  expect(allotments.getByLabelText(COPY.CONSIDERATION)).toBeTruthy();
   failedRead = true;
-  fireEvent.click(allotments.getByRole('button', { name: 'Refresh allotments' }));
+  await refreshAllotments();
   await allotments.findByText(/External allotments could not be read/);
   expect(allotments.queryByLabelText('Investor name')).toBeNull();
   failedRead = false;
@@ -220,9 +247,15 @@ it('preserves original preparation and issue recovery through refresh, keeps app
     }
   }
   await allotments.findByRole('button', { name: /^Recover record issue receipt/ });
+  expect(taskClass.disabled).toBe(true);
+  expect(transferTask.matches(':disabled')).toBe(true);
+  expect(historyTask.matches(':disabled')).toBe(true);
+  fireEvent.click(transferTask);
+  expect(taskClass.value).toBe(REGISTER.token.uuid);
+  expect(allotments.getByRole('button', { name: /^Recover record issue receipt/ })).toBeTruthy();
   pauseRead = true;
   failedRead = true;
-  fireEvent.click(allotments.getByRole('button', { name: 'Refresh allotments' }));
+  await refreshAllotments();
   await waitFor(() => expect(releaseRead).toBeTypeOf('function'));
   await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
   expect(document.body.textContent).not.toContain(ALLOTMENT_REQUEST.name);
@@ -263,7 +296,7 @@ it('preserves original preparation and issue recovery through refresh, keeps app
   fireEvent.click(allotments.getByRole('button', { name: /^Download receipt/ }));
   await waitFor(() => expect(releaseFile).toBeTypeOf('function'));
   failedRead = true;
-  fireEvent.click(allotments.getByRole('button', { name: 'Refresh allotments' }));
+  await refreshAllotments();
   await allotments.findByText(/External allotments could not be read/);
   expect(allotments.queryByText('entry-a')).toBeNull();
   expect(allotments.queryByText(ALLOTMENT_REQUEST.agreementReference)).toBeNull();
@@ -277,20 +310,20 @@ it('preserves original preparation and issue recovery through refresh, keeps app
   expect(allotments.getByText('entry-a')).toBeTruthy();
   expect(allotments.getByText(ALLOTMENT_REQUEST.agreementReference)).toBeTruthy();
   appointments = [{ ...APPOINTMENT, capabilities: ['finance'] }];
-  fireEvent.click(allotments.getByRole('button', { name: 'Refresh allotments' }));
+  await refreshAllotments();
   await waitFor(() => expect(allotments.queryByText('entry-a')).toBeNull());
   expect(allotments.queryByText(ALLOTMENT_REQUEST.agreementReference)).toBeNull();
   expect(allotments.queryByRole('button', { name: /^Download receipt/ })).toBeNull();
   interruptedAbsentPreparation = true;
   appointments = [APPOINTMENT];
-  fireEvent.click(allotments.getByRole('button', { name: 'Refresh allotments' }));
+  await refreshAllotments();
   fireEvent.click(await allotments.findByRole('button', { name: COPY.PREPARE }));
   await allotments.findByLabelText('Investor name');
   fillForm('250');
   fireEvent.click(allotments.getByRole('button', { name: COPY.SUBMIT }));
   await allotments.findByText(COPY.PREPARATION_RECEIPT_FAILED);
   appointments = [{ ...APPOINTMENT, uuid: 'replacement-preparation-appointment' }];
-  fireEvent.click(allotments.getByRole('button', { name: 'Refresh allotments' }));
+  await refreshAllotments();
   await allotments.findByLabelText('Investor name');
   fireEvent.click(allotments.getByRole('button', { name: COPY.SUBMIT }));
   await allotments.findByText(
@@ -308,6 +341,19 @@ it('preserves original preparation and issue recovery through refresh, keeps app
   const close = allotments.getByRole('button', { name: 'Close allotment form' });
   await waitFor(() => expect(close.matches(':disabled')).toBe(false));
   fireEvent.click(close);
+  expect(rows[0].registerEntry).toBe('entry-a');
+  expect(rows[0].decisions).toHaveLength(2);
+  await waitFor(() => expect(taskClass.disabled).toBe(false));
+  expect(historyTask.matches(':disabled')).toBe(false);
+  fireEvent.click(historyTask);
+  fireEvent.change(taskClass, { target: { value: preference.token.uuid } });
+  expect(
+    await screen.findByRole('heading', { name: `${preference.token.name} · ${preference.token.symbol}` }),
+  ).toBeTruthy();
+  expect(screen.queryByText('entry-a')).toBeNull();
+  fireEvent.change(taskClass, { target: { value: REGISTER.token.uuid } });
+  fireEvent.click(investorTask);
+  await allotments.findByText('Shares issued');
   expect(rows[0].registerEntry).toBe('entry-a');
   expect(rows[0].decisions).toHaveLength(2);
 });

@@ -204,16 +204,23 @@ particulars offered under a current preparation appointment. Incomplete reads
 withhold the table rather than imply missing holdings are zero. Class settings
 reuse the same table for that class, with read-only Details and former-member
 records withheld while its account, class or holding reads are unavailable or
-refreshing. Class issue tasks and retained history follow in disclosures that keep unfinished requests
-mounted. Native ownership retains its per-class view. Employee awards and
+refreshing. Web Register tasks offer Record investor share issue, Transfer
+shares and History, with one share-class selector and only the selected task
+visible. Unfinished requests keep their original class, payload and retry key;
+held work locks company, task and class selection while its controllers remain
+mounted. History shows concise entries with snapshots, corrections, documents
+and certificate controls available on demand. Successful empty technical
+sections are omitted; failed reads and uncertain decisions retain their retry
+and recovery controls. Native ownership retains its per-class view. Employee awards and
 non-paid issues have their own destination;
 Documents holds register CSV, inspection copies and the company pack. The web
-Dashboard and Register link to [manual ownership setup](../operations/register-foundation.md#importing-an-existing-register),
-with confirmation recovery and bounded corrections of the latest opening; the
+Dashboard links to [manual ownership setup](../operations/register-foundation.md#importing-an-existing-register)
+when no share classes are readable; History offers bounded corrections of the latest
+copied opening, retaining confirmation recovery. The
 company retains its legal records and access arrangements. Member
 invitations use named company members or award recipients with exact IDs retained
-internally. Invitations, particulars, wallet links, other changes and technical
-history sit in secondary disclosures, which preserve their mounted recovery state.
+internally. Web invitations live in Settings; particulars and wallet-link
+records are available in History, preserving their mounted recovery state.
 Each named award shows promised, vested, issued and available quantities. On
 web its chart separates unvested, vested but unissued, and issued shares,
 with Record vesting and Issue vested shares in context. Preparing its issue
@@ -247,8 +254,8 @@ read, and a correction lookup that answers with entries it was not asked for
 fail the read. The reconciliation shows status, block, compared sequence, time,
 any failure and each discrepancy in words with its acknowledgement (reason,
 who gave it, when, and whether the company or, earlier, platform staff gave
-it); rows needing attribution say so and offer nothing, and a class without a
-reconciliation says so.
+it); rows needing attribution say so and offer nothing. An applicable tokenised
+class without a reconciliation says so.
 
 The person's own current appointments decide which steps a proposal offers:
 approval and rejection need administration or `approve`, application

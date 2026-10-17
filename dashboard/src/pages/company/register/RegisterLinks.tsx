@@ -1,5 +1,11 @@
 import { useQueryClient } from '@tanstack/react-query';
-import { DESTINATIONS, REGISTER_LINK_COPY, type OrderSubmissionOwner, type TokenHoldersResponse } from '@ledova/shared';
+import {
+  DESTINATIONS,
+  REGISTER_LINK_COPY,
+  hasCurrentRegisterReadAuthority,
+  type OrderSubmissionOwner,
+  type TokenHoldersResponse,
+} from '@ledova/shared';
 import { LinkRow, Section } from '@components/Ledger';
 import { PageAction } from '@components/Page';
 import { ownAppointmentsKey } from '../team/appointments';
@@ -16,16 +22,27 @@ export function RegisterLinks({
   guard,
   company,
   registers,
+  visible = true,
+  onHeldChange,
 }: {
   owner: OrderSubmissionOwner;
   guard: () => void;
   company: string;
   registers: TokenHoldersResponse[];
+  visible?: boolean;
+  onHeldChange?: (uuid: string, held: boolean) => void;
 }) {
   const client = useQueryClient();
   const links = useRegisterLinks(owner, company, guard);
   const appointments = useOwnAppointments(owner, guard);
   const steps = appointments.isSuccess ? registerSteps(appointments.data, company) : null;
+  const privateReady =
+    visible &&
+    links.isSuccess &&
+    links.fetchStatus === 'idle' &&
+    appointments.isSuccess &&
+    appointments.fetchStatus === 'idle' &&
+    hasCurrentRegisterReadAuthority(appointments.data, company);
   const waiting = useWaitingWallets(owner, company, guard, {
     enabled: !!steps?.prepare,
     onMissing: () => void appointments.refetch(),
@@ -47,6 +64,12 @@ export function RegisterLinks({
       ].map((queryKey) => client.invalidateQueries({ queryKey })),
     );
   };
+  if (
+    links.isSuccess &&
+    links.data.length === 0 &&
+    (!steps?.prepare || (waiting.isSuccess && waiting.data.length === 0))
+  )
+    return null;
   return (
     <Section title={COPY.TITLE}>
       {appointments.isError ? (
@@ -61,7 +84,9 @@ export function RegisterLinks({
       ) : (
         steps && !Object.values(steps).some(Boolean) && <p className="text-sm text-text-muted">{COPY.READ_ONLY_NOTE}</p>
       )}
-      {steps?.prepare &&
+      {visible &&
+        appointments.fetchStatus === 'idle' &&
+        steps?.prepare &&
         (waiting.isError ? (
           <div role="alert" className="flex flex-col items-start gap-2 text-sm text-text-muted">
             <p>We couldn&apos;t load the wallets waiting for a link.</p>
@@ -77,9 +102,7 @@ export function RegisterLinks({
             <div className="border-b border-border-subtle">
               <LinkRow to={DESTINATIONS.companyRegisterLinks.path.replace(':company', company)} label={COPY.PREPARE} />
             </div>
-          ) : (
-            <p className="text-sm text-text-muted">{COPY.NOTHING_WAITING}</p>
-          ))
+          ) : null)
         ))}
       {links.isPending ? (
         <p role="status" className="text-sm text-text-muted">
@@ -90,23 +113,22 @@ export function RegisterLinks({
           <p>We couldn&apos;t load the wallet links for this company.</p>
           <PageAction label="Retry wallet links" onClick={() => void links.refetch()} disabled={links.isFetching} />
         </div>
-      ) : links.data.length === 0 ? (
-        <p className="text-sm text-text-muted">{COPY.EMPTY}</p>
-      ) : (
-        <ul className="divide-y divide-border-subtle">
-          {links.data.map((link) => (
-            <LinkRecord
-              key={link.uuid}
-              link={link}
-              holders={holders}
-              steps={steps ?? {}}
-              guard={guard}
-              onDecided={refresh}
-              onRefused={refresh}
-            />
-          ))}
-        </ul>
-      )}
+      ) : null}
+      <ul className="divide-y divide-border-subtle">
+        {(links.data ?? []).map((link) => (
+          <LinkRecord
+            key={link.uuid}
+            link={link}
+            visible={privateReady}
+            onHeldChange={onHeldChange}
+            holders={holders}
+            steps={steps ?? {}}
+            guard={guard}
+            onDecided={refresh}
+            onRefused={refresh}
+          />
+        ))}
+      </ul>
     </Section>
   );
 }

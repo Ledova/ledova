@@ -1,6 +1,8 @@
+import { useCallback } from 'react';
 import { useQueryClient, type QueryKey } from '@tanstack/react-query';
 import {
   DESTINATIONS,
+  hasCurrentRegisterReadAuthority,
   REGISTER_IMPORT_COPY,
   type OrderSubmissionOwner,
   type TokenHoldersResponse,
@@ -19,17 +21,32 @@ export function ClassImports({
   guard,
   register,
   company,
+  visible = true,
+  onHeldChange,
 }: {
   owner: OrderSubmissionOwner;
   guard: () => void;
   register: TokenHoldersResponse;
   company: string;
+  visible?: boolean;
+  onHeldChange?: (token: string, uuid: string, held: boolean) => void;
 }) {
   const token = register.token.uuid;
   const client = useQueryClient();
   const imports = useRegisterImports(owner, token, guard);
   const appointments = useOwnAppointments(owner, guard);
   const steps = appointments.isSuccess ? registerSteps(appointments.data, company) : null;
+  const privateReady =
+    visible &&
+    imports.isSuccess &&
+    imports.fetchStatus === 'idle' &&
+    appointments.isSuccess &&
+    appointments.fetchStatus === 'idle' &&
+    hasCurrentRegisterReadAuthority(appointments.data, company);
+  const recordHeld = useCallback(
+    (uuid: string, held: boolean) => onHeldChange?.(token, uuid, held),
+    [onHeldChange, token],
+  );
   const refresh = async (keys: QueryKey[]) => {
     try {
       guard();
@@ -59,7 +76,8 @@ export function ClassImports({
           <p className="text-sm text-text-muted">{REGISTER_IMPORT_COPY.READ_ONLY_NOTE}</p>
         )
       )}
-      {steps?.prepare &&
+      {privateReady &&
+        steps?.prepare &&
         (register.initialized || register.token.status === 'draft') &&
         imports.isSuccess &&
         (!imports.data.some((proposal) => proposal.status === 'applied') ||
@@ -84,22 +102,21 @@ export function ClassImports({
           <p>We couldn&apos;t load the imports for this share class.</p>
           <PageAction label="Retry imports" onClick={() => void imports.refetch()} disabled={imports.isFetching} />
         </div>
-      ) : imports.data.length === 0 ? (
-        <p className="text-sm text-text-muted">{REGISTER_IMPORT_COPY.EMPTY}</p>
-      ) : (
-        <ul className="divide-y divide-border-subtle">
-          {imports.data.map((proposal) => (
-            <ImportRecord
-              key={proposal.uuid}
-              proposal={proposal}
-              steps={steps ?? {}}
-              guard={guard}
-              onDecided={decided}
-              onRefused={refused}
-            />
-          ))}
-        </ul>
-      )}
+      ) : null}
+      <ul className="divide-y divide-border-subtle">
+        {(imports.data ?? []).map((proposal) => (
+          <ImportRecord
+            key={proposal.uuid}
+            proposal={proposal}
+            visible={privateReady}
+            onHeldChange={recordHeld}
+            steps={steps ?? {}}
+            guard={guard}
+            onDecided={decided}
+            onRefused={refused}
+          />
+        ))}
+      </ul>
     </div>
   );
 }
