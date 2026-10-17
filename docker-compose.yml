@@ -94,7 +94,7 @@ services:
       - path: ./backend/.env
         required: false
     environment:
-      # shared/0003 creates ledova_app and ledova_operator with LOGIN and no password,
+      # shared/0002 creates ledova_app and ledova_operator with LOGIN and no password,
       # deliberately: a credential does not belong in a migration. Without this the
       # image initdb's with scram-sha-256, the two roles can never authenticate over
       # the compose bridge, and the stack dies at the first post-migrate ORM call.

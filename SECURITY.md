@@ -5,7 +5,7 @@ How to report a vulnerability in Ledova, and what is in scope.
 ## Dependency advisories
 
 CI fails on a new production advisory. The
-[dependency-advisory gate](docs/development/gates.md#dependency-advisories) says
+[dependency-advisory gate](docs/engineering/gates.md#dependency-advisories) says
 which commands run the npm and `pip-audit` checks and when; Dependabot's
 configuration remains separate from them.
 

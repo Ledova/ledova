@@ -3,7 +3,7 @@
 [Legal and regulatory](README.md) · [Regulatory pathway](../regulatory-pathway.md)
 
 **Current positions, recorded from 15 September 2026 and dated individually below.**
-The [3 October 2026 one-product decision](../architecture/company-managed-registers.md)
+The [3 October 2026 one-product decision](../plans/company-managed-registers/plan.md)
 and the [4 October 2026 minimal-involvement decision](../decisions.md#company-representative-verification)
 postdate the readings on this page, which have not been reconfirmed against
 the current company-managed workflows. Neither product decision establishes a
@@ -60,7 +60,7 @@ stopped being a member within the last seven years, the information the register
 held about them and the date they stopped. The Act expressly permits those
 entries to be **kept separately** from the rest of the register.
 
-**Implementation.** See [current and former members](../architecture/register.md),
+**Implementation.** See [current and former members](../business/register.md#former-members),
 including the seven-year minimum and the separate former-member export.
 
 **The position.** A derived current-holders view does not on its own satisfy
@@ -94,7 +94,7 @@ members. The obligation is expressed as the company's. The note to the section
 says the register may be kept on computer, pointing to s1306.
 
 **Implementation.** See [operator setup](../operations/operator-console.md) and
-[register protection](../architecture/register.md).
+[register protection](../engineering/records.md#deletion-protection).
 
 **The position.** The company carries the obligation and the platform keeps the
 register as its agent. That is the plain reading. In a
@@ -120,7 +120,7 @@ kept for staff: the operator can query them in admin, and no company-facing
 route exposes them. They are kept for the seven-year floor the owner chose on
 21 September 2026. The record says who took a copy, not what they did with it:
 every download is still a full sheet of members' residential addresses. The
-[company pack](../architecture/company-pack.md), the export on exit that the
+[company pack](../business/member-records.md#the-company-pack), the export on exit that the
 agreement would promise, is recorded the same way, once for each share class it
 carries, with the instruction it was produced under, its recipient and the
 SHA-256 of its manifest.
@@ -137,9 +137,9 @@ records of this kind: the Corporations Act's financial-records provision, and
 the AML/CTF customer-identification record requirements. Seven years is the
 conventional Australian answer and the reason 2557 days was chosen.
 
-**Implementation.** [Retention configuration](../operations/uploads.md) owns the
+**Implementation.** [Retention configuration](../operations/configuration.md#storage-uploads-and-retention) owns the
 independent evidence and former-member settings;
-[file lifecycles](../architecture/files-and-retention.md) owns the serving and
+[file lifecycles](../engineering/security.md#deletion-and-retention) owns the serving and
 purge rules.
 
 **The position.** Seven years, from review or expiry. The basis is the
@@ -207,7 +207,7 @@ the company's authority document and named director with no staff verification
 ([implementation index](../plans/company-managed-registers/README.md)). Staff
 verification remains only in the retained instruction workflow for earlier
 direct issues and settled market transfers
-([runbook](../operations/register-foundation.md#register-instructions-for-issues)).
+([runbook](../business/issuing-shares.md#retained-issue-instructions)).
 
 **The position.** A hosted register-of-members service is not a financial
 service while all of the following hold: entries are made only on written
@@ -376,7 +376,7 @@ register corrected. Section 176 makes the register proof of its contents in the
 absence of contrary evidence.
 
 **What the code does.** The current-members register is
-[stored](../architecture/register.md): each share class keeps an append-only,
+[stored](../engineering/records.md#register-ledger): each share class keeps an append-only,
 hash-chained event log and the holdings it produces, and the register is read
 from them with the chain unreachable. A correction is a compensating entry that
 those holdings already reflect. A scheduled job reconciles the stored register
@@ -384,30 +384,30 @@ with the chain and retains each result. Former members are stored, and an
 import records members' particulars and pre-platform former members, and opens a
 class not yet on chain from the company's register. Company appointees prepare
 the s173(3) copy in the Register
-([inspection copies](../plans/company-managed-registers/company-inspection-copies.md)),
+([inspection copies](../business/member-records.md#inspection-copies)),
 on the company's written instruction: the register as exported, with the request date, the
 instruction's reference and the recipient, marked late when prepared more than
 seven days after the request. Ledova keeps its SHA-256 and the request details,
 not the file; the company decides whether a request is proper and hands the copy
-over. See [inspection copies](../architecture/register.md#inspection-copies).
+over. See [inspection copies](../business/member-records.md#inspection-copies).
 Staff also prepare certificates, on the company's written instruction, for an
 issue or transfer entry: an unsigned PDF with a page for the member the entry
 moved shares to and a balance certificate for a transferor who still holds
 shares, which the company executes. Ledova keeps its SHA-256 and the entry's
-number, not the file. See [certificates](../architecture/register.md#certificates).
+number, not the file. See [certificates](../business/member-records.md#certificates).
 Staff also prepare the figures for the company's notices of share issues and of
 changes to its members and share structure, on its written instruction: the
 issues, transfers and corrections entered from a chosen day, the class at the
 register head and each changed member's holding, with amount paid only where it
 is established. Ledova keeps their SHA-256 and the period, not the file, and the
 company lodges the notices. See
-[notice figures](../architecture/register.md#notice-figures).
+[notice figures](../business/member-records.md#notice-figures).
 [#871](https://github.com/Ledova/ledova/issues/871) moves certificates and
 notice figures to company appointments.
 A list in admin shows staff which certificates and notice figures are still due
 and when, from the register and those records; it records nothing, and does not
 know what the company lodged or delivered. See
-[outputs due](../architecture/register.md#outputs-due).
+[outputs due](../business/member-records.md#the-due-list).
 
 **The position.** The stored database record is the register; anything on a
 chain is at most a mirror of it. Three provisions decide that: s175, because an
@@ -476,7 +476,7 @@ value in a twelve-month period, on condition the operator is named on ASIC's
 register; it sunsets on 1 October 2026 and ASIC has consulted (CS 60) on
 remaking it with the value cap raised to $2.5 million.
 
-**What the code does.** Secondary [trading](../architecture/trading.md) exists
+**What the code does.** Secondary [trading](../business/trading.md) exists
 behind the `trading_enabled` flag, which a data migration turns on by default and
 an operator can turn off. The register itself lets nobody post an offer.
 
@@ -660,12 +660,12 @@ value, and the interests held for three years. The Division 1A and concession
 details come from professional and ATO summaries, not the enacted text.
 
 **Implementation and earlier service assumption.** The
-[offerings flow](../architecture/offerings.md) hosts offers; the earlier
+[offerings flow](../business/issuing-shares.md#offerings) hosts offers; the earlier
 clerk-only service proposal assumed that it would not use that flow. Each
 grant, allotment and issue is approved by a company decision that retains the
 directors' authority document and names the approving director
-([grants](../plans/company-managed-registers/register-grants.md),
-[external allotments](../plans/company-managed-registers/external-allotments.md)).
+([grants](../business/issuing-shares.md#grants-to-walletless-members),
+[external allotments](../business/issuing-shares.md#external-investor-allotments)).
 
 **The position.** Every obligation in this position belongs to the company and
 its advisers. In historical analysis B Ledova records the outcome — the allotment,
@@ -707,7 +707,7 @@ conveying (s0).
 PyMuPDF a runtime dependency, installed into the backend image when that image
 is built. The upload checker imports it in a resource-limited child process to
 check uploaded PDFs and render their first page for extraction, and
-[certificates](../architecture/register.md#certificates) import it when one is
+[certificates](../business/member-records.md#certificates) import it when one is
 rendered. Tests use it to build and read PDFs. The project modifies none of it
 and publishes no image or other copy of it: the repository only names it as a
 requirement.
@@ -742,6 +742,6 @@ decision 6); the reading awaits the owner's sign-off.
 ## Related documents
 
 [Product decisions](../decisions.md), [operator setup](../operations/operator-console.md),
-[retention configuration](../operations/uploads.md), [register design](../architecture/register.md),
+[retention configuration](../operations/configuration.md#storage-uploads-and-retention), [register design](../business/register.md),
 the [regulatory pathway](../regulatory-pathway.md),
 and the authoritative [LICENSE](../../LICENSE).

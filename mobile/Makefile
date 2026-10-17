@@ -9,7 +9,7 @@ help:
 	@echo "  make typecheck      Check TypeScript"
 	@echo "  make lint           Check source lint"
 	@echo "  make native-check   Regenerate and check native Debug/Release policy"
-	@echo "  Native build/probe procedure: ../docs/development/mobile-builds.md"
+	@echo "  Native build/probe procedure: ../docs/engineering/mobile-releases.md"
 
 install:
 	npm ci

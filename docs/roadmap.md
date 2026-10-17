@@ -26,31 +26,31 @@ increment with its guide and pull request.
 The development workflow ([#943](https://github.com/Ledova/ledova/issues/943),
 closed 11 October) now uses fresh PostgreSQL migrations, minimum test suites
 with binding caps and the same lean checks on every pull request on GitHub's
-runners ([testing guide](development/testing.md)).
+runners ([testing guide](engineering/testing.md)).
 
 Earlier platform work, recorded in the
 [product alignment programme](https://github.com/Ledova/ledova/issues/645) and
 its phase issues:
 
 - Issuance on chain with whitelisted recipients, authorised caps and recovery of
-  interrupted requests ([contracts and issuance](architecture/contracts-and-issuance.md)).
+  interrupted requests ([contracts and issuance](engineering/chain.md)).
 - The investor directory, offerings, applications, recorded payments, private
   uploads and the operator console; offering review and payment confirmation
   remain platform-staff actions.
 - The authoritative stored register ([#647](https://github.com/Ledova/ledova/issues/647)):
   append-only events, holdings served with the chain unreachable, retained
-  former members and staff-prepared outputs ([the register](architecture/register.md)).
+  former members and staff-prepared outputs ([the register](business/register.md)).
 - The secondary market ([#5](https://github.com/Ledova/ledova/issues/5),
   [#646](https://github.com/Ledova/ledova/issues/646)): order, matching and
   settlement, enabled by default under
-  [accepted experimental limits](architecture/trading.md#accepted-experimental-limits).
+  [accepted experimental limits](business/trading.md#accepted-experimental-limits).
 - Company-scoped on-chain approvals with expiry ([#648](https://github.com/Ledova/ledova/issues/648)).
 - Shareholder publications ([#649](https://github.com/Ledova/ledova/issues/649)):
   documents, resolutions and dividends published by platform staff on the
-  company's instruction ([shareholder publications](architecture/shareholder-publications.md)).
+  company's instruction ([shareholder publications](business/publications.md)).
 - Reporting and portability ([#650](https://github.com/Ledova/ledova/issues/650)):
-  the [company pack](architecture/company-pack.md) and the
-  [account-data export](reference/account-data-export.md).
+  the [company pack](business/member-records.md#the-company-pack) and the
+  [account-data export](engineering/records.md#account-data-export).
 - [The signed-in app](https://github.com/Ledova/ledova/issues/732) rebuilt around
   the register on web and mobile ([decision](decisions.md#the-signed-in-app)),
   with shared API types generated from the committed OpenAPI snapshot

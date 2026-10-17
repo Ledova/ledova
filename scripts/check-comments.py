@@ -2,7 +2,7 @@
 """Fail on any comment or docstring in the source trees that carry none.
 
 The rule, its scope and the list of permitted functional directives are stated
-in docs/development/gates.md under "The comment gate". This script is the mechanical
+in docs/engineering/gates.md under "The comment gate". This script is the mechanical
 half of that rule; keep the two in step.
 """
 
@@ -479,7 +479,7 @@ def main() -> int:
         print(
             "\nNames and tests carry the meaning: rename the thing, or add a test."
             "\nThe rule, its scope and the permitted functional directives are in"
-            '\ndocs/development/gates.md, "The comment gate".',
+            '\ndocs/engineering/gates.md, "The comment gate".',
             file=sys.stderr,
         )
         return 1

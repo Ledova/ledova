@@ -48,22 +48,22 @@ before opening your first pull request.
 ## Development setup
 
 Follow [local setup](docs/getting-started.md), then the
-[engineering standards](docs/development/standards.md) and
-[testing guide](docs/development/testing.md). Native builds have their own
-[mobile guide](docs/development/mobile-builds.md).
+[engineering standards](docs/engineering/README.md) and
+[testing guide](docs/engineering/testing.md). Native builds have their own
+[mobile guide](docs/engineering/mobile-releases.md).
 
 ## Making changes
 
 1. Branch from `main` (`fix/whitelist-check`, `docs/quickstart`). Contributors
    without repository write access use a fork.
 2. Keep pull requests small and focused: one logical change each.
-3. Follow the [minimum-test policy and binding suite caps](docs/development/testing.md):
+3. Follow the [minimum-test policy and binding suite caps](docs/engineering/testing.md):
    tests only for the worst failures and one happy path per delivered core
    journey, replacing an existing case when a suite is full. There is no
    mandatory test for every change, and documentation-only changes need no
    tests mirroring their text.
 4. Follow the coding rules in
-   [engineering standards](docs/development/standards.md#the-rules). The one that
+   [engineering standards](docs/engineering/README.md#principles). The one that
    surprises people most: **source carries no comments and no docstrings**. Only
    the closed list of functional directives the tooling reads is allowed, and
    `make check-comments` fails on anything else. Configuration and
@@ -102,7 +102,7 @@ An automated PR arrives as a proposal. During triage, reuse an issue whose scope
 fits or create a focused one, then correct its title and body before review and
 merge. Bots have no exemption and do not create tracking issues automatically.
 Recheck metadata after a bot refreshes its PR. The
-[PR metadata gate](docs/development/gates.md#the-pr-metadata-gate) verifies the format, the
+[PR metadata gate](docs/engineering/gates.md#the-pr-metadata-gate) verifies the format, the
 referenced issue and that a `Refs` PR's title, body, sidebar and commit messages
 close no issue; reviewers establish that the issue actually owns the work.
 
@@ -146,14 +146,14 @@ grows.
    [11 October release decision](docs/decisions.md#ledovaio-rebuild-and-release-authorisation).
 
 How to establish that a change does what it claims is a separate question, and is
-in [testing and review](docs/development/testing.md).
+in [testing and review](docs/engineering/testing.md).
 
 ## Gates
 
 Run the checks appropriate to the change before opening a pull request.
-The [gate inventory](docs/development/gates.md#every-gate-and-where-its-rule-is-written)
+The [gate inventory](docs/engineering/gates.md#every-gate-and-where-its-rule-is-written)
 owns source rules, commands and CI coverage. The
-[testing guide](docs/development/testing.md#commands) owns the command table
+[testing guide](docs/engineering/testing.md#commands) owns the command table
 and the rule of focused checks while developing and the applicable required CI
 once on the merging head.
 

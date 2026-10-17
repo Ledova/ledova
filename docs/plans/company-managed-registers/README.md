@@ -1,103 +1,48 @@
 # Company-managed register implementation
 
-[Accepted decision and plan](../../architecture/company-managed-registers.md) · [Owner decisions](../../decisions.md#company-managed-registers-and-one-product)
+[Documentation](../../README.md) · [Accepted plan](plan.md) · [Owner decisions](../../decisions.md#company-managed-registers-and-one-product)
 
-GitHub [#860](https://github.com/Ledova/ledova/issues/860) is the working
-backlog for the one-registry-product transition; #861 retired the product
-modes. This folder holds one short guide per delivered increment: what the
-company or participant does, what is recorded, the API family and the
-increment's own boundaries. Who may prepare, approve, apply and reject is stated
-once in the [owner's authority rules](../../decisions.md#company-run-register-authority-and-evidence);
-the uncertain-reply rule is stated once under
-[company decisions and signer authority](../../architecture/outgoing-signing.md#company-decisions-and-signer-authority),
-and each family's unsigned holds and recovery after authority loss in its own
-[outgoing signing](../../architecture/outgoing-signing.md) section. The guides
-link those rules rather than restating them. The
-[9 October priority](../../decisions.md#essential-registry-and-development-workflow-priority)
-put the development workflow ([#943](https://github.com/Ledova/ledova/issues/943),
-closed 11 October) first and orders the remaining register work; new integrated
-AUD payments, trading, advanced governance and filings are deferred.
-
-The [11 October journey cleanup](https://github.com/Ledova/ledova/issues/1000)
-organised these existing capabilities around My shares and four company
-destinations, with named invitations and focused investor and employee issue
-tasks. The 12 October web increments
-([#1012](https://github.com/Ledova/ledova/issues/1012),
-[#1013](https://github.com/Ledova/ledova/issues/1013) and
-[#1014](https://github.com/Ledova/ledova/issues/1014)) add a compact sidebar,
-company ownership Dashboard, consolidated Settings and personal holdings and
-award charts. The
-[14 October signup increment](https://github.com/Ledova/ledova/issues/1020)
-combines company details and initial admission in the existing Company details →
-Review flow on both clients. Its
-[same-day simplification](https://github.com/Ledova/ledova/issues/1022) keeps one
-visible authority/Terms statement beside the final button and moves files and
-team setup to the dashboard settings. Completing setup explicitly accepts that
-declaration without a checkbox. Initial personal `admin` and all six delegatable capabilities
-allow later team invitations; signup has no file or permission picker. Saved
-company/profile data and unfinished sign-in resumption keep the flow recoverable.
-Existing current administrator appointments resume without changing their
-original scopes; the final action records current Terms acceptance when needed.
-Identity, ABR and checked-file safeguards for actual uploads remain; completion
-neither activates the company nor issues shares. The
-[authority guide](authority-requests.md#company-signup) describes this flow.
-Native signed-in navigation is unchanged. The guides below describe the
-delivered structure on web and mobile.
-
-The owner's [existing-register mirror decision](../../decisions.md#existing-register-mirror-and-simple-setup)
-under [#1025](https://github.com/Ledova/ledova/issues/1025) keeps the company's
-legal register, historical records, lawful access arrangements and filings with
-the company. Setup mirrors its supplied ownership records; it neither replaces
-those arrangements nor issues existing shares again. The
-[import guide](../../operations/register-foundation.md#importing-an-existing-register)
-owns copied particulars, source attribution and bounded opening corrections.
-[PR #1026](https://github.com/Ledova/ledova/pull/1026) delivers copied fields and
-correction safeguards. Web setup under
-[#1029](https://github.com/Ledova/ledova/issues/1029) guides Share details →
-Shareholders → Review, with a shareholder table and one Confirm action,
-individual draft editors, [manual entry](https://github.com/Ledova/ledova/issues/1036),
-recovered confirmations and a return to ownership. The inactive Import button's
-tooltip marks future document extraction into the same editable forms Coming soon.
-Optional supporting copies do not extract data.
-Native clients retain separate preparation and decision screens.
-
-The signed-in web refinement under [#1031](https://github.com/Ledova/ledova/issues/1031)
-uses the existing cards and controls with bounded task forms, aligned summaries,
-consistent dates and primary actions. Saved setup records show Recorded without
-an active setup step. Company operations, personal records, Profile and Settings
-share the same presentation; current status and permissions stay visible, with
-full audit details available separately. Signup and native presentation are unchanged.
-
-Verification references in the guides are each increment's original evidence;
-the [11 October minimum-test policy](../../decisions.md#minimum-tests-and-fresh-migrations)
-governs current coverage.
+The [accepted plan](plan.md) (3 October 2026, reprioritised on 9 October)
+sets the direction: companies run their own registers through recorded appointments, and Ledova supplies the
+records, workflows and tools. This index lists what has been delivered under it and what remains. The
+[business process documents](../../business/README.md) describe the delivered behaviour and the
+[engineering documents](../../engineering/README.md) its mechanism. The owner's
+[authority rules](../../decisions.md#company-run-register-authority-and-evidence) and the
+[9 October priority](../../decisions.md#essential-registry-and-development-workflow-priority) are in the decisions
+log; new integrated AUD payments, trading, advanced governance and filings are deferred.
 
 ## Delivered increments
 
-| Issue                                               | Increment                                                                                                       | Guide                                                                                            | PR                                                                                                   |
-| --------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------- |
-| [#862](https://github.com/Ledova/ledova/issues/862) | Authority requests, admission, team invitations, revocation, legacy-owner upgrade; company information          | [authority-requests.md](authority-requests.md), [company-information.md](company-information.md) | [#911](https://github.com/Ledova/ledova/pull/911) at `13684719c5245f1d61809d46e37a904f833e1c6d`      |
-| [#863](https://github.com/Ledova/ledova/issues/863) | Administrator activation                                                                                        | [company-activation.md](company-activation.md)                                                   | [#913](https://github.com/Ledova/ledova/pull/913), [#914](https://github.com/Ledova/ledova/pull/914) |
-| #863                                                | Eligibility records and the consumer cutover                                                                    | [company-eligibility.md](company-eligibility.md)                                                 | [#915](https://github.com/Ledova/ledova/pull/915), [#917](https://github.com/Ledova/ledova/pull/917) |
-| [#864](https://github.com/Ledova/ledova/issues/864) | Register reads, imports, corrections, discrepancy acknowledgement, chain openings, particulars and wallet links | [Register foundation](../../operations/register-foundation.md)                                   | through [#936](https://github.com/Ledova/ledova/pull/936)                                            |
-| [#865](https://github.com/Ledova/ledova/issues/865) | Non-paid register grants; non-paid register transfers and cessation history                                     | [register-grants.md](register-grants.md), [register-transfers.md](register-transfers.md)         | [#937](https://github.com/Ledova/ledova/pull/937), [#938](https://github.com/Ledova/ledova/pull/938) |
-| [#867](https://github.com/Ledova/ledova/issues/867) | Empty share-class deployment                                                                                    | [company-deployments.md](company-deployments.md)                                                 | [#941](https://github.com/Ledova/ledova/pull/941)                                                    |
-| #867                                                | Wallet nominations and company wallet approvals                                                                 | [company-wallet-approvals.md](company-wallet-approvals.md)                                       | [#942](https://github.com/Ledova/ledova/pull/942)                                                    |
-| #867                                                | Non-paid chain grants                                                                                           | [company-register-issues.md](company-register-issues.md)                                         | [#944](https://github.com/Ledova/ledova/pull/944)                                                    |
-| #867                                                | Capital increases                                                                                               | [company-capital-increases.md](company-capital-increases.md)                                     | [#948](https://github.com/Ledova/ledova/pull/948)                                                    |
-| #867                                                | Pause and unpause                                                                                               | [company-pause-changes.md](company-pause-changes.md)                                             | [#950](https://github.com/Ledova/ledova/pull/950)                                                    |
-| #867                                                | Paid issues from recorded PAID subscriptions                                                                    | [company-paid-issues.md](company-paid-issues.md)                                                 | [#951](https://github.com/Ledova/ledova/pull/951)                                                    |
-| #867                                                | Promised employee awards, recorded vesting and separate approved imported-register grants                       | [employee-awards.md](employee-awards.md)                                                         | [#973](https://github.com/Ledova/ledova/pull/973)                                                    |
-| [#868](https://github.com/Ledova/ledova/issues/868) | External agreements, company-recorded receipts and separately approved fully paid imported-register allotments  | [external-allotments.md](external-allotments.md)                                                 | [#974](https://github.com/Ledova/ledova/pull/974)                                                    |
-| [#866](https://github.com/Ledova/ledova/issues/866) | Own Profile name and residential address                                                                        | [member-profile.md](member-profile.md)                                                           | [#953](https://github.com/Ledova/ledova/pull/953)                                                    |
-| #866                                                | Member-specific invitations, own records and company-reviewed particulars and certificate requests              | [member-access.md](member-access.md)                                                             | [#985](https://github.com/Ledova/ledova/pull/985)                                                    |
-| [#871](https://github.com/Ledova/ledova/issues/871) | Company inspection copies                                                                                       | [company-inspection-copies.md](company-inspection-copies.md)                                     | [#954](https://github.com/Ledova/ledova/pull/954)                                                    |
-| #871                                                | Company certificates, core pack provenance/download and recipient-only member fulfilment                        | [register-outputs.md](register-outputs.md)                                                       | [#986](https://github.com/Ledova/ledova/pull/986)                                                    |
-| [#873](https://github.com/Ledova/ledova/issues/873) | Fresh-schema essential company/member journey and actual outputs                                                | [11 October observation](../../operations/evidence/essential-register-2026-10-11.md)             | Final acceptance increment under #873                                                                |
+| Issue                                               | Increment                                                                                                       | Described in                                                                                                                                        | PR                                                                                                   |
+| --------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| [#862](https://github.com/Ledova/ledova/issues/862) | Authority requests, admission, team invitations, revocation, legacy-owner upgrade; company information          | [Company authority](../../business/companies.md), [company information](../../business/companies.md#company-information-and-documents)              | [#911](https://github.com/Ledova/ledova/pull/911)                                                    |
+| [#863](https://github.com/Ledova/ledova/issues/863) | Administrator activation                                                                                        | [Activation](../../business/companies.md#activation-and-the-registry-check)                                                                         | [#913](https://github.com/Ledova/ledova/pull/913), [#914](https://github.com/Ledova/ledova/pull/914) |
+| #863                                                | Eligibility records and the consumer cutover                                                                    | [Eligibility](../../business/participants.md#company-eligibility-decisions)                                                                         | [#915](https://github.com/Ledova/ledova/pull/915), [#917](https://github.com/Ledova/ledova/pull/917) |
+| [#864](https://github.com/Ledova/ledova/issues/864) | Register reads, imports, corrections, discrepancy acknowledgement, chain openings, particulars and wallet links | [Register of members](../../business/register.md)                                                                                                   | through [#936](https://github.com/Ledova/ledova/pull/936)                                            |
+| [#865](https://github.com/Ledova/ledova/issues/865) | Non-paid register grants; non-paid register transfers and cessation history                                     | [Grants](../../business/issuing-shares.md#grants-to-walletless-members), [transfers](../../business/register.md#non-paid-transfers-between-members) | [#937](https://github.com/Ledova/ledova/pull/937), [#938](https://github.com/Ledova/ledova/pull/938) |
+| [#867](https://github.com/Ledova/ledova/issues/867) | Empty share-class deployment                                                                                    | [Deployment](../../business/issuing-shares.md#deploying-an-empty-class)                                                                             | [#941](https://github.com/Ledova/ledova/pull/941)                                                    |
+| #867                                                | Wallet nominations and company wallet approvals                                                                 | [Wallet approvals](../../business/participants.md#wallet-nominations-and-company-wallet-approvals)                                                  | [#942](https://github.com/Ledova/ledova/pull/942)                                                    |
+| #867                                                | Non-paid chain grants                                                                                           | [Chain grants](../../business/issuing-shares.md#non-paid-chain-grants)                                                                              | [#944](https://github.com/Ledova/ledova/pull/944)                                                    |
+| #867                                                | Capital increases                                                                                               | [Capital increases](../../business/issuing-shares.md#raising-the-authorised-shares)                                                                 | [#948](https://github.com/Ledova/ledova/pull/948)                                                    |
+| #867                                                | Pause and unpause                                                                                               | [Pause and unpause](../../business/issuing-shares.md#pausing-and-unpausing-a-class)                                                                 | [#950](https://github.com/Ledova/ledova/pull/950)                                                    |
+| #867                                                | Paid issues from recorded PAID subscriptions                                                                    | [Paid issues](../../business/issuing-shares.md#company-paid-issues)                                                                                 | [#951](https://github.com/Ledova/ledova/pull/951)                                                    |
+| #867                                                | Promised employee awards, recorded vesting and separate approved imported-register grants                       | [Employee awards](../../business/issuing-shares.md#employee-awards-and-vesting)                                                                     | [#973](https://github.com/Ledova/ledova/pull/973)                                                    |
+| [#868](https://github.com/Ledova/ledova/issues/868) | External agreements, company-recorded receipts and separately approved fully paid imported-register allotments  | [External allotments](../../business/issuing-shares.md#external-investor-allotments)                                                                | [#974](https://github.com/Ledova/ledova/pull/974)                                                    |
+| [#866](https://github.com/Ledova/ledova/issues/866) | Own Profile name and residential address                                                                        | [Member profile](../../business/participants.md#member-profile)                                                                                     | [#953](https://github.com/Ledova/ledova/pull/953)                                                    |
+| #866                                                | Member-specific invitations, own records and company-reviewed particulars and certificate requests              | [Member access](../../business/member-records.md#member-access)                                                                                     | [#985](https://github.com/Ledova/ledova/pull/985)                                                    |
+| [#871](https://github.com/Ledova/ledova/issues/871) | Company inspection copies                                                                                       | [Inspection copies](../../business/member-records.md#inspection-copies)                                                                             | [#954](https://github.com/Ledova/ledova/pull/954)                                                    |
+| #871                                                | Company certificates, core pack provenance/download and recipient-only member fulfilment                        | [Register outputs](../../business/member-records.md#outputs-at-a-glance)                                                                            | [#986](https://github.com/Ledova/ledova/pull/986)                                                    |
+| [#873](https://github.com/Ledova/ledova/issues/873) | Fresh-schema essential company/member journey and actual outputs                                                | [11 October observation](../../operations/evidence/essential-register-2026-10-11.md)                                                                | Final acceptance increment under #873                                                                |
 
-Two guides describe non-paid grants: company-register-issues.md covers
-**on-chain** grants minted on a deployed class, and register-grants.md covers
-**off-chain** grants entered in an imported register with no contract.
+## Later refinements
+
+| Issue                                                                                                                                                               | Change                                                                                                                                             |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [#1000](https://github.com/Ledova/ledova/issues/1000)                                                                                                               | The capabilities organised around My shares and four company destinations, with named invitations and focused investor and employee issue tasks    |
+| [#1012](https://github.com/Ledova/ledova/issues/1012), [#1013](https://github.com/Ledova/ledova/issues/1013), [#1014](https://github.com/Ledova/ledova/issues/1014) | Compact sidebar, company ownership Dashboard, consolidated Settings, personal holdings and award charts                                            |
+| [#1020](https://github.com/Ledova/ledova/issues/1020), [#1022](https://github.com/Ledova/ledova/issues/1022)                                                        | Company details and initial admission in one signup flow, one authority and Terms statement, files and team setup after registration               |
+| [#1025](https://github.com/Ledova/ledova/issues/1025), [#1029](https://github.com/Ledova/ledova/issues/1029), [#1036](https://github.com/Ledova/ledova/issues/1036) | The existing-register mirror: copied particulars and bounded corrections, web setup from share details to shareholders to review, and manual entry |
+| [#1031](https://github.com/Ledova/ledova/issues/1031)                                                                                                               | Consistent signed-in web presentation                                                                                                              |
 
 ## Remaining scope
 
@@ -106,22 +51,9 @@ Two guides describe non-paid grants: company-register-issues.md covers
 | [#624](https://github.com/Ledova/ledova/issues/624) | Physical-device and live human release acceptance                                                                                                                                                                | Genuine device/human and configured-chain evidence            |
 | Deferred                                            | [#869](https://github.com/Ledova/ledova/issues/869) trading and settlement, [#870](https://github.com/Ledova/ledova/issues/870) advanced governance, [#872](https://github.com/Ledova/ledova/issues/872) filings | Scheduled by the owner; no essential increment waits for them |
 
-## Ownership boundaries
+Programme [#860](https://github.com/Ledova/ledova/issues/860), now closed, tracked the transition to one registry
+product; closed [#645](https://github.com/Ledova/ledova/issues/645) delivered the earlier foundation and
+[#846](https://github.com/Ledova/ledova/issues/846) the synthetic fixtures.
 
-#866 owns the single account/member association and permitted own-record UI;
-#871 basic outputs; #873 the essential journey evidence; #869, #870 and #872
-trading, advanced governance and filings.
-
-## History
-
-A 3 October file-by-file documentation audit set the baseline; the #955
-consolidation (PRs #956 to #964) acted on it, and the audit is in Git history.
-The [one-product decision](../../decisions.md#company-managed-registers-and-one-product)
-and [representative verification](../../decisions.md#company-representative-verification)
-are in decisions.md. Closed [#645](https://github.com/Ledova/ledova/issues/645)
-and its phase tickets delivered the earlier foundation, closed
-[#846](https://github.com/Ledova/ledova/issues/846) the synthetic fixtures, and
-open [#624](https://github.com/Ledova/ledova/issues/624) keeps the separate
-physical-device/live release acceptance. Dated source and observation records
-remain in Git history; the owner authorised removal of the local journey
-galleries under the [14 October amendment](../../decisions.md#simple-signup-documents-and-team-after-registration).
+Next: [accepted plan](plan.md), [business processes](../../business/README.md) or
+[roadmap](../../roadmap.md).

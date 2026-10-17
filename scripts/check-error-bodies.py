@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Fail when an API error response would carry an exception's own text.
 
-The rule and its scope are stated in docs/development/gates.md under "The error body
+The rule and its scope are stated in docs/engineering/gates.md under "The error body
 gate". This script is the mechanical half of that rule; keep the two in step.
 
 An `APIException` subclass raised with an argument is served to the caller as the
@@ -447,7 +447,7 @@ def main() -> int:
             if any(finding.endswith(rule) for finding in offenders):
                 print(f"\n  {rule}: {explanation}", file=sys.stderr)
         print(
-            '\nThe rule and its scope are in docs/development/gates.md, "The error body gate".',
+            '\nThe rule and its scope are in docs/engineering/gates.md, "The error body gate".',
             file=sys.stderr,
         )
         return 1
