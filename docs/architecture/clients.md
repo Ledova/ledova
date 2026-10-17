@@ -614,9 +614,10 @@ value means Paper, as `parseTheme` decides, and the `ledova-theme` key of an
 earlier, removed switch is not read. The choice is written only when someone
 picks a theme, stays in that browser through reloads and sign-out, and is not
 stored on the account. The dashboard's switches are Settings > Appearance > Dark
-theme and the icon toggle in the signed-out and signup header (`ThemeToggle` in
-`AuthLayout`), both through `dashboard/src/hooks/useTheme.ts`; the public site's
-navbar toggle uses `site/src/theme.ts`. Browser storage is per origin: where the
+theme and the `ThemeToggle` icon in the signed-out/signup header, the signed-in
+desktop sidebar's account footer and the small-screen signed-in header, all
+through `dashboard/src/hooks/useTheme.ts`; the public site's navbar toggle uses
+`site/src/theme.ts`. Browser storage is per origin: where the
 site and the app are served from one origin, as on ledova.io, one choice serves
 both; on separate origins, such as local development, each keeps its own.
 

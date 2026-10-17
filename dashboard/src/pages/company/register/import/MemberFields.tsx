@@ -110,7 +110,8 @@ export function MemberFields({
       </div>
       {row.allotments.map((allotment, at) => (
         <fieldset key={allotment.id} className="space-y-4 rounded-xl border border-border-subtle bg-surface-raised p-4">
-          <legend className="px-1 text-sm font-medium text-text-primary">Allotment {at + 1}</legend>
+          <legend className="sr-only">Allotment {at + 1}</legend>
+          {row.allotments.length > 1 && <h4 className="text-sm font-medium text-text-primary">Allotment {at + 1}</h4>}
           <div className="grid gap-3 sm:grid-cols-2">
             <label className={LABEL}>
               Allotment date

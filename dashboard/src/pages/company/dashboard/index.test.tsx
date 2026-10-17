@@ -1,8 +1,13 @@
 // @vitest-environment jsdom
 
-import { COMPANY_TOKEN_ENDPOINTS, USER_PREFERENCES_ENDPOINTS, type TokenHoldersResponse } from '@ledova/shared';
+import {
+  COMPANY_TOKEN_ENDPOINTS,
+  USER_PREFERENCES_ENDPOINTS,
+  USER_PREFERENCES_QUERY_KEY,
+  type TokenHoldersResponse,
+} from '@ledova/shared';
 import { QueryClient } from '@tanstack/react-query';
-import { cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, expect, it, vi } from 'vitest';
 import CompanyDashboardPage from '.';
 import { companyPreferences, prepareCompanyClient, renderCompanyPage } from '../testSupport';
@@ -79,8 +84,8 @@ it('shows exact complete company ownership, deduplicates shareholders and refuse
           ? [
               {
                 ...APPOINTMENT,
-                company: 'company-without-classes',
-                companyName: 'New Company',
+                company: mode === 'mixed' ? 'company-without-classes' : 'company-one',
+                companyName: mode === 'mixed' ? 'New Company' : 'Example Company',
                 capabilities: mode === 'mixed-prepare' ? ['prepare'] : ['admin'],
                 isEffective: mode !== 'mixed-revoked',
                 status: mode === 'mixed-revoked' ? 'revoked' : 'active',
@@ -121,6 +126,15 @@ it('shows exact complete company ownership, deduplicates shareholders and refuse
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   prepareCompanyClient(client);
   const view = renderCompanyPage(client, <CompanyDashboardPage />, 'Dashboard');
+  const refresh = async () => {
+    await act(async () => {
+      await Promise.all([
+        client.refetchQueries({ queryKey: USER_PREFERENCES_QUERY_KEY }),
+        client.refetchQueries({ queryKey: ['tokens', 'register'] }),
+        client.refetchQueries({ queryKey: ['company-appointments'] }),
+      ]);
+    });
+  };
   const summary = await screen.findByRole('region', { name: 'Company ownership summary' });
   expect(within(summary).getByText('9,007,199,254,741,000')).toBeTruthy();
   expect(within(summary).getByText('Current shareholders').parentElement!.textContent).toBe('Current shareholders1');
@@ -128,11 +142,10 @@ it('shows exact complete company ownership, deduplicates shareholders and refuse
   expect(screen.getByText('100.00%')).toBeTruthy();
   expect(screen.getByRole('heading', { name: 'Shares by class' })).toBeTruthy();
   expect(screen.queryByRole('link', { name: 'Issue investor shares' })).toBeNull();
-  expect(screen.queryByRole('link', { name: 'Set up another register' })).toBeNull();
   expect(screen.getByRole('link', { name: 'View full register' }).getAttribute('href')).toBe('/company/register');
 
   mode = 'unopened';
-  fireEvent.click(screen.getByRole('button', { name: 'Refresh dashboard' }));
+  await refresh();
   expect(await screen.findByText(/Company totals are not complete/)).toBeTruthy();
   expect(screen.getAllByText('Not complete')).toHaveLength(2);
   expect(screen.queryByText('9,007,199,254,741,000')).toBeNull();
@@ -144,7 +157,7 @@ it('shows exact complete company ownership, deduplicates shareholders and refuse
   );
   for (const status of ['deployed', 'paused']) {
     mode = status;
-    fireEvent.click(screen.getByRole('button', { name: 'Refresh dashboard' }));
+    await refresh();
     expect(await screen.findByRole('link', { name: 'Open register from chain' })).toBeTruthy();
     expect(screen.getByRole('link', { name: 'Open register from chain' }).getAttribute('href')).toBe(
       '/company/register/preference/open',
@@ -152,7 +165,7 @@ it('shows exact complete company ownership, deduplicates shareholders and refuse
     expect(screen.queryByRole('link', { name: 'Set up your share register' })).toBeNull();
   }
   mode = 'deploying';
-  fireEvent.click(screen.getByRole('button', { name: 'Refresh dashboard' }));
+  await refresh();
   expect(await screen.findByText(/Deployment is in progress/)).toBeTruthy();
   expect(screen.getByRole('link', { name: 'View share class' }).getAttribute('href')).toBe(
     '/company/register/preference',
@@ -161,26 +174,25 @@ it('shows exact complete company ownership, deduplicates shareholders and refuse
   expect(screen.queryByRole('link', { name: 'Open register from chain' })).toBeNull();
 
   mode = 'failed';
-  fireEvent.click(screen.getByRole('button', { name: 'Refresh dashboard' }));
+  await refresh();
   expect(await screen.findByText(/couldn't load the complete register/)).toBeTruthy();
   expect(screen.queryByRole('region', { name: 'Company ownership summary' })).toBeNull();
   expect(screen.queryByText('Example Shareholder')).toBeNull();
   mode = 'mixed';
-  fireEvent.click(screen.getByRole('button', { name: 'Refresh dashboard' }));
-  expect((await screen.findByRole('link', { name: 'Set up another register' })).getAttribute('href')).toBe(
-    '/company/register/setup',
-  );
+  fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+  fireEvent.change(await screen.findByLabelText('Share class'), { target: { value: 'ordinary' } });
+  expect(await screen.findByRole('table', { name: 'Largest shareholders in ordinary shares' })).toBeTruthy();
   expect(screen.queryByLabelText('Company')).toBeNull();
   expect(screen.queryByRole('link', { name: 'Issue investor shares' })).toBeNull();
   expect(api.get.mock.calls.map(([url]) => url)).not.toContain('/api/v1/companies/');
   mode = 'mixed-prepare';
-  fireEvent.click(screen.getByRole('button', { name: 'Refresh dashboard' }));
+  await refresh();
   await waitFor(() => expect(client.isFetching()).toBe(0));
-  await waitFor(() => expect(screen.queryByRole('link', { name: 'Set up another register' })).toBeNull());
+  expect(screen.getByRole('link', { name: 'Issue investor shares' }).getAttribute('href')).toBe('/company/register');
   mode = 'mixed-revoked';
-  fireEvent.click(screen.getByRole('button', { name: 'Refresh dashboard' }));
+  await refresh();
   await waitFor(() => expect(client.isFetching()).toBe(0));
-  await waitFor(() => expect(screen.queryByRole('link', { name: 'Set up another register' })).toBeNull());
+  expect(screen.queryByRole('link', { name: 'Issue investor shares' })).toBeNull();
   view.unmount();
   client.clear();
 });

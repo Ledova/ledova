@@ -22,6 +22,7 @@ import { SITE_URL } from '@utils/siteUrl';
 import { Logo } from '@components/Logo';
 import { NotificationBell } from '@components/NotificationBell';
 import { SignOutButton } from '@components/SignOutButton';
+import { ThemeToggle } from '@components/ThemeToggle';
 import { useRegisterEntry } from '@pages/company/register/useCompanyRegister';
 import { COMPANY_DASHBOARD_PATH } from '../../routes/companyDashboard';
 
@@ -219,7 +220,14 @@ export function Sidebar({ onNavigate, withNotifications = false }: SidebarProps 
 
       <div className="border-t border-border-subtle p-3">
         {person && <p className="break-words px-3 py-1 text-sm font-medium text-text-primary">{person}</p>}
-        <SignOutButton variant="sidebar" />
+        <div className="flex items-center gap-1">
+          <div className="min-w-0 flex-1">
+            <SignOutButton variant="sidebar" />
+          </div>
+          <div className="hidden lg:block">
+            <ThemeToggle />
+          </div>
+        </div>
       </div>
     </aside>
   );
