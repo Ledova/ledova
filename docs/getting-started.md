@@ -35,11 +35,11 @@ procedure and asset seeds, and admits the operator's signer for that chain, so a
 such as a company's empty deployment sign real transactions. ClamAV must finish loading signatures
 before uploads work ([malware scanning](operations/jobs-and-storage.md#malware-scanning)).
 
-| Surface | Address |
-| --- | --- |
-| Dashboard | <http://localhost:5174> |
-| Site | <http://localhost:5173> |
-| API and admin | <http://localhost:8000> |
+| Surface                                | Address                 |
+| -------------------------------------- | ----------------------- |
+| Dashboard                              | <http://localhost:5174> |
+| Site                                   | <http://localhost:5173> |
+| API and admin                          | <http://localhost:8000> |
 | Local chain (JSON-RPC, chain id 31337) | <http://127.0.0.1:8545> |
 
 ## First sign-in
@@ -91,14 +91,14 @@ dated relative to the day of the run. The modules under
 [`backend/shared/seeds/synthetic/`](../backend/shared/seeds/synthetic) are the description of
 record; the main ones:
 
-| Module | What it adds |
-| --- | --- |
-| `reference.py` | Countries, the operator's blank identity fields with an eleven-zero ABN, six months of BTC, ETH, USDC and USDT prices and a USD to AUD rate |
-| `staff.py` | A compliance officer and a document reviewer, both in the Document operations group, an operations officer who can open the operator console, and a deactivated former staff member |
+| Module                       | What it adds                                                                                                                                                                                                                                         |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `reference.py`               | Countries, the operator's blank identity fields with an eleven-zero ABN, six months of BTC, ETH, USDC and USDT prices and a USD to AUD rate                                                                                                          |
+| `staff.py`                   | A compliance officer and a document reviewer, both in the Document operations group, an operations officer who can open the operator console, and a deactivated former staff member                                                                  |
 | `people.py`, `identities.py` | 60 investors unless `--investors` asks for at least 20, in every signup, identity, standing and classification state, with wallets on Base, Ethereum and Bitcoin testnet, transactions, holdings, inactive device tokens, notifications and payslips |
-| `companies.py` | Demo Robotics and two more active companies with verified documents, officeholder attestation and a passed ABR check from a synthetic observation, one company with information requested and one submitted |
-| `eligibility.py` | Company eligibility decisions |
-| `alerts.py` | Alerts in every status, one with a suspicious matter report, with AUD amounts the rules compare and activation dates that make only customers in their first 30 days new |
+| `companies.py`               | Demo Robotics and two more active companies with verified documents, officeholder attestation and a passed ABR check from a synthetic observation, one company with information requested and one submitted                                          |
+| `eligibility.py`             | Company eligibility decisions                                                                                                                                                                                                                        |
+| `alerts.py`                  | Alerts in every status, one with a suspicious matter report, with AUD amounts the rules compare and activation dates that make only customers in their first 30 days new                                                                             |
 
 The founder's wallet is development account #0, the operator's
 signer. The investor has seven wallets on the three networks, two unverified: development accounts
@@ -162,14 +162,14 @@ python manage.py register_foundation load-synthetic-opening --token TOKEN_UUID -
 
 ## Run individual components
 
-| Component | Command from the repository root |
-| --- | --- |
-| Dashboard/shared development | `npm ci && npm run dev:dashboard` |
-| Backend dependencies | `make install-backend` |
-| Backend server | `cd backend && make run` |
-| Worker | `cd backend && make worker` |
-| Contract compilation | `cd contracts && npm ci && npx hardhat compile` |
-| Mobile development server | `cd mobile && make install && make start` |
+| Component                    | Command from the repository root                |
+| ---------------------------- | ----------------------------------------------- |
+| Dashboard/shared development | `npm ci && npm run dev:dashboard`               |
+| Backend dependencies         | `make install-backend`                          |
+| Backend server               | `cd backend && make run`                        |
+| Worker                       | `cd backend && make worker`                     |
+| Contract compilation         | `cd contracts && npm ci && npx hardhat compile` |
+| Mobile development server    | `cd mobile && make install && make start`       |
 
 Backend commands require a filled `backend/.env` and reachable PostgreSQL and Redis. Outside
 Compose, run the [seed commands](operations/operator-console.md#seeding-reference-data) (migrations
@@ -180,27 +180,27 @@ configured; native policy testing requires a Ledova build rather than Expo Go.
 
 Check the environment and the command's actual outcome before changing code.
 
-| Symptom | Check and remedy |
-| --- | --- |
-| Dashboard serves old code after restart | Rebuild its image; Compose has no dashboard source volume. Keep the backend and worker images aligned too. |
-| Signup has no email | On the local debug stack, read the code in the backend log; otherwise check the [email configuration](operations/configuration.md#email). |
-| Cookie writes return CSRF 403 | Put the dashboard origin in `DJANGO_CSRF_TRUSTED_ORIGINS`; clearing localStorage does not clear cookies. |
-| PostgreSQL refuses `ledova_app` or `ledova_operator` on an existing volume | The volume was initialised without trust authentication; set the roles' passwords as [row-level security roles](operations/configuration.md#row-level-security-roles) shows. |
-| Backend tests cannot start | Start PostgreSQL and supply the isolated test database and role settings; the backend suites run on PostgreSQL only. |
-| Backend `make lint` reports *No module named black* (or isort, flake8) | The lint tools are host development requirements, not in the backend image: run `make install-backend`, then `cd backend && make lint` ([backend verification](engineering/testing.md#backend-verification)). |
-| Type-check cannot find Expo configuration | Install mobile dependencies inside `mobile/`, or run `make check`. A root package copy is not proof Metro can resolve it. |
-| Many unrelated PostgreSQL failures | Check alias and principal selection, role credentials and another runner sharing the same test database before blaming a policy. Use a separate database per worktree. |
-| Missing rows only with `select_related` | Check parent policy visibility ([policy catalogue](engineering/security.md#policy-catalogue)). |
-| Database transaction remains aborted after a caught error | A caught permission or integrity error still aborts PostgreSQL's transaction. Verify the connection and the savepoint or rollback boundary. |
-| A test hangs in JSON rendering | A mock probably returned another mock. Supply a concrete response value and inspect a faulthandler dump. |
-| All assertions pass but the test process fails | Inspect the exit status and teardown: leaked React queries, unmounted components or unresolved promises can fail after assertions finish. |
-| Upload returns 503 | Check Redis and ClamAV readiness and signature loading; there is no scanner bypass. `UPLOAD_PROCESS_MEMORY_BYTES` or `UPLOAD_PROCESS_CPU_SECONDS` below 1 refuses every upload. |
-| Backend logs `Upload workers run without RLIMIT_AS` | Expected on macOS; on Linux it is a fault to investigate ([upload limits](operations/jobs-and-storage.md#upload-limits)). |
-| LLM or a chain node on the host times out from a container | Check bridge-to-host reachability, and prefer a service on the Compose network ([document extraction](operations/configuration.md#document-extraction)). |
-| `make chain-test` says `CHAIN_TEST_PORT=8545 is already in use` | The stack's chain holds 8545: run `make chain-test CHAIN_TEST_PORT=8546`, or any free port. |
-| `chain-deploy` exits 1, and `migrate`, `backend`, `worker` and `dashboard` never start | Its message names the difference, for example contracts built from other sources after a change to `contracts/`. Reset the chain and database together: `make dev-clean`, then `make dev-up` ([the local stack's chain](operations/chains.md#the-local-stacks-chain)). |
-| `migrate` stops at `admit_local_signer` with *the chain was reset, or lost its latest blocks* | The database recorded transactions the chain no longer has: the chain volume was deleted alone or Anvil was killed between state writes. `make dev-clean` resets both. |
-| `chain` exits at once with *invalid value '/state/state.json' for '--state'* | A hard kill interrupted Anvil while it was rewriting its state file in place. The chain cannot be recovered: `make dev-clean`. |
+| Symptom                                                                                       | Check and remedy                                                                                                                                                                                                                                                       |
+| --------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Dashboard serves old code after restart                                                       | Rebuild its image; Compose has no dashboard source volume. Keep the backend and worker images aligned too.                                                                                                                                                             |
+| Signup has no email                                                                           | On the local debug stack, read the code in the backend log; otherwise check the [email configuration](operations/configuration.md#email).                                                                                                                              |
+| Cookie writes return CSRF 403                                                                 | Put the dashboard origin in `DJANGO_CSRF_TRUSTED_ORIGINS`; clearing localStorage does not clear cookies.                                                                                                                                                               |
+| PostgreSQL refuses `ledova_app` or `ledova_operator` on an existing volume                    | The volume was initialised without trust authentication; set the roles' passwords as [row-level security roles](operations/configuration.md#row-level-security-roles) shows.                                                                                           |
+| Backend tests cannot start                                                                    | Start PostgreSQL and supply the isolated test database and role settings; the backend suites run on PostgreSQL only.                                                                                                                                                   |
+| Backend `make lint` reports _No module named black_ (or isort, flake8)                        | The lint tools are host development requirements, not in the backend image: run `make install-backend`, then `cd backend && make lint` ([backend verification](engineering/testing.md#backend-verification)).                                                          |
+| Type-check cannot find Expo configuration                                                     | Install mobile dependencies inside `mobile/`, or run `make check`. A root package copy is not proof Metro can resolve it.                                                                                                                                              |
+| Many unrelated PostgreSQL failures                                                            | Check alias and principal selection, role credentials and another runner sharing the same test database before blaming a policy. Use a separate database per worktree.                                                                                                 |
+| Missing rows only with `select_related`                                                       | Check parent policy visibility ([policy catalogue](engineering/security.md#policy-catalogue)).                                                                                                                                                                         |
+| Database transaction remains aborted after a caught error                                     | A caught permission or integrity error still aborts PostgreSQL's transaction. Verify the connection and the savepoint or rollback boundary.                                                                                                                            |
+| A test hangs in JSON rendering                                                                | A mock probably returned another mock. Supply a concrete response value and inspect a faulthandler dump.                                                                                                                                                               |
+| All assertions pass but the test process fails                                                | Inspect the exit status and teardown: leaked React queries, unmounted components or unresolved promises can fail after assertions finish.                                                                                                                              |
+| Upload returns 503                                                                            | Check Redis and ClamAV readiness and signature loading; there is no scanner bypass. `UPLOAD_PROCESS_MEMORY_BYTES` or `UPLOAD_PROCESS_CPU_SECONDS` below 1 refuses every upload.                                                                                        |
+| Backend logs `Upload workers run without RLIMIT_AS`                                           | Expected on macOS; on Linux it is a fault to investigate ([upload limits](operations/jobs-and-storage.md#upload-limits)).                                                                                                                                              |
+| LLM or a chain node on the host times out from a container                                    | Check bridge-to-host reachability, and prefer a service on the Compose network ([document extraction](operations/configuration.md#document-extraction)).                                                                                                               |
+| `make chain-test` says `CHAIN_TEST_PORT=8545 is already in use`                               | The stack's chain holds 8545: run `make chain-test CHAIN_TEST_PORT=8546`, or any free port.                                                                                                                                                                            |
+| `chain-deploy` exits 1, and `migrate`, `backend`, `worker` and `dashboard` never start        | Its message names the difference, for example contracts built from other sources after a change to `contracts/`. Reset the chain and database together: `make dev-clean`, then `make dev-up` ([the local stack's chain](operations/chains.md#the-local-stacks-chain)). |
+| `migrate` stops at `admit_local_signer` with _the chain was reset, or lost its latest blocks_ | The database recorded transactions the chain no longer has: the chain volume was deleted alone or Anvil was killed between state writes. `make dev-clean` resets both.                                                                                                 |
+| `chain` exits at once with _invalid value '/state/state.json' for '--state'_                  | A hard kill interrupted Anvil while it was rewriting its state file in place. The chain cannot be recovered: `make dev-clean`.                                                                                                                                         |
 
 For native build and device failures, use
 [native probes](engineering/mobile-releases.md#native-probes). For a pending issuance, transfer or

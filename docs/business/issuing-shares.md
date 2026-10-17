@@ -107,14 +107,14 @@ register records the issue once the mint is final.
 
 ### What each record changes
 
-| Record                                                            | Effect on issued shares and holdings                                                                                         |
-| ----------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| Copying existing records (the opening)                            | Sets the opening balance; it is never an issue                                                                               |
-| Employee award and vesting                                        | None: an award is a promised entitlement and vesting a company record                                                        |
-| Investor agreement and receipt                                    | None on their own; applying the allotment makes the issue                                                                    |
-| Any issue: grant, award-linked grant, allotment, chain or paid issue | Increases the issued shares and the recipient's holding once                                                              |
-| Transfer                                                          | Moves shares between members; the class's issued shares stay the same ([transfers](register.md#non-paid-transfers-between-members)) |
-| Correction                                                        | Keeps the earlier entry and records an exact reversal or opening difference ([corrections](register.md#compensating-corrections)) |
+| Record                                                               | Effect on issued shares and holdings                                                                                                |
+| -------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| Copying existing records (the opening)                               | Sets the opening balance; it is never an issue                                                                                      |
+| Employee award and vesting                                           | None: an award is a promised entitlement and vesting a company record                                                               |
+| Investor agreement and receipt                                       | None on their own; applying the allotment makes the issue                                                                           |
+| Any issue: grant, award-linked grant, allotment, chain or paid issue | Increases the issued shares and the recipient's holding once                                                                        |
+| Transfer                                                             | Moves shares between members; the class's issued shares stay the same ([transfers](register.md#non-paid-transfers-between-members)) |
+| Correction                                                           | Keeps the earlier entry and records an exact reversal or opening difference ([corrections](register.md#compensating-corrections))   |
 
 Investor and employee issues use the same register: one member, one set of holdings and one history
 serve both.
@@ -440,21 +440,22 @@ class's code or type is a label and does not define the rights attached to its s
 Not built: options and their exercise, shares issued upfront with restrictions or forfeiture, partly
 paid allotments and calls, convertible instruments, buy-backs, redemptions and capital reductions,
 [splits and consolidations](#splits-and-consolidations), class conversions or variations of class
-rights, transmission, and ending or correcting an award's unissued entitlement.
+rights, and transmission.
 
-Current limits, each tracked as planned work under the share lifecycle review
+Current limits, each with follow-up work proposed under the share lifecycle review
 ([#1060](https://github.com/Ledova/ledova/issues/1060)):
 
-- A new class with no shareholders cannot receive its first issue: an import needs at least one
-  current member, and grants, awards and allotments need an opened import. Planned under
-  [#1061](https://github.com/Ledova/ledova/issues/1061), which also plans class creation through
+- A new class that is not on chain and has no shareholders cannot receive its first issue: an import
+  needs at least one current member, and grants, awards and allotments need an opened import (an
+  empty class can still be deployed, opened from the chain and receive chain issues). Proposed under
+  [#1061](https://github.com/Ledova/ledova/issues/1061), which also proposes class creation through
   company appointments rather than ownership and a check of the class's declared transfer
   restriction, which direct transfers do not check today.
 - An issue or transfer is dated the day it is recorded rather than the company's effective date, and
-  the investor issue review shows the shares and consideration but no implied unit price or
-  ownership before and after. Planned under [#1062](https://github.com/Ledova/ledova/issues/1062).
+  the investor issue review shows the holdings and issued shares before and after but no implied
+  price per share or ownership percentages. Proposed under [#1062](https://github.com/Ledova/ledova/issues/1062).
 - An award-linked grant asks for its agreement again, and an award's unissued entitlement cannot be
-  ended or corrected. Planned under [#1063](https://github.com/Ledova/ledova/issues/1063).
+  ended or corrected. Proposed under [#1063](https://github.com/Ledova/ledova/issues/1063).
 - Joint, corporate and trust holdings have no separate structure: a member is one name and
   residential address, with the beneficial status the company records.
 

@@ -25,23 +25,23 @@ recovery and every task below wait until a worker is running.
 
 ## Schedule
 
-| Schedule | Task |
-| --- | --- |
-| every minute | `expire_unclaimed_matches`, `place_held_orders` |
-| every 5 min | `check_pending_token_deployments`, `check_pending_swap_approvals`, `check_pending_pause_changes`, `check_pending_nav_updates`, `check_executing_issuance_requests`, `resolve_executing_swaps`, `reconcile_subscriptions`, `check_pending_transactions`, `check_all_pending_transactions`, `recover_wallet_submissions`, `recover_swap_approval_submissions`, `observe_wallet_chains`, `recover_mint_requests`, `recover_whitelist_changes`, `refresh_whitelist_approvals`, `recover_capital_increases`, `close_resolutions_past_their_window` |
-| every 10 min | `sync_all_assets`, `sync_exchange_rates` |
-| every 30 min | `sync_all_entries` |
-| hourly, on the hour | `sync_all_wallets`, `run_batch_monitoring` |
-| hourly, at :15 | `purge_signing_challenges` |
-| every 6 hours, at :20 | `fold_every_share_class` |
-| every 6 hours, at :50 | `reconcile_every_register` |
-| daily 03:00 | `expire_unpaid_subscriptions`, `purge_classification_evidence` |
-| daily 03:15 | `purge_document_evidence` |
-| daily 03:30 | `sweep_private_uploads` |
-| daily 03:40 | `purge_former_members_past_the_clock` |
-| daily 03:50 | `purge_publications_past_the_clock` |
-| daily 04:00 | `check_periodic_reviews` |
-| daily 04:30 | `remove_old_jobs` |
+| Schedule              | Task                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| every minute          | `expire_unclaimed_matches`, `place_held_orders`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| every 5 min           | `check_pending_token_deployments`, `check_pending_swap_approvals`, `check_pending_pause_changes`, `check_pending_nav_updates`, `check_executing_issuance_requests`, `resolve_executing_swaps`, `reconcile_subscriptions`, `check_pending_transactions`, `check_all_pending_transactions`, `recover_wallet_submissions`, `recover_swap_approval_submissions`, `observe_wallet_chains`, `recover_mint_requests`, `recover_whitelist_changes`, `refresh_whitelist_approvals`, `recover_capital_increases`, `close_resolutions_past_their_window` |
+| every 10 min          | `sync_all_assets`, `sync_exchange_rates`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| every 30 min          | `sync_all_entries`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| hourly, on the hour   | `sync_all_wallets`, `run_batch_monitoring`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| hourly, at :15        | `purge_signing_challenges`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| every 6 hours, at :20 | `fold_every_share_class`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| every 6 hours, at :50 | `reconcile_every_register`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| daily 03:00           | `expire_unpaid_subscriptions`, `purge_classification_evidence`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| daily 03:15           | `purge_document_evidence`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| daily 03:30           | `sweep_private_uploads`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| daily 03:40           | `purge_former_members_past_the_clock`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| daily 03:50           | `purge_publications_past_the_clock`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| daily 04:00           | `check_periodic_reviews`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| daily 04:30           | `remove_old_jobs`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
 
 `refresh_whitelist_targets` is deferred rather than scheduled: it retries a deleted wallet's removal
 every five minutes with no attempt ceiling
@@ -145,24 +145,24 @@ The limits are integer environment settings shared by the backend and worker; ho
 enforced, including why a child limit below 1 fails every upload, is in
 [upload validation](../engineering/security.md#upload-validation).
 
-| Variable | Default | Bound |
-| --- | --- | --- |
-| `UPLOAD_MAX_BYTES` | `10485760` | Actual bytes per file (10 MiB) |
-| `UPLOAD_MAX_REQUEST_BYTES` | file limit + `65536` | Whole upload request before multipart buffering |
-| `UPLOAD_BODY_SECONDS` | `30` | ASGI body arrival deadline |
-| `UPLOAD_MAX_PDF_PAGES` | `100` | Pages inspected before any rendering |
-| `UPLOAD_MAX_SOURCE_PIXELS` | `16000000` | Image or embedded-image pixels, or PDF page pixels at 2x scale |
-| `UPLOAD_MAX_DECODED_BYTES` | `67108864` | Four bytes per pixel per image or page, and the sum of unique embedded images on a page |
-| `UPLOAD_RENDER_MAX_SIDE` | `1600` | Longest rendered PNG side |
-| `UPLOAD_RENDER_MAX_BYTES` | `8388608` | Rendered PNG bytes |
-| `UPLOAD_PROCESS_MEMORY_BYTES` | `536870912` | Decoder and scanner-client address space |
-| `UPLOAD_PROCESS_CPU_SECONDS` | `5` | Child CPU time |
-| `UPLOAD_PROCESS_WALL_SECONDS` | `10` | Decoder child wall deadline |
-| `UPLOAD_SCANNER_HOST` | `clamav` | Private daemon hostname; Compose sets it explicitly |
-| `UPLOAD_SCANNER_PORT` | `3310` | Private daemon TCP port |
-| `UPLOAD_SCANNER_SECONDS` | `10` | Scanner-client child wall deadline |
-| `UPLOAD_REQUESTS_PER_HOUR` | `20` | Authenticated create attempts per rolling hour per user, across all upload routes |
-| `UPLOAD_BYTES_PER_HOUR` | `52428800` | Actual file bytes per rolling hour per user (50 MiB) |
+| Variable                      | Default              | Bound                                                                                   |
+| ----------------------------- | -------------------- | --------------------------------------------------------------------------------------- |
+| `UPLOAD_MAX_BYTES`            | `10485760`           | Actual bytes per file (10 MiB)                                                          |
+| `UPLOAD_MAX_REQUEST_BYTES`    | file limit + `65536` | Whole upload request before multipart buffering                                         |
+| `UPLOAD_BODY_SECONDS`         | `30`                 | ASGI body arrival deadline                                                              |
+| `UPLOAD_MAX_PDF_PAGES`        | `100`                | Pages inspected before any rendering                                                    |
+| `UPLOAD_MAX_SOURCE_PIXELS`    | `16000000`           | Image or embedded-image pixels, or PDF page pixels at 2x scale                          |
+| `UPLOAD_MAX_DECODED_BYTES`    | `67108864`           | Four bytes per pixel per image or page, and the sum of unique embedded images on a page |
+| `UPLOAD_RENDER_MAX_SIDE`      | `1600`               | Longest rendered PNG side                                                               |
+| `UPLOAD_RENDER_MAX_BYTES`     | `8388608`            | Rendered PNG bytes                                                                      |
+| `UPLOAD_PROCESS_MEMORY_BYTES` | `536870912`          | Decoder and scanner-client address space                                                |
+| `UPLOAD_PROCESS_CPU_SECONDS`  | `5`                  | Child CPU time                                                                          |
+| `UPLOAD_PROCESS_WALL_SECONDS` | `10`                 | Decoder child wall deadline                                                             |
+| `UPLOAD_SCANNER_HOST`         | `clamav`             | Private daemon hostname; Compose sets it explicitly                                     |
+| `UPLOAD_SCANNER_PORT`         | `3310`               | Private daemon TCP port                                                                 |
+| `UPLOAD_SCANNER_SECONDS`      | `10`                 | Scanner-client child wall deadline                                                      |
+| `UPLOAD_REQUESTS_PER_HOUR`    | `20`                 | Authenticated create attempts per rolling hour per user, across all upload routes       |
+| `UPLOAD_BYTES_PER_HOUR`       | `52428800`           | Actual file bytes per rolling hour per user (50 MiB)                                    |
 
 On Linux every limit applies. Where the kernel refuses to lower the address-space limit, the child
 runs without it and the parent logs

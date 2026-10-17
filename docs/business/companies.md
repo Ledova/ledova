@@ -221,8 +221,8 @@ Rules:
 - An ACN and an ABN must pass their check digits, and an ASIC-registered company's ABN must be its
   ACN with two check digits in front. A check-digit pass is a typo filter, not verification: only
   the registry lookup says a number belongs to a real company.
-- Changing the registered name, ACN, ABN or company type sets the registry check back to pending, so
-  the next activation runs a fresh lookup.
+- Changing the registered name, ACN, ABN, company type or officeholder declaration sets the registry
+  check back to pending, so the next activation runs a fresh lookup.
 - A document attached to an approved or closed offering cannot be removed, because investors may
   already have read it ([offer documents](issuing-shares.md#offer-documents)).
 

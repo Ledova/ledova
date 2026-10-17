@@ -47,11 +47,11 @@ connection roles, not job titles.
 
 ### Roles and principal
 
-| Role | Purpose |
-| --- | --- |
-| App | Customer requests and scoped jobs; owns no tables and has no `BYPASSRLS` |
+| Role     | Purpose                                                                              |
+| -------- | ------------------------------------------------------------------------------------ |
+| App      | Customer requests and scoped jobs; owns no tables and has no `BYPASSRLS`             |
 | Operator | Admin, explicit administrative jobs and bounded privileged services; has `BYPASSRLS` |
-| Migrate | Owns the schema and applies migrations |
+| Migrate  | Owns the schema and applies migrations                                               |
 
 The app alias uses `CONN_MAX_AGE=0`. The principal is a session-level `app.user_id`, set after DRF
 authentication by `SetsThePrincipalOnTheConnection` on the shared view bases, because middleware
@@ -178,17 +178,17 @@ and alias for each adapter ([where files live](../operations/jobs-and-storage.md
 Stored keys end in a fresh UUID and extension, embedding no email or original filename; company,
 account and classification UUIDs in prefixes are pseudonymous.
 
-| Upload | Storage prefix and lifecycle |
-| --- | --- |
-| Representative authority request | `companies/<uuid>/authority-requests/`; retained with the immutable request; uncommitted-copy orphans are swept |
-| Company register decision | `companies/<uuid>/register-evidence/` for the company's upload and a per-kind prefix for the decision's own copy: `register-openings/`, `register-imports/`, `register-corrections/`, `register-links/`, `register-particulars/`, `register-grants/`, `register-transfers/`, `register-capital-increases/`, `register-pause-changes/`, `register-instructions/`, `register-awards/`, `register-award-vestings/` and `register-allotments/`; both are retained with their rows; interrupted-copy orphans are swept |
-| Member certificate fulfilment | `companies/<uuid>/member-certificates/`; the recipient-only file, retained with its fulfilment record |
-| Publication to members | `companies/<uuid>/publications/`; retained with its row until the publication purge |
-| Dividend payment evidence | `companies/<uuid>/publications/<publication>/payments/`; retained with its payment record until the publication purge |
-| Company document | `companies/<uuid>/documents/<type>/`; swept after becoming an orphan |
-| Unattached payslip | `documents/`; ordinary deletion and orphan cleanup |
-| Classification evidence | `users/`; retained by the classification clock |
-| Attached payslip | `users/supporting-documents/`; retained with its claim |
+| Upload                           | Storage prefix and lifecycle                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Representative authority request | `companies/<uuid>/authority-requests/`; retained with the immutable request; uncommitted-copy orphans are swept                                                                                                                                                                                                                                                                                                                                                                                                   |
+| Company register decision        | `companies/<uuid>/register-evidence/` for the company's upload and a per-kind prefix for the decision's own copy: `register-openings/`, `register-imports/`, `register-corrections/`, `register-links/`, `register-particulars/`, `register-grants/`, `register-transfers/`, `register-capital-increases/`, `register-pause-changes/`, `register-instructions/`, `register-awards/`, `register-award-vestings/` and `register-allotments/`; both are retained with their rows; interrupted-copy orphans are swept |
+| Member certificate fulfilment    | `companies/<uuid>/member-certificates/`; the recipient-only file, retained with its fulfilment record                                                                                                                                                                                                                                                                                                                                                                                                             |
+| Publication to members           | `companies/<uuid>/publications/`; retained with its row until the publication purge                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| Dividend payment evidence        | `companies/<uuid>/publications/<publication>/payments/`; retained with its payment record until the publication purge                                                                                                                                                                                                                                                                                                                                                                                             |
+| Company document                 | `companies/<uuid>/documents/<type>/`; swept after becoming an orphan                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| Unattached payslip               | `documents/`; ordinary deletion and orphan cleanup                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| Classification evidence          | `users/`; retained by the classification clock                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| Attached payslip                 | `users/supporting-documents/`; retained with its claim                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
 
 ### Serving
 
@@ -244,14 +244,14 @@ retained, with a reason.
 
 ### Retention clocks
 
-| Record | Clock | Purge |
-| --- | --- | --- |
-| Classification evidence | `CLASSIFICATION_EVIDENCE_RETENTION_DAYS` from `reviewed_at` for a rejected, revoked or withdrawn claim and from `expires_at` for a verified one; `0` keeps it indefinitely and purges nothing | `purge_classification_evidence` deletes the bytes, preserving status and content-free metadata |
-| Attached payslip | The claim's clock | `purge_document_evidence` removes the file, extraction output, filenames and notes, keeping claim links and read audit |
-| Unattached payslip | `UNATTACHED_DOCUMENT_RETENTION_DAYS` from upload; `0` keeps it indefinitely | `purge_document_evidence` |
-| Former members, member particulars and register export records | `FORMER_MEMBER_RETENTION_DAYS`, at least 2,557 days | `purge_former_members_past_the_clock`, below |
-| Publications to members | The same setting and floor, from the publication | `purge_publications_past_the_clock` removes the publication, its roll, event chain and read records, and with them its files |
-| Register decisions, uploads and copies; authority-request uploads | No automatic expiry | None, below |
+| Record                                                            | Clock                                                                                                                                                                                         | Purge                                                                                                                        |
+| ----------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| Classification evidence                                           | `CLASSIFICATION_EVIDENCE_RETENTION_DAYS` from `reviewed_at` for a rejected, revoked or withdrawn claim and from `expires_at` for a verified one; `0` keeps it indefinitely and purges nothing | `purge_classification_evidence` deletes the bytes, preserving status and content-free metadata                               |
+| Attached payslip                                                  | The claim's clock                                                                                                                                                                             | `purge_document_evidence` removes the file, extraction output, filenames and notes, keeping claim links and read audit       |
+| Unattached payslip                                                | `UNATTACHED_DOCUMENT_RETENTION_DAYS` from upload; `0` keeps it indefinitely                                                                                                                   | `purge_document_evidence`                                                                                                    |
+| Former members, member particulars and register export records    | `FORMER_MEMBER_RETENTION_DAYS`, at least 2,557 days                                                                                                                                           | `purge_former_members_past_the_clock`, below                                                                                 |
+| Publications to members                                           | The same setting and floor, from the publication                                                                                                                                              | `purge_publications_past_the_clock` removes the publication, its roll, event chain and read records, and with them its files |
+| Register decisions, uploads and copies; authority-request uploads | No automatic expiry                                                                                                                                                                           | None, below                                                                                                                  |
 
 The classification-evidence and payslip purges remove due private files and derived extraction
 payloads only after fresh database checks under the source and document locks; a caller-supplied

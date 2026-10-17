@@ -24,25 +24,25 @@ page keeps what the schema cannot express and links each business rule.
 One Django app per bounded concern. `backend/ledova_backend/settings/` is a package of per-concern
 modules re-exported by `settings/__init__.py`.
 
-| App | Owns |
-| --- | --- |
-| `operators` | The single `Operator` configuration row, `GET /api/operator/` (that configuration, read by signed-in clients), and the operator console: `worklist()` and `configuration_health()` rendered by `OperatorAdmin.changelist_view` |
-| `authentication` | `CustomUser`, the `AuthViewSet`, JWT sessions, email verification codes |
-| `users` | Profiles, accounts, preferences (the transaction-alerts switch, on one `UserPreferences` row), financial profiles, device tokens, notifications, classification sources, and company eligibility requests and decisions |
-| `companies` | `Company`, its activation, `CompanyDocument`, representative-authority request, appointment, invitation, signup-terms and retained revocation records, and the staff company-pack page |
-| `tokens` | `ShareToken`, `ShareIssuanceRequest`, `ShareIssuance`, `CapitalIncreaseRequest`, `MintRequest`, `YieldToken`, the stored register with its company decision records, employee award and vesting records, external capital and allotment records, member access and register outputs, and the trading models |
-| `shareholders` | `Publication`, the `PublicationRecipient` roll frozen at a record date with each entitlement, the `PublicationRead` audit, and the `PublicationEvent` chain of a resolution's ballots and close and of a distribution's payment records |
-| `offerings` | `Offering`, `Subscription`, their review and payment lifecycles, allotment, and the eligibility-gated investor directory at `/api/v1/directory/` |
-| `whitelist` | `WhitelistEntry`, the per-company `WhitelistApproval` mirror, `WhitelistChange` commands, wallet nominations and company wallet instructions, and the sync from each company's registry |
-| `wallets` | `Wallet`, `Holding`, `Transaction`, balance sync and transfer confirmation |
-| `assets` | `Asset`, `AssetChainDeployment`, `AssetSnapshot`, `ExchangeRate`, price sync, asset identity |
-| `portfolios` | `Portfolio` and its owner-scoped routes |
-| `blockchain` | `BlockchainTransaction` and transaction monitoring; the durable outgoing-signing foundation (`SigningAccount`, `OutgoingOperation`, `SignedAttempt`) and its immutable history inventory (`OutgoingHistoryCapture`, `OutgoingHistoryEvidence`, `OutgoingCutoverHold`) |
-| `compliance` | Monitoring rules, alerts, procedure templates, risk assessments |
-| `documents` | Uploaded documents and their extraction records |
-| `integrations` | Chain client, KYC providers, Alchemy, CoinGecko, Blockstream, ABR company registry, LLM document extraction, SendGrid, Expo push, Transak |
-| `feature_flags` | `FeatureFlag` and the trading middleware |
-| `shared` | Base model, country lookup, health-check middleware, PostgreSQL connection and principal helpers, the policy catalogue and database setup, private storage and upload validation, the task catalogue, seeds and the backend test suite |
+| App              | Owns                                                                                                                                                                                                                                                                                                        |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `operators`      | The single `Operator` configuration row, `GET /api/operator/` (that configuration, read by signed-in clients), and the operator console: `worklist()` and `configuration_health()` rendered by `OperatorAdmin.changelist_view`                                                                              |
+| `authentication` | `CustomUser`, the `AuthViewSet`, JWT sessions, email verification codes                                                                                                                                                                                                                                     |
+| `users`          | Profiles, accounts, preferences (the transaction-alerts switch, on one `UserPreferences` row), financial profiles, device tokens, notifications, classification sources, and company eligibility requests and decisions                                                                                     |
+| `companies`      | `Company`, its activation, `CompanyDocument`, representative-authority request, appointment, invitation, signup-terms and retained revocation records, and the staff company-pack page                                                                                                                      |
+| `tokens`         | `ShareToken`, `ShareIssuanceRequest`, `ShareIssuance`, `CapitalIncreaseRequest`, `MintRequest`, `YieldToken`, the stored register with its company decision records, employee award and vesting records, external capital and allotment records, member access and register outputs, and the trading models |
+| `shareholders`   | `Publication`, the `PublicationRecipient` roll frozen at a record date with each entitlement, the `PublicationRead` audit, and the `PublicationEvent` chain of a resolution's ballots and close and of a distribution's payment records                                                                     |
+| `offerings`      | `Offering`, `Subscription`, their review and payment lifecycles, allotment, and the eligibility-gated investor directory at `/api/v1/directory/`                                                                                                                                                            |
+| `whitelist`      | `WhitelistEntry`, the per-company `WhitelistApproval` mirror, `WhitelistChange` commands, wallet nominations and company wallet instructions, and the sync from each company's registry                                                                                                                     |
+| `wallets`        | `Wallet`, `Holding`, `Transaction`, balance sync and transfer confirmation                                                                                                                                                                                                                                  |
+| `assets`         | `Asset`, `AssetChainDeployment`, `AssetSnapshot`, `ExchangeRate`, price sync, asset identity                                                                                                                                                                                                                |
+| `portfolios`     | `Portfolio` and its owner-scoped routes                                                                                                                                                                                                                                                                     |
+| `blockchain`     | `BlockchainTransaction` and transaction monitoring; the durable outgoing-signing foundation (`SigningAccount`, `OutgoingOperation`, `SignedAttempt`) and its immutable history inventory (`OutgoingHistoryCapture`, `OutgoingHistoryEvidence`, `OutgoingCutoverHold`)                                       |
+| `compliance`     | Monitoring rules, alerts, procedure templates, risk assessments                                                                                                                                                                                                                                             |
+| `documents`      | Uploaded documents and their extraction records                                                                                                                                                                                                                                                             |
+| `integrations`   | Chain client, KYC providers, Alchemy, CoinGecko, Blockstream, ABR company registry, LLM document extraction, SendGrid, Expo push, Transak                                                                                                                                                                   |
+| `feature_flags`  | `FeatureFlag` and the trading middleware                                                                                                                                                                                                                                                                    |
+| `shared`         | Base model, country lookup, health-check middleware, PostgreSQL connection and principal helpers, the policy catalogue and database setup, private storage and upload validation, the task catalogue, seeds and the backend test suite                                                                      |
 
 Signing admission, locking and history are in [chain](chain.md).
 
@@ -56,15 +56,15 @@ are partial. Add a layer only when a second caller needs the same logic.
 `offerings/` is the reference app. Where a rule and a file disagree, the rule wins and the file is
 the backlog. [The layer gate](gates.md#the-layer-gate) enforces the table.
 
-| Layer | Owns | Never contains | Reference |
-| --- | --- | --- | --- |
-| `models/` | Fields, `TextChoices`, constraints, `__str__`, properties over own fields, single-row transitions (guard, set fields, `save(update_fields=...)`, at most about ten lines, raising the app's `APIException` on a bad state) | Queries on other models, multi-step workflows, external I/O | `offerings/models/offering.py` |
-| `querysets/` | Every reusable query: product selectors, status filters, `select_related` bundles, annotations, aggregates; wired with `objects = XQuerySet.as_manager()` | Saves, side effects, calls into services | `offerings/querysets/offering.py` |
-| `services/` | Orchestration across models, external I/O (chain, KYC, email), `shared.db.atomic` and `select_for_update`; the one place a multi-model workflow lives. Plain module-level `verb_noun` functions, named after the noun | HTTP objects, serializers, `Response` | `offerings/services/subscription.py` |
-| `serializers/` | JSON shape and input validation; writable FKs constrained in `get_fields()` by policies and product selectors | Business rules, locking, queries beyond FK scoping | `offerings/serializers/subscription.py` |
-| `views/` | Permissions, `scoped_model` plus product filtering in `narrow()`, serializer choice, one service call, `Response` | Raw `.objects.filter`, try/except that re-wraps an `APIException`, log lines that restate the request | `offerings/views/subscription.py` |
-| `tasks/` | `@app.task` / `@app.periodic`: load the row by uuid, call one service, return a dict | Orchestration, state machines | `users/tasks/retention.py` |
-| `admin/` | Registration, list/search/filter, operator actions that call the same model transition or service the API calls | A second implementation of a workflow, HTML badge builders | `users/admin/investor_classification.py` |
+| Layer          | Owns                                                                                                                                                                                                                       | Never contains                                                                                        | Reference                                |
+| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- | ---------------------------------------- |
+| `models/`      | Fields, `TextChoices`, constraints, `__str__`, properties over own fields, single-row transitions (guard, set fields, `save(update_fields=...)`, at most about ten lines, raising the app's `APIException` on a bad state) | Queries on other models, multi-step workflows, external I/O                                           | `offerings/models/offering.py`           |
+| `querysets/`   | Every reusable query: product selectors, status filters, `select_related` bundles, annotations, aggregates; wired with `objects = XQuerySet.as_manager()`                                                                  | Saves, side effects, calls into services                                                              | `offerings/querysets/offering.py`        |
+| `services/`    | Orchestration across models, external I/O (chain, KYC, email), `shared.db.atomic` and `select_for_update`; the one place a multi-model workflow lives. Plain module-level `verb_noun` functions, named after the noun      | HTTP objects, serializers, `Response`                                                                 | `offerings/services/subscription.py`     |
+| `serializers/` | JSON shape and input validation; writable FKs constrained in `get_fields()` by policies and product selectors                                                                                                              | Business rules, locking, queries beyond FK scoping                                                    | `offerings/serializers/subscription.py`  |
+| `views/`       | Permissions, `scoped_model` plus product filtering in `narrow()`, serializer choice, one service call, `Response`                                                                                                          | Raw `.objects.filter`, try/except that re-wraps an `APIException`, log lines that restate the request | `offerings/views/subscription.py`        |
+| `tasks/`       | `@app.task` / `@app.periodic`: load the row by uuid, call one service, return a dict                                                                                                                                       | Orchestration, state machines                                                                         | `users/tasks/retention.py`               |
+| `admin/`       | Registration, list/search/filter, operator actions that call the same model transition or service the API calls                                                                                                            | A second implementation of a workflow, HTML badge builders                                            | `users/admin/investor_classification.py` |
 
 One exception to plain-function services: the chain clients under `integrations/` stay classes
 because they hold a connection. A class whose methods are all `staticmethod` is a module spelled
@@ -238,20 +238,20 @@ and key: current read access recovers the retained receipt, even after the appoi
 expired or the proposal has changed stage. No replay after process loss is promised, and a client
 never infers success from a lost response.
 
-| Family | Route prefix | Business rules |
-| --- | --- | --- |
-| Authority requests | `/api/v1/company-authority/requests/` | [Authority](../business/companies.md) |
-| Team invitations and appointments | `/api/v1/company-authority/invitations/`, `/appointments/` | [Team](../business/companies.md#team-invitations-and-appointments) |
-| Company details and documents | `/api/v1/companies/`, `/api/v1/companies/{uuid}/documents/` | [Company information](../business/companies.md#company-information-and-documents) |
-| Activation | `/api/v1/companies/{uuid}/activate/` | [Activation](../business/companies.md#activation-and-the-registry-check) |
-| Eligibility | `/api/v1/company-eligibility/requests/`, `/api/v1/companies/{uuid}/eligibility-requests/` | [Eligibility](../business/participants.md#company-eligibility-decisions) |
-| Wallet nominations and instructions | `/api/v1/whitelist/wallet-nominations/`, `company-wallet-nominations/`, `company-wallet-instructions/`, `company-wallet-targets/` | [Wallet approvals](../business/participants.md#wallet-nominations-and-company-wallet-approvals) |
-| Register evidence and setup | `/api/v1/tokens/register-evidence/`, `register-openings/`, `register-links/`, `register-imports/`, `register-corrections/`, `register-particulars-changes/`, `register-reconciliations/` | [Register](../business/register.md) |
-| Grants, awards and allotments | `/api/v1/tokens/register-grants/`, `register-awards/`, `register-award-vestings/`, `register-allotments/` | [Grants](../business/issuing-shares.md#grants-to-walletless-members), [awards](../business/issuing-shares.md#employee-awards-and-vesting), [allotments](../business/issuing-shares.md#external-investor-allotments) |
-| Transfers and retained instructions | `/api/v1/tokens/register-transfers/`, `register-instructions/` | [Transfers](../business/register.md#non-paid-transfers-between-members) |
-| Share-class chain decisions | `/api/v1/tokens/register-deployments/`, `register-issues/`, `register-paid-issues/`, `register-capital-increases/`, `register-pause-changes/` | [Deployments](../business/issuing-shares.md#deploying-an-empty-class), [issues](../business/issuing-shares.md#non-paid-chain-grants), [paid issues](../business/issuing-shares.md#company-paid-issues), [capital](../business/issuing-shares.md#raising-the-authorised-shares), [pauses](../business/issuing-shares.md#pausing-and-unpausing-a-class) |
-| Member access | `/api/v1/tokens/member-invitations/`, `member-associations/`, `member-records/`, `member-particulars-requests/`, `member-certificate-requests/` | [Member access](../business/member-records.md#member-access) |
-| Register outputs | `/api/v1/tokens/{uuid}/register/` (`certificate/`, `inspection-copy/`, `export/`), `/api/v1/companies/{uuid}/pack/` | [Outputs](../business/member-records.md#outputs-at-a-glance) |
+| Family                              | Route prefix                                                                                                                                                                             | Business rules                                                                                                                                                                                                                                                                                                                                        |
+| ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Authority requests                  | `/api/v1/company-authority/requests/`                                                                                                                                                    | [Authority](../business/companies.md)                                                                                                                                                                                                                                                                                                                 |
+| Team invitations and appointments   | `/api/v1/company-authority/invitations/`, `/appointments/`                                                                                                                               | [Team](../business/companies.md#team-invitations-and-appointments)                                                                                                                                                                                                                                                                                    |
+| Company details and documents       | `/api/v1/companies/`, `/api/v1/companies/{uuid}/documents/`                                                                                                                              | [Company information](../business/companies.md#company-information-and-documents)                                                                                                                                                                                                                                                                     |
+| Activation                          | `/api/v1/companies/{uuid}/activate/`                                                                                                                                                     | [Activation](../business/companies.md#activation-and-the-registry-check)                                                                                                                                                                                                                                                                              |
+| Eligibility                         | `/api/v1/company-eligibility/requests/`, `/api/v1/companies/{uuid}/eligibility-requests/`                                                                                                | [Eligibility](../business/participants.md#company-eligibility-decisions)                                                                                                                                                                                                                                                                              |
+| Wallet nominations and instructions | `/api/v1/whitelist/wallet-nominations/`, `company-wallet-nominations/`, `company-wallet-instructions/`, `company-wallet-targets/`                                                        | [Wallet approvals](../business/participants.md#wallet-nominations-and-company-wallet-approvals)                                                                                                                                                                                                                                                       |
+| Register evidence and setup         | `/api/v1/tokens/register-evidence/`, `register-openings/`, `register-links/`, `register-imports/`, `register-corrections/`, `register-particulars-changes/`, `register-reconciliations/` | [Register](../business/register.md)                                                                                                                                                                                                                                                                                                                   |
+| Grants, awards and allotments       | `/api/v1/tokens/register-grants/`, `register-awards/`, `register-award-vestings/`, `register-allotments/`                                                                                | [Grants](../business/issuing-shares.md#grants-to-walletless-members), [awards](../business/issuing-shares.md#employee-awards-and-vesting), [allotments](../business/issuing-shares.md#external-investor-allotments)                                                                                                                                   |
+| Transfers and retained instructions | `/api/v1/tokens/register-transfers/`, `register-instructions/`                                                                                                                           | [Transfers](../business/register.md#non-paid-transfers-between-members)                                                                                                                                                                                                                                                                               |
+| Share-class chain decisions         | `/api/v1/tokens/register-deployments/`, `register-issues/`, `register-paid-issues/`, `register-capital-increases/`, `register-pause-changes/`                                            | [Deployments](../business/issuing-shares.md#deploying-an-empty-class), [issues](../business/issuing-shares.md#non-paid-chain-grants), [paid issues](../business/issuing-shares.md#company-paid-issues), [capital](../business/issuing-shares.md#raising-the-authorised-shares), [pauses](../business/issuing-shares.md#pausing-and-unpausing-a-class) |
+| Member access                       | `/api/v1/tokens/member-invitations/`, `member-associations/`, `member-records/`, `member-particulars-requests/`, `member-certificate-requests/`                                          | [Member access](../business/member-records.md#member-access)                                                                                                                                                                                                                                                                                          |
+| Register outputs                    | `/api/v1/tokens/{uuid}/register/` (`certificate/`, `inspection-copy/`, `export/`), `/api/v1/companies/{uuid}/pack/`                                                                      | [Outputs](../business/member-records.md#outputs-at-a-glance)                                                                                                                                                                                                                                                                                          |
 
 Owning apps are in [backend apps](#backend-apps). Register routes and family requirement codes
 are in [register commands](records.md#register-commands), and the chain families' admission and
@@ -266,14 +266,14 @@ keep their staff review instead. The kinds are `approve`, `apply` and `reject`, 
 comes from the family's SQL digest function, and a conflict is 409 `register_change_conflict`.
 Shared requirement codes:
 
-| Requirement | Meaning |
-| --- | --- |
-| `appointment_capability_required` | The appointment holds neither `admin` nor the capability the decision needs |
-| `<command>_decided` | The proposal is already applied or rejected, for example `correction_decided` or `import_decided` |
-| `company_provided_evidence_required` | A retained staff-era proposal, which can only be rejected |
-| `already_approved` | A current approval exists |
-| `approval_required`, `approval_lapsed` | Application needs a current approval; an earlier approver's appointment ended |
-| `evidence_unavailable` | A retained copy no longer matches its size or SHA-256; checked by each family that retains evidence |
+| Requirement                             | Meaning                                                                                                                    |
+| --------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `appointment_capability_required`       | The appointment holds neither `admin` nor the capability the decision needs                                                |
+| `<command>_decided`                     | The proposal is already applied or rejected, for example `correction_decided` or `import_decided`                          |
+| `company_provided_evidence_required`    | A retained staff-era proposal, which can only be rejected                                                                  |
+| `already_approved`                      | A current approval exists                                                                                                  |
+| `approval_required`, `approval_lapsed`  | Application needs a current approval; an earlier approver's appointment ended                                              |
+| `evidence_unavailable`                  | A retained copy no longer matches its size or SHA-256; checked by each family that retains evidence                        |
 | `reason_required`, `reason_not_allowed` | Rejection needs a reason ([limit](../business/README.md#how-a-company-decision-works)); approval and application take none |
 
 Each family adds its own effect requirements.
@@ -340,8 +340,7 @@ Legacy-owner appointments return null declaration fields. Capabilities are six i
 
 ### Eligibility decisions
 
-The eligibility routes reject unrecognised input fields; creation answers 201 and an exact replay
-200. `users/services/company_eligibility.py` records requests and decisions, and
+The eligibility routes reject unrecognised input fields; creation answers 201 and an exact replay 200. `users/services/company_eligibility.py` records requests and decisions, and
 `users/services/company_eligibility_consumption.py` consumes them:
 `company_eligibility(account, company, purpose=...)` and
 `subscription_eligibility(account, offering, quantity)` evaluate the current decision, standing
@@ -499,15 +498,15 @@ country; and, for an approval, the PEP type the risk policy reads. The applicant
 `COMPROMISED_PERSON`) once as `NEUTRAL_REJECTION_LABEL` (`UNABLE_TO_VERIFY`)
 ([what applicants see](../business/participants.md#what-applicants-see)).
 
-| The provider reports | KYCAID | Sum&Sub |
-| --- | --- | --- |
-| Not started | `unused`, recorded as `init` | `init`, from the created webhook |
-| In progress, no result | `pending` | `pending`, `queued`, `prechecked` or `onHold`, from the pending and on-hold webhooks too |
-| Finished | `completed`: `verified` true is `GREEN`, false is `RED`, null is no result | `completed` with its `reviewAnswer` |
-| A status poll | the applicant's last verification: `pending`; `valid` is `completed` and `GREEN`; `invalid` is `completed` and `RED` | the review status, normalised through the same mapping as a webhook |
-| Reasons | each check's `decline_reasons` and the applicant's, once each | `reviewResult.rejectLabels` |
-| Identity document | the type of the applicant's latest valid identity document; no country | approved `IDENTITY` steps from `requiredIdDocsStatus`, including the issuing country |
-| PEP evidence | the applicant's `pep` flag, or a failed `pep` check | with `RED`, the `PEP` label or `pep` button; with `GREEN`, the fetched AML case |
+| The provider reports   | KYCAID                                                                                                               | Sum&Sub                                                                                  |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| Not started            | `unused`, recorded as `init`                                                                                         | `init`, from the created webhook                                                         |
+| In progress, no result | `pending`                                                                                                            | `pending`, `queued`, `prechecked` or `onHold`, from the pending and on-hold webhooks too |
+| Finished               | `completed`: `verified` true is `GREEN`, false is `RED`, null is no result                                           | `completed` with its `reviewAnswer`                                                      |
+| A status poll          | the applicant's last verification: `pending`; `valid` is `completed` and `GREEN`; `invalid` is `completed` and `RED` | the review status, normalised through the same mapping as a webhook                      |
+| Reasons                | each check's `decline_reasons` and the applicant's, once each                                                        | `reviewResult.rejectLabels`                                                              |
+| Identity document      | the type of the applicant's latest valid identity document; no country                                               | approved `IDENTITY` steps from `requiredIdDocsStatus`, including the issuing country     |
+| PEP evidence           | the applicant's `pep` flag, or a failed `pep` check                                                                  | with `RED`, the `PEP` label or `pep` button; with `GREEN`, the fetched AML case          |
 
 ### When a result counts
 
@@ -634,13 +633,13 @@ a worker drains the queue. Staff can add, change and delete rows in the Django a
 
 Each notice names its kind as `data.type`, and the dashboard bell opens that kind's page:
 
-| Kind (`data.type`) | Sent by | The bell opens |
-| --- | --- | --- |
-| `company` | Retained history only: the sender is retired, and no activation or company status change sends one | Activation |
-| `offering` | `offerings/services/offering.py`, on each notified offering transition | Offerings |
-| `publication` | `shareholders/services/publications.py`, when a publication is announced to its roll | Notices |
-| `transaction` | `wallets/services/transaction_confirmation.py`, when a transaction is confirmed or fails | Activity |
-| `identity` | `users/services/identity.py`, when the identity check's result changes | Profile |
+| Kind (`data.type`) | Sent by                                                                                            | The bell opens |
+| ------------------ | -------------------------------------------------------------------------------------------------- | -------------- |
+| `company`          | Retained history only: the sender is retired, and no activation or company status change sends one | Activation     |
+| `offering`         | `offerings/services/offering.py`, on each notified offering transition                             | Offerings      |
+| `publication`      | `shareholders/services/publications.py`, when a publication is announced to its roll               | Notices        |
+| `transaction`      | `wallets/services/transaction_confirmation.py`, when a transaction is confirmed or fails           | Activity       |
+| `identity`         | `users/services/identity.py`, when the identity check's result changes                             | Profile        |
 
 A notice of any other kind, including identity notices sent before they carried a type, stays
 where it is. The mobile inbox opens only publication notices. Push registration and its settings

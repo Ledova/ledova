@@ -17,21 +17,21 @@ Contents: [every gate](#every-gate-and-where-its-rule-is-written) (its table lin
 `check-docs.py` holds this table to `scripts/`: a gate script with no entry fails, and an entry
 naming no script fails.
 
-| Script                        | Rule                                                         | `make check` | CI job                   |
-| ----------------------------- | ------------------------------------------------------------ | ------------ | ------------------------ |
-| `check-comments.py`           | [The comment gate](#the-comment-gate)                        | yes          | Source and client checks |
-| `check-type-check.py`         | [The type-check gate](#the-type-check-gate)                  | yes          | Source and client checks |
-| `check-layers.py`             | [The layer gate](#the-layer-gate)                            | yes          | Source and client checks |
-| `check-connection-binding.py` | [The connection-binding gate](#the-connection-binding-gate)  | yes          | Source and client checks |
-| `check-schema-responses.py`   | [The schema response gate](#the-schema-response-gate)        | yes          | Source and client checks |
-| `check-test-shadowing.py`     | [The test shadowing gate](#the-test-shadowing-gate)          | yes          | Source and client checks |
-| `check-error-bodies.py`       | [The error body gate](#the-error-body-gate)                  | yes          | Source and client checks |
-| `check-logging.py`            | [The logging privacy gate](#the-logging-privacy-gate)        | yes          | Source and client checks |
-| `check-docs.py`               | [The documentation gate](#the-documentation-gate)            | yes          | Source and client checks |
-| `check-pr-metadata.py`        | [The PR metadata gate](#the-pr-metadata-gate)                | no           | PR metadata              |
-| `check-api-schema.py`         | [The API type drift gate](#the-api-type-drift-gate)          | no           | Backend verification     |
-| `check-api-types.mjs`         | [The API type drift gate](#the-api-type-drift-gate)          | yes          | Source and client checks |
-| `check-client-operations.mjs` | [The API type drift gate](#the-api-type-drift-gate)          | yes          | Source and client checks |
+| Script                        | Rule                                                                 | `make check` | CI job                   |
+| ----------------------------- | -------------------------------------------------------------------- | ------------ | ------------------------ |
+| `check-comments.py`           | [The comment gate](#the-comment-gate)                                | yes          | Source and client checks |
+| `check-type-check.py`         | [The type-check gate](#the-type-check-gate)                          | yes          | Source and client checks |
+| `check-layers.py`             | [The layer gate](#the-layer-gate)                                    | yes          | Source and client checks |
+| `check-connection-binding.py` | [The connection-binding gate](#the-connection-binding-gate)          | yes          | Source and client checks |
+| `check-schema-responses.py`   | [The schema response gate](#the-schema-response-gate)                | yes          | Source and client checks |
+| `check-test-shadowing.py`     | [The test shadowing gate](#the-test-shadowing-gate)                  | yes          | Source and client checks |
+| `check-error-bodies.py`       | [The error body gate](#the-error-body-gate)                          | yes          | Source and client checks |
+| `check-logging.py`            | [The logging privacy gate](#the-logging-privacy-gate)                | yes          | Source and client checks |
+| `check-docs.py`               | [The documentation gate](#the-documentation-gate)                    | yes          | Source and client checks |
+| `check-pr-metadata.py`        | [The PR metadata gate](#the-pr-metadata-gate)                        | no           | PR metadata              |
+| `check-api-schema.py`         | [The API type drift gate](#the-api-type-drift-gate)                  | no           | Backend verification     |
+| `check-api-types.mjs`         | [The API type drift gate](#the-api-type-drift-gate)                  | yes          | Source and client checks |
+| `check-client-operations.mjs` | [The API type drift gate](#the-api-type-drift-gate)                  | yes          | Source and client checks |
 | `check-self-imports.mjs`      | [Shared package imports](frontend.md#clients-and-the-shared-package) | yes          | Source and client checks |
 
 Two rules are gated without a script of their own: migration drift through

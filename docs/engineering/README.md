@@ -136,27 +136,27 @@ How selectors, policies and database guards enforce these boundaries is in the
 
 ## Area map
 
-| Area | Document | Covers |
-| --- | --- | --- |
-| Backend | [Backend](backend.md) | Django apps and layers, backend rules, admin actions, migrations, the company workflow API, offering and subscription data flow, identity providers, notifications |
-| Security | [Security model](security.md) | Sessions, tenancy and row-level security, private files, deletion and retention, upload validation |
-| Records | [Register and records engine](records.md) | Register ledger and event chain, register commands, exports and output formats, the company pack format, publication storage and verification, account-data export |
-| Frontend | [Frontend](frontend.md) | Dashboard, shared package and public site: routing, the shared client layer, page conventions, design tokens and themes, the pages table |
-| Mobile | [Mobile](mobile.md) · [Mobile releases](mobile-releases.md) | Mobile architecture, native transport, secrets and lifetimes; native builds, iOS distribution, probes and device checks |
-| Chain | [Contracts and chain](chain.md) | Contracts, deployment, issuance, outgoing signing, wallets, assets and valuation |
-| Protocols | [Wallet protocols](wallet-protocols.md) · [Trading protocols](trading-protocols.md) | The exact transfer, evidence, reconciliation, order and settlement protocols listed below |
-| Verification | [Testing](testing.md) · [Gates](gates.md) | Minimum-test policy, commands, CI and preflight; every mechanical check |
+| Area         | Document                                                                            | Covers                                                                                                                                                             |
+| ------------ | ----------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Backend      | [Backend](backend.md)                                                               | Django apps and layers, backend rules, admin actions, migrations, the company workflow API, offering and subscription data flow, identity providers, notifications |
+| Security     | [Security model](security.md)                                                       | Sessions, tenancy and row-level security, private files, deletion and retention, upload validation                                                                 |
+| Records      | [Register and records engine](records.md)                                           | Register ledger and event chain, register commands, exports and output formats, the company pack format, publication storage and verification, account-data export |
+| Frontend     | [Frontend](frontend.md)                                                             | Dashboard, shared package and public site: routing, the shared client layer, page conventions, design tokens and themes, the pages table                           |
+| Mobile       | [Mobile](mobile.md) · [Mobile releases](mobile-releases.md)                         | Mobile architecture, native transport, secrets and lifetimes; native builds, iOS distribution, probes and device checks                                            |
+| Chain        | [Contracts and chain](chain.md)                                                     | Contracts, deployment, issuance, outgoing signing, wallets, assets and valuation                                                                                   |
+| Protocols    | [Wallet protocols](wallet-protocols.md) · [Trading protocols](trading-protocols.md) | The exact transfer, evidence, reconciliation, order and settlement protocols listed below                                                                          |
+| Verification | [Testing](testing.md) · [Gates](gates.md)                                           | Minimum-test policy, commands, CI and preflight; every mechanical check                                                                                            |
 
 The exact protocols behind particular flows:
 
-| Contract | Reference |
-| --- | --- |
-| EVM and Bitcoin signed identity, input ownership and durable recovery | [Wallet transfers](wallet-protocols.md) |
-| Receipt attribution, chain observations, finality policies and nonce evidence | [Transaction evidence](wallet-protocols.md#wallet-chain-observations) |
-| Wallet history and balance effects | [History imports](wallet-protocols.md#history-imports-and-previews) · [balance repair](wallet-protocols.md#balance-repair) |
-| Create, cancel and modify intent and replay | [Order protocols](trading-protocols.md) |
-| Captured settlement context, execution and the PostgreSQL freeze map | [Swap settlement](trading-protocols.md#swap-settlement-context) |
-| A person's own data export and the evidence it carries | [Account-data export](records.md#account-data-export) |
+| Contract                                                                      | Reference                                                                                                                  |
+| ----------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| EVM and Bitcoin signed identity, input ownership and durable recovery         | [Wallet transfers](wallet-protocols.md)                                                                                    |
+| Receipt attribution, chain observations, finality policies and nonce evidence | [Transaction evidence](wallet-protocols.md#wallet-chain-observations)                                                      |
+| Wallet history and balance effects                                            | [History imports](wallet-protocols.md#history-imports-and-previews) · [balance repair](wallet-protocols.md#balance-repair) |
+| Create, cancel and modify intent and replay                                   | [Order protocols](trading-protocols.md)                                                                                    |
+| Captured settlement context, execution and the PostgreSQL freeze map          | [Swap settlement](trading-protocols.md#swap-settlement-context)                                                            |
+| A person's own data export and the evidence it carries                        | [Account-data export](records.md#account-data-export)                                                                      |
 
 For an incident or an uncertain transaction outcome, start with the
 [operator recovery guide](../operations/recovery.md) before interpreting a protocol.

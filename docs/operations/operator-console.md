@@ -21,11 +21,11 @@ installation redirects to the admin index. `GET /api/operator/` also creates the
 page does; other staff get the admin's refusal and nothing is created. Adding the row by hand also
 needs the add permission, and the row cannot be deleted.
 
-| Admin section | Fields |
-| --- | --- |
-| Identity | `name`, `legal_name`, `abn`, `contact_email`, `website` |
-| Payments | `bank_account_name`, `bank_bsb`, `bank_account_number`, `payment_reference_prefix`, `receiving_wallet_address`, `receiving_wallet_chain`, `issued_stablecoin`, `supported_settlement_assets` |
-| Eligibility | `investor_kyc_required` (default on), `issuer_kyc_required` (default off) |
+| Admin section | Fields                                                                                                                                                                                       |
+| ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Identity      | `name`, `legal_name`, `abn`, `contact_email`, `website`                                                                                                                                      |
+| Payments      | `bank_account_name`, `bank_bsb`, `bank_account_number`, `payment_reference_prefix`, `receiving_wallet_address`, `receiving_wallet_chain`, `issued_stablecoin`, `supported_settlement_assets` |
+| Eligibility   | `investor_kyc_required` (default on), `issuer_kyc_required` (default off)                                                                                                                    |
 
 The model normalises the ABN, the BSB and the EVM receiving address. The payment-reference prefix
 is 2 to 10 letters or digits, uppercased, leaving room for an eight-character code within the

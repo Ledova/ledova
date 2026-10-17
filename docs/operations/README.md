@@ -13,16 +13,16 @@ staff work the queues that remain staff work. Do not grant company users platfor
 permissions. Staff procedures that carry out a business workflow on a company's written instruction
 are described with that workflow, linked in the table below.
 
-| Task | Guide |
-| --- | --- |
-| Set environment variables, database roles and provider settings | [Configuration](configuration.md) |
-| Deploy local or testnet contracts, align signer ownership, stand up a fresh environment | [Chains and keys](chains.md) |
-| Start workers, read the schedule, operate private storage, scanning and upload limits | [Jobs and storage](jobs-and-storage.md) |
-| Configure the operator record, read the console, seed reference data, work the review queues | [Operator console](operator-console.md) |
-| Recover unresolved work and verify stored registers and publications | [Recovery](recovery.md) |
-| Publish to members on a company's written instruction | [Publishing to members](../business/publications.md#publishing-on-the-companys-instruction) |
-| Prepare notice figures, work the due list or produce a company pack on written instruction | [Notice figures](../business/member-records.md#preparing-notice-figures), [due list](../business/member-records.md#working-the-due-list), [company pack](../business/member-records.md#producing-the-broader-pack-in-admin) |
-| Check a release on native builds, physical devices and a real Keystone wallet | [Native probes](../engineering/mobile-releases.md#native-probes), [Keystone on a Mac](../engineering/mobile-releases.md#keystone-ownership-on-a-mac) |
+| Task                                                                                         | Guide                                                                                                                                                                                                                       |
+| -------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Set environment variables, database roles and provider settings                              | [Configuration](configuration.md)                                                                                                                                                                                           |
+| Deploy local or testnet contracts, align signer ownership, stand up a fresh environment      | [Chains and keys](chains.md)                                                                                                                                                                                                |
+| Start workers, read the schedule, operate private storage, scanning and upload limits        | [Jobs and storage](jobs-and-storage.md)                                                                                                                                                                                     |
+| Configure the operator record, read the console, seed reference data, work the review queues | [Operator console](operator-console.md)                                                                                                                                                                                     |
+| Recover unresolved work and verify stored registers and publications                         | [Recovery](recovery.md)                                                                                                                                                                                                     |
+| Publish to members on a company's written instruction                                        | [Publishing to members](../business/publications.md#publishing-on-the-companys-instruction)                                                                                                                                 |
+| Prepare notice figures, work the due list or produce a company pack on written instruction   | [Notice figures](../business/member-records.md#preparing-notice-figures), [due list](../business/member-records.md#working-the-due-list), [company pack](../business/member-records.md#producing-the-broader-pack-in-admin) |
+| Check a release on native builds, physical devices and a real Keystone wallet                | [Native probes](../engineering/mobile-releases.md#native-probes), [Keystone on a Mac](../engineering/mobile-releases.md#keystone-ownership-on-a-mac)                                                                        |
 
 ## Bring up an instance
 
@@ -110,13 +110,13 @@ separate recovery; the backup does not preserve them automatically.
 Dated records of what an instance or a check actually did. They are historical evidence, not
 descriptions of current behaviour.
 
-| Record | What it records |
-| --- | --- |
-| [ledova.io rebuild, 11 October 2026](evidence/ledova-io-rebuild-2026-10-11.md) | The completed fresh-database rebuild and release of the private test deployment |
-| [Essential journey, 11 October 2026](evidence/essential-register-2026-10-11.md) | The fresh-schema company and member observation and its substitutions |
-| [Demonstration journey, September 2026](evidence/demonstration-journey-2026-09.md) | The original synthetic chain journey |
-| [Approval controls](approval-controls.md) | The company-scoped approval controls, the bypass review and the fresh-start redeploy rehearsal |
-| [Base Sepolia observations, 25 September 2026](evidence/base-sepolia-2026-09-25/README.md) | Checksummed public-chain snapshots behind the approval-control evidence |
+| Record                                                                                     | What it records                                                                                |
+| ------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------- |
+| [ledova.io rebuild, 11 October 2026](evidence/ledova-io-rebuild-2026-10-11.md)             | The completed fresh-database rebuild and release of the private test deployment                |
+| [Essential journey, 11 October 2026](evidence/essential-register-2026-10-11.md)            | The fresh-schema company and member observation and its substitutions                          |
+| [Demonstration journey, September 2026](evidence/demonstration-journey-2026-09.md)         | The original synthetic chain journey                                                           |
+| [Approval controls](approval-controls.md)                                                  | The company-scoped approval controls, the bypass review and the fresh-start redeploy rehearsal |
+| [Base Sepolia observations, 25 September 2026](evidence/base-sepolia-2026-09-25/README.md) | Checksummed public-chain snapshots behind the approval-control evidence                        |
 
 Next: [configuration](configuration.md),
 [chains and keys](chains.md) or [recovery](recovery.md).

@@ -102,13 +102,13 @@ import accounts from the public test mnemonic
 `test test test test test test test test test test test junk`. Its first ten accounts hold 10,000
 test ether each. The demo data uses five of them:
 
-| Account | Demo use |
-| --- | --- |
-| #0 | The operator: the backend's signer, which pays the operator's gas, and the demo founder's wallet |
-| #1 | The demo investor's wallet on Base and on Ethereum |
-| #2 | The demo investor's wallet on Base, recorded as a Keystone hardware wallet |
-| #3 | The demo investor's unverified Ethereum wallet |
-| #4 | The demo investor's trading wallet on Base |
+| Account | Demo use                                                                                         |
+| ------- | ------------------------------------------------------------------------------------------------ |
+| #0      | The operator: the backend's signer, which pays the operator's gas, and the demo founder's wallet |
+| #1      | The demo investor's wallet on Base and on Ethereum                                               |
+| #2      | The demo investor's wallet on Base, recorded as a Keystone hardware wallet                       |
+| #3      | The demo investor's unverified Ethereum wallet                                                   |
+| #4      | The demo investor's trading wallet on Base                                                       |
 
 The stack points the `base` network at this chain; Ethereum wallets read Ethereum Sepolia only
 when `ALCHEMY_ETH_URL` is set. Never send anything of value to these addresses, avoid sending from
@@ -193,6 +193,7 @@ check whether stored classes belong to a retired factory; step 8 does.
    journal means the deployment is incomplete: retain and investigate it, and never rerun the
    deployment or erase history to make the verifier accept the signer. Without fresh metadata, an
    ordinary deployment runs and produces no admission evidence.
+
 3. Configure a separate, newly created empty database. From `backend/`, run
    `python manage.py migrate`, `python manage.py check_rls_roles` and
    `python manage.py check_rls_catalogue` against it, carrying no old rows into it
@@ -210,6 +211,7 @@ check whether stored classes belong to a retired factory; step 8 does.
    Success prints the immutable bootstrap UUID, the manifest digest and `unchanged: false`; an
    exact replay prints `unchanged: true`. A verification failure leaves admission closed and
    creates no bootstrap record: resolve the reported problem while retaining the original manifest.
+
 5. After admission, start the backend and workers and recreate companies and users through the
    browser; only `createsuperuser` and admin wallet verification happen outside it.
 6. Deploy each share class. A company's first class creates its registry; its later classes share

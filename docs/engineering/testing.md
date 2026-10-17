@@ -26,13 +26,13 @@ increase in the same PR; never exceed a cap temporarily. The PR records before a
 the replaced cases or the approval, and independent review checks them
 ([binding caps](../decisions.md#binding-caps-and-backup-authorisation)).
 
-| Suite | Delivered cases | Maximum | Essential coverage |
-| --- | --- | --- | --- |
-| Backend, PostgreSQL | 21 | 150 | Core API happy paths, tenant isolation, company authority, ownership totals and issuance idempotency, one fake-scanner refusal |
-| Dashboard unit | 20 | 20 | Main pages, sign-in, core flows |
-| Mobile Jest | 10 | 10 | App start, sign-in, core flows |
-| Shared package | 10 | 10 | Essential shared behaviour |
-| Contracts | 14 | 20 | Who can mint, pause and transfer |
+| Suite               | Delivered cases | Maximum | Essential coverage                                                                                                             |
+| ------------------- | --------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| Backend, PostgreSQL | 21              | 150     | Core API happy paths, tenant isolation, company authority, ownership totals and issuance idempotency, one fake-scanner refusal |
+| Dashboard unit      | 20              | 20      | Main pages, sign-in, core flows                                                                                                |
+| Mobile Jest         | 10              | 10      | App start, sign-in, core flows                                                                                                 |
+| Shared package      | 10              | 10      | Essential shared behaviour                                                                                                     |
+| Contracts           | 14              | 20      | Who can mint, pause and transfer                                                                                               |
 
 The nine Playwright smoke tests stay outside the caps, as do mobile type-check and lint. Build,
 probe and device results before a mobile release are separate evidence
@@ -43,19 +43,19 @@ probe and device results before a mobile release are separate evidence
 Run commands from the repository root with workspace dependencies, backend development tools and an
 isolated PostgreSQL administrator connection available.
 
-| Purpose | Command |
-| --- | --- |
-| All ordinary CI checks before pushing | `make preflight` |
-| Source and client CI group | `make ci-checks` |
-| Source gates and type-checks | `make check` |
-| Lint | `make lint`; `cd backend && make lint` |
-| Small gate controls | `make test-gates` |
-| Client, shared and contract tests | `make test` |
-| PostgreSQL backend verification | `make backend-test` |
-| Production dependency advisories | `make audit` |
-| Browser bundle and Playwright smoke | `make build && make smoke` |
-| Optional local chain smoke (one or two tests) | `make chain-test` |
-| Native builds before mobile release | Manual [mobile native workflow](../../.github/workflows/mobile-native.yml) |
+| Purpose                                       | Command                                                                    |
+| --------------------------------------------- | -------------------------------------------------------------------------- |
+| All ordinary CI checks before pushing         | `make preflight`                                                           |
+| Source and client CI group                    | `make ci-checks`                                                           |
+| Source gates and type-checks                  | `make check`                                                               |
+| Lint                                          | `make lint`; `cd backend && make lint`                                     |
+| Small gate controls                           | `make test-gates`                                                          |
+| Client, shared and contract tests             | `make test`                                                                |
+| PostgreSQL backend verification               | `make backend-test`                                                        |
+| Production dependency advisories              | `make audit`                                                               |
+| Browser bundle and Playwright smoke           | `make build && make smoke`                                                 |
+| Optional local chain smoke (one or two tests) | `make chain-test`                                                          |
+| Native builds before mobile release           | Manual [mobile native workflow](../../.github/workflows/mobile-native.yml) |
 
 Native builds and chain smoke are manual, outside PR and main CI and preflight. Where dependency
 advisories run is in [gates](gates.md#dependency-advisories). Correct dependency installation and

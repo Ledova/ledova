@@ -331,7 +331,7 @@ applier as recorder; the certificate falls due a calendar month after lodgement
 [former-member record](#former-members). The class's issued shares stay the same. Ledova does not
 check the class's declared transfer restriction, the constitution or any shareholder agreement:
 whether a transfer is permitted is the company's decision (a check of the declared restriction is
-planned under [#1061](https://github.com/Ledova/ledova/issues/1061)). Court-directed, paid and chain
+proposed under [#1061](https://github.com/Ledova/ledova/issues/1061)). Court-directed, paid and chain
 transfers are not built;
 court-backed [corrections](#compensating-corrections) remain. An imported register takes no
 Cessation entry, and its corrections are ordinary company corrections.

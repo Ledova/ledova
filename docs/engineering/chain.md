@@ -14,14 +14,14 @@ and keys, deployment scripts, their addresses and allowed chain ids in
 The OpenZeppelin-based Solidity contracts in `contracts/contracts/` are owned by the operator key
 (the backend's signing address); company decisions change neither ownership nor bytecode.
 
-| Contract | Responsibility |
-| --- | --- |
-| `WhitelistRegistry.sol` | One company's allowlist. `setExpiry(address, uint64)` is the only write and is owner-only; `isWhitelisted(address)` is `expiresAt(address) > block.timestamp`. Zero removes a wallet and `type(uint64).max` never expires. No pause: the token pause is the incident lever |
-| `ShareToken.sol` | One share class: ERC-20 with 0 decimals, burnable and pausable, bound at construction to its company's registry (`whitelist()`). `mint` reverts with `ExceedsAuthorizedShares` above the `authorizedShares` cap; `setAuthorizedShares` cannot go below `totalSupply()` and emits `AuthorizedSharesUpdated(oldAmount, newAmount)` |
+| Contract                | Responsibility                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `WhitelistRegistry.sol` | One company's allowlist. `setExpiry(address, uint64)` is the only write and is owner-only; `isWhitelisted(address)` is `expiresAt(address) > block.timestamp`. Zero removes a wallet and `type(uint64).max` never expires. No pause: the token pause is the incident lever                                                                                                                                                                                                                                                          |
+| `ShareToken.sol`        | One share class: ERC-20 with 0 decimals, burnable and pausable, bound at construction to its company's registry (`whitelist()`). `mint` reverts with `ExceedsAuthorizedShares` above the `authorizedShares` cap; `setAuthorizedShares` cannot go below `totalSupply()` and emits `AuthorizedSharesUpdated(oldAmount, newAmount)`                                                                                                                                                                                                    |
 | `ShareTokenFactory.sol` | `createShareToken(name, symbol, identifier, acn, authorizedShares, owner)`, `getTokenByIdentifier(identifier)` and `registryOf(acn)`. The identifier is the deduplication key and must begin with the company's `<acn>:`; the backend sends `<acn>:<symbol>`. A company's first class creates its `WhitelistRegistry`, owned by the class owner (`WhitelistRegistryCreated(acn, registry)`); later classes share it and must have the same owner. Each class emits `ShareTokenCreated(token, identifier, symbol, authorizedShares)` |
-| `AtomicSwap.sol` | EIP-712 settlement (domain `LedovaAtomicSwap`, version 1) between an approved share token and an approved payment token, executed by an authorised relayer. It holds no registry: the share token's `_update` checks both parties |
-| `AUDY.sol` | Minter-gated AUD stablecoin with 2 decimals, the payment token. A settlement token is only its `assets.Asset` row and `AssetChainDeployment` on the operator's receiving chain, which `backend/operators/settlement.py` (`deployment_for`, `require_deployment`) resolves; the asset API's `contractAddress` is only an asset's single active deployment, possibly on another chain |
-| `AUSG.sol` | NAV-bearing token with 6 decimals, a redemption queue and `NAVUpdated` events; not part of issuance |
+| `AtomicSwap.sol`        | EIP-712 settlement (domain `LedovaAtomicSwap`, version 1) between an approved share token and an approved payment token, executed by an authorised relayer. It holds no registry: the share token's `_update` checks both parties                                                                                                                                                                                                                                                                                                   |
+| `AUDY.sol`              | Minter-gated AUD stablecoin with 2 decimals, the payment token. A settlement token is only its `assets.Asset` row and `AssetChainDeployment` on the operator's receiving chain, which `backend/operators/settlement.py` (`deployment_for`, `require_deployment`) resolves; the asset API's `contractAddress` is only an asset's single active deployment, possibly on another chain                                                                                                                                                 |
+| `AUSG.sol`              | NAV-bearing token with 6 decimals, a redemption queue and `NAVUpdated` events; not part of issuance                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 
 ### Compiler and toolchain pin
 
@@ -67,11 +67,11 @@ The rule and deferral are in [issuing shares](../business/issuing-shares.md#spli
 and the [decision](../decisions.md#splits-and-consolidations). No model, service, endpoint, entry
 kind or contract function for either exists, and shares are whole units at every layer:
 
-| Layer | What fixes whole units |
-| --- | --- |
-| Contract | [`ShareToken.decimals()`](../../contracts/contracts/ShareToken.sol) is `pure` and returns `0` |
-| Share class | `decimals` has a zero-only validator and the `share_token_whole_units` check constraint (`backend/tokens/models/share_token.py`) |
-| Register | `RegisterPosition.shares` and `ShareRegister.issued_supply` are `DecimalField(decimal_places=0)` (`backend/tokens/models/register.py`) |
+| Layer          | What fixes whole units                                                                                                                                                    |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Contract       | [`ShareToken.decimals()`](../../contracts/contracts/ShareToken.sol) is `pure` and returns `0`                                                                             |
+| Share class    | `decimals` has a zero-only validator and the `share_token_whole_units` check constraint (`backend/tokens/models/share_token.py`)                                          |
+| Register       | `RegisterPosition.shares` and `ShareRegister.issued_supply` are `DecimalField(decimal_places=0)` (`backend/tokens/models/register.py`)                                    |
 | Register event | The register entry guard (`tokens_guard_register_entry` in `backend/tokens/database_guards.sql`) requires every change's `shares` to be a whole, non-zero, signed integer |
 
 `RegisterInstructionKind` has `issue` and `transfer` only; a `cessation` must reach exactly zero, a
@@ -292,17 +292,17 @@ the [company workflow API](backend.md#company-workflow-api), routes and fields i
 [OpenAPI schema](../../backend/schema/openapi.json), and operator procedures in
 [recovery](../operations/recovery.md).
 
-| Family | Private journal | Recovery task |
-| --- | --- | --- |
-| [Share-class deployment](#share-class-deployment) | `TokenDeployment` | `check_pending_token_deployments` |
-| [Automatic swap approval](#automatic-swap-approval) | Approval fields on `TokenDeployment` | `recover_swap_approval`, `check_pending_swap_approvals` |
-| [Whitelist change](#whitelist-changes) | `WhitelistChange` | `recover_whitelist_changes` |
-| [Capital increase](#capital-increases) | `CapitalIncreaseExecution` | `recover_capital_increases` |
-| [Share issuance](#share-issuances) | `ShareIssuanceExecution` | `check_executing_issuance_requests` |
-| [Pause and unpause](#pause-and-unpause) | `PauseChange` | `check_pending_pause_changes` |
-| [Mint request](#mint-requests) (staff) | `MintRequest` | `recover_mint_requests` |
-| [NAV update](#nav-updates) (staff) | `NAVUpdate` | `check_pending_nav_updates` |
-| [Swap execution](trading-protocols.md#durable-execution) | `BlockchainTransaction` admission | `resolve_executing_swaps` |
+| Family                                                   | Private journal                      | Recovery task                                           |
+| -------------------------------------------------------- | ------------------------------------ | ------------------------------------------------------- |
+| [Share-class deployment](#share-class-deployment)        | `TokenDeployment`                    | `check_pending_token_deployments`                       |
+| [Automatic swap approval](#automatic-swap-approval)      | Approval fields on `TokenDeployment` | `recover_swap_approval`, `check_pending_swap_approvals` |
+| [Whitelist change](#whitelist-changes)                   | `WhitelistChange`                    | `recover_whitelist_changes`                             |
+| [Capital increase](#capital-increases)                   | `CapitalIncreaseExecution`           | `recover_capital_increases`                             |
+| [Share issuance](#share-issuances)                       | `ShareIssuanceExecution`             | `check_executing_issuance_requests`                     |
+| [Pause and unpause](#pause-and-unpause)                  | `PauseChange`                        | `check_pending_pause_changes`                           |
+| [Mint request](#mint-requests) (staff)                   | `MintRequest`                        | `recover_mint_requests`                                 |
+| [NAV update](#nav-updates) (staff)                       | `NAVUpdate`                          | `check_pending_nav_updates`                             |
+| [Swap execution](trading-protocols.md#durable-execution) | `BlockchainTransaction` admission    | `resolve_executing_swaps`                               |
 
 Recovery tasks run every five minutes ([schedule](../operations/jobs-and-storage.md#schedule)). The
 company-decided families share this mechanism, and their sections give only what differs:
