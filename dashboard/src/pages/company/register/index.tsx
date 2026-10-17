@@ -302,7 +302,9 @@ function OwnRegister({
     taskSelection?.company === scope?.company.uuid && taskSelection?.locationKey === location.key
       ? taskSelection
       : null;
-  const pinned = [...heldClasses].find((key) => /^(allotments|transfer|history)\//.test(key));
+  const pinned = [...heldClasses].find((key) =>
+    ['allotments/', 'transfer/', 'history/'].some((prefix) => key.startsWith(prefix)),
+  );
   const pinnedParts = pinned?.split('/');
   const selectedTask =
     pinnedParts?.[0] === 'allotments'
