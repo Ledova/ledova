@@ -16,9 +16,9 @@ stay here as history and are marked where they appear.
 | [Company-run register authority and evidence](#company-run-register-authority-and-evidence)                     | 5 October 2026                                 | Current                                                            |
 | [Company representative verification](#company-representative-verification)                                     | 4 October 2026                                 | Current                                                            |
 | [Combined company signup and initial authority](#combined-company-signup-and-initial-authority)                 | 14 October 2026                                | Current; amended by #1022 below                                    |
-| [Simple signup, documents and team after registration](#simple-signup-documents-and-team-after-registration)     | 14 October 2026                                | Current; #1022                                                     |
+| [Simple signup, documents and team after registration](#simple-signup-documents-and-team-after-registration)    | 14 October 2026                                | Current; #1022                                                     |
 | [Existing register mirror and simple setup](#existing-register-mirror-and-simple-setup)                         | 14 October 2026                                | Current; setup amended by #1029                                    |
-| [Manual register setup: shares before shareholders](#manual-register-setup-shares-before-shareholders)         | 14 October 2026                                | Current; #1029, CSV entry removed under #1036                       |
+| [Manual register setup: shares before shareholders](#manual-register-setup-shares-before-shareholders)          | 14 October 2026                                | Current; #1029, CSV entry removed under #1036                      |
 | [Eligibility and ownership records](#eligibility-and-ownership-records)                                         | September to 6 October 2026                    | Current                                                            |
 | [The stored register](#the-stored-register)                                                                     | September 2026; staff review retired 5 October | Current                                                            |
 | [Company-scoped approvals](#company-scoped-approvals)                                                           | 19 September 2026                              | Current                                                            |
@@ -1141,6 +1141,13 @@ needs a separate owner decision. Current delivery is described in
 The signup constraint above was replaced by the
 [14 October combined signup decision](#combined-company-signup-and-initial-authority).
 The dashboard layout and native signed-in navigation remain as delivered.
+
+On 17 October 2026 the owner selected per-class ownership donuts under
+[#1050](https://github.com/Ledova/ledova/issues/1050), with all classes visible,
+the five largest holders and Others, exact quantities and per-class percentages.
+Remove the dashboard's Recent changes and Register work cards and their class
+selector; detailed history and actions stay in Register. This replaces the web
+holder bars and separate class-count chart above without a new chart dependency.
 
 ## Paper and Dark themes
 

@@ -57,41 +57,6 @@ async function serveASignedInAccount(page: Page, role: Role) {
         results: [{ uuid: 'ordinary', companyUuid: 'company', companyName: LONG_NAME }],
       });
     if (path === '/api/v1/tokens/ordinary/holders/' && role !== 'company') return answer(ORDINARY);
-    if (path === '/api/v1/tokens/ordinary/register/entries/' && role !== 'company')
-      return answer({
-        ...EMPTY,
-        count: 1,
-        results: [
-          {
-            uuid: 'issue-entry',
-            sequence: 3,
-            kind: 'issue',
-            effectiveOn: '2026-10-11',
-            recordedAt: '2026-10-11T00:00:00Z',
-            correctedBy: null,
-            corrects: null,
-            correctable: true,
-            changes: [{ member: 'investor', name: 'Investor', shares: '10' }],
-          },
-        ],
-      });
-    if (path === '/api/v1/company-authority/appointments/' && role !== 'company')
-      return answer({
-        ...EMPTY,
-        count: 1,
-        results: [
-          {
-            uuid: 'appointment',
-            company: 'company',
-            companyName: LONG_NAME,
-            status: 'active',
-            isEffective: true,
-            revokedAt: null,
-            expiresAt: null,
-            capabilities: ['read_register'],
-          },
-        ],
-      });
     return answer(EMPTY);
   });
 }
@@ -108,8 +73,7 @@ async function openTheSidebar(page: Page, role: Role) {
     const ownership = page.getByRole('table', { name: 'Largest shareholders in Ordinary shares' });
     await expect(ownership.getByRole('row', { name: 'Founder 100 74.07%' })).toBeVisible();
     await expect(ownership.getByRole('row', { name: 'Investor 35 25.93%' })).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Recent changes' })).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Issue investor shares' })).toHaveCount(0);
+    await expect(page.getByRole('img', { name: /Ordinary shares share ownership/ })).toBeVisible();
   }
   expect(await page.locator('html').evaluate((node) => node.scrollWidth <= node.clientWidth)).toBe(true);
   if (page.viewportSize()!.width < 1024) await page.getByRole('button', { name: 'Open navigation' }).click();
