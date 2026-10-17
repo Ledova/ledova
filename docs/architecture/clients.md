@@ -201,7 +201,9 @@ and ten rows per page. Each class shows its issued shares and holder count;
 percentages use that class's issued shares. Details opens the shareholder's
 per-class entry dates, identity notes and optional wallet links, with Change
 particulars offered under a current preparation appointment. Incomplete reads
-withhold the table rather than imply missing holdings are zero. Class issue
+withhold the table rather than imply missing holdings are zero. Class settings
+reuse the same table for that class, with read-only Details withheld while its
+account, class or holding reads are unavailable or refreshing. Class issue
 tasks and retained history follow in disclosures that keep unfinished requests
 mounted. Native ownership retains its per-class view. Employee awards and
 non-paid issues have their own destination;

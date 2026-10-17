@@ -142,7 +142,7 @@ function RegisterShareholders({
     )
       throw new Error('A current company preparation appointment is required.');
   };
-  return <CompanyShareholders registers={registers} prepare={prepare} guardPreparation={guardPreparation} />;
+  return <CompanyShareholders registers={registers} guardPreparation={prepare ? guardPreparation : undefined} />;
 }
 
 export default function CompanyRegisterPage() {
@@ -200,7 +200,11 @@ function OwnRegister({
     scope.registers.every(({ token }) =>
       classes.data.some((item) => item.uuid === token.uuid && item.companyUuid === scope.company.uuid),
     );
-  const sourceReady = readable && preferences?.fetchStatus === 'idle' && !classes.isFetching && !registers.isFetching;
+  const sourceReady =
+    readable &&
+    preferences?.fetchStatus === 'idle' &&
+    classes.fetchStatus === 'idle' &&
+    registers.fetchStatus === 'idle';
   let ownershipReady = false;
   let ownershipInvalid = false;
   if (sourceReady && scope) {

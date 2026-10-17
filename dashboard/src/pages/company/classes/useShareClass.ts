@@ -13,6 +13,7 @@ import {
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
 import { useRegisterDownload } from '../register/useCompanyRegister';
+import { ownershipSummary } from '../dashboard/summary';
 
 export function useShareClass(uuid: string) {
   const queryClient = useQueryClient();
@@ -61,6 +62,7 @@ export function useShareClass(uuid: string) {
       if (data.token.uuid !== uuid || quantities.some((quantity) => wholeShares(quantity) === null)) {
         throw new Error('Register quantities do not identify this share class');
       }
+      ownershipSummary([data]);
       return data;
     },
   });

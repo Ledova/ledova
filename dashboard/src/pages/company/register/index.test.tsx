@@ -9,9 +9,11 @@ import {
   type RegisterImportPreparation,
   type RegisterDecideRequest,
   REGISTER_COPY,
+  REGISTER_PARTICULARS_COPY,
   HOLDER_TYPE_LABELS,
   formatDate,
   USER_PREFERENCES_QUERY_KEY,
+  USER_PREFERENCES_ENDPOINTS,
   type AccountRole,
   type TokenHoldersResponse,
   type OwnCompanyAppointment,
@@ -26,6 +28,7 @@ import { Link, MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import CompanyRegisterPage from '.';
 import CompanyDashboardPage from '../dashboard';
+import { ShareClass } from '../classes';
 import CompanyRegisterImportPage from './import';
 import { ImportForm } from './import/ImportForm';
 import { blankAllotment, blankMember, preparationProblems, type MemberDraft } from './import/preparation';
@@ -249,6 +252,109 @@ it('reads every class page and groups exact holdings by member identity with sea
   expect(readUrls()).toContain(COMPANY_TOKEN_ENDPOINTS.HOLDERS('ordinary'));
   expect(readUrls()).toContain(COMPANY_TOKEN_ENDPOINTS.HOLDERS('preference'));
   expect(readUrls()).not.toContain(COMPANY_TOKEN_ENDPOINTS.BASE);
+
+  cleanup();
+  client.clear();
+  let pauseHolders = false;
+  let releaseHolders!: () => void;
+  api.get.mockReset().mockImplementation(async (url: string) => {
+    if (url === COMPANY_TOKEN_ENDPOINTS.DETAIL('ordinary'))
+      return {
+        data: {
+          ...ordinary.token,
+          company: 'harbour',
+          companyUuid: 'harbour',
+          companyName: 'Harbour Example Pty Ltd',
+          isOwner: false,
+          statusDisplay: 'Deployed',
+          tokenTypeDisplay: 'Ordinary shares',
+          isTransferable: false,
+          isDivisible: false,
+          decimals: 0,
+        },
+      };
+    if (url === COMPANY_TOKEN_ENDPOINTS.HOLDERS('ordinary'))
+      return pauseHolders
+        ? new Promise((resolve) => {
+            releaseHolders = () => resolve({ data: ordinary });
+          })
+        : { data: ordinary };
+    return { data: { results: [], count: 0, next: null, previous: null } };
+  });
+  show('investor', <ShareClass uuid="ordinary" />, 'Share class');
+  const classTable = await screen.findByRole('table', { name: 'Company shareholders' });
+  const classNamesakes = within(classTable).getAllByRole('row', { name: /Example Member/ });
+  expect(classNamesakes).toHaveLength(2);
+  expect(within(classNamesakes[0]).getByText('9,007,199,254,740,993')).toBeTruthy();
+  expect(within(classNamesakes[1]).getByText('1')).toBeTruthy();
+  expect(within(classNamesakes[1]).getByText('<0.01%')).toBeTruthy();
+  expect(within(classTable).queryByRole('columnheader', { name: /PREFERENCE/ })).toBeNull();
+  fireEvent.click(within(classNamesakes[0]).getByRole('button', { name: 'Details (Example Member)' }));
+  const classDetails = await screen.findByRole('dialog', { name: 'Example Member' });
+  expect(within(classDetails).getByText('9,007,199,254,740,993')).toBeTruthy();
+  expect(within(classDetails).getByText(formatDate('2026-09-01'))).toBeTruthy();
+  expect(within(classDetails).getByText(`0x${'1'.repeat(40)} · Active`)).toBeTruthy();
+  expect(within(classDetails).queryByRole('link', { name: REGISTER_PARTICULARS_COPY.PREPARE })).toBeNull();
+
+  pauseHolders = true;
+  const holderKey = ['token', 'ordinary', 'profile-one', 'account-one', 'holders'];
+  let refreshing!: Promise<void>;
+  act(() => {
+    refreshing = client.refetchQueries({ queryKey: holderKey, exact: true });
+  });
+  await waitFor(() => expect(releaseHolders).toBeTypeOf('function'));
+  expect(screen.queryByRole('dialog')).toBeNull();
+  expect(screen.queryByRole('table', { name: 'Company shareholders' })).toBeNull();
+  expect(screen.queryByText('Example Member')).toBeNull();
+  expect(screen.queryByText(`0x${'1'.repeat(40)} · Active`)).toBeNull();
+  await act(async () => {
+    releaseHolders();
+    await refreshing;
+  });
+  expect(await screen.findByRole('table', { name: 'Company shareholders' })).toBeTruthy();
+  expect(screen.queryByRole('dialog')).toBeNull();
+  const preferenceResponse = client.getQueryData(USER_PREFERENCES_QUERY_KEY);
+  const classRead = api.get.getMockImplementation()!;
+  let pausePreferences = true;
+  let refusePreferences!: () => void;
+  api.get.mockImplementation((url: string, config?: unknown) => {
+    if (url === USER_PREFERENCES_ENDPOINTS.BASE)
+      return pausePreferences
+        ? new Promise((_resolve, reject) => {
+            refusePreferences = () => reject(new Error('Synthetic current account read refused'));
+          })
+        : Promise.resolve(preferenceResponse);
+    return classRead(url, config);
+  });
+  const refreshedTable = screen.getByRole('table', { name: 'Company shareholders' });
+  fireEvent.click(within(refreshedTable).getAllByRole('button', { name: 'Details (Example Member)' })[0]);
+  expect(await screen.findByRole('dialog', { name: 'Example Member' })).toBeTruthy();
+  let refreshingPreferences!: Promise<void>;
+  act(() => {
+    refreshingPreferences = client.refetchQueries({ queryKey: USER_PREFERENCES_QUERY_KEY, exact: true });
+  });
+  await waitFor(() => expect(refusePreferences).toBeTypeOf('function'));
+  expect(screen.queryByRole('table', { name: 'Company shareholders' })).toBeNull();
+  expect(screen.queryByRole('dialog')).toBeNull();
+  expect(screen.queryByText('Example Member')).toBeNull();
+  expect(screen.queryByText(`0x${'1'.repeat(40)} · Active`)).toBeNull();
+  await act(async () => {
+    refusePreferences();
+    await refreshingPreferences;
+  });
+  expect(client.getQueryState(USER_PREFERENCES_QUERY_KEY)?.status).toBe('error');
+  expect(client.getQueryData(USER_PREFERENCES_QUERY_KEY)).toBe(preferenceResponse);
+  expect(screen.queryByRole('table', { name: 'Company shareholders' })).toBeNull();
+  expect(screen.queryByRole('dialog')).toBeNull();
+  expect(screen.queryByText('Example Member')).toBeNull();
+  expect(screen.queryByText(`0x${'1'.repeat(40)} · Active`)).toBeNull();
+  pausePreferences = false;
+  await act(async () => {
+    await client.refetchQueries({ queryKey: USER_PREFERENCES_QUERY_KEY, exact: true });
+  });
+  expect(await screen.findByRole('table', { name: 'Company shareholders' })).toBeTruthy();
+  expect(screen.queryByRole('dialog')).toBeNull();
+  expect(api.post).not.toHaveBeenCalled();
 });
 
 it('brings complete mirror records, recovers uncertain requests and confirms one snapshot with separate company appointments', async () => {

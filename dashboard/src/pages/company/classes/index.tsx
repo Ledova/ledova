@@ -1,19 +1,23 @@
 import { CompanyPaidIssueFlow } from './CompanyPaidIssueFlow';
 import { useState, type ReactNode } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   DESTINATIONS,
   REGISTER_COPY,
+  USER_PREFERENCES_QUERY_KEY,
   formatDate,
   formatShareCount,
   getBlockExplorerAddressUrl,
   getBlockExplorerTxUrl,
+  useUserPreferences,
   type CapitalIncreaseStatus,
 } from '@ledova/shared';
 import { Page, PageAction } from '@components/Page';
 import { Row, Rows, Section, Status, type Tone } from '@components/Ledger';
 import { TokenPauseControls } from '../components/TokenPauseControls';
 import { ClassRegister } from '../register/ClassRegister';
+import { CompanyShareholders } from '../register/CompanyShareholders';
 import { useShareClass } from './useShareClass';
 import { DeploymentFlow } from './DeploymentFlow';
 import { CompanyIssueFlow } from './CompanyIssueFlow';
@@ -95,6 +99,8 @@ export function ShareClass({ uuid }: { uuid: string }) {
 
 function ShareClassDetails({ data }: { data: ReturnType<typeof useShareClass> }) {
   const [copyError, setCopyError] = useState(false);
+  const preferences = useUserPreferences();
+  const preferencesRead = useQueryClient().getQueryState(USER_PREFERENCES_QUERY_KEY);
   const token = data.token.data;
   const content = () => {
     if (data.token.isPending) return <p role="status">Loading share class…</p>;
@@ -221,6 +227,13 @@ function ShareClassDetails({ data }: { data: ReturnType<typeof useShareClass> })
             {data.register.data && <ClassRegister register={data.register.data} />}
           </ReadResult>
         </Section>
+        {!!preferences.preferences &&
+          preferencesRead?.status === 'success' &&
+          preferencesRead.fetchStatus === 'idle' &&
+          data.token.isSuccess &&
+          data.token.fetchStatus === 'idle' &&
+          data.register.isSuccess &&
+          data.register.fetchStatus === 'idle' && <CompanyShareholders registers={[data.register.data]} />}
         {data.isOwner && (
           <Section title="Issuance requests">
             <ReadResult query={data.requests} label="issuance requests">

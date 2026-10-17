@@ -31,12 +31,10 @@ function needsIdentityReview({ holder }: Holding) {
 
 export function CompanyShareholders({
   registers,
-  prepare,
   guardPreparation,
 }: {
   registers: TokenHoldersResponse[];
-  prepare: boolean;
-  guardPreparation: () => void;
+  guardPreparation?: () => void;
 }) {
   const [search, setSearch] = useState('');
   const [classFilter, setClassFilter] = useState('all');
@@ -275,7 +273,7 @@ export function CompanyShareholders({
                 </div>
               </section>
             ))}
-            {prepare && (
+            {guardPreparation && (
               <Link
                 to={DESTINATIONS.companyRegisterParticulars.path.replace(':member', selected.member)}
                 className="inline-flex w-fit rounded-lg border border-border px-3.5 py-2 text-sm font-medium text-text-primary hover:bg-surface-tertiary"
