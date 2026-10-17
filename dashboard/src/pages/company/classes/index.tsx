@@ -229,7 +229,7 @@ function ShareClassDetails({ data }: { data: ReturnType<typeof useShareClass> })
         </Section>
         {!!preferences.preferences &&
           preferencesRead?.status === 'success' &&
-          preferencesRead.fetchStatus === 'idle' &&
+          preferences.fetchStatus === 'idle' &&
           data.token.isSuccess &&
           data.token.fetchStatus === 'idle' &&
           data.register.isSuccess &&

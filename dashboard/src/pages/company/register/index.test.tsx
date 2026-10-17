@@ -21,7 +21,7 @@ import {
 } from '@ledova/shared';
 import SettingsPage from '@pages/settings';
 import apiClient from '@services/apiClient';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClient, QueryClientProvider, onlineManager } from '@tanstack/react-query';
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { Link, MemoryRouter, Route, Routes } from 'react-router-dom';
@@ -354,6 +354,29 @@ it('reads every class page and groups exact holdings by member identity with sea
   });
   expect(await screen.findByRole('table', { name: 'Company shareholders' })).toBeTruthy();
   expect(screen.queryByRole('dialog')).toBeNull();
+  pauseHolders = false;
+  try {
+    const resumedTable = screen.getByRole('table', { name: 'Company shareholders' });
+    fireEvent.click(within(resumedTable).getAllByRole('button', { name: 'Details (Example Member)' })[0]);
+    expect(await screen.findByRole('dialog', { name: 'Example Member' })).toBeTruthy();
+    await act(async () => {
+      onlineManager.setOnline(false);
+      await client.refetchQueries({ queryKey: USER_PREFERENCES_QUERY_KEY, exact: true });
+    });
+    expect(client.getQueryState(USER_PREFERENCES_QUERY_KEY)?.status).toBe('success');
+    expect(client.getQueryState(USER_PREFERENCES_QUERY_KEY)?.fetchStatus).toBe('paused');
+    expect(client.getQueryData(USER_PREFERENCES_QUERY_KEY)).toBe(preferenceResponse);
+    await waitFor(() => expect(screen.queryByRole('table', { name: 'Company shareholders' })).toBeNull());
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(screen.queryByText('Example Member')).toBeNull();
+    expect(screen.queryByText(`0x${'1'.repeat(40)} · Active`)).toBeNull();
+    await act(async () => onlineManager.setOnline(true));
+    await waitFor(() => expect(client.getQueryState(USER_PREFERENCES_QUERY_KEY)?.fetchStatus).toBe('idle'));
+    expect(await screen.findByRole('table', { name: 'Company shareholders' })).toBeTruthy();
+    expect(screen.queryByRole('dialog')).toBeNull();
+  } finally {
+    act(() => onlineManager.setOnline(true));
+  }
   expect(api.post).not.toHaveBeenCalled();
 });
 
