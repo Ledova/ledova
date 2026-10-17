@@ -62,7 +62,6 @@ function RegisterPage({
   return (
     <PageTitle.Provider value={title}>
       <Page
-        narrow
         lede={
           hash === '#awards'
             ? 'Record employee entitlements and vesting. Shares are issued through a separate company decision.'
