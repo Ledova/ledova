@@ -1,9 +1,16 @@
-import { Field, Label, Input, Textarea, Description } from '@headlessui/react';
+import {
+  AUTH_BUTTON_CLASS,
+  ERROR_BANNER_CLASS,
+  AuthCard,
+  AuthInput,
+  authFieldBorder,
+  AuthDivider,
+} from '@components/auth';
+import { Field, Label, Textarea, Description } from '@headlessui/react';
 import { UserIcon, HouseIcon, PhoneIcon, WarningIcon, CalendarIcon } from '@phosphor-icons/react';
 import { CountrySelector } from './CountrySelector';
 import type { FormErrors, UserProfileFormValidation, CountryData, UserProfileFormData } from '@ledova/shared';
 import { ICON_MD } from '@components/iconSizes';
-import { AUTH_BUTTON_CLASS, ERROR_BANNER_CLASS } from '@components/fieldClass';
 
 interface UserProfileFormProps {
   form: UserProfileFormData;
@@ -34,176 +41,158 @@ export function UserProfileForm({
 }: UserProfileFormProps) {
   return (
     <>
-      <div className="rounded-xl border border-border bg-surface-raised">
-        <div className="p-4 sm:p-5">
-          <form onSubmit={onSubmit} className="space-y-6">
-            {generalError && (
-              <div className={ERROR_BANNER_CLASS}>
-                <div className="flex items-start">
-                  <div className="flex-shrink-0">
-                    <WarningIcon size={ICON_MD} className="text-error-light" />
-                  </div>
-                  <div className="ml-3">
-                    <p className="text-sm text-error-light" role="alert">
-                      {generalError}
-                    </p>
-                  </div>
+      <AuthCard>
+        <form onSubmit={onSubmit} className="space-y-6">
+          {generalError && (
+            <div className={ERROR_BANNER_CLASS}>
+              <div className="flex items-start">
+                <div className="flex-shrink-0">
+                  <WarningIcon size={ICON_MD} className="text-error-light" />
+                </div>
+                <div className="ml-3">
+                  <p className="text-sm text-error-light" role="alert">
+                    {generalError}
+                  </p>
                 </div>
               </div>
-            )}
+            </div>
+          )}
 
-            <Field className="space-y-1">
-              <Label className="block text-sm font-medium text-text-body">Full Name</Label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <UserIcon size={ICON_MD} className="text-text-subtle" />
-                </div>
-                <Input
-                  type="text"
-                  name="fullName"
-                  value={form.fullName}
-                  onChange={(e) => setFieldValue('fullName', e.target.value)}
-                  className={`w-full bg-surface-tertiary border ${
-                    (formValidation && !formValidation.fullName.isValid && form.fullName) || errors.fullName
-                      ? 'border-error bg-error-subtle focus:ring-error'
-                      : 'border-border focus:ring-border-focus'
-                  } rounded-lg pl-10 pr-3 py-3 text-text-primary placeholder-text-muted focus:outline-none focus:ring-2 focus:border-transparent transition-colors`}
-                  placeholder="John Doe"
-                  required
-                  disabled={isSubmitting}
-                />
+          <Field className="space-y-1">
+            <Label className="block text-sm font-medium text-text-body">Full Name</Label>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <UserIcon size={ICON_MD} className="text-text-subtle" />
               </div>
-              {errors.fullName && !generalError && (
-                <Description className="text-error-light text-xs mt-1" role="alert">
-                  {errors.fullName.join(' ')}
-                </Description>
-              )}
-            </Field>
-
-            <Field className="space-y-1">
-              <Label className="block text-sm font-medium text-text-body">Date of Birth</Label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <CalendarIcon size={ICON_MD} className="text-text-subtle" />
-                </div>
-                <Input
-                  type="date"
-                  name="dateOfBirth"
-                  value={form.dateOfBirth || ''}
-                  onChange={(e) => setFieldValue('dateOfBirth', e.target.value)}
-                  className={`w-full bg-surface-tertiary border ${
-                    errors.dateOfBirth
-                      ? 'border-error bg-error-subtle focus:ring-error'
-                      : 'border-border focus:ring-border-focus'
-                  } rounded-lg pl-10 pr-3 py-3 text-text-primary placeholder-text-muted focus:outline-none focus:ring-2 focus:border-transparent transition-colors`}
-                  required
-                  disabled={isSubmitting}
-                />
-              </div>
-              {errors.dateOfBirth && !generalError && (
-                <Description className="text-error-light text-xs mt-1" role="alert">
-                  {errors.dateOfBirth.join(' ')}
-                </Description>
-              )}
-            </Field>
-
-            <Field className="space-y-1">
-              <Label className="block text-sm font-medium text-text-body">Phone Number</Label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none z-10">
-                  <PhoneIcon size={ICON_MD} className="text-text-subtle" />
-                </div>
-                <div className="flex focus-within:ring-2 focus-within:ring-border-focus rounded-lg">
-                  {selectedCountry && countries && onCountryChange && (
-                    <CountrySelector
-                      countries={countries}
-                      selectedCountry={selectedCountry}
-                      onCountryChange={onCountryChange}
-                      disabled={isSubmitting}
-                    />
-                  )}
-                  <div className="relative flex-1">
-                    <Input
-                      type="tel"
-                      name="phoneNumber"
-                      value={form.phoneNumber}
-                      onChange={(e) => setFieldValue('phoneNumber', e.target.value)}
-                      className={`w-full bg-surface-tertiary border ${
-                        (formValidation && !formValidation.phoneNumber.isValid && form.phoneNumber) ||
-                        errors.phoneNumber
-                          ? 'border-error bg-error-subtle focus:ring-error'
-                          : 'border-border focus:ring-border-focus'
-                      } ${
-                        selectedCountry ? 'rounded-r-lg border-l-0 pl-2' : 'rounded-lg pl-3'
-                      } pr-3 py-3 text-text-primary placeholder-text-muted focus:outline-none transition-colors h-12`}
-                      placeholder="416 123 456"
-                      required
-                      disabled={isSubmitting}
-                    />
-                  </div>
-                </div>
-              </div>
-              {errors.phoneNumber && !generalError && (
-                <Description className="text-error-light text-xs mt-1" role="alert">
-                  {errors.phoneNumber.join(' ')}
-                </Description>
-              )}
-            </Field>
-
-            <Field className="space-y-1">
-              <Label className="block text-sm font-medium text-text-body">Residential Address</Label>
-              <Description className="text-text-subtle text-xs">
-                Include street number, city, state and postcode
+              <AuthInput
+                type="text"
+                name="fullName"
+                value={form.fullName}
+                onChange={(e) => setFieldValue('fullName', e.target.value)}
+                className={`w-full bg-surface-tertiary border ${authFieldBorder(
+                  (formValidation && !formValidation.fullName.isValid && form.fullName) || errors.fullName,
+                )} rounded-lg pl-10 pr-3 py-3 text-text-primary placeholder-text-muted focus:outline-none focus:ring-2 focus:border-transparent transition-colors`}
+                placeholder="John Doe"
+                required
+                disabled={isSubmitting}
+              />
+            </div>
+            {errors.fullName && !generalError && (
+              <Description className="text-error-light text-xs mt-1" role="alert">
+                {errors.fullName.join(' ')}
               </Description>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 pt-3 flex items-start pointer-events-none">
-                  <HouseIcon size={ICON_MD} className="text-text-subtle" />
-                </div>
-                <Textarea
-                  name="residentialAddress"
-                  value={form.residentialAddress}
-                  onChange={(e) => setFieldValue('residentialAddress', e.target.value)}
-                  rows={3}
-                  className={`w-full bg-surface-tertiary border ${
-                    (formValidation && !formValidation.residentialAddress.isValid && form.residentialAddress) ||
-                    errors.residentialAddress
-                      ? 'border-error bg-error-subtle focus:ring-error'
-                      : 'border-border focus:ring-border-focus'
-                  } rounded-lg pl-10 pr-3 py-3 text-text-primary placeholder-text-muted focus:outline-none focus:ring-2 focus:border-transparent transition-colors resize-none`}
-                  placeholder="123 Main Street&#10;Sydney NSW 2000"
-                  required
-                  disabled={isSubmitting}
-                />
+            )}
+          </Field>
+
+          <Field className="space-y-1">
+            <Label className="block text-sm font-medium text-text-body">Date of Birth</Label>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <CalendarIcon size={ICON_MD} className="text-text-subtle" />
               </div>
-              {errors.residentialAddress && !generalError && (
-                <Description className="text-error-light text-xs mt-1" role="alert">
-                  {errors.residentialAddress.join(' ')}
-                </Description>
-              )}
-            </Field>
+              <AuthInput
+                type="date"
+                name="dateOfBirth"
+                value={form.dateOfBirth || ''}
+                onChange={(e) => setFieldValue('dateOfBirth', e.target.value)}
+                className={`w-full bg-surface-tertiary border ${authFieldBorder(
+                  errors.dateOfBirth,
+                )} rounded-lg pl-10 pr-3 py-3 text-text-primary placeholder-text-muted focus:outline-none focus:ring-2 focus:border-transparent transition-colors`}
+                required
+                disabled={isSubmitting}
+              />
+            </div>
+            {errors.dateOfBirth && !generalError && (
+              <Description className="text-error-light text-xs mt-1" role="alert">
+                {errors.dateOfBirth.join(' ')}
+              </Description>
+            )}
+          </Field>
 
-            <button type="submit" disabled={isSubmitting} onClick={onSubmit} className={AUTH_BUTTON_CLASS}>
-              {isSubmitting ? (
-                <div className="flex items-center justify-center space-x-2">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
-                  <span>Saving...</span>
+          <Field className="space-y-1">
+            <Label className="block text-sm font-medium text-text-body">Phone Number</Label>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none z-10">
+                <PhoneIcon size={ICON_MD} className="text-text-subtle" />
+              </div>
+              <div className="flex focus-within:ring-2 focus-within:ring-border-focus rounded-lg">
+                {selectedCountry && countries && onCountryChange && (
+                  <CountrySelector
+                    countries={countries}
+                    selectedCountry={selectedCountry}
+                    onCountryChange={onCountryChange}
+                    disabled={isSubmitting}
+                  />
+                )}
+                <div className="relative flex-1">
+                  <AuthInput
+                    type="tel"
+                    name="phoneNumber"
+                    value={form.phoneNumber}
+                    onChange={(e) => setFieldValue('phoneNumber', e.target.value)}
+                    className={`w-full bg-surface-tertiary border ${authFieldBorder(
+                      (formValidation && !formValidation.phoneNumber.isValid && form.phoneNumber) || errors.phoneNumber,
+                    )} ${
+                      selectedCountry ? 'rounded-r-lg border-l-0 pl-2' : 'rounded-lg pl-3'
+                    } pr-3 py-3 text-text-primary placeholder-text-muted focus:outline-none transition-colors h-12`}
+                    placeholder="416 123 456"
+                    required
+                    disabled={isSubmitting}
+                  />
                 </div>
-              ) : (
-                'Continue'
-              )}
-            </button>
-          </form>
-        </div>
-      </div>
+              </div>
+            </div>
+            {errors.phoneNumber && !generalError && (
+              <Description className="text-error-light text-xs mt-1" role="alert">
+                {errors.phoneNumber.join(' ')}
+              </Description>
+            )}
+          </Field>
 
-      <div className="relative my-6">
-        <div className="absolute inset-0 flex items-center">
-          <div className="w-full border-t border-border"></div>
-        </div>
-        <div className="relative flex justify-center text-sm">
-          <span className="px-4 bg-surface-base text-text-subtle font-medium">or</span>
-        </div>
-      </div>
+          <Field className="space-y-1">
+            <Label className="block text-sm font-medium text-text-body">Residential Address</Label>
+            <Description className="text-text-subtle text-xs">
+              Include street number, city, state and postcode
+            </Description>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 pt-3 flex items-start pointer-events-none">
+                <HouseIcon size={ICON_MD} className="text-text-subtle" />
+              </div>
+              <Textarea
+                name="residentialAddress"
+                value={form.residentialAddress}
+                onChange={(e) => setFieldValue('residentialAddress', e.target.value)}
+                rows={3}
+                className={`w-full bg-surface-tertiary border ${authFieldBorder(
+                  (formValidation && !formValidation.residentialAddress.isValid && form.residentialAddress) ||
+                    errors.residentialAddress,
+                )} rounded-lg pl-10 pr-3 py-3 text-text-primary placeholder-text-muted focus:outline-none focus:ring-2 focus:border-transparent transition-colors resize-none`}
+                placeholder="123 Main Street&#10;Sydney NSW 2000"
+                required
+                disabled={isSubmitting}
+              />
+            </div>
+            {errors.residentialAddress && !generalError && (
+              <Description className="text-error-light text-xs mt-1" role="alert">
+                {errors.residentialAddress.join(' ')}
+              </Description>
+            )}
+          </Field>
+
+          <button type="submit" disabled={isSubmitting} onClick={onSubmit} className={AUTH_BUTTON_CLASS}>
+            {isSubmitting ? (
+              <div className="flex items-center justify-center space-x-2">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
+                <span>Saving...</span>
+              </div>
+            ) : (
+              'Continue'
+            )}
+          </button>
+        </form>
+      </AuthCard>
+
+      <AuthDivider />
 
       <div className="text-center">
         {onBack && (

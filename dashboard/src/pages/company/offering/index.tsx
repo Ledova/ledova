@@ -1,3 +1,4 @@
+import { OFFERING_STATUS_TONES } from '@pages/company/shared/statusTones';
 import { Row, Rows, Section, Status, SwitchRow } from '@components/Ledger';
 import { Page, PageAction } from '@components/Page';
 import {
@@ -16,7 +17,6 @@ import { CompanySelection } from '@pages/company/shared/CompanySelection';
 import { CompanyReadNotice } from '@pages/company/shared/CompanyState';
 import { OfferingDocumentsEditor } from './OfferingDocumentsEditor';
 import { OfferingEditor } from './OfferingEditor';
-import { OfferingReadNotice } from './OfferingReadNotice';
 import { SubscriptionsLedger } from './SubscriptionsLedger';
 import { useCompanyOfferings } from './useCompanyOfferings';
 
@@ -39,17 +39,7 @@ function OfferingRecord({
         <h3 className="min-w-0 break-words text-sm font-medium text-text-primary">
           {row.tokenName} ({row.tokenSymbol})
         </h3>
-        <Status
-          tone={
-            row.isOpen
-              ? 'done'
-              : row.status === 'submitted' || row.status === 'under_review' || row.status === 'approved'
-                ? 'moving'
-                : row.status === 'draft'
-                  ? 'waiting'
-                  : 'closed'
-          }
-        >
+        <Status tone={row.isOpen ? 'done' : (OFFERING_STATUS_TONES.get(row.status) ?? 'closed')}>
           {row.statusDisplay}
         </Status>
       </div>
@@ -148,7 +138,7 @@ function CompanyOfferings({ companyRead }: { companyRead: ReturnType<typeof useC
         ) : (
           <>
             <CompanyReadNotice read={companyRead} />
-            <OfferingReadNotice read={data} />
+            <CompanyReadNotice read={data} label="Offering information" />
             {actionError && !actionError.listing && (
               <p role="alert" className="text-sm text-error-light">
                 {actionError.message}

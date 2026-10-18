@@ -1,3 +1,4 @@
+import { AUTHORITY_REQUEST_TONES } from '@pages/company/shared/statusTones';
 import { SITE_PATHS } from '@utils/paths';
 import { useRef, useState } from 'react';
 import {
@@ -55,7 +56,7 @@ export function AuthorityRequestRecord({
           {request.companyIdentityRaw.name} · {request.companyIdentityRaw.acn}
         </Row>
         <Row label="Status">
-          <Status tone={request.status === 'pending' ? 'waiting' : 'closed'}>
+          <Status tone={AUTHORITY_REQUEST_TONES.get(request.status) ?? 'closed'}>
             {request.status === 'withdrawn' ? 'Withdrawn' : request.status === 'admitted' ? 'Admitted' : 'Pending'}
           </Status>
         </Row>

@@ -1,5 +1,6 @@
+import { COMPANY_STATUS_TONES } from './statusTones';
 import type { CompanyStatus, useCompanySelection } from '@ledova/shared';
-import { Status, type Tone } from '@components/Ledger';
+import { Status } from '@components/Ledger';
 import { PageAction } from '@components/Page';
 
 type CompanyRead = Pick<ReturnType<typeof useCompanySelection>, 'error' | 'isRefreshing' | 'refetch'>;
@@ -10,24 +11,23 @@ export type CompanyActionRead = CompanyRead &
   >;
 
 export function CompanyStatusMark({ status, label }: { status: CompanyStatus; label: string }) {
-  const tone: Tone =
-    status === 'active' || status === 'approved'
-      ? 'done'
-      : status === 'submitted' || status === 'review'
-        ? 'moving'
-        : status === 'draft' || status === 'info_required' || status === 'warning'
-          ? 'waiting'
-          : 'closed';
+  const tone = COMPANY_STATUS_TONES.get(status) ?? 'closed';
   return <Status tone={tone}>{label}</Status>;
 }
 
-export function CompanyReadNotice({ read }: { read: CompanyRead }) {
+export function CompanyReadNotice({
+  read,
+  label = 'Company information',
+}: {
+  read: { error: unknown; isRefreshing: boolean; refetch: () => unknown };
+  label?: string;
+}) {
   if (read.error)
     return (
       <div role="alert" className="space-y-2 text-sm text-text-muted">
-        <p>Company information could not be loaded. Try again before continuing.</p>
+        <p>{label} could not be loaded. Try again before continuing.</p>
         <PageAction
-          label="Retry company information"
+          label={`Retry ${label.toLowerCase()}`}
           onClick={() => void read.refetch()}
           disabled={read.isRefreshing}
         />
@@ -35,7 +35,7 @@ export function CompanyReadNotice({ read }: { read: CompanyRead }) {
     );
   return read.isRefreshing ? (
     <p role="status" className="text-sm text-text-muted">
-      Refreshing company information…
+      Refreshing {label.toLowerCase()}…
     </p>
   ) : null;
 }

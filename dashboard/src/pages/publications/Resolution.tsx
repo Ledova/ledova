@@ -1,3 +1,4 @@
+import { RESOLUTION_RESULT_TONES } from '@components/statusTones';
 import { useState } from 'react';
 import {
   BALLOT_CHOICES,
@@ -23,7 +24,7 @@ function Result({ result }: { result: PublicationResult }) {
     <div className="mt-3">
       <p className="text-xs uppercase tracking-wide text-text-muted">{PUBLICATION_COPY.RESULT_LABEL}</p>
       <p className="mt-1 text-sm text-text-primary">
-        <Status tone={result.carried ? 'done' : 'closed'}>
+        <Status tone={RESOLUTION_RESULT_TONES.get(!!result.carried)!}>
           {result.carried ? PUBLICATION_COPY.CARRIED : PUBLICATION_COPY.NOT_CARRIED}
         </Status>
       </p>

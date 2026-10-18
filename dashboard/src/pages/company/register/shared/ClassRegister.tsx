@@ -1,5 +1,10 @@
 import { REGISTER_COPY, formatShareCount, type TokenHoldersResponse } from '@ledova/shared';
-import { Rows, Row, Status } from '@components/Ledger';
+import { Rows, Row, Status, type Tone } from '@components/Ledger';
+
+const REGISTER_INITIALIZATION_TONES = new Map<boolean, Tone>([
+  [true, 'done'],
+  [false, 'waiting'],
+]);
 
 export function ClassRegister({ register }: { register: TokenHoldersResponse }) {
   return (
@@ -20,7 +25,7 @@ export function ClassRegister({ register }: { register: TokenHoldersResponse }) 
           </div>
         </dl>
         <p className="mt-3 text-xs text-text-muted">
-          <Status tone={register.initialized ? 'done' : 'waiting'}>
+          <Status tone={REGISTER_INITIALIZATION_TONES.get(!!register.initialized)!}>
             {register.initialized ? 'Register opened' : 'Register not opened'}
           </Status>
         </p>

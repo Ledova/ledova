@@ -1,7 +1,7 @@
 import { useContext } from 'react';
 import { Link } from 'react-router-dom';
 import { DESTINATIONS, landingFor, useAuth } from '@ledova/shared';
-import { AuthLayout } from '@components/AuthLayout';
+import { AuthLayout } from '@components/auth';
 import { InSignedInFrame } from '@components/InSignedInFrame';
 import { useRole } from '@hooks/useRole';
 import { useSignupFinished } from '@hooks/useSignupFinished';

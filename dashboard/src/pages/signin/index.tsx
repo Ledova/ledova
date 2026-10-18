@@ -1,11 +1,18 @@
+import {
+  AuthLayout,
+  AUTH_BUTTON_CLASS,
+  ERROR_BANNER_CLASS,
+  AuthHeader,
+  AuthCard,
+  AuthInput,
+  AuthDivider,
+} from '@components/auth';
 import { ROOT_PATH, SIGNUP_PATH } from '@utils/paths';
 import { Link, useNavigate } from 'react-router-dom';
 import { useSignIn } from './useSignIn';
-import { Field, Label, Input, Description } from '@headlessui/react';
+import { Field, Label, Description } from '@headlessui/react';
 import { EyeIcon, EyeSlashIcon, EnvelopeIcon, LockIcon, WarningIcon } from '@phosphor-icons/react';
-import { AuthLayout } from '@components/AuthLayout';
 import { ICON_MD } from '@components/iconSizes';
-import { AUTH_BUTTON_CLASS, AUTH_INPUT_CLASS, ERROR_BANNER_CLASS } from '@components/fieldClass';
 
 function SignInPage() {
   const navigate = useNavigate();
@@ -19,121 +26,104 @@ function SignInPage() {
 
   return (
     <AuthLayout>
-      <div className="text-center mb-6">
-        <div className="flex justify-center mb-3">
-          <div className="p-2 rounded-full bg-surface-raised border border-border">
-            <LockIcon size={ICON_MD} className="text-text-muted" />
-          </div>
-        </div>
-        <h1 className="font-display text-3xl tracking-[-0.01em] text-text-primary">Welcome Back</h1>
-      </div>
+      <AuthHeader title="Welcome Back" icon={<LockIcon size={ICON_MD} className="text-text-muted" />} />
 
-      <div className="rounded-xl border border-border bg-surface-raised">
-        <div className="p-4 sm:p-5">
-          <form onSubmit={handleSignIn} className="space-y-6">
-            {generalError && (
-              <div className={ERROR_BANNER_CLASS}>
-                <div className="flex items-start">
-                  <div className="flex-shrink-0">
-                    <WarningIcon size={ICON_MD} className="text-error-light" />
-                  </div>
-                  <div className="ml-3">
-                    <p className="text-sm text-error-light" role="alert">
-                      {generalError}
-                    </p>
-                  </div>
+      <AuthCard>
+        <form onSubmit={handleSignIn} className="space-y-6">
+          {generalError && (
+            <div className={ERROR_BANNER_CLASS}>
+              <div className="flex items-start">
+                <div className="flex-shrink-0">
+                  <WarningIcon size={ICON_MD} className="text-error-light" />
+                </div>
+                <div className="ml-3">
+                  <p className="text-sm text-error-light" role="alert">
+                    {generalError}
+                  </p>
                 </div>
               </div>
+            </div>
+          )}
+
+          <Field className="space-y-2">
+            <Label className="block text-sm font-medium text-text-body">Email</Label>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <EnvelopeIcon size={ICON_MD} className="text-text-subtle" />
+              </div>
+              <AuthInput
+                type="email"
+                name="email"
+                value={form.email}
+                onChange={(e) => setFieldValue('email', e.target.value)}
+                placeholder="your@email.com"
+                required
+                disabled={isLoading}
+              />
+            </div>
+            {errors.email && !generalError && errors.email.length > 0 && (
+              <Description className="text-error-light text-sm mt-1" role="alert">
+                {errors.email.join(' ')}
+              </Description>
             )}
+          </Field>
 
-            <Field className="space-y-2">
-              <Label className="block text-sm font-medium text-text-body">Email</Label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <EnvelopeIcon size={ICON_MD} className="text-text-subtle" />
-                </div>
-                <Input
-                  type="email"
-                  name="email"
-                  value={form.email}
-                  onChange={(e) => setFieldValue('email', e.target.value)}
-                  className={AUTH_INPUT_CLASS}
-                  placeholder="your@email.com"
-                  required
-                  disabled={isLoading}
-                />
+          <Field className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label className="block text-sm font-medium text-text-body">Password</Label>
+              <button
+                type="button"
+                className="text-sm font-medium text-brand-light hover:text-brand-subtle transition-colors"
+                disabled={isLoading}
+              >
+                Forgot?
+              </button>
+            </div>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <LockIcon size={ICON_MD} className="text-text-subtle" />
               </div>
-              {errors.email && !generalError && errors.email.length > 0 && (
-                <Description className="text-error-light text-sm mt-1" role="alert">
-                  {errors.email.join(' ')}
-                </Description>
-              )}
-            </Field>
+              <AuthInput
+                type={showPassword ? 'text' : 'password'}
+                name="password"
+                value={form.password}
+                onChange={(e) => setFieldValue('password', e.target.value)}
+                className="w-full bg-surface-tertiary border border-border rounded-lg pl-10 pr-12 py-3 text-text-primary placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-brand-mid focus:border-transparent transition-colors"
+                placeholder="••••••••"
+                required
+                disabled={isLoading}
+              />
+              <button
+                type="button"
+                onClick={togglePassword}
+                className="absolute inset-y-0 right-0 pr-3 flex items-center text-text-subtle hover:text-text-body transition-colors"
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+                disabled={isLoading}
+              >
+                {showPassword ? <EyeSlashIcon size={ICON_MD} /> : <EyeIcon size={ICON_MD} />}
+              </button>
+            </div>
+            {errors.password && !generalError && errors.password.length > 0 && (
+              <Description className="text-error-light text-sm mt-1" role="alert">
+                {errors.password.join(' ')}
+              </Description>
+            )}
+          </Field>
 
-            <Field className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label className="block text-sm font-medium text-text-body">Password</Label>
-                <button
-                  type="button"
-                  className="text-sm font-medium text-brand-light hover:text-brand-subtle transition-colors"
-                  disabled={isLoading}
-                >
-                  Forgot?
-                </button>
+          <button type="submit" disabled={isLoading} className={AUTH_BUTTON_CLASS}>
+            {isLoading ? (
+              <div className="flex items-center justify-center space-x-2">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
+                <span>Signing in...</span>
               </div>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <LockIcon size={ICON_MD} className="text-text-subtle" />
-                </div>
-                <Input
-                  type={showPassword ? 'text' : 'password'}
-                  name="password"
-                  value={form.password}
-                  onChange={(e) => setFieldValue('password', e.target.value)}
-                  className="w-full bg-surface-tertiary border border-border rounded-lg pl-10 pr-12 py-3 text-text-primary placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-brand-mid focus:border-transparent transition-colors"
-                  placeholder="••••••••"
-                  required
-                  disabled={isLoading}
-                />
-                <button
-                  type="button"
-                  onClick={togglePassword}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-text-subtle hover:text-text-body transition-colors"
-                  aria-label={showPassword ? 'Hide password' : 'Show password'}
-                  disabled={isLoading}
-                >
-                  {showPassword ? <EyeSlashIcon size={ICON_MD} /> : <EyeIcon size={ICON_MD} />}
-                </button>
-              </div>
-              {errors.password && !generalError && errors.password.length > 0 && (
-                <Description className="text-error-light text-sm mt-1" role="alert">
-                  {errors.password.join(' ')}
-                </Description>
-              )}
-            </Field>
+            ) : (
+              'Sign in'
+            )}
+          </button>
+        </form>
+      </AuthCard>
 
-            <button type="submit" disabled={isLoading} className={AUTH_BUTTON_CLASS}>
-              {isLoading ? (
-                <div className="flex items-center justify-center space-x-2">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
-                  <span>Signing in...</span>
-                </div>
-              ) : (
-                'Sign in'
-              )}
-            </button>
-          </form>
-        </div>
-      </div>
-
-      <div className="relative my-6">
-        <div className="absolute inset-0 flex items-center">
-          <div className="w-full border-t border-border"></div>
-        </div>
-        <div className="relative flex justify-center text-sm">
-          <span className="px-4 bg-surface-base text-text-subtle font-medium">or</span>
-        </div>
-      </div>
+      <AuthDivider />
 
       <div className="text-center">
         <p className="text-sm text-text-subtle">

@@ -74,8 +74,8 @@ frame share, and `packages/shared` holds what both clients share.
 
 Where today's code differs from these standards:
 
-- Browser downloads, notice/status/auth chrome and register shells still repeat fragments;
-  consolidation is tracked on [#1073](https://github.com/Ledova/ledova/issues/1073).
+- Browser downloads and register shells still repeat fragments; their consolidation is tracked on
+  [#1073](https://github.com/Ledova/ledova/issues/1073).
 - Existing unscoped account-bound keys stay unchanged; broader account scoping needs the owner
   decision on [#1065](https://github.com/Ledova/ledova/issues/1065).
 
@@ -329,7 +329,9 @@ Email verification and sign-up completion issue the session and await the explic
 refresh (sign-up completion a fresh profile too) before navigating, as sign-in does, so the steps
 read the profile once, before any form, and a later recheck cannot take away a step being filled in.
 A failed refresh keeps the review step open with its error and a retry
-([company signup](../business/companies.md#company-signup)).
+([company signup](../business/companies.md#company-signup)). Sign-in and sign-up share the
+header, card, divider, input and field styles in `dashboard/src/components/auth/`, retaining the
+review header's spacing and each form's existing field variants.
 
 ## The signed-in frame
 
@@ -519,7 +521,10 @@ The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components
   `aria-checked` the saved value), disabled while saving; a refusal keeps the saved value and shows
   an alert in the card. A choice saved with a form stays a checkbox.
 - `Status` (web) is words after a small mark, read as words only; `Timeline` (web) dates each event;
-  `Choice` (mobile) is an outlined choice marked selected.
+  `Choice` (mobile) is an outlined choice marked selected. Each status family has its own
+  tone map; shared subscription and resolution-result tones live in
+  `dashboard/src/components/statusTones.ts`. Personal applications retain their moving fallback,
+  company applications their waiting fallback, and an open offering retains its override.
 
 A dialog (`Modal` in `dashboard/src/components/Modal.tsx`; `CustomModal` in
 `mobile/src/components/modal`) is the same card over the dimmed page, labelled by its Newsreader

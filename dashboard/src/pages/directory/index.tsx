@@ -1,3 +1,4 @@
+import { DIRECTORY_OFFERING_TONES } from '@pages/directory/shared/presentation';
 import { generatePath } from 'react-router-dom';
 import { DESTINATIONS, formatDate, formatMoney, useDirectoryTokens } from '@ledova/shared';
 import type { DirectoryToken } from '@ledova/shared';
@@ -25,7 +26,9 @@ function ShareClassRow({ token }: { token: DirectoryToken }) {
     >
       <p className="text-text-muted">{token.symbol}</p>
       <p className="text-text-muted">
-        <Status tone={offering ? 'moving' : 'waiting'}>{offering ? 'Offering open' : 'No offering open'}</Status>
+        <Status tone={DIRECTORY_OFFERING_TONES.get(!!offering)!}>
+          {offering ? 'Offering open' : 'No offering open'}
+        </Status>
       </p>
     </LinkRow>
   );
