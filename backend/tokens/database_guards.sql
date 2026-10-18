@@ -2603,6 +2603,9 @@ BEGIN
     IF NOT tokens_register_appointment_current(NEW.appointment_id, proposal.company_id, NEW.decided_by_id,
         CASE NEW.kind WHEN 'apply' THEN 'apply' ELSE 'approve' END, at_time) OR (NEW.kind = 'apply' AND NOT tokens_register_transfer_approved(proposal.uuid, at_time))
     THEN RAISE EXCEPTION 'Register transfer authority must remain current at its deferred check' USING ERRCODE = '23514'; END IF;
+    IF NEW.kind <> 'reject' AND NOT EXISTS (SELECT 1 FROM tokens_sharetoken token
+        WHERE token.uuid = proposal.token_id AND token.company_id = proposal.company_id AND token.is_transferable)
+    THEN RAISE EXCEPTION 'The declared class restriction refuses a new transfer decision' USING ERRCODE = '23514'; END IF;
     IF (NEW.kind = 'approve' AND proposal.status <> 'submitted') OR (NEW.kind <> 'approve' AND
         (proposal.status <> CASE NEW.kind WHEN 'apply' THEN 'applied' ELSE 'rejected' END OR proposal.reviewed_by_id IS DISTINCT FROM NEW.decided_by_id
         OR proposal.reviewed_at IS DISTINCT FROM NEW.decided_at OR (NEW.kind = 'reject' AND proposal.rejection_reason IS DISTINCT FROM NEW.reason)))
@@ -6778,6 +6781,7 @@ AS $function$
     SELECT encode(sha256(convert_to(jsonb_build_object('version', '1', 'transfer', to_jsonb(proposal),
         'kind', decision_kind, 'actor', actor, 'appointment', appointment_uuid, 'reason', decision_reason,
         'register', to_jsonb(register), 'authorised_supply', token.total_supply, 'token_status', token.status,
+        'is_transferable', token.is_transferable,
         'deployment', token.deployment_id, 'transaction', token.deployment_transaction_id, 'contract', token.contract_address,
         'legacy_hash', token.deployment_tx_hash, 'deployed_at', token.deployed_at, 'chain', token.chain,
         'from_particulars', tokens_register_particulars_snapshot(proposal.from_member),
@@ -6806,7 +6810,7 @@ CREATE OR REPLACE FUNCTION public.tokens_register_transfer_ready(proposal tokens
  SET search_path TO 'pg_catalog', 'public', 'pg_temp'
 AS $function$
     SELECT EXISTS (SELECT 1 FROM tokens_sharetoken token JOIN tokens_shareregister register ON register.token_id = token.uuid
-        WHERE token.uuid = proposal.token_id AND token.company_id = proposal.company_id AND token.status = 'draft'
+        WHERE token.uuid = proposal.token_id AND token.company_id = proposal.company_id AND token.status = 'draft' AND token.is_transferable
             AND NULLIF(token.contract_address, '') IS NULL AND token.deployment_id IS NULL AND token.deployment_transaction_id IS NULL
             AND NULLIF(token.deployment_tx_hash, '') IS NULL AND token.deployed_at IS NULL AND NULLIF(token.chain, '') IS NULL
             AND register.sequence > 0 AND EXISTS (SELECT 1 FROM tokens_registerimport source WHERE source.token_id = token.uuid AND source.status = 'applied')

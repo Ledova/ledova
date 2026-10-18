@@ -113,6 +113,8 @@ def _state(proposal):
         or register is None
     ):
         unmet.append("imported_non_tokenised_register_required")
+    if not token.is_transferable:
+        unmet.append("class_transfers_restricted")
     if register is not None:
         positions = dict(
             RegisterPosition.objects.filter(
