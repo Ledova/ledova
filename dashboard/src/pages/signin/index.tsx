@@ -69,16 +69,7 @@ function SignInPage() {
           </Field>
 
           <Field className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label className="block text-sm font-medium text-text-body">Password</Label>
-              <button
-                type="button"
-                className="text-sm font-medium text-brand-light hover:text-brand-subtle transition-colors"
-                disabled={isLoading}
-              >
-                Forgot?
-              </button>
-            </div>
+            <Label className="block text-sm font-medium text-text-body">Password</Label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <LockIcon size={ICON_MD} className="text-text-subtle" />

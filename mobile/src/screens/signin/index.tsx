@@ -84,22 +84,11 @@ export function SignInScreen() {
     fieldContainer: {
       marginBottom: theme.spacing.lg,
     },
-    labelRow: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      marginBottom: theme.spacing.sm,
-    },
     label: {
       fontSize: theme.fontSize.sm,
       fontWeight: theme.fontWeight.medium,
       color: theme.colors.text.body,
       marginBottom: theme.spacing.sm,
-    },
-    forgotPassword: {
-      fontSize: theme.fontSize.sm,
-      fontWeight: theme.fontWeight.medium,
-      color: theme.colors.interactive.active,
     },
     inputWrapper: {
       flexDirection: 'row',
@@ -326,12 +315,7 @@ export function SignInScreen() {
               </View>
 
               <View style={styles.fieldContainer}>
-                <View style={styles.labelRow}>
-                  <Text style={styles.label}>Password</Text>
-                  <TouchableOpacity disabled={isLoading}>
-                    <Text style={styles.forgotPassword}>Forgot?</Text>
-                  </TouchableOpacity>
-                </View>
+                <Text style={styles.label}>Password</Text>
                 <View style={styles.inputWrapper}>
                   <LockIcon size={theme.icon.sizes.md} color={theme.colors.text.subtle} style={styles.inputIcon} />
                   <TextInput
