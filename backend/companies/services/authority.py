@@ -141,22 +141,6 @@ def admit_authority_request(*, requester, request_id, declaration_version, accep
             return _retained_request(proposal.pk)
 
 
-def has_company_capability(*, requester, company_id, capability):
-    if not requester.is_authenticated or capability not in CompanyCapability.values:
-        return False
-    with use_app(), _requester_principal(requester.pk):
-        return (
-            CompanyAppointment.objects.current_for(
-                requester,
-                company_id,
-                at=timezone.now(),
-                identity_required=Operator.get().issuer_kyc_required,
-            )
-            .filter(capabilities__contains=[capability])
-            .exists()
-        )
-
-
 def is_company_appointment_effective(appointment):
     with use_app(), _requester_principal(appointment.appointee_id):
         return (

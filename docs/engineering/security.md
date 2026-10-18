@@ -253,7 +253,7 @@ retained, with a reason.
 | Classification evidence                                           | `CLASSIFICATION_EVIDENCE_RETENTION_DAYS` from `reviewed_at` for a rejected, revoked or withdrawn claim and from `expires_at` for a verified one; `0` keeps it indefinitely and purges nothing | `purge_classification_evidence` deletes the bytes, preserving status and content-free metadata                               |
 | Attached payslip                                                  | The claim's clock                                                                                                                                                                             | `purge_document_evidence` removes the file, extraction output, filenames and notes, keeping claim links and read audit       |
 | Unattached payslip                                                | `UNATTACHED_DOCUMENT_RETENTION_DAYS` from upload; `0` keeps it indefinitely                                                                                                                   | `purge_document_evidence`                                                                                                    |
-| Former members, member particulars and register export records    | `FORMER_MEMBER_RETENTION_DAYS`, at least 2,557 days                                                                                                                                           | `purge_former_members_past_the_clock`, below                                                                                 |
+| Former members, member particulars and unbound register export records | `FORMER_MEMBER_RETENTION_DAYS`, at least 2,557 days                                                                                                                                           | `purge_former_members_past_the_clock`, below                                                                                 |
 | Publications to members                                           | The same setting and floor, from the publication                                                                                                                                              | `purge_publications_past_the_clock` removes the publication, its roll, event chain and read records, and with them its files |
 | Register decisions, uploads and copies; authority-request uploads | No automatic expiry                                                                                                                                                                           | None, below                                                                                                                  |
 
@@ -283,7 +283,10 @@ The daily purge removes, once past the cutoff:
   the cessation date; a later full-history fold cannot recreate what it removed;
 - imported former members, from their date ceased;
 - a member's recorded particulars, from the last date the member held shares in the company;
-- register export records, from the export.
+- register export records, from the export, except those linked to a member certificate fulfilment.
+
+Member certificate fulfilments, their original export records and their private files have no automatic
+expiry. The export purge excludes them, preserving their immutable recipient-only output history.
 
 It removes nothing else of a register opening, import, correction, wallet link, particulars change,
 grant or direct transfer: during the synthetic experiment a proposal's document copies, decisions,

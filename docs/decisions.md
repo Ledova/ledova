@@ -22,10 +22,11 @@ stay here as history and are marked where they appear.
 | [Eligibility and ownership records](#eligibility-and-ownership-records)                                         | September to 6 October 2026                    | Current                                                            |
 | [The stored register](#the-stored-register)                                                                     | September 2026; staff review retired 5 October | Current                                                            |
 | [Company-scoped approvals](#company-scoped-approvals)                                                           | 19 September 2026                              | Current                                                            |
-| [Shareholder publications](#shareholder-publications)                                                           | 23 September 2026                              | Current; expansion deferred (#870)                                 |
+| [Shareholder publications](#shareholder-publications)                                                           | 23 September 2026                              | Current; expansion not planned (#870)                              |
 | [Splits and consolidations](#splits-and-consolidations)                                                         | 23 September 2026                              | Design only; deferred                                              |
 | [The company pack](#the-company-pack)                                                                           | 23 September 2026                              | Current                                                            |
 | [Essential registry and development workflow priority](#essential-registry-and-development-workflow-priority)   | 9 October 2026                                 | Register priority current; workflow part superseded 11 October     |
+| [Registry focus and cancelled expansion tickets](#registry-focus-and-cancelled-expansion-tickets)               | 18 October 2026                                | Current; #869, #870 and #872 not planned                            |
 | [First scopes for employee awards and external capital](#first-scopes-for-employee-awards-and-external-capital) | 10 October 2026                                | Delivered 11 October (#973, #974)                                  |
 | [Member invitations and account association](#member-invitations-and-account-association)                       | 11 October 2026                                | Current; #866 implements it                                        |
 | [Minimum tests and fresh migrations](#minimum-tests-and-fresh-migrations)                                       | 11 October 2026                                | Current                                                            |
@@ -554,8 +555,9 @@ redeploy.
 ## Shareholder publications
 
 Platform staff publish, enter represented ballots and record payments on the
-company's written instruction until [#870](https://github.com/Ledova/ledova/issues/870),
-which is deferred. The rules below bind any company-run replacement.
+company's written instruction. The proposed company-run expansion under
+[#870](https://github.com/Ledova/ledova/issues/870) was [closed as not planned](#registry-focus-and-cancelled-expansion-tickets).
+The rules below bind any future owner-selected company-run replacement.
 
 The owner chose on 23 September 2026, in
 [the design note](https://github.com/Ledova/ledova/issues/649#issuecomment-5789320596),
@@ -801,6 +803,20 @@ the licence or legal findings. #624 still needs genuine human release acceptance
 _Delivered on 11 October: [employee awards](business/issuing-shares.md#employee-awards-and-vesting)
 (#973) and [external allotments](business/issuing-shares.md#external-investor-allotments)
 (#974)._
+
+### Registry focus and cancelled expansion tickets
+
+**Owner decision, 18 October 2026**, supplied directly in the active Codex session
+and recorded on [#869](https://github.com/Ledova/ledova/issues/869#issuecomment-6248594626),
+[#870](https://github.com/Ledova/ledova/issues/870#issuecomment-6248595030) and
+[#872](https://github.com/Ledova/ledova/issues/872#issuecomment-6248595442).
+
+The owner kept the focus on the private-company registry and closed the proposed secondary share
+sales and AUD settlement expansion, advanced company resolutions and distributions, and filing
+preparation and submission integrations as **not planned**, not delivered. This replaces the earlier deferral
+of those three tickets; their proposals remain historical. Existing useful operations, guards,
+retained records and evidence, and company responsibilities remain unchanged. A future expansion
+needs a new explicit owner decision and scoped plan. This authorises no live operation or data deletion.
 
 ### Member invitations and account association
 

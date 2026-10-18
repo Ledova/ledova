@@ -1,6 +1,3 @@
-import logging
-from concurrent.futures import ThreadPoolExecutor
-from concurrent.futures import TimeoutError as ReadTimeout
 from decimal import Decimal
 from uuid import uuid4
 
@@ -8,26 +5,7 @@ from django import forms
 from django.contrib import messages
 from django.utils.html import format_html
 
-logger = logging.getLogger(__name__)
-
-CHAIN_READ_TIMEOUT = 5
-
 BADGE_STYLE = "padding: 3px 8px; border-radius: 3px; font-size: 11px;"
-
-
-def bounded_chain_read(read, label, default=None, timeout=None):
-    timeout = CHAIN_READ_TIMEOUT if timeout is None else timeout
-    executor = ThreadPoolExecutor(max_workers=1)
-    try:
-        return executor.submit(read).result(timeout=timeout)
-    except ReadTimeout:
-        logger.warning(f"{label} not answered within {timeout}s")
-        return default
-    except Exception as exc:
-        logger.warning(f"{label} could not be read: {exc}")
-        return default
-    finally:
-        executor.shutdown(wait=False)
 
 
 def _colors(color):
