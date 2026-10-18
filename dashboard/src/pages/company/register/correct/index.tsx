@@ -1,6 +1,7 @@
+import { useCorrectionEntry } from './useCorrectionEntry';
 import { useMemo, type ReactNode } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+
 import {
   DESTINATIONS,
   REGISTER_CORRECTION_COPY,
@@ -15,9 +16,9 @@ import { Page, PageAction } from '@components/Page';
 import { RegisterChanges } from '@pages/company/register/shared/RegisterChanges';
 import { Loading, Unavailable } from '@pages/company/shared/RegisterStatus';
 import { describeEntry } from '@pages/company/shared/proposals';
-import { READ_TIMING } from '@hooks/useRegisterAccess';
+
 import { useRegisterClasses } from '@pages/company/shared/useCompanyRegister';
-import { entriesKey, readClassEntry } from '@pages/company/register/shared/useRegisterEntries';
+
 import { ownerGuard } from '@pages/company/register/shared/ownerGuard';
 import { useOwnAppointments } from '@pages/company/shared/useOwnAppointments';
 import { CorrectionForm } from './CorrectionForm';
@@ -80,12 +81,7 @@ function OwnCorrection({
     listed && appointments.data
       ? appointmentForRegisterStep(appointments.data, listed.companyUuid, 'prepare')
       : undefined;
-  const corrected = useQuery({
-    queryKey: [...entriesKey(owner, uuid), entry],
-    enabled: !!appointment,
-    queryFn: () => readClassEntry(uuid, entry, guard),
-    ...READ_TIMING,
-  });
+  const corrected = useCorrectionEntry(owner, uuid, entry, guard, appointment);
   const retry = () => {
     if (classes.isError) void classes.refetch();
     if (appointments.isError) void appointments.refetch();
