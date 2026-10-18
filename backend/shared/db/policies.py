@@ -340,10 +340,10 @@ LOCKING_IS_READING = (
     "PostgreSQL applies the UPDATE policy's USING to SELECT ... FOR UPDATE, so a row the read policy admits "
     "and the update policy does not can be read and never locked - and select_for_update().get() turns that "
     "into DoesNotExist rather than a refusal. So the UPDATE policy's USING is exactly the read scope and all "
-    "the narrowing lives in its WITH CHECK, while INSERT's WITH CHECK and DELETE's USING stay owner-only. "
+    "the narrowing lives in its WITH CHECK, while INSERT's WITH CHECK and DELETE's USING stay on the write term. "
     "Measured by Omarch 5 on a scratch table: it is the only arrangement that both locks the row and refuses "
-    "the write. Without it an investor gets DoesNotExist at allotment on the offering they just chose - "
-    "offerings/services/subscription.py locks it at 463, 499 and 566."
+    "the write. Without it an investor ordering another company's share class gets DoesNotExist from "
+    "tokens/services/trading_order_create.py issue_order_submission, which locks that class on the app role."
 )
 
 DERIVED_FROM_A_MUTABLE_ATTRIBUTE = {
@@ -353,11 +353,6 @@ DERIVED_FROM_A_MUTABLE_ATTRIBUTE = {
     "write term is false for all three commands: the fold task writes on the operator alias, the retention sweep "
     "deletes on the same alias on the accepted retention clock. Refolding leaves existing particulars unchanged. "
     "The owner is derived through token.company.owner; a future owner-transfer feature must propagate it.",
-    "tokens_sharetoken.owner_id": "Derived through company.owner, which is the only owner attribute an admin "
-    "can edit. Between the parent changing and the child's next write the column is stale, so the previous "
-    "owner keeps seeing the rows - #322 re-derives a stale row in the trigger and makes Company.owner "
-    "read-only in the admin. An owner-transfer feature would need an AFTER UPDATE trigger on the parent "
-    "before it exists, and this is the entry that says so.",
 }
 
 READS_WIDER_THAN_OWNERSHIP = {
@@ -385,7 +380,8 @@ READS_WIDER_THAN_OWNERSHIP = {
         "users/services/classification_issuer.py active_issuer_for_claim",
         "The operator validates only the supplied UUID against active issuers and returns only that key. "
         "The owner confirmed on 2026-09-13 that an applicant may name an active issuer before it is listed; "
-        "the claim is still written under the applicant and company details remain hidden.",
+        "create_classification then writes the claim on the operator connection under the applicant's principal, "
+        "for their own account and profile, and company details remain hidden.",
     ),
     "Market prices for already admitted tokens": (
         "tokens/services/market_data_service.py market_summaries; "
@@ -406,88 +402,78 @@ READS_WIDER_THAN_OWNERSHIP = {
     ),
     "Stablecoin approvals for a wallet send": (
         "wallets/services/transaction_confirmation.py require_stablecoin_approvals, at prepare in "
-        "wallets/services/transfers.py and at submission in wallets/services/submissions.py _submission_plan",
+        "wallets/services/transfers.py _prepare_erc20_transfer and at submission in "
+        "wallets/services/submissions.py _submission_plan",
         "whitelist_whitelistentry joined to wallets by address, and whitelist_whitelistapproval: whether the sending "
         "wallet and the recipient address of a stablecoin send each hold a live approval with any company. Only "
         "that yes or no reaches the sender, as which side is refused; no entry, company, wallet or account of the "
         "recipient is returned, and the wallets policy is unchanged",
     ),
-    "PolicyQuerysets on an administrative action": (
-        "shared/views/scope.py, the get_queryset every AuthenticatedViewSet inherits",
-        "every row of the scoped model, and only for an action the view names in "
-        "administrative_actions, which is the set get_permissions turns into IsAdminUser. Keyed to "
-        "that set rather than to operator_actions, which only chooses a connection and which PolicyQuerysets "
-        "permits to be the wider of the two when the view states operator_actions_because",
-    ),
     "ShareIssuanceRequest on subscription reads and withdrawal": (
-        "offerings/querysets/subscription.py with_relations and offerings/services/subscription.py _linked_request",
+        "offerings/querysets/subscription.py for_applicant and offerings/services/subscription.py _linked_request",
         "tokens_shareissuancerequest: the request linked to a subscription of this principal's member account. "
         "Reading that request preserves the withdrawal refusal once issuance is claimed; writes remain issuer-only",
     ),
     "Subscription.for_issuer": (
-        "offerings/views/offering.py subscriptions",
-        "offerings_subscription: the issuer term, offering_id in the offerings this principal's companies own",
+        "offerings/views/offering.py OfferingViewSet.subscriptions",
+        "no policy term: subscriptions is one of OfferingViewSet's operator_actions, and the view filters to the "
+        "offerings issued_by this principal, the scope of offerings_subscription's issuer term",
     ),
     "Offering.open_now": (
-        "offerings/serializers/subscription.py:147, and the select_for_update re-reads at "
-        "offerings/services/subscription.py 463, 499 and 566",
-        "offerings_offering: the public company term, and the UPDATE policy's USING is as wide, so the "
-        "re-read can lock what the serializer offered",
+        "offerings/serializers/subscription.py SubscriptionCreateSerializer.get_fields",
+        "offerings_offering: the public company term. create_draft and submit in offerings/services/subscription.py "
+        "then re-read the offering on the operator connection behind the subscription admission lock",
     ),
     "ShareToken.in_directory": (
-        "offerings/views/directory.py",
+        "offerings/services/directory.py directory_tokens, for DirectoryTokenViewSet in offerings/views/directory.py",
         "tokens_sharetoken: the market predicate, and companies_company: open to investors",
     ),
     "ShareToken.deployed_with_contract": (
-        "tokens/views/trading_token.py, tokens/services/trading_events.py:22, "
-        "tokens/services/share_token_service.py:861",
+        "tokens/services/market_data_service.py list_market_tokens, for TradingTokenViewSet in "
+        "tokens/views/trading_token.py and streamable_token_uuid in tokens/services/trading_events.py; "
+        "tokens/services/share_token_service.py get_wallet_token_balances",
         "tokens_sharetoken: the market predicate, wider than the directory because a token is tradeable "
         "without its issuer opting into the browse surface",
     ),
-    "Company.all on the eligibility path": (
-        "users/services/eligibility.py:110",
-        "companies_company: owner, open to investors, or holding a token on the market. The policy is "
-        "narrower than all(), and both consumers - the directory and the subscription serializer - filter "
-        "to companies that are open or listed, so the narrowing is invisible to them",
-    ),
     "Company.all on the administrative actions": (
-        "companies/views/company.py:70",
+        "companies/views/company.py CompanyViewSet.narrow, for the administrative_actions that get_permissions "
+        "limits to IsAdminUser",
         "no policy term: those actions run on the operator connection by operator_actions, because a staff "
-        "member does not own the company they administer",
+        "member does not own the company they administer. The view's other operator actions stay narrowed to "
+        "readable_by and for_activation",
     ),
 }
 
 PUBLIC_TERM = {
     "tokens_sharetoken": "The secondary market is deployed_with_contract(), wider than the directory: a "
     "token is tradeable without its issuer opting into the browse surface, and no automated test covers that "
-    "market read. #322 makes owner_id the company owner's user, so the owner term alone hides every deployed "
-    "token from an investor - the second term has to be on the token's own columns. It is the exact dual of "
-    "HAS_A_TOKEN_ON_THE_MARKET on companies_company: a company is visible because a token of its is on the "
-    "market, and that token is visible because it is on the market. Remove either and R13's closure between "
-    "the two tables fails, which is why it holds by construction rather than by luck. The policy reads only "
-    "this table's own columns, so it forms no cycle with the company term that reads it.",
+    "market read. The owner term admits only the classes of the principal's own companies, so alone it hides "
+    "every deployed token from an investor - the second term has to be on the token's own columns. It is the "
+    "exact dual of HAS_A_TOKEN_ON_THE_MARKET on companies_company: a company is visible because a token of its "
+    "is on the market, and that token is visible because it is on the market. Remove either and R13's closure "
+    "between the two tables fails, which is why it holds by construction rather than by luck. The policy reads "
+    "only this table's own columns, so it forms no cycle with the company term that reads it.",
     "offerings_subscription": "Applicants keep their applications when the offering or company is hidden. "
-    "The applicant route reads stored names and currency without joining those parents; submit rechecks "
-    "the visible offering and withdraw retains its money and mint guards. "
-    "R12 at a third table, found by Omarch 2 measuring rather than reading. "
-    "OfferingViewSet.subscriptions reads Subscription.objects.for_issuer(offering), "
-    "deliberately - the scope is the offering's ownership rather than the subscriber's account - so a "
-    "member-only policy shows an issuer their own subscriptions and silently drops everyone else's. "
-    "Measured with two tenants: as the owner for_issuer returns 2, as the app role with the issuer's "
-    "principal it returns 1, and that is feature 4's capital-raised view answering short with no error. "
+    "The applicant route reads stored names and currency without joining those parents; submit re-reads "
+    "the offering on the operator connection behind the subscription admission lock, and withdraw retains its "
+    "money and mint guards. tokens/services/register_instructions.py submit_instruction and _check_items ask, "
+    "on the app role, whether a subscription stands behind each issuance request a company owner's issue "
+    "instruction names - the scope is the offering's ownership rather than the subscriber's account, so a "
+    "member-only policy would hide every other investor's subscription from those checks. "
+    "OfferingViewSet.subscriptions runs Subscription.objects.for_issuer(offering) on the operator connection. "
     "The read term adds the offerings the principal's companies own; WITH CHECK stays member-only, because "
     "an issuer does not write a subscription on someone's behalf. No cycle: offerings_offering's policy "
     "does not read subscriptions.",
-    "customer_accounts_account": "An issuer must know who subscribed to their own offering: "
-    "for_issuer select_relates the subscribing account, and a hidden account deletes the subscription row "
-    "the issuer was allowed to see. The term is the subscription, not the market - a stranger browsing "
-    "companies reaches no account at all. R14 used to let an account through for holding a company's "
-    "operator wallet, and one account per person turned that into the holder's name, phone and address, "
-    "so it is gone. The term reads offerings_subscription, which reads offerings_offering, which reads "
-    "companies_company, which reads nothing back.",
-    "wallets": "The same subscription, one column along: for_issuer select_relates the wallet as well, and "
-    "the subscription serializer prints its address. A wallet is on the account that subscribed, so the "
-    "wallet term and the account term open together and R13's closure holds by construction.",
+    "customer_accounts_account": "An issuer must know who subscribed to their own offering, and every "
+    "subscription the issuer term admits names its account through a non-nullable key, so a hidden account "
+    "would delete from a select_related the subscription row the issuer was allowed to see. The term is the "
+    "subscription, not the market - a stranger browsing companies reaches no account at all. R14 used to let "
+    "an account through for holding a company's operator wallet, and one account per person turned that into "
+    "the holder's name, phone and address, so it is gone. The term reads offerings_subscription, which reads "
+    "offerings_offering, which reads companies_company, which reads nothing back.",
+    "wallets": "The same subscription, one column along: its wallet key is not nullable either. A wallet is on "
+    "the account that subscribed, so the wallet term and the account term open together and R13's closure holds "
+    "by construction.",
     "users_userprofile": "The register is a name and an address, so an issuer reading their own "
     "subscriptions reads the subscriber's profile. The account is visible to that issuer already and "
     "user_profile_id is not nullable, so without this term select_related would delete the account row and "
@@ -499,14 +485,16 @@ PUBLIC_TERM = {
     "owner-helper policy cycle. Current personal administration and genuine unrooted draft setup use their "
     "separate UUID helper, while customer basic selectors remain narrower than public discovery.",
     "shareholders_publication": "A publication is the first investor-readable projection of the register, so its "
-    "read term has to reach past the company that made it: without the recipient term a member could never open "
-    "the statement or notice addressed to them, which is the whole point of the table. The term is a member's own "
-    "roll row and nothing else - it never reads a wallet address, because Wallet is unique per (account, chain, "
-    "address) and two accounts may hold one address, so an address join would hand one member's statement to "
-    "another. Identity is resolved once in Python when the roll is frozen and stored as user_id, exactly the shape "
-    "the notifications policy already uses. No cycle: shareholders_publicationrecipient's own policy reads only "
-    "its own columns and companies_company through the visible-companies helper, and never reads publications "
-    "back. Both tables are read-only to the app role; only the operator writes them.",
+    "read term has to reach past the company that made it: without the recipient term a member's app-role reads "
+    "- the summary, cast_ballot and the ballot response - would never reach the publication addressed to them. "
+    "Listing and opening the file run on the operator connection, where Publication.objects.for_reader binds the "
+    "company owner or a named recipient. The term is a member's own roll row and nothing else - it never reads a "
+    "wallet address, because Wallet is unique per (account, chain, address) and two accounts may hold one "
+    "address, so an address join would hand one member's statement to another. Identity is resolved once in "
+    "Python when the roll is frozen and stored as user_id, exactly the shape the notifications policy already "
+    "uses. No cycle: shareholders_publicationrecipient's own policy reads only its own columns and "
+    "companies_company through the visible-companies helper, and never reads publications back. Both tables are "
+    "read-only to the app role; only the operator writes them.",
     "shareholders_publicationrecipient": "A roll row is readable by the member it names and by the company that "
     "published it, the same two-sided shape offerings_subscription carries. The company term is the row's own "
     "company_id rather than a join through the publication, because the publication's read term reads this table "
@@ -529,9 +517,10 @@ PUBLIC_TERM = {
     "read shareholders_publicationrecipient, whose own policy reads only its own columns and companies_company "
     "through the visible-companies helper, the company terms read that helper alone, and nothing reads this table "
     "back.",
-    "offerings_offering": "open_now() deliberately admits investors - the subscription serializer and "
-    "submit service re-read the offering in the caller's scope. An owner-only policy would refuse an "
-    "eligible investor whose company is open; retaining an existing application never widens this scope.",
+    "offerings_offering": "open_now() deliberately admits investors - the subscription serializer resolves the "
+    "offering in the caller's scope, before create_draft and submit re-read it on the operator connection behind "
+    "the subscription admission lock. An owner-only policy would refuse an eligible investor whose company is "
+    "open; retaining an existing application never widens this scope.",
 }
 
 AWAITING_R0: dict[str, MissingOwnerColumns] = {}
@@ -715,10 +704,11 @@ NOT_TENANCY = {
 }
 
 REACHED_DESPITE_OPERATOR_ONLY = {
-    "tokens_yieldtoken": "assets/serializers/asset.py:62 reads it for every asset a customer lists, to answer "
-    "nav_per_token and last_nav_update. It is filtered by symbol and not by any principal.",
-    "compliance_monitoringrule": "reached from the same account-creation path while scoring the new "
-    "assessment, on the connection that served the request.",
+    "tokens_yieldtoken": "assets/serializers/asset.py AssetSerializer._get_yield_token reads it for every asset a "
+    "customer lists, to answer nav_per_token and last_nav_update. It is filtered by symbol and not by any principal.",
+    "compliance_monitoringrule": "No app-role path reads it now: account creation records only a pending "
+    "assessment, and the screening and batch-monitoring tasks read the rules on the operator connection. "
+    "#1098 removes the grant or names a reader.",
 }
 
 UNSCOPED = {**FRAMEWORK, **OPERATOR_ONLY, **NOT_TENANCY, **AWAITING_RLS}
