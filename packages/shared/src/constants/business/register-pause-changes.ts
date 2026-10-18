@@ -33,6 +33,7 @@ export const REGISTER_PAUSE_CHANGE_UNMET_COPY: Record<string, string> = {
   approval_lapsed: 'The original approval is no longer current.',
   reason_required: 'Give a reason for rejection.',
   reason_not_allowed: 'Approval and application take no rejection reason.',
+  pause_change_decided: 'This pause change has already been admitted or rejected.',
   company_source_expired: 'The original company pause authority is no longer current for fresh signing.',
   legacy_source_unavailable: 'This historical unsigned operation has no current company source.',
   source_lock_busy: 'The original source is temporarily busy. Its unsigned operation remains recoverable.',

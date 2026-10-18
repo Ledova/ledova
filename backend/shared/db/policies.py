@@ -565,9 +565,9 @@ OPERATOR_ONLY = {
     "policy here would be a new rule rather than a translation of one. Every reader and writer runs on the "
     "operator connection, including OfferingViewSet's actions, delete_document, the offering and company document "
     "admins, the eligibility SQL, and the directory's document read, which joins it only after resolving the "
-    "published offerings under the app role and bounds the join to them. #1124 tracks the app role's unused grant.",
+    "published offerings under the app role and bounds the join to them.",
     "offerings_offering_settlement_assets": "A link row from a scoped offering to the global asset catalogue, "
-    "reached from the offering and only on the operator connection. #1124 tracks the app role's unused grant.",
+    "reached from the offering and only on the operator connection.",
     "companies_companysignuptermsacceptance": "Immutable current signup Terms receipts bound to one company, "
     "appointment and appointee. The bounded acceptance command writes them on the operator connection, and own "
     "appointment serialization reads only that appointee's exact receipt on that connection. The app role has "

@@ -288,7 +288,7 @@ Shared requirement codes:
 | Requirement                             | Meaning                                                                                                                    |
 | --------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
 | `appointment_capability_required`       | The appointment holds neither `admin` nor the capability the decision needs                                                |
-| `<command>_decided`                     | The proposal is already applied or rejected, for example `correction_decided` or `import_decided`                          |
+| `<subject>_decided`                     | The proposal is already applied or rejected, for example `correction_decided` or `paid_issue_decided`                      |
 | `company_provided_evidence_required`    | A retained staff-era proposal, which can only be rejected                                                                  |
 | `already_approved`                      | A current approval exists                                                                                                  |
 | `approval_required`, `approval_lapsed`  | Application needs a current approval; an earlier approver's appointment ended                                              |
