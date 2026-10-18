@@ -441,21 +441,27 @@ writes (create, edit, delete, submit, withdraw, attach documents) run inside
 ### Subscription data flow
 
 - `POST /api/v1/subscriptions/` creates a whole-share draft. `get_fields()` scopes the offering to
-  `Offering.objects.open_now()` within the companies the caller's current decisions admit, the
-  account to the caller's investing account, and the wallet to `owned_by(user).verified_evm()` on
-  Base. `create_draft` copies the price, currency, company display name (trading name, else legal
-  name), class name and symbol onto the row; the personal list and detail read these copies without
+  `Offering.objects.open_now()` under the caller's policies, which admit the offerings of the
+  caller's own companies and of every active company open to investors. It scopes the wallet to
+  `owned_by(user).verified_evm()` on Base, and `validate()` takes the caller's investing account.
+  `create_draft` copies the price, currency, company display name (trading name, else legal name),
+  class name and symbol onto the row; the personal list and detail read these copies without
   joining the parents, so reads, bank instructions and guarded withdrawal survive a hidden parent.
   An unchanged link can keep its stored owner when its parent is hidden; inserts, changed hidden
   links and owner tampering are refused.
-- `submit/` re-reads the offering, class and company under the caller's policies (a hidden parent
-  answers 400) and runs `require_subscription_eligibility`; admin `accept` runs
-  `require_subscription_acceptance_eligibility`.
+- `create_draft` and `submit` re-read the offering, class and company on the operator connection
+  under the caller's principal and run `_require_frozen_economics` and
+  `require_subscription_eligibility`, then take `offerings_lock_subscription_admission`, re-read and
+  run both again before writing. `_require_frozen_economics` answers 400 through
+  `SubscriptionRefusedException` when the offering, its class or its company is no longer open
+  (`_require_open`), the quantity is outside its bounds or the frozen terms changed. Admin `accept`
+  runs `_require_frozen_economics` and `require_subscription_acceptance_eligibility` before and
+  after taking the same lock.
 - Acceptance issues the payment instruction. `generate_reference` appends an eight-character
-  Crockford base32 code to `Operator.payment_reference_prefix`, retrying on `IntegrityError`
-  against the partial unique index; `shared.payment_references` refuses an overlong normalised
-  prefix even when a write bypassed model validation, so the code is never truncated
-  ([prefix limits](../operations/operator-console.md#operator-configuration)).
+  Crockford base32 code to `Operator.payment_reference_prefix` and refuses a normalised prefix over
+  the `shared.payment_references` limit even when a write bypassed model validation, so the code is
+  never truncated ([prefix limits](../operations/operator-console.md#operator-configuration));
+  `issue_instruction` retries on `IntegrityError` against the partial unique index.
   `normalize_reference` runs on generation and admin lookup. `build_instruction` returns the
   operator's bank fields, or the receiving wallet with the settlement asset's contract and decimals
   from `require_deployment`, which refuses an asset with no active deployment on
@@ -491,7 +497,8 @@ writes (create, edit, delete, submit, withdraw, attach documents) run inside
   verification ([subscription recovery](../operations/recovery.md#subscriptions)); the daily
   `expire_unpaid_subscriptions` touches only rows with no payment recorded.
 - The investor API makes no financial write. The company reads its offering's subscriptions at
-  `GET /api/v1/offerings/{uuid}/subscriptions/`, scoped by `subscribed_by(user)`, and
+  `GET /api/v1/offerings/{uuid}/subscriptions/`, which runs on the operator connection and filters
+  to `Offering.objects.issued_by(user)` and `for_issuer(offering)`, and
   `ShareIssuanceListSerializer` carries `subscription_reference` back to the payment.
 - `Subscription.offering`, `.user_account` and `.wallet` are `PROTECT`; the handler turns the
   `ProtectedError` into a 409 that counts the holding rows.
