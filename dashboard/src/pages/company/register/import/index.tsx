@@ -18,7 +18,7 @@ import { PageTitle } from '@components/PageTitle';
 import { Loading, Unavailable } from '@pages/company/shared/RegisterStatus';
 import { registerSteps, type RegisterSteps } from '@pages/company/shared/proposals';
 import { READ_TIMING, registerKey } from '@hooks/useRegisterAccess';
-import { readRegister, useRegisterClasses } from '@pages/company/shared/useCompanyRegister';
+import { readRegister, useRegisterClasses, registerClassesKey } from '@pages/company/shared/useCompanyRegister';
 import { importsKey, useRegisterImports } from '@pages/company/register/shared/useRegisterImports';
 import { ownerGuard } from '@pages/company/register/shared/ownerGuard';
 import { useOwnAppointments, ownAppointmentsKey } from '@pages/company/shared/useOwnAppointments';
@@ -146,7 +146,7 @@ function OwnImport({
   const checkNew = () => {
     guard();
     for (const key of [
-      [...registerKey(owner), 'classes'],
+      registerClassesKey(owner),
       ownAppointmentsKey(owner),
       [...registerKey(owner), 'holders', 'class', uuid],
       importsKey(owner, uuid),

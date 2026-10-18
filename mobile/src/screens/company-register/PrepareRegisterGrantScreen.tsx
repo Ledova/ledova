@@ -32,12 +32,14 @@ import { EvidencePicker, Field, isoDay, utcToday } from './RegisterFields';
 import { useCompanyStyles } from './styles';
 import {
   grantsKey,
-  registerKey,
   registerAppointmentsKey,
   useClassRegister,
   useCompanyMembers,
   useRegisterAppointments,
   useTransferMembers,
+  registerClassKey,
+  registerMembersKey,
+  registerClassesKey,
 } from './useCompanyRegister';
 import { useRegisterEvidence } from './useRegisterEvidence';
 import { useRegisterAward } from './useRegisterAwards';
@@ -192,8 +194,8 @@ function PrepareRegisterGrant({ epoch }: { epoch: number }) {
     const sources = [
       USER_PREFERENCES_QUERY_KEY,
       registerAppointmentsKey(epoch),
-      [...registerKey(epoch), 'class', tokenUuid],
-      [...registerKey(epoch), 'members', companyUuid],
+      registerClassKey(epoch, tokenUuid),
+      registerMembersKey(epoch, companyUuid),
     ].map((key) => queryClient.getQueryState(key));
     if (!currentRead.current || sources.some((state) => state?.status !== 'success' || state.fetchStatus !== 'idle'))
       throw new Error('Refresh the register and your current company authority.');
@@ -291,7 +293,7 @@ function PrepareRegisterGrant({ epoch }: { epoch: number }) {
       }
       await queryClient.invalidateQueries({ queryKey: grantsKey(epoch, tokenUuid) });
       guard();
-      const classesKey = [...registerKey(epoch), 'classes'];
+      const classesKey = registerClassesKey(epoch);
       await queryClient.refetchQueries({ queryKey: classesKey, type: 'active' }, { throwOnError: true });
       guard();
       const classesRead = queryClient.getQueryState(classesKey);

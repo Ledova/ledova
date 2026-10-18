@@ -1,3 +1,4 @@
+import { registerHoldersKey } from '@pages/company/shared/useCompanyRegister';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { generatePath } from 'react-router-dom';
 import {
@@ -12,7 +13,6 @@ import {
 import { useQueryClient } from '@tanstack/react-query';
 import { registerSteps } from '@pages/company/shared/proposals';
 import { entriesKey } from '@pages/company/register/shared/useRegisterEntries';
-import { registerKey } from '@hooks/useRegisterAccess';
 import { PageAction } from '@components/Page';
 import { LinkRow } from '@components/Ledger';
 import { AllotmentForm } from './AllotmentForm';
@@ -113,7 +113,7 @@ export function ClassAllotments({
     await allotments.refetch({ throwOnError });
     check();
     await Promise.all([
-      client.invalidateQueries({ queryKey: [...registerKey(owner), 'holders'] }),
+      client.invalidateQueries({ queryKey: registerHoldersKey(owner) }),
       client.invalidateQueries({ queryKey: entriesKey(owner, token) }),
       client.invalidateQueries({ queryKey: transferMembersKey(owner, token) }),
     ]);

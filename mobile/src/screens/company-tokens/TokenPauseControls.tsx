@@ -1,38 +1,29 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Text, View } from 'react-native';
-import { useQueries, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   getErrorMessage,
-  getPauseSubmission,
   pauseCompanyToken,
   unpauseCompanyToken,
   useSubmissionOwner,
   type CompanyShareToken,
   type OrderSubmissionOwner,
-  type PauseSubmissionResponse,
   type SavedPause,
 } from '@ledova/shared';
 import { Action, Section } from '../../components/Ledger';
+import { COMPANY_TOKENS_QUERY_KEY } from '../../hooks/useCompanyTokens';
 import { apiClient } from '../../services/apiClient';
 import { orderSubmissionSession } from '../../services/orderSubmissions';
 import { getSessionEpoch, assertSessionEpoch } from '../../services/sessionScope';
 import { pauseSubmissionStore } from '../../services/pauseSubmissions';
 import { useCompanyStyles } from '../company-register/styles';
+import { companyTokenPrefix } from './useTokenDetail';
+import { checked, pauseSubmissionKey, useTokenPauseRequests } from './useTokenPauseRequests';
 
 type Props = {
   token: Pick<CompanyShareToken, 'uuid' | 'status'>;
   refreshing: boolean;
 };
-
-function checked(record: SavedPause, response: PauseSubmissionResponse) {
-  if (
-    response.submission.uuid !== record.submissionId ||
-    response.submission.paused !== record.paused ||
-    response.token.uuid !== record.tokenUuid
-  )
-    throw new Error('The server returned a different pause submission. The original request remains saved.');
-  return response;
-}
 
 function PauseRequests({
   token,
@@ -80,37 +71,12 @@ function PauseRequests({
       live.current = false;
     };
   }, [load]);
-  const queryKey = (record: SavedPause) => [
-    'pause-submission',
-    record.userUuid,
-    record.ownerAccountUuid,
-    record.tokenUuid,
-    record.submissionId,
-    epoch,
-  ];
+  const queryKey = (record: SavedPause) => pauseSubmissionKey(record, epoch);
   const refreshClass = () => {
-    void queryClient.invalidateQueries({ queryKey: ['company-token', token.uuid] });
-    void queryClient.invalidateQueries({ queryKey: ['company-tokens'] });
+    void queryClient.invalidateQueries({ queryKey: companyTokenPrefix(token.uuid) });
+    void queryClient.invalidateQueries({ queryKey: COMPANY_TOKENS_QUERY_KEY });
   };
-  const queries = useQueries({
-    queries: records.map((record) => ({
-      queryKey: queryKey(record),
-      queryFn: async () => {
-        guard();
-        const response = await getPauseSubmission(apiClient, token.uuid, record.submissionId, {
-          ledovaSubmissionGuard: guard,
-          ledovaSessionEpoch: epoch,
-        });
-        guard();
-        const result = checked(record, response.data);
-        refreshClass();
-        return result;
-      },
-      retry: false,
-      refetchInterval: (query: { state: { data?: PauseSubmissionResponse } }) =>
-        query.state.data?.submission.completedAt ? (false as const) : 5000,
-    })),
-  });
+  const queries = useTokenPauseRequests({ records, token, epoch, guard, refreshClass });
   const send = async (previous: SavedPause) => {
     const paused = previous.paused;
     if (inFlight.current) return;

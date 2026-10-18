@@ -4,7 +4,6 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   admitCompanyAuthorityRequest,
   getCompanies,
-  getCompanyAuthorityRequests,
   readEveryPage,
   revokeCompanyAuthorityAppointment,
   withdrawCompanyAuthorityRequest,
@@ -14,6 +13,7 @@ import {
 } from '@ledova/shared';
 import { Action, Choice, Rows, Section } from '../../components/Ledger';
 import { Page } from '../../components/Page';
+import { companyAuthorityRequestsKey, useCompanyAuthorityRequests } from '../../hooks/useCompanyAuthorityRequests';
 import { apiClient } from '../../services/apiClient';
 import { assertSessionEpoch, getSessionEpoch, subscribeSession } from '../../services/sessionScope';
 import { useCompanyStyles } from '../company-register/styles';
@@ -37,19 +37,7 @@ export function CompanyAuthorityScreen() {
         return response;
       }),
   });
-  const requests = useQuery({
-    queryKey: ['company-authority-requests', epoch],
-    queryFn: ({ signal }) =>
-      readEveryPage(async (page) => {
-        assertSessionEpoch(epoch);
-        const response = await getCompanyAuthorityRequests(apiClient, undefined, page, {
-          ledovaSessionEpoch: epoch,
-          signal,
-        });
-        assertSessionEpoch(epoch);
-        return response;
-      }),
-  });
+  const requests = useCompanyAuthorityRequests(epoch);
   const drafts = companies.data?.filter((company) => company.status === 'draft') ?? [];
   const selected = selection?.epoch === epoch ? drafts.find((company) => company.uuid === selection.uuid) : undefined;
   const submittedRequest =
@@ -62,7 +50,7 @@ export function CompanyAuthorityScreen() {
     void requests.refetch();
   };
   const changeRequest = async (request: CompanyAuthorityRequest, action: 'withdraw' | 'admit' | 'revoke') => {
-    const queryKey = ['company-authority-requests', epoch];
+    const queryKey = companyAuthorityRequestsKey(epoch);
     assertSessionEpoch(epoch);
     await queryClient.cancelQueries({ queryKey, exact: true });
     assertSessionEpoch(epoch);
