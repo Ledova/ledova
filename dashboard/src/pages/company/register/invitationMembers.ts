@@ -1,6 +1,6 @@
 import { isUuid, type RegisterAward, type TokenHoldersResponse } from '@ledova/shared';
 
-export interface InvitationMember {
+interface InvitationMember {
   uuid: string;
   name: string;
   classes: string[];

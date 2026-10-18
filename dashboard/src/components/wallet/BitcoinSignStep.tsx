@@ -19,7 +19,7 @@ const INSTRUCTIONS = [
   'Paste the signed hex below and broadcast it to the network.',
 ];
 
-export const INVALID_SIGNED_HEX_MESSAGE =
+const INVALID_SIGNED_HEX_MESSAGE =
   'Enter the signed raw transaction as hex (whole bytes; an optional 0x prefix is removed).';
 
 export function BitcoinSignStep({

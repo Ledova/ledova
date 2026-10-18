@@ -18,7 +18,7 @@ import { encodeEthereumTransaction } from '@utils/keystone/urEncoder';
 import { decodeKeystoneSignedTransaction } from '@utils/keystone/urDecoder';
 import { BitcoinSignStep } from './BitcoinSignStep';
 
-export type TransferType = 'crypto' | 'stablecoin' | 'share_token';
+type TransferType = 'crypto' | 'stablecoin' | 'share_token';
 
 type SigningStep =
   'loading' | 'instructions' | 'show-qr' | 'scan-signature' | 'sign-manual' | 'submitting' | 'success' | 'error';

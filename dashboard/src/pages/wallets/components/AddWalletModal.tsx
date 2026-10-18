@@ -207,7 +207,7 @@ function decodeImport(urString: string, evmNetwork: 'ETH' | 'BASE') {
   }
 }
 
-export function AccountSelector({ urString, onSelectAccounts, onCancel, isLoading }: AccountSelectorProps) {
+function AccountSelector({ urString, onSelectAccounts, onCancel, isLoading }: AccountSelectorProps) {
   const [evmNetwork, setEvmNetwork] = useState<'ETH' | 'BASE'>('ETH');
   const importData = useMemo(() => decodeImport(urString, evmNetwork), [urString, evmNetwork]);
 

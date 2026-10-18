@@ -7,7 +7,7 @@ import { FIELD_CLASS } from '@components/fieldClass';
 import { useUserProfile } from '@hooks/useUserProfile';
 import { IdentityVerificationModal } from './components/IdentityVerificationModal';
 
-export function UserProfilePage() {
+function UserProfilePage() {
   const {
     userProfile,
     isLoading,

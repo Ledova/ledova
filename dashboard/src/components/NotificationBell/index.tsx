@@ -209,5 +209,3 @@ export function NotificationBell({ align }: NotificationBellProps) {
     </Popover>
   );
 }
-
-export default NotificationBell;

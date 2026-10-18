@@ -3,7 +3,7 @@ import { Status, type Tone } from '@components/Ledger';
 import { PageAction } from '@components/Page';
 import type { useCompany } from './hooks/useCompany';
 
-export type CompanyRead = Pick<ReturnType<typeof useCompany>, 'error' | 'isRefreshing' | 'refetch'>;
+type CompanyRead = Pick<ReturnType<typeof useCompany>, 'error' | 'isRefreshing' | 'refetch'>;
 export type CompanyActionRead = CompanyRead &
   Pick<
     ReturnType<typeof useCompany>,

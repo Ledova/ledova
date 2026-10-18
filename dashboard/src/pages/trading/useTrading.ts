@@ -13,7 +13,7 @@ import {
 import type { Wallet, WhitelistStatus } from '@ledova/shared';
 import apiClient from '@services/apiClient';
 
-export const tradingQueryKeys = {
+const tradingQueryKeys = {
   walletBalances: (walletAddress: string) => ['trading', 'walletBalances', walletAddress] as const,
   whitelistStatus: (tokenAddress: string, walletAddress: string) =>
     ['trading', 'whitelistStatus', tokenAddress, walletAddress] as const,
@@ -85,7 +85,7 @@ export function useWalletsWhitelistStatus(tokenAddress: string | undefined, wall
   };
 }
 
-export function useAllWalletTokenBalances(walletAddresses: string[]) {
+function useAllWalletTokenBalances(walletAddresses: string[]) {
   const queries = useQueries({
     queries: walletAddresses.map((address) => ({
       queryKey: tradingQueryKeys.walletBalances(address),

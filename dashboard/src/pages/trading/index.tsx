@@ -73,7 +73,7 @@ function OrderSuccessModal({
   );
 }
 
-export function TradingPage() {
+function TradingPage() {
   const queryClient = useQueryClient();
   const submissions = useOrderSubmissions(orderSubmissionStore);
   const actions = useOrderActions(orderActionStore);
