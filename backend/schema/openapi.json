@@ -12141,6 +12141,26 @@
         ],
         "type": "object"
       },
+      "RegisterAwardRecipient": {
+        "properties": {
+          "member": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "residentialAddress": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "member",
+          "name",
+          "residentialAddress"
+        ],
+        "type": "object"
+      },
       "RegisterAwardVesting": {
         "properties": {
           "award": {
@@ -16424,6 +16444,12 @@
       },
       "RegisterMembers": {
         "properties": {
+          "awardRecipients": {
+            "items": {
+              "$ref": "#/components/schemas/RegisterAwardRecipient"
+            },
+            "type": "array"
+          },
           "members": {
             "items": {
               "$ref": "#/components/schemas/RegisterMemberSelection"
@@ -16432,6 +16458,7 @@
           }
         },
         "required": [
+          "awardRecipients",
           "members"
         ],
         "type": "object"

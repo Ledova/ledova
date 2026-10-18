@@ -203,6 +203,13 @@ required ([backend verification](testing.md#backend-verification)). A database o
 initial graph needs a [fresh rebuild](../operations/README.md#rebuild-a-database); there is no
 adoption path.
 
+`shared/0007_register_award_identity_guards` extends the mirror guards: first copied holdings keep
+the exact company, name and address of a selected award-only recipient through commit. Earlier
+same-company ledger entries establish existing membership independently of the current snapshot,
+so registered members keep their normal particulars and correction flows. The members response exposes
+award-only choices separately from real register members, only to current company register
+appointees; private award evidence is not returned and the RLS policies and grants are unchanged.
+
 ## Company workflow API
 
 Register decisions, share-class chain decisions, company wallet instructions and company

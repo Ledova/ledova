@@ -207,6 +207,12 @@ confirmation in setup ([uncertain outcomes](README.md#when-the-outcome-is-uncert
 appointee can resume review or confirmation without preparation access. Edit records retires a saved
 preparation for editing and needs preparation and rejection authority.
 
+The register API separately lists consistent award-only recipients for that company. A first copied
+holding can explicitly reuse one recipient's member ID with their retained name and residential
+address, keeping an accepted account association. Conflicting or foreign identities are refused at
+preparation, review and application; names alone never join people. This creates an opening balance,
+not an award-linked issue. The manual client selector is not yet delivered.
+
 Web imports are attributed to "Company-provided share records", with a snapshot naming the company,
 record date and preparer; the mobile app asks for a source reference and keeps separate Review and
 Confirm mirror screens. Confirming is the company's confirmation that the records are its own, not a
