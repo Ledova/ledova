@@ -16,6 +16,8 @@ import type { CompanyStackParamList } from '../../navigation/CompanyStackNavigat
 import { getSessionEpoch, subscribeSession } from '../../services/sessionScope';
 import { CompanySelection } from '../../components/company/CompanySelection';
 import { useCompanyRegister } from '../../hooks/useCompanyRegister';
+import { useRegisterClassCreation } from '../../hooks/useRegisterClassCreation';
+import { CreateClassForm } from '../../components/company/CreateClassForm';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 import { ClassRecords } from './ClassRecords';
 import { CompanyLinks } from './CompanyLinks';
@@ -45,11 +47,10 @@ function CompanyRegister({ epoch }: { epoch: number }) {
   const [held, setHeld] = useState<Record<string, boolean>>({});
   const [retained, setRetained] = useState<ReturnType<typeof useCompanyRegister>['company']>();
   const holding = Object.values(held).some(Boolean);
-  const { classes, companies, company, selectCompany, registers, isFetching, refresh } = useCompanyRegister(
-    epoch,
-    holding ? retained : undefined,
-    preferred,
-  );
+  const { classes, appointments, companies, company, selectCompany, registers, isFetching, refresh } =
+    useCompanyRegister(epoch, holding ? retained : undefined, preferred);
+  const creation = useRegisterClassCreation(epoch, company?.uuid);
+  const [creating, setCreating] = useState<{ uuid: string; name: string } | null>(null);
   const currentCompany = useRef(company);
   useLayoutEffect(() => {
     currentCompany.current = company;
@@ -113,8 +114,10 @@ function CompanyRegister({ epoch }: { epoch: number }) {
           />
         ))}
       </View>
-      {(classes.isPending || registers.isPending) && <Text style={styles.muted}>Loading your register…</Text>}
-      {(classes.isError || registers.isError || preferences?.status === 'error') && (
+      {(classes.isPending || appointments.isPending || (!!company && registers.isPending)) && (
+        <Text style={styles.muted}>Loading your register…</Text>
+      )}
+      {(classes.isError || appointments.isError || registers.isError || preferences?.status === 'error') && (
         <View style={styles.group}>
           <Text accessibilityRole="alert" style={styles.error}>
             We couldn’t load the complete register.
@@ -130,6 +133,19 @@ function CompanyRegister({ epoch }: { epoch: number }) {
       )}
       <View style={section === 'company' ? { display: 'none' } : undefined}>
         <Section title="Share classes">
+          {company && section === 'register' && creation.canPrepare && (
+            <Action
+              label="Create share class"
+              disabled={!sourceReady || holding}
+              onPress={() => {
+                onHeldChange('class-creation', true);
+                setCreating({ uuid: company.uuid, name: company.name });
+              }}
+            />
+          )}
+          {company && company.classes.length === 0 && sourceReady && (
+            <Text style={styles.muted}>No share classes recorded for {company.name}.</Text>
+          )}
           {company &&
             shownRegisters.map((register, index) => {
               const uuid = register.token.uuid;
@@ -287,6 +303,17 @@ function CompanyRegister({ epoch }: { epoch: number }) {
             </>
           </View>
         </>
+      )}
+      {creating && (
+        <CreateClassForm
+          target={creating}
+          read={creation}
+          onClose={() => {
+            setCreating(null);
+            onHeldChange('class-creation', false);
+          }}
+          onSuccess={refreshAll}
+        />
       )}
     </Page>
   );

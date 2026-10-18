@@ -103,7 +103,9 @@ function ShareClass({ uuid }: { uuid: string }) {
               <Rows>
                 <Row label="Class state">{token.statusDisplay}</Row>
                 <Row label="Share type">{token.tokenTypeDisplay}</Row>
-                <Row label="Authorised shares">{formatShareCount(token.totalSupply)}</Row>
+                <Row label={token.contractAddress ? 'Authorised shares' : 'Technical share limit'}>
+                  {formatShareCount(token.totalSupply)}
+                </Row>
                 <Row label="Issued shares">
                   {data.register.isPending
                     ? 'Loading…'

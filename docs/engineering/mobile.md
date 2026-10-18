@@ -48,6 +48,12 @@ operator and publication-list reads and shared register helpers live in `package
 native session, result and transport policies kept in the client. The native certifier labels live
 in `mobile/src/config/investorEligibility.ts`; register reads remain per client.
 
+`mobile/src/components/company/CreateClassForm.tsx` is used by Company details and Register.
+Its controller, `mobile/src/hooks/useCreateRegisterClass.ts`, owns creation, captured appointment,
+company and session guards, and read-only receipt recovery. An uncertain request stays held without
+another POST. Empty-opening preparation checks current class and register metadata; the business
+rules are in [register setup](../business/register.md#bringing-in-existing-records).
+
 ### Shared package resolution
 
 The app imports `@ledova/shared` from source, like the dashboard
@@ -67,9 +73,10 @@ sign-in clears the query cache on focus),
 (`DrawerNavigator`), the bottom tabs (`BottomTabNavigator`) and a stack per area; the dashboard's
 routes and guards do not apply. Labels come from the `DESTINATIONS` titles, but screens set their
 own titles, so a few differ from the web (Eligibility requests). A company account with readable
-register access (`useRegisterAccess` in `mobile/src/hooks/useCompanyRegister.ts`) starts on the
-Register tab, others on Home (My shares). The
-tab bar shows only Home, Register (with that access) and Wallets; other destinations are hidden tab
+classes (`useRegisterAccess().hasClasses` in `mobile/src/hooks/useCompanyRegister.ts`) starts on the
+Register tab, others on Home (My shares). Its `allowed` result also lets current personal company
+administrators and preparers reach Register before their first class, without changing that landing.
+The tab bar shows only Home, Register (with that access) and Wallets; other destinations are hidden tab
 routes (`tabBarItemStyle: { display: 'none' }`) opened from the drawer, Market only for an investing
 account while `trading_enabled` is on, under Invest. Routes and business sections are in
 [Pages](frontend.md#pages).
