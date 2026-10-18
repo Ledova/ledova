@@ -150,6 +150,8 @@ is recorded, so a revocation that lands first refuses the step and records nothi
 
 These company actions are taken in one step rather than prepared, approved and applied:
 
+- recording a share class through the API, with current personal administration or prepare
+  ([share classes](issuing-shares.md#share-classes));
 - eligibility decisions and revocations, by a person holding approve personally
   ([participants](participants.md#deciding-withdrawing-and-revoking));
 - discrepancy acknowledgements, with administration or approve
@@ -159,10 +161,8 @@ These company actions are taken in one step rather than prepared, approved and a
 - member invitations and revocations of member access, with administration
   ([member records](member-records.md#member-access)).
 
-Two owner workflows also sit outside the pattern: the company owner creates share classes in
-one step ([share classes](issuing-shares.md#share-classes)) and submits the directors'
-instructions for settled market transfers and retained issues, which platform staff review and
-apply ([settled transfers](register.md#settled-transfer-instructions);
+The company owner still submits the directors' instructions for settled market transfers and
+retained issues, which platform staff review and apply ([settled transfers](register.md#settled-transfer-instructions);
 [retained issues](register.md#retained-issue-instructions)).
 
 ### Named directors
