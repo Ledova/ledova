@@ -1,20 +1,17 @@
 import { useLayoutEffect, useRef } from 'react';
-import { useMutation } from '@tanstack/react-query';
 import {
   REGISTER_PARTICULARS_COPY,
   REGISTER_PARTICULARS_DECISIONS,
   apiErrorSentence,
-  downloadRegisterParticularsChangeFile,
   formatDateTime,
   type RegisterParticularsChange,
 } from '@ledova/shared';
 import { Row, Rows, Status } from '@components/Ledger';
 import { PageAction } from '@components/Page';
-import apiClient from '@services/apiClient';
 import { DecisionTrail } from '@pages/company/register/shared/DecisionTrail';
 import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
-import { DOWNLOAD_FAILED, STAGE_TONES, retainedName, type RegisterSteps } from '@pages/company/shared/proposals';
-import { saveFile } from '@utils/saveFile';
+import { DOWNLOAD_FAILED, STAGE_TONES, type RegisterSteps } from '@pages/company/shared/proposals';
+import { useParticularsRecordDownload } from './useRegisterRecordDownload';
 
 const COPY = REGISTER_PARTICULARS_COPY;
 
@@ -64,16 +61,7 @@ export function ParticularsRecord({
     guard();
     if (!available.current) throw new Error('Open the current register task before reading or deciding this record.');
   };
-  const download = useMutation({
-    mutationFn: async () => {
-      check();
-      const { data } = await downloadRegisterParticularsChangeFile(apiClient, change.uuid, {
-        ledovaSubmissionGuard: check,
-      });
-      check();
-      saveFile(data, retainedName(change.evidenceSnapshot, `particulars-change-${change.uuid}`));
-    },
-  });
+  const download = useParticularsRecordDownload(change, check);
   const context = `change for ${member} prepared ${formatDateTime(change.createdAt)}`;
   return (
     <li hidden={!visible} className="flex flex-col gap-3 py-4">

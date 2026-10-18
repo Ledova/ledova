@@ -1,27 +1,18 @@
 import { useLayoutEffect, useRef } from 'react';
-import { useMutation } from '@tanstack/react-query';
 import {
   REGISTER_CORRECTION_COPY,
   REGISTER_CORRECTION_DECISIONS,
   apiErrorSentence,
-  downloadRegisterCorrectionFile,
   formatDateTime,
 } from '@ledova/shared';
 import { Row, Rows, Status } from '@components/Ledger';
 import { PageAction } from '@components/Page';
-import apiClient from '@services/apiClient';
 import { DecisionTrail } from '@pages/company/register/shared/DecisionTrail';
 import { RegisterChanges } from '@pages/company/register/shared/RegisterChanges';
 import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
-import {
-  DOWNLOAD_FAILED,
-  STAGE_TONES,
-  describeEntry,
-  retainedName,
-  type RegisterSteps,
-} from '@pages/company/shared/proposals';
-import { saveFile } from '@utils/saveFile';
+import { DOWNLOAD_FAILED, STAGE_TONES, describeEntry, type RegisterSteps } from '@pages/company/shared/proposals';
 import type { ClassCorrection } from '@pages/company/register/shared/useClassCorrections';
+import { useCorrectionRecordDownload } from './useRegisterRecordDownload';
 
 const COPY = REGISTER_CORRECTION_COPY;
 
@@ -50,16 +41,7 @@ export function CorrectionRecord({
     guard();
     if (!available.current) throw new Error('Open the current register task before reading or deciding this record.');
   };
-  const download = useMutation({
-    mutationFn: async () => {
-      check();
-      const { data } = await downloadRegisterCorrectionFile(apiClient, proposal.uuid, {
-        ledovaSubmissionGuard: check,
-      });
-      check();
-      saveFile(data, retainedName(proposal.evidenceSnapshot, `register-correction-${proposal.uuid}`));
-    },
-  });
+  const download = useCorrectionRecordDownload(proposal, check);
   const context = `correction of entry ${entry.sequence}`;
   return (
     <li hidden={!visible} className="flex flex-col gap-3 py-4">

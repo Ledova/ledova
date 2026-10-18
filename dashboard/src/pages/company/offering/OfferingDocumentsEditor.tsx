@@ -1,21 +1,11 @@
-import { useEffect, useRef, useState } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Modal } from '@components/Modal';
 import { PageAction } from '@components/Page';
-import {
-  OFFERING_PUBLISHED_STATUSES,
-  OFFER_DOCUMENT_COPY,
-  addOfferingDocuments,
-  apiErrorSentence,
-  createUserFriendlyError,
-  attachableDocuments,
-  type Company,
-} from '@ledova/shared';
-import apiClient from '@services/apiClient';
+import { OFFER_DOCUMENT_COPY, apiErrorSentence, type Company } from '@ledova/shared';
 import { CompanyReadNotice, type CompanyActionRead } from '@pages/company/shared/CompanyState';
 import { DocumentChoices } from './DocumentChoices';
 import { OfferingReadNotice } from './OfferingReadNotice';
-import { useCompanyOffering, type useOfferings } from './useOffering';
+import { type useOfferings } from './useOffering';
+import { useOfferingDocumentsEditor } from './useOfferingDocumentsEditor';
 
 export function OfferingDocumentsEditor({
   uuid,
@@ -32,80 +22,15 @@ export function OfferingDocumentsEditor({
   data: ReturnType<typeof useOfferings>;
   onClose: () => void;
 }) {
-  const detail = useCompanyOffering(uuid, targetCompany, companyRead);
-  const client = useQueryClient();
-  const mounted = useRef(true);
-  const pending = useRef(false);
-  const [assertCurrent] = useState(() => companyRead.assertCurrent);
-  const [config] = useState(() => companyRead.requestConfig(targetCompany, 'owner'));
-  useEffect(() => {
-    mounted.current = true;
-    return () => {
-      mounted.current = false;
-    };
-  }, []);
-  const guard = () => {
-    if (!mounted.current) throw createUserFriendlyError('This company action is closed.');
-    assertCurrent(targetCompany, 'owner');
-    data.assertOffering(uuid, 'documents');
-    if (uuid) {
-      const state = client.getQueryState<import('@ledova/shared').Offering>([
-        'offering',
-        targetCompany,
-        companyRead.scopeKey,
-        uuid,
-      ]);
-      if (
-        state?.status !== 'success' ||
-        state.fetchStatus !== 'idle' ||
-        !state.data ||
-        state.data.uuid !== uuid ||
-        !OFFERING_PUBLISHED_STATUSES.includes(state.data.status)
-      )
-        throw createUserFriendlyError('Refresh the current offering before continuing.');
-    }
-  };
-  const [chosen, setChosen] = useState<string[]>([]);
-  const kept = detail.data?.documents ?? [];
-  const documents = company?.uuid === targetCompany ? attachableDocuments(company.documents, kept) : [];
-  const published = !!detail.data && OFFERING_PUBLISHED_STATUSES.includes(detail.data.status);
-  const blocked =
-    company?.uuid !== targetCompany ||
-    !!companyRead.error ||
-    companyRead.isRefreshing ||
-    detail.isError ||
-    detail.isFetching ||
-    !published;
-  const request = useMutation({
-    mutationFn: async (added: string[]) => {
-      guard();
-      const current = client.getQueryData<Company>(companyRead.companyKey);
-      if (
-        !current ||
-        added.some((id) => !attachableDocuments(current.documents, kept).some((document) => document.uuid === id))
-      )
-        throw createUserFriendlyError('These company documents changed. Refresh before continuing.');
-      const result = await addOfferingDocuments(apiClient, uuid, added, { ...config, ledovaSubmissionGuard: guard });
-      guard();
-      return result;
-    },
-    onSettled: () => {
-      pending.current = false;
-    },
-    onSuccess: async () => {
-      guard();
-      await data.refresh();
-      guard();
-      onClose();
-    },
-  });
-  const addable = chosen.filter((document) => !kept.includes(document));
-  const refetch = async () => {
-    const companyResult = companyRead.error ? await companyRead.refetch() : [];
-    await data.refetch();
-    await detail.refetch();
-    return companyResult;
-  };
+  const { detail, pendingRef, chosen, setChosen, kept, documents, published, blocked, request, addable, refetch } =
+    useOfferingDocumentsEditor({
+      uuid,
+      targetCompany,
+      company,
+      companyRead,
+      data,
+      onClose,
+    });
   return (
     <Modal
       isOpen
@@ -155,8 +80,8 @@ export function OfferingDocumentsEditor({
             label={OFFER_DOCUMENT_COPY.ADD}
             primary
             onClick={() => {
-              if (!blocked && addable.length > 0 && !request.isPending && !pending.current) {
-                pending.current = true;
+              if (!blocked && addable.length > 0 && !request.isPending && !pendingRef.current) {
+                pendingRef.current = true;
                 request.mutate(addable);
               }
             }}

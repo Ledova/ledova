@@ -23,9 +23,21 @@ import { useTokensList, companyTokensKey } from '@pages/company/shared/useTokens
 
 type OfferingAction = 'submit' | 'withdraw' | 'remove' | 'edit' | 'documents';
 
+export function companyOfferingsKey(companyUuid: string | undefined, scopeKey: string) {
+  return ['offerings', companyUuid, scopeKey];
+}
+
+export function companyOfferingKey(companyUuid: string | undefined, scopeKey: string) {
+  return ['offering', companyUuid, scopeKey];
+}
+
+export function companyOfferingSubscriptionsKey(companyUuid: string | undefined, scopeKey: string) {
+  return ['offering-subscriptions', companyUuid, scopeKey];
+}
+
 export function useOfferings(companyUuid: string | undefined, read: CompanyActionRead) {
   const client = useQueryClient();
-  const offeringsKey = ['offerings', companyUuid, read.scopeKey];
+  const offeringsKey = companyOfferingsKey(companyUuid, read.scopeKey);
   const tokensKey = companyTokensKey(companyUuid, read.scopeKey);
   const operatorKey = [...OPERATOR_QUERY_KEY, 'company', companyUuid, read.scopeKey];
   const guard = () => read.assertCurrent(companyUuid!, 'owner');
@@ -89,15 +101,15 @@ export function useOfferings(companyUuid: string | undefined, read: CompanyActio
     refresh: () =>
       Promise.all([
         client.invalidateQueries({ queryKey: offeringsKey }),
-        client.invalidateQueries({ queryKey: ['offering', companyUuid, read.scopeKey] }),
-        client.invalidateQueries({ queryKey: ['offering-subscriptions', companyUuid, read.scopeKey] }),
+        client.invalidateQueries({ queryKey: companyOfferingKey(companyUuid, read.scopeKey) }),
+        client.invalidateQueries({ queryKey: companyOfferingSubscriptionsKey(companyUuid, read.scopeKey) }),
       ]),
   };
 }
 
 export function useCompanyOffering(uuid: string | undefined, companyUuid: string, read: CompanyActionRead) {
   return useQuery({
-    queryKey: ['offering', companyUuid, read.scopeKey, uuid],
+    queryKey: [...companyOfferingKey(companyUuid, read.scopeKey), uuid],
     enabled: !!uuid && !read.error && !read.isRefreshing,
     staleTime: 0,
     queryFn: async () => {
@@ -116,7 +128,7 @@ export function useCompanyOfferingSubscriptions(
   read: CompanyActionRead,
 ) {
   return useQuery({
-    queryKey: ['offering-subscriptions', companyUuid, read.scopeKey, uuid],
+    queryKey: [...companyOfferingSubscriptionsKey(companyUuid, read.scopeKey), uuid],
     enabled: !!uuid && !read.error && !read.isRefreshing,
     staleTime: CACHE_TIMING.SHORT_STALE_TIME,
     queryFn: () =>
