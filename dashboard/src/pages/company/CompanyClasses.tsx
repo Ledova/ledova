@@ -54,9 +54,7 @@ export function CompanyClasses({
                 to={generatePath(DESTINATIONS.companyClass.path, { uuid: token.uuid })}
                 label={token.name}
                 aside={
-                  <Status tone={SHARE_CLASS_STATUS_TONES.get(token.status) ?? 'waiting'}>
-                    {token.statusDisplay}
-                  </Status>
+                  <Status tone={SHARE_CLASS_STATUS_TONES.get(token.status) ?? 'waiting'}>{token.statusDisplay}</Status>
                 }
               >
                 <p className="text-text-muted">
