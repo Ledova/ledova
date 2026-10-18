@@ -4,6 +4,7 @@ from uuid import UUID
 
 from django.core.files.base import ContentFile
 from django.db import IntegrityError
+from django.db.models import Sum
 from django.utils import timezone
 from rest_framework.exceptions import NotFound, ValidationError
 
@@ -12,7 +13,6 @@ from tokens.constants import REGISTER_IMPORT_ADDRESS_LENGTH
 from tokens.exceptions import RegisterChangeConflict
 from tokens.models import (
     RegisterAward,
-    RegisterEntry,
     RegisterEntryKind,
     RegisterEvidence,
     RegisterEvidenceKind,
@@ -29,7 +29,11 @@ from tokens.models import (
 from tokens.models.choices import ShareTokenStatus
 from tokens.services.register_authority import register_appointment, register_command
 from tokens.services.register_decisions import DecisionFamily, decide, preview
-from tokens.services.register_events import create_member, record_entry
+from tokens.services.register_events import (
+    company_event_requirements,
+    create_member,
+    record_entry,
+)
 from tokens.services.register_evidence import (
     discard,
     evidence_snapshot,
@@ -66,10 +70,7 @@ def _state(proposal):
         after = int(register.issued_supply) + int(proposal.shares)
         if after > int(token.total_supply) or after >= 2**256:
             unmet.append("authorised_headroom_required")
-        if RegisterEntry.objects.filter(
-            register=register, sequence=register.sequence, effective_on__gt=timezone.now().date()
-        ).exists():
-            unmet.append("effective_date_before_latest_entry")
+        unmet.extend(company_event_requirements(proposal, register))
     if _named(proposal.approving_director) == _named(proposal.name):
         unmet.append("approving_director_conflict")
     if RegisterMemberWallet.objects.filter(company_id=proposal.company_id, member_id=proposal.member).exists():
@@ -101,6 +102,7 @@ def prepare_grant(
     member,
     new_member,
     shares,
+    company_event_on,
     terms_on,
     approving_director,
     terms,
@@ -115,6 +117,7 @@ def prepare_grant(
     award=None,
 ):
     try:
+        company_event_on = date.fromisoformat(str(company_event_on))
         operation_id, appointment, token_id, member, authority_evidence, terms_evidence = (
             UUID(str(value))
             for value in (operation_id, appointment, token_id, member, authority_evidence, terms_evidence)
@@ -138,6 +141,7 @@ def prepare_grant(
         name = _text(name, "member name", 255)
         residential_address = _text(residential_address, "residential address", REGISTER_IMPORT_ADDRESS_LENGTH)
     values = {
+        "company_event_on": company_event_on,
         "shares": int(shares),
         "terms_on": terms_on,
         "approving_director": _text(approving_director, "named approving director", 255),
@@ -269,7 +273,13 @@ def _award_requirements(proposal):
     ):
         return ["award_binding_required"]
     unmet = []
-    if int(proposal.shares) > int(award_quantities(award, excluding_grant=proposal.pk)["available_shares"]):
+    vested = (
+        award.vestings.filter(vested_on__lte=proposal.company_event_on).aggregate(total=Sum("shares"))["total"]
+        if proposal.company_event_on
+        else 0
+    )
+    issued = int(award_quantities(award, excluding_grant=proposal.pk)["issued_shares"])
+    if int(proposal.shares) > int(vested or 0) - issued:
         unmet.append("recorded_vested_quantity_required")
     try:
         matching_bytes(award.file, award.agreement_snapshot["file_size"], award.agreement_fingerprint)
@@ -305,7 +315,8 @@ def _details(proposal):
         "name": proposal.name,
         "residential_address": proposal.residential_address,
         "shares": str(proposal.shares),
-        "effective_on": timezone.now().date(),
+        "company_event_on": proposal.company_event_on,
+        "effective_on": proposal.company_event_on,
         "terms_on": proposal.terms_on,
         "approving_director": proposal.approving_director,
         "terms": proposal.terms,
@@ -344,14 +355,14 @@ def _lock(proposal):
 
 
 def _apply(proposal, actor, decision):
-    effective_on = timezone.now().date()
+    effective_on = proposal.company_event_on
     if proposal.new_member:
         create_member(company_id=proposal.company_id, member_id=proposal.member)
         RegisterMemberParticulars.objects.create(
             member_id=proposal.member,
             name=proposal.name,
             residential_address=proposal.residential_address,
-            as_at=effective_on,
+            as_at=timezone.now().date(),
             source_grant=proposal,
         )
     proposal.register_entry = record_entry(

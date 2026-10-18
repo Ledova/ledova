@@ -53,6 +53,7 @@ class RegisterAllotment(BaseModel):
     name = models.CharField(max_length=255)
     residential_address = models.TextField()
     shares = models.DecimalField(max_digits=78, decimal_places=0)
+    company_event_on = models.DateField(null=True)
     consideration = models.DecimalField(max_digits=20, decimal_places=2)
     currency = models.CharField(max_length=3, default="AUD")
     approving_director = models.CharField(max_length=255)

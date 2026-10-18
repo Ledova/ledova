@@ -189,6 +189,7 @@ it('recovers the fully paid company allotment once, separates approval from ISSU
   const open = await view.findByRole('button', { name: COPY.PREPARE });
   await waitFor(() => expect(open).not.toBeDisabled());
   await fireEvent.press(open);
+  expect(await view.findByLabelText('Company issue date (YYYY-MM-DD)')).toHaveDisplayValue('');
   for (const [label, value] of [
     ['Investor name', ALLOTMENT_REQUEST.name!],
     ['Residential address', ALLOTMENT_REQUEST.residentialAddress!],
@@ -210,10 +211,19 @@ it('recovers the fully paid company allotment once, separates approval from ISSU
   }
   expect(view.getByRole('button', { name: COPY.SUBMIT })).toBeDisabled();
   await fireEvent.changeText(view.getByLabelText(COPY.RECEIVED_AMOUNT), '250');
+  expect(view.getByRole('button', { name: COPY.SUBMIT })).toBeDisabled();
+  await fireEvent.changeText(view.getByLabelText('Company issue date (YYYY-MM-DD)'), '2999-01-01');
+  expect(view.getByRole('button', { name: COPY.SUBMIT })).toBeDisabled();
+  await fireEvent.changeText(view.getByLabelText('Company issue date (YYYY-MM-DD)'), '2026-10-10');
   await fireEvent.press(view.getByRole('button', { name: COPY.SUBMIT }));
   await view.findByRole('alert');
   expect(rows[0].registerEntry).toBeNull();
   expect(view.getByLabelText(COPY.CONSIDERATION).props.editable).toBe(false);
+  expect(view.getByLabelText('Company issue date (YYYY-MM-DD)')).toHaveProp('editable', false);
+  expect(view.getByLabelText('Company issue date (YYYY-MM-DD)')).toHaveDisplayValue('2026-10-10');
+  expect(post.mock.calls.find(([url]) => url === URLS.REGISTER_ALLOTMENTS)?.[1]).toEqual(
+    expect.objectContaining({ companyEventOn: '2026-10-10' }),
+  );
   await fireEvent.press(view.getByRole('button', { name: COPY.SUBMIT }));
   await waitFor(() => expect(view.queryByRole('button', { name: 'Close allotment form' })).toBeNull());
   expect(post.mock.calls.filter(([url]) => url === URLS.REGISTER_ALLOTMENTS)).toHaveLength(1);
@@ -227,6 +237,8 @@ it('recovers the fully paid company allotment once, separates approval from ISSU
     );
     const confirm = await view.findByRole('button', { name: 'Confirm' });
     await waitFor(() => expect(confirm).not.toBeDisabled());
+    expect(view.getByText('Company issue date')).toBeTruthy();
+    expect(view.getByText('2026-10-10')).toBeTruthy();
     await fireEvent.press(confirm);
     await waitFor(() => expect(rows[0].decisions).toHaveLength(kind === 'approve' ? 1 : 2));
     if (kind === 'apply') {

@@ -167,7 +167,8 @@ shares to (the allottee or transferee) and, for a transfer, a balance certificat
 when they still hold shares. Pages are numbered from the entry, moved shares first (12-1, 12-2),
 with no separate counter. Each page shows the company and its ACN, the share class, the member's
 name and residential address, the shares it certifies, the member's holding in the class after the
-entry, and the entry's number, date and fingerprint, then an unsigned execution block.
+entry, and the entry's number, ledger date and fingerprint, then an unsigned execution block. The
+company event date is shown separately where recorded; a retained unknown date stays not recorded.
 
 Holdings are those immediately after the certified entry, so later entries do not change them;
 names and addresses are those the register gives when the certificate is prepared. Preparing the
@@ -217,7 +218,9 @@ The figures cover every issue, transfer and correction entered on or after the f
 period the company asks for, up to the register's latest entry: each entry's signed change for
 each member it changed, the class's issued shares, members and total amount paid at the latest
 entry, and each changed member's particulars, shares held (0 for one who no longer holds any) and
-amount paid then ([format](../engineering/records.md#notice-figures-format)).
+amount paid then ([format](../engineering/records.md#notice-figures-format)). The CSV separates the
+register entry date, company event date and actual recorded timestamp; an unknown company date is
+not inferred from the entry date.
 
 The opening is never listed. Amount paid reads `not recorded` where Ledova cannot establish it
 exactly, as for shares received by transfer, and never reads zero for an unknown amount; the class
@@ -231,8 +234,9 @@ them, not refused. A period with no entries lists none.
 You need **Can change register outputs**.
 
 1. Keep the company's written instruction, and note its reference and the period's first day.
-   Entries are dated by UTC day, which on a Sydney morning is the day before, so start the period
-   no later than the first entry the company has not yet notified; [the due list](#the-due-list)
+   Start the period no later than the stored entry date of the first entry the company has not yet
+   notified; an older entry's UTC recording day can be the previous day in a Sydney morning.
+   [The due list](#the-due-list)
    shows every entry no figures cover yet.
 2. In **Admin → Tokens → Register outputs**, find the share class and choose **Prepare notice
    figures**.
@@ -248,18 +252,23 @@ figures**); `sha256sum` on the download confirms its SHA-256.
 ## The due list
 
 The **Register outputs due** page in admin shows platform staff every certificate and set of notice
-figures still due across all companies and classes, earliest due first, then by company, class
-and entry number.
+figures still due across all companies and classes, earliest known due date first, then by company,
+class and entry number. Rows with unknown deadlines follow the dated rows.
 
 - **Certificates.** Each uncorrected issue or transfer entry is listed until a certificate is
-  recorded for its number. An issue's is due two calendar months after its effective date. A
+  recorded for its number. A non-tokenised issue's is due two calendar months after its recorded
+  company issue date. Existing chain-issue clocks remain unchanged. A
   transfer's is due one calendar month after its lodgement date when the company recorded it, or
   after its settlement order was created (by Sydney's date) for a settled market transfer; that
   order precedes lodgement, so the date errs early.
 - **Notice figures.** Each uncorrected issue entry, and each uncorrected transfer entry of a
   proprietary company, is listed until figures cover it: figures whose period starts on or before
-  its effective date and that run to its number or later. They are due 28 days after the effective
-  date.
+  its ledger date and that run to its number or later. For a company-dated issue or direct transfer,
+  they are due 28 days after the company event date; existing chain clocks remain unchanged.
+
+An older non-tokenised issue or direct transfer with no retained company event date stays listed
+with an unknown event-based deadline and overdue status. Its ledger date is not treated as the
+company's legal event date. A direct-transfer certificate still uses its retained lodgement date.
 
 A calendar month ends on the same day number, or the month's last day when shorter, so 31 January
 plus one month is 28 or 29 February. An item is overdue once its due date is before today in
@@ -274,7 +283,7 @@ and an entry whose output record was purged after the retention floor is listed 
 You need **Can change register outputs**.
 
 1. In **Admin → Tokens → Register outputs**, choose **Register outputs due**.
-2. Read each row's company, class, entry, kind and effective date, what is due, the due date and
+2. Read each row's company, class, entry, kind and ledger date, what is due, the due date and
    whether it is overdue.
 3. Tell the company what is due and when.
 4. For notice figures, on the company's written instruction, follow the row's link and

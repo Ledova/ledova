@@ -48,6 +48,7 @@ from tokens.services.register import (
     _stored_register,
     outputs_due,
 )
+from tokens.services.register_events import with_company_event_dates
 from tokens.services.settlement_context import configured_domain
 from users.models import UserProfile
 
@@ -166,6 +167,7 @@ def _entry(token, entry) -> dict:
         "operation_id": entry.operation_id,
         "kind": entry.kind,
         "effective_on": entry.effective_on,
+        "company_event_on": entry.company_event_on,
         "changes": entry.changes,
         "corrects": entry.corrects_id,
         "previous_hash": entry.previous_hash,
@@ -183,7 +185,7 @@ def _share_class(company, token, outputs) -> dict:
         if register is None
         else [
             _entry(token, entry)
-            for entry in RegisterEntry.objects.filter(register=register)
+            for entry in with_company_event_dates(RegisterEntry.objects.filter(register=register))
             .annotate(preimage=PREIMAGE)
             .order_by("sequence")
         ]

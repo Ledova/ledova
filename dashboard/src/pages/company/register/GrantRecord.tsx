@@ -34,7 +34,11 @@ function GrantRows({ grant }: { grant: RegisterGrant | RegisterGrantDecisionPrev
       <Row label="Member record">{grant.newMember ? 'New member' : 'Existing member'}</Row>
       <Row label={COPY.SHARES}>{shareCount(grant.shares)}</Row>
       <Row label={COPY.TERMS_ON}>{grant.termsOn}</Row>
-      <Row label="Register entry date">{grant.effectiveOn || 'Recorded on application'}</Row>
+      <Row label={COPY.COMPANY_EVENT_ON}>{grant.companyEventOn || 'Not recorded'}</Row>
+      {'registerEntry' in grant &&
+        grant.registerEntry &&
+        grant.effectiveOn &&
+        grant.effectiveOn !== grant.companyEventOn && <Row label="Ledger date">{grant.effectiveOn}</Row>}
       <Row label={COPY.DIRECTOR}>{grant.approvingDirector}</Row>
       <Row label={COPY.TERMS}>{grant.terms}</Row>
       <Row label="Recipient acceptance">

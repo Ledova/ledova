@@ -28,6 +28,7 @@ class RegisterAllotmentCreateSerializer(serializers.Serializer):
         max_length=REGISTER_IMPORT_ADDRESS_LENGTH, allow_blank=True, required=False, default=""
     )
     shares = serializers.RegexField(regex=r"^[1-9][0-9]{0,77}$")
+    company_event_on = serializers.DateField()
     consideration = serializers.RegexField(regex=r"^(?:0|[1-9][0-9]{0,17})(?:[.][0-9]{1,2})?$")
     currency = serializers.ChoiceField(choices=["AUD"])
     agreement_reference = serializers.CharField(max_length=255)
@@ -110,7 +111,8 @@ class RegisterAllotmentDecisionPreviewSerializer(serializers.Serializer):
     approving_director = serializers.CharField()
     authority_reference = serializers.CharField()
     reason = serializers.CharField()
-    effective_on = serializers.DateField()
+    company_event_on = serializers.DateField(allow_null=True)
+    effective_on = serializers.DateField(allow_null=True)
     register_sequence = serializers.IntegerField()
     issued_supply = serializers.CharField()
     authorised_supply = serializers.CharField()
@@ -144,6 +146,7 @@ class RegisterAllotmentSerializer(RegisterDecidedSerializer):
             "consideration",
             "currency",
             "effective_on",
+            "company_event_on",
             "agreement",
             "contribution",
             "approving_director",

@@ -31,6 +31,7 @@ export const OUTPUT_ENTRY: RegisterEntry = {
   uuid: MEMBER_ENTRY.uuid,
   sequence: MEMBER_ENTRY.sequence,
   kind: 'issue',
+  companyEventOn: null,
   effectiveOn: MEMBER_ENTRY.effectiveOn,
   recordedAt: MEMBER_ENTRY.createdAt,
   corrects: null,

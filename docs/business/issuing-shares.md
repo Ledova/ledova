@@ -134,9 +134,12 @@ Each path is a [company decision](README.md#how-a-company-decision-works); in ad
 
 - Every grant, allotment and paid issue names an approving director
   ([named directors](README.md#named-directors)).
-- The register entry is dated the day the issue is recorded, in UTC; a terms, agreement, vesting or
-  receipt date the company supplies is kept beside it and never backdates the entry, a publication
-  roll or a certificate deadline.
+- Non-tokenised grants and external allotments require an explicit company issue date, kept
+  separately from agreement, terms, vesting and receipt dates. It enters the exact review and
+  resulting entry; Ledova's recording and approval timestamps stay actual. The date must be no later
+  than today (UTC) and no earlier than the applicable opening or latest effective event
+  ([register dates](register.md#register-entries)). Earlier events need correction or reconciliation,
+  not a replay through the normal issue path. Chain issues keep their existing execution dates.
 - The issue must fit within the authorised shares; quantities are whole, and a chain request is at
   most 2,147,483,647.
 - A payment or receipt never authorises an issue, and non-paid terms never create an amount paid.
@@ -155,9 +158,9 @@ wallet or chain transaction.
    grant, or choose Issue vested shares on an award.
 2. Choose an existing member, or give a new member's name and residential address; names never link
    an account.
-3. Give the shares, the date of the terms, the non-paid terms, the approving director, the authority
-   reference and the reason, and upload the authority document, the terms document and any
-   acceptance the terms require.
+3. Give the shares, the company issue date, the separate date of the terms, the non-paid terms, the
+   approving director, the authority reference and the reason, and upload the authority document,
+   the terms document and any acceptance the terms require.
 4. Approve the preview, then choose Record issue.
 
 Applying checks the authority, evidence, identity, director, register and authorised shares again (a
@@ -222,8 +225,8 @@ No deployment, application, payment or chain receipt is involved.
    and the full consideration in AUD.
 3. Agreement and company receipt: give the external agreement reference, date, terms and document,
    and separately the amount received, the date and the receipt evidence.
-4. Company authority and review: name the approving director and give the authority reference, the
-   reason and the authority document.
+4. Company authority and review: give the company issue date, name the approving director and give
+   the authority reference, the reason and the authority document.
 5. Approve the exact allotment, then choose Record issue.
 
 The amount received must equal the consideration, because only fully paid allotments are supported.
@@ -454,8 +457,7 @@ rights, and transmission.
 Current limits, each with follow-up work proposed under the share lifecycle review
 ([#1060](https://github.com/Ledova/ledova/issues/1060)):
 
-- An issue or transfer is dated the day it is recorded rather than the company's effective date, and
-  the investor issue review shows the holdings and issued shares before and after but no implied
+- The investor issue review shows the holdings and issued shares before and after but no implied
   price per share or ownership percentages. Proposed under [#1062](https://github.com/Ledova/ledova/issues/1062).
 - An award-linked grant asks for its agreement again, and an award's unissued entitlement cannot be
   ended or corrected. Proposed under [#1063](https://github.com/Ledova/ledova/issues/1063).

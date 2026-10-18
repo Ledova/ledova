@@ -7,10 +7,17 @@ SQL = Path(__file__).with_suffix(".sql").read_text()
 
 
 def _function(source, name):
-    found = re.search(rf"CREATE OR REPLACE FUNCTION public.{name}\(.*?\$function\$;", source, re.DOTALL)
-    if found is None:
+    matches = list(
+        re.finditer(
+            rf"CREATE (?:OR REPLACE )?FUNCTION (?:public[.])?{re.escape(name)}\("
+            r".*?(?P<tag>\$[A-Za-z0-9_]*\$).*?(?P=tag);",
+            source,
+            re.DOTALL,
+        )
+    )
+    if not matches:
         raise ValueError(f"Missing register guard {name}")
-    return found.group()
+    return matches[-1].group().replace("CREATE FUNCTION", "CREATE OR REPLACE FUNCTION", 1)
 
 
 def install(apps, schema_editor):

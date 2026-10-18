@@ -82,10 +82,17 @@ no change takes a holding below zero, and emptying a holding leaves a zero posit
 covers this class only; recording a cessation or correction burns, seizes or transfers nothing on
 chain. Entries name members by member ID, keeping names and residential addresses as particulars.
 
-An issue or transfer is dated the day it is recorded, in UTC. Dates the company supplies, such as
-terms, agreement, signing or lodgement dates, are kept beside it and never backdate it. No entry is
-dated before the latest, so while the latest is dated after today, as a chain opening dated on its
-block's date can be, the next issue or transfer waits.
+New non-tokenised grants, investor allotments and direct transfers require the company to supply
+the actual issue or transfer date. It is separate from terms, agreement, receipt, signing and
+lodgement dates and from Ledova's immutable preparation, approval and recording timestamps. The
+company date must be no later than today (UTC) and no earlier than the applicable opening or latest
+effective event; an earlier event needs separately scoped correction or reconciliation. The normal
+path does not replay history. Chain issues retain their existing execution and finality dates.
+
+Review, details and history show the supplied company date separately from the ledger date where
+they differ. Older records and hashes remain unchanged: an unknown company date is shown as not
+recorded, never inferred from an older ledger date. An old pending instruction with no company date
+can still be read or rejected; it needs rejection and preparation again before any new effect.
 
 ### Members, holder types and identity
 
@@ -140,9 +147,9 @@ Ledova has read it from the chain.
 
 On a register an import opened, a member with no linked wallet who falls to zero keeps a
 former-member record of their particulars and holding at exit; a return keeps the member ID and
-records the return date. Exit and return take the actual day of the change, so a backdated
-correction cannot shorten retention or date a return before the exit, and particulars edits and
-invitations do not reset the exit clock.
+records the return date. Exit and return use the actual recording day for a company-dated change,
+so an earlier company event date or backdated correction cannot shorten retention or date a return
+before the exit, and particulars edits and invitations do not reset the exit clock.
 
 For a class on chain, Ledova reads the transfer history every six hours and lists each wallet that
 ceases to hold, freezing its particulars at the first recorded cessation: the person's current
@@ -336,9 +343,9 @@ account, payment, application or chain transaction.
    returning from zero, keeps their member ID; a new one gets a new member ID with the name and
    residential address the instrument gives. If a returning member's particulars were lawfully
    purged, the company supplies new ones.
-3. Give the dates the instrument was signed and lodged, the non-paid terms, the approving director,
-   the authority reference and the reason, and upload the authority document and the signed transfer
-   instrument.
+3. Give the company transfer date, the separate dates the instrument was signed and lodged, the
+   non-paid terms, the approving director, the authority reference and the reason, and upload the
+   authority document and the signed transfer instrument.
 4. Approve, then Apply.
 
 The transferor must hold enough shares, and the director cannot be either party

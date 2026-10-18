@@ -4,6 +4,7 @@ import { Text, View } from 'react-native';
 import {
   DESTINATIONS,
   formatShareCount,
+  formatDateTime,
   useMemberRecords,
   getMemberCertificateFileBytes,
   type MemberCertificateRequest,
@@ -275,8 +276,13 @@ function MemberRecords({
                   read.entries.map((entry) => (
                     <View key={entry.uuid} style={styles.entry}>
                       <Text style={styles.text}>
-                        Entry {entry.sequence} · {entry.kind} · {entry.effectiveOn} · Own change {entry.delta}
+                        Entry {entry.sequence} · {entry.kind} · Own change {entry.delta}
                       </Text>
+                      <Text style={styles.muted}>Ledger effective date {entry.effectiveOn}</Text>
+                      {['ISSUE', 'TRANSFER'].includes(entry.kind.toUpperCase()) && (
+                        <Text style={styles.muted}>Company event date {entry.companyEventOn ?? 'Not recorded'}</Text>
+                      )}
+                      <Text style={styles.muted}>Recorded {formatDateTime(entry.createdAt)}</Text>
                       {['ISSUE', 'TRANSFER'].includes(entry.kind.toUpperCase()) && BigInt(entry.delta) > 0n && (
                         <Action
                           label={`Request certificate for entry ${entry.sequence}`}

@@ -7,7 +7,9 @@
 <p>Residential address: {{ residential_address|linebreaksbr }}</p>
 <p>Shares: {{ shares }}, {% if balance %}the balance the member holds after the transfer in entry {{ entry.sequence }}{% elif entry.kind == "issue" %}issued to the member by entry {{ entry.sequence }}{% else %}transferred to the member by entry {{ entry.sequence }}{% endif %}</p>
 <p>Holding in the class after entry {{ entry.sequence }}: {{ holding }}</p>
-<p>Register entry: {{ entry.sequence }}, dated {{ entry.effective_on|date:"Y-m-d" }}</p>
+<p>Register entry: {{ entry.sequence }}</p>
+<p>Recorded at: {{ entry.created_at|date:"c" }}</p>
+<p>Company event date: {% if entry.company_event_on %}{{ entry.company_event_on|date:"Y-m-d" }}{% else %}Not recorded{% endif %}</p>
 <p>Entry hash: {{ entry.entry_hash }}</p>
 <h2>Execution</h2>
 <p>Prepared unsigned on the company's written instruction, for the company to execute.</p>

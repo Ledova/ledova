@@ -232,7 +232,7 @@ it('retains original award, vesting and linked issue preparations through interr
       return {
         data: {
           ...retainedGrant,
-          effectiveOn: '2026-10-11',
+          effectiveOn: retainedGrant.companyEventOn,
           previewDigest: 'b'.repeat(64),
           canDecide: true,
           unmetRequirements: [],
@@ -272,7 +272,7 @@ it('retains original award, vesting and linked issue preparations through interr
             ? {
                 status: 'applied',
                 registerEntry: 'entry-award',
-                effectiveOn: '2026-10-11',
+                effectiveOn: retainedGrant.companyEventOn,
                 reviewedAt: '2026-10-11T00:00:00Z',
                 reviewedBy: 1,
               }
@@ -360,6 +360,7 @@ it('retains original award, vesting and linked issue preparations through interr
   const fillGrant = () => {
     for (const [label, value] of [
       [GRANT.SHARES, '10'],
+      [GRANT.COMPANY_EVENT_ON, '2026-10-06'],
       [GRANT.DIRECTOR, 'Synthetic Director'],
       [GRANT.AUTHORITY_REFERENCE, 'Synthetic resolution'],
       [GRANT.REASON, 'Issue recorded vested shares'],
@@ -368,13 +369,23 @@ it('retains original award, vesting and linked issue preparations through interr
     for (const label of [GRANT.AUTHORITY_DOCUMENT, GRANT.TERMS_DOCUMENT])
       fireEvent.change(screen.getByLabelText(label), { target: { files: [FILE] } });
   };
+  expect((screen.getByLabelText(GRANT.COMPANY_EVENT_ON) as HTMLInputElement).value).toBe('');
   fillGrant();
+  fireEvent.change(screen.getByLabelText(GRANT.COMPANY_EVENT_ON), { target: { value: '' } });
+  expect((screen.getByRole('button', { name: 'Prepare vested share issue' }) as HTMLButtonElement).disabled).toBe(true);
+  fireEvent.change(screen.getByLabelText(GRANT.COMPANY_EVENT_ON), { target: { value: '2026-10-06' } });
   fireEvent.click(screen.getByRole('button', { name: 'Prepare vested share issue' }));
   const recover = await screen.findByRole('button', { name: 'Recover original grant preparation' });
   await waitFor(() => expect((recover as HTMLButtonElement).disabled).toBe(false));
   const original = submissions(URLS.REGISTER_GRANTS)[0];
   expect(original).toEqual(
-    expect.objectContaining({ award: awards[0].uuid, member: awards[0].member, shares: '10', newMember: true }),
+    expect.objectContaining({
+      award: awards[0].uuid,
+      member: awards[0].member,
+      shares: '10',
+      companyEventOn: '2026-10-06',
+      newMember: true,
+    }),
   );
   expect((screen.getByLabelText(GRANT.SHARES).closest('fieldset') as HTMLFieldSetElement).disabled).toBe(true);
   canPrepare = false;
@@ -397,6 +408,7 @@ it('retains original award, vesting and linked issue preparations through interr
   for (const label of ['Approve', 'Record issue']) {
     fireEvent.click(screen.getByRole('button', { name: new RegExp(`^${label} [(]grant`) }));
     const confirm = await screen.findByRole('button', { name: `${label} non-paid grant` });
+    expect(within(screen.getByRole('dialog')).getByText('2026-10-06')).toBeTruthy();
     await waitFor(() => expect((confirm as HTMLButtonElement).disabled).toBe(false));
     fireEvent.click(confirm);
     if (label === 'Approve') {
@@ -453,6 +465,12 @@ it('retains original award, vesting and linked issue preparations through interr
     expect(within(screen.getByText('Issued from award').parentElement!).getByText('10 shares')).toBeTruthy(),
   );
   expect(within(screen.getByText('Vested, awaiting issue').parentElement!).getByText('90 shares')).toBeTruthy();
+  retainedGrant = { ...retainedGrant!, companyEventOn: null };
+  fireEvent.click(screen.getByRole('button', { name: 'Refresh grants' }));
+  await waitFor(() =>
+    expect(within(screen.getByText(GRANT.COMPANY_EVENT_ON).parentElement!).getByText('Not recorded')).toBeTruthy(),
+  );
+  expect(within(screen.getByText('Ledger date').parentElement!).getByText('2026-10-06')).toBeTruthy();
   preparedView.unmount();
   api.post.mockClear();
   retainedGrant = null;

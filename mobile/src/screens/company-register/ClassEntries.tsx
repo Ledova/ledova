@@ -2,6 +2,7 @@ import { Text, View } from 'react-native';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   formatDate,
+  formatDateTime,
   hasCurrentRegisterReadAuthority,
   useSubmissionOwner,
   USER_PREFERENCES_QUERY_KEY,
@@ -85,7 +86,13 @@ export function ClassEntries({
               <Text style={styles.heading}>
                 Entry {entry.sequence} · {COPY.ENTRY_KINDS[entry.kind]}
               </Text>
-              <Text style={styles.muted}>Effective {formatDate(entry.effectiveOn)}</Text>
+              <Text style={styles.muted}>Ledger effective date {formatDate(entry.effectiveOn)}</Text>
+              {['issue', 'transfer'].includes(entry.kind) && (
+                <Text style={styles.muted}>
+                  Company event date {entry.companyEventOn ? formatDate(entry.companyEventOn) : 'Not recorded'}
+                </Text>
+              )}
+              <Text style={styles.muted}>Recorded {formatDateTime(entry.recordedAt)}</Text>
               {formatRegisterChanges(entry.changes).map((line, number) => (
                 <Text key={number} style={styles.text}>
                   {line}

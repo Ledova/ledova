@@ -104,7 +104,8 @@ it('invites and associates a walletless member, recovers one exact request and r
       return page(associated ? [MEMBER_RECORD] : []);
     }
     if (url === URLS.MEMBER_RECORD(MEMBER_RECORD.uuid)) return { data: MEMBER_RECORD };
-    if (url === URLS.MEMBER_ENTRIES(MEMBER_RECORD.uuid)) return { data: { entries: [MEMBER_ENTRY] } };
+    if (url === URLS.MEMBER_ENTRIES(MEMBER_RECORD.uuid))
+      return { data: { entries: [{ ...MEMBER_ENTRY, companyEventOn: null }] } };
     if (url === URLS.MEMBER_PARTICULARS_REQUESTS) return page(particulars);
     if (url === URLS.MEMBER_CERTIFICATE_REQUESTS) return page(certificates);
     if (url === URLS.MEMBER_CERTIFICATE_FILE(FULFILLED_CERTIFICATE.uuid))
@@ -288,6 +289,8 @@ it('invites and associates a walletless member, recovers one exact request and r
   expect(screen.getByText(MEMBER_RECORD.name)).toBeTruthy();
   await fireEvent.press(screen.getByRole('button', { name: 'Read own entries for Ordinary' }));
   await screen.findByRole('button', { name: 'Request certificate for entry 1' });
+  expect(screen.getByText('Company event date Not recorded')).toBeTruthy();
+  expect(screen.getByText(`Ledger effective date ${MEMBER_ENTRY.effectiveOn}`)).toBeTruthy();
   await fireEvent.press(screen.getByRole('button', { name: 'Refresh member records' }));
   expect(await screen.findByRole('button', { name: 'Request certificate for entry 1' })).toBeEnabled();
   expect(screen.getByLabelText('Requested name').props.value).toBe('Requested Member Name');

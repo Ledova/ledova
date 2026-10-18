@@ -63,6 +63,7 @@ from tokens.models.choices import (
     IDENTITY_TREASURY_LABEL,
     IDENTITY_UNRESOLVABLE,
 )
+from tokens.services.register_events import with_company_event_dates
 from tokens.services.register_inclusions import (
     opened_by_import,
     waiting_effects,
@@ -135,7 +136,9 @@ PERIOD_ENTRIES_HEADING = "Entries in the period"
 PERIOD_ENTRY_HEADERS = [
     "Entry",
     "Kind",
-    "Effective date",
+    "Register entry date",
+    "Company event date",
+    "Recorded at",
     "Corrects entry",
     "Member ID",
     "Name",
@@ -566,7 +569,7 @@ def stored_waiting_list(token):
 
 
 def stored_entries(token, paginate, wanted=()) -> list[dict]:
-    entries = RegisterEntry.objects.filter(register__token=token)
+    entries = with_company_event_dates(RegisterEntry.objects.filter(register__token=token))
     if wanted:
         entries = entries.filter(pk__in=wanted)
     with _snapshot():
@@ -584,6 +587,7 @@ def stored_entries(token, paginate, wanted=()) -> list[dict]:
             "sequence": entry.sequence,
             "kind": entry.kind,
             "effective_on": entry.effective_on,
+            "company_event_on": entry.company_event_on,
             "recorded_at": entry.created_at,
             "changes": [
                 {
@@ -775,6 +779,7 @@ def _certificate_pages(token, entry, only_member=None) -> list[dict]:
 
 
 def _certificate_pdf(token, entry, pages) -> bytes:
+    entry = with_company_event_dates(RegisterEntry.objects.filter(pk=entry.pk)).get()
     import pymupdf
 
     with pymupdf.open() as document:
@@ -862,6 +867,8 @@ def _period_entry_rows(entry, people, issuances) -> list[list]:
                 entry.sequence,
                 entry.get_kind_display(),
                 entry.effective_on.isoformat(),
+                entry.company_event_on.isoformat() if entry.company_event_on else NOT_RECORDED,
+                entry.created_at.isoformat(),
                 corrects,
                 member,
                 people[member][1],
@@ -888,8 +895,10 @@ def prepare_notice_figures(token, requested_by, *, period_from, instruction) -> 
         if register is None:
             raise RegisterNotInitialized()
         entries = list(
-            RegisterEntry.objects.filter(
-                register__token=token, kind__in=NOTICE_ENTRY_KINDS, effective_on__gte=period_from
+            with_company_event_dates(
+                RegisterEntry.objects.filter(
+                    register__token=token, kind__in=NOTICE_ENTRY_KINDS, effective_on__gte=period_from
+                )
             )
             .select_related("corrects")
             .order_by("sequence")
@@ -950,8 +959,10 @@ def months_after(day, months) -> date:
     return date(year, month + 1, min(day.day, monthrange(year, month + 1)[1]))
 
 
-def _certificate_due_on(entry) -> date:
+def _certificate_due_on(entry) -> date | None:
     if entry.kind == RegisterEntryKind.ISSUE:
+        if entry.company_date_required and entry.company_event_on is None:
+            return None
         return months_after(entry.effective_on, ISSUE_CERTIFICATE_MONTHS)
     lodged_on = getattr(entry, "direct_lodged_on", None)
     if lodged_on is not None:
@@ -966,14 +977,25 @@ def _outputs_of(entry) -> list[tuple]:
     if not entry.noticed and (
         entry.kind == RegisterEntryKind.ISSUE or entry.register.token.company.company_type == CompanyType.PROPRIETARY
     ):
-        outputs.append((RegisterExportKind.NOTICE_FIGURES, entry.effective_on + timedelta(days=NOTICE_FIGURES_DAYS)))
+        outputs.append(
+            (
+                RegisterExportKind.NOTICE_FIGURES,
+                (
+                    None
+                    if entry.company_date_required and entry.company_event_on is None
+                    else entry.effective_on + timedelta(days=NOTICE_FIGURES_DAYS)
+                ),
+            )
+        )
     return outputs
 
 
 def outputs_due(company=None) -> list[dict]:
     today = timezone.localdate(timezone=STATUTORY_CALENDAR)
     exports = RegisterExport.objects.filter(token_id=OuterRef("register__token_id"))
-    entries = RegisterEntry.objects.filter(kind__in=CERTIFICATE_ENTRY_KINDS, correction__isnull=True)
+    entries = with_company_event_dates(
+        RegisterEntry.objects.filter(kind__in=CERTIFICATE_ENTRY_KINDS, correction__isnull=True)
+    )
     if company is not None:
         entries = entries.filter(register__company=company)
     with _snapshot():
@@ -1005,15 +1027,23 @@ def outputs_due(company=None) -> list[dict]:
             "sequence": entry.sequence,
             "kind": RegisterEntryKind(entry.kind),
             "effective_on": entry.effective_on,
+            "company_event_on": entry.company_event_on,
             "output": output,
             "due_on": due_on,
-            "overdue": due_on < today,
+            "overdue": None if due_on is None else due_on < today,
         }
         for entry in entries
         for output, due_on in _outputs_of(entry)
     ]
     return sorted(
-        due, key=lambda item: (item["due_on"], item["token"].company.name, item["token"].symbol, item["sequence"])
+        due,
+        key=lambda item: (
+            item["due_on"] is None,
+            item["due_on"] or date.max,
+            item["token"].company.name,
+            item["token"].symbol,
+            item["sequence"],
+        ),
     )
 
 

@@ -1,4 +1,9 @@
-import type { RegisterTransfer, RegisterTransferPreparation, RegisterDecideRequest } from '../types';
+import type {
+  RegisterTransfer,
+  RegisterTransferPreparation,
+  RegisterDecideRequest,
+  RegisterTransferDecisionPreview,
+} from '../types';
 import { isRegisterDecisionReceipt } from './register-commands';
 
 export function isPreparedRegisterTransfer(
@@ -22,6 +27,7 @@ export function isPreparedRegisterTransfer(
     (!(request.newMember || request.residentialAddress) ||
       transfer.residentialAddress === request.residentialAddress) &&
     transfer.shares === request.shares &&
+    transfer.companyEventOn === request.companyEventOn &&
     transfer.signedOn === request.signedOn &&
     transfer.lodgedOn === request.lodgedOn &&
     transfer.terms === request.terms &&
@@ -32,7 +38,7 @@ export function isPreparedRegisterTransfer(
     transfer.authorityEvidence === request.authorityEvidence &&
     transfer.instrumentEvidence === request.instrumentEvidence &&
     transfer.providedBy === 'company' &&
-    (transfer.status !== 'applied' || (!!transfer.registerEntry && !!transfer.effectiveOn))
+    (transfer.status !== 'applied' || (!!transfer.registerEntry && transfer.effectiveOn === request.companyEventOn))
   );
 }
 
@@ -40,9 +46,12 @@ export function isRegisterTransferDecisionReceipt(
   transfer: RegisterTransfer,
   uuid: string,
   request: RegisterDecideRequest,
+  preview?: RegisterTransferDecisionPreview,
 ) {
   return (
     isRegisterDecisionReceipt(transfer, uuid, request) &&
-    (request.kind !== 'apply' || (!!transfer.registerEntry && !!transfer.effectiveOn))
+    (!preview || transfer.companyEventOn === preview.companyEventOn) &&
+    (request.kind !== 'apply' ||
+      (!!transfer.registerEntry && !!transfer.companyEventOn && transfer.effectiveOn === transfer.companyEventOn))
   );
 }
