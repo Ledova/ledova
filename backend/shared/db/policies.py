@@ -586,9 +586,9 @@ OPERATOR_ONLY = {
     "exact-company register appointments and the staff company pack; the stored register reads them only to "
     "confirm each allotment's amount paid.",
     "tokens_registerallotment": "Exact fully paid external allotments, served through current exact-company "
-    "register appointments and the staff company pack. Applying one copies its name, address and shares into the "
-    "register; of the rows themselves, the wider register outputs read only the consideration, as each member's "
-    "amount paid, and the event date.",
+    "register appointments and the staff company pack. Applying one records its shares in the register and, for a "
+    "new member, copies its name and address into the member's particulars; of the rows themselves, only the "
+    "consideration, as each member's amount paid, and the event date reach the wider register outputs.",
     "tokens_registerallotmentdecision": "Append-only attributable company allotment decisions "
     "reached through their private parent.",
     "tokens_registeraward": "Immutable private company employee awards, carrying the recipient's name and address "
