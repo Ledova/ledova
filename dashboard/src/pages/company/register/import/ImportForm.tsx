@@ -1,6 +1,7 @@
+import { COMPANY_DASHBOARD_PATH } from '@utils/paths';
 import { useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
+import { generatePath, useNavigate } from 'react-router-dom';
 import {
   DESTINATIONS,
   REGISTER_IMPORT_COPY,
@@ -192,7 +193,7 @@ export function ImportForm({
     check();
     await client.invalidateQueries({ queryKey: registerKey(owner) });
     check();
-    navigate('/company/dashboard', { state: { registerCompany: company } });
+    navigate(COMPANY_DASHBOARD_PATH, { state: { registerCompany: company } });
   };
   const approve = useRegisterDecision(apiClient, REGISTER_IMPORT_DECISIONS, proposal, {
     appointment: steps.approve?.uuid,
@@ -387,9 +388,12 @@ export function ImportForm({
       setPhase('review');
       await client.invalidateQueries({ queryKey: registerKey(owner) });
       check();
-      navigate(`${DESTINATIONS.companyRegisterImport.path.replace(':uuid', request.tokenId)}?record=${data.uuid}`, {
-        replace: true,
-      });
+      navigate(
+        `${generatePath(DESTINATIONS.companyRegisterImport.path, { uuid: request.tokenId })}?record=${data.uuid}`,
+        {
+          replace: true,
+        },
+      );
     } catch (failure) {
       const status = failureStatus(failure);
       if (status === 400 || status === 404 || status === 409) {

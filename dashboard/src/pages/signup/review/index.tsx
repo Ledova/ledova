@@ -1,3 +1,4 @@
+import { SIGNUP_PATHS, SITE_PATHS } from '@utils/paths';
 import { useNavigate } from 'react-router-dom';
 
 import { ClipboardTextIcon } from '@phosphor-icons/react';
@@ -35,9 +36,9 @@ export default function SignupReview() {
 
   const handleBack = () => {
     if (isCompany) {
-      navigate('/signup/company-registration');
+      navigate(SIGNUP_PATHS.companyRegistration);
     } else {
-      navigate('/signup/financial-profile');
+      navigate(SIGNUP_PATHS.financialProfile);
     }
   };
 
@@ -197,7 +198,7 @@ export default function SignupReview() {
                 By completing setup, you confirm that you are authorised to administer {company.name}, including
                 managing its users, and accept the{' '}
                 <a
-                  href={`${SITE_URL}/terms-of-service`}
+                  href={`${SITE_URL}${SITE_PATHS.termsOfService}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-brand-light hover:text-brand-subtle underline"
@@ -229,7 +230,7 @@ export default function SignupReview() {
             <p className="text-sm text-text-body leading-relaxed mb-4">
               By completing signup, you accept the{' '}
               <a
-                href={`${SITE_URL}/terms-of-service`}
+                href={`${SITE_URL}${SITE_PATHS.termsOfService}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-brand-light hover:text-brand-subtle underline"
@@ -238,7 +239,7 @@ export default function SignupReview() {
               </a>{' '}
               and{' '}
               <a
-                href={`${SITE_URL}/privacy-policy`}
+                href={`${SITE_URL}${SITE_PATHS.privacyPolicy}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-brand-light hover:text-brand-subtle underline"

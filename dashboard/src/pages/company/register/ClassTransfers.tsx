@@ -1,4 +1,5 @@
 import { useCallback } from 'react';
+import { generatePath } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   DESTINATIONS,
@@ -81,15 +82,15 @@ export function ClassTransfers({
       )}
       {!supported && privateReady && steps?.prepare && (
         <LinkRow
-          to={(register.token.status === 'draft'
-            ? DESTINATIONS.companyRegisterImport
-            : DESTINATIONS.companyClass
-          ).path.replace(':uuid', token)}
+          to={generatePath(
+            (register.token.status === 'draft' ? DESTINATIONS.companyRegisterImport : DESTINATIONS.companyClass).path,
+            { uuid: token },
+          )}
           label={register.token.status === 'draft' ? 'Set up share register' : 'Share class settings'}
         />
       )}
       {privateReady && steps?.prepare && supported && (
-        <LinkRow to={DESTINATIONS.companyRegisterTransfer.path.replace(':uuid', token)} label={COPY.PREPARE} />
+        <LinkRow to={generatePath(DESTINATIONS.companyRegisterTransfer.path, { uuid: token })} label={COPY.PREPARE} />
       )}
       {appointments.isError && (
         <div role="alert" className="flex flex-col items-start gap-2">

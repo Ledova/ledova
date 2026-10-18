@@ -1,13 +1,14 @@
+import { SITE_PATHS } from '@utils/paths';
 import { useQuery } from '@tanstack/react-query';
 import { getOperator, CACHE_TIMING, useAuth } from '@ledova/shared';
 import apiClient from '@services/apiClient';
 import { SITE_URL } from '@utils/siteUrl';
 
 const FOOTER_LINKS = [
-  { label: 'About', path: '/about' },
-  { label: 'Contact', path: '/contact' },
-  { label: 'Terms', path: '/terms-of-service' },
-  { label: 'Privacy', path: '/privacy-policy' },
+  { label: 'About', path: SITE_PATHS.about },
+  { label: 'Contact', path: SITE_PATHS.contact },
+  { label: 'Terms', path: SITE_PATHS.termsOfService },
+  { label: 'Privacy', path: SITE_PATHS.privacyPolicy },
 ];
 
 function useOperatorName(): string | null {

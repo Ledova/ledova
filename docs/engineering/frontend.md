@@ -72,11 +72,12 @@ frame share, and `packages/shared` holds what both clients share.
 | `utils/`               | Pure logic both clients run: pagination, proposal checks, share arithmetic, formatting, error reading, store factories over an injected storage |
 | `hooks/`               | TanStack Query hooks both clients use, and `ApiClientProvider` with `useApiClient`                                                              |
 
-Where today's code differs from these tables:
+Where today's code differs from these standards:
 
-- `routes/` does not yet hold the whole route table: `PublicOnlyRoute`, the sign-up step map, the
-  public, company dashboard and not-found routes are still in `App.tsx`
-  ([#1071](https://github.com/Ledova/ledova/issues/1071)).
+- Inline data calls, shared hooks taking an axios instance and query-key ownership still need
+  [#1072](https://github.com/Ledova/ledova/issues/1072).
+- Existing unscoped account-bound keys stay unchanged; broader account scoping needs the owner
+  decision on [#1065](https://github.com/Ledova/ledova/issues/1065).
 
 Mobile maps onto the same layers, direction and placement, with `navigation/` for `routes/` and
 `screens/<area>/` for page folders; its cross-area imports are brought in line under
@@ -257,14 +258,15 @@ folder under `pages/signup/`, added to `SIGNUP_STEPS` and to the step map in `ro
 ## Routes, audiences and guards
 
 `DESTINATIONS` (`packages/shared/src/constants/ui/destinations.ts`) lists the signed-in pages both
-clients share with their address, title and audience. The dashboard builds its routes with
-`signedInRoutes` from `PAGES` (`dashboard/src/routes/pages.tsx`), a map keyed by that table, so
+clients share with their address, title and audience. The whole dashboard route table is in
+`dashboard/src/routes/AppRoutes.tsx`, using `signedInRoutes` from `PAGES`
+(`dashboard/src/routes/pages.tsx`), a map keyed by that table, so
 TypeScript refuses an entry without a page or a page without an entry. Each route, detail pages
 included, gets the entry's title through `PageTitle`; the web titles `home` Dashboard, native My
 shares. `/member-records` is an alias of `/home`, and `companyRegisterSetup` and
 `companyRegisterImport` render the same page. Outside the table sit the
 [sign-up steps](#sign-up-routes) and `/company/dashboard` (`COMPANY_DASHBOARD_PATH` in
-`dashboard/src/utils/paths.ts`, routed in `dashboard/src/App.tsx` under `ProtectedRoute`
+`dashboard/src/utils/paths.ts`, routed in `dashboard/src/routes/AppRoutes.tsx` under `ProtectedRoute`
 with audience `everyone` and title Dashboard).
 
 `canOpen(role, audience)` lets an investor open `everyone` and `investing` pages, a company
@@ -313,7 +315,8 @@ Native navigation is declared separately ([navigation](mobile.md#navigation)).
 
 `SIGNUP_STEPS` (`dashboard/src/utils/paths.ts`) lists the eight steps after the
 create-account form: email confirmation, account type, pre-screening, identity verification, user
-profile, financial profile, company registration and review. `signupRoutes` wraps each in
+profile, financial profile, company registration and review. The step map in
+`dashboard/src/routes/AppRoutes.tsx` uses the named `SIGNUP_PATHS`, and `signupRoutes` wraps each in
 `SignupRoute`, which sends a finished company account to the company dashboard and other finished
 accounts to `landingFor(role)`, lets an unfinished account or a signed-out visitor through, and
 shows `AccountUnavailable` when the profile cannot be read. The create-account form (`/signup`) and

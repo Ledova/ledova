@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { useLocation } from 'react-router-dom';
+import { generatePath, useLocation } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   DESTINATIONS,
@@ -563,7 +563,7 @@ function OwnRegister({
                       <summary className="cursor-pointer text-sm font-medium">Recorded changes</summary>
                       {sourceReady && (
                         <LinkRow
-                          to={DESTINATIONS.companyClass.path.replace(':uuid', register.token.uuid)}
+                          to={generatePath(DESTINATIONS.companyClass.path, { uuid: register.token.uuid })}
                           label={DESTINATIONS.companyClass.title}
                         />
                       )}

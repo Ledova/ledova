@@ -1,3 +1,4 @@
+import { SIGNUP_PATHS } from '@utils/paths';
 import { useNavigate } from 'react-router-dom';
 import {
   ShieldCheckIcon,
@@ -36,15 +37,15 @@ export default function SignupIdentityVerification() {
 
   const handleContinue = async () => {
     await refetchStatus();
-    navigate('/signup/user-profile');
+    navigate(SIGNUP_PATHS.userProfile);
   };
 
   const handleSkipForNow = () => {
-    navigate('/signup/user-profile');
+    navigate(SIGNUP_PATHS.userProfile);
   };
 
   const handleBack = () => {
-    navigate('/signup/pre-screening');
+    navigate(SIGNUP_PATHS.preScreening);
   };
 
   if (isLoadingStatus && !status) {

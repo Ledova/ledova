@@ -1,3 +1,4 @@
+import { generatePath } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   DESTINATIONS,
@@ -105,7 +106,10 @@ export function RegisterLinks({
           waiting.isSuccess &&
           (waiting.data.length > 0 ? (
             <div className="border-b border-border-subtle">
-              <LinkRow to={DESTINATIONS.companyRegisterLinks.path.replace(':company', company)} label={COPY.PREPARE} />
+              <LinkRow
+                to={generatePath(DESTINATIONS.companyRegisterLinks.path, { company: company })}
+                label={COPY.PREPARE}
+              />
             </div>
           ) : null)
         ))}

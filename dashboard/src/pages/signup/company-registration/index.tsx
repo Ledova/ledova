@@ -1,3 +1,4 @@
+import { SIGNUP_PATHS } from '@utils/paths';
 import { useNavigate } from 'react-router-dom';
 import { BuildingsIcon } from '@phosphor-icons/react';
 import { LoadingState } from '@pages/signup/shared/LoadingState';
@@ -26,12 +27,12 @@ export default function SignupCompanyRegistration() {
   const handleContinue = async (e: React.FormEvent) => {
     e.preventDefault();
     await handleSubmit(() => {
-      navigate('/signup/review');
+      navigate(SIGNUP_PATHS.review);
     });
   };
 
   const handleBack = () => {
-    navigate('/signup/user-profile');
+    navigate(SIGNUP_PATHS.userProfile);
   };
 
   if (isLoading) {

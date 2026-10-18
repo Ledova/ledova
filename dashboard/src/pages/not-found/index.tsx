@@ -6,7 +6,7 @@ import { InSignedInFrame } from '@components/InSignedInFrame';
 import { useRole } from '@hooks/useRole';
 import { useSignupFinished } from '@hooks/useSignupFinished';
 import { useUserProfile } from '@hooks/useUserProfile';
-import { SIGNUP_RESUMES_AT } from '@utils/paths';
+import { SIGNUP_RESUMES_AT, SIGNIN_PATH } from '@utils/paths';
 
 function Missing({ to, label }: { to: string; label: string }) {
   return (
@@ -38,7 +38,7 @@ export default function NotFoundPage() {
         {isAuthenticated ? (
           <Missing to={SIGNUP_RESUMES_AT} label="Continue signing up" />
         ) : (
-          <Missing to="/signin" label="Sign in" />
+          <Missing to={SIGNIN_PATH} label="Sign in" />
         )}
       </AuthLayout>
     );

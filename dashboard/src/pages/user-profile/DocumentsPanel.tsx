@@ -1,3 +1,4 @@
+import { DESTINATIONS } from '@ledova/shared';
 import { useRef, useState } from 'react';
 import {
   CloudArrowUpIcon,
@@ -375,7 +376,7 @@ export function DocumentsPanel() {
       </p>
       <UploadCard claims={claims} />
       {!claims.some((claim) => claim.status === 'submitted') && (
-        <a href="/investor-eligibility" className="text-sm text-brand-light">
+        <a href={DESTINATIONS.investorEligibility.path} className="text-sm text-brand-light">
           Submit a classification claim to attach supporting evidence.
         </a>
       )}

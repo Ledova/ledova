@@ -30,12 +30,13 @@ the replaced cases or the approval, and independent review checks them
 | ------------------- | --------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------ |
 | Backend, PostgreSQL | 21              | 150     | Core API happy paths, tenant isolation, company authority, ownership totals and issuance idempotency, one fake-scanner refusal |
 | Dashboard unit      | 20              | 20      | Main pages, sign-in, core flows                                                                                                |
+| Playwright smoke    | 9               | 9       | Core browser journeys and route wiring                                                                                         |
 | Mobile Jest         | 10              | 10      | App start, sign-in, core flows                                                                                                 |
 | Shared package      | 10              | 10      | Essential shared behaviour                                                                                                     |
 | Contracts           | 14              | 20      | Who can mint, pause and transfer                                                                                               |
 
-The nine Playwright smoke tests stay outside the caps, as do mobile type-check and lint. Build,
-probe and device results before a mobile release are separate evidence
+Type-check and lint are outside the case caps. Build, probe and device results before a mobile
+release are separate evidence
 ([mobile releases](mobile-releases.md)).
 
 ## Commands

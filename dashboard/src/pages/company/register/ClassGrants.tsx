@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { generatePath } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   DESTINATIONS,
@@ -108,7 +109,7 @@ export function ClassGrants({
     <div className="mt-4 flex flex-col gap-3 border-t border-border-subtle pt-4">
       <h3 className="text-sm font-medium text-text-primary">{COPY.TITLE}</h3>
       {privateReady && steps.prepare && supported && (
-        <LinkRow to={DESTINATIONS.companyRegisterGrant.path.replace(':uuid', token)} label={COPY.PREPARE} />
+        <LinkRow to={generatePath(DESTINATIONS.companyRegisterGrant.path, { uuid: token })} label={COPY.PREPARE} />
       )}
       {appointments.isError && (
         <div role="alert" className="flex flex-col items-start gap-2">

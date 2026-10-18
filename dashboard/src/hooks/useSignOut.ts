@@ -1,3 +1,4 @@
+import { SIGNIN_PATH } from '@utils/paths';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { signout, AUTH_QUERY_KEY } from '@ledova/shared';
@@ -12,7 +13,7 @@ export function useSignOut() {
     onSettled: () => {
       queryClient.setQueryData(AUTH_QUERY_KEY, { data: { valid: false } });
       queryClient.clear();
-      navigate('/signin');
+      navigate(SIGNIN_PATH);
     },
   });
 

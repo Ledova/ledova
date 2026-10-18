@@ -1,4 +1,5 @@
 import { useCallback } from 'react';
+import { generatePath } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   DESTINATIONS,
@@ -102,9 +103,10 @@ function EntryHistory({
                     )}
                     {prepare && entry.correctable && (
                       <LinkRow
-                        to={DESTINATIONS.companyRegisterCorrection.path
-                          .replace(':uuid', token)
-                          .replace(':entry', entry.uuid)}
+                        to={generatePath(DESTINATIONS.companyRegisterCorrection.path, {
+                          uuid: token,
+                          entry: entry.uuid,
+                        })}
                         label={COPY.PREPARE}
                         context={`entry ${entry.sequence}`}
                       />

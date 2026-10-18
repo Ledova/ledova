@@ -1,4 +1,5 @@
 import { useLayoutEffect, useRef, useState } from 'react';
+import { generatePath } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   DESTINATIONS,
@@ -118,7 +119,7 @@ export function AwardRecord({
             {appointment && !blocked && eventReady && !formHeld && BigInt(award.availableShares) > 0n && (
               <LinkRow
                 label="Issue vested shares"
-                to={`${DESTINATIONS.companyRegisterGrant.path.replace(':uuid', award.token)}?award=${encodeURIComponent(award.uuid)}`}
+                to={`${generatePath(DESTINATIONS.companyRegisterGrant.path, { uuid: award.token })}?award=${encodeURIComponent(award.uuid)}`}
               />
             )}
           </div>

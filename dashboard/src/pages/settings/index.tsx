@@ -1,3 +1,4 @@
+import { SIGNIN_PATH } from '@utils/paths';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -92,7 +93,7 @@ function SettingsPage() {
     onSuccess: () => {
       queryClient.setQueryData(AUTH_QUERY_KEY, { data: { valid: false } });
       queryClient.clear();
-      navigate('/signin');
+      navigate(SIGNIN_PATH);
     },
   });
   const passwordMutation = useMutation({

@@ -1,3 +1,4 @@
+import { DESTINATIONS } from '@ledova/shared';
 import { useEffect, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import {
@@ -299,7 +300,12 @@ function MemberRecords({
                       (request) => request.status === 'fulfilled' && request.fulfilment,
                     ) && <p className="text-sm text-text-muted">No issued certificates available.</p>}
                   {!read.requests && <p role="status">Loading your documents and requests…</p>}
-                  {!documentsOnly && <LinkRow to="/home#documents" label="View documents and certificate requests" />}
+                  {!documentsOnly && (
+                    <LinkRow
+                      to={`${DESTINATIONS.home.path}#documents`}
+                      label="View documents and certificate requests"
+                    />
+                  )}
                 </Section>
                 <Section title={documentsOnly ? 'Share history' : 'Your member record'}>
                   {!documentsOnly && read.entries.length > 0 && (

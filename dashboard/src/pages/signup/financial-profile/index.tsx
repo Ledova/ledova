@@ -1,3 +1,4 @@
+import { SIGNUP_PATHS } from '@utils/paths';
 import { FinancialProfileForm } from './FinancialProfileForm';
 import { LoadingState } from '@pages/signup/shared/LoadingState';
 import { ErrorState } from '@pages/signup/shared/ErrorState';
@@ -16,12 +17,12 @@ export default function SignupFinancialProfile() {
   const handleSubmitProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     await handleSubmit(() => {
-      navigate('/signup/review');
+      navigate(SIGNUP_PATHS.review);
     });
   };
 
   const handleBack = () => {
-    navigate('/signup/user-profile');
+    navigate(SIGNUP_PATHS.userProfile);
   };
 
   if (isLoading) {
@@ -40,7 +41,7 @@ export default function SignupFinancialProfile() {
         title="Profile Not Found"
         message="Please complete your user profile before setting your financial profile."
         retryLabel="Go to Profile"
-        onRetry={() => navigate('/signup/user-profile')}
+        onRetry={() => navigate(SIGNUP_PATHS.userProfile)}
       />
     );
   }

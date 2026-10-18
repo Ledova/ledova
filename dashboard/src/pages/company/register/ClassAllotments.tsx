@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { generatePath } from 'react-router-dom';
 import {
   DESTINATIONS,
   REGISTER_ALLOTMENT_COPY as COPY,
@@ -131,10 +132,10 @@ export function ClassAllotments({
       )}
       {!supported && appointment && privateReady && (
         <LinkRow
-          to={(register.token.status === 'draft'
-            ? DESTINATIONS.companyRegisterImport
-            : DESTINATIONS.companyClass
-          ).path.replace(':uuid', token)}
+          to={generatePath(
+            (register.token.status === 'draft' ? DESTINATIONS.companyRegisterImport : DESTINATIONS.companyClass).path,
+            { uuid: token },
+          )}
           label={register.token.status === 'draft' ? 'Set up share register' : 'Share class settings'}
         />
       )}

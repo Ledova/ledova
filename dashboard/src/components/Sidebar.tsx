@@ -24,7 +24,7 @@ import { NotificationBell } from './NotificationBell';
 import { SignOutButton } from './SignOutButton';
 import { ThemeToggle } from './ThemeToggle';
 import { useRegisterEntry } from '@hooks/useRegisterAccess';
-import { COMPANY_DASHBOARD_PATH } from '@utils/paths';
+import { COMPANY_DASHBOARD_PATH, SITE_PATHS } from '@utils/paths';
 
 type Icon = React.ComponentType<{ size?: number; weight?: 'regular' | 'fill' }>;
 
@@ -178,9 +178,9 @@ export function Sidebar({ onNavigate, withNotifications = false }: SidebarProps 
                   active={
                     itemPath(item) === activePath ||
                     (item.destination === 'settings' &&
-                      (location.pathname === '/company' ||
-                        location.pathname === '/company/team' ||
-                        location.pathname === '/company/authority' ||
+                      (location.pathname === DESTINATIONS.company.path ||
+                        location.pathname === DESTINATIONS.companyTeam.path ||
+                        location.pathname === DESTINATIONS.companyAuthority.path ||
                         (location.pathname === DESTINATIONS.companyRegister.path && location.hash === '#access')))
                   }
                   onSelect={handleNav}
@@ -208,7 +208,7 @@ export function Sidebar({ onNavigate, withNotifications = false }: SidebarProps 
           </details>
         </nav>
         <a
-          href={`${SITE_URL}/contact`}
+          href={`${SITE_URL}${SITE_PATHS.contact}`}
           target="_blank"
           rel="noopener noreferrer"
           onClick={() => onNavigate?.()}

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { generatePath, useNavigate, useParams } from 'react-router-dom';
 import {
   DESTINATIONS,
   OFFER_DOCUMENT_COPY,
@@ -83,7 +83,7 @@ export default function DirectoryTokenPage() {
   const wallets = useSubscribableWallets(Boolean(token?.openOffering) && !hasError && !notFound);
   const documents = useDirectoryDocuments(uuid, Boolean(token) && !hasError && !notFound);
   const create = useCreateSubscription((created) =>
-    navigate(DESTINATIONS.subscriptionDetail.path.replace(':uuid', created)),
+    navigate(generatePath(DESTINATIONS.subscriptionDetail.path, { uuid: created })),
   );
 
   const back = <PageAction label="Directory" onClick={() => navigate(DESTINATIONS.directory.path)} />;

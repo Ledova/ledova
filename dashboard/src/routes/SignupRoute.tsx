@@ -1,3 +1,4 @@
+import { COMPANY_DASHBOARD_PATH } from '@utils/paths';
 import { Navigate, Outlet } from 'react-router-dom';
 import { canOpen, landingFor, useAuth } from '@ledova/shared';
 
@@ -14,7 +15,7 @@ export function SignupRoute() {
 
   if (isLoading || isProfileLoading || (finished && isRoleLoading)) return null;
 
-  if (finished) return <Navigate to={canOpen(role, 'company') ? '/company/dashboard' : landingFor(role)} replace />;
+  if (finished) return <Navigate to={canOpen(role, 'company') ? COMPANY_DASHBOARD_PATH : landingFor(role)} replace />;
 
   if (isAuthenticated && !userProfile) return <AccountUnavailable onRetry={refreshProfile} />;
 
