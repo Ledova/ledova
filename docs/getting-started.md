@@ -171,7 +171,7 @@ python manage.py register_foundation load-synthetic-opening --token TOKEN_UUID -
 | Contract compilation         | `cd contracts && npm ci && npx hardhat compile` |
 | Mobile development server    | `cd mobile && make install && make start`       |
 
-Backend commands require a filled `backend/.env` and reachable PostgreSQL and Redis. Outside
+Backend commands require a filled local `.env` file in `backend/` and reachable PostgreSQL and Redis. Outside
 Compose, run the [seed commands](operations/operator-console.md#seeding-reference-data) (migrations
 and role checks included) before starting the server. Optional providers stay unavailable until
 configured; native policy testing requires a Ledova build rather than Expo Go.

@@ -86,7 +86,7 @@ wall clock by the time the stack was down.
 `docker-compose.yml` gives the `migrate`, `backend` and `worker` services
 `BLOCKCHAIN_RPC_URL=http://chain:8545`, `BLOCKCHAIN_CHAIN_ID=31337`, account #0's key as
 `BLOCKCHAIN_OPERATOR_KEY`, the three addresses above and `LOCAL_CHAIN_FINALITY_DEPTH=1`, overriding
-`backend/.env`. The last step of `migrate` admits that signer for chain 31337
+the local `.env` file in `backend/`. The last step of `migrate` admits that signer for chain 31337
 ([local chain admission](../engineering/chain.md#local-chain-admission)), so deploying a share
 class, approving a wallet, minting, pausing and settling a swap sign and send real transactions on
 this chain.
@@ -131,7 +131,7 @@ already holds port 8545; stop the stack first, or give `npx hardhat node` anothe
 `SHARE_TOKEN_FACTORY_ADDRESS`, `ATOMIC_SWAP_ADDRESS` and `STABLECOIN_CONTRACT_ADDRESS` to
 `.deployed-contracts.env`. There is no deployment-wide whitelist: the factory creates each
 company's `WhitelistRegistry` with the company's first share class. Copy the three addresses into
-`backend/.env` with `BLOCKCHAIN_RPC_URL`, `BLOCKCHAIN_CHAIN_ID=31337`, development account #0's key
+the local `.env` file in `backend/` with `BLOCKCHAIN_RPC_URL`, `BLOCKCHAIN_CHAIN_ID=31337`, development account #0's key
 as `BLOCKCHAIN_OPERATOR_KEY` and `LOCAL_CHAIN_FINALITY_DEPTH=1`, then run
 `python manage.py admit_local_signer` from `backend/`. Hardhat's node keeps nothing after it stops,
 so a database that has used it needs a new one with the next node.
@@ -142,11 +142,11 @@ Base Sepolia (chain id 84532) is the supported public testnet:
 backend's operator key ([key management](#key-management)).
 
 The package carries three more npm scripts that neither `deploy:local:core` nor `deploy:testnet`
-runs. `deploy:local:sample-share` (`scripts/deploy.ts`, local chains only) deploys a factory and a
+runs. `deploy:local:sample-share` (`contracts/scripts/deploy.ts`, local chains only) deploys a factory and a
 `DEMO` share class with three whitelisted test accounts and an initial mint.
 `deploy:testnet:stablecoin` and `deploy:testnet:atomicswap` deploy `AUDY` and `AtomicSwap` on their
 own on Base Sepolia, the latter approving `STABLECOIN_ADDRESS`, `SHARE_TOKEN_ADDRESS` and
-`RELAYER_ADDRESS` when they are set. `scripts/deploy-share-token.ts` has no npm script:
+`RELAYER_ADDRESS` when they are set. `contracts/scripts/deploy-share-token.ts` has no npm script:
 `npx hardhat run scripts/deploy-share-token.ts --network localhost` (or `baseSepolia`) from
 `contracts/` creates one share class on an existing `FACTORY_ADDRESS` from the
 [deploy-script inputs](configuration.md#contracts).
@@ -188,8 +188,8 @@ check whether stored classes belong to a retired factory; step 8 does.
    a nonzero latest or pending sender nonce, a manifest path that is not absolute, or an existing
    manifest or companion `.journal.json`. It records each transaction hash before waiting for its
    receipt, writes the manifest after the five sends complete, and writes the addresses to
-   `.deployed-contracts.env`. Keep the manifest, the journal and the compiled `contracts/artifacts`
-   directory, including `.dbg.json` and build-info files, with the deployment evidence. A partial
+   `.deployed-contracts.env`. Keep the manifest, the journal and the compiled `artifacts`
+   directory in `contracts/`, including `.dbg.json` and build-info files, with the deployment evidence. A partial
    journal means the deployment is incomplete: retain and investigate it, and never rerun the
    deployment or erase history to make the verifier accept the signer. Without fresh metadata, an
    ordinary deployment runs and produces no admission evidence.
@@ -200,7 +200,7 @@ check whether stored classes belong to a retired factory; step 8 does.
    ([row-level security roles](configuration.md#row-level-security-roles) covers a cluster that
    refuses the passwordless roles).
 4. Configure `BLOCKCHAIN_CHAIN_ID=84532`, the authorised provider, the fresh
-   `BLOCKCHAIN_OPERATOR_KEY` and the three `.deployed-contracts.env` addresses in `backend/.env`.
+   `BLOCKCHAIN_OPERATOR_KEY` and the three `.deployed-contracts.env` addresses in the local `.env` file in `backend/`.
    Wait for all five transactions to be canonical and finalized, then run from `backend/`, with the
    retained Hardhat artifacts and manifest accessible:
 
@@ -361,7 +361,7 @@ observable in these tables, and no capture authorises activation.
 ## Reaching the node from Compose
 
 The stack's backend reaches its own chain as `http://chain:8545` on the Compose network, and the
-Compose chain settings override `backend/.env`, so point the stack at another node there or in a
+Compose chain settings override the local `.env` file in `backend/`, so point the stack at another node there or in a
 Compose override file. For any chain but 31337 the override must also drop `migrate`'s last step,
 `admit_local_signer`, which refuses every other chain: otherwise `migrate` exits 1 and `backend`,
 `worker` and `dashboard` never start. For a public testnet it must also set
