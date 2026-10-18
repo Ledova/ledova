@@ -351,11 +351,13 @@ export function useMemberRecords(newKey: () => string, session?: OrderSubmission
       ([list, detail, requests, entries].some((read) => read.isError)
         ? 'Your current member records could not be read. Refresh before continuing.'
         : null),
-    refresh: () =>
-      refresh().catch((failure) => {
+    refresh: () => {
+      if (live.current && boundary.get() === owner) setError(null);
+      return refresh().catch((failure) => {
         if (live.current && boundary.get() === owner)
           setError(getErrorMessage(failure, 'The member records could not be refreshed.'));
-      }),
+      });
+    },
     select: (uuid: string) => {
       if (!retry && !busy) {
         setSelected(uuid);

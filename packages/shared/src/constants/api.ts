@@ -148,6 +148,14 @@ export const COMPANY_TOKEN_ENDPOINTS = {
   REGISTER_AWARD_VESTINGS: '/api/v1/tokens/register-award-vestings/',
   REGISTER_AWARD_VESTING: (uuid: string) => `/api/v1/tokens/register-award-vestings/${uuid}/` as const,
   REGISTER_AWARD_VESTING_FILE: (uuid: string) => `/api/v1/tokens/register-award-vestings/${uuid}/file/` as const,
+  REGISTER_AWARD_ENDS: '/api/v1/tokens/register-award-ends/',
+  REGISTER_AWARD_END: (uuid: string) => `/api/v1/tokens/register-award-ends/${uuid}/` as const,
+  REGISTER_AWARD_END_FILE: (uuid: string) => `/api/v1/tokens/register-award-ends/${uuid}/file/` as const,
+  REGISTER_AWARD_VESTING_REVERSALS: '/api/v1/tokens/register-award-vesting-reversals/',
+  REGISTER_AWARD_VESTING_REVERSAL: (uuid: string) =>
+    `/api/v1/tokens/register-award-vesting-reversals/${uuid}/` as const,
+  REGISTER_AWARD_VESTING_REVERSAL_FILE: (uuid: string) =>
+    `/api/v1/tokens/register-award-vesting-reversals/${uuid}/file/` as const,
   REGISTER_GRANT_FILE: (uuid: string) => `/api/v1/tokens/register-grants/${uuid}/file/` as const,
   REGISTER_GRANT_TERMS_FILE: (uuid: string) => `/api/v1/tokens/register-grants/${uuid}/terms-file/` as const,
   REGISTER_GRANT_ACCEPTANCE_FILE: (uuid: string) => `/api/v1/tokens/register-grants/${uuid}/acceptance-file/` as const,

@@ -184,12 +184,66 @@ it('puts own register shares and awards first without wallet reads, preserves se
   record = {
     ...MEMBER_RECORD,
     classes: [{ ...MEMBER_RECORD.classes[0], shares: '15' }],
-    awards: [{ ...MEMBER_RECORD.awards[0], vestedShares: '5', issuedShares: '5', availableShares: '0' }],
+    awards: [
+      {
+        ...MEMBER_RECORD.awards[0],
+        vestedShares: '5',
+        vestings: [{ ...MEMBER_RECORD.awards[0].vestings[0], shares: '5' }],
+        issuedShares: '5',
+        availableShares: '0',
+        unvestedRemainingShares: '0',
+        remainingUnissuedShares: '0',
+      },
+    ],
   };
   fireEvent.click(screen.getByRole('button', { name: 'Refresh member records' }));
   expect(await screen.findByText('15 issued shares')).toBeTruthy();
   expect(screen.getByRole('img', { name: /0 unvested, 0 vested, awaiting issue, 5 issued from award/ })).toBeTruthy();
   expect(screen.queryByText('20 issued shares')).toBeNull();
+  record = {
+    ...record,
+    awards: [
+      {
+        ...MEMBER_RECORD.awards[0],
+        vestedShares: '3',
+        issuedShares: '1',
+        availableShares: '1',
+        endedUnvestedShares: '1',
+        endedVestedShares: '1',
+        unvestedRemainingShares: '1',
+        remainingUnissuedShares: '2',
+        vestings: [{ ...MEMBER_RECORD.awards[0].vestings[0], shares: '4' }],
+        ends: [
+          {
+            uuid: 'own-end',
+            unvestedShares: '1',
+            vestedShares: '1',
+            companyEventOn: '2026-10-03',
+            reason: 'Company selected reduction',
+            createdAt: '2026-10-05T00:00:00Z',
+          },
+        ],
+        vestingReversals: [
+          {
+            uuid: 'own-reversal',
+            vesting: MEMBER_RECORD.awards[0].vestings[0].uuid,
+            reversedShares: '1',
+            companyEventOn: '2026-10-04',
+            reason: 'Correct recorded quantity',
+            createdAt: '2026-10-05T00:00:00Z',
+          },
+        ],
+      },
+    ],
+  };
+  fireEvent.click(screen.getByRole('button', { name: 'Refresh member records' }));
+  await screen.findByRole('img', {
+    name: /1 unvested, 1 vested, awaiting issue, 1 issued from award, 1 unvested rights ended, 1 vested rights ended/,
+  });
+  fireEvent.click(screen.getByText('Award terms and recorded vesting'));
+  expect(screen.getByText(/Company selected reduction/)).toBeTruthy();
+  expect(screen.getByText(/Correct recorded quantity/)).toBeTruthy();
+  expect(screen.queryByRole('button', { name: /Download.*(entitlement|correction)/ })).toBeNull();
   record = { ...MEMBER_RECORD, classes: [] };
   fireEvent.click(screen.getByRole('button', { name: 'Refresh member records' }));
   expect(await screen.findByText('No issued shares recorded.')).toBeTruthy();
@@ -201,14 +255,15 @@ it('puts own register shares and awards first without wallet reads, preserves se
     awards: [{ ...MEMBER_RECORD.awards[0], vestedShares: '6', availableShares: '6' }],
   };
   fireEvent.click(screen.getByRole('button', { name: 'Refresh member records' }));
-  await screen.findByText('Award quantities are unavailable. Refresh the current record.');
+  await screen.findByText('Your award records could not be confirmed. Refresh before continuing.');
   expect(screen.queryByRole('img')).toBeNull();
+  expect(screen.queryByText('No issued shares recorded.')).toBeNull();
   record = {
     ...record,
     awards: [{ ...MEMBER_RECORD.awards[0], shares: '0', vestedShares: '0', availableShares: '0' }],
   };
   fireEvent.click(screen.getByRole('button', { name: 'Refresh member records' }));
-  await screen.findByText('No award shares recorded.');
+  await screen.findByText('Your award records could not be confirmed. Refresh before continuing.');
   expect(screen.queryByRole('img')).toBeNull();
   record = MEMBER_RECORD;
   fireEvent.click(screen.getByRole('button', { name: 'Refresh member records' }));

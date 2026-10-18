@@ -126,6 +126,11 @@ export {
   hasValidRegisterAwardTotals,
   isRecordedRegisterAward,
   isRecordedRegisterAwardVesting,
+  isRecordedRegisterAwardEnd,
+  isRecordedRegisterAwardVestingReversal,
+  hasValidRegisterAwardEnd,
+  hasValidRegisterAwardVestingReversal,
+  remainingRegisterAwardVesting,
 } from './register-awards';
 export { isPreparedRegisterDeployment } from './register-deployments';
 export { isWalletNominationReceipt, isPreparedCompanyWalletInstruction } from './company-wallets';

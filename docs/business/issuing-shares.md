@@ -178,15 +178,18 @@ and vesting schedule. The company records each vesting event itself; the schedul
 and a date passing creates no vesting, approval, issue or holding. Shares reach the register only
 through a separate approved grant that references the award.
 
-Each award shows four quantities, and the web chart separates unvested, vested but unissued and
-issued shares:
+The company and employee see the original promise, net vested, permanently issued, ended and
+remaining quantities. The web chart keeps the original promise as its total, including ended rights:
 
-| Quantity                  | Meaning                                                      |
-| ------------------------- | ------------------------------------------------------------ |
-| Promised                  | The whole quantity in the award agreement                    |
-| Company-recorded vested   | The sum of the recorded vesting events                       |
-| Issued through grants     | Shares actually issued by applied grants linked to the award |
-| Vested and not yet issued | Recorded vesting less those issues                           |
+| Quantity                  | Meaning                                                                        |
+| ------------------------- | ------------------------------------------------------------------------------ |
+| Promised                  | Original whole quantity in the award agreement; never rewritten                |
+| Company-recorded vested   | Original vesting events less recorded reversals                                |
+| Issued through grants     | All shares actually issued by applied linked grants, including later transfers |
+| Vested and not yet issued | Net vested less permanently issued and ended vested rights                     |
+| Ended unvested / vested   | Explicit company-recorded reductions of each unissued pool                     |
+| Unvested remaining        | Promise less net vesting and ended unvested rights                             |
+| Remaining unissued        | Promise less issued shares and both ended pools                                |
 
 1. Choose Employee awards, then Record an employee award on the class. Choose a new or existing
    recipient and give the promised shares, the agreement date and terms, the recorded vesting
@@ -194,12 +197,19 @@ issued shares:
    certificate entitlement; a new recipient keeps the member ID their first grant will use.
 2. Choose Record vesting on the award for a company-confirmed event with its shares, date and
    evidence. Dates are no later than today (UTC), an event cannot predate the agreement, and total
-   vesting cannot exceed the promise.
+   vesting cannot exceed the remaining unvested entitlement.
 3. When vested shares are available, choose Issue vested shares. The grant form opens with the
    recipient and available quantity, bound to the award's class, recipient and retained agreement;
    upload the authority document, name the approving director and add any required
    acceptance. Preparing returns to Employee awards with the class's Non-paid share issues open;
    approve, then choose Record issue.
+4. To reduce or end an entitlement, choose End unissued rights. Enter exactly how many unvested and/or
+   vested-but-unissued rights the company ends, its event date, reason and evidence. Zero is allowed
+   for either pool, but the total must be positive. Ledova applies no automatic leaver policy.
+5. To correct an erroneous vesting, choose Correct a vesting event beside the original event. Record a
+   positive reversal quantity, company date, reason and evidence. Cumulative reversals cannot exceed
+   that event or remove rights already issued or ended as vested. Additional vesting uses Record
+   vesting. Original entries remain visible.
 
 The linked issue reuses the exact fingerprinted agreement already retained for the award; no
 agreement upload is needed. Current company authority and the private file are checked again, and
@@ -212,8 +222,15 @@ and authorised shares, then records the Issue once. Pending or approved grants r
 vested nor authorised shares, and a later transfer or correction returns no shares to the award.
 Later grants use the recipient's existing member record, including a former-member record.
 
-Recording awards and vesting is a [one-step action](README.md#how-a-company-decision-works); issuing
-follows the grant's rules. Award, vesting and award-linked grant records and their documents are
+New vesting, endings, reversals and newly applied linked issues cannot precede the latest accepted
+company award fact or known linked-issue date, or be dated in the future. Earlier pending issues
+must be rejected and prepared again; Ledova does not move their dates. An entitlement change makes
+an earlier approval stale. Current availability and vesting eligible by the issue date are checked
+again on application. Endings and reversals never restore issued allocation, alter the original
+promise or change issued ownership.
+
+Recording awards, vesting, endings and reversals is a [one-step action](README.md#how-a-company-decision-works); issuing
+follows the grant's rules. Award facts, award-linked grant records and their documents are
 read only through a current appointment holding administration or a register capability, and are
 kept unchanged with their original actor, appointment and time. Employees read their own records
 through [member access](member-records.md#member-access). Not built: restrictions or forfeiture on
@@ -474,8 +491,6 @@ rights, and transmission.
 Current limits, each with follow-up work proposed under the share lifecycle review
 ([#1060](https://github.com/Ledova/ledova/issues/1060)):
 
-- An award's unissued entitlement cannot be ended or corrected. Proposed under
-  [#1063](https://github.com/Ledova/ledova/issues/1063).
 - Joint, corporate and trust holdings have no separate structure: a member is one name and
   residential address, with the beneficial status the company records.
 

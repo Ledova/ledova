@@ -4,6 +4,10 @@ import type {
   RegisterAwardPreparation,
   RegisterAwardVesting,
   RegisterAwardVestingPreparation,
+  RegisterAwardEnd,
+  RegisterAwardEndPreparation,
+  RegisterAwardVestingReversal,
+  RegisterAwardVestingReversalPreparation,
   TokenHoldersResponse,
 } from '../../src';
 
@@ -63,6 +67,53 @@ export function awardFrom(body: RegisterAwardPreparation): RegisterAward {
     vestedShares: '0',
     issuedShares: '0',
     availableShares: '0',
+    endedUnvestedShares: '0',
+    endedVestedShares: '0',
+    unvestedRemainingShares: body.shares,
+    remainingUnissuedShares: body.shares,
+  };
+}
+
+export function endFrom(body: RegisterAwardEndPreparation): RegisterAwardEnd {
+  return {
+    uuid: body.operationId,
+    company: APPOINTMENT.company,
+    award: body.award,
+    unvestedShares: body.unvestedShares,
+    vestedShares: body.vestedShares,
+    companyEventOn: body.companyEventOn,
+    reason: body.reason,
+    evidence: body.evidence,
+    evidenceFingerprint: 'a'.repeat(64),
+    evidenceSnapshot: {},
+    preparingAppointment: body.appointment,
+    preparedByName: 'Synthetic Preparer',
+    submittedBy: 1,
+    providedBy: 'company',
+    createdAt: '2026-10-18T00:00:00Z',
+  };
+}
+
+export function vestingReversalFrom(
+  body: RegisterAwardVestingReversalPreparation,
+  award: string = AWARD_REQUEST.operationId,
+): RegisterAwardVestingReversal {
+  return {
+    uuid: body.operationId,
+    company: APPOINTMENT.company,
+    award,
+    vesting: body.vesting,
+    reversedShares: body.reversedShares,
+    companyEventOn: body.companyEventOn,
+    reason: body.reason,
+    evidence: body.evidence,
+    evidenceFingerprint: 'a'.repeat(64),
+    evidenceSnapshot: {},
+    preparingAppointment: body.appointment,
+    preparedByName: 'Synthetic Preparer',
+    submittedBy: 1,
+    providedBy: 'company',
+    createdAt: '2026-10-18T00:00:00Z',
   };
 }
 

@@ -12,6 +12,10 @@ import type {
   RegisterAwardPreparation,
   RegisterAwardVesting,
   RegisterAwardVestingPreparation,
+  RegisterAwardEnd,
+  RegisterAwardVestingReversal,
+  RegisterAwardEndPreparation,
+  RegisterAwardVestingReversalPreparation,
   RegisterGrant,
   RegisterGrantPreparation,
   RegisterGrantDecideRequest,
@@ -30,6 +34,8 @@ import {
   REGISTER,
   awardFrom,
   vestingFrom,
+  endFrom,
+  vestingReversalFrom,
 } from '../../../../packages/shared/tests/fixtures/employee-awards';
 import { apiClient } from '../../services/apiClient';
 import { getSessionEpoch } from '../../services/sessionScope';
@@ -38,7 +44,7 @@ import { ClassAwards } from './ClassAwards';
 import { CompanyRegisterScreen } from './CompanyRegisterScreen';
 import { PrepareRegisterGrantScreen } from './PrepareRegisterGrantScreen';
 import { registerKey } from '../../hooks/useCompanyRegister';
-import { awardsKey, awardVestingsKey } from './useRegisterAwards';
+import { awardsKey, awardVestingsKey, awardEndsKey } from './useRegisterAwards';
 
 type RouteParams = { section?: string; companyUuid?: string; tokenUuid?: string; awardUuid?: string };
 const mockRouteContext = React.createContext<{ params: RouteParams }>({ params: { section: 'awards' } });
@@ -81,8 +87,11 @@ let client: QueryClient;
 let appointments: OwnCompanyAppointment[];
 let awards: RegisterAward[];
 let events: RegisterAwardVesting[];
+let ends: RegisterAwardEnd[];
+let reversals: RegisterAwardVestingReversal[];
+let mismatchedEndReceipt: boolean;
 let grants: RegisterGrant[];
-let failedRead: 'award' | 'vesting' | 'grant' | null;
+let failedRead: 'award' | 'vesting' | 'grant' | 'change' | null;
 let failedPreferences: boolean;
 let failedClasses: boolean;
 let listed: boolean;
@@ -205,6 +214,9 @@ beforeEach(() => {
   appointments = [APPOINTMENT];
   awards = [];
   events = [];
+  ends = [];
+  reversals = [];
+  mismatchedEndReceipt = false;
   grants = [];
   failedRead = null;
   failedPreferences = false;
@@ -276,6 +288,13 @@ beforeEach(() => {
       if (failedRead === 'vesting') throw new Error('Recorded vesting could not be refreshed');
       return { data: { results: events, next: null } };
     }
+    if (url === URLS.REGISTER_AWARD_ENDS || url === URLS.REGISTER_AWARD_VESTING_REVERSALS) {
+      if (failedRead === 'change') throw new Error('Award changes could not be refreshed');
+      return { data: { results: url === URLS.REGISTER_AWARD_ENDS ? ends : reversals, next: null } };
+    }
+    if (ends[0] && url === URLS.REGISTER_AWARD_END(ends[0].uuid))
+      return { data: { ...ends[0], ...(mismatchedEndReceipt ? { evidenceFingerprint: 'b'.repeat(64) } : {}) } };
+    if (reversals[0] && url === URLS.REGISTER_AWARD_VESTING_REVERSAL(reversals[0].uuid)) return { data: reversals[0] };
     if (events[0] && url === URLS.REGISTER_AWARD_VESTING(events[0].uuid)) return { data: events[0] };
     if (events[0] && url === URLS.REGISTER_AWARD_VESTING_FILE(events[0].uuid))
       return new Promise((resolve) => {
@@ -332,7 +351,14 @@ beforeEach(() => {
     if (url === URLS.REGISTER_AWARD_VESTINGS) {
       const event = vestingFrom(body as RegisterAwardVestingPreparation);
       events = [event];
-      awards = [{ ...awards[0], vestedShares: event.shares, availableShares: event.shares }];
+      awards = [
+        {
+          ...awards[0],
+          vestedShares: event.shares,
+          availableShares: event.shares,
+          unvestedRemainingShares: (BigInt(awards[0].shares) - BigInt(event.shares)).toString(),
+        },
+      ];
       failedRead = 'vesting';
       throw new Error('Synthetic interrupted vesting response');
     }
@@ -396,7 +422,7 @@ beforeEach(() => {
           },
         ];
         if (request.kind === 'apply') {
-          awards = [{ ...awards[0], issuedShares: '100', availableShares: '0' }];
+          awards = [{ ...awards[0], issuedShares: '100', availableShares: '0', remainingUnissuedShares: '0' }];
           failedRead = 'grant';
           throw new Error('Synthetic interrupted issue response');
         }
@@ -675,7 +701,14 @@ it('recovers captured award, vesting and issue requests under read access and re
 });
 
 it('refuses late vesting bytes after the vesting read fails and hides cached private rows after current authority is lost', async () => {
-  awards = [{ ...awardFrom(AWARD_REQUEST), vestedShares: '100', availableShares: '100' }];
+  awards = [
+    {
+      ...awardFrom({ ...AWARD_REQUEST, shares: '200' }),
+      vestedShares: '100',
+      availableShares: '100',
+      unvestedRemainingShares: '100',
+    },
+  ];
   events = [
     vestingFrom({
       operationId: 'vesting-a',
@@ -698,6 +731,106 @@ it('refuses late vesting bytes after the vesting read fails and hides cached pri
   );
   await view.findByText(AWARD_REQUEST.name!);
   await fireEvent.press(view.getByRole('button', { name: `Award records for ${AWARD_REQUEST.name}` }));
+  const write = post.getMockImplementation()!;
+  post.mockImplementation(async (url, body) => {
+    if (url === URLS.REGISTER_AWARD_ENDS) {
+      ends = [endFrom(body as RegisterAwardEndPreparation)];
+      awards = [
+        {
+          ...awards[0],
+          endedUnvestedShares: '20',
+          endedVestedShares: '20',
+          availableShares: '80',
+          unvestedRemainingShares: '80',
+          remainingUnissuedShares: '160',
+        },
+      ];
+      throw new Error('End receipt interrupted');
+    }
+    if (url === URLS.REGISTER_AWARD_VESTING_REVERSALS) {
+      reversals = [vestingReversalFrom(body as RegisterAwardVestingReversalPreparation, awards[0].uuid)];
+      awards = [{ ...awards[0], vestedShares: '90', availableShares: '70', unvestedRemainingShares: '90' }];
+      return { data: { ...reversals[0], reversedShares: '11' } };
+    }
+    return write(url, body);
+  });
+  const end = await view.findByRole('button', { name: COPY.END });
+  await waitFor(() => expect(end).not.toBeDisabled());
+  await fireEvent.press(end);
+  expect(view.getByLabelText(COPY.COMPANY_EVENT_ON)).toHaveDisplayValue('');
+  for (const [label, value] of [
+    [COPY.END_UNVESTED, '20'],
+    [COPY.END_VESTED, '20'],
+    [COPY.REASON, 'Company ends selected unissued rights'],
+    [COPY.COMPANY_EVENT_ON, '2026-10-12'],
+  ])
+    await fireEvent.changeText(view.getByLabelText(label), value);
+  await fireEvent.press(view.getByRole('button', { name: 'Choose the supporting evidence' }));
+  await view.findByRole('button', { name: 'Replace the supporting evidence' });
+  await fireEvent.press(view.getByRole('button', { name: COPY.END }));
+  await view.findByRole('alert');
+  const originalEnd = submissions(URLS.REGISTER_AWARD_ENDS)[0];
+  expect(originalEnd).toEqual(
+    expect.objectContaining({
+      award: awards[0].uuid,
+      unvestedShares: '20',
+      vestedShares: '20',
+      companyEventOn: '2026-10-12',
+    }),
+  );
+  failedRead = 'change';
+  await act(async () => client.refetchQueries({ queryKey: awardEndsKey(getSessionEpoch(), awards[0].uuid) }));
+  await view.findByText('Entitlement changes could not be loaded.');
+  expect(view.queryByLabelText(COPY.COMPANY_EVENT_ON)).toBeNull();
+  appointments = [{ ...APPOINTMENT, capabilities: ['read_register'] }];
+  failedRead = null;
+  await fireEvent.press(view.getByRole('button', { name: 'Refresh awards' }));
+  await fireEvent.press(await view.findByRole('button', { name: 'Retry entitlement changes' }));
+  const recoverEnd = await view.findByRole('button', { name: COPY.END });
+  await waitFor(() => expect(recoverEnd).not.toBeDisabled());
+  expect(view.getByLabelText(COPY.END_VESTED)).toHaveProp('editable', false);
+  mismatchedEndReceipt = true;
+  await fireEvent.press(recoverEnd);
+  await waitFor(() => expect(view.getByRole('button', { name: COPY.END })).not.toBeDisabled());
+  expect(view.getByRole('alert')).toBeTruthy();
+  expect(submissions(URLS.REGISTER_AWARD_ENDS)).toEqual([originalEnd]);
+  expect(view.getByLabelText(COPY.END_VESTED)).toHaveProp('editable', false);
+  mismatchedEndReceipt = false;
+  await fireEvent.press(view.getByRole('button', { name: COPY.END }));
+  await waitFor(() => expect(view.queryByRole('button', { name: 'Close change form' })).toBeNull());
+  expect(submissions(URLS.REGISTER_AWARD_ENDS)).toEqual([originalEnd]);
+  appointments = [APPOINTMENT];
+  await fireEvent.press(view.getByRole('button', { name: 'Refresh awards' }));
+  const reverse = await view.findByRole('button', { name: 'Correct vesting 100 shares dated 2026-10-07' });
+  await waitFor(() => expect(reverse).not.toBeDisabled());
+  await fireEvent.press(reverse);
+  for (const [label, value] of [
+    [COPY.REVERSED_SHARES, '10'],
+    [COPY.REASON, 'Correct recorded vesting'],
+    [COPY.COMPANY_EVENT_ON, '2026-10-13'],
+  ])
+    await fireEvent.changeText(view.getByLabelText(label), value);
+  await fireEvent.press(view.getByRole('button', { name: 'Choose the supporting evidence' }));
+  await view.findByRole('button', { name: 'Replace the supporting evidence' });
+  await fireEvent.press(view.getByRole('button', { name: COPY.REVERSE }));
+  await view.findByRole('alert');
+  const originalReversal = submissions(URLS.REGISTER_AWARD_VESTING_REVERSALS)[0];
+  expect(originalReversal).toEqual(expect.objectContaining({ vesting: events[0].uuid, reversedShares: '10' }));
+  await fireEvent.press(view.getByRole('button', { name: COPY.REVERSE }));
+  await waitFor(() => expect(view.queryByRole('button', { name: 'Close change form' })).toBeNull());
+  expect(submissions(URLS.REGISTER_AWARD_VESTING_REVERSALS)).toEqual([originalReversal]);
+  expect(awards[0]).toEqual(
+    expect.objectContaining({
+      shares: '200',
+      vestedShares: '90',
+      issuedShares: '0',
+      availableShares: '70',
+      endedUnvestedShares: '20',
+      endedVestedShares: '20',
+      remainingUnissuedShares: '160',
+    }),
+  );
+  expect(events[0].shares).toBe('100');
   await fireEvent.press(await view.findByRole('button', { name: /^Download vesting evidence/ }));
   await waitFor(() => expect(pendingFileRelease).toBeDefined());
   failedRead = 'vesting';

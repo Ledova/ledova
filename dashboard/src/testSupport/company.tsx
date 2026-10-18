@@ -106,6 +106,8 @@ export {
   REGISTER,
   awardFrom,
   vestingFrom,
+  endFrom,
+  vestingReversalFrom,
 } from '../../../packages/shared/tests/fixtures/employee-awards';
 export {
   ALLOTMENT_REQUEST,

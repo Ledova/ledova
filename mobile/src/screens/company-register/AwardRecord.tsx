@@ -6,15 +6,24 @@ import {
   REGISTER_AWARD_COPY as COPY,
   formatDateTime,
   formatShareCount,
+  remainingRegisterAwardVesting,
   type OwnCompanyAppointment,
   type RegisterAward,
 } from '@ledova/shared';
 import { Action, Disclosure, Row, Rows } from '../../components/Ledger';
 import { apiClient } from '../../services/apiClient';
 import { AwardVestingForm } from './AwardVestingForm';
+import { AwardAdjustmentForm } from './AwardAdjustmentForm';
 import { RegisterCopy } from '../../components/register/RegisterCopy';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
-import { awardVestingsKey, useRegisterAwardVestings } from './useRegisterAwards';
+import {
+  awardVestingsKey,
+  awardEndsKey,
+  awardVestingReversalsKey,
+  useRegisterAwardVestings,
+  useRegisterAwardEnds,
+  useRegisterAwardVestingReversals,
+} from './useRegisterAwards';
 
 export function AwardRecord({
   award,
@@ -39,10 +48,15 @@ export function AwardRecord({
 }) {
   const styles = useCompanyStyles();
   const client = useQueryClient();
-  const privateAvailable = useRef(visible);
+  const privateAvailable = useRef(visible && !blocked);
   useLayoutEffect(() => {
-    privateAvailable.current = visible;
-  }, [visible]);
+    privateAvailable.current = visible && !blocked;
+  }, [visible, blocked]);
+  const [adjusting, setAdjusting] = useState<{
+    appointment: OwnCompanyAppointment;
+    vesting?: string;
+    vestingLabel?: string;
+  } | null>(null);
   const [editing, setEditing] = useState<OwnCompanyAppointment | null>(null);
   const [details, setDetails] = useState(false);
   const [formHeld, setFormHeld] = useState(false);
@@ -51,19 +65,40 @@ export function AwardRecord({
   }, [onHeldChange, award.uuid, formHeld]);
   useEffect(() => () => onHeldChange?.(award.uuid, false), [onHeldChange, award.uuid]);
   const events = useRegisterAwardVestings(epoch, award.company, award.uuid, guard);
+  const ends = useRegisterAwardEnds(epoch, award.company, award.uuid, guard);
+  const reversals = useRegisterAwardVestingReversals(epoch, award.company, award.uuid, guard);
+  const eventReady = [events, ends, reversals].every((query) => query.isSuccess && !query.isFetching);
   const recordGuard = () => {
     guard();
-    const state = client.getQueryState(awardVestingsKey(epoch, award.uuid));
-    if (!privateAvailable.current || state?.status !== 'success' || state.fetchStatus !== 'idle')
+    if (
+      !privateAvailable.current ||
+      [
+        awardVestingsKey(epoch, award.uuid),
+        awardEndsKey(epoch, award.uuid),
+        awardVestingReversalsKey(epoch, award.uuid),
+      ].some((key) => {
+        const state = client.getQueryState(key);
+        return state?.status !== 'success' || state.fetchStatus !== 'idle';
+      })
+    )
       throw new Error('Refresh this award and its vesting records before continuing.');
   };
   const settle = async () => {
     guard();
     await onSettled();
-    await events.refetch({ throwOnError: true });
+    await Promise.all([
+      events.refetch({ throwOnError: true }),
+      ends.refetch({ throwOnError: true }),
+      reversals.refetch({ throwOnError: true }),
+    ]);
     guard();
     setEditing(null);
+    setAdjusting(null);
   };
+  const correcting = events.data?.find((event) => event.uuid === adjusting?.vesting);
+  const reversibleShares = correcting
+    ? (remainingRegisterAwardVesting(correcting, reversals.data ?? []) ?? undefined)
+    : undefined;
   return (
     <View style={visible ? styles.entry : undefined}>
       {visible && (
@@ -76,7 +111,7 @@ export function AwardRecord({
           <Text style={styles.muted}>
             {BigInt(award.availableShares) > 0n
               ? `${formatShareCount(award.availableShares)} vested shares are available for a separate company-approved issue.`
-              : BigInt(award.vestedShares) < BigInt(award.shares)
+              : BigInt(award.unvestedRemainingShares) > 0n
                 ? 'Record vesting when the company confirms its conditions.'
                 : 'No vested shares remain available to issue.'}
           </Text>
@@ -91,6 +126,10 @@ export function AwardRecord({
               <Row label={COPY.VESTED}>{award.vestedShares}</Row>
               <Row label={COPY.ISSUED}>{award.issuedShares}</Row>
               <Row label={COPY.AVAILABLE}>{award.availableShares}</Row>
+              <Row label={COPY.ENDED_UNVESTED}>{award.endedUnvestedShares}</Row>
+              <Row label={COPY.ENDED_VESTED}>{award.endedVestedShares}</Row>
+              <Row label={COPY.UNVESTED_REMAINING}>{award.unvestedRemainingShares}</Row>
+              <Row label={COPY.REMAINING_UNISSUED}>{award.remainingUnissuedShares}</Row>
               <Row label="Residential address">{award.residentialAddress}</Row>
               <Row label={COPY.TERMS_ON}>{award.termsOn}</Row>
               <Row label={COPY.TERMS}>{award.terms}</Row>
@@ -114,16 +153,22 @@ export function AwardRecord({
               }
             />
           </Disclosure>
-          {appointment && !blocked && !events.isFetching && !events.isError && BigInt(award.availableShares) > 0n && (
-            <Action
-              label="Issue vested shares"
-              accessibilityLabel={`Issue vested shares for ${award.name}`}
-              onPress={() => {
-                guard();
-                onPrepareGrant(award.uuid);
-              }}
-            />
-          )}
+          {appointment &&
+            !blocked &&
+            !formHeld &&
+            !editing &&
+            !adjusting &&
+            eventReady &&
+            BigInt(award.availableShares) > 0n && (
+              <Action
+                label="Issue vested shares"
+                accessibilityLabel={`Issue vested shares for ${award.name}`}
+                onPress={() => {
+                  recordGuard();
+                  onPrepareGrant(award.uuid);
+                }}
+              />
+            )}
           <View style={details || events.isError ? undefined : { display: 'none' }}>
             {events.isPending || events.isFetching ? (
               <Text style={styles.muted}>Loading vesting events…</Text>
@@ -163,21 +208,147 @@ export function AwardRecord({
                         })
                       }
                     />
+                    {appointment && (
+                      <Action
+                        label={COPY.REVERSE}
+                        accessibilityLabel={`Correct vesting ${event.shares} shares dated ${event.vestedOn}`}
+                        disabled={
+                          blocked ||
+                          !eventReady ||
+                          formHeld ||
+                          !!editing ||
+                          !!adjusting ||
+                          BigInt(award.availableShares) === 0n ||
+                          remainingRegisterAwardVesting(event, reversals.data ?? []) === null ||
+                          BigInt(remainingRegisterAwardVesting(event, reversals.data ?? []) ?? '0') === 0n
+                        }
+                        onPress={() => {
+                          recordGuard();
+                          const remaining = remainingRegisterAwardVesting(event, reversals.data ?? []);
+                          if (remaining !== null)
+                            setAdjusting({
+                              appointment,
+                              vesting: event.uuid,
+                              vestingLabel: `${event.shares} shares · ${event.vestedOn}`,
+                            });
+                        }}
+                      />
+                    )}
                   </View>
                 ))}
               </>
             )}
           </View>
-          {(editing || (appointment && BigInt(award.vestedShares) < BigInt(award.shares))) && (
+          {ends.isPending || reversals.isPending || ends.isFetching || reversals.isFetching ? (
+            <Text style={styles.muted}>Loading entitlement changes…</Text>
+          ) : ends.isError || reversals.isError ? (
+            <>
+              <Text accessibilityRole="alert" style={styles.error}>
+                Entitlement changes could not be loaded.
+              </Text>
+              <Action
+                label="Retry entitlement changes"
+                onPress={() => void Promise.all([ends.refetch(), reversals.refetch()])}
+              />
+            </>
+          ) : (
+            details && (
+              <>
+                {ends.data.map((event) => (
+                  <View key={event.uuid} style={styles.group}>
+                    <Rows>
+                      <Row label={COPY.ENDED_UNVESTED}>{event.unvestedShares}</Row>
+                      <Row label={COPY.ENDED_VESTED}>{event.vestedShares}</Row>
+                      <Row label={COPY.COMPANY_EVENT_ON}>{event.companyEventOn}</Row>
+                      <Row label={COPY.REASON}>{event.reason}</Row>
+                      <Row label="Recorded on">{formatDateTime(event.createdAt)}</Row>
+                      <Row label="Recorded by">{event.preparedByName || 'Name not recorded'}</Row>
+                    </Rows>
+                    <RegisterCopy
+                      label="Download entitlement evidence"
+                      accessibilityLabel={`Download entitlement evidence ${event.uuid}`}
+                      filename={`entitlement-${event.uuid}`}
+                      epoch={epoch}
+                      guard={recordGuard}
+                      read={() =>
+                        apiClient.get<ArrayBuffer>(COMPANY_TOKEN_ENDPOINTS.REGISTER_AWARD_END_FILE(event.uuid), {
+                          responseType: 'arraybuffer',
+                          ledovaSessionEpoch: epoch,
+                          ledovaSubmissionGuard: recordGuard,
+                        })
+                      }
+                    />
+                  </View>
+                ))}
+                {reversals.data.map((event) => (
+                  <View key={event.uuid} style={styles.group}>
+                    <Rows>
+                      <Row label={COPY.REVERSED_SHARES}>{event.reversedShares}</Row>
+                      <Row label="Original vesting">{event.vesting}</Row>
+                      <Row label={COPY.COMPANY_EVENT_ON}>{event.companyEventOn}</Row>
+                      <Row label={COPY.REASON}>{event.reason}</Row>
+                      <Row label="Recorded on">{formatDateTime(event.createdAt)}</Row>
+                      <Row label="Recorded by">{event.preparedByName || 'Name not recorded'}</Row>
+                    </Rows>
+                    <RegisterCopy
+                      label="Download correction evidence"
+                      accessibilityLabel={`Download correction evidence ${event.uuid}`}
+                      filename={`vesting-correction-${event.uuid}`}
+                      epoch={epoch}
+                      guard={recordGuard}
+                      read={() =>
+                        apiClient.get<ArrayBuffer>(
+                          COMPANY_TOKEN_ENDPOINTS.REGISTER_AWARD_VESTING_REVERSAL_FILE(event.uuid),
+                          {
+                            responseType: 'arraybuffer',
+                            ledovaSessionEpoch: epoch,
+                            ledovaSubmissionGuard: recordGuard,
+                          },
+                        )
+                      }
+                    />
+                  </View>
+                ))}
+              </>
+            )
+          )}
+          {(adjusting || (appointment && BigInt(award.remainingUnissuedShares) > 0n)) && (
+            <Action
+              label={adjusting ? 'Close change form' : COPY.END}
+              disabled={blocked || !eventReady || formHeld || !!editing}
+              onPress={() => {
+                recordGuard();
+                setAdjusting((value) => (value ? null : appointment ? { appointment } : null));
+              }}
+            />
+          )}
+          {(editing || (appointment && BigInt(award.unvestedRemainingShares) > 0n)) && (
             <>
               <Action
                 label={editing ? 'Close vesting form' : 'Record vesting'}
-                disabled={blocked || events.isFetching || events.isError || formHeld}
+                disabled={blocked || !eventReady || formHeld || !!adjusting}
                 onPress={() => setEditing((value) => (value ? null : (appointment ?? null)))}
               />
             </>
           )}
         </>
+      )}
+      {adjusting && (
+        <AwardAdjustmentForm
+          key={`${award.uuid}/${adjusting.appointment.uuid}/${adjusting.vesting ?? 'end'}`}
+          award={award}
+          epoch={epoch}
+          appointment={adjusting.appointment}
+          vesting={adjusting.vesting}
+          reversibleShares={reversibleShares}
+          vestingLabel={adjusting.vestingLabel}
+          guard={recordGuard}
+          blocked={blocked || !eventReady}
+          visible={visible && eventReady}
+          canPrepare={appointment?.uuid === adjusting.appointment.uuid}
+          onHeldChange={setFormHeld}
+          onRecorded={settle}
+        />
       )}
       {editing && (
         <AwardVestingForm
@@ -186,8 +357,8 @@ export function AwardRecord({
           epoch={epoch}
           appointment={editing}
           guard={recordGuard}
-          blocked={blocked || events.isFetching || events.isError}
-          visible={visible && events.isSuccess && !events.isFetching}
+          blocked={blocked || !eventReady}
+          visible={visible && eventReady}
           onHeldChange={setFormHeld}
           onRecorded={settle}
         />

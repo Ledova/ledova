@@ -29,7 +29,13 @@ export const MEMBER_RECORD: OwnMemberRecord = {
       vestedShares: '2',
       issuedShares: '0',
       availableShares: '2',
+      endedUnvestedShares: '0',
+      endedVestedShares: '0',
+      unvestedRemainingShares: '3',
+      remainingUnissuedShares: '5',
       vestings: [{ uuid: 'ffffffff-ffff-4fff-8fff-ffffffffffff', shares: '2', vestedOn: '2026-10-02' }],
+      ends: [],
+      vestingReversals: [],
     },
   ],
 };
