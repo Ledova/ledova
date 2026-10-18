@@ -187,8 +187,9 @@ function CompanyOfferings({ companyRead }: { companyRead: ReturnType<typeof useC
             <Section title="Investor Directory">
               <p className="text-sm text-text-muted">
                 Your company is listed in the investor directory only while this is on. Nothing is listed by default,
-                and {data.operatorName} can switch it off. Turning it off hides your share classes; it does not withdraw
-                an offering already under review.
+                and a compliance warning, suspension or delisting by {data.operatorName} also hides your company without
+                changing this switch. Turning it off hides your share classes; it does not withdraw an offering already
+                under review.
               </p>
               <SwitchRow
                 label="Show this company to eligible investors"
