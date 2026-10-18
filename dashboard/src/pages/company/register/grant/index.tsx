@@ -1,3 +1,5 @@
+import { PreparationBack, PreparationNotice, PreparationShell } from '@pages/company/register/shared/PreparationShell';
+import { useRegisterPreparationOwner } from '@pages/company/register/shared/useRegisterPreparationOwner';
 import { useGrantRegisters } from './useGrantRegisters';
 import { useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
@@ -7,13 +9,12 @@ import {
   REGISTER_GRANT_COPY as COPY,
   appointmentForRegisterStep,
   hasCurrentRegisterReadAuthority,
-  useSubmissionOwner,
   useUserPreferences,
   type OrderSubmissionOwner,
   type OwnCompanyAppointment,
 } from '@ledova/shared';
 import { Section } from '@components/Ledger';
-import { Page, PageAction } from '@components/Page';
+import { Page } from '@components/Page';
 import { Loading, Unavailable } from '@pages/company/shared/RegisterStatus';
 import { useRegisterClasses } from '@pages/company/shared/useCompanyRegister';
 import { ownerGuard } from '@pages/company/shared/ownerGuard';
@@ -30,10 +31,9 @@ export default function CompanyRegisterGrantPage() {
   const [params] = useSearchParams();
   const awardUuid = params.get('award') || '';
   const navigate = useNavigate();
-  const { owner, boundary } = useSubmissionOwner();
-  const preferences = useUserPreferences();
+  const { owner, boundary, preferences } = useRegisterPreparationOwner();
   const back = (
-    <PageAction
+    <PreparationBack
       label={awardUuid ? 'Back to Employee awards' : 'Back to Register'}
       onClick={() => navigate(`${DESTINATIONS.companyRegister.path}${awardUuid ? '#awards' : ''}`)}
     />
@@ -48,15 +48,7 @@ export default function CompanyRegisterGrantPage() {
         currentOwner={boundary.get}
       />
     );
-  return (
-    <Page narrow lede={LEDE} actions={back}>
-      {preferences.isLoading ? (
-        <Loading />
-      ) : (
-        <Unavailable retry={() => void preferences.refetch()} busy={preferences.isFetching} />
-      )}
-    </Page>
-  );
+  return <PreparationShell lede={LEDE} actions={back} preferences={preferences} />;
 }
 
 function OwnGrant({
@@ -153,9 +145,8 @@ function OwnGrant({
   let content: ReactNode;
   if (stale) content = <Unavailable retry={retry} busy={busy} />;
   else if (!classes.data || !appointments.data) content = <Loading />;
-  else if (!listed)
-    content = <p className="text-sm text-text-muted">This share class is not in a register you can read.</p>;
-  else if (!appointment) content = <p className="text-sm text-text-muted">{COPY.READ_ONLY_NOTE}</p>;
+  else if (!listed) content = <PreparationNotice />;
+  else if (!appointment) content = <PreparationNotice>{COPY.READ_ONLY_NOTE}</PreparationNotice>;
   else if (!register) content = <Loading />;
   else if (!register.initialized || register.token.status !== 'draft')
     content = (
@@ -190,7 +181,7 @@ function OwnGrant({
       narrow
       lede={LEDE}
       actions={
-        <PageAction
+        <PreparationBack
           label={awardUuid ? 'Back to Employee awards' : 'Back to Register'}
           disabled={held}
           onClick={() => navigate(`${DESTINATIONS.companyRegister.path}${awardUuid ? '#awards' : ''}`)}

@@ -1,3 +1,5 @@
+import { PreparationBack, PreparationNotice, PreparationShell } from '@pages/company/register/shared/PreparationShell';
+import { useRegisterPreparationOwner } from '@pages/company/register/shared/useRegisterPreparationOwner';
 import { useCorrectionEntry } from './useCorrectionEntry';
 import { useMemo, type ReactNode } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -6,13 +8,11 @@ import {
   DESTINATIONS,
   REGISTER_CORRECTION_COPY,
   appointmentForRegisterStep,
-  useSubmissionOwner,
-  useUserPreferences,
   type OrderSubmissionOwner,
   type RegisterEntry,
 } from '@ledova/shared';
 import { Row, Rows, Section } from '@components/Ledger';
-import { Page, PageAction } from '@components/Page';
+import { Page } from '@components/Page';
 import { RegisterChanges } from '@pages/company/register/shared/RegisterChanges';
 import { Loading, Unavailable } from '@pages/company/shared/RegisterStatus';
 import { describeEntry } from '@pages/company/shared/proposals';
@@ -35,9 +35,8 @@ function inverseOf(entry: RegisterEntry) {
 export default function CompanyRegisterCorrectionPage() {
   const { uuid = '', entry = '' } = useParams();
   const navigate = useNavigate();
-  const { owner, boundary } = useSubmissionOwner();
-  const preferences = useUserPreferences();
-  const back = <PageAction label="Back to Register" onClick={() => navigate(DESTINATIONS.companyRegister.path)} />;
+  const { owner, boundary, preferences } = useRegisterPreparationOwner();
+  const back = <PreparationBack onClick={() => navigate(DESTINATIONS.companyRegister.path)} />;
   if (owner && !preferences.isError)
     return (
       <OwnCorrection
@@ -49,15 +48,7 @@ export default function CompanyRegisterCorrectionPage() {
         back={back}
       />
     );
-  return (
-    <Page narrow lede={LEDE} actions={back}>
-      {preferences.isLoading ? (
-        <Loading />
-      ) : (
-        <Unavailable retry={() => void preferences.refetch()} busy={preferences.isFetching} />
-      )}
-    </Page>
-  );
+  return <PreparationShell lede={LEDE} actions={back} preferences={preferences} />;
 }
 
 function OwnCorrection({
@@ -92,9 +83,9 @@ function OwnCorrection({
   let content: ReactNode;
   if (!classes.data || !appointments.data)
     content = classes.isError || appointments.isError ? <Unavailable retry={retry} busy={fetching} /> : <Loading />;
-  else if (!listed)
-    content = <p className="py-3 text-sm text-text-muted">This share class is not in a register you can read.</p>;
-  else if (!appointment) content = <p className="py-3 text-sm text-text-muted">{COPY.READ_ONLY_NOTE}</p>;
+  else if (!listed) content = <PreparationNotice className="py-3 text-sm text-text-muted" />;
+  else if (!appointment)
+    content = <PreparationNotice className="py-3 text-sm text-text-muted">{COPY.READ_ONLY_NOTE}</PreparationNotice>;
   else if (corrected.data === undefined)
     content = corrected.isError ? <Unavailable retry={retry} busy={fetching} /> : <Loading />;
   else if (corrected.data === null)

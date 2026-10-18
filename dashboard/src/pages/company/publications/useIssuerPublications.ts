@@ -14,18 +14,8 @@ import {
   PUBLICATIONS_QUERY_KEY,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
+import { saveFile } from '@utils/saveFile';
 import type { CompanyActionRead } from '@pages/company/shared/CompanyState';
-
-function saveACopy(document_: Blob, filename: string) {
-  const url = URL.createObjectURL(document_);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = filename;
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-  window.setTimeout(() => URL.revokeObjectURL(url), 60000);
-}
 
 function openingFailure(error: unknown) {
   const cause = (error as UserFriendlyError | undefined)?.originalError ?? error;
@@ -75,7 +65,7 @@ export function useIssuerPublications(companyUuid: string | undefined, read: Com
         current();
         const { data } = await openPublication(apiClient, uuid);
         current();
-        saveACopy(data, publicationFilename(uuid, data.type));
+        saveFile(data, publicationFilename(uuid, data.type));
       } finally {
         pending.current = false;
       }

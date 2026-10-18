@@ -1,3 +1,5 @@
+import { PreparationBack, PreparationNotice, PreparationShell } from '@pages/company/register/shared/PreparationShell';
+import { useRegisterPreparationOwner } from '@pages/company/register/shared/useRegisterPreparationOwner';
 import { useLinkRegisters } from './useLinkRegisters';
 import { useMemo, type ReactNode } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -6,12 +8,10 @@ import {
   DESTINATIONS,
   REGISTER_LINK_COPY,
   appointmentForRegisterStep,
-  useSubmissionOwner,
-  useUserPreferences,
   type OrderSubmissionOwner,
 } from '@ledova/shared';
 import { Section } from '@components/Ledger';
-import { Page, PageAction } from '@components/Page';
+import { Page } from '@components/Page';
 import { Loading, Unavailable } from '@pages/company/shared/RegisterStatus';
 import { useRegisterClasses } from '@pages/company/shared/useCompanyRegister';
 import { ownerGuard } from '@pages/company/shared/ownerGuard';
@@ -27,9 +27,8 @@ const LEDE =
 export default function CompanyRegisterLinksPage() {
   const { company = '' } = useParams();
   const navigate = useNavigate();
-  const { owner, boundary } = useSubmissionOwner();
-  const preferences = useUserPreferences();
-  const back = <PageAction label="Back to Register" onClick={() => navigate(DESTINATIONS.companyRegister.path)} />;
+  const { owner, boundary, preferences } = useRegisterPreparationOwner();
+  const back = <PreparationBack onClick={() => navigate(DESTINATIONS.companyRegister.path)} />;
   if (owner && !preferences.isError)
     return (
       <OwnLinks
@@ -40,15 +39,7 @@ export default function CompanyRegisterLinksPage() {
         back={back}
       />
     );
-  return (
-    <Page narrow lede={LEDE} actions={back}>
-      {preferences.isLoading ? (
-        <Loading />
-      ) : (
-        <Unavailable retry={() => void preferences.refetch()} busy={preferences.isFetching} />
-      )}
-    </Page>
-  );
+  return <PreparationShell lede={LEDE} actions={back} preferences={preferences} />;
 }
 
 function OwnLinks({
@@ -92,7 +83,8 @@ function OwnLinks({
     content = classes.isError || appointments.isError ? <Unavailable retry={retry} busy={fetching} /> : <Loading />;
   else if (listed.length === 0)
     content = <p className="py-3 text-sm text-text-muted">This company is not in a register you can read.</p>;
-  else if (!appointment) content = <p className="py-3 text-sm text-text-muted">{COPY.READ_ONLY_NOTE}</p>;
+  else if (!appointment)
+    content = <PreparationNotice className="py-3 text-sm text-text-muted">{COPY.READ_ONLY_NOTE}</PreparationNotice>;
   else if (!registers.data || !waiting.data)
     content = stale ? <Unavailable retry={retry} busy={fetching} /> : <Loading />;
   else if (waiting.data.length === 0) content = <p className="py-3 text-sm text-text-muted">{COPY.NOTHING_WAITING}</p>;
