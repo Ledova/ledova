@@ -6725,7 +6725,28 @@
             "pattern": "^-?\\d{0,78}(?:\\.\\d{0,0})?$",
             "type": "string"
           },
+          "endedUnvestedShares": {
+            "format": "decimal",
+            "pattern": "^-?\\d{0,78}(?:\\.\\d{0,0})?$",
+            "type": "string"
+          },
+          "endedVestedShares": {
+            "format": "decimal",
+            "pattern": "^-?\\d{0,78}(?:\\.\\d{0,0})?$",
+            "type": "string"
+          },
+          "ends": {
+            "items": {
+              "$ref": "#/components/schemas/MemberRecordAwardEnd"
+            },
+            "type": "array"
+          },
           "issuedShares": {
+            "format": "decimal",
+            "pattern": "^-?\\d{0,78}(?:\\.\\d{0,0})?$",
+            "type": "string"
+          },
+          "remainingUnissuedShares": {
             "format": "decimal",
             "pattern": "^-?\\d{0,78}(?:\\.\\d{0,0})?$",
             "type": "string"
@@ -6749,6 +6770,11 @@
             "format": "uuid",
             "type": "string"
           },
+          "unvestedRemainingShares": {
+            "format": "decimal",
+            "pattern": "^-?\\d{0,78}(?:\\.\\d{0,0})?$",
+            "type": "string"
+          },
           "uuid": {
             "format": "uuid",
             "type": "string"
@@ -6757,6 +6783,12 @@
             "format": "decimal",
             "pattern": "^-?\\d{0,78}(?:\\.\\d{0,0})?$",
             "type": "string"
+          },
+          "vestingReversals": {
+            "items": {
+              "$ref": "#/components/schemas/MemberRecordAwardVestingReversal"
+            },
+            "type": "array"
           },
           "vestings": {
             "items": {
@@ -6767,15 +6799,96 @@
         },
         "required": [
           "availableShares",
+          "endedUnvestedShares",
+          "endedVestedShares",
+          "ends",
           "issuedShares",
+          "remainingUnissuedShares",
           "schedule",
           "shares",
           "terms",
           "termsOn",
           "token",
+          "unvestedRemainingShares",
           "uuid",
           "vestedShares",
+          "vestingReversals",
           "vestings"
+        ],
+        "type": "object"
+      },
+      "MemberRecordAwardEnd": {
+        "properties": {
+          "companyEventOn": {
+            "format": "date",
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "unvestedShares": {
+            "format": "decimal",
+            "pattern": "^-?\\d{0,78}(?:\\.\\d{0,0})?$",
+            "type": "string"
+          },
+          "uuid": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "vestedShares": {
+            "format": "decimal",
+            "pattern": "^-?\\d{0,78}(?:\\.\\d{0,0})?$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "companyEventOn",
+          "createdAt",
+          "reason",
+          "unvestedShares",
+          "uuid",
+          "vestedShares"
+        ],
+        "type": "object"
+      },
+      "MemberRecordAwardVestingReversal": {
+        "properties": {
+          "companyEventOn": {
+            "format": "date",
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "reversedShares": {
+            "format": "decimal",
+            "pattern": "^-?\\d{0,78}(?:\\.\\d{0,0})?$",
+            "type": "string"
+          },
+          "uuid": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "vesting": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "companyEventOn",
+          "createdAt",
+          "reason",
+          "reversedShares",
+          "uuid",
+          "vesting"
         ],
         "type": "object"
       },
@@ -9309,6 +9422,37 @@
         ],
         "type": "object"
       },
+      "PaginatedRegisterAwardEndList": {
+        "properties": {
+          "count": {
+            "example": 123,
+            "type": "integer"
+          },
+          "next": {
+            "example": "http://api.example.org/accounts/?page=4",
+            "format": "uri",
+            "nullable": true,
+            "type": "string"
+          },
+          "previous": {
+            "example": "http://api.example.org/accounts/?page=2",
+            "format": "uri",
+            "nullable": true,
+            "type": "string"
+          },
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/RegisterAwardEnd"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "count",
+          "results"
+        ],
+        "type": "object"
+      },
       "PaginatedRegisterAwardList": {
         "properties": {
           "count": {
@@ -9361,6 +9505,37 @@
           "results": {
             "items": {
               "$ref": "#/components/schemas/RegisterAwardVesting"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "count",
+          "results"
+        ],
+        "type": "object"
+      },
+      "PaginatedRegisterAwardVestingReversalList": {
+        "properties": {
+          "count": {
+            "example": 123,
+            "type": "integer"
+          },
+          "next": {
+            "example": "http://api.example.org/accounts/?page=4",
+            "format": "uri",
+            "nullable": true,
+            "type": "string"
+          },
+          "previous": {
+            "example": "http://api.example.org/accounts/?page=2",
+            "format": "uri",
+            "nullable": true,
+            "type": "string"
+          },
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/RegisterAwardVestingReversal"
             },
             "type": "array"
           }
@@ -12031,6 +12206,14 @@
             "readOnly": true,
             "type": "string"
           },
+          "endedUnvestedShares": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "endedVestedShares": {
+            "readOnly": true,
+            "type": "string"
+          },
           "issuedShares": {
             "readOnly": true,
             "type": "string"
@@ -12060,6 +12243,10 @@
           },
           "providedBy": {
             "default": "company",
+            "readOnly": true,
+            "type": "string"
+          },
+          "remainingUnissuedShares": {
             "readOnly": true,
             "type": "string"
           },
@@ -12096,6 +12283,10 @@
             "readOnly": true,
             "type": "string"
           },
+          "unvestedRemainingShares": {
+            "readOnly": true,
+            "type": "string"
+          },
           "uuid": {
             "description": "Unique identifier (primary key)",
             "format": "uuid",
@@ -12114,6 +12305,8 @@
           "availableShares",
           "company",
           "createdAt",
+          "endedUnvestedShares",
+          "endedVestedShares",
           "issuedShares",
           "member",
           "name",
@@ -12121,6 +12314,7 @@
           "preparedByName",
           "preparingAppointment",
           "providedBy",
+          "remainingUnissuedShares",
           "residentialAddress",
           "schedule",
           "shares",
@@ -12128,6 +12322,7 @@
           "terms",
           "termsOn",
           "token",
+          "unvestedRemainingShares",
           "uuid",
           "vestedShares"
         ],
@@ -12199,6 +12394,154 @@
           "terms",
           "termsOn",
           "tokenId"
+        ],
+        "type": "object"
+      },
+      "RegisterAwardEnd": {
+        "properties": {
+          "award": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "company": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "companyEventOn": {
+            "format": "date",
+            "readOnly": true,
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "readOnly": true,
+            "type": "string"
+          },
+          "evidence": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "evidenceFingerprint": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "evidenceSnapshot": {
+            "readOnly": true
+          },
+          "preparedByName": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "preparingAppointment": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "providedBy": {
+            "default": "company",
+            "readOnly": true,
+            "type": "string"
+          },
+          "reason": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "submittedBy": {
+            "readOnly": true,
+            "type": "integer"
+          },
+          "unvestedShares": {
+            "format": "decimal",
+            "pattern": "^-?\\d{0,78}(?:\\.\\d{0,0})?$",
+            "readOnly": true,
+            "type": "string"
+          },
+          "uuid": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "vestedShares": {
+            "format": "decimal",
+            "pattern": "^-?\\d{0,78}(?:\\.\\d{0,0})?$",
+            "readOnly": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "award",
+          "company",
+          "companyEventOn",
+          "createdAt",
+          "evidence",
+          "evidenceFingerprint",
+          "evidenceSnapshot",
+          "preparedByName",
+          "preparingAppointment",
+          "providedBy",
+          "reason",
+          "submittedBy",
+          "unvestedShares",
+          "uuid",
+          "vestedShares"
+        ],
+        "type": "object"
+      },
+      "RegisterAwardEndCreateRequest": {
+        "properties": {
+          "appointment": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "award": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "companyEventOn": {
+            "format": "date",
+            "type": "string"
+          },
+          "evidence": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "operationId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "reason": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "type": "string"
+          },
+          "unvestedShares": {
+            "minLength": 1,
+            "pattern": "^(0|[1-9][0-9]{0,77})$",
+            "type": "string"
+          },
+          "vestedShares": {
+            "minLength": 1,
+            "pattern": "^(0|[1-9][0-9]{0,77})$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "appointment",
+          "award",
+          "companyEventOn",
+          "evidence",
+          "operationId",
+          "reason",
+          "unvestedShares",
+          "vestedShares"
         ],
         "type": "object"
       },
@@ -12343,6 +12686,148 @@
           "operationId",
           "shares",
           "vestedOn"
+        ],
+        "type": "object"
+      },
+      "RegisterAwardVestingReversal": {
+        "properties": {
+          "award": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "company": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "companyEventOn": {
+            "format": "date",
+            "readOnly": true,
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "readOnly": true,
+            "type": "string"
+          },
+          "evidence": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "evidenceFingerprint": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "evidenceSnapshot": {
+            "readOnly": true
+          },
+          "preparedByName": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "preparingAppointment": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "providedBy": {
+            "default": "company",
+            "readOnly": true,
+            "type": "string"
+          },
+          "reason": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "reversedShares": {
+            "format": "decimal",
+            "pattern": "^-?\\d{0,78}(?:\\.\\d{0,0})?$",
+            "readOnly": true,
+            "type": "string"
+          },
+          "submittedBy": {
+            "readOnly": true,
+            "type": "integer"
+          },
+          "uuid": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "vesting": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "award",
+          "company",
+          "companyEventOn",
+          "createdAt",
+          "evidence",
+          "evidenceFingerprint",
+          "evidenceSnapshot",
+          "preparedByName",
+          "preparingAppointment",
+          "providedBy",
+          "reason",
+          "reversedShares",
+          "submittedBy",
+          "uuid",
+          "vesting"
+        ],
+        "type": "object"
+      },
+      "RegisterAwardVestingReversalCreateRequest": {
+        "properties": {
+          "appointment": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "companyEventOn": {
+            "format": "date",
+            "type": "string"
+          },
+          "evidence": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "operationId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "reason": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "type": "string"
+          },
+          "reversedShares": {
+            "minLength": 1,
+            "pattern": "^[1-9][0-9]{0,77}$",
+            "type": "string"
+          },
+          "vesting": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "appointment",
+          "companyEventOn",
+          "evidence",
+          "operationId",
+          "reason",
+          "reversedShares",
+          "vesting"
         ],
         "type": "object"
       },
@@ -31525,6 +32010,412 @@
     "/api/v1/tokens/register-allotments/{uuid}/receipt-file/": {
       "get": {
         "operationId": "api_v1_tokens_register_allotments_receipt_file_retrieve",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/tokens/register-award-ends/": {
+      "get": {
+        "operationId": "api_v1_tokens_register_award_ends_list",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "award",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "company",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Which field to use when ordering the results.",
+            "in": "query",
+            "name": "ordering",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "A page number within the paginated result set.",
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedRegisterAwardEndList"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      },
+      "post": {
+        "operationId": "api_v1_tokens_register_award_ends_create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterAwardEndCreateRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterAwardEndCreateRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterAwardEndCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisterAwardEnd"
+                }
+              }
+            },
+            "description": ""
+          },
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisterAwardEnd"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": [],
+            "csrfCookie": [],
+            "csrfHeader": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/tokens/register-award-ends/{uuid}/": {
+      "get": {
+        "operationId": "api_v1_tokens_register_award_ends_retrieve",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisterAwardEnd"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/tokens/register-award-ends/{uuid}/file/": {
+      "get": {
+        "operationId": "api_v1_tokens_register_award_ends_file_retrieve",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/tokens/register-award-vesting-reversals/": {
+      "get": {
+        "operationId": "api_v1_tokens_register_award_vesting_reversals_list",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "award",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "company",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Which field to use when ordering the results.",
+            "in": "query",
+            "name": "ordering",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "A page number within the paginated result set.",
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedRegisterAwardVestingReversalList"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      },
+      "post": {
+        "operationId": "api_v1_tokens_register_award_vesting_reversals_create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterAwardVestingReversalCreateRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterAwardVestingReversalCreateRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterAwardVestingReversalCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisterAwardVestingReversal"
+                }
+              }
+            },
+            "description": ""
+          },
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisterAwardVestingReversal"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": [],
+            "csrfCookie": [],
+            "csrfHeader": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/tokens/register-award-vesting-reversals/{uuid}/": {
+      "get": {
+        "operationId": "api_v1_tokens_register_award_vesting_reversals_retrieve",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisterAwardVestingReversal"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/tokens/register-award-vesting-reversals/{uuid}/file/": {
+      "get": {
+        "operationId": "api_v1_tokens_register_award_vesting_reversals_file_retrieve",
         "parameters": [
           {
             "in": "path",

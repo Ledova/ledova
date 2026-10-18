@@ -36,7 +36,9 @@ from tokens.models import (
     RegisterAllotment,
     RegisterAllotmentDecision,
     RegisterAward,
+    RegisterAwardEnd,
     RegisterAwardVesting,
+    RegisterAwardVestingReversal,
     RegisterContribution,
     RegisterEvidenceKind,
     RegisterGrant,
@@ -238,6 +240,29 @@ class ScopedAccessTest(CoreFixtures, APITransactionTestCase):
         vesting = self.vesting_payload(award["operation_id"])
         recorded_vesting = self.client.post("/api/v1/tokens/register-award-vestings/", vesting, format="json")
         self.assertEqual(recorded_vesting.status_code, 201, recorded_vesting.content)
+        ending = {
+            "operation_id": str(uuid4()),
+            "appointment": str(self.appointment.pk),
+            "award": award["operation_id"],
+            "unvested_shares": "1",
+            "vested_shares": "0",
+            "company_event_on": timezone.now().date().isoformat(),
+            "reason": "Company ending",
+            "evidence": vesting["evidence"],
+        }
+        ended = self.client.post("/api/v1/tokens/register-award-ends/", ending, format="json")
+        self.assertEqual(ended.status_code, 201, ended.content)
+        reversal = {
+            "operation_id": str(uuid4()),
+            "appointment": str(self.appointment.pk),
+            "vesting": vesting["operation_id"],
+            "reversed_shares": "1",
+            "company_event_on": timezone.now().date().isoformat(),
+            "reason": "Correct vesting",
+            "evidence": vesting["evidence"],
+        }
+        reversed_fact = self.client.post("/api/v1/tokens/register-award-vesting-reversals/", reversal, format="json")
+        self.assertEqual(reversed_fact.status_code, 201, reversed_fact.content)
         allotment = self.allotment_payload()
         capital = self.client.post("/api/v1/tokens/register-allotments/", allotment, format="json")
         self.assertEqual(capital.status_code, 201, capital.content)
@@ -357,9 +382,17 @@ class ScopedAccessTest(CoreFixtures, APITransactionTestCase):
             format="json",
         )
         self.assertEqual(response.status_code, 404, response.content)
+        linked = self.client.post("/api/v1/tokens/register-grants/", self.linked_grant_payload(award), format="json")
+        self.assertEqual(linked.status_code, 404, linked.content)
+        self.assertNotIn(award["agreement_evidence"], str(linked.json()))
         creation = self.client.post("/api/v1/tokens/register-grants/", self.grant_payload(), format="json")
         self.assertEqual(creation.status_code, 404, creation.content)
-        for endpoint, payload in (("register-awards", award), ("register-award-vestings", vesting)):
+        for endpoint, payload in (
+            ("register-awards", award),
+            ("register-award-vestings", vesting),
+            ("register-award-ends", ending),
+            ("register-award-vesting-reversals", reversal),
+        ):
             detail = f"/api/v1/tokens/{endpoint}/{payload['operation_id']}/"
             self.assertEqual(self.client.get(detail).status_code, 404)
             self.assertEqual(self.client.get(f"{detail}file/").status_code, 404)
@@ -368,12 +401,19 @@ class ScopedAccessTest(CoreFixtures, APITransactionTestCase):
         set_principal(self.foreign.pk, APP_ALIAS)
         self.assertEqual(RegisterGrant.objects.using(APP_ALIAS).filter(pk=identifier).count(), 0)
         self.assertEqual(RegisterGrant.objects.using(APP_ALIAS).filter(pk=identifier).update(status="applied"), 0)
-        for model, payload in ((RegisterAward, award), (RegisterAwardVesting, vesting)):
+        for model, payload in (
+            (RegisterAward, award),
+            (RegisterAwardVesting, vesting),
+            (RegisterAwardEnd, ending),
+            (RegisterAwardVestingReversal, reversal),
+        ):
             with self.assertRaises(ProgrammingError) as read:
                 model.objects.using(APP_ALIAS).filter(pk=payload["operation_id"]).count()
             self.assertEqual(read.exception.__cause__.sqlstate, "42501")
             with self.assertRaises(ProgrammingError) as write:
-                model.objects.using(APP_ALIAS).filter(pk=payload["operation_id"]).update(shares=1)
+                model.objects.using(APP_ALIAS).filter(pk=payload["operation_id"]).update(
+                    company_id=self.foreign_company.pk
+                )
             self.assertEqual(write.exception.__cause__.sqlstate, "42501")
         for suffix in ("", "file/", "agreement-file/", "receipt-file/"):
             self.assertEqual(self.client.get(f"{capital_detail}{suffix}").status_code, 404)

@@ -212,6 +212,24 @@ class MemberRecordVestingSerializer(serializers.Serializer):
     vested_on = serializers.DateField()
 
 
+class MemberRecordAwardEndSerializer(serializers.Serializer):
+    uuid = serializers.UUIDField()
+    unvested_shares = serializers.DecimalField(max_digits=78, decimal_places=0)
+    vested_shares = serializers.DecimalField(max_digits=78, decimal_places=0)
+    company_event_on = serializers.DateField()
+    reason = serializers.CharField()
+    created_at = serializers.DateTimeField()
+
+
+class MemberRecordAwardVestingReversalSerializer(serializers.Serializer):
+    uuid = serializers.UUIDField()
+    vesting = serializers.UUIDField()
+    reversed_shares = serializers.DecimalField(max_digits=78, decimal_places=0)
+    company_event_on = serializers.DateField()
+    reason = serializers.CharField()
+    created_at = serializers.DateTimeField()
+
+
 class MemberRecordAwardSerializer(serializers.Serializer):
     uuid = serializers.UUIDField()
     token = serializers.UUIDField()
@@ -222,7 +240,13 @@ class MemberRecordAwardSerializer(serializers.Serializer):
     vested_shares = serializers.DecimalField(max_digits=78, decimal_places=0)
     issued_shares = serializers.DecimalField(max_digits=78, decimal_places=0)
     available_shares = serializers.DecimalField(max_digits=78, decimal_places=0)
+    ended_unvested_shares = serializers.DecimalField(max_digits=78, decimal_places=0)
+    ended_vested_shares = serializers.DecimalField(max_digits=78, decimal_places=0)
+    unvested_remaining_shares = serializers.DecimalField(max_digits=78, decimal_places=0)
+    remaining_unissued_shares = serializers.DecimalField(max_digits=78, decimal_places=0)
     vestings = MemberRecordVestingSerializer(many=True)
+    ends = MemberRecordAwardEndSerializer(many=True)
+    vesting_reversals = MemberRecordAwardVestingReversalSerializer(many=True)
 
 
 class MemberRecordSerializer(serializers.Serializer):

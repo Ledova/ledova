@@ -65,7 +65,7 @@ export function useAwardVestingForm({
   };
   const today = new Date().toISOString().slice(0, 10);
   const problem =
-    !/^[1-9]\d*$/.test(shares) || BigInt(shares) > BigInt(award.shares) - BigInt(award.vestedShares)
+    !/^[1-9]\d*$/.test(shares) || BigInt(shares) > BigInt(award.unvestedRemainingShares)
       ? 'Enter a positive whole quantity within the award’s unvested shares.'
       : !/^\d{4}-\d{2}-\d{2}$/.test(vestedOn) || vestedOn > today
         ? 'Enter a vesting date no later than today (UTC).'

@@ -17,9 +17,69 @@ LANGUAGE sql STABLE SECURITY INVOKER SET search_path = pg_catalog, public, pg_te
         AND fingerprint = evidence.sha256 AND snapshot = tokens_register_evidence_snapshot(evidence)
         AND retained_file ~ ('^companies/' || issuer || '/' || family || '/' || operation_uuid || '/[0-9a-f-]{36}[.]bin$'));
 $$;
+CREATE FUNCTION tokens_employee_award_reversed(award_uuid uuid, through_on date) RETURNS numeric
+LANGUAGE plpgsql STABLE SECURITY INVOKER SET search_path = pg_catalog, public, pg_temp AS $$
+DECLARE quantity numeric;
+BEGIN
+    SELECT coalesce(sum(reversed_shares), 0) INTO quantity FROM tokens_registerawardvestingreversal
+        WHERE award_id = award_uuid AND (through_on IS NULL OR company_event_on <= through_on);
+    RETURN quantity;
+END;
+$$;
+CREATE FUNCTION tokens_employee_award_ended(award_uuid uuid, vested boolean) RETURNS numeric
+LANGUAGE plpgsql STABLE SECURITY INVOKER SET search_path = pg_catalog, public, pg_temp AS $$
+DECLARE quantity numeric;
+BEGIN
+    SELECT coalesce(sum(CASE WHEN vested THEN vested_shares ELSE unvested_shares END), 0) INTO quantity
+        FROM tokens_registerawardend WHERE award_id = award_uuid;
+    RETURN quantity;
+END;
+$$;
+CREATE FUNCTION tokens_employee_award_latest_on(award_uuid uuid) RETURNS date
+LANGUAGE plpgsql STABLE SECURITY INVOKER SET search_path = pg_catalog, public, pg_temp AS $$
+DECLARE latest date;
+BEGIN
+    SELECT greatest(promised.terms_on,
+        (SELECT max(vested_on) FROM tokens_registerawardvesting WHERE award_id = award_uuid),
+        (SELECT max(company_event_on) FROM tokens_registerawardend WHERE award_id = award_uuid),
+        (SELECT max(company_event_on) FROM tokens_registerawardvestingreversal WHERE award_id = award_uuid),
+        (SELECT max((to_jsonb(issued)->>'company_event_on')::date) FROM tokens_registergrant issued
+            WHERE issued.award_id = award_uuid AND issued.status = 'applied')) INTO latest
+        FROM tokens_registeraward promised WHERE promised.uuid = award_uuid;
+    RETURN latest;
+END;
+$$;
+CREATE FUNCTION tokens_employee_award_adjusted_at(award_uuid uuid) RETURNS timestamptz
+LANGUAGE plpgsql STABLE SECURITY INVOKER SET search_path = pg_catalog, public, pg_temp AS $$
+DECLARE latest timestamptz;
+BEGIN
+    SELECT greatest(
+        (SELECT max(created_at) FROM tokens_registerawardend WHERE award_id = award_uuid),
+        (SELECT max(created_at) FROM tokens_registerawardvestingreversal WHERE award_id = award_uuid)) INTO latest;
+    RETURN latest;
+END;
+$$;
+CREATE FUNCTION tokens_employee_award_adjustments(award_uuid uuid) RETURNS jsonb
+LANGUAGE plpgsql STABLE SECURITY INVOKER SET search_path = pg_catalog, public, pg_temp AS $$
+DECLARE ended jsonb; reversed jsonb;
+BEGIN
+    SELECT jsonb_agg(to_jsonb(fact) ORDER BY fact.uuid) INTO ended
+        FROM tokens_registerawardend fact WHERE fact.award_id = award_uuid;
+    SELECT jsonb_agg(to_jsonb(fact) ORDER BY fact.uuid) INTO reversed
+        FROM tokens_registerawardvestingreversal fact WHERE fact.award_id = award_uuid;
+    RETURN (CASE WHEN ended IS NULL THEN '{}'::jsonb ELSE jsonb_build_object('award_ends', ended) END)
+        || (CASE WHEN reversed IS NULL THEN '{}'::jsonb ELSE jsonb_build_object('vesting_reversals', reversed) END);
+END;
+$$;
+CREATE FUNCTION tokens_employee_award_vested_on(award_uuid uuid, through_on date) RETURNS numeric
+LANGUAGE sql STABLE SECURITY INVOKER SET search_path = pg_catalog, public, pg_temp AS $$
+    SELECT coalesce(sum(shares), 0) - tokens_employee_award_reversed(award_uuid, through_on)
+        FROM tokens_registerawardvesting WHERE award_id = award_uuid AND vested_on <= through_on;
+$$;
 CREATE FUNCTION tokens_employee_award_vested(award_uuid uuid) RETURNS numeric
 LANGUAGE sql STABLE SECURITY INVOKER SET search_path = pg_catalog, public, pg_temp AS $$
-    SELECT coalesce(sum(shares), 0) FROM tokens_registerawardvesting WHERE award_id = award_uuid;
+    SELECT coalesce(sum(shares), 0) - tokens_employee_award_reversed(award_uuid, NULL)
+        FROM tokens_registerawardvesting WHERE award_id = award_uuid;
 $$;
 CREATE FUNCTION tokens_employee_award_issued(award_uuid uuid, excluding_grant uuid) RETURNS numeric
 LANGUAGE sql STABLE SECURITY INVOKER SET search_path = pg_catalog, public, pg_temp AS $$
@@ -83,8 +143,8 @@ BEGIN
         OR NOT tokens_register_appointment_current(NEW.preparing_appointment_id, NEW.company_id, principal, 'prepare', clock_timestamp())
         OR NOT tokens_employee_award_class_ready(promised.token_id, promised.company_id)
         OR NEW.shares <= 0 OR NEW.shares >= 2::numeric^256 OR NEW.shares <> trunc(NEW.shares)
-        OR NEW.vested_on < promised.terms_on OR NEW.vested_on > (clock_timestamp() AT TIME ZONE 'UTC')::date
-        OR tokens_employee_award_vested(promised.uuid) + NEW.shares > promised.shares
+        OR NEW.vested_on < tokens_employee_award_latest_on(promised.uuid) OR NEW.vested_on > (clock_timestamp() AT TIME ZONE 'UTC')::date
+        OR tokens_employee_award_vested(promised.uuid) + NEW.shares + tokens_employee_award_ended(promised.uuid, false) > promised.shares
         OR NOT tokens_employee_award_evidence_matches(NEW.evidence_id, NEW.company_id, principal,
             NEW.evidence_fingerprint, NEW.evidence_snapshot, NEW.file, 'register-award-vestings', NEW.uuid)
     THEN
@@ -120,9 +180,12 @@ LANGUAGE sql STABLE SECURITY INVOKER SET search_path = pg_catalog, public, pg_te
             AND promised.token_id = proposal.token_id AND promised.member = proposal.member
             AND promised.terms_on = proposal.terms_on AND promised.terms = proposal.terms
             AND promised.agreement_fingerprint = proposal.terms_fingerprint
-            AND tokens_employee_award_vested(promised.uuid) <= promised.shares
-            AND tokens_employee_award_issued(promised.uuid, proposal.uuid) + proposal.shares
-                <= (SELECT COALESCE(sum(event.shares), 0) FROM tokens_registerawardvesting event WHERE event.award_id = promised.uuid AND event.vested_on <= (to_jsonb(proposal)->>'company_event_on')::date));
+            AND tokens_employee_award_vested(promised.uuid) + tokens_employee_award_ended(promised.uuid, false) <= promised.shares
+            AND (to_jsonb(proposal)->>'company_event_on')::date >= tokens_employee_award_latest_on(promised.uuid)
+            AND tokens_employee_award_issued(promised.uuid, proposal.uuid) + proposal.shares + tokens_employee_award_ended(promised.uuid, true)
+                <= tokens_employee_award_vested(promised.uuid)
+            AND tokens_employee_award_issued(promised.uuid, proposal.uuid) + proposal.shares + tokens_employee_award_ended(promised.uuid, true)
+                <= tokens_employee_award_vested_on(promised.uuid, (to_jsonb(proposal)->>'company_event_on')::date));
 $$;
 CREATE FUNCTION tokens_check_employee_award_allocation() RETURNS trigger
 LANGUAGE plpgsql SECURITY INVOKER SET search_path = pg_catalog, public, pg_temp AS $$
@@ -131,8 +194,8 @@ BEGIN
     IF NEW.award_id IS NULL OR NEW.status <> 'applied' THEN RETURN NULL; END IF;
     SELECT * INTO promised FROM tokens_registeraward WHERE uuid = NEW.award_id;
     IF NOT tokens_employee_award_grant_matches(NEW)
-        OR tokens_employee_award_issued(promised.uuid, NULL) > tokens_employee_award_vested(promised.uuid)
-        OR tokens_employee_award_vested(promised.uuid) > promised.shares THEN
+        OR tokens_employee_award_issued(promised.uuid, NULL) + tokens_employee_award_ended(promised.uuid, true) > tokens_employee_award_vested(promised.uuid)
+        OR tokens_employee_award_vested(promised.uuid) + tokens_employee_award_ended(promised.uuid, false) > promised.shares THEN
         RAISE EXCEPTION 'Applied employee grants cannot exceed recorded vested entitlement' USING ERRCODE = '23514';
     END IF;
     RETURN NULL;
@@ -165,6 +228,16 @@ LANGUAGE sql STABLE SECURITY INVOKER SET search_path = pg_catalog, public, pg_te
                     AND held.as_at = (clock_timestamp() AT TIME ZONE 'UTC')::date))) END AND tokens_employee_award_grant_matches(proposal);
 $$;
 
+CREATE OR REPLACE FUNCTION tokens_register_grant_approved(grant_uuid uuid, at_time timestamptz) RETURNS boolean
+LANGUAGE sql STABLE SECURITY INVOKER SET search_path = pg_catalog, public, pg_temp AS $$
+    SELECT EXISTS (SELECT 1 FROM tokens_registergrantdecision decision
+        JOIN tokens_registergrant proposal ON proposal.uuid = decision.register_grant_id
+        WHERE proposal.uuid = grant_uuid AND decision.kind = 'approve'
+            AND tokens_register_appointment_current(decision.appointment_id, proposal.company_id,
+                decision.decided_by_id, 'approve', at_time)
+            AND (proposal.award_id IS NULL OR coalesce(tokens_employee_award_adjusted_at(proposal.award_id) < decision.decided_at, true)));
+$$;
+
 CREATE OR REPLACE FUNCTION tokens_register_grant_decision_digest(grant_uuid uuid, decision_kind text, actor bigint,
     appointment_uuid uuid, decision_reason text) RETURNS text
 LANGUAGE sql STABLE SECURITY INVOKER SET search_path = pg_catalog, public, pg_temp AS $$
@@ -180,9 +253,26 @@ LANGUAGE sql STABLE SECURITY INVOKER SET search_path = pg_catalog, public, pg_te
             'vesting_events', (SELECT coalesce(jsonb_agg(to_jsonb(event) ORDER BY event.uuid), '[]'::jsonb)
                 FROM tokens_registerawardvesting event WHERE event.award_id = proposal.award_id),
             'issued_grants', (SELECT coalesce(jsonb_agg((to_jsonb(issued) - CASE WHEN to_jsonb(issued)->>'company_event_on' IS NULL THEN 'company_event_on' ELSE '' END) ORDER BY issued.uuid), '[]'::jsonb)
-                FROM tokens_registergrant issued WHERE issued.award_id = proposal.award_id AND issued.status = 'applied')) END)::text, 'UTF8')), 'hex')
+                FROM tokens_registergrant issued WHERE issued.award_id = proposal.award_id AND issued.status = 'applied')) || tokens_employee_award_adjustments(proposal.award_id) END)::text, 'UTF8')), 'hex')
     FROM tokens_registergrant proposal JOIN tokens_sharetoken token ON token.uuid = proposal.token_id
         LEFT JOIN tokens_shareregister register ON register.token_id = token.uuid WHERE proposal.uuid = grant_uuid;
+$$;
+
+CREATE FUNCTION tokens_register_grant_terms_evidence_matches(proposal tokens_registergrant, actor bigint) RETURNS boolean
+LANGUAGE sql STABLE SECURITY INVOKER SET search_path = pg_catalog, public, pg_temp AS $$
+    SELECT CASE WHEN proposal.award_id IS NOT NULL AND proposal.terms_evidence_id = (
+        SELECT agreement_evidence_id FROM tokens_registeraward WHERE uuid = proposal.award_id)
+    THEN EXISTS (SELECT 1 FROM tokens_registeraward promised WHERE promised.uuid = proposal.award_id
+        AND promised.company_id = proposal.company_id AND promised.token_id = proposal.token_id
+        AND promised.member = proposal.member AND promised.terms_on = proposal.terms_on AND promised.terms = proposal.terms
+        AND proposal.terms_fingerprint = promised.agreement_fingerprint
+        AND proposal.terms_snapshot = promised.agreement_snapshot
+        AND proposal.terms_file ~ ('^companies/' || proposal.company_id || '/register-grants/' || proposal.uuid || '/[0-9a-f-]{36}[.]bin$')
+        AND tokens_employee_award_evidence_matches(promised.agreement_evidence_id, promised.company_id,
+            promised.submitted_by_id, promised.agreement_fingerprint, promised.agreement_snapshot, promised.file,
+            'register-awards', promised.uuid))
+    ELSE tokens_register_grant_evidence_matches(proposal.terms_evidence_id, proposal.company_id, actor,
+        'supporting', proposal.terms_fingerprint, proposal.terms_snapshot, proposal.terms_file, proposal.uuid) END;
 $$;
 
 CREATE OR REPLACE FUNCTION tokens_guard_register_grant() RETURNS trigger
@@ -212,8 +302,7 @@ BEGIN
             OR NOT tokens_register_grant_ready(NEW, true)
             OR NOT tokens_register_grant_evidence_matches(NEW.authority_evidence_id, NEW.company_id, principal,
                 'authority', NEW.evidence_fingerprint, NEW.evidence_snapshot, NEW.file, NEW.uuid)
-            OR NOT tokens_register_grant_evidence_matches(NEW.terms_evidence_id, NEW.company_id, principal,
-                'supporting', NEW.terms_fingerprint, NEW.terms_snapshot, NEW.terms_file, NEW.uuid)
+            OR NOT tokens_register_grant_terms_evidence_matches(NEW, principal)
             OR (NEW.acceptance_required AND NOT tokens_register_grant_evidence_matches(NEW.acceptance_evidence_id,
                 NEW.company_id, principal, 'supporting', NEW.acceptance_fingerprint, NEW.acceptance_snapshot, NEW.acceptance_file, NEW.uuid))
             OR (NOT NEW.acceptance_required AND (NEW.acceptance_evidence_id IS NOT NULL OR NEW.acceptance_fingerprint <> ''
@@ -311,6 +400,63 @@ BEGIN
     THEN
         RAISE EXCEPTION 'A non-tokenised grant entry requires its exact current company application' USING ERRCODE = '23514';
     END IF;
+    RETURN NEW;
+END;
+$$;
+
+CREATE FUNCTION tokens_guard_employee_award_adjustment() RETURNS trigger
+LANGUAGE plpgsql SECURITY INVOKER SET search_path = pg_catalog, public, pg_temp AS $$
+DECLARE principal bigint; promised tokens_registeraward; original tokens_registerawardvesting;
+    ending boolean; unvested numeric; vested numeric; reversed numeric; facts jsonb; current_vested numeric; issued numeric;
+BEGIN
+    IF TG_OP <> 'INSERT' THEN
+        RAISE EXCEPTION 'Retain append-only entitlement endings and vesting reversals' USING ERRCODE = '23514';
+    END IF;
+    principal := NULLIF(current_setting('app.user_id', true), '')::bigint;
+    ending := TG_TABLE_NAME = 'tokens_registerawardend';
+    facts := to_jsonb(NEW);
+    SELECT * INTO promised FROM tokens_registeraward WHERE uuid = NEW.award_id;
+    PERFORM 1 FROM companies_company WHERE uuid = promised.company_id FOR UPDATE;
+    PERFORM 1 FROM tokens_sharetoken WHERE uuid = promised.token_id FOR UPDATE;
+    PERFORM 1 FROM tokens_shareregister WHERE token_id = promised.token_id FOR UPDATE;
+    SELECT * INTO promised FROM tokens_registeraward WHERE uuid = NEW.award_id FOR UPDATE;
+    current_vested := tokens_employee_award_vested(promised.uuid);
+    issued := tokens_employee_award_issued(promised.uuid, NULL);
+    IF current_user NOT IN (__OPERATOR__, __MIGRATE__) OR principal IS NULL OR promised.uuid IS NULL
+        OR NEW.company_id IS DISTINCT FROM promised.company_id OR NEW.submitted_by_id IS DISTINCT FROM principal
+        OR current_setting('app.company_operation', true) IS DISTINCT FROM (CASE WHEN ending THEN 'register_award_end_record' ELSE 'register_award_vesting_reversal_record' END)
+        OR current_setting('app.company_id', true) IS DISTINCT FROM promised.company_id::text
+        OR NOT tokens_register_appointment_current(NEW.preparing_appointment_id, NEW.company_id, principal, 'prepare', clock_timestamp())
+        OR NOT tokens_employee_award_class_ready(promised.token_id, promised.company_id)
+        OR NEW.company_event_on < tokens_employee_award_latest_on(promised.uuid)
+        OR NEW.company_event_on > (clock_timestamp() AT TIME ZONE 'UTC')::date
+        OR NEW.reason !~ '[^[:space:]]' OR length(NEW.reason) > 1000
+        OR NOT tokens_employee_award_evidence_matches(NEW.evidence_id, NEW.company_id, principal,
+            NEW.evidence_fingerprint, NEW.evidence_snapshot, NEW.file,
+            CASE WHEN ending THEN 'register-award-ends' ELSE 'register-award-vesting-reversals' END, NEW.uuid)
+    THEN
+        RAISE EXCEPTION 'Entitlement facts need current company authority, exact award, chronology, reason and evidence' USING ERRCODE = '23514';
+    END IF;
+    IF ending THEN
+        unvested := (facts->>'unvested_shares')::numeric;
+        vested := (facts->>'vested_shares')::numeric;
+        IF unvested < 0 OR vested < 0 OR unvested + vested <= 0 OR unvested >= 2::numeric^256 OR vested >= 2::numeric^256
+            OR unvested <> trunc(unvested) OR vested <> trunc(vested)
+            OR unvested + current_vested + tokens_employee_award_ended(promised.uuid, false) > promised.shares
+            OR vested + issued + tokens_employee_award_ended(promised.uuid, true) > current_vested THEN
+            RAISE EXCEPTION 'End only remaining unvested or vested-but-unissued entitlement' USING ERRCODE = '23514';
+        END IF;
+    ELSE
+        reversed := (facts->>'reversed_shares')::numeric;
+        SELECT * INTO original FROM tokens_registerawardvesting WHERE uuid = (facts->>'vesting_id')::uuid;
+        IF original.uuid IS NULL OR original.award_id IS DISTINCT FROM promised.uuid OR original.company_id IS DISTINCT FROM NEW.company_id
+            OR reversed <= 0 OR reversed >= 2::numeric^256 OR reversed <> trunc(reversed)
+            OR reversed + (SELECT coalesce(sum(reversed_shares), 0) FROM tokens_registerawardvestingreversal WHERE vesting_id = original.uuid) > original.shares
+            OR reversed + issued + tokens_employee_award_ended(promised.uuid, true) > current_vested THEN
+            RAISE EXCEPTION 'Reverse only an original vesting amount without removing issued or ended rights' USING ERRCODE = '23514';
+        END IF;
+    END IF;
+    NEW.created_at := clock_timestamp(); NEW.updated_at := NEW.created_at;
     RETURN NEW;
 END;
 $$;

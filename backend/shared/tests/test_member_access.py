@@ -30,6 +30,19 @@ class MemberAccessTest(CoreFixtures, APITransactionTestCase):
             "/api/v1/tokens/register-award-vestings/", self.vesting_payload(award["operation_id"]), format="json"
         )
         self.assertEqual(vesting.status_code, 201, vesting.content)
+        end_evidence = retained_evidence(self.owner, self.appointment, RegisterEvidenceKind.SUPPORTING)
+        end_payload = {
+            "operation_id": str(uuid4()),
+            "appointment": str(self.appointment.pk),
+            "award": award["operation_id"],
+            "unvested_shares": "1",
+            "vested_shares": "0",
+            "company_event_on": timezone.now().date().isoformat(),
+            "reason": "Company ends selected unvested rights",
+            "evidence": str(end_evidence.pk),
+        }
+        ended = self.client.post("/api/v1/tokens/register-award-ends/", end_payload, format="json")
+        self.assertEqual(ended.status_code, 201, ended.content)
         payload = self.invitation_payload(member=award["member"], intended_email=" CORE-FOREIGN@EXAMPLE.TEST ")
         issued = self.client.post("/api/v1/tokens/member-invitations/", payload, format="json")
         self.assertEqual(issued.status_code, 201, issued.content)
@@ -63,6 +76,20 @@ class MemberAccessTest(CoreFixtures, APITransactionTestCase):
         self.assertEqual(own.json()["classes"], [])
         self.assertEqual((own.json()["awards"][0]["shares"], own.json()["awards"][0]["vestedShares"]), ("30", "25"))
         self.assertEqual(own.json()["awards"][0]["issuedShares"], "0")
+        own_award = own.json()["awards"][0]
+        self.assertEqual(
+            (
+                own_award["endedUnvestedShares"],
+                own_award["remainingUnissuedShares"],
+                own_award["unvestedRemainingShares"],
+            ),
+            ("1", "29", "4"),
+        )
+        self.assertEqual(own_award["ends"][0]["uuid"], end_payload["operation_id"])
+        self.assertNotIn("evidence", str(own_award["ends"]))
+        self.assertEqual(
+            self.client.get(f"/api/v1/tokens/register-award-ends/{end_payload['operation_id']}/file/").status_code, 404
+        )
         self.assertNotIn("evidence", str(own.json()).lower())
         with use_operator():
             self.assertFalse(RegisterMember.objects.filter(pk=award["member"]).exists())

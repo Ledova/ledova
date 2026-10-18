@@ -1,27 +1,44 @@
-import { formatShareCount } from '@ledova/shared';
+import { formatShareCount, hasValidRegisterAwardTotals, REGISTER_AWARD_COPY as COPY } from '@ledova/shared';
 
 export function AwardStatus({
   shares,
   vestedShares,
   issuedShares,
   availableShares,
+  endedUnvestedShares,
+  endedVestedShares,
+  unvestedRemainingShares,
+  remainingUnissuedShares,
 }: {
   shares: string;
   vestedShares: string;
   issuedShares: string;
   availableShares: string;
+  endedUnvestedShares: string;
+  endedVestedShares: string;
+  unvestedRemainingShares: string;
+  remainingUnissuedShares: string;
 }) {
-  const quantities = [shares, vestedShares, issuedShares, availableShares];
-  if (!quantities.every((quantity) => /^\d+$/.test(quantity)))
+  if (
+    !hasValidRegisterAwardTotals({
+      shares,
+      vestedShares,
+      issuedShares,
+      availableShares,
+      endedUnvestedShares,
+      endedVestedShares,
+      unvestedRemainingShares,
+      remainingUnissuedShares,
+    })
+  )
     return <p role="status">Award quantities are unavailable. Refresh the current record.</p>;
-  const [promised, vested, issued, available] = quantities.map((quantity) => BigInt(quantity));
-  if (issued > vested || vested > promised || available !== vested - issued)
-    return <p role="status">Award quantities are unavailable. Refresh the current record.</p>;
-  if (promised === 0n) return <p className="text-sm text-text-muted">No award shares recorded.</p>;
+  const promised = BigInt(shares);
   const parts = [
-    { label: 'Unvested', quantity: promised - vested, look: 'bg-text-muted/35' },
-    { label: 'Vested, awaiting issue', quantity: available, look: 'bg-brand-mid/45' },
-    { label: 'Issued from award', quantity: issued, look: 'bg-brand-mid' },
+    { label: 'Unvested', quantity: BigInt(unvestedRemainingShares), look: 'bg-text-muted/35' },
+    { label: 'Vested, awaiting issue', quantity: BigInt(availableShares), look: 'bg-brand-mid/45' },
+    { label: 'Issued from award', quantity: BigInt(issuedShares), look: 'bg-brand-mid' },
+    { label: COPY.ENDED_UNVESTED, quantity: BigInt(endedUnvestedShares), look: 'bg-text-muted/70' },
+    { label: COPY.ENDED_VESTED, quantity: BigInt(endedVestedShares), look: 'bg-text-muted/70' },
   ];
   return (
     <div className="space-y-3">
@@ -50,7 +67,10 @@ export function AwardStatus({
           </div>
         ))}
       </dl>
-      <p className="text-xs text-text-muted">Issued award shares are already included in the holding.</p>
+      <p className="text-xs text-text-muted">
+        {formatShareCount(remainingUnissuedShares)} shares remain unissued. Issued award shares are already included in
+        the holding.
+      </p>
     </div>
   );
 }

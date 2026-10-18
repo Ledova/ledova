@@ -272,6 +272,19 @@ function MemberRecords({
                                       vested
                                     </p>
                                   ))}
+                                  {award.ends.map((event) => (
+                                    <p key={event.uuid}>
+                                      {formatDate(event.companyEventOn)} · {formatShareCount(event.unvestedShares)}{' '}
+                                      unvested and {formatShareCount(event.vestedShares)} vested unissued rights ended ·{' '}
+                                      {event.reason}
+                                    </p>
+                                  ))}
+                                  {award.vestingReversals.map((event) => (
+                                    <p key={event.uuid}>
+                                      {formatDate(event.companyEventOn)} · {formatShareCount(event.reversedShares)}{' '}
+                                      vesting reversed · original {event.vesting} · {event.reason}
+                                    </p>
+                                  ))}
                                 </div>
                               </details>
                             </div>

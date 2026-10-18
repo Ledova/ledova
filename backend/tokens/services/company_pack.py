@@ -25,7 +25,9 @@ from tokens.models import (
     RegisterAgreement,
     RegisterAllotment,
     RegisterAward,
+    RegisterAwardEnd,
     RegisterAwardVesting,
+    RegisterAwardVestingReversal,
     RegisterContribution,
     RegisterEntry,
     RegisterExport,
@@ -425,6 +427,8 @@ def _build_company_pack(company, *, instruction, recipient, validate_contents=No
             record
             for model in (
                 RegisterAward,
+                RegisterAwardEnd,
+                RegisterAwardVestingReversal,
                 RegisterAwardVesting,
                 RegisterAgreement,
                 RegisterContribution,

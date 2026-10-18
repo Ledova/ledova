@@ -5,7 +5,9 @@ export const REGISTER_GRANT_UNMET_COPY: Record<string, string> = {
   grant_decided: 'This grant has already been applied or rejected.',
   already_approved: 'This grant already has a current approval.',
   approval_required: 'Approve this grant before applying it.',
-  approval_lapsed: "The approver's appointment has ended. Approve this grant again before applying it.",
+  approval_lapsed: 'This approval is no longer current. Approve this grant again before applying it.',
+  award_chronology_changed:
+    'The issue date is before a later accepted award event or known issue. Reject this preparation and prepare it again with the company’s correct date.',
   evidence_unavailable: 'A retained document no longer matches its record. Prepare a new grant.',
   company_provided_evidence_required: 'This grant must retain evidence provided by the company.',
   imported_non_tokenised_register_required:

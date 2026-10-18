@@ -595,6 +595,13 @@ OPERATOR_ONLY = {
     "award terms and quantities, and an award-only member's recorded identity, through "
     "tokens/services/member_access.py own_record; and permitted staff copy them into a company pack through "
     "CompanyPackAdmin.produce. All of it runs on the operator connection.",
+    "tokens_registerawardend": "Append-only company entitlement endings and private evidence, written only by "
+    "record_award_end under an exact company appointment. Current exact-company register appointments read them; "
+    "the recipient's current own member association reads its own endings, without the evidence, through "
+    "own_record; and permitted staff copy them into a company pack through CompanyPackAdmin.produce. All of it "
+    "runs on the operator connection.",
+    "tokens_registerawardvestingreversal": "Append-only referenced vesting reversals and private evidence, written "
+    "only by record_award_vesting_reversal under an exact company appointment, and read like the award endings.",
     "tokens_registerawardvesting": "Append-only company-confirmed vesting facts and private evidence, written only "
     "by record_award_vesting. Current exact-company register appointments read them; the recipient's current own "
     "member association reads its own vesting shares and dates, without the evidence, through own_record; and "

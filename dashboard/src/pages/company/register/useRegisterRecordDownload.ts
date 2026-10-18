@@ -4,6 +4,8 @@ import {
   downloadRegisterAllotmentFile,
   downloadRegisterAwardFile,
   downloadRegisterAwardVestingFile,
+  downloadRegisterAwardEndFile,
+  downloadRegisterAwardVestingReversalFile,
   downloadRegisterCorrectionFile,
   downloadRegisterGrantFile,
   downloadRegisterImportFile,
@@ -27,6 +29,10 @@ import { retainedName } from '@pages/company/shared/proposals';
 import {
   awardsKey,
   awardVestingsKey,
+  awardEndsKey,
+  awardVestingReversalsKey,
+  type useRegisterAwardEnds,
+  type useRegisterAwardVestingReversals,
   type useRegisterAwardVestings,
 } from '@pages/company/register/shared/useRegisterAwards';
 import { ownAppointmentsKey } from '@hooks/useOwnAppointments';
@@ -58,6 +64,8 @@ export function useAwardRecordDownload(
   blocked: boolean,
   visible: boolean,
   events: ReturnType<typeof useRegisterAwardVestings>,
+  ends: ReturnType<typeof useRegisterAwardEnds>,
+  reversals: ReturnType<typeof useRegisterAwardVestingReversals>,
 ) {
   const client = useQueryClient();
   const latestReady = useRef({ blocked, visible });
@@ -65,11 +73,16 @@ export function useAwardRecordDownload(
     latestReady.current = { blocked, visible };
   }, [blocked, visible]);
   return useMutation({
-    mutationFn: async (eventId?: string) => {
+    mutationFn: async (event?: { kind: 'vesting' | 'end' | 'reversal'; uuid: string }) => {
       const check = () => {
         guard();
-        const keys = [awardsKey(owner, award.token), ownAppointmentsKey(owner)];
-        if (eventId) keys.push(awardVestingsKey(owner, award.uuid));
+        const keys = [
+          awardsKey(owner, award.token),
+          ownAppointmentsKey(owner),
+          awardVestingsKey(owner, award.uuid),
+          awardEndsKey(owner, award.uuid),
+          awardVestingReversalsKey(owner, award.uuid),
+        ];
         if (
           latestReady.current.blocked ||
           !latestReady.current.visible ||
@@ -81,14 +94,24 @@ export function useAwardRecordDownload(
           throw new Error('Refresh the current award and its events before downloading evidence.');
       };
       check();
-      const { data } = eventId
-        ? await downloadRegisterAwardVestingFile(apiClient, eventId, { ledovaSubmissionGuard: check })
-        : await downloadRegisterAwardFile(apiClient, award.uuid, { ledovaSubmissionGuard: check });
+      const { data } =
+        event?.kind === 'vesting'
+          ? await downloadRegisterAwardVestingFile(apiClient, event.uuid, { ledovaSubmissionGuard: check })
+          : event?.kind === 'end'
+            ? await downloadRegisterAwardEndFile(apiClient, event.uuid, { ledovaSubmissionGuard: check })
+            : event?.kind === 'reversal'
+              ? await downloadRegisterAwardVestingReversalFile(apiClient, event.uuid, { ledovaSubmissionGuard: check })
+              : await downloadRegisterAwardFile(apiClient, award.uuid, { ledovaSubmissionGuard: check });
       check();
-      const snapshot = eventId
-        ? events.data?.find((row) => row.uuid === eventId)?.evidenceSnapshot
-        : award.agreementSnapshot;
-      saveFile(data, retainedName(snapshot, `award-${eventId || award.uuid}`));
+      const snapshot =
+        event?.kind === 'vesting'
+          ? events.data?.find((row) => row.uuid === event.uuid)?.evidenceSnapshot
+          : event?.kind === 'end'
+            ? ends.data?.find((row) => row.uuid === event.uuid)?.evidenceSnapshot
+            : event?.kind === 'reversal'
+              ? reversals.data?.find((row) => row.uuid === event.uuid)?.evidenceSnapshot
+              : award.agreementSnapshot;
+      saveFile(data, retainedName(snapshot, `award-${event?.uuid || award.uuid}`));
     },
   });
 }

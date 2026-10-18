@@ -3,12 +3,12 @@ from datetime import date
 from uuid import UUID
 
 from django.core.files.base import ContentFile
-from django.db import IntegrityError
-from django.db.models import Sum
+from django.db import IntegrityError, connections
 from django.utils import timezone
 from rest_framework.exceptions import NotFound, ValidationError
 
 from companies.models import CompanyCapability
+from shared.db import current_alias
 from tokens.constants import REGISTER_IMPORT_ADDRESS_LENGTH
 from tokens.exceptions import RegisterChangeConflict
 from tokens.models import (
@@ -166,6 +166,7 @@ def prepare_grant(
             if token is None:
                 raise NotFound("Share class not found.")
             list(ShareRegister.objects.select_for_update().filter(token=token).values_list("uuid", flat=True))
+            promised = None
             if award is not None:
                 promised = RegisterAward.objects.select_for_update().filter(pk=award, company=company).first()
                 if promised is None:
@@ -229,12 +230,35 @@ def prepare_grant(
                 if reference is None:
                     continue
                 evidence = RegisterEvidence.objects.select_for_update().filter(pk=reference).first()
-                raw = own_evidence_bytes(
-                    evidence, kind, company, current_actor, "Name the required evidence you uploaded for this company."
-                )
+                if prefix == "terms_" and promised is not None and reference == promised.agreement_evidence_id:
+                    if evidence is None or (
+                        evidence.kind,
+                        evidence.company_id,
+                        evidence.sha256,
+                        evidence_snapshot(evidence),
+                    ) != (
+                        RegisterEvidenceKind.SUPPORTING,
+                        company.pk,
+                        promised.agreement_fingerprint,
+                        promised.agreement_snapshot,
+                    ):
+                        raise ValidationError("The retained award agreement no longer matches its evidence.")
+                    raw = matching_bytes(
+                        promised.file, promised.agreement_snapshot["file_size"], promised.agreement_fingerprint
+                    )
+                    fingerprint, snapshot = promised.agreement_fingerprint, promised.agreement_snapshot
+                else:
+                    raw = own_evidence_bytes(
+                        evidence,
+                        kind,
+                        company,
+                        current_actor,
+                        "Name the required evidence you uploaded for this company.",
+                    )
+                    fingerprint, snapshot = evidence.sha256, evidence_snapshot(evidence)
                 setattr(proposal, "authority_evidence" if not prefix else f"{prefix}evidence", evidence)
-                setattr(proposal, f"{prefix}fingerprint" if prefix else "evidence_fingerprint", evidence.sha256)
-                setattr(proposal, f"{prefix}snapshot" if prefix else "evidence_snapshot", evidence_snapshot(evidence))
+                setattr(proposal, f"{prefix}fingerprint" if prefix else "evidence_fingerprint", fingerprint)
+                setattr(proposal, f"{prefix}snapshot" if prefix else "evidence_snapshot", snapshot)
                 getattr(proposal, f"{prefix}file").save("evidence.bin", ContentFile(raw), save=False)
             unmet = _award_requirements(proposal)
             if unmet:
@@ -253,7 +277,7 @@ def prepare_grant(
 def _award_requirements(proposal):
     if proposal.award_id is None:
         return []
-    from tokens.services.register_awards import award_quantities
+    from tokens.services.register_awards import award_latest_on, award_quantities
 
     award = RegisterAward.objects.filter(pk=proposal.award_id).first()
     if award is None or (
@@ -273,17 +297,19 @@ def _award_requirements(proposal):
     ):
         return ["award_binding_required"]
     unmet = []
-    vested = (
-        award.vestings.filter(vested_on__lte=proposal.company_event_on).aggregate(total=Sum("shares"))["total"]
-        if proposal.company_event_on
-        else 0
-    )
-    issued = int(award_quantities(award, excluding_grant=proposal.pk)["issued_shares"])
-    if int(proposal.shares) > int(vested or 0) - issued:
+    quantities = award_quantities(award, excluding_grant=proposal.pk)
+    with connections[current_alias()].cursor() as cursor:
+        cursor.execute("SELECT tokens_employee_award_vested_on(%s, %s)", [award.pk, proposal.company_event_on])
+        vested = int(cursor.fetchone()[0]) if proposal.company_event_on else 0
+    if proposal.company_event_on and proposal.company_event_on < award_latest_on(award):
+        unmet.append("award_chronology_changed")
+    issued = int(quantities["issued_shares"])
+    ended = int(quantities["ended_vested_shares"])
+    if int(proposal.shares) > min(vested - issued - ended, int(quantities["available_shares"])):
         unmet.append("recorded_vested_quantity_required")
     try:
         matching_bytes(award.file, award.agreement_snapshot["file_size"], award.agreement_fingerprint)
-        for event in award.vestings.all():
+        for event in [*award.vestings.all(), *award.ends.all(), *award.vesting_reversals.all()]:
             matching_bytes(event.file, event.evidence_snapshot["file_size"], event.evidence_fingerprint)
     except ValidationError:
         unmet.append("award_evidence_unavailable")

@@ -87,7 +87,12 @@ export function useGrantPreparation({
   }, [blocked, visible]);
   const pending = useRef(false);
   const uploads = useRef<Partial<Record<DocumentKind, Uploaded>>>({});
-  const operation = useRef<{ request: RegisterGrantPreparation; confirmed: boolean; uncertain: boolean } | null>(null);
+  const operation = useRef<{
+    request: RegisterGrantPreparation;
+    agreementFingerprint?: string;
+    confirmed: boolean;
+    uncertain: boolean;
+  } | null>(null);
   useEffect(() => {
     mounted.current = true;
     return () => {
@@ -100,9 +105,11 @@ export function useGrantPreparation({
       throw createUserFriendlyError('Refresh company access and register records before continuing.');
     if (!mounted.current) throw createUserFriendlyError('This grant form is closed. Reopen it before continuing.');
   };
-  const documentKinds: DocumentKind[] = acceptanceRequired
-    ? ['authority', 'terms', 'acceptance']
-    : ['authority', 'terms'];
+  const documentKinds: DocumentKind[] = [
+    'authority',
+    ...(!award ? ['terms' as const] : []),
+    ...(acceptanceRequired ? ['acceptance' as const] : []),
+  ];
   const newRecipient = award ? !awardMember : member === 'new';
   const recipientName = award ? (awardMember?.name ?? award.name) : name.trim();
   const recipientAddress = award ? (awardMember?.residentialAddress ?? award.residentialAddress) : address.trim();
@@ -122,7 +129,9 @@ export function useGrantPreparation({
               : !retainedSummary || !approvingDirector.trim() || !authorityReference.trim() || !reason.trim()
                 ? 'Give the non-paid terms, approving director, authority reference and reason.'
                 : documentKinds.some((kind) => !files[kind])
-                  ? 'Choose the authority, terms and any required acceptance documents.'
+                  ? award
+                    ? 'Choose the authority and any required acceptance documents.'
+                    : 'Choose the authority, terms and any required acceptance documents.'
                   : null;
   const upload = async (kind: DocumentKind) => {
     const file = files[kind]!;
@@ -154,7 +163,7 @@ export function useGrantPreparation({
     uploads.current[kind] = { file, appointment: appointment.uuid, key, receipt: data };
     return data;
   };
-  const lookup = async (request: RegisterGrantPreparation) => {
+  const lookup = async (request: RegisterGrantPreparation, agreementFingerprint?: string) => {
     const rows = await readEveryPage(async (page) => {
       check();
       const response = await getRegisterGrants(apiClient, { token, page }, { ledovaSubmissionGuard: check });
@@ -164,7 +173,7 @@ export function useGrantPreparation({
     if (rows.some((row) => row.company !== company || row.token !== token))
       throw createUserFriendlyError('The grants did not identify this company and share class.');
     const original = rows.find((row) => row.uuid === request.operationId);
-    if (original && !isPreparedRegisterGrant(original, request))
+    if (original && !isPreparedRegisterGrant(original, request, agreementFingerprint))
       throw createUserFriendlyError(COPY.PREPARATION_RECEIPT_FAILED);
     return original;
   };
@@ -179,10 +188,17 @@ export function useGrantPreparation({
       let command = operation.current;
       if (!command) {
         if (!canPrepare) throw createUserFriendlyError('Current preparation authority is required to prepare a grant.');
+        const agreement = award ? { evidence: award.agreementEvidence, fingerprint: award.agreementFingerprint } : null;
+        if (
+          agreement &&
+          (typeof agreement.evidence !== 'string' ||
+            !agreement.evidence.trim() ||
+            typeof agreement.fingerprint !== 'string' ||
+            !/^[0-9a-f]{64}$/.test(agreement.fingerprint))
+        )
+          throw createUserFriendlyError('The retained award agreement could not be confirmed. Refresh the award.');
         const authority = await upload('authority');
-        const retainedTerms = await upload('terms');
-        if (award && retainedTerms.sha256 !== award.agreementFingerprint)
-          throw createUserFriendlyError('Upload the same agreement document retained for this award.');
+        const termsEvidence = agreement ? agreement.evidence : (await upload('terms')).uuid;
         const acceptance = acceptanceRequired ? await upload('acceptance') : null;
         const request: RegisterGrantPreparation = {
           operationId: crypto.randomUUID(),
@@ -200,17 +216,17 @@ export function useGrantPreparation({
           authorityReference: authorityReference.trim(),
           reason: reason.trim(),
           authorityEvidence: authority.uuid,
-          termsEvidence: retainedTerms.uuid,
+          termsEvidence,
           acceptanceRequired,
           acceptanceEvidence: acceptance?.uuid ?? null,
         };
-        command = { request, confirmed: false, uncertain: false };
+        command = { request, agreementFingerprint: agreement?.fingerprint, confirmed: false, uncertain: false };
         operation.current = command;
         setHeld(true);
       }
       let absent = false;
       if (command.uncertain && !command.confirmed) {
-        command.confirmed = !!(await lookup(command.request));
+        command.confirmed = !!(await lookup(command.request, command.agreementFingerprint));
         absent = !command.confirmed;
       }
       if (!command.confirmed) {
@@ -218,13 +234,13 @@ export function useGrantPreparation({
           check();
           const { data } = await prepareRegisterGrant(apiClient, command.request, { ledovaSubmissionGuard: check });
           check();
-          if (!isPreparedRegisterGrant(data, command.request))
+          if (!isPreparedRegisterGrant(data, command.request, command.agreementFingerprint))
             throw createUserFriendlyError(COPY.PREPARATION_RECEIPT_FAILED);
           command.confirmed = true;
         } catch (failure) {
           const status = failureStatus(failure);
           if (!absent || !status || status < 400 || status >= 500) throw failure;
-          command.confirmed = !!(await lookup(command.request));
+          command.confirmed = !!(await lookup(command.request, command.agreementFingerprint));
           if (!command.confirmed) {
             operation.current = null;
             setHeld(false);

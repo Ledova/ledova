@@ -58,6 +58,7 @@ it('invites and associates a walletless member, recovers one exact request and r
   const preferences = { userProfile: 'profile-one', userAccount: { uuid: 'account-one', role: 'investor' } };
   client.setQueryData(AUTH_QUERY_KEY, { data: { valid: true } });
   client.setQueryData(USER_PREFERENCES_QUERY_KEY, { data: preferences });
+  let ownRecord = MEMBER_RECORD;
   let associated = false;
   let refused = false;
   let preferencesRefused = false;
@@ -101,9 +102,9 @@ it('invites and associates a walletless member, recovers one exact request and r
     if (url === URLS.MEMBER_ASSOCIATIONS) return page([]);
     if (url === URLS.MEMBER_RECORDS) {
       if (refused) throw Object.assign(new Error('Current member access refused'), { response: { status: 404 } });
-      return page(associated ? [MEMBER_RECORD] : []);
+      return page(associated ? [ownRecord] : []);
     }
-    if (url === URLS.MEMBER_RECORD(MEMBER_RECORD.uuid)) return { data: MEMBER_RECORD };
+    if (url === URLS.MEMBER_RECORD(MEMBER_RECORD.uuid)) return { data: ownRecord };
     if (url === URLS.MEMBER_ENTRIES(MEMBER_RECORD.uuid))
       return { data: { entries: [{ ...MEMBER_ENTRY, companyEventOn: null }] } };
     if (url === URLS.MEMBER_PARTICULARS_REQUESTS) return page(particulars);
@@ -260,6 +261,51 @@ it('invites and associates a walletless member, recovers one exact request and r
   await screen.findByRole('header', { name: 'My shares' });
   await screen.findByText('Ordinary · 10 issued shares');
   expect(screen.getByText(/5 awarded · 2 vested · 0 issued/)).toBeTruthy();
+  ownRecord = {
+    ...MEMBER_RECORD,
+    awards: [
+      {
+        ...MEMBER_RECORD.awards[0],
+        vestedShares: '3',
+        issuedShares: '1',
+        availableShares: '1',
+        endedUnvestedShares: '1',
+        endedVestedShares: '1',
+        unvestedRemainingShares: '1',
+        remainingUnissuedShares: '2',
+        vestings: [{ ...MEMBER_RECORD.awards[0].vestings[0], shares: '4' }],
+        ends: [
+          {
+            uuid: 'own-end',
+            unvestedShares: '1',
+            vestedShares: '1',
+            companyEventOn: '2026-10-03',
+            reason: 'Company selected reduction',
+            createdAt: '2026-10-05T00:00:00Z',
+          },
+        ],
+        vestingReversals: [
+          {
+            uuid: 'own-reversal',
+            vesting: MEMBER_RECORD.awards[0].vestings[0].uuid,
+            reversedShares: '1',
+            companyEventOn: '2026-10-04',
+            reason: 'Correct recorded quantity',
+            createdAt: '2026-10-05T00:00:00Z',
+          },
+        ],
+      },
+    ],
+  };
+  await fireEvent.press(screen.getByRole('button', { name: 'Refresh member records' }));
+  await screen.findByText(/5 awarded · 3 vested · 1 issued · 1 available/);
+  await fireEvent.press(
+    screen.getByRole('button', { name: `Award terms and recorded vesting ${ownRecord.awards[0].uuid}` }),
+  );
+  expect(screen.getByText(/Company selected reduction/)).toBeTruthy();
+  expect(screen.getByText(/Correct recorded quantity/)).toBeTruthy();
+  expect(screen.queryByRole('button', { name: /Download.*(entitlement|correction)/ })).toBeNull();
+  ownRecord = MEMBER_RECORD;
   expect(screen.queryByLabelText('Requested name')).toBeNull();
   await fireEvent.press(
     await screen.findByRole('button', { name: `Share own unsigned certificate ${FULFILLED_CERTIFICATE.uuid}` }),
