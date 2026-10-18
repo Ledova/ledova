@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useSyncExternalStore } from 'react';
 import { Text, View, RefreshControl } from 'react-native';
 import { useNavigation, type NavigationProp } from '@react-navigation/native';
 import { useQueryClient } from '@tanstack/react-query';
@@ -8,10 +8,13 @@ import type { BottomTabParamList } from '../../navigation/BottomTabNavigator';
 import { Action, LinkRow, Row, Section, Rows } from '../../components/Ledger';
 import { Page } from '../../components/Page';
 import { useCompanyProfile } from '../../hooks/useCompanyProfile';
-import { companyTokensKey, useCompanyTokens } from '../../hooks/useCompanyTokens';
+import { registerClassesKey } from '../../hooks/useCompanyRegister';
+import { useRegisterClassCreation } from '../../hooks/useRegisterClassCreation';
+import { getSessionEpoch, subscribeSession } from '../../services/sessionScope';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 import { CompanyReadNotice } from '../../components/company/CompanyState';
-import { CreateClassForm, EditCompanyForm } from './CompanyForms';
+import { EditCompanyForm } from './EditCompanyForm';
+import { CreateClassForm } from '../../components/company/CreateClassForm';
 import { CompanyDocuments } from './CompanyDocuments';
 import { CompanySelection } from '../../components/company/CompanySelection';
 
@@ -27,23 +30,15 @@ function CompanyDetails({ data }: { data: ReturnType<typeof useCompanyProfile> }
   const queryClient = useQueryClient();
   const [editing, setEditing] = useState<Company | null>(null);
   const [creating, setCreating] = useState<Company | null>(null);
-  const classes = useCompanyTokens({
-    companyUuid: data.companyUuid,
-    scopeKey: data.scopeKey,
-    company: () => company!.uuid,
-    readPage: async (load) => {
-      data.assertCurrent(company!.uuid, 'owner');
-      const result = await load();
-      data.assertCurrent(company!.uuid, 'owner');
-      return result;
-    },
-    enabled: data.ownerBusiness && !!company && !data.error,
-  });
+  const epoch = useSyncExternalStore(subscribeSession, getSessionEpoch);
+  const creation = useRegisterClassCreation(epoch, data.companyUuid);
+  const classes = creation.classes;
+  const companyClasses = classes.data?.filter((item) => item.companyUuid === data.companyUuid) ?? [];
   const refresh = () =>
     Promise.all([
       queryClient.invalidateQueries({ queryKey: data.companyKey }),
       queryClient.invalidateQueries({ queryKey: data.companiesKey }),
-      queryClient.invalidateQueries({ queryKey: companyTokensKey(data.companyUuid, data.scopeKey) }),
+      queryClient.invalidateQueries({ queryKey: registerClassesKey(epoch) }),
     ]);
   const address = company
     ? [
@@ -66,7 +61,7 @@ function CompanyDetails({ data }: { data: ReturnType<typeof useCompanyProfile> }
         }
         refreshControl={<RefreshControl refreshing={data.isRefreshing} onRefresh={() => void refresh()} />}
       >
-        <CompanySelection read={data} />
+        <CompanySelection read={{ ...data, selectionBlocked: data.selectionBlocked || !!creating }} />
         {data.isLoading ? (
           <Text style={styles.muted}>Loading company information…</Text>
         ) : data.error ? (
@@ -101,8 +96,8 @@ function CompanyDetails({ data }: { data: ReturnType<typeof useCompanyProfile> }
                 )}
               </Rows>
             </Section>
-            {data.ownerBusiness && (
-              <Section title={classes.isSuccess ? `Share classes (${classes.data.length})` : 'Share classes'}>
+            {(data.ownerBusiness || creation.canPrepare) && (
+              <Section title={classes.isSuccess ? `Share classes (${companyClasses.length})` : 'Share classes'}>
                 {classes.isPending ? (
                   <Text style={styles.muted}>Loading share classes…</Text>
                 ) : classes.isError ? (
@@ -116,11 +111,11 @@ function CompanyDetails({ data }: { data: ReturnType<typeof useCompanyProfile> }
                       onPress={() => void classes.refetch()}
                     />
                   </View>
-                ) : classes.data.length === 0 ? (
+                ) : companyClasses.length === 0 ? (
                   <Text style={styles.muted}>No share classes yet.</Text>
                 ) : (
                   <Rows>
-                    {classes.data.map((token) => (
+                    {companyClasses.map((token) => (
                       <LinkRow
                         key={token.uuid}
                         label={token.name}
@@ -130,13 +125,17 @@ function CompanyDetails({ data }: { data: ReturnType<typeof useCompanyProfile> }
                         <Text style={styles.muted}>
                           {token.symbol} · {token.tokenTypeDisplay}
                         </Text>
-                        <Text style={styles.muted}>{formatShareCount(token.totalSupply)} authorised shares</Text>
+                        <Text style={styles.muted}>Technical share limit: {formatShareCount(token.totalSupply)}</Text>
                       </LinkRow>
                     ))}
                     <LinkRow label="Register" onPress={() => navigation.navigate('CompanyMain')} />
                   </Rows>
                 )}
-                <Action label="Create share class" disabled={data.isRefreshing} onPress={() => setCreating(company)} />
+                <Action
+                  label="Create share class"
+                  disabled={data.isRefreshing || !creation.canPrepare}
+                  onPress={() => setCreating(company)}
+                />
               </Section>
             )}
           </>
@@ -153,13 +152,7 @@ function CompanyDetails({ data }: { data: ReturnType<typeof useCompanyProfile> }
         />
       )}
       {creating && (
-        <CreateClassForm
-          target={creating}
-          company={company}
-          read={data}
-          onClose={() => setCreating(null)}
-          onSuccess={refresh}
-        />
+        <CreateClassForm target={creating} read={creation} onClose={() => setCreating(null)} onSuccess={refresh} />
       )}
     </>
   );

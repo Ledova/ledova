@@ -5,6 +5,9 @@ import { useQueryClient } from '@tanstack/react-query';
 import * as Crypto from 'expo-crypto';
 import {
   apiErrorSentence,
+  AUTH_QUERY_KEY,
+  USER_PREFERENCES_QUERY_KEY,
+  useSubmissionOwner,
   createUserFriendlyError,
   failureStatus,
   formatDateToString,
@@ -19,6 +22,10 @@ import {
   type RegisterImportAllotment,
   type RegisterImportCurrentMemberRow,
   type RegisterImportPreparation,
+  type OwnCompanyAppointment,
+  type CompanyShareTokenListItem,
+  type TokenHoldersResponse,
+  type RegisterImport,
 } from '@ledova/shared';
 import { Action, Choice, Section } from '../../components/Ledger';
 import { Page } from '../../components/Page';
@@ -32,8 +39,15 @@ import {
   useClassRegister,
   useRegisterAppointments,
   useRegisterImports,
+  useRegisterClasses,
+  useRegisterEntries,
+  registerClassesKey,
+  registerClassKey,
+  registerAppointmentsKey,
+  entriesKey,
 } from '../../hooks/useCompanyRegister';
 import { useRegisterEvidence } from '../../hooks/useRegisterEvidence';
+import { orderSubmissionSession } from '../../services/orderSubmissions';
 
 type AllotmentDraft = Omit<
   RegisterImportAllotment,
@@ -138,11 +152,14 @@ export function PrepareRegisterImportScreen() {
 function PrepareRegisterImport({ epoch }: { epoch: number }) {
   const styles = useCompanyStyles();
   const queryClient = useQueryClient();
+  const { owner, boundary } = useSubmissionOwner(orderSubmissionSession);
   const navigation = useNavigation();
   const { tokenUuid, companyUuid, correctionOf } =
     useRoute<RouteProp<CompanyStackParamList, 'PrepareRegisterImport'>>().params;
   const register = useClassRegister(epoch, tokenUuid);
   const imports = useRegisterImports(epoch, companyUuid, tokenUuid);
+  const classes = useRegisterClasses(epoch);
+  const history = useRegisterEntries(epoch, tokenUuid);
   const { appointments, steps } = useRegisterAppointments(epoch, companyUuid);
   const shareRegister = useRegisterEvidence(companyUuid, 'share_register');
   const asicExtract = useRegisterEvidence(companyUuid, 'asic_extract');
@@ -169,6 +186,25 @@ function PrepareRegisterImport({ epoch }: { epoch: number }) {
     ? imports.data?.find((row) => row.uuid === correctionOf && row.status === 'applied')
     : undefined;
   const opened = register.data?.initialized === true;
+  const currentClass = classes.data?.find((item) => item.uuid === tokenUuid && item.companyUuid === companyUuid);
+  const emptyOpening =
+    !correctionOf &&
+    currentClass?.status === 'draft' &&
+    currentClass.contractAddress === null &&
+    currentClass.chain === null &&
+    currentClass.deployedAt === null &&
+    register.data?.initialized === false &&
+    register.data.issuedSupply === null &&
+    register.data.totalHolders === 0 &&
+    register.data.holders.length === 0 &&
+    Array.isArray(register.data.formerMembers) &&
+    register.data.formerMembers.length === 0 &&
+    (register.data.waitingEffects === null || register.data.waitingEffects === 0) &&
+    imports.isSuccess &&
+    !imports.data.some((row) => row.status === 'applied') &&
+    history.entries.isSuccess &&
+    history.listed.length === 0 &&
+    !history.entries.hasNextPage;
   useLayoutEffect(() => {
     if (initialized.current || !register.isSuccess || !imports.isSuccess || (correctionOf && !original)) return;
     initialized.current = true;
@@ -231,7 +267,7 @@ function PrepareRegisterImport({ epoch }: { epoch: number }) {
       ? 'Enter the snapshot date as YYYY-MM-DD, no later than today.'
       : !sourceReference.trim()
         ? 'Name the existing company register or records this snapshot came from.'
-        : members.length === 0
+        : members.length === 0 && !emptyOpening
           ? 'Add the current shareholders in this share class.'
           : members.some((row) => !row.name || !row.residentialAddress || !row.shares || !dated(row.enteredOn))
             ? 'Complete each shareholder’s name, address, shares and original entry date.'
@@ -262,10 +298,17 @@ function PrepareRegisterImport({ epoch }: { epoch: number }) {
                           : null;
   const busy = submitting || shareRegister.busy || asicExtract.busy;
   const ready =
+    !!owner &&
+    boundary.get() === owner &&
     !problem &&
     !mismatch &&
     !busy &&
     !!steps?.prepare &&
+    !steps.prepare.revokedAt &&
+    classes.isSuccess &&
+    !classes.isFetching &&
+    history.entries.isSuccess &&
+    !history.entries.isFetching &&
     register.isSuccess &&
     !register.isFetching &&
     imports.isSuccess &&
@@ -303,6 +346,49 @@ function PrepareRegisterImport({ epoch }: { epoch: number }) {
     const guard = () => {
       assertSessionEpoch(epoch);
       if (!live.current) throw new Error('These records are no longer open.');
+      if (!owner || boundary.get() !== owner) throw new Error('Your signed-in account changed. Reopen these records.');
+      for (const key of [
+        AUTH_QUERY_KEY,
+        USER_PREFERENCES_QUERY_KEY,
+        registerClassesKey(epoch),
+        registerClassKey(epoch, tokenUuid),
+        importsKey(epoch, tokenUuid),
+        registerAppointmentsKey(epoch),
+        entriesKey(epoch, tokenUuid),
+      ]) {
+        const state = queryClient.getQueryState(key);
+        if (state?.status !== 'success' || state.fetchStatus !== 'idle')
+          throw new Error('Refresh this share class and your current company appointments.');
+      }
+      if (members.length === 0) {
+        const metadata = queryClient
+          .getQueryData<CompanyShareTokenListItem[]>(registerClassesKey(epoch))
+          ?.find((item) => item.uuid === tokenUuid && item.companyUuid === companyUuid);
+        const currentRegister = queryClient.getQueryData<TokenHoldersResponse>(registerClassKey(epoch, tokenUuid));
+        const currentImports = queryClient.getQueryData<RegisterImport[]>(importsKey(epoch, tokenUuid));
+        if (
+          !emptyOpening ||
+          metadata !== currentClass ||
+          currentRegister !== register.data ||
+          currentImports?.some((row) => row.status === 'applied') ||
+          queryClient.getQueryData(entriesKey(epoch, tokenUuid)) !== history.entries.data
+        )
+          throw new Error('The empty share class opening changed. Refresh before continuing.');
+      }
+      const current = queryClient.getQueryData<OwnCompanyAppointment[]>(registerAppointmentsKey(epoch));
+      if (
+        !current?.some(
+          (row) =>
+            row.uuid === appointment.uuid &&
+            row.company === companyUuid &&
+            row.status === 'active' &&
+            row.isEffective &&
+            !row.revokedAt &&
+            (!row.expiresAt || Date.parse(row.expiresAt) > Date.now()) &&
+            (row.capabilities.includes('admin') || row.capabilities.includes('prepare')),
+        )
+      )
+        throw new Error('Your company appointment changed. Reopen these records.');
     };
     pending.current = true;
     setSubmitting(true);
@@ -361,13 +447,26 @@ function PrepareRegisterImport({ epoch }: { epoch: number }) {
     }
   };
   const title = correctionOf ? REGISTER_IMPORT_COPY.CORRECT : REGISTER_IMPORT_COPY.PREPARE;
-  if (register.isPending || imports.isPending || appointments.isPending)
+  if (
+    register.isPending ||
+    imports.isPending ||
+    appointments.isPending ||
+    classes.isPending ||
+    history.entries.isPending
+  )
     return (
       <Page title={title}>
         <Text style={styles.muted}>Loading the share class…</Text>
       </Page>
     );
-  if (register.isError || imports.isError || appointments.isError)
+  if (
+    register.isError ||
+    imports.isError ||
+    appointments.isError ||
+    classes.isError ||
+    history.entries.isError ||
+    !currentClass
+  )
     return (
       <Page title={title}>
         <Text accessibilityRole="alert" style={styles.error}>
@@ -375,11 +474,19 @@ function PrepareRegisterImport({ epoch }: { epoch: number }) {
         </Text>
         <Action
           label="Retry"
-          disabled={register.isFetching || imports.isFetching || appointments.isFetching}
+          disabled={
+            register.isFetching ||
+            imports.isFetching ||
+            appointments.isFetching ||
+            classes.isFetching ||
+            history.entries.isFetching
+          }
           onPress={() => {
             void register.refetch();
             void imports.refetch();
             void appointments.refetch();
+            void classes.refetch();
+            void history.entries.refetch();
           }}
         />
       </Page>
@@ -432,6 +539,11 @@ function PrepareRegisterImport({ epoch }: { epoch: number }) {
         )}
       </Section>
       <Section title="Current shareholders">
+        {emptyOpening && drafts.length === 0 && (
+          <Text style={styles.muted}>
+            No shares have been issued. Confirm this empty opening to record the class before its first issue.
+          </Text>
+        )}
         <Text style={styles.muted}>
           Copy the current holdings and original allotment particulars from the company’s records. No account or wallet
           is needed.

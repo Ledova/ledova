@@ -22,6 +22,7 @@ import {
   getRegisterWaitingWallets,
   hasWholeShares,
   readEveryPage,
+  useSubmissionOwner,
   useLaterPages,
   useUserPreferences,
   type CompanyShareTokenListItem,
@@ -34,6 +35,7 @@ import {
 } from '@ledova/shared';
 import { COMPANY_TOKENS_QUERY_KEY } from './useCompanyTokens';
 import { apiClient } from '../services/apiClient';
+import { orderSubmissionSession } from '../services/orderSubmissions';
 import { assertSessionEpoch, getSessionEpoch, subscribeSession } from '../services/sessionScope';
 
 const REGISTER_STEPS: RegisterStep[] = ['prepare', 'approve', 'apply', 'reject'];
@@ -120,25 +122,29 @@ function companiesOf(classes: CompanyShareTokenListItem[]) {
 
 export function useRegisterAccess(enabled: boolean) {
   const epoch = useSyncExternalStore(subscribeSession, getSessionEpoch);
+  const { owner, boundary } = useSubmissionOwner(orderSubmissionSession);
+  const { appointments } = useRegisterAppointments(epoch, '', enabled && !!owner);
   const firstPage = useQuery({
     queryKey: [...registerKey(epoch), 'access'],
     enabled,
     queryFn: async ({ signal }) => (await readClasses(epoch, 1, signal)).data.results.length > 0,
   });
+  const canSetUp =
+    !!owner &&
+    boundary.get() === owner &&
+    appointments.isSuccess &&
+    !appointments.isFetching &&
+    appointments.data.some((item) => !item.revokedAt && !!appointmentForRegisterStep([item], item.company, 'prepare'));
+  const hasClasses = enabled && firstPage.isSuccess && !firstPage.isFetching && firstPage.data === true;
   return {
-    allowed: enabled && firstPage.isSuccess && !firstPage.isFetching && firstPage.data === true,
+    allowed: enabled && (hasClasses || canSetUp),
+    hasClasses,
     loading: enabled && firstPage.isPending,
   };
 }
 
-export function useCompanyRegister(
-  epoch: number,
-  retained?: { uuid: string; name: string; classes: CompanyShareTokenListItem[] },
-  preferred?: { companyUuid: string; tokenUuid: string },
-) {
-  const queryClient = useQueryClient();
-  const [selected, selectCompany] = useState<string>();
-  const classes = useQuery({
+export function useRegisterClasses(epoch: number) {
+  return useQuery({
     queryKey: registerClassesKey(epoch),
     queryFn: async ({ signal }) => {
       const rows = await readEveryPage((page) => readClasses(epoch, page, signal));
@@ -148,6 +154,17 @@ export function useCompanyRegister(
       return rows;
     },
   });
+}
+
+export function useCompanyRegister(
+  epoch: number,
+  retained?: { uuid: string; name: string; classes: CompanyShareTokenListItem[] },
+  preferred?: { companyUuid: string; tokenUuid: string },
+) {
+  const queryClient = useQueryClient();
+  const [selected, selectCompany] = useState<string>();
+  const classes = useRegisterClasses(epoch);
+  const { appointments } = useRegisterAppointments(epoch, '');
   const [requested, setRequested] = useState<string>();
   const requestedScope =
     preferred &&
@@ -161,6 +178,12 @@ export function useCompanyRegister(
     selectCompany(preferred!.companyUuid);
   }
   const companies = companiesOf(classes.isSuccess ? classes.data : []);
+  if (appointments.isSuccess)
+    for (const appointment of appointments.data) {
+      if (!appointmentForRegisterStep([appointment], appointment.company, 'prepare') || appointment.revokedAt) continue;
+      if (!companies.some(({ uuid }) => uuid === appointment.company))
+        companies.push({ uuid: appointment.company, name: appointment.companyName, classes: [] });
+    }
   const company =
     retained ?? companies.find(({ uuid }) => uuid === selected) ?? (companies.length === 1 ? companies[0] : undefined);
   const registers = useQuery({
@@ -170,6 +193,7 @@ export function useCompanyRegister(
   });
   return {
     classes,
+    appointments,
     companies,
     company,
     selectCompany,
@@ -387,9 +411,10 @@ export function useOpeningHolders(epoch: number, token: string, page: string) {
   });
 }
 
-export function useRegisterAppointments(epoch: number, company: string) {
+export function useRegisterAppointments(epoch: number, company: string, enabled = true) {
   const appointments = useQuery({
     queryKey: registerAppointmentsKey(epoch),
+    enabled,
     queryFn: ({ signal }) =>
       readEveryPage((page) =>
         sessionRead(epoch, () => getOwnCompanyAppointments(apiClient, page, { ledovaSessionEpoch: epoch, signal })),
