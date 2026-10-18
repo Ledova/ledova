@@ -3,28 +3,35 @@ import {
   AUTH_QUERY_KEY,
   getCompanyTokens,
   REGISTER_COPY,
+  REGISTER_IMPORT_COPY,
   COMPANY_TOKEN_ENDPOINTS as URLS,
   USER_PREFERENCES_QUERY_KEY,
 } from '@ledova/shared';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, cleanup, fireEvent, render, waitFor } from '@testing-library/react-native';
 import * as Sharing from 'expo-sharing';
+import * as Crypto from 'expo-crypto';
 import React from 'react';
+import { Text } from 'react-native';
 import { APPOINTMENT } from '../../../../packages/shared/tests/fixtures/employee-awards';
 import { apiClient } from '../../services/apiClient';
 import { getSessionEpoch, invalidateSessionScope } from '../../services/sessionScope';
 import { cache, files, resetFiles } from '../../testSupport/documentFiles';
 import { CompanyRegisterScreen } from './CompanyRegisterScreen';
+import { PrepareRegisterImportScreen } from './PrepareRegisterImportScreen';
+import { registerAppointmentsKey, useRegisterAccess } from '../../hooks/useCompanyRegister';
 
 const mockNavigate = jest.fn();
 let mockSection = 'register';
+let mockRouteParams: { tokenUuid: string; companyUuid: string; correctionOf?: string } | undefined;
+const mockGoBack = jest.fn();
 const mockSetParams = jest.fn((params: { section: string }) => {
   mockSection = params.section;
 });
 let mockPreferences: { userAccount?: { role: string }; isLoading: boolean; isError: boolean; refetch: jest.Mock };
 jest.mock('@react-navigation/native', () => ({
-  useNavigation: () => ({ navigate: mockNavigate, setParams: mockSetParams }),
-  useRoute: () => ({ params: { section: mockSection } }),
+  useNavigation: () => ({ navigate: mockNavigate, setParams: mockSetParams, goBack: mockGoBack }),
+  useRoute: () => ({ params: mockRouteParams ?? { section: mockSection } }),
 }));
 jest.mock('@ledova/shared', () => ({
   ...jest.requireActual('@ledova/shared'),
@@ -34,6 +41,7 @@ jest.mock('@ledova/shared', () => ({
 jest.mock('../../services/apiClient', () => ({ apiClient: { get: jest.fn(), post: jest.fn() } }));
 jest.mock('expo-file-system', () => jest.requireActual('../../testSupport/documentFiles').nativeFileSystem);
 jest.mock('expo-sharing', () => ({ isAvailableAsync: jest.fn(async () => true), shareAsync: jest.fn(async () => {}) }));
+jest.mock('expo-crypto', () => ({ randomUUID: jest.fn() }));
 
 const APPOINTMENTS = '/api/v1/company-authority/appointments/';
 const get = jest.mocked(apiClient.get);
@@ -169,9 +177,22 @@ function wrapper({ children }: { children: React.ReactNode }) {
   );
 }
 
+function RegisterAccessState() {
+  const access = useRegisterAccess(true);
+  return (
+    <Text testID="register-access">{JSON.stringify({ allowed: access.allowed, hasClasses: access.hasClasses })}</Text>
+  );
+}
+
 beforeEach(() => {
+  let keys = 0;
+  jest
+    .mocked(Crypto.randomUUID)
+    .mockImplementation(() => `00000000-0000-4000-8000-${String(++keys).padStart(12, '0')}`);
   mockPreferences = { userAccount: { role: 'company' }, isLoading: false, isError: false, refetch: jest.fn() };
   mockSection = 'register';
+  mockRouteParams = undefined;
+  mockGoBack.mockClear();
   resetFiles();
   client = new QueryClient({
     defaultOptions: { queries: { retry: false, gcTime: Infinity }, mutations: { gcTime: 0 } },
@@ -199,7 +220,167 @@ afterEach(async () => {
   client.clear();
 });
 
-it('reads the company register and shares its CSV, but refuses a later CSV after the session changes', async () => {
+it('sets up an appointed company without issuing shares, recovers uncertain class creation and refuses exports after the session changes', async () => {
+  mockPreferences.userAccount = { role: 'investor' };
+  pages = [[]];
+  let capability = 'prepare';
+  const draftClass = {
+    ...shareClass,
+    uuid: 'new-class',
+    company: shareClass.companyUuid,
+    symbol: 'A',
+    name: 'Class A',
+    tokenType: 'ordinary',
+    tokenTypeDisplay: 'Ordinary',
+    totalSupply: '1000',
+    status: 'draft',
+    statusDisplay: 'Draft',
+    contractAddress: null,
+    chain: null,
+    deployedAt: null,
+    deploymentTxHash: null,
+  };
+  const emptyRegister = {
+    token: draftClass,
+    initialized: false,
+    issuedSupply: null,
+    totalHolders: 0,
+    holders: [],
+    formerMembers: [],
+    waitingEffects: null,
+  };
+  read = (url, number, token) => {
+    if (url === APPOINTMENTS)
+      return Promise.resolve(
+        page([
+          {
+            ...APPOINTMENT,
+            company: shareClass.companyUuid,
+            companyName: shareClass.companyName,
+            capabilities: [capability],
+          },
+        ]),
+      );
+    if (url === URLS.HOLDERS(draftClass.uuid)) return Promise.resolve({ data: emptyRegister });
+    if (url === URLS.REGISTER_ENTRIES(draftClass.uuid)) return Promise.resolve(page([]));
+    return defaultRead(url, number, token);
+  };
+  const access = await render(<RegisterAccessState />, { wrapper });
+  await waitFor(() =>
+    expect(access.getByTestId('register-access')).toHaveTextContent('{"allowed":true,"hasClasses":false}'),
+  );
+  const appointmentKey = registerAppointmentsKey(getSessionEpoch());
+  const appointments = client.getQueryData(appointmentKey);
+  await act(() =>
+    client.setQueryData(appointmentKey, [
+      { ...APPOINTMENT, company: shareClass.companyUuid, capabilities: ['prepare'], expiresAt: '2020-01-01T00:00:00Z' },
+    ]),
+  );
+  await waitFor(() =>
+    expect(access.getByTestId('register-access')).toHaveTextContent('{"allowed":false,"hasClasses":false}'),
+  );
+  await act(() =>
+    client.setQueryData(appointmentKey, [
+      { ...APPOINTMENT, company: shareClass.companyUuid, capabilities: ['prepare'], revokedAt: '2020-01-01T00:00:00Z' },
+    ]),
+  );
+  await waitFor(() =>
+    expect(access.getByTestId('register-access')).toHaveTextContent('{"allowed":false,"hasClasses":false}'),
+  );
+  await act(() => client.setQueryData(appointmentKey, appointments));
+  await access.unmount();
+  const setup = await render(<CompanyRegisterScreen />, { wrapper });
+  await fireEvent.press(await setup.findByRole('button', { name: 'Create share class' }));
+  for (const [label, value] of [
+    ['Class name', 'Class A'],
+    ['Class code', 'A'],
+    ['Technical share limit', '1000'],
+  ])
+    await fireEvent.changeText(setup.getByLabelText(label), value);
+  jest.mocked(apiClient.post).mockRejectedValueOnce({ response: { status: 503 } });
+  await fireEvent.press(setup.getAllByRole('button', { name: 'Create share class' }).at(-1)!);
+  await setup.findByText('The request may have created the class. Refresh to check; it will not be submitted again.');
+  expect(apiClient.post).toHaveBeenCalledTimes(1);
+  expect(apiClient.post).toHaveBeenCalledWith(
+    URLS.BASE,
+    { company: shareClass.companyUuid, name: 'Class A', symbol: 'A', tokenType: 'ordinary', totalSupply: '1000' },
+    { ledovaSessionEpoch: getSessionEpoch(), ledovaSubmissionGuard: expect.any(Function) },
+  );
+  const setupRead = read;
+  read = (url, number, token) =>
+    url === URLS.REGISTER ? Promise.reject({ response: { status: 400 } }) : setupRead(url, number, token);
+  await fireEvent.press(setup.getByRole('button', { name: 'Refresh share classes' }));
+  await setup.findByText('Share classes or your company appointments could not be loaded.');
+  expect(apiClient.post).toHaveBeenCalledTimes(1);
+  expect(setup.getAllByRole('button', { name: 'Create share class' }).at(-1)).toBeDisabled();
+  expect(setup.getByTestId('modal-Create share class')).toBeTruthy();
+  read = setupRead;
+  pages = [[draftClass]];
+  capability = 'read_register';
+  await fireEvent.press(setup.getByRole('button', { name: 'Refresh share classes' }));
+  await waitFor(() => expect(setup.queryByTestId('modal-Create share class')).toBeNull());
+  expect(apiClient.post).toHaveBeenCalledTimes(1);
+  expect(setup.queryByRole('button', { name: 'Create share class' })).toBeNull();
+  await setup.unmount();
+  capability = 'prepare';
+  client.removeQueries();
+  client.setQueryData(AUTH_QUERY_KEY, { data: { valid: true } });
+  client.setQueryData(USER_PREFERENCES_QUERY_KEY, {
+    data: { userProfile: 'native-user', userAccount: { uuid: 'native-account', role: 'investor' } },
+  });
+  mockRouteParams = { tokenUuid: draftClass.uuid, companyUuid: shareClass.companyUuid };
+  const opening = await render(<PrepareRegisterImportScreen />, { wrapper });
+  await fireEvent.changeText(await opening.findByLabelText('Existing register or source reference'), 'Company records');
+  await fireEvent.press(opening.getByRole('button', { name: REGISTER_IMPORT_COPY.SOURCE_CONFIRMATION }));
+  await waitFor(() => expect(opening.getByRole('button', { name: 'Prepare for review' })).not.toBeDisabled());
+  await fireEvent.press(opening.getByRole('button', { name: 'Add a shareholder' }));
+  expect(opening.getByRole('button', { name: 'Prepare for review' })).toBeDisabled();
+  await fireEvent.press(opening.getByRole('button', { name: 'Remove shareholder 1' }));
+  jest.mocked(apiClient.post).mockImplementationOnce(
+    async (_url, body) =>
+      ({
+        data: {
+          ...(body as object),
+          uuid: (body as { operationId: string }).operationId,
+          token: draftClass.uuid,
+          preparingAppointment: APPOINTMENT.uuid,
+          registerEvidence: null,
+          asicEvidence: null,
+          asicIssuedTotal: null,
+          asicMemberCount: null,
+          authority: 'company_records',
+          authorityReference: 'Company records',
+          approvingDirector: '',
+          correctionOf: null,
+          providedBy: 'company',
+          members: [],
+          formerMembers: [],
+        },
+      }) as never,
+  );
+  await fireEvent.press(opening.getByRole('button', { name: 'Prepare for review' }));
+  await waitFor(() => expect(mockGoBack).toHaveBeenCalledTimes(1));
+  const [, request] = jest.mocked(apiClient.post).mock.calls.at(-1)!;
+  expect(request).toEqual(
+    expect.objectContaining({
+      tokenId: draftClass.uuid,
+      members: [],
+      formerMembers: [],
+      sourceConfirmed: true,
+      appointment: APPOINTMENT.uuid,
+    }),
+  );
+  expect((request as { correctionOf?: string }).correctionOf).toBeUndefined();
+  await opening.unmount();
+  mockRouteParams = undefined;
+  client.removeQueries();
+  client.setQueryData(AUTH_QUERY_KEY, { data: { valid: true } });
+  client.setQueryData(USER_PREFERENCES_QUERY_KEY, {
+    data: { userProfile: 'native-user', userAccount: { uuid: 'native-account', role: 'investor' } },
+  });
+  pages = [[shareClass], [preference]];
+  read = defaultRead;
+  get.mockClear();
   mockPreferences.userAccount = { role: 'investor' };
   const view = await render(<CompanyRegisterScreen />, { wrapper });
   await view.findByRole('button', { name: 'Preference shares register' });
