@@ -119,8 +119,8 @@ SYSTEM_WIDE = {
     "the one that acts for somebody.",
     "wallets.tasks.confirmation.check_all_pending_transactions": "Requeues pending transactions and unfinished "
     "balance reconciliation across all accounts.",
-    "whitelist.tasks.sync.sync_all_entries": "Mirrors each company's on-chain whitelist registry into the "
-    "staff-only approval rows. It reads chain state for every company and acts for no principal.",
+    "whitelist.tasks.sync.sync_all_entries": "Mirrors each company's on-chain whitelist registry into its "
+    "approval rows. It reads chain state for every company and acts for no principal.",
     "shared.tasks.job_retention.remove_old_jobs": "Removes the worker queue's finished job records through "
     "Procrastinate's job manager, as Procrastinate's own builtin does: succeeded jobs a week after they finished, "
     "failed, cancelled and aborted jobs after thirty days, and never a job still to do or running. The queue is "
