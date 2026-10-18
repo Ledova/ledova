@@ -18,13 +18,7 @@ import { Page } from '@components/Page';
 import { PageTitle } from '@components/PageTitle';
 import { Loading, Unavailable } from '@pages/company/shared/RegisterStatus';
 import { registerSteps, type RegisterSteps } from '@pages/company/shared/proposals';
-<<<<<<< HEAD
-import { READ_TIMING, registerKey } from '@hooks/useRegisterAccess';
-import { readRegister, useRegisterClasses, registerClassesKey } from '@pages/company/shared/useCompanyRegister';
-=======
-import { registerKey } from '@hooks/useRegisterAccess';
-import { useRegisterClasses } from '@pages/company/shared/useCompanyRegister';
->>>>>>> 3e7e3e65a0f9e4bf2acd807a1a669f9ea5177e28
+import { useRegisterClasses, registerClassesKey } from '@pages/company/shared/useCompanyRegister';
 import { importsKey, useRegisterImports } from '@pages/company/register/shared/useRegisterImports';
 import { ownerGuard } from '@pages/company/register/shared/ownerGuard';
 import { useOwnAppointments, ownAppointmentsKey } from '@pages/company/shared/useOwnAppointments';
