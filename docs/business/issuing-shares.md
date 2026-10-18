@@ -33,7 +33,7 @@ issue ([the register](register.md#the-register-and-the-companys-records)).
 
 The class-creation API requires a current personal company administrator or preparer appointment,
 rechecked under the company lock. Ownership or platform staff status alone supplies no authority.
-Web and mobile [register setup](register.md#bringing-in-existing-records) lists companies from those
+[Register setup](register.md#bringing-in-existing-records) on web and mobile lists companies from those
 appointments, including a preparer who is not the owner. Company Settings keeps its administration
 boundary, lists scoped register classes and lets a current personal administrator create a class.
 Creation records no shares and no legal registration. The technical
