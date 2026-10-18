@@ -110,8 +110,6 @@ function ShareClassDetails({ data }: { data: ReturnType<typeof useShareClass> })
           </div>
         </>
       );
-    const deployed = token.status === 'deployed';
-    const paused = token.status === 'paused';
     const addressUrl =
       token.chain && token.contractAddress ? getBlockExplorerAddressUrl(token.chain, token.contractAddress) : '';
     const txUrl =
