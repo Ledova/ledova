@@ -357,6 +357,9 @@ class ScopedAccessTest(CoreFixtures, APITransactionTestCase):
             format="json",
         )
         self.assertEqual(response.status_code, 404, response.content)
+        linked = self.client.post("/api/v1/tokens/register-grants/", self.linked_grant_payload(award), format="json")
+        self.assertEqual(linked.status_code, 404, linked.content)
+        self.assertNotIn(award["agreement_evidence"], str(linked.json()))
         creation = self.client.post("/api/v1/tokens/register-grants/", self.grant_payload(), format="json")
         self.assertEqual(creation.status_code, 404, creation.content)
         for endpoint, payload in (("register-awards", award), ("register-award-vestings", vesting)):

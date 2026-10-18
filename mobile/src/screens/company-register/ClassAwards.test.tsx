@@ -339,7 +339,7 @@ beforeEach(() => {
     if (url === URLS.REGISTER_GRANTS) {
       grants = [grantFrom(body as RegisterGrantPreparation)];
       failedRead = 'grant';
-      throw new Error('Synthetic interrupted preparation response');
+      return { data: { ...grants[0], termsFingerprint: 'c'.repeat(64) } };
     }
     if (grants[0] && url === URLS.REGISTER_GRANT_PREVIEW(grants[0].uuid)) {
       const applying = (body as { kind: string }).kind === 'apply';
@@ -509,10 +509,10 @@ it('recovers captured award, vesting and issue requests under read access and re
     [GRANT_COPY.REASON, 'Vested employee shares'],
   ])
     await fireEvent.changeText(view.getByLabelText(label), value);
-  for (const noun of ['authority document', 'terms document']) {
-    await fireEvent.press(view.getByRole('button', { name: `Choose the ${noun}` }));
-    await view.findByRole('button', { name: `Replace the ${noun}` });
-  }
+  expect(view.queryByRole('button', { name: 'Choose the terms document' })).toBeNull();
+  expect(view.getByText('The retained award agreement will be used for this issue.')).toBeTruthy();
+  await fireEvent.press(view.getByRole('button', { name: 'Choose the authority document' }));
+  await view.findByRole('button', { name: 'Replace the authority document' });
   expect(view.getByRole('button', { name: 'Prepare share issue' })).toBeDisabled();
   await fireEvent.changeText(view.getByLabelText('Company issue date (YYYY-MM-DD)'), '2999-01-01');
   expect(view.getByRole('button', { name: 'Prepare share issue' })).toBeDisabled();
@@ -527,6 +527,7 @@ it('recovers captured award, vesting and issue requests under read access and re
       award: awards[0].uuid,
       member: awards[0].member,
       companyEventOn: '2026-10-10',
+      termsEvidence: awards[0].agreementEvidence,
     }),
   );
   listed = false;
@@ -563,6 +564,21 @@ it('recovers captured award, vesting and issue requests under read access and re
   expect(view.getByLabelText('Company issue date (YYYY-MM-DD)')).toHaveDisplayValue('2026-10-10');
   expect(client.getQueryData([...registerKey(getSessionEpoch()), 'classes'])).toEqual([OTHER_COMPANY]);
   failedRead = null;
+  const retainedAward = awards[0];
+  const retainedReceipt = grants[0];
+  awards = [{ ...retainedAward, agreementEvidence: 'changed-agreement', agreementFingerprint: 'd'.repeat(64) }];
+  grants = [{ ...retainedReceipt, termsFingerprint: 'c'.repeat(64) }];
+  await act(async () =>
+    client.refetchQueries({
+      queryKey: [...awardsKey(getSessionEpoch(), REGISTER.token.uuid), retainedAward.uuid],
+      exact: true,
+    }),
+  );
+  await fireEvent.press(view.getByRole('button', { name: 'Retry original share issue' }));
+  await view.findByRole('alert');
+  expect(mockNavigation.dispatch).not.toHaveBeenCalled();
+  expect(submissions(URLS.REGISTER_GRANTS)).toEqual([originalGrant]);
+  grants = [retainedReceipt];
   failedClasses = true;
   await fireEvent.press(view.getByRole('button', { name: 'Retry original share issue' }));
   await waitFor(() =>
@@ -573,7 +589,8 @@ it('recovers captured award, vesting and issue requests under read access and re
   expect(mockNavigation.dispatch).not.toHaveBeenCalled();
   expect(view.getByLabelText(GRANT_COPY.SHARES).props.editable).toBe(false);
   expect(submissions(URLS.REGISTER_GRANTS)).toEqual([originalGrant]);
-  expect(submissions(URLS.REGISTER_EVIDENCE)).toHaveLength(4);
+  expect(submissions(URLS.REGISTER_EVIDENCE)).toHaveLength(3);
+  awards = [retainedAward];
   failedClasses = false;
   await fireEvent.press(view.getByRole('button', { name: 'Retry original share issue' }));
   await waitFor(() => expect(view.queryByTestId('prepare-grant-screen')).toBeNull());
@@ -600,7 +617,7 @@ it('recovers captured award, vesting and issue requests under read access and re
   expect(view.queryByRole('button', { name: `${OTHER_COMPANY.name} register` })).toBeNull();
   await view.findByText(`Prepared · ${AWARD_REQUEST.name}`);
   expect(submissions(URLS.REGISTER_GRANTS)).toEqual([originalGrant]);
-  expect(submissions(URLS.REGISTER_EVIDENCE)).toHaveLength(4);
+  expect(submissions(URLS.REGISTER_EVIDENCE)).toHaveLength(3);
   expect(view.queryByRole('button', { name: /^Approve the non-paid grant/ })).toBeNull();
   appointments = [APPOINTMENT];
   const datedGrant = grants[0];

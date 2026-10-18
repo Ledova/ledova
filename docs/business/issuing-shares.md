@@ -196,10 +196,16 @@ issued shares:
    evidence. Dates are no later than today (UTC), an event cannot predate the agreement, and total
    vesting cannot exceed the promise.
 3. When vested shares are available, choose Issue vested shares. The grant form opens with the
-   recipient and available quantity, bound to the award's class, recipient and agreement; upload the
-   matching agreement and the authority document, name the approving director and add any required
+   recipient and available quantity, bound to the award's class, recipient and retained agreement;
+   upload the authority document, name the approving director and add any required
    acceptance. Preparing returns to Employee awards with the class's Non-paid share issues open;
    approve, then choose Record issue.
+
+The linked issue reuses the exact fingerprinted agreement already retained for the award; no
+agreement upload is needed. Current company authority and the private file are checked again, and
+the grant keeps its own retained copy. Ordinary grants still require a terms document. Interrupted
+preparations recover their original agreement reference and fingerprint, including earlier grants
+that uploaded a separate matching copy.
 
 Applying rechecks the authority, evidence, vested quantity still available, particulars, register
 and authorised shares, then records the Issue once. Pending or approved grants reserve neither
@@ -468,8 +474,8 @@ rights, and transmission.
 Current limits, each with follow-up work proposed under the share lifecycle review
 ([#1060](https://github.com/Ledova/ledova/issues/1060)):
 
-- An award-linked grant asks for its agreement again, and an award's unissued entitlement cannot be
-  ended or corrected. Proposed under [#1063](https://github.com/Ledova/ledova/issues/1063).
+- An award's unissued entitlement cannot be ended or corrected. Proposed under
+  [#1063](https://github.com/Ledova/ledova/issues/1063).
 - Joint, corporate and trust holdings have no separate structure: a member is one name and
   residential address, with the beneficial status the company records.
 

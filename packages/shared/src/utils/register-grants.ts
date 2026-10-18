@@ -6,7 +6,11 @@ import type {
 } from '../types';
 import { isRegisterDecisionReceipt } from './register-commands';
 
-export function isPreparedRegisterGrant(grant: RegisterGrant, request: RegisterGrantPreparation) {
+export function isPreparedRegisterGrant(
+  grant: RegisterGrant,
+  request: RegisterGrantPreparation,
+  expectedTermsFingerprint?: string,
+) {
   return (
     grant.uuid === request.operationId &&
     grant.preparingAppointment === request.appointment &&
@@ -27,6 +31,10 @@ export function isPreparedRegisterGrant(grant: RegisterGrant, request: RegisterG
     grant.reason === request.reason &&
     grant.authorityEvidence === request.authorityEvidence &&
     grant.termsEvidence === request.termsEvidence &&
+    (expectedTermsFingerprint === undefined ||
+      (typeof expectedTermsFingerprint === 'string' &&
+        /^[0-9a-f]{64}$/.test(expectedTermsFingerprint) &&
+        grant.termsFingerprint === expectedTermsFingerprint)) &&
     grant.acceptanceRequired === request.acceptanceRequired &&
     grant.acceptanceEvidence === (request.acceptanceEvidence ?? null) &&
     grant.providedBy === 'company' &&

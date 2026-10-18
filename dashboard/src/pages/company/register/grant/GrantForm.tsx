@@ -230,11 +230,7 @@ export function GrantForm({
           </label>
         ))}
         <p className="text-sm text-text-muted">PDF or image, max 10 MB each. {COPY.PROVIDED_BY_COMPANY}</p>
-        {award && (
-          <p className="text-sm text-text-muted">
-            Choose the same agreement bytes as the award’s retained agreement for the terms document.
-          </p>
-        )}
+        {award && <p className="text-sm text-text-muted">The retained award agreement will be used for this issue.</p>}
       </fieldset>
       {problem && <p className="text-sm text-text-muted">{problem}</p>}
       {error && (
