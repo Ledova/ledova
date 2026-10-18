@@ -4,6 +4,7 @@ from uuid import UUID
 
 from django.core.files.base import ContentFile
 from django.db import IntegrityError, connections
+from django.db.models import Sum
 from django.utils import timezone
 from rest_framework.exceptions import NotFound, ValidationError
 
@@ -13,7 +14,9 @@ from tokens.constants import REGISTER_IMPORT_ADDRESS_LENGTH
 from tokens.exceptions import RegisterChangeConflict
 from tokens.models import (
     RegisterAward,
+    RegisterAwardEnd,
     RegisterAwardVesting,
+    RegisterAwardVestingReversal,
     RegisterEvidence,
     RegisterEvidenceKind,
     RegisterImport,
@@ -81,11 +84,33 @@ def _require_class(token):
 def award_quantities(award, excluding_grant=None):
     with connections[current_alias()].cursor() as cursor:
         cursor.execute(
-            "SELECT tokens_employee_award_vested(%s), tokens_employee_award_issued(%s, %s)",
-            [award.pk, award.pk, excluding_grant],
+            "SELECT tokens_employee_award_vested(%s), tokens_employee_award_issued(%s, %s), "
+            "tokens_employee_award_ended(%s, false), tokens_employee_award_ended(%s, true)",
+            [award.pk, award.pk, excluding_grant, award.pk, award.pk],
         )
-        vested, issued = (int(value) for value in cursor.fetchone())
-    return {"vested_shares": str(vested), "issued_shares": str(issued), "available_shares": str(vested - issued)}
+        vested, issued, unvested_ended, vested_ended = (int(value) for value in cursor.fetchone())
+    return {
+        "vested_shares": str(vested),
+        "issued_shares": str(issued),
+        "available_shares": str(vested - issued - vested_ended),
+        "ended_unvested_shares": str(unvested_ended),
+        "ended_vested_shares": str(vested_ended),
+        "unvested_remaining_shares": str(int(award.shares) - vested - unvested_ended),
+        "remaining_unissued_shares": str(int(award.shares) - issued - unvested_ended - vested_ended),
+    }
+
+
+def award_latest_on(award):
+    with connections[current_alias()].cursor() as cursor:
+        cursor.execute("SELECT tokens_employee_award_latest_on(%s)", [award.pk])
+        return cursor.fetchone()[0]
+
+
+def _require_fact_date(award, value):
+    if value < award_latest_on(award):
+        raise ValidationError(
+            "The company date cannot precede the latest recorded award fact or known share issue date."
+        )
 
 
 def _lock_award(award_id, company):
@@ -256,9 +281,8 @@ def record_award_vesting(*, actor, operation_id, appointment, award, shares, ves
                 return prior, False
             _require_class(token)
             _agreement_available(held)
-            if values["vested_on"] < held.terms_on:
-                raise ValidationError("A vesting fact cannot precede the recorded agreement date.")
-            if int(award_quantities(held)["vested_shares"]) + values["shares"] > int(held.shares):
+            _require_fact_date(held, values["vested_on"])
+            if values["shares"] > int(award_quantities(held)["unvested_remaining_shares"]):
                 raise ValidationError("Recorded vesting exceeds the promised award quantity.")
             source_evidence = RegisterEvidence.objects.select_for_update().filter(pk=evidence).first()
             raw = own_evidence_bytes(
@@ -289,3 +313,136 @@ def record_award_vesting(*, actor, operation_id, appointment, award, shares, ves
         if vesting is not None:
             discard(vesting.file)
         raise
+
+
+def _nonnegative_shares(value):
+    if value == "0":
+        return 0
+    return _shares(value)
+
+
+def _record_award_adjustment(*, actor, operation_id, appointment, award, vesting, values, evidence, model):
+    operation_id, appointment, award, evidence = _references(operation_id, appointment, award, evidence)
+    with use_operator():
+        initial = RegisterAward.objects.readable_by(actor).filter(pk=award).first()
+    if initial is None:
+        raise NotFound("Employee award not found.")
+    fact = None
+    try:
+        operation = (
+            "register_award_end_record" if model is RegisterAwardEnd else "register_award_vesting_reversal_record"
+        )
+        with register_command(actor, initial.company_id, operation) as (company, current_actor, profile, operator):
+            source = register_appointment(
+                company, current_actor, profile, operator, appointment, CompanyCapability.PREPARE
+            )
+            held, token = _lock_award(award, company)
+            if vesting is not None:
+                original = RegisterAwardVesting.objects.filter(pk=vesting, award=held, company=company).first()
+                if original is None:
+                    raise NotFound("Employee award vesting not found.")
+            expected = {
+                **values,
+                "company_id": company.pk,
+                "award_id": held.pk,
+                "evidence_id": evidence,
+                "preparing_appointment_id": source.pk,
+                "submitted_by_id": current_actor.pk,
+            }
+            if vesting is not None:
+                expected["vesting_id"] = vesting
+            prior = model.objects.filter(pk=operation_id).first()
+            if prior is not None:
+                if any(getattr(prior, key) != value for key, value in expected.items()):
+                    raise RegisterChangeConflict()
+                return prior, False
+            _require_class(token)
+            _agreement_available(held)
+            _require_fact_date(held, values["company_event_on"])
+            quantities = award_quantities(held)
+            if model is RegisterAwardEnd:
+                if values["unvested_shares"] > int(quantities["unvested_remaining_shares"]) or values[
+                    "vested_shares"
+                ] > int(quantities["available_shares"]):
+                    raise ValidationError("End only the remaining unvested or vested-but-unissued entitlement.")
+            else:
+                matching_bytes(original.file, original.evidence_snapshot["file_size"], original.evidence_fingerprint)
+                reversed_before = original.reversals.aggregate(total=Sum("reversed_shares"))["total"] or 0
+                if values["reversed_shares"] > int(original.shares) - int(reversed_before) or values[
+                    "reversed_shares"
+                ] > int(quantities["available_shares"]):
+                    raise ValidationError(
+                        "Reverse only this vesting's uncorrected amount without removing issued or ended rights."
+                    )
+            source_evidence = RegisterEvidence.objects.select_for_update().filter(pk=evidence).first()
+            raw = own_evidence_bytes(
+                source_evidence,
+                RegisterEvidenceKind.SUPPORTING,
+                company,
+                current_actor,
+                "Name the evidence you uploaded for this company fact.",
+            )
+            fact = model(
+                uuid=operation_id,
+                evidence_fingerprint=source_evidence.sha256,
+                evidence_snapshot=evidence_snapshot(source_evidence),
+                **expected,
+            )
+            fact.file.save("evidence.bin", ContentFile(raw), save=False)
+            try:
+                fact.save(force_insert=True)
+            except IntegrityError:
+                raise RegisterChangeConflict() from None
+            return fact, True
+    except BaseException:
+        if fact is not None:
+            discard(fact.file)
+        raise
+
+
+def record_award_end(
+    *, actor, operation_id, appointment, award, unvested_shares, vested_shares, company_event_on, reason, evidence
+):
+    values = {
+        "unvested_shares": _nonnegative_shares(unvested_shares),
+        "vested_shares": _nonnegative_shares(vested_shares),
+        "company_event_on": _date(company_event_on),
+        "reason": _text(reason, "the company reason", 1000),
+    }
+    if values["unvested_shares"] + values["vested_shares"] == 0:
+        raise ValidationError("Record a positive amount of unissued entitlement to end.")
+    return _record_award_adjustment(
+        actor=actor,
+        operation_id=operation_id,
+        appointment=appointment,
+        award=award,
+        vesting=None,
+        values=values,
+        evidence=evidence,
+        model=RegisterAwardEnd,
+    )
+
+
+def record_award_vesting_reversal(
+    *, actor, operation_id, appointment, vesting, reversed_shares, company_event_on, reason, evidence
+):
+    (vesting,) = _references(vesting)
+    values = {
+        "reversed_shares": _shares(reversed_shares),
+        "company_event_on": _date(company_event_on),
+        "reason": _text(reason, "the company reason", 1000),
+    }
+    with use_operator():
+        original = RegisterAwardVesting.objects.readable_by(actor).filter(pk=vesting).first()
+    if original is None:
+        raise NotFound("Employee award vesting not found.")
+    return _record_award_adjustment(
+        actor=actor,
+        operation_id=operation_id,
+        appointment=appointment,
+        award=original.award_id,
+        vesting=vesting,
+        values=values,
+        evidence=evidence,
+        model=RegisterAwardVestingReversal,
+    )

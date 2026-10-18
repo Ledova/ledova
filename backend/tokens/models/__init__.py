@@ -46,7 +46,12 @@ from .register_allotment import (
     RegisterAllotmentDecision,
     RegisterContribution,
 )
-from .register_award import RegisterAward, RegisterAwardVesting
+from .register_award import (
+    RegisterAward,
+    RegisterAwardEnd,
+    RegisterAwardVesting,
+    RegisterAwardVestingReversal,
+)
 from .register_capital_increase import (
     RegisterCapitalIncrease,
     RegisterCapitalIncreaseDecision,
@@ -152,6 +157,8 @@ __all__ = [
     "RegisterGrant",
     "RegisterAward",
     "RegisterAwardVesting",
+    "RegisterAwardEnd",
+    "RegisterAwardVestingReversal",
     "RegisterGrantDecision",
     "RegisterTransfer",
     "RegisterTransferDecision",

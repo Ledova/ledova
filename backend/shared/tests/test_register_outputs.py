@@ -10,9 +10,10 @@ from django.utils import timezone
 from rest_framework.test import APITransactionTestCase
 
 from shared.db import atomic, use_operator
-from shared.tests.core_fixtures import CoreFixtures
+from shared.tests.core_fixtures import CoreFixtures, retained_evidence
 from tokens.models import (
     MemberCertificateFulfilment,
+    RegisterEvidenceKind,
     RegisterExport,
     RegisterGrant,
     RegisterTransfer,
@@ -167,6 +168,22 @@ class RegisterOutputsTest(CoreFixtures, APITransactionTestCase):
         withdrawal = self.client.post(f"{request_endpoint}withdraw/", {"idempotency_key": str(uuid4())}, format="json")
         self.assertEqual(withdrawal.status_code, 400, withdrawal.content)
         self.client.force_authenticate(self.owner)
+        ending_evidence = retained_evidence(self.owner, self.appointment, RegisterEvidenceKind.SUPPORTING)
+        ending = self.client.post(
+            "/api/v1/tokens/register-award-ends/",
+            {
+                "operation_id": str(uuid4()),
+                "appointment": str(self.appointment.pk),
+                "award": award["operation_id"],
+                "unvested_shares": "1",
+                "vested_shares": "0",
+                "company_event_on": timezone.now().date().isoformat(),
+                "reason": "Company ends unissued entitlement",
+                "evidence": str(ending_evidence.pk),
+            },
+            format="json",
+        )
+        self.assertEqual(ending.status_code, 201, ending.content)
         packed = self.client.post(
             f"/api/v1/companies/{self.company.pk}/pack/",
             {
@@ -189,6 +206,9 @@ class RegisterOutputsTest(CoreFixtures, APITransactionTestCase):
             sources = json.loads(bundle.read("company_mandates.json"))
             self.assertEqual(sources["awards"][0]["data"]["is_entitlement"], True)
             self.assertEqual(sources["vestings"][0]["data"]["shares"], "25")
+            self.assertEqual(sources["award_ends"][0]["data"]["unvested_shares"], "1")
+            self.assertEqual(sources["award_ends"][0]["data"]["award"], award["operation_id"])
+            self.assertTrue(bundle.read(sources["award_ends"][0]["sources"]["evidence"]["path"]).startswith(b"%PDF"))
             self.assertEqual(sources["grants"][0]["command"]["award"], award["operation_id"])
             self.assertEqual(sources["contributions"][0]["data"]["company_recorded"], True)
             self.assertEqual(sources["contributions"][0]["data"]["verified_by_ledova"], False)

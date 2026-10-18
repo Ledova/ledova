@@ -10,6 +10,8 @@ from tokens.views.member_access import (
 )
 from tokens.views.register_allotment import RegisterAllotmentViewSet
 from tokens.views.register_award import (
+    RegisterAwardEndViewSet,
+    RegisterAwardVestingReversalViewSet,
     RegisterAwardVestingViewSet,
     RegisterAwardViewSet,
 )
@@ -49,6 +51,12 @@ router.register(r"register-openings", RegisterOpeningViewSet, basename="register
 router.register(r"register-links", RegisterWalletLinkViewSet, basename="register-links")
 router.register(r"register-allotments", RegisterAllotmentViewSet, basename="register-allotments")
 router.register(r"register-grants", RegisterGrantViewSet, basename="register-grants")
+router.register(r"register-award-ends", RegisterAwardEndViewSet, basename="register-award-ends")
+router.register(
+    r"register-award-vesting-reversals",
+    RegisterAwardVestingReversalViewSet,
+    basename="register-award-vesting-reversals",
+)
 router.register(r"register-awards", RegisterAwardViewSet, basename="register-awards")
 router.register(r"register-award-vestings", RegisterAwardVestingViewSet, basename="register-award-vestings")
 router.register(r"register-transfers", RegisterTransferViewSet, basename="register-transfers")

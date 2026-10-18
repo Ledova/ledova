@@ -504,7 +504,7 @@ LANGUAGE sql STABLE SECURITY INVOKER SET search_path = pg_catalog, public, pg_te
             'vesting_events', (SELECT coalesce(jsonb_agg(to_jsonb(event) ORDER BY event.uuid), '[]'::jsonb)
                 FROM tokens_registerawardvesting event WHERE event.award_id = proposal.award_id),
             'issued_grants', (SELECT coalesce(jsonb_agg((to_jsonb(issued) - CASE WHEN to_jsonb(issued)->>'company_event_on' IS NULL THEN 'company_event_on' ELSE '' END) ORDER BY issued.uuid), '[]'::jsonb)
-                FROM tokens_registergrant issued WHERE issued.award_id = proposal.award_id AND issued.status = 'applied')) END)::text, 'UTF8')), 'hex')
+                FROM tokens_registergrant issued WHERE issued.award_id = proposal.award_id AND issued.status = 'applied')) || tokens_employee_award_adjustments(proposal.award_id) END)::text, 'UTF8')), 'hex')
     FROM tokens_registergrant proposal JOIN tokens_sharetoken token ON token.uuid = proposal.token_id
         LEFT JOIN tokens_shareregister register ON register.token_id = token.uuid WHERE proposal.uuid = grant_uuid;
 $$;

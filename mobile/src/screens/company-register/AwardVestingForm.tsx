@@ -74,7 +74,7 @@ export function AwardVestingForm({
   const quantity = shares.trim();
   const date = vestedOn.trim();
   const problem =
-    !/^[1-9]\d*$/.test(quantity) || BigInt(quantity) > BigInt(award.shares) - BigInt(award.vestedShares)
+    !/^[1-9]\d*$/.test(quantity) || BigInt(quantity) > BigInt(award.unvestedRemainingShares)
       ? 'Enter a positive whole quantity within the award’s unvested shares.'
       : !isoDay(date) || date > utcToday()
         ? 'Enter a vesting date as YYYY-MM-DD, today (UTC) or earlier.'
