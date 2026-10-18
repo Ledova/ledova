@@ -466,20 +466,22 @@ PUBLIC_TERM = {
     "The read term adds the offerings the principal's companies own; WITH CHECK stays member-only, because "
     "an issuer does not write a subscription on someone's behalf. No cycle: offerings_offering's policy "
     "does not read subscriptions.",
-    "customer_accounts_account": "An issuer must know who subscribed to their own offering, and every "
-    "subscription the issuer term admits names its account through a non-nullable key, so a hidden account "
-    "would delete from a select_related the subscription row the issuer was allowed to see. The term is the "
-    "subscription, not the market - a stranger browsing companies reaches no account at all. R14 used to let "
-    "an account through for holding a company's operator wallet, and one account per person turned that into "
-    "the holder's name, phone and address, so it is gone. The term reads offerings_subscription, which reads "
-    "offerings_offering, which reads companies_company, which reads nothing back.",
-    "wallets": "The same subscription, one column along: its wallet key is not nullable either. A wallet is on "
-    "the account that subscribed, so the wallet term and the account term open together and R13's closure holds "
-    "by construction.",
-    "users_userprofile": "The register is a name and an address, so an issuer reading their own "
-    "subscriptions reads the subscriber's profile. The account is visible to that issuer already and "
-    "user_profile_id is not nullable, so without this term select_related would delete the account row and "
-    "the subscription with it. The term is the same subscription predicate, one link further.",
+    "customer_accounts_account": "An issuer must know who subscribed to their own offering. On the app role, "
+    "tokens/services/holder_identity.py identity_at_allotment, which submit_instruction reaches through "
+    "_check_items, follows a recipient's wallet to its account and profile; when that wallet subscribed to the "
+    "owner's offering the wallet term admits it, so without this term the account lookup would raise. The term "
+    "is the subscription, not the market - a stranger browsing companies reaches no account at all. R14 used to "
+    "let an account through for holding a company's operator wallet, and one account per person turned that "
+    "into the holder's name, phone and address, so it is gone. The term reads offerings_subscription, which "
+    "reads offerings_offering, which reads companies_company, which reads nothing back.",
+    "wallets": "The same subscription, one column along: identity_at_allotment finds the recipient's wallet by "
+    "address, and this term admits it when that wallet subscribed to the owner's offering. A wallet is on the "
+    "account that subscribed, so the wallet term and the account term open together and R13's closure holds by "
+    "construction.",
+    "users_userprofile": "The register is a name and an address, so identity_at_allotment reads the profile "
+    "behind a subscribing account for the recipient's name and residential address. The account is visible to "
+    "that issuer already and user_profile_id is not nullable, so without this term that read would raise. The "
+    "term is the same subscription predicate, one link further.",
     "companies_company": "Public discovery preserves active companies open to investors and companies with a "
     "deployed token carrying a nonempty contract address. Directory and secondary-market joins require these "
     "parents independently of private basic administration. The fixed-search-path discovery definer returns "
