@@ -35,7 +35,12 @@ import { CompanyPack } from './CompanyPack';
 import { RegisterLinks } from './RegisterLinks';
 import { RegisterParticulars } from './RegisterParticulars';
 import { Loading, Unavailable } from '@pages/company/shared/RegisterStatus';
-import { registersQuery, useCompanyRegister, useRegisterDownload, registerClassesKey } from '@pages/company/shared/useCompanyRegister';
+import {
+  registersQuery,
+  useCompanyRegister,
+  useRegisterDownload,
+  registerClassesKey,
+} from '@pages/company/shared/useCompanyRegister';
 import { ownerGuard } from '@pages/company/shared/ownerGuard';
 import { useOwnAppointments, ownAppointmentsKey } from '@pages/company/shared/useOwnAppointments';
 
