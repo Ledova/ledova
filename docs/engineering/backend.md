@@ -441,19 +441,21 @@ writes (create, edit, delete, submit, withdraw, attach documents) run inside
 ### Subscription data flow
 
 - `POST /api/v1/subscriptions/` creates a whole-share draft. `get_fields()` scopes the offering to
-  `Offering.objects.open_now()` under the caller's policies, which admit the offerings of every
-  active company open to investors, and the wallet to `owned_by(user).verified_evm()` on Base;
-  `validate()` takes the caller's investing account. `create_draft` copies the price, currency,
-  company display name (trading name, else legal name), class name and symbol onto the row; the
-  personal list and detail read these copies without joining the parents, so reads, bank
-  instructions and guarded withdrawal survive a hidden parent. An unchanged link can keep its stored
-  owner when its parent is hidden; inserts, changed hidden links and owner tampering are refused.
-- `create_draft` and `submit/` re-read the offering, class and company on the operator connection
+  `Offering.objects.open_now()` under the caller's policies, which admit the offerings of the
+  caller's own companies and of every active company open to investors. It scopes the wallet to
+  `owned_by(user).verified_evm()` on Base, and `validate()` takes the caller's investing account.
+  `create_draft` copies the price, currency, company display name (trading name, else legal name),
+  class name and symbol onto the row; the personal list and detail read these copies without
+  joining the parents, so reads, bank instructions and guarded withdrawal survive a hidden parent.
+  An unchanged link can keep its stored owner when its parent is hidden; inserts, changed hidden
+  links and owner tampering are refused.
+- `create_draft` and `submit` re-read the offering, class and company on the operator connection
   under the caller's principal and run `_require_frozen_economics` and
   `require_subscription_eligibility`, then take `offerings_lock_subscription_admission`, re-read and
-  run both again before writing. `_require_open` and `_require_frozen_economics` answer 400 through
-  `SubscriptionRefusedException` when the offering is no longer open or its frozen terms changed.
-  Admin `accept` runs `require_subscription_acceptance_eligibility` behind the same lock.
+  run both again before writing. `_require_frozen_economics` answers 400 through
+  `SubscriptionRefusedException` when the offering is no longer open (`_require_open`), the
+  quantity is outside its bounds or the frozen terms changed. Admin `accept` runs
+  `require_subscription_acceptance_eligibility` behind the same lock.
 - Acceptance issues the payment instruction. `generate_reference` appends an eight-character
   Crockford base32 code to `Operator.payment_reference_prefix` and refuses a normalised prefix over
   the `shared.payment_references` limit even when a write bypassed model validation, so the code is
