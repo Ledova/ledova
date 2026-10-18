@@ -538,13 +538,22 @@ FRAMEWORK = {
     "principal would make authentication depend on the answer it is trying to produce.",
     "django_admin_log": "The admin's audit trail, written and read on the operator connection only.",
     "django_content_type": "Django's model registry.",
-    "django_session": "Session rows, read before any view runs and keyed by a cookie rather than a user.",
+    "django_session": "Session rows keyed by a cookie rather than a user and loaded lazily inside a view. The admin "
+    "reads and writes them on the operator connection; the LoginView and LogoutView of rest_framework.urls, at "
+    "api-auth/, write and delete them on the app connection before any principal exists. API views authenticate "
+    "by token and never load them.",
     "token_blacklist_outstandingtoken": "Issued refresh tokens, read during authentication, before a "
     "principal exists.",
     "token_blacklist_blacklistedtoken": "Revoked refresh tokens, read during authentication for the same reason.",
-    "procrastinate_jobs": "The worker queue, consumed on the operator connection. Transaction screening "
-    "jobs are inserted on the producer's connection so they commit with the transaction they screen.",
-    "procrastinate_events": "Worker job history, written by the queue on the operator connection.",
+    "procrastinate_jobs": "The worker queue. The worker, and plain defers made inside it, use procrastinate's own "
+    "connection on the default alias, and plain defers in web processes use Django's default-alias connection, "
+    "both as the migration role; staff read it in admin on the operator connection. Producers whose job must "
+    "commit with their own transaction defer through DjangoConnector(alias=current_alias()): "
+    "compliance/services/transaction_monitoring.py queue_new_transaction and "
+    "wallets/services/transaction_confirmation.py _notify_wallet_users do so on the app connection when they act "
+    "for a user, and the register, wallet and execution commands on the operator connection.",
+    "procrastinate_events": "Worker job history, inserted by procrastinate's triggers on procrastinate_jobs as "
+    "whichever role changes the job, so the app role writes it whenever it defers.",
     "procrastinate_periodic_defers": "Worker schedule bookkeeping, with no tenant in it at all.",
     "procrastinate_workers": "Worker registration rows, one per running worker process.",
     "auth_group_permissions": "Django's own permission plumbing, joining a group to a permission.",
@@ -571,22 +580,35 @@ OPERATOR_ONLY = {
     "recorded status and current company queues.",
     "tokens_membercertificatewithdrawal": "Append-only own requester withdrawals without invented "
     "certificate fulfilment.",
-    "tokens_registeragreement": "Retained private external agreements served through current "
-    "exact-company register appointments.",
+    "tokens_registeragreement": "Retained private external agreements served through current exact-company "
+    "register appointments and the staff company pack, CompanyPackAdmin.produce.",
     "tokens_registercontribution": "Immutable company-recorded AUD receipts served through current "
-    "exact-company register appointments.",
-    "tokens_registerallotment": "Exact fully paid external allotments, private to current company "
-    "register appointments.",
+    "exact-company register appointments and the staff company pack; the stored register reads them only to "
+    "confirm each allotment's amount paid.",
+    "tokens_registerallotment": "Exact fully paid external allotments, served through current exact-company "
+    "register appointments and the staff company pack. Applying one records its shares in the register and, for a "
+    "new member, copies its name and address into the member's particulars; of the rows themselves, only the "
+    "consideration, as each member's amount paid, and the event date reach the wider register outputs.",
     "tokens_registerallotmentdecision": "Append-only attributable company allotment decisions "
     "reached through their private parent.",
-    "tokens_registeraward": "Immutable private company employee agreements, served only through current "
-    "exact-company register appointments on the operator connection.",
-    "tokens_registerawardend": "Append-only company entitlement endings and private evidence "
-    "require exact company appointments.",
-    "tokens_registerawardvestingreversal": "Append-only referenced vesting reversals and private evidence "
-    "require exact company appointments.",
-    "tokens_registerawardvesting": "Append-only company-confirmed vesting facts and private evidence, "
-    "served only through current exact-company register appointments on the operator connection.",
+    "tokens_registeraward": "Immutable private company employee awards, carrying the recipient's name and address "
+    "and the agreement file, written only by tokens/services/register_awards.py record_award. Current "
+    "exact-company register appointments read them; the recipient's current own member association reads its own "
+    "award terms and quantities, and an award-only member's recorded identity, through "
+    "tokens/services/member_access.py own_record; and permitted staff copy them into a company pack through "
+    "CompanyPackAdmin.produce. All of it runs on the operator connection.",
+    "tokens_registerawardend": "Append-only company entitlement endings and private evidence, written only by "
+    "record_award_end under an exact company appointment. Current exact-company register appointments read them; "
+    "the recipient's current own member association reads its own endings, without the evidence, through "
+    "own_record; and permitted staff copy them into a company pack through CompanyPackAdmin.produce. All of it "
+    "runs on the operator connection.",
+    "tokens_registerawardvestingreversal": "Append-only referenced vesting reversals and private evidence, written "
+    "only by record_award_vesting_reversal under an exact company appointment, and read like the award endings.",
+    "tokens_registerawardvesting": "Append-only company-confirmed vesting facts and private evidence, written only "
+    "by record_award_vesting. Current exact-company register appointments read them; the recipient's current own "
+    "member association reads its own vesting shares and dates, without the evidence, through own_record; and "
+    "permitted staff copy them into a company pack through CompanyPackAdmin.produce. All of it runs on the "
+    "operator connection.",
     "tokens_registerpausechange": "Private immutable company pause sources and retained authority evidence, "
     "served through current exact-company register authority.",
     "tokens_registerpausechangedecision": "Append-only personal company pause decisions served through "
@@ -615,9 +637,14 @@ OPERATOR_ONLY = {
     "bound to current company appointments and read through their company-scoped transfer.",
     "tokens_registergrantdecision": "Append-only company decisions of non-paid register grants, bound to current "
     "company appointments and exact immutable commands, read through their company-scoped grant.",
-    "tokens_registerevidence": "Immutable company-provided register evidence uploads, written by the bounded "
-    "register command on the operator connection and read there only through register-readable queries. Each "
-    "prepared import keeps its own copy of the files it used.",
+    "tokens_registerevidence": "Immutable company-provided register evidence uploads, written only by "
+    "tokens/services/register_evidence.py retain_register_evidence in the bounded register command on the operator "
+    "connection. No API lists or retrieves them; the upload route returns only the uploader's own row. The "
+    "uploader's own prepare commands accept them through own_evidence_bytes, and grant preparation also accepts an "
+    "award's retained agreement evidence. Every proposal, agreement, receipt, award, vesting, ending and reversal "
+    "built from them keeps its own copy of the bytes. The pause and capital _state checks, run for their proposals "
+    "and execution workers, re-read the original, and the company pack and staff admin pages read the rows through "
+    "the records that cite them, all on the operator connection.",
     "tokens_registerimportdecision": "Append-only company approvals, applications and rejections of register "
     "imports, each bound to the deciding appointment and written by the bounded register command on the operator "
     "connection. Register readers see them through the import on the operator connection.",
@@ -633,80 +660,120 @@ OPERATOR_ONLY = {
     "tokens_registerwalletlinkdecision": "Append-only company approvals, applications and rejections of member "
     "wallet links, each bound to the deciding appointment and written by the bounded register command on the "
     "operator connection. Register readers see them through the link on the operator connection.",
-    "tokens_registeracknowledgement": "Append-only acknowledgements of register reconciliation discrepancies. A "
-    "company's are written by the bounded register command on the operator connection, each bound to the "
-    "acknowledging appointment; retained staff-era rows came from a retired operator command. Register readers "
-    "read them through the reconciliation on the operator connection, and later reconciliation runs read them "
-    "there too.",
-    "tokens_pausechange": "Immutable issuer or staff pause submissions and their original outgoing outcomes. "
-    "Bounded operator admission retains exact authority and job; issuer token projection uses the scoped connection.",
-    "tokens_shareissuanceexecution": "Immutable operator-authorized share issuance intent, queued cancellation, "
-    "exact retry authority and protected outgoing associations. Customer paths retain public request state.",
-    "tokens_capitalincreaseexecution": "Immutable operator-authorized capital increase intent, exact retry "
-    "authorization and original transaction attribution. Issuer request paths never read the private execution record.",
-    "tokens_tokendeployment": "Immutable deployment intent and issuer authority snapshots, written through a bounded "
-    "operator journal. Public token lifecycle writes retain their issuer connection.",
+    "tokens_registeracknowledgement": "Append-only acknowledgements of register reconciliation discrepancies, "
+    "written only by tokens/services/register_reconciliation.py acknowledge_discrepancy in the bounded register "
+    "command on the operator connection, each bound to the acknowledging appointment. Register readers read them "
+    "through the reconciliation on the operator connection; later reconciliation runs and the company pack read a "
+    "class's acknowledgements there directly.",
+    "tokens_pausechange": "Company pause executions with immutable identity, authority and intent, and their "
+    "original outgoing outcomes. Only tokens/services/pause_changes.py admit_company inserts them, when a company "
+    "pause decision is applied on the operator connection, retaining exact authority and job; the insert guard "
+    "refuses any other source. The pause worker, through tokens/services/pause_recovery.py recover, then moves each "
+    "row's status forward and records its operation, observation and completion once. The worker, the register "
+    "pause routes, the share token admin and the company pack read them on the operator connection.",
+    "tokens_shareissuanceexecution": "Immutable company-admitted share issuance intent from the exact applied "
+    "register issue or paid issue, queued cancellation, staff retry of an existing row and protected outgoing "
+    "associations. Customer paths retain public request state; the register issue routes and the company pack read "
+    "the record on the operator connection.",
+    "tokens_capitalincreaseexecution": "Immutable company-admitted capital increase intent from the exact applied "
+    "register capital increase, staff retry of an existing row and original transaction attribution. The register "
+    "capital routes and the company pack read it on the operator connection; the CapitalIncreaseViewSet request "
+    "list never does.",
+    "tokens_tokendeployment": "Immutable deployment intent and applying principal copied from the company's applied "
+    "register deployment, written through a bounded operator journal. A deployment's share token lifecycle writes "
+    "run on the operator connection too.",
     "tokens_swapapprovalsubmission": "Immutable participant-signed approval bytes, their nonce and hash, and the "
     "receipt written once. The route records it through a bounded operator transaction before any send and the "
     "sweep replays it; the participant's own connection never reads a signed broadcast capability.",
-    "whitelist_whitelistchange": "Immutable operator-authorized whitelist commands and their outgoing-operation "
-    "associations. Public membership reads never read this private recovery journal.",
+    "whitelist_whitelistchange": "Company-instructed and eligibility-invalidation whitelist commands, whose terms "
+    "are fixed at insert and whose status only moves forward, with their outgoing-operation associations. Company "
+    "register readers see their own targets on the operator connection; public membership reads never read this "
+    "recovery journal.",
     "whitelist_whitelisteligibilityinvalidation": "Retained account, identity and wallet invalidation facts and "
     "actual human or automatic attribution, written in the original bounded operator transaction. Only the "
     "invalidation worker reads these private cause records.",
     "documents_documentread": "Append-only administrative document read records, written on the operator "
     "connection and visible only to permitted platform reviewers. They contain UUIDs and reader IDs, not "
     "file names, extraction values or file contents, and outlive document content purges.",
-    "tokens_registerexport": "Immutable records of who exported a share class's register or prepared a copy, a "
-    "certificate, notice figures or a company pack from it, written on the operator connection by the export route, "
-    "the register outputs admin and the company pack admin, and queried by staff in admin. No issuer or customer "
-    "path reads them, and only the retention purge deletes them.",
+    "tokens_registerexport": "Immutable records of who exported a share class's register or prepared an inspection "
+    "copy, a certificate, notice figures or a company pack from it. Every writer is on the operator connection: "
+    "tokens/services/register.py export_rows, prepare_inspection_copy and prepare_certificate for ShareTokenViewSet's "
+    "register_export, register_inspection_copy and register_certificate actions; prepare_notice_figures for the "
+    "register outputs admin; tokens/services/member_certificates.py fulfil_member_certificate for "
+    "MemberCertificateRequestViewSet.fulfil; and tokens/services/company_pack.py _record for the issuer's "
+    "CompanyViewSet.pack through tokens/services/company_pack_outputs.py prepare_company_pack and for "
+    "CompanyPackAdmin.produce through produce_company_pack. The readers are on the same connection: "
+    "tokens/services/register.py outputs_due, which finds the certificates and notice figures still owed for the "
+    "register outputs admin and for _build_company_pack on both company pack paths; RegisterExportAdmin for staff; "
+    "and the trigger function tokens_guard_member_certificate_fulfilment, which checks the export a member "
+    "certificate is bound to. Only tokens/services/former_holders.py purge_register_exports deletes them, on the "
+    "retention clock, and it keeps every export bound to a member certificate fulfilment.",
     "shareholders_publicationread": "Append-only records of who opened a publication a company made to its "
     "members, or the remittance evidence of one of its payment records, written on the operator connection by "
-    "the delivery service and the publications admin, and read "
-    "only by permitted staff. They carry UUIDs and reader IDs, not names, holdings or file contents, and a "
-    "delivery whose read cannot be recorded is refused rather than served.",
-    "compliance_compliancealert": "Raised and worked by compliance staff on the operator connection. It "
+    "the delivery service for the publication file route and the publications admin, and read only by permitted "
+    "staff, including as per-publication counts in the staff company pack; only the retention purge deletes them. "
+    "They carry UUIDs and reader IDs, not names, holdings or file contents, and a delivery whose read cannot be "
+    "recorded is refused rather than served.",
+    "compliance_compliancealert": "Raised automatically by the screening, monitoring and periodic review tasks and "
+    "the KYCAID webhooks, or by compliance staff, and worked by staff in admin, all on the operator connection. It "
     "carries user_account_id but no queryset scopes it, so a policy would be a new rule rather than a "
     "translation of one.",
-    "compliance_transactionscreening": "Same surface, same connection, same reason.",
+    "compliance_transactionscreening": "Created by the screening worker and updated by the KYCAID crypto webhook "
+    "and staff in admin: the same connection and the same reason.",
     "compliance_alertproceduretemplate": "Operator-authored procedure text, the same for every tenant.",
     "compliance_alertprocedurestep": "A step of that operator-authored text, reached through its template.",
-    "compliance_alertchecklistitem": "A checklist item raised against an alert, reached through it.",
+    "compliance_alertchecklistitem": "A checklist item staff add and work against an alert in admin, with no tenant "
+    "but the alert's.",
     "compliance_monitoringrule": "Operator-authored screening rules, the same for every tenant.",
-    "blockchain_blockchaintransaction": "A record of what the relayer broadcast, written by workers and "
-    "keyed by transaction hash rather than by any tenant.",
-    "tokens_mintrequest": "Written on the relayer path by workers, reached through its token.",
-    "tokens_navupdate": "Issuer-published NAV history, reached through its token.",
-    "tokens_yieldtoken": "Token configuration reached through its share token.",
+    "blockchain_blockchaintransaction": "A record of a transaction the platform signer admits or signs, identified "
+    "by uuid and by the record it belongs to, with a unique transaction hash once signed, rather than by any tenant. "
+    "Workers write most rows; TradingOrderViewSet.swap_sign and the mint admin views write them inside a request, "
+    "on the operator connection.",
+    "tokens_mintrequest": "A staff mint of a settlement stablecoin or a yield token, created and executed in admin "
+    "and recovered by the mint worker, for a global asset or yield token with no tenant.",
+    "tokens_navupdate": "Staff-submitted NAV history for a yield token with no tenant, applied in the "
+    "YieldTokenAdmin request or, when staff choose on-chain execution, executed by the NAV worker.",
+    "tokens_yieldtoken": "Standalone yield token configuration with no share token relation, matched to its "
+    "catalogue asset by symbol.",
 }
 
 NOT_TENANCY = {
     "assets_asset": "A global catalogue shared by every tenant; product filters select supported assets.",
     "feature_flags": "Global kill switches; enabled() selects the active flags for every tenant.",
-    "whitelist_whitelistentry": "Staff-only, which is authorisation rather than tenancy, and stays in code.",
-    "whitelist_whitelistapproval": "Each whitelist entry's approval in one company's registry: staff-only like the "
-    "entry it belongs to, so authorisation rather than tenancy, and it stays in code. A customer deleting their own "
-    "wallet cascades through the entry into these rows on the app connection, so a policy that hid them from the "
-    "app role would make that deletion fail rather than keep them private.",
-    "signing_challenges": "Reached by address through a service rather than by any queryset; #256 deleted "
-    "the two methods that looked like scoping. #305 gave it a wallet column, and it is nullable, so a "
-    "policy on it would hide exactly the rows consumable() already refuses - no-policy and policy agree on "
-    "every row, which is a reason to leave it rather than an absence of one. If the column ever becomes "
-    "NOT NULL, or if a queryset starts reading challenges the service does not, that agreement ends.",
+    "whitelist_whitelistentry": "A wallet's whitelist identity. Company wallet instructions, staff sync and the "
+    "admin write it and wallet deletion removes it, all on the operator connection, where eligibility invalidation "
+    "and the register identity and output paths read it. Who may act is authorisation enforced in code rather "
+    "than tenancy. On the app connection it is read only beneath whitelist_whitelistapproval in "
+    "wallets/services/holdings.py approved_share_assets.",
+    "whitelist_whitelistapproval": "Each whitelist entry's approval in one company's registry, written and mostly "
+    "read like the entry it belongs to, so authorisation rather than tenancy, and it stays in code. The app "
+    "connection reads it once: wallets/services/holdings.py approved_share_assets, while syncing the caller's own "
+    "wallet through WalletViewSet.sync or the sync_wallet task acting for that user, takes only the ids of the "
+    "companies with an approval row for that wallet to choose which share classes to discover. Deleting a wallet "
+    "cascades into these rows on the operator connection.",
+    "signing_challenges": "Reached by digest in the signing-challenge and trading services rather than by any "
+    "queryset that scopes it; #256 deleted the two methods that looked like scoping. On the app connection "
+    "tokens/services/signing_challenge.py issue_challenge inserts each challenge for a wallet the caller is "
+    "authorised to use, which the trigger signing_challenges_wallet_is_checked requires to be present and to match "
+    "the address and order, and consume_challenge refuses a challenge not bound to the action or submission the "
+    "caller is authorised for; every other read, update and delete runs on the operator connection. A wallet-owner "
+    "policy would therefore change no current app-role allow or refuse outcome, which is a reason to leave it "
+    "rather than an absence of one. That agreement ends if an app-connection read stops binding the challenge to "
+    "the caller's authorised action, submission or order, or a view or serializer exposes the table.",
     "asset_chain_deployments": "Part of the asset catalogue.",
     "asset_snapshots": "Price history for the catalogue, identical for every tenant.",
     "assets_exchangerate": "Published rates, identical for every tenant.",
     "shared_country": "A reference list of countries, identical for every tenant.",
     "operators_operator": "A singleton naming the operator of this deployment.",
     "operators_operator_supported_settlement_assets": "Which assets that singleton settles in.",
-    "offerings_offering_documents": "A link row reached only through its offering, which is scoped. Nothing "
-    "scopes this table today, so a policy here would be a new rule rather than a translation of one - and it "
-    "is worth writing the day anything reaches these rows without going through the offering first. The "
-    "directory's document read joins it on the operator connection only after resolving the published "
-    "offerings under the app role, and bounds the join to them.",
+    "offerings_offering_documents": "A link row reached through its offering, which is scoped, and from the "
+    "document side by companies/services/documents.py delete_document. Nothing scopes this table today, so a "
+    "policy here would be a new rule rather than a translation of one. Every reader and writer runs on the "
+    "operator connection, including OfferingViewSet's actions, delete_document, the offering and company document "
+    "admins, the eligibility SQL, and the directory's document read, which joins it only after resolving the "
+    "published offerings under the app role and bounds the join to them. #1124 tracks the app role's unused grant.",
     "offerings_offering_settlement_assets": "A link row from a scoped offering to the global asset catalogue, "
-    "reached only through the offering, and carrying nothing the catalogue does not already publish.",
+    "reached from the offering and only on the operator connection. #1124 tracks the app role's unused grant.",
     "portfolios_wallets": "A link row between a scoped portfolio and a scoped wallet, reached through either, "
     "and revealing nothing that reading both of those tables would not.",
 }

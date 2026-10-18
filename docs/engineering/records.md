@@ -659,8 +659,12 @@ require each kind's fields and refuse another kind's:
 - `company_pack`: one row per class at its head, with the SHA-256 of `manifest.json`, the
   instruction and the recipient.
 
-A trigger refuses every update. The table is operator-only: no company or customer route reads it,
-and staff query it in admin. Its purge is in [retention clocks](security.md#retention-clocks).
+A trigger refuses every update. The table is operator-only: the app role has no grant, and every
+route that touches it runs on the operator connection. Each output, from a company route, the
+staff register outputs page or either company pack, and each member certificate fulfilment records
+its row there. The register outputs page and the company pack read the existing rows to list the
+certificates and notice figures still owed. Staff query it in admin. Its purge is in
+[retention clocks](security.md#retention-clocks).
 
 ## Output formats
 
