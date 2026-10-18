@@ -15,9 +15,9 @@ import {
 } from '@ledova/shared';
 import { Disclosure, Row, Rows } from '../../components/Ledger';
 import { apiClient } from '../../services/apiClient';
-import { RegisterCopy } from './RegisterCopy';
-import { RegisterDecision } from './RegisterDecision';
-import { useCompanyStyles } from './styles';
+import { RegisterCopy } from '../../components/register/RegisterCopy';
+import { RegisterDecision } from '../../components/register/RegisterDecision';
+import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 
 const ISSUE_COPY = {
   ...COPY,

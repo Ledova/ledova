@@ -4,7 +4,8 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { formatDate, formatMoney, useSubscriptions } from '@ledova/shared';
 import type { ApplicationsStackParamList } from '../../navigation/ApplicationsStackNavigator';
 import { Action, LinkRow, Row, Rows, Section } from '../../components/Ledger';
-import { ApplicationsPage, useApplicationStyles } from './ApplicationsPage';
+import { ApplicationsPage } from './ApplicationsPage';
+import { useApplicationStyles } from '../../hooks/useApplicationStyles';
 import { applicationShares, applicationState } from './presentation';
 
 export function ApplicationsScreen() {

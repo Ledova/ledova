@@ -10,7 +10,7 @@ import {
 import { Action, Choice } from '../../components/Ledger';
 import { apiClient } from '../../services/apiClient';
 import { getSessionEpoch } from '../../services/sessionScope';
-import { useCompanyStyles } from '../company-register/styles';
+import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 import { scopeLabels } from './AppointmentRecord';
 
 export function AcceptInvitation({

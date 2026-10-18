@@ -22,11 +22,11 @@ import {
 import { Action, Row, Rows, Section } from '../../components/Ledger';
 import { apiClient } from '../../services/apiClient';
 import { orderSubmissionSession } from '../../services/orderSubmissions';
-import { RegisterCopy } from '../company-register/RegisterCopy';
-import { RegisterDecision } from '../company-register/RegisterDecision';
-import { EvidencePicker, Field, isoDay, utcToday } from '../company-register/RegisterFields';
-import { useRegisterEvidence } from '../company-register/useRegisterEvidence';
-import { useCompanyStyles } from '../company-register/styles';
+import { RegisterCopy } from '../../components/register/RegisterCopy';
+import { RegisterDecision } from '../../components/register/RegisterDecision';
+import { EvidencePicker, Field, isoDay, utcToday } from '../../components/register/RegisterFields';
+import { useRegisterEvidence } from '../../hooks/useRegisterEvidence';
+import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 import type { useTokenDetail } from './useTokenDetail';
 
 type Read = ReturnType<typeof useTokenDetail>;

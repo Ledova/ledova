@@ -6,10 +6,10 @@ import { getRegisterAwards, readEveryPage, useCompanyMemberAccess, type TokenHol
 import { Action, Choice, Section } from '../../components/Ledger';
 import { apiClient } from '../../services/apiClient';
 import { orderSubmissionSession } from '../../services/orderSubmissions';
-import { EvidencePicker, Field } from './RegisterFields';
-import { useRegisterEvidence } from './useRegisterEvidence';
-import { useCompanyStyles } from './styles';
-import { particularsKey, registerKey } from './useCompanyRegister';
+import { EvidencePicker, Field } from '../../components/register/RegisterFields';
+import { useRegisterEvidence } from '../../hooks/useRegisterEvidence';
+import { useCompanyStyles } from '../../hooks/useCompanyStyles';
+import { particularsKey, registerKey } from '../../hooks/useCompanyRegister';
 import { invitationMembers } from './invitationMembers';
 
 export function CompanyMemberAccess({

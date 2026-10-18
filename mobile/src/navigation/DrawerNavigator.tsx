@@ -36,8 +36,8 @@ import { SettingsScreen } from '../screens/settings';
 import { DrawerProvider, useDrawer } from './DrawerContext';
 import { useFeatureFlags } from '../hooks/useFeatureFlags';
 import { useRole } from '../hooks/useRole';
-import { useRegisterAccess } from '../screens/company-register/useCompanyRegister';
-import { useUserProfile } from '../screens/user-profile/useUserProfile';
+import { useRegisterAccess } from '../hooks/useCompanyRegister';
+import { useUserProfile } from '../hooks/useUserProfile';
 import type { ComponentType } from 'react';
 import type { CompanyRegisterSection } from '../screens/company-register/CompanyRegisterScreen';
 

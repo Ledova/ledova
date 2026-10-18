@@ -8,9 +8,9 @@ import { Action, Choice, Row, Rows, Section } from '../../components/Ledger';
 import { Page } from '../../components/Page';
 import { CustomModal } from '../../components/modal';
 import { useCompanyProfile } from '../../hooks/useCompanyProfile';
-import { CompanyReadNotice } from '../company/CompanyState';
-import { useCompanyStyles } from '../company-register/styles';
-import { CompanySelection } from '../company/CompanySelection';
+import { CompanyReadNotice } from '../../components/company/CompanyState';
+import { useCompanyStyles } from '../../hooks/useCompanyStyles';
+import { CompanySelection } from '../../components/company/CompanySelection';
 
 export function ListingScreen() {
   const read = useCompanyProfile({ personalOnly: true });

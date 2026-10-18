@@ -11,8 +11,8 @@ import {
   type UpdateUserProfile,
   USER_PROFILES_QUERY_KEY,
 } from '@ledova/shared';
-import { apiClient } from '../../services/apiClient';
-import { orderSubmissionSession } from '../../services/orderSubmissions';
+import { apiClient } from '../services/apiClient';
+import { orderSubmissionSession } from '../services/orderSubmissions';
 
 type PersonalDetails = Pick<UpdateUserProfile, 'fullName' | 'residentialAddress' | 'phoneCountryCode' | 'phoneNumber'>;
 

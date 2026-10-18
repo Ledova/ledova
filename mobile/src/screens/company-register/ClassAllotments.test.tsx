@@ -26,7 +26,7 @@ import { apiClient } from '../../services/apiClient';
 import { getSessionEpoch } from '../../services/sessionScope';
 import { pickedFile, resetFiles } from '../../testSupport/documentFiles';
 import { CompanyRegisterScreen } from './CompanyRegisterScreen';
-import { registerKey } from './useCompanyRegister';
+import { registerKey } from '../../hooks/useCompanyRegister';
 
 let mockSection = 'register';
 jest.mock('@react-navigation/native', () => ({

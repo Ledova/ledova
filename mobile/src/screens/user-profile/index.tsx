@@ -3,9 +3,9 @@ import { ActivityIndicator, RefreshControl, Text, TextInput, View } from 'react-
 import { formatDate, formatDateTime, getUserVerificationStatus } from '@ledova/shared';
 import { Action, Row, Rows, Section } from '../../components/Ledger';
 import { Page } from '../../components/Page';
-import { useUserProfile } from './useUserProfile';
+import { useUserProfile } from '../../hooks/useUserProfile';
 import { VerificationModal } from './components/VerificationModal';
-import { useAccountStyles } from '../account/styles';
+import { useAccountStyles } from '../../hooks/useAccountStyles';
 export function UserProfileScreen() {
   const styles = useAccountStyles();
   const { userProfile, profile, update, updateProfile, sourceKey, ownerKey } = useUserProfile();

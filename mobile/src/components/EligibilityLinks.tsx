@@ -1,6 +1,6 @@
 import { useNavigation, type NavigationProp } from '@react-navigation/native';
-import { Action } from '../../components/Ledger';
-import type { RootStackParamList } from '../../navigation/AppNavigator';
+import { Action } from './Ledger';
+import type { RootStackParamList } from '../navigation/AppNavigator';
 
 export function EligibilityLinks({
   participant = false,

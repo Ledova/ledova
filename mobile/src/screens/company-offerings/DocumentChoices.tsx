@@ -1,6 +1,6 @@
 import { Switch, Text, View } from 'react-native';
 import { OFFER_DOCUMENT_COPY, type CompanyDocument } from '@ledova/shared';
-import { useCompanyStyles } from '../company-register/styles';
+import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 
 export function DocumentChoices({
   documents,

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Text } from 'react-native';
 import { formatDateTime, type useParticipantEligibilityRecords } from '@ledova/shared';
 import { Action, Choice, Row, Rows, Section } from '../../components/Ledger';
-import { useCompanyStyles } from '../company-register/styles';
+import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 import { EligibilitySummary } from './EligibilitySummary';
 
 type Records = ReturnType<typeof useParticipantEligibilityRecords>;

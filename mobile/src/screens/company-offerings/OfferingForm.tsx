@@ -14,7 +14,7 @@ import {
 } from '@ledova/shared';
 import { Action, Choice } from '../../components/Ledger';
 import { ModalActions } from '../../components/modal';
-import { useCompanyStyles } from '../company-register/styles';
+import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 import { DocumentChoices } from './DocumentChoices';
 import { OfferingDateField } from './OfferingDateField';
 

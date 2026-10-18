@@ -10,7 +10,7 @@ import {
 } from '@ledova/shared';
 import { Action, Section } from '../../components/Ledger';
 import { LinkRecord } from './LinkRecord';
-import { useCompanyStyles } from './styles';
+import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 import {
   entriesKey,
   linksKey,
@@ -19,7 +19,7 @@ import {
   useRegisterLinks,
   useRegisterWaitingWallets,
   waitingWalletsKey,
-} from './useCompanyRegister';
+} from '../../hooks/useCompanyRegister';
 
 export function CompanyLinks({
   epoch,

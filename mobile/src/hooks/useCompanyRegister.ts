@@ -32,9 +32,9 @@ import {
   type RegisterStep,
   type TokenHoldersResponse,
 } from '@ledova/shared';
-import { COMPANY_TOKENS_QUERY_KEY } from '../../hooks/useCompanyTokens';
-import { apiClient } from '../../services/apiClient';
-import { assertSessionEpoch, getSessionEpoch, subscribeSession } from '../../services/sessionScope';
+import { COMPANY_TOKENS_QUERY_KEY } from './useCompanyTokens';
+import { apiClient } from '../services/apiClient';
+import { assertSessionEpoch, getSessionEpoch, subscribeSession } from '../services/sessionScope';
 
 const REGISTER_STEPS: RegisterStep[] = ['prepare', 'approve', 'apply', 'reject'];
 

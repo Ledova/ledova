@@ -9,12 +9,12 @@ import { QRScanner } from '../../../components/qr';
 import { useAppTheme, useThemedStyles } from '../../../contexts';
 import { getChainShortCode, isBitcoinChain, normalizeBitcoinRawTransactionHex } from '@ledova/shared';
 import type { WalletsStackParamList } from '../../../navigation/WalletsStackNavigator';
-import { SendForm } from './SendForm';
-import { ReviewTransaction } from './ReviewTransaction';
+import { SendForm } from '../../../components/transfer/SendForm';
+import { ReviewTransaction } from '../../../components/transfer/ReviewTransaction';
 import { BitcoinSignTransaction } from './BitcoinSignTransaction';
-import { SuccessModal } from './SuccessModal';
-import { RefusalNotice } from './RefusalNotice';
-import { useTransfers } from '../useTransfers';
+import { SuccessModal } from '../../../components/transfer/SuccessModal';
+import { RefusalNotice } from '../../../components/transfer/RefusalNotice';
+import { useTransfers } from '../../../hooks/useTransfers';
 
 type Props = NativeStackScreenProps<WalletsStackParamList, 'BitcoinSend'>;
 

@@ -3,12 +3,12 @@ import { Text } from 'react-native';
 import { useMutation } from '@tanstack/react-query';
 import * as Sharing from 'expo-sharing';
 import { COMPANY_TOKEN_ENDPOINTS, REGISTER_COPY, useSubmissionOwner } from '@ledova/shared';
-import { Action } from '../../components/Ledger';
+import { Action } from '../Ledger';
 import { apiClient } from '../../services/apiClient';
 import { shareDocumentCopy } from '../../services/documentCopies';
 import { orderSubmissionSession } from '../../services/orderSubmissions';
 import { assertSessionEpoch, getSessionEpoch } from '../../services/sessionScope';
-import { useCompanyStyles } from './styles';
+import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 
 export function RegisterDownload({
   uuid,

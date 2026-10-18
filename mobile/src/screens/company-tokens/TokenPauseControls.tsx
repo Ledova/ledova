@@ -16,7 +16,7 @@ import { apiClient } from '../../services/apiClient';
 import { orderSubmissionSession } from '../../services/orderSubmissions';
 import { getSessionEpoch, assertSessionEpoch } from '../../services/sessionScope';
 import { pauseSubmissionStore } from '../../services/pauseSubmissions';
-import { useCompanyStyles } from '../company-register/styles';
+import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 import { companyTokenPrefix } from './useTokenDetail';
 import { checked, pauseSubmissionKey, useTokenPauseRequests } from './useTokenPauseRequests';
 

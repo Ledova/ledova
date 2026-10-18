@@ -9,7 +9,7 @@ import { Page } from '../../components/Page';
 import { useAppLock, useThemeChoice } from '../../contexts';
 import { apiClient } from '../../services/apiClient';
 import { CustomModal } from '../../components/modal';
-import { useAccountStyles } from '../account/styles';
+import { useAccountStyles } from '../../hooks/useAccountStyles';
 import { useSettings } from './useSettings';
 
 export function SettingsScreen() {

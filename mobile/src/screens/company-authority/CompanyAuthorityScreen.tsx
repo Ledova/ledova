@@ -16,8 +16,8 @@ import { Page } from '../../components/Page';
 import { companyAuthorityRequestsKey, useCompanyAuthorityRequests } from '../../hooks/useCompanyAuthorityRequests';
 import { apiClient } from '../../services/apiClient';
 import { assertSessionEpoch, getSessionEpoch, subscribeSession } from '../../services/sessionScope';
-import { useCompanyStyles } from '../company-register/styles';
-import { registerAppointmentsKey } from '../company-register/useCompanyRegister';
+import { useCompanyStyles } from '../../hooks/useCompanyStyles';
+import { registerAppointmentsKey } from '../../hooks/useCompanyRegister';
 import { AuthorityRequestForm } from './AuthorityRequestForm';
 import { AuthorityRequestRecord } from './AuthorityRequestRecord';
 

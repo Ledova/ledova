@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { getRegisterAllotments, readEveryPage } from '@ledova/shared';
 import { apiClient } from '../../services/apiClient';
-import { registerKey } from './useCompanyRegister';
+import { registerKey } from '../../hooks/useCompanyRegister';
 export const allotmentsKey = (epoch: number, token: string) => [...registerKey(epoch), 'allotments', token];
 
 export function useRegisterAllotments(

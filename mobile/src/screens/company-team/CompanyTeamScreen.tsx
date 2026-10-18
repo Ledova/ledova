@@ -15,13 +15,13 @@ import { COMPANY_AUTHORITY_REQUESTS_QUERY_KEY } from '../../hooks/useCompanyAuth
 import { apiClient } from '../../services/apiClient';
 import { orderSubmissionSession } from '../../services/orderSubmissions';
 import { assertSessionEpoch, getSessionEpoch } from '../../services/sessionScope';
-import { useCompanyStyles } from '../company-register/styles';
-import { registerAppointmentsKey } from '../company-register/useCompanyRegister';
+import { useCompanyStyles } from '../../hooks/useCompanyStyles';
+import { registerAppointmentsKey } from '../../hooks/useCompanyRegister';
 import { AcceptInvitation } from './AcceptInvitation';
 import { AppointmentRecord, scopeLabels } from './AppointmentRecord';
 import { InvitationForm } from './InvitationForm';
 import { useCompanyTeamReads } from './useCompanyTeamReads';
-import { EligibilityLinks } from '../eligibility-records/EligibilityLinks';
+import { EligibilityLinks } from '../../components/EligibilityLinks';
 
 function CompanyTeam({
   owner,

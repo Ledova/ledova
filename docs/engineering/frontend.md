@@ -81,8 +81,9 @@ Where today's code differs from these standards:
 
 Mobile maps onto the same layers, direction and placement, with `navigation/` for `routes/` and
 `screens/<area>/` for page folders. Its component data calls beyond the reads extracted for key
-ownership remain recorded on [#1072](https://github.com/Ledova/ledova/issues/1072); cross-area imports
-and the two genuine client profile readers are consolidated under
+ownership remain recorded on [#1072](https://github.com/Ledova/ledova/issues/1072). Shared native UI
+and reads have moved out of screen internals; the remaining two cross-area helper imports and
+cross-client copies are consolidated under
 [#1074](https://github.com/Ledova/ledova/issues/1074) ([mobile
 architecture](mobile.md#architecture)). `site/src` is a separate flat app (one file per page in
 `pages/`, `components/`, `styles.ts`, `theme.ts`) that cannot import the shared package; only the
@@ -654,7 +655,7 @@ Each page links to its business section; the audience is the `DESTINATIONS` audi
 - Directory and Applications: a draft application reads every verified Base wallet page and computes
   its fixed-price total in integer cents with `BigInt`
   (`dashboard/src/pages/directory/detail/SubscribeForm.tsx`,
-  `mobile/src/screens/applications/presentation.ts`); Applications shows the recorded values without
+  `mobile/src/screens/directory/applicationAmount.ts`); Applications shows the recorded values without
   recomputing them, and a copy failure keeps the value available.
 - Market: owned order history reads independently of listed classes and wallets. Device-saved work
   ([create-order recovery](mobile.md#create-order-recovery),

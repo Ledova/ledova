@@ -1,13 +1,11 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   failureStatus,
-  createSubscription,
   useSubscriptionDetail,
   submitSubscription,
   withdrawSubscription,
   SUBSCRIPTIONS_QUERY_KEY,
 } from '@ledova/shared';
-import type { SubscriptionInput } from '@ledova/shared';
 import { apiClient } from '../../services/apiClient';
 import { assertSessionEpoch } from '../../services/sessionScope';
 
@@ -64,21 +62,4 @@ export function useSubscription(uuid: string | undefined) {
       mutateAsync: (input: { reason: string; epoch: number }) => withdraw.mutateAsync({ ...input, uuid: uuid! }),
     },
   };
-}
-
-export function useCreateSubscription(onCreated: (uuid: string) => void) {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async ({ input, epoch }: { input: SubscriptionInput; epoch: number }) => {
-      assertSessionEpoch(epoch);
-      const response = await createSubscription(apiClient, input, { ledovaSessionEpoch: epoch });
-      assertSessionEpoch(epoch);
-      return response;
-    },
-    onSuccess: (response) => {
-      queryClient.invalidateQueries({ queryKey: SUBSCRIPTIONS_KEY });
-      onCreated(response.data.uuid);
-    },
-  });
 }

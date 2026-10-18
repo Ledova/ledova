@@ -1,8 +1,8 @@
 import React from 'react';
 import { View, Text, ActivityIndicator, ScrollView } from 'react-native';
-import { QRDisplay } from '../../../components/qr';
-import { useDialogStyles } from '../../../components/modal';
-import { useAppTheme, useThemedStyles } from '../../../contexts';
+import { QRDisplay } from '../qr/index';
+import { useDialogStyles } from '../modal/index';
+import { useAppTheme, useThemedStyles } from '../../contexts/index';
 
 interface SignTransactionProps {
   urEncodedTransaction: string | null;

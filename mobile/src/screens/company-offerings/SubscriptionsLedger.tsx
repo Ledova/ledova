@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import type { CompanyActionRead } from '../company/CompanyState';
+import type { CompanyActionRead } from '../../components/company/CompanyState';
 import { Text, View } from 'react-native';
 import { formatDate, formatMoney, formatShareCount, REGISTER_COPY, type OfferingListItem } from '@ledova/shared';
 import { Action, Row, Rows, Section } from '../../components/Ledger';
-import { useCompanyStyles } from '../company-register/styles';
+import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 import { OfferingReadNotice } from './OfferingReadNotice';
 import { useOfferingSubscriptions } from './useOfferingSubscriptions';
 

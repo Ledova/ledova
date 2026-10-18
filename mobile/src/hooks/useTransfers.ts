@@ -28,7 +28,7 @@ import {
   validatePreparedTransfer,
   WALLETS_QUERY_KEY,
 } from '@ledova/shared';
-import { apiClient } from '../../services/apiClient';
+import { apiClient } from '../services/apiClient';
 import type {
   Wallet,
   PrepareTransferRequest,
