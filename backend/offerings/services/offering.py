@@ -9,6 +9,7 @@ from offerings.models.offering import (
 )
 from operators.settlement import require_deployment
 from shared.db import atomic
+from shared.tasks.queue import defer
 from tokens.models import ShareIssuance, ShareToken
 from users.models.investor_classification import PRODUCT_VALUE_THRESHOLD_AUD
 from users.tasks.notifications import send_push_notification
@@ -85,7 +86,8 @@ def transition_offering(offering: Offering, method: str, **kwargs) -> Offering:
     if message:
         title, body = message
         company = offering.token.company
-        send_push_notification.defer(
+        defer(
+            send_push_notification,
             user_id=str(company.owner_id),
             title=title,
             body=body.format(name=offering.token.name, reason=kwargs.get("reason", "")),

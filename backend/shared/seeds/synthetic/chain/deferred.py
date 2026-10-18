@@ -42,11 +42,7 @@ class Deferrals:
 @contextmanager
 def captured():
     connector = InMemoryConnector()
-    from tokens.tasks import deploy_share_token_task
-
-    with app.replace_connector(connector), patch(
-        "tokens.services.register_deployments.queue_deployment", deploy_share_token_task.defer
-    ):
+    with app.replace_connector(connector), patch("shared.tasks.queue.DjangoConnector", return_value=connector):
         deferrals = Deferrals(connector)
         yield deferrals
         deferrals.require_empty()

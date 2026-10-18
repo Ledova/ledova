@@ -11,8 +11,6 @@ from django.utils import timezone
 from eth_abi import encode
 from eth_account import Account
 from hexbytes import HexBytes
-from procrastinate import App
-from procrastinate.contrib.django.django_connector import DjangoConnector
 from rest_framework.exceptions import PermissionDenied
 from web3 import Web3
 from web3.logs import DISCARD
@@ -28,6 +26,7 @@ from blockchain.models import (
 from blockchain.services import outgoing
 from integrations.base_chain import get_base_chain_client
 from shared.db import APP_ALIAS, atomic, current_alias
+from shared.tasks.queue import defer
 from tokens.exceptions import (
     CapitalIncreaseConflict,
     CapitalIncreaseSigningHold,
@@ -177,8 +176,8 @@ def _competing_history(request, token):
 def _enqueue(execution):
     from tokens.tasks import execute_review_request_task
 
-    queue = App(connector=DjangoConnector(alias=current_alias()))
-    queue.configure_task(execute_review_request_task.name).defer(
+    defer(
+        execute_review_request_task,
         model_label="tokens.CapitalIncreaseRequest",
         request_uuid=str(execution.request_id),
         executed_by=execution.executed_by_id,

@@ -12,6 +12,7 @@ from integrations.blockchain.receipts import transaction_hash_matches
 from ledova_backend.procrastinate_app import app
 from shared.constants import BLOCKCHAIN_BITCOIN
 from shared.db import acting_for
+from shared.tasks.queue import defer
 from wallets.constants import TRANSACTION_STATUS_PENDING
 from wallets.models import Transaction, Wallet
 from wallets.services import transaction_confirmation
@@ -111,7 +112,7 @@ def check_all_pending_transactions(timestamp: int) -> Dict[str, Any]:
 
     for tx in pending_txs:
         try:
-            confirm_pending_transaction.defer(tx_hash=tx.tx_hash, wallet_uuid=str(tx.wallet.uuid), principal_id=None)
+            defer(confirm_pending_transaction, tx_hash=tx.tx_hash, wallet_uuid=str(tx.wallet.uuid), principal_id=None)
             queued += 1
         except Exception as e:
             logger.error(f"Queue confirmation failed {tx.tx_hash}: {e}")

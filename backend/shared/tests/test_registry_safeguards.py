@@ -65,7 +65,7 @@ class RegistrySafeguardsTest(CoreFixtures, APITransactionTestCase):
 
     def test_fake_scanner_rejects_infected_and_unscannable_files_before_storage(self):
         before = {path for path in self.root.rglob("*") if path.is_file()}
-        with patch("documents.services.document.extract_document.defer") as enqueue:
+        with patch("documents.services.document.defer") as enqueue:
             self.scanner.side_effect = UploadRejected("Synthetic infected file")
             infected = self.client.post(
                 "/api/v1/documents/",

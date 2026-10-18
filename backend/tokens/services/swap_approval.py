@@ -20,6 +20,7 @@ from blockchain.models import (
 from blockchain.services import outgoing
 from integrations.base_chain import get_base_chain_client
 from shared.db import atomic
+from shared.tasks.queue import defer
 from tokens.exceptions import InvalidTokenStateException
 from tokens.models import SwapApprovalOutcome, TokenDeployment
 from tokens.services.deployment_journal import caller_principal
@@ -337,4 +338,4 @@ def retry(token, actor, confirmation):
         current.approval_retry_of = claim_id
         current.approval_outcome = SwapApprovalOutcome.EXECUTING
         current.save(update_fields=["approval_retry_of", "approval_outcome", "updated_at"])
-        recover_swap_approval.defer(deployment_id=str(current.pk))
+        defer(recover_swap_approval, deployment_id=str(current.pk))

@@ -3,14 +3,18 @@ from uuid import uuid4
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import IntegrityError, ProgrammingError, connections
 from django.test import override_settings
 from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
+from procrastinate.contrib.django.models import ProcrastinateJob
 from rest_framework.test import APIClient, APITransactionTestCase
 
 from companies.services.team import revoke_company_appointment
 from compliance.models import MonitoringRule
+from documents.models import Document
+from documents.tasks.extract import extract_document
 from shared.db import (
     APP_ALIAS,
     MIGRATE_ALIAS,
@@ -25,6 +29,7 @@ from shared.tests.core_fixtures import (
     PASSWORD,
     CoreFixtures,
     import_payload,
+    pdf_bytes,
     populated_register,
     retained_evidence,
 )
@@ -123,6 +128,37 @@ class ScopedAccessTest(CoreFixtures, APITransactionTestCase):
         anonymous = APIClient().get(f"/api/user-profiles/{self.profile.pk}/")
         self.assertEqual(anonymous.status_code, 401, anonymous.content)
         self.assertIn(principal_of(APP_ALIAS), (None, ""))
+
+        def upload_before_commit():
+            response = self.client.post(
+                "/api/v1/documents/",
+                {
+                    "documentType": "payslip",
+                    "file": SimpleUploadedFile("synthetic.pdf", pdf_bytes(), content_type="application/pdf"),
+                },
+                format="multipart",
+            )
+            self.assertEqual(response.status_code, 202, response.content)
+            document_id = response.json()["uuid"]
+            job = ProcrastinateJob.objects.using(APP_ALIAS).get(
+                task_name=extract_document.name, args__document_uuid=document_id
+            )
+            self.assertEqual(job.args, {"document_uuid": document_id, "principal_id": self.owner.pk})
+            self.assertEqual(job.queue_name, extract_document.queue)
+            self.assertFalse(Document.objects.using(OPERATOR_ALIAS).filter(pk=document_id).exists())
+            self.assertFalse(ProcrastinateJob.objects.using(OPERATOR_ALIAS).filter(pk=job.pk).exists())
+            return document_id, job.pk
+
+        with self.assertRaisesMessage(RuntimeError, "Roll back the synthetic upload"), atomic(using=APP_ALIAS):
+            rolled_back_document, rolled_back_job = upload_before_commit()
+            raise RuntimeError("Roll back the synthetic upload")
+        self.assertFalse(Document.objects.using(OPERATOR_ALIAS).filter(pk=rolled_back_document).exists())
+        self.assertFalse(ProcrastinateJob.objects.using(OPERATOR_ALIAS).filter(pk=rolled_back_job).exists())
+        with atomic(using=APP_ALIAS):
+            committed_document, committed_job = upload_before_commit()
+        self.assertTrue(Document.objects.using(OPERATOR_ALIAS).filter(pk=committed_document).exists())
+        self.assertTrue(ProcrastinateJob.objects.using(OPERATOR_ALIAS).filter(pk=committed_job).exists())
+
         with use_operator():
             self.profile.is_signup_completed = False
             self.profile.save(update_fields=["is_signup_completed"])

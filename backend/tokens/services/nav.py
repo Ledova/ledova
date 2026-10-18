@@ -20,6 +20,7 @@ from blockchain.models import OutgoingOperation
 from blockchain.services import outgoing
 from integrations.base_chain import get_base_chain_client
 from shared.db import APP_ALIAS, atomic, current_alias
+from shared.tasks.queue import defer
 from shared.utils.token_amounts import format_units
 from tokens.exceptions import NAVUpdateConflict
 from tokens.models import NAVUpdate, NAVUpdateMode, NAVUpdateStatus, YieldToken
@@ -186,7 +187,7 @@ def submit(
             )
             if not refused:
                 if mode == NAVUpdateMode.CHAIN:
-                    recover_nav_update.defer(submission_id=str(update.pk))
+                    defer(recover_nav_update, submission_id=str(update.pk))
                 else:
                     update.status = NAVUpdateStatus.APPLIED
                     update.save(update_fields=["status", "updated_at"])

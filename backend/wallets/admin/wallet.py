@@ -4,6 +4,7 @@ from django.utils import timezone
 
 from companies.services.authority_requests import _requester_principal
 from shared.constants import BLOCKCHAIN_BASE
+from shared.tasks.queue import defer
 from wallets.constants import WALLET_VERIFICATION_STATUS_VERIFIED
 from wallets.models import Wallet
 from whitelist.constants import WALLET_REFRESH_DELAY_SECONDS
@@ -121,7 +122,7 @@ class WalletAdmin(admin.ModelAdmin):
 
         queued_count = 0
         for wallet in verified_wallets:
-            sync_wallet.defer(wallet_uuid=str(wallet.uuid), principal_id=None)
+            defer(sync_wallet, wallet_uuid=str(wallet.uuid), principal_id=None)
             queued_count += 1
 
         self.message_user(request, f"Queued sync for {queued_count} wallet(s). Balances will be updated shortly.")

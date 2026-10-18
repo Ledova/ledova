@@ -14,6 +14,7 @@ from rest_framework.views import APIView
 from integrations.webhooks import is_stale
 from shared.constants import BLOCKCHAIN_BASE, BLOCKCHAIN_ETHEREUM
 from shared.db.middleware import RunsOnTheOperatorConnection
+from shared.tasks.queue import defer
 from wallets.models import Transaction, Wallet
 from wallets.tasks import confirm_pending_transaction
 
@@ -135,11 +136,11 @@ class AlchemyWebhookView(RunsOnTheOperatorConnection, APIView):
             tx = Transaction.objects.filter(tx_hash=tx_hash, wallet=wallet, chain=wallet.chain).first()
 
             if tx and tx.status == "pending":
-                confirm_pending_transaction.defer(tx_hash=tx_hash, wallet_uuid=str(wallet.uuid), principal_id=None)
+                defer(confirm_pending_transaction, tx_hash=tx_hash, wallet_uuid=str(wallet.uuid), principal_id=None)
             elif not tx:
                 from wallets.tasks import sync_wallet
 
-                sync_wallet.defer(wallet_uuid=str(wallet.uuid), principal_id=None)
+                defer(sync_wallet, wallet_uuid=str(wallet.uuid), principal_id=None)
 
         except Exception:
             logger.exception("Error processing a webhook transaction")

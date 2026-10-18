@@ -19,6 +19,7 @@ from integrations.kyc.constants import (
 )
 from shared.db import atomic, principal_of, use_operator
 from shared.models.country import Country
+from shared.tasks.queue import defer
 from users.exceptions import VerificationTokenGenerationException
 from users.models.user_account import UserAccount
 from users.models.user_profile import UserProfile
@@ -193,7 +194,8 @@ def update_status_from_normalized(user_profile: UserProfile, normalized: Normali
             from users.tasks.notifications import send_push_notification
 
             title, body = message
-            send_push_notification.defer(
+            defer(
+                send_push_notification,
                 user_id=str(user_profile.user_id),
                 title=title,
                 body=body,

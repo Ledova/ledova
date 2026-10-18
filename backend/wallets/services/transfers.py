@@ -14,6 +14,7 @@ from shared.constants import (
     SUPPORTED_CHAINS,
     normalize_chain,
 )
+from shared.tasks.queue import defer
 from shared.utils.blockchain import decode_exception_to_message
 from shared.utils.token_amounts import token_base_units
 from wallets.exceptions import (
@@ -178,12 +179,20 @@ def broadcast_transfer(
 def _schedule_confirmation_checks(tx_hash: str, wallet_uuid: str, principal_id) -> None:
     from wallets.tasks import confirm_pending_transaction
 
-    confirm_pending_transaction.configure(schedule_in={"seconds": 30}).defer(
-        tx_hash=tx_hash, wallet_uuid=wallet_uuid, principal_id=principal_id
+    defer(
+        confirm_pending_transaction,
+        schedule_in={"seconds": 30},
+        tx_hash=tx_hash,
+        wallet_uuid=wallet_uuid,
+        principal_id=principal_id,
     )
 
-    confirm_pending_transaction.configure(schedule_in={"seconds": 120}).defer(
-        tx_hash=tx_hash, wallet_uuid=wallet_uuid, principal_id=principal_id
+    defer(
+        confirm_pending_transaction,
+        schedule_in={"seconds": 120},
+        tx_hash=tx_hash,
+        wallet_uuid=wallet_uuid,
+        principal_id=principal_id,
     )
 
 

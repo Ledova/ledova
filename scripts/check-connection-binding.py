@@ -11,8 +11,9 @@ RLS_AMBIENT_ALIAS=app a row written inside a failed `atomic()` block survives it
 BYPASSRLS, so a raw read through it is a policy bypass as well as a transaction problem.
 There is no such site today; this keeps it that way.
 
-The remedy is `shared.db.atomic`, `shared.db.on_commit` and `connections[alias]`. R23 on
-#115, from #378.
+The remedy is `shared.db.atomic`, `shared.db.on_commit` and `connections[alias]`. Task
+deferrals use `shared.tasks.queue.defer`, which inserts on the producer's connection.
+R23 on #115, from #378; queue binding from #1131.
 """
 
 import ast
@@ -46,6 +47,9 @@ ALLOWED = {
     "backend/shared/db/principal.py": "takes connections[alias or current_alias()] explicitly",
     "backend/shared/management/commands/check_rls_roles.py": "asks each alias in turn, by name, on purpose",
 }
+
+QUEUE_HELPER = "backend/shared/tasks/queue.py"
+DEFERRAL_METHODS = {"defer", "defer_async", "batch_defer", "batch_defer_async"}
 
 
 def dotted(node: ast.AST) -> str:
@@ -83,6 +87,70 @@ def findings_for(tree: ast.AST) -> list[tuple[int, str]]:
     return sorted(set(found))
 
 
+def receiver_root(node: ast.AST) -> str:
+    while isinstance(node, (ast.Attribute, ast.Call, ast.Subscript)):
+        node = node.func if isinstance(node, ast.Call) else node.value
+    return node.id if isinstance(node, ast.Name) else ""
+
+
+def queue_findings_for(tree: ast.AST) -> list[tuple[int, str]]:
+    tasks = set()
+    applications = set()
+    modules = set()
+    found = []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.ImportFrom):
+            module = node.module or ""
+            if "tasks" in module.split(".") or module in (
+                "ledova_backend.procrastinate_app", "procrastinate.contrib.django"
+            ):
+                tasks.update(item.asname or item.name for item in node.names)
+            if module in ("ledova_backend.procrastinate_app", "procrastinate.contrib.django"):
+                applications.update(item.asname or item.name for item in node.names if item.name == "app")
+            if module.startswith("procrastinate"):
+                for item in node.names:
+                    if item.name in ("App", "DjangoConnector"):
+                        found.append((node.lineno, f"{module}.{item.name} constructs a separate queue connector"))
+        elif isinstance(node, ast.Import):
+            for item in node.names:
+                local = item.asname or item.name.split(".")[0]
+                if "tasks" in item.name.split("."):
+                    tasks.add(local)
+                if item.name.startswith("procrastinate"):
+                    modules.add(local)
+
+    for node in ast.walk(tree):
+        if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            continue
+        for decorator in node.decorator_list:
+            target = decorator.func if isinstance(decorator, ast.Call) else decorator
+            if (
+                isinstance(target, ast.Attribute)
+                and target.attr == "task"
+                and receiver_root(target.value) in applications
+            ):
+                tasks.add(node.name)
+
+    assignments = [
+        (node.value, node.targets if isinstance(node, ast.Assign) else [node.target])
+        for node in ast.walk(tree) if isinstance(node, (ast.Assign, ast.AnnAssign))
+    ]
+    for _ in assignments:
+        for value, targets in assignments:
+            if receiver_root(value) in tasks:
+                tasks.update(target.id for target in targets if isinstance(target, ast.Name))
+
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Attribute):
+            continue
+        root = receiver_root(node.value)
+        if node.attr in DEFERRAL_METHODS and root in tasks:
+            found.append((node.lineno, f"{node.attr} bypasses the producer-bound enqueue helper"))
+        if node.attr in ("App", "DjangoConnector") and root in modules:
+            found.append((node.lineno, f"{node.attr} constructs a separate queue connector"))
+    return sorted(set(found))
+
+
 def files() -> list[Path]:
     return sorted(
         path
@@ -96,27 +164,33 @@ def main() -> int:
     checked = 0
     for path in files():
         relative = str(path.relative_to(ROOT))
-        if relative in ALLOWED:
-            continue
+        tree = ast.parse(path.read_text())
         checked += 1
-        for line, called in findings_for(ast.parse(path.read_text())):
-            instead = BOUND_TO_DEFAULT.get(called) or IMPORTS_THE_DEFAULT[called.rsplit(".", 1)[1]]
-            findings.append(f"{relative}:{line}: {called} binds to the default connection, not {instead}")
+        if relative not in ALLOWED:
+            for line, called in findings_for(tree):
+                instead = BOUND_TO_DEFAULT.get(called) or IMPORTS_THE_DEFAULT[called.rsplit(".", 1)[1]]
+                findings.append(f"{relative}:{line}: {called} binds to the default connection, not {instead}")
+        if relative != QUEUE_HELPER:
+            for line, reason in queue_findings_for(tree):
+                findings.append(f"{relative}:{line}: {reason}; use shared.tasks.queue.defer")
 
-    stale = sorted(name for name in ALLOWED if not (ROOT / name).is_file())
+    stale = sorted(name for name in (*ALLOWED, QUEUE_HELPER) if not (ROOT / name).is_file())
     if stale:
         findings.extend(f"{name}: allowed, and the file is gone" for name in stale)
 
     if findings:
         print(
-            "These bind a transaction or a cursor to the default connection while the router "
-            f"sends the queries elsewhere ({len(findings)}):\n  " + "\n  ".join(findings),
+            f"These transaction, cursor or job bindings bypass the producer's connection ({len(findings)}):\n  "
+            + "\n  ".join(findings),
             file=sys.stderr,
         )
-        print("\nUse shared.db.atomic, shared.db.on_commit, or connections[alias]. R23, from #378.", file=sys.stderr)
+        print(
+            "\nUse shared.db.atomic, shared.db.on_commit, connections[alias], or shared.tasks.queue.defer.",
+            file=sys.stderr,
+        )
         return 1
 
-    print(f"No transaction or cursor is bound to the default connection, in {checked} source files.")
+    print(f"Transactions, cursors and task deferrals use their selected connection, in {checked} source files.")
     return 0
 
 

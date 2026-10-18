@@ -4,11 +4,10 @@ from datetime import timedelta
 from django.conf import settings
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
-from procrastinate import App
-from procrastinate.contrib.django.django_connector import DjangoConnector
 
 from companies.services.authority_requests import _requester_principal
-from shared.db import atomic, current_alias, use_operator
+from shared.db import atomic, use_operator
+from shared.tasks.queue import defer
 from wallets.constants import WALLET_VERIFICATION_STATUS_VERIFIED
 from wallets.exceptions import (
     InvalidSignatureException,
@@ -91,7 +90,6 @@ def _queue_sync(wallet, *, principal_id):
     from wallets.tasks import sync_wallet
 
     try:
-        queue = App(connector=DjangoConnector(alias=current_alias()))
-        queue.configure_task(sync_wallet.name).defer(wallet_uuid=str(wallet.uuid), principal_id=principal_id)
+        defer(sync_wallet, wallet_uuid=str(wallet.uuid), principal_id=principal_id)
     except Exception:
         logger.error(f"Failed to queue a sync for wallet {wallet.uuid} after verification", exc_info=True)

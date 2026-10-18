@@ -2,6 +2,7 @@ from django.contrib import admin
 
 from documents.admin.access import AuditsDocumentReads
 from documents.models import Document, DocumentExtraction, ExtractionStatus
+from shared.tasks.queue import defer
 
 
 @admin.register(DocumentExtraction)
@@ -58,5 +59,5 @@ class DocumentExtractionAdmin(AuditsDocumentReads, admin.ModelAdmin):
 
         documents = sorted({str(uuid) for uuid in failed.values_list("document__uuid", flat=True)})
         for document_uuid in documents:
-            extract_document.defer(document_uuid=document_uuid, principal_id=None)
+            defer(extract_document, document_uuid=document_uuid, principal_id=None)
         self.message_user(request, f"Queued {len(documents)} document(s) for re-extraction.")

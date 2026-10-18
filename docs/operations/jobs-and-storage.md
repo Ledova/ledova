@@ -29,10 +29,10 @@ connection. The worker's ORM ambient is also `operator`; an individual task may 
 captured user's app scope. Run `python manage.py check_rls_roles` before starting a worker to
 verify the configured queue alias and its actual login and active role.
 
-Queue role selection does not make every request defer atomic. Producers that explicitly bind
-their connector to the current database alias share that transaction; plain defers use the
-global operator connector. The remaining producer conversion is tracked in
-[#1131](https://github.com/Ledova/ledova/issues/1131).
+Application producers use `shared.tasks.queue.defer`, which inserts on the producer's current
+connection. The producer's transaction commits or rolls back its data and jobs together;
+deliberate after-commit notifications capture the original connection alias. The worker's queue
+connection remains operator even when a task enters a captured user's app scope.
 
 ## Schedule
 

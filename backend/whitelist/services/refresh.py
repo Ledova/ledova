@@ -8,6 +8,7 @@ from django.utils import timezone
 from web3 import Web3
 
 from shared.db import current_alias, on_commit
+from shared.tasks.queue import defer
 from users.models import CompanyEligibilityDecision, InvestorClassification
 from whitelist.constants import WHITELIST_NO_EXPIRY, WHITELIST_REFRESH_LIMIT
 from whitelist.exceptions import WhitelistRemovalPending
@@ -54,8 +55,8 @@ def targets_for(approvals):
     ]
 
 
-def targets_for_account(account_id):
-    return targets_for(_approvals(entry__wallet__user_account_id=account_id))
+def targets_for_account(account_id, *, using=None):
+    return targets_for(_approvals(entry__wallet__user_account_id=account_id).using(using or current_alias()))
 
 
 def targets_for_wallet(wallet_id):
@@ -146,13 +147,15 @@ def refresh_targets(targets, actor=None, remove_only=False, *, cause=None, decis
         return result
 
 
-def _defer(targets, *, delay=0, cause=None, decision_id=None, invalidation_id=None):
+def _defer(targets, *, using, delay=0, cause=None, decision_id=None, invalidation_id=None):
     from whitelist.tasks import refresh_whitelist_targets
 
     if not targets:
         return
-    task = refresh_whitelist_targets.configure(schedule_in={"seconds": delay}) if delay else refresh_whitelist_targets
-    task.defer(
+    defer(
+        refresh_whitelist_targets,
+        using=using,
+        schedule_in={"seconds": delay} if delay else None,
         targets=targets,
         cause=cause,
         decision_id=str(decision_id) if decision_id is not None else None,
@@ -160,40 +163,55 @@ def _defer(targets, *, delay=0, cause=None, decision_id=None, invalidation_id=No
     )
 
 
-def enqueue_for_decision(decision_id, cause, delay=0):
+def enqueue_for_decision(decision_id, cause, delay=0, *, using=None):
+    alias = using or current_alias()
+
     def enqueue():
-        decision = CompanyEligibilityDecision.objects.select_related("request").get(pk=decision_id)
+        decision = CompanyEligibilityDecision.objects.using(alias).select_related("request").get(pk=decision_id)
         targets = targets_for(
             _approvals(
                 entry__wallet__user_account_id=decision.request.user_account_id, company_id=decision.request.company_id
-            )
+            ).using(alias)
         )
-        _defer(targets, delay=delay, cause=cause, decision_id=decision.pk)
+        _defer(targets, using=alias, delay=delay, cause=cause, decision_id=decision.pk)
 
-    on_commit(enqueue)
+    on_commit(enqueue, using=alias)
 
 
 def enqueue_for_source(source_id, cause, delay=0):
-    def enqueue():
-        source = InvestorClassification.objects.get(pk=source_id)
-        decisions = CompanyEligibilityDecision.objects.filter(request__source=source, outcome="accepted")
-        for decision in decisions:
-            enqueue_for_decision(decision.pk, cause, delay)
+    alias = current_alias()
 
-    on_commit(enqueue)
+    def enqueue():
+        source = InvestorClassification.objects.using(alias).get(pk=source_id)
+        decisions = CompanyEligibilityDecision.objects.using(alias).filter(request__source=source, outcome="accepted")
+        for decision in decisions:
+            enqueue_for_decision(decision.pk, cause, delay, using=alias)
+
+    on_commit(enqueue, using=alias)
 
 
 def enqueue_for_account(
     account_id, actor=None, delay=0, *, cause=WhitelistInvalidationCause.STANDING_LOSS, cause_fields
 ):
+    alias = current_alias()
     record = record_invalidation(account_id, cause, actor=actor, cause_fields=cause_fields)
-    on_commit(lambda: _defer(targets_for_account(account_id), delay=delay, cause=cause, invalidation_id=record.pk))
+    on_commit(
+        lambda: _defer(
+            targets_for_account(account_id, using=alias),
+            using=alias,
+            delay=delay,
+            cause=cause,
+            invalidation_id=record.pk,
+        ),
+        using=alias,
+    )
     return record
 
 
 def enqueue_for_wallet(wallet_id, actor, delay=0, remove_only=False):
     from wallets.models import Wallet
 
+    alias = current_alias()
     wallet = Wallet.objects.get(pk=wallet_id)
     targets = targets_for_wallet(wallet_id)
     record = record_invalidation(
@@ -204,7 +222,14 @@ def enqueue_for_wallet(wallet_id, actor, delay=0, remove_only=False):
         address=wallet.address,
     )
     on_commit(
-        lambda: _defer(targets, delay=delay, cause=WhitelistInvalidationCause.WALLET_REMOVAL, invalidation_id=record.pk)
+        lambda: _defer(
+            targets,
+            using=alias,
+            delay=delay,
+            cause=WhitelistInvalidationCause.WALLET_REMOVAL,
+            invalidation_id=record.pk,
+        ),
+        using=alias,
     )
     return record
 

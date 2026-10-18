@@ -5,6 +5,7 @@ from procrastinate import RetryStrategy
 
 from ledova_backend.procrastinate_app import app
 from shared.db import acting_for
+from shared.tasks.queue import defer
 from wallets.constants import WALLET_VERIFICATION_STATUS_VERIFIED
 from wallets.models import Wallet
 from wallets.services import sync as wallet_sync
@@ -36,7 +37,7 @@ def sync_all_wallets(timestamp: int) -> Dict[str, Any]:
 
     for wallet in wallets:
         try:
-            sync_wallet.defer(wallet_uuid=str(wallet.uuid), principal_id=None)
+            defer(sync_wallet, wallet_uuid=str(wallet.uuid), principal_id=None)
             queued += 1
         except Exception as e:
             logger.error(f"Queue failed {wallet.uuid}: {e}")

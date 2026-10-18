@@ -5,8 +5,6 @@ from django.contrib.auth import get_user_model
 from django.db import IntegrityError, OperationalError
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
-from procrastinate import App
-from procrastinate.contrib.django.django_connector import DjangoConnector
 from rest_framework.exceptions import ValidationError
 
 from blockchain.models import OutgoingOperation, OutgoingStatus
@@ -15,7 +13,8 @@ from companies.services.administration import company_operation, lock_company_ac
 from companies.services.authority_requests import _requester_principal
 from integrations.base_chain import get_base_chain_client
 from operators.models import Operator
-from shared.db import atomic, current_alias, use_operator
+from shared.db import atomic, use_operator
+from shared.tasks.queue import defer
 from tokens.exceptions import RegisterChangeConflict
 from tokens.models import RegisterDecisionKind
 from tokens.services.register_authority import register_appointment
@@ -335,8 +334,7 @@ def _lock(proposal):
 def queue_wallet_change(change):
     from whitelist.tasks.company_wallet import execute_company_wallet_change
 
-    queue = App(connector=DjangoConnector(alias=current_alias()))
-    return queue.configure_task(execute_company_wallet_change.name).defer(change_id=str(change.pk))
+    return defer(execute_company_wallet_change, change_id=str(change.pk))
 
 
 def _apply(proposal, actor, decision):

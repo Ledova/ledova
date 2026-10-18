@@ -25,6 +25,7 @@ from integrations.base_chain import get_base_chain_client
 from integrations.blockchain.receipts import nonnegative_integer
 from shared.constants import BLOCKCHAIN_BASE
 from shared.db import APP_ALIAS, atomic, current_alias, principal_of
+from shared.tasks.queue import defer
 from shared.utils.blockchain import decode_exception_to_message
 from tokens.constants import MAX_SWAP_RECEIPT_VALUE
 from tokens.events import publish_trading_event
@@ -248,7 +249,7 @@ def submit_signature(swap_order, signature, signer_address, *, user, participant
                 except SwapNotReadyException:
                     return swap
                 _lock_command(original)
-                recover_swap_execution.defer(transaction_id=str(original.pk))
+                defer(recover_swap_execution, transaction_id=str(original.pk))
             return swap
         if share_class is None or not share_class.is_deployed:
             raise SettlementContextChanged()
@@ -305,7 +306,7 @@ def submit_signature(swap_order, signature, signer_address, *, user, participant
             related_uuid=swap.pk,
         )
         swap.mark_executing(transaction=transaction)
-        recover_swap_execution.defer(transaction_id=str(transaction.pk))
+        defer(recover_swap_execution, transaction_id=str(transaction.pk))
         return swap
 
 
