@@ -69,7 +69,7 @@ system and migration checks, the RLS role and catalogue checks (`check_rls_roles
 `check_rls_catalogue`, against the deployed connections and schema) and the API schema snapshot.
 The command owns its scratch database and roles, preserves developer resources, and gives the
 backend only `PATH`, `HOME`, locale and temporary-directory variables, a synthetic secret, local
-storage and its scratch credentials, so `backend/.env` plays no part. It runs the suite through
+storage and its scratch credentials, so the local `.env` file in `backend/` plays no part. It runs the suite through
 Django discovery; the [runner](../../backend/shared/test_runner.py) refuses an empty suite. The
 test settings fix `BLOCKCHAIN_CHAIN_ID=84532` with the approved finality policies, so an accepted
 `LOCAL_CHAIN_FINALITY_DEPTH` in the environment has no effect on the suites, while a value the

@@ -1,38 +1,4 @@
 #!/usr/bin/env python3
-"""Fail when the documentation disagrees with the tree it describes.
-
-The rule and its scope are stated in docs/engineering/gates.md under "The documentation
-gate". This script is the mechanical half of that rule; keep the two in step.
-
-Every other gate here protects source from drifting away from a rule. This one
-protects the documents, because they drifted and nothing said so: an audit found
-a register feature three documents called unbuilt, a schedule table missing seven
-periodic tasks - two of which exist only to delete personal data on a retention
-clock - a gate list that said three while make check ran eight, and a link whose
-destination was wrapped onto a second line, which markdown does not join, so it
-had been rendering as literal text.
-
-Three rules, each decidable from the files alone:
-
-dead-link      every relative link and #anchor in the documented set resolves.
-periodic-task  the schedule table in docs/operations/jobs-and-storage.md is exactly the
-               set of @app.periodic tasks in backend/.
-gate-list      every scripts/check-* gate is listed in docs/engineering/gates.md, and
-               every section names a script that exists.
-
-All three are checked in BOTH directions, which is the property that makes them
-worth having. A list that only refuses removals still lets a new thing go
-undocumented, and the symptom is identical in both cases: a green line reporting
-a number that looks like coverage and is a numerator. That is the same argument
-check-comments.py makes for NOT_SCANNED and check-type-check.py makes for
-NOT_A_WORKSPACE, applied to prose.
-
-What it does not cover. It compares names and paths, never claims: a table row
-that names the right task with the wrong schedule passes, and so does a
-paragraph that describes a function's behaviour incorrectly. Those need a reader.
-The point is narrower - that a thing which exists is mentioned, and a thing
-mentioned exists - and that is exactly the class of drift the audit found most of.
-"""
 
 from __future__ import annotations
 
@@ -43,7 +9,7 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
-DOCUMENTS = ("README.md", "CONTRIBUTING.md", "SECURITY.md", "CODE_OF_CONDUCT.md")
+DOCUMENTS = ("README.md", "CONTRIBUTING.md", "SECURITY.md", "CODE_OF_CONDUCT.md", "site/README.md")
 DOC_DIR = "docs"
 
 BACKEND = "backend"
@@ -59,6 +25,11 @@ DEFINITION = re.compile(r"^\s*(?:async\s+)?def\s+(\w+)")
 LINK = re.compile(r"\[[^\]]*\]\(([^)\s]+)\)")
 HEADING = re.compile(r"^#{1,6}\s+(.*?)\s*$")
 BACKTICKED = re.compile(r"`([^`\n]+)`")
+INLINE_CODE = re.compile(r"(?<!`)(`+)(?!`)(.*?)(?<!`)\1(?!`)", re.DOTALL)
+REPOSITORY_FOLDERS = (
+    "backend/", "contracts/", "dashboard/", "docs/",
+    "mobile/", "packages/", "scripts/", "site/",
+)
 
 SCHEDULE_HEADING = "## Schedule"
 GATE_TABLE_HEADING = "## Every gate, and where its rule is written"
@@ -123,6 +94,50 @@ def dead_links(files: list[Path]) -> list[str]:
                     findings.append(f"{relative}:{line_number} missing file {location}")
                 elif fragment and resolved in anchors and fragment not in anchors[resolved]:
                     findings.append(f"{relative}:{line_number} dead anchor {target}")
+    return findings
+
+
+def unfenced_text(text: str) -> str:
+    lines = []
+    fence = None
+    for line in text.splitlines(keepends=True):
+        if fence:
+            if re.fullmatch(rf" {{0,3}}{re.escape(fence[0])}{{{fence[1]},}}\s*", line):
+                fence = None
+            lines.append("\n" if line.endswith("\n") else "")
+            continue
+        opening = re.match(r" {0,3}(`{3,}|~{3,})(.*)", line)
+        if opening and not (opening.group(1)[0] == "`" and "`" in opening.group(2)):
+            fence = (opening.group(1)[0], len(opening.group(1)))
+            lines.append("\n" if line.endswith("\n") else "")
+        else:
+            lines.append(line)
+    return "".join(lines)
+
+
+def cited_paths(files: list[Path]) -> list[tuple[Path, int, str]]:
+    paths = []
+    for path in files:
+        text = unfenced_text(path.read_text(encoding="utf-8"))
+        for quoted in INLINE_CODE.finditer(text):
+            value = quoted.group(2).replace("\n", " ")
+            if value.startswith(" ") and value.endswith(" ") and value.strip(" "):
+                value = value[1:-1]
+            if value.startswith(REPOSITORY_FOLDERS):
+                paths.append((path, text.count("\n", 0, quoted.start()) + 1, value))
+    return paths
+
+
+def cited_path_findings(files: list[Path]) -> list[str]:
+    findings = []
+    root = REPO_ROOT.resolve()
+    for path, line_number, value in cited_paths(files):
+        relative = path.relative_to(REPO_ROOT)
+        resolved = (REPO_ROOT / value).resolve()
+        if not resolved.is_relative_to(root):
+            findings.append(f"{relative}:{line_number} cited path leaves the repository {value}")
+        elif not resolved.exists():
+            findings.append(f"{relative}:{line_number} missing cited path {value}")
     return findings
 
 
@@ -222,12 +237,14 @@ def gate_findings() -> list[str]:
 
 def scan() -> tuple[list[str], int]:
     files = documented_files()
-    findings = dead_links(files) + periodic_findings() + gate_findings()
+    findings = dead_links(files) + cited_path_findings(files) + periodic_findings() + gate_findings()
     return findings, len(files)
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(
+        description="Check documentation links, cited repository paths, periodic tasks and the gate inventory."
+    )
     parser.add_argument("--explain", action="store_true")
     arguments = parser.parse_args()
 
@@ -236,6 +253,10 @@ def main() -> int:
         print(f"Documents scanned ({len(documented_files())}):")
         for path in documented_files():
             print(f"  {path.relative_to(REPO_ROOT)}")
+        paths = cited_paths(documented_files())
+        print(f"\nCited repository paths ({len(paths)}):")
+        for path, line_number, value in paths:
+            print(f"  {path.relative_to(REPO_ROOT)}:{line_number} {value}")
         print(f"\nPeriodic tasks in {BACKEND}/ ({len(tasks)}):")
         for name, cron in sorted(tasks.items(), key=lambda item: item[1]):
             print(f"  {cron:15} {name}")
@@ -260,6 +281,7 @@ def main() -> int:
 
     print(
         f"Documentation agrees with the tree: {scanned} documents, "
+        f"{len(cited_paths(documented_files()))} cited repository paths, "
         f"{len(periodic_tasks())} periodic tasks, {len(gate_scripts() - set(NOT_A_GATE))} gate scripts."
     )
     return 0

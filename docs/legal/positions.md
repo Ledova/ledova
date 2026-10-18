@@ -21,7 +21,7 @@ them. Each position has the [same parts](README.md#how-a-position-is-written).
 Read the provision before relying on a summary of it; the
 [sources](README.md#sources) are listed once.
 
-Positions 1 to 5 were carried over from the previous `docs/legal.md` and
+Positions 1 to 5 were carried over from the previous [legal note](https://github.com/Ledova/ledova/blob/6ddae7f87ba05d6d7271b43225d261a42b25e111/docs/legal.md) and
 reviewed on 2026-09-15; position 4 was rewritten because a registry that only
 records changes its shape. Position 5 records the owner-directed licence change
 of 2026-09-20. Positions 6 to 11 were drafted on 2026-09-15 by the
@@ -33,20 +33,20 @@ The "Binds" column names the [historical analysis](README.md#historical-analyses
 that engaged each position; where the earlier reading differs between them, the
 position says so.
 
-| # | Question | Triggered by | Binds | Status |
-| --- | --- | --- | --- | --- |
-| 1 | s169(3) retention of former members | The first real company's first real member | A and B | Reviewed |
-| 2 | s168, who is obliged to keep the register | The same moment, plus the terms between operator and company | B; in A the company keeps it itself | Reviewed; analysis A sentence awaiting sign-off |
-| 3 | Evidence retention period | The first real identity document held | A and B, once investor onboarding or the issuer KYC switch is on | Reviewed |
-| 4 | Operating without an AFSL, in two halves | The first fee for a real register; the first real offer of a security | 4a binds B; 4b binds both | Rewritten, awaiting sign-off |
-| 5 | Software licensing and commercial permission | Any commercial use or use of the code for a competing product or service | A, B and third-party users | Licence policy approved by owner 2026-09-20; not legal advice |
-| 6 | Where and in what form the register is kept | The first real register | A and B, with different forms to lodge | Drafted |
-| 7 | Whether a register is a financial market | Any feature where holders post offers to one another | A and B, with a different registrant | Drafted |
-| 8 | AML/CTF obligations of the operator | Acting for a company in a transaction; holding an AFSL; touching virtual assets | B; a company acting for itself is not engaged | Drafted |
-| 9 | Digital assets and custody | Any wallet whose keys Ledova holds for a member | A and B | Drafted |
-| 10 | Privacy | The first real member's personal information | A and B | Drafted |
-| 11 | The company's own fundraising and scheme obligations | The first issue recorded for a real company | A and B | Drafted |
-| 12 | PyMuPDF's licence, AGPL-3.0 or commercial | Any commercial or public deployment | A, B and third-party users | Drafted |
+| #   | Question                                             | Triggered by                                                                    | Binds                                                            | Status                                                        |
+| --- | ---------------------------------------------------- | ------------------------------------------------------------------------------- | ---------------------------------------------------------------- | ------------------------------------------------------------- |
+| 1   | s169(3) retention of former members                  | The first real company's first real member                                      | A and B                                                          | Reviewed                                                      |
+| 2   | s168, who is obliged to keep the register            | The same moment, plus the terms between operator and company                    | B; in A the company keeps it itself                              | Reviewed; analysis A sentence awaiting sign-off               |
+| 3   | Evidence retention period                            | The first real identity document held                                           | A and B, once investor onboarding or the issuer KYC switch is on | Reviewed                                                      |
+| 4   | Operating without an AFSL, in two halves             | The first fee for a real register; the first real offer of a security           | 4a binds B; 4b binds both                                        | Rewritten, awaiting sign-off                                  |
+| 5   | Software licensing and commercial permission         | Any commercial use or use of the code for a competing product or service        | A, B and third-party users                                       | Licence policy approved by owner 2026-09-20; not legal advice |
+| 6   | Where and in what form the register is kept          | The first real register                                                         | A and B, with different forms to lodge                           | Drafted                                                       |
+| 7   | Whether a register is a financial market             | Any feature where holders post offers to one another                            | A and B, with a different registrant                             | Drafted                                                       |
+| 8   | AML/CTF obligations of the operator                  | Acting for a company in a transaction; holding an AFSL; touching virtual assets | B; a company acting for itself is not engaged                    | Drafted                                                       |
+| 9   | Digital assets and custody                           | Any wallet whose keys Ledova holds for a member                                 | A and B                                                          | Drafted                                                       |
+| 10  | Privacy                                              | The first real member's personal information                                    | A and B                                                          | Drafted                                                       |
+| 11  | The company's own fundraising and scheme obligations | The first issue recorded for a real company                                     | A and B                                                          | Drafted                                                       |
+| 12  | PyMuPDF's licence, AGPL-3.0 or commercial            | Any commercial or public deployment                                             | A, B and third-party users                                       | Drafted                                                       |
 
 Position 4 is the one where being wrong is an offence rather than a defect, and
 its second half keeps the original stance: do not reach the trigger without a
@@ -175,16 +175,16 @@ and gains a [pathway](../regulatory-pathway.md) for reaching the trigger lawfull
 ### 4a. A registry service acting only on instruction is not a financial service
 
 **What the sources say.** Section 766A lists the financial services; keeping a
-register is not among them. Section 766C(2) makes *arranging* for another person
+register is not among them. Section 766C(2) makes _arranging_ for another person
 to deal a dealing in itself, and s766C(4) provides that a body corporate's
 transaction relating only to its own securities is not dealing — so the company
 issuing its own shares is not dealing, and the question is only whether the
 registry is arranging. Regulation 7.1.29 then provides that a person is taken
 not to provide a financial service where the eligible service is provided in the
-course of, is reasonably necessary for, and is integral to an *exempt service*,
-and paragraph (3)(g) names as an exempt service: *arranging for another person
+course of, is reasonably necessary for, and is integral to an _exempt service_,
+and paragraph (3)(g) names as an exempt service: _arranging for another person
 to deal "by preparing a document of registration or transfer in order to
-complete administrative tasks on instructions from the person"*. RG 36.41(f)
+complete administrative tasks on instructions from the person"_. RG 36.41(f)
 lists that exemption. RG 36.52–53 add the warning: clerical work is exempt as
 individual conduct, but "the aggregation of the individual clerical activities
 carried out within that economic entity may (in many, but not all, cases)
@@ -245,19 +245,19 @@ advice — mean no retail disclosure document is required for offers made only t
 investors who qualify. Whether that is the right exception, and whether it
 covers everything the fuller model does, is a different question from whether
 the classification is recorded correctly. The reading here is that it does not:
-s708 relieves the *company* from disclosure and says nothing about a *platform*
+s708 relieves the _company_ from disclosure and says nothing about a _platform_
 that arranges the issue, so the platform's question is the licence, not the
 exemption.
 
 **What the code does.** `InvestorClassification` carries four categories and
 deliberately not a fifth:
 
-| Category | Provision |
-| --- | --- |
-| `product_value` | s708(8)(a) |
-| `accountant_certificate` | s708(8)(c) |
-| `professional_investor` | s708(11) / s761G(7)(d) |
-| `associated_person` | s708(12) |
+| Category                 | Provision              |
+| ------------------------ | ---------------------- |
+| `product_value`          | s708(8)(a)             |
+| `accountant_certificate` | s708(8)(c)             |
+| `professional_investor`  | s708(11) / s761G(7)(d) |
+| `associated_person`      | s708(12)               |
 
 The experienced-investor category, s708(10) / s761GA, is absent on purpose: it
 is the only one that turns on the operator holding an AFSL, and there is no
@@ -360,7 +360,7 @@ another place in this jurisdiction approved by ASIC. Section 172(2) requires
 notice to ASIC within seven days when the register is established at, or moved
 to, a place other than the first two (Form 909). Section 1301 lets a
 corporation that records a book otherwise than in writing keep the record at a
-*place of storage* different from the *place of inspection*, provided means are
+_place of storage_ different from the _place of inspection_, provided means are
 provided at the place of inspection to make the matters available in written
 form and the corporation has lodged a notice specifying both places (Form 991),
 with fourteen days to notify any change. Section 1306 allows a book to be kept
@@ -428,18 +428,18 @@ registered office.
 **The obligations the register has to make easy**, because they are the
 company's and the product either serves them or causes them to be missed:
 
-| Obligation on the company | Source | Limit |
-| --- | --- | --- |
-| Notify ASIC of a share issue | s254X | 28 days |
+| Obligation on the company                                         | Source              | Limit                                    |
+| ----------------------------------------------------------------- | ------------------- | ---------------------------------------- |
+| Notify ASIC of a share issue                                      | s254X               | 28 days                                  |
 | Notify member and share-structure changes (proprietary companies) | s178A, s178C, s178D | with the s254X notice; otherwise 28 days |
-| Certificate ready after an issue | s1071H(1) | 2 months |
-| Certificate ready after a transfer is lodged | s1071H(3) | 1 month |
-| Register a transfer only on a proper instrument of transfer | s1071B | every transfer |
-| Copy of the register on a proper request | s173(3) | 7 days |
-| Notice of where the register is kept | s172(2) | 7 days |
-| Notice of a change of storage or inspection place | s1301(4) | 14 days |
-| Former members retained | s169(3) | 7 years |
-| Non-employee shareholders of a proprietary company | s113(1) | 50 |
+| Certificate ready after an issue                                  | s1071H(1)           | 2 months                                 |
+| Certificate ready after a transfer is lodged                      | s1071H(3)           | 1 month                                  |
+| Register a transfer only on a proper instrument of transfer       | s1071B              | every transfer                           |
+| Copy of the register on a proper request                          | s173(3)             | 7 days                                   |
+| Notice of where the register is kept                              | s172(2)             | 7 days                                   |
+| Notice of a change of storage or inspection place                 | s1301(4)            | 14 days                                  |
+| Former members retained                                           | s169(3)             | 7 years                                  |
+| Non-employee shareholders of a proprietary company                | s113(1)             | 50                                       |
 
 Part 1.2AA (s110–110A) lets a document required or permitted to be signed under
 the Act be signed electronically by a method that identifies the signer and
@@ -568,8 +568,8 @@ represents a share as the financial product it represents, and applies the
 existing custodial and depository standards to any financial product "based on
 any technology". The Corporations Amendment (Digital Assets Framework) Act 2026
 received assent on 8 April 2026 and commences on 9 April 2027; it makes a
-*digital asset platform* — a facility where the operator possesses digital
-tokens for or on behalf of another person — and a *tokenised custody platform*
+_digital asset platform_ — a facility where the operator possesses digital
+tokens for or on behalf of another person — and a _tokenised custody platform_
 financial products whose operators need an AFSL, with a small-scale exemption
 for operators holding under $5,000 per client and processing under $10 million
 a year (whether that exemption reaches tokens that are already financial

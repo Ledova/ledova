@@ -54,7 +54,7 @@ Follow [local setup](docs/getting-started.md), then the
 
 ## Making changes
 
-1. Branch from `main` (`fix/whitelist-check`, `docs/quickstart`). Contributors
+1. Branch from `main` (`fix/whitelist-check`, `codex/quickstart`). Contributors
    without repository write access use a fork.
 2. Keep pull requests small and focused: one logical change each.
 3. Follow the [minimum-test policy and binding suite caps](docs/engineering/testing.md):

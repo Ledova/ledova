@@ -49,15 +49,39 @@ class TheDeadLinkRuleSeesBothDirections(unittest.TestCase):
 
     def test_an_anchor_in_another_nested_guide_must_exist(self):
         documents = {
-            "docs/architecture/transfers.md": "See [recovery](../operations/recovery.md#missing).\n",
+            "docs/architecture/transfers.md": (
+                "See [recovery](../operations/recovery.md#missing).\n"
+                "Read `backend/record.py` and ``backend/missing.py``.\n"
+                "```text\n`backend/fenced.py`\n```\n"
+                "~~~text\n`backend/fenced-again.py`\n~~~\n"
+                "See `backend/` and ` backend/record.py\n`.\n"
+            ),
             "docs/operations/recovery.md": "# Recovery\n",
+            "docs/operations/jobs-and-storage.md": "# Jobs\n\n## Schedule\n",
+            "docs/engineering/gates.md": "# Gates\n\n## Every gate, and where its rule is written\n",
+            "backend/record.py": "",
         }
-        with a_tree(documents):
-            findings = gate.dead_links(gate.documented_files())
-        self.assertEqual(
-            findings,
-            ["docs/architecture/transfers.md:1 dead anchor ../operations/recovery.md#missing"],
-        )
+        with a_tree(documents) as root:
+            findings, _ = gate.scan()
+            self.assertEqual(
+                findings,
+                [
+                    "docs/architecture/transfers.md:1 dead anchor ../operations/recovery.md#missing",
+                    "docs/architecture/transfers.md:2 missing cited path backend/missing.py",
+                ],
+            )
+            guide = root / "docs/architecture/transfers.md"
+            guide.write_text(
+                guide.read_text(encoding="utf-8").replace("#missing", "#recovery")
+                .replace("backend/missing.py", "backend/record.py"),
+                encoding="utf-8",
+            )
+            self.assertEqual(gate.scan()[0], [])
+            guide.write_text("Read `backend/../../outside.md`.\n", encoding="utf-8")
+            self.assertEqual(
+                gate.scan()[0],
+                ["docs/architecture/transfers.md:1 cited path leaves the repository backend/../../outside.md"],
+            )
 
 
 class TheGateRefusesToPassByFindingNothing(unittest.TestCase):
