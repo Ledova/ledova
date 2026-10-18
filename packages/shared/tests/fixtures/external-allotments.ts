@@ -89,7 +89,7 @@ export function allotmentFrom(body: RegisterAllotmentPreparation): RegisterAllot
   };
 }
 
-export function allotmentPreview(row: RegisterAllotment, approved: boolean): RegisterAllotmentDecisionPreview {
+export function allotmentPreview(row: RegisterAllotment): RegisterAllotmentDecisionPreview {
   return {
     ...row,
     effectiveOn: row.companyEventOn,
@@ -97,10 +97,13 @@ export function allotmentPreview(row: RegisterAllotment, approved: boolean): Reg
     canDecide: true,
     unmetRequirements: [],
     registerSequence: 1,
+    className: 'Ordinary shares',
+    classCode: 'ORD',
+    currentHolders: [],
     currentShares: '0',
-    afterShares: approved ? '100' : '0',
+    afterShares: row.shares,
     issuedSupply: '0',
-    afterIssuedSupply: approved ? '100' : '0',
+    afterIssuedSupply: row.shares,
     authorisedSupply: '1000',
   };
 }

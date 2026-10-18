@@ -17,6 +17,7 @@ import { apiClient } from '../../services/apiClient';
 import { RegisterCopy } from '../../components/register/RegisterCopy';
 import { RegisterDecision } from '../../components/register/RegisterDecision';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
+import { AllotmentOwnership } from './AllotmentOwnership';
 
 const ISSUE_COPY = {
   ...COPY,
@@ -179,16 +180,13 @@ export function AllotmentRecord({
           >
             {(preview) => (
               <>
+                {kind !== 'reject' && allotment.status === 'submitted' && !allotment.registerEntry && (
+                  <AllotmentOwnership preview={preview} />
+                )}
                 <AllotmentRows allotment={preview} />
                 <Text style={styles.muted}>{COPY.EFFECTIVE_NOTE}</Text>
                 <Rows>
                   <Row label="Register sequence">{preview.registerSequence}</Row>
-                  <Row label="Member holding">
-                    {preview.currentShares} → {preview.afterShares}
-                  </Row>
-                  <Row label="Issued supply">
-                    {preview.issuedSupply} → {preview.afterIssuedSupply}
-                  </Row>
                   <Row label="Authorised supply">{preview.authorisedSupply}</Row>
                 </Rows>
               </>

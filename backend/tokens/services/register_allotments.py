@@ -25,7 +25,12 @@ from tokens.models import (
     ShareToken,
 )
 from tokens.services.register_authority import register_appointment, register_command
-from tokens.services.register_decisions import DecisionFamily, decide, preview
+from tokens.services.register_decisions import (
+    DecisionFamily,
+    _readable,
+    decide,
+    preview,
+)
 from tokens.services.register_events import create_member, record_entry
 from tokens.services.register_evidence import (
     discard,
@@ -256,11 +261,21 @@ def _effect_requirements(proposal):
 
 
 def _details(proposal):
-    token = ShareToken.objects.get(pk=proposal.token_id)
-    register = ShareRegister.objects.filter(token=token).first()
+    token = ShareToken.objects.get(pk=proposal.token_id, company_id=proposal.company_id)
+    register = ShareRegister.objects.filter(token=token, company_id=proposal.company_id).first()
     held = RegisterPosition.objects.filter(register=register, member_id=proposal.member).first()
     issued, shares = int(register.issued_supply) if register else 0, int(held.shares) if held else 0
     return dict(
+        class_name=token.name,
+        class_code=token.symbol,
+        current_holders=[
+            {"member": member, "name": name, "shares": str(shares)}
+            for member, name, shares in RegisterPosition.objects.filter(
+                register=register, member__company_id=proposal.company_id, shares__gt=0
+            )
+            .order_by("member_id")
+            .values_list("member_id", "member__particulars__name", "shares")
+        ],
         member=proposal.member,
         new_member=proposal.new_member,
         name=proposal.name,
@@ -335,9 +350,18 @@ ALLOTMENTS = DecisionFamily(
 
 
 def preview_allotment_decision(*, actor, allotment_id, appointment, kind, reason=""):
-    return preview(
-        ALLOTMENTS, _details, actor=actor, proposal_id=allotment_id, appointment=appointment, kind=kind, reason=reason
-    )
+    initial = _readable(ALLOTMENTS, actor, allotment_id)
+    with register_command(actor, initial.company_id, "register_allotment_preview"):
+        _lock(initial)
+        return preview(
+            ALLOTMENTS,
+            _details,
+            actor=actor,
+            proposal_id=allotment_id,
+            appointment=appointment,
+            kind=kind,
+            reason=reason,
+        )
 
 
 def decide_allotment(

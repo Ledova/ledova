@@ -95,7 +95,16 @@ class RegisterAllotmentDecideSerializer(RegisterDecideSerializer):
     pass
 
 
+class RegisterAllotmentHolderSerializer(serializers.Serializer):
+    member = serializers.UUIDField()
+    name = serializers.CharField(allow_null=True)
+    shares = serializers.CharField()
+
+
 class RegisterAllotmentDecisionPreviewSerializer(serializers.Serializer):
+    class_name = serializers.CharField()
+    class_code = serializers.CharField()
+    current_holders = RegisterAllotmentHolderSerializer(many=True)
     preview_digest = serializers.CharField()
     unmet_requirements = serializers.ListField(child=serializers.CharField())
     can_decide = serializers.BooleanField()

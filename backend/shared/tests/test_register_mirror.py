@@ -286,6 +286,14 @@ class RegisterMirrorTest(CoreFixtures, APITransactionTestCase):
         investor_endpoint = "/api/v1/tokens/register-allotments/"
         prepared = self.client.post(investor_endpoint, investor, format="json")
         self.assertEqual(prepared.status_code, 201, prepared.content)
+        reviewed = self.client.post(
+            f"{investor_endpoint}{prepared.json()['uuid']}/decision-preview/",
+            {"appointment": str(self.appointment.pk), "kind": "approve"},
+            format="json",
+        )
+        self.assertEqual(reviewed.status_code, 200, reviewed.content)
+        self.assertEqual(reviewed.json()["currentHolders"], [])
+        self.assertEqual((reviewed.json()["issuedSupply"], reviewed.json()["afterIssuedSupply"]), ("0", "25"))
         self.decision(investor_endpoint, prepared.json()["uuid"], "approve")
         _, decision = self.decision(investor_endpoint, prepared.json()["uuid"], "apply")
         self.assertEqual(

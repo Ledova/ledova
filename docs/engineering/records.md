@@ -496,6 +496,14 @@ allotment's ISSUE, and a new member or particulars, only under its exact current
 application. The guards preserve supply and headroom and one applied effect. The tables are
 operator-only.
 
+The decision preview alone adds `class_name`, `class_code` and positive `current_holders` rows with
+member UUID, nullable current name and whole shares. Company, class, proposal and source locks keep
+these rows, totals, requirements and the existing register-head digest in one transaction; list and
+detail records do not carry this snapshot. The register head binds ownership changes to the reviewed
+digest, and a later head requires another preview. Names are display particulars, not ownership or
+valuation facts. Clients derive class-only ownership forecasts from this one response with exact
+integer arithmetic; company-entered shares and AUD consideration remain the agreement’s facts.
+
 ### Member access API
 
 What member access gives: [member access](../business/member-records.md#member-access). `POST
