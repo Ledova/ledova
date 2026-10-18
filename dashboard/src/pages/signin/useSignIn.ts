@@ -1,6 +1,7 @@
+import { resetSessionQueries } from '@hooks/session';
 import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { readSignInError, signin, FormErrors, SigninRequest, AUTH_QUERY_KEY } from '@ledova/shared';
+import { readSignInError, signin, FormErrors, SigninRequest } from '@ledova/shared';
 import apiClient, { UserFriendlyError } from '@services/apiClient';
 
 export const useSignIn = () => {
@@ -54,8 +55,7 @@ export const useSignIn = () => {
     try {
       await signin(apiClient, form);
 
-      queryClient.removeQueries({ predicate: (query) => query.queryKey[0] !== AUTH_QUERY_KEY[0] });
-      await queryClient.refetchQueries({ queryKey: AUTH_QUERY_KEY, exact: true });
+      await resetSessionQueries(queryClient);
 
       if (onSuccess) {
         onSuccess();

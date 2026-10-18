@@ -1,7 +1,8 @@
+import { clearSessionQueries } from '@hooks/session';
 import { SIGNIN_PATH } from '@utils/paths';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { signout, AUTH_QUERY_KEY } from '@ledova/shared';
+import { signout } from '@ledova/shared';
 import apiClient from '@services/apiClient';
 
 export function useSignOut() {
@@ -11,8 +12,7 @@ export function useSignOut() {
   const mutation = useMutation({
     mutationFn: () => signout(apiClient),
     onSettled: () => {
-      queryClient.setQueryData(AUTH_QUERY_KEY, { data: { valid: false } });
-      queryClient.clear();
+      clearSessionQueries(queryClient);
       navigate(SIGNIN_PATH);
     },
   });
