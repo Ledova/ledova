@@ -1,9 +1,7 @@
-import { useMutation } from '@tanstack/react-query';
 import {
   REGISTER_ALLOTMENT_COPY as COPY,
   REGISTER_ALLOTMENT_DECISIONS,
   apiErrorSentence,
-  downloadRegisterAllotmentFile,
   formatDateTime,
   type RegisterDecisionKind,
   type RegisterAllotment,
@@ -11,17 +9,10 @@ import {
 } from '@ledova/shared';
 import { Row, Rows, Status } from '@components/Ledger';
 import { PageAction } from '@components/Page';
-import apiClient from '@services/apiClient';
 import { DecisionTrail } from '@pages/company/register/shared/DecisionTrail';
 import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
-import {
-  DOWNLOAD_FAILED,
-  STAGE_TONES,
-  retainedName,
-  shareCount,
-  type RegisterSteps,
-} from '@pages/company/shared/proposals';
-import { saveFile } from '@utils/saveFile';
+import { DOWNLOAD_FAILED, STAGE_TONES, shareCount, type RegisterSteps } from '@pages/company/shared/proposals';
+import { useAllotmentRecordDownload } from './useRegisterRecordDownload';
 
 const DECISION_COPY = { ...COPY, DECISIONS: { ...COPY.DECISIONS, apply: 'Record issue' } };
 
@@ -67,22 +58,7 @@ export function AllotmentRecord({
   visible?: boolean;
   onHeldChange?: (uuid: string, held: boolean) => void;
 }) {
-  const download = useMutation({
-    mutationFn: async (kind: 'authority' | 'agreement' | 'receipt') => {
-      guard();
-      const { data } = await downloadRegisterAllotmentFile(apiClient, allotment.uuid, kind, {
-        ledovaSubmissionGuard: guard,
-      });
-      guard();
-      const snapshot =
-        kind === 'authority'
-          ? allotment.evidenceSnapshot
-          : kind === 'agreement'
-            ? allotment.agreement.evidenceSnapshot
-            : allotment.contribution.evidenceSnapshot;
-      saveFile(data, retainedName(snapshot, `${kind}-${allotment.uuid}`));
-    },
-  });
+  const download = useAllotmentRecordDownload(allotment, guard);
   const context = `allotment for ${allotment.name} prepared ${formatDateTime(allotment.createdAt)}`;
   const documents: ('authority' | 'agreement' | 'receipt')[] = ['authority', 'agreement', 'receipt'];
   const decisionSteps = allotment.stage === 'submitted' ? { ...steps, apply: undefined } : steps;
