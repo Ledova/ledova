@@ -6,6 +6,7 @@ import {
   type Company,
   type CompanyUpdate,
   type TokenType,
+  type useCompanySelection,
 } from '@ledova/shared';
 import { type CompanyActionRead } from '@pages/company/shared/CompanyState';
 import apiClient from '@services/apiClient';
@@ -25,7 +26,7 @@ type Draft = Record<(typeof EDIT_FIELDS)[number][0], string>;
 export interface FormProps {
   company: Company | null;
   target: Company;
-  read: CompanyActionRead;
+  read: CompanyActionRead & Pick<ReturnType<typeof useCompanySelection>, 'canPersonalAdmin'>;
   onClose: () => void;
   onSuccess: () => Promise<unknown>;
 }
@@ -104,22 +105,22 @@ export function useCreateClassForm(props: FormProps) {
     };
   }, []);
   const [assertCurrent] = useState(() => read.assertCurrent);
-  const guard = (uuid: string, mode: 'admin' | 'owner' = 'admin') => {
+  const guard = (uuid: string) => {
     if (!mounted.current) throw createUserFriendlyError('This company action is closed. Reopen it before continuing.');
-    assertCurrent(uuid, mode);
+    assertCurrent(uuid, 'personal');
   };
-  const [config] = useState(() => read.requestConfig(target.uuid, 'owner'));
+  const [config] = useState(() => read.requestConfig(target.uuid, 'personal'));
   const quantity = wholeShares(totalSupply);
   const valid =
     targetAvailable(props) &&
-    read.ownerBusiness &&
+    read.canPersonalAdmin &&
     name.trim() !== '' &&
     symbol.trim() !== '' &&
     quantity !== null &&
     quantity > 0n;
   const create = useMutation({
     mutationFn: () => {
-      guard(target.uuid, 'owner');
+      guard(target.uuid);
       return createCompanyToken(
         apiClient,
         {
@@ -129,13 +130,13 @@ export function useCreateClassForm(props: FormProps) {
           tokenType,
           totalSupply,
         },
-        { ...config, ledovaSubmissionGuard: () => guard(target.uuid, 'owner') },
+        { ...config, ledovaSubmissionGuard: () => guard(target.uuid) },
       );
     },
     onSuccess: async () => {
-      guard(target.uuid, 'owner');
+      guard(target.uuid);
       await onSuccess();
-      guard(target.uuid, 'owner');
+      guard(target.uuid);
       onClose();
     },
     onSettled: () => {

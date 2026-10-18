@@ -20,7 +20,7 @@ import { describeEntry } from '@pages/company/shared/proposals';
 import { useRegisterClasses } from '@pages/company/shared/useCompanyRegister';
 
 import { ownerGuard } from '@pages/company/shared/ownerGuard';
-import { useOwnAppointments } from '@pages/company/shared/useOwnAppointments';
+import { useOwnAppointments } from '@hooks/useOwnAppointments';
 import { CorrectionForm } from './CorrectionForm';
 
 const COPY = REGISTER_CORRECTION_COPY;

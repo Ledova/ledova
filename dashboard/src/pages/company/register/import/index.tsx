@@ -8,6 +8,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import {
   REGISTER_IMPORT_COPY,
   createUserFriendlyError,
+  formatShareCount,
   type CompanyShareTokenListItem,
   type OrderSubmissionOwner,
   type RegisterImport,
@@ -21,11 +22,12 @@ import { registerSteps, type RegisterSteps } from '@pages/company/shared/proposa
 import { useRegisterClasses, registerClassesKey } from '@pages/company/shared/useCompanyRegister';
 import { importsKey, useRegisterImports } from '@pages/company/register/shared/useRegisterImports';
 import { ownerGuard } from '@pages/company/shared/ownerGuard';
-import { useOwnAppointments, ownAppointmentsKey } from '@pages/company/shared/useOwnAppointments';
+import { useOwnAppointments, ownAppointmentsKey } from '@hooks/useOwnAppointments';
 
 import { transferMembersKey, useTransferMembers } from '@pages/company/register/shared/useRegisterTransfers';
 import { ImportForm } from './ImportForm';
 import { NewClassSetup } from './NewClassSetup';
+import { canOpenEmptyRegister } from './preparation';
 
 export default function CompanyRegisterImportPage() {
   const { uuid = '' } = useParams();
@@ -201,12 +203,25 @@ function OwnImport({
       shareClass={{ name: retained.listed.name, symbol: retained.listed.symbol }}
       register={retained.register}
       companyMembers={members.data ?? retained.members}
+      emptyOpeningAllowed={
+        !!listed &&
+        !!register.data &&
+        !correction &&
+        !imports.data?.some((proposal) => proposal.status === 'applied') &&
+        canOpenEmptyRegister(register.data, listed)
+      }
       classFields={
         <dl className="grid gap-4 sm:grid-cols-2">
           {[
-            ['Share class', retained.listed.name],
+            ['Class name', retained.listed.name],
             ['Class code', retained.listed.symbol],
             ['Class type', retained.listed.tokenTypeDisplay || 'Not recorded'],
+            [
+              'Technical share limit',
+              retained.listed.totalSupply === (2n ** 256n - 1n).toString()
+                ? 'Internal quantity guard'
+                : formatShareCount(retained.listed.totalSupply),
+            ],
           ].map(([label, value]) => (
             <div key={label}>
               <dt className="text-sm text-text-muted">{label}</dt>

@@ -14,7 +14,7 @@ import { PageAction } from '@components/Page';
 
 import { LinkRecord } from './LinkRecord';
 import { registerSteps } from '@pages/company/shared/proposals';
-import { useOwnAppointments, ownAppointmentsKey } from '@pages/company/shared/useOwnAppointments';
+import { useOwnAppointments, ownAppointmentsKey } from '@hooks/useOwnAppointments';
 import {
   linksKey,
   useRegisterLinks,

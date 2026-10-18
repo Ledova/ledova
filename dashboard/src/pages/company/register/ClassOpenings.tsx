@@ -15,7 +15,7 @@ import { PageAction } from '@components/Page';
 import { OpeningRecord } from './OpeningRecord';
 import { registerSteps } from '@pages/company/shared/proposals';
 import { entriesKey } from '@pages/company/register/shared/useRegisterEntries';
-import { useOwnAppointments, ownAppointmentsKey } from '@pages/company/shared/useOwnAppointments';
+import { useOwnAppointments, ownAppointmentsKey } from '@hooks/useOwnAppointments';
 import { openingsKey, useRegisterOpenings } from '@pages/company/register/shared/useRegisterOpenings';
 
 const COPY = REGISTER_OPENING_COPY;

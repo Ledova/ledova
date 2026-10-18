@@ -1,12 +1,11 @@
-import { SHARE_CLASS_STATUS_TONES } from '@pages/company/shared/statusTones';
 import { REGISTER_QUERY_KEY } from '@hooks/useRegisterAccess';
 import { useState } from 'react';
-import { generatePath } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { DESTINATIONS, formatShareCount, type Company, useCompanySelection } from '@ledova/shared';
+import { DESTINATIONS, type Company, useCompanySelection, useSubmissionOwner } from '@ledova/shared';
 import { Page, PageAction } from '@components/Page';
-import { LinkRow, Row, Rows, Section, Status } from '@components/Ledger';
-import { useTokensList, TOKENS_QUERY_KEY } from '@pages/company/shared/useTokensList';
+import { LinkRow, Row, Rows, Section } from '@components/Ledger';
+import { TOKENS_QUERY_KEY } from '@pages/company/shared/useTokensList';
+import { CompanyClasses } from './CompanyClasses';
 import { CompanyReadNotice, CompanyStatusMark } from '@pages/company/shared/CompanyState';
 import { CreateClassForm, EditCompanyForm } from './CompanyForms';
 import { CompanyDocuments } from './CompanyDocuments';
@@ -19,7 +18,7 @@ export default function CompanyPage() {
 
 function CompanyDetails({ data }: { data: ReturnType<typeof useCompanySelection> }) {
   const { company } = data;
-  const classes = useTokensList(data.ownerBusiness && !data.error && company ? company.uuid : undefined, data);
+  const { owner, boundary } = useSubmissionOwner();
   const queryClient = useQueryClient();
   const [editing, setEditing] = useState<Company | null>(null);
   const [creating, setCreating] = useState<Company | null>(null);
@@ -104,59 +103,14 @@ function CompanyDetails({ data }: { data: ReturnType<typeof useCompanySelection>
                 )}
               </div>
             </Section>
-            {data.ownerBusiness && (
-              <Section title={classes.isSuccess ? `Share classes (${classes.data.length})` : 'Share classes'}>
-                {classes.isPending ? (
-                  <p role="status" className="text-sm text-text-muted">
-                    Loading share classes…
-                  </p>
-                ) : classes.isError ? (
-                  <div role="alert" className="space-y-2 text-sm text-text-muted">
-                    <p>Share classes could not be loaded.</p>
-                    <PageAction
-                      label="Retry share classes"
-                      onClick={() => void classes.refetch()}
-                      disabled={classes.isFetching}
-                    />
-                  </div>
-                ) : (classes.data ?? []).length === 0 ? (
-                  <p className="text-sm text-text-muted">No share classes yet.</p>
-                ) : (
-                  <ul className="divide-y divide-border-subtle">
-                    {classes.data!.map((token) => (
-                      <li key={token.uuid}>
-                        <LinkRow
-                          to={generatePath(DESTINATIONS.companyClass.path, { uuid: token.uuid })}
-                          label={token.name}
-                          aside={
-                            <Status tone={SHARE_CLASS_STATUS_TONES.get(token.status) ?? 'waiting'}>
-                              {token.statusDisplay}
-                            </Status>
-                          }
-                        >
-                          <p className="text-text-muted">
-                            {token.symbol} · {token.tokenTypeDisplay}
-                          </p>
-                          <p className="break-all text-text-muted">
-                            {token.totalSupply !== (2n ** 256n - 1n).toString()
-                              ? `${formatShareCount(token.totalSupply)} authorised shares`
-                              : 'Internal quantity guard'}
-                          </p>
-                        </LinkRow>
-                      </li>
-                    ))}
-                    <li>
-                      <LinkRow to={DESTINATIONS.companyRegister.path} label={DESTINATIONS.companyRegister.title} />
-                    </li>
-                  </ul>
-                )}
-                <PageAction
-                  label="Create share class"
-                  primary
-                  onClick={() => setCreating(company)}
-                  disabled={data.isRefreshing}
-                />
-              </Section>
+            {(data.ownerBusiness || data.canPersonalAdmin) && owner && (
+              <CompanyClasses
+                owner={owner}
+                currentOwner={boundary.get}
+                company={company}
+                read={data}
+                onCreate={() => setCreating(company)}
+              />
             )}
           </>
         )}

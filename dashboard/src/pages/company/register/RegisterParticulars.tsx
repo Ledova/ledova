@@ -12,7 +12,7 @@ import { PageAction } from '@components/Page';
 
 import { ParticularsRecord } from './ParticularsRecord';
 import { registerMembers, registerSteps } from '@pages/company/shared/proposals';
-import { useOwnAppointments, ownAppointmentsKey } from '@pages/company/shared/useOwnAppointments';
+import { useOwnAppointments, ownAppointmentsKey } from '@hooks/useOwnAppointments';
 import { particularsKey, useRegisterParticulars } from '@pages/company/register/shared/useRegisterParticulars';
 
 const COPY = REGISTER_PARTICULARS_COPY;
