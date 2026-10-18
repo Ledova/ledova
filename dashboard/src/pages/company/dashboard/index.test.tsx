@@ -1,15 +1,16 @@
 // @vitest-environment jsdom
 
-import { REGISTER_QUERY_KEY } from '@hooks/useRegisterAccess';
+import { REGISTER_QUERY_KEY, registerKey } from '@hooks/useRegisterAccess';
 
 import {
   COMPANY_TOKEN_ENDPOINTS,
+  AUTH_QUERY_KEY,
   USER_PREFERENCES_ENDPOINTS,
   USER_PREFERENCES_QUERY_KEY,
   type TokenHoldersResponse,
 } from '@ledova/shared';
 import { QueryClient } from '@tanstack/react-query';
-import { act, cleanup, fireEvent, screen, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, expect, it, vi } from 'vitest';
 import CompanyDashboardPage from '.';
 import { companyPreferences, prepareCompanyClient, renderCompanyPage } from '../../../testSupport/company';
@@ -51,7 +52,7 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
-it('shows exact complete company ownership, deduplicates shareholders and refuses unopened or failed totals', async () => {
+it('shows exact complete company ownership, refuses incomplete totals and discards old-account register replies', async () => {
   const ordinary = register('ordinary', '9007199254740993');
   const firstHolder = ordinary.holders[0];
   ordinary.holders = ['9007199254740983', '3', '2', '1', '1', '1', '1', '1'].map((balance, index) => ({
@@ -173,4 +174,75 @@ it('shows exact complete company ownership, deduplicates shareholders and refuse
   expect(api.get.mock.calls.map(([url]) => url)).not.toContain('/api/v1/companies/');
   view.unmount();
   client.clear();
+
+  for (const delayed of ['classes', 'holders'] as const) {
+    const oldRegister = register('old-class', '11');
+    oldRegister.holders[0].name = 'Old account shareholder';
+    const currentRegister = register('current-class', '13');
+    currentRegister.holders[0].name = 'Current account shareholder';
+    const currentPreferences = {
+      ...companyPreferences(),
+      userProfile: 'profile-two',
+      userAccount: { ...companyPreferences().userAccount!, uuid: 'account-two' },
+    };
+    const classesFor = (item: TokenHoldersResponse) =>
+      page([{ uuid: item.token.uuid, companyUuid: 'company-one', companyName: 'Example Company' }]);
+    let finish!: (response: { data: unknown }) => void;
+    const pending = new Promise<{ data: unknown }>((resolve) => {
+      finish = resolve;
+    });
+    let changed = false;
+    let requested = false;
+    let oldGuard: (() => void) | undefined;
+    let currentGuard: (() => void) | undefined;
+    api.get.mockImplementation(async (url: string, config?: { ledovaSubmissionGuard?: () => void }) => {
+      if (url === USER_PREFERENCES_ENDPOINTS.BASE) return { data: changed ? currentPreferences : companyPreferences() };
+      if (
+        !requested &&
+        (delayed === 'classes'
+          ? url === COMPANY_TOKEN_ENDPOINTS.REGISTER
+          : url === COMPANY_TOKEN_ENDPOINTS.HOLDERS(oldRegister.token.uuid))
+      ) {
+        requested = true;
+        oldGuard = config?.ledovaSubmissionGuard;
+        return pending;
+      }
+      if (url === COMPANY_TOKEN_ENDPOINTS.REGISTER) return classesFor(changed ? currentRegister : oldRegister);
+      if (url === COMPANY_TOKEN_ENDPOINTS.HOLDERS(oldRegister.token.uuid)) return { data: oldRegister };
+      if (url === COMPANY_TOKEN_ENDPOINTS.HOLDERS(currentRegister.token.uuid)) {
+        currentGuard = config?.ledovaSubmissionGuard;
+        return { data: currentRegister };
+      }
+      return page([]);
+    });
+    const sessionClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    prepareCompanyClient(sessionClient);
+    const sessionView = renderCompanyPage(sessionClient, <CompanyDashboardPage />, 'Dashboard');
+    await waitFor(() => expect(requested).toBe(true));
+    expect(oldGuard).toBeTypeOf('function');
+    expect(() => oldGuard!()).not.toThrow();
+    const oldRoot = registerKey({ userUuid: 'profile-one', ownerAccountUuid: 'account-one' });
+    const oldKey = delayed === 'classes' ? [...oldRoot, 'classes'] : [...oldRoot, 'holders', oldRegister.token.uuid];
+    await act(async () => {
+      changed = true;
+      sessionClient.setQueryData(USER_PREFERENCES_QUERY_KEY, { data: currentPreferences });
+    });
+    expect(await screen.findByText('Current account shareholder')).toBeTruthy();
+    expect(() => oldGuard!()).toThrow(/Your signed-in account changed/);
+    await act(async () => finish(delayed === 'classes' ? classesFor(oldRegister) : { data: oldRegister }));
+    await waitFor(() => expect(sessionClient.getQueryState(oldKey)?.fetchStatus).toBe('idle'));
+    expect(sessionClient.getQueryState(oldKey)?.status).toBe('error');
+    expect(sessionClient.getQueryData(oldKey)).toBeUndefined();
+    expect(screen.queryByText('Old account shareholder')).toBeNull();
+    expect(screen.getByText('Current account shareholder')).toBeTruthy();
+    expect(currentGuard).toBeTypeOf('function');
+    expect(() => currentGuard!()).not.toThrow();
+    await act(async () => {
+      sessionClient.setQueryData(AUTH_QUERY_KEY, { data: { valid: false } });
+      sessionClient.setQueryData(AUTH_QUERY_KEY, { data: { valid: true } });
+    });
+    expect(() => currentGuard!()).toThrow(/Your signed-in account changed/);
+    sessionView.unmount();
+    sessionClient.clear();
+  }
 });

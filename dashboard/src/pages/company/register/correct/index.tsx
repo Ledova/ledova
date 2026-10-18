@@ -19,7 +19,7 @@ import { describeEntry } from '@pages/company/shared/proposals';
 
 import { useRegisterClasses } from '@pages/company/shared/useCompanyRegister';
 
-import { ownerGuard } from '@pages/company/register/shared/ownerGuard';
+import { ownerGuard } from '@pages/company/shared/ownerGuard';
 import { useOwnAppointments } from '@pages/company/shared/useOwnAppointments';
 import { CorrectionForm } from './CorrectionForm';
 
@@ -74,7 +74,7 @@ function OwnCorrection({
   back: ReactNode;
 }) {
   const guard = useMemo(() => ownerGuard(owner, currentOwner), [owner, currentOwner]);
-  const classes = useRegisterClasses(owner);
+  const classes = useRegisterClasses(owner, guard);
   const appointments = useOwnAppointments(owner, guard);
   const listed = classes.data?.find((item) => item.uuid === uuid);
   const appointment =

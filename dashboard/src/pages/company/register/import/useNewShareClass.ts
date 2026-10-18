@@ -120,7 +120,7 @@ export function useNewShareClass({
         token.status !== 'draft'
       )
         throw createUserFriendlyError('The share class receipt did not match the requested company and details.');
-      const register = await readRegister(token.uuid);
+      const register = await readRegister(token.uuid, guard);
       check();
       const members = await readTransferMembers(token.uuid, check);
       check();

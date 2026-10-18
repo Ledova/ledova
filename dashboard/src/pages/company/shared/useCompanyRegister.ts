@@ -20,16 +20,24 @@ export function registerHoldersKey(owner: OrderSubmissionOwner) {
   return [...registerKey(owner), 'holders'];
 }
 
-export function useRegisterClasses(owner: OrderSubmissionOwner) {
+export function useRegisterClasses(owner: OrderSubmissionOwner, guard: () => void) {
   return useQuery({
     queryKey: registerClassesKey(owner),
-    queryFn: () => readEveryPage((page) => getRegisterClasses(apiClient, { page })),
+    queryFn: () =>
+      readEveryPage(async (page) => {
+        guard();
+        const response = await getRegisterClasses(apiClient, { page }, { ledovaSubmissionGuard: guard });
+        guard();
+        return response;
+      }),
     ...READ_TIMING,
   });
 }
 
-export async function readRegister(uuid: string) {
-  const { data: register } = await getCompanyTokenHolders(apiClient, uuid);
+export async function readRegister(uuid: string, guard: () => void) {
+  guard();
+  const { data: register } = await getCompanyTokenHolders(apiClient, uuid, { ledovaSubmissionGuard: guard });
+  guard();
   const quantities = [
     register.token.totalSupply,
     ...register.holders.map(({ balance }) => balance),
@@ -42,21 +50,22 @@ export async function readRegister(uuid: string) {
   return register;
 }
 
-export function registersQuery(owner: OrderSubmissionOwner, uuids: string[]) {
+export function registersQuery(owner: OrderSubmissionOwner, uuids: string[], guard: () => void) {
   return {
     queryKey: [...registerHoldersKey(owner), ...uuids],
     enabled: uuids.length > 0,
-    queryFn: () => Promise.all(uuids.map(readRegister)),
+    queryFn: () => Promise.all(uuids.map((uuid) => readRegister(uuid, guard))),
     ...READ_TIMING,
   };
 }
 
 export function useCompanyRegister(
   owner: OrderSubmissionOwner,
+  guard: () => void,
   retained?: { company: { uuid: string; name: string }; tokens: string[] },
 ) {
   const [selected, setSelected] = useState('');
-  const classes = useRegisterClasses(owner);
+  const classes = useRegisterClasses(owner, guard);
   const listed = classes.data ?? [];
   const companies = [...new Map(listed.map((item) => [item.companyUuid, item.companyName])).entries()].map(
     ([uuid, name]) => ({ uuid, name }),
@@ -64,7 +73,7 @@ export function useCompanyRegister(
   const company =
     retained?.company ?? (companies.length === 1 ? companies[0] : companies.find(({ uuid }) => uuid === selected));
   const uuids = retained?.tokens ?? listed.filter((item) => item.companyUuid === company?.uuid).map(({ uuid }) => uuid);
-  const registers = useQuery(registersQuery(owner, uuids));
+  const registers = useQuery(registersQuery(owner, uuids, guard));
   return { classes, companies, company, selectCompany: setSelected, registers };
 }
 

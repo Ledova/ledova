@@ -41,7 +41,7 @@ import {
   useRegisterDownload,
   registerClassesKey,
 } from '@pages/company/shared/useCompanyRegister';
-import { ownerGuard } from '@pages/company/register/shared/ownerGuard';
+import { ownerGuard } from '@pages/company/shared/ownerGuard';
 import { useOwnAppointments, ownAppointmentsKey } from '@pages/company/shared/useOwnAppointments';
 
 const ON_CHAIN = ['deployed', 'paused'];
@@ -138,6 +138,7 @@ function RegisterShareholders({
       registersQuery(
         owner,
         registers.map(({ token }) => token.uuid),
+        guard,
       ).queryKey,
       ownAppointmentsKey(owner),
     ]) {
@@ -200,7 +201,7 @@ function OwnRegister({
       ? { company: retainedScope.company, tokens: retainedScope.registers.map(({ token }) => token.uuid) }
       : undefined;
   const guard = useMemo(() => ownerGuard(owner, currentOwner), [owner, currentOwner]);
-  const { classes, companies, company, selectCompany, registers } = useCompanyRegister(owner, retained);
+  const { classes, companies, company, selectCompany, registers } = useCompanyRegister(owner, guard, retained);
   const preferenceRead = useUserPreferences();
   const client = useQueryClient();
   const preferences = client.getQueryState(USER_PREFERENCES_QUERY_KEY);
