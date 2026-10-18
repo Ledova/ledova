@@ -95,6 +95,7 @@ def receiver_root(node: ast.AST) -> str:
 
 def queue_findings_for(tree: ast.AST) -> list[tuple[int, str]]:
     tasks = set()
+    applications = set()
     modules = set()
     found = []
     for node in ast.walk(tree):
@@ -104,6 +105,8 @@ def queue_findings_for(tree: ast.AST) -> list[tuple[int, str]]:
                 "ledova_backend.procrastinate_app", "procrastinate.contrib.django"
             ):
                 tasks.update(item.asname or item.name for item in node.names)
+            if module in ("ledova_backend.procrastinate_app", "procrastinate.contrib.django"):
+                applications.update(item.asname or item.name for item in node.names if item.name == "app")
             if module.startswith("procrastinate"):
                 for item in node.names:
                     if item.name in ("App", "DjangoConnector"):
@@ -116,11 +119,26 @@ def queue_findings_for(tree: ast.AST) -> list[tuple[int, str]]:
                 if item.name.startswith("procrastinate"):
                     modules.add(local)
 
-    assignments = [node for node in ast.walk(tree) if isinstance(node, ast.Assign)]
+    for node in ast.walk(tree):
+        if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            continue
+        for decorator in node.decorator_list:
+            target = decorator.func if isinstance(decorator, ast.Call) else decorator
+            if (
+                isinstance(target, ast.Attribute)
+                and target.attr == "task"
+                and receiver_root(target.value) in applications
+            ):
+                tasks.add(node.name)
+
+    assignments = [
+        (node.value, node.targets if isinstance(node, ast.Assign) else [node.target])
+        for node in ast.walk(tree) if isinstance(node, (ast.Assign, ast.AnnAssign))
+    ]
     for _ in assignments:
-        for node in assignments:
-            if receiver_root(node.value) in tasks:
-                tasks.update(target.id for target in node.targets if isinstance(target, ast.Name))
+        for value, targets in assignments:
+            if receiver_root(value) in tasks:
+                tasks.update(target.id for target in targets if isinstance(target, ast.Name))
 
     for node in ast.walk(tree):
         if not isinstance(node, ast.Attribute):
