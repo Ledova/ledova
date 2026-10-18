@@ -112,7 +112,10 @@ export function CreateClassForm(props: FormProps) {
             This draft belongs to a company that is no longer selected.
           </p>
         )}
-        <p className="text-sm text-text-muted">Create a draft class. Deployment and issuance are separate steps.</p>
+        <p className="text-sm text-text-muted">
+          Create a draft class. Its code and type do not define economic rights. The technical share limit is not
+          statutory authorised capital. Deployment and issuance are separate steps.
+        </p>
         {create.isError && (
           <p role="alert" className="text-sm text-error-light">
             {apiErrorSentence(create.error, 'The share class could not be created. Try again.')}
@@ -123,7 +126,7 @@ export function CreateClassForm(props: FormProps) {
           <input className={FIELD_CLASS} value={name} onChange={(event) => setName(event.target.value)} />
         </label>
         <label className="block text-sm">
-          Symbol
+          Class code
           <input
             className={FIELD_CLASS}
             value={symbol}
@@ -143,7 +146,7 @@ export function CreateClassForm(props: FormProps) {
           </select>
         </label>
         <label className="block text-sm">
-          Authorised shares
+          Technical share limit
           <input
             className={FIELD_CLASS}
             inputMode="numeric"

@@ -42,7 +42,7 @@ import {
   registerClassesKey,
 } from '@pages/company/shared/useCompanyRegister';
 import { ownerGuard } from '@pages/company/shared/ownerGuard';
-import { useOwnAppointments, ownAppointmentsKey } from '@pages/company/shared/useOwnAppointments';
+import { useOwnAppointments, ownAppointmentsKey } from '@hooks/useOwnAppointments';
 
 const ON_CHAIN = ['deployed', 'paused'];
 const TASKS = [
