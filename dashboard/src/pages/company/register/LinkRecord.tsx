@@ -1,19 +1,19 @@
-import { useLayoutEffect, useRef } from 'react';
+import { RecordShell, RecordDownloadFailure, RecordStage } from './RecordShell';
+import { useRegisterTaskGuard } from './useRegisterTaskGuard';
 import {
   REGISTER_LINK_COPY,
   REGISTER_LINK_DECISIONS,
-  apiErrorSentence,
   formatDateTime,
   registerLinkMemberLabels,
   type RegisterLink,
   type TokenHoldersResponse,
 } from '@ledova/shared';
-import { Row, Rows, Status } from '@components/Ledger';
+import { Row, Rows } from '@components/Ledger';
 import { PageAction } from '@components/Page';
 import { DecisionTrail } from '@pages/company/register/shared/DecisionTrail';
 import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
 import { WalletStatus } from '@pages/company/register/shared/WalletStatus';
-import { DOWNLOAD_FAILED, STAGE_TONES, type RegisterSteps } from '@pages/company/shared/proposals';
+import { type RegisterSteps } from '@pages/company/shared/proposals';
 import { useLinkRecordDownload } from './useRegisterRecordDownload';
 
 const COPY = REGISTER_LINK_COPY;
@@ -37,26 +37,17 @@ export function LinkRecord({
   visible?: boolean;
   onHeldChange?: (uuid: string, held: boolean) => void;
 }) {
-  const available = useRef(visible);
-  useLayoutEffect(() => {
-    available.current = visible;
-  }, [visible]);
-  const check = () => {
-    guard();
-    if (!available.current) throw new Error('Open the current register task before reading or deciding this record.');
-  };
+  const check = useRegisterTaskGuard(visible, guard);
   const download = useLinkRecordDownload(link, check);
   const labels = registerLinkMemberLabels(link.mappingSummary, holders);
   const context = `wallet link prepared ${formatDateTime(link.createdAt)}`;
   return (
-    <li hidden={!visible} className="flex flex-col gap-3 py-4">
+    <RecordShell hidden={!visible}>
       {visible && (
         <details open={link.status === 'submitted'} className="space-y-3">
           <summary className="cursor-pointer text-sm font-medium text-text-primary">{`Wallet link · ${formatDateTime(link.createdAt)} · ${COPY.STAGES[link.stage] ?? link.stage}`}</summary>
           <Rows>
-            <Row label="Stage">
-              <Status tone={STAGE_TONES[link.stage] ?? 'waiting'}>{COPY.STAGES[link.stage] ?? link.stage}</Status>
-            </Row>
+            <RecordStage stage={link.stage}>{COPY.STAGES[link.stage] ?? link.stage}</RecordStage>
             {link.preparedByName !== null && <Row label="Prepared by">{link.preparedByName || 'Not provided'}</Row>}
             <Row label="Prepared on">{formatDateTime(link.createdAt)}</Row>
           </Rows>
@@ -89,11 +80,7 @@ export function LinkRecord({
               onClick={() => download.mutate()}
             />
           </div>
-          {download.isError && (
-            <p role="alert" className="text-sm text-error-light">
-              {apiErrorSentence(download.error, DOWNLOAD_FAILED, DOWNLOAD_FAILED)}
-            </p>
-          )}
+          {download.isError && <RecordDownloadFailure error={download.error} />}
         </details>
       )}
       <RegisterDecisions
@@ -129,6 +116,6 @@ export function LinkRecord({
           );
         }}
       </RegisterDecisions>
-    </li>
+    </RecordShell>
   );
 }
