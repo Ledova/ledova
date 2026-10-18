@@ -2,7 +2,7 @@ import { Text, View } from 'react-native';
 import { formatDateTime, formatMoney, type CompanyEligibilitySharedSummary } from '@ledova/shared';
 import { Row, Rows } from '../../components/Ledger';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
-import { CATEGORIES, CERTIFIER_BODIES } from '../investor-eligibility/constants';
+import { CATEGORIES, CERTIFIER_BODIES } from '../../config/investorEligibility';
 
 export function EligibilitySummary({ summary }: { summary: CompanyEligibilitySharedSummary }) {
   const styles = useCompanyStyles();

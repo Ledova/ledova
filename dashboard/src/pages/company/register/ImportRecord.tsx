@@ -1,9 +1,9 @@
-import { useLayoutEffect, useRef } from 'react';
+import { RecordShell, RecordDownloadFailure, RecordStage } from './RecordShell';
+import { useRegisterTaskGuard } from './useRegisterTaskGuard';
 import {
   REGISTER_COPY,
   REGISTER_IMPORT_COPY,
   REGISTER_IMPORT_DECISIONS,
-  apiErrorSentence,
   formatDate,
   formatDateTime,
   formatShareCount,
@@ -11,11 +11,11 @@ import {
   type RegisterImport,
   type RegisterImportDecisionPreview,
 } from '@ledova/shared';
-import { Row, Rows, Status } from '@components/Ledger';
+import { Row, Rows } from '@components/Ledger';
 import { PageAction } from '@components/Page';
 import { DecisionTrail } from '@pages/company/register/shared/DecisionTrail';
 import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
-import { DOWNLOAD_FAILED, STAGE_TONES, type RegisterSteps } from '@pages/company/shared/proposals';
+import { type RegisterSteps } from '@pages/company/shared/proposals';
 import { MemberRecords } from '@pages/company/register/shared/MemberRecords';
 import { useImportRecordDownload } from './useRegisterRecordDownload';
 
@@ -82,27 +82,18 @@ export function ImportRecord({
   visible?: boolean;
   onHeldChange?: (uuid: string, held: boolean) => void;
 }) {
-  const available = useRef(visible);
-  useLayoutEffect(() => {
-    available.current = visible;
-  }, [visible]);
-  const check = () => {
-    guard();
-    if (!available.current) throw new Error('Open the current register task before reading or deciding this record.');
-  };
+  const check = useRegisterTaskGuard(visible, guard);
   const download = useImportRecordDownload(proposal, check);
   const totals = registerImportTotals(proposal.members);
   return (
-    <li hidden={!visible} className="flex flex-col gap-3 py-4">
+    <RecordShell hidden={!visible}>
       {visible && (
         <details open={proposal.status === 'submitted'} className="space-y-3">
           <summary className="cursor-pointer text-sm font-medium text-text-primary">{`${proposal.correctionOf ? 'Copied opening correction' : 'Copied opening'} · ${formatDate(proposal.asAt)} · ${REGISTER_IMPORT_COPY.STAGES[proposal.stage] ?? proposal.stage}`}</summary>
           <Rows>
-            <Row label="Stage">
-              <Status tone={STAGE_TONES[proposal.stage] ?? 'waiting'}>
-                {REGISTER_IMPORT_COPY.STAGES[proposal.stage] ?? proposal.stage}
-              </Status>
-            </Row>
+            <RecordStage stage={proposal.stage}>
+              {REGISTER_IMPORT_COPY.STAGES[proposal.stage] ?? proposal.stage}
+            </RecordStage>
             {proposal.preparedByName !== null && (
               <Row label="Prepared by">{proposal.preparedByName || 'Not provided'}</Row>
             )}
@@ -150,11 +141,7 @@ export function ImportRecord({
               />
             )}
           </div>
-          {download.isError && (
-            <p role="alert" className="text-sm text-error-light">
-              {apiErrorSentence(download.error, DOWNLOAD_FAILED, DOWNLOAD_FAILED)}
-            </p>
-          )}
+          {download.isError && <RecordDownloadFailure error={download.error} />}
         </details>
       )}
       <RegisterDecisions
@@ -176,6 +163,6 @@ export function ImportRecord({
       >
         {(preview) => <ImportPreview preview={preview} />}
       </RegisterDecisions>
-    </li>
+    </RecordShell>
   );
 }

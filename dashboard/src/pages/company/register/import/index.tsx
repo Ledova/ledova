@@ -1,3 +1,5 @@
+import { PreparationNotice, PreparationPreferences } from '@pages/company/register/shared/PreparationShell';
+import { useRegisterPreparationOwner } from '@pages/company/register/shared/useRegisterPreparationOwner';
 import { useImportRegister, importRegisterKey } from './useImportRegister';
 import { DESTINATIONS } from '@ledova/shared';
 import { useMemo, useState } from 'react';
@@ -6,8 +8,6 @@ import { useQueryClient } from '@tanstack/react-query';
 import {
   REGISTER_IMPORT_COPY,
   createUserFriendlyError,
-  useSubmissionOwner,
-  useUserPreferences,
   type CompanyShareTokenListItem,
   type OrderSubmissionOwner,
   type RegisterImport,
@@ -29,8 +29,7 @@ import { NewClassSetup } from './NewClassSetup';
 
 export default function CompanyRegisterImportPage() {
   const { uuid = '' } = useParams();
-  const { owner, boundary } = useSubmissionOwner();
-  const preferences = useUserPreferences();
+  const { owner, boundary, preferences } = useRegisterPreparationOwner();
   return (
     <PageTitle.Provider value="Set up your share register">
       <Page narrow>
@@ -49,10 +48,8 @@ export default function CompanyRegisterImportPage() {
               currentOwner={boundary.get}
             />
           )
-        ) : preferences.isLoading ? (
-          <Loading />
         ) : (
-          <Unavailable retry={() => void preferences.refetch()} busy={preferences.isFetching} />
+          <PreparationPreferences preferences={preferences} />
         )}
       </Page>
     </PageTitle.Provider>
@@ -165,8 +162,8 @@ function OwnImport({
       (readable && (!imports.data || !register.data || !members.data))
     )
       return <Loading />;
-    if (!listed) return <p className="text-sm text-text-muted">This share class is not in a register you can read.</p>;
-    if (!readable) return <p className="text-sm text-text-muted">{REGISTER_IMPORT_COPY.READ_ONLY_NOTE}</p>;
+    if (!listed) return <PreparationNotice />;
+    if (!readable) return <PreparationNotice>{REGISTER_IMPORT_COPY.READ_ONLY_NOTE}</PreparationNotice>;
     if (record && imports.data && !saved)
       return <p className="text-sm text-text-muted">This saved snapshot is not in the selected share class.</p>;
     if (!mirrorAllowed)
@@ -190,7 +187,7 @@ function OwnImport({
           correction.
         </p>
       );
-    if (!canOpen) return <p className="text-sm text-text-muted">{REGISTER_IMPORT_COPY.READ_ONLY_NOTE}</p>;
+    if (!canOpen) return <PreparationNotice>{REGISTER_IMPORT_COPY.READ_ONLY_NOTE}</PreparationNotice>;
     return <Loading />;
   }
   return (

@@ -1,34 +1,19 @@
-import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
-  CACHE_TIMING,
   failureStatus,
   PUBLICATION_COPY,
   apiErrorSentence,
-  assertNextPageAdvances,
   castBallot,
-  getPublications,
-  getPublicationsNextPage,
   openPublication,
   publicationFilename,
-  useLaterPages,
+  usePublications as usePublicationsListing,
   PUBLICATIONS_QUERY_KEY,
 } from '@ledova/shared';
 import type { BallotChoice, UserFriendlyError } from '@ledova/shared';
 import apiClient from '@services/apiClient';
+import { saveFile } from '@utils/saveFile';
 
 const PUBLICATIONS_KEY = PUBLICATIONS_QUERY_KEY;
-const PERSONAL_NOTICES_KEY = [...PUBLICATIONS_KEY, 'addressed', 'me'];
-
-function saveACopy(document_: Blob, filename: string) {
-  const url = URL.createObjectURL(document_);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = filename;
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-  window.setTimeout(() => URL.revokeObjectURL(url), 60000);
-}
 
 function whyItCouldNotBeOpened(error: unknown): string {
   const cause = (error as UserFriendlyError | undefined)?.originalError ?? error;
@@ -39,23 +24,12 @@ function whyItCouldNotBeOpened(error: unknown): string {
 export function usePublications() {
   const queryClient = useQueryClient();
 
-  const listing = useInfiniteQuery({
-    queryKey: PERSONAL_NOTICES_KEY,
-    queryFn: async ({ pageParam }) => {
-      const response = await getPublications(apiClient, pageParam, { addressed: 'me' });
-      assertNextPageAdvances(pageParam, response.data);
-      return response;
-    },
-    getNextPageParam: getPublicationsNextPage,
-    initialPageParam: 1,
-    staleTime: CACHE_TIMING.SHORT_STALE_TIME,
-  });
-  const pages = useLaterPages(PERSONAL_NOTICES_KEY, listing);
+  const { listing, pages } = usePublicationsListing();
 
   const opening = useMutation({
     mutationFn: async (uuid: string) => {
       const response = await openPublication(apiClient, uuid);
-      saveACopy(response.data, publicationFilename(uuid, response.data.type));
+      saveFile(response.data, publicationFilename(uuid, response.data.type));
     },
   });
 

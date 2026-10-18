@@ -1,3 +1,4 @@
+import { marketQuantity } from '@ledova/shared';
 import { Text, View } from 'react-native';
 import { useNavigation, type NavigationProp } from '@react-navigation/native';
 import {
@@ -15,7 +16,6 @@ import {
 import { Action, Section } from '../../../components/Ledger';
 import { useThemedStyles } from '../../../contexts';
 import type { RootStackParamList } from '../../../navigation/AppNavigator';
-import { applicationShares } from '../../applications/presentation';
 import type { useHoldingWork } from '../useHoldingWork';
 
 const NEEDS_YOU: Partial<Record<SubscriptionStatus, string>> = {
@@ -78,7 +78,7 @@ export function HoldingWork({ work }: { work: ReturnType<typeof useHoldingWork> 
         <Text style={styles.detail}>{application.companyName}</Text>
         <Text style={styles.message}>{application.tokenName}</Text>
         <Text style={styles.detail}>
-          {applicationShares(application.quantity)} {application.quantity === 1 ? 'share' : 'shares'}
+          {marketQuantity(application.quantity)} {application.quantity === 1 ? 'share' : 'shares'}
         </Text>
         <Action
           label={descriptions[application.status]!}

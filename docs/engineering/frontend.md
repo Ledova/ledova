@@ -74,7 +74,7 @@ frame share, and `packages/shared` holds what both clients share.
 
 Where today's code differs from these standards:
 
-- Browser downloads, notice/status/auth chrome and register shells still repeat fragments;
+- Notice/status/auth chrome still repeats fragments;
   consolidation is tracked on [#1073](https://github.com/Ledova/ledova/issues/1073).
 - Existing unscoped account-bound keys stay unchanged; broader account scoping needs the owner
   decision on [#1065](https://github.com/Ledova/ledova/issues/1065).
@@ -82,10 +82,11 @@ Where today's code differs from these standards:
 Mobile maps onto the same layers, direction and placement, with `navigation/` for `routes/` and
 `screens/<area>/` for page folders. Its component data calls beyond the reads extracted for key
 ownership remain recorded on [#1072](https://github.com/Ledova/ledova/issues/1072). Shared native UI
-and reads have moved out of screen internals; the remaining two cross-area helper imports and
-cross-client copies are consolidated under
-[#1074](https://github.com/Ledova/ledova/issues/1074) ([mobile
-architecture](mobile.md#architecture)). `site/src` is a separate flat app (one file per page in
+and cross-area reads live outside screen internals ([mobile architecture](mobile.md#architecture)).
+Profile, trading, operator and publication-list reads, invitation recipients, eligibility copy and
+application arithmetic live once in `packages/shared`; client adapters retain their current session,
+cache, labels and result policies. Register reads remain per client pending the naming decision on
+[#1065](https://github.com/Ledova/ledova/issues/1065). `site/src` is a separate flat app (one file per page in
 `pages/`, `components/`, `styles.ts`, `theme.ts`) that cannot import the shared package; only the
 file-naming rules apply to it.
 
@@ -351,6 +352,10 @@ so an open flow survives Wallets reloading its list or being left.
 
 ## Client sessions and caches
 
+Browser blob downloads use `dashboard/src/utils/saveFile.ts`: it clicks one temporary link, removes
+that link and revokes the object URL after 60 seconds. Each caller keeps its own filename, MIME type
+and authority checks.
+
 The session itself is in [authentication](security.md#authentication-and-sessions);
 `packages/shared/src/hooks/useAuth.ts` owns the authentication query (`AUTH_QUERY_KEY`).
 `ApiClientProvider` gives the shared hooks the client's API instance ([API
@@ -474,6 +479,14 @@ takes the reason for
 [acknowledging a discrepancy](../business/register.md#acknowledging-a-discrepancy), keeps the
 appointment it opened with and holds confirmation if a refresh changes it. Form inputs are described
 with each procedure in [the register of members](../business/register.md).
+
+The web register's repeated row wrappers, stage rows and download failures use
+`dashboard/src/pages/company/register/RecordShell.tsx`; `shared/DecisionTrail.tsx` serves both
+the Register and share-class detail page. Six records use `useRegisterTaskGuard.ts` for their existing visible-task
+check, while grant, allotment and award keep their distinct guards and wrappers. The preparation
+pages share `PreparationShell.tsx` for Back, preference fallback and read-only paragraphs, and
+`useRegisterPreparationOwner.ts` for the same account boundary and preferences reads. Page and form
+keys, held work, specialised refusal states and the import title remain with their pages.
 
 ## Signed-in page conventions
 
@@ -654,8 +667,7 @@ Each page links to its business section; the audience is the `DESTINATIONS` audi
   is offered, so a pending claim on a later page still prevents a second one.
 - Directory and Applications: a draft application reads every verified Base wallet page and computes
   its fixed-price total in integer cents with `BigInt`
-  (`dashboard/src/pages/directory/detail/SubscribeForm.tsx`,
-  `mobile/src/screens/directory/applicationAmount.ts`); Applications shows the recorded values without
+  (`packages/shared/src/utils/applicationAmount.ts`); Applications shows the recorded values without
   recomputing them, and a copy failure keeps the value available.
 - Market: owned order history reads independently of listed classes and wallets. Device-saved work
   ([create-order recovery](mobile.md#create-order-recovery),
