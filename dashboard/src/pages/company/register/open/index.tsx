@@ -17,7 +17,7 @@ import { Loading, Unavailable } from '@pages/company/shared/RegisterStatus';
 import { READ_TIMING } from '@hooks/useRegisterAccess';
 import { useRegisterClasses } from '@pages/company/shared/useCompanyRegister';
 import { ownerGuard } from '@pages/company/register/shared/ownerGuard';
-import { useOwnAppointments } from '@pages/company/register/shared/useOwnAppointments';
+import { useOwnAppointments } from '@pages/company/shared/useOwnAppointments';
 import { openingHoldersKey, readOpeningHolders } from '@pages/company/register/shared/useRegisterOpenings';
 import { OpeningForm } from './OpeningForm';
 

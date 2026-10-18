@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import * as Crypto from 'expo-crypto';
 import {
   createUserFriendlyError,
+  failureStatus,
   isRegisterEvidenceReceipt,
   REGISTER_CORRECTION_COPY,
   REGISTER_IMPORT_COPY,
@@ -55,7 +56,7 @@ export function useRegisterEvidence(company: string, kind: RegisterEvidenceKind)
         }
         uploaded = response.data;
       } catch (failure) {
-        const status = (failure as { response?: { status?: number } })?.response?.status;
+        const status = failureStatus(failure);
         if (status && status < 500) retry.current = null;
         throw failure;
       }

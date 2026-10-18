@@ -38,10 +38,6 @@ export function rowsOf<Row>(value: unknown, text: string[], optional: string[] =
   );
 }
 
-export function failureStatus(failure: unknown) {
-  return (failure as { response?: { status?: number } })?.response?.status;
-}
-
 export function appointmentForRegisterStep(appointments: OwnCompanyAppointment[], company: string, step: RegisterStep) {
   return appointments
     .filter(

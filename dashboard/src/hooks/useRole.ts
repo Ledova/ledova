@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { AccountRole, CACHE_TIMING, canOpen, getUserAccount, useAuth } from '@ledova/shared';
+import { AccountRole, CACHE_TIMING, canOpen, getUserAccount, useAuth, USER_ACCOUNT_QUERY_KEY } from '@ledova/shared';
 import apiClient from '@services/apiClient';
 
 export type { AccountRole };
@@ -8,7 +8,7 @@ export function useRole() {
   const { isAuthenticated } = useAuth();
 
   const query = useQuery({
-    queryKey: ['userAccount'],
+    queryKey: USER_ACCOUNT_QUERY_KEY,
     queryFn: () => getUserAccount(apiClient),
     enabled: isAuthenticated,
     staleTime: CACHE_TIMING.DEFAULT_STALE_TIME,

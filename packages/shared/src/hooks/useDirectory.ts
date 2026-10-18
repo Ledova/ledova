@@ -1,3 +1,4 @@
+import { INVESTOR_ELIGIBILITY_QUERY_KEY } from './useMarket';
 import { useQuery } from '@tanstack/react-query';
 
 import { CACHE_TIMING } from '../constants/api';
@@ -5,18 +6,22 @@ import { getDirectoryDocuments, getDirectoryToken, getDirectoryTokens } from '..
 import { getInvestorReadiness } from '../services/investorClassifications';
 import { getOperator } from '../services/operator';
 import { readEveryPage } from '../utils/pagination';
+import { failureStatus } from '../utils/errors';
 import { useApiClient } from './useApiClient';
+
+export const DIRECTORY_QUERY_KEY = ['directory'] as const;
+export const OPERATOR_QUERY_KEY = ['operator'] as const;
 
 export function useDirectoryTokens() {
   const apiClient = useApiClient();
   const eligibility = useQuery({
-    queryKey: ['investor-eligibility'],
+    queryKey: INVESTOR_ELIGIBILITY_QUERY_KEY,
     queryFn: () => getInvestorReadiness(apiClient),
     staleTime: CACHE_TIMING.SHORT_STALE_TIME,
   });
 
   const tokens = useQuery({
-    queryKey: ['directory', 'tokens', 'complete'],
+    queryKey: [...DIRECTORY_QUERY_KEY, 'tokens', 'complete'],
     queryFn: () => readEveryPage((page) => getDirectoryTokens(apiClient, page)),
     staleTime: CACHE_TIMING.SHORT_STALE_TIME,
   });
@@ -34,20 +39,20 @@ export function useDirectoryTokens() {
 export function useDirectoryToken(uuid: string | undefined) {
   const apiClient = useApiClient();
   const token = useQuery({
-    queryKey: ['directory', 'token', uuid],
+    queryKey: [...DIRECTORY_QUERY_KEY, 'token', uuid],
     queryFn: () => getDirectoryToken(apiClient, uuid!),
     enabled: !!uuid,
     staleTime: CACHE_TIMING.SHORT_STALE_TIME,
   });
 
   const operator = useQuery({
-    queryKey: ['operator'],
+    queryKey: OPERATOR_QUERY_KEY,
     queryFn: () => getOperator(apiClient),
     enabled: token.isSuccess,
     staleTime: CACHE_TIMING.EXTRA_LONG_GC_TIME,
   });
 
-  const notFound = (token.error as { response?: { status?: number } } | null)?.response?.status === 404;
+  const notFound = failureStatus(token.error) === 404;
 
   return {
     token: token.data?.data ?? null,
@@ -67,7 +72,7 @@ export function useDirectoryToken(uuid: string | undefined) {
 export function useDirectoryDocuments(uuid: string | undefined, enabled: boolean) {
   const apiClient = useApiClient();
   const documents = useQuery({
-    queryKey: ['directory', 'token', uuid, 'documents'],
+    queryKey: [...DIRECTORY_QUERY_KEY, 'token', uuid, 'documents'],
     queryFn: () => getDirectoryDocuments(apiClient, uuid!).then(({ data }) => data),
     enabled: !!uuid && enabled,
     staleTime: CACHE_TIMING.SHORT_STALE_TIME,

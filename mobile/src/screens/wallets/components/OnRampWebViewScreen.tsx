@@ -4,7 +4,7 @@ import { useIsFocused, useNavigation, useRoute } from '@react-navigation/native'
 import type { RouteProp } from '@react-navigation/native';
 import { useQueryClient } from '@tanstack/react-query';
 import WebView from 'react-native-webview';
-import { canOpen, useUserPreferences } from '@ledova/shared';
+import { canOpen, useUserPreferences, WALLETS_QUERY_KEY } from '@ledova/shared';
 import type { WebViewMessageEvent } from 'react-native-webview';
 import { GradientBackground } from '../../../components/GradientBackground';
 import { useAppTheme, useThemedStyles } from '../../../contexts';
@@ -91,7 +91,7 @@ export function OnRampWebViewScreen() {
 
   const handleComplete = () => {
     outcome.lifetime.retire();
-    queryClient.invalidateQueries({ queryKey: ['wallets'] });
+    queryClient.invalidateQueries({ queryKey: WALLETS_QUERY_KEY });
     handleClose();
   };
 

@@ -9,21 +9,27 @@ import {
   WALLET_VERIFICATION_STATUS,
   readEveryPage,
   useUserPreferences,
+  tradingQueryKeys,
+  WALLETS_QUERY_KEY,
 } from '@ledova/shared';
 import type { Wallet, WhitelistStatus } from '@ledova/shared';
 import apiClient from '@services/apiClient';
 
-const tradingQueryKeys = {
-  walletBalances: (walletAddress: string) => ['trading', 'walletBalances', walletAddress] as const,
-  whitelistStatus: (tokenAddress: string, walletAddress: string) =>
-    ['trading', 'whitelistStatus', tokenAddress, walletAddress] as const,
-};
+export const TRADING_USER_ORDERS_QUERY_KEY = [...tradingQueryKeys.userOrdersPrefix, 'all'] as const;
+
+export const tradingWalletsQueryKey = (ownerAccountUuid: string | undefined) =>
+  [...WALLETS_QUERY_KEY, ownerAccountUuid, 'trading'] as const;
+
+export function isTradingWalletsQueryKey(queryKey: readonly unknown[], ownerAccountUuid: string | undefined) {
+  const expected = tradingWalletsQueryKey(ownerAccountUuid);
+  return queryKey.length === expected.length && expected.every((part, index) => queryKey[index] === part);
+}
 
 export function useUserTradingWallets() {
   const { userAccount, isLoading: isLoadingPortfolio } = useUserPreferences();
 
   const walletsQuery = useQuery({
-    queryKey: ['wallets', userAccount?.uuid, 'trading'],
+    queryKey: tradingWalletsQueryKey(userAccount?.uuid),
     queryFn: async () => ({
       data: { results: await readEveryPage((page) => getWallets(apiClient, { page })) },
     }),
@@ -130,7 +136,7 @@ function useAllWalletTokenBalances(walletAddresses: string[]) {
 
 export function useTrading({ walletAddresses = [] }: { walletAddresses?: string[] } = {}) {
   const orders = useQuery({
-    queryKey: ['trading', 'userOrders', 'all'],
+    queryKey: TRADING_USER_ORDERS_QUERY_KEY,
     queryFn: () => readEveryPage((page) => getOrders(apiClient, { page })),
     staleTime: CACHE_TIMING.DEFAULT_STALE_TIME,
     gcTime: CACHE_TIMING.DEFAULT_GC_TIME,

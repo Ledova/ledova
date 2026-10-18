@@ -1,3 +1,4 @@
+import { ownAppointmentsKey } from '@pages/company/shared/useOwnAppointments';
 import { useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -21,6 +22,7 @@ import {
   type OwnCompanyAppointment,
   type CompanyShareToken,
   type RegisterDecisionKind,
+  COMPANY_QUERY_KEY,
 } from '@ledova/shared';
 import { Row, Rows, Section, Status } from '@components/Ledger';
 import { PageAction } from '@components/Page';
@@ -29,7 +31,6 @@ import { DecisionTrail } from '@pages/company/register/shared/DecisionTrail';
 import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
 import { registerSteps, STAGE_TONES } from '@pages/company/shared/proposals';
 import type { useShareClass } from './useShareClass';
-import { ownAppointmentsKey } from '@pages/company/shared/appointments';
 
 function SnapshotRows({ snapshot }: { snapshot: RegisterDeploymentSnapshot }) {
   const register = snapshot.register;
@@ -111,7 +112,7 @@ export function DeploymentFlow({ uuid, data }: { uuid: string; data: ReturnType<
       return rows;
     },
   });
-  const appointmentKey = owner ? ownAppointmentsKey(owner) : ['company', 'appointments', null];
+  const appointmentKey = owner ? ownAppointmentsKey(owner) : [...COMPANY_QUERY_KEY, 'appointments', null];
   const appointments = useQuery({
     queryKey: appointmentKey,
     enabled: !!owner,

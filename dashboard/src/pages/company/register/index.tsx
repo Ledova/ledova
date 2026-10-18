@@ -17,7 +17,7 @@ import { PageTitle } from '@components/PageTitle';
 import { Page, PageAction } from '@components/Page';
 import { FIELD_CLASS, LABEL } from '@components/fieldClass';
 import { CompanySelection } from '@pages/company/shared/CompanySelection';
-import { ownAppointmentsKey } from '@pages/company/shared/appointments';
+
 import { ownershipSummary } from '@pages/company/shared/summary';
 import { ClassCorrections } from './ClassCorrections';
 import { ClassImports } from './ClassImports';
@@ -38,7 +38,7 @@ import { Loading, Unavailable } from '@pages/company/shared/RegisterStatus';
 import { registerKey } from '@hooks/useRegisterAccess';
 import { registersQuery, useCompanyRegister, useRegisterDownload } from '@pages/company/shared/useCompanyRegister';
 import { ownerGuard } from '@pages/company/register/shared/ownerGuard';
-import { useOwnAppointments } from '@pages/company/register/shared/useOwnAppointments';
+import { useOwnAppointments, ownAppointmentsKey } from '@pages/company/shared/useOwnAppointments';
 
 const ON_CHAIN = ['deployed', 'paused'];
 const TASKS = [

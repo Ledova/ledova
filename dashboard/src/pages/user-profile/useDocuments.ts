@@ -1,3 +1,4 @@
+import { INVESTOR_CLASSIFICATIONS_QUERY_KEY } from '@hooks/useInvestorEligibility';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { getInvestorClassifications } from '@ledova/shared';
 import apiClient from '@services/apiClient';
@@ -16,7 +17,7 @@ const documentKey = (uuid: string) => ['document', uuid] as const;
 
 export function useDocumentClaims() {
   return useQuery({
-    queryKey: ['investor-classifications'],
+    queryKey: INVESTOR_CLASSIFICATIONS_QUERY_KEY,
     queryFn: () => getInvestorClassifications(apiClient),
   });
 }
@@ -73,7 +74,7 @@ export function useAttachDocument() {
     onSuccess: (doc) => {
       queryClient.setQueryData(documentKey(doc.uuid), doc);
       queryClient.invalidateQueries({ queryKey: DOCUMENTS_KEY });
-      queryClient.invalidateQueries({ queryKey: ['investor-classifications'] });
+      queryClient.invalidateQueries({ queryKey: INVESTOR_CLASSIFICATIONS_QUERY_KEY });
     },
   });
 }

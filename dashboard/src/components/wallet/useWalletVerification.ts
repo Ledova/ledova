@@ -8,6 +8,7 @@ import {
   getErrorMessage,
   useSubmissionOwner,
   USER_PREFERENCES_QUERY_KEY,
+  WALLETS_QUERY_KEY,
 } from '@ledova/shared';
 import type { Wallet } from '@ledova/shared';
 import apiClient from '@services/apiClient';
@@ -174,7 +175,7 @@ export function useWalletVerification(wallet?: Wallet | null, externalGuard?: ()
     },
     onSuccess: async (context) => {
       guard(context);
-      await queryClient.invalidateQueries({ queryKey: ['wallets'] });
+      await queryClient.invalidateQueries({ queryKey: WALLETS_QUERY_KEY });
       guard(context);
       setVerificationSuccess(true);
       setVerificationStep('success');

@@ -24,7 +24,7 @@ import { Loading, Unavailable } from '@pages/company/shared/RegisterStatus';
 import { registerSteps } from '@pages/company/shared/proposals';
 import { readRegister, useRegisterClasses } from '@pages/company/shared/useCompanyRegister';
 import { ownerGuard } from '@pages/company/register/shared/ownerGuard';
-import { useOwnAppointments } from '@pages/company/register/shared/useOwnAppointments';
+import { useOwnAppointments } from '@pages/company/shared/useOwnAppointments';
 import { readTransferMembers, useTransferMembers } from '@pages/company/register/shared/useRegisterTransfers';
 import { ImportForm } from './ImportForm';
 

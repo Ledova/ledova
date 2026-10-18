@@ -5,7 +5,8 @@ import { LONGEST_TIMER_DELAY, PUBLICATION_SUMMARY_REFRESH_INTERVAL } from '../co
 import { getPublicationSummary } from '../services/publications';
 import { useApiClient } from './useApiClient';
 
-const PUBLICATION_SUMMARY_QUERY_KEY = ['publications', 'summary'] as const;
+export const PUBLICATIONS_QUERY_KEY = ['publications'] as const;
+const PUBLICATION_SUMMARY_QUERY_KEY = [...PUBLICATIONS_QUERY_KEY, 'summary'] as const;
 
 export function usePublicationSummary() {
   const apiClient = useApiClient();

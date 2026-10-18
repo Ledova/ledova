@@ -10,6 +10,8 @@ import {
   useAuth,
   usePublicationSummary,
   useUserPreferences,
+  SUBSCRIPTIONS_QUERY_KEY,
+  PUBLICATIONS_QUERY_KEY,
 } from '@ledova/shared';
 import { apiClient } from '../../services/apiClient';
 import { assertSessionEpoch, getSessionEpoch, subscribeSession } from '../../services/sessionScope';
@@ -28,7 +30,7 @@ export function useHoldingWork() {
     ['investor', 'company', 'both'].includes(account.role);
   const investing = known && !!account && canOpen(account.role, 'investing');
   const applications = useQuery({
-    queryKey: ['subscriptions', 'holdings-work', account?.uuid, epoch],
+    queryKey: [...SUBSCRIPTIONS_QUERY_KEY, 'holdings-work', account?.uuid, epoch],
     enabled: investing,
     queryFn: () =>
       readEveryPage(async (page) => {
@@ -41,7 +43,7 @@ export function useHoldingWork() {
   });
 
   const recent = useQuery({
-    queryKey: ['publications', 'addressed', 'me', 'latest', epoch],
+    queryKey: [...PUBLICATIONS_QUERY_KEY, 'addressed', 'me', 'latest', epoch],
     queryFn: async () => {
       assertSessionEpoch(epoch);
       const { data } = await getPublications(apiClient, 1, { addressed: 'me' });

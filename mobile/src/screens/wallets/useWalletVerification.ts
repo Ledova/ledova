@@ -12,6 +12,7 @@ import {
   useSubmissionOwner,
   AUTH_QUERY_KEY,
   USER_PREFERENCES_QUERY_KEY,
+  WALLETS_QUERY_KEY,
 } from '@ledova/shared';
 import type { Wallet, VerifyWalletResponse, CompanyEligibilityRequest } from '@ledova/shared';
 import type { WalletsStackParamList } from '../../navigation/WalletsStackNavigator';
@@ -87,7 +88,7 @@ export function useWalletVerification({ wallet, nomination }: UseWalletVerificat
     )
       throw new Error('The account or wallet changed. Reopen wallet verification to continue.');
   }, [boundary, capturedScope, epoch, owner, queryClient, wallet.userAccount]);
-  const key = ['wallets', 'verification', epoch, owner?.userUuid, owner?.ownerAccountUuid, capturedScope];
+  const key = [...WALLETS_QUERY_KEY, 'verification', epoch, owner?.userUuid, owner?.ownerAccountUuid, capturedScope];
   const ownWallets = useQuery({
     queryKey: key,
     enabled: !!owner && wallet.userAccount === owner.ownerAccountUuid,
@@ -110,7 +111,7 @@ export function useWalletVerification({ wallet, nomination }: UseWalletVerificat
       }),
   });
   const sourceKey = [
-    'wallets',
+    ...WALLETS_QUERY_KEY,
     'verification-eligibility',
     epoch,
     owner?.userUuid,
@@ -215,7 +216,7 @@ export function useWalletVerification({ wallet, nomination }: UseWalletVerificat
     check();
     if (!result.success || result.verificationStatus !== 'VERIFIED' || !Number.isFinite(Date.parse(result.verifiedAt)))
       throw new Error('The wallet proof completion could not be confirmed. Refresh its authoritative readiness.');
-    await queryClient.invalidateQueries({ queryKey: ['wallets'] });
+    await queryClient.invalidateQueries({ queryKey: WALLETS_QUERY_KEY });
     check();
     setVerificationSuccess(true);
   };

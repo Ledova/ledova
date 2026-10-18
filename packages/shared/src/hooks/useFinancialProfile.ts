@@ -3,10 +3,12 @@ import { CACHE_TIMING } from '../constants/api';
 import { getFinancialProfiles } from '../services/financialProfile';
 import { useApiClient } from './useApiClient';
 
+export const FINANCIAL_PROFILES_QUERY_KEY = ['financialProfiles'] as const;
+
 export function useFinancialProfile() {
   const apiClient = useApiClient();
   const query = useQuery({
-    queryKey: ['financialProfiles'],
+    queryKey: FINANCIAL_PROFILES_QUERY_KEY,
     queryFn: () => getFinancialProfiles(apiClient),
     staleTime: CACHE_TIMING.DEFAULT_STALE_TIME,
     gcTime: CACHE_TIMING.EXTRA_LONG_GC_TIME,

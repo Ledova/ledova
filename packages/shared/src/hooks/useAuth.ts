@@ -4,7 +4,8 @@ import { CACHE_TIMING } from '../constants/api';
 import { verifyAuth } from '../services/auth';
 import { useApiClient } from './useApiClient';
 
-export const AUTH_QUERY_KEY = ['auth', 'verify'] as const;
+export const AUTH_QUERY_ROOT = ['auth'] as const;
+export const AUTH_QUERY_KEY = [...AUTH_QUERY_ROOT, 'verify'] as const;
 
 export function useAuth() {
   const apiClient = useApiClient();

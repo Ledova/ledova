@@ -12,7 +12,7 @@ import {
   withdrawMemberCertificateRequest,
 } from '../services/member-access';
 import type { OwnMemberRecord, MemberCertificateRequest } from '../types';
-import { getErrorMessage } from '../utils/errors';
+import { failureStatus, getErrorMessage } from '../utils/errors';
 import { readEveryPage } from '../utils/pagination';
 import { useSubmissionOwner } from './useSubmissionOwner';
 import { USER_PREFERENCES_QUERY_KEY } from './useUserPreferences';
@@ -297,7 +297,7 @@ export function useMemberRecords(newKey: () => string, session?: OrderSubmission
       setRetry(null);
       await refresh();
     } catch (failure) {
-      const status = (failure as { response?: { status?: number } })?.response?.status;
+      const status = failureStatus(failure);
       if (status && status < 500) setRetry(null);
       if (live.current && boundary.get() === owner)
         setError(

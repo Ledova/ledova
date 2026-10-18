@@ -13,9 +13,9 @@ import {
   getMemberCertificateFulfilmentPreview,
   fulfilMemberCertificateRequest,
 } from '../services/member-access';
-import { appointmentForRegisterStep, failureStatus, hasCurrentRegisterReadAuthority } from '../utils/register-commands';
+import { appointmentForRegisterStep, hasCurrentRegisterReadAuthority } from '../utils/register-commands';
 import { isCurrentEligibilityAppointment } from './useCompanyEligibilityRecords';
-import { getErrorMessage } from '../utils/errors';
+import { failureStatus, getErrorMessage } from '../utils/errors';
 import { readEveryPage } from '../utils/pagination';
 import { useSubmissionOwner } from './useSubmissionOwner';
 import { USER_PREFERENCES_QUERY_KEY } from './useUserPreferences';

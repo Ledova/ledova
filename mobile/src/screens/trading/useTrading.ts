@@ -9,21 +9,28 @@ import {
   WALLET_VERIFICATION_STATUS,
   readEveryPage,
   useUserPreferences,
+  tradingQueryKeys,
+  WALLETS_QUERY_KEY,
 } from '@ledova/shared';
 import type { Wallet, WhitelistStatus, WalletTokenBalance } from '@ledova/shared';
 import { apiClient } from '../../services/apiClient';
 
-export const tradingQueryKeys = {
-  walletBalances: (walletAddress: string) => ['trading', 'walletBalances', walletAddress] as const,
-  whitelistStatus: (tokenAddress: string, walletAddress: string) =>
-    ['trading', 'whitelistStatus', tokenAddress, walletAddress] as const,
-};
+export const tradingUserOrdersQueryKey = (ownerAccountUuid: string | undefined) =>
+  [...tradingQueryKeys.userOrdersPrefix, 'all', ownerAccountUuid] as const;
+
+export const tradingWalletsQueryKey = (ownerAccountUuid: string | undefined) =>
+  [...WALLETS_QUERY_KEY, ownerAccountUuid, 'trading'] as const;
+
+export function isTradingWalletsQueryKey(queryKey: readonly unknown[], ownerAccountUuid: string | undefined) {
+  const expected = tradingWalletsQueryKey(ownerAccountUuid);
+  return expected.every((part, index) => queryKey[index] === part);
+}
 
 export function useUserTradingWallets() {
   const { userAccount, isLoading: isLoadingPreferences } = useUserPreferences();
 
   const walletsQuery = useQuery({
-    queryKey: ['wallets', userAccount?.uuid, 'trading'],
+    queryKey: tradingWalletsQueryKey(userAccount?.uuid),
     queryFn: async () => ({
       data: { results: await readEveryPage((page) => getWallets(apiClient, { page })) },
     }),
@@ -141,7 +148,7 @@ export function useAllWalletTokenBalances(walletAddresses: string[]) {
 export function useAllUserOrders() {
   const { userAccount } = useUserPreferences();
   const query = useQuery({
-    queryKey: ['trading', 'userOrders', 'all', userAccount?.uuid],
+    queryKey: tradingUserOrdersQueryKey(userAccount?.uuid),
     queryFn: () => readEveryPage((page) => getOrders(apiClient, { page })),
     enabled: !!userAccount?.uuid,
     staleTime: CACHE_TIMING.DEFAULT_STALE_TIME,

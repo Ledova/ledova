@@ -6,7 +6,8 @@ import type {
   RegisterOpeningPreparation,
   RegisterOpeningRecord,
 } from '../types';
-import { failureStatus, rowsOf } from './register-commands';
+import { rowsOf } from './register-commands';
+import { failureStatus } from './errors';
 
 type Holding = Pick<RegisterOpeningHolder, 'address' | 'shares'>;
 type MappedHolding = Pick<RegisterOpeningHolder, 'member' | 'memberName' | 'memberExists'>;

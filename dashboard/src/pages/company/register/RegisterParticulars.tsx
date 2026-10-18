@@ -7,11 +7,11 @@ import {
 } from '@ledova/shared';
 import { Section } from '@components/Ledger';
 import { PageAction } from '@components/Page';
-import { ownAppointmentsKey } from '@pages/company/shared/appointments';
+
 import { ParticularsRecord } from './ParticularsRecord';
 import { registerMembers, registerSteps } from '@pages/company/shared/proposals';
 import { registerKey } from '@hooks/useRegisterAccess';
-import { useOwnAppointments } from '@pages/company/register/shared/useOwnAppointments';
+import { useOwnAppointments, ownAppointmentsKey } from '@pages/company/shared/useOwnAppointments';
 import { particularsKey, useRegisterParticulars } from '@pages/company/register/shared/useRegisterParticulars';
 
 const COPY = REGISTER_PARTICULARS_COPY;
