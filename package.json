@@ -15,12 +15,12 @@
   },
   "packageManager": "npm@11.5.2",
   "engines": {
-    "node": "22.15.1",
+    "node": "22.22.2",
     "npm": "11.5.2"
   },
   "devDependencies": {
     "openapi-typescript": "7.13.0",
-    "prettier": "3.9.9",
+    "prettier": "3.9.10",
     "tsx": "^4.23.15",
     "typescript": "5.9.3"
   }

@@ -29,13 +29,15 @@ jobs:
         run: pip install pyyaml
       - uses: actions/setup-node@v7.1.0
         with:
-          node-version: 22.15.1
+          node-version: 22.22.2
           cache: npm
           cache-dependency-path: |
             package-lock.json
             contracts/package-lock.json
             site/package-lock.json
             mobile/package-lock.json
+      - name: Install pinned npm
+        run: npm install --global npm@11.5.2
       - name: Install dependencies
         run: make install
       - name: Full source and client checks

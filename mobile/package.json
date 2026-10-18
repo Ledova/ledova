@@ -5,7 +5,7 @@
   "license": "SEE LICENSE IN LICENSE",
   "packageManager": "npm@11.5.2",
   "engines": {
-    "node": "22.15.1",
+    "node": "22.22.2",
     "npm": "11.5.2"
   },
   "main": "index.ts",
