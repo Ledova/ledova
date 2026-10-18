@@ -28,8 +28,8 @@ import type { CompanyStackParamList } from '../../navigation/CompanyStackNavigat
 import { orderSubmissionSession } from '../../services/orderSubmissions';
 import { apiClient } from '../../services/apiClient';
 import { assertSessionEpoch, getSessionEpoch, subscribeSession } from '../../services/sessionScope';
-import { EvidencePicker, Field, isoDay, utcToday } from './RegisterFields';
-import { useCompanyStyles } from './styles';
+import { EvidencePicker, Field, isoDay, utcToday } from '../../components/register/RegisterFields';
+import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 import {
   grantsKey,
   registerAppointmentsKey,
@@ -40,8 +40,8 @@ import {
   registerClassKey,
   registerMembersKey,
   registerClassesKey,
-} from './useCompanyRegister';
-import { useRegisterEvidence } from './useRegisterEvidence';
+} from '../../hooks/useCompanyRegister';
+import { useRegisterEvidence } from '../../hooks/useRegisterEvidence';
 import { useRegisterAward } from './useRegisterAwards';
 
 const FAILED = 'The grant preparation response could not be confirmed. Retry with the same details.';

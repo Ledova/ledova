@@ -5,8 +5,8 @@ import { useAppTheme, useThemedStyles } from '../../../contexts';
 import { useIdentityVerification } from '../../../hooks/useIdentityVerification';
 import { useIsFocused } from '@react-navigation/native';
 import { CustomModal, useDialogStyles } from '../../../components/modal';
-import { StatusBanners } from '../../signup/identity-verification/components/StatusBanners';
-import { VerificationFormModal } from '../../signup/identity-verification/components/VerificationFormModal';
+import { StatusBanners } from '../../../components/identity/StatusBanners';
+import { VerificationFormModal } from '../../../components/identity/VerificationFormModal';
 
 interface VerificationModalProps {
   visible: boolean;

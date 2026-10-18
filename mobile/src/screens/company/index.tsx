@@ -9,11 +9,11 @@ import { Action, LinkRow, Row, Section, Rows } from '../../components/Ledger';
 import { Page } from '../../components/Page';
 import { useCompanyProfile } from '../../hooks/useCompanyProfile';
 import { companyTokensKey, useCompanyTokens } from '../../hooks/useCompanyTokens';
-import { useCompanyStyles } from '../company-register/styles';
-import { CompanyReadNotice } from './CompanyState';
+import { useCompanyStyles } from '../../hooks/useCompanyStyles';
+import { CompanyReadNotice } from '../../components/company/CompanyState';
 import { CreateClassForm, EditCompanyForm } from './CompanyForms';
 import { CompanyDocuments } from './CompanyDocuments';
-import { CompanySelection } from './CompanySelection';
+import { CompanySelection } from '../../components/company/CompanySelection';
 
 export function CompanyScreen() {
   const data = useCompanyProfile();

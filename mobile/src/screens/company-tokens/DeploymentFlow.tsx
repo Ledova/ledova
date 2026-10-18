@@ -23,8 +23,8 @@ import {
 } from '@ledova/shared';
 import { Action, Row, Rows, Section } from '../../components/Ledger';
 import { apiClient } from '../../services/apiClient';
-import { RegisterDecision } from '../company-register/RegisterDecision';
-import { useCompanyStyles } from '../company-register/styles';
+import { RegisterDecision } from '../../components/register/RegisterDecision';
+import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 import type { useTokenDetail } from './useTokenDetail';
 import { useDeploymentAppointments, useDeploymentProposals } from './useDeploymentReads';
 

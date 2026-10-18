@@ -6,7 +6,7 @@ import {
   ClockCountdownIcon,
   ArrowCounterClockwiseIcon,
 } from 'phosphor-react-native';
-import { useAppTheme, useThemedStyles } from '../../../../contexts';
+import { useAppTheme, useThemedStyles } from '../../contexts/index';
 
 interface StatusBannersProps {
   isVerified: boolean;

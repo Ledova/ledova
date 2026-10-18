@@ -7,9 +7,9 @@ import {
   type Wallet,
 } from '@ledova/shared';
 import { Action, LinkRow, Row, Section } from '../../components/Ledger';
-import { useThemedStyles } from '../../contexts';
-import { useApplicationStyles } from './ApplicationsPage';
-import { applicationAmount } from './presentation';
+import { useThemedStyles } from '../../contexts/index';
+import { useApplicationStyles } from '../../hooks/useApplicationStyles';
+import { applicationAmount } from './applicationAmount';
 
 export type ApplicationDraft = { quantity: string; wallet: string | null };
 

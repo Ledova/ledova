@@ -14,15 +14,15 @@ import { Action, Choice, LinkRow, Row, Rows, Section } from '../../components/Le
 import { Page } from '../../components/Page';
 import type { CompanyStackParamList } from '../../navigation/CompanyStackNavigator';
 import { getSessionEpoch, subscribeSession } from '../../services/sessionScope';
-import { CompanySelection } from '../company/CompanySelection';
-import { useCompanyRegister } from './useCompanyRegister';
-import { useCompanyStyles } from './styles';
+import { CompanySelection } from '../../components/company/CompanySelection';
+import { useCompanyRegister } from '../../hooks/useCompanyRegister';
+import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 import { ClassRecords } from './ClassRecords';
 import { CompanyLinks } from './CompanyLinks';
 import { CompanyMemberAccess } from './CompanyMemberAccess';
 import { CompanyPack } from './CompanyPack';
 import { CompanyParticulars } from './CompanyParticulars';
-import { RegisterDownload } from './RegisterDownload';
+import { RegisterDownload } from '../../components/register/RegisterDownload';
 import { RegisterInspectionCopy } from './RegisterInspectionCopy';
 
 export function CompanyRegisterScreen() {

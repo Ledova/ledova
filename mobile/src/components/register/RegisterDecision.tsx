@@ -7,11 +7,11 @@ import {
   type RegisterDecisionFamily,
   type RegisterDecisionKind,
 } from '@ledova/shared';
-import { Action } from '../../components/Ledger';
-import { CustomModal } from '../../components/modal';
+import { Action } from '../Ledger';
+import { CustomModal } from '../modal/index';
 import { assertSessionEpoch } from '../../services/sessionScope';
 import { orderSubmissionSession } from '../../services/orderSubmissions';
-import { useCompanyStyles } from './styles';
+import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 
 type Preview = { previewDigest: string; canDecide: boolean; unmetRequirements: string[] };
 

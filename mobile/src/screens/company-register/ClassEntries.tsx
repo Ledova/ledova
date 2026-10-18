@@ -13,8 +13,8 @@ import {
   type TokenHoldersResponse,
 } from '@ledova/shared';
 import { Action, Row, Rows } from '../../components/Ledger';
-import { useCompanyStyles } from './styles';
-import { registerAppointmentsKey, useRegisterEntries } from './useCompanyRegister';
+import { useCompanyStyles } from '../../hooks/useCompanyStyles';
+import { registerAppointmentsKey, useRegisterEntries } from '../../hooks/useCompanyRegister';
 import { RegisterCertificate } from './RegisterCertificate';
 import { orderSubmissionSession } from '../../services/orderSubmissions';
 

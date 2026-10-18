@@ -12,9 +12,9 @@ import {
   type RegisterEvidenceKind,
   type RegisterEvidenceUpload,
 } from '@ledova/shared';
-import { useDocumentUpload } from '../../hooks/useDocumentUpload';
-import { apiClient } from '../../services/apiClient';
-import { uploadSize, type UploadFile } from '../../services/documentCopies';
+import { useDocumentUpload } from './useDocumentUpload';
+import { apiClient } from '../services/apiClient';
+import { uploadSize, type UploadFile } from '../services/documentCopies';
 
 const EVIDENCE: Record<RegisterEvidenceKind, { noun: string; unconfirmed: string }> = {
   share_register: { noun: 'share register', unconfirmed: REGISTER_IMPORT_COPY.UPLOAD_RECEIPT_FAILED },

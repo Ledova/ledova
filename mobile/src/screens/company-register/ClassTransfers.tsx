@@ -8,8 +8,8 @@ import {
 } from '@ledova/shared';
 import { Action } from '../../components/Ledger';
 import { TransferRecord } from './TransferRecord';
-import { useCompanyStyles } from './styles';
-import { entriesKey, transfersKey, transferMembersKey, useRegisterTransfers } from './useCompanyRegister';
+import { useCompanyStyles } from '../../hooks/useCompanyStyles';
+import { entriesKey, transfersKey, transferMembersKey, useRegisterTransfers } from '../../hooks/useCompanyRegister';
 
 export function ClassTransfers({
   epoch,
