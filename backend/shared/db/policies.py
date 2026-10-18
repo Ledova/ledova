@@ -657,10 +657,18 @@ OPERATOR_ONLY = {
     "documents_documentread": "Append-only administrative document read records, written on the operator "
     "connection and visible only to permitted platform reviewers. They contain UUIDs and reader IDs, not "
     "file names, extraction values or file contents, and outlive document content purges.",
-    "tokens_registerexport": "Immutable records of who exported a share class's register or prepared a copy, a "
-    "certificate, notice figures or a company pack from it, written on the operator connection by the export route, "
-    "the register outputs admin and the company pack admin, and queried by staff in admin. No issuer or customer "
-    "path reads them, and only the retention purge deletes them.",
+    "tokens_registerexport": "Immutable records of who exported a share class's register or prepared an inspection "
+    "copy, a certificate, notice figures or a company pack from it. Every writer is on the operator connection: "
+    "tokens/services/register.py export_rows, prepare_inspection_copy and prepare_certificate for ShareTokenViewSet's "
+    "register_export, register_inspection_copy and register_certificate actions; prepare_notice_figures for the "
+    "register outputs admin; tokens/services/member_certificates.py fulfil_member_certificate for "
+    "MemberCertificateRequestViewSet.fulfil; and tokens/services/company_pack.py _record for the issuer's "
+    "CompanyViewSet.pack through prepare_company_pack and for the company pack admin through produce_company_pack. "
+    "The readers are on the same connection: tokens/services/register.py outputs_due, which finds the certificates "
+    "and notice figures still owed for the register outputs admin and for _build_company_pack on both company pack "
+    "paths; RegisterExportAdmin for staff; and the tokens_guard_member_certificate_fulfilment trigger, which checks "
+    "the export a member certificate is bound to. Only tokens/services/former_holders.py purge_register_exports "
+    "deletes them, on the retention clock.",
     "shareholders_publicationread": "Append-only records of who opened a publication a company made to its "
     "members, or the remittance evidence of one of its payment records, written on the operator connection by "
     "the delivery service and the publications admin, and read "
