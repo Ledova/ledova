@@ -169,11 +169,65 @@ class ScopedAccessTest(CoreFixtures, APITransactionTestCase):
         self.assertIn("Synthetic Member", str(own.json()))
         hidden = self.client.get(f"/api/v1/tokens/{foreign_token.pk}/holders/")
         self.assertEqual(hidden.status_code, 404, hidden.content)
+        award = self.award_payload()
+        recorded = self.client.post("/api/v1/tokens/register-awards/", award, format="json")
+        self.assertEqual(recorded.status_code, 201, recorded.content)
+        foreign_evidence = retained_evidence(self.foreign, self.foreign_appointment, RegisterEvidenceKind.SUPPORTING)
+        foreign_award = {
+            **award,
+            "operation_id": str(uuid4()),
+            "appointment": str(self.foreign_appointment.pk),
+            "token_id": str(foreign_token.pk),
+            "member": str(uuid4()),
+            "name": "Private foreign employee",
+            "residential_address": "Private foreign address",
+            "agreement_evidence": str(foreign_evidence.pk),
+        }
+        self.sign_in(self.foreign)
+        recorded = self.client.post("/api/v1/tokens/register-awards/", foreign_award, format="json")
+        self.assertEqual(recorded.status_code, 201, recorded.content)
+        hidden = self.client.get(f"/api/v1/tokens/{self.token.pk}/register/members/")
+        self.assertEqual(hidden.status_code, 404, hidden.content)
+        self.sign_in(self.owner)
+        selections = self.client.get(f"/api/v1/tokens/{self.token.pk}/register/members/")
+        self.assertEqual(
+            selections.json()["awardRecipients"],
+            [{"member": award["member"], "name": award["name"], "residentialAddress": award["residential_address"]}],
+        )
+        self.assertNotIn(foreign_award["member"], str(selections.json()))
+        with use_operator():
+            identity_token = ShareToken.objects.create(
+                company=self.company, name="Scoped copied holding", symbol="IDENTITY", total_supply="1000"
+            )
+        foreign_identity = import_payload(
+            self.owner, self.appointment, identity_token, member_id=foreign_award["member"]
+        )
+        foreign_identity["members"][0].update(
+            name=foreign_award["name"], residential_address=foreign_award["residential_address"]
+        )
+        refused = self.client.post("/api/v1/tokens/register-imports/", foreign_identity, format="json")
+        self.assertEqual(refused.status_code, 400, refused.content)
+        self.assertNotIn(foreign_award["name"], str(refused.json()))
+        self.sign_in(self.foreign)
+        duplicated = self.client.post(
+            "/api/v1/tokens/register-awards/",
+            {**foreign_award, "operation_id": str(uuid4()), "member": award["member"]},
+            format="json",
+        )
+        self.assertEqual(duplicated.status_code, 201, duplicated.content)
+        self.sign_in(self.owner)
+        self.assertEqual(
+            self.client.get(f"/api/v1/tokens/{self.token.pk}/register/members/").json()["awardRecipients"], []
+        )
         set_principal(self.owner.pk, APP_ALIAS)
         self.assertEqual(
             RegisterPosition.objects.using(APP_ALIAS).filter(member_id=payload["members"][0]["member"]).count(), 1
         )
         self.assertEqual(RegisterPosition.objects.using(APP_ALIAS).filter(member=foreign_member).count(), 0)
+        with self.assertRaises(ProgrammingError), atomic(using=APP_ALIAS):
+            list(RegisterAward.objects.using(APP_ALIAS).values("member", "name", "residential_address"))
+        with self.assertRaises(ProgrammingError), atomic(using=APP_ALIAS):
+            RegisterAward.objects.using(APP_ALIAS).filter(member=foreign_award["member"]).update(name="Forged")
         reset_principal(APP_ALIAS)
 
     def test_foreign_company_cannot_approve_issue_or_write_the_private_grant(self):

@@ -1,4 +1,5 @@
 import re
+from collections import defaultdict
 from datetime import date
 from uuid import UUID
 
@@ -11,6 +12,7 @@ from companies.models import CompanyCapability
 from tokens.constants import REGISTER_IMPORT_ADDRESS_LENGTH
 from tokens.exceptions import RegisterChangeConflict
 from tokens.models import (
+    RegisterAward,
     RegisterEntry,
     RegisterEntryKind,
     RegisterEvidence,
@@ -56,7 +58,7 @@ def particulars_snapshot(held):
     }
 
 
-def register_members(token):
+def register_members(token, actor):
     with _snapshot():
         members = list(RegisterMember.objects.filter(company_id=token.company_id).order_by("uuid"))
         held = {
@@ -70,7 +72,24 @@ def register_members(token):
         cessations = {}
         for row in RegisterMemberCessation.objects.filter(register__token=token).order_by("entry__sequence"):
             cessations[row.member_id] = row.ceased_on
+        eligible = (
+            RegisterAward.objects.readable_by(actor)
+            .filter(company_id=token.company_id)
+            .exclude(member__in=RegisterMember.objects.values("uuid"))
+        )
+        identities = defaultdict(set)
+        for member, company, name, address in RegisterAward.objects.filter(
+            member__in=eligible.values("member")
+        ).values_list("member", "company_id", "name", "residential_address"):
+            identities[member].add((company, name, address))
         return {
+            "award_recipients": [
+                {"member": member, "name": name, "residential_address": address}
+                for member, variants in sorted(identities.items())
+                if len(variants) == 1
+                for company, name, address in variants
+                if company == token.company_id
+            ],
             "members": [
                 {
                     "member": member.pk,
@@ -87,7 +106,7 @@ def register_members(token):
                     "particulars_retained": member.pk in held,
                 }
                 for member in members
-            ]
+            ],
         }
 
 

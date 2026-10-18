@@ -6511,6 +6511,11 @@ export interface ApiComponents {
       termsOn: string;
       tokenId: string;
     };
+    RegisterAwardRecipient: {
+      member: string;
+      name: string;
+      residentialAddress: string;
+    };
     RegisterAwardVesting: {
       award: string;
       company: string;
@@ -7344,6 +7349,7 @@ export interface ApiComponents {
       registryAddress: string;
     };
     RegisterMembers: {
+      awardRecipients: ApiComponents['schemas']['RegisterAwardRecipient'][];
       members: ApiComponents['schemas']['RegisterMemberSelection'][];
     };
     RegisterMemberSelection: {

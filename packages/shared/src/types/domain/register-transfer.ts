@@ -8,3 +8,4 @@ export type RegisterTransferDecideRequest = ApiRequest<'api_v1_tokens_register_t
 export type RegisterTransferQueryParams = ApiQuery<'api_v1_tokens_register_transfers_list'>;
 export type RegisterTransferMembers = ApiResponse<'api_v1_tokens_register_members_retrieve'>;
 export type RegisterTransferMember = RegisterTransferMembers['members'][number];
+export type RegisterAwardRecipient = RegisterTransferMembers['awardRecipients'][number];

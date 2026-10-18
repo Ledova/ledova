@@ -142,5 +142,12 @@ class RegisterMemberSelectionSerializer(serializers.Serializer):
     particulars_retained = serializers.BooleanField()
 
 
+class RegisterAwardRecipientSerializer(serializers.Serializer):
+    member = serializers.UUIDField()
+    name = serializers.CharField()
+    residential_address = serializers.CharField()
+
+
 class RegisterMembersSerializer(serializers.Serializer):
     members = RegisterMemberSelectionSerializer(many=True)
+    award_recipients = RegisterAwardRecipientSerializer(many=True)
