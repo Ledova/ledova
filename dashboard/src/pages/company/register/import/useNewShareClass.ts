@@ -4,7 +4,7 @@ import {
   createCompanyToken,
   createUserFriendlyError,
   failureStatus,
-  getCompanyTokens,
+  getRegisterClasses,
   getCompanyToken,
   readEveryPage,
   type CompanyShareToken,
@@ -13,7 +13,6 @@ import {
   type TokenCreate,
   type TokenType,
   type RegisterTransferMember,
-  useCompanySelection,
 } from '@ledova/shared';
 
 import apiClient from '@services/apiClient';
@@ -22,14 +21,15 @@ import { registerSteps } from '@pages/company/shared/proposals';
 import { readRegister } from '@pages/company/shared/useCompanyRegister';
 
 import { readTransferMembers } from '@pages/company/register/shared/useRegisterTransfers';
+import { canOpenEmptyRegister } from './preparation';
 
 const TECHNICAL_SHARE_LIMIT = (2n ** 256n - 1n).toString();
 
 export type FreshClassProps = {
   owner: OrderSubmissionOwner;
   guard: () => void;
-  read: ReturnType<typeof useCompanySelection>;
-  company: Company;
+  checkCurrent: () => void;
+  company: Pick<Company, 'uuid' | 'name'>;
   classes: { uuid: string; name: string; symbol: string; status: string }[];
   companyMembers: RegisterTransferMember[];
   steps: ReturnType<typeof registerSteps>;
@@ -40,11 +40,11 @@ export type FreshClassProps = {
 
 export function useNewShareClass({
   guard,
-  read,
+  checkCurrent,
   company,
   classes,
   ready,
-}: Pick<FreshClassProps, 'guard' | 'read' | 'company' | 'classes' | 'ready'>) {
+}: Pick<FreshClassProps, 'guard' | 'checkCurrent' | 'company' | 'classes' | 'ready'>) {
   const navigate = useNavigate();
   const draftClasses = classes.filter((token) => token.status === 'draft');
   const [choice, setChoice] = useState('ordinary');
@@ -55,7 +55,7 @@ export function useNewShareClass({
   const creation = useRef<{ request: TokenCreate; dispatched: boolean; token?: CompanyShareToken } | null>(null);
   const check = () => {
     guard();
-    read.assertCurrent(company.uuid, 'owner');
+    checkCurrent();
     if (!ready) throw createUserFriendlyError('Refresh current company authority and records before continuing.');
   };
   const resolveRegister = async () => {
@@ -74,68 +74,70 @@ export function useNewShareClass({
       };
     }
     const operation = creation.current;
-    try {
-      if (!operation.token) {
-        const tokens = await readEveryPage((page) => {
-          check();
-          return getCompanyTokens(apiClient, { company_uuid: company.uuid, page });
+    if (!operation.token) {
+      const tokens = await readEveryPage((page) => {
+        check();
+        return getRegisterClasses(apiClient, { company_uuid: company.uuid, page }, { ledovaSubmissionGuard: check });
+      });
+      check();
+      const existing = tokens.find((token) => token.symbol === operation.request.symbol);
+      if (existing) {
+        if (
+          !operation.dispatched ||
+          existing.companyUuid !== company.uuid ||
+          existing.name !== operation.request.name ||
+          existing.tokenType !== operation.request.tokenType ||
+          existing.totalSupply !== operation.request.totalSupply
+        )
+          throw createUserFriendlyError(
+            'This class code already exists. Choose that share class or use its actual distinct code.',
+          );
+        const { data } = await getCompanyToken(apiClient, existing.uuid, {
+          ledovaSubmissionGuard: check,
         });
         check();
-        const existing = tokens.find((token) => token.symbol === operation.request.symbol);
-        if (existing) {
-          if (
-            !operation.dispatched ||
-            existing.companyUuid !== company.uuid ||
-            existing.name !== operation.request.name ||
-            existing.tokenType !== operation.request.tokenType ||
-            existing.totalSupply !== operation.request.totalSupply
-          )
-            throw createUserFriendlyError(
-              'This class code already exists. Choose that share class or use its actual distinct code.',
-            );
-          const { data } = await getCompanyToken(apiClient, existing.uuid, {
-            ledovaSubmissionGuard: check,
-          });
-          check();
-          operation.token = data;
-        } else {
-          if (operation.dispatched)
-            throw createUserFriendlyError(
-              'The original class creation result is still uncertain. Refresh and recover it once the class is available; no second creation request will be sent.',
-            );
-          operation.dispatched = true;
-          const { data } = await createCompanyToken(apiClient, operation.request, { ledovaSubmissionGuard: check });
-          check();
-          operation.token = data;
+        operation.token = data;
+      } else {
+        if (operation.dispatched)
+          throw createUserFriendlyError(
+            'The original class creation result is still uncertain. Refresh and recover it once the class is available; no second creation request will be sent.',
+          );
+        operation.dispatched = true;
+        let data: CompanyShareToken;
+        try {
+          ({ data } = await createCompanyToken(apiClient, operation.request, { ledovaSubmissionGuard: check }));
+        } catch (failure) {
+          if (failureStatus(failure) === 400 || failureStatus(failure) === 409) {
+            creation.current = null;
+            setClassLocked(false);
+          }
+          throw failure;
         }
+        check();
+        operation.token = data;
       }
-      const token = operation.token;
-      if (
-        token.company !== company.uuid ||
-        token.name !== operation.request.name ||
-        token.symbol !== operation.request.symbol ||
-        token.tokenType !== operation.request.tokenType ||
-        token.totalSupply !== operation.request.totalSupply ||
-        token.contractAddress ||
-        token.status !== 'draft'
-      )
-        throw createUserFriendlyError('The share class receipt did not match the requested company and details.');
-      const register = await readRegister(token.uuid, guard);
-      check();
-      const members = await readTransferMembers(token.uuid, check);
-      check();
-      return { register, members };
-    } catch (failure) {
-      if (!operation.token && (failureStatus(failure) === 400 || failureStatus(failure) === 409)) {
-        creation.current = null;
-        setClassLocked(false);
-      }
-      throw failure;
     }
+    const token = operation.token;
+    if (
+      token.company !== company.uuid ||
+      token.name !== operation.request.name ||
+      token.symbol !== operation.request.symbol ||
+      token.tokenType !== operation.request.tokenType ||
+      token.totalSupply !== operation.request.totalSupply ||
+      token.contractAddress ||
+      token.chain ||
+      token.deployedAt ||
+      token.deploymentTxHash ||
+      token.status !== 'draft'
+    )
+      throw createUserFriendlyError('The share class receipt did not match the requested company and details.');
+    const register = await readRegister(token.uuid, guard);
+    check();
+    const members = await readTransferMembers(token.uuid, check);
+    check();
+    return { register, members, emptyOpeningAllowed: canOpenEmptyRegister(register, token) };
   };
-  const problems = !read.ownerBusiness
-    ? ['The company owner creates new share classes. Select an existing class instead.']
-    : [];
+  const problems: string[] = [];
   if (!name.trim() || name.length > 100) problems.push('Enter a class name of at most 100 characters.');
   if (!/^[A-Z]{1,5}$/.test(symbol)) problems.push('Enter the recorded class code of 1–5 letters, such as A or ORD.');
   const existingCode = classes.find((token) => token.symbol === symbol);

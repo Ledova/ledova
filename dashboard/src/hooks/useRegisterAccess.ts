@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import {
-  CACHE_TIMING,
+  OWN_APPOINTMENTS_QUERY_KEY,
+  appointmentForRegisterStep,
   canPersonallyAdministerCompany,
   getCompanies,
   getRegisterClasses,
@@ -9,8 +10,9 @@ import {
   type OrderSubmissionOwner,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
+import { READ_TIMING, ownAppointmentsKey, useOwnAppointments } from './useOwnAppointments';
 
-export const READ_TIMING = { staleTime: CACHE_TIMING.SHORT_STALE_TIME, gcTime: CACHE_TIMING.MEDIUM_GC_TIME };
+export { READ_TIMING } from './useOwnAppointments';
 
 export const REGISTER_QUERY_KEY = ['register'] as const;
 
@@ -45,5 +47,24 @@ export function useRegisterEntryAccess(enabled = true) {
 
 export function useRegisterEntry() {
   const access = useRegisterEntryAccess();
-  return access.isSuccess && !access.isFetching && access.data;
+  const { owner, boundary } = useSubmissionOwner();
+  const guard = () => {
+    if (!owner || boundary.get() !== owner) throw new Error('Your signed-in account changed.');
+  };
+  const appointments = useOwnAppointments(owner!, guard, {
+    queryKey: owner ? ownAppointmentsKey(owner) : [...OWN_APPOINTMENTS_QUERY_KEY, null],
+    enabled: !!owner && access.isSuccess && !access.isFetching && !access.data,
+  });
+  return (
+    access.isSuccess &&
+    !access.isFetching &&
+    (access.data ||
+      (appointments.isSuccess &&
+        !!owner &&
+        !appointments.isFetching &&
+        appointments.data.some(
+          (appointment) =>
+            !appointment.revokedAt && appointmentForRegisterStep([appointment], appointment.company, 'prepare'),
+        )))
+  );
 }

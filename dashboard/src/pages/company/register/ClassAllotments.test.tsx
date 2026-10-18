@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { ownAppointmentsKey } from '@pages/company/shared/useOwnAppointments';
+import { ownAppointmentsKey } from '@hooks/useOwnAppointments';
 
 import {
   COMPANY_TOKEN_ENDPOINTS as URLS,

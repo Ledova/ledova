@@ -32,7 +32,6 @@ import { registerKey } from '@hooks/useRegisterAccess';
 import type { RegisterSteps } from '@pages/company/shared/proposals';
 
 import {
-  blankMember,
   figuresDiffer,
   formerRows,
   initialMembers,
@@ -65,8 +64,13 @@ export type ImportFormProps = {
   saved?: RegisterImport;
   classFields?: ReactNode;
   classProblems?: string[];
-  resolveRegister?: () => Promise<{ register: TokenHoldersResponse; members: RegisterTransferMember[] }>;
+  resolveRegister?: () => Promise<{
+    register: TokenHoldersResponse;
+    members: RegisterTransferMember[];
+    emptyOpeningAllowed: boolean;
+  }>;
   companyMembers: RegisterTransferMember[];
+  emptyOpeningAllowed?: boolean;
   visible?: boolean;
   onHeldChange?: (held: boolean) => void;
 };
@@ -86,6 +90,7 @@ export function useImportPreparation({
   classProblems = [],
   resolveRegister,
   companyMembers,
+  emptyOpeningAllowed = false,
   visible = true,
   onHeldChange,
 }: Omit<ImportFormProps, 'companyName' | 'shareClass' | 'classFields'>) {
@@ -113,7 +118,11 @@ export function useImportPreparation({
         ? correction.sourceReference
         : 'Company-provided share records',
     reason: saved?.reason ?? (correction ? '' : 'Mirror the company’s existing share records.'),
-    members: register ? initialMembers(register, saved ?? correction) : [blankMember()],
+    members: register
+      ? emptyOpeningAllowed && !saved && !correction
+        ? []
+        : initialMembers(register, saved ?? correction)
+      : [],
     former: (saved ?? correction)?.formerMembers.map((row) => ({ ...row, id: crypto.randomUUID() })) ?? [],
     statedTotal: saved?.asicIssuedTotal ?? '',
     statedCount: saved?.asicMemberCount?.toString() ?? '',
@@ -141,14 +150,14 @@ export function useImportPreparation({
   const mounted = useRef(true);
   const currentSteps = useRef(steps);
   const currentPreparation = useRef(appointment);
-  const currentContext = useRef({ newEffectGuard, blocked, visible, companyMembers });
+  const currentContext = useRef({ newEffectGuard, blocked, visible, companyMembers, emptyOpeningAllowed });
   const currentMembers = useRef(knownMembers);
   useLayoutEffect(() => {
     currentSteps.current = steps;
     currentPreparation.current = appointment;
-    currentContext.current = { newEffectGuard, blocked, visible, companyMembers };
+    currentContext.current = { newEffectGuard, blocked, visible, companyMembers, emptyOpeningAllowed };
     currentMembers.current = knownMembers;
-  }, [steps, appointment, newEffectGuard, blocked, visible, knownMembers, companyMembers]);
+  }, [steps, appointment, newEffectGuard, blocked, visible, knownMembers, companyMembers, emptyOpeningAllowed]);
   useEffect(() => {
     mounted.current = true;
     return () => {
@@ -273,7 +282,7 @@ export function useImportPreparation({
     }));
   const problems = [
     ...classProblems,
-    ...preparationProblems(draft, today),
+    ...preparationProblems(draft, today, !correction && emptyOpeningAllowed),
     ...memberIdentityProblems(draft.members, knownMembers, preserveParticulars),
   ];
   const detailProblems = problems.filter(
@@ -329,6 +338,13 @@ export function useImportPreparation({
         const current = activeRegister.current ?? resolved?.register;
         checkPreparation();
         if (!current) throw createUserFriendlyError('Choose the share class before continuing.');
+        if (
+          draft.members.length === 0 &&
+          (correction ||
+            draft.former.length > 0 ||
+            !(resolved?.emptyOpeningAllowed ?? currentContext.current.emptyOpeningAllowed))
+        )
+          throw createUserFriendlyError('An empty opening requires an unopened share class with no chain activity.');
         activeRegister.current = current;
         const known = resolved?.members ?? currentMembers.current;
         const sourceAtResolution = currentContext.current.companyMembers;
@@ -342,6 +358,8 @@ export function useImportPreparation({
         const registerEvidence = draft.registerFile ? await upload('share_register', draft.registerFile) : null;
         const asicEvidence = draft.asicFile ? await upload('asic_extract', draft.asicFile) : null;
         checkPreparation();
+        if (draft.members.length === 0 && !currentContext.current.emptyOpeningAllowed)
+          throw createUserFriendlyError('An empty opening requires an unopened share class with no chain activity.');
         const changedIdentity = memberIdentityProblems(
           draft.members,
           resolved && currentContext.current.companyMembers === sourceAtResolution ? known : currentMembers.current,

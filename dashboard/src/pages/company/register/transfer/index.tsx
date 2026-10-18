@@ -15,7 +15,7 @@ import { Page } from '@components/Page';
 import { Loading, Unavailable } from '@pages/company/shared/RegisterStatus';
 import { useRegisterClasses } from '@pages/company/shared/useCompanyRegister';
 import { ownerGuard } from '@pages/company/shared/ownerGuard';
-import { useOwnAppointments } from '@pages/company/shared/useOwnAppointments';
+import { useOwnAppointments } from '@hooks/useOwnAppointments';
 import { useTransferMembers } from '@pages/company/register/shared/useRegisterTransfers';
 import { TransferForm } from './TransferForm';
 

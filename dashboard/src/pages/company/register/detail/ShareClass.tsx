@@ -130,9 +130,7 @@ function ShareClassDetails({ data }: { data: ReturnType<typeof useShareClass> })
             <Row label="Class state">
               <Status tone={SHARE_CLASS_STATUS_TONES.get(token.status) ?? 'waiting'}>{token.statusDisplay}</Status>
             </Row>
-            <Row
-              label={token.totalSupply !== (2n ** 256n - 1n).toString() ? 'Authorised shares' : 'Technical share limit'}
-            >
+            <Row label="Technical share limit">
               {token.totalSupply !== (2n ** 256n - 1n).toString() ? (
                 <span className="break-all">{formatShareCount(token.totalSupply)}</span>
               ) : (

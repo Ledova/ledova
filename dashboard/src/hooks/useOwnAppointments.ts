@@ -4,9 +4,10 @@ import {
   readEveryPage,
   type OrderSubmissionOwner,
   OWN_APPOINTMENTS_QUERY_KEY,
+  CACHE_TIMING,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
-import { READ_TIMING } from '@hooks/useRegisterAccess';
+export const READ_TIMING = { staleTime: CACHE_TIMING.SHORT_STALE_TIME, gcTime: CACHE_TIMING.MEDIUM_GC_TIME };
 
 export function ownAppointmentsKey(owner: OrderSubmissionOwner) {
   return [...OWN_APPOINTMENTS_QUERY_KEY, owner.userUuid, owner.ownerAccountUuid];
