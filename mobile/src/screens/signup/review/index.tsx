@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, Linking, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { GradientBackground } from '../../../components/GradientBackground';
@@ -11,6 +12,7 @@ import { useReview } from './useReview';
 import { formatPhoneWithCountryCode, formatSourceOfFunds, formatIntendedUse } from '@ledova/shared';
 import { PUBLIC_LINKS } from '../../../config/publicLinks';
 import { Action } from '../../../components/Ledger';
+import { VerificationModal } from '../../../components/identity/VerificationModal';
 
 export function ReviewScreen() {
   const theme = useAppTheme();
@@ -189,6 +191,7 @@ export function ReviewScreen() {
     data,
     company,
     isCompany,
+    identityRequired,
     isLoading,
     error,
     completionError,
@@ -201,6 +204,7 @@ export function ReviewScreen() {
     resetAuthorityRequest,
     isResettingAuthority,
   } = useReview();
+  const [verificationOpen, setVerificationOpen] = useState(false);
   const busy = isSubmitting || isResettingAuthority;
   const finish = async () => {
     if (!canCompleteSignup || busy) return;
@@ -439,8 +443,15 @@ export function ReviewScreen() {
               )}
             </View>
             <View style={styles.buttonContainer}>
-              {!canCompleteSignup && (
-                <Text style={styles.validationText}>Please ensure all information is complete to proceed.</Text>
+              {identityRequired ? (
+                <View style={styles.infoList}>
+                  <Text style={styles.termsText}>This platform requires a verified identity before company setup.</Text>
+                  <Action label="Verify your identity" onPress={() => setVerificationOpen(true)} />
+                </View>
+              ) : (
+                !canCompleteSignup && (
+                  <Text style={styles.validationText}>Please ensure all information is complete to proceed.</Text>
+                )
               )}
               {completionError && (
                 <Text accessibilityRole="alert" style={styles.errorText}>
@@ -469,6 +480,13 @@ export function ReviewScreen() {
             <Text style={styles.backLink}>Go Back</Text>
           </TouchableOpacity>
         </ScrollView>
+        {identityRequired && (
+          <VerificationModal
+            visible={verificationOpen}
+            onClose={() => setVerificationOpen(false)}
+            onRefresh={() => void retryLoad()}
+          />
+        )}
       </SafeAreaView>
     </GradientBackground>
   );

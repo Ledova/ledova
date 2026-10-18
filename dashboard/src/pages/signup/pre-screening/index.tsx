@@ -27,7 +27,7 @@ export default function SignupPreScreening() {
   const handleContinue = async (e: React.FormEvent) => {
     e.preventDefault();
     await handleSubmit(() => {
-      navigate(SIGNUP_PATHS.identityVerification);
+      navigate(SIGNUP_PATHS.userProfile);
     });
   };
 

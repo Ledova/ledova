@@ -29,12 +29,12 @@ every company ([eligibility decision](../decisions.md#eligibility-and-ownership-
    Company representatives follow [company signup](companies.md#company-signup).
 2. At **Eligibility Check**, confirm that you are 18 or older, an Australian resident and opening an
    individual account.
-3. Complete identity verification with the configured provider, or choose **Skip for Now** and
-   finish it later from Profile.
-4. Complete your personal profile and financial profile, review them and choose **Complete
+3. Complete your personal profile and financial profile, review them and choose **Complete
    Signup**, which accepts the Terms of Service and Privacy Policy.
 
-An unfinished account can sign in again and resume.
+Signup does not include identity verification. Complete it afterwards from Profile with **Review
+identity check**; while the investor identity requirement is on, investing waits for it
+([account readiness](#account-readiness)). An unfinished account can sign in again and resume.
 
 ### Account readiness
 

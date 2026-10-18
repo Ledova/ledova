@@ -14,7 +14,6 @@ export function readIdentityVerification(status: IdentityVerificationStatus | un
   return {
     isVerified,
     needsRetry,
-    hasApplicant: !!status?.applicantId,
     isPending,
     isOnHold,
     isRejected,
@@ -24,7 +23,5 @@ export function readIdentityVerification(status: IdentityVerificationStatus | un
     showRejectedBanner: isRejected && !justSubmitted,
     showRetryBanner,
     showForm: !isVerified && !showPendingBanner && !showRetryBanner,
-    showContinue: isVerified || hasSubmitted || justSubmitted,
-    showSkip: !isVerified && !hasSubmitted && !justSubmitted,
   };
 }

@@ -17,6 +17,7 @@ stay here as history and are marked where they appear.
 | [Company representative verification](#company-representative-verification)                                     | 4 October 2026                                 | Current                                                            |
 | [Combined company signup and initial authority](#combined-company-signup-and-initial-authority)                 | 14 October 2026                                | Current; amended by #1022 below                                    |
 | [Simple signup, documents and team after registration](#simple-signup-documents-and-team-after-registration)    | 14 October 2026                                | Current; #1022                                                     |
+| [Identity verification after signup](#identity-verification-after-signup)                                       | 19 October 2026                                | Current; #1141                                                     |
 | [Existing register mirror and simple setup](#existing-register-mirror-and-simple-setup)                         | 14 October 2026                                | Current; setup amended by #1029                                    |
 | [Manual register setup: shares before shareholders](#manual-register-setup-shares-before-shareholders)          | 14 October 2026                                | Current; #1029, CSV entry removed under #1036                      |
 | [Eligibility and ownership records](#eligibility-and-ownership-records)                                         | September to 6 October 2026                    | Current                                                            |
@@ -244,6 +245,18 @@ local galleries and receipts. Retained application records and Git history are
 unaffected. Do not create a replacement gallery or PDF until requested later;
 the new flow is shown directly in Chrome. This increment authorises no live
 deployment or further backup work.
+
+### Identity verification after signup
+
+On 19 October 2026 the owner removed the identity verification step from web
+and mobile signup ([#1141](https://github.com/Ledova/ledova/issues/1141)) to
+keep signup simple: people verify their identity afterwards from Profile, which
+already offered the same check, and completing signup never required it. Where
+an instance requires a verified identity for company representatives, initial
+admission still refuses an unverified person, so the owner chose that company
+review offers the same identity check before **Complete company setup** rather
+than changing that rule. The investor and representative identity requirements
+and where they apply are unchanged.
 
 ## Existing register mirror and simple setup
 

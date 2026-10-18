@@ -27,13 +27,15 @@ as amended the [same day](../decisions.md#simple-signup-documents-and-team-after
 
 1. Create your account, verify your email and choose **Company Representative** as the account
    type.
-2. Complete identity verification, or choose **Skip for Now** if your instance does not require it
-   yet, and your personal profile.
+2. Complete your personal profile.
 3. Enter the company at **Company Details** and continue. Saving creates the company as Draft.
 4. Review the saved information. A short statement beside **Complete company setup** says that
    choosing the button confirms you are authorised to administer this company, including managing
    its users, and accepts the Terms of Service (version 2026-10-14, which state the company's
-   responsibilities) on the company's behalf. No file, checkbox or delegation choice is needed.
+   responsibilities) on the company's behalf. No file, checkbox or delegation choice is needed. If
+   your instance requires a verified identity for representatives and yours is not verified yet,
+   choose **Verify your identity** here first; **Complete company setup** waits until the check
+   passes.
 5. Choose **Complete company setup**. This records your acceptance of that declaration, keeps a
    no-file authority request and admits it through the identity and registry checks. Signup
    completes only once your initial appointment is confirmed.
@@ -323,7 +325,8 @@ default. When it is on, the person's verified identity is required for every act
 authority: initial admission, accepting an invitation, activation, company administration,
 eligibility decisions, member invitations, and register and wallet decisions. Staff technical
 recovery of a company is not affected. A representative becomes verified only through the
-configured identity provider; with the requirement on and no provider, every company decision is
+configured identity provider, from **Verify your identity** at signup review or later from Profile
+with **Review identity check**; with the requirement on and no provider, every company decision is
 refused ([operator configuration](../operations/operator-console.md#operator-configuration)). The
 investor requirement is separate ([participants](participants.md#account-readiness)).
 

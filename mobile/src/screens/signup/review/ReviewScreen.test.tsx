@@ -17,6 +17,7 @@ let mockSavedRequest: {
 } | null = null;
 
 jest.mock('@react-navigation/native', () => ({ useNavigation: () => ({ reset: mockReset, navigate: jest.fn() }) }));
+jest.mock('react-native-webview', () => jest.requireActual('react-native').View);
 jest.mock('../../../navigation/DrawerNavigator', () => ({
   DrawerNavigator: () =>
     jest

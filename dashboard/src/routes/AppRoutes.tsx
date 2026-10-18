@@ -8,7 +8,6 @@ import SignInPage from '@pages/signin';
 import SignupUser from '@pages/signup';
 import SignupEmailConfirmation from '@pages/signup/email-confirmation';
 import SignupPreScreening from '@pages/signup/pre-screening';
-import SignupIdentityVerification from '@pages/signup/identity-verification';
 import SignupUserProfile from '@pages/signup/user-profile';
 import SignupFinancialProfile from '@pages/signup/financial-profile';
 import SignupReview from '@pages/signup/review';
@@ -34,7 +33,6 @@ const SIGNUP_ROUTES = signupRoutes({
   [SIGNUP_PATHS.emailConfirmation]: <SignupEmailConfirmation />,
   [SIGNUP_PATHS.accountType]: <SignupAccountType />,
   [SIGNUP_PATHS.preScreening]: <SignupPreScreening />,
-  [SIGNUP_PATHS.identityVerification]: <SignupIdentityVerification />,
   [SIGNUP_PATHS.userProfile]: <SignupUserProfile />,
   [SIGNUP_PATHS.financialProfile]: <SignupFinancialProfile />,
   [SIGNUP_PATHS.companyRegistration]: <SignupCompanyRegistration />,

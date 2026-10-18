@@ -128,7 +128,7 @@ export function AccountTypeScreen() {
       if (role === 'investor') {
         navigation.navigate('PreScreening');
       } else {
-        navigation.navigate('IdentityVerification');
+        navigation.navigate('UserProfile');
       }
     });
 

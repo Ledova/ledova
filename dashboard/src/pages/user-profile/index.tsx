@@ -5,7 +5,7 @@ import { Row, Rows, Section, Status, type Tone } from '@components/Ledger';
 import { DocumentsPanel } from './DocumentsPanel';
 import { FIELD_CLASS } from '@components/fieldClass';
 import { useUserProfile } from '@hooks/useUserProfile';
-import { IdentityVerificationModal } from './IdentityVerificationModal';
+import { IdentityVerificationModal } from '@components/IdentityVerificationModal';
 
 const VERIFICATION_TONES = new Map<string, Tone>([
   ['verified', 'done'],

@@ -207,7 +207,7 @@ export function UserProfileScreen() {
   };
 
   const handleBack = () => {
-    navigation.navigate('IdentityVerification');
+    navigation.navigate(isCompany ? 'AccountType' : 'PreScreening');
   };
 
   if (isLoading) {

@@ -40,7 +40,7 @@ export default function SignupUserProfile() {
   };
 
   const handleBack = () => {
-    navigate(SIGNUP_PATHS.identityVerification);
+    navigate(isCompany ? SIGNUP_PATHS.accountType : SIGNUP_PATHS.preScreening);
   };
 
   if (isLoading) {
