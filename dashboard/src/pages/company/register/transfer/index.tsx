@@ -13,7 +13,7 @@ import { Section } from '@components/Ledger';
 import { Page, PageAction } from '@components/Page';
 import { Loading, Unavailable } from '@pages/company/shared/RegisterStatus';
 import { registersQuery, useRegisterClasses } from '@pages/company/shared/useCompanyRegister';
-import { ownerGuard } from '@pages/company/register/shared/ownerGuard';
+import { ownerGuard } from '@pages/company/shared/ownerGuard';
 import { useOwnAppointments } from '@pages/company/shared/useOwnAppointments';
 import { useTransferMembers } from '@pages/company/register/shared/useRegisterTransfers';
 import { TransferForm } from './TransferForm';
@@ -60,14 +60,14 @@ function OwnTransfer({
   back: ReactNode;
 }) {
   const guard = useMemo(() => ownerGuard(owner, currentOwner), [owner, currentOwner]);
-  const classes = useRegisterClasses(owner);
+  const classes = useRegisterClasses(owner, guard);
   const appointments = useOwnAppointments(owner, guard);
   const listed = classes.data?.find((item) => item.uuid === uuid);
   const appointment =
     listed && appointments.data
       ? appointmentForRegisterStep(appointments.data, listed.companyUuid, 'prepare')
       : undefined;
-  const registers = useQuery(registersQuery(owner, listed ? [uuid] : []));
+  const registers = useQuery(registersQuery(owner, listed ? [uuid] : [], guard));
   const register = registers.data?.[0];
   const members = useTransferMembers(owner, uuid, guard, !!appointment);
   const busy = classes.isFetching || appointments.isFetching || registers.isFetching || members.isFetching;

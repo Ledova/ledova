@@ -205,8 +205,14 @@ it('reads every class page and groups exact holdings by member identity with sea
   });
   show();
   const table = await screen.findByRole('table', { name: 'Company shareholders' });
-  expect(api.get).toHaveBeenCalledWith(REGISTER, { params: { page: 1 } });
-  expect(api.get).toHaveBeenCalledWith(REGISTER, { params: { page: 2 } });
+  expect(api.get).toHaveBeenCalledWith(REGISTER, {
+    params: { page: 1 },
+    ledovaSubmissionGuard: expect.any(Function),
+  });
+  expect(api.get).toHaveBeenCalledWith(REGISTER, {
+    params: { page: 2 },
+    ledovaSubmissionGuard: expect.any(Function),
+  });
   expect(screen.queryByLabelText('Company')).toBeNull();
   expect(screen.getAllByRole('heading', { name: 'Shareholders' })).toHaveLength(1);
   for (const name of ['Record investor share issue', 'Transfer shares', 'History'])

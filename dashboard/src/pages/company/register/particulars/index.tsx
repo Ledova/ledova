@@ -15,7 +15,7 @@ import { Section } from '@components/Ledger';
 import { Page, PageAction } from '@components/Page';
 import { Loading, Unavailable } from '@pages/company/shared/RegisterStatus';
 import { registersQuery, useRegisterClasses } from '@pages/company/shared/useCompanyRegister';
-import { ownerGuard } from '@pages/company/register/shared/ownerGuard';
+import { ownerGuard } from '@pages/company/shared/ownerGuard';
 import { useOwnAppointments } from '@pages/company/shared/useOwnAppointments';
 import { ParticularsForm } from './ParticularsForm';
 
@@ -82,10 +82,10 @@ function OwnParticulars({
   back: ReactNode;
 }) {
   const guard = useMemo(() => ownerGuard(owner, currentOwner), [owner, currentOwner]);
-  const classes = useRegisterClasses(owner);
+  const classes = useRegisterClasses(owner, guard);
   const appointments = useOwnAppointments(owner, guard);
   const preparing = classes.data && appointments.data ? preparingCompanies(classes.data, appointments.data) : [];
-  const registers = useQueries({ queries: preparing.map((company) => registersQuery(owner, company.classes)) });
+  const registers = useQueries({ queries: preparing.map((company) => registersQuery(owner, company.classes, guard)) });
   const found = preparing.flatMap((company, index) => {
     const holder = registers[index].data?.flatMap((register) => register.holders).find((row) => row.member === member);
     return holder ? [{ company, holder, read: registers[index] }] : [];

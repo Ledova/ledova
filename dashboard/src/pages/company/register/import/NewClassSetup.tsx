@@ -23,7 +23,7 @@ import { CompanySelection } from '@pages/company/shared/CompanySelection';
 import { Loading, Unavailable } from '@pages/company/shared/RegisterStatus';
 import { registerSteps } from '@pages/company/shared/proposals';
 import { readRegister, useRegisterClasses } from '@pages/company/shared/useCompanyRegister';
-import { ownerGuard } from '@pages/company/register/shared/ownerGuard';
+import { ownerGuard } from '@pages/company/shared/ownerGuard';
 import { useOwnAppointments } from '@pages/company/shared/useOwnAppointments';
 import { readTransferMembers, useTransferMembers } from '@pages/company/register/shared/useRegisterTransfers';
 import { ImportForm } from './ImportForm';
@@ -56,7 +56,7 @@ export function NewClassSetup({
   }, [preferred, read]);
   const guard = useMemo(() => ownerGuard(owner, currentOwner), [owner, currentOwner]);
   const appointments = useOwnAppointments(owner, guard);
-  const classes = useRegisterClasses(owner);
+  const classes = useRegisterClasses(owner, guard);
   const retry = () => {
     void read.refetch();
     void appointments.refetch();
@@ -219,7 +219,7 @@ function FreshClass({
         token.status !== 'draft'
       )
         throw createUserFriendlyError('The share class receipt did not match the requested company and details.');
-      const register = await readRegister(token.uuid);
+      const register = await readRegister(token.uuid, guard);
       check();
       const members = await readTransferMembers(token.uuid, check);
       check();

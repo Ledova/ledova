@@ -440,6 +440,11 @@ The server side, including how identical and changed retries are answered, is th
   receipt check;
 - copy with a sentence for every requirement a decision can leave unmet.
 
+The web's base class and holder reads in `dashboard/src/pages/company/shared/useCompanyRegister.ts`
+receive the controller's original owner guard from `dashboard/src/pages/company/shared/ownerGuard.ts`.
+They check it before and after each request and pass it as `ledovaSubmissionGuard`, so a late reply
+after an account change or reauthentication is discarded. Query keys and cache timing stay unchanged.
+
 Each preparation is a page of its own (on mobile, in the same stack), a `companyRegister*` entry in
 `DESTINATIONS`: `/company/register/setup`; import, correction, opening, grant and transfer under
 `/company/register/:uuid/` (`import`, `correct/:entry`, `open`, `grant`, `transfer`); particulars

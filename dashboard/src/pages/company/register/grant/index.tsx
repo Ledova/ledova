@@ -15,7 +15,7 @@ import { Section } from '@components/Ledger';
 import { Page, PageAction } from '@components/Page';
 import { Loading, Unavailable } from '@pages/company/shared/RegisterStatus';
 import { registersQuery, useRegisterClasses } from '@pages/company/shared/useCompanyRegister';
-import { ownerGuard } from '@pages/company/register/shared/ownerGuard';
+import { ownerGuard } from '@pages/company/shared/ownerGuard';
 import { useOwnAppointments } from '@pages/company/shared/useOwnAppointments';
 import { GrantForm } from './GrantForm';
 import { useRegisterAward } from '@pages/company/register/shared/useRegisterAwards';
@@ -74,7 +74,7 @@ function OwnGrant({
   const [held, setHeld] = useState(false);
   const preferences = useUserPreferences();
   const guard = useMemo(() => ownerGuard(owner, currentOwner), [owner, currentOwner]);
-  const classes = useRegisterClasses(owner);
+  const classes = useRegisterClasses(owner, guard);
   const appointments = useOwnAppointments(owner, guard);
   const latestAppointments = useRef<OwnCompanyAppointment[]>([]);
   useLayoutEffect(() => {
@@ -100,7 +100,7 @@ function OwnGrant({
   const awardMember = retainedMembers.data?.find((row) => row.member === award.data?.member) ?? null;
   const companyClasses =
     classes.data?.filter((item) => item.companyUuid === listed?.companyUuid).map((item) => item.uuid) ?? [];
-  const registers = useQuery(registersQuery(owner, companyClasses));
+  const registers = useQuery(registersQuery(owner, companyClasses, guard));
   const register = registers.data?.find((item) => item.token.uuid === uuid);
   const holders = registers.data?.flatMap((item) => item.holders) ?? [];
   const linked = new Set(holders.filter((holder) => holder.wallets.length > 0).map((holder) => holder.member));
