@@ -1,10 +1,11 @@
+import { AuthLayout, AuthHeader } from '@components/auth';
 import { SIGNUP_PATHS } from '@utils/paths';
 import { FinancialProfileForm } from './FinancialProfileForm';
 import { LoadingState } from '@pages/signup/shared/LoadingState';
 import { ErrorState } from '@pages/signup/shared/ErrorState';
 import { useNavigate } from 'react-router-dom';
 import { ChartBarIcon } from '@phosphor-icons/react';
-import { AuthLayout } from '@components/AuthLayout';
+
 import { useSignupFinancialProfile } from '@ledova/shared';
 import { ICON_MD } from '@components/iconSizes';
 
@@ -48,15 +49,9 @@ export default function SignupFinancialProfile() {
 
   return (
     <AuthLayout>
-      <div className="text-center mb-6">
-        <div className="flex justify-center mb-3">
-          <div className="p-2 rounded-full bg-surface-raised border border-border">
-            <ChartBarIcon size={ICON_MD} className="text-text-muted" />
-          </div>
-        </div>
-        <h1 className="font-display text-3xl tracking-[-0.01em] text-text-primary">Financial Profile</h1>
+      <AuthHeader title="Financial Profile" icon={<ChartBarIcon size={ICON_MD} className="text-text-muted" />}>
         <p className="text-sm text-text-muted mt-1">AML/CTF compliance information</p>
-      </div>
+      </AuthHeader>
 
       <FinancialProfileForm
         form={form}

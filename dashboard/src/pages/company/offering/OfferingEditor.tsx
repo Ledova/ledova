@@ -2,7 +2,6 @@ import { Modal } from '@components/Modal';
 import { apiErrorSentence, type Company } from '@ledova/shared';
 import { CompanyReadNotice, type CompanyActionRead } from '@pages/company/shared/CompanyState';
 import { OfferingForm } from './OfferingForm';
-import { OfferingReadNotice } from './OfferingReadNotice';
 import { type useOfferings } from './useOffering';
 import { useOfferingEditor } from './useOfferingEditor';
 
@@ -40,9 +39,9 @@ export function OfferingEditor({
     >
       <div className="space-y-4">
         <CompanyReadNotice read={{ ...companyRead, refetch }} />
-        <OfferingReadNotice read={{ ...data, refetch }} />
+        <CompanyReadNotice read={{ ...data, refetch }} label="Offering information" />
         {uuid && (
-          <OfferingReadNotice
+          <CompanyReadNotice
             read={{ error: detail.error, isRefreshing: detail.isFetching, refetch }}
             label="Current offering"
           />

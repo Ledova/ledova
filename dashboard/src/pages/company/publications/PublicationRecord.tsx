@@ -1,3 +1,4 @@
+import { RESOLUTION_RESULT_TONES } from '@components/statusTones';
 import {
   BALLOT_CHOICES,
   PUBLICATION_COPY,
@@ -11,8 +12,13 @@ import {
   useResolutionStatus,
   type Publication,
 } from '@ledova/shared';
-import { Row, Rows, Status } from '@components/Ledger';
+import { Row, Rows, Status, type Tone } from '@components/Ledger';
 import { PageAction } from '@components/Page';
+
+const PUBLICATION_WINDOW_TONES = new Map<string, Tone>([
+  ['open', 'moving'],
+  ['upcoming', 'waiting'],
+]);
 
 function ResolutionRecord({ publication }: { publication: Publication }) {
   const status = useResolutionStatus(publication);
@@ -29,7 +35,7 @@ function ResolutionRecord({ publication }: { publication: Publication }) {
         <Row label="Voting closes">{formatDateTime(publication.closesAt)}</Row>
       </Rows>
       <p className="text-sm text-text-primary">
-        <Status tone={status === 'open' ? 'moving' : status === 'upcoming' ? 'waiting' : 'closed'}>
+        <Status tone={PUBLICATION_WINDOW_TONES.get(status) ?? 'closed'}>
           {status === 'upcoming'
             ? PUBLICATION_COPY.NOT_OPEN_YET
             : status === 'open'
@@ -40,7 +46,7 @@ function ResolutionRecord({ publication }: { publication: Publication }) {
       {publication.result ? (
         <>
           <p className="text-sm text-text-primary">
-            <Status tone={publication.result.carried ? 'done' : 'closed'}>
+            <Status tone={RESOLUTION_RESULT_TONES.get(!!publication.result.carried)!}>
               {publication.result.carried ? PUBLICATION_COPY.CARRIED : PUBLICATION_COPY.NOT_CARRIED}
             </Status>
           </p>
