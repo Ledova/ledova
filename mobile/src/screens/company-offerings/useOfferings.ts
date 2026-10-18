@@ -2,18 +2,25 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   CACHE_TIMING,
   deleteOffering,
-  getCompanyTokens,
+  useCompanyOfferings,
+  OFFERINGS_QUERY_KEY,
   getOperator,
-  getOfferings,
   getOffering,
-  readEveryPage,
   submitOffering,
   withdrawOffering,
   OPERATOR_QUERY_KEY,
 } from '@ledova/shared';
 import { apiClient } from '../../services/apiClient';
 import { assertSessionEpoch } from '../../services/sessionScope';
+import { useCompanyTokens } from '../../hooks/useCompanyTokens';
+import { OFFERING_SUBSCRIPTIONS_QUERY_KEY } from './useOfferingSubscriptions';
 import type { CompanyActionRead } from '../company/CompanyState';
+
+export const OFFERING_QUERY_KEY = ['offering'] as const;
+
+export function offeringKey(uuid: string | undefined, scopeKey: string) {
+  return [...OFFERING_QUERY_KEY, uuid, scopeKey];
+}
 
 export function useOfferings(read: CompanyActionRead) {
   const companyUuid = read.ownerBusiness ? read.companyUuid : undefined;
@@ -25,18 +32,12 @@ export function useOfferings(read: CompanyActionRead) {
     return response;
   };
   const client = useQueryClient();
-  const offeringsQuery = useQuery({
-    queryKey: ['offerings', companyUuid, read.scopeKey],
-    queryFn: () => readEveryPage((page) => readPage(() => getOfferings(apiClient, page))),
-    enabled: !!companyUuid,
-    staleTime: CACHE_TIMING.SHORT_STALE_TIME,
-  });
-  const tokensQuery = useQuery({
-    queryKey: ['company-tokens', 'company', companyUuid, read.scopeKey],
-    queryFn: async () =>
-      (await readEveryPage((page) => readPage(() => getCompanyTokens(apiClient, { page })))).filter(
-        (token) => token.companyUuid === companyUuid,
-      ),
+  const offeringsQuery = useCompanyOfferings(companyUuid, read.scopeKey, !!companyUuid, readPage);
+  const tokensQuery = useCompanyTokens({
+    companyUuid,
+    scopeKey: read.scopeKey,
+    company: () => companyUuid!,
+    readPage,
     enabled: !!companyUuid,
     staleTime: CACHE_TIMING.SHORT_STALE_TIME,
   });
@@ -58,16 +59,16 @@ export function useOfferings(read: CompanyActionRead) {
     refetch: () => Promise.all([offeringsQuery.refetch(), tokensQuery.refetch(), operatorQuery.refetch()]),
     refresh: () =>
       Promise.all([
-        client.invalidateQueries({ queryKey: ['offerings'] }),
-        client.invalidateQueries({ queryKey: ['offering'] }),
-        client.invalidateQueries({ queryKey: ['offering-subscriptions'] }),
+        client.invalidateQueries({ queryKey: OFFERINGS_QUERY_KEY }),
+        client.invalidateQueries({ queryKey: OFFERING_QUERY_KEY }),
+        client.invalidateQueries({ queryKey: OFFERING_SUBSCRIPTIONS_QUERY_KEY }),
       ]),
   };
 }
 
 export function useOwnedOffering(read: CompanyActionRead, uuid?: string) {
   return useQuery({
-    queryKey: ['offering', uuid, read.scopeKey],
+    queryKey: offeringKey(uuid, read.scopeKey),
     enabled: !!uuid && read.ownerBusiness,
     staleTime: 0,
     queryFn: async () => {

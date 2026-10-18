@@ -1,3 +1,5 @@
+import { registerEntriesKey } from '@pages/company/register/shared/useRegisterEntries';
+import { registerHoldersKey } from '@pages/company/shared/useCompanyRegister';
 import { generatePath } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import {
@@ -12,7 +14,6 @@ import { PageAction } from '@components/Page';
 
 import { LinkRecord } from './LinkRecord';
 import { registerSteps } from '@pages/company/shared/proposals';
-import { registerKey } from '@hooks/useRegisterAccess';
 import { useOwnAppointments, ownAppointmentsKey } from '@pages/company/shared/useOwnAppointments';
 import {
   linksKey,
@@ -64,8 +65,8 @@ export function RegisterLinks({
       [
         linksKey(owner, company),
         waitingWalletsKey(owner, company),
-        [...registerKey(owner), 'holders'],
-        [...registerKey(owner), 'entries'],
+        registerHoldersKey(owner),
+        registerEntriesKey(owner),
         ownAppointmentsKey(owner),
       ].map((queryKey) => client.invalidateQueries({ queryKey })),
     );

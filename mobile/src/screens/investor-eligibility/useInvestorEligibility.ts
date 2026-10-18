@@ -2,9 +2,9 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   CACHE_TIMING,
   deleteInvestorClassification,
-  getInvestorClassifications,
+  useInvestorClassifications,
+  INVESTOR_CLASSIFICATIONS_QUERY_KEY,
   getInvestorReadiness,
-  readEveryPage,
   submitInvestorClassification,
   INVESTOR_ELIGIBILITY_QUERY_KEY,
   DIRECTORY_QUERY_KEY,
@@ -15,8 +15,6 @@ import { getSessionEpoch } from '../../services/sessionScope';
 
 type Submission = Omit<InvestorClassificationSubmission, 'file'> & { file: unknown; sessionEpoch: number };
 
-const INVESTOR_CLASSIFICATIONS_QUERY_KEY = ['investor-classifications'] as const;
-
 export function useInvestorEligibility() {
   const queryClient = useQueryClient();
   const eligibilityQuery = useQuery({
@@ -24,11 +22,7 @@ export function useInvestorEligibility() {
     queryFn: () => getInvestorReadiness(apiClient),
     staleTime: CACHE_TIMING.SHORT_STALE_TIME,
   });
-  const classificationsQuery = useQuery({
-    queryKey: [...INVESTOR_CLASSIFICATIONS_QUERY_KEY, 'verification'],
-    queryFn: () => readEveryPage((page) => getInvestorClassifications(apiClient, page)),
-    staleTime: CACHE_TIMING.SHORT_STALE_TIME,
-  });
+  const classificationsQuery = useInvestorClassifications();
   const refresh = () =>
     Promise.all([
       queryClient.invalidateQueries({ queryKey: INVESTOR_ELIGIBILITY_QUERY_KEY }),

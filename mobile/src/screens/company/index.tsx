@@ -1,14 +1,14 @@
 import { useState } from 'react';
 import { Text, View, RefreshControl } from 'react-native';
 import { useNavigation, type NavigationProp } from '@react-navigation/native';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { getCompanyTokens, formatShareCount, readEveryPage, type Company } from '@ledova/shared';
+import { useQueryClient } from '@tanstack/react-query';
+import { formatShareCount, type Company } from '@ledova/shared';
 import type { CompanyStackParamList } from '../../navigation/CompanyStackNavigator';
 import type { BottomTabParamList } from '../../navigation/BottomTabNavigator';
 import { Action, LinkRow, Row, Section, Rows } from '../../components/Ledger';
 import { Page } from '../../components/Page';
 import { useCompanyProfile } from '../../hooks/useCompanyProfile';
-import { apiClient } from '../../services/apiClient';
+import { companyTokensKey, useCompanyTokens } from '../../hooks/useCompanyTokens';
 import { useCompanyStyles } from '../company-register/styles';
 import { CompanyReadNotice } from './CompanyState';
 import { CreateClassForm, EditCompanyForm } from './CompanyForms';
@@ -27,24 +27,23 @@ function CompanyDetails({ data }: { data: ReturnType<typeof useCompanyProfile> }
   const queryClient = useQueryClient();
   const [editing, setEditing] = useState<Company | null>(null);
   const [creating, setCreating] = useState<Company | null>(null);
-  const classes = useQuery({
-    queryKey: ['company-tokens', 'company', data.companyUuid, data.scopeKey],
-    enabled: data.ownerBusiness && !!company && !data.error,
-    queryFn: async () => {
-      const rows = await readEveryPage(async (page) => {
-        data.assertCurrent(company!.uuid, 'owner');
-        const result = await getCompanyTokens(apiClient, { page });
-        data.assertCurrent(company!.uuid, 'owner');
-        return result;
-      });
-      return rows.filter((token) => token.companyUuid === company!.uuid);
+  const classes = useCompanyTokens({
+    companyUuid: data.companyUuid,
+    scopeKey: data.scopeKey,
+    company: () => company!.uuid,
+    readPage: async (load) => {
+      data.assertCurrent(company!.uuid, 'owner');
+      const result = await load();
+      data.assertCurrent(company!.uuid, 'owner');
+      return result;
     },
+    enabled: data.ownerBusiness && !!company && !data.error,
   });
   const refresh = () =>
     Promise.all([
       queryClient.invalidateQueries({ queryKey: data.companyKey }),
       queryClient.invalidateQueries({ queryKey: data.companiesKey }),
-      queryClient.invalidateQueries({ queryKey: ['company-tokens', 'company', data.companyUuid, data.scopeKey] }),
+      queryClient.invalidateQueries({ queryKey: companyTokensKey(data.companyUuid, data.scopeKey) }),
     ]);
   const address = company
     ? [

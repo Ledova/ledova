@@ -1,3 +1,4 @@
+import { registerHoldersKey } from '@pages/company/shared/useCompanyRegister';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { generatePath } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
@@ -16,7 +17,6 @@ import { PageAction } from '@components/Page';
 
 import { GrantRecord } from './GrantRecord';
 import { registerSteps } from '@pages/company/shared/proposals';
-import { registerKey } from '@hooks/useRegisterAccess';
 import { entriesKey } from '@pages/company/register/shared/useRegisterEntries';
 import { useOwnAppointments, ownAppointmentsKey } from '@pages/company/shared/useOwnAppointments';
 import { grantsKey, useRegisterGrants } from '@pages/company/register/shared/useRegisterGrants';
@@ -92,7 +92,7 @@ export function ClassGrants({
     await Promise.all(
       [
         awardsKey(owner, token),
-        [...registerKey(owner), 'holders'],
+        registerHoldersKey(owner),
         entriesKey(owner, token),
         transferMembersKey(owner, token),
       ].map((queryKey) => client.invalidateQueries({ queryKey })),

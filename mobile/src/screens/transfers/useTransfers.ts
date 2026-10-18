@@ -7,7 +7,7 @@ import {
   prepareTransfer,
   prepareBitcoinTransfer,
   broadcastTransfer,
-  getWalletHoldings,
+  useWalletHoldings,
   CACHE_TIMING,
   getBlockchainDisplayName,
   getChainShortCode,
@@ -130,12 +130,7 @@ export function useTransfers(initialWallet: Wallet | null = null) {
     gcTime: CACHE_TIMING.EXTRA_LONG_GC_TIME,
   });
 
-  const holdingsQuery = useQuery({
-    queryKey: ['wallet-holdings', state.wallet?.uuid],
-    queryFn: () => getWalletHoldings(apiClient, state.wallet!.uuid),
-    enabled: !!state.wallet?.uuid,
-    staleTime: CACHE_TIMING.DEFAULT_STALE_TIME,
-  });
+  const holdingsQuery = useWalletHoldings(() => state.wallet);
 
   const holdings = holdingsQuery.data?.data;
   const transferableAssets = useMemo(() => {

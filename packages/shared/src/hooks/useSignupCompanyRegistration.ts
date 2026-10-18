@@ -1,4 +1,4 @@
-import { USER_PROFILES_QUERY_KEY, SIGNUP_COMPANY_QUERY_KEY, SIGNUP_COMPANY_DETAIL_QUERY_KEY } from './useSignupReview';
+import { USER_PROFILES_QUERY_KEY, SIGNUP_COMPANY_QUERY_KEY, signupCompanyDetailKey } from './useSignupReview';
 import { useState, useCallback, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
@@ -107,12 +107,7 @@ export function useSignupCompanyRegistration(session?: OrderSubmissionSession) {
   const existingCompany = companiesQuery.data?.data.results[0] || null;
   const selectedUuid = companiesQuery.data ? (existingCompany?.uuid ?? null) : undefined;
   const detailQuery = useQuery({
-    queryKey: [
-      ...SIGNUP_COMPANY_DETAIL_QUERY_KEY,
-      selectedUuid,
-      accountOwner?.userUuid,
-      accountOwner?.ownerAccountUuid,
-    ],
+    queryKey: [...signupCompanyDetailKey(selectedUuid), accountOwner?.userUuid, accountOwner?.ownerAccountUuid],
     queryFn: async () => {
       guard();
       const response = await getCompany(apiClient, selectedUuid!, {
@@ -241,7 +236,7 @@ export function useSignupCompanyRegistration(session?: OrderSubmissionSession) {
     },
     onSuccess: (_response, data) => {
       queryClient.invalidateQueries({ queryKey: SIGNUP_COMPANY_QUERY_KEY });
-      queryClient.invalidateQueries({ queryKey: [...SIGNUP_COMPANY_DETAIL_QUERY_KEY, data.uuid] });
+      queryClient.invalidateQueries({ queryKey: signupCompanyDetailKey(data.uuid) });
     },
   });
 
@@ -394,9 +389,7 @@ export function useSignupCompanyRegistration(session?: OrderSubmissionSession) {
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: USER_PROFILES_QUERY_KEY }),
       queryClient.invalidateQueries({ queryKey: SIGNUP_COMPANY_QUERY_KEY }),
-      ...(selectedUuid
-        ? [queryClient.invalidateQueries({ queryKey: [...SIGNUP_COMPANY_DETAIL_QUERY_KEY, selectedUuid] })]
-        : []),
+      ...(selectedUuid ? [queryClient.invalidateQueries({ queryKey: signupCompanyDetailKey(selectedUuid) })] : []),
     ]);
   }, [queryClient, selectedUuid]);
 

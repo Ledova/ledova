@@ -9,11 +9,22 @@ import {
   readEveryPage,
   useSubmissionOwner,
   wholeShares,
+  type OrderSubmissionOwner,
 } from '@ledova/shared';
+import { COMPANY_TOKENS_QUERY_KEY } from '../../hooks/useCompanyTokens';
 import { apiClient } from '../../services/apiClient';
 import { orderSubmissionSession } from '../../services/orderSubmissions';
 import { assertSessionEpoch, getSessionEpoch, subscribeSession } from '../../services/sessionScope';
 import { checkedRegister } from '../company-register/useCompanyRegister';
+import { registerDeploymentAppointmentsKey, registerDeploymentsKey } from './useDeploymentReads';
+
+export function companyTokenPrefix(uuid: string) {
+  return ['company-token', uuid];
+}
+
+export function companyTokenKey(uuid: string, epoch: number, owner: OrderSubmissionOwner | null | undefined) {
+  return [...companyTokenPrefix(uuid), epoch, owner?.userUuid, owner?.ownerAccountUuid];
+}
 
 export function useTokenDetail(uuid: string) {
   const queryClient = useQueryClient();
@@ -31,7 +42,7 @@ export function useTokenDetail(uuid: string) {
     if (!mounted.current || !owner || boundary.get() !== owner)
       throw new Error('The account changed. Reopen the share class to continue.');
   }, [boundary, epoch, owner]);
-  const tokenKey = ['company-token', uuid, epoch, owner?.userUuid, owner?.ownerAccountUuid];
+  const tokenKey = companyTokenKey(uuid, epoch, owner);
   const config = (signal?: AbortSignal) => ({ signal, ledovaSessionEpoch: epoch, ledovaSubmissionGuard: guard });
   const read = async <Response>(request: () => Promise<Response>) => {
     guard();
@@ -84,12 +95,12 @@ export function useTokenDetail(uuid: string) {
   const refresh = () =>
     Promise.all([
       queryClient.invalidateQueries({ queryKey: tokenKey }),
-      queryClient.invalidateQueries({ queryKey: ['company-tokens'] }),
+      queryClient.invalidateQueries({ queryKey: COMPANY_TOKENS_QUERY_KEY }),
       queryClient.invalidateQueries({
-        queryKey: ['register-deployments', epoch, owner?.userUuid, owner?.ownerAccountUuid, uuid],
+        queryKey: registerDeploymentsKey(epoch, owner, uuid),
       }),
       queryClient.invalidateQueries({
-        queryKey: ['register-deployment-appointments', epoch, owner?.userUuid, owner?.ownerAccountUuid, uuid],
+        queryKey: registerDeploymentAppointmentsKey(epoch, owner, uuid),
       }),
     ]);
   return {
