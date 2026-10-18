@@ -12,9 +12,17 @@ import apiClient from '@services/apiClient';
 import { READ_TIMING, registerKey } from '@hooks/useRegisterAccess';
 import { saveFile } from '@utils/saveFile';
 
+export function registerClassesKey(owner: OrderSubmissionOwner) {
+  return [...registerKey(owner), 'classes'];
+}
+
+export function registerHoldersKey(owner: OrderSubmissionOwner) {
+  return [...registerKey(owner), 'holders'];
+}
+
 export function useRegisterClasses(owner: OrderSubmissionOwner, guard: () => void) {
   return useQuery({
-    queryKey: [...registerKey(owner), 'classes'],
+    queryKey: registerClassesKey(owner),
     queryFn: () =>
       readEveryPage(async (page) => {
         guard();
@@ -44,7 +52,7 @@ export async function readRegister(uuid: string, guard: () => void) {
 
 export function registersQuery(owner: OrderSubmissionOwner, uuids: string[], guard: () => void) {
   return {
-    queryKey: [...registerKey(owner), 'holders', ...uuids],
+    queryKey: [...registerHoldersKey(owner), ...uuids],
     enabled: uuids.length > 0,
     queryFn: () => Promise.all(uuids.map((uuid) => readRegister(uuid, guard))),
     ...READ_TIMING,

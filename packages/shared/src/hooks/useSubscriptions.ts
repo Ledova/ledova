@@ -1,7 +1,7 @@
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 
 import { CACHE_TIMING } from '../constants/api';
-import { getSubscriptions } from '../services/subscriptions';
+import { getSubscription, getSubscriptions } from '../services/subscriptions';
 import { getWallets } from '../services/wallets';
 import { assertNextPageAdvances, getNextPageParam, readEveryPage } from '../utils/pagination';
 import { useApiClient } from './useApiClient';
@@ -9,6 +9,20 @@ import { useLaterPages } from './useLaterPages';
 
 export const SUBSCRIPTIONS_QUERY_KEY = ['subscriptions'] as const;
 export const WALLETS_QUERY_KEY = ['wallets'] as const;
+
+export function subscriptionDetailKey(uuid: string | undefined) {
+  return [...SUBSCRIPTIONS_QUERY_KEY, uuid];
+}
+
+export function useSubscriptionDetail(uuid: string | undefined) {
+  const apiClient = useApiClient();
+  return useQuery({
+    queryKey: subscriptionDetailKey(uuid),
+    queryFn: () => getSubscription(apiClient, uuid!),
+    enabled: !!uuid,
+    staleTime: CACHE_TIMING.SHORT_STALE_TIME,
+  });
+}
 
 export function useSubscriptions() {
   const apiClient = useApiClient();

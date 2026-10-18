@@ -1,3 +1,4 @@
+import { registerHoldersKey } from '@pages/company/shared/useCompanyRegister';
 import { useCallback } from 'react';
 import { generatePath } from 'react-router-dom';
 import { useQueryClient, type QueryKey } from '@tanstack/react-query';
@@ -13,7 +14,6 @@ import { PageAction } from '@components/Page';
 
 import { ImportRecord } from './ImportRecord';
 import { registerSteps } from '@pages/company/shared/proposals';
-import { registerKey } from '@hooks/useRegisterAccess';
 import { entriesKey } from '@pages/company/register/shared/useRegisterEntries';
 import { importsKey, useRegisterImports } from '@pages/company/register/shared/useRegisterImports';
 import { useOwnAppointments, ownAppointmentsKey } from '@pages/company/shared/useOwnAppointments';
@@ -57,7 +57,7 @@ export function ClassImports({
     }
     await Promise.all(keys.map((queryKey) => client.invalidateQueries({ queryKey })));
   };
-  const changed = [importsKey(owner, token), [...registerKey(owner), 'holders'], entriesKey(owner, token)];
+  const changed = [importsKey(owner, token), registerHoldersKey(owner), entriesKey(owner, token)];
   const decided = () => refresh(changed);
   const refused = () => refresh([...changed, ownAppointmentsKey(owner)]);
   return (

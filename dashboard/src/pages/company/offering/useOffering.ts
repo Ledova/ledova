@@ -9,7 +9,8 @@ import {
   getOperator,
   getOffering,
   getOfferingSubscriptions,
-  getOfferings,
+  useCompanyOfferings,
+  companyOfferingsKey,
   readEveryPage,
   submitOffering,
   withdrawOffering,
@@ -23,10 +24,6 @@ import { useTokensList, companyTokensKey } from '@pages/company/shared/useTokens
 
 type OfferingAction = 'submit' | 'withdraw' | 'remove' | 'edit' | 'documents';
 
-export function companyOfferingsKey(companyUuid: string | undefined, scopeKey: string) {
-  return ['offerings', companyUuid, scopeKey];
-}
-
 export function companyOfferingKey(companyUuid: string | undefined, scopeKey: string) {
   return ['offering', companyUuid, scopeKey];
 }
@@ -35,24 +32,35 @@ export function companyOfferingSubscriptionsKey(companyUuid: string | undefined,
   return ['offering-subscriptions', companyUuid, scopeKey];
 }
 
+export function companyOfferingDetailKey(companyUuid: string | undefined, scopeKey: string, uuid: string | undefined) {
+  return [...companyOfferingKey(companyUuid, scopeKey), uuid];
+}
+
+export function companyOfferingSubscriptionsDetailKey(
+  companyUuid: string | undefined,
+  scopeKey: string,
+  uuid: string | undefined,
+) {
+  return [...companyOfferingSubscriptionsKey(companyUuid, scopeKey), uuid];
+}
+
 export function useOfferings(companyUuid: string | undefined, read: CompanyActionRead) {
   const client = useQueryClient();
   const offeringsKey = companyOfferingsKey(companyUuid, read.scopeKey);
   const tokensKey = companyTokensKey(companyUuid, read.scopeKey);
   const operatorKey = [...OPERATOR_QUERY_KEY, 'company', companyUuid, read.scopeKey];
   const guard = () => read.assertCurrent(companyUuid!, 'owner');
-  const offeringsQuery = useQuery({
-    queryKey: offeringsKey,
-    queryFn: () =>
-      readEveryPage(async (page) => {
-        guard();
-        const result = await getOfferings(apiClient, page);
-        guard();
-        return result;
-      }),
-    enabled: !!companyUuid && !read.error && !read.isRefreshing,
-    staleTime: CACHE_TIMING.SHORT_STALE_TIME,
-  });
+  const offeringsQuery = useCompanyOfferings(
+    companyUuid,
+    read.scopeKey,
+    !!companyUuid && !read.error && !read.isRefreshing,
+    async (load) => {
+      guard();
+      const result = await load();
+      guard();
+      return result;
+    },
+  );
   const tokensQuery = useTokensList(companyUuid, read);
   const operatorQuery = useQuery({
     queryKey: operatorKey,
@@ -109,7 +117,7 @@ export function useOfferings(companyUuid: string | undefined, read: CompanyActio
 
 export function useCompanyOffering(uuid: string | undefined, companyUuid: string, read: CompanyActionRead) {
   return useQuery({
-    queryKey: [...companyOfferingKey(companyUuid, read.scopeKey), uuid],
+    queryKey: companyOfferingDetailKey(companyUuid, read.scopeKey, uuid),
     enabled: !!uuid && !read.error && !read.isRefreshing,
     staleTime: 0,
     queryFn: async () => {
@@ -128,7 +136,7 @@ export function useCompanyOfferingSubscriptions(
   read: CompanyActionRead,
 ) {
   return useQuery({
-    queryKey: [...companyOfferingSubscriptionsKey(companyUuid, read.scopeKey), uuid],
+    queryKey: companyOfferingSubscriptionsDetailKey(companyUuid, read.scopeKey, uuid),
     enabled: !!uuid && !read.error && !read.isRefreshing,
     staleTime: CACHE_TIMING.SHORT_STALE_TIME,
     queryFn: () =>

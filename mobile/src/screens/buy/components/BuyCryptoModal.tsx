@@ -19,16 +19,14 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import {
   BUYABLE_ASSETS,
   CACHE_TIMING,
-  getWallets,
+  useBuyWallets,
   getOnRampWidgetUrl,
   getUserProfiles,
   getUserVerificationStatus,
   readApiError,
-  readEveryPage,
   canOpen,
   useUserPreferences,
   USER_PROFILES_QUERY_KEY,
-  WALLETS_QUERY_KEY,
 } from '@ledova/shared';
 import type { BuyableAssetConfig, Wallet } from '@ledova/shared';
 import { Action, Rows } from '../../../components/Ledger';
@@ -190,23 +188,7 @@ export function BuyCryptoModal({
     }
   }, [visible, initialAsset, selectedAsset]);
 
-  const walletsQuery = useQuery({
-    queryKey: [
-      ...WALLETS_QUERY_KEY,
-      userAccountUuid,
-      { chain: selectedAsset?.chain, verification_status: 'VERIFIED', ordering: 'signing_preference' },
-    ],
-    queryFn: () =>
-      readEveryPage((page) =>
-        getWallets(apiClient, {
-          chain: selectedAsset!.chain,
-          verification_status: 'VERIFIED',
-          ordering: 'signing_preference',
-          page,
-        }),
-      ),
-    enabled: visible && canPurchase && !!selectedAsset,
-  });
+  const walletsQuery = useBuyWallets(userAccountUuid, () => selectedAsset, visible && canPurchase && !!selectedAsset);
 
   const walletsFailed = walletsQuery.isError;
   const matchingWallets = walletsFailed ? [] : (walletsQuery.data ?? []);

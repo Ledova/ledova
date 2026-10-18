@@ -21,7 +21,8 @@ import { useCompanyProfile } from '../../hooks/useCompanyProfile';
 import { CompanyReadNotice } from '../company/CompanyState';
 import { CompanySelection } from '../company/CompanySelection';
 import { useCompanyStyles } from '../company-register/styles';
-import { useOfferingActions, useOfferings } from './useOfferings';
+import { OFFERING_QUERY_KEY, useOfferingActions, useOfferings } from './useOfferings';
+import { OFFERING_SUBSCRIPTIONS_QUERY_KEY } from './useOfferingSubscriptions';
 import { OfferingReadNotice } from './OfferingReadNotice';
 import { OfferingDocumentsEditor } from './OfferingDocumentsEditor';
 import { OfferingEditor } from './OfferingEditor';
@@ -205,8 +206,8 @@ function OfferingDetails({ companyRead }: { companyRead: ReturnType<typeof useCo
     await companyRead.refetch();
     return Promise.all([
       data.refetch(),
-      client.invalidateQueries({ queryKey: ['offering'] }),
-      client.invalidateQueries({ queryKey: ['offering-subscriptions'] }),
+      client.invalidateQueries({ queryKey: OFFERING_QUERY_KEY }),
+      client.invalidateQueries({ queryKey: OFFERING_SUBSCRIPTIONS_QUERY_KEY }),
     ]);
   };
   if (!companyRead.access.allowed)

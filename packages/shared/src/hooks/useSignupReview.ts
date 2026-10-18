@@ -19,6 +19,10 @@ export const USER_PROFILES_QUERY_KEY = ['userProfiles'] as const;
 export const SIGNUP_COMPANY_QUERY_KEY = ['signup', 'company'] as const;
 export const SIGNUP_COMPANY_DETAIL_QUERY_KEY = ['signup', 'company-detail'] as const;
 
+export function signupCompanyDetailKey(uuid: string | null | undefined) {
+  return [...SIGNUP_COMPANY_DETAIL_QUERY_KEY, uuid];
+}
+
 export function useSignupReview(
   role: AccountRole,
   onComplete: (guard: () => void) => Promise<void> | void,
@@ -49,7 +53,7 @@ export function useSignupReview(
 
   const selectedUuid = isCompany ? companyQuery.data?.data.results[0]?.uuid : undefined;
   const detailQuery = useQuery({
-    queryKey: [...SIGNUP_COMPANY_DETAIL_QUERY_KEY, selectedUuid],
+    queryKey: signupCompanyDetailKey(selectedUuid),
     queryFn: () => getCompany(apiClient, selectedUuid!),
     enabled: Boolean(selectedUuid),
     staleTime: CACHE_TIMING.DEFAULT_STALE_TIME,
@@ -134,9 +138,7 @@ export function useSignupReview(
       queryClient.invalidateQueries({ queryKey: USER_PROFILES_QUERY_KEY }),
       ...(isCompany ? [queryClient.invalidateQueries({ queryKey: SIGNUP_COMPANY_QUERY_KEY })] : []),
       ...(!isCompany ? [queryClient.invalidateQueries({ queryKey: FINANCIAL_PROFILES_QUERY_KEY })] : []),
-      ...(selectedUuid
-        ? [queryClient.invalidateQueries({ queryKey: [...SIGNUP_COMPANY_DETAIL_QUERY_KEY, selectedUuid] })]
-        : []),
+      ...(selectedUuid ? [queryClient.invalidateQueries({ queryKey: signupCompanyDetailKey(selectedUuid) })] : []),
       ...(isCompany
         ? [
             queryClient.invalidateQueries({ queryKey: AUTH_QUERY_ROOT }),

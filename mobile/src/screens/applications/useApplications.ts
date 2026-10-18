@@ -1,9 +1,8 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
-  CACHE_TIMING,
   failureStatus,
   createSubscription,
-  getSubscription,
+  useSubscriptionDetail,
   submitSubscription,
   withdrawSubscription,
   SUBSCRIPTIONS_QUERY_KEY,
@@ -17,12 +16,7 @@ const SUBSCRIPTIONS_KEY = SUBSCRIPTIONS_QUERY_KEY;
 export function useSubscription(uuid: string | undefined) {
   const queryClient = useQueryClient();
 
-  const query = useQuery({
-    queryKey: [...SUBSCRIPTIONS_QUERY_KEY, uuid],
-    queryFn: () => getSubscription(apiClient, uuid!),
-    enabled: !!uuid,
-    staleTime: CACHE_TIMING.SHORT_STALE_TIME,
-  });
+  const query = useSubscriptionDetail(uuid);
 
   const refresh = () => queryClient.invalidateQueries({ queryKey: SUBSCRIPTIONS_KEY });
 

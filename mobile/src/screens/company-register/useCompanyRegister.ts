@@ -32,6 +32,7 @@ import {
   type RegisterStep,
   type TokenHoldersResponse,
 } from '@ledova/shared';
+import { COMPANY_TOKENS_QUERY_KEY } from '../../hooks/useCompanyTokens';
 import { apiClient } from '../../services/apiClient';
 import { assertSessionEpoch, getSessionEpoch, subscribeSession } from '../../services/sessionScope';
 
@@ -56,7 +57,11 @@ export function useCompanyAccess() {
   return { ...preferences, allowed: !preferences.isError && !!role && canOpen(role, 'company') };
 }
 
-export const registerKey = (epoch: number) => ['company-tokens', 'register', epoch];
+export const registerKey = (epoch: number) => [...COMPANY_TOKENS_QUERY_KEY, 'register', epoch];
+export const registerClassesKey = (epoch: number) => [...registerKey(epoch), 'classes'];
+export const registerClassKey = (epoch: number, token: string) => [...registerKey(epoch), 'class', token];
+export const registerMembersKey = (epoch: number, company: string) => [...registerKey(epoch), 'members', company];
+export const registerHoldersKey = (epoch: number) => [...registerKey(epoch), 'holders'];
 const recordsKey = (records: string) => (epoch: number, scope?: string) => [
   ...registerKey(epoch),
   records,
@@ -134,7 +139,7 @@ export function useCompanyRegister(
   const queryClient = useQueryClient();
   const [selected, selectCompany] = useState<string>();
   const classes = useQuery({
-    queryKey: [...registerKey(epoch), 'classes'],
+    queryKey: registerClassesKey(epoch),
     queryFn: async ({ signal }) => {
       const rows = await readEveryPage((page) => readClasses(epoch, page, signal));
       if (new Set(rows.map(({ uuid }) => uuid)).size !== rows.length) {
@@ -159,7 +164,7 @@ export function useCompanyRegister(
   const company =
     retained ?? companies.find(({ uuid }) => uuid === selected) ?? (companies.length === 1 ? companies[0] : undefined);
   const registers = useQuery({
-    queryKey: [...registerKey(epoch), 'holders', company?.uuid, company?.classes.map(({ uuid }) => uuid)],
+    queryKey: [...registerHoldersKey(epoch), company?.uuid, company?.classes.map(({ uuid }) => uuid)],
     enabled: !!company,
     queryFn: ({ signal }) => Promise.all(company!.classes.map(({ uuid }) => readRegister(epoch, uuid, signal))),
   });
@@ -194,7 +199,7 @@ export function useCompanyRegister(
 
 export function useClassRegister(epoch: number, token: string) {
   return useQuery({
-    queryKey: [...registerKey(epoch), 'class', token],
+    queryKey: registerClassKey(epoch, token),
     queryFn: ({ signal }) => readRegister(epoch, token, signal),
   });
 }
@@ -349,7 +354,7 @@ export function useRegisterWaitingWallets(epoch: number, company: string, enable
 
 export function useCompanyMembers(epoch: number, company: string) {
   return useQuery({
-    queryKey: [...registerKey(epoch), 'members', company],
+    queryKey: registerMembersKey(epoch, company),
     queryFn: async ({ signal }) => {
       const classes = (await readEveryPage((page) => readClasses(epoch, page, signal))).filter(
         ({ companyUuid }) => companyUuid === company,

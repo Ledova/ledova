@@ -74,13 +74,13 @@ frame share, and `packages/shared` holds what both clients share.
 
 Where today's code differs from these standards:
 
-- The final cross-client key ownership audit and base-register reply guard remain under
-  [#1072](https://github.com/Ledova/ledova/issues/1072).
 - Existing unscoped account-bound keys stay unchanged; broader account scoping needs the owner
   decision on [#1065](https://github.com/Ledova/ledova/issues/1065).
 
 Mobile maps onto the same layers, direction and placement, with `navigation/` for `routes/` and
-`screens/<area>/` for page folders; its cross-area imports are brought in line under
+`screens/<area>/` for page folders. Its component data calls beyond the reads extracted for key
+ownership remain recorded on [#1072](https://github.com/Ledova/ledova/issues/1072); cross-area imports
+and the two genuine client profile readers are consolidated under
 [#1074](https://github.com/Ledova/ledova/issues/1074) ([mobile
 architecture](mobile.md#architecture)). `site/src` is a separate flat app (one file per page in
 `pages/`, `components/`, `styles.ts`, `theme.ts`) that cannot import the shared package; only the

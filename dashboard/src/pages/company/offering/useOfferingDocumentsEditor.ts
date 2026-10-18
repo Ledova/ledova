@@ -9,7 +9,7 @@ import { type CompanyActionRead } from '@pages/company/shared/CompanyState';
 import apiClient from '@services/apiClient';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
-import { companyOfferingKey, useCompanyOffering, type useOfferings } from './useOffering';
+import { companyOfferingDetailKey, useCompanyOffering, type useOfferings } from './useOffering';
 
 export function useOfferingDocumentsEditor({
   uuid,
@@ -43,10 +43,9 @@ export function useOfferingDocumentsEditor({
     assertCurrent(targetCompany, 'owner');
     data.assertOffering(uuid, 'documents');
     if (uuid) {
-      const state = client.getQueryState<import('@ledova/shared').Offering>([
-        ...companyOfferingKey(targetCompany, companyRead.scopeKey),
-        uuid,
-      ]);
+      const state = client.getQueryState<import('@ledova/shared').Offering>(
+        companyOfferingDetailKey(targetCompany, companyRead.scopeKey, uuid),
+      );
       if (
         state?.status !== 'success' ||
         state.fetchStatus !== 'idle' ||

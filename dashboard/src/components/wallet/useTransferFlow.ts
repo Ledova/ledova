@@ -2,7 +2,7 @@ import { useState, useCallback, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   getWhitelistStatus,
-  getWalletHoldings,
+  useWalletHoldings,
   CACHE_TIMING,
   BLOCKCHAIN,
   getChainShortCode,
@@ -51,13 +51,10 @@ export function useTransferFlow(selectedWallet: Wallet | null) {
 
   const isEvmWallet = selectedWallet?.chain === BLOCKCHAIN.ETHEREUM || selectedWallet?.chain === BLOCKCHAIN.BASE;
 
-  const holdingsQuery = useQuery({
-    queryKey: ['wallet-holdings', selectedWallet?.uuid],
-    queryFn: () => getWalletHoldings(apiClient, selectedWallet!.uuid),
-    enabled: !!selectedWallet?.uuid,
-    staleTime: CACHE_TIMING.DEFAULT_STALE_TIME,
-    select: (data) => data.data,
-  });
+  const holdingsQuery = useWalletHoldings(
+    () => selectedWallet,
+    (data) => data.data,
+  );
 
   const shareTokenAddress = selectedAsset?.type === 'share_token' ? selectedAsset.tokenAddress : undefined;
   const senderWhitelistQuery = useQuery({

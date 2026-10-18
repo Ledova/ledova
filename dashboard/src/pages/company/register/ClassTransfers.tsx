@@ -1,3 +1,4 @@
+import { registerHoldersKey } from '@pages/company/shared/useCompanyRegister';
 import { useCallback } from 'react';
 import { generatePath } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
@@ -13,7 +14,6 @@ import { PageAction } from '@components/Page';
 
 import { TransferRecord } from './TransferRecord';
 import { registerSteps } from '@pages/company/shared/proposals';
-import { registerKey } from '@hooks/useRegisterAccess';
 import { entriesKey } from '@pages/company/register/shared/useRegisterEntries';
 import { useOwnAppointments, ownAppointmentsKey } from '@pages/company/shared/useOwnAppointments';
 import {
@@ -63,7 +63,7 @@ export function ClassTransfers({
       [
         transfersKey(owner, token),
         transferMembersKey(owner, token),
-        [...registerKey(owner), 'holders'],
+        registerHoldersKey(owner),
         entriesKey(owner, token),
         ownAppointmentsKey(owner),
       ].map((queryKey) => client.invalidateQueries({ queryKey })),
