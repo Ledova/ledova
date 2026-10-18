@@ -284,8 +284,9 @@ class CompanyAdmin(admin.ModelAdmin):
                     "is_open_to_investors",
                 ],
                 "description": (
-                    "The owner opts a company into the investor directory; clearing this box takes it out "
-                    "again and no company is listed until its owner opts in."
+                    "Someone with current company administration opts a company into the investor directory; "
+                    "clearing this box takes it out again. Nothing is listed until it is opted in, and a warning, "
+                    "suspension or delisting also hides the company without changing this box."
                 ),
             },
         ),
