@@ -1,5 +1,3 @@
-from asgiref.sync import sync_to_async
-
 from shared.db import select_operator, set_principal
 
 PRINCIPAL_MARKER = "sets_the_principal"
@@ -22,8 +20,3 @@ class SetsThePrincipalOnTheConnection:
 def sets_the_principal(view):
     view.sets_the_principal = True
     return view
-
-
-async def set_principal_for_async_view(user) -> None:
-    if user is not None and user.is_authenticated:
-        await sync_to_async(set_principal, thread_sensitive=True)(user.pk)

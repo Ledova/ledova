@@ -110,13 +110,6 @@ def subscription_eligibility(account, offering, quantity, *, at=None, decision_i
     )
 
 
-def require_company_eligibility(account, company, *, purpose, at=None, decision_id=None):
-    outcome = company_eligibility(account, company, purpose=purpose, at=at, decision_id=decision_id)
-    if not outcome.is_eligible:
-        raise InvestorNotEligibleException(outcome.reasons)
-    return outcome
-
-
 def require_subscription_eligibility(account, offering, quantity, *, at=None, decision_id=None):
     outcome = subscription_eligibility(account, offering, quantity, at=at, decision_id=decision_id)
     if not outcome.is_eligible:
