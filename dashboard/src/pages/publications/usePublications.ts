@@ -1,23 +1,18 @@
-import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
-  CACHE_TIMING,
   failureStatus,
   PUBLICATION_COPY,
   apiErrorSentence,
-  assertNextPageAdvances,
   castBallot,
-  getPublications,
-  getPublicationsNextPage,
   openPublication,
   publicationFilename,
-  useLaterPages,
+  usePublications as usePublicationsListing,
   PUBLICATIONS_QUERY_KEY,
 } from '@ledova/shared';
 import type { BallotChoice, UserFriendlyError } from '@ledova/shared';
 import apiClient from '@services/apiClient';
 
 const PUBLICATIONS_KEY = PUBLICATIONS_QUERY_KEY;
-const PERSONAL_NOTICES_KEY = [...PUBLICATIONS_KEY, 'addressed', 'me'];
 
 function saveACopy(document_: Blob, filename: string) {
   const url = URL.createObjectURL(document_);
@@ -39,18 +34,7 @@ function whyItCouldNotBeOpened(error: unknown): string {
 export function usePublications() {
   const queryClient = useQueryClient();
 
-  const listing = useInfiniteQuery({
-    queryKey: PERSONAL_NOTICES_KEY,
-    queryFn: async ({ pageParam }) => {
-      const response = await getPublications(apiClient, pageParam, { addressed: 'me' });
-      assertNextPageAdvances(pageParam, response.data);
-      return response;
-    },
-    getNextPageParam: getPublicationsNextPage,
-    initialPageParam: 1,
-    staleTime: CACHE_TIMING.SHORT_STALE_TIME,
-  });
-  const pages = useLaterPages(PERSONAL_NOTICES_KEY, listing);
+  const { listing, pages } = usePublicationsListing();
 
   const opening = useMutation({
     mutationFn: async (uuid: string) => {

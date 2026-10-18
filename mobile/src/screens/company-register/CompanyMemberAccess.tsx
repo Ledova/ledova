@@ -10,7 +10,7 @@ import { EvidencePicker, Field } from '../../components/register/RegisterFields'
 import { useRegisterEvidence } from '../../hooks/useRegisterEvidence';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 import { particularsKey, registerKey } from '../../hooks/useCompanyRegister';
-import { invitationMembers } from './invitationMembers';
+import { invitationMembers } from '@ledova/shared';
 
 export function CompanyMemberAccess({
   company,

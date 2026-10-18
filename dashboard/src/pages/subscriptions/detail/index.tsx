@@ -1,3 +1,4 @@
+import { marketQuantity } from '@ledova/shared';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   DESTINATIONS,
@@ -12,7 +13,7 @@ import { Row, Rows, Section, Status, Timeline, type TimelineEvent } from '@compo
 import { Page, PageAction } from '@components/Page';
 import { PaymentInstructionCard } from './PaymentInstructionCard';
 import { useSubscription } from './useSubscription';
-import { applicationShares, applicationState } from '@pages/subscriptions/shared/presentation';
+import { applicationState } from '@pages/subscriptions/shared/presentation';
 
 const ACTION_ERROR_FALLBACK = 'The request was refused. Please try again.';
 const MONEY_HELD = ['awaiting_payment', 'paid'];
@@ -49,9 +50,9 @@ function Summary({ subscription }: { subscription: SubscriptionDetail }) {
           <Row label="Status">
             <Status tone={status.tone}>{status.words}</Status>
           </Row>
-          <Row label="Shares applied for">{applicationShares(subscription.quantity)}</Row>
+          <Row label="Shares applied for">{marketQuantity(subscription.quantity)}</Row>
           {subscription.allottedQuantity !== null && subscription.allottedQuantity !== subscription.quantity && (
-            <Row label="Shares to be allotted">{applicationShares(subscription.allottedQuantity)}</Row>
+            <Row label="Shares to be allotted">{marketQuantity(subscription.allottedQuantity)}</Row>
           )}
           <Row label="Price per share">{amount(subscription.pricePerShare)}</Row>
           <Row label="Amount due">{amount(subscription.amountDue)}</Row>

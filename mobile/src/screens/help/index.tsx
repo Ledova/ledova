@@ -1,13 +1,11 @@
 import React from 'react';
 import { View, Text, ScrollView, Linking } from 'react-native';
 import { EnvelopeSimpleIcon, InfoIcon, QuestionIcon, FileTextIcon } from 'phosphor-react-native';
-import { useQuery } from '@tanstack/react-query';
-import { getOperator, CACHE_TIMING, OPERATOR_QUERY_KEY } from '@ledova/shared';
+import { useOperator } from '@ledova/shared';
 import { GradientBackground } from '../../components/GradientBackground';
 import { ContactCard } from './components/ContactCard';
 import { PUBLIC_LINKS, SUPPORT_EMAIL } from '../../config/publicLinks';
 import { useThemedStyles } from '../../contexts';
-import { apiClient } from '../../services/apiClient';
 import appJson from '../../../app.json';
 
 const APP_VERSION = appJson.expo.version;
@@ -43,11 +41,7 @@ export function HelpScreen() {
       fontWeight: theme.fontWeight.medium,
     },
   }));
-  const { data: operator } = useQuery({
-    queryKey: OPERATOR_QUERY_KEY,
-    queryFn: () => getOperator(apiClient).then((res) => res.data),
-    staleTime: CACHE_TIMING.EXTRA_LONG_GC_TIME,
-  });
+  const { data: operator } = useOperator({ cache: 'body' });
 
   const handleEmailPress = () => {
     Linking.openURL(`mailto:${SUPPORT_EMAIL}`);

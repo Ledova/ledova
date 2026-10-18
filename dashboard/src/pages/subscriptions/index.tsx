@@ -1,9 +1,10 @@
+import { marketQuantity } from '@ledova/shared';
 import { generatePath } from 'react-router-dom';
 import { DESTINATIONS, formatDate, formatMoney, useSubscriptions } from '@ledova/shared';
 import type { Subscription } from '@ledova/shared';
 import { LinkRow, Row, Rows, Section, Status } from '@components/Ledger';
 import { Page, PageAction } from '@components/Page';
-import { applicationShares, applicationState } from '@pages/subscriptions/shared/presentation';
+import { applicationState } from '@pages/subscriptions/shared/presentation';
 
 function ApplicationRow({ application }: { application: Subscription }) {
   const state = applicationState(application);
@@ -15,7 +16,7 @@ function ApplicationRow({ application }: { application: Subscription }) {
         </p>
         <Rows>
           <Row label="Share class">{application.tokenSymbol}</Row>
-          <Row label="Shares applied for">{applicationShares(application.quantity)}</Row>
+          <Row label="Shares applied for">{marketQuantity(application.quantity)}</Row>
           <Row label="Price per share">
             <span className="break-all">{formatMoney(application.pricePerShare, application.currency)}</span>
           </Row>
