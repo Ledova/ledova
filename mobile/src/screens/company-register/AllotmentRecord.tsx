@@ -47,7 +47,10 @@ function AllotmentRows({ allotment }: { allotment: RegisterAllotment | RegisterA
       <Row label="Receipt attested">
         {allotment.contribution.recordedBy} · {formatDateTime(allotment.contribution.recordedAt)}
       </Row>
-      <Row label="Register ISSUE date">{allotment.effectiveOn || 'Recorded on application'}</Row>
+      <Row label={COPY.COMPANY_EVENT_ON}>{allotment.companyEventOn ?? 'Not recorded'}</Row>
+      {allotment.effectiveOn && allotment.effectiveOn !== allotment.companyEventOn && (
+        <Row label="Retained ledger effective date">{allotment.effectiveOn}</Row>
+      )}
       <Row label={COPY.DIRECTOR}>{allotment.approvingDirector}</Row>
     </Rows>
   );
@@ -161,7 +164,11 @@ export function AllotmentRecord({
             kind={kind}
             appointment={steps?.[kind]?.uuid}
             visible={visible}
-            enabled={allotment.status === 'submitted' && (kind !== 'apply' || allotment.stage === 'approved')}
+            enabled={
+              allotment.status === 'submitted' &&
+              (kind === 'reject' ||
+                (!!allotment.companyEventOn && (kind !== 'apply' || allotment.stage === 'approved')))
+            }
             onHeldChange={onHeldChange}
             epoch={epoch}
             readGuard={guard}

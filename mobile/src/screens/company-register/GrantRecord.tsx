@@ -44,7 +44,10 @@ function GrantRows({ grant }: { grant: RegisterGrant | RegisterGrantDecisionPrev
       <Row label="Member record">{grant.newMember ? 'New member' : 'Existing member'}</Row>
       <Row label={COPY.SHARES}>{grant.shares}</Row>
       <Row label={COPY.TERMS_ON}>{grant.termsOn}</Row>
-      <Row label="Register entry date">{grant.effectiveOn || 'Recorded on application'}</Row>
+      <Row label={COPY.COMPANY_EVENT_ON}>{grant.companyEventOn ?? 'Not recorded'}</Row>
+      {grant.effectiveOn && grant.effectiveOn !== grant.companyEventOn && (
+        <Row label="Retained ledger effective date">{grant.effectiveOn}</Row>
+      )}
       <Row label={COPY.DIRECTOR}>{grant.approvingDirector}</Row>
       <Row label={COPY.TERMS}>{grant.terms}</Row>
       <Row label="Recipient acceptance">
@@ -159,7 +162,10 @@ export function GrantRecord({
             kind={kind}
             appointment={steps?.[kind]?.uuid}
             visible={visible}
-            enabled={grant.status === 'submitted' && (kind !== 'apply' || grant.stage === 'approved')}
+            enabled={
+              grant.status === 'submitted' &&
+              (kind === 'reject' || (!!grant.companyEventOn && (kind !== 'apply' || grant.stage === 'approved')))
+            }
             readGuard={guard}
             newEffectGuard={guard}
             onHeldChange={onHeldChange}

@@ -34,6 +34,7 @@ type Draft = {
   name: string;
   residentialAddress: string;
   shares: string;
+  companyEventOn: string;
   signedOn: string;
   lodgedOn: string;
   terms: string;
@@ -65,6 +66,7 @@ function PrepareRegisterTransfer({ epoch }: { epoch: number }) {
     name: '',
     residentialAddress: '',
     shares: '',
+    companyEventOn: '',
     signedOn: utcToday(),
     lodgedOn: utcToday(),
     terms: '',
@@ -102,17 +104,19 @@ function PrepareRegisterTransfer({ epoch }: { epoch: number }) {
         ? 'Give the recipient’s name and residential address from the signed instrument.'
         : !/^[1-9]\d*$/.test(draft.shares.trim()) || BigInt(draft.shares.trim()) > BigInt(from.currentShares)
           ? 'Enter a positive whole share quantity within the transferor’s holding.'
-          : ![draft.signedOn.trim(), draft.lodgedOn.trim()].every((date) => isoDay(date) && date <= utcToday()) ||
-              draft.signedOn.trim() > draft.lodgedOn.trim()
-            ? 'Enter signing no later than lodgement, and lodgement no later than today (UTC).'
-            : !draft.terms.trim() ||
-                !draft.approvingDirector.trim() ||
-                !draft.authorityReference.trim() ||
-                !draft.reason.trim()
-              ? 'Give the non-paid terms, approving director, authority reference and reason.'
-              : !authority.name || !instrument.name
-                ? 'Choose the director authority and signed transfer instrument.'
-                : null;
+          : !isoDay(draft.companyEventOn.trim()) || draft.companyEventOn.trim() > utcToday()
+            ? 'Enter the company transfer date as YYYY-MM-DD, today (UTC) or earlier.'
+            : ![draft.signedOn.trim(), draft.lodgedOn.trim()].every((date) => isoDay(date) && date <= utcToday()) ||
+                draft.signedOn.trim() > draft.lodgedOn.trim()
+              ? 'Enter signing no later than lodgement, and lodgement no later than today (UTC).'
+              : !draft.terms.trim() ||
+                  !draft.approvingDirector.trim() ||
+                  !draft.authorityReference.trim() ||
+                  !draft.reason.trim()
+                ? 'Give the non-paid terms, approving director, authority reference and reason.'
+                : !authority.name || !instrument.name
+                  ? 'Choose the director authority and signed transfer instrument.'
+                  : null;
   const busy = submitting || authority.busy || instrument.busy;
   const fetching = register.isFetching || members.isFetching || appointments.isFetching;
   const supported = register.data?.initialized && register.data.token.status === 'draft';
@@ -163,6 +167,7 @@ function PrepareRegisterTransfer({ epoch }: { epoch: number }) {
           newMember: draft.toMember === 'new',
           ...(fresh ? { name: draft.name.trim(), residentialAddress: draft.residentialAddress.trim() } : {}),
           shares: draft.shares.trim(),
+          companyEventOn: draft.companyEventOn.trim(),
           signedOn: draft.signedOn.trim(),
           lodgedOn: draft.lodgedOn.trim(),
           terms: draft.terms.trim(),
@@ -234,6 +239,7 @@ function PrepareRegisterTransfer({ epoch }: { epoch: number }) {
     );
   const fields: [keyof Draft, string, number][] = [
     ['shares', COPY.SHARES, 78],
+    ['companyEventOn', `${COPY.COMPANY_EVENT_ON} (YYYY-MM-DD)`, 10],
     ['signedOn', COPY.SIGNED_ON, 10],
     ['lodgedOn', COPY.LODGED_ON, 10],
     ['terms', COPY.TERMS, 1000],

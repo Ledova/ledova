@@ -13,7 +13,6 @@ from tokens.constants import REGISTER_IMPORT_ADDRESS_LENGTH
 from tokens.exceptions import RegisterChangeConflict
 from tokens.models import (
     RegisterAward,
-    RegisterEntry,
     RegisterEntryKind,
     RegisterEvidence,
     RegisterEvidenceKind,
@@ -32,7 +31,11 @@ from tokens.models import (
 from tokens.services.register import _snapshot, imported_membership_dates
 from tokens.services.register_authority import register_appointment, register_command
 from tokens.services.register_decisions import DecisionFamily, decide, preview
-from tokens.services.register_events import create_member, record_entry
+from tokens.services.register_events import (
+    company_event_requirements,
+    create_member,
+    record_entry,
+)
 from tokens.services.register_evidence import (
     discard,
     evidence_snapshot,
@@ -55,6 +58,7 @@ def particulars_snapshot(held):
             f"source_{kind}": str(getattr(held, f"source_{kind}_id")) if getattr(held, f"source_{kind}_id") else None
             for kind in ("import", "change", "grant", "transfer")
         },
+        **({"source_allotment": str(held.source_allotment_id)} if held.source_allotment_id else {}),
     }
 
 
@@ -144,10 +148,7 @@ def _state(proposal):
             unmet.append("sufficient_holding_required")
         if positions.get(proposal.to_member, 0) + proposal.shares >= 2**256:
             unmet.append("share_limit_required")
-        if RegisterEntry.objects.filter(
-            register=register, sequence=register.sequence, effective_on__gt=timezone.now().date()
-        ).exists():
-            unmet.append("effective_date_before_latest_entry")
+        unmet.extend(company_event_requirements(proposal, register))
     members = {row.pk: row for row in RegisterMember.objects.filter(pk__in=[proposal.from_member, proposal.to_member])}
     held = {row.member_id: row for row in RegisterMemberParticulars.objects.filter(member_id__in=members)}
     sender = members.get(proposal.from_member)
@@ -187,6 +188,7 @@ def prepare_transfer(
     to_member,
     new_member,
     shares,
+    company_event_on,
     signed_on,
     lodged_on,
     terms,
@@ -200,6 +202,7 @@ def prepare_transfer(
     authority="director_resolution",
 ):
     try:
+        company_event_on = date.fromisoformat(str(company_event_on))
         operation_id, appointment, token_id, from_member, to_member, authority_evidence, instrument_evidence = (
             UUID(str(value))
             for value in (
@@ -229,6 +232,7 @@ def prepare_transfer(
         name = _text(name, "recipient name", 255)
         residential_address = _text(residential_address, "residential address", REGISTER_IMPORT_ADDRESS_LENGTH)
     values = {
+        "company_event_on": company_event_on,
         "from_member": from_member,
         "to_member": to_member,
         "new_member": new_member,
@@ -377,7 +381,8 @@ def _details(proposal):
             )
         },
         "shares": str(proposal.shares),
-        "effective_on": proposal.register_entry.effective_on if proposal.register_entry_id else timezone.now().date(),
+        "company_event_on": proposal.company_event_on,
+        "effective_on": proposal.company_event_on,
         "register_sequence": register.sequence if register else 0,
         "issued_supply": issued,
         "authorised_supply": token.total_supply,
@@ -421,7 +426,7 @@ def _apply(proposal, actor, decision):
             {"member": str(proposal.from_member), "shares": str(-int(proposal.shares))},
             {"member": str(proposal.to_member), "shares": str(proposal.shares)},
         ],
-        effective_on=entered_on,
+        effective_on=proposal.company_event_on,
         recorded_by=actor,
     )
     proposal.status = "applied"

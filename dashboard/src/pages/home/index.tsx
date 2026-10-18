@@ -1,7 +1,13 @@
 import { DESTINATIONS } from '@ledova/shared';
 import { useEffect, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { formatDate, formatShareCount, useMemberRecords, type MemberCertificateRequest } from '@ledova/shared';
+import {
+  formatDate,
+  formatDateTime,
+  formatShareCount,
+  useMemberRecords,
+  type MemberCertificateRequest,
+} from '@ledova/shared';
 import { LinkRow, Row, Rows, Section } from '@components/Ledger';
 import { Page, PageAction } from '@components/Page';
 import { PageTitle } from '@components/PageTitle';
@@ -89,7 +95,16 @@ function MemberRecords({
       {read.entries.map((entry) => (
         <div key={entry.uuid} className="space-y-2 py-3">
           <p className="text-sm">
-            Entry {entry.sequence} · {entry.kind} · {formatDate(entry.effectiveOn)} · Own change {entry.delta}
+            Entry {entry.sequence} · {entry.kind} · Ledger {formatDate(entry.effectiveOn)} · Own change {entry.delta}
+          </p>
+          <p className="text-sm text-text-muted">
+            Recorded {formatDateTime(entry.createdAt)}
+            {['ISSUE', 'TRANSFER'].includes(entry.kind.toUpperCase()) && (
+              <>
+                {' · '}
+                <span>Company date {entry.companyEventOn ? formatDate(entry.companyEventOn) : 'Not recorded'}</span>
+              </>
+            )}
           </p>
           {['ISSUE', 'TRANSFER'].includes(entry.kind.toUpperCase()) && BigInt(entry.delta) > 0n && (
             <PageAction
@@ -309,7 +324,9 @@ function MemberRecords({
                         .slice(0, 3)
                         .map((entry) => (
                           <p key={entry.uuid} className="text-text-muted">
-                            {formatDate(entry.effectiveOn)} · {entry.kind} · Own change {entry.delta}
+                            Ledger {formatDate(entry.effectiveOn)} · {entry.kind} · Own change {entry.delta}
+                            {['ISSUE', 'TRANSFER'].includes(entry.kind.toUpperCase()) &&
+                              ` · Company date ${entry.companyEventOn ? formatDate(entry.companyEventOn) : 'Not recorded'}`}
                           </p>
                         ))}
                     </div>

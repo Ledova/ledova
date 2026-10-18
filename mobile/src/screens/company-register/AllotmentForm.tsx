@@ -56,6 +56,7 @@ export function AllotmentForm({
     name: '',
     residentialAddress: '',
     shares: '',
+    companyEventOn: '',
     consideration: '',
     receivedAmount: '',
     agreementReference: '',
@@ -112,17 +113,19 @@ export function AllotmentForm({
         ? 'Enter a positive whole number of shares.'
         : !consideration || received !== consideration
           ? 'The company-reported receipt must equal the full positive AUD consideration, with at most two decimal places.'
-          : [fields.agreementOn, fields.receivedOn].some((date) => !isoDay(date) || date > today)
-            ? 'Agreement and receipt dates must be today (UTC) or earlier.'
-            : !fields.agreementReference.trim() ||
-                !fields.terms.trim() ||
-                !fields.approvingDirector.trim() ||
-                !fields.authorityReference.trim() ||
-                !fields.reason.trim()
-              ? 'Give the external agreement, approving director, company authority and reason.'
-              : (['authority', 'agreement', 'receipt'] as const).some((kind) => !documents[kind].name)
-                ? 'Choose the authority, agreement and receipt evidence.'
-                : null;
+          : !isoDay(fields.companyEventOn.trim()) || fields.companyEventOn.trim() > today
+            ? 'Enter the company issue date as YYYY-MM-DD, today (UTC) or earlier.'
+            : [fields.agreementOn, fields.receivedOn].some((date) => !isoDay(date) || date > today)
+              ? 'Agreement and receipt dates must be today (UTC) or earlier.'
+              : !fields.agreementReference.trim() ||
+                  !fields.terms.trim() ||
+                  !fields.approvingDirector.trim() ||
+                  !fields.authorityReference.trim() ||
+                  !fields.reason.trim()
+                ? 'Give the external agreement, approving director, company authority and reason.'
+                : (['authority', 'agreement', 'receipt'] as const).some((kind) => !documents[kind].name)
+                  ? 'Choose the authority, agreement and receipt evidence.'
+                  : null;
   const pick = async (kind: DocumentKind) => {
     try {
       check();
@@ -160,6 +163,7 @@ export function AllotmentForm({
               ? { name: fields.name.trim(), residentialAddress: fields.residentialAddress.trim() }
               : {}),
             shares: fields.shares,
+            companyEventOn: fields.companyEventOn.trim(),
             consideration: consideration!,
             receivedAmount: received!,
             currency: 'AUD',
@@ -286,6 +290,7 @@ export function AllotmentForm({
         [
           ...(member === 'new' ? (['name', 'residentialAddress'] as const) : []),
           'shares',
+          'companyEventOn',
           'consideration',
           'receivedAmount',
           'agreementReference',
@@ -301,6 +306,7 @@ export function AllotmentForm({
           name: 'Investor name',
           residentialAddress: 'Residential address',
           shares: COPY.SHARES,
+          companyEventOn: `${COPY.COMPANY_EVENT_ON} (YYYY-MM-DD)`,
           consideration: COPY.CONSIDERATION,
           receivedAmount: COPY.RECEIVED_AMOUNT,
           agreementReference: COPY.AGREEMENT_REFERENCE,
@@ -327,7 +333,15 @@ export function AllotmentForm({
                     ? 'decimal-pad'
                     : 'default'
               }
-              maxLength={key === 'shares' ? 78 : ['terms', 'reason', 'residentialAddress'].includes(key) ? 1000 : 255}
+              maxLength={
+                key === 'shares'
+                  ? 78
+                  : key === 'companyEventOn'
+                    ? 10
+                    : ['terms', 'reason', 'residentialAddress'].includes(key)
+                      ? 1000
+                      : 255
+              }
               onChange={(value) => setFields((current) => ({ ...current, [key]: value }))}
             />
           </View>

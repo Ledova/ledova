@@ -15,6 +15,7 @@ export const ALLOTMENT_REQUEST: RegisterAllotmentPreparation = {
   name: 'Synthetic Investor',
   residentialAddress: '1 Synthetic Street, Sydney NSW 2000',
   shares: '100',
+  companyEventOn: '2026-10-11',
   consideration: '250.00',
   currency: 'AUD',
   agreementReference: 'External arrangement A',
@@ -40,6 +41,7 @@ export function allotmentFrom(body: RegisterAllotmentPreparation): RegisterAllot
     name: body.name || 'Retained Investor',
     residentialAddress: body.residentialAddress || ALLOTMENT_REQUEST.residentialAddress!,
     shares: body.shares,
+    companyEventOn: body.companyEventOn,
     consideration: body.consideration,
     currency: body.currency,
     agreement: {
@@ -90,7 +92,7 @@ export function allotmentFrom(body: RegisterAllotmentPreparation): RegisterAllot
 export function allotmentPreview(row: RegisterAllotment, approved: boolean): RegisterAllotmentDecisionPreview {
   return {
     ...row,
-    effectiveOn: '2026-10-11',
+    effectiveOn: row.companyEventOn,
     previewDigest: 'b'.repeat(64),
     canDecide: true,
     unmetRequirements: [],
@@ -126,7 +128,7 @@ export function allotmentDecision(row: RegisterAllotment, body: RegisterAllotmen
           status: 'applied',
           stage: 'applied',
           registerEntry: 'entry-a',
-          effectiveOn: '2026-10-11',
+          effectiveOn: row.companyEventOn,
           reviewedAt: decidedAt,
           reviewedBy: 1,
         }

@@ -122,7 +122,7 @@ LANGUAGE sql STABLE SECURITY INVOKER SET search_path = pg_catalog, public, pg_te
             AND promised.agreement_fingerprint = proposal.terms_fingerprint
             AND tokens_employee_award_vested(promised.uuid) <= promised.shares
             AND tokens_employee_award_issued(promised.uuid, proposal.uuid) + proposal.shares
-                <= tokens_employee_award_vested(promised.uuid));
+                <= (SELECT COALESCE(sum(event.shares), 0) FROM tokens_registerawardvesting event WHERE event.award_id = promised.uuid AND event.vested_on <= (to_jsonb(proposal)->>'company_event_on')::date));
 $$;
 CREATE FUNCTION tokens_check_employee_award_allocation() RETURNS trigger
 LANGUAGE plpgsql SECURITY INVOKER SET search_path = pg_catalog, public, pg_temp AS $$
@@ -152,8 +152,7 @@ LANGUAGE sql STABLE SECURITY INVOKER SET search_path = pg_catalog, public, pg_te
             AND register.issued_supply + proposal.shares <= token.total_supply::numeric
             AND register.issued_supply + proposal.shares < 2::numeric^256
             AND EXISTS (SELECT 1 FROM tokens_registerimport source WHERE source.token_id = token.uuid AND source.status = 'applied')
-            AND NOT EXISTS (SELECT 1 FROM tokens_registerentry entry WHERE entry.register_id = register.uuid
-                AND entry.sequence = register.sequence AND entry.effective_on > (clock_timestamp() AT TIME ZONE 'UTC')::date))
+            AND tokens_register_company_date_ready(to_jsonb(proposal)))
         AND lower(btrim(regexp_replace(proposal.approving_director, '[[:space:]]+', ' ', 'g')))
             <> lower(btrim(regexp_replace(proposal.name, '[[:space:]]+', ' ', 'g')))
         AND NOT EXISTS (SELECT 1 FROM tokens_registermemberwallet wallet WHERE wallet.company_id = proposal.company_id AND wallet.member_id = proposal.member)
@@ -169,8 +168,8 @@ $$;
 CREATE OR REPLACE FUNCTION tokens_register_grant_decision_digest(grant_uuid uuid, decision_kind text, actor bigint,
     appointment_uuid uuid, decision_reason text) RETURNS text
 LANGUAGE sql STABLE SECURITY INVOKER SET search_path = pg_catalog, public, pg_temp AS $$
-    SELECT encode(sha256(convert_to((jsonb_build_object('version', '1', 'grant', CASE WHEN proposal.award_id IS NULL THEN to_jsonb(proposal) - 'award_id' ELSE to_jsonb(proposal) END,
-        'effective_on', (clock_timestamp() AT TIME ZONE 'UTC')::date,
+    SELECT encode(sha256(convert_to((jsonb_build_object('version', '1', 'grant', CASE WHEN proposal.award_id IS NULL THEN (to_jsonb(proposal) - CASE WHEN to_jsonb(proposal)->>'company_event_on' IS NULL THEN 'company_event_on' ELSE '' END) - 'award_id' ELSE (to_jsonb(proposal) - CASE WHEN to_jsonb(proposal)->>'company_event_on' IS NULL THEN 'company_event_on' ELSE '' END) END,
+        'effective_on', CASE WHEN to_jsonb(proposal)->>'company_event_on' IS NULL THEN (clock_timestamp() AT TIME ZONE 'UTC')::date ELSE (to_jsonb(proposal)->>'company_event_on')::date END,
         'kind', decision_kind, 'actor', actor, 'appointment', appointment_uuid, 'reason', decision_reason,
         'register', to_jsonb(register), 'authorised_supply', token.total_supply,
         'token_status', token.status, 'deployment', token.deployment_id, 'contract', token.contract_address,
@@ -180,7 +179,7 @@ LANGUAGE sql STABLE SECURITY INVOKER SET search_path = pg_catalog, public, pg_te
         ELSE jsonb_build_object('award', (SELECT to_jsonb(promised) FROM tokens_registeraward promised WHERE promised.uuid = proposal.award_id),
             'vesting_events', (SELECT coalesce(jsonb_agg(to_jsonb(event) ORDER BY event.uuid), '[]'::jsonb)
                 FROM tokens_registerawardvesting event WHERE event.award_id = proposal.award_id),
-            'issued_grants', (SELECT coalesce(jsonb_agg(to_jsonb(issued) ORDER BY issued.uuid), '[]'::jsonb)
+            'issued_grants', (SELECT coalesce(jsonb_agg((to_jsonb(issued) - CASE WHEN to_jsonb(issued)->>'company_event_on' IS NULL THEN 'company_event_on' ELSE '' END) ORDER BY issued.uuid), '[]'::jsonb)
                 FROM tokens_registergrant issued WHERE issued.award_id = proposal.award_id AND issued.status = 'applied')) END)::text, 'UTF8')), 'hex')
     FROM tokens_registergrant proposal JOIN tokens_sharetoken token ON token.uuid = proposal.token_id
         LEFT JOIN tokens_shareregister register ON register.token_id = token.uuid WHERE proposal.uuid = grant_uuid;
@@ -238,7 +237,8 @@ BEGIN
         OR (NEW.status = 'applied' AND (NEW.rejection_reason <> '' OR NOT EXISTS (
             SELECT 1 FROM tokens_registerentry entry JOIN tokens_shareregister register ON register.uuid = entry.register_id
             WHERE entry.uuid = NEW.register_entry_id AND register.token_id = NEW.token_id AND entry.operation_id = NEW.uuid
-                AND entry.kind = 'issue' AND entry.recorded_by_id = principal AND entry.effective_on = (clock_timestamp() AT TIME ZONE 'UTC')::date
+                AND entry.kind = 'issue' AND entry.recorded_by_id = principal AND entry.created_at >= NEW.reviewed_at
+                AND entry.effective_on = (to_jsonb(NEW)->>'company_event_on')::date
                 AND entry.changes = jsonb_build_array(jsonb_build_object('member', NEW.member::text, 'shares', NEW.shares::text)))))
         OR (NEW.status = 'rejected' AND (NEW.register_entry_id IS NOT NULL OR NEW.rejection_reason !~ '[^[:space:]]'))
     THEN
@@ -302,7 +302,7 @@ BEGIN
         OR current_setting('app.company_operation', true) IS DISTINCT FROM 'register_grant_apply'
         OR current_setting('app.company_id', true) IS DISTINCT FROM issuer::text
         OR proposal.company_id IS DISTINCT FROM issuer OR proposal.token_id IS DISTINCT FROM token_uuid OR proposal.status <> 'submitted'
-        OR NEW.kind <> 'issue' OR NEW.recorded_by_id IS DISTINCT FROM principal OR NEW.effective_on IS DISTINCT FROM (clock_timestamp() AT TIME ZONE 'UTC')::date
+        OR NEW.kind <> 'issue' OR NEW.recorded_by_id IS DISTINCT FROM principal OR NEW.effective_on IS DISTINCT FROM (to_jsonb(proposal)->>'company_event_on')::date
         OR NEW.changes IS DISTINCT FROM jsonb_build_array(jsonb_build_object('member', proposal.member::text, 'shares', proposal.shares::text))
         OR NOT tokens_register_grant_ready(proposal, false) OR NOT tokens_register_grant_approved(proposal.uuid, clock_timestamp())
         OR NOT EXISTS (SELECT 1 FROM tokens_registergrantdecision decision WHERE decision.register_grant_id = proposal.uuid

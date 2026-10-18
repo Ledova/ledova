@@ -354,6 +354,7 @@ class RegistryCoreTest(CoreFixtures, APITransactionTestCase):
             "name": "Synthetic Recipient",
             "residential_address": "3 Example Street, Sydney NSW 2000",
             "shares": "25",
+            "company_event_on": timezone.now().date().isoformat(),
             "signed_on": timezone.now().date().isoformat(),
             "lodged_on": timezone.now().date().isoformat(),
             "terms": "Non-paid transfer with a signed synthetic instrument",

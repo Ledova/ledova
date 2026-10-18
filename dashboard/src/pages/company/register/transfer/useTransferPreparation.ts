@@ -27,6 +27,7 @@ type Draft = {
   name: string;
   residentialAddress: string;
   shares: string;
+  companyEventOn: string;
   signedOn: string;
   lodgedOn: string;
   terms: string;
@@ -72,6 +73,7 @@ export function useTransferPreparation({
     name: '',
     residentialAddress: '',
     shares: '',
+    companyEventOn: '',
     signedOn: today,
     lodgedOn: today,
     terms: '',
@@ -118,17 +120,19 @@ export function useTransferPreparation({
         ? 'Give the recipient’s name and residential address from the signed instrument.'
         : !/^[1-9]\d*$/.test(draft.shares) || BigInt(draft.shares) > BigInt(from.currentShares)
           ? 'Enter a positive whole share quantity within the transferor’s holding.'
-          : ![draft.signedOn, draft.lodgedOn].every((date) => /^\d{4}-\d{2}-\d{2}$/.test(date) && date <= today) ||
-              draft.signedOn > draft.lodgedOn
-            ? 'Enter signing no later than lodgement, and lodgement no later than today (UTC).'
-            : !draft.terms.trim() ||
-                !draft.approvingDirector.trim() ||
-                !draft.authorityReference.trim() ||
-                !draft.reason.trim()
-              ? 'Give the non-paid terms, approving director, authority reference and reason.'
-              : !files.authority || !files.instrument
-                ? 'Choose the director authority and signed transfer instrument.'
-                : null;
+          : !/^\d{4}-\d{2}-\d{2}$/.test(draft.companyEventOn) || draft.companyEventOn > today
+            ? 'Enter the company transfer date no later than today (UTC).'
+            : ![draft.signedOn, draft.lodgedOn].every((date) => /^\d{4}-\d{2}-\d{2}$/.test(date) && date <= today) ||
+                draft.signedOn > draft.lodgedOn
+              ? 'Enter signing no later than lodgement, and lodgement no later than today (UTC).'
+              : !draft.terms.trim() ||
+                  !draft.approvingDirector.trim() ||
+                  !draft.authorityReference.trim() ||
+                  !draft.reason.trim()
+                ? 'Give the non-paid terms, approving director, authority reference and reason.'
+                : !files.authority || !files.instrument
+                  ? 'Choose the director authority and signed transfer instrument.'
+                  : null;
   const upload = async (kind: DocumentKind) => {
     const file = files[kind]!;
     const previous = uploads.current[kind];
@@ -179,6 +183,7 @@ export function useTransferPreparation({
           newMember: draft.toMember === 'new',
           ...(fresh ? { name: draft.name.trim(), residentialAddress: draft.residentialAddress.trim() } : {}),
           shares: draft.shares,
+          companyEventOn: draft.companyEventOn,
           signedOn: draft.signedOn,
           lodgedOn: draft.lodgedOn,
           terms: draft.terms.trim(),
@@ -218,6 +223,7 @@ export function useTransferPreparation({
   };
   const fields: [keyof Draft, string, number][] = [
     ['shares', COPY.SHARES, 78],
+    ['companyEventOn', COPY.COMPANY_EVENT_ON, 10],
     ['signedOn', COPY.SIGNED_ON, 10],
     ['lodgedOn', COPY.LODGED_ON, 10],
     ['terms', COPY.TERMS, 1000],

@@ -10,6 +10,16 @@ it('requires exact fully paid AUD sources and the actual applied ISSUE receipt',
   expect(isPreparedRegisterAllotment(row, ALLOTMENT_REQUEST, APPOINTMENT.company)).toBe(true);
   expect(
     isPreparedRegisterAllotment(
+      { ...row, status: 'applied', registerEntry: 'entry-a', effectiveOn: '2026-10-18' },
+      ALLOTMENT_REQUEST,
+      APPOINTMENT.company,
+    ),
+  ).toBe(false);
+  expect(
+    isPreparedRegisterAllotment({ ...row, companyEventOn: '2020-01-01' }, ALLOTMENT_REQUEST, APPOINTMENT.company),
+  ).toBe(false);
+  expect(
+    isPreparedRegisterAllotment(
       { ...row, contribution: { ...row.contribution, amount: '249.99' } },
       ALLOTMENT_REQUEST,
       APPOINTMENT.company,

@@ -69,6 +69,7 @@ export function useGrantPreparation({
   const [name, setName] = useState('');
   const [address, setAddress] = useState('');
   const [shares, setShares] = useState('');
+  const [companyEventOn, setCompanyEventOn] = useState('');
   const [termsOn, setTermsOn] = useState(today);
   const [approvingDirector, setApprovingDirector] = useState('');
   const [terms, setTerms] = useState('');
@@ -114,13 +115,15 @@ export function useGrantPreparation({
         ? 'Enter a positive whole number of shares.'
         : award && BigInt(shares) > BigInt(award.availableShares)
           ? 'The grant quantity must fit the award’s vested and not yet issued shares.'
-          : !/^\d{4}-\d{2}-\d{2}$/.test(retainedDate) || retainedDate > today
-            ? 'Enter a terms date no later than today (UTC).'
-            : !retainedSummary || !approvingDirector.trim() || !authorityReference.trim() || !reason.trim()
-              ? 'Give the non-paid terms, approving director, authority reference and reason.'
-              : documentKinds.some((kind) => !files[kind])
-                ? 'Choose the authority, terms and any required acceptance documents.'
-                : null;
+          : !/^\d{4}-\d{2}-\d{2}$/.test(companyEventOn) || companyEventOn > today
+            ? 'Enter the company issue date no later than today (UTC).'
+            : !/^\d{4}-\d{2}-\d{2}$/.test(retainedDate) || retainedDate > today
+              ? 'Enter a terms date no later than today (UTC).'
+              : !retainedSummary || !approvingDirector.trim() || !authorityReference.trim() || !reason.trim()
+                ? 'Give the non-paid terms, approving director, authority reference and reason.'
+                : documentKinds.some((kind) => !files[kind])
+                  ? 'Choose the authority, terms and any required acceptance documents.'
+                  : null;
   const upload = async (kind: DocumentKind) => {
     const file = files[kind]!;
     const previous = uploads.current[kind];
@@ -190,6 +193,7 @@ export function useGrantPreparation({
           ...(newRecipient ? { name: recipientName, residentialAddress: recipientAddress } : {}),
           ...(award ? { award: award.uuid } : {}),
           shares,
+          companyEventOn,
           termsOn: retainedDate,
           terms: retainedSummary,
           approvingDirector: approvingDirector.trim(),
@@ -275,6 +279,8 @@ export function useGrantPreparation({
     setAddress,
     shares,
     setShares,
+    companyEventOn,
+    setCompanyEventOn,
     setTermsOn,
     approvingDirector,
     setApprovingDirector,

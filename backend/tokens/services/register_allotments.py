@@ -74,6 +74,7 @@ def prepare_allotment(
     member,
     new_member,
     shares,
+    company_event_on,
     consideration,
     currency,
     agreement_reference,
@@ -91,6 +92,7 @@ def prepare_allotment(
     residential_address="",
 ):
     try:
+        company_event_on = date.fromisoformat(str(company_event_on))
         operation_id, appointment, token_id, member, authority_evidence, agreement_evidence, receipt_evidence = (
             UUID(str(value))
             for value in (
@@ -120,6 +122,7 @@ def prepare_allotment(
     if not isinstance(name, str) or not isinstance(residential_address, str):
         raise ValidationError("Member identity fields must be text.")
     values = dict(
+        company_event_on=company_event_on,
         shares=int(shares),
         new_member=new_member,
         consideration=amount,
@@ -270,7 +273,8 @@ def _details(proposal):
         approving_director=proposal.approving_director,
         authority_reference=proposal.authority_reference,
         reason=proposal.reason,
-        effective_on=timezone.now().date(),
+        company_event_on=proposal.company_event_on,
+        effective_on=proposal.company_event_on,
         register_sequence=register.sequence if register else 0,
         issued_supply=str(issued),
         authorised_supply=token.total_supply,
@@ -294,14 +298,14 @@ def _lock(proposal):
 
 
 def _apply(proposal, actor, decision):
-    effective_on = timezone.now().date()
+    effective_on = proposal.company_event_on
     if proposal.new_member:
         create_member(company_id=proposal.company_id, member_id=proposal.member)
         RegisterMemberParticulars.objects.create(
             member_id=proposal.member,
             name=proposal.name,
             residential_address=proposal.residential_address,
-            as_at=effective_on,
+            as_at=timezone.now().date(),
             source_allotment=proposal,
         )
     proposal.register_entry = record_entry(

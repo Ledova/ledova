@@ -5453,6 +5453,7 @@ export interface ApiComponents {
       entries: ApiComponents['schemas']['MemberRecordEntry'][];
     };
     MemberRecordEntry: {
+      companyEventOn: string | null;
       correctedBy: string | null;
       corrects: string | null;
       createdAt: string;
@@ -6375,6 +6376,7 @@ export interface ApiComponents {
       authorityEvidence: string;
       authorityReference: string;
       company: string;
+      companyEventOn: string | null;
       consideration: string;
       contribution: ApiComponents['schemas']['RegisterContribution'];
       createdAt: string;
@@ -6410,6 +6412,7 @@ export interface ApiComponents {
       approvingDirector: string;
       authorityEvidence: string;
       authorityReference: string;
+      companyEventOn: string;
       consideration: string;
       currency: ApiComponents['schemas']['CurrencyEnum'];
       member: string;
@@ -6452,11 +6455,12 @@ export interface ApiComponents {
       authorisedSupply: string;
       authorityReference: string;
       canDecide: boolean;
+      companyEventOn: string | null;
       consideration: string;
       contribution: ApiComponents['schemas']['RegisterContribution'];
       currency: string;
       currentShares: string;
-      effectiveOn: string;
+      effectiveOn: string | null;
       issuedSupply: string;
       member: string;
       name: string;
@@ -6924,6 +6928,7 @@ export interface ApiComponents {
       authorityReference: string;
       award: string | null;
       company: string;
+      companyEventOn: string | null;
       createdAt: string;
       decisions: ApiComponents['schemas']['RegisterGrantDecision'][];
       effectiveOn: string | null;
@@ -6961,6 +6966,7 @@ export interface ApiComponents {
       authorityEvidence: string;
       authorityReference: string;
       award?: string | null;
+      companyEventOn: string;
       member: string;
       name?: string;
       newMember: boolean;
@@ -7004,8 +7010,9 @@ export interface ApiComponents {
       awardPromisedShares?: string;
       awardVestedShares?: string;
       canDecide: boolean;
+      companyEventOn: string | null;
       currentShares: string;
-      effectiveOn: string;
+      effectiveOn: string | null;
       issuedSupply: string;
       member: string;
       name: string;
@@ -7771,6 +7778,7 @@ export interface ApiComponents {
       authorityEvidence: string;
       authorityReference: string;
       company: string;
+      companyEventOn: string | null;
       createdAt: string;
       decisions: ApiComponents['schemas']['RegisterTransferDecision'][];
       effectiveOn: string | null;
@@ -7814,6 +7822,7 @@ export interface ApiComponents {
       authority?: ApiComponents['schemas']['RegisterTransferCreateAuthorityEnum'];
       authorityEvidence: string;
       authorityReference: string;
+      companyEventOn: string;
       fromMember: string;
       instrumentEvidence: string;
       lodgedOn: string;
@@ -7853,7 +7862,8 @@ export interface ApiComponents {
       authorisedSupply: string;
       authority: string;
       canDecide: boolean;
-      effectiveOn: string;
+      companyEventOn: string | null;
+      effectiveOn: string | null;
       fromAfterShares: string;
       fromCurrentShares: string;
       fromMember: string;
@@ -8225,6 +8235,7 @@ export interface ApiComponents {
     };
     ShareRegisterEntry: {
       changes: ApiComponents['schemas']['ShareRegisterEntryChange'][];
+      companyEventOn: string | null;
       correctable: boolean;
       correctedBy: string | null;
       corrects: string | null;

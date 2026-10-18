@@ -24,6 +24,7 @@ class RegisterGrantCreateSerializer(serializers.Serializer):
         max_length=REGISTER_IMPORT_ADDRESS_LENGTH, allow_blank=True, required=False, default=""
     )
     shares = serializers.RegexField(regex=r"^[1-9][0-9]{0,77}$")
+    company_event_on = serializers.DateField()
     terms_on = serializers.DateField()
     approving_director = serializers.CharField(max_length=255)
     terms = serializers.CharField(max_length=1000)
@@ -57,7 +58,8 @@ class RegisterGrantDecisionPreviewSerializer(serializers.Serializer):
     name = serializers.CharField()
     residential_address = serializers.CharField()
     shares = serializers.CharField()
-    effective_on = serializers.DateField()
+    company_event_on = serializers.DateField(allow_null=True)
+    effective_on = serializers.DateField(allow_null=True)
     terms_on = serializers.DateField()
     approving_director = serializers.CharField()
     terms = serializers.CharField()
@@ -92,6 +94,7 @@ class RegisterGrantSerializer(RegisterDecidedSerializer):
             "residential_address",
             "shares",
             "effective_on",
+            "company_event_on",
             "terms_on",
             "approving_director",
             "terms",

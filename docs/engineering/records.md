@@ -84,7 +84,10 @@ trigger `tokens_guard_register_entry` then:
 
 `tokens_project_register_entry` then updates each position (resetting `entered_on` when a holding
 rises from zero), its `last_entry`, and the head's sequence, hash and supply in the same
-transaction. Triggers refuse entry and member rewrites and deletes, position and head writes outside
+transaction. For a new company-dated grant, allotment or direct transfer, the position’s entry
+date uses the actual entry recording day in UTC. `tokens_register_transition_on` derives this for
+both projection and verification; older entries keep their prior projection convention.
+Triggers refuse entry and member rewrites and deletes, position and head writes outside
 the projection (`tokens_guard_register_position`, `tokens_guard_share_register`) and moving a
 registered class to another company. Entries carry member UUIDs and share changes, never names or
 residential addresses.
@@ -311,26 +314,26 @@ requirement codes:
   `member_request_no_longer_current` (the request it came from lost its current association or
   source).
 - **Grant** (`register-grants/`): the register row, the class's supply and chain fields, the
-  recipient's particulars and the UTC day; for an award, the award, its vesting events and its
+  recipient's particulars and the supplied company event date; for an award, the award, its vesting events and its
   applied grants. The register-state codes are `imported_non_tokenised_register_required` (no
   applied import and register, or chain fields), `authorised_headroom_required` (supply would exceed
-  the authorised shares or reach 2^256), `effective_date_before_latest_entry` (the latest entry is
-  dated after today), `approving_director_conflict` (the director's name matches the recipient's),
+  the authorised shares or reach 2^256), `effective_date_before_latest_entry` (the supplied date precedes an existing effective event), `approving_director_conflict` (the director's name matches the recipient's),
   `member_wallet_linked`, `member_reference_conflict` (a new member's id exists),
   `identified_company_member_required` (an existing member is of another company or has no recorded
   particulars) and `member_particulars_changed` (particulars differ from those captured). An award
-  adds `recorded_vested_quantity_required` (more than its vested and unissued quantity),
+  adds `recorded_vested_quantity_required` (more than the quantity vested by the supplied issue date,
+  less earlier issued grants),
   `award_binding_required` (the award no longer matches the grant's company, class, member, terms
   date, terms or agreement fingerprint) and `award_evidence_unavailable` (its agreement or a vesting
   event's evidence no longer matches its record).
 - **Transfer** (`register-transfers/`): the register row, the class's supply and chain fields, both
-  members' particulars and the UTC day. The grant's register-state codes except
+  members' particulars and the supplied company event date. The grant's register-state codes except
   `authorised_headroom_required`, with `director_is_party` (either party) for
   `approving_director_conflict`, plus `sufficient_holding_required` and `share_limit_required` (the
   recipient's holding would reach 2^256); `member_particulars_changed` also covers new particulars
   for a recipient who now holds shares.
 - **Allotment** (`register-allotments/`): the agreement and contribution, the register row, the
-  class's supply and chain fields, the recipient's particulars and the UTC day. The grant's
+  class's supply and chain fields, the recipient's particulars and the supplied company event date. The grant's
   register-state codes and `fully_paid_company_receipt_required` (the receipt is not exactly the
   consideration in AUD).
 
@@ -446,6 +449,28 @@ decision guards, so changing it after preview or before commit cannot authorise 
 `tokens_employee_award_grant_allocation` refuses at commit applied grants beyond an award's recorded
 vested quantity. A transfer that empties a holding writes a `RegisterMemberCessation`. `GET
 {uuid}/register/members/` lists a class's company members for these forms.
+
+### Company event dates
+
+New non-tokenised grants, allotments and direct transfers require an explicit `company_event_on`.
+It is immutable on the proposal, part of exact retries and decision digests, and becomes the new
+entry’s `effective_on`. It cannot be after today in UTC or before any existing effective entry in
+the class, including its opening; earlier facts need a separately scoped correction or reconciliation.
+Agreement, receipt, terms, vesting, signing and lodgement dates do not supply this date automatically.
+Preparation, decision and entry creation timestamps remain actual Ledova timestamps. New particulars
+and cessation/return clocks retain the actual application day, so an older company date cannot
+shorten retention or put a recorded return before its exit.
+
+Older proposals keep `company_event_on: null`; no data is backfilled. Their existing entry dates and
+hashes do not establish a known company event date. Older pending proposals remain readable and
+rejectable but report `company_event_date_required` before approval or application; reject and
+prepare again with the missing fact. `company_event_date_in_future` refuses a future date. Existing
+NULL keys are omitted from the earlier digest recipe, including nested applied award grants; stored
+decisions are never rewritten. JSON access lets early canonical SQL compile before the nullable
+model fields are added; later migrations install the same canonical functions after those fields.
+Company and member history and the pack retain the nullable company date beside ledger dates and
+actual recording timestamps. Chain, opening and compensating-correction dates retain their existing
+conventions, and the register hash format is unchanged.
 
 ### Employee awards API
 
@@ -649,7 +674,8 @@ every value and embedding the glyphs non-Latin names need; it is imported only w
 rendered ([legal position 12](../legal/positions.md#12-pymupdf-an-agpl-runtime-dependency)). Fonts
 are subset, metadata is cleared and the file carries no creation date or random identifier, so the
 same entry gives the same bytes while the register, the particulars and the PyMuPDF version stay the
-same.
+same. A generated certificate separates its actual entry recording timestamp from the company event
+date, showing Not recorded when that company fact is unknown. Retained earlier files are unchanged.
 
 ### Notice figures format
 
@@ -660,11 +686,14 @@ has four sections, each after a heading row:
 1. "Figures for the company's notices of share issues and of changes to members and share
    structure": Share class, Period from, To register entry (the head's sequence), Company's written
    instruction and Produced on.
-2. "Entries in the period": Entry, Kind, Effective date, Corrects entry, Member ID, Name, Shares
-   (the signed change) and Amount paid, a row for each member an entry changed, in entry order.
+2. "Entries in the period": Entry, Kind, Register entry date, Company event date, Recorded at,
+   Corrects entry, Member ID, Name, Shares (the signed change) and Amount paid, a row for each member an entry changed, in entry order.
 3. "Class at the register head": Issued supply, Members holding shares and Total amount paid.
 4. "Members changed in the period, at the register head": Member ID, Name, Residential address,
    Shares held (0 for a member who no longer holds any) and Amount paid, in member-id order.
+
+Unknown company dates read `not recorded`; their retained ledger dates remain the period selector,
+not an inferred legal-event date. The report does not reconstruct missing history.
 
 An issue's amount paid is the money backing of the issuance it recorded and a member's the
 register's own; either reads the literal `not recorded` where not established exactly ([what the
@@ -678,9 +707,14 @@ entry is `certified` when a `certificate` export of its class has the entry's se
 or before the entry's `effective_on` and `register_sequence` at or after the entry's. A
 company-recorded transfer is dated from the applied `RegisterTransfer.lodged_on` and a settled one
 from its `SwapOrder`'s `created_at` in `STATUTORY_CALENDAR`, both through `months_after`. It sorts
-by due date, company name, class symbol and sequence, compares due dates with today in
+by due date, company name, class symbol and sequence, with unknown deadlines last, and compares
+known due dates with today in
 `STATUTORY_CALENDAR`, and stores and records nothing. Given a company it reads only that company's
-entries; the admin due page calls it without one ([the due
+entries. New company-dated issue certificates use two calendar months from the supplied date;
+notice figures use 28 days from that date. A retained non-tokenised source without a company date
+has no invented event-based deadline: `due_on` and `overdue` are NULL. A direct-transfer certificate
+still uses its separately known lodgement date, and chain clocks are unchanged. The admin due page
+calls it without one ([the due
 list](../business/member-records.md#the-due-list)).
 
 ## Company pack format

@@ -11,8 +11,11 @@ export const REGISTER_GRANT_UNMET_COPY: Record<string, string> = {
   imported_non_tokenised_register_required:
     'This grant requires an opened, imported register for a draft share class without a deployed contract.',
   authorised_headroom_required: 'The grant exceeds the authorised share supply.',
+  company_event_date_required:
+    'The company event date was not recorded. Reject this preparation and prepare it again with the company’s date.',
+  company_event_date_in_future: 'The company event date cannot be after today (UTC).',
   effective_date_before_latest_entry:
-    'The register’s latest entry is dated after today. This grant cannot be recorded yet.',
+    'The company event date is before a later register event. Use the company’s correction or reconciliation process.',
   approving_director_conflict: 'The approving director is the recipient. Another director must approve the grant.',
   member_reference_conflict: 'The proposed new member already exists. Reject this grant and prepare a new one.',
   identified_company_member_required: 'The recipient must be an identified member of this company.',
@@ -36,8 +39,9 @@ export const REGISTER_GRANT_COPY = {
   DIRECTOR: 'Approving director',
   DIRECTOR_NOTE:
     'The company supplies the approving director’s name. This director must be someone other than the recipient.',
+  COMPANY_EVENT_ON: 'Company issue date',
   EFFECTIVE_NOTE:
-    'Application records the ISSUE entry on the actual day it is made (UTC). The company’s terms date is retained separately.',
+    'The company supplies the issue date from its records. Ledova records preparation, decisions and application separately.',
   TERMS: 'Non-paid grant terms',
   AUTHORITY_REFERENCE: 'Company authority reference',
   REASON: 'Reason for grant',

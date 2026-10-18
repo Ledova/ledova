@@ -32,6 +32,7 @@ export function isPreparedRegisterAllotment(
     (!request.newMember ||
       (allotment.name === request.name && allotment.residentialAddress === request.residentialAddress)) &&
     allotment.shares === request.shares &&
+    allotment.companyEventOn === request.companyEventOn &&
     allotment.currency === 'AUD' &&
     request.currency === 'AUD' &&
     allotmentAud(allotment.consideration) === allotmentAud(request.consideration) &&
@@ -53,7 +54,7 @@ export function isPreparedRegisterAllotment(
     allotment.reason === request.reason &&
     allotment.authorityEvidence === request.authorityEvidence &&
     allotment.providedBy === 'company' &&
-    (allotment.status !== 'applied' || (!!allotment.registerEntry && !!allotment.effectiveOn))
+    (allotment.status !== 'applied' || (!!allotment.registerEntry && allotment.effectiveOn === request.companyEventOn))
   );
 }
 
@@ -67,6 +68,7 @@ export function isRegisterAllotmentDecisionReceipt(
     isRegisterDecisionReceipt(allotment, uuid, request) &&
     (!preview ||
       (allotment.member === preview.member &&
+        allotment.companyEventOn === preview.companyEventOn &&
         allotment.name === preview.name &&
         allotment.residentialAddress === preview.residentialAddress &&
         allotment.shares === preview.shares &&

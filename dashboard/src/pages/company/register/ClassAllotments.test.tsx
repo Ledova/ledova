@@ -5,6 +5,7 @@ import { ownAppointmentsKey } from '@hooks/useOwnAppointments';
 import {
   COMPANY_TOKEN_ENDPOINTS as URLS,
   REGISTER_ALLOTMENT_COPY as COPY,
+  REGISTER_TRANSFER_COPY as TRANSFER_COPY,
   type RegisterAllotment,
   type OwnCompanyAppointment,
 } from '@ledova/shared';
@@ -17,6 +18,7 @@ import CompanyRegisterPage from '.';
 import { companyPreferences, renderCompanyPage } from '../../../testSupport/company';
 
 import { allotmentsKey } from './useRegisterAllotments';
+import { TransferForm } from './transfer/TransferForm';
 
 const api = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn() }));
 const save = vi.hoisted(() => vi.fn());
@@ -186,6 +188,7 @@ it('preserves original preparation and issue recovery through refresh, keeps app
         ['Investor name', ALLOTMENT_REQUEST.name!],
         ['Residential address', ALLOTMENT_REQUEST.residentialAddress!],
         [COPY.SHARES, '100'],
+        [COPY.COMPANY_EVENT_ON, ALLOTMENT_REQUEST.companyEventOn],
         [COPY.CONSIDERATION, '250'],
         [COPY.RECEIVED_AMOUNT, receivedAmount],
         [COPY.AGREEMENT_REFERENCE, ALLOTMENT_REQUEST.agreementReference],
@@ -203,17 +206,39 @@ it('preserves original preparation and issue recovery through refresh, keeps app
         });
     });
   };
+  expect((allotments.getByLabelText(COPY.COMPANY_EVENT_ON) as HTMLInputElement).value).toBe('');
   fillForm();
   expect((allotments.getByRole('button', { name: COPY.SUBMIT }) as HTMLButtonElement).disabled).toBe(true);
   fireEvent.change(allotments.getByLabelText(COPY.RECEIVED_AMOUNT), { target: { value: '250' } });
+  fireEvent.change(allotments.getByLabelText(COPY.COMPANY_EVENT_ON), { target: { value: '' } });
+  expect((allotments.getByRole('button', { name: COPY.SUBMIT }) as HTMLButtonElement).disabled).toBe(true);
+  fireEvent.change(allotments.getByLabelText(COPY.COMPANY_EVENT_ON), { target: { value: '2099-01-01' } });
+  expect((allotments.getByRole('button', { name: COPY.SUBMIT }) as HTMLButtonElement).disabled).toBe(true);
+  fireEvent.change(allotments.getByLabelText(COPY.COMPANY_EVENT_ON), {
+    target: { value: ALLOTMENT_REQUEST.companyEventOn },
+  });
   fireEvent.click(allotments.getByRole('button', { name: COPY.SUBMIT }));
   await allotments.findByRole('alert');
   expect(rows[0].registerEntry).toBeNull();
+  expect(rows[0].companyEventOn).toBe(ALLOTMENT_REQUEST.companyEventOn);
   expect(allotments.getByLabelText(COPY.CONSIDERATION).matches(':disabled')).toBe(true);
   expect(taskClass.disabled).toBe(true);
   expect(investorTask.matches(':disabled')).toBe(true);
   expect(transferTask.matches(':disabled')).toBe(true);
   expect(historyTask.matches(':disabled')).toBe(true);
+  const preparedAllotment = rows[0];
+  rows = [{ ...preparedAllotment, companyEventOn: null }];
+  const originalReads = api.get.mock.calls.filter(([url]) => url === URLS.REGISTER_ALLOTMENT(rows[0].uuid)).length;
+  fireEvent.click(allotments.getByRole('button', { name: COPY.SUBMIT }));
+  await waitFor(() =>
+    expect(api.get.mock.calls.filter(([url]) => url === URLS.REGISTER_ALLOTMENT(rows[0].uuid))).toHaveLength(
+      originalReads + 1,
+    ),
+  );
+  await allotments.findByRole('alert');
+  expect(allotments.getByLabelText(COPY.COMPANY_EVENT_ON)).toBeTruthy();
+  expect(api.post.mock.calls.filter(([url]) => url === URLS.REGISTER_ALLOTMENTS)).toHaveLength(1);
+  rows = [preparedAllotment];
   fireEvent.click(historyTask);
   expect(taskClass.value).toBe(REGISTER.token.uuid);
   expect(allotments.getByLabelText(COPY.CONSIDERATION)).toBeTruthy();
@@ -233,6 +258,11 @@ it('preserves original preparation and issue recovery through refresh, keeps app
     const label = kind === 'apply' ? 'Record issue' : COPY.DECISIONS[kind];
     fireEvent.click(allotments.getByRole('button', { name: new RegExp(`^${label} \\(allotment`) }));
     const dialog = await screen.findByRole('dialog', { name: `${label} external allotment` });
+    expect(
+      within(within(dialog).getByText(COPY.COMPANY_EVENT_ON).parentElement!).getByText(
+        ALLOTMENT_REQUEST.companyEventOn,
+      ),
+    ).toBeTruthy();
     const confirm = within(dialog).getByRole('button', { name: `${label} external allotment` });
     await waitFor(() => expect((confirm as HTMLButtonElement).disabled).toBe(false));
     fireEvent.click(confirm);
@@ -353,4 +383,67 @@ it('preserves original preparation and issue recovery through refresh, keeps app
   await allotments.findByText('Shares issued');
   expect(rows[0].registerEntry).toBe('entry-a');
   expect(rows[0].decisions).toHaveLength(2);
+  cleanup();
+  client.clear();
+  const earlierPost = api.post.getMockImplementation()!;
+  api.post.mockImplementation(async (url, body) => {
+    if (url === URLS.REGISTER_TRANSFERS) throw new Error('Synthetic interrupted transfer preparation');
+    return earlierPost(url, body);
+  });
+  renderCompanyPage(
+    client,
+    <TransferForm
+      owner={owner}
+      guard={() => {}}
+      company={APPOINTMENT.company}
+      token={REGISTER.token.uuid}
+      members={[
+        {
+          member: 'transferor',
+          name: 'Synthetic Transferor',
+          residentialAddress: '1 Example Street',
+          currentShares: '100',
+          enteredOn: '2020-01-01',
+          lastCeasedOn: null,
+          walletless: true,
+          particularsRetained: true,
+        },
+      ]}
+      appointment={APPOINTMENT}
+      blocked={false}
+      onRefused={() => {}}
+    />,
+    'Transfer shares',
+  );
+  expect((screen.getByLabelText(TRANSFER_COPY.COMPANY_EVENT_ON) as HTMLInputElement).value).toBe('');
+  for (const [label, value] of [
+    [TRANSFER_COPY.FROM, 'transferor'],
+    [TRANSFER_COPY.NAME, 'Synthetic Recipient'],
+    [TRANSFER_COPY.ADDRESS, '2 Example Street'],
+    [TRANSFER_COPY.SHARES, '10'],
+    [TRANSFER_COPY.SIGNED_ON, '2026-10-01'],
+    [TRANSFER_COPY.LODGED_ON, '2026-10-02'],
+    [TRANSFER_COPY.TERMS, 'Non-paid transfer'],
+    [TRANSFER_COPY.DIRECTOR, 'Synthetic Director'],
+    [TRANSFER_COPY.AUTHORITY_REFERENCE, 'Synthetic resolution'],
+    [TRANSFER_COPY.REASON, 'Record company transfer'],
+  ])
+    fireEvent.change(screen.getByLabelText(label), { target: { value } });
+  for (const label of [TRANSFER_COPY.AUTHORITY_DOCUMENT, TRANSFER_COPY.INSTRUMENT_DOCUMENT])
+    fireEvent.change(screen.getByLabelText(label), {
+      target: { files: [new File(['synthetic'], 'evidence.pdf', { type: 'application/pdf' })] },
+    });
+  expect((screen.getByRole('button', { name: TRANSFER_COPY.SUBMIT }) as HTMLButtonElement).disabled).toBe(true);
+  fireEvent.change(screen.getByLabelText(TRANSFER_COPY.COMPANY_EVENT_ON), { target: { value: '2026-10-03' } });
+  fireEvent.click(screen.getByRole('button', { name: TRANSFER_COPY.SUBMIT }));
+  await screen.findByRole('alert');
+  fireEvent.click(screen.getByRole('button', { name: TRANSFER_COPY.SUBMIT }));
+  await waitFor(() => expect(api.post.mock.calls.filter(([url]) => url === URLS.REGISTER_TRANSFERS)).toHaveLength(2));
+  const transfers = api.post.mock.calls.filter(([url]) => url === URLS.REGISTER_TRANSFERS);
+  expect(transfers[1][1]).toEqual(transfers[0][1]);
+  expect(transfers[0][1]).toMatchObject({
+    companyEventOn: '2026-10-03',
+    signedOn: '2026-10-01',
+    lodgedOn: '2026-10-02',
+  });
 });

@@ -97,6 +97,7 @@ function PrepareRegisterGrant({ epoch }: { epoch: number }) {
   const [residentialAddress, setResidentialAddress] = useState('');
   const [shares, setShares] = useState('');
   const [termsOn, setTermsOn] = useState(utcToday);
+  const [companyEventOn, setCompanyEventOn] = useState('');
   const [approvingDirector, setApprovingDirector] = useState('');
   const [terms, setTerms] = useState('');
   const [authorityReference, setAuthorityReference] = useState('');
@@ -130,13 +131,15 @@ function PrepareRegisterGrant({ epoch }: { epoch: number }) {
         ? 'Enter a positive whole number of shares.'
         : fixed && BigInt(shares.trim()) > BigInt(fixed.availableShares)
           ? 'The grant quantity must fit the award’s vested and not yet issued shares.'
-          : !isoDay(date) || date > utcToday()
-            ? 'Enter a terms date as YYYY-MM-DD, today (UTC) or earlier.'
-            : !summary || !approvingDirector.trim() || !authorityReference.trim() || !reason.trim()
-              ? 'Give the non-paid terms, approving director, authority reference and reason.'
-              : !authority.name || !retainedTerms.name || (acceptanceRequired && !acceptance.name)
-                ? 'Choose the authority, terms and any required acceptance documents.'
-                : null;
+          : !isoDay(companyEventOn.trim()) || companyEventOn.trim() > utcToday()
+            ? 'Enter the company issue date as YYYY-MM-DD, today (UTC) or earlier.'
+            : !isoDay(date) || date > utcToday()
+              ? 'Enter a terms date as YYYY-MM-DD, today (UTC) or earlier.'
+              : !summary || !approvingDirector.trim() || !authorityReference.trim() || !reason.trim()
+                ? 'Give the non-paid terms, approving director, authority reference and reason.'
+                : !authority.name || !retainedTerms.name || (acceptanceRequired && !acceptance.name)
+                  ? 'Choose the authority, terms and any required acceptance documents.'
+                  : null;
   const busy = submitting || authority.busy || retainedTerms.busy || acceptance.busy;
   const fetching =
     register.isFetching ||
@@ -247,6 +250,7 @@ function PrepareRegisterGrant({ epoch }: { epoch: number }) {
           ...(newRecipient ? { name: recipientName, residentialAddress: recipientAddress } : {}),
           ...(fixed ? { award: fixed.uuid } : {}),
           shares: shares.trim(),
+          companyEventOn: companyEventOn.trim(),
           termsOn: date,
           terms: summary,
           approvingDirector: approvingDirector.trim(),
@@ -458,6 +462,13 @@ function PrepareRegisterGrant({ epoch }: { epoch: number }) {
           editable={!busy && !held}
           keyboardType="number-pad"
           onChange={setShares}
+        />
+        <Field
+          label={`${COPY.COMPANY_EVENT_ON} (YYYY-MM-DD)`}
+          value={companyEventOn}
+          editable={!busy && !held}
+          maxLength={10}
+          onChange={setCompanyEventOn}
         />
         <Text style={styles.heading}>Agreement and acceptance</Text>
         <Field

@@ -212,6 +212,11 @@ appointees; private award evidence is not returned and the RLS policies and gran
 
 ## Company workflow API
 
+Non-tokenised share-change commands require an explicit company event date, separate from actual
+recording and decision timestamps. Retained unknown dates are not backfilled; the
+[register mechanism](records.md#company-event-dates) owns the exact chronology, digest, projection
+and output rules.
+
 Register decisions, share-class chain decisions, company wallet instructions and company
 eligibility decisions follow four steps; who may take each is in
 [how a company decision works](../business/README.md#how-a-company-decision-works). Employee

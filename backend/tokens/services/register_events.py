@@ -3,6 +3,7 @@ from uuid import UUID
 
 from django.db import IntegrityError
 from django.db.models.expressions import RawSQL
+from django.utils import timezone
 from rest_framework.exceptions import PermissionDenied, ValidationError
 
 from shared.db import APP_ALIAS, atomic, current_alias
@@ -44,6 +45,43 @@ def _changes(changes):
     except (ValueError, TypeError, AttributeError):
         raise ValidationError("Register changes require member UUIDs and exact integer shares.") from None
     return sorted(normalized, key=lambda change: change["member"])
+
+
+def company_event_requirements(proposal, register):
+    if proposal.company_event_on is None:
+        return ["company_event_date_required"]
+    if proposal.company_event_on > timezone.now().date():
+        return ["company_event_date_in_future"]
+    if RegisterEntry.objects.filter(register=register, effective_on__gt=proposal.company_event_on).exists():
+        return ["effective_date_before_latest_entry"]
+    return []
+
+
+def with_company_event_dates(entries):
+    return entries.annotate(
+        company_event_on=RawSQL("tokens_register_company_event_on(tokens_registerentry)", []),
+        company_date_required=RawSQL(
+            "EXISTS (SELECT 1 FROM tokens_shareregister register "
+            "WHERE register.uuid = tokens_registerentry.register_id "
+            "AND ((tokens_registerentry.kind = 'issue' AND ("
+            "EXISTS (SELECT 1 FROM tokens_registergrant source WHERE source.uuid = tokens_registerentry.operation_id "
+            "AND source.register_entry_id = tokens_registerentry.uuid "
+            "AND source.status = 'applied' AND source.company_id = register.company_id "
+            "AND source.token_id = register.token_id) "
+            "OR EXISTS (SELECT 1 FROM tokens_registerallotment source "
+            "WHERE source.uuid = tokens_registerentry.operation_id "
+            "AND source.register_entry_id = tokens_registerentry.uuid "
+            "AND source.status = 'applied' AND source.company_id = register.company_id "
+            "AND source.token_id = register.token_id))) "
+            "OR (tokens_registerentry.kind = 'transfer' AND "
+            "EXISTS (SELECT 1 FROM tokens_registertransfer source "
+            "WHERE source.uuid = tokens_registerentry.operation_id "
+            "AND source.register_entry_id = tokens_registerentry.uuid "
+            "AND source.status = 'applied' AND source.company_id = register.company_id "
+            "AND source.token_id = register.token_id))))",
+            [],
+        ),
+    )
 
 
 def create_member(*, company_id, member_id):
@@ -111,7 +149,8 @@ def verify_register(register_id):
         previous_hash = "0" * 64
         sequence = 0
         entries = RegisterEntry.objects.filter(register=register).annotate(
-            calculated_hash=RawSQL("tokens_register_entry_hash(tokens_registerentry)", [])
+            calculated_hash=RawSQL("tokens_register_entry_hash(tokens_registerentry)", []),
+            transition_on=RawSQL("tokens_register_transition_on(tokens_registerentry)", []),
         )
         for entry in entries.iterator(chunk_size=100):
             sequence += 1
@@ -124,10 +163,10 @@ def verify_register(register_id):
             previous_hash = entry.entry_hash
             for change in entry.changes:
                 member = UUID(change["member"])
-                before = positions.get(member, (0, entry.effective_on, None))
+                before = positions.get(member, (0, entry.transition_on, None))
                 positions[member] = (
                     before[0] + int(change["shares"]),
-                    entry.effective_on if before[0] == 0 else before[1],
+                    entry.transition_on if before[0] == 0 else before[1],
                     entry.pk,
                 )
         stored = {
