@@ -1,13 +1,13 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { View, Text, ActivityIndicator, ScrollView } from 'react-native';
 import { FingerprintSimpleIcon, CheckCircleIcon, WarningCircleIcon } from 'phosphor-react-native';
-import { useAppTheme, useThemedStyles } from '../../../contexts';
-import { Row, Rows } from '../../../components/Ledger';
-import { useDialogStyles } from '../../../components/modal';
+import { useAppTheme, useThemedStyles } from '../../contexts/index';
+import { Row, Rows } from '../Ledger';
+import { useDialogStyles } from '../modal/index';
 import type { Wallet, TransactionData } from '@ledova/shared';
-import { getSeedPhrase } from '../../../services/secureKeyStorage';
-import { signEthereumTransaction } from '../../../utils/softwareWallet';
-import { reviewedTransferTransaction, type ReviewedAsset } from '../../../utils/preparedTransfer';
+import { getSeedPhrase } from '../../services/secureKeyStorage';
+import { signEthereumTransaction } from '../../utils/softwareWallet/index';
+import { reviewedTransferTransaction, type ReviewedAsset } from '../../utils/preparedTransfer';
 import { formatWalletAddressShort } from '@ledova/shared';
 
 interface SoftwareSignTransactionProps {

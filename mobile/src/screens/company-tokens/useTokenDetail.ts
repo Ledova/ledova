@@ -15,7 +15,7 @@ import { COMPANY_TOKENS_QUERY_KEY } from '../../hooks/useCompanyTokens';
 import { apiClient } from '../../services/apiClient';
 import { orderSubmissionSession } from '../../services/orderSubmissions';
 import { assertSessionEpoch, getSessionEpoch, subscribeSession } from '../../services/sessionScope';
-import { checkedRegister } from '../company-register/useCompanyRegister';
+import { checkedRegister } from '../../hooks/useCompanyRegister';
 import { registerDeploymentAppointmentsKey, registerDeploymentsKey } from './useDeploymentReads';
 
 export function companyTokenPrefix(uuid: string) {

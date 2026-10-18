@@ -14,7 +14,7 @@ import {
 } from '@ledova/shared';
 import { Action, Row, Rows } from '../../components/Ledger';
 import { useThemedStyles } from '../../contexts';
-import { useCompanyStyles } from '../company-register/styles';
+import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 
 function ResolutionRecord({ publication }: { publication: Publication }) {
   const styles = useCompanyStyles();

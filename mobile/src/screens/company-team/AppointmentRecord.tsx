@@ -9,7 +9,7 @@ import {
   type OwnCompanyAppointment,
 } from '@ledova/shared';
 import { Action, Disclosure, Row, Rows } from '../../components/Ledger';
-import { useCompanyStyles } from '../company-register/styles';
+import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 
 export function scopeLabels(values: CompanyCapability[]) {
   return values

@@ -14,7 +14,7 @@ import { apiClient } from '../../services/apiClient';
 import { assertSessionEpoch } from '../../services/sessionScope';
 import { useCompanyTokens } from '../../hooks/useCompanyTokens';
 import { OFFERING_SUBSCRIPTIONS_QUERY_KEY } from './useOfferingSubscriptions';
-import type { CompanyActionRead } from '../company/CompanyState';
+import type { CompanyActionRead } from '../../components/company/CompanyState';
 
 export const OFFERING_QUERY_KEY = ['offering'] as const;
 

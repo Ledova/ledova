@@ -4,7 +4,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { formatDateTime } from '@ledova/shared';
 import { Action } from '../../components/Ledger';
 import { useAppTheme } from '../../contexts';
-import { useCompanyStyles } from '../company-register/styles';
+import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 
 export function OfferingDateField({
   label,

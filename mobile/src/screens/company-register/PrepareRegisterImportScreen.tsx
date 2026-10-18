@@ -25,10 +25,15 @@ import { Page } from '../../components/Page';
 import type { CompanyStackParamList } from '../../navigation/CompanyStackNavigator';
 import { apiClient } from '../../services/apiClient';
 import { assertSessionEpoch, getSessionEpoch, subscribeSession } from '../../services/sessionScope';
-import { EvidencePicker, Field, isoDay } from './RegisterFields';
-import { useCompanyStyles } from './styles';
-import { importsKey, useClassRegister, useRegisterAppointments, useRegisterImports } from './useCompanyRegister';
-import { useRegisterEvidence } from './useRegisterEvidence';
+import { EvidencePicker, Field, isoDay } from '../../components/register/RegisterFields';
+import { useCompanyStyles } from '../../hooks/useCompanyStyles';
+import {
+  importsKey,
+  useClassRegister,
+  useRegisterAppointments,
+  useRegisterImports,
+} from '../../hooks/useCompanyRegister';
+import { useRegisterEvidence } from '../../hooks/useRegisterEvidence';
 
 type AllotmentDraft = Omit<
   RegisterImportAllotment,

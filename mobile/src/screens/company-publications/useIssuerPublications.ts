@@ -14,7 +14,7 @@ import {
 } from '@ledova/shared';
 import { apiClient } from '../../services/apiClient';
 import { shareDocumentCopy, UTI_BY_MIME_TYPE } from '../../services/documentCopies';
-import type { CompanyActionRead } from '../company/CompanyState';
+import type { CompanyActionRead } from '../../components/company/CompanyState';
 import { assertSessionEpoch, getSessionEpoch, subscribeSession } from '../../services/sessionScope';
 
 function openingFailure(error: unknown) {

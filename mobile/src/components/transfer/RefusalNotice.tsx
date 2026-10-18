@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { AccessibilityInfo, Platform, Text } from 'react-native';
-import { useDialogStyles } from '../../../components/modal';
+import { useDialogStyles } from '../modal/index';
 
 export function RefusalNotice({ message }: { message: string }) {
   const text = useDialogStyles();

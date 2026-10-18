@@ -19,10 +19,10 @@ import { ClassAwards } from './ClassAwards';
 import { ClassTransfers } from './ClassTransfers';
 import { ClassOpenings } from './ClassOpenings';
 import { ClassReconciliation } from './ClassReconciliation';
-import { ClassRegister } from './ClassRegister';
-import { useCompanyStyles } from './styles';
+import { ClassRegister } from '../../components/register/ClassRegister';
+import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 import { assertSessionEpoch } from '../../services/sessionScope';
-import { registerAppointmentsKey, useRegisterAppointments } from './useCompanyRegister';
+import { registerAppointmentsKey, useRegisterAppointments } from '../../hooks/useCompanyRegister';
 
 const ON_CHAIN = ['deployed', 'paused'];
 

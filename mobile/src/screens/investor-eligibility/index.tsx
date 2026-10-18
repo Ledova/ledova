@@ -10,7 +10,7 @@ import { getSessionEpoch } from '../../services/sessionScope';
 import { CATEGORIES, CERTIFIER_BODIES, REASON_TEXT, WHOLESALE_ONLY_NOTICE } from './constants';
 import { useInvestorEligibility } from './useInvestorEligibility';
 import { useDocumentUpload } from '../../hooks/useDocumentUpload';
-import { EligibilityLinks } from '../eligibility-records/EligibilityLinks';
+import { EligibilityLinks } from '../../components/EligibilityLinks';
 
 const CLAIM_ERROR_FALLBACK = 'The claim was refused. Please check the details and try again.';
 

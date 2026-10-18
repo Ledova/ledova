@@ -2,9 +2,9 @@ import { Text } from 'react-native';
 import { useMutation } from '@tanstack/react-query';
 import * as Sharing from 'expo-sharing';
 import type { AxiosResponse } from 'axios';
-import { Action } from '../../components/Ledger';
+import { Action } from '../Ledger';
 import { EXTENSION_BY_MIME_TYPE, shareDocumentCopy, UTI_BY_MIME_TYPE } from '../../services/documentCopies';
-import { useCompanyStyles } from './styles';
+import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 
 export function RegisterCopy({
   label,

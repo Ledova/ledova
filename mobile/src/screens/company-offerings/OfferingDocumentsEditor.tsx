@@ -11,8 +11,8 @@ import {
 } from '@ledova/shared';
 import { Action } from '../../components/Ledger';
 import { CustomModal, ModalActions } from '../../components/modal';
-import { CompanyReadNotice, type CompanyActionRead } from '../company/CompanyState';
-import { useCompanyStyles } from '../company-register/styles';
+import { CompanyReadNotice, type CompanyActionRead } from '../../components/company/CompanyState';
+import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 import { apiClient } from '../../services/apiClient';
 import { assertSessionEpoch, getSessionEpoch } from '../../services/sessionScope';
 import { DocumentChoices } from './DocumentChoices';

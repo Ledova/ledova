@@ -10,7 +10,7 @@ import {
 import { Action, Choice, Section } from '../../components/Ledger';
 import { Page } from '../../components/Page';
 import { orderSubmissionSession } from '../../services/orderSubmissions';
-import { useCompanyStyles } from '../company-register/styles';
+import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 import { EligibilityConfirmation } from './EligibilityConfirmation';
 import { EligibilityExpiry } from './EligibilityExpiry';
 import { CompanyWalletInstructions } from './CompanyWalletInstructions';

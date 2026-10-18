@@ -8,8 +8,8 @@ import {
 } from '@ledova/shared';
 import { Action } from '../../components/Ledger';
 import { CorrectionRecord } from './CorrectionRecord';
-import { useCompanyStyles } from './styles';
-import { entriesKey, correctionsKey, useRegisterCorrections } from './useCompanyRegister';
+import { useCompanyStyles } from '../../hooks/useCompanyStyles';
+import { entriesKey, correctionsKey, useRegisterCorrections } from '../../hooks/useCompanyRegister';
 
 export function ClassCorrections({
   epoch,

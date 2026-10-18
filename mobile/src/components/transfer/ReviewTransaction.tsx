@@ -1,8 +1,8 @@
 import React from 'react';
 import { View, Text, ScrollView } from 'react-native';
-import { useThemedStyles } from '../../../contexts';
-import { Row, Rows } from '../../../components/Ledger';
-import { useDialogStyles } from '../../../components/modal';
+import { useThemedStyles } from '../../contexts/index';
+import { Row, Rows } from '../Ledger';
+import { useDialogStyles } from '../modal/index';
 import { formatWalletAddressMedium, getNativeAssetSymbol, isSupportedEvmChain } from '@ledova/shared';
 import type { TransactionData } from '@ledova/shared';
 

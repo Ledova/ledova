@@ -26,7 +26,7 @@ jest.mock('../../../navigation/DrawerNavigator', () => ({
 jest.mock('../../../hooks/useRole', () => ({
   useRole: () => ({ role: 'company', isCompany: true, isLoading: false }),
 }));
-jest.mock('../../user-profile/useUserProfile', () => ({
+jest.mock('../../../hooks/useUserProfile', () => ({
   useUserProfile: () => ({
     userProfile: mockProfileError ? null : { uuid: 'profile-one', isSignupCompleted: mockProfileComplete },
     profile: { isLoading: false, isFetching: false, isError: mockProfileError, refetch: jest.fn() },

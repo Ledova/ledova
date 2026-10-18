@@ -37,7 +37,7 @@ import { files, pickedFile, resetFiles } from '../../testSupport/documentFiles';
 import { ClassAwards } from './ClassAwards';
 import { CompanyRegisterScreen } from './CompanyRegisterScreen';
 import { PrepareRegisterGrantScreen } from './PrepareRegisterGrantScreen';
-import { registerKey } from './useCompanyRegister';
+import { registerKey } from '../../hooks/useCompanyRegister';
 import { awardsKey, awardVestingsKey } from './useRegisterAwards';
 
 type RouteParams = { section?: string; companyUuid?: string; tokenUuid?: string; awardUuid?: string };

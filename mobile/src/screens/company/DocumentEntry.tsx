@@ -7,8 +7,8 @@ import { Action } from '../../components/Ledger';
 import { apiClient } from '../../services/apiClient';
 import { getSessionEpoch } from '../../services/sessionScope';
 import { EXTENSION_BY_MIME_TYPE, shareDocumentCopy, UTI_BY_MIME_TYPE } from '../../services/documentCopies';
-import { useCompanyStyles } from '../company-register/styles';
-import type { CompanyActionRead } from './CompanyState';
+import { useCompanyStyles } from '../../hooks/useCompanyStyles';
+import type { CompanyActionRead } from '../../components/company/CompanyState';
 
 export function DocumentEntry({
   document,

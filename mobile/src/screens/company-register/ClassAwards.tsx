@@ -11,8 +11,8 @@ import { Action } from '../../components/Ledger';
 import { assertSessionEpoch } from '../../services/sessionScope';
 import { AwardForm } from './AwardForm';
 import { AwardRecord } from './AwardRecord';
-import { useCompanyStyles } from './styles';
-import { registerAppointmentsKey, useRegisterAppointments, useTransferMembers } from './useCompanyRegister';
+import { useCompanyStyles } from '../../hooks/useCompanyStyles';
+import { registerAppointmentsKey, useRegisterAppointments, useTransferMembers } from '../../hooks/useCompanyRegister';
 import { awardsKey, useRegisterAwards } from './useRegisterAwards';
 
 export function ClassAwards({
