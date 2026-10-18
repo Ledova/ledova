@@ -135,7 +135,7 @@ class ShareTokenCreateSerializer(serializers.ModelSerializer):
     def get_fields(self):
         fields = super().get_fields()
         request = self.context.get("request")
-        fields["company"].queryset = Company.objects.owned_by(getattr(request, "user", None))
+        fields["company"].queryset = Company.objects.register_preparable_by(getattr(request, "user", None))
         return fields
 
     def create(self, validated_data):

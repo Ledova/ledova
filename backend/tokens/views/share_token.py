@@ -6,10 +6,9 @@ from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter, extend_schema, inline_serializer
 from rest_framework import mixins, serializers, status
 from rest_framework.decorators import action
-from rest_framework.exceptions import PermissionDenied, ValidationError
+from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 
-from companies.models import Company
 from shared.views import AuthenticatedGenericViewSet
 from tokens.filters import ShareTokenFilter
 from tokens.models import ShareIssuance, ShareToken
@@ -90,9 +89,9 @@ class ShareTokenViewSet(
         }
     )
     operator_actions_because = (
-        "Share-class creation and owned reads keep their exact current-owner condition while basic company "
-        "administration remains separately scoped; its company selector and locked insertion "
-        "remain bound to that owner. "
+        "Share-class creation requires current personal company administration or prepare authority; its company "
+        "selector and insertion recheck that authority inside the locked company operation. Owned reads remain "
+        "separately scoped. "
         "a members' register has to carry each holder's name and residential address, and those "
         "belong to the issuer's investors rather than to the issuer, so no policy admits them to the "
         "principal reading it. Without the operator connection the register does not fail - it prints "
@@ -146,9 +145,6 @@ class ShareTokenViewSet(
 
     @extend_schema(responses=ShareTokenDetailSerializer)
     def create(self, request, *args, **kwargs):
-        if not Company.objects.owned_by(request.user).exists():
-            raise PermissionDenied("You must be associated with a company to create tokens.")
-
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         token = serializer.save()

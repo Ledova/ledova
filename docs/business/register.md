@@ -177,7 +177,8 @@ Ledova, and its holdings must match the stored register. On the web:
    share issue and Transfer shares also offer Set up share register for a class not yet set up.
 2. Share details: select an existing draft class, a common class (Ordinary ORD, Preference PRF or
    Redeemable RED), or Another class with the company's own name, code and type. Only the company
-   owner can create a class ([share classes](issuing-shares.md#share-classes)), and one set up here
+   owner is still required by these client selectors; the server accepts a current administrator or
+   preparer ([share classes](issuing-shares.md#share-classes)). A class set up here
    carries a technical share limit instead of authorised capital. Repeat for each class.
 3. Shareholders, one at a time: pick an existing company shareholder record or explicitly create one
    (names never link records, and existing names and addresses are kept), then enter from this
@@ -189,6 +190,12 @@ Ledova, and its holdings must match the stored register. On the web:
 4. Review the shares, shareholders and record date in one table, with particulars under Details.
    Confirm loads a fresh preview and records approval and application together; an appointee who may
    only review records the approval for another to apply.
+
+The register API also accepts an empty opening with no current or former members for a genuinely
+unopened draft class without chain activity. It retains the same company confirmation and separate
+approval/application, records an empty Opening state and creates no shares or shareholders. It
+cannot replace a populated or chain opening or erase records through a correction. The first
+subsequent approved issue uses the same register. This choice is not yet offered in either client.
 
 Inviting members is optional ([member access](member-records.md#member-access)). Unsaved edits are
 kept only in the open page and are lost if you leave it. After a failed or uncertain response, use Recover saved records or Recover

@@ -20,6 +20,7 @@ from companies.services.authority import (
     SIGNUP_DECLARATION_TEXT,
     SIGNUP_DECLARATION_VERSION,
 )
+from companies.services.team import revoke_company_appointment
 from shared.db import atomic, use_migrate, use_operator
 from shared.tests.core_fixtures import (
     CoreFixtures,
@@ -36,6 +37,7 @@ from tokens.models import (
     RegisterTransferDecision,
     ShareToken,
 )
+from tokens.services.creation import create_share_token
 from tokens.services.register_events import record_entry
 
 
@@ -166,6 +168,14 @@ class RegistryCoreTest(CoreFixtures, APITransactionTestCase):
         holders = self.client.get(f"/api/v1/tokens/{self.token.pk}/holders/")
         self.assertEqual(holders.status_code, 200, holders.content)
         self.assertIn("Synthetic Member", str(holders.json()))
+        class_payload = {
+            "company": str(self.company.pk),
+            "name": "Synthetic delegated shares",
+            "symbol": "DEL",
+            "total_supply": "1000",
+        }
+        read_only_class = self.client.post("/api/v1/tokens/", class_payload, format="json")
+        self.assertEqual(read_only_class.status_code, 400, read_only_class.content)
         endpoint = f"/api/v1/tokens/register-grants/{grant}/"
         fields = {"appointment": str(appointment.pk), "kind": "approve"}
         preview = self.client.post(f"{endpoint}decision-preview/", fields, format="json")
@@ -263,6 +273,9 @@ class RegistryCoreTest(CoreFixtures, APITransactionTestCase):
         resumed_profile.refresh_from_db()
         self.assertFalse(resumed_profile.is_signup_completed)
         self.assertEqual(CompanySignupTermsAcceptance.objects.count(), 1)
+        delegated_class = self.client.post("/api/v1/tokens/", class_payload, format="json")
+        self.assertEqual(delegated_class.status_code, 201, delegated_class.content)
+        self.assertFalse(delegated_class.json()["isOwner"])
         with use_operator(), self.assertRaises(DatabaseError), atomic():
             CompanySignupTermsAcceptance.objects.filter(appointment_id=original["uuid"]).update(
                 declaration_text="Changed"
@@ -282,6 +295,50 @@ class RegistryCoreTest(CoreFixtures, APITransactionTestCase):
         revoked_terms = self.client.post(endpoint, acknowledgement, format="json")
         self.assertEqual(revoked_terms.status_code, 404, revoked_terms.content)
         self.assertEqual(CompanySignupTermsAcceptance.objects.count(), 1)
+        class_payload["symbol"] = "PREP"
+        revoked_class = self.client.post("/api/v1/tokens/", class_payload, format="json")
+        self.assertEqual(revoked_class.status_code, 400, revoked_class.content)
+        self.client.force_authenticate(self.owner)
+        invitation = self.client.post(
+            "/api/v1/company-authority/invitations/",
+            {
+                "company": str(self.company.pk),
+                "inviter_appointment": str(self.appointment.pk),
+                "idempotency_key": str(uuid4()),
+                "capabilities": [CompanyCapability.PREPARE],
+                "delegatable_capabilities": [],
+            },
+            format="json",
+        )
+        self.assertEqual(invitation.status_code, 201, invitation.content)
+        self.client.force_authenticate(resumed_user)
+        preparer = self.client.post(
+            "/api/v1/company-authority/invitations/accept/",
+            {"code": invitation.json()["code"], "declaration_version": DECLARATION_VERSION, "accept_declaration": True},
+            format="json",
+        )
+        self.assertEqual(preparer.status_code, 200, preparer.content)
+        prepared_class = self.client.post("/api/v1/tokens/", class_payload, format="json")
+        self.assertEqual(prepared_class.status_code, 201, prepared_class.content)
+        self.assertFalse(prepared_class.json()["isOwner"])
+        foreign_class = self.client.post(
+            "/api/v1/tokens/", {**class_payload, "company": str(self.foreign_company.pk)}, format="json"
+        )
+        self.assertEqual(foreign_class.status_code, 400, foreign_class.content)
+
+        def revoked_creation(**values):
+            revoke_company_appointment(requester=self.owner, appointment_id=preparer.json()["uuid"])
+            return create_share_token(**values)
+
+        class_payload["symbol"] = "RACE"
+        with patch("tokens.serializers.share_token.create_share_token", side_effect=revoked_creation):
+            raced = self.client.post("/api/v1/tokens/", class_payload, format="json")
+        self.assertEqual(raced.status_code, 404, raced.content)
+        self.assertFalse(ShareToken.objects.filter(company=self.company, symbol="RACE").exists())
+        revoke_company_appointment(requester=self.owner, appointment_id=self.appointment.pk)
+        self.client.force_authenticate(self.owner)
+        owner_without_authority = self.client.post("/api/v1/tokens/", class_payload, format="json")
+        self.assertEqual(owner_without_authority.status_code, 400, owner_without_authority.content)
 
     def test_walletless_transfer_preserves_issued_shares_and_records_the_recipient(self):
         evidence = self.grant_payload()

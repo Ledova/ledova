@@ -259,6 +259,13 @@ execution in [signing families](chain.md#signing-families).
 
 ### Register decisions
 
+Share-class creation at `POST /api/v1/tokens/` keeps the existing request shape. Its company
+selector uses `register_preparable_by`, and the service rechecks the actor's current personal
+administrator/preparer authority inside `register_command` with the `register_class_create`
+operation. Company, actor, profile, operator settings and appointments are locked by the existing
+command; ownership and platform staff status supply no creation authority. Metadata creation makes
+no ownership entry; the opening and each issue retain their own actor and appointment records.
+
 Every company-decided register proposal family is a `DecisionFamily` in
 [register_decisions.py](../../backend/tokens/services/register_decisions.py), served by a
 `RegisterProposalViewSet` with `decision-preview/` and `decide/`; retained register instructions

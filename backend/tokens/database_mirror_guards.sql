@@ -3,8 +3,7 @@ RETURNS boolean LANGUAGE plpgsql SET search_path TO 'pg_catalog', 'public', 'pg_
 AS $function$
 DECLARE member jsonb; allotment jsonb; quantity numeric; paid numeric;
 BEGIN
-    IF jsonb_typeof(members) IS DISTINCT FROM 'array' OR jsonb_array_length(members) = 0
-        OR jsonb_array_length(members) > 10000 THEN RETURN false; END IF;
+    IF jsonb_typeof(members) IS DISTINCT FROM 'array' OR jsonb_array_length(members) > 10000 THEN RETURN false; END IF;
     FOR member IN SELECT value FROM jsonb_array_elements(members) LOOP
         IF jsonb_typeof(member) IS DISTINCT FROM 'object'
             OR (SELECT array_agg(key ORDER BY key COLLATE "C") FROM jsonb_object_keys(member) key)
@@ -54,7 +53,7 @@ BEGIN
             OR paid <> (member->>'amount_paid')::numeric THEN RETURN false; END IF;
     END LOOP;
     RETURN (SELECT count(DISTINCT item->>'member') = jsonb_array_length(members)
-        AND sum((item->>'shares')::numeric) <= 115792089237316195423570985008687907853269984665640564039457584007913129639935
+        AND COALESCE(sum((item->>'shares')::numeric), 0) <= 115792089237316195423570985008687907853269984665640564039457584007913129639935
         FROM jsonb_array_elements(members) item);
 EXCEPTION WHEN invalid_datetime_format OR datetime_field_overflow OR invalid_text_representation THEN RETURN false;
 END;
@@ -111,6 +110,18 @@ AS $function$
         AND NOT EXISTS (SELECT 1 FROM tokens_registerinstruction instruction WHERE instruction.token_id = token_uuid AND instruction.status = 'applied');
 $function$;
 
+CREATE OR REPLACE FUNCTION public.tokens_empty_mirror_opening_ready(proposal tokens_registerimport)
+RETURNS boolean LANGUAGE sql STABLE SET search_path TO 'pg_catalog', 'public', 'pg_temp'
+AS $function$
+    SELECT proposal.members <> '[]'::jsonb OR (proposal.correction_of_id IS NULL AND proposal.former_members = '[]'::jsonb
+        AND EXISTS (SELECT 1 FROM tokens_sharetoken token WHERE token.uuid = proposal.token_id AND token.company_id = proposal.company_id
+            AND token.status = 'draft' AND NULLIF(token.contract_address, '') IS NULL AND token.deployment_id IS NULL
+            AND token.deployment_transaction_id IS NULL AND NULLIF(token.deployment_tx_hash, '') IS NULL
+            AND token.deployed_at IS NULL AND NULLIF(token.chain, '') IS NULL)
+        AND NOT EXISTS (SELECT 1 FROM tokens_shareregister register WHERE register.token_id = proposal.token_id AND register.sequence > 0)
+        AND tokens_mirror_opening_clear(proposal.token_id));
+$function$;
+
 CREATE OR REPLACE FUNCTION public.tokens_validate_mirror_import(candidate tokens_registerimport, previous tokens_registerimport, operation text)
 RETURNS tokens_registerimport LANGUAGE plpgsql SET search_path TO 'pg_catalog', 'public', 'pg_temp'
 AS $function$
@@ -133,6 +144,7 @@ BEGIN
             OR candidate.authority_reference <> candidate.source_reference OR candidate.approving_director <> ''
             OR length(btrim(candidate.reason)) = 0 OR candidate.source_document IS NOT NULL OR candidate.asic_document IS NOT NULL
             OR candidate.as_at > current_date OR NOT tokens_mirror_members_valid(candidate.members, candidate.as_at)
+            OR NOT tokens_empty_mirror_opening_ready(candidate)
             OR NOT tokens_register_appointment_current(candidate.preparing_appointment_id, candidate.company_id, principal, 'prepare', at_time)
             OR EXISTS (SELECT 1 FROM jsonb_array_elements(candidate.members) item JOIN tokens_registermember member ON member.uuid::text = item->>'member'
                 WHERE member.company_id <> candidate.company_id)
@@ -141,7 +153,7 @@ BEGIN
                 OR EXISTS (SELECT 1 FROM tokens_registerimport confirmed WHERE confirmed.token_id = candidate.token_id AND confirmed.status = 'applied')))
             OR (candidate.correction_of_id IS NULL AND COALESCE(head.sequence, 0) = 0 AND NOT tokens_mirror_opening_clear(candidate.token_id))
             OR (candidate.asic_issued_total IS NOT NULL AND candidate.asic_issued_total IS DISTINCT FROM
-                (SELECT sum((item->>'shares')::numeric) FROM jsonb_array_elements(candidate.members) item))
+                (SELECT COALESCE(sum((item->>'shares')::numeric), 0) FROM jsonb_array_elements(candidate.members) item))
             OR (candidate.asic_evidence_id IS NULL AND (candidate.asic_issued_total IS NOT NULL OR candidate.asic_member_count IS NOT NULL))
             OR jsonb_typeof(candidate.former_members) IS DISTINCT FROM 'array' THEN
             RAISE EXCEPTION 'A mirror needs complete company records and its exact current opening snapshot' USING ERRCODE = '23514'; END IF;
@@ -236,6 +248,7 @@ BEGIN
         OR current_setting('app.company_id', true) IS DISTINCT FROM head.company_id::text
         OR NEW.recorded_by_id IS DISTINCT FROM principal OR NEW.corrects_id IS NOT NULL OR NEW.effective_on <> proposal.as_at
         OR NEW.changes IS DISTINCT FROM tokens_mirror_changes(proposal.uuid)
+        OR (NEW.kind = 'opening' AND NOT tokens_empty_mirror_opening_ready(proposal))
         OR NOT tokens_register_import_approved(proposal.uuid, clock_timestamp())
         OR NOT EXISTS (SELECT 1 FROM tokens_registerimportdecision decision WHERE decision.register_import_id = proposal.uuid
             AND decision.kind = 'apply' AND decision.decided_by_id = principal
