@@ -26,9 +26,24 @@ networking overrides and scanner module.
 ## Architecture
 
 Native projects are generated at prebuild
-([toolchain](mobile-releases.md#toolchain-and-generated-projects)). Screens live in
-`mobile/src/screens`, shared components in `mobile/src/components`, and the network, storage and
-session services in `mobile/src/services`.
+([toolchain](mobile-releases.md#toolchain-and-generated-projects)). The app follows the
+[frontend layers](frontend.md#frontend-layers) and their
+[dependency direction and placement](frontend.md#dependency-direction-and-placement) under its own
+folder names, with relative imports and no path aliases:
+
+| `mobile/src/`         | Dashboard counterpart   | Owns                                                                                                        |
+| --------------------- | ----------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `navigation/`         | `routes/` and the frame | The root stack, the sign-up gate, the drawer, the tabs and a stack per area                                 |
+| `screens/<area>/`     | `pages/`                | An area's screens with their hooks and helpers, and the files several of its screens share                  |
+| `components/`         | `components/`           | `Page`, `Ledger` and groups such as `modal/`, `panel/` and `qr/`                                            |
+| `hooks/`, `contexts/` | `hooks/`                | App-wide hooks; the app-lock, theme and camera-access contexts                                              |
+| `services/`           | `services/`             | `apiClient`, the session scope, secure and token storage, the device stores, document copies, notifications |
+| `utils/`              | `utils/`                | Keystone UR coding, the software signer, crypto helpers, prepared transfers                                 |
+| `config/`, `styles/`  |                         | Network policy and public links; the theme                                                                  |
+| `testSupport/`        | `testSupport/`          | Test helpers                                                                                                |
+
+Mobile's navigation and hooks still import hooks from `screens/`; moving them out is part of
+[#1074](https://github.com/Ledova/ledova/issues/1074).
 
 ### Shared package resolution
 
