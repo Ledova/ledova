@@ -14,7 +14,6 @@ import {
 } from '@ledova/shared';
 import { Action, Row, Rows } from '../../components/Ledger';
 import { CustomModal } from '../../components/modal';
-import { apiClient } from '../../services/apiClient';
 import { assertSessionEpoch } from '../../services/sessionScope';
 import { useCompanyStyles } from './styles';
 import { reconciliationKey, useRegisterReconciliation } from './useCompanyRegister';
@@ -51,7 +50,7 @@ function Acknowledge({
   const [opened, setOpened] = useState<string>();
   const [reason, setReason] = useState('');
   const [attempted, setAttempted] = useState(false);
-  const acknowledgement = useDiscrepancyAcknowledgement(apiClient, reconciliation, {
+  const acknowledgement = useDiscrepancyAcknowledgement(reconciliation, {
     appointment,
     newKey: () => Crypto.randomUUID(),
     guard: () => {

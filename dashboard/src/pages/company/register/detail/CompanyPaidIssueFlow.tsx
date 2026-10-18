@@ -411,7 +411,7 @@ function Preparation({ commands }: { commands: Commands }) {
 }
 
 export function CompanyPaidIssueFlow({ uuid, data }: { uuid: string; data: ReturnType<typeof useShareClass> }) {
-  const commands = useCompanyPaidIssues(apiClient, uuid, {
+  const commands = useCompanyPaidIssues(uuid, {
     token: data.token.data,
     tokenKey: data.tokenKey,
     newKey: () => crypto.randomUUID(),

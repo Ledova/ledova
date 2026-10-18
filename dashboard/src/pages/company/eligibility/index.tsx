@@ -8,12 +8,11 @@ import {
 import { FIELD_CLASS } from '@components/fieldClass';
 import { LinkRow, Section } from '@components/Ledger';
 import { Page, PageAction } from '@components/Page';
-import apiClient from '@services/apiClient';
 import { ActionConfirmation, EligibilityHistory, Field, RecordsList, TextField } from '@components/eligibility';
 import { CompanyWalletInstructions } from './CompanyWalletInstructions';
 
 export default function CompanyEligibilityPage() {
-  const read = useCompanyEligibilityRecords(apiClient, () => crypto.randomUUID());
+  const read = useCompanyEligibilityRecords(() => crypto.randomUUID());
   const [revocationReason, setRevocationReason] = useState('');
   const appointment = read.appointments.find(
     (item) => item.uuid === read.appointmentUuid && item.company === read.companyUuid,

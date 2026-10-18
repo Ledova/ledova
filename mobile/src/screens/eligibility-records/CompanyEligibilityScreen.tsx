@@ -9,7 +9,6 @@ import {
 } from '@ledova/shared';
 import { Action, Choice, Section } from '../../components/Ledger';
 import { Page } from '../../components/Page';
-import { apiClient } from '../../services/apiClient';
 import { orderSubmissionSession } from '../../services/orderSubmissions';
 import { useCompanyStyles } from '../company-register/styles';
 import { EligibilityConfirmation } from './EligibilityConfirmation';
@@ -56,7 +55,7 @@ function RevocationForm({
 
 export function CompanyEligibilityScreen() {
   const styles = useCompanyStyles();
-  const records = useCompanyEligibilityRecords(apiClient, Crypto.randomUUID, orderSubmissionSession);
+  const records = useCompanyEligibilityRecords(Crypto.randomUUID, orderSubmissionSession);
   const blocked = records.busy || records.loading || records.refreshing;
   const appointments = records.appointments.filter(
     (item) =>

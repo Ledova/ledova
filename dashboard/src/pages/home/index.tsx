@@ -19,7 +19,7 @@ import { saveFile } from '@utils/saveFile';
 const SUMMARY = 'cursor-pointer py-2 text-sm font-medium text-text-primary';
 
 export default function MemberRecordsPage() {
-  const read = useMemberRecords(apiClient, () => crypto.randomUUID());
+  const read = useMemberRecords(() => crypto.randomUUID());
   const selectionOwner = useRef<ReturnType<typeof useMemberRecords>['owner']>(null);
   useEffect(() => {
     if (read.owner && selectionOwner.current !== read.owner && read.records.length === 1 && !read.busy && !read.retry) {

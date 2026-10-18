@@ -34,7 +34,6 @@ export function CompanyMemberAccess({
   onHeldChange?: (held: boolean) => void;
 }) {
   const access = useCompanyMemberAccess(
-    apiClient,
     company,
     () => crypto.randomUUID(),
     undefined,

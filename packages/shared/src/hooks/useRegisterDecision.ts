@@ -80,6 +80,7 @@ import { COMPANY_WALLET_COPY, COMPANY_WALLET_UNMET_COPY } from '../constants/bus
 import { decideCompanyWalletInstruction, previewCompanyWalletDecision } from '../services/company-wallets';
 import { isCompanyWalletDecisionReceipt } from '../utils/company-wallets';
 import type { CompanyWalletInstruction, CompanyWalletDecisionPreview } from '../types';
+import { useApiClient } from './useApiClient';
 
 type DecisionPreview = { previewDigest: string; canDecide: boolean };
 
@@ -258,11 +259,11 @@ function refusal(failure: unknown, unmet: Record<string, string>, fallback: stri
 }
 
 export function useRegisterDecision<Proposal, Preview extends DecisionPreview>(
-  apiClient: AxiosInstance,
   family: RegisterDecisionFamily<Proposal, Preview>,
   proposal: { uuid: string } | undefined,
   options: RegisterDecisionOptions<Proposal>,
 ) {
+  const apiClient = useApiClient();
   const mounted = useRef(true);
   const pending = useRef(false);
   const confirmation = useRef<RegisterDecisionTarget<Preview> | null>(null);

@@ -10,7 +10,6 @@ import {
 } from '@ledova/shared';
 import { Action, Choice, Row, Rows, Section } from '../../components/Ledger';
 import type { BottomTabParamList } from '../../navigation/BottomTabNavigator';
-import { apiClient } from '../../services/apiClient';
 import { orderSubmissionSession } from '../../services/orderSubmissions';
 import { useCompanyStyles } from '../company-register/styles';
 
@@ -30,7 +29,7 @@ function NominationFacts({ preview }: { preview: WalletNominationPreview }) {
 }
 
 export function WalletNomination({ requestUuid, guardRequest }: { requestUuid: string; guardRequest: () => void }) {
-  const data = useWalletNomination(apiClient, {
+  const data = useWalletNomination({
     requestUuid,
     guardRequest,
     newKey: Crypto.randomUUID,

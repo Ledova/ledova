@@ -1,11 +1,10 @@
 import { Link } from 'react-router-dom';
-import { DESTINATIONS, REGISTER_IMPORT_COPY } from '@ledova/shared';
+import { DESTINATIONS, REGISTER_IMPORT_COPY, useCompanySelection } from '@ledova/shared';
 import { Section } from '@components/Ledger';
-import { useCompany } from '@pages/company/shared/useCompany';
 import { Loading, Unavailable } from '@pages/company/shared/RegisterStatus';
 
 export function RegisterSetup() {
-  const read = useCompany({ personalOnly: true });
+  const read = useCompanySelection({ personalOnly: true });
   if (read.error) return <Unavailable retry={() => void read.refetch()} busy={read.isRefreshing} />;
   if (read.isLoading || read.isRefreshing) return <Loading />;
   return (

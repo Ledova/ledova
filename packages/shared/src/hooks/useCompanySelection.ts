@@ -1,6 +1,5 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import type { AxiosInstance } from 'axios';
 import { COMPANY_AUTHORITY_CAPABILITIES, canOpen } from '../constants';
 import { getCompanies, getCompany } from '../services/companies';
 import type { Company, CompanyListItem, UserPreferences } from '../types';
@@ -10,6 +9,7 @@ import { AUTH_QUERY_KEY } from './useAuth';
 import type { OrderSubmissionSession } from './useOrderSubmissions';
 import { useSubmissionOwner } from './useSubmissionOwner';
 import { USER_PREFERENCES_QUERY_KEY, useUserPreferences } from './useUserPreferences';
+import { useApiClient } from './useApiClient';
 
 export function canAdministerCompany(company: Company | CompanyListItem) {
   const access = company.administrativeAccess;
@@ -29,14 +29,12 @@ export function canPersonallyAdministerCompany(company: Company | CompanyListIte
   return canAdministerCompany(company) && company.administrativeAccess.capabilities.includes('admin');
 }
 
-export function useCompanySelection(
-  apiClient: AxiosInstance,
-  {
-    ownedOnly = false,
-    personalOnly = false,
-    session,
-  }: { ownedOnly?: boolean; personalOnly?: boolean; session?: OrderSubmissionSession } = {},
-) {
+export function useCompanySelection({
+  ownedOnly = false,
+  personalOnly = false,
+  session,
+}: { ownedOnly?: boolean; personalOnly?: boolean; session?: OrderSubmissionSession } = {}) {
+  const apiClient = useApiClient();
   const client = useQueryClient();
   const { owner, boundary } = useSubmissionOwner(session);
   const preferences = useUserPreferences();

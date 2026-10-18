@@ -1,22 +1,20 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { DESTINATIONS, companyActivationOutcome, useCompanyActivation } from '@ledova/shared';
+import { DESTINATIONS, companyActivationOutcome, useCompanyActivation, useCompanySelection } from '@ledova/shared';
 import { Page, PageAction } from '@components/Page';
 import { LinkRow, Row, Rows, Section, Timeline, type TimelineEvent } from '@components/Ledger';
 import { Modal } from '@components/Modal';
-import apiClient from '@services/apiClient';
-import { useCompany } from '@pages/company/shared/useCompany';
 import { CompanyReadNotice, CompanyStatusMark } from '@pages/company/shared/CompanyState';
 import { CompanySelection } from '@pages/company/shared/CompanySelection';
 
 export default function ListingPage() {
-  const read = useCompany({ personalOnly: true });
+  const read = useCompanySelection({ personalOnly: true });
   return <CompanyActivation key={`${read.scopeKey}/${read.companyUuid ?? ''}`} read={read} />;
 }
 
-function CompanyActivation({ read }: { read: ReturnType<typeof useCompany> }) {
+function CompanyActivation({ read }: { read: ReturnType<typeof useCompanySelection> }) {
   const navigate = useNavigate();
-  const action = useCompanyActivation(apiClient, read, () => crypto.randomUUID());
+  const action = useCompanyActivation(read, () => crypto.randomUUID());
   const { company } = read;
   const events: TimelineEvent[] = company
     ? [

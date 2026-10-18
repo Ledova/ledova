@@ -7,7 +7,6 @@ import type { BottomTabParamList } from '../../navigation/BottomTabNavigator';
 import { Action, Choice, Row, Rows, Section } from '../../components/Ledger';
 import { Page } from '../../components/Page';
 import { CustomModal } from '../../components/modal';
-import { apiClient } from '../../services/apiClient';
 import { useCompanyProfile } from '../../hooks/useCompanyProfile';
 import { CompanyReadNotice } from '../company/CompanyState';
 import { useCompanyStyles } from '../company-register/styles';
@@ -21,7 +20,7 @@ export function ListingScreen() {
 function ActivationDetails({ read }: { read: ReturnType<typeof useCompanyProfile> }) {
   const styles = useCompanyStyles();
   const navigation = useNavigation<NavigationProp<BottomTabParamList>>();
-  const action = useCompanyActivation(apiClient, read, () => Crypto.randomUUID());
+  const action = useCompanyActivation(read, () => Crypto.randomUUID());
   const { company } = read;
   const events = company
     ? [

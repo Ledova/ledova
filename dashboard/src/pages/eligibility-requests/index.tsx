@@ -2,12 +2,11 @@ import { DESTINATIONS, ELIGIBILITY_RECORDS_NOTICE, useParticipantEligibilityReco
 import { FIELD_CLASS } from '@components/fieldClass';
 import { LinkRow, Section } from '@components/Ledger';
 import { Page, PageAction } from '@components/Page';
-import apiClient from '@services/apiClient';
 import { ActionConfirmation, EligibilityHistory, Field, RecordsList, TextField } from '@components/eligibility';
 import { WalletNomination } from './WalletNomination';
 
 export default function ParticipantEligibilityPage() {
-  const read = useParticipantEligibilityRecords(apiClient, () => crypto.randomUUID());
+  const read = useParticipantEligibilityRecords(() => crypto.randomUUID());
   const source = read.sources.find((item) => item.uuid === read.draft.source);
   return (
     <Page

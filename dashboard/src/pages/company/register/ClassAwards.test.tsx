@@ -36,15 +36,17 @@ const submissions = (url: string) =>
 function show(onHeldChange?: (token: string, held: boolean) => void) {
   return render(
     <QueryClientProvider client={client}>
-      <MemoryRouter>
-        <ClassAwards
-          owner={OWNER}
-          company={APPOINTMENT.company}
-          register={REGISTER}
-          guard={() => {}}
-          onHeldChange={onHeldChange}
-        />
-      </MemoryRouter>
+      <ApiClientProvider client={apiClient}>
+        <MemoryRouter>
+          <ClassAwards
+            owner={OWNER}
+            company={APPOINTMENT.company}
+            register={REGISTER}
+            guard={() => {}}
+            onHeldChange={onHeldChange}
+          />
+        </MemoryRouter>
+      </ApiClientProvider>
     </QueryClientProvider>,
   );
 }

@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import type { AxiosInstance } from 'axios';
 import { activateCompany } from '../services/companies';
 import type { Company, CompanyActivate, CompanyActivationAttempt } from '../types';
 import { createUserFriendlyError, getErrorMessage } from '../utils/errors';
 import { isUuid } from '../utils/validation';
 import type { useCompanySelection } from './useCompanySelection';
+import { useApiClient } from './useApiClient';
 
 type Selection = ReturnType<typeof useCompanySelection>;
 type Preview = {
@@ -40,7 +40,8 @@ function activationSignature(company: Company) {
   ]);
 }
 
-export function useCompanyActivation(apiClient: AxiosInstance, read: Selection, newKey: () => string) {
+export function useCompanyActivation(read: Selection, newKey: () => string) {
+  const apiClient = useApiClient();
   const client = useQueryClient();
   const mounted = useRef(true);
   const pending = useRef(false);

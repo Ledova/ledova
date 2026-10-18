@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
-import type { AxiosInstance, AxiosRequestConfig } from 'axios';
+import type { AxiosRequestConfig } from 'axios';
 import { REGISTER_RECONCILIATION_COPY } from '../constants/business/register-reconciliations';
 import { acknowledgeRegisterDiscrepancy } from '../services/register-reconciliations';
 import type { RegisterReconciliation } from '../types';
 import { apiErrorSentence, createUserFriendlyError, getErrorMessage } from '../utils/errors';
 import { failureStatus } from '../utils/register-commands';
 import { isDiscrepancyAcknowledgementReceipt } from '../utils/register-reconciliations';
+import { useApiClient } from './useApiClient';
 
 export type DiscrepancyAcknowledgementOptions = {
   appointment: string | undefined;
@@ -17,10 +18,10 @@ export type DiscrepancyAcknowledgementOptions = {
 };
 
 export function useDiscrepancyAcknowledgement(
-  apiClient: AxiosInstance,
   reconciliation: Pick<RegisterReconciliation, 'uuid'> | undefined,
   options: DiscrepancyAcknowledgementOptions,
 ) {
+  const apiClient = useApiClient();
   const mounted = useRef(true);
   const pending = useRef(false);
   const retry = useRef<{ signature: string; key: string } | null>(null);

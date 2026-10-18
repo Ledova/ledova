@@ -326,7 +326,7 @@ function Preparation({ commands }: { commands: Commands }) {
 }
 
 export function CompanyCapitalFlow({ uuid, data }: { uuid: string; data: ReturnType<typeof useShareClass> }) {
-  const commands = useCompanyCapitalIncreases(apiClient, uuid, {
+  const commands = useCompanyCapitalIncreases(uuid, {
     token: data.token.data,
     tokenKey: data.tokenKey,
     newKey: () => crypto.randomUUID(),

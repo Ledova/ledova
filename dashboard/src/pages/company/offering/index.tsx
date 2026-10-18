@@ -12,11 +12,11 @@ import {
   formatShareCount,
   updateCompany,
   type OfferingListItem,
+  useCompanySelection,
 } from '@ledova/shared';
 import { Page, PageAction } from '@components/Page';
 import { Row, Rows, Section, Status, SwitchRow } from '@components/Ledger';
 import apiClient from '@services/apiClient';
-import { useCompany } from '@pages/company/shared/useCompany';
 import { CompanySelection } from '@pages/company/shared/CompanySelection';
 import { CompanyReadNotice } from '@pages/company/shared/CompanyState';
 import { useOfferingActions, useOfferings } from './useOffering';
@@ -108,13 +108,13 @@ function OfferingRecord({
 }
 
 export default function OfferingPage() {
-  const companyRead = useCompany({ ownedOnly: true });
+  const companyRead = useCompanySelection({ ownedOnly: true });
   return (
     <CompanyOfferings key={`${companyRead.scopeKey}/${companyRead.companyUuid ?? ''}`} companyRead={companyRead} />
   );
 }
 
-function CompanyOfferings({ companyRead }: { companyRead: ReturnType<typeof useCompany> }) {
+function CompanyOfferings({ companyRead }: { companyRead: ReturnType<typeof useCompanySelection> }) {
   const { company } = companyRead;
   const data = useOfferings(companyRead.retainedCompany?.uuid, companyRead);
   const client = useQueryClient();

@@ -523,7 +523,7 @@ function Preparation({ commands }: { commands: Commands }) {
 }
 
 export function CompanyIssueFlow({ uuid, data }: { uuid: string; data: ReturnType<typeof useShareClass> }) {
-  const commands = useCompanyIssueInstructions(apiClient, uuid, {
+  const commands = useCompanyIssueInstructions(uuid, {
     token: data.token.data,
     tokenKey: data.tokenKey,
     newKey: () => crypto.randomUUID(),

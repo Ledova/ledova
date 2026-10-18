@@ -262,7 +262,7 @@ function Preparation({ commands }: { commands: Commands }) {
 
 export function CompanyPauseFlow({ uuid, data }: { uuid: string; data: ReturnType<typeof useTokenDetail> }) {
   const styles = useCompanyStyles();
-  const commands = useCompanyPauseChanges(apiClient, uuid, {
+  const commands = useCompanyPauseChanges(uuid, {
     token: data.token.data,
     tokenKey: data.tokenKey,
     newKey: () => Crypto.randomUUID(),
