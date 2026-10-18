@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Text, View } from 'react-native';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import * as Crypto from 'expo-crypto';
 import {
   appointmentForRegisterStep,
@@ -8,11 +8,8 @@ import {
   formatDateTime,
   formatShareCount,
   getErrorMessage,
-  getOwnCompanyAppointments,
-  getRegisterDeployments,
   isPreparedRegisterDeployment,
   prepareRegisterDeployment,
-  readEveryPage,
   registerDeploymentExecutionState,
   REGISTER_DEPLOYMENT_COPY as COPY,
   REGISTER_DEPLOYMENT_DECISIONS,
@@ -29,6 +26,7 @@ import { apiClient } from '../../services/apiClient';
 import { RegisterDecision } from '../company-register/RegisterDecision';
 import { useCompanyStyles } from '../company-register/styles';
 import type { useTokenDetail } from './useTokenDetail';
+import { useDeploymentAppointments, useDeploymentProposals } from './useDeploymentReads';
 
 type Read = ReturnType<typeof useTokenDetail>;
 type Snapshot = RegisterDeployment['snapshot'];
@@ -176,9 +174,6 @@ export function DeploymentFlow({ uuid, data }: { uuid: string; data: Read }) {
   const mounted = useRef(true);
   const pending = useRef(false);
   const company = data.token.data?.uuid === uuid ? data.token.data.companyUuid : undefined;
-  const scope = [data.epoch, data.owner?.userUuid, data.owner?.ownerAccountUuid, uuid];
-  const appointmentsKey = ['register-deployment-appointments', ...scope];
-  const proposalsKey = ['register-deployments', ...scope];
   const guard = () => {
     data.guard();
     if (!mounted.current) throw new Error('This deployment is no longer open.');
@@ -190,12 +185,7 @@ export function DeploymentFlow({ uuid, data }: { uuid: string; data: Read }) {
     guard();
     return result;
   };
-  const appointments = useQuery({
-    queryKey: appointmentsKey,
-    enabled: !!data.owner && !!company,
-    queryFn: ({ signal }) =>
-      readEveryPage((page) => read(() => getOwnCompanyAppointments(apiClient, page, config(signal)))),
-  });
+  const { appointmentsKey, appointments } = useDeploymentAppointments({ uuid, data, company, read, config });
   const steps = Object.fromEntries(
     (['prepare', 'approve', 'apply', 'reject'] as const).map((kind) => [
       kind,
@@ -203,21 +193,7 @@ export function DeploymentFlow({ uuid, data }: { uuid: string; data: Read }) {
     ]),
   );
   const [records, setRecords] = useState<RegisterDeployment[]>([]);
-  const proposals = useQuery({
-    queryKey: proposalsKey,
-    enabled: !!data.owner && !!company,
-    queryFn: async ({ signal }) => {
-      const rows = await readEveryPage((page) =>
-        read(() => getRegisterDeployments(apiClient, { token: uuid, page }, config(signal))),
-      );
-      if (
-        rows.some((row) => row.token !== uuid || row.company !== company) ||
-        new Set(rows.map((row) => row.uuid)).size !== rows.length
-      )
-        throw new Error('The deployment records do not belong to this share class.');
-      return rows;
-    },
-  });
+  const { proposalsKey, proposals } = useDeploymentProposals({ uuid, data, company, read, config });
   const retain = (proposal: RegisterDeployment) =>
     setRecords((previous) => [proposal, ...previous.filter((row) => row.uuid !== proposal.uuid)]);
   useEffect(() => {

@@ -1,15 +1,13 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   CACHE_TIMING,
-  getInvestorClassifications,
+  useInvestorClassifications,
+  INVESTOR_CLASSIFICATIONS_QUERY_KEY,
   getInvestorReadiness,
-  readEveryPage,
   INVESTOR_ELIGIBILITY_QUERY_KEY,
   DIRECTORY_QUERY_KEY,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
-
-export const INVESTOR_CLASSIFICATIONS_QUERY_KEY = ['investor-classifications'] as const;
 
 export function useInvestorEligibility() {
   const queryClient = useQueryClient();
@@ -20,11 +18,7 @@ export function useInvestorEligibility() {
     staleTime: CACHE_TIMING.SHORT_STALE_TIME,
   });
 
-  const classificationsQuery = useQuery({
-    queryKey: [...INVESTOR_CLASSIFICATIONS_QUERY_KEY, 'verification'],
-    queryFn: () => readEveryPage((page) => getInvestorClassifications(apiClient, page)),
-    staleTime: CACHE_TIMING.SHORT_STALE_TIME,
-  });
+  const classificationsQuery = useInvestorClassifications();
 
   const refresh = () =>
     Promise.all([

@@ -12,8 +12,12 @@ import apiClient from '@services/apiClient';
 import { READ_TIMING, registerKey } from '@hooks/useRegisterAccess';
 import { firstOfEach, guarded } from './registerReads';
 
+export function registerEntriesKey(owner: OrderSubmissionOwner) {
+  return [...registerKey(owner), 'entries'];
+}
+
 export function entriesKey(owner: OrderSubmissionOwner, token: string) {
-  return [...registerKey(owner), 'entries', token];
+  return [...registerEntriesKey(owner), token];
 }
 
 function readEntries(token: string, page: number, guard: () => void) {

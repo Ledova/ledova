@@ -1,3 +1,5 @@
+import { registerEntriesKey } from '@pages/company/register/shared/useRegisterEntries';
+import { registerHoldersKey } from '@pages/company/shared/useCompanyRegister';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   REGISTER_PARTICULARS_COPY,
@@ -10,7 +12,6 @@ import { PageAction } from '@components/Page';
 
 import { ParticularsRecord } from './ParticularsRecord';
 import { registerMembers, registerSteps } from '@pages/company/shared/proposals';
-import { registerKey } from '@hooks/useRegisterAccess';
 import { useOwnAppointments, ownAppointmentsKey } from '@pages/company/shared/useOwnAppointments';
 import { particularsKey, useRegisterParticulars } from '@pages/company/register/shared/useRegisterParticulars';
 
@@ -52,8 +53,8 @@ export function RegisterParticulars({
     await Promise.all(
       [
         particularsKey(owner, company),
-        [...registerKey(owner), 'holders'],
-        [...registerKey(owner), 'entries'],
+        registerHoldersKey(owner),
+        registerEntriesKey(owner),
         ownAppointmentsKey(owner),
       ].map((queryKey) => client.invalidateQueries({ queryKey })),
     );

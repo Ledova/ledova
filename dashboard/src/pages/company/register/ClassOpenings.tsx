@@ -1,3 +1,4 @@
+import { registerHoldersKey } from '@pages/company/shared/useCompanyRegister';
 import { useCallback } from 'react';
 import { generatePath } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
@@ -13,7 +14,6 @@ import { PageAction } from '@components/Page';
 
 import { OpeningRecord } from './OpeningRecord';
 import { registerSteps } from '@pages/company/shared/proposals';
-import { registerKey } from '@hooks/useRegisterAccess';
 import { entriesKey } from '@pages/company/register/shared/useRegisterEntries';
 import { useOwnAppointments, ownAppointmentsKey } from '@pages/company/shared/useOwnAppointments';
 import { openingsKey, useRegisterOpenings } from '@pages/company/register/shared/useRegisterOpenings';
@@ -58,12 +58,9 @@ export function ClassOpenings({
       return;
     }
     await Promise.all(
-      [
-        openingsKey(owner, token),
-        [...registerKey(owner), 'holders'],
-        entriesKey(owner, token),
-        ownAppointmentsKey(owner),
-      ].map((queryKey) => client.invalidateQueries({ queryKey })),
+      [openingsKey(owner, token), registerHoldersKey(owner), entriesKey(owner, token), ownAppointmentsKey(owner)].map(
+        (queryKey) => client.invalidateQueries({ queryKey }),
+      ),
     );
   };
   return (

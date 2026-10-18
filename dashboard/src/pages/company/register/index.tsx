@@ -35,8 +35,12 @@ import { CompanyPack } from './CompanyPack';
 import { RegisterLinks } from './RegisterLinks';
 import { RegisterParticulars } from './RegisterParticulars';
 import { Loading, Unavailable } from '@pages/company/shared/RegisterStatus';
-import { registerKey } from '@hooks/useRegisterAccess';
-import { registersQuery, useCompanyRegister, useRegisterDownload } from '@pages/company/shared/useCompanyRegister';
+import {
+  registersQuery,
+  useCompanyRegister,
+  useRegisterDownload,
+  registerClassesKey,
+} from '@pages/company/shared/useCompanyRegister';
 import { ownerGuard } from '@pages/company/register/shared/ownerGuard';
 import { useOwnAppointments, ownAppointmentsKey } from '@pages/company/shared/useOwnAppointments';
 
@@ -130,7 +134,7 @@ function RegisterShareholders({
     guard();
     for (const key of [
       USER_PREFERENCES_QUERY_KEY,
-      [...registerKey(owner), 'classes'],
+      registerClassesKey(owner),
       registersQuery(
         owner,
         registers.map(({ token }) => token.uuid),

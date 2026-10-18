@@ -41,6 +41,14 @@ export {
 } from './useCompanySelection';
 export { useResolutionStatus } from './useResolutionStatus';
 export { useShareHoldings } from './useShareHoldings';
+export { walletHoldingsKey, useWalletHoldings } from './useWalletHoldings';
+export { buyWalletsKey, useBuyWallets } from './useBuyWallets';
+export {
+  INVESTOR_CLASSIFICATIONS_QUERY_KEY,
+  investorClassificationsKey,
+  useInvestorClassifications,
+} from './useInvestorClassifications';
+export { OFFERINGS_QUERY_KEY, companyOfferingsKey, useCompanyOfferings } from './useCompanyOfferings';
 export { useOpenRows } from './useOpenRows';
 export { WALLET_SORTS, sortWallets, useWalletSort } from './useWalletSort';
 export type { WalletSortOption } from './useWalletSort';
@@ -77,6 +85,8 @@ export { useSwapOrdersMulti } from './useAtomicSwaps';
 export {
   useSubscribableWallets,
   useSubscriptions,
+  useSubscriptionDetail,
+  subscriptionDetailKey,
   SUBSCRIPTIONS_QUERY_KEY,
   WALLETS_QUERY_KEY,
 } from './useSubscriptions';

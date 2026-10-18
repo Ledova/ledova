@@ -1,3 +1,4 @@
+import { registerHoldersKey } from '@pages/company/shared/useCompanyRegister';
 import { useCallback } from 'react';
 import { generatePath } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
@@ -19,7 +20,6 @@ import { CorrectionRecord } from './CorrectionRecord';
 import { ClassCertificate } from './ClassCertificate';
 import { RegisterChanges } from '@pages/company/register/shared/RegisterChanges';
 import { registerSteps } from '@pages/company/shared/proposals';
-import { registerKey } from '@hooks/useRegisterAccess';
 import {
   correctionsKey,
   useClassCorrections,
@@ -205,7 +205,7 @@ export function ClassCorrections({
       [
         correctionsKey(owner, token),
         entriesKey(owner, token),
-        [...registerKey(owner), 'holders'],
+        registerHoldersKey(owner),
         ownAppointmentsKey(owner),
       ].map((queryKey) => client.invalidateQueries({ queryKey })),
     );

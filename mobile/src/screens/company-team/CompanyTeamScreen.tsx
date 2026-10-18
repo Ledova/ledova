@@ -1,12 +1,8 @@
 import { useCallback, useLayoutEffect, useRef, useState } from 'react';
 import { RefreshControl, Text, View } from 'react-native';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import {
-  getCompanyTeam,
-  getCompanyTeamInvitations,
-  getOwnCompanyAppointments,
   formatDateTime,
-  readEveryPage,
   revokeCompanyAppointment,
   useSubmissionOwner,
   type CompanyTeamAppointment,
@@ -15,6 +11,7 @@ import {
 } from '@ledova/shared';
 import { Action, Choice, Row, Rows, Section } from '../../components/Ledger';
 import { Page } from '../../components/Page';
+import { COMPANY_AUTHORITY_REQUESTS_QUERY_KEY } from '../../hooks/useCompanyAuthorityRequests';
 import { apiClient } from '../../services/apiClient';
 import { orderSubmissionSession } from '../../services/orderSubmissions';
 import { assertSessionEpoch, getSessionEpoch } from '../../services/sessionScope';
@@ -23,6 +20,7 @@ import { registerAppointmentsKey } from '../company-register/useCompanyRegister'
 import { AcceptInvitation } from './AcceptInvitation';
 import { AppointmentRecord, scopeLabels } from './AppointmentRecord';
 import { InvitationForm } from './InvitationForm';
+import { useCompanyTeamReads } from './useCompanyTeamReads';
 import { EligibilityLinks } from '../eligibility-records/EligibilityLinks';
 
 function CompanyTeam({
@@ -48,65 +46,11 @@ function CompanyTeam({
     assertSessionEpoch(epoch);
     if (!live.current || currentOwner() !== owner) throw new Error('Your account changed. Reopen Company team.');
   }, [currentOwner, owner, epoch]);
-  const scope = ['company-team', owner.userUuid, owner.ownerAccountUuid, epoch];
-  const appointmentsKey = [...scope, 'appointments'];
-  const invitationsKey = [...scope, 'invitations'];
-  const teamKey = [...scope, 'team', company];
-  const appointments = useQuery({
-    queryKey: appointmentsKey,
-    retry: false,
-    queryFn: ({ signal }) =>
-      readEveryPage(async (page) => {
-        guard();
-        const response = await getOwnCompanyAppointments(apiClient, page, {
-          ledovaSessionEpoch: epoch,
-          ledovaSubmissionGuard: guard,
-          signal,
-        });
-        guard();
-        return response;
-      }),
-  });
-  const invitations = useQuery({
-    queryKey: invitationsKey,
-    retry: false,
-    queryFn: ({ signal }) =>
-      readEveryPage(async (page) => {
-        guard();
-        const response = await getCompanyTeamInvitations(apiClient, page, {
-          ledovaSessionEpoch: epoch,
-          ledovaSubmissionGuard: guard,
-          signal,
-        });
-        guard();
-        return response;
-      }),
-  });
-  const own = appointments.isSuccess ? appointments.data : [];
+  const { scope, appointmentsKey, teamKey, appointments, invitations, team, own, current, administers } =
+    useCompanyTeamReads({ owner, epoch, company, guard });
   const companies = own.filter((record, index) => own.findIndex((item) => item.company === record.company) === index);
-  const current = own.filter(
-    (record) => record.company === company && record.isEffective && record.status === 'active',
-  );
   const source = current.find((record) => record.uuid === sourceId);
-  const administers = current.some((record) => record.capabilities.includes('admin'));
   const companyName = companies.find((record) => record.company === company)?.companyName;
-  const team = useQuery({
-    queryKey: teamKey,
-    enabled: !!company && administers && !appointments.isFetching,
-    retry: false,
-    queryFn: async ({ signal }) => {
-      guard();
-      const response = await getCompanyTeam(apiClient, company!, {
-        ledovaSessionEpoch: epoch,
-        ledovaSubmissionGuard: guard,
-        signal,
-      });
-      guard();
-      if (response.data.some((record) => record.company !== company))
-        throw new Error('The team response did not match the selected company.');
-      return response.data;
-    },
-  });
   const refreshing = appointments.isFetching || invitations.isFetching || (administers && team.isFetching);
   const refresh = () => {
     void appointments.refetch();
@@ -169,7 +113,7 @@ function CompanyTeam({
           : record,
       ),
     );
-    void queryClient.invalidateQueries({ queryKey: ['company-authority-requests'] });
+    void queryClient.invalidateQueries({ queryKey: COMPANY_AUTHORITY_REQUESTS_QUERY_KEY });
     void queryClient.invalidateQueries({ queryKey: registerAppointmentsKey(epoch) });
   };
   return (

@@ -1,4 +1,4 @@
-import { INVESTOR_CLASSIFICATIONS_QUERY_KEY } from '@hooks/useInvestorEligibility';
+import { INVESTOR_CLASSIFICATIONS_QUERY_KEY } from '@ledova/shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { getInvestorClassifications } from '@ledova/shared';
 import apiClient from '@services/apiClient';
