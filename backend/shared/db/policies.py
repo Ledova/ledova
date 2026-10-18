@@ -350,8 +350,9 @@ DERIVED_FROM_A_MUTABLE_ATTRIBUTE = {
     "tokens_formerholder": "R24: operator-written. The read term is owner_id alone and carries no market term, "
     "because tokens_sharetoken's public term one hop up exists so investors can browse a listing, and copying it "
     "here would publish former members' names and home addresses to every investor who can see the class. The "
-    "write term is false for all three commands: the fold task writes on the operator alias, the retention sweep "
-    "deletes on the same alias on the accepted retention clock. Refolding leaves existing particulars unchanged. "
+    "write term is false for all three commands: tokens/tasks/former_holders.py fold_every_share_class writes on "
+    "the operator alias, and purge_former_members_past_the_clock deletes on the same alias on the accepted "
+    "retention clock. Refolding leaves existing particulars unchanged. "
     "The owner is derived through token.company.owner; a future owner-transfer feature must propagate it.",
 }
 
@@ -393,7 +394,7 @@ READS_WIDER_THAN_OWNERSHIP = {
     ),
     "Documents attached to a published offering": (
         "offerings/services/documents.py published_documents and published_document, "
-        "for offerings/views/directory.py",
+        "for DirectoryTokenViewSet.documents and document_file in offerings/views/directory.py",
         "companies_companydocument and offerings_offering_documents: the stored files attached to an approved or "
         "closed offering of a share class the caller's directory admits. The token resolves through the directory "
         "selector and the offerings through their own policy, under the app role, before one operator query "
@@ -451,15 +452,16 @@ PUBLIC_TERM = {
     "every deployed token from an investor - the second term has to be on the token's own columns. It is the "
     "exact dual of HAS_A_TOKEN_ON_THE_MARKET on companies_company: a company is visible because a token of its "
     "is on the market, and that token is visible because it is on the market. Remove either and R13's closure "
-    "between the two tables fails, which is why it holds by construction rather than by luck. The policy reads "
-    "only this table's own columns, so it forms no cycle with the company term that reads it.",
+    "between the two tables fails, which is why it holds by construction rather than by luck. The market term "
+    "reads only this table's own columns and the owner term goes through the app_visible_company_ids definer, so "
+    "the policy forms no cycle with the company term that reads it.",
     "offerings_subscription": "Applicants keep their applications when the offering or company is hidden. "
     "The applicant route reads stored names and currency without joining those parents; submit re-reads "
     "the offering on the operator connection behind the subscription admission lock, and withdraw retains its "
-    "money and mint guards. tokens/services/register_instructions.py submit_instruction and _check_items ask, "
-    "on the app role, whether a subscription stands behind each issuance request a company owner's issue "
-    "instruction names - the scope is the offering's ownership rather than the subscriber's account, so a "
-    "member-only policy would hide every other investor's subscription from those checks. "
+    "money and mint guards. tokens/services/register_instructions.py submit_instruction, directly and through "
+    "_check_items, asks on the app role whether a subscription stands behind each issuance request a company "
+    "owner's issue instruction names - the scope is the offering's ownership rather than the subscriber's "
+    "account, so a member-only policy would hide every other investor's subscription from those checks. "
     "OfferingViewSet.subscriptions runs Subscription.objects.for_issuer(offering) on the operator connection. "
     "The read term adds the offerings the principal's companies own; WITH CHECK stays member-only, because "
     "an issuer does not write a subscription on someone's behalf. No cycle: offerings_offering's policy "
@@ -706,9 +708,9 @@ NOT_TENANCY = {
 REACHED_DESPITE_OPERATOR_ONLY = {
     "tokens_yieldtoken": "assets/serializers/asset.py AssetSerializer._get_yield_token reads it for every asset a "
     "customer lists, to answer nav_per_token and last_nav_update. It is filtered by symbol and not by any principal.",
-    "compliance_monitoringrule": "No app-role path reads it now: account creation records only a pending "
-    "assessment, and the screening and batch-monitoring tasks read the rules on the operator connection. "
-    "#1098 removes the grant or names a reader.",
+    "compliance_monitoringrule": "No app-role path reads it now: users/services/setup.py ensure_defaults records "
+    "only a pending assessment, and compliance/tasks.py screen_transaction and run_batch_monitoring read the rules "
+    "on the operator connection. #1098 tracks removing the grant or naming a reader.",
 }
 
 UNSCOPED = {**FRAMEWORK, **OPERATOR_ONLY, **NOT_TENANCY, **AWAITING_RLS}
