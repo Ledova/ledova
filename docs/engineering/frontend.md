@@ -74,8 +74,6 @@ frame share, and `packages/shared` holds what both clients share.
 
 Where today's code differs from these standards:
 
-- Browser downloads still repeat fragments; their consolidation is tracked on
-  [#1073](https://github.com/Ledova/ledova/issues/1073).
 - Existing unscoped account-bound keys stay unchanged; broader account scoping needs the owner
   decision on [#1065](https://github.com/Ledova/ledova/issues/1065).
 
@@ -353,6 +351,10 @@ The frame also mounts the Buy crypto and Send flows (`BuyCryptoProvider`, `SendT
 so an open flow survives Wallets reloading its list or being left.
 
 ## Client sessions and caches
+
+Browser blob downloads use `dashboard/src/utils/saveFile.ts`: it clicks one temporary link, removes
+that link and revokes the object URL after 60 seconds. Each caller keeps its own filename, MIME type
+and authority checks.
 
 The session itself is in [authentication](security.md#authentication-and-sessions);
 `packages/shared/src/hooks/useAuth.ts` owns the authentication query (`AUTH_QUERY_KEY`).
