@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { readIdentityVerification } from '@ledova/shared';
+import { readIdentityVerification, USER_PROFILES_QUERY_KEY } from '@ledova/shared';
 import { useIdentityVerification as useIdentityVerificationApi } from '../../../hooks/useIdentityVerification';
 
 export const useIdentityVerification = (enabled = true) => {
@@ -33,7 +33,7 @@ export const useIdentityVerification = (enabled = true) => {
     setIsContinuing(true);
     try {
       await refetchStatus();
-      queryClient.invalidateQueries({ queryKey: ['userProfiles'] });
+      queryClient.invalidateQueries({ queryKey: USER_PROFILES_QUERY_KEY });
       return true;
     } catch {
       return false;

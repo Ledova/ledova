@@ -1,3 +1,4 @@
+import { WALLETS_QUERY_KEY } from '@ledova/shared';
 import { useState, useCallback, type ReactNode } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useTransferFlow } from './useTransferFlow';
@@ -59,7 +60,7 @@ export function SendTransferProvider({ children }: { children: ReactNode }) {
   }, [resetTransferFlow]);
 
   const handleTransferSuccess = useCallback(() => {
-    queryClient.invalidateQueries({ queryKey: ['wallets'] });
+    queryClient.invalidateQueries({ queryKey: WALLETS_QUERY_KEY });
     setSendFormOpen(false);
     resetTransferFlow();
   }, [queryClient, resetTransferFlow]);

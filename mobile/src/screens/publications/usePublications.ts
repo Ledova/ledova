@@ -3,6 +3,7 @@ import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import * as Sharing from 'expo-sharing';
 import {
   CACHE_TIMING,
+  failureStatus,
   PUBLICATION_COPY,
   apiErrorSentence,
   assertNextPageAdvances,
@@ -12,6 +13,7 @@ import {
   getPublicationsNextPage,
   publicationFilename,
   useLaterPages,
+  PUBLICATIONS_QUERY_KEY,
 } from '@ledova/shared';
 import type { BallotChoice, UserFriendlyError } from '@ledova/shared';
 import { apiClient } from '../../services/apiClient';
@@ -20,12 +22,12 @@ import { getSessionEpoch } from '../../services/sessionScope';
 
 const SHARING_UNAVAILABLE = 'Sharing is not available on this device.';
 
-const PUBLICATIONS_KEY = ['publications'];
+const PUBLICATIONS_KEY = PUBLICATIONS_QUERY_KEY;
 const PERSONAL_NOTICES_KEY = [...PUBLICATIONS_KEY, 'addressed', 'me'];
 
 function whyItCouldNotBeOpened(error: unknown): string {
   const cause = (error as UserFriendlyError | undefined)?.originalError ?? error;
-  const status = (cause as { response?: { status?: number } })?.response?.status;
+  const status = failureStatus(cause);
   return status === 503 ? PUBLICATION_COPY.UNDELIVERABLE : PUBLICATION_COPY.FAILED;
 }
 

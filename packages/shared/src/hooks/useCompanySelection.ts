@@ -11,6 +11,9 @@ import { useSubmissionOwner } from './useSubmissionOwner';
 import { USER_PREFERENCES_QUERY_KEY, useUserPreferences } from './useUserPreferences';
 import { useApiClient } from './useApiClient';
 
+export const COMPANIES_QUERY_KEY = ['companies'] as const;
+export const COMPANY_QUERY_KEY = ['company'] as const;
+
 export function canAdministerCompany(company: Company | CompanyListItem) {
   const access = company.administrativeAccess;
   if (
@@ -67,7 +70,14 @@ export function useCompanySelection({
     )
       throw createUserFriendlyError('Your signed-in account changed. Reopen company information.');
   };
-  const companiesKey = ['companies', owner?.userUuid, owner?.ownerAccountUuid, scopeKey, ownedOnly, personalOnly];
+  const companiesKey = [
+    ...COMPANIES_QUERY_KEY,
+    owner?.userUuid,
+    owner?.ownerAccountUuid,
+    scopeKey,
+    ownedOnly,
+    personalOnly,
+  ];
   const companies = useQuery({
     queryKey: companiesKey,
     enabled,
@@ -103,7 +113,7 @@ export function useCompanySelection({
     if (enabled && companies.isSuccess && selection?.scope !== scopeKey)
       setSelection({ scope: scopeKey, uuid: initial });
   }, [companies.isSuccess, enabled, initial, scopeKey, selection?.scope]);
-  const companyKey = ['company', companyUuid, owner?.userUuid, owner?.ownerAccountUuid, scopeKey];
+  const companyKey = [...COMPANY_QUERY_KEY, companyUuid, owner?.userUuid, owner?.ownerAccountUuid, scopeKey];
   const detail = useQuery({
     queryKey: companyKey,
     enabled: enabled && !!companyUuid && !companies.isError,

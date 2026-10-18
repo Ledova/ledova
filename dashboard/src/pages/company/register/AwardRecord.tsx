@@ -1,3 +1,4 @@
+import { ownAppointmentsKey } from '@pages/company/shared/useOwnAppointments';
 import { useLayoutEffect, useRef, useState } from 'react';
 import { generatePath } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -22,7 +23,7 @@ import {
   awardVestingsKey,
   useRegisterAwardVestings,
 } from '@pages/company/register/shared/useRegisterAwards';
-import { ownAppointmentsKey } from '@pages/company/shared/appointments';
+
 import { AwardVestingForm } from './AwardVestingForm';
 
 const SUMMARY = 'cursor-pointer py-2 text-sm font-medium text-text-primary';

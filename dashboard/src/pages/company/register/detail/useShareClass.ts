@@ -1,3 +1,5 @@
+import { REGISTER_QUERY_KEY } from '@hooks/useRegisterAccess';
+import { TOKENS_QUERY_KEY } from '@pages/company/shared/useTokensList';
 import { useEffect, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -15,6 +17,10 @@ import apiClient from '@services/apiClient';
 import { useRegisterDownload } from '@pages/company/shared/useCompanyRegister';
 import { ownershipSummary } from '@pages/company/shared/summary';
 
+export function shareClassKey(uuid: string) {
+  return ['token', uuid];
+}
+
 export function useShareClass(uuid: string) {
   const queryClient = useQueryClient();
   const { owner, boundary } = useSubmissionOwner();
@@ -29,7 +35,7 @@ export function useShareClass(uuid: string) {
     if (!mounted.current || !owner || boundary.get() !== owner)
       throw createUserFriendlyError('Your signed-in account changed. Reopen the share class.');
   };
-  const tokenKey = ['token', uuid, owner?.userUuid, owner?.ownerAccountUuid];
+  const tokenKey = [...shareClassKey(uuid), owner?.userUuid, owner?.ownerAccountUuid];
   const config = { ledovaSubmissionGuard: guard };
   const token = useQuery({
     queryKey: tokenKey,
@@ -101,8 +107,9 @@ export function useShareClass(uuid: string) {
   });
   const refresh = () =>
     Promise.all([
-      queryClient.invalidateQueries({ queryKey: ['token', uuid] }),
-      queryClient.invalidateQueries({ queryKey: ['tokens'] }),
+      queryClient.invalidateQueries({ queryKey: shareClassKey(uuid) }),
+      queryClient.invalidateQueries({ queryKey: TOKENS_QUERY_KEY }),
+      queryClient.invalidateQueries({ queryKey: REGISTER_QUERY_KEY }),
     ]);
   const download = useRegisterDownload(uuid, token.data?.symbol);
   return {

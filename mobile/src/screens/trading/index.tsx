@@ -21,6 +21,7 @@ import { Action, Section } from '../../components/Ledger';
 import { Page } from '../../components/Page';
 import { useMarketStyles } from './styles';
 import {
+  isTradingWalletsQueryKey,
   useUserTradingWallets,
   useWalletsWhitelistStatus,
   useAllWalletTokenBalances,
@@ -125,7 +126,7 @@ export function TradingScreen() {
     let retired = false;
     walletObserver.current = (event) => {
       const key = event.query.queryKey;
-      if (key[0] !== 'wallets' || key[1] !== wallet.userAccount || key[2] !== 'trading') return;
+      if (!isTradingWalletsQueryKey(key, wallet.userAccount)) return;
       const data = event.query.state.data as { data: { results: Wallet[] } } | undefined;
       const current =
         event.type === 'removed' || event.query.state.status === 'error'

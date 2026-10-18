@@ -18,7 +18,7 @@ import { ICON_MD } from '@components/iconSizes';
 import { orderSubmissionStore } from '@services/orderSubmissions';
 import { settlementWalletKey, swapSettlementCrypto, swapSettlementStore } from '@services/swapSettlements';
 import { Modal } from '@components/Modal';
-import { useTrading, useUserTradingWallets, useWalletsWhitelistStatus } from './useTrading';
+import { isTradingWalletsQueryKey, useTrading, useUserTradingWallets, useWalletsWhitelistStatus } from './useTrading';
 import { SwapSettlementFlow } from './SwapSettlementFlow';
 import { OrderSigningFlow } from './OrderSigningFlow';
 import { OrderActionFlow } from './OrderActionFlow';
@@ -122,10 +122,7 @@ function TradingPage() {
           !guard ||
           guard.retired ||
           !['updated', 'removed'].includes(event.type) ||
-          key.length !== 3 ||
-          key[0] !== 'wallets' ||
-          key[1] !== guard.ownerAccountUuid ||
-          key[2] !== 'trading'
+          !isTradingWalletsQueryKey(key, guard.ownerAccountUuid)
         )
           return;
         const data = event.query.state.data as { data?: { results?: Wallet[] } } | undefined;

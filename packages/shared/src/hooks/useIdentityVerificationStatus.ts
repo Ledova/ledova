@@ -4,10 +4,12 @@ import { CACHE_TIMING } from '../constants/api';
 import { getIdentityVerificationStatus } from '../services/identityVerification';
 import { useApiClient } from './useApiClient';
 
+export const IDENTITY_VERIFICATION_QUERY_KEY = ['identity-verification', 'status'] as const;
+
 export function useIdentityVerificationStatus(justSubmitted: boolean) {
   const apiClient = useApiClient();
   return useQuery({
-    queryKey: ['identity-verification', 'status'],
+    queryKey: IDENTITY_VERIFICATION_QUERY_KEY,
     queryFn: async () => {
       const response = await getIdentityVerificationStatus(apiClient);
       return response.data;

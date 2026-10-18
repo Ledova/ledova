@@ -57,6 +57,8 @@ function sameAppointment(left: OwnCompanyAppointment, right: OwnCompanyAppointme
   );
 }
 
+export const SIGNUP_AUTHORITY_QUERY_KEY = ['signup', 'authority'] as const;
+
 export function useSignupCompanyAuthority(
   company: Company | null,
   profile: UserProfile | null,
@@ -143,7 +145,7 @@ export function useSignupCompanyAuthority(
     return { requests, appointments, appointment };
   }, [apiClient, company, guard]);
   const authority = useQuery({
-    queryKey: ['signup', 'authority', owner?.userUuid, owner?.ownerAccountUuid, company?.uuid],
+    queryKey: [...SIGNUP_AUTHORITY_QUERY_KEY, owner?.userUuid, owner?.ownerAccountUuid, company?.uuid],
     queryFn: read,
     enabled: enabled && !!owner && !!company && profile?.uuid === owner.userUuid,
     staleTime: 0,

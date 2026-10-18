@@ -7,6 +7,7 @@ import type { SavedSwapSettlement, SwapSettlementStore } from '../utils/swap-set
 import type { OrderSubmissionSession } from './useOrderSubmissions';
 import { useSubmissionOwner } from './useSubmissionOwner';
 import { useApiClient } from './useApiClient';
+import { TRADING_QUERY_KEY } from './useMarket';
 
 export function useSwapSettlements(
   store: SwapSettlementStore,
@@ -82,7 +83,7 @@ export function useSwapSettlements(
         if (isCurrent()) void refresh();
       },
       onUpdated: () => {
-        if (isCurrent() && state.active === active) void queryClient.invalidateQueries({ queryKey: ['trading'] });
+        if (isCurrent() && state.active === active) void queryClient.invalidateQueries({ queryKey: TRADING_QUERY_KEY });
       },
     });
     state.active = active;

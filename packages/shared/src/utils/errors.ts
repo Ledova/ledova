@@ -1,5 +1,9 @@
 import type { UserFriendlyError } from '../types';
 
+export function failureStatus(failure: unknown) {
+  return (failure as { response?: { status?: number } })?.response?.status;
+}
+
 export function createUserFriendlyError(message: string, originalError?: unknown): UserFriendlyError {
   const error = new Error(message) as UserFriendlyError;
   error.isUserFriendly = true;
@@ -54,7 +58,7 @@ export function describeFailure(error: unknown): string {
   const failure = error as FailureShape;
   const request: string[] = [];
 
-  const status = failure.response?.status;
+  const status = failureStatus(failure);
   if (typeof status === 'number') request.push(`status=${status}`);
 
   if (typeof failure.code === 'string' && failure.code.length > 0) request.push(`code=${failure.code}`);
@@ -125,7 +129,7 @@ export function readApiError(error: unknown, options: ReadApiErrorOptions): ApiE
 
   const data = response.data;
   const bareBody = typeof data === 'string' || Array.isArray(data);
-  if (bareBody && (response.status ?? 0) >= 500) return { generalError: fallback };
+  if (bareBody && (failureStatus(error) ?? 0) >= 500) return { generalError: fallback };
   const announcedByTheBody = announcementOf(data);
   if (announcedByTheBody) return { generalError: announcedByTheBody.join(' ') };
   if (!data || typeof data !== 'object') return { generalError: fallback };
@@ -203,7 +207,7 @@ export function readSignInError(error: unknown): SignInErrorReading {
   const response = (error as { response?: { status?: number; headers?: unknown; data?: unknown } })?.response;
   if (!response || !('data' in response)) return { generalError: UNRECOGNISED };
 
-  if (response.status === 429) return { generalError: throttleMessage(retryAfterOf(response)) };
+  if (failureStatus(error) === 429) return { generalError: throttleMessage(retryAfterOf(response)) };
 
   return readApiError(error, { fallback: UNRECOGNISED });
 }

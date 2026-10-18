@@ -13,9 +13,9 @@ import { Section } from '@components/Ledger';
 import { PageAction } from '@components/Page';
 import { FIELD_CLASS } from '@components/fieldClass';
 import apiClient from '@services/apiClient';
-import { ownAppointmentsKey } from '@pages/company/shared/appointments';
+
 import { saveFile } from '@utils/saveFile';
-import { useOwnAppointments } from '@pages/company/register/shared/useOwnAppointments';
+import { useOwnAppointments, ownAppointmentsKey } from '@pages/company/shared/useOwnAppointments';
 
 const FAILED =
   'The company pack could not be downloaded. Refresh your appointment and try again. A full pack is unavailable when it includes unsupported records; use supported inspection copies or unsigned certificates where applicable.';

@@ -10,12 +10,12 @@ import {
 } from '@ledova/shared';
 import { LinkRow } from '@components/Ledger';
 import { PageAction } from '@components/Page';
-import { ownAppointmentsKey } from '@pages/company/shared/appointments';
+
 import { OpeningRecord } from './OpeningRecord';
 import { registerSteps } from '@pages/company/shared/proposals';
 import { registerKey } from '@hooks/useRegisterAccess';
 import { entriesKey } from '@pages/company/register/shared/useRegisterEntries';
-import { useOwnAppointments } from '@pages/company/register/shared/useOwnAppointments';
+import { useOwnAppointments, ownAppointmentsKey } from '@pages/company/shared/useOwnAppointments';
 import { openingsKey, useRegisterOpenings } from '@pages/company/register/shared/useRegisterOpenings';
 
 const COPY = REGISTER_OPENING_COPY;

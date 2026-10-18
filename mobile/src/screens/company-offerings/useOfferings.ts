@@ -9,6 +9,7 @@ import {
   readEveryPage,
   submitOffering,
   withdrawOffering,
+  OPERATOR_QUERY_KEY,
 } from '@ledova/shared';
 import { apiClient } from '../../services/apiClient';
 import { assertSessionEpoch } from '../../services/sessionScope';
@@ -40,7 +41,7 @@ export function useOfferings(read: CompanyActionRead) {
     staleTime: CACHE_TIMING.SHORT_STALE_TIME,
   });
   const operatorQuery = useQuery({
-    queryKey: ['operator', read.scopeKey],
+    queryKey: [...OPERATOR_QUERY_KEY, read.scopeKey],
     queryFn: () => readPage(() => getOperator(apiClient)),
     enabled: !!companyUuid,
     staleTime: CACHE_TIMING.SHORT_STALE_TIME,

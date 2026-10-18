@@ -6,6 +6,8 @@ import {
   apiErrorSentence,
   readIdentityVerification,
   useIdentityVerificationStatus,
+  IDENTITY_VERIFICATION_QUERY_KEY,
+  USER_PROFILES_QUERY_KEY,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
 import snsWebSdk from '@sumsub/websdk';
@@ -30,8 +32,8 @@ export function useIdentityVerification() {
       return response.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['identity-verification', 'status'] });
-      queryClient.invalidateQueries({ queryKey: ['userProfiles'] });
+      queryClient.invalidateQueries({ queryKey: IDENTITY_VERIFICATION_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: USER_PROFILES_QUERY_KEY });
     },
   });
 
@@ -53,7 +55,7 @@ export function useIdentityVerification() {
     if (justSubmitted && (isVerified || isRejected)) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setJustSubmitted(false);
-      queryClient.invalidateQueries({ queryKey: ['userProfiles'] });
+      queryClient.invalidateQueries({ queryKey: USER_PROFILES_QUERY_KEY });
     }
   }, [justSubmitted, isVerified, isRejected, queryClient]);
 

@@ -1,5 +1,7 @@
 // @vitest-environment jsdom
 
+import { REGISTER_QUERY_KEY } from '@hooks/useRegisterAccess';
+
 import {
   COMPANY_TOKEN_ENDPOINTS,
   USER_PREFERENCES_ENDPOINTS,
@@ -125,7 +127,7 @@ it('shows exact complete company ownership, deduplicates shareholders and refuse
     await act(async () => {
       await Promise.all([
         client.refetchQueries({ queryKey: USER_PREFERENCES_QUERY_KEY }),
-        client.refetchQueries({ queryKey: ['tokens', 'register'] }),
+        client.refetchQueries({ queryKey: REGISTER_QUERY_KEY }),
       ]);
     });
   };

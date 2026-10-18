@@ -1,5 +1,7 @@
 // @vitest-environment jsdom
 
+import { registerKey } from '@hooks/useRegisterAccess';
+
 import {
   ApiClientProvider,
   AUTH_QUERY_KEY,
@@ -370,7 +372,7 @@ it('invites an exact award-only recipient, deduplicates members and clears unava
   awards = [];
   await act(async () =>
     client.refetchQueries({
-      queryKey: ['tokens', 'register', owner.userUuid, owner.ownerAccountUuid, 'invitation-awards', company],
+      queryKey: [...registerKey(owner), 'invitation-awards', company],
       exact: true,
     }),
   );

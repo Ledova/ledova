@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   CACHE_TIMING,
+  failureStatus,
   createUserFriendlyError,
   PUBLICATION_COPY,
   getPublications,
@@ -10,6 +11,7 @@ import {
   readEveryPage,
   type UserFriendlyError,
   type Publication,
+  PUBLICATIONS_QUERY_KEY,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
 import type { CompanyActionRead } from '@pages/company/shared/CompanyState';
@@ -27,9 +29,7 @@ function saveACopy(document_: Blob, filename: string) {
 
 function openingFailure(error: unknown) {
   const cause = (error as UserFriendlyError | undefined)?.originalError ?? error;
-  return (cause as { response?: { status?: number } })?.response?.status === 503
-    ? PUBLICATION_COPY.UNDELIVERABLE
-    : PUBLICATION_COPY.FAILED;
+  return failureStatus(cause) === 503 ? PUBLICATION_COPY.UNDELIVERABLE : PUBLICATION_COPY.FAILED;
 }
 
 export function useIssuerPublications(companyUuid: string | undefined, read: CompanyActionRead) {
@@ -42,7 +42,7 @@ export function useIssuerPublications(companyUuid: string | undefined, read: Com
       mounted.current = false;
     };
   }, []);
-  const key = ['publications', 'issuer', companyUuid, read.scopeKey];
+  const key = [...PUBLICATIONS_QUERY_KEY, 'issuer', companyUuid, read.scopeKey];
   const guard = () => {
     if (!mounted.current) throw createUserFriendlyError('This company document action is closed.');
     read.assertCurrent(companyUuid!, 'owner');

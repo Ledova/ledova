@@ -9,10 +9,10 @@ import type { OrderSubmissionSession } from './useOrderSubmissions';
 import { getOwnCompanyAppointments } from '../services/company-authority';
 import { getRegisterCapitalIncreases, prepareRegisterCapitalIncrease } from '../services/register-capital-increases';
 import { readEveryPage } from '../utils/pagination';
-import { appointmentForRegisterStep, failureStatus, type RegisterStep } from '../utils/register-commands';
+import { appointmentForRegisterStep, type RegisterStep } from '../utils/register-commands';
 import { isPreparedRegisterCapitalIncrease } from '../utils/register-capital-increases';
 import { requestShares, wholeShares } from '../utils/share-quantities';
-import { createUserFriendlyError, getErrorMessage } from '../utils/errors';
+import { failureStatus, createUserFriendlyError, getErrorMessage } from '../utils/errors';
 import type {
   CompanyShareToken,
   OwnCompanyAppointment,

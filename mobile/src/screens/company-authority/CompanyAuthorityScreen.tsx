@@ -9,6 +9,8 @@ import {
   revokeCompanyAuthorityAppointment,
   withdrawCompanyAuthorityRequest,
   type CompanyAuthorityRequest,
+  COMPANIES_QUERY_KEY,
+  COMPANY_QUERY_KEY,
 } from '@ledova/shared';
 import { Action, Choice, Rows, Section } from '../../components/Ledger';
 import { Page } from '../../components/Page';
@@ -26,7 +28,7 @@ export function CompanyAuthorityScreen() {
   const [selection, setSelection] = useState<{ epoch: number; uuid: string }>();
   const [submitted, setSubmitted] = useState<{ epoch: number; request: CompanyAuthorityRequest }>();
   const companies = useQuery({
-    queryKey: ['companies', 'authority-requests', epoch],
+    queryKey: [...COMPANIES_QUERY_KEY, 'authority-requests', epoch],
     queryFn: () =>
       readEveryPage(async (page) => {
         assertSessionEpoch(epoch);
@@ -85,8 +87,8 @@ export function CompanyAuthorityScreen() {
       throw new Error('The request outcome could not be confirmed. Refresh your requests or retry.');
     if (action === 'admit' || action === 'revoke')
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['company', request.company] }),
-        queryClient.invalidateQueries({ queryKey: ['companies'] }),
+        queryClient.invalidateQueries({ queryKey: [...COMPANY_QUERY_KEY, request.company] }),
+        queryClient.invalidateQueries({ queryKey: COMPANIES_QUERY_KEY }),
         queryClient.invalidateQueries({ queryKey: registerAppointmentsKey(epoch) }),
       ]);
     await queryClient.cancelQueries({ queryKey, exact: true });

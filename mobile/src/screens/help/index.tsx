@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, ScrollView, Linking } from 'react-native';
 import { EnvelopeSimpleIcon, InfoIcon, QuestionIcon, FileTextIcon } from 'phosphor-react-native';
 import { useQuery } from '@tanstack/react-query';
-import { getOperator, CACHE_TIMING } from '@ledova/shared';
+import { getOperator, CACHE_TIMING, OPERATOR_QUERY_KEY } from '@ledova/shared';
 import { GradientBackground } from '../../components/GradientBackground';
 import { ContactCard } from './components/ContactCard';
 import { PUBLIC_LINKS, SUPPORT_EMAIL } from '../../config/publicLinks';
@@ -44,7 +44,7 @@ export function HelpScreen() {
     },
   }));
   const { data: operator } = useQuery({
-    queryKey: ['operator'],
+    queryKey: OPERATOR_QUERY_KEY,
     queryFn: () => getOperator(apiClient).then((res) => res.data),
     staleTime: CACHE_TIMING.EXTRA_LONG_GC_TIME,
   });

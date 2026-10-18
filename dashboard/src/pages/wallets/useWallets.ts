@@ -12,6 +12,7 @@ import {
   importedParentKey,
   canDeriveNextWalletAddress,
   readEveryPage,
+  WALLETS_QUERY_KEY,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
 import type { Wallet, CreateWallet, DerivedAddress, HardwareWalletImport } from '@ledova/shared';
@@ -21,12 +22,12 @@ export function useWallets() {
   const [derivingWallet, setDerivingWallet] = useState<Wallet | null>(null);
   const imported = useRef(new Set<string>());
   const walletsQuery = useQuery({
-    queryKey: ['wallets', 'ledger'],
+    queryKey: [...WALLETS_QUERY_KEY, 'ledger'],
     queryFn: () => readEveryPage((page) => getWallets(apiClient, { page })),
     staleTime: CACHE_TIMING.DEFAULT_STALE_TIME,
     gcTime: CACHE_TIMING.EXTRA_LONG_GC_TIME,
   });
-  const refresh = () => queryClient.invalidateQueries({ queryKey: ['wallets'] });
+  const refresh = () => queryClient.invalidateQueries({ queryKey: WALLETS_QUERY_KEY });
   const createMutation = useMutation({
     mutationFn: (data: CreateWallet) => createWallet(apiClient, data),
     onSuccess: refresh,

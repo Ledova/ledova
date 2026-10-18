@@ -7,7 +7,7 @@ import { Page, PageAction } from '@components/Page';
 import apiClient from '@services/apiClient';
 import { CATEGORIES, REASON_TEXT, WHOLESALE_ONLY_NOTICE } from './constants';
 import { ClaimModal } from './ClaimModal';
-import { useInvestorEligibility } from './useInvestorEligibility';
+import { useInvestorEligibility } from '@hooks/useInvestorEligibility';
 
 function claimState(classification: InvestorClassification): { label: string; tone: Tone } {
   if (classification.status === 'submitted') return { label: 'Available to share', tone: 'moving' };
