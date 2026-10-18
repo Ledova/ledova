@@ -17,6 +17,7 @@ from companies.models import Company, CompanyStatus
 from companies.services.company import primary_wallet_for
 from integrations.base_chain import get_base_chain_client
 from shared.db import atomic, use_operator
+from shared.tasks.queue import defer
 from tokens.exceptions import (
     CompanyNotReadyException,
     DeploymentSigningHold,
@@ -74,7 +75,8 @@ def retry_deployment(token, *, principal_id, confirmation):
         raise InvalidTokenStateException("Reload the deployment retry confirmation.") from None
     if confirmed.get("token") != str(token.pk) or confirmed.get("deployment") != str(token.deployment_id):
         raise InvalidTokenStateException("The confirmation identifies a different deployment.")
-    deploy_share_token_task.defer(
+    defer(
+        deploy_share_token_task,
         token_uuid=str(token.pk),
         deployment_id=str(token.deployment_id),
         principal_id=principal_id,

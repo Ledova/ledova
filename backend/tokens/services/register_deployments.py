@@ -4,8 +4,6 @@ from uuid import UUID, uuid4
 
 from django.contrib.auth import get_user_model
 from django.db import IntegrityError, OperationalError
-from procrastinate import App
-from procrastinate.contrib.django.django_connector import DjangoConnector
 from rest_framework.exceptions import NotFound, ValidationError
 
 from blockchain.models import OutgoingOperation, OutgoingStatus, TransactionStatus
@@ -19,7 +17,8 @@ from companies.services.authority_requests import _requester_principal
 from companies.services.company import primary_wallet_for
 from operators.models import Operator
 from shared.constants import BLOCKCHAIN_BASE
-from shared.db import current_alias, use_operator
+from shared.db import use_operator
+from shared.tasks.queue import defer
 from tokens.exceptions import (
     DeploymentSigningHold,
     InvalidTokenStateException,
@@ -316,8 +315,7 @@ def _lock(proposal):
 def queue_deployment(**arguments):
     from tokens.tasks import deploy_share_token_task
 
-    queue = App(connector=DjangoConnector(alias=current_alias()))
-    return queue.configure_task(deploy_share_token_task.name).defer(**arguments)
+    return defer(deploy_share_token_task, **arguments)
 
 
 def _apply(proposal, actor, decision):

@@ -10,6 +10,7 @@ from blockchain.models import (
 )
 from companies.models import Company
 from shared.db import APP_ALIAS, atomic, current_alias, principal_of, use_operator
+from shared.tasks.queue import defer
 from tokens.exceptions import InvalidTokenStateException
 from tokens.models import (
     ShareToken,
@@ -125,4 +126,4 @@ def mark_projected(deployment_id):
         deployment.projected_at = timezone.now()
         deployment.save(update_fields=["approval_intent", "approval_outcome", "projected_at", "updated_at"])
         if deployment.approval_intent:
-            recover_swap_approval.defer(deployment_id=str(deployment.pk))
+            defer(recover_swap_approval, deployment_id=str(deployment.pk))

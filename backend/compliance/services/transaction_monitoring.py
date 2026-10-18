@@ -5,8 +5,6 @@ from typing import Dict, List, Optional, Tuple
 
 from django.db.models import Avg, Sum
 from django.utils import timezone
-from procrastinate import App
-from procrastinate.contrib.django.django_connector import DjangoConnector
 
 from compliance.constants import (
     AGGREGATE_VOLUME_PERIOD_DAYS,
@@ -54,7 +52,8 @@ from compliance.constants import (
 )
 from compliance.models import ComplianceAlert, CustomerRiskAssessment, MonitoringRule
 from compliance.services.crypto_screening import CryptoScreeningService
-from shared.db import atomic, current_alias
+from shared.db import atomic
+from shared.tasks.queue import defer
 from wallets.models import Transaction
 
 logger = logging.getLogger(__name__)
@@ -371,8 +370,7 @@ class TransactionMonitoringService:
             return
         from compliance.tasks import screen_transaction
 
-        queue = App(connector=DjangoConnector(alias=current_alias()))
-        queue.configure_task(screen_transaction.name).defer(transaction_uuid=str(tx.pk))
+        defer(screen_transaction, transaction_uuid=str(tx.pk))
 
     @classmethod
     def check_recorded_transaction(cls, transaction_uuid):

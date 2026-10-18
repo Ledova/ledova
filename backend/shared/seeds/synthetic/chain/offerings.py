@@ -1,13 +1,11 @@
 import textwrap
 from datetime import timedelta
-from unittest.mock import patch
 from uuid import uuid4
 
 from django.utils import timezone
 
 from companies.models import CompanyDocument, DocumentType
 from companies.services.authority_requests import _requester_principal
-from ledova_backend.procrastinate_app import app
 from offerings.models import (
     Offering,
     OfferingExemption,
@@ -307,16 +305,15 @@ def allot_round(item, records):
             _, preview = preview_paid_issue_decision(
                 actor=actor, paid_issue_id=proposal.pk, appointment=appointment.pk, kind=kind
             )
-            with patch("tokens.services.issuance_execution.App", return_value=app):
-                proposal = decide_paid_issue(
-                    actor=actor,
-                    paid_issue_id=proposal.pk,
-                    appointment=appointment.pk,
-                    kind=kind,
-                    idempotency_key=uuid4(),
-                    preview_digest=preview["preview_digest"],
-                    confirmation=True,
-                )
+            proposal = decide_paid_issue(
+                actor=actor,
+                paid_issue_id=proposal.pk,
+                appointment=appointment.pk,
+                kind=kind,
+                idempotency_key=uuid4(),
+                preview_digest=preview["preview_digest"],
+                confirmation=True,
+            )
     records.run()
     for application, subscription in zip(allotted, subscriptions):
         subscription.refresh_from_db()

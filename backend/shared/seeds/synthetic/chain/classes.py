@@ -1,7 +1,5 @@
-from unittest.mock import patch
 from uuid import uuid4
 
-from ledova_backend.procrastinate_app import app
 from shared.db import atomic
 from shared.seeds.synthetic.authority import historical_owner_appointment
 from shared.seeds.synthetic.clock import frozen
@@ -131,16 +129,15 @@ def pause(share_class, records):
         _, preview = preview_pause_change_decision(
             actor=actor, pause_change_id=proposal.pk, appointment=appointment.pk, kind=kind
         )
-        with patch("tokens.services.pause_changes.App", return_value=app):
-            proposal = decide_pause_change(
-                actor=actor,
-                pause_change_id=proposal.pk,
-                appointment=appointment.pk,
-                kind=kind,
-                idempotency_key=uuid4(),
-                preview_digest=preview["preview_digest"],
-                confirmation=True,
-            )
+        proposal = decide_pause_change(
+            actor=actor,
+            pause_change_id=proposal.pk,
+            appointment=appointment.pk,
+            kind=kind,
+            idempotency_key=uuid4(),
+            preview_digest=preview["preview_digest"],
+            confirmation=True,
+        )
     change = PauseChange.objects.get(pk=proposal.pk)
     records.run()
     change.refresh_from_db()
@@ -202,17 +199,16 @@ def apply_raise(item, records):
         _, preview = preview_capital_increase_decision(
             actor=founder, capital_increase_id=proposal.pk, appointment=appointment.pk, kind=kind, reason=reason
         )
-        with patch("tokens.services.capital_execution.App", return_value=app):
-            proposal = decide_capital_increase(
-                actor=founder,
-                capital_increase_id=proposal.pk,
-                appointment=appointment.pk,
-                kind=kind,
-                idempotency_key=uuid4(),
-                preview_digest=preview["preview_digest"],
-                confirmation=True,
-                reason=reason,
-            )
+        proposal = decide_capital_increase(
+            actor=founder,
+            capital_increase_id=proposal.pk,
+            appointment=appointment.pk,
+            kind=kind,
+            idempotency_key=uuid4(),
+            preview_digest=preview["preview_digest"],
+            confirmation=True,
+            reason=reason,
+        )
     request = proposal.request
     if item.status == "executed":
         records.run()

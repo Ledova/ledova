@@ -8,6 +8,7 @@ from documents.models import Document, DocumentType
 from documents.models.document import document_upload_path
 from documents.tasks.extract import extract_document
 from shared.db import atomic, on_commit
+from shared.tasks.queue import defer
 from users.models import (
     CompanyEligibilityRequest,
     InvestorClassification,
@@ -44,7 +45,7 @@ def create_document(uploaded_by, validated_data) -> Document:
             if validated_data.get("classification"):
                 document = attach_document(document, validated_data["classification"])
                 retained_copy = (document.file.storage, document.file.name)
-            extract_document.defer(document_uuid=str(document.uuid), principal_id=uploaded_by.pk)
+            defer(extract_document, document_uuid=str(document.uuid), principal_id=uploaded_by.pk)
     except Exception:
         if retained_copy:
             retained_copy[0].delete(retained_copy[1])

@@ -148,10 +148,12 @@ worker's own connector; queue registration, scheduling, retry, completion and pr
 use the operator role. `check_rls_roles` checks the setting and the worker connector's actual
 login and active role. This gives the queue no company decision authority.
 
-The producers that explicitly use `DjangoConnector(alias=current_alias())` insert their jobs on
-the producer's connection. Plain task defers use the global operator connector and do not join
-an app-alias transaction. Converting those remaining producers to a shared transaction boundary
-is the second increment under [#1131](https://github.com/Ledova/ledova/issues/1131).
+Producers use `shared.tasks.queue.defer` to insert jobs on their current database connection,
+so an enclosing transaction commits or rolls back its rows and jobs together. Deliberate
+`on_commit` callbacks capture that connection alias for their lookups and enqueue. Task names,
+payloads, queue and lock defaults, and existing delays are retained. The
+[connection-binding gate](gates.md#the-connection-binding-gate) refuses direct task deferrals
+and separate queue connector construction outside the helper.
 
 The [task catalogue](../../backend/shared/tasks/catalogue.py) records authority and bounded operator
 handoffs. Deployments, issuance execution, capital increases, pause changes and subscription

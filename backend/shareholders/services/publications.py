@@ -7,6 +7,7 @@ from rest_framework.exceptions import NotFound, PermissionDenied, ValidationErro
 
 from companies.models import Company, CompanyDocument
 from shared.db import APP_ALIAS, atomic, current_alias, on_commit, use_operator
+from shared.tasks.queue import defer
 from shared.uploads import read_bounded, validate_upload
 from shareholders.constants import (
     PUBLICATION_NOTICE,
@@ -200,7 +201,8 @@ def publish_to_members(
         PublicationRecipient.objects.bulk_create(
             PublicationRecipient(publication=publication, company_id=publication.company_id, **row) for row in rows
         )
-        on_commit(lambda: tell_the_members.defer(publication_id=str(publication.pk)))
+        alias = current_alias()
+        on_commit(lambda: defer(tell_the_members, using=alias, publication_id=str(publication.pk)), using=alias)
     return publication
 
 
@@ -290,7 +292,8 @@ def notify_the_roll(publication_id) -> int:
         )
     title, body = ANNOUNCEMENTS[publication.kind]
     for user_id in readers:
-        send_push_notification.defer(
+        defer(
+            send_push_notification,
             user_id=str(user_id),
             title=title,
             body=body.format(company=publication.company_name, token=publication.token_name),

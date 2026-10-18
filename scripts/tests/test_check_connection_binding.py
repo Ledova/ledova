@@ -22,9 +22,26 @@ class TheGateSeesEachBinding(unittest.TestCase):
 
     def test_a_bare_cursor_is_a_finding_because_the_default_connection_bypasses(self):
         self.assertEqual(findings("with connection.cursor() as c:\n    pass\n"), ["connection.cursor"])
+        for source in (
+            "from wallets.tasks import sync_wallet\nsync_wallet.defer(wallet_uuid='x')",
+            "from wallets.tasks import sync_wallet as sync\nsync.configure(schedule_in={'seconds': 30}).defer()",
+            "from wallets.tasks import sync_wallet\nlater=sync_wallet.configure()\nlater.defer()",
+            "from procrastinate.contrib.django import app\napp.configure_task('x').defer()",
+            "from procrastinate import App as Queue\nQueue()",
+            "import procrastinate as jobs\njobs.App()",
+        ):
+            with self.subTest(source=source):
+                self.assertTrue(gate.queue_findings_for(ast.parse(source)))
 
     def test_an_aliased_connection_is_not_a_finding(self):
         self.assertEqual(findings("with connections[current_alias()].cursor() as c:\n    pass\n"), [])
+        for source in (
+            "from shared.tasks.queue import defer\nfrom wallets.tasks import sync_wallet\ndefer(sync_wallet)",
+            "rows=Model.objects.filter(active=True)\nrows.defer('large_field')",
+            "Model.objects.defer('large_field')",
+        ):
+            with self.subTest(source=source):
+                self.assertEqual(gate.queue_findings_for(ast.parse(source)), [])
 
 
 if __name__ == "__main__":

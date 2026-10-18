@@ -11,8 +11,6 @@ from django.db import IntegrityError, OperationalError, connections
 from django.utils import timezone
 from eth_abi import encode
 from eth_account import Account
-from procrastinate import App
-from procrastinate.contrib.django.django_connector import DjangoConnector
 from requests.exceptions import RequestException
 from rest_framework.exceptions import PermissionDenied
 from web3 import Web3
@@ -35,6 +33,7 @@ from integrations.blockchain.receipts import (
 from offerings.models import Subscription, SubscriptionStatus
 from shared.constants import BLOCKCHAIN_BASE
 from shared.db import APP_ALIAS, atomic, current_alias
+from shared.tasks.queue import defer
 from tokens.constants import ISSUANCE_RECOVERY_COLLISION_RETRIES
 from tokens.exceptions import (
     IssuanceExecutionAdvanced,
@@ -192,11 +191,11 @@ def _lock(execution_id, operation_id=None):
 
 
 def _enqueue(execution):
-    queue = App(connector=DjangoConnector(alias=current_alias()))
     if execution.subscription_id:
         from offerings.tasks import allot_subscription_task
 
-        queue.configure_task(allot_subscription_task.name).defer(
+        defer(
+            allot_subscription_task,
             subscription_uuid=str(execution.subscription_id),
             executed_by=execution.executed_by_id,
             execution_id=str(execution.pk),
@@ -204,7 +203,8 @@ def _enqueue(execution):
     else:
         from tokens.tasks import execute_review_request_task
 
-        queue.configure_task(execute_review_request_task.name).defer(
+        defer(
+            execute_review_request_task,
             model_label="tokens.ShareIssuanceRequest",
             request_uuid=str(execution.request_id),
             executed_by=execution.executed_by_id,

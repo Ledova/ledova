@@ -7,8 +7,6 @@ from django.contrib.auth import get_user_model
 from django.db import connections
 from django.utils import timezone
 from eth_account import Account
-from procrastinate import App
-from procrastinate.contrib.django.django_connector import DjangoConnector
 from rest_framework.exceptions import NotFound, PermissionDenied
 from web3 import Web3
 
@@ -23,6 +21,7 @@ from shared.db import (
     use_operator,
 )
 from shared.db.principal import give_the_role_back, take_the_app_role
+from shared.tasks.queue import defer
 from tokens.exceptions import InvalidTokenStateException, PauseChangeConflict
 from tokens.models import (
     PauseAuthority,
@@ -150,8 +149,7 @@ def admit_company(proposal, actor):
         contract_address=proposal.intent["to"],
         intent=proposal.intent,
     )
-    bounded_app = App(connector=DjangoConnector(alias=current_alias()))
-    bounded_app.configure_task(name=recover_pause_change.name).defer(submission_id=str(change.pk))
+    defer(recover_pause_change, submission_id=str(change.pk))
     return change
 
 

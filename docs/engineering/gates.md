@@ -131,6 +131,12 @@ decorators; its allowances are the alias-aware helper implementation, principal 
 checks, and tests and migrations have separate scope. Test settings can conceal a wrong alias;
 [real-app-login tests](testing.md#real-app-login-tenant-cases) prove the real boundary.
 
+Task enqueue uses `shared.tasks.queue.defer`, retaining the producer's alias and transaction.
+The same gate refuses direct deferral methods on imported tasks and Procrastinate applications,
+including configured or aliased deferrers, and queue connector construction outside that helper.
+It leaves Django queryset `defer()` alone. The synthetic chain seed substitutes the helper's
+connector while capturing and draining its jobs; it neither drops jobs nor inserts real ones.
+
 ## The schema response gate
 
 `make check-schema-responses` requires explicit schema metadata when routed methods return another
