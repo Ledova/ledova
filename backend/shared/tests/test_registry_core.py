@@ -32,7 +32,11 @@ from tokens.models import (
     RegisterGrant,
     RegisterGrantDecision,
     RegisterPosition,
+    RegisterTransfer,
+    RegisterTransferDecision,
+    ShareToken,
 )
+from tokens.services.register_events import record_entry
 
 
 class RegistryCoreTest(CoreFixtures, APITransactionTestCase):
@@ -283,33 +287,84 @@ class RegistryCoreTest(CoreFixtures, APITransactionTestCase):
         evidence = self.grant_payload()
         recipient = str(uuid4())
         endpoint = "/api/v1/tokens/register-transfers/"
-        response = self.client.post(
-            endpoint,
-            {
-                "operation_id": str(uuid4()),
-                "appointment": str(self.appointment.pk),
-                "token_id": str(self.token.pk),
-                "from_member": str(self.member.pk),
-                "to_member": recipient,
-                "new_member": True,
-                "name": "Synthetic Recipient",
-                "residential_address": "3 Example Street, Sydney NSW 2000",
-                "shares": "25",
-                "signed_on": timezone.now().date().isoformat(),
-                "lodged_on": timezone.now().date().isoformat(),
-                "terms": "Non-paid transfer with a signed synthetic instrument",
-                "approving_director": "Synthetic Independent Director",
-                "authority_reference": "SYNTHETIC-CORE-TRANSFER",
-                "reason": "Record the company-approved transfer",
-                "authority_evidence": evidence["authority_evidence"],
-                "instrument_evidence": evidence["terms_evidence"],
-            },
-            format="json",
-        )
+        payload = {
+            "operation_id": str(uuid4()),
+            "appointment": str(self.appointment.pk),
+            "token_id": str(self.token.pk),
+            "from_member": str(self.member.pk),
+            "to_member": recipient,
+            "new_member": True,
+            "name": "Synthetic Recipient",
+            "residential_address": "3 Example Street, Sydney NSW 2000",
+            "shares": "25",
+            "signed_on": timezone.now().date().isoformat(),
+            "lodged_on": timezone.now().date().isoformat(),
+            "terms": "Non-paid transfer with a signed synthetic instrument",
+            "approving_director": "Synthetic Independent Director",
+            "authority_reference": "SYNTHETIC-CORE-TRANSFER",
+            "reason": "Record the company-approved transfer",
+            "authority_evidence": evidence["authority_evidence"],
+            "instrument_evidence": evidence["terms_evidence"],
+        }
+        with use_operator():
+            ShareToken.objects.filter(pk=self.token.pk).update(is_transferable=False)
+        restricted = self.client.post(endpoint, payload, format="json")
+        self.assertEqual(restricted.status_code, 400, restricted.content)
+        self.assertEqual(restricted.json()["unmetRequirements"], ["class_transfers_restricted"])
+        self.assertEqual(RegisterTransfer.objects.count(), 0)
+        with use_operator():
+            ShareToken.objects.filter(pk=self.token.pk).update(is_transferable=True)
+        response = self.client.post(endpoint, payload, format="json")
         self.assertEqual(response.status_code, 201, response.content)
         identifier = response.json()["uuid"]
         self.decision(endpoint, identifier, "approve")
-        self.decision(endpoint, identifier, "apply")
+        fields = {"appointment": str(self.appointment.pk), "kind": "apply"}
+        preview = self.client.post(f"{endpoint}{identifier}/decision-preview/", fields, format="json")
+        self.assertEqual(preview.status_code, 200, preview.content)
+        decision = {
+            **fields,
+            "idempotency_key": str(uuid4()),
+            "preview_digest": preview.json()["previewDigest"],
+            "confirmation": True,
+        }
+        with use_operator():
+            ShareToken.objects.filter(pk=self.token.pk).update(is_transferable=False)
+        restricted = self.client.post(f"{endpoint}{identifier}/decision-preview/", fields, format="json")
+        self.assertEqual(restricted.status_code, 200, restricted.content)
+        self.assertFalse(restricted.json()["canDecide"])
+        self.assertEqual(restricted.json()["unmetRequirements"], ["class_transfers_restricted"])
+        self.assertNotEqual(restricted.json()["previewDigest"], decision["preview_digest"])
+        stale = self.client.post(f"{endpoint}{identifier}/decide/", decision, format="json")
+        self.assertEqual(stale.status_code, 409, stale.content)
+        self.assertEqual(RegisterTransferDecision.objects.filter(register_transfer_id=identifier).count(), 1)
+        self.assertIsNone(RegisterTransfer.objects.get(pk=identifier).register_entry_id)
+        with use_operator():
+            ShareToken.objects.filter(pk=self.token.pk).update(is_transferable=True)
+
+        def restrict_after_entry(**values):
+            entry = record_entry(**values)
+            ShareToken.objects.filter(pk=self.token.pk).update(is_transferable=False)
+            return entry
+
+        with patch("tokens.services.register_transfers.record_entry", side_effect=restrict_after_entry):
+            refused = self.client.post(f"{endpoint}{identifier}/decide/", decision, format="json")
+        self.assertEqual(refused.status_code, 409, refused.content)
+        self.assertEqual(RegisterTransferDecision.objects.filter(register_transfer_id=identifier).count(), 1)
+        self.assertIsNone(RegisterTransfer.objects.get(pk=identifier).register_entry_id)
+        self.assertEqual(RegisterPosition.objects.get(member=self.member).shares, 100)
+        self.assertFalse(RegisterPosition.objects.filter(member_id=recipient).exists())
+        self.assertTrue(ShareToken.objects.get(pk=self.token.pk).is_transferable)
+        self.token.stored_register.refresh_from_db()
+        self.assertEqual(self.token.stored_register.sequence, 1)
+        applied = self.client.post(f"{endpoint}{identifier}/decide/", decision, format="json")
+        self.assertEqual(applied.status_code, 200, applied.content)
+        with use_operator():
+            ShareToken.objects.filter(pk=self.token.pk).update(is_transferable=False)
+        retry = self.client.post(f"{endpoint}{identifier}/decide/", decision, format="json")
+        prepared_retry = self.client.post(endpoint, payload, format="json")
+        self.assertEqual(retry.status_code, 200, retry.content)
+        self.assertEqual(prepared_retry.status_code, 200, prepared_retry.content)
+        self.assertEqual(RegisterTransferDecision.objects.filter(register_transfer_id=identifier).count(), 2)
         positions = RegisterPosition.objects.filter(register=self.token.stored_register)
         self.assertEqual(positions.get(member=self.member).shares, 75)
         self.assertEqual(positions.get(member_id=recipient).shares, 25)

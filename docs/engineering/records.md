@@ -431,6 +431,9 @@ What the company does: [non-paid grants](../business/issuing-shares.md#grants-to
 and [non-paid transfers](../business/register.md#non-paid-transfers-between-members). Application
 rechecks every requirement and, in one transaction, records one ISSUE or TRANSFER with the company
 applier as recorder, updates holdings and creates any new member and its particulars.
+Direct transfers report `class_transfers_restricted` while `ShareToken.is_transferable` is false.
+The flag is bound into decision previews and rechecked by the PostgreSQL readiness and deferred
+decision guards, so changing it after preview or before commit cannot authorise a transfer.
 `tokens_employee_award_grant_allocation` refuses at commit applied grants beyond an award's recorded
 vested quantity. A transfer that empties a holding writes a `RegisterMemberCessation`. `GET
 {uuid}/register/members/` lists a class's company members for these forms.

@@ -328,10 +328,10 @@ The transferor must hold enough shares, and the director cannot be either party
 ([named directors](README.md#named-directors)). Applying records one Transfer entry, with the
 applier as recorder; the certificate falls due a calendar month after lodgement
 ([certificates](member-records.md#certificates)), and a holding reaching zero creates a
-[former-member record](#former-members). The class's issued shares stay the same. Ledova does not
-check the class's declared transfer restriction, the constitution or any shareholder agreement:
-whether a transfer is permitted is the company's decision (a check of the declared restriction is
-proposed under [#1061](https://github.com/Ledova/ledova/issues/1061)). Court-directed, paid and chain
+[former-member record](#former-members). The class's issued shares stay the same. Ledova refuses a
+direct transfer while the class is marked non-transferable, rechecking the restriction before
+approval and application. The company determines whether its constitution and shareholder
+agreements permit the transfer; Ledova does not interpret those documents. Court-directed, paid and chain
 transfers are not built;
 court-backed [corrections](#compensating-corrections) remain. An imported register takes no
 Cessation entry, and its corrections are ordinary company corrections.

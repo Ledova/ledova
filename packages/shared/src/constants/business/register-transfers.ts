@@ -10,6 +10,8 @@ export const REGISTER_TRANSFER_UNMET_COPY: Record<string, string> = {
   company_provided_evidence_required: 'This transfer must retain the company’s evidence.',
   imported_non_tokenised_register_required:
     'This transfer requires an imported register for a draft share class without a deployed contract.',
+  class_transfers_restricted:
+    'This share class is recorded as non-transferable. Ask the company to review its class settings.',
   sufficient_holding_required: 'The transferor no longer holds enough shares for this transfer.',
   share_limit_required: 'The recipient holding exceeds the supported share limit.',
   effective_date_before_latest_entry:
