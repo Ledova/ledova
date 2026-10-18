@@ -532,12 +532,8 @@ AWAITING_R0: dict[str, MissingOwnerColumns] = {}
 AWAITING_RLS = {}
 
 FRAMEWORK = {
-    "auth_group": "Django's own permission grouping.",
-    "auth_permission": "Django's own permission rows, one per model and action.",
     "authentication_customuser": "The user table itself. A principal is a row here, so scoping it by the "
     "principal would make authentication depend on the answer it is trying to produce.",
-    "django_admin_log": "The admin's audit trail, written and read on the operator connection only.",
-    "django_content_type": "Django's model registry.",
     "django_session": "Session rows keyed by a cookie rather than a user and loaded lazily inside a view. The admin "
     "reads and writes them on the operator connection; the LoginView and LogoutView of rest_framework.urls, at "
     "api-auth/, write and delete them on the app connection before any principal exists. API views authenticate "
@@ -552,14 +548,26 @@ FRAMEWORK = {
     "on the operator connection; producers acting for a user defer on the app connection.",
     "procrastinate_events": "Worker job history, inserted by procrastinate's triggers on procrastinate_jobs as "
     "whichever role changes the job, so the app role writes it whenever it defers.",
+}
+
+OPERATOR_ONLY = {
+    "auth_group": "Django's own permission grouping.",
+    "auth_permission": "Django's own permission rows, one per model and action.",
+    "django_admin_log": "The admin's audit trail, written and read on the operator connection only.",
+    "django_content_type": "Django's model registry.",
     "procrastinate_periodic_defers": "Worker schedule bookkeeping, with no tenant in it at all.",
     "procrastinate_workers": "Worker registration rows, one per running worker process.",
     "auth_group_permissions": "Django's own permission plumbing, joining a group to a permission.",
     "authentication_customuser_groups": "Django's own permission plumbing, joining a user to a group.",
     "authentication_customuser_user_permissions": "Django's own permission plumbing, per-user grants.",
-}
-
-OPERATOR_ONLY = {
+    "offerings_offering_documents": "A link row reached through its offering, which is scoped, and from the "
+    "document side by companies/services/documents.py delete_document. Nothing scopes this table today, so a "
+    "policy here would be a new rule rather than a translation of one. Every reader and writer runs on the "
+    "operator connection, including OfferingViewSet's actions, delete_document, the offering and company document "
+    "admins, the eligibility SQL, and the directory's document read, which joins it only after resolving the "
+    "published offerings under the app role and bounds the join to them. #1124 tracks the app role's unused grant.",
+    "offerings_offering_settlement_assets": "A link row from a scoped offering to the global asset catalogue, "
+    "reached from the offering and only on the operator connection. #1124 tracks the app role's unused grant.",
     "companies_companysignuptermsacceptance": "Immutable current signup Terms receipts bound to one company, "
     "appointment and appointee. The bounded acceptance command writes them on the operator connection, and own "
     "appointment serialization reads only that appointee's exact receipt on that connection. The app role has "
@@ -764,14 +772,6 @@ NOT_TENANCY = {
     "shared_country": "A reference list of countries, identical for every tenant.",
     "operators_operator": "A singleton naming the operator of this deployment.",
     "operators_operator_supported_settlement_assets": "Which assets that singleton settles in.",
-    "offerings_offering_documents": "A link row reached through its offering, which is scoped, and from the "
-    "document side by companies/services/documents.py delete_document. Nothing scopes this table today, so a "
-    "policy here would be a new rule rather than a translation of one. Every reader and writer runs on the "
-    "operator connection, including OfferingViewSet's actions, delete_document, the offering and company document "
-    "admins, the eligibility SQL, and the directory's document read, which joins it only after resolving the "
-    "published offerings under the app role and bounds the join to them. #1124 tracks the app role's unused grant.",
-    "offerings_offering_settlement_assets": "A link row from a scoped offering to the global asset catalogue, "
-    "reached from the offering and only on the operator connection. #1124 tracks the app role's unused grant.",
     "portfolios_wallets": "A link row between a scoped portfolio and a scoped wallet, reached through either, "
     "and revealing nothing that reading both of those tables would not.",
 }

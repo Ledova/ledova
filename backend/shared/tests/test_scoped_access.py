@@ -121,6 +121,58 @@ class ScopedAccessTest(CoreFixtures, APITransactionTestCase):
         finally:
             with migration_connection.cursor() as cursor:
                 cursor.execute(f"REVOKE ALL PRIVILEGES ON TABLE public.compliance_monitoringrule FROM {quoted_app}")
+
+        unused_tables = (
+            "auth_group",
+            "auth_group_permissions",
+            "auth_permission",
+            "authentication_customuser_groups",
+            "authentication_customuser_user_permissions",
+            "django_admin_log",
+            "django_content_type",
+            "offerings_offering_documents",
+            "offerings_offering_settlement_assets",
+            "procrastinate_periodic_defers",
+            "procrastinate_workers",
+        )
+        unused_privilege_query = (
+            "SELECT has_table_privilege(current_user, 'public.' || table_name, privilege) "
+            "FROM unnest(%s::text[]) AS tables(table_name) CROSS JOIN unnest(%s::text[]) AS privileges(privilege)"
+        )
+
+        def assert_unused_tables_private():
+            with connections[APP_ALIAS].cursor() as cursor:
+                cursor.execute(unused_privilege_query, [list(unused_tables), privileges])
+                self.assertEqual(cursor.fetchall(), [(False,)] * 44)
+            with connections[OPERATOR_ALIAS].cursor() as cursor:
+                cursor.execute(unused_privilege_query, [list(unused_tables), privileges])
+                self.assertEqual(cursor.fetchall(), [(True,)] * 44)
+            for table in unused_tables:
+                with self.subTest(table=table):
+                    query = f"SELECT 1 FROM public.{migration_connection.ops.quote_name(table)} LIMIT 1"
+                    with self.assertRaises(ProgrammingError) as read:
+                        with connections[APP_ALIAS].cursor() as cursor:
+                            cursor.execute(query)
+                    self.assertEqual(read.exception.__cause__.sqlstate, "42501")
+                    with connections[OPERATOR_ALIAS].cursor() as cursor:
+                        cursor.execute(query)
+
+        assert_unused_tables_private()
+        unused_migration = import_module("shared.migrations.0012_remove_unused_app_grants")
+        tables_sql = ", ".join(f"public.{migration_connection.ops.quote_name(table)}" for table in unused_tables)
+        try:
+            with migration_connection.cursor() as cursor:
+                cursor.execute(f"GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE {tables_sql} TO {quoted_app}")
+            with connections[APP_ALIAS].cursor() as cursor:
+                cursor.execute(unused_privilege_query, [list(unused_tables), privileges])
+                self.assertEqual(cursor.fetchall(), [(True,)] * 44)
+            for _ in range(2):
+                with migration_connection.schema_editor() as schema_editor:
+                    unused_migration.revoke_unused_app_access(None, schema_editor)
+                assert_unused_tables_private()
+        finally:
+            with migration_connection.cursor() as cursor:
+                cursor.execute(f"REVOKE ALL PRIVILEGES ON TABLE {tables_sql} FROM {quoted_app}")
         response = self.client.get("/api/auth/verify/")
         self.assertEqual(response.status_code, 200, response.content)
         self.assertTrue(response.json()["valid"])
