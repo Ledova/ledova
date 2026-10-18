@@ -1,6 +1,7 @@
+import { useGrantRegisters } from './useGrantRegisters';
 import { useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+
 import {
   DESTINATIONS,
   REGISTER_GRANT_COPY as COPY,
@@ -14,7 +15,7 @@ import {
 import { Section } from '@components/Ledger';
 import { Page, PageAction } from '@components/Page';
 import { Loading, Unavailable } from '@pages/company/shared/RegisterStatus';
-import { registersQuery, useRegisterClasses } from '@pages/company/shared/useCompanyRegister';
+import { useRegisterClasses } from '@pages/company/shared/useCompanyRegister';
 import { ownerGuard } from '@pages/company/shared/ownerGuard';
 import { useOwnAppointments } from '@pages/company/shared/useOwnAppointments';
 import { GrantForm } from './GrantForm';
@@ -100,7 +101,7 @@ function OwnGrant({
   const awardMember = retainedMembers.data?.find((row) => row.member === award.data?.member) ?? null;
   const companyClasses =
     classes.data?.filter((item) => item.companyUuid === listed?.companyUuid).map((item) => item.uuid) ?? [];
-  const registers = useQuery(registersQuery(owner, companyClasses, guard));
+  const registers = useGrantRegisters(owner, companyClasses, guard);
   const register = registers.data?.find((item) => item.token.uuid === uuid);
   const holders = registers.data?.flatMap((item) => item.holders) ?? [];
   const linked = new Set(holders.filter((holder) => holder.wallets.length > 0).map((holder) => holder.member));

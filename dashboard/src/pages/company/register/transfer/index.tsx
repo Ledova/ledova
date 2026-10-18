@@ -1,6 +1,7 @@
+import { useTransferRegister } from './useTransferRegister';
 import { useMemo, type ReactNode } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+
 import {
   DESTINATIONS,
   REGISTER_TRANSFER_COPY as COPY,
@@ -12,7 +13,7 @@ import {
 import { Section } from '@components/Ledger';
 import { Page, PageAction } from '@components/Page';
 import { Loading, Unavailable } from '@pages/company/shared/RegisterStatus';
-import { registersQuery, useRegisterClasses } from '@pages/company/shared/useCompanyRegister';
+import { useRegisterClasses } from '@pages/company/shared/useCompanyRegister';
 import { ownerGuard } from '@pages/company/shared/ownerGuard';
 import { useOwnAppointments } from '@pages/company/shared/useOwnAppointments';
 import { useTransferMembers } from '@pages/company/register/shared/useRegisterTransfers';
@@ -67,7 +68,7 @@ function OwnTransfer({
     listed && appointments.data
       ? appointmentForRegisterStep(appointments.data, listed.companyUuid, 'prepare')
       : undefined;
-  const registers = useQuery(registersQuery(owner, listed ? [uuid] : [], guard));
+  const registers = useTransferRegister(owner, uuid, listed, guard);
   const register = registers.data?.[0];
   const members = useTransferMembers(owner, uuid, guard, !!appointment);
   const busy = classes.isFetching || appointments.isFetching || registers.isFetching || members.isFetching;

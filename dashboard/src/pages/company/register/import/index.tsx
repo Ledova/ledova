@@ -1,7 +1,8 @@
+import { useImportRegister, importRegisterKey } from './useImportRegister';
 import { DESTINATIONS } from '@ledova/shared';
 import { useMemo, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   REGISTER_IMPORT_COPY,
   createUserFriendlyError,
@@ -17,8 +18,8 @@ import { Page } from '@components/Page';
 import { PageTitle } from '@components/PageTitle';
 import { Loading, Unavailable } from '@pages/company/shared/RegisterStatus';
 import { registerSteps, type RegisterSteps } from '@pages/company/shared/proposals';
-import { READ_TIMING, registerKey } from '@hooks/useRegisterAccess';
-import { readRegister, useRegisterClasses } from '@pages/company/shared/useCompanyRegister';
+import { registerKey } from '@hooks/useRegisterAccess';
+import { useRegisterClasses } from '@pages/company/shared/useCompanyRegister';
 import { importsKey, useRegisterImports } from '@pages/company/register/shared/useRegisterImports';
 import { ownerGuard } from '@pages/company/shared/ownerGuard';
 import { useOwnAppointments, ownAppointmentsKey } from '@pages/company/shared/useOwnAppointments';
@@ -89,12 +90,7 @@ function OwnImport({
   const readable = !!(steps?.prepare || steps?.approve || steps?.apply);
   const imports = useRegisterImports(owner, uuid, guard, readable);
   const members = useTransferMembers(owner, uuid, guard, readable);
-  const register = useQuery({
-    queryKey: [...registerKey(owner), 'holders', 'class', uuid],
-    enabled: readable,
-    queryFn: () => readRegister(uuid, guard),
-    ...READ_TIMING,
-  });
+  const register = useImportRegister(owner, uuid, readable, guard);
   const correction = imports.data?.find((proposal) => proposal.status === 'applied' && proposal.correctionAllowed);
   const record = search.get('record');
   const saved = imports.data?.find((proposal) =>
@@ -148,7 +144,7 @@ function OwnImport({
     for (const key of [
       [...registerKey(owner), 'classes'],
       ownAppointmentsKey(owner),
-      [...registerKey(owner), 'holders', 'class', uuid],
+      importRegisterKey(owner, uuid),
       importsKey(owner, uuid),
       transferMembersKey(owner, uuid),
     ]) {

@@ -1,7 +1,5 @@
 import { SITE_PATHS } from '@utils/paths';
-import { useQuery } from '@tanstack/react-query';
-import { getOperator, CACHE_TIMING, useAuth, OPERATOR_QUERY_KEY } from '@ledova/shared';
-import apiClient from '@services/apiClient';
+import { useOperatorName } from './useOperatorName';
 import { SITE_URL } from '@utils/siteUrl';
 
 const FOOTER_LINKS = [
@@ -10,17 +8,6 @@ const FOOTER_LINKS = [
   { label: 'Terms', path: SITE_PATHS.termsOfService },
   { label: 'Privacy', path: SITE_PATHS.privacyPolicy },
 ];
-
-function useOperatorName(): string | null {
-  const { isAuthenticated } = useAuth();
-  const query = useQuery({
-    queryKey: OPERATOR_QUERY_KEY,
-    queryFn: () => getOperator(apiClient),
-    enabled: isAuthenticated,
-    staleTime: CACHE_TIMING.EXTRA_LONG_GC_TIME,
-  });
-  return query.data?.data?.name || null;
-}
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();

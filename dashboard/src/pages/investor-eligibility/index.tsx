@@ -1,10 +1,9 @@
 import { useState } from 'react';
-import { useMutation } from '@tanstack/react-query';
-import { DESTINATIONS, deleteInvestorClassification, formatDate, getErrorMessage } from '@ledova/shared';
+import { DESTINATIONS, formatDate, getErrorMessage } from '@ledova/shared';
 import type { InvestorCategory, InvestorClassification } from '@ledova/shared';
 import { LinkRow, Row, Rows, Section, Status, type Tone } from '@components/Ledger';
 import { Page, PageAction } from '@components/Page';
-import apiClient from '@services/apiClient';
+import { useInvestorWithdrawal } from './useInvestorWithdrawal';
 import { CATEGORIES, REASON_TEXT, WHOLESALE_ONLY_NOTICE } from './constants';
 import { ClaimModal } from './ClaimModal';
 import { useInvestorEligibility } from '@hooks/useInvestorEligibility';
@@ -23,10 +22,7 @@ export default function InvestorEligibilityPage() {
   const { eligibility, classifications, isLoading, hasError, isRefreshing, retry, refresh } = useInvestorEligibility();
   const [claimCategory, setClaimCategory] = useState<InvestorCategory | null>(null);
 
-  const withdraw = useMutation({
-    mutationFn: (uuid: string) => deleteInvestorClassification(apiClient, uuid),
-    onSuccess: refresh,
-  });
+  const withdraw = useInvestorWithdrawal(refresh);
 
   const isReady = eligibility?.isReady ?? false;
   const submittedCategories = new Set(

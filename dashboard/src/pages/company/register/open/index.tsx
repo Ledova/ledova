@@ -1,6 +1,7 @@
+import { useOpeningHolders } from './useOpeningHolders';
 import { useMemo, type ReactNode } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+
 import {
   DESTINATIONS,
   REGISTER_OPENING_COPY,
@@ -14,11 +15,11 @@ import {
 import { Row, Rows, Section } from '@components/Ledger';
 import { Page, PageAction } from '@components/Page';
 import { Loading, Unavailable } from '@pages/company/shared/RegisterStatus';
-import { READ_TIMING } from '@hooks/useRegisterAccess';
+
 import { useRegisterClasses } from '@pages/company/shared/useCompanyRegister';
 import { ownerGuard } from '@pages/company/shared/ownerGuard';
 import { useOwnAppointments } from '@pages/company/shared/useOwnAppointments';
-import { openingHoldersKey, readOpeningHolders } from '@pages/company/register/shared/useRegisterOpenings';
+
 import { OpeningForm } from './OpeningForm';
 
 const COPY = REGISTER_OPENING_COPY;
@@ -83,21 +84,7 @@ function OwnOpening({
     listed && appointments.data
       ? appointmentForRegisterStep(appointments.data, listed.companyUuid, 'prepare')
       : undefined;
-  const holders = useQuery({
-    queryKey: openingHoldersKey(owner, uuid),
-    enabled: !!appointment,
-    queryFn: async () => {
-      try {
-        return await readOpeningHolders(uuid, guard);
-      } catch (failure) {
-        if (failureStatus(failure) === 404) void appointments.refetch();
-        throw failure;
-      }
-    },
-    refetchOnWindowFocus: false,
-    refetchOnReconnect: false,
-    ...READ_TIMING,
-  });
+  const holders = useOpeningHolders(owner, uuid, guard, appointment, appointments);
   const retry = () => {
     if (classes.isError) void classes.refetch();
     if (appointments.isError) void appointments.refetch();
