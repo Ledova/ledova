@@ -1,5 +1,6 @@
 import { Transaction, TypedDataEncoder, getNumber, keccak256, toBeHex, verifyTypedData } from 'ethers';
 import { createSwapSettlementStore, type SwapSettlementCrypto, type Wallet } from '@ledova/shared';
+import { browserStorage } from './browserStorage';
 
 type ApprovalTransaction = Awaited<ReturnType<SwapSettlementCrypto['inspectSignedApproval']>>['transaction'];
 
@@ -22,12 +23,7 @@ export function settlementWalletKey(wallet: Wallet | null): string {
     : '';
 }
 
-export const swapSettlementStore = createSwapSettlementStore({
-  getAllKeys: () => Object.keys(localStorage),
-  getItem: (key) => localStorage.getItem(key),
-  setItem: (key, value) => localStorage.setItem(key, value),
-  removeItem: (key) => localStorage.removeItem(key),
-});
+export const swapSettlementStore = createSwapSettlementStore(browserStorage);
 
 export const swapSettlementCrypto: SwapSettlementCrypto = {
   digestTypedData: (typed) => TypedDataEncoder.hash(typed.domain, { SwapOrder: typed.types.SwapOrder }, typed.message),

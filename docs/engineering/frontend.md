@@ -74,6 +74,8 @@ frame share, and `packages/shared` holds what both clients share.
 
 Where today's code differs from these standards:
 
+- Browser downloads, notice/status/auth chrome and register shells still repeat fragments;
+  consolidation is tracked on [#1073](https://github.com/Ledova/ledova/issues/1073).
 - Existing unscoped account-bound keys stay unchanged; broader account scoping needs the owner
   decision on [#1065](https://github.com/Ledova/ledova/issues/1065).
 
@@ -362,10 +364,13 @@ hides protected content while a cached negative is rechecked and redirects after
 or failure.
 
 On the web, signing in and verifying an email (which also signs a new person in) remove every cached
-query except authentication; mobile clears the whole cache whenever the sign-in screen gains focus.
-Signing out and account deletion clear the whole cache on both, so a new person is never guarded by,
-or signs up against, the previous person's account. Mobile adds a session epoch to every read and
-write ([session scope](mobile.md#session-scope)).
+query except the authentication root, then await an exact authentication refetch. Signing out and
+account deletion mark authentication invalid before clearing the whole cache. These two reset
+sequences share `dashboard/src/utils/session.ts`. The four device stores share the synchronous
+`dashboard/src/services/browserStorage.ts` adapter, resolving browser storage when each operation
+runs. Mobile clears the whole cache whenever the sign-in screen gains focus, and on sign-out and
+account deletion. A new person is never guarded by, or signs up against, the previous person's
+account. Mobile adds a session epoch to every read and write ([session scope](mobile.md#session-scope)).
 
 The shared `useUserPreferences` and `useCurrency` queries start only after authentication, and
 cached preferences are hidden again when authentication is lost.
