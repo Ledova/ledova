@@ -18,13 +18,14 @@ import {
 } from '@ledova/shared';
 import { FIELD_CLASS, LABEL } from '@components/fieldClass';
 import apiClient from '@services/apiClient';
-import { CompanySelection } from '../../CompanySelection';
-import { useCompany } from '../../hooks/useCompany';
-import { Loading, Unavailable } from '../RegisterStatus';
-import { registerSteps } from '../proposals';
-import { readRegister, useRegisterClasses } from '../useCompanyRegister';
-import { ownerGuard, useOwnAppointments } from '../useRegisterImports';
-import { readTransferMembers, useTransferMembers } from '../useRegisterTransfers';
+import { CompanySelection } from '@pages/company/shared/CompanySelection';
+import { useCompany } from '@pages/company/shared/useCompany';
+import { Loading, Unavailable } from '@pages/company/shared/RegisterStatus';
+import { registerSteps } from '@pages/company/shared/proposals';
+import { readRegister, useRegisterClasses } from '@pages/company/shared/useCompanyRegister';
+import { ownerGuard } from '@pages/company/register/shared/ownerGuard';
+import { useOwnAppointments } from '@pages/company/register/shared/useOwnAppointments';
+import { readTransferMembers, useTransferMembers } from '@pages/company/register/shared/useRegisterTransfers';
 import { ImportForm } from './ImportForm';
 
 const TECHNICAL_SHARE_LIMIT = (2n ** 256n - 1n).toString();

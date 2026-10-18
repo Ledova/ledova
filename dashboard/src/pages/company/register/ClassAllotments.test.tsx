@@ -13,7 +13,7 @@ import { APPOINTMENT, REGISTER } from '../../../testSupport/company';
 import { ALLOTMENT_REQUEST, allotmentFrom, allotmentDecision, allotmentPreview } from '../../../testSupport/company';
 import CompanyRegisterPage from '.';
 import { companyPreferences, renderCompanyPage } from '../../../testSupport/company';
-import { ownAppointmentsKey } from '../team/appointments';
+import { ownAppointmentsKey } from '@pages/company/shared/appointments';
 import { allotmentsKey } from './useRegisterAllotments';
 
 const api = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn() }));

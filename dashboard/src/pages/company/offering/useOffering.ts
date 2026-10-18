@@ -17,8 +17,8 @@ import {
   type CompanyShareTokenListItem,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
-import type { CompanyActionRead } from '../CompanyState';
-import { useTokensList } from '../hooks/useTokens';
+import type { CompanyActionRead } from '@pages/company/shared/CompanyState';
+import { useTokensList } from '@pages/company/shared/useTokensList';
 
 type OfferingAction = 'submit' | 'withdraw' | 'remove' | 'edit' | 'documents';
 

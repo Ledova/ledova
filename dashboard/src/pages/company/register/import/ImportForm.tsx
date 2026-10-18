@@ -29,11 +29,11 @@ import {
 import { Row, Rows } from '@components/Ledger';
 import { PageAction } from '@components/Page';
 import apiClient from '@services/apiClient';
-import { importsKey } from '../useRegisterImports';
+import { importsKey } from '@pages/company/register/shared/useRegisterImports';
 import { registerKey } from '@hooks/useRegisterAccess';
-import type { RegisterSteps } from '../proposals';
+import type { RegisterSteps } from '@pages/company/shared/proposals';
 import { BringRecords } from './BringRecords';
-import { MemberRecords } from './MemberRecords';
+import { MemberRecords } from '@pages/company/register/shared/MemberRecords';
 import {
   blankMember,
   figuresDiffer,

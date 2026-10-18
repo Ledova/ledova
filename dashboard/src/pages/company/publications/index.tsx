@@ -2,9 +2,9 @@ import { Link, useNavigate } from 'react-router-dom';
 import { DESTINATIONS } from '@ledova/shared';
 import { Section } from '@components/Ledger';
 import { Page, PageAction } from '@components/Page';
-import { CompanyReadNotice } from '../CompanyState';
-import { useCompany } from '../hooks/useCompany';
-import { CompanySelection } from '../CompanySelection';
+import { CompanyReadNotice } from '@pages/company/shared/CompanyState';
+import { useCompany } from '@pages/company/shared/useCompany';
+import { CompanySelection } from '@pages/company/shared/CompanySelection';
 import { PublicationRecord } from './PublicationRecord';
 import { useIssuerPublications } from './useIssuerPublications';
 

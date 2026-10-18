@@ -16,7 +16,7 @@ import { FIELD_CLASS } from '@components/fieldClass';
 import apiClient from '@services/apiClient';
 import { invitationMembers } from './invitationMembers';
 import { READ_TIMING, registerKey } from '@hooks/useRegisterAccess';
-import { particularsKey } from './useRegisterParticulars';
+import { particularsKey } from '@pages/company/register/shared/useRegisterParticulars';
 
 export function CompanyMemberAccess({
   company,

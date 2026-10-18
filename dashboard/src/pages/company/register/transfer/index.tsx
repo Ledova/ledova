@@ -11,10 +11,11 @@ import {
 } from '@ledova/shared';
 import { Section } from '@components/Ledger';
 import { Page, PageAction } from '@components/Page';
-import { Loading, Unavailable } from '../RegisterStatus';
-import { registersQuery, useRegisterClasses } from '../useCompanyRegister';
-import { ownerGuard, useOwnAppointments } from '../useRegisterImports';
-import { useTransferMembers } from '../useRegisterTransfers';
+import { Loading, Unavailable } from '@pages/company/shared/RegisterStatus';
+import { registersQuery, useRegisterClasses } from '@pages/company/shared/useCompanyRegister';
+import { ownerGuard } from '@pages/company/register/shared/ownerGuard';
+import { useOwnAppointments } from '@pages/company/register/shared/useOwnAppointments';
+import { useTransferMembers } from '@pages/company/register/shared/useRegisterTransfers';
 import { TransferForm } from './TransferForm';
 
 const LEDE =

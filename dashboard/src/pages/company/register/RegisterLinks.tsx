@@ -8,12 +8,17 @@ import {
 } from '@ledova/shared';
 import { LinkRow, Section } from '@components/Ledger';
 import { PageAction } from '@components/Page';
-import { ownAppointmentsKey } from '../team/appointments';
+import { ownAppointmentsKey } from '@pages/company/shared/appointments';
 import { LinkRecord } from './LinkRecord';
-import { registerSteps } from './proposals';
+import { registerSteps } from '@pages/company/shared/proposals';
 import { registerKey } from '@hooks/useRegisterAccess';
-import { useOwnAppointments } from './useRegisterImports';
-import { linksKey, useRegisterLinks, useWaitingWallets, waitingWalletsKey } from './useRegisterLinks';
+import { useOwnAppointments } from '@pages/company/register/shared/useOwnAppointments';
+import {
+  linksKey,
+  useRegisterLinks,
+  useWaitingWallets,
+  waitingWalletsKey,
+} from '@pages/company/register/shared/useRegisterLinks';
 
 const COPY = REGISTER_LINK_COPY;
 

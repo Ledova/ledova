@@ -15,9 +15,9 @@ import {
 } from '@ledova/shared';
 import { Page, PageAction } from '@components/Page';
 import { Row, Rows, Section, Status, type Tone } from '@components/Ledger';
-import { TokenPauseControls } from '@pages/company/components/TokenPauseControls';
-import { ClassRegister } from '@pages/company/register/ClassRegister';
-import { CompanyShareholders } from '@pages/company/register/CompanyShareholders';
+import { TokenPauseControls } from './TokenPauseControls';
+import { ClassRegister } from '@pages/company/register/shared/ClassRegister';
+import { CompanyShareholders } from '@pages/company/register/shared/CompanyShareholders';
 import { useShareClass } from './useShareClass';
 import { DeploymentFlow } from './DeploymentFlow';
 import { CompanyIssueFlow } from './CompanyIssueFlow';

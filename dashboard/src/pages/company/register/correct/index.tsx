@@ -12,13 +12,14 @@ import {
 } from '@ledova/shared';
 import { Row, Rows, Section } from '@components/Ledger';
 import { Page, PageAction } from '@components/Page';
-import { RegisterChanges } from '../RegisterChanges';
-import { Loading, Unavailable } from '../RegisterStatus';
-import { describeEntry } from '../proposals';
+import { RegisterChanges } from '@pages/company/register/shared/RegisterChanges';
+import { Loading, Unavailable } from '@pages/company/shared/RegisterStatus';
+import { describeEntry } from '@pages/company/shared/proposals';
 import { READ_TIMING } from '@hooks/useRegisterAccess';
-import { useRegisterClasses } from '../useCompanyRegister';
-import { entriesKey, readClassEntry } from '../useRegisterCorrections';
-import { ownerGuard, useOwnAppointments } from '../useRegisterImports';
+import { useRegisterClasses } from '@pages/company/shared/useCompanyRegister';
+import { entriesKey, readClassEntry } from '@pages/company/register/shared/useRegisterEntries';
+import { ownerGuard } from '@pages/company/register/shared/ownerGuard';
+import { useOwnAppointments } from '@pages/company/register/shared/useOwnAppointments';
 import { CorrectionForm } from './CorrectionForm';
 
 const COPY = REGISTER_CORRECTION_COPY;

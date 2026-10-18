@@ -1,7 +1,7 @@
 import { formatDateTime, type CompanyTeamAppointment, type OwnCompanyAppointment } from '@ledova/shared';
 import { Row, Rows } from '@components/Ledger';
 import { PageAction } from '@components/Page';
-import { currentAppointment, scopeLabels } from './appointments';
+import { currentAppointment, scopeLabels } from '@pages/company/shared/appointments';
 
 export function AppointmentRecord({
   appointment,

@@ -11,9 +11,9 @@ import {
 import { Row, Rows, Status } from '@components/Ledger';
 import { PageAction } from '@components/Page';
 import apiClient from '@services/apiClient';
-import { DecisionTrail } from './DecisionTrail';
-import { RegisterDecisions } from './RegisterDecisions';
-import { DOWNLOAD_FAILED, STAGE_TONES, retainedName, type RegisterSteps } from './proposals';
+import { DecisionTrail } from '@pages/company/register/shared/DecisionTrail';
+import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
+import { DOWNLOAD_FAILED, STAGE_TONES, retainedName, type RegisterSteps } from '@pages/company/shared/proposals';
 import { saveFile } from '@utils/saveFile';
 
 const COPY = REGISTER_PARTICULARS_COPY;

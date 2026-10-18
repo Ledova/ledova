@@ -23,8 +23,8 @@ import {
 import { PageAction } from '@components/Page';
 import { FIELD_CLASS, LABEL } from '@components/fieldClass';
 import apiClient from '@services/apiClient';
-import { shareCount } from '../proposals';
-import { openingsKey } from '../useRegisterOpenings';
+import { shareCount } from '@pages/company/shared/proposals';
+import { openingsKey } from '@pages/company/register/shared/useRegisterOpenings';
 
 type Draft = {
   file: File | null;

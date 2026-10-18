@@ -13,20 +13,19 @@ import {
 } from '@ledova/shared';
 import { LinkRow } from '@components/Ledger';
 import { PageAction } from '@components/Page';
-import { ownAppointmentsKey } from '../team/appointments';
+import { ownAppointmentsKey } from '@pages/company/shared/appointments';
 import { CorrectionRecord } from './CorrectionRecord';
 import { ClassCertificate } from './ClassCertificate';
-import { RegisterChanges } from './RegisterChanges';
-import { registerSteps } from './proposals';
+import { RegisterChanges } from '@pages/company/register/shared/RegisterChanges';
+import { registerSteps } from '@pages/company/shared/proposals';
 import { registerKey } from '@hooks/useRegisterAccess';
 import {
   correctionsKey,
-  entriesKey,
   useClassCorrections,
-  useRegisterEntries,
   type ClassCorrection,
-} from './useRegisterCorrections';
-import { useOwnAppointments } from './useRegisterImports';
+} from '@pages/company/register/shared/useClassCorrections';
+import { entriesKey, useRegisterEntries } from '@pages/company/register/shared/useRegisterEntries';
+import { useOwnAppointments } from '@pages/company/register/shared/useOwnAppointments';
 
 const COPY = REGISTER_CORRECTION_COPY;
 
