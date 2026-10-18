@@ -11,7 +11,7 @@ import {
 import { Action, Choice, Row, Rows, Section } from '../../components/Ledger';
 import type { BottomTabParamList } from '../../navigation/BottomTabNavigator';
 import { orderSubmissionSession } from '../../services/orderSubmissions';
-import { useCompanyStyles } from '../company-register/styles';
+import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 
 function NominationFacts({ preview }: { preview: WalletNominationPreview }) {
   return (

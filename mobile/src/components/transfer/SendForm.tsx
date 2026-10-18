@@ -1,9 +1,9 @@
 import React from 'react';
 import { View, Text, ActivityIndicator, TouchableOpacity, TextInput, ScrollView } from 'react-native';
 import { CurrencyBtcIcon, CurrencyEthIcon, CurrencyCircleDollarIcon, QrCodeIcon } from 'phosphor-react-native';
-import { useAppTheme, useThemedStyles } from '../../../contexts';
-import { Action, Rows } from '../../../components/Ledger';
-import { useDialogStyles } from '../../../components/modal';
+import { useAppTheme, useThemedStyles } from '../../contexts/index';
+import { Action, Rows } from '../Ledger';
+import { useDialogStyles } from '../modal/index';
 import {
   formatCryptoBalance,
   formatWalletAddressMedium,

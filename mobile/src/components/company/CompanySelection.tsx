@@ -1,6 +1,6 @@
 import { Text, View } from 'react-native';
-import { Choice } from '../../components/Ledger';
-import { useCompanyStyles } from '../company-register/styles';
+import { Choice } from '../Ledger';
+import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 
 type CompanyChoices = {
   companies: { uuid: string; name: string }[];

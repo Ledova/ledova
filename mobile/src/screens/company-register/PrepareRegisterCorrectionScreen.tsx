@@ -22,10 +22,15 @@ import { Page } from '../../components/Page';
 import type { CompanyStackParamList } from '../../navigation/CompanyStackNavigator';
 import { apiClient } from '../../services/apiClient';
 import { assertSessionEpoch, getSessionEpoch, subscribeSession } from '../../services/sessionScope';
-import { EvidencePicker, Field, isoDay, utcToday } from './RegisterFields';
-import { useCompanyStyles } from './styles';
-import { correctionsKey, useClassRegister, useRegisterAppointments, useRegisterEntry } from './useCompanyRegister';
-import { useRegisterEvidence } from './useRegisterEvidence';
+import { EvidencePicker, Field, isoDay, utcToday } from '../../components/register/RegisterFields';
+import { useCompanyStyles } from '../../hooks/useCompanyStyles';
+import {
+  correctionsKey,
+  useClassRegister,
+  useRegisterAppointments,
+  useRegisterEntry,
+} from '../../hooks/useCompanyRegister';
+import { useRegisterEvidence } from '../../hooks/useRegisterEvidence';
 
 const AUTHORITIES = Object.entries(COPY.AUTHORITIES) as [RegisterCorrectionAuthority, string][];
 const FAILED = 'The correction could not be prepared. Retry with the same details.';

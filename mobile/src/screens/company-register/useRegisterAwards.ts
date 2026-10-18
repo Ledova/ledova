@@ -7,7 +7,7 @@ import {
   readEveryPage,
 } from '@ledova/shared';
 import { apiClient } from '../../services/apiClient';
-import { registerKey } from './useCompanyRegister';
+import { registerKey } from '../../hooks/useCompanyRegister';
 
 export const awardsKey = (epoch: number, token: string) => [...registerKey(epoch), 'awards', token];
 export const awardVestingsKey = (epoch: number, award: string) => [...registerKey(epoch), 'award-vestings', award];

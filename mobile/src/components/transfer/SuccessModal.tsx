@@ -1,8 +1,8 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, Linking } from 'react-native';
 import { CheckCircleIcon, ArrowSquareOutIcon } from 'phosphor-react-native';
-import { CustomModal, useDialogStyles } from '../../../components/modal';
-import { useAppTheme, useThemedStyles } from '../../../contexts';
+import { CustomModal, useDialogStyles } from '../modal/index';
+import { useAppTheme, useThemedStyles } from '../../contexts/index';
 import { getBlockchainDisplayName, getBlockExplorerTxUrl } from '@ledova/shared';
 
 interface SuccessModalProps {

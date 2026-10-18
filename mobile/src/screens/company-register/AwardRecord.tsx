@@ -12,8 +12,8 @@ import {
 import { Action, Disclosure, Row, Rows } from '../../components/Ledger';
 import { apiClient } from '../../services/apiClient';
 import { AwardVestingForm } from './AwardVestingForm';
-import { RegisterCopy } from './RegisterCopy';
-import { useCompanyStyles } from './styles';
+import { RegisterCopy } from '../../components/register/RegisterCopy';
+import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 import { awardVestingsKey, useRegisterAwardVestings } from './useRegisterAwards';
 
 export function AwardRecord({

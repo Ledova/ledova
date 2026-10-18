@@ -4,8 +4,8 @@ import { getErrorMessage, COMPANY_DOCUMENT_TYPES, type CompanyDocument, type Doc
 import { Action, Section } from '../../components/Ledger';
 import { CustomModal } from '../../components/modal';
 import { useCompanyDocumentActions } from '../../hooks/useCompanyDocumentActions';
-import { useCompanyStyles } from '../company-register/styles';
-import { CompanyReadNotice, type CompanyActionRead } from './CompanyState';
+import { useCompanyStyles } from '../../hooks/useCompanyStyles';
+import { CompanyReadNotice, type CompanyActionRead } from '../../components/company/CompanyState';
 import { CompanyUpload } from './CompanyUpload';
 import { DocumentEntry } from './DocumentEntry';
 

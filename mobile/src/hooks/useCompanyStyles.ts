@@ -1,4 +1,4 @@
-import { useThemedStyles } from '../../contexts';
+import { useThemedStyles } from '../contexts/index';
 
 export const useCompanyStyles = () =>
   useThemedStyles((theme) => ({

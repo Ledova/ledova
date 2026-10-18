@@ -13,8 +13,8 @@ import {
 import { CustomModal } from '../../components/modal';
 import { Choice } from '../../components/Ledger';
 import { apiClient } from '../../services/apiClient';
-import { useCompanyStyles } from '../company-register/styles';
-import { CompanyReadNotice, type CompanyActionRead } from './CompanyState';
+import { useCompanyStyles } from '../../hooks/useCompanyStyles';
+import { CompanyReadNotice, type CompanyActionRead } from '../../components/company/CompanyState';
 
 const FIELDS = [
   ['name', 'Company name'],

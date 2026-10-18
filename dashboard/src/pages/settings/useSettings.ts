@@ -1,8 +1,8 @@
+import { clearSessionQueries } from '@utils/session';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
-  AUTH_QUERY_KEY,
   USER_PREFERENCES_QUERY_KEY,
   deleteAccount,
   changePassword,
@@ -37,8 +37,7 @@ export function useSettings() {
   const deleteMutation = useMutation({
     mutationFn: () => deleteAccount(apiClient),
     onSuccess: () => {
-      queryClient.setQueryData(AUTH_QUERY_KEY, { data: { valid: false } });
-      queryClient.clear();
+      clearSessionQueries(queryClient);
       navigate(SIGNIN_PATH);
     },
   });

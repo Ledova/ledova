@@ -1,7 +1,7 @@
 import { Text, View } from 'react-native';
 import { formatDateTime, type CompanyEligibilityRequest } from '@ledova/shared';
 import { Row, Rows } from '../../components/Ledger';
-import { useCompanyStyles } from '../company-register/styles';
+import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 import { EligibilitySummary } from './EligibilitySummary';
 
 export function EligibilityRecord({ record }: { record: CompanyEligibilityRequest }) {

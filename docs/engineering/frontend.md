@@ -74,15 +74,16 @@ frame share, and `packages/shared` holds what both clients share.
 
 Where today's code differs from these standards:
 
-- Browser storage/session resets, notice/status/auth chrome and register shells still repeat
-  fragments; consolidation is tracked on [#1073](https://github.com/Ledova/ledova/issues/1073).
+- Notice/status/auth chrome and register shells still repeat fragments;
+  consolidation is tracked on [#1073](https://github.com/Ledova/ledova/issues/1073).
 - Existing unscoped account-bound keys stay unchanged; broader account scoping needs the owner
   decision on [#1065](https://github.com/Ledova/ledova/issues/1065).
 
 Mobile maps onto the same layers, direction and placement, with `navigation/` for `routes/` and
 `screens/<area>/` for page folders. Its component data calls beyond the reads extracted for key
-ownership remain recorded on [#1072](https://github.com/Ledova/ledova/issues/1072); cross-area imports
-and the two genuine client profile readers are consolidated under
+ownership remain recorded on [#1072](https://github.com/Ledova/ledova/issues/1072). Shared native UI
+and reads have moved out of screen internals; the remaining two cross-area helper imports and
+cross-client copies are consolidated under
 [#1074](https://github.com/Ledova/ledova/issues/1074) ([mobile
 architecture](mobile.md#architecture)). `site/src` is a separate flat app (one file per page in
 `pages/`, `components/`, `styles.ts`, `theme.ts`) that cannot import the shared package; only the
@@ -366,10 +367,13 @@ hides protected content while a cached negative is rechecked and redirects after
 or failure.
 
 On the web, signing in and verifying an email (which also signs a new person in) remove every cached
-query except authentication; mobile clears the whole cache whenever the sign-in screen gains focus.
-Signing out and account deletion clear the whole cache on both, so a new person is never guarded by,
-or signs up against, the previous person's account. Mobile adds a session epoch to every read and
-write ([session scope](mobile.md#session-scope)).
+query except the authentication root, then await an exact authentication refetch. Signing out and
+account deletion mark authentication invalid before clearing the whole cache. These two reset
+sequences share `dashboard/src/utils/session.ts`. The four device stores share the synchronous
+`dashboard/src/services/browserStorage.ts` adapter, resolving browser storage when each operation
+runs. Mobile clears the whole cache whenever the sign-in screen gains focus, and on sign-out and
+account deletion. A new person is never guarded by, or signs up against, the previous person's
+account. Mobile adds a session epoch to every read and write ([session scope](mobile.md#session-scope)).
 
 The shared `useUserPreferences` and `useCurrency` queries start only after authentication, and
 cached preferences are hidden again when authentication is lost.
@@ -655,7 +659,7 @@ Each page links to its business section; the audience is the `DESTINATIONS` audi
 - Directory and Applications: a draft application reads every verified Base wallet page and computes
   its fixed-price total in integer cents with `BigInt`
   (`dashboard/src/pages/directory/detail/SubscribeForm.tsx`,
-  `mobile/src/screens/applications/presentation.ts`); Applications shows the recorded values without
+  `mobile/src/screens/directory/applicationAmount.ts`); Applications shows the recorded values without
   recomputing them, and a copy failure keeps the value available.
 - Market: owned order history reads independently of listed classes and wallets. Device-saved work
   ([create-order recovery](mobile.md#create-order-recovery),

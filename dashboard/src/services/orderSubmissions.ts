@@ -1,11 +1,4 @@
 import { createOrderSubmissionStore } from '@ledova/shared';
+import { browserStorage } from './browserStorage';
 
-export const orderSubmissionStore = createOrderSubmissionStore(
-  {
-    getAllKeys: () => Object.keys(localStorage),
-    getItem: (key) => localStorage.getItem(key),
-    setItem: (key, value) => localStorage.setItem(key, value),
-    removeItem: (key) => localStorage.removeItem(key),
-  },
-  () => crypto.randomUUID(),
-);
+export const orderSubmissionStore = createOrderSubmissionStore(browserStorage, () => crypto.randomUUID());

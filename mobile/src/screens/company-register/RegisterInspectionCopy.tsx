@@ -12,8 +12,8 @@ import { CustomModal } from '../../components/modal';
 import { apiClient } from '../../services/apiClient';
 import { orderSubmissionSession } from '../../services/orderSubmissions';
 import { assertSessionEpoch } from '../../services/sessionScope';
-import { RegisterCopy } from './RegisterCopy';
-import { useCompanyStyles } from './styles';
+import { RegisterCopy } from '../../components/register/RegisterCopy';
+import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 
 type Preview = Awaited<ReturnType<typeof getRegisterInspectionPreview>>['data'];
 type Draft = { instruction: string; requestedOn: string; recipient: string };
