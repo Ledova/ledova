@@ -4,13 +4,13 @@ import { useQuery } from '@tanstack/react-query';
 import { CACHE_TIMING } from '../constants/api';
 import { getDirectoryDocuments, getDirectoryToken, getDirectoryTokens } from '../services/directory';
 import { getInvestorReadiness } from '../services/investorClassifications';
-import { getOperator } from '../services/operator';
+import { useOperator } from './useOperator';
 import { readEveryPage } from '../utils/pagination';
 import { failureStatus } from '../utils/errors';
 import { useApiClient } from './useApiClient';
 
 export const DIRECTORY_QUERY_KEY = ['directory'] as const;
-export const OPERATOR_QUERY_KEY = ['operator'] as const;
+export { OPERATOR_QUERY_KEY } from './useOperator';
 
 export function useDirectoryTokens() {
   const apiClient = useApiClient();
@@ -45,12 +45,7 @@ export function useDirectoryToken(uuid: string | undefined) {
     staleTime: CACHE_TIMING.SHORT_STALE_TIME,
   });
 
-  const operator = useQuery({
-    queryKey: OPERATOR_QUERY_KEY,
-    queryFn: () => getOperator(apiClient),
-    enabled: token.isSuccess,
-    staleTime: CACHE_TIMING.EXTRA_LONG_GC_TIME,
-  });
+  const operator = useOperator({ enabled: token.isSuccess });
 
   const notFound = failureStatus(token.error) === 404;
 

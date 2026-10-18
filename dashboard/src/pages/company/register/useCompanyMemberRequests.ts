@@ -11,7 +11,7 @@ import {
   type TokenHoldersResponse,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
-import { invitationMembers } from './invitationMembers';
+import { invitationMembers } from '@ledova/shared';
 import { READ_TIMING, registerKey } from '@hooks/useRegisterAccess';
 import { particularsKey } from '@pages/company/register/shared/useRegisterParticulars';
 

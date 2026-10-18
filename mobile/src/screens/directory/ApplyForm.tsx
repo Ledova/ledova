@@ -9,7 +9,7 @@ import {
 import { Action, LinkRow, Row, Section } from '../../components/Ledger';
 import { useThemedStyles } from '../../contexts/index';
 import { useApplicationStyles } from '../../hooks/useApplicationStyles';
-import { applicationAmount } from './applicationAmount';
+import { applicationAmount } from '@ledova/shared';
 
 export type ApplicationDraft = { quantity: string; wallet: string | null };
 

@@ -1,4 +1,4 @@
-import type { CertifierBody, InvestorCategory, InvestorReadinessReason } from '@ledova/shared';
+import type { CertifierBody, InvestorCategory, InvestorReadinessReason } from '../../types';
 
 export const CATEGORIES: {
   category: InvestorCategory;
@@ -32,11 +32,13 @@ export const CATEGORIES: {
   },
 ];
 
-export const CERTIFIER_BODIES: { value: CertifierBody; label: string }[] = [
-  { value: 'ca_anz', label: 'Chartered Accountants ANZ' },
-  { value: 'cpa_australia', label: 'CPA Australia' },
-  { value: 'ipa', label: 'Institute of Public Accountants' },
-];
+export function certifierBodies(caAnzLabel: string): { value: CertifierBody; label: string }[] {
+  return [
+    { value: 'ca_anz', label: caAnzLabel },
+    { value: 'cpa_australia', label: 'CPA Australia' },
+    { value: 'ipa', label: 'Institute of Public Accountants' },
+  ];
+}
 
 export const REASON_TEXT: Record<InvestorReadinessReason, string> = {
   no_investor_account: 'This login has no investor account.',

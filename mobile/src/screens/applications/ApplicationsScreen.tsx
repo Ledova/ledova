@@ -1,3 +1,4 @@
+import { marketQuantity } from '@ledova/shared';
 import { Text, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -6,7 +7,7 @@ import type { ApplicationsStackParamList } from '../../navigation/ApplicationsSt
 import { Action, LinkRow, Row, Rows, Section } from '../../components/Ledger';
 import { ApplicationsPage } from './ApplicationsPage';
 import { useApplicationStyles } from '../../hooks/useApplicationStyles';
-import { applicationShares, applicationState } from './presentation';
+import { applicationState } from './presentation';
 
 export function ApplicationsScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<ApplicationsStackParamList>>();
@@ -38,7 +39,7 @@ export function ApplicationsScreen() {
                 <Text style={styles.message}>{applicationState(application)}</Text>
                 <Rows>
                   <Row label="Share class">{application.tokenSymbol}</Row>
-                  <Row label="Shares applied for">{applicationShares(application.quantity)}</Row>
+                  <Row label="Shares applied for">{marketQuantity(application.quantity)}</Row>
                   <Row label="Price per share">{formatMoney(application.pricePerShare, application.currency)}</Row>
                   <Row label="Amount due">{formatMoney(application.amountDue, application.currency)}</Row>
                   <Row label="Drafted">{formatDate(application.createdAt)}</Row>

@@ -1,4 +1,5 @@
-import { isUuid, type RegisterAward, type TokenHoldersResponse } from '@ledova/shared';
+import { isUuid } from './validation';
+import type { RegisterAward, TokenHoldersResponse } from '../types';
 
 interface InvitationMember {
   uuid: string;

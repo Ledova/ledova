@@ -1,16 +1,7 @@
-import {
-  SUBSCRIPTION_STATUS_LABELS,
-  formatShareCount,
-  type Subscription,
-  type SubscriptionDetail,
-} from '@ledova/shared';
+import { SUBSCRIPTION_STATUS_LABELS, type Subscription, type SubscriptionDetail } from '@ledova/shared';
 
 export function applicationState(application: Pick<Subscription, 'status' | 'statusDisplay'>) {
   return SUBSCRIPTION_STATUS_LABELS[application.status] ?? application.statusDisplay;
-}
-
-export function applicationShares(quantity: number) {
-  return Number.isSafeInteger(quantity) && quantity >= 0 ? formatShareCount(String(quantity)) : 'Unavailable';
 }
 
 export function applicationHistory(application: SubscriptionDetail) {

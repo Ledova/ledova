@@ -7,7 +7,7 @@ import { Action, Choice, Row, Rows, Section } from '../../components/Ledger';
 import { Page } from '../../components/Page';
 import { CustomModal } from '../../components/modal';
 import { getSessionEpoch } from '../../services/sessionScope';
-import { CATEGORIES, CERTIFIER_BODIES, REASON_TEXT, WHOLESALE_ONLY_NOTICE } from './constants';
+import { CATEGORIES, CERTIFIER_BODIES, REASON_TEXT, WHOLESALE_ONLY_NOTICE } from '../../config/investorEligibility';
 import { useInvestorEligibility } from './useInvestorEligibility';
 import { useDocumentUpload } from '../../hooks/useDocumentUpload';
 import { EligibilityLinks } from '../../components/EligibilityLinks';
