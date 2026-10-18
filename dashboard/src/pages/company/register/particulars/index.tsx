@@ -1,6 +1,7 @@
+import { useParticularsRegisters } from './useParticularsRegisters';
 import { useMemo, type ReactNode } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useQueries } from '@tanstack/react-query';
+
 import {
   DESTINATIONS,
   REGISTER_PARTICULARS_COPY,
@@ -14,7 +15,7 @@ import {
 import { Section } from '@components/Ledger';
 import { Page, PageAction } from '@components/Page';
 import { Loading, Unavailable } from '@pages/company/shared/RegisterStatus';
-import { registersQuery, useRegisterClasses } from '@pages/company/shared/useCompanyRegister';
+import { useRegisterClasses } from '@pages/company/shared/useCompanyRegister';
 import { ownerGuard } from '@pages/company/register/shared/ownerGuard';
 import { useOwnAppointments } from '@pages/company/shared/useOwnAppointments';
 import { ParticularsForm } from './ParticularsForm';
@@ -85,7 +86,7 @@ function OwnParticulars({
   const classes = useRegisterClasses(owner);
   const appointments = useOwnAppointments(owner, guard);
   const preparing = classes.data && appointments.data ? preparingCompanies(classes.data, appointments.data) : [];
-  const registers = useQueries({ queries: preparing.map((company) => registersQuery(owner, company.classes)) });
+  const registers = useParticularsRegisters(owner, preparing);
   const found = preparing.flatMap((company, index) => {
     const holder = registers[index].data?.flatMap((register) => register.holders).find((row) => row.member === member);
     return holder ? [{ company, holder, read: registers[index] }] : [];
