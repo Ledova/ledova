@@ -74,8 +74,8 @@ frame share, and `packages/shared` holds what both clients share.
 
 Where today's code differs from these standards:
 
-- Register command forms keep their data access in adjacent hooks. Other inline data calls and
-  their component-owned keys still need [#1072](https://github.com/Ledova/ledova/issues/1072).
+- Register preparation and personal/wallet data calls and their keys still need
+  [#1072](https://github.com/Ledova/ledova/issues/1072).
 - Existing unscoped account-bound keys stay unchanged; broader account scoping needs the owner
   decision on [#1065](https://github.com/Ledova/ledova/issues/1065).
 

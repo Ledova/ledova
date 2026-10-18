@@ -1,10 +1,8 @@
 import { useLayoutEffect, useRef } from 'react';
-import { useMutation } from '@tanstack/react-query';
 import {
   REGISTER_LINK_COPY,
   REGISTER_LINK_DECISIONS,
   apiErrorSentence,
-  downloadRegisterLinkFile,
   formatDateTime,
   registerLinkMemberLabels,
   type RegisterLink,
@@ -12,12 +10,11 @@ import {
 } from '@ledova/shared';
 import { Row, Rows, Status } from '@components/Ledger';
 import { PageAction } from '@components/Page';
-import apiClient from '@services/apiClient';
 import { DecisionTrail } from '@pages/company/register/shared/DecisionTrail';
 import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
 import { WalletStatus } from '@pages/company/register/shared/WalletStatus';
-import { DOWNLOAD_FAILED, STAGE_TONES, retainedName, type RegisterSteps } from '@pages/company/shared/proposals';
-import { saveFile } from '@utils/saveFile';
+import { DOWNLOAD_FAILED, STAGE_TONES, type RegisterSteps } from '@pages/company/shared/proposals';
+import { useLinkRecordDownload } from './useRegisterRecordDownload';
 
 const COPY = REGISTER_LINK_COPY;
 
@@ -48,14 +45,7 @@ export function LinkRecord({
     guard();
     if (!available.current) throw new Error('Open the current register task before reading or deciding this record.');
   };
-  const download = useMutation({
-    mutationFn: async () => {
-      check();
-      const { data } = await downloadRegisterLinkFile(apiClient, link.uuid, { ledovaSubmissionGuard: check });
-      check();
-      saveFile(data, retainedName(link.evidenceSnapshot, `wallet-link-${link.uuid}`));
-    },
-  });
+  const download = useLinkRecordDownload(link, check);
   const labels = registerLinkMemberLabels(link.mappingSummary, holders);
   const context = `wallet link prepared ${formatDateTime(link.createdAt)}`;
   return (

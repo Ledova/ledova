@@ -1,10 +1,8 @@
 import { useLayoutEffect, useRef } from 'react';
-import { useMutation } from '@tanstack/react-query';
 import {
   REGISTER_OPENING_COPY,
   REGISTER_OPENING_DECISIONS,
   apiErrorSentence,
-  downloadRegisterOpeningFile,
   formatDateTime,
   largestHoldingsFirst,
   openingMemberLabels,
@@ -12,18 +10,11 @@ import {
 } from '@ledova/shared';
 import { Row, Rows, Status } from '@components/Ledger';
 import { PageAction } from '@components/Page';
-import apiClient from '@services/apiClient';
 import { DecisionTrail } from '@pages/company/register/shared/DecisionTrail';
 import { RegisterChanges } from '@pages/company/register/shared/RegisterChanges';
 import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
-import {
-  DOWNLOAD_FAILED,
-  STAGE_TONES,
-  retainedName,
-  shareCount,
-  type RegisterSteps,
-} from '@pages/company/shared/proposals';
-import { saveFile } from '@utils/saveFile';
+import { DOWNLOAD_FAILED, STAGE_TONES, shareCount, type RegisterSteps } from '@pages/company/shared/proposals';
+import { useOpeningRecordDownload } from './useRegisterRecordDownload';
 
 const COPY = REGISTER_OPENING_COPY;
 
@@ -52,14 +43,7 @@ export function OpeningRecord({
     guard();
     if (!available.current) throw new Error('Open the current register task before reading or deciding this record.');
   };
-  const download = useMutation({
-    mutationFn: async () => {
-      check();
-      const { data } = await downloadRegisterOpeningFile(apiClient, proposal.uuid, { ledovaSubmissionGuard: check });
-      check();
-      saveFile(data, retainedName(proposal.evidenceSnapshot, `register-opening-${proposal.uuid}`));
-    },
-  });
+  const download = useOpeningRecordDownload(proposal, check);
   const summary = proposal.boundarySummary;
   const holdings = summary ? largestHoldingsFirst(summary.holdings) : [];
   const labels = openingMemberLabels(holdings);

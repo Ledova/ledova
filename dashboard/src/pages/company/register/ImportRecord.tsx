@@ -1,11 +1,9 @@
 import { useLayoutEffect, useRef } from 'react';
-import { useMutation } from '@tanstack/react-query';
 import {
   REGISTER_COPY,
   REGISTER_IMPORT_COPY,
   REGISTER_IMPORT_DECISIONS,
   apiErrorSentence,
-  downloadRegisterImportFile,
   formatDate,
   formatDateTime,
   formatShareCount,
@@ -15,12 +13,11 @@ import {
 } from '@ledova/shared';
 import { Row, Rows, Status } from '@components/Ledger';
 import { PageAction } from '@components/Page';
-import apiClient from '@services/apiClient';
 import { DecisionTrail } from '@pages/company/register/shared/DecisionTrail';
 import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
-import { DOWNLOAD_FAILED, STAGE_TONES, retainedName, type RegisterSteps } from '@pages/company/shared/proposals';
-import { saveFile } from '@utils/saveFile';
+import { DOWNLOAD_FAILED, STAGE_TONES, type RegisterSteps } from '@pages/company/shared/proposals';
 import { MemberRecords } from '@pages/company/register/shared/MemberRecords';
+import { useImportRecordDownload } from './useRegisterRecordDownload';
 
 function ImportPreview({ preview }: { preview: RegisterImportDecisionPreview }) {
   return (
@@ -93,21 +90,7 @@ export function ImportRecord({
     guard();
     if (!available.current) throw new Error('Open the current register task before reading or deciding this record.');
   };
-  const download = useMutation({
-    mutationFn: async (copy: 'register' | 'asic') => {
-      check();
-      const { data } = await downloadRegisterImportFile(apiClient, proposal.uuid, copy, {
-        ledovaSubmissionGuard: check,
-      });
-      check();
-      saveFile(
-        data,
-        copy === 'asic'
-          ? retainedName(proposal.asicSnapshot, `asic-extract-${proposal.uuid}`)
-          : retainedName(proposal.evidenceSnapshot, `register-import-${proposal.uuid}`),
-      );
-    },
-  });
+  const download = useImportRecordDownload(proposal, check);
   const totals = registerImportTotals(proposal.members);
   return (
     <li hidden={!visible} className="flex flex-col gap-3 py-4">

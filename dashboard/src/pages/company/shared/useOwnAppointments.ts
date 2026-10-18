@@ -12,9 +12,13 @@ export function ownAppointmentsKey(owner: OrderSubmissionOwner) {
   return [...OWN_APPOINTMENTS_QUERY_KEY, owner.userUuid, owner.ownerAccountUuid];
 }
 
-export function useOwnAppointments(owner: OrderSubmissionOwner, guard: () => void) {
+export function useOwnAppointments(
+  owner: OrderSubmissionOwner,
+  guard: () => void,
+  policy: { queryKey?: readonly unknown[]; enabled?: boolean; timing?: Partial<typeof READ_TIMING> } = {},
+) {
   return useQuery({
-    queryKey: ownAppointmentsKey(owner),
+    queryKey: policy.queryKey ?? ownAppointmentsKey(owner),
     queryFn: () =>
       readEveryPage(async (page) => {
         guard();
@@ -22,6 +26,7 @@ export function useOwnAppointments(owner: OrderSubmissionOwner, guard: () => voi
         guard();
         return result;
       }),
-    ...READ_TIMING,
+    ...(policy.timing ?? READ_TIMING),
+    ...(policy.enabled === undefined ? {} : { enabled: policy.enabled }),
   });
 }
