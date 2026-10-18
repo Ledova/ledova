@@ -242,6 +242,16 @@ class ScopedAccessTest(CoreFixtures, APITransactionTestCase):
         capital = self.client.post("/api/v1/tokens/register-allotments/", allotment, format="json")
         self.assertEqual(capital.status_code, 201, capital.content)
         capital_detail = f"/api/v1/tokens/register-allotments/{allotment['operation_id']}/"
+        reviewed = self.client.post(
+            f"{capital_detail}decision-preview/",
+            {"appointment": str(self.appointment.pk), "kind": "approve"},
+            format="json",
+        )
+        self.assertEqual(reviewed.status_code, 200, reviewed.content)
+        self.assertEqual(
+            reviewed.json()["currentHolders"],
+            [{"member": str(self.member.pk), "name": "Synthetic Member", "shares": "100"}],
+        )
         for suffix in ("", "file/", "agreement-file/", "receipt-file/"):
             healthy = self.client.get(f"{capital_detail}{suffix}")
             self.assertEqual(healthy.status_code, 200, getattr(healthy, "content", b""))

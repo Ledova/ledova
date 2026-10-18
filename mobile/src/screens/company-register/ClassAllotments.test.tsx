@@ -94,6 +94,8 @@ it('recovers the fully paid company allotment once, separates approval from ISSU
     companyName: APPOINTMENT.companyName,
   };
   let releaseFile: (() => void) | undefined;
+  let incompleteImpact = false;
+  let staleApproval = true;
   get.mockReset().mockImplementation(async (url) => {
     if (url === '/api/user-preferences/') {
       if (failedPreferences) throw new Error('Synthetic preferences unavailable');
@@ -164,9 +166,13 @@ it('recovers the fully paid company allotment once, separates approval from ISSU
       throw new Error('Synthetic interrupted preparation response');
     }
     if (url === URLS.REGISTER_ALLOTMENT_PREVIEW(rows[0].uuid))
-      return { data: allotmentPreview(rows[0], (body as { kind: string }).kind === 'apply') };
+      return { data: { ...allotmentPreview(rows[0]), ...(incompleteImpact ? { currentHolders: undefined } : {}) } };
     if (url === URLS.REGISTER_ALLOTMENT_DECIDE(rows[0].uuid)) {
       const request = body as RegisterAllotmentDecideRequest;
+      if (request.kind === 'approve' && staleApproval) {
+        staleApproval = false;
+        throw Object.assign(new Error('The ownership snapshot changed. Preview again.'), { response: { status: 409 } });
+      }
       if (!rows[0].decisions.some((decision) => decision.idempotencyKey === request.idempotencyKey))
         rows = [allotmentDecision(rows[0], request)];
       if (request.kind === 'apply' && !interruptedIssue) {
@@ -229,6 +235,26 @@ it('recovers the fully paid company allotment once, separates approval from ISSU
   expect(post.mock.calls.filter(([url]) => url === URLS.REGISTER_ALLOTMENTS)).toHaveLength(1);
   expect(post.mock.calls.filter(([url]) => url === URLS.REGISTER_EVIDENCE)).toHaveLength(3);
   expect(view.queryByRole('button', { name: /^Record issue the external allotment/ })).toBeNull();
+  incompleteImpact = true;
+  await fireEvent.press(view.getByRole('button', { name: /^Approve the external allotment/ }));
+  await view.findByText(COPY.OWNERSHIP_UNAVAILABLE);
+  expect(view.getByRole('button', { name: 'Confirm' })).toBeDisabled();
+  expect(rows[0].decisions).toHaveLength(0);
+  await fireEvent.press(view.getByRole('button', { name: 'Cancel' }));
+  await fireEvent.press(view.getByRole('button', { name: /^Reject the external allotment/ }));
+  await fireEvent.changeText(view.getByLabelText(COPY.REJECTION_REASON), 'Withdraw instruction');
+  await fireEvent.press(view.getByRole('button', { name: 'Preview rejection' }));
+  await waitFor(() => expect(view.getByRole('button', { name: 'Confirm' })).not.toBeDisabled());
+  expect(view.queryByText(COPY.OWNERSHIP_TITLE)).toBeNull();
+  await fireEvent.press(view.getByRole('button', { name: 'Cancel' }));
+  incompleteImpact = false;
+  await fireEvent.press(view.getByRole('button', { name: /^Approve the external allotment/ }));
+  await waitFor(() => expect(view.getByRole('button', { name: 'Confirm' })).not.toBeDisabled());
+  await fireEvent.press(view.getByRole('button', { name: 'Confirm' }));
+  await view.findByText('The ownership snapshot changed. Preview again.');
+  expect(rows[0].decisions).toHaveLength(0);
+  expect(rows[0].registerEntry).toBeNull();
+  await fireEvent.press(view.getByRole('button', { name: 'Cancel' }));
   for (const kind of ['approve', 'apply'] as const) {
     await fireEvent.press(
       view.getByRole('button', {
@@ -239,6 +265,10 @@ it('recovers the fully paid company allotment once, separates approval from ISSU
     await waitFor(() => expect(confirm).not.toBeDisabled());
     expect(view.getByText('Company issue date')).toBeTruthy();
     expect(view.getByText('2026-10-10')).toBeTruthy();
+    expect(view.getByText('Ordinary shares (ORD)')).toBeTruthy();
+    expect(view.getByText('AUD 2.5000')).toBeTruthy();
+    expect(view.getByText('100 shares · 100.00%')).toBeTruthy();
+    expect(view.getByText(COPY.OWNERSHIP_NOTE)).toBeTruthy();
     await fireEvent.press(confirm);
     await waitFor(() => expect(rows[0].decisions).toHaveLength(kind === 'approve' ? 1 : 2));
     if (kind === 'apply') {
@@ -312,6 +342,7 @@ it('recovers the fully paid company allotment once, separates approval from ISSU
     if (kind === 'approve') expect(rows[0].registerEntry).toBeNull();
   }
   await fireEvent.press(view.getByRole('button', { name: `Allotment records for ${ALLOTMENT_REQUEST.name}` }));
+  expect(view.queryByText(COPY.OWNERSHIP_TITLE)).toBeNull();
   await view.findByText('entry-a');
   await fireEvent.press(view.getByRole('button', { name: /^Download receipt/ }));
   await waitFor(() => expect(releaseFile).toBeDefined());

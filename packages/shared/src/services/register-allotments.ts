@@ -1,5 +1,8 @@
 import type { AxiosInstance, AxiosRequestConfig } from 'axios';
 import { COMPANY_TOKEN_ENDPOINTS } from '../constants/api';
+import { REGISTER_ALLOTMENT_COPY } from '../constants/business/register-allotments';
+import { createUserFriendlyError } from '../utils/errors';
+import { allotmentOwnershipImpact } from '../utils/register-allotments';
 import type {
   PaginatedResponse,
   RegisterAllotment,
@@ -29,17 +32,21 @@ export const prepareRegisterAllotment = (
   config: AxiosRequestConfig = {},
 ) => apiClient.post<RegisterAllotment>(COMPANY_TOKEN_ENDPOINTS.REGISTER_ALLOTMENTS, data, config);
 
-export const previewRegisterAllotmentDecision = (
+export const previewRegisterAllotmentDecision = async (
   apiClient: AxiosInstance,
   uuid: string,
   data: RegisterAllotmentDecisionRequest,
   config: AxiosRequestConfig = {},
-) =>
-  apiClient.post<RegisterAllotmentDecisionPreview>(
+) => {
+  const response = await apiClient.post<RegisterAllotmentDecisionPreview>(
     COMPANY_TOKEN_ENDPOINTS.REGISTER_ALLOTMENT_PREVIEW(uuid),
     data,
     config,
   );
+  if (data.kind !== 'reject' && response.data.canDecide && allotmentOwnershipImpact(response.data) === null)
+    throw createUserFriendlyError(REGISTER_ALLOTMENT_COPY.OWNERSHIP_UNAVAILABLE);
+  return response;
+};
 
 export const decideRegisterAllotment = (
   apiClient: AxiosInstance,

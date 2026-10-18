@@ -227,7 +227,18 @@ No deployment, application, payment or chain receipt is involved.
    and separately the amount received, the date and the receipt evidence.
 4. Company authority and review: give the company issue date, name the approving director and give
    the authority reference, the reason and the authority document.
-5. Approve the exact allotment, then choose Record issue.
+5. Review the class, agreed shares and AUD total, the derived price per share, and each shareholder's
+   shares and class percentage before and after the proposed issue. Approve the exact allotment,
+   then choose Record issue.
+
+On web and mobile, this forecast comes from one current class snapshot in the decision preview.
+The recipient is visible first, with other shareholders available on demand for a longer list.
+Price is rounded half-up to four decimal places and percentages to two; the agreed total and whole
+share quantity stay exact. Percentages count shares in this class, not voting or economic rights,
+and Ledova chooses no valuation. Approval, rejection and a displayed forecast issue no shares; an
+applied record shows its recorded outcome rather than forecasting a second issue. Missing or
+inconsistent ownership data blocks a new approval or issue, while retained records, rejection and
+recovery of the original receipt remain available.
 
 The amount received must equal the consideration, because only fully paid allotments are supported.
 Approval is separate from the receipt, and applying records one Issue; the agreement, receipt,
@@ -457,8 +468,6 @@ rights, and transmission.
 Current limits, each with follow-up work proposed under the share lifecycle review
 ([#1060](https://github.com/Ledova/ledova/issues/1060)):
 
-- The investor issue review shows the holdings and issued shares before and after but no implied
-  price per share or ownership percentages. Proposed under [#1062](https://github.com/Ledova/ledova/issues/1062).
 - An award-linked grant asks for its agreement again, and an award's unissued entitlement cannot be
   ended or corrected. Proposed under [#1063](https://github.com/Ledova/ledova/issues/1063).
 - Joint, corporate and trust holdings have no separate structure: a member is one name and

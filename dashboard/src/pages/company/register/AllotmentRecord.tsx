@@ -13,6 +13,7 @@ import { DecisionTrail } from '@pages/company/register/shared/DecisionTrail';
 import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
 import { STAGE_TONES, shareCount, type RegisterSteps } from '@pages/company/shared/proposals';
 import { useAllotmentRecordDownload } from './useRegisterRecordDownload';
+import { AllotmentOwnership } from './AllotmentOwnership';
 
 const DECISION_COPY = { ...COPY, DECISIONS: { ...COPY.DECISIONS, apply: 'Record issue' } };
 
@@ -141,6 +142,11 @@ export function AllotmentRecord({
         onRefused={onSettled}
         visible={visible}
         onHeldChange={onHeldChange}
+        note={(kind, preview) =>
+          kind !== 'reject' && allotment.status === 'submitted' && !allotment.registerEntry ? (
+            <AllotmentOwnership preview={preview} />
+          ) : null
+        }
       >
         {(preview) => (
           <>
@@ -148,12 +154,6 @@ export function AllotmentRecord({
             <p className="text-sm text-text-muted">{COPY.EFFECTIVE_NOTE}</p>
             <Rows>
               <Row label="Register sequence">{preview.registerSequence}</Row>
-              <Row label="Member holding">
-                {shareCount(preview.currentShares)} → {shareCount(preview.afterShares)}
-              </Row>
-              <Row label="Issued supply">
-                {shareCount(preview.issuedSupply)} → {shareCount(preview.afterIssuedSupply)}
-              </Row>
               <Row label="Authorised supply">{shareCount(preview.authorisedSupply)}</Row>
             </Rows>
           </>

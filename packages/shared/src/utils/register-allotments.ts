@@ -15,6 +15,114 @@ export function allotmentAud(value: string) {
   return `${whole}.${decimals}`;
 }
 
+function ownershipShares(value: string) {
+  if (typeof value !== 'string' || !/^(0|[1-9]\d{0,77})$/.test(value)) return null;
+  const shares = BigInt(value);
+  return shares < 2n ** 256n ? shares : null;
+}
+
+function ownershipDecimal(value: bigint, places: number) {
+  const digits = value.toString().padStart(places + 1, '0');
+  return `${digits.slice(0, -places)}.${digits.slice(-places)}`;
+}
+
+function ownershipPercentage(shares: bigint, supply: bigint) {
+  return supply === 0n ? '—' : `${ownershipDecimal((shares * 20_000n + supply) / (supply * 2n), 2)}%`;
+}
+
+export function allotmentOwnershipImpact(preview: RegisterAllotmentDecisionPreview) {
+  if (
+    !preview ||
+    preview.currency !== 'AUD' ||
+    typeof preview.newMember !== 'boolean' ||
+    typeof preview.canDecide !== 'boolean' ||
+    typeof preview.member !== 'string' ||
+    !preview.member.trim() ||
+    typeof preview.name !== 'string' ||
+    !preview.name.trim() ||
+    typeof preview.className !== 'string' ||
+    !preview.className.trim() ||
+    typeof preview.classCode !== 'string' ||
+    !preview.classCode.trim() ||
+    !Array.isArray(preview.currentHolders) ||
+    !Array.isArray(preview.unmetRequirements) ||
+    preview.unmetRequirements.includes('allotment_decided') ||
+    ('status' in preview && preview.status !== 'submitted') ||
+    ('registerEntry' in preview && preview.registerEntry !== null) ||
+    typeof preview.consideration !== 'string'
+  )
+    return null;
+  const amount = allotmentAud(preview.consideration);
+  const shares = ownershipShares(preview.shares);
+  const issued = ownershipShares(preview.issuedSupply);
+  const afterIssued = ownershipShares(preview.afterIssuedSupply);
+  const authorised = ownershipShares(preview.authorisedSupply);
+  const current = ownershipShares(preview.currentShares);
+  const after = ownershipShares(preview.afterShares);
+  if (
+    amount === null ||
+    shares === null ||
+    shares === 0n ||
+    issued === null ||
+    afterIssued === null ||
+    authorised === null ||
+    current === null ||
+    after === null ||
+    current > issued ||
+    afterIssued !== issued + shares ||
+    afterIssued > authorised ||
+    after !== current + shares ||
+    (preview.newMember && current !== 0n)
+  )
+    return null;
+  const seen = new Set<string>();
+  let total = 0n;
+  let recipientShares = 0n;
+  for (const holder of preview.currentHolders) {
+    if (
+      !holder ||
+      typeof holder.member !== 'string' ||
+      !holder.member.trim() ||
+      (holder.name !== null && (typeof holder.name !== 'string' || !holder.name.trim())) ||
+      (holder.member.toLowerCase() === preview.member.toLowerCase() && holder.member !== preview.member) ||
+      seen.has(holder.member.toLowerCase())
+    )
+      return null;
+    const held = ownershipShares(holder.shares);
+    if (held === null || held === 0n) return null;
+    seen.add(holder.member.toLowerCase());
+    total += held;
+    if (holder.member === preview.member) recipientShares = held;
+  }
+  if (total !== issued || recipientShares !== current) return null;
+  const holders = [
+    { member: preview.member, name: preview.name, shares: preview.currentShares },
+    ...preview.currentHolders.filter((holder) => holder.member !== preview.member),
+  ];
+  const cents = BigInt(amount.replace('.', ''));
+  const unitPrice = (cents * 200n + shares) / (shares * 2n);
+  return {
+    consideration: preview.consideration,
+    unitPrice: cents * 100n < shares ? '< AUD 0.0001' : `AUD ${ownershipDecimal(unitPrice, 4)}`,
+    beforeIssuedSupply: preview.issuedSupply,
+    afterIssuedSupply: preview.afterIssuedSupply,
+    rows: holders.map((holder) => {
+      const beforeShares = BigInt(holder.shares);
+      const recipient = holder.member === preview.member;
+      const afterShares = recipient ? beforeShares + shares : beforeShares;
+      return {
+        member: holder.member,
+        name: holder.name,
+        recipient,
+        beforeShares: holder.shares,
+        afterShares: afterShares.toString(),
+        beforePercentage: ownershipPercentage(beforeShares, issued),
+        afterPercentage: ownershipPercentage(afterShares, afterIssued),
+      };
+    }),
+  };
+}
+
 export function isPreparedRegisterAllotment(
   allotment: RegisterAllotment,
   request: RegisterAllotmentPreparation,
