@@ -50,6 +50,10 @@ class DecisionFamily:
     def subject(self):
         return self.noun or self.operation.removeprefix("register_")
 
+    @property
+    def code(self):
+        return self.subject.replace(" ", "_")
+
 
 def _scalar(sql, params):
     with connections[current_alias()].cursor() as cursor:
@@ -80,7 +84,7 @@ def _requirements(family, proposal, kind, appointment, reason, checked):
     if not holds(appointment, CAPABILITY[kind]):
         unmet.append("appointment_capability_required")
     if proposal.status != "submitted":
-        unmet.append(f"{family.subject}_decided")
+        unmet.append(f"{family.code}_decided")
     if kind == RegisterDecisionKind.REJECT:
         if not reason.strip():
             unmet.append("reason_required")
