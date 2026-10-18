@@ -1,3 +1,4 @@
+import { SIGNUP_PATHS } from '@utils/paths';
 import { useNavigate } from 'react-router-dom';
 import { UserIcon, BuildingsIcon, WarningIcon } from '@phosphor-icons/react';
 import { useSignupAccountType } from '@ledova/shared';
@@ -35,14 +36,14 @@ export default function SignupAccountType() {
   const handleSelect = (role: AccountRole) =>
     chooseRole(role, () => {
       if (role === 'investor') {
-        navigate('/signup/pre-screening');
+        navigate(SIGNUP_PATHS.preScreening);
       } else {
-        navigate('/signup/identity-verification');
+        navigate(SIGNUP_PATHS.identityVerification);
       }
     });
 
   const handleBack = () => {
-    navigate('/signup/email-confirmation');
+    navigate(SIGNUP_PATHS.emailConfirmation);
   };
 
   return (

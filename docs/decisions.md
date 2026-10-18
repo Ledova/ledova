@@ -920,6 +920,11 @@ The author records before/after counts and names the replaced cases or links the
 approval; independent review verifies them. No temporary overflow or silent cap
 increase is permitted. This adds no reporting framework or broader test mandate.
 
+**Owner frontend instruction, 18 October 2026**, supplied directly in the active
+Codex session: Playwright smoke also has a binding cap of nine executed cases.
+At capacity, a new case replaces an existing one or needs owner-approved cap
+changes in the same PR. This supersedes the earlier outside-cap treatment.
+
 The owner now authorises a ledova.io backup and read-only database/private-storage
 inventory. This supersedes the initial restriction above; that permission needs
 no repeat request. Access details and actual results belong to the separate

@@ -1,3 +1,4 @@
+import { generatePath } from 'react-router-dom';
 import { DESTINATIONS, formatDate, formatMoney, useDirectoryTokens } from '@ledova/shared';
 import type { DirectoryToken } from '@ledova/shared';
 import { LinkRow, Section, Status } from '@components/Ledger';
@@ -7,7 +8,7 @@ function ShareClassRow({ token }: { token: DirectoryToken }) {
   const offering = token.openOffering;
   return (
     <LinkRow
-      to={DESTINATIONS.directoryDetail.path.replace(':uuid', token.uuid)}
+      to={generatePath(DESTINATIONS.directoryDetail.path, { uuid: token.uuid })}
       label={token.name}
       aside={
         offering && (

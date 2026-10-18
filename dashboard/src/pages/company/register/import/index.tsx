@@ -1,3 +1,4 @@
+import { DESTINATIONS } from '@ledova/shared';
 import { useMemo, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -178,7 +179,7 @@ function OwnImport({
         <p className="text-sm text-text-muted">
           This class cannot open from copied records.{' '}
           <Link
-            to="/company/register"
+            to={DESTINATIONS.companyRegister.path}
             state={{ registerCompany: listed.companyUuid }}
             className="text-brand-light underline"
           >

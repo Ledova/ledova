@@ -3,7 +3,7 @@ import { DESTINATIONS, canOpen, useAuth, useUserPreferences } from '@ledova/shar
 import { useRegisterEntryAccess } from '@hooks/useRegisterAccess';
 import { Page, PageAction } from '@components/Page';
 import { PageTitle } from '@components/PageTitle';
-import { COMPANY_DASHBOARD_PATH } from '@utils/paths';
+import { COMPANY_DASHBOARD_PATH, SIGNIN_PATH, SIGNUP_PATHS } from '@utils/paths';
 import { useUserProfile } from '@hooks/useUserProfile';
 import { AccountUnavailable } from './AccountUnavailable';
 import { SIGNUP_RESUMES_AT } from '@utils/paths';
@@ -14,7 +14,7 @@ export function RootRedirect() {
   const profile = useUserProfile();
   const access = useRegisterEntryAccess(!!profile.userProfile?.isSignupCompleted && !profile.isFetching);
   if (isLoading || (isAuthenticated && profile.isLoading)) return null;
-  if (!isAuthenticated) return <Navigate to="/signin" replace />;
+  if (!isAuthenticated) return <Navigate to={SIGNIN_PATH} replace />;
   if (!profile.userProfile) return <AccountUnavailable onRetry={profile.refreshProfile} />;
   if (!profile.userProfile.isSignupCompleted)
     return (
@@ -22,7 +22,7 @@ export function RootRedirect() {
         to={
           canOpen(preferences.userAccount?.role ?? 'investor', 'company') &&
           (profile.userProfile.fullName?.trim().split(/\s+/).length ?? 0) > 1
-            ? '/signup/company-registration'
+            ? SIGNUP_PATHS.companyRegistration
             : SIGNUP_RESUMES_AT
         }
         replace

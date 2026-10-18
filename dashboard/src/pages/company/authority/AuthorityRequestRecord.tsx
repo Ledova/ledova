@@ -1,3 +1,4 @@
+import { SITE_PATHS } from '@utils/paths';
 import { useRef, useState } from 'react';
 import {
   COMPANY_AUTHORITY_CAPABILITIES,
@@ -90,7 +91,7 @@ export function AuthorityRequestRecord({
                 delegation and expiry of this request. It does not activate the company or approve any register action.
               </p>
               <a
-                href={`${SITE_URL}/terms-of-service`}
+                href={`${SITE_URL}${SITE_PATHS.termsOfService}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-sm text-brand-light underline"

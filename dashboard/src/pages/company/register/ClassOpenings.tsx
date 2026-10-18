@@ -1,4 +1,5 @@
 import { useCallback } from 'react';
+import { generatePath } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   DESTINATIONS,
@@ -82,7 +83,7 @@ export function ClassOpenings({
       )}
       {privateReady && steps?.prepare && !register.initialized && (
         <div className="border-b border-border-subtle">
-          <LinkRow to={DESTINATIONS.companyRegisterOpening.path.replace(':uuid', token)} label={COPY.PREPARE} />
+          <LinkRow to={generatePath(DESTINATIONS.companyRegisterOpening.path, { uuid: token })} label={COPY.PREPARE} />
         </div>
       )}
       {openings.isPending ? (

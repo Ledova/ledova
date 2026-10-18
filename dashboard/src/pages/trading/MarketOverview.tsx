@@ -47,7 +47,7 @@ export function MarketOverview({
             Eligibility requests
           </Link>
           {!isReady && (
-            <Link className="underline" to="/investor-eligibility">
+            <Link className="underline" to={DESTINATIONS.investorEligibility.path}>
               Check my account
             </Link>
           )}

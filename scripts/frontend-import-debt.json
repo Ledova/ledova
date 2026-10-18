@@ -1,5 +1,4 @@
 {
-  "dashboard/src/App.tsx:pages-only-pages-or-routes": 12,
   "dashboard/src/components/Footer.tsx:api-client-outside-hook": 1,
   "dashboard/src/components/wallet/BuyCryptoModal.tsx:api-client-outside-hook": 1,
   "dashboard/src/components/wallet/WalletSelectionModal.tsx:api-client-outside-hook": 1,

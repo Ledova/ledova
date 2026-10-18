@@ -1,4 +1,5 @@
 import { useCallback } from 'react';
+import { generatePath } from 'react-router-dom';
 import { useQueryClient, type QueryKey } from '@tanstack/react-query';
 import {
   DESTINATIONS,
@@ -85,7 +86,7 @@ export function ClassImports({
           imports.data.some((proposal) => proposal.correctionAllowed)) && (
           <div className="border-b border-border-subtle">
             <LinkRow
-              to={DESTINATIONS.companyRegisterImport.path.replace(':uuid', token)}
+              to={generatePath(DESTINATIONS.companyRegisterImport.path, { uuid: token })}
               label={
                 imports.data.some((proposal) => proposal.correctionAllowed)
                   ? 'Correct copied opening'

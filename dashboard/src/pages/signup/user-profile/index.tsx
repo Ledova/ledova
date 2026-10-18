@@ -1,3 +1,4 @@
+import { SIGNUP_PATHS } from '@utils/paths';
 import { useNavigate } from 'react-router-dom';
 import { UserIcon } from '@phosphor-icons/react';
 import { LoadingState } from '@pages/signup/shared/LoadingState';
@@ -30,15 +31,15 @@ export default function SignupUserProfile() {
     e.preventDefault();
     await handleSubmit(() => {
       if (isCompany) {
-        navigate('/signup/company-registration');
+        navigate(SIGNUP_PATHS.companyRegistration);
       } else {
-        navigate('/signup/financial-profile');
+        navigate(SIGNUP_PATHS.financialProfile);
       }
     });
   };
 
   const handleBack = () => {
-    navigate('/signup/identity-verification');
+    navigate(SIGNUP_PATHS.identityVerification);
   };
 
   if (isLoading) {

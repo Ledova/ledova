@@ -1,3 +1,4 @@
+import { SIGNUP_PATHS, SIGNUP_PATH } from '@utils/paths';
 import { useNavigate } from 'react-router-dom';
 import { EnvelopeIcon } from '@phosphor-icons/react';
 import { EmailConfirmationForm } from './EmailConfirmationForm';
@@ -23,12 +24,12 @@ export default function SignupEmailConfirmation() {
   const handleSubmitVerification = async (e: React.FormEvent) => {
     e.preventDefault();
     await handleVerify(() => {
-      navigate('/signup/account-type');
+      navigate(SIGNUP_PATHS.accountType);
     });
   };
 
   const handleBack = () => {
-    navigate('/signup');
+    navigate(SIGNUP_PATH);
   };
 
   return (

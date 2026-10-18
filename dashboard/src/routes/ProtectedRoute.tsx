@@ -8,7 +8,7 @@ import { InSignedInFrame } from '@components/InSignedInFrame';
 import { Page } from '@components/Page';
 import { FullScreenSpinner } from '@components/FullScreenSpinner';
 import { AccountUnavailable } from './AccountUnavailable';
-import { SIGNUP_RESUMES_AT } from '@utils/paths';
+import { SIGNUP_RESUMES_AT, SIGNIN_PATH } from '@utils/paths';
 
 function RoleUnavailable({ onRetry }: { onRetry: () => void }) {
   return (
@@ -39,7 +39,7 @@ export function ProtectedRoute({ audience, children }: { audience: Audience; chi
     return inFrame ? <Page loading /> : <FullScreenSpinner label="Checking your session" />;
   }
 
-  if (!isAuthenticated) return <Navigate to="/signin" replace />;
+  if (!isAuthenticated) return <Navigate to={SIGNIN_PATH} replace />;
 
   if (!userProfile) return <AccountUnavailable onRetry={refreshProfile} />;
 

@@ -1,3 +1,4 @@
+import { SIGNUP_PATHS } from '@utils/paths';
 import { useNavigate } from 'react-router-dom';
 import { Checkbox, Description, Field, Label } from '@headlessui/react';
 import { ShieldCheckIcon, WarningIcon, CheckCircleIcon } from '@phosphor-icons/react';
@@ -26,12 +27,12 @@ export default function SignupPreScreening() {
   const handleContinue = async (e: React.FormEvent) => {
     e.preventDefault();
     await handleSubmit(() => {
-      navigate('/signup/identity-verification');
+      navigate(SIGNUP_PATHS.identityVerification);
     });
   };
 
   const handleBack = () => {
-    navigate('/signup/email-confirmation');
+    navigate(SIGNUP_PATHS.emailConfirmation);
   };
 
   const declarations = [

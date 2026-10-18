@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { generatePath } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { DESTINATIONS, formatShareCount, type Company } from '@ledova/shared';
 import { Page, PageAction } from '@components/Page';
@@ -123,7 +124,7 @@ function CompanyDetails({ data }: { data: ReturnType<typeof useCompany> }) {
                     {classes.data!.map((token) => (
                       <li key={token.uuid}>
                         <LinkRow
-                          to={DESTINATIONS.companyClass.path.replace(':uuid', token.uuid)}
+                          to={generatePath(DESTINATIONS.companyClass.path, { uuid: token.uuid })}
                           label={token.name}
                           aside={
                             <Status

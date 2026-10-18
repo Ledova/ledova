@@ -2,7 +2,6 @@ import { useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useSubmissionOwner, useUserPreferences, type OrderSubmissionOwner } from '@ledova/shared';
 import { Page } from '@components/Page';
-import { PageTitle } from '@components/PageTitle';
 import { CompanySelection } from '@pages/company/shared/CompanySelection';
 import { Loading, Unavailable } from '@pages/company/shared/RegisterStatus';
 import { useCompanyRegister } from '@pages/company/shared/useCompanyRegister';
@@ -13,20 +12,16 @@ import { ownershipSummary } from '@pages/company/shared/summary';
 export default function CompanyDashboardPage() {
   const { owner } = useSubmissionOwner();
   const preferences = useUserPreferences();
-  return (
-    <PageTitle.Provider value="Dashboard">
-      {owner ? (
-        <OwnDashboard key={`${owner.userUuid}/${owner.ownerAccountUuid}`} owner={owner} />
+  return owner ? (
+    <OwnDashboard key={`${owner.userUuid}/${owner.ownerAccountUuid}`} owner={owner} />
+  ) : (
+    <Page lede="Your company's recorded share ownership.">
+      {preferences.isLoading ? (
+        <Loading />
       ) : (
-        <Page lede="Your company's recorded share ownership.">
-          {preferences.isLoading ? (
-            <Loading />
-          ) : (
-            <Unavailable retry={() => void preferences.refetch()} busy={preferences.isFetching} />
-          )}
-        </Page>
+        <Unavailable retry={() => void preferences.refetch()} busy={preferences.isFetching} />
       )}
-    </PageTitle.Provider>
+    </Page>
   );
 }
 

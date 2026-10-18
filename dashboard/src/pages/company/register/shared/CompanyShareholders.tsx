@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { generatePath, Link } from 'react-router-dom';
 import {
   DESTINATIONS,
   HOLDER_TYPE_LABELS,
@@ -276,7 +276,7 @@ export function CompanyShareholders({
             ))}
             {guardPreparation && (
               <Link
-                to={DESTINATIONS.companyRegisterParticulars.path.replace(':member', selected.member)}
+                to={generatePath(DESTINATIONS.companyRegisterParticulars.path, { member: selected.member })}
                 className="inline-flex w-fit rounded-lg border border-border px-3.5 py-2 text-sm font-medium text-text-primary hover:bg-surface-tertiary"
                 onClick={(event) => {
                   try {

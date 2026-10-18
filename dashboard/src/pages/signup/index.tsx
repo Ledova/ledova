@@ -1,3 +1,4 @@
+import { SIGNIN_PATH, SIGNUP_PATHS } from '@utils/paths';
 import { Link, useNavigate } from 'react-router-dom';
 import { Field, Label, Input, Description } from '@headlessui/react';
 import { EyeIcon, EyeSlashIcon, EnvelopeIcon, LockIcon, UserIcon, WarningIcon } from '@phosphor-icons/react';
@@ -12,7 +13,7 @@ function emailRefusal(sentence: string) {
   return (
     <>
       {`${lead}. Please `}
-      <Link to="/signin" className="underline hover:text-error-light">
+      <Link to={SIGNIN_PATH} className="underline hover:text-error-light">
         sign in
       </Link>
       {' or use a different email.'}
@@ -37,7 +38,7 @@ export default function SignupUser() {
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     await handleSubmit(() => {
-      navigate('/signup/email-confirmation');
+      navigate(SIGNUP_PATHS.emailConfirmation);
     });
   };
 
@@ -206,7 +207,7 @@ export default function SignupUser() {
       <div className="text-center">
         <p className="text-sm text-text-subtle">
           Already have an account?{' '}
-          <Link to="/signin" className="font-semibold text-brand-light hover:text-brand-subtle transition-colors">
+          <Link to={SIGNIN_PATH} className="font-semibold text-brand-light hover:text-brand-subtle transition-colors">
             Sign in
           </Link>
         </p>

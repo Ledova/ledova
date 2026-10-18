@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { generatePath, Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   DESTINATIONS,
   REGISTER_IMPORT_COPY,
@@ -272,7 +272,7 @@ function FreshClass({
               onChange={(event) => {
                 const selected = event.target.value;
                 if (draftClasses.some((token) => token.uuid === selected)) {
-                  navigate(DESTINATIONS.companyRegisterImport.path.replace(':uuid', selected));
+                  navigate(generatePath(DESTINATIONS.companyRegisterImport.path, { uuid: selected }));
                   return;
                 }
                 const common = COMMON_CLASSES.find((item) => item.type === selected);

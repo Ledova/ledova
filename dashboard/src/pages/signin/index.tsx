@@ -1,3 +1,4 @@
+import { ROOT_PATH, SIGNUP_PATH } from '@utils/paths';
 import { Link, useNavigate } from 'react-router-dom';
 import { useSignIn } from './useSignIn';
 import { Field, Label, Input, Description } from '@headlessui/react';
@@ -13,7 +14,7 @@ function SignInPage() {
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
-    await handleSubmit(() => navigate('/'));
+    await handleSubmit(() => navigate(ROOT_PATH));
   };
 
   return (
@@ -137,7 +138,7 @@ function SignInPage() {
       <div className="text-center">
         <p className="text-sm text-text-subtle">
           Don&apos;t have an account?{' '}
-          <Link to="/signup" className="font-semibold text-brand-light hover:text-brand-subtle transition-colors">
+          <Link to={SIGNUP_PATH} className="font-semibold text-brand-light hover:text-brand-subtle transition-colors">
             Get Started
           </Link>
         </p>

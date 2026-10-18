@@ -1,3 +1,4 @@
+import { generatePath } from 'react-router-dom';
 import { DESTINATIONS, formatDate, formatMoney, useSubscriptions } from '@ledova/shared';
 import type { Subscription } from '@ledova/shared';
 import { LinkRow, Row, Rows, Section, Status } from '@components/Ledger';
@@ -29,7 +30,7 @@ function ApplicationRow({ application }: { application: Subscription }) {
           )}
         </Rows>
         <LinkRow
-          to={DESTINATIONS.subscriptionDetail.path.replace(':uuid', application.uuid)}
+          to={generatePath(DESTINATIONS.subscriptionDetail.path, { uuid: application.uuid })}
           label={DESTINATIONS.subscriptionDetail.title}
         />
       </Section>
