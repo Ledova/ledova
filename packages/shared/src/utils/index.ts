@@ -137,3 +137,6 @@ export * from './register-pause-changes';
 export * from './register-paid-issues';
 
 export { allotmentAud, isPreparedRegisterAllotment, isRegisterAllotmentDecisionReceipt } from './register-allotments';
+
+export { invitationMembers } from './invitationMembers';
+export { applicationAmount } from './applicationAmount';
