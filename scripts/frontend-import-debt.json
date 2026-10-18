@@ -1,9 +1,1 @@
-{
-  "dashboard/src/components/Footer.tsx:api-client-outside-hook": 1,
-  "dashboard/src/components/wallet/BuyCryptoModal.tsx:api-client-outside-hook": 1,
-  "dashboard/src/components/wallet/WalletSelectionModal.tsx:api-client-outside-hook": 1,
-  "dashboard/src/pages/home/index.tsx:api-client-outside-hook": 1,
-  "dashboard/src/pages/investor-eligibility/ClaimModal.tsx:api-client-outside-hook": 1,
-  "dashboard/src/pages/investor-eligibility/index.tsx:api-client-outside-hook": 1,
-  "dashboard/src/pages/wallets/AddWalletModal.tsx:api-client-outside-hook": 1
-}
+{}

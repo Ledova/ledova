@@ -1,20 +1,13 @@
 import { DESTINATIONS } from '@ledova/shared';
 import { useEffect, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import {
-  formatDate,
-  formatShareCount,
-  useMemberRecords,
-  getMemberCertificateFile,
-  type MemberCertificateRequest,
-} from '@ledova/shared';
+import { formatDate, formatShareCount, useMemberRecords, type MemberCertificateRequest } from '@ledova/shared';
 import { LinkRow, Row, Rows, Section } from '@components/Ledger';
 import { Page, PageAction } from '@components/Page';
 import { PageTitle } from '@components/PageTitle';
 import { FIELD_CLASS } from '@components/fieldClass';
 import { AwardStatus } from '@components/AwardStatus';
-import apiClient from '@services/apiClient';
-import { saveFile } from '@utils/saveFile';
+import { useMemberCertificateDownload } from './useMemberCertificateDownload';
 
 const SUMMARY = 'cursor-pointer py-2 text-sm font-medium text-text-primary';
 
@@ -466,41 +459,7 @@ function MemberCertificateDownload({
   read: ReturnType<typeof useMemberRecords>;
   request: MemberCertificateRequest;
 }) {
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState('');
-  const download = async () => {
-    if (busy) return;
-    setBusy(true);
-    setError('');
-    try {
-      const captured = read.guardCertificate(request.uuid);
-      const check = () => {
-        const current = read.guardCertificate(request.uuid);
-        if (
-          current.uuid !== captured.uuid ||
-          current.digest !== captured.digest ||
-          current.fileSize !== captured.fileSize
-        )
-          throw new Error('The certificate fulfilment changed. Refresh your records.');
-      };
-      check();
-      const { data } = await getMemberCertificateFile(apiClient, request.uuid, { ledovaSubmissionGuard: check });
-      check();
-      if (!(data instanceof Blob) || !/^application\/pdf(?:;|$)/.test(data.type) || data.size !== captured.fileSize)
-        throw new Error('The recipient certificate PDF could not be confirmed.');
-      const digest = await crypto.subtle.digest('SHA-256', await data.arrayBuffer());
-      check();
-      if (
-        Array.from(new Uint8Array(digest), (value) => value.toString(16).padStart(2, '0')).join('') !== captured.digest
-      )
-        throw new Error('The recipient certificate digest does not match its retained record.');
-      saveFile(data, `member-certificate-${request.uuid}.pdf`);
-    } catch {
-      setError('The certificate could not be downloaded. Refresh your current member records.');
-    } finally {
-      setBusy(false);
-    }
-  };
+  const { busy, error, download } = useMemberCertificateDownload(read, request);
   return (
     <>
       <PageAction

@@ -6,14 +6,13 @@ import {
   getActiveChains,
   importAddressKey,
   importOnEvmNetwork,
-  fetchImportBalances,
   describeFailure,
 } from '@ledova/shared';
 import { ICON_XS, ICON_SM } from '@components/iconSizes';
 import type { CreateWallet, DerivedAddress, HardwareWalletImport } from '@ledova/shared';
 import { Modal, ModalActions } from '@components/Modal';
 import { PageAction } from '@components/Page';
-import apiClient from '@services/apiClient';
+import { useImportBalances } from './useImportBalances';
 import { useWalletForm } from './useWalletForm';
 import { extractFromKeystoneQR } from '@utils/keystone/bcurDecoder';
 
@@ -252,18 +251,7 @@ function ImportAccounts({
 }) {
   const addresses = importData?.addresses ?? [];
   const [selectedAddresses, setSelectedAddresses] = useState(() => new Set(addresses.map(importAddressKey)));
-  const [balances, setBalances] = useState<Map<string, string>>(new Map());
-
-  useEffect(() => {
-    if (!importData) return;
-    let active = true;
-    void fetchImportBalances(apiClient, importData.addresses).then((next) => {
-      if (active) setBalances(next);
-    });
-    return () => {
-      active = false;
-    };
-  }, [importData]);
+  const balances = useImportBalances(importData);
 
   const toggleSelection = (address: string) => {
     const newSelected = new Set(selectedAddresses);
