@@ -7,7 +7,7 @@ export const COMPANY_WALLET_UNMET_COPY: Record<string, string> = {
   already_approved: 'This instruction already has a current approval.',
   reason_required: 'Give a reason for rejection.',
   reason_not_allowed: 'Approval and application take no reason.',
-  family_decided: 'This instruction has already been admitted or rejected.',
+  wallet_instruction_decided: 'This instruction has already been admitted or rejected.',
   wallet_proof_required: 'Refresh ordinary possession proof for this exact wallet.',
   wallet_source_changed: 'The original wallet or participant source changed.',
   eligibility_source_lapsed: 'The original company eligibility source is unavailable, expired or revoked.',

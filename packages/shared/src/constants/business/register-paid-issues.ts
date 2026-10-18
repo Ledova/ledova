@@ -42,6 +42,7 @@ export const REGISTER_PAID_ISSUE_UNMET_COPY: Record<string, string> = {
   approval_lapsed: 'The original approval is no longer current.',
   reason_required: 'Give a reason for rejection.',
   reason_not_allowed: 'Approval and application take no rejection reason.',
+  paid_issue_decided: 'This paid issue has already been admitted or rejected.',
   company_source_expired:
     'The original company issue authority no longer permits fresh signing. Its paid allocation remains bound.',
   legacy_source_unavailable: 'This historical unsigned issuance has no current company source.',
