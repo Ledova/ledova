@@ -781,9 +781,6 @@ NOT_TENANCY = {
 REACHED_DESPITE_OPERATOR_ONLY = {
     "tokens_yieldtoken": "assets/serializers/asset.py AssetSerializer._get_yield_token reads it for every asset a "
     "customer lists, to answer nav_per_token and last_nav_update. It is filtered by symbol and not by any principal.",
-    "compliance_monitoringrule": "No app-role path reads it now: users/services/setup.py ensure_defaults records "
-    "only a pending assessment, and compliance/tasks.py screen_transaction and run_batch_monitoring read the rules "
-    "on the operator connection. #1098 tracks removing the grant or naming a reader.",
 }
 
 UNSCOPED = {**FRAMEWORK, **OPERATOR_ONLY, **NOT_TENANCY, **AWAITING_RLS}
