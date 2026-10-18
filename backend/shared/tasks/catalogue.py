@@ -200,8 +200,7 @@ READS_MUST_SURVIVE_THE_POLICIES = {
     "wallets.tasks.sync.sync_wallet": "Retained market read: POLICIES gives tokens_sharetoken an "
     "issuer-owner OR deployed-with-contract market SELECT term. wallets.services.chain._share_balance "
     "uses deployed_at, so a deployed share class remains visible to an investor without issuer ownership. "
-    "Removing that term would leave the share holding unsynced. ScopedWalletSyncTest proves this read "
-    "reaches another issuer's deployed token and updates the investor's holding under the user principal.",
+    "Removing that term would leave the share holding unsynced. No automated test covers this read.",
 }
 
 CLASSIFIED = {**SYSTEM_WIDE, **PRINCIPAL_BEARING}

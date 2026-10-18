@@ -368,35 +368,24 @@ READS_WIDER_THAN_OWNERSHIP = {
         "validates only the actual participant's source and exact command. Current personal prepare or approve "
         "appointments admit deliberately shared records through a UUID-only definer and immutable parent joins; "
         "no source, identity, financial file or private document policy is expanded.",
-        "users/tests/test_company_eligibility_requests.py exercises genuine own submissions, exact company scope, "
-        "foreign identifiers and no staff/admin/delegation-only authority; "
-        "users/tests/test_company_eligibility_scoped.py proves actual role routing and raw private-source refusal.",
     ),
     "Public company discovery": (
         "shared/db/policies.py companies_company read policy through app_company_discovery_ids",
         "The fixed-search-path definer returns only company UUIDs for a non-null principal and the existing "
         "active/open or deployed/nonempty-address public terms. It stops company-token policy recursion "
         "without admitting private company documents, profiles or basic administration.",
-        "companies/tests/test_company_administration.py exercises marketed/open reads, owned draft token reads, "
-        "foreign private resources, empty deployments, draft listings and a missing principal; "
-        "shared/tests/test_rls_catalogue.py checks the definer boundary.",
     ),
     "Current personal company administration": (
         "companies/querysets/company.py administrable_by; companies/services/administration.py company_contact",
         "The principal-bound definer returns only company UUIDs for current personal admin appointments or genuine "
         "unrooted owner drafts. It sees retained initial and legacy roots regardless of their RLS visibility. Basic "
         "responses expose only the existing contact name and email, without admitting raw profiles or accounts.",
-        "companies/tests/test_company_administration.py exercises actual admission, delegated scope, revocation, "
-        "foreign identifiers and private files; shared/tests/test_rls_catalogue.py checks the "
-        "fixed-search-path definer.",
     ),
     "Company.active for an associated-person claim": (
         "users/services/classification_issuer.py active_issuer_for_claim",
         "The operator validates only the supplied UUID against active issuers and returns only that key. "
         "The owner confirmed on 2026-09-13 that an applicant may name an active issuer before it is listed; "
         "the claim is still written under the applicant and company details remain hidden.",
-        "users/tests/test_classification_issuer_scoped.py proves a hidden active issuer succeeds, inactive "
-        "and unknown issuers fail, the lookup selects only its UUID, and the claim writes use the app role.",
     ),
     "Market prices for already admitted tokens": (
         "tokens/services/market_data_service.py market_summaries; "
@@ -405,8 +394,6 @@ READS_WIDER_THAN_OWNERSHIP = {
         "order-book levels for tokens already admitted under issuer ownership or investor eligibility. "
         "Lists resolve their page under the app role before one operator query bounded to those UUIDs. "
         "No order, wallet or counterparty identity is returned, and their RLS policies remain unchanged.",
-        "tokens/tests/test_market_reads_scoped.py proves cross-issuer prices, one bounded summary query, "
-        "private order refusal and no operator summary access for ineligible or unknown-token requests.",
     ),
     "Documents attached to a published offering": (
         "offerings/services/documents.py published_documents and published_document, "
@@ -416,9 +403,6 @@ READS_WIDER_THAN_OWNERSHIP = {
         "selector and the offerings through their own policy, under the app role, before one operator query "
         "bounded to those offering UUIDs and the class's own company. No unattached document, no other company's "
         "document and no external link is returned; basic company documents require current personal administration",
-        "offerings/tests/test_directory_documents_scoped.py - ScopedDirectoryDocumentsTest proves one operator "
-        "read bounded to the published offering and its company, the row still hidden on the app role, and no "
-        "operator read for an unpublished, ineligible or unknown request",
     ),
     "Stablecoin approvals for a wallet send": (
         "wallets/services/transaction_confirmation.py require_stablecoin_approvals, at prepare in "
@@ -427,80 +411,57 @@ READS_WIDER_THAN_OWNERSHIP = {
         "wallet and the recipient address of a stablecoin send each hold a live approval with any company. Only "
         "that yes or no reaches the sender, as which side is refused; no entry, company, wallet or account of the "
         "recipient is returned, and the wallets policy is unchanged",
-        "wallets/tests/test_stablecoin_approvals.py - ScopedStablecoinApprovalTest proves a recipient approved on "
-        "another account's wallet is admitted on the app role at prepare and at submission, and an unapproved one "
-        "is refused",
     ),
     "PolicyQuerysets on an administrative action": (
         "shared/views/scope.py, the get_queryset every AuthenticatedViewSet inherits",
         "every row of the scoped model, and only for an action the view names in "
         "administrative_actions, which is the set get_permissions turns into IsAdminUser. Keyed to "
-        "that set rather than to operator_actions, which only chooses a connection and which the "
-        "coverage gate permits to be the wider of the two",
-        "shared/tests/test_views_scope_in_the_base.py - import-time checks require every model in the "
-        "catalogue and require an explanation for operator_actions wider than administrative_actions",
+        "that set rather than to operator_actions, which only chooses a connection and which PolicyQuerysets "
+        "permits to be the wider of the two when the view states operator_actions_because",
     ),
     "ShareIssuanceRequest on subscription reads and withdrawal": (
         "offerings/querysets/subscription.py with_relations and offerings/services/subscription.py _linked_request",
         "tokens_shareissuancerequest: the request linked to a subscription of this principal's member account. "
         "Reading that request preserves the withdrawal refusal once issuance is claimed; writes remain issuer-only",
-        "shared/tests/test_review_request_policies.py - subscriber read, write refusal and withdrawal controls",
     ),
     "Subscription.for_issuer": (
         "offerings/views/offering.py subscriptions",
         "offerings_subscription: the issuer term, offering_id in the offerings this principal's companies own",
-        "shared/tests/test_two_scope_fixture.py - a subscription whose buyer does not own the offering",
     ),
     "Offering.open_now": (
         "offerings/serializers/subscription.py:147, and the select_for_update re-reads at "
         "offerings/services/subscription.py 463, 499 and 566",
         "offerings_offering: the public company term, and the UPDATE policy's USING is as wide, so the "
         "re-read can lock what the serializer offered",
-        "shared/tests/test_rls_isolation.py - a public row is locked and the write still refused",
     ),
     "ShareToken.in_directory": (
         "offerings/views/directory.py",
         "tokens_sharetoken: the market predicate, and companies_company: open to investors",
-        "shared/tests/test_cross_tenant_routes_under_rls.py - the directory rows of the 184-route matrix",
     ),
     "ShareToken.deployed_with_contract": (
         "tokens/views/trading_token.py, tokens/services/trading_events.py:22, "
         "tokens/services/share_token_service.py:861",
         "tokens_sharetoken: the market predicate, wider than the directory because a token is tradeable "
         "without its issuer opting into the browse surface",
-        "shared/tests/test_cross_tenant_routes_under_rls.py - "
-        "test_the_market_answers_without_the_issuers_directory_opt_in",
     ),
     "Company.all on the eligibility path": (
         "users/services/eligibility.py:110",
         "companies_company: owner, open to investors, or holding a token on the market. The policy is "
         "narrower than all(), and both consumers - the directory and the subscription serializer - filter "
         "to companies that are open or listed, so the narrowing is invisible to them",
-        "shared/tests/test_cross_tenant_routes_under_rls.py - the directory and market rows",
     ),
     "Company.all on the administrative actions": (
         "companies/views/company.py:70",
         "no policy term: those actions run on the operator connection by operator_actions, because a staff "
         "member does not own the company they administer",
-        "shared/tests/test_principal_coverage.py - the administrative-action gate",
     ),
 }
 
-R13_WATCHES_BOTH_ENDS = (
-    "R13's set is computed rather than maintained: links_between_policy_tables() walks Django's metadata for "
-    "every non-nullable foreign key whose both ends carry policies, with a non-empty control behind it. The "
-    "one direction it cannot watch is a platform-owned table classified out of POLICIES entirely, where "
-    "nothing stands behind the classification but the reason written beside it. "
-    "The deliberate retained-application parent exception is exercised by ScopedApplicationRetentionTest: "
-    "its route reads snapshots without joining hidden company or offering rows."
-)
-
 PUBLIC_TERM = {
     "tokens_sharetoken": "The secondary market is deployed_with_contract(), wider than the directory: a "
-    "token is tradeable without its issuer opting into the browse surface, and "
-    "test_the_market_answers_without_the_issuers_directory_opt_in says so in its name. #322 makes owner_id "
-    "the company owner's user, so the owner term alone hides every deployed token from an investor - the "
-    "second term has to be on the token's own columns. It is the exact dual of "
+    "token is tradeable without its issuer opting into the browse surface, and no automated test covers that "
+    "market read. #322 makes owner_id the company owner's user, so the owner term alone hides every deployed "
+    "token from an investor - the second term has to be on the token's own columns. It is the exact dual of "
     "HAS_A_TOKEN_ON_THE_MARKET on companies_company: a company is visible because a token of its is on the "
     "market, and that token is visible because it is on the market. Remove either and R13's closure between "
     "the two tables fails, which is why it holds by construction rather than by luck. The policy reads only "
