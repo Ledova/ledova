@@ -11,6 +11,7 @@ import {
   COMPANIES_QUERY_KEY,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
+import { saveFile } from '@utils/saveFile';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useState } from 'react';
 
@@ -102,14 +103,7 @@ export function useAuthorityRequests({
       guard();
       const { data } = await downloadCompanyAuthorityFile(apiClient, request.uuid, { ledovaSubmissionGuard: guard });
       guard();
-      const copy = URL.createObjectURL(new Blob([data], { type: request.mimeType }));
-      const link = document.createElement('a');
-      link.href = copy;
-      link.download = request.originalFilename;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.setTimeout(() => URL.revokeObjectURL(copy), 60000);
+      saveFile(new Blob([data], { type: request.mimeType }), request.originalFilename);
     },
   });
   return {
