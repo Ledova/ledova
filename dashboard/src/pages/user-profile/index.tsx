@@ -4,7 +4,7 @@ import { Page, PageAction } from '@components/Page';
 import { Row, Rows, Section, Status } from '@components/Ledger';
 import { DocumentsPanel } from '@components/DocumentsPanel';
 import { FIELD_CLASS } from '@components/fieldClass';
-import { useUserProfile } from './useUserProfile';
+import { useUserProfile } from '@hooks/useUserProfile';
 import { IdentityVerificationModal } from './components/IdentityVerificationModal';
 
 export function UserProfilePage() {

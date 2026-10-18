@@ -9,7 +9,7 @@ import { PageAction } from '@components/Page';
 import { Row, Rows, Section } from '@components/Ledger';
 import { FIELD_CLASS } from '@components/fieldClass';
 import apiClient from '@services/apiClient';
-import { WalletVerificationModal } from '../wallets/components/WalletVerificationModal';
+import { WalletVerificationModal } from '@components/wallet/WalletVerificationModal';
 
 function Facts({ preview }: { preview: WalletNominationPreview }) {
   return (

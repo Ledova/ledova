@@ -35,7 +35,8 @@ import { CompanyPack } from './CompanyPack';
 import { RegisterLinks } from './RegisterLinks';
 import { RegisterParticulars } from './RegisterParticulars';
 import { Loading, Unavailable } from './RegisterStatus';
-import { registerKey, registersQuery, useCompanyRegister, useRegisterDownload } from './useCompanyRegister';
+import { registerKey } from '@hooks/useRegisterAccess';
+import { registersQuery, useCompanyRegister, useRegisterDownload } from './useCompanyRegister';
 import { ownerGuard, useOwnAppointments } from './useRegisterImports';
 
 const ON_CHAIN = ['deployed', 'paused'];

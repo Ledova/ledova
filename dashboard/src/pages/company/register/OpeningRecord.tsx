@@ -17,7 +17,7 @@ import { DecisionTrail } from './DecisionTrail';
 import { RegisterChanges } from './RegisterChanges';
 import { RegisterDecisions } from './RegisterDecisions';
 import { DOWNLOAD_FAILED, STAGE_TONES, retainedName, shareCount, type RegisterSteps } from './proposals';
-import { saveFile } from './useCompanyRegister';
+import { saveFile } from '@utils/saveFile';
 
 const COPY = REGISTER_OPENING_COPY;
 

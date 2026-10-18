@@ -99,3 +99,26 @@ export function renderCompanyPage(client: QueryClient, page: ReactNode, title: s
     </QueryClientProvider>,
   );
 }
+
+export {
+  APPOINTMENT,
+  AWARD_REQUEST,
+  REGISTER,
+  awardFrom,
+  vestingFrom,
+} from '../../../packages/shared/tests/fixtures/employee-awards';
+export {
+  ALLOTMENT_REQUEST,
+  allotmentFrom,
+  allotmentPreview,
+  allotmentDecision,
+} from '../../../packages/shared/tests/fixtures/external-allotments';
+export { MEMBER_RECORD, MEMBER_ENTRY, MEMBER_CODE } from '../../../packages/shared/tests/fixtures/member-access';
+export {
+  OUTPUT_APPOINTMENT,
+  OUTPUT_REGISTER,
+  OUTPUT_ENTRY,
+  OUTPUT_PREVIEW,
+  MEMBER_PDF,
+  FULFILLED_CERTIFICATE,
+} from '../../../packages/shared/tests/fixtures/register-outputs';

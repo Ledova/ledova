@@ -11,7 +11,7 @@ import { Row, Rows } from '@components/Ledger';
 import { PageAction } from '@components/Page';
 import { FIELD_CLASS } from '@components/fieldClass';
 import apiClient from '@services/apiClient';
-import { saveFile } from './useCompanyRegister';
+import { saveFile } from '@utils/saveFile';
 
 type Source = {
   register: TokenHoldersResponse;

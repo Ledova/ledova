@@ -5,7 +5,7 @@ import { QueryClient } from '@tanstack/react-query';
 import { act, cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import CompanyPage from '.';
-import { companyRecord, renderCompanyPage } from './testSupport';
+import { companyRecord, renderCompanyPage } from '../../testSupport/company';
 
 const api = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn(), patch: vi.fn(), delete: vi.fn() }));
 vi.mock('@services/apiClient', () => ({ default: api }));

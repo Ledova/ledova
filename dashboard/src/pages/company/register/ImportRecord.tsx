@@ -19,7 +19,7 @@ import apiClient from '@services/apiClient';
 import { DecisionTrail } from './DecisionTrail';
 import { RegisterDecisions } from './RegisterDecisions';
 import { DOWNLOAD_FAILED, STAGE_TONES, retainedName, type RegisterSteps } from './proposals';
-import { saveFile } from './useCompanyRegister';
+import { saveFile } from '@utils/saveFile';
 import { MemberRecords } from './import/MemberRecords';
 
 function ImportPreview({ preview }: { preview: RegisterImportDecisionPreview }) {

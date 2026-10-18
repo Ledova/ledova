@@ -12,7 +12,7 @@ import { PageAction } from '@components/Page';
 import { ownAppointmentsKey } from '../team/appointments';
 import { OpeningRecord } from './OpeningRecord';
 import { registerSteps } from './proposals';
-import { registerKey } from './useCompanyRegister';
+import { registerKey } from '@hooks/useRegisterAccess';
 import { entriesKey } from './useRegisterCorrections';
 import { useOwnAppointments } from './useRegisterImports';
 import { openingsKey, useRegisterOpenings } from './useRegisterOpenings';

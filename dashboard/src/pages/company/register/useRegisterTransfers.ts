@@ -6,7 +6,7 @@ import {
   type OrderSubmissionOwner,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
-import { READ_TIMING, registerKey } from './useCompanyRegister';
+import { READ_TIMING, registerKey } from '@hooks/useRegisterAccess';
 
 export const transfersKey = (owner: OrderSubmissionOwner, token: string) => [...registerKey(owner), 'transfers', token];
 export const transferMembersKey = (owner: OrderSubmissionOwner, token: string) => [

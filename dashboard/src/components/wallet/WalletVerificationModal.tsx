@@ -8,7 +8,7 @@ import { Modal, ModalActions } from '@components/Modal';
 import { PageAction } from '@components/Page';
 import { SeedPhraseInput } from '@components/SeedPhraseInput';
 import { useQRScanner, QRScannerView, QRCodeFrame } from '@components/qr';
-import { useWalletVerification } from '../hooks/useWalletVerification';
+import { useWalletVerification } from './useWalletVerification';
 import { decodeKeystoneMessageSignature } from '@utils/keystone/urDecoder';
 
 interface WalletVerificationModalProps {

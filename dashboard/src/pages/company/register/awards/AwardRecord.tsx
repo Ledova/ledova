@@ -15,7 +15,7 @@ import { PageAction } from '@components/Page';
 import { AwardStatus } from '@components/AwardStatus';
 import apiClient from '@services/apiClient';
 import { retainedName, shareCount } from '../proposals';
-import { saveFile } from '../useCompanyRegister';
+import { saveFile } from '@utils/saveFile';
 import { awardsKey, awardVestingsKey, useRegisterAwardVestings } from '../useRegisterAwards';
 import { ownAppointmentsKey } from '../../team/appointments';
 import { AwardVestingForm } from './AwardVestingForm';

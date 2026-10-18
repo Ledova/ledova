@@ -5,8 +5,8 @@ import { AuthLayout } from '@components/AuthLayout';
 import { InSignedInFrame } from '@components/InSignedInFrame';
 import { useRole } from '@hooks/useRole';
 import { useSignupFinished } from '@hooks/useSignupFinished';
-import { useUserProfile } from '@pages/user-profile/useUserProfile';
-import { SIGNUP_RESUMES_AT } from '../routes/signupRoutes';
+import { useUserProfile } from '@hooks/useUserProfile';
+import { SIGNUP_RESUMES_AT } from '@utils/paths';
 
 function Missing({ to, label }: { to: string; label: string }) {
   return (

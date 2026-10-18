@@ -1,24 +1,10 @@
-import {
-  createContext,
-  useContext,
-  useState,
-  useCallback,
-  useMemo,
-  useRef,
-  useLayoutEffect,
-  type ReactNode,
-} from 'react';
+import { useState, useCallback, useMemo, useRef, useLayoutEffect, type ReactNode } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { canOpen, useUserPreferences } from '@ledova/shared';
-import { BuyCryptoModal } from '@pages/wallets/components/BuyCryptoModal';
-import { BuyCryptoWidgetModal } from '@pages/wallets/components/BuyCryptoWidgetModal';
+import { BuyCryptoModal } from './BuyCryptoModal';
+import { BuyCryptoWidgetModal } from './BuyCryptoWidgetModal';
 
-interface BuyCryptoContextValue {
-  openBuyCrypto: () => void;
-  canBuyCrypto: boolean;
-}
-
-const BuyCryptoContext = createContext<BuyCryptoContextValue | null>(null);
+import { BuyCryptoContext } from './BuyCryptoContext';
 
 export function BuyCryptoProvider({ children }: { children: ReactNode }) {
   const { userAccount } = useUserPreferences();
@@ -79,12 +65,4 @@ export function BuyCryptoProvider({ children }: { children: ReactNode }) {
       )}
     </BuyCryptoContext.Provider>
   );
-}
-
-export function useBuyCrypto(): BuyCryptoContextValue {
-  const context = useContext(BuyCryptoContext);
-  if (!context) {
-    throw new Error('useBuyCrypto must be used within a BuyCryptoProvider');
-  }
-  return context;
 }

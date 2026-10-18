@@ -58,4 +58,10 @@ export default tseslint.config(
       'no-restricted-globals': ['error', ...NODE_GLOBALS_THE_BROWSER_LACKS],
     },
   },
+  {
+    files: ['src/testSupport/**/*.{ts,tsx}'],
+    rules: {
+      'react-refresh/only-export-components': 'off',
+    },
+  },
 );

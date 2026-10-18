@@ -7,7 +7,7 @@ import {
   type OrderSubmissionOwner,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
-import { READ_TIMING, registerKey } from './useCompanyRegister';
+import { READ_TIMING, registerKey } from '@hooks/useRegisterAccess';
 import { firstOfEach } from './useRegisterCorrections';
 
 export function openingsKey(owner: OrderSubmissionOwner, token: string) {

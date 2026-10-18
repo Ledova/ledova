@@ -10,7 +10,7 @@ import {
   COMPANY_SIGNUP_DECLARATION,
   COMPANY_SIGNUP_DECLARATION_VERSION,
 } from '@ledova/shared';
-import { APPOINTMENT } from '../../../../../packages/shared/tests/fixtures/employee-awards';
+import { APPOINTMENT } from '../../../testSupport/company';
 import { appointmentReceipt } from '../../company/team/appointments';
 
 vi.mock('./useReview', () => ({ useReview: vi.fn() }));

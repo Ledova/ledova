@@ -8,7 +8,7 @@ import {
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
 import { ownAppointmentsKey } from '../team/appointments';
-import { READ_TIMING, registerKey } from './useCompanyRegister';
+import { READ_TIMING, registerKey } from '@hooks/useRegisterAccess';
 
 export const ACCOUNT_CHANGED = 'Your signed-in account changed. Reopen the register.';
 

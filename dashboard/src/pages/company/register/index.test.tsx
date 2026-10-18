@@ -32,8 +32,13 @@ import { ShareClass } from '../classes';
 import CompanyRegisterImportPage from './import';
 import { ImportForm } from './import/ImportForm';
 import { blankAllotment, blankMember, preparationProblems, type MemberDraft } from './import/preparation';
-import { APPOINTMENT as CURRENT_APPOINTMENT } from '../../../../../packages/shared/tests/fixtures/employee-awards';
-import { companyRecord, companyPreferences, prepareCompanyClient, renderCompanyPage } from '../testSupport';
+import { APPOINTMENT as CURRENT_APPOINTMENT } from '../../../testSupport/company';
+import {
+  companyRecord,
+  companyPreferences,
+  prepareCompanyClient,
+  renderCompanyPage,
+} from '../../../testSupport/company';
 
 const api = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn() }));
 vi.mock('@services/apiClient', () => ({ default: api }));

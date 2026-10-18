@@ -653,7 +653,7 @@ and runs no local `deriveAddress` comparison, leaving a mismatched row to the se
 
 JavaScript and native probes cover encoding, decoding and scanner boundaries, not the camera and
 firmware journey, a [pre-release device check](mobile-releases.md#pre-release-device-checks). The
-client code is in `dashboard/src/pages/wallets/hooks/useWalletVerification.ts`,
+client code is in `dashboard/src/components/wallet/useWalletVerification.ts`,
 `dashboard/src/utils/softwareWallet/localSigner.ts`,
 `mobile/src/utils/softwareWallet/localSigner.ts`,
 `mobile/src/screens/wallets/useWalletVerification.ts` and `mobile/src/services/secureKeyStorage.ts`.
