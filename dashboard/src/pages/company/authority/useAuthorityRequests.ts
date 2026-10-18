@@ -8,6 +8,7 @@ import {
   withdrawCompanyAuthorityRequest,
   type CompanyAuthorityRequest,
   type OrderSubmissionOwner,
+  COMPANIES_QUERY_KEY,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -18,7 +19,7 @@ export function authorityRequestsKey(owner: OrderSubmissionOwner) {
 }
 
 export function authorityCompaniesKey(owner: OrderSubmissionOwner) {
-  return ['companies', 'authority', owner.userUuid, owner.ownerAccountUuid];
+  return [...COMPANIES_QUERY_KEY, 'authority', owner.userUuid, owner.ownerAccountUuid];
 }
 
 export function useAuthorityRequests({

@@ -9,11 +9,11 @@ import {
 } from '@ledova/shared';
 import { LinkRow, Section } from '@components/Ledger';
 import { PageAction } from '@components/Page';
-import { ownAppointmentsKey } from '@pages/company/shared/appointments';
+
 import { LinkRecord } from './LinkRecord';
 import { registerSteps } from '@pages/company/shared/proposals';
 import { registerKey } from '@hooks/useRegisterAccess';
-import { useOwnAppointments } from '@pages/company/shared/useOwnAppointments';
+import { useOwnAppointments, ownAppointmentsKey } from '@pages/company/shared/useOwnAppointments';
 import {
   linksKey,
   useRegisterLinks,

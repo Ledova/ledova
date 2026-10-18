@@ -15,10 +15,11 @@ import {
   withdrawOffering,
   type OfferingListItem,
   type CompanyShareTokenListItem,
+  OPERATOR_QUERY_KEY,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
 import type { CompanyActionRead } from '@pages/company/shared/CompanyState';
-import { useTokensList } from '@pages/company/shared/useTokensList';
+import { useTokensList, companyTokensKey } from '@pages/company/shared/useTokensList';
 
 type OfferingAction = 'submit' | 'withdraw' | 'remove' | 'edit' | 'documents';
 
@@ -37,8 +38,8 @@ export function companyOfferingSubscriptionsKey(companyUuid: string | undefined,
 export function useOfferings(companyUuid: string | undefined, read: CompanyActionRead) {
   const client = useQueryClient();
   const offeringsKey = companyOfferingsKey(companyUuid, read.scopeKey);
-  const tokensKey = ['tokens', 'company', companyUuid, read.scopeKey];
-  const operatorKey = ['operator', 'company', companyUuid, read.scopeKey];
+  const tokensKey = companyTokensKey(companyUuid, read.scopeKey);
+  const operatorKey = [...OPERATOR_QUERY_KEY, 'company', companyUuid, read.scopeKey];
   const guard = () => read.assertCurrent(companyUuid!, 'owner');
   const offeringsQuery = useQuery({
     queryKey: offeringsKey,

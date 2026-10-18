@@ -27,6 +27,8 @@ import {
   readEveryPage,
   canOpen,
   useUserPreferences,
+  USER_PROFILES_QUERY_KEY,
+  WALLETS_QUERY_KEY,
 } from '@ledova/shared';
 import type { BuyableAssetConfig, Wallet } from '@ledova/shared';
 import { Action, Rows } from '../../../components/Ledger';
@@ -168,7 +170,7 @@ export function BuyCryptoModal({
   );
 
   const userProfileQuery = useQuery({
-    queryKey: ['userProfiles'],
+    queryKey: USER_PROFILES_QUERY_KEY,
     queryFn: () => getUserProfiles(apiClient),
     staleTime: CACHE_TIMING.DEFAULT_STALE_TIME,
     gcTime: CACHE_TIMING.EXTRA_LONG_GC_TIME,
@@ -190,7 +192,7 @@ export function BuyCryptoModal({
 
   const walletsQuery = useQuery({
     queryKey: [
-      'wallets',
+      ...WALLETS_QUERY_KEY,
       userAccountUuid,
       { chain: selectedAsset?.chain, verification_status: 'VERIFIED', ordering: 'signing_preference' },
     ],

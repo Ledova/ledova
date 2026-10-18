@@ -5,11 +5,12 @@ import { getSwapOrders } from '../services/trading';
 import type { SwapOrder } from '../types';
 import { readEveryPage } from '../utils/pagination';
 import { useApiClient } from './useApiClient';
+import { tradingQueryKeys } from './useMarket';
 
 export function useSwapOrdersMulti(walletAddresses: string[]) {
   const apiClient = useApiClient();
   return useQuery({
-    queryKey: ['trading', 'swaps', 'multi', walletAddresses],
+    queryKey: tradingQueryKeys.swapOrdersMulti(walletAddresses),
     queryFn: async () => {
       if (walletAddresses.length === 0) return [] as SwapOrder[];
       const results = await Promise.all(

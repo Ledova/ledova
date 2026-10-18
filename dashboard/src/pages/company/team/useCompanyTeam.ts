@@ -1,4 +1,4 @@
-import { useOwnAppointments } from '@pages/company/shared/useOwnAppointments';
+import { useOwnAppointments, ownAppointmentsKey } from '@pages/company/shared/useOwnAppointments';
 import {
   getCompanyTeam,
   getCompanyTeamInvitations,
@@ -10,12 +10,7 @@ import {
   type OrderSubmissionOwner,
   type OwnCompanyAppointment,
 } from '@ledova/shared';
-import {
-  appointmentReceipt,
-  currentAppointment,
-  ownAppointmentsKey,
-  sameScope,
-} from '@pages/company/shared/appointments';
+import { appointmentReceipt, currentAppointment, sameScope } from '@pages/company/shared/appointments';
 import apiClient from '@services/apiClient';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useRef, useState } from 'react';

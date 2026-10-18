@@ -7,9 +7,12 @@ import { assertNextPageAdvances, getNextPageParam, readEveryPage } from '../util
 import { useApiClient } from './useApiClient';
 import { useLaterPages } from './useLaterPages';
 
+export const SUBSCRIPTIONS_QUERY_KEY = ['subscriptions'] as const;
+export const WALLETS_QUERY_KEY = ['wallets'] as const;
+
 export function useSubscriptions() {
   const apiClient = useApiClient();
-  const queryKey = ['subscriptions', 'list'];
+  const queryKey = [...SUBSCRIPTIONS_QUERY_KEY, 'list'];
   const query = useInfiniteQuery({
     queryKey,
     queryFn: async ({ pageParam }) => {
@@ -39,7 +42,7 @@ export function useSubscriptions() {
 export function useSubscribableWallets(enabled: boolean) {
   const apiClient = useApiClient();
   const query = useQuery({
-    queryKey: ['wallets', 'base-verified', 'complete'],
+    queryKey: [...WALLETS_QUERY_KEY, 'base-verified', 'complete'],
     queryFn: () =>
       readEveryPage((page) => getWallets(apiClient, { chain: 'base', verification_status: 'VERIFIED', page })),
     enabled,

@@ -17,10 +17,9 @@ import { PageAction } from '@components/Page';
 import { LinkRow } from '@components/Ledger';
 import { AllotmentForm } from './AllotmentForm';
 import { AllotmentRecord } from './AllotmentRecord';
-import { useOwnAppointments } from '@pages/company/shared/useOwnAppointments';
+import { useOwnAppointments, ownAppointmentsKey } from '@pages/company/shared/useOwnAppointments';
 import { transferMembersKey, useTransferMembers } from '@pages/company/register/shared/useRegisterTransfers';
 import { allotmentsKey, useRegisterAllotments } from './useRegisterAllotments';
-import { ownAppointmentsKey } from '@pages/company/shared/appointments';
 
 export function ClassAllotments({
   owner,

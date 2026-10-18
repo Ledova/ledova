@@ -1,3 +1,4 @@
+import { USER_PROFILES_QUERY_KEY } from './useSignupReview';
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 
@@ -205,7 +206,7 @@ export function useSignupUserProfile() {
       };
 
       await updateUserProfile(apiClient, existingProfileUuid, formattedData);
-      await queryClient.invalidateQueries({ queryKey: ['userProfiles'] });
+      await queryClient.invalidateQueries({ queryKey: USER_PROFILES_QUERY_KEY });
 
       onSuccess();
     } catch (error: unknown) {

@@ -17,9 +17,9 @@ import { Row, Rows, Status, type Tone } from '@components/Ledger';
 import { Modal } from '@components/Modal';
 import { PageAction } from '@components/Page';
 import { FIELD_CLASS, LABEL } from '@components/fieldClass';
-import { ownAppointmentsKey } from '@pages/company/shared/appointments';
+
 import { reconciliationKey, useLatestReconciliation } from './useLatestReconciliation';
-import { useOwnAppointments } from '@pages/company/shared/useOwnAppointments';
+import { useOwnAppointments, ownAppointmentsKey } from '@pages/company/shared/useOwnAppointments';
 
 type Holders = TokenHoldersResponse['holders'];
 type Field = keyof typeof REGISTER_RECONCILIATION_COPY.FIELDS;

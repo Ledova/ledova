@@ -10,13 +10,13 @@ import {
 } from '@ledova/shared';
 import { LinkRow } from '@components/Ledger';
 import { PageAction } from '@components/Page';
-import { ownAppointmentsKey } from '@pages/company/shared/appointments';
+
 import { ImportRecord } from './ImportRecord';
 import { registerSteps } from '@pages/company/shared/proposals';
 import { registerKey } from '@hooks/useRegisterAccess';
 import { entriesKey } from '@pages/company/register/shared/useRegisterEntries';
 import { importsKey, useRegisterImports } from '@pages/company/register/shared/useRegisterImports';
-import { useOwnAppointments } from '@pages/company/shared/useOwnAppointments';
+import { useOwnAppointments, ownAppointmentsKey } from '@pages/company/shared/useOwnAppointments';
 
 export function ClassImports({
   owner,

@@ -74,8 +74,7 @@ frame share, and `packages/shared` holds what both clients share.
 
 Where today's code differs from these standards:
 
-- Company administration now keeps its reads and actions in adjacent hooks. Register and personal
-  inline data calls and remaining query-key ownership still need
+- Register and personal inline data calls and their remaining component-owned keys still need
   [#1072](https://github.com/Ledova/ledova/issues/1072).
 - Existing unscoped account-bound keys stay unchanged; broader account scoping needs the owner
   decision on [#1065](https://github.com/Ledova/ledova/issues/1065).

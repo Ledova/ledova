@@ -7,6 +7,7 @@ import type {
 } from '../types';
 import { createOrder, getOrderCreateMessage, getOrderSubmission, parseTradingError } from '../services/trading';
 import type { OrderSubmissionStore, SavedOrderSubmission } from './order-submission-storage';
+import { failureStatus } from './errors';
 
 export type OrderSubmissionPhase = 'preparing' | 'ready' | 'signing' | 'submitting' | 'created' | 'refused' | 'error';
 
@@ -212,7 +213,7 @@ export class OrderSubmission {
       await this.accept(response.data, generation, response.status === 200);
     } catch (error) {
       const response = (error as { response?: { status?: number; data?: OrderSubmissionSnapshot } })?.response;
-      if (response?.status === 400 && response.data?.status === 'refused') {
+      if (failureStatus(error) === 400 && response?.data?.status === 'refused') {
         await this.accept(response.data, generation, false);
       } else throw error;
     }

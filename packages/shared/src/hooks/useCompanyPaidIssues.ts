@@ -13,9 +13,9 @@ import {
   prepareRegisterPaidIssue,
 } from '../services/register-paid-issues';
 import { readEveryPage } from '../utils/pagination';
-import { appointmentForRegisterStep, failureStatus, type RegisterStep } from '../utils/register-commands';
+import { appointmentForRegisterStep, type RegisterStep } from '../utils/register-commands';
 import { isPreparedRegisterPaidIssue, isRegisterPaidIssueSource } from '../utils/register-paid-issues';
-import { createUserFriendlyError, getErrorMessage } from '../utils/errors';
+import { failureStatus, createUserFriendlyError, getErrorMessage } from '../utils/errors';
 import type {
   CompanyShareToken,
   OwnCompanyAppointment,

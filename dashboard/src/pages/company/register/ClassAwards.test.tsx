@@ -1,5 +1,8 @@
 // @vitest-environment jsdom
 
+import { registerKey } from '@hooks/useRegisterAccess';
+import { ownAppointmentsKey } from '@pages/company/shared/useOwnAppointments';
+
 import {
   COMPANY_TOKEN_ENDPOINTS as URLS,
   REGISTER_AWARD_COPY as COPY,
@@ -15,7 +18,7 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { APPOINTMENT, AWARD_REQUEST, REGISTER, awardFrom, vestingFrom } from '../../../testSupport/company';
 import { ClassAwards } from './ClassAwards';
 import { GrantForm } from './grant/GrantForm';
-import { ownAppointmentsKey } from '@pages/company/shared/appointments';
+
 import apiClient from '@services/apiClient';
 import CompanyRegisterPage from '.';
 import { companyPreferences, prepareCompanyClient } from '../../../testSupport/company';
@@ -418,7 +421,7 @@ it('retains original award, vesting and linked issue preparations through interr
   listed = false;
   await act(async () =>
     client.refetchQueries({
-      queryKey: ['tokens', 'register', OWNER.userUuid, OWNER.ownerAccountUuid, 'classes'],
+      queryKey: [...registerKey(OWNER), 'classes'],
       exact: true,
     }),
   );
@@ -429,7 +432,7 @@ it('retains original award, vesting and linked issue preparations through interr
   await act(async () => client.refetchQueries({ queryKey: USER_PREFERENCES_QUERY_KEY, exact: true }));
   await act(async () =>
     client.refetchQueries({
-      queryKey: ['tokens', 'register', OWNER.userUuid, OWNER.ownerAccountUuid, 'classes'],
+      queryKey: [...registerKey(OWNER), 'classes'],
       exact: true,
     }),
   );

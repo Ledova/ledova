@@ -1,4 +1,4 @@
-import { useOwnAppointments } from '@pages/company/shared/useOwnAppointments';
+import { useOwnAppointments, ownAppointmentsKey } from '@pages/company/shared/useOwnAppointments';
 import {
   apiErrorSentence,
   REGISTER_DEPLOYMENT_COPY as COPY,
@@ -12,10 +12,10 @@ import {
   type CompanyShareToken,
   type OwnCompanyAppointment,
   type RegisterDecisionKind,
+  COMPANY_QUERY_KEY,
   type RegisterDeployment,
   type RegisterDeploymentPreparation,
 } from '@ledova/shared';
-import { ownAppointmentsKey } from '@pages/company/shared/appointments';
 import { registerSteps } from '@pages/company/shared/proposals';
 import apiClient from '@services/apiClient';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -64,7 +64,7 @@ export function useDeploymentFlow({ uuid, data }: { uuid: string; data: ReturnTy
       return rows;
     },
   });
-  const appointmentKey = owner ? ownAppointmentsKey(owner) : ['company', 'appointments', null];
+  const appointmentKey = owner ? ownAppointmentsKey(owner) : [...COMPANY_QUERY_KEY, 'appointments', null];
   const appointments = useOwnAppointments(owner!, guard, { queryKey: appointmentKey, enabled: !!owner, timing: {} });
   const steps =
     appointments.isSuccess && !appointments.isFetching && company ? registerSteps(appointments.data, company) : {};

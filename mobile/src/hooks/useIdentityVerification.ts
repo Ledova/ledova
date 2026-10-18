@@ -1,6 +1,12 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef, useSyncExternalStore } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { getIdentityVerificationToken, readIdentityVerification, useIdentityVerificationStatus } from '@ledova/shared';
+import {
+  getIdentityVerificationToken,
+  readIdentityVerification,
+  useIdentityVerificationStatus,
+  USER_PROFILES_QUERY_KEY,
+  IDENTITY_VERIFICATION_QUERY_KEY,
+} from '@ledova/shared';
 import { apiClient } from '../services/apiClient';
 import { getSessionEpoch, subscribeSession } from '../services/sessionScope';
 
@@ -61,7 +67,7 @@ export function useIdentityVerification(enabled = true) {
       // eslint-disable-next-line react-hooks/immutability
       submission.justSubmitted = false;
       render();
-      queryClient.invalidateQueries({ queryKey: ['userProfiles'] });
+      queryClient.invalidateQueries({ queryKey: USER_PROFILES_QUERY_KEY });
     }
   }, [justSubmitted, isVerified, isRejected, queryClient, scope, submission]);
 
@@ -98,8 +104,8 @@ export function useIdentityVerification(enabled = true) {
     try {
       const data = await tokenMutation.mutateAsync();
       if (!currentLaunch()) return;
-      queryClient.invalidateQueries({ queryKey: ['identity-verification', 'status'] });
-      queryClient.invalidateQueries({ queryKey: ['userProfiles'] });
+      queryClient.invalidateQueries({ queryKey: IDENTITY_VERIFICATION_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: USER_PROFILES_QUERY_KEY });
       scope.formUrl = data?.formUrl ?? null;
       scope.accessToken = scope.formUrl ? null : (data?.accessToken ?? null);
     } catch (error: unknown) {

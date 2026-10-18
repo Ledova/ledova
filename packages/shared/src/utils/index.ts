@@ -36,6 +36,7 @@ export {
   createUserFriendlyError,
   getErrorMessage,
   hasServiceErrorDetail,
+  failureStatus,
   describeFailure,
   readSignInError,
   readApiError,
@@ -96,7 +97,6 @@ export { summarizeShareHoldings, type ShareHoldingRow } from './share-holdings';
 export {
   appointmentForRegisterStep,
   hasCurrentRegisterReadAuthority,
-  failureStatus,
   isRegisterDecisionReceipt,
   isRegisterEvidenceReceipt,
   type RegisterStep,

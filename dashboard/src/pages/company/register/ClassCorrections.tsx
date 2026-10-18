@@ -14,7 +14,7 @@ import {
 } from '@ledova/shared';
 import { LinkRow } from '@components/Ledger';
 import { PageAction } from '@components/Page';
-import { ownAppointmentsKey } from '@pages/company/shared/appointments';
+
 import { CorrectionRecord } from './CorrectionRecord';
 import { ClassCertificate } from './ClassCertificate';
 import { RegisterChanges } from '@pages/company/register/shared/RegisterChanges';
@@ -26,7 +26,7 @@ import {
   type ClassCorrection,
 } from '@pages/company/register/shared/useClassCorrections';
 import { entriesKey, useRegisterEntries } from '@pages/company/register/shared/useRegisterEntries';
-import { useOwnAppointments } from '@pages/company/shared/useOwnAppointments';
+import { useOwnAppointments, ownAppointmentsKey } from '@pages/company/shared/useOwnAppointments';
 
 const COPY = REGISTER_CORRECTION_COPY;
 

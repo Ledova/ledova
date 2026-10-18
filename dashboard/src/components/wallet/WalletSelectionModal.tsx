@@ -1,6 +1,6 @@
 import { ArrowsClockwiseIcon } from '@phosphor-icons/react';
 import { useQuery } from '@tanstack/react-query';
-import { getActiveChains, getChainConfig, getWallets, readEveryPage } from '@ledova/shared';
+import { getActiveChains, getChainConfig, getWallets, readEveryPage, WALLETS_QUERY_KEY } from '@ledova/shared';
 import { ICON_LG } from '@components/iconSizes';
 import type { Wallet } from '@ledova/shared';
 import { Modal } from '@components/Modal';
@@ -16,7 +16,7 @@ interface WalletSelectionModalProps {
 
 export function WalletSelectionModal({ isOpen, onClose, onSelectWallet }: WalletSelectionModalProps) {
   const walletsQuery = useQuery({
-    queryKey: ['wallets', { verification_status: 'VERIFIED', ordering: 'signing_preference' }],
+    queryKey: [...WALLETS_QUERY_KEY, { verification_status: 'VERIFIED', ordering: 'signing_preference' }],
     queryFn: () =>
       readEveryPage((page) =>
         getWallets(apiClient, {

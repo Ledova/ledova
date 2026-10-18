@@ -9,9 +9,9 @@ import type { OrderSubmissionSession } from './useOrderSubmissions';
 import { getOwnCompanyAppointments } from '../services/company-authority';
 import { getRegisterPauseChanges, prepareRegisterPauseChange } from '../services/register-pause-changes';
 import { readEveryPage } from '../utils/pagination';
-import { appointmentForRegisterStep, failureStatus, type RegisterStep } from '../utils/register-commands';
+import { appointmentForRegisterStep, type RegisterStep } from '../utils/register-commands';
 import { isPreparedRegisterPauseChange } from '../utils/register-pause-changes';
-import { createUserFriendlyError, getErrorMessage } from '../utils/errors';
+import { failureStatus, createUserFriendlyError, getErrorMessage } from '../utils/errors';
 import type {
   CompanyShareToken,
   OwnCompanyAppointment,

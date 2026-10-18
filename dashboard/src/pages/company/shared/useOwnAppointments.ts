@@ -1,8 +1,16 @@
 import { useQuery } from '@tanstack/react-query';
-import { getOwnCompanyAppointments, readEveryPage, type OrderSubmissionOwner } from '@ledova/shared';
+import {
+  getOwnCompanyAppointments,
+  readEveryPage,
+  type OrderSubmissionOwner,
+  OWN_APPOINTMENTS_QUERY_KEY,
+} from '@ledova/shared';
 import apiClient from '@services/apiClient';
-import { ownAppointmentsKey } from '@pages/company/shared/appointments';
 import { READ_TIMING } from '@hooks/useRegisterAccess';
+
+export function ownAppointmentsKey(owner: OrderSubmissionOwner) {
+  return [...OWN_APPOINTMENTS_QUERY_KEY, owner.userUuid, owner.ownerAccountUuid];
+}
 
 export function useOwnAppointments(
   owner: OrderSubmissionOwner,

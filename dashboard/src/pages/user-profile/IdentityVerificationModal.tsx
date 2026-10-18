@@ -1,3 +1,4 @@
+import { USER_PROFILES_QUERY_KEY } from '@ledova/shared';
 import { useEffect, type ReactNode } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { WarningIcon, CheckCircleIcon, ClockCountdownIcon, ArrowCounterClockwiseIcon } from '@phosphor-icons/react';
@@ -71,7 +72,7 @@ export function IdentityVerificationModal({ isOpen, onClose }: IdentityVerificat
   useEffect(() => {
     if (justSubmitted && !isVerified) {
       const timer = setTimeout(() => {
-        queryClient.invalidateQueries({ queryKey: ['userProfiles'] });
+        queryClient.invalidateQueries({ queryKey: USER_PROFILES_QUERY_KEY });
         onClose();
       }, 3000);
       return () => clearTimeout(timer);

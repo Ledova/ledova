@@ -6,6 +6,7 @@ import type { OrderActionStore, SavedOrderAction } from '../utils/order-action-s
 import type { OrderSubmissionSession } from './useOrderSubmissions';
 import { useApiClient } from './useApiClient';
 import { useSubmissionOwner } from './useSubmissionOwner';
+import { TRADING_QUERY_KEY } from './useMarket';
 
 export function useOrderActions(store: OrderActionStore, session?: OrderSubmissionSession) {
   const apiClient = useApiClient();
@@ -80,7 +81,7 @@ export function useOrderActions(store: OrderActionStore, session?: OrderSubmissi
         },
         onSettled: (snapshot) => {
           if (isCurrent() && state.active === selection && snapshot.status === 'applied')
-            void queryClient.invalidateQueries({ queryKey: ['trading'] });
+            void queryClient.invalidateQueries({ queryKey: TRADING_QUERY_KEY });
         },
       },
       record,

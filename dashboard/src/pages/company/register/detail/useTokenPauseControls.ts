@@ -1,3 +1,6 @@
+import { shareClassKey } from './useShareClass';
+import { REGISTER_QUERY_KEY } from '@hooks/useRegisterAccess';
+import { TOKENS_QUERY_KEY } from '@pages/company/shared/useTokensList';
 import {
   getErrorMessage,
   getPauseSubmission,
@@ -82,8 +85,9 @@ export function useTokenPauseRequests({
         });
         guard();
         const result = checked(record, response.data);
-        void queryClient.invalidateQueries({ queryKey: ['token', token.uuid] });
-        void queryClient.invalidateQueries({ queryKey: ['tokens'] });
+        void queryClient.invalidateQueries({ queryKey: shareClassKey(token.uuid) });
+        void queryClient.invalidateQueries({ queryKey: TOKENS_QUERY_KEY });
+        void queryClient.invalidateQueries({ queryKey: REGISTER_QUERY_KEY });
         return result;
       },
       retry: false,
@@ -110,7 +114,7 @@ export function useTokenPauseRequests({
       );
       guard();
       queryClient.setQueryData(pauseSubmissionKey(record), checked(record, response.data));
-      void queryClient.invalidateQueries({ queryKey: ['token', token.uuid] });
+      void queryClient.invalidateQueries({ queryKey: shareClassKey(token.uuid) });
     } catch (failure) {
       if (currentOwner() === owner) {
         setError(getErrorMessage(failure, 'The pause response is unresolved. Check or retry the saved request.'));

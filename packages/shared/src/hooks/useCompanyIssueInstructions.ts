@@ -12,10 +12,10 @@ import { getRegisterTransferMembers } from '../services/register-transfers';
 import { getRegisterLinks, prepareRegisterLink } from '../services/register-links';
 import { getRegisterIssues, prepareRegisterIssue } from '../services/register-issues';
 import { readEveryPage } from '../utils/pagination';
-import { appointmentForRegisterStep, failureStatus, type RegisterStep } from '../utils/register-commands';
+import { appointmentForRegisterStep, type RegisterStep } from '../utils/register-commands';
 import { isPreparedRegisterLink } from '../utils/register-links';
 import { isPreparedRegisterIssue } from '../utils/register-issues';
-import { createUserFriendlyError, getErrorMessage } from '../utils/errors';
+import { failureStatus, createUserFriendlyError, getErrorMessage } from '../utils/errors';
 import type {
   CompanyShareToken,
   CompanyWalletNomination,

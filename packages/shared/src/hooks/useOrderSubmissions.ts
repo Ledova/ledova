@@ -6,6 +6,7 @@ import { OrderSubmission } from '../utils/order-submission';
 import type { OrderSubmissionStore, SavedOrderSubmission } from '../utils/order-submission-storage';
 import { useApiClient } from './useApiClient';
 import { useSubmissionOwner } from './useSubmissionOwner';
+import { TRADING_QUERY_KEY } from './useMarket';
 
 export interface OrderSubmissionSession {
   getEpoch: () => number;
@@ -91,7 +92,7 @@ export function useOrderSubmissions(store: OrderSubmissionStore, session?: Order
         void reload();
       },
       onSettled: (snapshot: OrderSubmissionSnapshot) => {
-        if (snapshot.status === 'created') void queryClient.invalidateQueries({ queryKey: ['trading'] });
+        if (snapshot.status === 'created') void queryClient.invalidateQueries({ queryKey: TRADING_QUERY_KEY });
       },
     });
     state.active = selection;

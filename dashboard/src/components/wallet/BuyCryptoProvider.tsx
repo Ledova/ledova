@@ -1,6 +1,6 @@
 import { useState, useCallback, useMemo, useRef, useLayoutEffect, type ReactNode } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { canOpen, useUserPreferences } from '@ledova/shared';
+import { canOpen, useUserPreferences, WALLETS_QUERY_KEY } from '@ledova/shared';
 import { BuyCryptoModal } from './BuyCryptoModal';
 import { BuyCryptoWidgetModal } from './BuyCryptoWidgetModal';
 
@@ -39,7 +39,7 @@ export function BuyCryptoProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const handleWidgetComplete = useCallback(() => {
-    if (scope.canBuyCrypto && current.current === scope) queryClient.invalidateQueries({ queryKey: ['wallets'] });
+    if (scope.canBuyCrypto && current.current === scope) queryClient.invalidateQueries({ queryKey: WALLETS_QUERY_KEY });
   }, [queryClient, scope]);
 
   return (

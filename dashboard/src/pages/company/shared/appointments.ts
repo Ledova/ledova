@@ -6,13 +6,8 @@ import {
   COMPANY_SIGNUP_DECLARATION_VERSION,
   type CompanyCapability,
   type CompanyTeamAppointment,
-  type OrderSubmissionOwner,
   type OwnCompanyAppointment,
 } from '@ledova/shared';
-
-export function ownAppointmentsKey(owner: OrderSubmissionOwner) {
-  return ['company-appointments', owner.userUuid, owner.ownerAccountUuid];
-}
 
 export function currentAppointment(appointment: OwnCompanyAppointment | CompanyTeamAppointment) {
   return (

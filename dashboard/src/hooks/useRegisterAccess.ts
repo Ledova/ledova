@@ -12,8 +12,10 @@ import apiClient from '@services/apiClient';
 
 export const READ_TIMING = { staleTime: CACHE_TIMING.SHORT_STALE_TIME, gcTime: CACHE_TIMING.MEDIUM_GC_TIME };
 
+export const REGISTER_QUERY_KEY = ['register'] as const;
+
 export function registerKey(owner: OrderSubmissionOwner | null) {
-  return ['tokens', 'register', owner?.userUuid, owner?.ownerAccountUuid];
+  return [...REGISTER_QUERY_KEY, owner?.userUuid, owner?.ownerAccountUuid];
 }
 
 export function useRegisterEntryAccess(enabled = true) {

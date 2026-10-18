@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { activateCompany } from '../services/companies';
 import type { Company, CompanyActivate, CompanyActivationAttempt } from '../types';
-import { createUserFriendlyError, getErrorMessage } from '../utils/errors';
+import { createUserFriendlyError, failureStatus, getErrorMessage } from '../utils/errors';
 import { isUuid } from '../utils/validation';
 import type { useCompanySelection } from './useCompanySelection';
 import { useApiClient } from './useApiClient';
@@ -174,7 +174,8 @@ export function useCompanyActivation(read: Selection, newKey: () => string) {
       ]);
     } catch (failure) {
       const response = (failure as { response?: { status?: number; data?: { code?: string } } })?.response;
-      if (response && response.status && response.status < 500) retry.current = null;
+      const status = failureStatus(failure);
+      if (response && status && status < 500) retry.current = null;
       if (mounted.current) {
         try {
           current();
@@ -184,7 +185,7 @@ export function useCompanyActivation(read: Selection, newKey: () => string) {
       }
       confirmation.current = null;
       if (mounted.current) setPreview(null);
-      if (response?.status === 400 || response?.status === 404 || response?.status === 409) await read.refetch();
+      if (status === 400 || status === 404 || status === 409) await read.refetch();
     } finally {
       pending.current = false;
       if (mounted.current) setBusy(false);

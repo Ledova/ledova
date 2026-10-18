@@ -1,53 +1,8 @@
-import type { ApiComponents, TradingEventType } from '../../generated/api';
+import type { ApiComponents } from '../../generated/api';
 
 export type { TradingEventType } from '../../generated/api';
 
 export type OrderType = ApiComponents['schemas']['TransferOrderTypeEnum'];
-
-export const TRADING_EVENT_INVALIDATION_MAP: Record<TradingEventType, string[][]> = {
-  order_created: [
-    ['trading', 'orderBook'],
-    ['trading', 'userOrders'],
-  ],
-  order_cancelled: [
-    ['trading', 'orderBook'],
-    ['trading', 'userOrders'],
-  ],
-  order_modified: [
-    ['trading', 'orderBook'],
-    ['trading', 'userOrders'],
-  ],
-  order_listed: [
-    ['trading', 'orderBook'],
-    ['trading', 'userOrders'],
-  ],
-  order_held: [
-    ['trading', 'orderBook'],
-    ['trading', 'userOrders'],
-  ],
-  order_matched: [
-    ['trading', 'orderBook'],
-    ['trading', 'userOrders'],
-    ['trading', 'swaps'],
-  ],
-  swap_signed: [['trading', 'swaps']],
-  swap_completed: [
-    ['trading', 'orderBook'],
-    ['trading', 'swaps'],
-    ['trading', 'userOrders'],
-    ['trading', 'walletBalances'],
-  ],
-  swap_failed: [
-    ['trading', 'orderBook'],
-    ['trading', 'swaps'],
-    ['trading', 'userOrders'],
-  ],
-  swap_expired: [
-    ['trading', 'orderBook'],
-    ['trading', 'userOrders'],
-    ['trading', 'swaps'],
-  ],
-};
 
 export const TRADING_ENDPOINTS = {
   TOKENS: {

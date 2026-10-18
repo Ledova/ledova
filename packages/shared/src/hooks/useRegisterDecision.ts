@@ -70,8 +70,8 @@ import type {
   RegisterParticularsChange,
   RegisterParticularsChangeDecisionPreview,
 } from '../types';
-import { createUserFriendlyError, getErrorMessage } from '../utils/errors';
-import { failureStatus, isRegisterDecisionReceipt } from '../utils/register-commands';
+import { failureStatus, createUserFriendlyError, getErrorMessage } from '../utils/errors';
+import { isRegisterDecisionReceipt } from '../utils/register-commands';
 import { isRegisterCorrectionDecisionReceipt } from '../utils/register-corrections';
 import { isRegisterGrantDecisionReceipt } from '../utils/register-grants';
 import { isRegisterTransferDecisionReceipt } from '../utils/register-transfers';
