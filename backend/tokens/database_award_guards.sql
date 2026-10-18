@@ -185,6 +185,23 @@ LANGUAGE sql STABLE SECURITY INVOKER SET search_path = pg_catalog, public, pg_te
         LEFT JOIN tokens_shareregister register ON register.token_id = token.uuid WHERE proposal.uuid = grant_uuid;
 $$;
 
+CREATE FUNCTION tokens_register_grant_terms_evidence_matches(proposal tokens_registergrant, actor bigint) RETURNS boolean
+LANGUAGE sql STABLE SECURITY INVOKER SET search_path = pg_catalog, public, pg_temp AS $$
+    SELECT CASE WHEN proposal.award_id IS NOT NULL AND proposal.terms_evidence_id = (
+        SELECT agreement_evidence_id FROM tokens_registeraward WHERE uuid = proposal.award_id)
+    THEN EXISTS (SELECT 1 FROM tokens_registeraward promised WHERE promised.uuid = proposal.award_id
+        AND promised.company_id = proposal.company_id AND promised.token_id = proposal.token_id
+        AND promised.member = proposal.member AND promised.terms_on = proposal.terms_on AND promised.terms = proposal.terms
+        AND proposal.terms_fingerprint = promised.agreement_fingerprint
+        AND proposal.terms_snapshot = promised.agreement_snapshot
+        AND proposal.terms_file ~ ('^companies/' || proposal.company_id || '/register-grants/' || proposal.uuid || '/[0-9a-f-]{36}[.]bin$')
+        AND tokens_employee_award_evidence_matches(promised.agreement_evidence_id, promised.company_id,
+            promised.submitted_by_id, promised.agreement_fingerprint, promised.agreement_snapshot, promised.file,
+            'register-awards', promised.uuid))
+    ELSE tokens_register_grant_evidence_matches(proposal.terms_evidence_id, proposal.company_id, actor,
+        'supporting', proposal.terms_fingerprint, proposal.terms_snapshot, proposal.terms_file, proposal.uuid) END;
+$$;
+
 CREATE OR REPLACE FUNCTION tokens_guard_register_grant() RETURNS trigger
 LANGUAGE plpgsql SECURITY INVOKER SET search_path = pg_catalog, public, pg_temp AS $$
 DECLARE principal bigint;
@@ -212,8 +229,7 @@ BEGIN
             OR NOT tokens_register_grant_ready(NEW, true)
             OR NOT tokens_register_grant_evidence_matches(NEW.authority_evidence_id, NEW.company_id, principal,
                 'authority', NEW.evidence_fingerprint, NEW.evidence_snapshot, NEW.file, NEW.uuid)
-            OR NOT tokens_register_grant_evidence_matches(NEW.terms_evidence_id, NEW.company_id, principal,
-                'supporting', NEW.terms_fingerprint, NEW.terms_snapshot, NEW.terms_file, NEW.uuid)
+            OR NOT tokens_register_grant_terms_evidence_matches(NEW, principal)
             OR (NEW.acceptance_required AND NOT tokens_register_grant_evidence_matches(NEW.acceptance_evidence_id,
                 NEW.company_id, principal, 'supporting', NEW.acceptance_fingerprint, NEW.acceptance_snapshot, NEW.acceptance_file, NEW.uuid))
             OR (NOT NEW.acceptance_required AND (NEW.acceptance_evidence_id IS NOT NULL OR NEW.acceptance_fingerprint <> ''

@@ -484,6 +484,14 @@ constraint triggers recheck the recording authority at commit. Concurrent events
 applications serialise the allocation check, and a failed effect rolls back whole. The tables are
 operator-only.
 
+A linked grant can set its existing `terms_evidence` to the award’s `agreement_evidence` without
+another upload. Under current company preparation authority, the producer checks that exact source’s
+company, kind, fingerprint and snapshot, verifies the durable award copy’s size and hash, then copies
+those bytes into the grant’s own private terms file. `tokens_register_grant_terms_evidence_matches`
+binds the archive branch to that award, class, recipient, terms and snapshot; it grants no general
+access to another user’s uploads. Authority and any required acceptance evidence keep their uploader
+checks. Existing explicit terms uploads and original preparation/decision receipts remain valid.
+
 ### External allotments API
 
 What an allotment records: [external
