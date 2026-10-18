@@ -3,7 +3,6 @@ import { PageAction } from '@components/Page';
 import { OFFER_DOCUMENT_COPY, apiErrorSentence, type Company } from '@ledova/shared';
 import { CompanyReadNotice, type CompanyActionRead } from '@pages/company/shared/CompanyState';
 import { DocumentChoices } from './DocumentChoices';
-import { OfferingReadNotice } from './OfferingReadNotice';
 import { type useOfferings } from './useOffering';
 import { useOfferingDocumentsEditor } from './useOfferingDocumentsEditor';
 
@@ -42,7 +41,7 @@ export function OfferingDocumentsEditor({
     >
       <fieldset disabled={request.isPending} className="space-y-4">
         <CompanyReadNotice read={{ ...companyRead, refetch }} />
-        <OfferingReadNotice
+        <CompanyReadNotice
           read={{ error: detail.error, isRefreshing: detail.isFetching, refetch }}
           label="Current offering"
         />

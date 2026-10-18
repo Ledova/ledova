@@ -1,9 +1,9 @@
+import { AuthLayout, AuthHeader } from '@components/auth';
 import { SIGNUP_PATHS, SIGNUP_PATH } from '@utils/paths';
 import { useNavigate } from 'react-router-dom';
 import { EnvelopeIcon } from '@phosphor-icons/react';
 import { EmailConfirmationForm } from './EmailConfirmationForm';
 import { useSignupEmailConfirmation } from './useSignupEmailConfirmation';
-import { AuthLayout } from '@components/AuthLayout';
 import { ICON_MD } from '@components/iconSizes';
 
 export default function SignupEmailConfirmation() {
@@ -34,15 +34,9 @@ export default function SignupEmailConfirmation() {
 
   return (
     <AuthLayout>
-      <div className="text-center mb-6">
-        <div className="flex justify-center mb-3">
-          <div className="p-2 rounded-full bg-surface-raised border border-border">
-            <EnvelopeIcon size={ICON_MD} className="text-text-muted" />
-          </div>
-        </div>
-        <h1 className="font-display text-3xl tracking-[-0.01em] text-text-primary">Verify Your Email</h1>
+      <AuthHeader title="Verify Your Email" icon={<EnvelopeIcon size={ICON_MD} className="text-text-muted" />}>
         {email && <p className="text-sm text-text-muted mt-2">Code sent to {email}</p>}
-      </div>
+      </AuthHeader>
 
       <EmailConfirmationForm
         verificationCode={verificationCode}

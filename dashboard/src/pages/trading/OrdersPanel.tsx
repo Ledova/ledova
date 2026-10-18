@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { Wallet, OrderSubmissionOwner, TransferOrder, SwapOrder, OrderBook, OrderBookEntry } from '@ledova/shared';
 import { selectSwapSettlement, formatDateTime, marketAmount, marketQuantity } from '@ledova/shared';
-import { Section, Rows, Row, Status } from '@components/Ledger';
+import { Section, Rows, Row, Status, type Tone } from '@components/Ledger';
 
 function BookSide({ title, entries }: { title: string; entries: OrderBookEntry[] }) {
   return (
@@ -50,6 +50,11 @@ interface OrdersPanelProps {
   settlementOwner: OrderSubmissionOwner | null;
   onSignSwap: (swap: SwapOrder) => void;
 }
+
+const ORDER_STATUS_TONES = new Map<string, Tone>([
+  ['completed', 'done'],
+  ['cancelled', 'closed'],
+]);
 
 export function OrdersPanel({
   tokenSymbol,
@@ -119,9 +124,7 @@ export function OrdersPanel({
                   <span>{order.orderType === 'buy' ? 'Wanted' : 'For sale'}</span>
                 </Row>
                 <Row label="Status">
-                  <Status
-                    tone={order.status === 'completed' ? 'done' : order.status === 'cancelled' ? 'closed' : 'waiting'}
-                  >
+                  <Status tone={ORDER_STATUS_TONES.get(order.status) ?? 'waiting'}>
                     {order.statusDisplay ?? order.status.replace(/_/g, ' ')}
                   </Status>
                 </Row>

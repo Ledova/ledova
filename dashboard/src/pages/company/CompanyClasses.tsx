@@ -11,6 +11,7 @@ import { PageAction } from '@components/Page';
 import { LinkRow, Section, Status } from '@components/Ledger';
 import { useRegisterClasses } from './shared/useCompanyRegister';
 import { ownerGuard } from './shared/ownerGuard';
+import { SHARE_CLASS_STATUS_TONES } from './shared/statusTones';
 
 export function CompanyClasses({
   owner,
@@ -53,9 +54,7 @@ export function CompanyClasses({
                 to={generatePath(DESTINATIONS.companyClass.path, { uuid: token.uuid })}
                 label={token.name}
                 aside={
-                  <Status
-                    tone={token.status === 'deployed' ? 'done' : token.status === 'deploying' ? 'moving' : 'waiting'}
-                  >
+                  <Status tone={SHARE_CLASS_STATUS_TONES.get(token.status) ?? 'waiting'}>
                     {token.statusDisplay}
                   </Status>
                 }
