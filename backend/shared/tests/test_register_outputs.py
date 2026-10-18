@@ -2,9 +2,11 @@ import hashlib
 import io
 import json
 import zipfile
+from datetime import timedelta
 from uuid import UUID, uuid4
 
 import pymupdf
+from django.conf import settings
 from django.db import IntegrityError
 from django.utils import timezone
 from rest_framework.test import APITransactionTestCase
@@ -18,6 +20,7 @@ from tokens.models import (
     RegisterGrant,
     RegisterTransfer,
 )
+from tokens.services.former_holders import purge_register_exports
 
 
 class RegisterOutputsTest(CoreFixtures, APITransactionTestCase):
@@ -231,6 +234,15 @@ class RegisterOutputsTest(CoreFixtures, APITransactionTestCase):
             self.assertEqual(audit.requested_by_id, self.owner.pk)
             self.assertEqual(int(self.token.stored_register.issued_supply), 150)
             self.assertEqual(RegisterGrant.objects.get(pk=grant.json()["uuid"]).award_id, UUID(award["operation_id"]))
+            self.assertEqual(RegisterExport.objects.count(), 3)
+            self.assertEqual(
+                purge_register_exports(now=timezone.now() + timedelta(days=settings.FORMER_MEMBER_RETENTION_DAYS + 1)),
+                2,
+            )
+            self.assertEqual(list(RegisterExport.objects.values_list("pk", flat=True)), [output.export_id])
+            output.refresh_from_db()
+            with output.file.open("rb") as original:
+                self.assertEqual(original.read(), own_pdf.content)
         revoked = self.client.post(
             f"/api/v1/tokens/member-associations/{accepted.json()['uuid']}/revoke/",
             {
