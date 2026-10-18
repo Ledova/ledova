@@ -4,10 +4,10 @@ import WebView from 'react-native-webview';
 import type { WebViewMessageEvent, WebViewNavigation } from 'react-native-webview';
 import type { ShouldStartLoadRequest } from 'react-native-webview/lib/WebViewTypes';
 import { XIcon } from 'phosphor-react-native';
-import { overlayColors, useAppTheme, useThemedStyles } from '../../../../contexts';
-import { SITE_URL } from '../../../../config/publicLinks';
-import { allowWebNavigation } from '../../../../config/networkPolicy';
-import { useProviderViewLifecycle } from '../../../../hooks/useProviderViewLifecycle';
+import { overlayColors, useAppTheme, useThemedStyles } from '../../contexts/index';
+import { SITE_URL } from '../../config/publicLinks';
+import { allowWebNavigation } from '../../config/networkPolicy';
+import { useProviderViewLifecycle } from '../../hooks/useProviderViewLifecycle';
 
 interface VerificationFormModalProps {
   visible: boolean;

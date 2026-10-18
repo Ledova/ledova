@@ -1,7 +1,7 @@
 import { Text, View } from 'react-native';
 import { Action } from '../../components/Ledger';
-import { useCompanyStyles } from '../company-register/styles';
-import type { CompanyRead } from '../company/CompanyState';
+import { useCompanyStyles } from '../../hooks/useCompanyStyles';
+import type { CompanyRead } from '../../components/company/CompanyState';
 
 export function OfferingReadNotice({ read, label = 'Offering information' }: { read: CompanyRead; label?: string }) {
   const styles = useCompanyStyles();

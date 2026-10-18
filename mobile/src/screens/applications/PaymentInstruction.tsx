@@ -3,7 +3,7 @@ import { Text, View } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { formatDate, formatMoney, SUBSCRIPTION_COPY, type PaymentInstruction as Instruction } from '@ledova/shared';
 import { Action, Row, Rows, Section } from '../../components/Ledger';
-import { useApplicationStyles } from './ApplicationsPage';
+import { useApplicationStyles } from '../../hooks/useApplicationStyles';
 
 function InstructionRow({
   label,

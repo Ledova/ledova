@@ -3,7 +3,7 @@ import { Platform, Text, View } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { formatDateTime } from '@ledova/shared';
 import { Action } from '../../components/Ledger';
-import { useCompanyStyles } from '../company-register/styles';
+import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 
 export function AuthorityExpiryField({
   value,

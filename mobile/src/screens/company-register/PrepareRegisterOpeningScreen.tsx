@@ -24,10 +24,15 @@ import { Page } from '../../components/Page';
 import type { CompanyStackParamList } from '../../navigation/CompanyStackNavigator';
 import { apiClient } from '../../services/apiClient';
 import { assertSessionEpoch, getSessionEpoch, subscribeSession } from '../../services/sessionScope';
-import { EvidencePicker, Field } from './RegisterFields';
-import { useCompanyStyles } from './styles';
-import { openingsKey, useClassRegister, useOpeningHolders, useRegisterAppointments } from './useCompanyRegister';
-import { useRegisterEvidence } from './useRegisterEvidence';
+import { EvidencePicker, Field } from '../../components/register/RegisterFields';
+import { useCompanyStyles } from '../../hooks/useCompanyStyles';
+import {
+  openingsKey,
+  useClassRegister,
+  useOpeningHolders,
+  useRegisterAppointments,
+} from '../../hooks/useCompanyRegister';
+import { useRegisterEvidence } from '../../hooks/useRegisterEvidence';
 
 type Chosen = { member: string; fresh: boolean };
 

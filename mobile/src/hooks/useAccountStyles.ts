@@ -1,4 +1,4 @@
-import { useThemedStyles } from '../../contexts';
+import { useThemedStyles } from '../contexts/index';
 export function useAccountStyles() {
   return useThemedStyles((theme) => ({
     text: { fontFamily: theme.fontFamily.regular, fontSize: 15, lineHeight: 23, color: theme.colors.text.body },

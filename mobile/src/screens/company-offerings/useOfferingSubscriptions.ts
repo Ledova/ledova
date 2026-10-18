@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { CACHE_TIMING, getOfferingSubscriptions, readEveryPage, type OfferingListItem } from '@ledova/shared';
 import { apiClient } from '../../services/apiClient';
-import type { CompanyActionRead } from '../company/CompanyState';
+import type { CompanyActionRead } from '../../components/company/CompanyState';
 
 export const OFFERING_SUBSCRIPTIONS_QUERY_KEY = ['offering-subscriptions'] as const;
 

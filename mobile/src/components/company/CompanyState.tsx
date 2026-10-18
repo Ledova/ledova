@@ -1,6 +1,6 @@
 import { Text, View } from 'react-native';
-import { Action } from '../../components/Ledger';
-import { useCompanyStyles } from '../company-register/styles';
+import { Action } from '../Ledger';
+import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 import type { useCompanyProfile } from '../../hooks/useCompanyProfile';
 
 export type CompanyRead = { error: unknown; isRefreshing: boolean; refetch: () => Promise<unknown> };

@@ -23,7 +23,7 @@ import type { TradingStackParamList } from './TradingStackNavigator';
 import { useFeatureFlags } from '../hooks/useFeatureFlags';
 import { useRole } from '../hooks/useRole';
 import { useAppTheme } from '../contexts';
-import { useRegisterAccess } from '../screens/company-register/useCompanyRegister';
+import { useRegisterAccess } from '../hooks/useCompanyRegister';
 
 export type BottomTabParamList = {
   Home: NavigatorScreenParams<HomeStackParamList>;

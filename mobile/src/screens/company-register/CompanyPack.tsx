@@ -19,8 +19,8 @@ import { apiClient } from '../../services/apiClient';
 import { shareDocumentCopy } from '../../services/documentCopies';
 import { orderSubmissionSession } from '../../services/orderSubmissions';
 import { assertSessionEpoch } from '../../services/sessionScope';
-import { useCompanyStyles } from './styles';
-import { registerAppointmentsKey, useRegisterAppointments } from './useCompanyRegister';
+import { useCompanyStyles } from '../../hooks/useCompanyStyles';
+import { registerAppointmentsKey, useRegisterAppointments } from '../../hooks/useCompanyRegister';
 
 const FAILED =
   'The company pack could not be shared. Refresh your appointment and try again. A full pack is unavailable when it includes unsupported records; use supported inspection copies or unsigned certificates where applicable.';

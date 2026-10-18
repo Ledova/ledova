@@ -12,7 +12,8 @@ import {
 import type { ApplicationsStackParamList } from '../../navigation/ApplicationsStackNavigator';
 import { Action, Row, Rows, Section } from '../../components/Ledger';
 import { getSessionEpoch } from '../../services/sessionScope';
-import { ApplicationsPage, useApplicationStyles } from './ApplicationsPage';
+import { ApplicationsPage } from './ApplicationsPage';
+import { useApplicationStyles } from '../../hooks/useApplicationStyles';
 import { PaymentInstruction } from './PaymentInstruction';
 import { useSubscription } from './useApplications';
 import { applicationHistory, applicationShares, applicationState } from './presentation';

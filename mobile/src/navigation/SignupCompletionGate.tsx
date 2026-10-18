@@ -5,7 +5,7 @@ import { useAuth, useUserPreferences } from '@ledova/shared';
 import { PrimaryButton } from '../components/buttons';
 import { useAppTheme } from '../contexts';
 import { useRole } from '../hooks/useRole';
-import { useUserProfile } from '../screens/user-profile/useUserProfile';
+import { useUserProfile } from '../hooks/useUserProfile';
 import type { RootStackParamList } from './AppNavigator';
 import { DrawerNavigator } from './DrawerNavigator';
 

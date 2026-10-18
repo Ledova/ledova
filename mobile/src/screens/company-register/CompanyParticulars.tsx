@@ -9,14 +9,14 @@ import {
 } from '@ledova/shared';
 import { Action, Section } from '../../components/Ledger';
 import { ParticularsRecord } from './ParticularsRecord';
-import { useCompanyStyles } from './styles';
+import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 import {
   entriesKey,
   particularsKey,
   registerAppointmentsKey,
   useRegisterAppointments,
   useRegisterParticulars,
-} from './useCompanyRegister';
+} from '../../hooks/useCompanyRegister';
 
 export function CompanyParticulars({
   epoch,

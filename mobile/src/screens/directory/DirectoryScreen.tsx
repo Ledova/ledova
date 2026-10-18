@@ -5,7 +5,7 @@ import { formatDate, formatMoney, useDirectoryTokens, type DirectoryToken } from
 import type { DirectoryStackParamList } from '../../navigation/DirectoryStackNavigator';
 import { Action, LinkRow, Rows, Section } from '../../components/Ledger';
 import { DirectoryPage, useDirectoryStyles } from './DirectoryPage';
-import { EligibilityLinks } from '../eligibility-records/EligibilityLinks';
+import { EligibilityLinks } from '../../components/EligibilityLinks';
 
 export function DirectoryScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<DirectoryStackParamList>>();

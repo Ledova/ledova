@@ -8,13 +8,18 @@ import {
   type TokenHoldersResponse,
 } from '@ledova/shared';
 import { useQueryClient } from '@tanstack/react-query';
-import { entriesKey, registerAppointmentsKey, transferMembersKey, registerHoldersKey } from './useCompanyRegister';
+import {
+  entriesKey,
+  registerAppointmentsKey,
+  transferMembersKey,
+  registerHoldersKey,
+} from '../../hooks/useCompanyRegister';
 import { Action } from '../../components/Ledger';
 import { assertSessionEpoch } from '../../services/sessionScope';
 import { AllotmentForm } from './AllotmentForm';
 import { AllotmentRecord } from './AllotmentRecord';
-import { useCompanyStyles } from './styles';
-import { useRegisterAppointments, useTransferMembers } from './useCompanyRegister';
+import { useCompanyStyles } from '../../hooks/useCompanyStyles';
+import { useRegisterAppointments, useTransferMembers } from '../../hooks/useCompanyRegister';
 import { allotmentsKey, useRegisterAllotments } from './useRegisterAllotments';
 
 export function ClassAllotments({

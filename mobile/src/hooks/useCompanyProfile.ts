@@ -1,6 +1,6 @@
 import { useCompanySelection } from '@ledova/shared';
 import { orderSubmissionSession } from '../services/orderSubmissions';
-import { useCompanyAccess } from '../screens/company-register/useCompanyRegister';
+import { useCompanyAccess } from './useCompanyRegister';
 
 export function useCompanyProfile({
   ownedOnly = false,

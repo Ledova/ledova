@@ -6,8 +6,8 @@ import {
   REGISTER_PARTICULARS_COPY,
   type TokenHoldersResponse,
 } from '@ledova/shared';
-import { Action, Row, Rows } from '../../components/Ledger';
-import { useCompanyStyles } from './styles';
+import { Action, Row, Rows } from '../Ledger';
+import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 
 export function ClassRegister({
   register,

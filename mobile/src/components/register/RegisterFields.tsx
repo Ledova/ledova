@@ -1,7 +1,7 @@
 import { Text, TextInput, View, type KeyboardTypeOptions } from 'react-native';
-import { Action } from '../../components/Ledger';
-import { useCompanyStyles } from './styles';
-import type { useRegisterEvidence } from './useRegisterEvidence';
+import { Action } from '../Ledger';
+import { useCompanyStyles } from '../../hooks/useCompanyStyles';
+import type { useRegisterEvidence } from '../../hooks/useRegisterEvidence';
 
 export const utcToday = () => new Date().toISOString().slice(0, 10);
 

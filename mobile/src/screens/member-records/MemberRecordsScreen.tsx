@@ -12,9 +12,9 @@ import { Action, Choice, Section } from '../../components/Ledger';
 import { Page } from '../../components/Page';
 import { apiClient } from '../../services/apiClient';
 import { orderSubmissionSession } from '../../services/orderSubmissions';
-import { Field } from '../company-register/RegisterFields';
-import { useCompanyStyles } from '../company-register/styles';
-import { RegisterCopy } from '../company-register/RegisterCopy';
+import { Field } from '../../components/register/RegisterFields';
+import { useCompanyStyles } from '../../hooks/useCompanyStyles';
+import { RegisterCopy } from '../../components/register/RegisterCopy';
 
 export function MemberRecordsScreen() {
   const read = useMemberRecords(Crypto.randomUUID, orderSubmissionSession);
