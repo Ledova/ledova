@@ -80,10 +80,11 @@ Where today's code differs from these standards:
 Mobile maps onto the same layers, direction and placement, with `navigation/` for `routes/` and
 `screens/<area>/` for page folders. Its component data calls beyond the reads extracted for key
 ownership remain recorded on [#1072](https://github.com/Ledova/ledova/issues/1072). Shared native UI
-and reads have moved out of screen internals; the remaining two cross-area helper imports and
-cross-client copies are consolidated under
-[#1074](https://github.com/Ledova/ledova/issues/1074) ([mobile
-architecture](mobile.md#architecture)). `site/src` is a separate flat app (one file per page in
+and cross-area reads live outside screen internals ([mobile architecture](mobile.md#architecture)).
+Profile, trading, operator and publication-list reads, invitation recipients, eligibility copy and
+application arithmetic live once in `packages/shared`; client adapters retain their current session,
+cache, labels and result policies. Register reads remain per client pending the naming decision on
+[#1065](https://github.com/Ledova/ledova/issues/1065). `site/src` is a separate flat app (one file per page in
 `pages/`, `components/`, `styles.ts`, `theme.ts`) that cannot import the shared package; only the
 file-naming rules apply to it.
 
@@ -649,8 +650,7 @@ Each page links to its business section; the audience is the `DESTINATIONS` audi
   is offered, so a pending claim on a later page still prevents a second one.
 - Directory and Applications: a draft application reads every verified Base wallet page and computes
   its fixed-price total in integer cents with `BigInt`
-  (`dashboard/src/pages/directory/detail/SubscribeForm.tsx`,
-  `mobile/src/screens/directory/applicationAmount.ts`); Applications shows the recorded values without
+  (`packages/shared/src/utils/applicationAmount.ts`); Applications shows the recorded values without
   recomputing them, and a copy failure keeps the value available.
 - Market: owned order history reads independently of listed classes and wallets. Device-saved work
   ([create-order recovery](mobile.md#create-order-recovery),

@@ -43,8 +43,10 @@ folder names, with relative imports and no path aliases:
 | `testSupport/`        | `testSupport/`          | Test helpers                                                                                                |
 
 Shared company, register, identity and transfer UI lives in `components/`; their styles and
-cross-area reads live in `hooks/`. The remaining cross-area helper imports and cross-client copies
-are brought in line under [#1074](https://github.com/Ledova/ledova/issues/1074).
+cross-area reads live in `hooks/`. Production screens import no other area’s internals. Profile, trading,
+operator and publication-list reads and shared register helpers live in `packages/shared`, with
+native session, result and transport policies kept in the client. The native certifier labels live
+in `mobile/src/config/investorEligibility.ts`; register reads remain per client.
 
 ### Shared package resolution
 
