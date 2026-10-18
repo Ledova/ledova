@@ -125,17 +125,6 @@ def _refresh_target(target, *, cause=None, decision_id=None, invalidation_id=Non
     return change, False
 
 
-def refresh_approval(approval, actor=None, client=None, *, cause=None, decision_id=None, invalidation_id=None):
-    change, _ = _refresh_target(
-        targets_for([approval])[0],
-        cause=cause,
-        decision_id=decision_id,
-        invalidation_id=invalidation_id,
-        client=client,
-    )
-    return change
-
-
 def refresh_targets(targets, actor=None, remove_only=False, *, cause=None, decision_id=None, invalidation_id=None):
     with invalidation_worker_context():
         result = {"checked": 0, "submitted": 0, "unattributed": 0, "errors": 0}
