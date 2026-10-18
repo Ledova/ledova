@@ -199,15 +199,11 @@ export function ClassReconciliation({
                   {item.acknowledgement && (
                     <>
                       <Rows>
-                        {item.acknowledgement.acknowledgedByName !== null && (
-                          <Row label="Acknowledged by">{item.acknowledgement.acknowledgedByName || 'Not provided'}</Row>
-                        )}
+                        <Row label="Acknowledged by">{item.acknowledgement.acknowledgedByName || 'Not provided'}</Row>
                         <Row label="Acknowledged on">{formatDateTime(item.acknowledgement.acknowledgedAt)}</Row>
                         <Row label={COPY.ACKNOWLEDGE_REASON}>{item.acknowledgement.reason}</Row>
                       </Rows>
-                      <p className="text-sm text-text-muted">
-                        {COPY.PROVIDED_BY[item.acknowledgement.providedBy] ?? item.acknowledgement.providedBy}
-                      </p>
+                      <p className="text-sm text-text-muted">{COPY.PROVIDED_BY}</p>
                     </>
                   )}
                   {ATTRIBUTION_DISCREPANCIES.includes(item.kind) && (

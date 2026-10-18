@@ -168,14 +168,10 @@ function Discrepancy({
           )}
           {acknowledgement ? (
             <>
-              <Text style={styles.muted}>
-                {COPY.PROVIDED_BY[acknowledgement.providedBy] ?? acknowledgement.providedBy}
-              </Text>
+              <Text style={styles.muted}>{COPY.PROVIDED_BY}</Text>
               <Rows>
                 <Row label="Reason">{acknowledgement.reason}</Row>
-                {acknowledgement.acknowledgedByName !== null && (
-                  <Row label="Acknowledged by">{acknowledgement.acknowledgedByName || 'Name not recorded'}</Row>
-                )}
+                <Row label="Acknowledged by">{acknowledgement.acknowledgedByName || 'Name not recorded'}</Row>
                 <Row label="Acknowledged on">{formatDateTime(acknowledgement.acknowledgedAt)}</Row>
               </Rows>
             </>

@@ -6478,8 +6478,8 @@ export interface ApiComponents {
     };
     RegisterAcknowledgement: {
       acknowledgedAt: string;
-      acknowledgedByName: string | null;
-      appointment: string | null;
+      acknowledgedByName: string;
+      appointment: string;
       providedBy: string;
       reason: string;
     };

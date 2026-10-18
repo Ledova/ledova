@@ -11497,18 +11497,17 @@
             "type": "string"
           },
           "acknowledgedByName": {
-            "nullable": true,
             "readOnly": true,
             "type": "string"
           },
           "appointment": {
             "description": "Unique identifier (primary key)",
             "format": "uuid",
-            "nullable": true,
             "readOnly": true,
             "type": "string"
           },
           "providedBy": {
+            "default": "company",
             "readOnly": true,
             "type": "string"
           },
