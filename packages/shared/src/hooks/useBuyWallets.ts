@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { getWallets } from '../services/wallets';
-import type { BuyableAssetConfig } from '../types';
+import type { BuyableAssetConfig } from '../constants/business/wallets';
 import { readEveryPage } from '../utils/pagination';
 import { useApiClient } from './useApiClient';
 import { WALLETS_QUERY_KEY } from './useSubscriptions';
