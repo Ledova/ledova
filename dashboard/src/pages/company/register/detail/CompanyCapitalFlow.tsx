@@ -1,33 +1,21 @@
-import { useEffect, useRef, useState } from 'react';
-import {
-  useCompanyCapitalIncreases,
-  REGISTER_CAPITAL_INCREASE_COPY as COPY,
-  REGISTER_CAPITAL_INCREASE_DECISIONS,
-  REGISTER_CAPITAL_INCREASE_UNMET_COPY,
-  isRegisterEvidenceReceipt,
-  uploadRegisterEvidence,
-  downloadRegisterCapitalIncreaseFile,
-  failureStatus,
-  formatShareCount,
-  formatDateTime,
-  getErrorMessage,
-  raisedSupply,
-  requestShares,
-  registerCapitalIncreaseExecutionState,
-  type RegisterEvidence,
-  type RegisterCapitalIncrease,
-  type RegisterCapitalIncreaseSnapshot,
-} from '@ledova/shared';
 import { Row, Rows, Section } from '@components/Ledger';
 import { PageAction } from '@components/Page';
 import { FIELD_CLASS } from '@components/fieldClass';
-import apiClient from '@services/apiClient';
-import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
-import { saveFile } from '@utils/saveFile';
+import {
+  REGISTER_CAPITAL_INCREASE_COPY as COPY,
+  REGISTER_CAPITAL_INCREASE_DECISIONS,
+  REGISTER_CAPITAL_INCREASE_UNMET_COPY,
+  formatDateTime,
+  formatShareCount,
+  registerCapitalIncreaseExecutionState,
+  useCompanyCapitalIncreases,
+  type RegisterCapitalIncrease,
+  type RegisterCapitalIncreaseSnapshot,
+} from '@ledova/shared';
 import { DecisionTrail } from '@pages/company/register/shared/DecisionTrail';
+import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
+import { useCapitalPreparation, useCapitalRecord, type Commands } from './useCompanyCapitalFlow';
 import type { useShareClass } from './useShareClass';
-
-type Commands = ReturnType<typeof useCompanyCapitalIncreases>;
 const STAGES: Record<string, string> = COPY.STAGES;
 
 function SnapshotRows({ snapshot }: { snapshot: RegisterCapitalIncreaseSnapshot }) {
@@ -55,31 +43,7 @@ function SnapshotRows({ snapshot }: { snapshot: RegisterCapitalIncreaseSnapshot 
 }
 
 function CapitalRecord({ record, commands }: { record: RegisterCapitalIncrease; commands: Commands }) {
-  const [error, setError] = useState('');
-  const [busy, setBusy] = useState(false);
-  const download = async () => {
-    if (busy) return;
-    setBusy(true);
-    setError('');
-    try {
-      commands.guard();
-      const response = await downloadRegisterCapitalIncreaseFile(
-        apiClient,
-        record.uuid,
-        commands.config(commands.guard),
-      );
-      commands.guard();
-      saveFile(response.data, `capital-authority-${record.uuid}`);
-    } catch (failure) {
-      setError(
-        getErrorMessage(failure, 'The retained authority copy could not be downloaded.') ??
-          'The request could not be confirmed.',
-      );
-    } finally {
-      setBusy(false);
-    }
-  };
-  const execution = record.execution;
+  const { error, busy, download, execution } = useCapitalRecord({ record, commands });
   return (
     <div className="space-y-3 border-t border-border py-4">
       {commands.visible && (
@@ -152,93 +116,29 @@ function CapitalRecord({ record, commands }: { record: RegisterCapitalIncrease; 
 }
 
 function Preparation({ commands }: { commands: Commands }) {
-  const [before, setBefore] = useState(() => commands.source?.totalSupply ?? '');
-  const [additional, setAdditional] = useState('');
-  const [purpose, setPurpose] = useState('');
-  const [board, setBoard] = useState('');
-  const [shareholder, setShareholder] = useState('');
-  const [file, setFile] = useState<File | null>(null);
-  const upload = useRef<{ file: File; appointment: string; key: string; receipt: RegisterEvidence | null } | null>(
-    null,
-  );
-  const mounted = useRef(true);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState('');
-  useEffect(() => {
-    mounted.current = true;
-    return () => {
-      mounted.current = false;
-    };
-  }, []);
-  const additionalShares = requestShares(additional);
-  const total = raisedSupply(before, additional);
-  const newAuthorizedTotal = total === null ? null : requestShares(total);
-  const valid =
-    additionalShares !== null &&
-    newAuthorizedTotal !== null &&
-    !!purpose.trim() &&
-    !!board.trim() &&
-    board.trim().length <= 255 &&
-    shareholder.trim().length <= 255 &&
-    !!file;
-  const waiting = busy || commands.busy;
-  const submit = async () => {
-    if (waiting || !commands.canPrepare || commands.recovery || !valid) return;
-    setBusy(true);
-    setError('');
-    const check = () => {
-      if (!mounted.current) throw new Error('This capital form is closed.');
-      commands.guardCapital('prepare', {
-        priorAuthorizedTotal: before,
-        additionalShares: additionalShares!,
-        newAuthorizedTotal: newAuthorizedTotal!,
-      });
-    };
-    try {
-      check();
-      const appointment = commands.steps.prepare!.uuid;
-      const prior = upload.current;
-      const same = prior?.file === file && prior.appointment === appointment;
-      const key = same ? prior.key : crypto.randomUUID();
-      let receipt = same ? prior.receipt : null;
-      if (!receipt) {
-        upload.current = { file: file!, appointment, key, receipt: null };
-        const body = { companyId: commands.company, appointment, kind: 'authority' as const, idempotencyKey: key };
-        const response = await uploadRegisterEvidence(apiClient, { ...body, file: file! }, commands.config(check));
-        check();
-        if (!isRegisterEvidenceReceipt(response.data, body, file!.size))
-          throw new Error('The exact company authority receipt could not be confirmed.');
-        receipt = response.data;
-        upload.current = { file: file!, appointment, key, receipt };
-      }
-      check();
-      await commands.prepare(
-        {
-          additionalShares: additionalShares!,
-          newAuthorizedTotal: newAuthorizedTotal!,
-          purpose: purpose.trim(),
-          boardResolutionReference: board.trim(),
-          shareholderApprovalReference: shareholder.trim(),
-          authorityEvidence: receipt.uuid,
-        },
-        before,
-      );
-    } catch (failure) {
-      if (failureStatus(failure) === 409) upload.current = null;
-      try {
-        commands.guard();
-        if (mounted.current)
-          setError(
-            getErrorMessage(failure, 'The capital increase could not be prepared.') ??
-              'The request could not be confirmed.',
-          );
-      } catch {
-        return;
-      }
-    } finally {
-      if (mounted.current) setBusy(false);
-    }
-  };
+  const {
+    before,
+    setBefore,
+    additional,
+    setAdditional,
+    purpose,
+    setPurpose,
+    board,
+    setBoard,
+    shareholder,
+    setShareholder,
+    setFile,
+    uploadRef,
+    busy,
+    error,
+    setError,
+    additionalShares,
+    total,
+    newAuthorizedTotal,
+    valid,
+    waiting,
+    submit,
+  } = useCapitalPreparation({ commands });
   return (
     <fieldset
       disabled={waiting}
@@ -309,7 +209,7 @@ function Preparation({ commands }: { commands: Commands }) {
               setError('Choose a PDF, PNG or JPEG of up to 10 MB.');
               return;
             }
-            upload.current = null;
+            uploadRef.current = null;
             setFile(chosen);
             setError('');
           }}
