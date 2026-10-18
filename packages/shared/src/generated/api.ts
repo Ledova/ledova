@@ -6455,10 +6455,13 @@ export interface ApiComponents {
       authorisedSupply: string;
       authorityReference: string;
       canDecide: boolean;
+      classCode: string;
+      className: string;
       companyEventOn: string | null;
       consideration: string;
       contribution: ApiComponents['schemas']['RegisterContribution'];
       currency: string;
+      currentHolders: ApiComponents['schemas']['RegisterAllotmentHolder'][];
       currentShares: string;
       effectiveOn: string | null;
       issuedSupply: string;
@@ -6476,6 +6479,11 @@ export interface ApiComponents {
       appointment: string;
       kind: ApiComponents['schemas']['RegisterDecisionKindEnum'];
       reason?: string;
+    };
+    RegisterAllotmentHolder: {
+      member: string;
+      name: string | null;
+      shares: string;
     };
     RegisterAward: {
       agreementEvidence: string;

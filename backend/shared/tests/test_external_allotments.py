@@ -43,6 +43,7 @@ class ExternalAllotmentTest(CoreFixtures, APITransactionTestCase):
         identifier = prepared.json()["uuid"]
         self.assertEqual(prepared.json()["contribution"]["companyRecorded"], True)
         self.assertIsNone(prepared.json()["registerEntry"])
+        self.assertNotIn("currentHolders", prepared.json())
         self.assertEqual(self.client.post(endpoint, payload, format="json").status_code, 200)
         self.assertEqual(
             self.client.post(endpoint, {**payload, "terms": "Changed external terms"}, format="json").status_code, 409
@@ -53,6 +54,15 @@ class ExternalAllotmentTest(CoreFixtures, APITransactionTestCase):
             format="json",
         )
         self.assertIn("approval_required", preview.json()["unmetRequirements"])
+        self.assertEqual(
+            (preview.json()["className"], preview.json()["classCode"]), (self.token.name, self.token.symbol)
+        )
+        self.assertEqual(
+            preview.json()["currentHolders"],
+            [{"member": str(self.member.pk), "name": "Synthetic Member", "shares": "100"}],
+        )
+        self.assertEqual((preview.json()["issuedSupply"], preview.json()["afterIssuedSupply"]), ("100", "125"))
+        self.assertEqual((preview.json()["currentShares"], preview.json()["afterShares"]), ("0", "25"))
         with use_operator(), self.assertRaises(DatabaseError), atomic():
             RegisterAllotment.objects.filter(pk=identifier).update(status="applied", reviewed_by=self.owner)
         self.decision(endpoint, identifier, "approve")
@@ -137,6 +147,22 @@ class ExternalAllotmentTest(CoreFixtures, APITransactionTestCase):
         created = self.client.post(endpoint, existing, format="json")
         self.assertEqual(created.status_code, 201, created.content)
         existing_id = created.json()["uuid"]
+        reviewed = self.client.post(
+            f"{endpoint}{existing_id}/decision-preview/",
+            {"appointment": str(self.appointment.pk), "kind": "approve"},
+            format="json",
+        )
+        self.assertEqual(reviewed.status_code, 200, reviewed.content)
+        self.assertEqual(
+            {item["member"]: item["shares"] for item in reviewed.json()["currentHolders"]},
+            {str(self.member.pk): "100", payload["member"]: "25", shared_member["member"]: "25"},
+        )
+        self.assertEqual(sum(int(item["shares"]) for item in reviewed.json()["currentHolders"]), 150)
+        self.assertEqual(
+            next(item["name"] for item in reviewed.json()["currentHolders"] if item["member"] == payload["member"]),
+            "Synthetic Investor Updated",
+        )
+        self.assertTrue(all(set(item) == {"member", "name", "shares"} for item in reviewed.json()["currentHolders"]))
         self.decision(endpoint, existing_id, "approve")
         self.decision(endpoint, existing_id, "apply")
         with use_operator():
@@ -261,6 +287,29 @@ class ExternalAllotmentTest(CoreFixtures, APITransactionTestCase):
             endpoint, {**dated, "operation_id": str(uuid4()), "company_event_on": opening["as_at"]}, format="json"
         )
         self.assertEqual(stale.status_code, 400, stale.content)
+        next_allotment = self.client.post(
+            endpoint,
+            self.allotment_payload(
+                token_id=str(dated_class.pk),
+                member=dated["member"],
+                new_member=False,
+                name="",
+                residential_address="",
+                company_event_on=(today - timedelta(days=1)).isoformat(),
+                agreement_on=dated["agreement_on"],
+                received_on=dated["received_on"],
+            ),
+            format="json",
+        )
+        self.assertEqual(next_allotment.status_code, 201, next_allotment.content)
+        next_id = next_allotment.json()["uuid"]
+        self.decision(endpoint, next_id, "approve")
+        next_preview = self.client.post(
+            f"{endpoint}{next_id}/decision-preview/",
+            {"appointment": str(self.appointment.pk), "kind": "apply"},
+            format="json",
+        )
+        self.assertEqual(next_preview.status_code, 200, next_preview.content)
         transfer_endpoint = "/api/v1/tokens/register-transfers/"
         source_member = opening["members"][0]["member"]
         for sender, recipient in ((source_member, dated["member"]), (dated["member"], source_member)):
@@ -289,7 +338,31 @@ class ExternalAllotmentTest(CoreFixtures, APITransactionTestCase):
             self.assertEqual(transfer.status_code, 201, transfer.content)
             self.decision(transfer_endpoint, transfer.json()["uuid"], "approve")
             self.decision(transfer_endpoint, transfer.json()["uuid"], "apply")
+            if sender == source_member:
+                current = self.client.post(
+                    f"{endpoint}{next_id}/decision-preview/",
+                    {"appointment": str(self.appointment.pk), "kind": "apply"},
+                    format="json",
+                )
+                self.assertEqual(current.status_code, 200, current.content)
+                self.assertEqual(
+                    current.json()["currentHolders"],
+                    [{"member": dated["member"], "name": dated["name"], "shares": "125"}],
+                )
+        refused = self.client.post(
+            f"{endpoint}{next_id}/decide/",
+            {
+                "appointment": str(self.appointment.pk),
+                "kind": "apply",
+                "idempotency_key": str(uuid4()),
+                "preview_digest": next_preview.json()["previewDigest"],
+                "confirmation": True,
+            },
+            format="json",
+        )
+        self.assertEqual(refused.status_code, 409, refused.content)
         with use_operator():
+            self.assertIsNone(RegisterAllotment.objects.get(pk=next_id).register_entry_id)
             cessation = RegisterMemberCessation.objects.get(register__token=dated_class, member_id=source_member)
             self.assertEqual((cessation.ceased_on, cessation.returned_on), (today, today))
             self.assertEqual(

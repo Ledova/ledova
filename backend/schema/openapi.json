@@ -11860,6 +11860,12 @@
           "canDecide": {
             "type": "boolean"
           },
+          "classCode": {
+            "type": "string"
+          },
+          "className": {
+            "type": "string"
+          },
           "companyEventOn": {
             "format": "date",
             "nullable": true,
@@ -11873,6 +11879,12 @@
           },
           "currency": {
             "type": "string"
+          },
+          "currentHolders": {
+            "items": {
+              "$ref": "#/components/schemas/RegisterAllotmentHolder"
+            },
+            "type": "array"
           },
           "currentShares": {
             "type": "string"
@@ -11925,10 +11937,13 @@
           "authorisedSupply",
           "authorityReference",
           "canDecide",
+          "classCode",
+          "className",
           "companyEventOn",
           "consideration",
           "contribution",
           "currency",
+          "currentHolders",
           "currentShares",
           "effectiveOn",
           "issuedSupply",
@@ -11962,6 +11977,27 @@
         "required": [
           "appointment",
           "kind"
+        ],
+        "type": "object"
+      },
+      "RegisterAllotmentHolder": {
+        "properties": {
+          "member": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "name": {
+            "nullable": true,
+            "type": "string"
+          },
+          "shares": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "member",
+          "name",
+          "shares"
         ],
         "type": "object"
       },

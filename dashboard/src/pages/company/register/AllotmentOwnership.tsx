@@ -1,0 +1,81 @@
+import {
+  allotmentOwnershipImpact,
+  formatShareCount,
+  REGISTER_ALLOTMENT_COPY as COPY,
+  type RegisterAllotmentDecisionPreview,
+} from '@ledova/shared';
+import { Row, Rows } from '@components/Ledger';
+
+export function AllotmentOwnership({ preview }: { preview: RegisterAllotmentDecisionPreview }) {
+  const impact = allotmentOwnershipImpact(preview);
+  if (!impact)
+    return (
+      <p role="alert" className="text-sm text-text-muted">
+        {COPY.OWNERSHIP_UNAVAILABLE}
+      </p>
+    );
+  const table = (rows: typeof impact.rows, label: string) => (
+    <div className="overflow-x-auto">
+      <table aria-label={label} className="w-full text-left text-sm">
+        <thead className="border-b border-border-subtle text-text-muted">
+          <tr>
+            <th scope="col" className="px-2 py-2 font-medium">
+              Shareholder
+            </th>
+            <th scope="col" className="px-2 py-2 text-right font-medium">
+              Before
+            </th>
+            <th scope="col" className="px-2 py-2 text-right font-medium">
+              After
+            </th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-border-subtle">
+          {rows.map((row) => (
+            <tr key={row.member}>
+              <th scope="row" className="px-2 py-3 font-medium">
+                {row.name || 'Name not recorded'}
+                {row.recipient && ' · Investor'}
+                {impact.rows.some((other) => other.member !== row.member && other.name === row.name) && (
+                  <span className="block text-xs text-text-muted">Record {row.member.slice(-8)}</span>
+                )}
+              </th>
+              <td className="px-2 py-3 text-right tabular-nums">
+                <span className="block whitespace-nowrap">{formatShareCount(row.beforeShares)} shares</span>
+                <span className="text-text-muted">{row.beforePercentage}</span>
+              </td>
+              <td className="px-2 py-3 text-right tabular-nums">
+                <span className="block whitespace-nowrap">{formatShareCount(row.afterShares)} shares</span>
+                <span className="text-text-muted">{row.afterPercentage}</span>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+  return (
+    <section className="space-y-3" aria-label={COPY.OWNERSHIP_TITLE}>
+      <h3 className="text-base font-medium">{COPY.OWNERSHIP_TITLE}</h3>
+      <Rows>
+        <Row label="Share class">
+          {preview.className} ({preview.classCode})
+        </Row>
+        <Row label={COPY.UNIT_PRICE}>{impact.unitPrice}</Row>
+        <Row label="Issued shares">
+          {formatShareCount(impact.beforeIssuedSupply)} → {formatShareCount(impact.afterIssuedSupply)}
+        </Row>
+      </Rows>
+      {table(impact.rows.length > 5 ? impact.rows.slice(0, 1) : impact.rows, 'Share class ownership forecast')}
+      {impact.rows.length > 5 && (
+        <details className="space-y-3">
+          <summary className="cursor-pointer py-2 text-sm font-medium">
+            Other shareholders ({impact.rows.length - 1})
+          </summary>
+          {table(impact.rows.slice(1), 'Other shareholder ownership forecast')}
+        </details>
+      )}
+      <p className="text-sm text-text-muted">{COPY.OWNERSHIP_NOTE}</p>
+    </section>
+  );
+}
