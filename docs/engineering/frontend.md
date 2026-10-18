@@ -77,12 +77,10 @@ Where today's code differs from these tables:
 - `routes/` does not yet hold the whole route table: `PublicOnlyRoute`, the sign-up step map, the
   public, company dashboard and not-found routes are still in `App.tsx`
   ([#1071](https://github.com/Ledova/ledova/issues/1071)).
-- Page folders do not yet follow their addresses (`pages/home` serves `/wallets/holdings`,
-  `pages/member-records` serves `/home`, the share class page is `classes/`, the eligibility pages
-  share `eligibility-records/`, not-found is `pages/NotFound.tsx`)
-  ([#1068](https://github.com/Ledova/ledova/issues/1068)), and no `shared/` folder exists yet
-  ([#1069](https://github.com/Ledova/ledova/issues/1069),
-  [#1070](https://github.com/Ledova/ledova/issues/1070)).
+- Company and register files reused across pages still sit in sibling page folders rather than
+  `shared/` folders ([#1069](https://github.com/Ledova/ledova/issues/1069)); the shared sign-up files
+  still sit in `components/signup/` and the company-registration step
+  ([#1070](https://github.com/Ledova/ledova/issues/1070)).
 - `dashboard/src/types/document.ts` and page `components/` and `hooks/` subfolders remain
   ([#1070](https://github.com/Ledova/ledova/issues/1070)).
 
@@ -648,7 +646,7 @@ Each page links to its business section; the audience is the `DESTINATIONS` audi
   is offered, so a pending claim on a later page still prevents a second one.
 - Directory and Applications: a draft application reads every verified Base wallet page and computes
   its fixed-price total in integer cents with `BigInt`
-  (`dashboard/src/pages/subscriptions/SubscribeForm.tsx`,
+  (`dashboard/src/pages/directory/detail/SubscribeForm.tsx`,
   `mobile/src/screens/applications/presentation.ts`); Applications shows the recorded values without
   recomputing them, and a copy failure keeps the value available.
 - Market: owned order history reads independently of listed classes and wallets. Device-saved work

@@ -69,7 +69,7 @@ function PasswordInput({
   );
 }
 
-export function SettingsPage() {
+function SettingsPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const preferences = useUserPreferences();

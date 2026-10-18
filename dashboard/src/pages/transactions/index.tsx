@@ -5,7 +5,7 @@ import { Section } from '@components/Ledger';
 import { TransactionFilter } from './components/TransactionFilter';
 import { TransactionListItem } from './components/TransactionListItem';
 
-export const TransactionsPage = () => {
+const TransactionsPage = () => {
   const {
     transactions,
     wallets,

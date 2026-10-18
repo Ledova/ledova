@@ -16,7 +16,7 @@ import { CryptoActions } from './components/CryptoActions';
 
 const LEDE = 'Verify a wallet to send from it or buy crypto into it.';
 
-export function WalletsPage() {
+function WalletsPage() {
   const {
     wallets,
     handleCreateWallet,

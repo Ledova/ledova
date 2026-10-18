@@ -10,7 +10,7 @@ import apiClient from '@services/apiClient';
 import { ownAppointmentsKey } from '../team/appointments';
 import { READ_TIMING, registerKey } from '@hooks/useRegisterAccess';
 
-export const ACCOUNT_CHANGED = 'Your signed-in account changed. Reopen the register.';
+const ACCOUNT_CHANGED = 'Your signed-in account changed. Reopen the register.';
 
 export function ownerGuard(owner: OrderSubmissionOwner, currentOwner: () => OrderSubmissionOwner | null) {
   return () => {

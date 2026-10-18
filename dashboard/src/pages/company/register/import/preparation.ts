@@ -49,7 +49,7 @@ export type PreparationDraft = {
 
 const DAY = /^\d{4}-\d{2}-\d{2}$/;
 
-export function positiveShares(value: string) {
+function positiveShares(value: string) {
   const shares = wholeShares(value.trim());
   return shares !== null && shares > 0n && shares < 2n ** 256n ? shares.toString() : null;
 }
