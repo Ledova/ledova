@@ -8,6 +8,7 @@ import {
   type RegisterImportFormerRow,
   type TokenHoldersResponse,
   type RegisterTransferMember,
+  type RegisterAwardRecipient,
   type CompanyShareTokenListItem,
 } from '@ledova/shared';
 
@@ -28,7 +29,7 @@ export type MemberDraft = {
   shares: string;
   enteredOn: string;
   allotments: AllotmentDraft[];
-  identityChoice?: 'existing' | 'new';
+  identityChoice?: 'existing' | 'award' | 'new';
 };
 
 export type FormerDraft = { id: string; name: string; residentialAddress: string; shares: string; ceasedOn: string };
@@ -160,19 +161,27 @@ export function memberIdentityProblems(
   members: MemberDraft[],
   known: RegisterTransferMember[],
   preserveParticulars: boolean,
+  awardRecipients: RegisterAwardRecipient[] = [],
 ) {
   const problems: string[] = [];
   if (new Set(members.map((row) => row.member)).size !== members.length)
     problems.push('Each company shareholder can appear only once in this class. Combine their allotments in one row.');
   members.forEach((row, index) => {
     const member = known.find((candidate) => candidate.member === row.member);
+    const recipient = awardRecipients.find((candidate) => candidate.member === row.member);
     if (row.identityChoice === 'existing' && !member)
       problems.push(
         `Shareholder ${index + 1}: the existing company member is no longer available. Refresh before continuing.`,
       );
-    if (known.length && !member && row.identityChoice !== 'new')
+    if (row.identityChoice === 'award' && !recipient && !member)
+      problems.push(`Shareholder ${index + 1}: the award recipient is no longer available. Refresh before continuing.`);
+    if ((known.length || awardRecipients.length) && !member && !recipient && row.identityChoice !== 'new')
       problems.push(
         `Shareholder ${index + 1}: choose an existing company shareholder or explicitly choose a new shareholder.`,
+      );
+    if (recipient && (row.name !== recipient.name || row.residentialAddress !== recipient.residentialAddress))
+      problems.push(
+        `Shareholder ${index + 1}: keep the award recipient’s recorded name and address when recording their first shares.`,
       );
     if (
       preserveParticulars &&

@@ -12,7 +12,7 @@ import {
   type OwnCompanyAppointment,
   type OrderSubmissionOwner,
   type TokenType,
-  type RegisterTransferMember,
+  type RegisterTransferMembers,
 } from '@ledova/shared';
 import { FIELD_CLASS, LABEL } from '@components/fieldClass';
 
@@ -22,10 +22,10 @@ import { registerSteps } from '@pages/company/shared/proposals';
 import { useRegisterClasses, registerClassesKey } from '@pages/company/shared/useCompanyRegister';
 import { ownerGuard } from '@pages/company/shared/ownerGuard';
 import { useOwnAppointments, ownAppointmentsKey } from '@hooks/useOwnAppointments';
-import { useTransferMembers, transferMembersKey } from '@pages/company/register/shared/useRegisterTransfers';
+import { useImportMembers, importMembersKey } from './useImportMembers';
 import { ImportForm } from './ImportForm';
 
-const NO_MEMBERS: RegisterTransferMember[] = [];
+const NO_MEMBERS: RegisterTransferMembers = { members: [], awardRecipients: [] };
 const COMMON_CLASSES: { type: TokenType; name: string; symbol: string; label: string }[] = [
   { type: 'ordinary', name: 'Ordinary shares', symbol: 'ORD', label: 'Ordinary (ORD)' },
   { type: 'preference', name: 'Preference shares', symbol: 'PRF', label: 'Preference (PRF)' },
@@ -72,7 +72,7 @@ export function NewClassSetup({
   const company = companies.find((item) => item.uuid === companyUuid);
   const steps = company && appointments.data ? registerSteps(appointments.data, company.uuid) : null;
   const anchor = classes.data?.find((token) => token.companyUuid === company?.uuid)?.uuid;
-  const members = useTransferMembers(owner, anchor ?? '', guard, !!anchor && !!steps?.prepare);
+  const members = useImportMembers(owner, companyUuid, anchor ?? '', guard, !!anchor && !!steps?.prepare);
   const ready =
     classes.isSuccess &&
     !classes.isFetching &&
@@ -102,7 +102,7 @@ export function NewClassSetup({
       USER_PREFERENCES_QUERY_KEY,
       ownAppointmentsKey(owner),
       registerClassesKey(owner),
-      ...(anchor ? [transferMembersKey(owner, anchor)] : []),
+      ...(anchor ? [importMembersKey(owner, companyUuid, anchor)] : []),
     ]) {
       const state = client.getQueryState(key);
       if (state?.status !== 'success' || state.fetchStatus !== 'idle')
@@ -147,7 +147,8 @@ export function NewClassSetup({
           company={context.company}
           checkCurrent={checkCurrent}
           classes={(classes.data ?? []).filter((token) => token.companyUuid === context.company.uuid)}
-          companyMembers={anchor ? (members.data ?? NO_MEMBERS) : NO_MEMBERS}
+          companyMembers={(anchor ? (members.data ?? NO_MEMBERS) : NO_MEMBERS).members}
+          awardRecipients={(anchor ? (members.data ?? NO_MEMBERS) : NO_MEMBERS).awardRecipients}
           steps={steps ?? context.steps}
           ready={ready && company?.uuid === context.company.uuid}
           onHeldChange={setHeld}
@@ -165,6 +166,7 @@ function FreshClass({
   company,
   classes,
   companyMembers,
+  awardRecipients,
   steps,
   ready,
   onHeldChange,
@@ -196,6 +198,7 @@ function FreshClass({
       companyName={company.name}
       shareClass={{ name, symbol }}
       companyMembers={companyMembers}
+      awardRecipients={awardRecipients}
       appointment={steps.prepare!}
       steps={steps}
       blocked={!ready}

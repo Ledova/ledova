@@ -6,11 +6,42 @@ import type {
   RegisterImportMemberRow,
   RegisterImportPreparation,
   RegisterImportRecord,
+  RegisterTransferMember,
+  RegisterTransferMembers,
+  RegisterAwardRecipient,
 } from '../types';
 import { rowsOf } from './register-commands';
 
 const MEMBER_TEXT = ['member', 'name', 'residentialAddress', 'shares', 'enteredOn'];
 const FORMER_TEXT = ['name', 'residentialAddress', 'shares', 'ceasedOn'];
+
+export function isRegisterImportMembers(value: unknown): value is RegisterTransferMembers {
+  if (!value || typeof value !== 'object') return false;
+  const data = value as Partial<RegisterTransferMembers>;
+  if (
+    !rowsOf<RegisterTransferMember>(
+      data.members,
+      ['member', 'currentShares'],
+      ['name', 'residentialAddress', 'enteredOn', 'lastCeasedOn'],
+    ) ||
+    !rowsOf<RegisterAwardRecipient>(data.awardRecipients, ['member', 'name', 'residentialAddress'])
+  )
+    return false;
+  return (
+    data.members.every(
+      (member) =>
+        !!member.member.trim() &&
+        /^\d+$/.test(member.currentShares) &&
+        typeof member.particularsRetained === 'boolean' &&
+        typeof member.walletless === 'boolean',
+    ) &&
+    data.awardRecipients.every(
+      (recipient) => !!recipient.member.trim() && !!recipient.name.trim() && !!recipient.residentialAddress.trim(),
+    ) &&
+    new Set([...data.members, ...data.awardRecipients].map((member) => member.member)).size ===
+      data.members.length + data.awardRecipients.length
+  );
+}
 
 export function registerImportMoney(value: string) {
   const match = /^(0|[1-9]\d{0,17})(?:\.(\d{1,2}))?$/.exec(value.trim());

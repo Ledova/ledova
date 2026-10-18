@@ -1,4 +1,4 @@
-import { registerImportMoney, type RegisterTransferMember } from '@ledova/shared';
+import { registerImportMoney, type RegisterTransferMember, type RegisterAwardRecipient } from '@ledova/shared';
 import { FIELD_CLASS, LABEL } from '@components/fieldClass';
 import { PageAction } from '@components/Page';
 import { blankAllotment, type AllotmentDraft, type MemberDraft } from './preparation';
@@ -9,6 +9,7 @@ export function MemberFields({
   asAt,
   update,
   companyMembers,
+  awardRecipients,
   preserveParticulars,
   usedMembers,
 }: {
@@ -17,10 +18,13 @@ export function MemberFields({
   asAt: string;
   update: (patch: Partial<MemberDraft>) => void;
   companyMembers: RegisterTransferMember[];
+  awardRecipients: RegisterAwardRecipient[];
   preserveParticulars: boolean;
   usedMembers: string[];
 }) {
   const known = companyMembers.find((member) => member.member === row.member);
+  const recipient = awardRecipients.find((candidate) => candidate.member === row.member);
+  const retained = known ?? recipient;
   const setAllotment = (at: number, patch: Partial<AllotmentDraft>) =>
     update({
       allotments: row.allotments.map((allotment, current) => (current === at ? { ...allotment, ...patch } : allotment)),
@@ -28,32 +32,36 @@ export function MemberFields({
   return (
     <fieldset className="space-y-5">
       <legend className="sr-only">Shareholder details</legend>
-      {companyMembers.length > 0 && (
+      {(companyMembers.length > 0 || awardRecipients.length > 0) && (
         <label className={LABEL}>
           Company shareholder
           <select
             className={FIELD_CLASS}
-            value={known?.member ?? (row.identityChoice === 'new' ? 'new' : '')}
+            value={retained?.member ?? (row.identityChoice === 'new' ? 'new' : '')}
             onChange={(event) => {
               if (event.target.value === 'new')
                 update({
-                  member: known ? crypto.randomUUID() : row.member,
+                  member: retained ? crypto.randomUUID() : row.member,
                   identityChoice: 'new',
-                  ...(known ? { name: '', residentialAddress: '' } : {}),
+                  ...(retained ? { name: '', residentialAddress: '' } : {}),
                 });
               else {
-                const selected = companyMembers.find((member) => member.member === event.target.value);
+                const selected = [...companyMembers, ...awardRecipients].find(
+                  (member) => member.member === event.target.value,
+                );
                 if (selected && !usedMembers.includes(selected.member))
                   update({
                     member: selected.member,
-                    identityChoice: 'existing',
+                    identityChoice: awardRecipients.some((candidate) => candidate.member === selected.member)
+                      ? 'award'
+                      : 'existing',
                     name: selected.name ?? '',
                     residentialAddress: selected.residentialAddress ?? '',
                   });
               }
             }}
           >
-            <option value="">Choose an existing shareholder or a new one</option>
+            <option value="">Choose a recorded person or a new shareholder</option>
             {companyMembers.map((member) => (
               <option key={member.member} value={member.member} disabled={usedMembers.includes(member.member)}>
                 {member.name || 'Name not recorded'}
@@ -63,6 +71,23 @@ export function MemberFields({
                 ).length > 1 && ` · Record ${member.member.slice(-8)}`}
               </option>
             ))}
+            {awardRecipients.length > 0 && (
+              <optgroup label="Award recipients without registered shares">
+                {awardRecipients.map((candidate) => (
+                  <option
+                    key={candidate.member}
+                    value={candidate.member}
+                    disabled={usedMembers.includes(candidate.member)}
+                  >
+                    {candidate.name} · {candidate.residentialAddress} · Award recipient
+                    {awardRecipients.filter(
+                      (other) =>
+                        other.name === candidate.name && other.residentialAddress === candidate.residentialAddress,
+                    ).length > 1 && ` · Record ${candidate.member.slice(-8)}`}
+                  </option>
+                ))}
+              </optgroup>
+            )}
             <option value="new">New company shareholder</option>
           </select>
         </label>
@@ -72,7 +97,7 @@ export function MemberFields({
           Name
           <input
             value={row.name}
-            readOnly={preserveParticulars && !!known?.name}
+            readOnly={!!recipient || (preserveParticulars && !!known?.name)}
             maxLength={255}
             className={`${FIELD_CLASS} read-only:bg-surface-tertiary read-only:text-text-muted`}
             onChange={(event) => update({ name: event.target.value })}
@@ -82,7 +107,7 @@ export function MemberFields({
           Address
           <input
             value={row.residentialAddress}
-            readOnly={preserveParticulars && !!known?.residentialAddress}
+            readOnly={!!recipient || (preserveParticulars && !!known?.residentialAddress)}
             maxLength={1000}
             className={`${FIELD_CLASS} read-only:bg-surface-tertiary read-only:text-text-muted`}
             onChange={(event) => update({ residentialAddress: event.target.value })}

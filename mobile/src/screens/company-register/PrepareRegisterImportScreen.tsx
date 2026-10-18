@@ -26,6 +26,7 @@ import {
   type CompanyShareTokenListItem,
   type TokenHoldersResponse,
   type RegisterImport,
+  type RegisterAwardRecipient,
 } from '@ledova/shared';
 import { Action, Choice, Section } from '../../components/Ledger';
 import { Page } from '../../components/Page';
@@ -48,6 +49,7 @@ import {
 } from '../../hooks/useCompanyRegister';
 import { useRegisterEvidence } from '../../hooks/useRegisterEvidence';
 import { orderSubmissionSession } from '../../services/orderSubmissions';
+import { useRegisterImportMembers } from './useRegisterImportMembers';
 
 type AllotmentDraft = Omit<
   RegisterImportAllotment,
@@ -57,7 +59,10 @@ type AllotmentDraft = Omit<
   certificateReference: string;
   beneficiallyHeld: boolean | null;
 };
-type MemberDraft = Omit<RegisterImportCurrentMemberRow, 'allotments'> & { allotments: AllotmentDraft[] };
+type MemberDraft = Omit<RegisterImportCurrentMemberRow, 'allotments'> & {
+  allotments: AllotmentDraft[];
+  awardRecipient?: boolean;
+};
 
 const FAILED = 'The records could not be prepared. Retry with the same details.';
 const blankAllotment = (): AllotmentDraft => ({
@@ -161,6 +166,7 @@ function PrepareRegisterImport({ epoch }: { epoch: number }) {
   const classes = useRegisterClasses(epoch);
   const history = useRegisterEntries(epoch, tokenUuid);
   const { appointments, steps } = useRegisterAppointments(epoch, companyUuid);
+  const identities = useRegisterImportMembers(epoch, companyUuid, tokenUuid);
   const shareRegister = useRegisterEvidence(companyUuid, 'share_register');
   const asicExtract = useRegisterEvidence(companyUuid, 'asic_extract');
   const [asAt, setAsAt] = useState(() => formatDateToString(new Date()));
@@ -241,8 +247,8 @@ function PrepareRegisterImport({ epoch }: { epoch: number }) {
   }, [register.isSuccess, register.data, imports.isSuccess, correctionOf, original, opened]);
   const members: RegisterImportCurrentMemberRow[] = drafts.map((row) => ({
     member: row.member,
-    name: row.name.trim(),
-    residentialAddress: row.residentialAddress.trim(),
+    name: row.awardRecipient ? row.name : row.name.trim(),
+    residentialAddress: row.awardRecipient ? row.residentialAddress : row.residentialAddress.trim(),
     shares: positiveShares(row.shares),
     enteredOn: row.enteredOn.trim(),
     allotments: row.allotments.map((allotment) => ({
@@ -262,8 +268,9 @@ function PrepareRegisterImport({ epoch }: { epoch: number }) {
   const statedShares = statedTotal.trim() ? wholeShares(statedTotal.trim()) : null;
   const statedMembers = /^\d{1,9}$/.test(statedCount.trim()) ? Number(statedCount.trim()) : null;
   const mismatch = statedShares !== null && statedShares.toString() !== totals.total;
-  const problem =
-    !isoDay(date) || date > formatDateToString(new Date())
+  const problem = drafts.some((row) => row.awardRecipient && !identities.matches(row))
+    ? 'The selected award recipient changed. Refresh the company records before continuing.'
+    : !isoDay(date) || date > formatDateToString(new Date())
       ? 'Enter the snapshot date as YYYY-MM-DD, no later than today.'
       : !sourceReference.trim()
         ? 'Name the existing company register or records this snapshot came from.'
@@ -315,7 +322,22 @@ function PrepareRegisterImport({ epoch }: { epoch: number }) {
     !imports.isFetching &&
     appointments.isSuccess &&
     !appointments.isFetching &&
+    identities.query.isSuccess &&
+    !identities.query.isFetching &&
     (!correctionOf || !!original);
+  const addRecordedMember = (recipient: RegisterAwardRecipient, awardRecipient = false) => {
+    try {
+      identities.guard([...drafts.filter((row) => row.awardRecipient), ...(awardRecipient ? [recipient] : [])]);
+      setDrafts((rows) =>
+        rows.some((row) => row.member === recipient.member)
+          ? rows
+          : [...rows, { ...blankMember(), ...recipient, awardRecipient }],
+      );
+      setError(null);
+    } catch (cause) {
+      setError(getErrorMessage(cause, 'Refresh the company member identities before continuing.'));
+    }
+  };
   const changeMember = (member: string, change: Partial<MemberDraft>) =>
     setDrafts((rows) => rows.map((row) => (row.member === member ? { ...row, ...change } : row)));
   const changeAllotment = (member: string, index: number, change: Partial<AllotmentDraft>) =>
@@ -347,6 +369,7 @@ function PrepareRegisterImport({ epoch }: { epoch: number }) {
       assertSessionEpoch(epoch);
       if (!live.current) throw new Error('These records are no longer open.');
       if (!owner || boundary.get() !== owner) throw new Error('Your signed-in account changed. Reopen these records.');
+      identities.guard(drafts.filter((row) => row.awardRecipient));
       for (const key of [
         AUTH_QUERY_KEY,
         USER_PREFERENCES_QUERY_KEY,
@@ -452,7 +475,8 @@ function PrepareRegisterImport({ epoch }: { epoch: number }) {
     imports.isPending ||
     appointments.isPending ||
     classes.isPending ||
-    history.entries.isPending
+    history.entries.isPending ||
+    identities.query.isPending
   )
     return (
       <Page title={title}>
@@ -465,6 +489,7 @@ function PrepareRegisterImport({ epoch }: { epoch: number }) {
     appointments.isError ||
     classes.isError ||
     history.entries.isError ||
+    identities.query.isError ||
     !currentClass
   )
     return (
@@ -479,7 +504,8 @@ function PrepareRegisterImport({ epoch }: { epoch: number }) {
             imports.isFetching ||
             appointments.isFetching ||
             classes.isFetching ||
-            history.entries.isFetching
+            history.entries.isFetching ||
+            identities.query.isFetching
           }
           onPress={() => {
             void register.refetch();
@@ -487,6 +513,7 @@ function PrepareRegisterImport({ epoch }: { epoch: number }) {
             void appointments.refetch();
             void classes.refetch();
             void history.entries.refetch();
+            void identities.query.refetch();
           }}
         />
       </Page>
@@ -558,13 +585,18 @@ function PrepareRegisterImport({ epoch }: { epoch: number }) {
           return (
             <View key={row.member} style={[styles.entry, index === drafts.length - 1 && styles.lastEntry]}>
               <Text style={styles.heading}>Shareholder {number}</Text>
+              {row.awardRecipient && (
+                <Text style={styles.muted}>
+                  Existing award recipient. Their member ID and retained particulars stay the same.
+                </Text>
+              )}
               {fields.map(({ key, label }) => (
                 <Field
                   key={key}
                   label={label}
                   accessibilityLabel={`Shareholder ${number} ${label}`}
                   value={row[key]}
-                  editable={!busy}
+                  editable={!busy && (!row.awardRecipient || key === 'enteredOn')}
                   onChange={(value) => changeMember(row.member, { [key]: value })}
                 />
               ))}
@@ -614,11 +646,48 @@ function PrepareRegisterImport({ epoch }: { epoch: number }) {
           );
         })}
         {(!opened || correctionOf) && (
-          <Action
-            label="Add a shareholder"
-            disabled={busy}
-            onPress={() => setDrafts((rows) => [...rows, blankMember()])}
-          />
+          <>
+            {identities.query.data.members
+              .filter(
+                (member) =>
+                  member.walletless &&
+                  member.particularsRetained &&
+                  !!member.name &&
+                  !!member.residentialAddress &&
+                  !drafts.some((row) => row.member === member.member),
+              )
+              .map((member) => (
+                <Action
+                  key={member.member}
+                  label={`Use recorded member ${member.name}`}
+                  accessibilityLabel={`Use recorded member ${member.name} ${member.member}`}
+                  disabled={busy || identities.query.isFetching}
+                  onPress={() =>
+                    addRecordedMember({
+                      member: member.member,
+                      name: member.name ?? '',
+                      residentialAddress: member.residentialAddress ?? '',
+                    })
+                  }
+                />
+              ))}
+            {identities.query.data.awardRecipients
+              .filter((recipient) => !drafts.some((row) => row.member === recipient.member))
+              .map((recipient) => (
+                <Action
+                  key={recipient.member}
+                  label={`Use award recipient ${recipient.name}`}
+                  accessibilityLabel={`Use award recipient ${recipient.name} ${recipient.member}`}
+                  disabled={busy || identities.query.isFetching}
+                  onPress={() => addRecordedMember(recipient, true)}
+                />
+              ))}
+            <Action
+              label="Add a shareholder"
+              disabled={busy}
+              onPress={() => setDrafts((rows) => [...rows, blankMember()])}
+            />
+          </>
         )}
       </Section>
       <Section title="Optional source documents">

@@ -6,6 +6,8 @@ import {
   REGISTER_IMPORT_COPY,
   COMPANY_TOKEN_ENDPOINTS as URLS,
   USER_PREFERENCES_QUERY_KEY,
+  type RegisterImportPreparation,
+  type RegisterTransferMembers,
 } from '@ledova/shared';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, cleanup, fireEvent, render, waitFor } from '@testing-library/react-native';
@@ -20,6 +22,7 @@ import { cache, files, resetFiles } from '../../testSupport/documentFiles';
 import { CompanyRegisterScreen } from './CompanyRegisterScreen';
 import { PrepareRegisterImportScreen } from './PrepareRegisterImportScreen';
 import { registerAppointmentsKey, useRegisterAccess } from '../../hooks/useCompanyRegister';
+import { registerImportMembersKey } from './useRegisterImportMembers';
 
 const mockNavigate = jest.fn();
 let mockSection = 'register';
@@ -93,6 +96,8 @@ function defaultRead(url: string, number: number, token?: string): Promise<unkno
       page(pages[number - 1] ?? [], number < pages.length ? `https://api.example.test/?page=${number + 1}` : null),
     );
   if (url === URLS.HOLDERS('ordinary')) return Promise.resolve({ data: register });
+  if (url === URLS.REGISTER_MEMBERS('new-class'))
+    return Promise.resolve({ data: { members: [], awardRecipients: [] } });
   if (url === URLS.HOLDERS('preference'))
     return Promise.resolve({
       data: registerOf(preference, { initialized: false, issuedSupply: null, holders: [] }),
@@ -372,6 +377,118 @@ it('sets up an appointed company without issuing shares, recovers uncertain clas
   );
   expect((request as { correctionOf?: string }).correctionOf).toBeUndefined();
   await opening.unmount();
+  const recipient = {
+    member: '00000000-0000-4000-8000-000000009999',
+    name: 'Riley Award Recipient',
+    residentialAddress: '2 Synthetic Street',
+  };
+  const recorded = {
+    member: '00000000-0000-4000-8000-000000008888',
+    name: 'Existing Member',
+    residentialAddress: '3 Synthetic Street',
+    currentShares: '0',
+    enteredOn: null,
+    lastCeasedOn: null,
+    walletless: true,
+    particularsRetained: true,
+  };
+  let identities: RegisterTransferMembers = { members: [recorded], awardRecipients: [recipient] };
+  const earlierRead = read;
+  read = (url, number, token) =>
+    url === URLS.REGISTER_MEMBERS(draftClass.uuid)
+      ? Promise.resolve({ data: identities })
+      : earlierRead(url, number, token);
+  client.removeQueries();
+  client.setQueryData(AUTH_QUERY_KEY, { data: { valid: true } });
+  client.setQueryData(USER_PREFERENCES_QUERY_KEY, {
+    data: { userProfile: 'native-user', userAccount: { uuid: 'native-account', role: 'investor' } },
+  });
+  const copied = await render(<PrepareRegisterImportScreen />, { wrapper });
+  await fireEvent.changeText(
+    await copied.findByLabelText('Existing register or source reference'),
+    'Original register',
+  );
+  await fireEvent.press(
+    copied.getByRole('button', { name: `Use recorded member ${recorded.name} ${recorded.member}` }),
+  );
+  expect(copied.getByLabelText('Shareholder 1 Name')).toHaveDisplayValue(recorded.name);
+  expect(copied.getByLabelText('Shareholder 1 Name')).toHaveProp('editable', true);
+  await fireEvent.press(copied.getByRole('button', { name: 'Remove shareholder 1' }));
+  await fireEvent.press(
+    copied.getByRole('button', { name: `Use award recipient ${recipient.name} ${recipient.member}` }),
+  );
+  expect(copied.getByLabelText('Shareholder 1 Name')).toHaveDisplayValue(recipient.name);
+  expect(copied.getByLabelText('Shareholder 1 Name')).toHaveProp('editable', false);
+  expect(copied.getByLabelText('Shareholder 1 Address')).toHaveDisplayValue(recipient.residentialAddress);
+  expect(copied.getByLabelText('Shareholder 1 Address')).toHaveProp('editable', false);
+  expect(copied.getByLabelText('Shareholder 1 Original entry date (YYYY-MM-DD)')).toHaveDisplayValue('');
+  expect(copied.getByLabelText('Shareholder 1 shares')).toHaveDisplayValue('');
+  for (const [label, value] of [
+    ['Register date', '2026-09-01'],
+    ['Shareholder 1 Original entry date (YYYY-MM-DD)', '2020-01-01'],
+    ['Shareholder 1 shares', '100'],
+    ['Shareholder 1 · allotment 1 Original allotment date (YYYY-MM-DD)', '2020-01-01'],
+    ['Shareholder 1 · allotment 1 Shares from this allotment still held', '100'],
+    ['Shareholder 1 · allotment 1 Total amount paid on these shares', '0'],
+    ['Shareholder 1 · allotment 1 Total amount unpaid on these shares', '0'],
+  ])
+    await fireEvent.changeText(copied.getByLabelText(label), value);
+  await fireEvent.press(copied.getByRole('radio', { name: 'Shareholder 1 · allotment 1 own benefit' }));
+  await fireEvent.press(copied.getByRole('button', { name: REGISTER_IMPORT_COPY.SOURCE_CONFIRMATION }));
+  await waitFor(() => expect(copied.getByRole('button', { name: 'Prepare for review' })).not.toBeDisabled());
+  const key = registerImportMembersKey(
+    { userUuid: 'native-user', ownerAccountUuid: 'native-account' },
+    getSessionEpoch(),
+    shareClass.companyUuid,
+    draftClass.uuid,
+  );
+  identities = { members: [recorded], awardRecipients: [] };
+  await act(() => client.refetchQueries({ queryKey: key }));
+  await waitFor(() => expect(copied.getByRole('button', { name: 'Prepare for review' })).toBeDisabled());
+  expect(
+    copied.getByText('The selected award recipient changed. Refresh the company records before continuing.'),
+  ).toBeTruthy();
+  identities = { members: [recorded], awardRecipients: [{ ...recipient, name: 'Conflicting recipient' }] };
+  await act(() => client.refetchQueries({ queryKey: key }));
+  await waitFor(() => expect(copied.getByRole('button', { name: 'Prepare for review' })).toBeDisabled());
+  identities = { members: [recorded], awardRecipients: [recipient] };
+  await act(() => client.refetchQueries({ queryKey: key }));
+  await waitFor(() => expect(copied.getByRole('button', { name: 'Prepare for review' })).not.toBeDisabled());
+  jest.mocked(apiClient.post).mockImplementationOnce(
+    async (_url, body) =>
+      ({
+        data: {
+          ...(body as object),
+          uuid: (body as { operationId: string }).operationId,
+          token: draftClass.uuid,
+          preparingAppointment: APPOINTMENT.uuid,
+          registerEvidence: null,
+          asicEvidence: null,
+          asicIssuedTotal: null,
+          asicMemberCount: null,
+          authority: 'company_records',
+          authorityReference: 'Original register',
+          members: (body as RegisterImportPreparation).members.map((row) => ({ ...row, amountPaid: '0.00' })),
+          approvingDirector: '',
+          correctionOf: null,
+          providedBy: 'company',
+        },
+      }) as never,
+  );
+  await fireEvent.press(copied.getByRole('button', { name: 'Prepare for review' }));
+  await waitFor(() => expect(mockGoBack).toHaveBeenCalledTimes(2));
+  const copiedGuard = jest.mocked(apiClient.post).mock.calls.at(-1)![2]?.ledovaSubmissionGuard;
+  expect(copiedGuard).toEqual(expect.any(Function));
+  await act(() => client.setQueryData(key, { members: [], awardRecipients: [] }));
+  expect(() => copiedGuard?.()).toThrow('Refresh the company member identities before continuing.');
+  const copiedRequest = jest.mocked(apiClient.post).mock.calls.at(-1)![1];
+  expect(copiedRequest).toEqual(
+    expect.objectContaining({
+      members: [expect.objectContaining({ ...recipient, shares: '100', enteredOn: '2020-01-01' })],
+    }),
+  );
+  expect((copiedRequest as { members: object[] }).members[0]).not.toHaveProperty('awardRecipient');
+  await copied.unmount();
   mockRouteParams = undefined;
   client.removeQueries();
   client.setQueryData(AUTH_QUERY_KEY, { data: { valid: true } });

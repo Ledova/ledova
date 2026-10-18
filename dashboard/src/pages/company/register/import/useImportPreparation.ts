@@ -24,6 +24,7 @@ import {
   type RegisterImportPreparation,
   type TokenHoldersResponse,
   type RegisterTransferMember,
+  type RegisterAwardRecipient,
 } from '@ledova/shared';
 
 import apiClient from '@services/apiClient';
@@ -45,6 +46,7 @@ import {
 } from './preparation';
 
 const CLOSED = 'This setup is closed. Reopen it before continuing.';
+const NO_AWARD_RECIPIENTS: RegisterAwardRecipient[] = [];
 
 type Upload = { file: File; appointment: string; key: string; receipt: RegisterEvidence | null };
 
@@ -67,9 +69,11 @@ export type ImportFormProps = {
   resolveRegister?: () => Promise<{
     register: TokenHoldersResponse;
     members: RegisterTransferMember[];
+    awardRecipients: RegisterAwardRecipient[];
     emptyOpeningAllowed: boolean;
   }>;
   companyMembers: RegisterTransferMember[];
+  awardRecipients?: RegisterAwardRecipient[];
   emptyOpeningAllowed?: boolean;
   visible?: boolean;
   onHeldChange?: (held: boolean) => void;
@@ -90,6 +94,7 @@ export function useImportPreparation({
   classProblems = [],
   resolveRegister,
   companyMembers,
+  awardRecipients = NO_AWARD_RECIPIENTS,
   emptyOpeningAllowed = false,
   visible = true,
   onHeldChange,
@@ -100,9 +105,13 @@ export function useImportPreparation({
   const today = formatDateToString(new Date());
   const [resolvedMembers, setResolvedMembers] = useState<{
     source: RegisterTransferMember[];
+    awardSource: RegisterAwardRecipient[];
     members: RegisterTransferMember[];
+    awardRecipients: RegisterAwardRecipient[];
   } | null>(null);
-  const knownMembers = resolvedMembers?.source === companyMembers ? resolvedMembers.members : companyMembers;
+  const resolvedCurrent = resolvedMembers?.source === companyMembers && resolvedMembers.awardSource === awardRecipients;
+  const knownMembers = resolvedCurrent ? resolvedMembers.members : companyMembers;
+  const knownAwardRecipients = resolvedCurrent ? resolvedMembers.awardRecipients : awardRecipients;
   const preserveParticulars = !correction && !register?.initialized;
   const reuseSavedCopies = !!saved?.preparingAppointment && saved.preparingAppointment === appointment?.uuid;
   const [draft, setDraft] = useState<PreparationDraft>(() => ({
@@ -150,14 +159,34 @@ export function useImportPreparation({
   const mounted = useRef(true);
   const currentSteps = useRef(steps);
   const currentPreparation = useRef(appointment);
-  const currentContext = useRef({ newEffectGuard, blocked, visible, companyMembers, emptyOpeningAllowed });
+  const currentContext = useRef({
+    newEffectGuard,
+    blocked,
+    visible,
+    companyMembers,
+    awardRecipients,
+    emptyOpeningAllowed,
+  });
   const currentMembers = useRef(knownMembers);
+  const currentAwardRecipients = useRef(knownAwardRecipients);
   useLayoutEffect(() => {
     currentSteps.current = steps;
     currentPreparation.current = appointment;
-    currentContext.current = { newEffectGuard, blocked, visible, companyMembers, emptyOpeningAllowed };
+    currentContext.current = { newEffectGuard, blocked, visible, companyMembers, awardRecipients, emptyOpeningAllowed };
     currentMembers.current = knownMembers;
-  }, [steps, appointment, newEffectGuard, blocked, visible, knownMembers, companyMembers, emptyOpeningAllowed]);
+    currentAwardRecipients.current = knownAwardRecipients;
+  }, [
+    steps,
+    appointment,
+    newEffectGuard,
+    blocked,
+    visible,
+    knownMembers,
+    knownAwardRecipients,
+    companyMembers,
+    awardRecipients,
+    emptyOpeningAllowed,
+  ]);
   useEffect(() => {
     mounted.current = true;
     return () => {
@@ -283,7 +312,7 @@ export function useImportPreparation({
   const problems = [
     ...classProblems,
     ...preparationProblems(draft, today, !correction && emptyOpeningAllowed),
-    ...memberIdentityProblems(draft.members, knownMembers, preserveParticulars),
+    ...memberIdentityProblems(draft.members, knownMembers, preserveParticulars, knownAwardRecipients),
   ];
   const detailProblems = problems.filter(
     (problem) =>
@@ -345,14 +374,22 @@ export function useImportPreparation({
             !(resolved?.emptyOpeningAllowed ?? currentContext.current.emptyOpeningAllowed))
         )
           throw createUserFriendlyError('An empty opening requires an unopened share class with no chain activity.');
-        activeRegister.current = current;
         const known = resolved?.members ?? currentMembers.current;
+        const knownAwards = resolved?.awardRecipients ?? currentAwardRecipients.current;
         const sourceAtResolution = currentContext.current.companyMembers;
-        if (resolved) setResolvedMembers({ source: sourceAtResolution, members: known });
-        const identityProblems = memberIdentityProblems(draft.members, known, preserveParticulars);
+        const awardsAtResolution = currentContext.current.awardRecipients;
+        if (resolved)
+          setResolvedMembers({
+            source: sourceAtResolution,
+            awardSource: awardsAtResolution,
+            members: known,
+            awardRecipients: knownAwards,
+          });
+        const identityProblems = memberIdentityProblems(draft.members, known, preserveParticulars, knownAwards);
         if (identityProblems.length) {
           setUncertain(false);
           setError(identityProblems.join(' '));
+          if (resolved) onConflict();
           return;
         }
         const registerEvidence = draft.registerFile ? await upload('share_register', draft.registerFile) : null;
@@ -360,16 +397,23 @@ export function useImportPreparation({
         checkPreparation();
         if (draft.members.length === 0 && !currentContext.current.emptyOpeningAllowed)
           throw createUserFriendlyError('An empty opening requires an unopened share class with no chain activity.');
+        const resolvedStillCurrent =
+          resolved &&
+          currentContext.current.companyMembers === sourceAtResolution &&
+          currentContext.current.awardRecipients === awardsAtResolution;
         const changedIdentity = memberIdentityProblems(
           draft.members,
-          resolved && currentContext.current.companyMembers === sourceAtResolution ? known : currentMembers.current,
+          resolvedStillCurrent ? known : currentMembers.current,
           preserveParticulars,
+          resolvedStillCurrent ? knownAwards : currentAwardRecipients.current,
         );
         if (changedIdentity.length) {
           setUncertain(false);
           setError(changedIdentity.join(' '));
+          if (resolved) onConflict();
           return;
         }
+        activeRegister.current = current;
         const stated = statedFigures(draft);
         preparation.current = {
           operationId: crypto.randomUUID(),
@@ -468,6 +512,7 @@ export function useImportPreparation({
     importDescription,
     today,
     knownMembers,
+    knownAwardRecipients,
     preserveParticulars,
     draft,
     proposal,

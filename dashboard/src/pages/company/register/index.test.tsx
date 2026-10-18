@@ -18,6 +18,7 @@ import {
   type TokenHoldersResponse,
   type OwnCompanyAppointment,
   type RegisterTransferMember,
+  type RegisterAwardRecipient,
   type CompanyShareToken,
 } from '@ledova/shared';
 import SettingsPage from '@pages/settings';
@@ -33,6 +34,7 @@ import { ShareClass } from './detail/ShareClass';
 import CompanyRegisterImportPage from './import';
 import { ImportForm } from './import/ImportForm';
 import { useNewShareClass } from './import/useNewShareClass';
+import { importMembersKey, readImportMembers } from './import/useImportMembers';
 import {
   blankAllotment,
   blankMember,
@@ -543,6 +545,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   let interruptNextApply = false;
   let proposal: RegisterImport | undefined;
   let companyMembers: RegisterTransferMember[] = [];
+  let awardRecipients: RegisterAwardRecipient[] = [];
   let membersUnavailable = false;
   let classCreationGuard = () => {};
   const company = companyRecord({ isOwner: false, administrativeAccess: { capabilities: [], draftSetup: false } });
@@ -607,7 +610,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
     if (url === COMPANY_TOKEN_ENDPOINTS.HOLDERS(token.uuid)) return { data: holders() };
     if (url === COMPANY_TOKEN_ENDPOINTS.REGISTER_MEMBERS(token.uuid)) {
       if (membersUnavailable) throw new Error('Member choices unavailable');
-      return { data: { members: companyMembers } };
+      return { data: { members: companyMembers, awardRecipients } };
     }
     if (url === IMPORTS) return dataPage(proposal ? [proposal] : []);
     return dataPage([]);
@@ -1146,7 +1149,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
     if (url === COMPANY_TOKEN_ENDPOINTS.HOLDERS(token.uuid)) return { data: holders() };
     if (url === COMPANY_TOKEN_ENDPOINTS.REGISTER_MEMBERS(token.uuid)) {
       if (membersUnavailable) throw new Error('Member choices unavailable');
-      return { data: { members: companyMembers } };
+      return { data: { members: companyMembers, awardRecipients } };
     }
     if (url === IMPORTS) return dataPage(proposal ? [proposal] : []);
     return dataPage([]);
@@ -1292,6 +1295,146 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   opened = false;
   proposal = undefined;
   companyMembers = [];
+  const trustedRecipient: RegisterAwardRecipient = {
+    member: 'award-only-recipient',
+    name: 'Award Recipient',
+    residentialAddress: '2 Example Road, Sydney NSW 2000',
+  };
+  awardRecipients = [trustedRecipient];
+  const prepareAwardOpening = async (url: string, request: RegisterImportPreparation) => {
+    expect(url).toBe(IMPORTS);
+    proposal = {
+      ...rejected,
+      uuid: request.operationId,
+      token: request.tokenId,
+      preparingAppointment: request.appointment,
+      asAt: request.asAt,
+      sourceReference: request.sourceReference,
+      authorityReference: request.sourceReference,
+      registerEvidence: null,
+      asicEvidence: null,
+      asicIssuedTotal: null,
+      asicMemberCount: null,
+      status: 'submitted',
+      stage: 'submitted',
+      correctionOf: null,
+      reason: request.reason,
+      members: request.members.map((member) => ({ ...member, amountPaid: '600.00' })),
+    };
+    return { data: proposal };
+  };
+  api.post.mockImplementation(prepareAwardOpening);
+  showJourney(importPath);
+  fireEvent.click(await screen.findByRole('button', { name: 'Continue' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Add a shareholder' }));
+  expect(screen.getByRole('group', { name: 'Award recipients without registered shares' })).toBeTruthy();
+  fireEvent.change(screen.getByLabelText('Company shareholder'), { target: { value: trustedRecipient.member } });
+  expect((screen.getByLabelText('Name') as HTMLInputElement).value).toBe(trustedRecipient.name);
+  expect((screen.getByLabelText('Address') as HTMLInputElement).value).toBe(trustedRecipient.residentialAddress);
+  expect((screen.getByLabelText('Name') as HTMLInputElement).readOnly).toBe(true);
+  expect((screen.getByLabelText('Address') as HTMLInputElement).readOnly).toBe(true);
+  for (const label of [
+    'Date first added to register',
+    'Shares held',
+    'Allotment date',
+    'Shares in allotment',
+    'Amount paid',
+  ])
+    expect((screen.getByLabelText(label) as HTMLInputElement).value).toBe('');
+  enterHolding();
+  fireEvent.click(screen.getByRole('button', { name: 'Add to draft' }));
+  const preferences = companyPreferences();
+  const recipientKey = importMembersKey(
+    { userUuid: preferences.userProfile, ownerAccountUuid: preferences.userAccount!.uuid },
+    company.uuid,
+    token.uuid,
+  );
+  awardRecipients = [{ ...trustedRecipient, name: 'Changed recipient name' }];
+  await act(async () => client.invalidateQueries({ queryKey: recipientKey, exact: true }));
+  fireEvent.click(await screen.findByRole('button', { name: 'Save draft and review' }));
+  expect(await screen.findByText(/keep the award recipient’s recorded name and address/)).toBeTruthy();
+  expect(api.post).not.toHaveBeenCalled();
+  awardRecipients = [];
+  await act(async () => client.invalidateQueries({ queryKey: recipientKey, exact: true }));
+  fireEvent.click(await screen.findByRole('button', { name: 'Save draft and review' }));
+  expect((await screen.findAllByText(/award recipient is no longer available/)).length).toBeGreaterThan(0);
+  expect(api.post).not.toHaveBeenCalled();
+  awardRecipients = [trustedRecipient];
+  await act(async () => client.invalidateQueries({ queryKey: recipientKey, exact: true }));
+  fireEvent.click(await screen.findByRole('button', { name: 'Save draft and review' }));
+  await waitFor(() => expect(api.post).toHaveBeenCalledOnce());
+  const awardOpening = api.post.mock.calls[0][1] as RegisterImportPreparation;
+  expect(awardOpening.members[0]).toMatchObject({
+    member: trustedRecipient.member,
+    name: trustedRecipient.name,
+    residentialAddress: trustedRecipient.residentialAddress,
+    enteredOn: '2020-01-01',
+    shares: '600',
+  });
+  expect(awardOpening.members[0].allotments[0].allottedOn).toBe('2015-01-01');
+  expect(companyMembers).toEqual([]);
+  cleanup();
+  client.clear();
+  api.post.mockClear();
+  proposal = undefined;
+  let freshClassCreated = false;
+  const freshToken = {
+    ...token,
+    uuid: 'fresh-award-class',
+    name: 'Preference shares',
+    symbol: 'PRF',
+    tokenType: 'preference',
+  };
+  const oldReads = api.get.getMockImplementation()!;
+  api.get.mockImplementation((url, config) => {
+    if (url === REGISTER)
+      return Promise.resolve(dataPage([...setupClasses, ...(freshClassCreated ? [freshToken] : [])]));
+    if (url === COMPANY_TOKEN_ENDPOINTS.HOLDERS(freshToken.uuid))
+      return Promise.resolve({ data: { ...holders(), token: freshToken } });
+    if (url === COMPANY_TOKEN_ENDPOINTS.REGISTER_MEMBERS(freshToken.uuid))
+      return Promise.resolve({ data: { members: companyMembers, awardRecipients } });
+    return oldReads(url, config);
+  });
+  api.post.mockImplementation(async (url, request, config) => {
+    config.ledovaSubmissionGuard();
+    if (url === COMPANY_TOKEN_ENDPOINTS.BASE) {
+      freshClassCreated = true;
+      awardRecipients = [];
+      return { data: freshToken };
+    }
+    return prepareAwardOpening(url, request);
+  });
+  showJourney(DESTINATIONS.companyRegisterSetup.path);
+  fireEvent.change(await screen.findByLabelText('Share class'), { target: { value: 'preference' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Add a shareholder' }));
+  fireEvent.change(screen.getByLabelText('Company shareholder'), { target: { value: trustedRecipient.member } });
+  expect((screen.getByLabelText('Name') as HTMLInputElement).value).toBe(trustedRecipient.name);
+  expect(api.post).not.toHaveBeenCalled();
+  enterHolding();
+  fireEvent.click(screen.getByRole('button', { name: 'Add to draft' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Save draft and review' }));
+  expect((await screen.findAllByText(/award recipient is no longer available/)).length).toBeGreaterThan(0);
+  await waitFor(() => expect(client.isFetching()).toBe(0));
+  expect(api.post.mock.calls.filter(([url]) => url === COMPANY_TOKEN_ENDPOINTS.BASE)).toHaveLength(1);
+  expect(api.post.mock.calls.filter(([url]) => url === IMPORTS)).toHaveLength(0);
+  awardRecipients = [trustedRecipient];
+  await act(async () => client.invalidateQueries({ queryKey: recipientKey, exact: true }));
+  fireEvent.click(await screen.findByRole('button', { name: 'Save draft and review' }));
+  await waitFor(() => expect(api.post.mock.calls.filter(([url]) => url === IMPORTS)).toHaveLength(1));
+  expect(api.post.mock.calls.filter(([url]) => url === COMPANY_TOKEN_ENDPOINTS.BASE)).toHaveLength(1);
+  const freshAwardOpening = api.post.mock.calls.find(([url]) => url === IMPORTS)![1] as RegisterImportPreparation;
+  expect(freshAwardOpening.tokenId).toBe(freshToken.uuid);
+  expect(freshAwardOpening.members[0].member).toBe(trustedRecipient.member);
+  expect(freshAwardOpening.members[0].enteredOn).toBe('2020-01-01');
+  cleanup();
+  client.clear();
+  api.post.mockClear();
+  opened = false;
+  proposal = undefined;
+  companyMembers = [];
+  awardRecipients = [];
+  api.get.mockImplementation(oldReads);
   appointment = { ...appointment, uuid: 'empty-register-appointee', capabilities: ['prepare', 'approve', 'apply'] };
   const previousReads = api.get.getMockImplementation()!;
   api.get.mockImplementation((url, config) =>
@@ -1452,6 +1595,46 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   expect(api.post).toHaveBeenCalledTimes(2);
   expect(api.post.mock.calls.map(([, request]) => request.symbol)).toEqual(['ORD', 'EMP']);
   refusedClass.unmount();
+  const retainedIdentity = {
+    ...trustedRecipient,
+    currentShares: '0',
+    enteredOn: null,
+    lastCeasedOn: null,
+    walletless: true,
+    particularsRetained: true,
+  };
+  for (const response of [
+    null,
+    { members: [] },
+    { members: [null], awardRecipients: [] },
+    { members: [retainedIdentity], awardRecipients: [trustedRecipient] },
+    { members: [{ ...retainedIdentity, currentShares: '1.5' }], awardRecipients: [] },
+    { members: [], awardRecipients: [trustedRecipient, trustedRecipient] },
+    { members: [], awardRecipients: [{ ...trustedRecipient, name: '' }] },
+  ]) {
+    api.get.mockResolvedValue({ data: response });
+    await expect(readImportMembers(token.uuid, () => {})).rejects.toThrow(/choices could not be confirmed/);
+  }
+  const nullableParticulars = { ...retainedIdentity, name: null, residentialAddress: null };
+  api.get.mockResolvedValue({ data: { members: [nullableParticulars], awardRecipients: [] } });
+  await expect(readImportMembers(token.uuid, () => {})).resolves.toEqual({
+    members: [nullableParticulars],
+    awardRecipients: [],
+  });
+  let ownerStillCurrent = true;
+  let completeIdentityRead!: () => void;
+  api.get.mockImplementation(
+    () =>
+      new Promise((resolve) => {
+        completeIdentityRead = () => resolve({ data: { members: [], awardRecipients: [trustedRecipient] } });
+      }),
+  );
+  const lateIdentityRead = readImportMembers(token.uuid, () => {
+    if (!ownerStillCurrent) throw new Error('The account changed before recipient choices returned.');
+  });
+  ownerStillCurrent = false;
+  completeIdentityRead();
+  await expect(lateIdentityRead).rejects.toThrow(/account changed/);
 });
 
 it('shows an account without register access a calm empty state, reads no members and offers no entry', async () => {
