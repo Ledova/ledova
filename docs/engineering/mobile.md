@@ -26,7 +26,7 @@ networking overrides and scanner module.
 ## Architecture
 
 Native projects are generated at prebuild
-([toolchain](mobile-releases.md#toolchain-and-generated-projects)). The app follows the
+([toolchain](mobile-releases.md#toolchain-and-generated-projects)). The app maps onto the
 [frontend layers](frontend.md#frontend-layers) and their
 [dependency direction and placement](frontend.md#dependency-direction-and-placement) under its own
 folder names, with relative imports and no path aliases:
@@ -42,8 +42,8 @@ folder names, with relative imports and no path aliases:
 | `config/`, `styles/`  |                         | Network policy and public links; the theme                                                                  |
 | `testSupport/`        | `testSupport/`          | Test helpers                                                                                                |
 
-Mobile's navigation and hooks still import hooks from `screens/`; moving them out is part of
-[#1074](https://github.com/Ledova/ledova/issues/1074).
+Mobile's navigation and hooks still import hooks from `screens/`, and screens import other areas'
+files; both are brought in line under [#1074](https://github.com/Ledova/ledova/issues/1074).
 
 ### Shared package resolution
 

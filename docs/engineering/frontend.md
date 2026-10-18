@@ -135,14 +135,15 @@ To place a file, ask in order and stop at the first yes:
 2. Is it logic both clients need, built on the same libraries, and not UI? `packages/shared`,
    deleting the client copies. (Logic each client builds on its own platform libraries, such as
    Keystone UR coding, stays per client.)
-3. Is it part of the route table, a guard, or a state only guards render? `routes/`.
+3. Is it a route element, a guard, or a state only guards render? `routes/` (path constants go in
+   `utils/paths.ts`).
 4. Is it a browser binding (the axios instance, a device store)? `services/`.
 5. Does one page use it? That page's folder, beside its entry.
 6. Do several pages under one page folder use it? The `shared/` folder of the lowest page folder
    holding them all (`pages/company/shared/`, `pages/company/register/shared/`).
-7. Otherwise (two areas or the frame): `components/` for UI, as a group folder when it has parts or
-   hooks of its own; `hooks/` for a hook or provider; `utils/` for any other helper or a web-only
-   path.
+7. Otherwise (two areas or the frame): `components/` for UI, as a group folder when it has parts,
+   hooks or a provider that renders it; `hooks/` for a hook without JSX; `utils/` for any other
+   helper or a web-only path.
 
 Move a file in the change that gives it a second user, and back down when one user remains, as a
 move with no behaviour change that repoints its importers, `vi.mock` paths and cited document
@@ -209,8 +210,8 @@ The [principles](README.md#principles) apply; in particular, do not add:
   `pages/company/register/grant/`. An address that only adds a parameter to that page is `detail/`
   (`/directory/:uuid` is `pages/directory/detail/`), and a `detail/` folder never holds sub-pages;
   an address that renders another's page (`/member-records`, `/company/register/setup`) has no
-  folder, and the not-found page is `pages/not-found/`. Every folder name is kebab-case (`qr/`,
-  `eligibility-requests/`). A file is named after its main export, or after what small siblings
+  folder, and the not-found page is `pages/not-found/`. Page folders and `components/` groups are kebab-case
+  (`eligibility-requests/`, `qr/`). A file is named after its main export, or after what small siblings
   share (`fieldClass.ts`): `PascalCase.tsx` for a component, `use<Thing>.ts` for a hook without JSX,
   `<Thing>Provider.tsx` for a provider, `PascalCase.ts` for a React context, camelCase `.ts` for a
   module without React. Components and hooks are function declarations. A page entry default-exports
