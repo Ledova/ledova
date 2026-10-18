@@ -6,7 +6,8 @@ export function useTransferRegister(
   owner: OrderSubmissionOwner,
   uuid: string,
   listed: CompanyShareTokenListItem | undefined,
+  guard: () => void,
 ) {
-  const registers = useQuery(registersQuery(owner, listed ? [uuid] : []));
+  const registers = useQuery(registersQuery(owner, listed ? [uuid] : [], guard));
   return registers;
 }

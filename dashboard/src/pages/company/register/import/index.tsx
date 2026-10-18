@@ -20,7 +20,7 @@ import { Loading, Unavailable } from '@pages/company/shared/RegisterStatus';
 import { registerSteps, type RegisterSteps } from '@pages/company/shared/proposals';
 import { useRegisterClasses, registerClassesKey } from '@pages/company/shared/useCompanyRegister';
 import { importsKey, useRegisterImports } from '@pages/company/register/shared/useRegisterImports';
-import { ownerGuard } from '@pages/company/register/shared/ownerGuard';
+import { ownerGuard } from '@pages/company/shared/ownerGuard';
 import { useOwnAppointments, ownAppointmentsKey } from '@pages/company/shared/useOwnAppointments';
 
 import { transferMembersKey, useTransferMembers } from '@pages/company/register/shared/useRegisterTransfers';
@@ -82,14 +82,14 @@ function OwnImport({
   const [held, setHeld] = useState(false);
   const [retained, setRetained] = useState<Retained | null>(null);
   const guard = useMemo(() => ownerGuard(owner, currentOwner), [owner, currentOwner]);
-  const classes = useRegisterClasses(owner);
+  const classes = useRegisterClasses(owner, guard);
   const appointments = useOwnAppointments(owner, guard);
   const listed = classes.data?.find((item) => item.uuid === uuid);
   const steps = listed && appointments.data ? registerSteps(appointments.data, listed.companyUuid) : null;
   const readable = !!(steps?.prepare || steps?.approve || steps?.apply);
   const imports = useRegisterImports(owner, uuid, guard, readable);
   const members = useTransferMembers(owner, uuid, guard, readable);
-  const register = useImportRegister(owner, uuid, readable);
+  const register = useImportRegister(owner, uuid, readable, guard);
   const correction = imports.data?.find((proposal) => proposal.status === 'applied' && proposal.correctionAllowed);
   const record = search.get('record');
   const saved = imports.data?.find((proposal) =>

@@ -6,7 +6,8 @@ export function useLinkRegisters(
   owner: OrderSubmissionOwner,
   appointment: OwnCompanyAppointment | undefined,
   listed: CompanyShareTokenListItem[],
+  guard: () => void,
 ) {
-  const registers = useQuery(registersQuery(owner, appointment ? listed.map(({ uuid }) => uuid) : []));
+  const registers = useQuery(registersQuery(owner, appointment ? listed.map(({ uuid }) => uuid) : [], guard));
   return registers;
 }

@@ -1,19 +1,20 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useSubmissionOwner, useUserPreferences, type OrderSubmissionOwner } from '@ledova/shared';
 import { Page } from '@components/Page';
 import { CompanySelection } from '@pages/company/shared/CompanySelection';
 import { Loading, Unavailable } from '@pages/company/shared/RegisterStatus';
 import { useCompanyRegister } from '@pages/company/shared/useCompanyRegister';
+import { ownerGuard } from '@pages/company/shared/ownerGuard';
 import { OwnershipMetrics, ShareholderPanels } from './OwnershipPanels';
 import { RegisterSetup } from './RegisterSetup';
 import { ownershipSummary } from '@pages/company/shared/summary';
 
 export default function CompanyDashboardPage() {
-  const { owner } = useSubmissionOwner();
+  const { owner, boundary } = useSubmissionOwner();
   const preferences = useUserPreferences();
   return owner ? (
-    <OwnDashboard key={`${owner.userUuid}/${owner.ownerAccountUuid}`} owner={owner} />
+    <OwnDashboard key={`${owner.userUuid}/${owner.ownerAccountUuid}`} owner={owner} currentOwner={boundary.get} />
   ) : (
     <Page lede="Your company's recorded share ownership.">
       {preferences.isLoading ? (
@@ -25,9 +26,16 @@ export default function CompanyDashboardPage() {
   );
 }
 
-function OwnDashboard({ owner }: { owner: OrderSubmissionOwner }) {
+function OwnDashboard({
+  owner,
+  currentOwner,
+}: {
+  owner: OrderSubmissionOwner;
+  currentOwner: () => OrderSubmissionOwner | null;
+}) {
   const preferences = useUserPreferences();
-  const { classes, companies, company, selectCompany, registers } = useCompanyRegister(owner);
+  const guard = useMemo(() => ownerGuard(owner, currentOwner), [owner, currentOwner]);
+  const { classes, companies, company, selectCompany, registers } = useCompanyRegister(owner, guard);
   const location = useLocation();
   const entered = useRef('');
   useEffect(() => {
