@@ -1,8 +1,8 @@
+import { RecordShell, RecordDownloadFailure, RecordStage } from './RecordShell';
 import {
   REGISTER_GRANT_COPY as COPY,
   REGISTER_AWARD_COPY as AWARD_COPY,
   REGISTER_GRANT_DECISIONS,
-  apiErrorSentence,
   formatDateTime,
   type RegisterDecisionKind,
   type RegisterGrant,
@@ -12,7 +12,7 @@ import { Row, Rows, Status } from '@components/Ledger';
 import { PageAction } from '@components/Page';
 import { DecisionTrail } from '@pages/company/register/shared/DecisionTrail';
 import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
-import { DOWNLOAD_FAILED, STAGE_TONES, shareCount, type RegisterSteps } from '@pages/company/shared/proposals';
+import { STAGE_TONES, shareCount, type RegisterSteps } from '@pages/company/shared/proposals';
 import { useGrantRecordDownload } from './useRegisterRecordDownload';
 
 const DECISION_COPY = { ...COPY, DECISIONS: { ...COPY.DECISIONS, apply: 'Record issue' } };
@@ -67,7 +67,7 @@ export function GrantRecord({
     ? ['authority', 'terms', 'acceptance']
     : ['authority', 'terms'];
   return (
-    <li hidden={!visible} className="flex flex-col gap-3 py-4">
+    <RecordShell hidden={!visible}>
       {visible && (
         <>
           <div className="flex flex-wrap items-start justify-between gap-3">
@@ -91,9 +91,7 @@ export function GrantRecord({
           <details className="space-y-3">
             <summary className="cursor-pointer text-sm font-medium">Issue details and documents</summary>
             <Rows>
-              <Row label="Stage">
-                <Status tone={STAGE_TONES[grant.stage] ?? 'waiting'}>{COPY.STAGES[grant.stage] ?? grant.stage}</Status>
-              </Row>
+              <RecordStage stage={grant.stage}>{COPY.STAGES[grant.stage] ?? grant.stage}</RecordStage>
               <Row label="Prepared by">{grant.preparedByName || 'Name not recorded'}</Row>
               <Row label="Prepared on">{formatDateTime(grant.createdAt)}</Row>
               <Row label={COPY.AUTHORITY_REFERENCE}>{grant.authorityReference}</Row>
@@ -114,11 +112,7 @@ export function GrantRecord({
                 />
               ))}
             </div>
-            {download.isError && (
-              <p role="alert" className="text-sm text-error-light">
-                {apiErrorSentence(download.error, DOWNLOAD_FAILED, DOWNLOAD_FAILED)}
-              </p>
-            )}
+            {download.isError && <RecordDownloadFailure error={download.error} />}
             <Rows>
               <Row label="Issue record">{grant.uuid}</Row>
               <Row label="Member record ID">{grant.member}</Row>
@@ -157,6 +151,6 @@ export function GrantRecord({
           </>
         )}
       </RegisterDecisions>
-    </li>
+    </RecordShell>
   );
 }

@@ -1,3 +1,5 @@
+import { PreparationBack, PreparationNotice, PreparationShell } from '@pages/company/register/shared/PreparationShell';
+import { useRegisterPreparationOwner } from '@pages/company/register/shared/useRegisterPreparationOwner';
 import { useOpeningHolders } from './useOpeningHolders';
 import { useMemo, type ReactNode } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -8,8 +10,6 @@ import {
   apiErrorSentence,
   appointmentForRegisterStep,
   failureStatus,
-  useSubmissionOwner,
-  useUserPreferences,
   type OrderSubmissionOwner,
 } from '@ledova/shared';
 import { Row, Rows, Section } from '@components/Ledger';
@@ -41,9 +41,8 @@ function HoldersFailure({ error, retry, busy }: { error: unknown; retry: () => v
 export default function CompanyRegisterOpeningPage() {
   const { uuid = '' } = useParams();
   const navigate = useNavigate();
-  const { owner, boundary } = useSubmissionOwner();
-  const preferences = useUserPreferences();
-  const back = <PageAction label="Back to Register" onClick={() => navigate(DESTINATIONS.companyRegister.path)} />;
+  const { owner, boundary, preferences } = useRegisterPreparationOwner();
+  const back = <PreparationBack onClick={() => navigate(DESTINATIONS.companyRegister.path)} />;
   if (owner && !preferences.isError)
     return (
       <OwnOpening
@@ -54,15 +53,7 @@ export default function CompanyRegisterOpeningPage() {
         back={back}
       />
     );
-  return (
-    <Page narrow lede={LEDE} actions={back}>
-      {preferences.isLoading ? (
-        <Loading />
-      ) : (
-        <Unavailable retry={() => void preferences.refetch()} busy={preferences.isFetching} />
-      )}
-    </Page>
-  );
+  return <PreparationShell lede={LEDE} actions={back} preferences={preferences} />;
 }
 
 function OwnOpening({
@@ -96,9 +87,9 @@ function OwnOpening({
   let content: ReactNode;
   if (!classes.data || !appointments.data)
     content = classes.isError || appointments.isError ? <Unavailable retry={retry} busy={fetching} /> : <Loading />;
-  else if (!listed)
-    content = <p className="py-3 text-sm text-text-muted">This share class is not in a register you can read.</p>;
-  else if (!appointment) content = <p className="py-3 text-sm text-text-muted">{COPY.READ_ONLY_NOTE}</p>;
+  else if (!listed) content = <PreparationNotice className="py-3 text-sm text-text-muted" />;
+  else if (!appointment)
+    content = <PreparationNotice className="py-3 text-sm text-text-muted">{COPY.READ_ONLY_NOTE}</PreparationNotice>;
   else if (failureStatus(holders.error) === 400)
     content = <p className="py-3 text-sm text-text-muted">{apiErrorSentence(holders.error, REFUSED, REFUSED)}</p>;
   else if (!holders.data) content = holders.isError ? failure : <Loading />;

@@ -1,17 +1,17 @@
-import { useLayoutEffect, useRef } from 'react';
+import { RecordShell, RecordDownloadFailure, RecordStage } from './RecordShell';
+import { useRegisterTaskGuard } from './useRegisterTaskGuard';
 import {
   REGISTER_TRANSFER_COPY as COPY,
   REGISTER_TRANSFER_DECISIONS,
-  apiErrorSentence,
   formatDateTime,
   type RegisterTransfer,
   type RegisterTransferDecisionPreview,
 } from '@ledova/shared';
-import { Row, Rows, Status } from '@components/Ledger';
+import { Row, Rows } from '@components/Ledger';
 import { PageAction } from '@components/Page';
 import { DecisionTrail } from '@pages/company/register/shared/DecisionTrail';
 import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
-import { DOWNLOAD_FAILED, STAGE_TONES, shareCount, type RegisterSteps } from '@pages/company/shared/proposals';
+import { shareCount, type RegisterSteps } from '@pages/company/shared/proposals';
 import { useTransferRecordDownload } from './useRegisterRecordDownload';
 
 function TransferRows({ transfer }: { transfer: RegisterTransfer | RegisterTransferDecisionPreview }) {
@@ -53,27 +53,16 @@ export function TransferRecord({
   visible?: boolean;
   onHeldChange?: (uuid: string, held: boolean) => void;
 }) {
-  const available = useRef(visible);
-  useLayoutEffect(() => {
-    available.current = visible;
-  }, [visible]);
-  const check = () => {
-    guard();
-    if (!available.current) throw new Error('Open the current register task before reading or deciding this record.');
-  };
+  const check = useRegisterTaskGuard(visible, guard);
   const download = useTransferRecordDownload(transfer, check);
   const context = `transfer from ${transfer.fromName} to ${transfer.name} prepared ${formatDateTime(transfer.createdAt)}`;
   return (
-    <li hidden={!visible} className="flex flex-col gap-3 py-4">
+    <RecordShell hidden={!visible}>
       {visible && (
         <details open={transfer.status === 'submitted'} className="space-y-3">
           <summary className="cursor-pointer text-sm font-medium text-text-primary">{`Transfer · ${formatDateTime(transfer.createdAt)} · ${COPY.STAGES[transfer.stage] ?? transfer.stage}`}</summary>
           <Rows>
-            <Row label="Stage">
-              <Status tone={STAGE_TONES[transfer.stage] ?? 'waiting'}>
-                {COPY.STAGES[transfer.stage] ?? transfer.stage}
-              </Status>
-            </Row>
+            <RecordStage stage={transfer.stage}>{COPY.STAGES[transfer.stage] ?? transfer.stage}</RecordStage>
             <Row label="Prepared by">{transfer.preparedByName || 'Name not recorded'}</Row>
             <Row label="Prepared on">{formatDateTime(transfer.createdAt)}</Row>
             <Row label={COPY.AUTHORITY_REFERENCE}>{transfer.authorityReference}</Row>
@@ -94,11 +83,7 @@ export function TransferRecord({
               />
             ))}
           </div>
-          {download.isError && (
-            <p role="alert" className="text-sm text-error-light">
-              {apiErrorSentence(download.error, DOWNLOAD_FAILED, DOWNLOAD_FAILED)}
-            </p>
-          )}
+          {download.isError && <RecordDownloadFailure error={download.error} />}
         </details>
       )}
       <RegisterDecisions
@@ -135,6 +120,6 @@ export function TransferRecord({
           </>
         )}
       </RegisterDecisions>
-    </li>
+    </RecordShell>
   );
 }

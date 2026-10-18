@@ -1,7 +1,7 @@
+import { RecordShell, RecordDownloadFailure, RecordStage } from './RecordShell';
 import {
   REGISTER_ALLOTMENT_COPY as COPY,
   REGISTER_ALLOTMENT_DECISIONS,
-  apiErrorSentence,
   formatDateTime,
   type RegisterDecisionKind,
   type RegisterAllotment,
@@ -11,7 +11,7 @@ import { Row, Rows, Status } from '@components/Ledger';
 import { PageAction } from '@components/Page';
 import { DecisionTrail } from '@pages/company/register/shared/DecisionTrail';
 import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
-import { DOWNLOAD_FAILED, STAGE_TONES, shareCount, type RegisterSteps } from '@pages/company/shared/proposals';
+import { STAGE_TONES, shareCount, type RegisterSteps } from '@pages/company/shared/proposals';
 import { useAllotmentRecordDownload } from './useRegisterRecordDownload';
 
 const DECISION_COPY = { ...COPY, DECISIONS: { ...COPY.DECISIONS, apply: 'Record issue' } };
@@ -63,7 +63,7 @@ export function AllotmentRecord({
   const documents: ('authority' | 'agreement' | 'receipt')[] = ['authority', 'agreement', 'receipt'];
   const decisionSteps = allotment.stage === 'submitted' ? { ...steps, apply: undefined } : steps;
   return (
-    <li
+    <RecordShell
       hidden={!visible}
       className="flex flex-col gap-4 rounded-xl border border-border-subtle bg-surface-raised p-4 sm:p-5"
     >
@@ -92,11 +92,7 @@ export function AllotmentRecord({
           <details className="space-y-3">
             <summary className="cursor-pointer text-sm font-medium">Record details and documents</summary>
             <Rows>
-              <Row label="Stage">
-                <Status tone={STAGE_TONES[allotment.stage] ?? 'waiting'}>
-                  {COPY.STAGES[allotment.stage] ?? allotment.stage}
-                </Status>
-              </Row>
+              <RecordStage stage={allotment.stage}>{COPY.STAGES[allotment.stage] ?? allotment.stage}</RecordStage>
               <Row label="Prepared by">{allotment.preparedByName || 'Name not recorded'}</Row>
               <Row label="Prepared on">{formatDateTime(allotment.createdAt)}</Row>
               <Row label={COPY.AUTHORITY_REFERENCE}>{allotment.authorityReference}</Row>
@@ -124,11 +120,7 @@ export function AllotmentRecord({
                 />
               ))}
             </div>
-            {download.isError && (
-              <p role="alert" className="text-sm text-error-light">
-                {apiErrorSentence(download.error, DOWNLOAD_FAILED, DOWNLOAD_FAILED)}
-              </p>
-            )}
+            {download.isError && <RecordDownloadFailure error={download.error} />}
           </details>
         </>
       )}
@@ -163,6 +155,6 @@ export function AllotmentRecord({
           </>
         )}
       </RegisterDecisions>
-    </li>
+    </RecordShell>
   );
 }
