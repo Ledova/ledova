@@ -6,11 +6,13 @@ from django.utils import timezone
 from rest_framework.test import APITransactionTestCase
 
 from shared.db import atomic, use_operator
-from shared.tests.core_fixtures import CoreFixtures
+from shared.tests.core_fixtures import CoreFixtures, retained_evidence
 from tokens.constants import MAX_UINT256
 from tokens.models import (
     RegisterEntry,
+    RegisterEvidenceKind,
     RegisterImport,
+    RegisterMember,
     RegisterMemberParticulars,
     RegisterPosition,
     ShareToken,
@@ -200,6 +202,56 @@ class RegisterMirrorTest(CoreFixtures, APITransactionTestCase):
         refused = self.client.post(endpoint, metadata, format="json")
         self.assertEqual(refused.status_code, 400, refused.content)
         self.assertEqual(RegisterEntry.objects.filter(register__token=token).count(), 3)
+        empty_class = self.client.post(
+            "/api/v1/tokens/",
+            {
+                "company": str(self.company.pk),
+                "name": "Synthetic empty class",
+                "symbol": "EMPTY",
+                "total_supply": str(MAX_UINT256),
+            },
+            format="json",
+        )
+        self.assertEqual(empty_class.status_code, 201, empty_class.content)
+        empty_token = ShareToken.objects.get(pk=empty_class.json()["uuid"])
+        asic = retained_evidence(self.owner, self.appointment, RegisterEvidenceKind.ASIC_EXTRACT)
+        empty = self.mirror_payload(
+            empty_token, members=[], asic_evidence=str(asic.pk), asic_issued_total="0", asic_member_count=0
+        )
+        prepared = self.client.post(endpoint, empty, format="json")
+        self.assertEqual(prepared.status_code, 201, prepared.content)
+        empty_id = prepared.json()["uuid"]
+        member_count = RegisterMember.objects.filter(company=self.company).count()
+        self.decision(endpoint, empty_id, "approve")
+        _, decision = self.decision(endpoint, empty_id, "apply")
+        self.assertEqual(self.client.post(f"{endpoint}{empty_id}/decide/", decision, format="json").status_code, 200)
+        self.assertEqual(self.client.post(endpoint, empty, format="json").status_code, 200)
+        self.assertEqual(RegisterMember.objects.filter(company=self.company).count(), member_count)
+        opening = RegisterEntry.objects.get(register__token=empty_token)
+        self.assertEqual((opening.kind, opening.changes), ("opening", []))
+        with use_operator():
+            self.assertEqual(verify_register(opening.register_id)["issued_supply"], "0")
+        self.assertFalse(RegisterPosition.objects.filter(register__token=empty_token).exists())
+        erased = self.mirror_payload(empty_token, members=[], correction_of=empty_id)
+        refused = self.client.post(endpoint, erased, format="json")
+        self.assertEqual(refused.status_code, 400, refused.content)
+        self.assertEqual(refused.json()["unmetRequirements"], ["empty_non_tokenised_opening_required"])
+        investor = self.allotment_payload(token_id=str(empty_token.pk))
+        investor_endpoint = "/api/v1/tokens/register-allotments/"
+        prepared = self.client.post(investor_endpoint, investor, format="json")
+        self.assertEqual(prepared.status_code, 201, prepared.content)
+        self.decision(investor_endpoint, prepared.json()["uuid"], "approve")
+        _, decision = self.decision(investor_endpoint, prepared.json()["uuid"], "apply")
+        self.assertEqual(
+            self.client.post(
+                f"{investor_endpoint}{prepared.json()['uuid']}/decide/", decision, format="json"
+            ).status_code,
+            200,
+        )
+        opening.register.refresh_from_db()
+        self.assertEqual((opening.register.sequence, int(opening.register.issued_supply)), (2, 25))
+        self.assertEqual(RegisterPosition.objects.get(register=opening.register).shares, 25)
+        self.assertEqual(RegisterEntry.objects.filter(register=opening.register, kind="issue").count(), 1)
 
     def test_mirror_refuses_incomplete_records_stale_heads_and_later_member_or_share_activity(self):
         endpoint = "/api/v1/tokens/register-imports/"
@@ -222,6 +274,27 @@ class RegisterMirrorTest(CoreFixtures, APITransactionTestCase):
                 authority="company_records",
                 authority_reference="SYNTHETIC-RAW-MIRROR",
                 reason="Malformed copied records",
+                preparing_appointment=self.appointment,
+                correction_of=original,
+                base_sequence=self.token.stored_register.sequence,
+                base_hash=self.token.stored_register.head_hash,
+                submitted_by=self.owner,
+                evidence_fingerprint="",
+                asic_fingerprint="",
+                evidence_snapshot=None,
+            )
+        with self.assertRaises(DatabaseError), register_command(self.owner, self.company.pk, "register_import_prepare"):
+            RegisterImport.objects.create(
+                company=self.company,
+                token=self.token,
+                as_at=timezone.now().date(),
+                members=[],
+                former_members=[],
+                source_reference="SYNTHETIC-EMPTY-CORRECTION",
+                source_confirmed=True,
+                authority="company_records",
+                authority_reference="SYNTHETIC-EMPTY-CORRECTION",
+                reason="Refuse erasing a populated opening",
                 preparing_appointment=self.appointment,
                 correction_of=original,
                 base_sequence=self.token.stored_register.sequence,

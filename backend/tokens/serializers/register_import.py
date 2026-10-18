@@ -62,7 +62,7 @@ class RegisterImportCreateSerializer(serializers.Serializer):
     )
     asic_member_count = serializers.IntegerField(min_value=0, required=False, allow_null=True, default=None)
     as_at = serializers.DateField()
-    members = serializers.ListField(child=serializers.DictField(), allow_empty=False, max_length=10000)
+    members = serializers.ListField(child=serializers.DictField(), allow_empty=True, max_length=10000)
     former_members = serializers.ListField(child=serializers.DictField(), allow_empty=True, max_length=10000)
     reason = serializers.CharField(max_length=1000)
 

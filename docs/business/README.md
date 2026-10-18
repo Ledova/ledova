@@ -57,14 +57,14 @@ target state.
 
 Today the [users](../product.md#1-who-uses-ledova) act as follows.
 
-| Who                                     | What they do today                                                                                                                                                                                                                                                                                                                                                                                                  |
-| --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Company administrators and appointees   | People the company appoints, each with their own account. Within the capabilities their appointment records, they set up and activate the company, appoint the team, run the register, record awards and allotments, decide participant eligibility and wallet approvals, invite members and prepare outputs.                                                                                                       |
-| The registering account (company owner) | The account that registered the company. Ownership grants no appointment and supplies no register decision. It keeps some earlier owner-only workflows: creating share classes, creating and submitting offerings, submitting the directors' register instructions for settled market transfers and retained issues, opening Representative authority and Published to your members. It can also read the register. |
-| Members                                 | People entered on a company's register, with or without an account or a wallet. After accepting a company-issued invitation they read their own particulars, holdings, history and awards, ask the company to change particulars and obtain their own certificates ([member records](member-records.md)). Being a member grants no company authority.                                                               |
-| Investors                               | People with an investing account. They verify their identity, share evidence with a company to obtain its eligibility decision, nominate wallets, apply for offerings and, on the experimental deployment, trade ([participants](participants.md)). One person can be an investor, a member and a company appointee at once.                                                                                        |
-| Platform staff                          | Run hosting, security, integrations, background jobs and support, and recover technical failures. Separately authorised staff handle crypto, screening and payment operations. Staff permissions never count as a company appointment.                                                                                                                                                                              |
-| Automation                              | Validates and applies exact company-approved instructions, signs chain transactions with the platform's operator key, reconciles records and reports failures. It records the human decision behind each effect and never supplies company authority.                                                                                                                                                               |
+| Who                                     | What they do today                                                                                                                                                                                                                                                                                                                                                                          |
+| --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Company administrators and appointees   | People the company appoints, each with their own account. Within the capabilities their appointment records, they set up and activate the company, appoint the team, record share classes through the API, run the register, record awards and allotments, decide participant eligibility and wallet approvals, invite members and prepare outputs.                                         |
+| The registering account (company owner) | The account that registered the company. Ownership grants no appointment and supplies no register decision. It keeps some earlier owner-only workflows: creating and submitting offerings, submitting the directors' register instructions for settled market transfers and retained issues, opening Representative authority and Published to your members. It can also read the register. |
+| Members                                 | People entered on a company's register, with or without an account or a wallet. After accepting a company-issued invitation they read their own particulars, holdings, history and awards, ask the company to change particulars and obtain their own certificates ([member records](member-records.md)). Being a member grants no company authority.                                       |
+| Investors                               | People with an investing account. They verify their identity, share evidence with a company to obtain its eligibility decision, nominate wallets, apply for offerings and, on the experimental deployment, trade ([participants](participants.md)). One person can be an investor, a member and a company appointee at once.                                                                |
+| Platform staff                          | Run hosting, security, integrations, background jobs and support, and recover technical failures. Separately authorised staff handle crypto, screening and payment operations. Staff permissions never count as a company appointment.                                                                                                                                                      |
+| Automation                              | Validates and applies exact company-approved instructions, signs chain transactions with the platform's operator key, reconciles records and reports failures. It records the human decision behind each effect and never supplies company authority.                                                                                                                                       |
 
 Platform staff still perform these tasks, each described where linked:
 
@@ -150,6 +150,8 @@ is recorded, so a revocation that lands first refuses the step and records nothi
 
 These company actions are taken in one step rather than prepared, approved and applied:
 
+- recording a share class through the API, with current personal administration or prepare
+  ([share classes](issuing-shares.md#share-classes));
 - eligibility decisions and revocations, by a person holding approve personally
   ([participants](participants.md#deciding-withdrawing-and-revoking));
 - discrepancy acknowledgements, with administration or approve
@@ -159,10 +161,8 @@ These company actions are taken in one step rather than prepared, approved and a
 - member invitations and revocations of member access, with administration
   ([member records](member-records.md#member-access)).
 
-Two owner workflows also sit outside the pattern: the company owner creates share classes in
-one step ([share classes](issuing-shares.md#share-classes)) and submits the directors'
-instructions for settled market transfers and retained issues, which platform staff review and
-apply ([settled transfers](register.md#settled-transfer-instructions);
+The company owner still submits the directors' instructions for settled market transfers and
+retained issues, which platform staff review and apply ([settled transfers](register.md#settled-transfer-instructions);
 [retained issues](register.md#retained-issue-instructions)).
 
 ### Named directors

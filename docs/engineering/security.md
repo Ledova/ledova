@@ -75,8 +75,9 @@ bounded draft-setup exception
 ([authority rules](../business/companies.md#who-may-administer-a-company)) through
 `app_company_administration_ids()`, which exposes only company UUIDs. `app_visible_company_ids()`
 and `app_manageable_company_ids()` keep their owner terms for the retained owner workflows
-(offerings, capital effects and share-class creation), which recheck the live owner and active
-actor under company-first locks.
+(offerings and capital effects), which recheck the live owner and active actor under company-first
+locks. Share-class creation instead selects a current personal administrator or preparer and
+rechecks that authority inside the locked register command (`backend/tokens/services/creation.py`).
 
 App writes to Company, CompanyDocument, authority requests, appointments, invitations and
 legacy-owner sources are denied; the actor-bound services in `companies/services/`

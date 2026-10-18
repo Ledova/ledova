@@ -145,7 +145,7 @@ def _allotments(rows, shares, as_at):
 
 def _rows(members, former_members, as_at):
     try:
-        if not isinstance(members, list) or not members or not isinstance(former_members, list):
+        if not isinstance(members, list) or not isinstance(former_members, list):
             raise ValueError
         current = []
         for row in members:
@@ -196,6 +196,26 @@ def _rows(members, former_members, as_at):
 
 def _opening(token):
     return RegisterEntry.objects.filter(register__token=token, kind=RegisterEntryKind.OPENING).first()
+
+
+def _empty_opening_requirements(proposal):
+    if proposal.members:
+        return []
+    token = proposal.token
+    if (
+        proposal.correction_of_id is not None
+        or proposal.former_members
+        or _opening(token) is not None
+        or token.status != "draft"
+        or token.contract_address
+        or token.deployment_id
+        or token.deployment_transaction_id
+        or token.deployment_tx_hash
+        or token.deployed_at
+        or token.chain
+    ):
+        return ["empty_non_tokenised_opening_required"]
+    return []
 
 
 def _check_openable(token):
@@ -395,6 +415,11 @@ def prepare_import(
                 if any(getattr(existing, key) != value for key, value in expected.items()):
                     raise RegisterChangeConflict()
                 return existing, False
+            unmet = _empty_opening_requirements(
+                RegisterImport(token=token, members=current, former_members=former, correction_of_id=correction_of)
+            )
+            if unmet:
+                raise ValidationError({"unmet_requirements": unmet})
             opening = _opening(token)
             base_sequence, base_hash = None, ""
             if correction_of is not None:
@@ -543,7 +568,7 @@ def _open(proposal, token, actor):
 def _effect_requirements(proposal):
     from tokens.services.register_deployments import pending_deployment
 
-    unmet = []
+    unmet = _empty_opening_requirements(proposal)
     if pending_deployment(proposal.token):
         unmet.append("deployment_pending")
     try:
