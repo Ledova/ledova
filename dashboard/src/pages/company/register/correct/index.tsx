@@ -19,7 +19,7 @@ import { READ_TIMING } from '@hooks/useRegisterAccess';
 import { useRegisterClasses } from '@pages/company/shared/useCompanyRegister';
 import { entriesKey, readClassEntry } from '@pages/company/register/shared/useRegisterEntries';
 import { ownerGuard } from '@pages/company/register/shared/ownerGuard';
-import { useOwnAppointments } from '@pages/company/register/shared/useOwnAppointments';
+import { useOwnAppointments } from '@pages/company/shared/useOwnAppointments';
 import { CorrectionForm } from './CorrectionForm';
 
 const COPY = REGISTER_CORRECTION_COPY;

@@ -10,7 +10,7 @@ import {
 import { PageAction } from '@components/Page';
 import { AwardForm } from './AwardForm';
 import { AwardRecord } from './AwardRecord';
-import { useOwnAppointments } from '@pages/company/register/shared/useOwnAppointments';
+import { useOwnAppointments } from '@pages/company/shared/useOwnAppointments';
 import { useTransferMembers } from '@pages/company/register/shared/useRegisterTransfers';
 import { useRegisterAwards } from '@pages/company/register/shared/useRegisterAwards';
 

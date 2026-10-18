@@ -38,7 +38,7 @@ import { Loading, Unavailable } from '@pages/company/shared/RegisterStatus';
 import { registerKey } from '@hooks/useRegisterAccess';
 import { registersQuery, useCompanyRegister, useRegisterDownload } from '@pages/company/shared/useCompanyRegister';
 import { ownerGuard } from '@pages/company/register/shared/ownerGuard';
-import { useOwnAppointments } from '@pages/company/register/shared/useOwnAppointments';
+import { useOwnAppointments } from '@pages/company/shared/useOwnAppointments';
 
 const ON_CHAIN = ['deployed', 'paused'];
 const TASKS = [

@@ -19,7 +19,7 @@ import { PageAction } from '@components/Page';
 import { FIELD_CLASS, LABEL } from '@components/fieldClass';
 import { ownAppointmentsKey } from '@pages/company/shared/appointments';
 import { reconciliationKey, useLatestReconciliation } from './useLatestReconciliation';
-import { useOwnAppointments } from '@pages/company/register/shared/useOwnAppointments';
+import { useOwnAppointments } from '@pages/company/shared/useOwnAppointments';
 
 type Holders = TokenHoldersResponse['holders'];
 type Field = keyof typeof REGISTER_RECONCILIATION_COPY.FIELDS;
