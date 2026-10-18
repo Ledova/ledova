@@ -313,7 +313,7 @@ it('retains original award, vesting and linked issue preparations through interr
       decisions: [],
       createdAt: '2026-10-07T00:00:00Z',
     };
-    throw new Error('Response interrupted after preparation');
+    return { data: { ...retainedGrant, termsFingerprint: 'c'.repeat(64) } };
   });
   function Returned() {
     const location = useLocation();
@@ -366,9 +366,10 @@ it('retains original award, vesting and linked issue preparations through interr
       [GRANT.REASON, 'Issue recorded vested shares'],
     ])
       fireEvent.change(screen.getByLabelText(label), { target: { value } });
-    for (const label of [GRANT.AUTHORITY_DOCUMENT, GRANT.TERMS_DOCUMENT])
-      fireEvent.change(screen.getByLabelText(label), { target: { files: [FILE] } });
+    fireEvent.change(screen.getByLabelText(GRANT.AUTHORITY_DOCUMENT), { target: { files: [FILE] } });
   };
+  expect(screen.queryByLabelText(GRANT.TERMS_DOCUMENT)).toBeNull();
+  expect(screen.getByText('The retained award agreement will be used for this issue.')).toBeTruthy();
   expect((screen.getByLabelText(GRANT.COMPANY_EVENT_ON) as HTMLInputElement).value).toBe('');
   fillGrant();
   fireEvent.change(screen.getByLabelText(GRANT.COMPANY_EVENT_ON), { target: { value: '' } });
@@ -383,13 +384,23 @@ it('retains original award, vesting and linked issue preparations through interr
       award: awards[0].uuid,
       member: awards[0].member,
       shares: '10',
+      termsEvidence: awards[0].agreementEvidence,
       companyEventOn: '2026-10-06',
       newMember: true,
     }),
   );
   expect((screen.getByLabelText(GRANT.SHARES).closest('fieldset') as HTMLFieldSetElement).disabled).toBe(true);
+  const retainedAward = awards[0];
+  const retainedReceipt = retainedGrant!;
+  awards = [{ ...retainedAward, agreementEvidence: 'changed-agreement', agreementFingerprint: 'd'.repeat(64) }];
+  retainedGrant = { ...retainedReceipt, termsFingerprint: 'c'.repeat(64) };
   canPrepare = false;
   preparedView.rerender(preparation());
+  fireEvent.click(recover);
+  await screen.findByRole('alert');
+  expect(screen.queryByTestId('return-context')).toBeNull();
+  expect(submissions(URLS.REGISTER_GRANTS)).toEqual([original]);
+  retainedGrant = retainedReceipt;
   fireEvent.click(recover);
   expect((await screen.findByTestId('return-context')).textContent).toBe(
     JSON.stringify({
@@ -399,7 +410,8 @@ it('retains original award, vesting and linked issue preparations through interr
     }),
   );
   expect(submissions(URLS.REGISTER_GRANTS)).toEqual([original]);
-  expect(submissions(URLS.REGISTER_EVIDENCE)).toHaveLength(4);
+  expect(submissions(URLS.REGISTER_EVIDENCE)).toHaveLength(3);
+  awards = [retainedAward];
   expect(awards[0].issuedShares).toBe('0');
   await screen.findByText('Next: review and approve the exact share issue.');
   expect((screen.getByLabelText('Company') as HTMLSelectElement).value).toBe(APPOINTMENT.company);
@@ -494,7 +506,7 @@ it('retains original award, vesting and linked issue preparations through interr
   expect(screen.queryByRole('button', { name: 'Recover original grant preparation' })).toBeNull();
   expect(submissions(URLS.REGISTER_GRANTS)).toEqual([absentOriginal, absentOriginal]);
   expect(api.get.mock.calls.filter(([url]) => url === URLS.REGISTER_GRANTS)).toHaveLength(beforeLookup + 2);
-  expect(submissions(URLS.REGISTER_EVIDENCE)).toHaveLength(2);
+  expect(submissions(URLS.REGISTER_EVIDENCE)).toHaveLength(1);
   expect(awards[0].issuedShares).toBe('10');
 });
 

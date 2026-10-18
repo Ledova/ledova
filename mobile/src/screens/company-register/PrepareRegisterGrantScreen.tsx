@@ -108,7 +108,12 @@ function PrepareRegisterGrant({ epoch }: { epoch: number }) {
   const pending = useRef(false);
   const [held, setHeld] = useState(false);
   const [completed, setCompleted] = useState(false);
-  const operation = useRef<{ request: RegisterGrantPreparation; confirmed: boolean; uncertain: boolean } | null>(null);
+  const operation = useRef<{
+    request: RegisterGrantPreparation;
+    agreementFingerprint?: string;
+    confirmed: boolean;
+    uncertain: boolean;
+  } | null>(null);
   const { owner, boundary } = useSubmissionOwner(orderSubmissionSession);
   const preferenceRead = useUserPreferences();
   useLayoutEffect(() => {
@@ -137,8 +142,10 @@ function PrepareRegisterGrant({ epoch }: { epoch: number }) {
               ? 'Enter a terms date as YYYY-MM-DD, today (UTC) or earlier.'
               : !summary || !approvingDirector.trim() || !authorityReference.trim() || !reason.trim()
                 ? 'Give the non-paid terms, approving director, authority reference and reason.'
-                : !authority.name || !retainedTerms.name || (acceptanceRequired && !acceptance.name)
-                  ? 'Choose the authority, terms and any required acceptance documents.'
+                : !authority.name || (!fixed && !retainedTerms.name) || (acceptanceRequired && !acceptance.name)
+                  ? fixed
+                    ? 'Choose the authority and any required acceptance documents.'
+                    : 'Choose the authority, terms and any required acceptance documents.'
                   : null;
   const busy = submitting || authority.busy || retainedTerms.busy || acceptance.busy;
   const fetching =
@@ -204,7 +211,7 @@ function PrepareRegisterGrant({ epoch }: { epoch: number }) {
       throw new Error('Refresh the register and your current company authority.');
     if (awardUuid) awardGuard();
   };
-  const lookup = async (request: RegisterGrantPreparation) => {
+  const lookup = async (request: RegisterGrantPreparation, agreementFingerprint?: string) => {
     const rows = await readEveryPage(async (page) => {
       guard();
       const response = await getRegisterGrants(
@@ -221,7 +228,7 @@ function PrepareRegisterGrant({ epoch }: { epoch: number }) {
     if (rows.some((row) => row.company !== companyUuid || row.token !== tokenUuid))
       throw createUserFriendlyError('The grants did not identify this company and share class.');
     const original = rows.find((row) => row.uuid === request.operationId);
-    if (original && !isPreparedRegisterGrant(original, request))
+    if (original && !isPreparedRegisterGrant(original, request, agreementFingerprint))
       throw createUserFriendlyError(COPY.PREPARATION_RECEIPT_FAILED);
     return original;
   };
@@ -236,10 +243,19 @@ function PrepareRegisterGrant({ epoch }: { epoch: number }) {
       if (!command) {
         const appointment = steps?.prepare;
         if (!appointment) throw createUserFriendlyError('Current preparation authority is required.');
+        const agreement = fixed ? { evidence: fixed.agreementEvidence, fingerprint: fixed.agreementFingerprint } : null;
+        if (
+          agreement &&
+          (typeof agreement.evidence !== 'string' ||
+            !agreement.evidence.trim() ||
+            typeof agreement.fingerprint !== 'string' ||
+            !/^[0-9a-f]{64}$/.test(agreement.fingerprint))
+        )
+          throw createUserFriendlyError('The retained award agreement could not be confirmed. Refresh the award.');
         const retainedAuthority = await authority.upload(appointment.uuid, guard);
-        const retained = await retainedTerms.upload(appointment.uuid, guard);
-        if (fixed && retained.sha256 !== fixed.agreementFingerprint)
-          throw createUserFriendlyError('Upload the same agreement document retained for this award.');
+        const termsEvidence = agreement
+          ? agreement.evidence
+          : (await retainedTerms.upload(appointment.uuid, guard)).uuid;
         const accepted = acceptanceRequired ? await acceptance.upload(appointment.uuid, guard) : null;
         const request: RegisterGrantPreparation = {
           operationId: Crypto.randomUUID(),
@@ -257,17 +273,17 @@ function PrepareRegisterGrant({ epoch }: { epoch: number }) {
           authorityReference: authorityReference.trim(),
           reason: reason.trim(),
           authorityEvidence: retainedAuthority.uuid,
-          termsEvidence: retained.uuid,
+          termsEvidence,
           acceptanceRequired,
           acceptanceEvidence: accepted?.uuid ?? null,
         };
-        command = { request, confirmed: false, uncertain: false };
+        command = { request, agreementFingerprint: agreement?.fingerprint, confirmed: false, uncertain: false };
         operation.current = command;
         setHeld(true);
       }
       let absent = false;
       if (command.uncertain && !command.confirmed) {
-        command.confirmed = !!(await lookup(command.request));
+        command.confirmed = !!(await lookup(command.request, command.agreementFingerprint));
         absent = !command.confirmed;
       }
       if (!command.confirmed) {
@@ -278,13 +294,13 @@ function PrepareRegisterGrant({ epoch }: { epoch: number }) {
             ledovaSubmissionGuard: guard,
           });
           guard();
-          if (!isPreparedRegisterGrant(response.data, command.request))
+          if (!isPreparedRegisterGrant(response.data, command.request, command.agreementFingerprint))
             throw createUserFriendlyError(COPY.PREPARATION_RECEIPT_FAILED);
           command.confirmed = true;
         } catch (failure) {
           const status = failureStatus(failure);
           if (!absent || !status || status < 400 || status >= 500) throw failure;
-          command.confirmed = !!(await lookup(command.request));
+          command.confirmed = !!(await lookup(command.request, command.agreementFingerprint));
           if (!command.confirmed) {
             operation.current = null;
             setHeld(false);
@@ -527,13 +543,15 @@ function PrepareRegisterGrant({ epoch }: { epoch: number }) {
           disabled={busy || held}
           onPick={() => void pick(authority)}
         />
-        <EvidencePicker
-          title={COPY.TERMS_DOCUMENT}
-          noun="terms document"
-          evidence={retainedTerms}
-          disabled={busy || held}
-          onPick={() => void pick(retainedTerms)}
-        />
+        {!fixed && (
+          <EvidencePicker
+            title={COPY.TERMS_DOCUMENT}
+            noun="terms document"
+            evidence={retainedTerms}
+            disabled={busy || held}
+            onPick={() => void pick(retainedTerms)}
+          />
+        )}
         {acceptanceRequired && (
           <EvidencePicker
             title={COPY.ACCEPTANCE_DOCUMENT}
@@ -544,11 +562,7 @@ function PrepareRegisterGrant({ epoch }: { epoch: number }) {
           />
         )}
         <Text style={styles.muted}>{COPY.PROVIDED_BY_COMPANY}</Text>
-        {fixed && (
-          <Text style={styles.muted}>
-            Choose the same agreement bytes as the award’s retained agreement for the terms document.
-          </Text>
-        )}
+        {fixed && <Text style={styles.muted}>The retained award agreement will be used for this issue.</Text>}
         {problem && <Text style={styles.muted}>{problem}</Text>}
         {error && (
           <Text accessibilityRole="alert" style={styles.error}>

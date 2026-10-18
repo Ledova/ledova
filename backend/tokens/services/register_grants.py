@@ -166,6 +166,7 @@ def prepare_grant(
             if token is None:
                 raise NotFound("Share class not found.")
             list(ShareRegister.objects.select_for_update().filter(token=token).values_list("uuid", flat=True))
+            promised = None
             if award is not None:
                 promised = RegisterAward.objects.select_for_update().filter(pk=award, company=company).first()
                 if promised is None:
@@ -229,12 +230,35 @@ def prepare_grant(
                 if reference is None:
                     continue
                 evidence = RegisterEvidence.objects.select_for_update().filter(pk=reference).first()
-                raw = own_evidence_bytes(
-                    evidence, kind, company, current_actor, "Name the required evidence you uploaded for this company."
-                )
+                if prefix == "terms_" and promised is not None and reference == promised.agreement_evidence_id:
+                    if evidence is None or (
+                        evidence.kind,
+                        evidence.company_id,
+                        evidence.sha256,
+                        evidence_snapshot(evidence),
+                    ) != (
+                        RegisterEvidenceKind.SUPPORTING,
+                        company.pk,
+                        promised.agreement_fingerprint,
+                        promised.agreement_snapshot,
+                    ):
+                        raise ValidationError("The retained award agreement no longer matches its evidence.")
+                    raw = matching_bytes(
+                        promised.file, promised.agreement_snapshot["file_size"], promised.agreement_fingerprint
+                    )
+                    fingerprint, snapshot = promised.agreement_fingerprint, promised.agreement_snapshot
+                else:
+                    raw = own_evidence_bytes(
+                        evidence,
+                        kind,
+                        company,
+                        current_actor,
+                        "Name the required evidence you uploaded for this company.",
+                    )
+                    fingerprint, snapshot = evidence.sha256, evidence_snapshot(evidence)
                 setattr(proposal, "authority_evidence" if not prefix else f"{prefix}evidence", evidence)
-                setattr(proposal, f"{prefix}fingerprint" if prefix else "evidence_fingerprint", evidence.sha256)
-                setattr(proposal, f"{prefix}snapshot" if prefix else "evidence_snapshot", evidence_snapshot(evidence))
+                setattr(proposal, f"{prefix}fingerprint" if prefix else "evidence_fingerprint", fingerprint)
+                setattr(proposal, f"{prefix}snapshot" if prefix else "evidence_snapshot", snapshot)
                 getattr(proposal, f"{prefix}file").save("evidence.bin", ContentFile(raw), save=False)
             unmet = _award_requirements(proposal)
             if unmet:
