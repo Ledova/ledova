@@ -545,13 +545,11 @@ FRAMEWORK = {
     "token_blacklist_outstandingtoken": "Issued refresh tokens, read during authentication, before a "
     "principal exists.",
     "token_blacklist_blacklistedtoken": "Revoked refresh tokens, read during authentication for the same reason.",
-    "procrastinate_jobs": "The worker queue. The worker, and plain defers made inside it, use procrastinate's own "
-    "connection on the operator alias, and plain defers in web processes use Django's operator-alias connection, "
-    "both as the operator role; staff read it in admin on the operator connection. Producers whose job must "
-    "commit with their own transaction defer through DjangoConnector(alias=current_alias()): "
-    "compliance/services/transaction_monitoring.py queue_new_transaction and "
-    "wallets/services/transaction_confirmation.py _notify_wallet_users do so on the app connection when they act "
-    "for a user, and the register, wallet and execution commands on the operator connection.",
+    "procrastinate_jobs": "The worker queue. The worker uses procrastinate's own operator-alias connection, and "
+    "staff read it in admin on the operator connection. Producers enqueue through shared/tasks/queue.py defer "
+    "on their current or captured Django alias: transactional producers share that transaction, while deliberate "
+    "on_commit callbacks enqueue after its commit using the captured alias. Company and execution commands defer "
+    "on the operator connection; producers acting for a user defer on the app connection.",
     "procrastinate_events": "Worker job history, inserted by procrastinate's triggers on procrastinate_jobs as "
     "whichever role changes the job, so the app role writes it whenever it defers.",
     "procrastinate_periodic_defers": "Worker schedule bookkeeping, with no tenant in it at all.",
