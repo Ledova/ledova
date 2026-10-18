@@ -14,13 +14,15 @@ import {
 } from '@ledova/shared';
 import { Page } from '@components/Page';
 import { PageTitle } from '@components/PageTitle';
-import { Loading, Unavailable } from '../RegisterStatus';
-import { registerSteps, type RegisterSteps } from '../proposals';
+import { Loading, Unavailable } from '@pages/company/shared/RegisterStatus';
+import { registerSteps, type RegisterSteps } from '@pages/company/shared/proposals';
 import { READ_TIMING, registerKey } from '@hooks/useRegisterAccess';
-import { readRegister, useRegisterClasses } from '../useCompanyRegister';
-import { importsKey, ownerGuard, useOwnAppointments, useRegisterImports } from '../useRegisterImports';
-import { ownAppointmentsKey } from '../../team/appointments';
-import { transferMembersKey, useTransferMembers } from '../useRegisterTransfers';
+import { readRegister, useRegisterClasses } from '@pages/company/shared/useCompanyRegister';
+import { importsKey, useRegisterImports } from '@pages/company/register/shared/useRegisterImports';
+import { ownerGuard } from '@pages/company/register/shared/ownerGuard';
+import { useOwnAppointments } from '@pages/company/register/shared/useOwnAppointments';
+import { ownAppointmentsKey } from '@pages/company/shared/appointments';
+import { transferMembersKey, useTransferMembers } from '@pages/company/register/shared/useRegisterTransfers';
 import { ImportForm } from './ImportForm';
 import { NewClassSetup } from './NewClassSetup';
 

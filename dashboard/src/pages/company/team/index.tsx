@@ -23,7 +23,13 @@ import apiClient from '@services/apiClient';
 import { AcceptInvitationForm } from './AcceptInvitationForm';
 import { AppointmentRecord } from './AppointmentRecord';
 import { TeamInvitationForm } from './TeamInvitationForm';
-import { appointmentReceipt, currentAppointment, ownAppointmentsKey, sameScope, scopeLabels } from './appointments';
+import {
+  appointmentReceipt,
+  currentAppointment,
+  ownAppointmentsKey,
+  sameScope,
+  scopeLabels,
+} from '@pages/company/shared/appointments';
 
 export default function CompanyTeamPage() {
   const { owner, boundary } = useSubmissionOwner();

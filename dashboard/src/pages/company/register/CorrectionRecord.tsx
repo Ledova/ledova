@@ -10,12 +10,18 @@ import {
 import { Row, Rows, Status } from '@components/Ledger';
 import { PageAction } from '@components/Page';
 import apiClient from '@services/apiClient';
-import { DecisionTrail } from './DecisionTrail';
-import { RegisterChanges } from './RegisterChanges';
-import { RegisterDecisions } from './RegisterDecisions';
-import { DOWNLOAD_FAILED, STAGE_TONES, describeEntry, retainedName, type RegisterSteps } from './proposals';
+import { DecisionTrail } from '@pages/company/register/shared/DecisionTrail';
+import { RegisterChanges } from '@pages/company/register/shared/RegisterChanges';
+import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
+import {
+  DOWNLOAD_FAILED,
+  STAGE_TONES,
+  describeEntry,
+  retainedName,
+  type RegisterSteps,
+} from '@pages/company/shared/proposals';
 import { saveFile } from '@utils/saveFile';
-import type { ClassCorrection } from './useRegisterCorrections';
+import type { ClassCorrection } from '@pages/company/register/shared/useClassCorrections';
 
 const COPY = REGISTER_CORRECTION_COPY;
 

@@ -22,8 +22,8 @@ import {
 import { PageAction } from '@components/Page';
 import { FIELD_CLASS, LABEL } from '@components/fieldClass';
 import apiClient from '@services/apiClient';
-import { WalletStatus } from '../WalletStatus';
-import { linksKey } from '../useRegisterLinks';
+import { WalletStatus } from '@pages/company/register/shared/WalletStatus';
+import { linksKey } from '@pages/company/register/shared/useRegisterLinks';
 
 type Draft = {
   file: File | null;

@@ -16,9 +16,9 @@ import {
 import { Page, PageAction } from '@components/Page';
 import { Row, Rows, Section, Status, SwitchRow } from '@components/Ledger';
 import apiClient from '@services/apiClient';
-import { useCompany } from '../hooks/useCompany';
-import { CompanySelection } from '../CompanySelection';
-import { CompanyReadNotice } from '../CompanyState';
+import { useCompany } from '@pages/company/shared/useCompany';
+import { CompanySelection } from '@pages/company/shared/CompanySelection';
+import { CompanyReadNotice } from '@pages/company/shared/CompanyState';
 import { useOfferingActions, useOfferings } from './useOffering';
 import { OfferingReadNotice } from './OfferingReadNotice';
 import { OfferingDocumentsEditor } from './OfferingDocumentsEditor';

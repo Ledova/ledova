@@ -25,7 +25,7 @@ import {
 import { PageAction } from '@components/Page';
 import { FIELD_CLASS, LABEL } from '@components/fieldClass';
 import apiClient from '@services/apiClient';
-import { grantsKey } from '../useRegisterGrants';
+import { grantsKey } from '@pages/company/register/shared/useRegisterGrants';
 
 type DocumentKind = 'authority' | 'terms' | 'acceptance';
 type Uploaded = { file: File; appointment: string; key: string; receipt: RegisterEvidence | null };

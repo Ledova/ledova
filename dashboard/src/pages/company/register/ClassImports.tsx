@@ -9,12 +9,13 @@ import {
 } from '@ledova/shared';
 import { LinkRow } from '@components/Ledger';
 import { PageAction } from '@components/Page';
-import { ownAppointmentsKey } from '../team/appointments';
+import { ownAppointmentsKey } from '@pages/company/shared/appointments';
 import { ImportRecord } from './ImportRecord';
-import { registerSteps } from './proposals';
+import { registerSteps } from '@pages/company/shared/proposals';
 import { registerKey } from '@hooks/useRegisterAccess';
-import { entriesKey } from './useRegisterCorrections';
-import { importsKey, useOwnAppointments, useRegisterImports } from './useRegisterImports';
+import { entriesKey } from '@pages/company/register/shared/useRegisterEntries';
+import { importsKey, useRegisterImports } from '@pages/company/register/shared/useRegisterImports';
+import { useOwnAppointments } from '@pages/company/register/shared/useOwnAppointments';
 
 export function ClassImports({
   owner,

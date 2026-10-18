@@ -12,7 +12,7 @@ import {
   type TokenType,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
-import { CompanyReadNotice, type CompanyActionRead } from './CompanyState';
+import { CompanyReadNotice, type CompanyActionRead } from '@pages/company/shared/CompanyState';
 import { FIELD_CLASS } from '@components/fieldClass';
 
 const EDIT_FIELDS = [

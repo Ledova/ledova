@@ -12,15 +12,15 @@ import {
 } from '@ledova/shared';
 import { LinkRow } from '@components/Ledger';
 import { PageAction } from '@components/Page';
-import { ownAppointmentsKey } from '../team/appointments';
+import { ownAppointmentsKey } from '@pages/company/shared/appointments';
 import { GrantRecord } from './GrantRecord';
-import { registerSteps } from './proposals';
+import { registerSteps } from '@pages/company/shared/proposals';
 import { registerKey } from '@hooks/useRegisterAccess';
-import { entriesKey } from './useRegisterCorrections';
-import { useOwnAppointments } from './useRegisterImports';
-import { grantsKey, useRegisterGrants } from './useRegisterGrants';
-import { awardsKey } from './useRegisterAwards';
-import { transferMembersKey } from './useRegisterTransfers';
+import { entriesKey } from '@pages/company/register/shared/useRegisterEntries';
+import { useOwnAppointments } from '@pages/company/register/shared/useOwnAppointments';
+import { grantsKey, useRegisterGrants } from '@pages/company/register/shared/useRegisterGrants';
+import { awardsKey } from '@pages/company/register/shared/useRegisterAwards';
+import { transferMembersKey } from '@pages/company/register/shared/useRegisterTransfers';
 
 export function ClassGrants({
   owner,

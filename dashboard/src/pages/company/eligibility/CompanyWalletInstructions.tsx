@@ -13,7 +13,7 @@ import { Row, Rows, Section } from '@components/Ledger';
 import { PageAction } from '@components/Page';
 import { FIELD_CLASS } from '@components/fieldClass';
 import apiClient from '@services/apiClient';
-import { RegisterDecisions } from '@pages/company/register/RegisterDecisions';
+import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
 
 type Read = ReturnType<typeof useCompanyWalletInstructions>;
 function Snapshot({ snapshot }: { snapshot: CompanyWalletInstruction['snapshot'] }) {

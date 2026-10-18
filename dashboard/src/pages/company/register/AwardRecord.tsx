@@ -14,10 +14,14 @@ import { LinkRow, Row, Rows } from '@components/Ledger';
 import { PageAction } from '@components/Page';
 import { AwardStatus } from '@components/AwardStatus';
 import apiClient from '@services/apiClient';
-import { retainedName, shareCount } from '../proposals';
+import { retainedName, shareCount } from '@pages/company/shared/proposals';
 import { saveFile } from '@utils/saveFile';
-import { awardsKey, awardVestingsKey, useRegisterAwardVestings } from '../useRegisterAwards';
-import { ownAppointmentsKey } from '../../team/appointments';
+import {
+  awardsKey,
+  awardVestingsKey,
+  useRegisterAwardVestings,
+} from '@pages/company/register/shared/useRegisterAwards';
+import { ownAppointmentsKey } from '@pages/company/shared/appointments';
 import { AwardVestingForm } from './AwardVestingForm';
 
 const SUMMARY = 'cursor-pointer py-2 text-sm font-medium text-text-primary';

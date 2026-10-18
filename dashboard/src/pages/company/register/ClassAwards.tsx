@@ -8,11 +8,11 @@ import {
   type TokenHoldersResponse,
 } from '@ledova/shared';
 import { PageAction } from '@components/Page';
-import { AwardForm } from './awards/AwardForm';
-import { AwardRecord } from './awards/AwardRecord';
-import { useOwnAppointments } from './useRegisterImports';
-import { useTransferMembers } from './useRegisterTransfers';
-import { useRegisterAwards } from './useRegisterAwards';
+import { AwardForm } from './AwardForm';
+import { AwardRecord } from './AwardRecord';
+import { useOwnAppointments } from '@pages/company/register/shared/useOwnAppointments';
+import { useTransferMembers } from '@pages/company/register/shared/useRegisterTransfers';
+import { useRegisterAwards } from '@pages/company/register/shared/useRegisterAwards';
 
 export function ClassAwards({
   owner,

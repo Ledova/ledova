@@ -8,7 +8,7 @@ import {
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
 import { READ_TIMING, registerKey } from '@hooks/useRegisterAccess';
-import { firstOfEach } from './useRegisterCorrections';
+import { firstOfEach } from './registerReads';
 
 export function openingsKey(owner: OrderSubmissionOwner, token: string) {
   return [...registerKey(owner), 'openings', token];

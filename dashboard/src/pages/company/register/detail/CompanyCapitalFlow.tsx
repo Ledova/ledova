@@ -22,9 +22,9 @@ import { Row, Rows, Section } from '@components/Ledger';
 import { PageAction } from '@components/Page';
 import { FIELD_CLASS } from '@components/fieldClass';
 import apiClient from '@services/apiClient';
-import { RegisterDecisions } from '@pages/company/register/RegisterDecisions';
+import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
 import { saveFile } from '@utils/saveFile';
-import { DecisionTrail } from '@pages/company/register/DecisionTrail';
+import { DecisionTrail } from '@pages/company/register/shared/DecisionTrail';
 import type { useShareClass } from './useShareClass';
 
 type Commands = ReturnType<typeof useCompanyCapitalIncreases>;

@@ -20,7 +20,7 @@ import {
 import { PageAction } from '@components/Page';
 import { FIELD_CLASS, LABEL } from '@components/fieldClass';
 import apiClient from '@services/apiClient';
-import { correctionsKey } from '../useRegisterCorrections';
+import { correctionsKey } from '@pages/company/register/shared/useClassCorrections';
 
 type Draft = {
   file: File | null;

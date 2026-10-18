@@ -18,7 +18,7 @@ import {
 import { PageAction } from '@components/Page';
 import { FIELD_CLASS, LABEL } from '@components/fieldClass';
 import apiClient from '@services/apiClient';
-import { particularsKey } from '../useRegisterParticulars';
+import { particularsKey } from '@pages/company/register/shared/useRegisterParticulars';
 
 type Draft = { file: File | null; name: string; address: string; asAt: string; reason: string };
 

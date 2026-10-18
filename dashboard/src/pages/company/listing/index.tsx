@@ -5,9 +5,9 @@ import { Page, PageAction } from '@components/Page';
 import { LinkRow, Row, Rows, Section, Timeline, type TimelineEvent } from '@components/Ledger';
 import { Modal } from '@components/Modal';
 import apiClient from '@services/apiClient';
-import { useCompany } from '../hooks/useCompany';
-import { CompanyReadNotice, CompanyStatusMark } from '../CompanyState';
-import { CompanySelection } from '../CompanySelection';
+import { useCompany } from '@pages/company/shared/useCompany';
+import { CompanyReadNotice, CompanyStatusMark } from '@pages/company/shared/CompanyState';
+import { CompanySelection } from '@pages/company/shared/CompanySelection';
 
 export default function ListingPage() {
   const read = useCompany({ personalOnly: true });

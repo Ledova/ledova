@@ -15,7 +15,7 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { APPOINTMENT, AWARD_REQUEST, REGISTER, awardFrom, vestingFrom } from '../../../testSupport/company';
 import { ClassAwards } from './ClassAwards';
 import { GrantForm } from './grant/GrantForm';
-import { ownAppointmentsKey } from '../team/appointments';
+import { ownAppointmentsKey } from '@pages/company/shared/appointments';
 import apiClient from '@services/apiClient';
 import CompanyRegisterPage from '.';
 import { companyPreferences, prepareCompanyClient } from '../../../testSupport/company';

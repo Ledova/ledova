@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { getCompanyTokens, readEveryPage } from '@ledova/shared';
 import apiClient from '@services/apiClient';
-import type { CompanyActionRead } from '../CompanyState';
+import type { CompanyActionRead } from './CompanyState';
 
 export function useTokensList(companyUuid: string | undefined, read: CompanyActionRead) {
   return useQuery({

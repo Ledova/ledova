@@ -8,7 +8,7 @@ import {
 import { FIELD_CLASS, LABEL } from '@components/fieldClass';
 import { PageAction } from '@components/Page';
 import apiClient from '@services/apiClient';
-import { appointmentReceipt } from './appointments';
+import { appointmentReceipt } from '@pages/company/shared/appointments';
 
 export function AcceptInvitationForm({
   disabled,
