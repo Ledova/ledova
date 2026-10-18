@@ -1,3 +1,4 @@
+from importlib import import_module
 from uuid import uuid4
 
 from django.conf import settings
@@ -9,8 +10,11 @@ from django.utils import timezone
 from rest_framework.test import APIClient, APITransactionTestCase
 
 from companies.services.team import revoke_company_appointment
+from compliance.models import MonitoringRule
 from shared.db import (
     APP_ALIAS,
+    MIGRATE_ALIAS,
+    OPERATOR_ALIAS,
     atomic,
     principal_of,
     reset_principal,
@@ -70,6 +74,48 @@ class ScopedAccessTest(CoreFixtures, APITransactionTestCase):
         with CaptureQueriesContext(connections[APP_ALIAS]) as queries:
             self.sign_in(self.owner)
         self.assertTrue(any('"users_userprofile"' in item["sql"] for item in queries))
+        rule = MonitoringRule.objects.using(OPERATOR_ALIAS).create(
+            rule_code="SYNTHETIC-PRIVATE",
+            name="Synthetic operator-only rule",
+            description="Private operator screening configuration",
+            rule_type="threshold",
+        )
+        privileges = ["SELECT", "INSERT", "UPDATE", "DELETE"]
+        privilege_query = (
+            "SELECT has_table_privilege(current_user, 'public.compliance_monitoringrule', privilege) "
+            "FROM unnest(%s::text[]) AS privilege"
+        )
+
+        def assert_monitoring_rules_private():
+            with connections[APP_ALIAS].cursor() as cursor:
+                cursor.execute(privilege_query, [privileges])
+                self.assertEqual(cursor.fetchall(), [(False,)] * 4)
+            with self.assertRaises(ProgrammingError) as read:
+                MonitoringRule.objects.using(APP_ALIAS).get(pk=rule.pk)
+            self.assertEqual(read.exception.__cause__.sqlstate, "42501")
+            self.assertEqual(MonitoringRule.objects.using(OPERATOR_ALIAS).get(pk=rule.pk).name, rule.name)
+
+        assert_monitoring_rules_private()
+        migration = import_module("shared.migrations.0011_remove_unused_monitoring_rule_grant")
+        migration_connection = connections[MIGRATE_ALIAS]
+        with migration_connection.cursor() as cursor:
+            cursor.execute("SELECT quote_ident(%s)", [settings.RLS_ROLES["app"]])
+            quoted_app = cursor.fetchone()[0]
+        try:
+            with migration_connection.cursor() as cursor:
+                cursor.execute(
+                    f"GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.compliance_monitoringrule TO {quoted_app}"
+                )
+            with connections[APP_ALIAS].cursor() as cursor:
+                cursor.execute(privilege_query, [privileges])
+                self.assertEqual(cursor.fetchall(), [(True,)] * 4)
+            for _ in range(2):
+                with migration_connection.schema_editor() as schema_editor:
+                    migration.revoke_monitoring_rule_app_access(None, schema_editor)
+                assert_monitoring_rules_private()
+        finally:
+            with migration_connection.cursor() as cursor:
+                cursor.execute(f"REVOKE ALL PRIVILEGES ON TABLE public.compliance_monitoringrule FROM {quoted_app}")
         response = self.client.get("/api/auth/verify/")
         self.assertEqual(response.status_code, 200, response.content)
         self.assertTrue(response.json()["valid"])
