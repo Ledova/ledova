@@ -76,7 +76,6 @@ Where today's code differs from these standards:
 
 - Personal/wallet data calls and their keys still need
   [#1072](https://github.com/Ledova/ledova/issues/1072).
-  [#1072](https://github.com/Ledova/ledova/issues/1072).
 - Existing unscoped account-bound keys stay unchanged; broader account scoping needs the owner
   decision on [#1065](https://github.com/Ledova/ledova/issues/1065).
 
