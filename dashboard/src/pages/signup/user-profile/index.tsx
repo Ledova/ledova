@@ -1,0 +1,78 @@
+import { useNavigate } from 'react-router-dom';
+import { UserIcon } from '@phosphor-icons/react';
+import LoadingState from '@components/signup/LoadingState';
+import ErrorState from '@components/signup/ErrorState';
+import { UserProfileForm } from '@pages/signup/user-profile/components/UserProfileForm';
+import { useRole } from '@hooks/useRole';
+import { AuthLayout } from '@components/AuthLayout';
+import { useSignupUserProfile } from '@ledova/shared';
+import { ICON_MD } from '@components/iconSizes';
+
+export default function SignupUserProfile() {
+  const navigate = useNavigate();
+  const { isCompany } = useRole();
+  const {
+    form,
+    errors,
+    generalError,
+    isLoading,
+    isSubmitting,
+    formValidation,
+    selectedCountry,
+    countries,
+    setFieldValue,
+    handleCountryChange,
+    handleSubmit,
+    retryLoad,
+  } = useSignupUserProfile();
+
+  const handleSubmitProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await handleSubmit(() => {
+      if (isCompany) {
+        navigate('/signup/company-registration');
+      } else {
+        navigate('/signup/financial-profile');
+      }
+    });
+  };
+
+  const handleBack = () => {
+    navigate('/signup/identity-verification');
+  };
+
+  if (isLoading) {
+    return <LoadingState message="Loading profile data..." />;
+  }
+
+  if (generalError && !form.fullName) {
+    return <ErrorState message="We encountered an issue while loading your profile data." onRetry={retryLoad} />;
+  }
+
+  return (
+    <AuthLayout>
+      <div className="text-center mb-6">
+        <div className="flex justify-center mb-3">
+          <div className="p-2 rounded-full bg-surface-raised border border-border">
+            <UserIcon size={ICON_MD} className="text-text-muted" />
+          </div>
+        </div>
+        <h1 className="font-display text-3xl tracking-[-0.01em] text-text-primary">Personal Details</h1>
+      </div>
+
+      <UserProfileForm
+        form={form}
+        errors={errors}
+        generalError={generalError}
+        isSubmitting={isSubmitting}
+        formValidation={formValidation}
+        selectedCountry={selectedCountry}
+        countries={countries}
+        setFieldValue={setFieldValue}
+        onCountryChange={handleCountryChange}
+        onSubmit={handleSubmitProfile}
+        onBack={handleBack}
+      />
+    </AuthLayout>
+  );
+}

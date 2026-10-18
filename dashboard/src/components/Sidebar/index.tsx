@@ -232,5 +232,3 @@ export function Sidebar({ onNavigate, withNotifications = false }: SidebarProps 
     </aside>
   );
 }
-
-export default Sidebar;

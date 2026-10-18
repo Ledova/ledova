@@ -1,6 +1,6 @@
 import { PageAction } from '@components/Page';
 
-export interface OfferingRead {
+interface OfferingRead {
   error: unknown;
   isRefreshing: boolean;
   refetch: () => unknown;

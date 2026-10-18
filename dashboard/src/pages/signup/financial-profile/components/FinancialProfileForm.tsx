@@ -7,7 +7,7 @@ import RadioGroupField from './RadioGroupField';
 import CheckboxGroupField from './CheckboxGroupField';
 import { AUTH_BUTTON_CLASS, ERROR_BANNER_CLASS } from '@components/fieldClass';
 
-export interface FinancialProfileFormProps {
+interface FinancialProfileFormProps {
   form: FinancialProfileFormState;
   errors: FormErrors;
   generalError: string;

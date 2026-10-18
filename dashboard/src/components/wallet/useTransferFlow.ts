@@ -16,7 +16,7 @@ import apiClient from '@services/apiClient';
 import type { Wallet } from '@ledova/shared';
 import { useCryptoTransferSigning } from './useCryptoTransferSigning';
 
-export type AssetType = 'crypto' | 'stablecoin' | 'share_token';
+type AssetType = 'crypto' | 'stablecoin' | 'share_token';
 
 export interface UnifiedAsset {
   id: string;

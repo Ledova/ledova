@@ -28,7 +28,7 @@ import { Link, MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import CompanyRegisterPage from '.';
 import CompanyDashboardPage from '../dashboard';
-import { ShareClass } from '../classes';
+import { ShareClass } from './detail/ShareClass';
 import CompanyRegisterImportPage from './import';
 import { ImportForm } from './import/ImportForm';
 import { blankAllotment, blankMember, preparationProblems, type MemberDraft } from './import/preparation';

@@ -6,7 +6,7 @@ import { AuthLayout } from '@components/AuthLayout';
 import { ICON_MD } from '@components/iconSizes';
 import { AUTH_BUTTON_CLASS, AUTH_INPUT_CLASS, ERROR_BANNER_CLASS } from '@components/fieldClass';
 
-export function SignInPage() {
+function SignInPage() {
   const navigate = useNavigate();
   const { form, errors, generalError, isLoading, showPassword, setFieldValue, togglePassword, handleSubmit } =
     useSignIn();

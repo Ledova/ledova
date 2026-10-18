@@ -14,8 +14,8 @@ import apiClient from '@services/apiClient';
 import { encodeEthereumMessage, encodeBitcoinMessage } from '@utils/keystone/urEncoder';
 import { DEFAULT_EVM_DERIVATION_PATH, deriveAddress, signEthereumMessage } from '@utils/softwareWallet/localSigner';
 
-export type VerificationStep = 'instructions' | 'show-challenge-qr' | 'scan-signature' | 'sign-software' | 'success';
-export type VerificationMode = 'hardware' | 'software';
+type VerificationStep = 'instructions' | 'show-challenge-qr' | 'scan-signature' | 'sign-software' | 'success';
+type VerificationMode = 'hardware' | 'software';
 
 type VerificationContext = {
   wallet: Wallet;
