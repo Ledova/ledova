@@ -1,26 +1,17 @@
 import hashlib
-from contextlib import contextmanager, nullcontext
-from uuid import UUID
+from contextlib import contextmanager
 
 from django.conf import settings
-from django.contrib.auth import get_user_model
 from django.db import connections
 from django.utils import timezone
 from eth_account import Account
-from rest_framework.exceptions import NotFound, PermissionDenied
 from web3 import Web3
 
 from blockchain.models import OutgoingOperation, OutgoingStatus, SignedAttempt
 from blockchain.services import outgoing
 from companies.models import Company
 from companies.services.administration import company_operation
-from shared.db import (
-    acting_for,
-    atomic,
-    current_alias,
-    use_operator,
-)
-from shared.db.principal import give_the_role_back, take_the_app_role
+from shared.db import atomic, current_alias
 from shared.tasks.queue import defer
 from tokens.exceptions import InvalidTokenStateException, PauseChangeConflict
 from tokens.models import (
@@ -44,26 +35,6 @@ def require_autocommit():
 def require_pausable(token):
     if token.status not in (ShareTokenStatus.DEPLOYED, ShareTokenStatus.PAUSED) or token.chain != "base":
         raise InvalidTokenStateException("Only deployed or paused Base tokens can accept a pause or unpause request.")
-
-
-def _actor(actor_id, authority, *, lock=False):
-    actors = get_user_model().objects
-    actor = (actors.select_for_update() if lock else actors).filter(pk=actor_id).first()
-    if actor is None or not actor.is_active or authority not in PauseAuthority.values:
-        raise PermissionDenied("The pause submission has no current authority.")
-    if authority == PauseAuthority.STAFF and (not actor.is_staff or not actor.has_perm("tokens.change_sharetoken")):
-        raise PermissionDenied("Pausing from administration requires permission to change the token.")
-    return actor
-
-
-def lock_token(token_id, company_id, actor_id, authority):
-    company = Company.objects.select_for_update().filter(pk=company_id).first()
-    token = ShareToken.objects.select_for_update().filter(pk=token_id, company_id=company_id).first()
-    actor = _actor(actor_id, authority, lock=True)
-    if company is None or token is None or (authority == PauseAuthority.ISSUER and company.owner_id != actor.pk):
-        raise PermissionDenied("The issuer no longer owns this token.")
-    token.company = company
-    return token
 
 
 def transaction_intent(token, paused):
@@ -100,34 +71,6 @@ def operation_key(change):
     return f"token-pause:{change.pk}"
 
 
-def _same_submission(change, token, paused, actor_id, authority):
-    if (
-        change.token_id != token.pk
-        or change.company_id != token.company_id
-        or change.paused != paused
-        or change.initiated_by_id != actor_id
-        or change.authority != authority
-    ):
-        raise PauseChangeConflict("This submission already identifies different pause terms or authority.")
-
-
-def submit(token, user, submission_id, paused, *, authority=PauseAuthority.ISSUER):
-    require_autocommit()
-    try:
-        submission_id = UUID(str(submission_id))
-    except (ValueError, TypeError):
-        raise PauseChangeConflict("A pause submission requires a valid UUID.") from None
-    if type(paused) is not bool:
-        raise PauseChangeConflict("The requested pause state must be a boolean.")
-    with use_operator(), atomic(durable=True):
-        previous = PauseChange.objects.filter(pk=submission_id).first()
-        if previous is None or authority != PauseAuthority.ISSUER:
-            raise PauseChangeConflict("New pause requests require the company's retained instruction.")
-        _same_submission(previous, token, paused, user.pk, authority)
-        lock_token(token.pk, token.company_id, user.pk, authority)
-        return previous
-
-
 def admit_company(proposal, actor):
     from tokens.tasks.pause import recover_pause_change
 
@@ -157,36 +100,14 @@ def lock_original(change_id):
     initial = PauseChange.objects.get(pk=change_id)
     Company.objects.select_for_update().filter(pk=initial.company_id).first()
     ShareToken.objects.select_for_update().filter(pk=initial.token_id, company_id=initial.company_id).first()
-    if initial.source_pause_id is not None:
-        RegisterPauseChange.objects.select_for_update().get(pk=initial.source_pause_id)
+    RegisterPauseChange.objects.select_for_update().get(pk=initial.source_pause_id)
     return PauseChange.objects.select_for_update().get(pk=change_id)
-
-
-def retrieve(token, user, submission_id, *, authority=PauseAuthority.ISSUER):
-    with use_operator(), atomic():
-        lock_token(token.pk, token.company_id, user.pk, authority)
-        try:
-            submission_id = UUID(str(submission_id))
-        except (ValueError, TypeError):
-            raise NotFound("Pause submission not found.") from None
-        change = PauseChange.objects.filter(
-            pk=submission_id,
-            token_id=token.pk,
-            company_id=token.company_id,
-            initiated_by_id=user.pk,
-            authority=authority,
-        ).first()
-        if change is None:
-            raise NotFound("Pause submission not found.")
-        return change
 
 
 def check_authority(change):
     from tokens.exceptions import PauseSigningHold
     from tokens.services.register_pause_changes import execution_requirements
 
-    if change.source_pause_id is None:
-        raise PauseSigningHold(["legacy_source_unavailable"])
     unmet = execution_requirements(change.source_pause)
     if unmet:
         raise PauseSigningHold(unmet)
@@ -209,7 +130,7 @@ def record_decision(change, paused, observation):
 def retire_lapsed_source(change):
     from tokens.services.register_pause_changes import permanent_source_loss
 
-    if change.source_pause_id is None or not permanent_source_loss(change.source_pause):
+    if not permanent_source_loss(change.source_pause):
         return False
     with target_transaction(change.chain_id, change.contract_address):
         current = lock_original(change.pk)
@@ -235,37 +156,16 @@ def retire_lapsed_source(change):
         return True
 
 
-@contextmanager
-def _projection_role(principal):
-    with acting_for(principal):
-        if principal is not None:
-            take_the_app_role()
-        try:
-            yield
-        finally:
-            if principal is not None:
-                give_the_role_back()
-
-
 def project(change_id):
     change = PauseChange.objects.get(pk=change_id)
-    projection = (
-        company_operation(change.initiated_by, change.company_id, "register_pause_project")
-        if change.source_pause_id
-        else nullcontext()
-    )
-    with projection, target_transaction(change.chain_id, change.contract_address):
-        current = (
-            lock_original(change_id)
-            if change.source_pause_id
-            else PauseChange.objects.select_for_update().get(pk=change_id)
-        )
+    with company_operation(change.initiated_by, change.company_id, "register_pause_project"), target_transaction(
+        change.chain_id, change.contract_address
+    ):
+        current = lock_original(change_id)
         if current.completed_at is not None or current.status not in TERMINAL:
             return current
         if current.status != PauseChangeStatus.FAILED:
-            principal = current.initiated_by_id if current.authority == PauseAuthority.ISSUER else None
-            role = nullcontext() if current.source_pause_id else _projection_role(principal)
-            with role, atomic():
+            with atomic():
                 company = Company.objects.select_for_update().filter(pk=current.company_id).first()
                 token = (
                     ShareToken.objects.select_for_update()
@@ -275,7 +175,6 @@ def project(change_id):
                 if (
                     company is None
                     or token is None
-                    or (principal is not None and company.owner_id != principal)
                     or token.chain != "base"
                     or (token.contract_address or "").lower() != current.contract_address
                     or settings.BLOCKCHAIN_CHAIN_ID != current.chain_id
@@ -289,15 +188,6 @@ def project(change_id):
         current.completed_at = timezone.now()
         current.save(update_fields=["completed_at", "updated_at"])
         return current
-
-
-def outcome(change):
-    return {
-        "uuid": change.pk,
-        "paused": change.paused,
-        "status": change.status,
-        "completed_at": change.completed_at,
-    }
 
 
 def message(change):

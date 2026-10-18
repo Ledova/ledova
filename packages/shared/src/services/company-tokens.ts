@@ -3,8 +3,6 @@ import { COMPANY_TOKEN_ENDPOINTS } from '../constants';
 import type {
   CompanyShareToken,
   CompanyShareTokenListItem,
-  PauseSubmissionRequest,
-  PauseSubmissionResponse,
   TokenCreate,
   TokenHoldersResponse,
   RegisterCertificatePreview,
@@ -30,27 +28,6 @@ export const createCompanyToken = (apiClient: AxiosInstance, data: TokenCreate, 
   config === undefined
     ? apiClient.post<CompanyShareToken>(COMPANY_TOKEN_ENDPOINTS.BASE, data)
     : apiClient.post<CompanyShareToken>(COMPANY_TOKEN_ENDPOINTS.BASE, data, config);
-
-export const pauseCompanyToken = (
-  apiClient: AxiosInstance,
-  uuid: string,
-  data: PauseSubmissionRequest,
-  config?: AxiosRequestConfig,
-) => apiClient.post<PauseSubmissionResponse>(COMPANY_TOKEN_ENDPOINTS.PAUSE(uuid), data, config);
-
-export const unpauseCompanyToken = (
-  apiClient: AxiosInstance,
-  uuid: string,
-  data: PauseSubmissionRequest,
-  config?: AxiosRequestConfig,
-) => apiClient.post<PauseSubmissionResponse>(COMPANY_TOKEN_ENDPOINTS.UNPAUSE(uuid), data, config);
-
-export const getPauseSubmission = (
-  apiClient: AxiosInstance,
-  uuid: string,
-  submissionId: string,
-  config?: AxiosRequestConfig,
-) => apiClient.get<PauseSubmissionResponse>(COMPANY_TOKEN_ENDPOINTS.PAUSE_SUBMISSION(uuid, submissionId), config);
 
 export const getRegisterClasses = (
   apiClient: AxiosInstance,
