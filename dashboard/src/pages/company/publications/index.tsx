@@ -1,21 +1,20 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { DESTINATIONS } from '@ledova/shared';
+import { DESTINATIONS, useCompanySelection } from '@ledova/shared';
 import { Section } from '@components/Ledger';
 import { Page, PageAction } from '@components/Page';
 import { CompanyReadNotice } from '@pages/company/shared/CompanyState';
-import { useCompany } from '@pages/company/shared/useCompany';
 import { CompanySelection } from '@pages/company/shared/CompanySelection';
 import { PublicationRecord } from './PublicationRecord';
 import { useIssuerPublications } from './useIssuerPublications';
 
 export default function IssuerPublicationsPage() {
-  const companyRead = useCompany({ ownedOnly: true });
+  const companyRead = useCompanySelection({ ownedOnly: true });
   return (
     <CompanyPublications key={`${companyRead.scopeKey}/${companyRead.companyUuid ?? ''}`} companyRead={companyRead} />
   );
 }
 
-function CompanyPublications({ companyRead }: { companyRead: ReturnType<typeof useCompany> }) {
+function CompanyPublications({ companyRead }: { companyRead: ReturnType<typeof useCompanySelection> }) {
   const navigate = useNavigate();
   const { company } = companyRead;
   const { listing, open, openingUuid, openError } = useIssuerPublications(company?.uuid, companyRead);

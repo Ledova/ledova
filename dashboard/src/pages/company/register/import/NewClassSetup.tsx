@@ -15,11 +15,11 @@ import {
   type TokenCreate,
   type TokenType,
   type RegisterTransferMember,
+  useCompanySelection,
 } from '@ledova/shared';
 import { FIELD_CLASS, LABEL } from '@components/fieldClass';
 import apiClient from '@services/apiClient';
 import { CompanySelection } from '@pages/company/shared/CompanySelection';
-import { useCompany } from '@pages/company/shared/useCompany';
 import { Loading, Unavailable } from '@pages/company/shared/RegisterStatus';
 import { registerSteps } from '@pages/company/shared/proposals';
 import { readRegister, useRegisterClasses } from '@pages/company/shared/useCompanyRegister';
@@ -43,7 +43,7 @@ export function NewClassSetup({
   owner: OrderSubmissionOwner;
   currentOwner: () => OrderSubmissionOwner | null;
 }) {
-  const read = useCompany({ personalOnly: true });
+  const read = useCompanySelection({ personalOnly: true });
   const [search] = useSearchParams();
   const preferred = search.get('company');
   const [held, setHeld] = useState(false);
@@ -135,7 +135,7 @@ function FreshClass({
 }: {
   owner: OrderSubmissionOwner;
   guard: () => void;
-  read: ReturnType<typeof useCompany>;
+  read: ReturnType<typeof useCompanySelection>;
   company: Company;
   classes: { uuid: string; name: string; symbol: string; status: string }[];
   companyMembers: RegisterTransferMember[];

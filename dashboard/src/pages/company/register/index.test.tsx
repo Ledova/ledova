@@ -967,21 +967,23 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
     };
     render(
       <QueryClientProvider client={client}>
-        <MemoryRouter>
-          <ImportForm
-            owner={{ userUuid: 'profile-one', ownerAccountUuid: 'account-one' }}
-            guard={() => {}}
-            company={company.uuid}
-            register={holders()}
-            companyMembers={[]}
-            appointment={preparationAppointment}
-            steps={{ prepare: preparationAppointment }}
-            saved={correction ? undefined : rejected}
-            correction={correction}
-            blocked={false}
-            onConflict={() => {}}
-          />
-        </MemoryRouter>
+        <ApiClientProvider client={apiClient}>
+          <MemoryRouter>
+            <ImportForm
+              owner={{ userUuid: 'profile-one', ownerAccountUuid: 'account-one' }}
+              guard={() => {}}
+              company={company.uuid}
+              register={holders()}
+              companyMembers={[]}
+              appointment={preparationAppointment}
+              steps={{ prepare: preparationAppointment }}
+              saved={correction ? undefined : rejected}
+              correction={correction}
+              blocked={false}
+              onConflict={() => {}}
+            />
+          </MemoryRouter>
+        </ApiClientProvider>
       </QueryClientProvider>,
     );
   };

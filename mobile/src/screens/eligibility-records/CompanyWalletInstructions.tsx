@@ -13,7 +13,6 @@ import {
   type RegisterDecisionKind,
 } from '@ledova/shared';
 import { Action, Choice, Row, Rows, Section } from '../../components/Ledger';
-import { apiClient } from '../../services/apiClient';
 import { getSessionEpoch, subscribeSession } from '../../services/sessionScope';
 import { orderSubmissionSession } from '../../services/orderSubmissions';
 import { RegisterDecision } from '../company-register/RegisterDecision';
@@ -206,7 +205,7 @@ function Preparation({ data, visible }: { data: Read; visible: boolean }) {
 }
 
 export function CompanyWalletInstructions() {
-  const data = useCompanyWalletInstructions(apiClient, { newKey: Crypto.randomUUID, session: orderSubmissionSession });
+  const data = useCompanyWalletInstructions({ newKey: Crypto.randomUUID, session: orderSubmissionSession });
   const styles = useCompanyStyles();
   if (!data.owner) return null;
   return (

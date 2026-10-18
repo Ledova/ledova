@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import type { AxiosInstance, AxiosRequestConfig, AxiosRequestTransformer } from 'axios';
+import type { AxiosRequestConfig, AxiosRequestTransformer } from 'axios';
 import { useSubmissionOwner } from './useSubmissionOwner';
 import { USER_PREFERENCES_QUERY_KEY } from './useUserPreferences';
 import type { OrderSubmissionSession } from './useOrderSubmissions';
@@ -17,11 +17,15 @@ import type {
   WalletNominationPreview,
   WalletNominationRequest,
 } from '../types';
+import { useApiClient } from './useApiClient';
 
-export function useWalletNomination(
-  api: AxiosInstance,
-  options: { requestUuid: string; newKey: () => string; session?: OrderSubmissionSession; guardRequest?: () => void },
-) {
+export function useWalletNomination(options: {
+  requestUuid: string;
+  newKey: () => string;
+  session?: OrderSubmissionSession;
+  guardRequest?: () => void;
+}) {
+  const api = useApiClient();
   const client = useQueryClient();
   const { owner, boundary } = useSubmissionOwner(options.session);
   const mounted = useRef(true);

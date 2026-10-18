@@ -17,7 +17,7 @@ import { useCompanyStyles } from '../company-register/styles';
 import { RegisterCopy } from '../company-register/RegisterCopy';
 
 export function MemberRecordsScreen() {
-  const read = useMemberRecords(apiClient, Crypto.randomUUID, orderSubmissionSession);
+  const read = useMemberRecords(Crypto.randomUUID, orderSubmissionSession);
   const selectionOwner = useRef<ReturnType<typeof useMemberRecords>['owner']>(null);
   useEffect(() => {
     if (read.owner && selectionOwner.current !== read.owner && read.records.length === 1 && !read.busy && !read.retry) {

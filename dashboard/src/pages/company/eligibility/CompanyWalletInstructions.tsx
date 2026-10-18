@@ -12,7 +12,6 @@ import {
 import { Row, Rows, Section } from '@components/Ledger';
 import { PageAction } from '@components/Page';
 import { FIELD_CLASS } from '@components/fieldClass';
-import apiClient from '@services/apiClient';
 import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
 
 type Read = ReturnType<typeof useCompanyWalletInstructions>;
@@ -213,7 +212,7 @@ function Preparation({ data }: { data: Read }) {
   );
 }
 export function CompanyWalletInstructions() {
-  const data = useCompanyWalletInstructions(apiClient, { newKey: () => crypto.randomUUID() });
+  const data = useCompanyWalletInstructions({ newKey: () => crypto.randomUUID() });
   return (
     <Section title="Company wallet approvals">
       {!data.owner ? (

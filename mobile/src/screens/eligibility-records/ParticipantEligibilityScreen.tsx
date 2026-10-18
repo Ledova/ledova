@@ -3,7 +3,6 @@ import { RefreshControl, Text, TextInput, View } from 'react-native';
 import { ELIGIBILITY_RECORDS_NOTICE, useParticipantEligibilityRecords } from '@ledova/shared';
 import { Action, Choice, Section } from '../../components/Ledger';
 import { Page } from '../../components/Page';
-import { apiClient } from '../../services/apiClient';
 import { orderSubmissionSession } from '../../services/orderSubmissions';
 import { useCompanyStyles } from '../company-register/styles';
 import { EligibilityConfirmation } from './EligibilityConfirmation';
@@ -13,7 +12,7 @@ import { EligibilityRecord } from './EligibilityRecord';
 
 export function ParticipantEligibilityScreen() {
   const styles = useCompanyStyles();
-  const records = useParticipantEligibilityRecords(apiClient, Crypto.randomUUID, orderSubmissionSession);
+  const records = useParticipantEligibilityRecords(Crypto.randomUUID, orderSubmissionSession);
   const source = records.sources.find((item) => item.uuid === records.draft.source);
   const product = source?.category === 'product_value';
   const blocked = records.busy || records.refreshing || records.loading;

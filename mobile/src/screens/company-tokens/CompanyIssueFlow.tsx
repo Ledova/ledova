@@ -581,7 +581,7 @@ function Preparation({ commands }: { commands: Commands }) {
 
 export function CompanyIssueFlow({ uuid, data }: { uuid: string; data: Read }) {
   const styles = useCompanyStyles();
-  const commands = useCompanyIssueInstructions(apiClient, uuid, {
+  const commands = useCompanyIssueInstructions(uuid, {
     token: data.token.data,
     tokenKey: data.tokenKey,
     newKey: () => Crypto.randomUUID(),

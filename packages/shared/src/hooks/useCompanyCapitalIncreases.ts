@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useQuery, useQueryClient, type QueryKey } from '@tanstack/react-query';
-import type { AxiosInstance, AxiosRequestConfig, AxiosRequestTransformer } from 'axios';
+import type { AxiosRequestConfig, AxiosRequestTransformer } from 'axios';
 import { useSubmissionOwner } from './useSubmissionOwner';
 import { AUTH_QUERY_KEY } from './useAuth';
 import { USER_PREFERENCES_QUERY_KEY } from './useUserPreferences';
@@ -19,13 +19,13 @@ import type {
   RegisterCapitalIncrease,
   RegisterCapitalIncreasePreparation,
 } from '../types';
+import { useApiClient } from './useApiClient';
 
 type Input = Omit<RegisterCapitalIncreasePreparation, 'operationId' | 'appointment' | 'token'>;
 type Source = { priorAuthorizedTotal: string; additionalShares: number; newAuthorizedTotal: number };
 type Original = { body: RegisterCapitalIncreasePreparation; priorAuthorizedTotal: string };
 
 export function useCompanyCapitalIncreases(
-  api: AxiosInstance,
   tokenUuid: string,
   options: {
     token: CompanyShareToken | undefined;
@@ -34,6 +34,7 @@ export function useCompanyCapitalIncreases(
     session?: OrderSubmissionSession;
   },
 ) {
+  const api = useApiClient();
   const client = useQueryClient();
   const { owner, boundary } = useSubmissionOwner(options.session);
   const mounted = useRef(true);

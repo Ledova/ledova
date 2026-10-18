@@ -316,7 +316,7 @@ function Preparation({ commands }: { commands: Commands }) {
 }
 
 export function CompanyPauseFlow({ uuid, data }: { uuid: string; data: ReturnType<typeof useShareClass> }) {
-  const commands = useCompanyPauseChanges(apiClient, uuid, {
+  const commands = useCompanyPauseChanges(uuid, {
     token: data.token.data,
     tokenKey: data.tokenKey,
     newKey: () => crypto.randomUUID(),

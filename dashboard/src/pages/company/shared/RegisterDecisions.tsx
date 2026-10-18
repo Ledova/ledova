@@ -3,7 +3,6 @@ import { useRegisterDecision, type RegisterDecisionFamily, type RegisterDecision
 import { Modal } from '@components/Modal';
 import { PageAction } from '@components/Page';
 import { FIELD_CLASS, LABEL } from '@components/fieldClass';
-import apiClient from '@services/apiClient';
 import { STEP_CHANGED, type RegisterSteps } from './proposals';
 
 type Proposal = { uuid: string; providedBy: string; status: string };
@@ -62,9 +61,9 @@ export function RegisterDecisions<Shown extends Proposal, Previewed extends Prev
     },
     onRefused,
   });
-  const approve = useRegisterDecision(apiClient, family, proposal, options('approve'));
-  const apply = useRegisterDecision(apiClient, family, proposal, options('apply'));
-  const reject = useRegisterDecision(apiClient, family, proposal, options('reject'));
+  const approve = useRegisterDecision(family, proposal, options('approve'));
+  const apply = useRegisterDecision(family, proposal, options('apply'));
+  const reject = useRegisterDecision(family, proposal, options('reject'));
   const decisions = { approve, apply, reject };
   const decision = active ? decisions[active] : null;
   const busy = approve.busy || apply.busy || reject.busy;

@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
 import { useQuery, useQueryClient, type QueryKey } from '@tanstack/react-query';
-import type { AxiosInstance } from 'axios';
 import { getOwnCompanyAppointments } from '../services/company-authority';
 import {
   createMemberInvitation,
@@ -28,6 +27,7 @@ import type {
   MemberCertificateFulfilmentPreview,
   MemberCertificateFulfilmentCreate,
 } from '../types';
+import { useApiClient } from './useApiClient';
 
 type Command =
   | { kind: 'invite'; payload: MemberInvitationCreate }
@@ -40,13 +40,13 @@ type Command =
     };
 
 export function useCompanyMemberAccess(
-  api: AxiosInstance,
   company: string,
   newKey: () => string,
   session?: OrderSubmissionSession,
   sourceReady = true,
   particularsQueryKey?: QueryKey,
 ) {
+  const api = useApiClient();
   const client = useQueryClient();
   const { owner, boundary } = useSubmissionOwner(session);
   const live = useRef(true);

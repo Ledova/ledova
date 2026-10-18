@@ -17,7 +17,6 @@ import { Row, Rows, Status, type Tone } from '@components/Ledger';
 import { Modal } from '@components/Modal';
 import { PageAction } from '@components/Page';
 import { FIELD_CLASS, LABEL } from '@components/fieldClass';
-import apiClient from '@services/apiClient';
 import { ownAppointmentsKey } from '@pages/company/shared/appointments';
 import { reconciliationKey, useLatestReconciliation } from './useLatestReconciliation';
 import { useOwnAppointments } from '@pages/company/register/shared/useOwnAppointments';
@@ -105,7 +104,7 @@ export function ClassReconciliation({
     }
     await Promise.all(keys.map((queryKey) => client.invalidateQueries({ queryKey })));
   };
-  const acknowledgement = useDiscrepancyAcknowledgement(apiClient, record, {
+  const acknowledgement = useDiscrepancyAcknowledgement(record, {
     appointment: acknowledger?.uuid,
     newKey: () => crypto.randomUUID(),
     guard: check,

@@ -1,7 +1,7 @@
 import { FIELD_CLASS, LABEL } from '@components/fieldClass';
-import type { useCompany } from './useCompany';
+import type { useCompanySelection } from '@ledova/shared';
 
-type Selection = Pick<ReturnType<typeof useCompany>, 'companyUuid' | 'selectionBlocked' | 'selectCompany'> & {
+type Selection = Pick<ReturnType<typeof useCompanySelection>, 'companyUuid' | 'selectionBlocked' | 'selectCompany'> & {
   companies: { uuid: string; name: string }[];
 };
 

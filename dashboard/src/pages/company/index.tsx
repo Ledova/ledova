@@ -1,10 +1,9 @@
 import { useState } from 'react';
 import { generatePath } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { DESTINATIONS, formatShareCount, type Company } from '@ledova/shared';
+import { DESTINATIONS, formatShareCount, type Company, useCompanySelection } from '@ledova/shared';
 import { Page, PageAction } from '@components/Page';
 import { LinkRow, Row, Rows, Section, Status } from '@components/Ledger';
-import { useCompany } from '@pages/company/shared/useCompany';
 import { useTokensList } from '@pages/company/shared/useTokensList';
 import { CompanyReadNotice, CompanyStatusMark } from '@pages/company/shared/CompanyState';
 import { CreateClassForm, EditCompanyForm } from './CompanyForms';
@@ -12,11 +11,11 @@ import { CompanyDocuments } from './CompanyDocuments';
 import { CompanySelection } from '@pages/company/shared/CompanySelection';
 
 export default function CompanyPage() {
-  const data = useCompany();
+  const data = useCompanySelection();
   return <CompanyDetails key={`${data.scopeKey}/${data.companyUuid ?? ''}`} data={data} />;
 }
 
-function CompanyDetails({ data }: { data: ReturnType<typeof useCompany> }) {
+function CompanyDetails({ data }: { data: ReturnType<typeof useCompanySelection> }) {
   const { company } = data;
   const classes = useTokensList(data.ownerBusiness && !data.error && company ? company.uuid : undefined, data);
   const queryClient = useQueryClient();

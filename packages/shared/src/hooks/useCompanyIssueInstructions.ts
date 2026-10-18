@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useQuery, useQueryClient, type QueryKey } from '@tanstack/react-query';
-import type { AxiosInstance, AxiosRequestConfig, AxiosRequestTransformer } from 'axios';
+import type { AxiosRequestConfig, AxiosRequestTransformer } from 'axios';
 import { useSubmissionOwner } from './useSubmissionOwner';
 import { AUTH_QUERY_KEY } from './useAuth';
 import { USER_PREFERENCES_QUERY_KEY } from './useUserPreferences';
@@ -28,6 +28,7 @@ import type {
   RegisterTransferMembers,
   TokenHoldersResponse,
 } from '../types';
+import { useApiClient } from './useApiClient';
 
 type IssueInput = Omit<RegisterIssuePreparation, 'operationId' | 'appointment' | 'token'>;
 type LinkInput = Omit<RegisterLinkPreparation, 'operationId' | 'appointment' | 'companyId'>;
@@ -36,7 +37,6 @@ type Original =
   | { kind: 'link'; body: RegisterLinkPreparation; nomination: string };
 
 export function useCompanyIssueInstructions(
-  api: AxiosInstance,
   tokenUuid: string,
   options: {
     token: CompanyShareToken | undefined;
@@ -45,6 +45,7 @@ export function useCompanyIssueInstructions(
     session?: OrderSubmissionSession;
   },
 ) {
+  const api = useApiClient();
   const client = useQueryClient();
   const { owner, boundary } = useSubmissionOwner(options.session);
   const mounted = useRef(true);

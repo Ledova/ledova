@@ -8,7 +8,6 @@ import {
 import { PageAction } from '@components/Page';
 import { Row, Rows, Section } from '@components/Ledger';
 import { FIELD_CLASS } from '@components/fieldClass';
-import apiClient from '@services/apiClient';
 import { WalletVerificationModal } from '@components/wallet/WalletVerificationModal';
 
 function Facts({ preview }: { preview: WalletNominationPreview }) {
@@ -27,7 +26,7 @@ function Facts({ preview }: { preview: WalletNominationPreview }) {
 }
 
 export function WalletNomination({ requestUuid, guardRequest }: { requestUuid: string; guardRequest: () => void }) {
-  const data = useWalletNomination(apiClient, { requestUuid, newKey: () => crypto.randomUUID(), guardRequest });
+  const data = useWalletNomination({ requestUuid, newKey: () => crypto.randomUUID(), guardRequest });
   const [consent, setConsent] = useState<{ preview: WalletNominationPreview | null; accepted: boolean }>({
     preview: null,
     accepted: false,

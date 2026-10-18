@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useQuery, useQueryClient, type QueryKey } from '@tanstack/react-query';
-import type { AxiosInstance, AxiosRequestConfig, AxiosRequestTransformer } from 'axios';
+import type { AxiosRequestConfig, AxiosRequestTransformer } from 'axios';
 import { useSubmissionOwner } from './useSubmissionOwner';
 import { AUTH_QUERY_KEY } from './useAuth';
 import { USER_PREFERENCES_QUERY_KEY } from './useUserPreferences';
@@ -18,13 +18,13 @@ import type {
   RegisterPauseChange,
   RegisterPauseChangePreparation,
 } from '../types';
+import { useApiClient } from './useApiClient';
 
 type Input = Omit<RegisterPauseChangePreparation, 'operationId' | 'appointment' | 'token'>;
 type Source = Pick<Input, 'paused' | 'reason' | 'authorityReference'> & { token: CompanyShareToken | undefined };
 type Original = { body: RegisterPauseChangePreparation; token: CompanyShareToken | undefined };
 
 export function useCompanyPauseChanges(
-  api: AxiosInstance,
   tokenUuid: string,
   options: {
     token: CompanyShareToken | undefined;
@@ -33,6 +33,7 @@ export function useCompanyPauseChanges(
     session?: OrderSubmissionSession;
   },
 ) {
+  const api = useApiClient();
   const client = useQueryClient();
   const { owner, boundary } = useSubmissionOwner(options.session);
   const mounted = useRef(true);

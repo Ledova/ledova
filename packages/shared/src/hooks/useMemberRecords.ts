@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import type { AxiosInstance } from 'axios';
 import {
   acceptMemberInvitation,
   createMemberCertificateRequest,
@@ -18,6 +17,7 @@ import { readEveryPage } from '../utils/pagination';
 import { useSubmissionOwner } from './useSubmissionOwner';
 import { USER_PREFERENCES_QUERY_KEY } from './useUserPreferences';
 import type { OrderSubmissionSession } from './useOrderSubmissions';
+import { useApiClient } from './useApiClient';
 
 type Command =
   | { kind: 'accept'; code: string; userAccount: string; confirmation: true }
@@ -32,7 +32,8 @@ type Command =
   | { kind: 'certificate'; operationId: string; association: string; token: string; entry: string }
   | { kind: 'withdraw'; uuid: string; idempotencyKey: string };
 
-export function useMemberRecords(api: AxiosInstance, newKey: () => string, session?: OrderSubmissionSession) {
+export function useMemberRecords(newKey: () => string, session?: OrderSubmissionSession) {
+  const api = useApiClient();
   const client = useQueryClient();
   const { owner, boundary } = useSubmissionOwner(session);
   const [selected, setSelected] = useState('');

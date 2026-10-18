@@ -195,7 +195,7 @@ export function ImportForm({
     check();
     navigate(COMPANY_DASHBOARD_PATH, { state: { registerCompany: company } });
   };
-  const approve = useRegisterDecision(apiClient, REGISTER_IMPORT_DECISIONS, proposal, {
+  const approve = useRegisterDecision(REGISTER_IMPORT_DECISIONS, proposal, {
     appointment: steps.approve?.uuid,
     newKey: () => crypto.randomUUID(),
     guard: check,
@@ -209,7 +209,7 @@ export function ImportForm({
     },
     onRefused: onConflict,
   });
-  const apply = useRegisterDecision(apiClient, REGISTER_IMPORT_DECISIONS, proposal, {
+  const apply = useRegisterDecision(REGISTER_IMPORT_DECISIONS, proposal, {
     appointment: steps.apply?.uuid,
     newKey: () => crypto.randomUUID(),
     guard: check,
@@ -218,7 +218,7 @@ export function ImportForm({
     onDecided: finish,
     onRefused: onConflict,
   });
-  const reject = useRegisterDecision(apiClient, REGISTER_IMPORT_DECISIONS, proposal, {
+  const reject = useRegisterDecision(REGISTER_IMPORT_DECISIONS, proposal, {
     appointment: steps.reject?.uuid,
     newKey: () => crypto.randomUUID(),
     guard: check,

@@ -9,7 +9,6 @@ import {
 } from '@ledova/shared';
 import { Action } from '../../components/Ledger';
 import { CustomModal } from '../../components/modal';
-import { apiClient } from '../../services/apiClient';
 import { assertSessionEpoch } from '../../services/sessionScope';
 import { orderSubmissionSession } from '../../services/orderSubmissions';
 import { useCompanyStyles } from './styles';
@@ -80,7 +79,7 @@ export function RegisterDecision<Proposal extends { uuid: string }, Shown extend
       throw new Error('The account or instruction changed. Reopen it before continuing.');
     readGuard?.();
   };
-  const decision = useRegisterDecision(apiClient, family, proposal, {
+  const decision = useRegisterDecision(family, proposal, {
     appointment,
     newKey: () => Crypto.randomUUID(),
     guard,

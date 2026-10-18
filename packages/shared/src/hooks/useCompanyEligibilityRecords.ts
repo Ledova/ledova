@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { QueryClient } from '@tanstack/react-query';
-import type { AxiosInstance, AxiosResponse, AxiosRequestTransformer, AxiosRequestConfig } from 'axios';
+import type { AxiosResponse, AxiosRequestTransformer, AxiosRequestConfig } from 'axios';
 import { getOwnCompanyAppointments } from '../services/company-authority';
 import { getInvestorClassifications } from '../services/investorClassifications';
 import {
@@ -35,6 +35,7 @@ import { readEveryPage } from '../utils/pagination';
 import { useSubmissionOwner } from './useSubmissionOwner';
 import { USER_PREFERENCES_QUERY_KEY } from './useUserPreferences';
 import type { OrderSubmissionSession } from './useOrderSubmissions';
+import { useApiClient } from './useApiClient';
 
 export const ELIGIBILITY_RECORDS_NOTICE =
   'Each company decides eligibility for its own offerings and share classes. New actions recheck the current decision, evidence and exact scope.';
@@ -112,11 +113,11 @@ function expiry(value: string) {
 }
 
 function useEligibilityRecords(
-  api: AxiosInstance,
   mode: 'participant' | 'company',
   newKey: () => string,
   session?: OrderSubmissionSession,
 ) {
+  const api = useApiClient();
   const client = useQueryClient();
   const { owner, boundary } = useSubmissionOwner(session);
   const mounted = useRef(true);
@@ -773,20 +774,12 @@ function useEligibilityRecords(
   };
 }
 
-export function useParticipantEligibilityRecords(
-  api: AxiosInstance,
-  newKey: () => string,
-  session?: OrderSubmissionSession,
-) {
-  const read = useEligibilityRecords(api, 'participant', newKey, session);
+export function useParticipantEligibilityRecords(newKey: () => string, session?: OrderSubmissionSession) {
+  const read = useEligibilityRecords('participant', newKey, session);
   return { ...read, draft: read.requestDraft, updateDraft: read.updateRequest };
 }
 
-export function useCompanyEligibilityRecords(
-  api: AxiosInstance,
-  newKey: () => string,
-  session?: OrderSubmissionSession,
-) {
-  const read = useEligibilityRecords(api, 'company', newKey, session);
+export function useCompanyEligibilityRecords(newKey: () => string, session?: OrderSubmissionSession) {
+  const read = useEligibilityRecords('company', newKey, session);
   return { ...read, draft: read.decisionDraft, updateDraft: read.updateDecision };
 }
