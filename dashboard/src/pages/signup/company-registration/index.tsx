@@ -1,10 +1,11 @@
+import { AuthLayout, AuthHeader } from '@components/auth';
 import { SIGNUP_PATHS } from '@utils/paths';
 import { useNavigate } from 'react-router-dom';
 import { BuildingsIcon } from '@phosphor-icons/react';
 import { LoadingState } from '@pages/signup/shared/LoadingState';
 import { ErrorState } from '@pages/signup/shared/ErrorState';
 import { CompanyRegistrationForm } from './CompanyRegistrationForm';
-import { AuthLayout } from '@components/AuthLayout';
+
 import { useSignupCompanyRegistration } from '@ledova/shared';
 import { ICON_MD } from '@components/iconSizes';
 
@@ -45,17 +46,11 @@ export default function SignupCompanyRegistration() {
 
   return (
     <AuthLayout>
-      <div className="text-center mb-6">
-        <div className="flex justify-center mb-3">
-          <div className="p-2 rounded-full bg-surface-raised border border-border">
-            <BuildingsIcon size={ICON_MD} className="text-text-muted" />
-          </div>
-        </div>
-        <h1 className="font-display text-3xl tracking-[-0.01em] text-text-primary">Company Details</h1>
+      <AuthHeader title="Company Details" icon={<BuildingsIcon size={ICON_MD} className="text-text-muted" />}>
         <p className="text-sm text-text-muted mt-1">
           Enter your company&apos;s basic information. Company information is provided by the company.
         </p>
-      </div>
+      </AuthHeader>
 
       {loadError && (
         <div role="alert" className="mb-4 text-error-light">

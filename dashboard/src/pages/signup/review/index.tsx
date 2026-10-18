@@ -1,3 +1,4 @@
+import { AuthLayout, AUTH_BUTTON_CLASS, AuthHeader, AuthDivider } from '@components/auth';
 import { SIGNUP_PATHS, SITE_PATHS } from '@utils/paths';
 import { useNavigate } from 'react-router-dom';
 
@@ -5,11 +6,10 @@ import { ClipboardTextIcon } from '@phosphor-icons/react';
 import { formatPhoneWithCountryCode, formatSourceOfFunds, formatIntendedUse } from '@ledova/shared';
 import { ICON_LG } from '@components/iconSizes';
 import { useReview } from './useReview';
-import { AuthLayout } from '@components/AuthLayout';
+
 import { Section } from '@components/Ledger';
 import { COMPANY_TYPES } from '@pages/signup/shared/constants';
 import { SITE_URL } from '@utils/siteUrl';
-import { AUTH_BUTTON_CLASS } from '@components/fieldClass';
 
 function displayCompanyType(companyType: string | undefined) {
   return COMPANY_TYPES.find((type) => type.value === companyType)?.label ?? companyType ?? '';
@@ -73,21 +73,17 @@ export default function SignupReview() {
 
   return (
     <AuthLayout>
-      <div className="text-center mb-8">
-        <div className="flex justify-center mb-4">
-          <div className="p-3 rounded-full bg-surface-raised border border-border">
-            <ClipboardTextIcon size={ICON_LG} className="text-text-muted" />
-          </div>
-        </div>
-        <h1 className="mb-2 font-display text-3xl tracking-[-0.01em] text-text-primary">
-          {isCompany ? 'Complete company setup' : 'Review & Confirm'}
-        </h1>
+      <AuthHeader
+        title={isCompany ? 'Complete company setup' : 'Review & Confirm'}
+        icon={<ClipboardTextIcon size={ICON_LG} className="text-text-muted" />}
+        review
+      >
         <p className="text-sm text-text-muted">
           {isCompany
             ? 'Review your saved details. Documents and team setup can wait until your dashboard.'
             : 'Please review your information before completing signup'}
         </p>
-      </div>
+      </AuthHeader>
 
       <div className="space-y-4">
         <Section title="Personal Information">
@@ -279,14 +275,7 @@ export default function SignupReview() {
         </div>
       </div>
 
-      <div className="relative my-6">
-        <div className="absolute inset-0 flex items-center">
-          <div className="w-full border-t border-border"></div>
-        </div>
-        <div className="relative flex justify-center text-sm">
-          <span className="px-4 bg-surface-base text-text-subtle font-medium">or</span>
-        </div>
-      </div>
+      <AuthDivider />
 
       <div className="text-center">
         <p className="text-sm text-text-subtle">

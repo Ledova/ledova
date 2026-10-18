@@ -1,11 +1,16 @@
 import { useState } from 'react';
 import { formatDate, formatDateTime, getUserVerificationStatus } from '@ledova/shared';
 import { Page, PageAction } from '@components/Page';
-import { Row, Rows, Section, Status } from '@components/Ledger';
+import { Row, Rows, Section, Status, type Tone } from '@components/Ledger';
 import { DocumentsPanel } from './DocumentsPanel';
 import { FIELD_CLASS } from '@components/fieldClass';
 import { useUserProfile } from '@hooks/useUserProfile';
 import { IdentityVerificationModal } from './IdentityVerificationModal';
+
+const VERIFICATION_TONES = new Map<string, Tone>([
+  ['verified', 'done'],
+  ['rejected', 'closed'],
+]);
 
 function UserProfilePage() {
   const {
@@ -172,11 +177,7 @@ function UserProfilePage() {
       <Section title="Account status">
         <Rows>
           <Row label="Identity check">
-            <Status
-              tone={verification.type === 'verified' ? 'done' : verification.type === 'rejected' ? 'closed' : 'waiting'}
-            >
-              {verification.label}
-            </Status>
+            <Status tone={VERIFICATION_TONES.get(verification.type) ?? 'waiting'}>{verification.label}</Status>
           </Row>
           <Row label="Member since">{formatDate(userProfile.dateJoined, 'Not available')}</Row>
           <Row label="Last login">{formatDateTime(userProfile.lastLogin)}</Row>

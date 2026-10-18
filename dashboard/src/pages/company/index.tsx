@@ -1,3 +1,4 @@
+import { SHARE_CLASS_STATUS_TONES } from '@pages/company/shared/statusTones';
 import { REGISTER_QUERY_KEY } from '@hooks/useRegisterAccess';
 import { useState } from 'react';
 import { generatePath } from 'react-router-dom';
@@ -128,15 +129,7 @@ function CompanyDetails({ data }: { data: ReturnType<typeof useCompanySelection>
                           to={generatePath(DESTINATIONS.companyClass.path, { uuid: token.uuid })}
                           label={token.name}
                           aside={
-                            <Status
-                              tone={
-                                token.status === 'deployed'
-                                  ? 'done'
-                                  : token.status === 'deploying'
-                                    ? 'moving'
-                                    : 'waiting'
-                              }
-                            >
+                            <Status tone={SHARE_CLASS_STATUS_TONES.get(token.status) ?? 'waiting'}>
                               {token.statusDisplay}
                             </Status>
                           }

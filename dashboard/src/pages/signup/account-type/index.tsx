@@ -1,9 +1,9 @@
+import { AuthLayout, AuthHeader, AuthDivider } from '@components/auth';
 import { SIGNUP_PATHS } from '@utils/paths';
 import { useNavigate } from 'react-router-dom';
 import { UserIcon, BuildingsIcon, WarningIcon } from '@phosphor-icons/react';
 import { useSignupAccountType } from '@ledova/shared';
 import { ICON_LG, ICON_MD } from '@components/iconSizes';
-import { AuthLayout } from '@components/AuthLayout';
 
 type AccountRole = 'investor' | 'company';
 
@@ -48,10 +48,9 @@ export default function SignupAccountType() {
 
   return (
     <AuthLayout>
-      <div className="text-center mb-6">
-        <h1 className="font-display text-3xl tracking-[-0.01em] text-text-primary">Choose Account Type</h1>
+      <AuthHeader title="Choose Account Type">
         <p className="text-sm text-text-muted mt-1 px-4">How will you be using Ledova?</p>
-      </div>
+      </AuthHeader>
 
       {error && (
         <div className="mb-4 bg-error-subtle border border-error-dark rounded-lg p-4">
@@ -92,14 +91,7 @@ export default function SignupAccountType() {
         })}
       </div>
 
-      <div className="relative my-6">
-        <div className="absolute inset-0 flex items-center">
-          <div className="w-full border-t border-border"></div>
-        </div>
-        <div className="relative flex justify-center text-sm">
-          <span className="px-4 bg-surface-base text-text-subtle font-medium">or</span>
-        </div>
-      </div>
+      <AuthDivider />
 
       <div className="text-center">
         <p className="text-sm text-text-subtle">

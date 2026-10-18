@@ -6,7 +6,7 @@ import { BuyCryptoProvider } from '@components/wallet/BuyCryptoProvider';
 import { SendTransferProvider } from '@components/wallet/SendTransferProvider';
 import { useSignupFinished } from '@hooks/useSignupFinished';
 import { useAuth } from '@ledova/shared';
-import { AuthLayoutAction } from './AuthLayoutAction';
+import { AuthLayoutAction } from './auth';
 import { InSignedInFrame } from './InSignedInFrame';
 import { SignOutButton } from './SignOutButton';
 
