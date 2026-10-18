@@ -47,20 +47,21 @@ pending actions to the selected company and the session.
 
 The dashboard is organised by page. Each page has a folder under `dashboard/src/pages/`, named and
 nested by its address, holding everything only that page uses; a top-level folder of `pages/` is an
-area. The other folders hold what several areas, the route table or the frame share, and
+area. The tables below are the standard; where today's code differs, the gap is listed after them
+with the issue that closes it. The other folders hold what several areas, the route table or the frame share, and
 `packages/shared` holds what both clients share.
 
-| `dashboard/src/`      | Owns                                                                                                                                                                                                                                                                        |
-| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `main.tsx`, `App.tsx` | `main.tsx` mounts the providers (`QueryClientProvider`, `ApiClientProvider` with the `apiClient` singleton, `BrowserRouter`), fonts and stylesheets; `App.tsx` renders `Layout` around the route table                                                                      |
-| `routes/`             | The whole route table (`PAGES` with `signedInRoutes`, the sign-up and public routes) and the guards (`ProtectedRoute`, `SignupRoute`, `TradingRoute`, `RootRedirect`, `PublicOnlyRoute`) with their waiting and failure states                                              |
-| `pages/`              | One folder per page with its `index.tsx` entry and its own files, sub-pages nested inside it, and a `shared/` folder for files several pages under one folder use                                                                                                           |
-| `components/`         | The UI kit (`Page` and `PageAction`, `Ledger`, `Modal`, `fieldClass`, `iconSizes`), the signed-in frame (`Layout`, `Sidebar`, `MobileHeader`, `NotificationBell`, `Footer`) and public layout (`AuthLayout`) with their parts and contexts, and group folders such as `qr/` |
-| `hooks/`              | App-wide hooks with no JSX: profile, role and sign-up state, register access, sign-out, theme, identity verification                                                                                                                                                        |
-| `services/`           | Browser bindings, whatever their users: the axios instance with its interceptors (`apiClient.ts`) and the device stores built from the shared store factories                                                                                                               |
-| `utils/`              | Browser and pure helpers used by more than one area or the frame (Keystone UR coding, the software signer, `siteUrl.ts`) and the web-only paths (`paths.ts`)                                                                                                                |
-| `styles/`             | `index.css` and the generated `tokens.css` ([design tokens](#design-tokens-and-themes))                                                                                                                                                                                     |
-| `testSupport/`        | Render helpers for tests in more than one folder, and the one import path to `packages/shared/tests/fixtures`                                                                                                                                                               |
+| `dashboard/src/`      | Owns                                                                                                                                                                                                                                                                                                                                  |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `main.tsx`, `App.tsx` | `main.tsx` mounts the providers (`QueryClientProvider`, `ApiClientProvider` with the `apiClient` singleton, `BrowserRouter`), fonts and stylesheets; `App.tsx` renders `Layout` around the route table                                                                                                                                |
+| `routes/`             | The whole route table (`PAGES` with `signedInRoutes`, the sign-up and public routes) and the guards (`ProtectedRoute`, `SignupRoute`, `TradingRoute`, `RootRedirect`, `PublicOnlyRoute`) with their waiting and failure states                                                                                                        |
+| `pages/`              | One folder per page with its `index.tsx` entry and its own files, sub-pages nested inside it, and a `shared/` folder for files several pages under one folder use                                                                                                                                                                     |
+| `components/`         | The UI kit (`Page` and `PageAction`, `Ledger`, `Modal`, `fieldClass`, `iconSizes`), the signed-in frame (`Layout`, `Sidebar`, `MobileHeader`, `NotificationBell`) and public layout (`AuthLayout`, `Footer`) with their parts and contexts, group folders such as `qr/`, and single components several areas show (`AwardStatus.tsx`) |
+| `hooks/`              | App-wide hooks with no JSX: profile, role and sign-up state, register access, sign-out, theme, identity verification                                                                                                                                                                                                                  |
+| `services/`           | Browser bindings, whatever their users: the axios instance with its interceptors (`apiClient.ts`) and the device stores built from the shared store factories                                                                                                                                                                         |
+| `utils/`              | Browser and pure helpers used by more than one area or the frame (the software signer, `siteUrl.ts`, Keystone UR coding, which each client builds on its own registry libraries) and the web-only paths (`paths.ts`)                                                                                                                  |
+| `styles/`             | `index.css` and the generated `tokens.css` ([design tokens](#design-tokens-and-themes))                                                                                                                                                                                                                                               |
+| `testSupport/`        | Render helpers for tests in more than one folder, and the one import path to `packages/shared/tests/fixtures`                                                                                                                                                                                                                         |
 
 | `packages/shared/src/` | Owns                                                                                                                                            |
 | ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -71,14 +72,29 @@ area. The other folders hold what several areas, the route table or the frame sh
 | `utils/`               | Pure logic both clients run: pagination, proposal checks, share arithmetic, formatting, error reading, store factories over an injected storage |
 | `hooks/`               | TanStack Query hooks both clients use, and `ApiClientProvider` with `useApiClient`                                                              |
 
-Three locations in these tables arrive with the follow-up issues: `utils/paths.ts` and `testSupport/`
-with [#1067](https://github.com/Ledova/ledova/issues/1067) (until then the web-only paths are in
-`routes/companyDashboard.ts` and `routes/signupRoutes.tsx`, and test helpers in
-`pages/company/testSupport.tsx`), and `PublicOnlyRoute` with the public routes, which move from
-`App.tsx` into `routes/` with [#1071](https://github.com/Ledova/ledova/issues/1071).
+Where today's code differs from these tables:
 
-Mobile follows the same layers, direction and placement, with `navigation/` for `routes/` and
-`screens/<area>/` for page folders ([mobile architecture](mobile.md#architecture)). `site/src` is a
+- `routes/` does not yet hold the whole route table: `PublicOnlyRoute`, the sign-up step map, the
+  public, company dashboard and not-found routes are still in `App.tsx`
+  ([#1071](https://github.com/Ledova/ledova/issues/1071)).
+- The profile and register-access hooks still sit in page folders
+  (`pages/user-profile/useUserProfile.ts`, `pages/company/register/useCompanyRegister.ts`), the Buy
+  crypto and Send providers in `hooks/` render `pages/wallets` modals, and `utils/paths.ts` and
+  `testSupport/` do not exist yet (until then the web-only paths are in `routes/companyDashboard.ts`
+  and `routes/signupRoutes.tsx`, and test helpers in `pages/company/testSupport.tsx`)
+  ([#1067](https://github.com/Ledova/ledova/issues/1067)).
+- Page folders do not yet follow their addresses (`pages/home` serves `/wallets/holdings`,
+  `pages/member-records` serves `/home`, the share class page is `classes/`, the eligibility pages
+  share `eligibility-records/`, not-found is `pages/NotFound.tsx`)
+  ([#1068](https://github.com/Ledova/ledova/issues/1068)), and no `shared/` folder exists yet
+  ([#1069](https://github.com/Ledova/ledova/issues/1069),
+  [#1070](https://github.com/Ledova/ledova/issues/1070)).
+- `dashboard/src/types/document.ts` and page `components/` and `hooks/` subfolders remain
+  ([#1070](https://github.com/Ledova/ledova/issues/1070)).
+
+Mobile maps onto the same layers, direction and placement, with `navigation/` for `routes/` and
+`screens/<area>/` for page folders; its cross-area imports are brought in line under
+[#1074](https://github.com/Ledova/ledova/issues/1074) ([mobile architecture](mobile.md#architecture)). `site/src` is a
 separate flat app (one file per page in `pages/`, `components/`, `styles.ts`, `theme.ts`) that
 cannot import the shared package; only the file-naming rules apply to it.
 
@@ -89,18 +105,18 @@ second user needs it, as on the [backend](backend.md#backend-layers). `pages/pub
 reference page. Where a rule and a file disagree, the rule wins and the file is the backlog;
 existing code is being brought in line under [#1065](https://github.com/Ledova/ledova/issues/1065).
 
-| Layer                                  | Owns                                                                                                                                          | Never contains                                                                                | Reference                                                                                                                                     |
-| -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| Route table and guards (`routes/`)     | `PAGES` keyed by `DESTINATIONS`, the sign-up and public routes, guards with their waiting and failure states, where an account lands          | A page's files other than its entry; page content; reads beyond the session and access checks | `dashboard/src/routes/pages.tsx`                                                                                                              |
-| Page entry (`index.tsx`)               | One route: its parameters, hash and navigation state, the owner boundary, and `Page` with its title row and sections fed by hooks             | `useQuery`, `useMutation`, `apiClient` or a service call; another page's files                | `dashboard/src/pages/publications/index.tsx`                                                                                                  |
-| Page files (beside the entry)          | The page's sections and dialogs, its hooks and its pure helpers, told apart by file name                                                      | `components/` or `hooks/` subfolders; a file a second page imports                            | `dashboard/src/pages/publications/Resolution.tsx`, `dashboard/src/pages/transactions/presentation.ts`                                         |
-| Shared page code (`shared/`)           | Files that two or more pages under that page folder import                                                                                    | Route entries; a file one page alone uses                                                     | `dashboard/src/pages/company/CompanyState.tsx` (moving to `pages/company/shared/` with [#1069](https://github.com/Ledova/ledova/issues/1069)) |
-| UI kit and frame (`components/`)       | The kit, the frame and public layout with their contexts, and group folders for UI that several areas or the frame show, with their own hooks | Imports of `pages/` or `routes/`; in kit files, queries or domain rules                       | `dashboard/src/components/Ledger.tsx`, `dashboard/src/components/qr/`                                                                         |
-| Data hooks (`use<Thing>.ts`)           | `useQuery` and `useMutation`, the exported key factory, the owner guard, cache timing and invalidation; values and actions ready to render    | JSX; another module's key written out; raw error text                                         | `packages/shared/src/hooks/useSubscriptions.ts`                                                                                               |
-| Services (`services/`)                 | `apiClient` (CSRF retry, the submission guard, friendly network errors) and the browser device stores                                         | API call functions; React                                                                     | `dashboard/src/services/apiClient.ts`                                                                                                         |
-| Utils (`utils/`)                       | Client-only helpers and web-only paths used by more than one area or the frame                                                                | React; API calls; logic mobile also needs                                                     | `dashboard/src/utils/siteUrl.ts`                                                                                                              |
-| Types                                  | A type beside its only user; API-derived and cross-client types in `packages/shared/src/types`                                                | Hand-written API shapes; a dashboard `types/` folder; client prop types in the shared package | `packages/shared/src/types/domain/subscription.ts`                                                                                            |
-| Shared package (`packages/shared/src`) | What both clients need (query hooks, pure utils, constants, contract types) and every API call function, even one only one client calls       | JSX beyond `ApiClientProvider`; DOM or native APIs (stores take an injected storage)          | `packages/shared/src/services/publications.ts`                                                                                                |
+| Layer                                  | Owns                                                                                                                                         | Never contains                                                                                | Reference                                                                                                                                     |
+| -------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| Route table and guards (`routes/`)     | `PAGES` keyed by `DESTINATIONS`, the sign-up and public routes, guards with their waiting and failure states, where an account lands         | A page's files other than its entry; page content; reads beyond the session and access checks | `dashboard/src/routes/pages.tsx`                                                                                                              |
+| Page entry (`index.tsx`)               | One route: its parameters, hash and navigation state, the owner boundary, and `Page` with its title row and sections fed by hooks            | `useQuery`, `useMutation`, `apiClient` or a service call; another page's files                | `dashboard/src/pages/publications/index.tsx`                                                                                                  |
+| Page files (beside the entry)          | The page's sections and dialogs, its hooks and its pure helpers, told apart by file name                                                     | `components/` or `hooks/` subfolders; a file a second page imports                            | `dashboard/src/pages/publications/Resolution.tsx`, `dashboard/src/pages/transactions/presentation.ts`                                         |
+| Shared page code (`shared/`)           | Files that two or more pages under that page folder import                                                                                   | Route entries; a file one page alone uses                                                     | `dashboard/src/pages/company/CompanyState.tsx` (moving to `pages/company/shared/` with [#1069](https://github.com/Ledova/ledova/issues/1069)) |
+| UI kit and frame (`components/`)       | The kit, the frame and public layout with their contexts, and group folders or single components for UI that several areas or the frame show | Imports of `pages/` or `routes/`; in kit files, queries or domain rules                       | `dashboard/src/components/Ledger.tsx`, `dashboard/src/components/qr/`                                                                         |
+| Data hooks (`use<Thing>.ts`)           | `useQuery` and `useMutation`, the exported key factory, the owner guard, cache timing and invalidation; values and actions ready to render   | JSX; another module's key written out; raw error text                                         | `packages/shared/src/hooks/useSubscriptions.ts`                                                                                               |
+| Services (`services/`)                 | `apiClient` (CSRF retry, the submission guard, friendly network errors) and the browser device stores                                        | API call functions; React                                                                     | `dashboard/src/services/apiClient.ts`                                                                                                         |
+| Utils (`utils/`)                       | Client-only helpers and web-only paths used by more than one area or the frame                                                               | React; API calls; logic mobile also needs on the same libraries                               | `dashboard/src/utils/siteUrl.ts`                                                                                                              |
+| Types                                  | A type beside its only user; API-derived and cross-client types in `packages/shared/src/types`                                               | Hand-written API shapes; a dashboard `types/` folder; client prop types in the shared package | `packages/shared/src/types/domain/subscription.ts`                                                                                            |
+| Shared package (`packages/shared/src`) | What both clients need (query hooks, pure utils, constants, contract types) and every API call function, even one only one client calls      | JSX beyond `ApiClientProvider`; DOM or native APIs (stores take an injected storage)          | `packages/shared/src/services/publications.ts`                                                                                                |
 
 ### Dependency direction and placement
 
@@ -115,14 +131,17 @@ the kit, and kit files use neither.
 To place a file, ask in order and stop at the first yes:
 
 1. Is it an API call function or an API-derived type? `packages/shared` (`services/`, `types/`).
-2. Is it logic both clients need, and not UI? `packages/shared`, deleting the client copies.
-3. Is it a browser binding (the axios instance, a device store)? `services/`.
-4. Does one page use it? That page's folder, beside its entry.
-5. Do several pages under one page folder use it? The `shared/` folder of the lowest page folder
+2. Is it logic both clients need, built on the same libraries, and not UI? `packages/shared`,
+   deleting the client copies. (Logic each client builds on its own platform libraries, such as
+   Keystone UR coding, stays per client.)
+3. Is it part of the route table, a guard, or a state only guards render? `routes/`.
+4. Is it a browser binding (the axios instance, a device store)? `services/`.
+5. Does one page use it? That page's folder, beside its entry.
+6. Do several pages under one page folder use it? The `shared/` folder of the lowest page folder
    holding them all (`pages/company/shared/`, `pages/company/register/shared/`).
-6. Otherwise (two areas, a guard or the frame): `components/` for UI, as a lowercase group folder
-   when it has parts or hooks of its own; `hooks/` for a hook without JSX; `utils/` for any other
-   helper or a web-only path.
+7. Otherwise (two areas or the frame): `components/` for UI, as a group folder when it has parts or
+   hooks of its own; `hooks/` for a hook or provider; `utils/` for any other helper or a web-only
+   path.
 
 Move a file in the change that gives it a second user, and back down when one user remains, as a
 move with no behaviour change that repoints its importers, `vi.mock` paths and cited document
@@ -165,7 +184,7 @@ The [principles](README.md#principles) apply; in particular, do not add:
 - **Query keys.** The module that owns a query exports its key or key factory, and every other
   reader and invalidation imports it; a key both clients use is exported from the shared hook, as
   `AUTH_QUERY_KEY` is. A key is its resource's root (kebab-case for a new root), then the owner for
-  account-bound data, then parameters. It never starts with another resource's root, and an
+  account-bound data (anything read or written for the signed-in account), then parameters. It never starts with another resource's root, and an
   invalidation names the narrowest prefix that covers the change.
 - **Paths and titles.** Link and navigate with `DESTINATIONS` paths, filling parameters with React
   Router's `generatePath`, or with the web-only paths in `utils/paths.ts` (the company dashboard,
@@ -180,13 +199,15 @@ The [principles](README.md#principles) apply; in particular, do not add:
 - **Formatting.** Figures, amounts and dates use the shared formatters (`formatMoney`,
   `formatShareCount`, `marketQuantity`, `formatCryptoBalance`, `formatDate`;
   [lists, figures and currency](#lists-figures-and-currency)). Never define a local formatter or
-  pass a displayed amount through `Number` or `parseFloat`.
+  pass a displayed amount through `Number` or `parseFloat` (the existing local formatters and
+  `parseFloat` display paths change output, so they await the owner decision listed on
+  [#1065](https://github.com/Ledova/ledova/issues/1065)).
 - **Naming and exports.** A page folder takes the last fixed segment of its address and sits in the
   folder of the nearest page whose fixed address begins its own: `/company/register/:uuid/grant` is
   `pages/company/register/grant/`. An address that only adds a parameter to that page is `detail/`
-  (`/directory/:uuid` is `pages/directory/detail/`); an address that renders another's page
+  (`/directory/:uuid` is `pages/directory/detail/`), and a `detail/` folder never holds sub-pages; an address that renders another's page
   (`/member-records`, `/company/register/setup`) has no folder, and the not-found page is
-  `pages/not-found/`. Other folders are kebab-case, and a `components/` group is lowercase (`qr/`).
+  `pages/not-found/`. Every folder name is kebab-case (`qr/`, `eligibility-requests/`).
   A file is named after its main export, or after what small siblings share (`fieldClass.ts`):
   `PascalCase.tsx` for a component, `use<Thing>.ts` for a hook without JSX, `<Thing>Provider.tsx`
   for a provider, `PascalCase.ts` for a React context, camelCase `.ts` for a module without React.
@@ -195,16 +216,16 @@ The [principles](README.md#principles) apply; in particular, do not add:
 - **Types.** Types and interfaces use PascalCase and properties camelCase; query parameters keep the
   API's snake_case names. Entities use their bare name, queries `{Entity}QueryParams` and non-CRUD
   calls `{Action}Request` and `{Action}Response`, composed from the shared pagination, ordering and
-  date-range types; `packages/shared/eslint-naming-rules.js` enforces these on
-  `packages/shared/src/types/`. Clients type-check against the generated contracts
+  date-range types; `packages/shared/eslint-naming-rules.js` enforces these names, the snake_case query-parameter
+  fields and the utility-type preferences on `packages/shared/src/types/`. Clients type-check against the generated contracts
   ([the API type drift gate](gates.md#the-api-type-drift-gate)).
 - **Imports.** Relative paths never climb: import your own folder with `./` and everything else
   through an alias in `dashboard/tsconfig.app.json` (`@components`, `@hooks`, `@pages`,
   `@services`, `@utils`) or as `@ledova/shared`
   ([shared package imports](#clients-and-the-shared-package)). The only `../` paths are tests
   reaching `testSupport/` and `testSupport/` reaching `packages/shared/tests/fixtures`.
-- **Tests.** A test sits beside the entry or hook it covers and takes its name (`index.test.tsx` for
-  a page journey); helpers for tests in more than one folder live in `testSupport/`, as in
+- **Tests.** A test sits beside the file it covers and takes its name (`index.test.tsx` for a page
+  journey); helpers for tests in more than one folder live in `testSupport/`, as in
   `mobile/src/testSupport/`. A move updates `vi.mock` paths in the same change, because a mock whose
   module no longer holds the export stops mocking without failing, and keeps every case
   ([minimum-test policy](testing.md#minimum-test-policy)).
@@ -215,8 +236,8 @@ Enforced today: ESLint and Prettier (`make lint`, with the shared type naming ru
 [the logging privacy gate](gates.md#the-logging-privacy-gate), the self-import gate and
 [the API type drift gate](gates.md#the-api-type-drift-gate). Not yet enforced: placement, import
 direction, data access, query keys, paths, naming and test placement. Review checks these until the
-frontend import gate ([#1066](https://github.com/Ledova/ledova/issues/1066)) takes import direction,
-relative paths and `apiClient` placement.
+frontend import gate ([#1066](https://github.com/Ledova/ledova/issues/1066)) takes the `routes/`
+and `pages/` import rules, climbing relative paths and `apiClient` placement.
 
 ## Adding a page or feature
 
