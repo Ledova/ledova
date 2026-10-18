@@ -126,7 +126,10 @@ schema or catalogue change that alters the live policies therefore needs a migra
 rolled-back transaction (PostgreSQL-normalised expressions, policy roles and permissiveness, helper
 properties), after migration rather than on the scoped serving connection; `check_rls_roles`
 checks live connection privileges, grants and principal state. Both run in
-[backend verification](testing.md#backend-verification).
+[backend verification](testing.md#backend-verification). Neither check runs a read under the
+policies. Apart from company administration, which the company setup journey exercises only on its
+successful path, no automated test covers the reads the catalogue records as wider than ownership
+(`READS_WIDER_THAN_OWNERSHIP`) or its public terms (`PUBLIC_TERM`).
 
 ### Requests and jobs
 
