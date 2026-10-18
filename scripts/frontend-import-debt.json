@@ -1,10 +1,8 @@
 {
   "dashboard/src/App.tsx:pages-only-pages-or-routes": 12,
-  "dashboard/src/components/DocumentsPanel/DocumentsPanel.tsx:relative-parent": 1,
   "dashboard/src/components/Footer.tsx:api-client-outside-hook": 1,
   "dashboard/src/components/wallet/BuyCryptoModal.tsx:api-client-outside-hook": 1,
   "dashboard/src/components/wallet/WalletSelectionModal.tsx:api-client-outside-hook": 1,
-  "dashboard/src/hooks/useDocuments.ts:relative-parent": 1,
   "dashboard/src/pages/company/authority/AuthorityRequestForm.tsx:api-client-outside-hook": 1,
   "dashboard/src/pages/company/authority/index.tsx:api-client-outside-hook": 1,
   "dashboard/src/pages/company/CompanyDocuments.tsx:api-client-outside-hook": 1,
@@ -57,11 +55,5 @@
   "dashboard/src/pages/investor-eligibility/ClaimModal.tsx:api-client-outside-hook": 1,
   "dashboard/src/pages/investor-eligibility/index.tsx:api-client-outside-hook": 1,
   "dashboard/src/pages/settings/index.tsx:api-client-outside-hook": 1,
-  "dashboard/src/pages/signup/company-registration/components/CompanyRegistrationForm.tsx:relative-parent": 1,
-  "dashboard/src/pages/signup/review/index.tsx:page-boundary": 1,
-  "dashboard/src/pages/transactions/components/TransactionDetail.tsx:relative-parent": 1,
-  "dashboard/src/pages/transactions/components/TransactionListItem.tsx:relative-parent": 1,
-  "dashboard/src/pages/wallets/components/AddWalletModal.tsx:api-client-outside-hook": 1,
-  "dashboard/src/pages/wallets/components/AddWalletModal.tsx:relative-parent": 1,
-  "dashboard/src/services/documents.ts:relative-parent": 1
+  "dashboard/src/pages/wallets/AddWalletModal.tsx:api-client-outside-hook": 1
 }

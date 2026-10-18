@@ -8,7 +8,7 @@ import {
 } from '@ledova/shared';
 import type { Transaction } from '@ledova/shared';
 import { Disclosure, Status } from '@components/Ledger';
-import { activityState } from '../presentation';
+import { activityState } from './presentation';
 import { TransactionDetail } from './TransactionDetail';
 
 interface TransactionListItemProps {

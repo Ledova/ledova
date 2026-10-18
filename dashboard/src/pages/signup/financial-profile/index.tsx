@@ -1,6 +1,6 @@
-import { FinancialProfileForm } from '@pages/signup/financial-profile/components/FinancialProfileForm';
-import LoadingState from '@components/signup/LoadingState';
-import ErrorState from '@components/signup/ErrorState';
+import { FinancialProfileForm } from './FinancialProfileForm';
+import { LoadingState } from '@pages/signup/shared/LoadingState';
+import { ErrorState } from '@pages/signup/shared/ErrorState';
 import { useNavigate } from 'react-router-dom';
 import { ChartBarIcon } from '@phosphor-icons/react';
 import { AuthLayout } from '@components/AuthLayout';

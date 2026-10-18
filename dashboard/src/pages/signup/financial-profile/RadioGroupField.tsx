@@ -1,5 +1,12 @@
 import { Description, Field, Label, Radio, RadioGroup } from '@headlessui/react';
-import type { RadioGroupFieldProps } from '@ledova/shared';
+
+interface RadioGroupFieldProps<Value extends string = string> {
+  label: string;
+  value: Value;
+  options: Array<{ value: Value; label: string }>;
+  error?: string[];
+  onChange: (value: Value) => void;
+}
 
 const RadioGroupField = <Value extends string>({
   label,

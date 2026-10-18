@@ -2,8 +2,8 @@ import { useRef, useState } from 'react';
 import { useOpenRows, useTransactions, type TransactionFilters } from '@ledova/shared';
 import { Page, PageAction } from '@components/Page';
 import { Section } from '@components/Ledger';
-import { TransactionFilter } from './components/TransactionFilter';
-import { TransactionListItem } from './components/TransactionListItem';
+import { TransactionFilter } from './TransactionFilter';
+import { TransactionListItem } from './TransactionListItem';
 
 const TransactionsPage = () => {
   const {

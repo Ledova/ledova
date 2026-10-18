@@ -1,6 +1,6 @@
 import { ReactNode, useContext } from 'react';
-import { Logo } from '@components/Logo';
-import { ThemeToggle } from '@components/ThemeToggle';
+import { Logo } from './Logo';
+import { ThemeToggle } from './ThemeToggle';
 import { SITE_URL } from '@utils/siteUrl';
 import { AuthLayoutAction } from './AuthLayoutAction';
 

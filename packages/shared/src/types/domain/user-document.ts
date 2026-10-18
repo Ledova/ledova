@@ -1,5 +1,5 @@
-import type { ApiResponse, ApiSchema } from '@ledova/shared';
+import type { ApiResponse, ApiSchema } from '../contracts';
 
-export type DocumentType = ApiSchema<'UserDocumentTypeEnum'>;
+export type UserDocumentType = ApiSchema<'UserDocumentTypeEnum'>;
 export type ExtractionStatus = ApiSchema<'DocumentExtractionStatusEnum'>;
 export type Document = ApiResponse<'api_v1_documents_retrieve'>;

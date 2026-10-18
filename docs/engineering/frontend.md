@@ -77,10 +77,6 @@ Where today's code differs from these tables:
 - `routes/` does not yet hold the whole route table: `PublicOnlyRoute`, the sign-up step map, the
   public, company dashboard and not-found routes are still in `App.tsx`
   ([#1071](https://github.com/Ledova/ledova/issues/1071)).
-- The shared sign-up files still sit in `components/signup/` and the company-registration step
-  ([#1070](https://github.com/Ledova/ledova/issues/1070)).
-- `dashboard/src/types/document.ts` and page `components/` and `hooks/` subfolders remain
-  ([#1070](https://github.com/Ledova/ledova/issues/1070)).
 
 Mobile maps onto the same layers, direction and placement, with `navigation/` for `routes/` and
 `screens/<area>/` for page folders; its cross-area imports are brought in line under
@@ -302,7 +298,7 @@ entry's audience:
 The guard decides pages, not data: the API decides which rows a person sees, answering 404 for a
 refused row.
 
-The sidebar (`dashboard/src/components/Sidebar`) names items by `DESTINATIONS` key, or
+The sidebar (`dashboard/src/components/Sidebar.tsx`) names items by `DESTINATIONS` key, or
 `companyDashboard`, optionally with a hash (`/company/register#awards`, `#documents`,
 `/home#documents`). Its company group follows `useRegisterEntry`, its investing group the investing
 role and Market `trading_enabled` ([the app at a
@@ -512,7 +508,7 @@ The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components
 - `Status` (web) is words after a small mark, read as words only; `Timeline` (web) dates each event;
   `Choice` (mobile) is an outlined choice marked selected.
 
-A dialog (`Modal` in `dashboard/src/components/Modal`; `CustomModal` in
+A dialog (`Modal` in `dashboard/src/components/Modal.tsx`; `CustomModal` in
 `mobile/src/components/modal`) is the same card over the dimmed page, labelled by its Newsreader
 title (on mobile a header with `accessibilityViewIsModal`, since React Native cannot make it the
 accessible name). Its body scrolls inside, and `ModalActions` ends it with one right-aligned,

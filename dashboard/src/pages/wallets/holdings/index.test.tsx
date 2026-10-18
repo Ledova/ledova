@@ -21,7 +21,7 @@ import { MEMBER_ENTRY, MEMBER_RECORD } from '../../../testSupport/company';
 
 const api = vi.hoisted(() => ({ get: vi.fn() }));
 vi.mock('@services/apiClient', () => ({ default: api }));
-vi.mock('./components/HoldingWork', () => ({ HoldingWork: () => null }));
+vi.mock('./HoldingWork', () => ({ HoldingWork: () => null }));
 
 const firstWallet = { uuid: 'wallet-one', name: 'Primary', address: `0x${'1'.repeat(40)}`, chain: 'base' };
 const secondWallet = { uuid: 'wallet-two', name: 'Reserve', address: `0x${'2'.repeat(40)}`, chain: 'ethereum' };

@@ -1,8 +1,8 @@
 import { useNavigate } from 'react-router-dom';
 import { BuildingsIcon } from '@phosphor-icons/react';
-import LoadingState from '@components/signup/LoadingState';
-import ErrorState from '@components/signup/ErrorState';
-import { CompanyRegistrationForm } from '@pages/signup/company-registration/components/CompanyRegistrationForm';
+import { LoadingState } from '@pages/signup/shared/LoadingState';
+import { ErrorState } from '@pages/signup/shared/ErrorState';
+import { CompanyRegistrationForm } from './CompanyRegistrationForm';
 import { AuthLayout } from '@components/AuthLayout';
 import { useSignupCompanyRegistration } from '@ledova/shared';
 import { ICON_MD } from '@components/iconSizes';

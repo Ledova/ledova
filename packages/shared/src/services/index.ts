@@ -196,3 +196,12 @@ export * from './register-paid-issues';
 export * from './register-allotments';
 
 export * from './member-access';
+
+export {
+  listDocuments,
+  getDocument,
+  uploadDocument,
+  deleteDocument,
+  attachDocument,
+  type UploadDocumentInput,
+} from './documents';

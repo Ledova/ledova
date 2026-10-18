@@ -225,3 +225,9 @@ export const TRANSACTION_ENDPOINTS = {
 export const ONRAMP_ENDPOINTS = {
   WIDGET_URL: '/api/fiat-purchases/transak-widget-url/',
 } as const;
+
+export const USER_DOCUMENT_ENDPOINTS = {
+  BASE: '/api/v1/documents/',
+  DETAIL: (uuid: string) => `/api/v1/documents/${uuid}/` as const,
+  ATTACH: (uuid: string) => `/api/v1/documents/${uuid}/attach/` as const,
+} as const;

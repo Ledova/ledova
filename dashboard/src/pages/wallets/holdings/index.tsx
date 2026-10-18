@@ -1,7 +1,7 @@
 import { formatShareCount, getChainConfig, useOpenRows, useShareHoldings } from '@ledova/shared';
 import { Disclosure, Section } from '@components/Ledger';
 import { Page, PageAction } from '@components/Page';
-import { HoldingWork } from '@pages/wallets/holdings/components/HoldingWork';
+import { HoldingWork } from './HoldingWork';
 
 export default function HomePage() {
   const { data: holdings = [], isPending, isError, isFetching, refetch } = useShareHoldings();
