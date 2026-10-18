@@ -449,8 +449,8 @@ Current limits, each with follow-up work proposed under the share lifecycle revi
   needs at least one current member, and grants, awards and allotments need an opened import (an
   empty class can still be deployed, opened from the chain and receive chain issues). Proposed under
   [#1061](https://github.com/Ledova/ledova/issues/1061), which also proposes class creation through
-  company appointments rather than ownership and a check of the class's declared transfer
-  restriction, which direct transfers do not check today.
+  company appointments rather than ownership. Direct transfers already check the class's declared
+  transfer restriction ([transfer rules](register.md#non-paid-transfers-between-members)).
 - An issue or transfer is dated the day it is recorded rather than the company's effective date, and
   the investor issue review shows the holdings and issued shares before and after but no implied
   price per share or ownership percentages. Proposed under [#1062](https://github.com/Ledova/ledova/issues/1062).
