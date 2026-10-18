@@ -17,14 +17,14 @@ import {
 import { DESTINATIONS, useFeatureFlags, type DestinationKey } from '@ledova/shared';
 import { ICON_MD } from '@components/iconSizes';
 import { useRole } from '@hooks/useRole';
-import { useUserProfile } from '@pages/user-profile/useUserProfile';
+import { useUserProfile } from '@hooks/useUserProfile';
 import { SITE_URL } from '@utils/siteUrl';
 import { Logo } from '@components/Logo';
 import { NotificationBell } from '@components/NotificationBell';
 import { SignOutButton } from '@components/SignOutButton';
 import { ThemeToggle } from '@components/ThemeToggle';
-import { useRegisterEntry } from '@pages/company/register/useCompanyRegister';
-import { COMPANY_DASHBOARD_PATH } from '../../routes/companyDashboard';
+import { useRegisterEntry } from '@hooks/useRegisterAccess';
+import { COMPANY_DASHBOARD_PATH } from '@utils/paths';
 
 type Icon = React.ComponentType<{ size?: number; weight?: 'regular' | 'fill' }>;
 

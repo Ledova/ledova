@@ -12,23 +12,17 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
-import {
-  APPOINTMENT,
-  AWARD_REQUEST,
-  REGISTER,
-  awardFrom,
-  vestingFrom,
-} from '../../../../../packages/shared/tests/fixtures/employee-awards';
+import { APPOINTMENT, AWARD_REQUEST, REGISTER, awardFrom, vestingFrom } from '../../../testSupport/company';
 import { ClassAwards } from './ClassAwards';
 import { GrantForm } from './grant/GrantForm';
 import { ownAppointmentsKey } from '../team/appointments';
 import apiClient from '@services/apiClient';
 import CompanyRegisterPage from '.';
-import { companyPreferences, prepareCompanyClient } from '../testSupport';
+import { companyPreferences, prepareCompanyClient } from '../../../testSupport/company';
 
 const api = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn(), save: vi.fn() }));
 vi.mock('@services/apiClient', () => ({ default: api }));
-vi.mock('./useCompanyRegister', async (original) => ({ ...(await original<object>()), saveFile: api.save }));
+vi.mock('@utils/saveFile', async (original) => ({ ...(await original<object>()), saveFile: api.save }));
 const OWNER = { userUuid: 'profile-one', ownerAccountUuid: 'account-one' };
 const FILE = new File(['%PDF synthetic'], 'synthetic.pdf', { type: 'application/pdf' });
 let client: QueryClient;

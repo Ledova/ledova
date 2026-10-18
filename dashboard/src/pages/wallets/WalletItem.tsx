@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import type { Wallet } from '@ledova/shared';
-import { WalletSummary } from './WalletSummary';
+import { WalletSummary } from '@components/wallet/WalletSummary';
 
 interface WalletItemProps {
   wallet: Wallet;

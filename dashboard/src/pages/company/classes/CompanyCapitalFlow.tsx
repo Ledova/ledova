@@ -23,7 +23,7 @@ import { PageAction } from '@components/Page';
 import { FIELD_CLASS } from '@components/fieldClass';
 import apiClient from '@services/apiClient';
 import { RegisterDecisions } from '../register/RegisterDecisions';
-import { saveFile } from '../register/useCompanyRegister';
+import { saveFile } from '@utils/saveFile';
 import { DecisionTrail } from '../register/DecisionTrail';
 import type { useShareClass } from './useShareClass';
 

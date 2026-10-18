@@ -3,13 +3,13 @@ import { DESTINATIONS, WALLET_VERIFICATION_STATUS, getActiveChains, sortWallets,
 import type { Wallet as WalletType, DerivedAddress, HardwareWalletImport } from '@ledova/shared';
 import { Page, PageAction } from '@components/Page';
 import { LinkRow, Section } from '@components/Ledger';
-import { WalletItem } from '@components/Wallet';
+import { WalletItem } from './WalletItem';
 import { useWallets } from './hooks/useWallets';
 import { WalletActions } from './components/WalletActions';
 import { WalletSort } from './components/WalletSort';
 import { EditWalletModal } from './components/EditWalletModal';
 import { DeleteWalletModal } from './components/DeleteWalletModal';
-import { WalletVerificationModal } from './components/WalletVerificationModal';
+import { WalletVerificationModal } from '@components/wallet/WalletVerificationModal';
 import { DeriveAddressModal } from './components/DeriveAddressModal';
 import { AddWalletModal } from './components/AddWalletModal';
 import { CryptoActions } from './components/CryptoActions';

@@ -9,22 +9,17 @@ import {
 import { QueryClient } from '@tanstack/react-query';
 import { act, cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, expect, it, vi } from 'vitest';
-import { APPOINTMENT, REGISTER } from '../../../../../packages/shared/tests/fixtures/employee-awards';
-import {
-  ALLOTMENT_REQUEST,
-  allotmentFrom,
-  allotmentDecision,
-  allotmentPreview,
-} from '../../../../../packages/shared/tests/fixtures/external-allotments';
+import { APPOINTMENT, REGISTER } from '../../../testSupport/company';
+import { ALLOTMENT_REQUEST, allotmentFrom, allotmentDecision, allotmentPreview } from '../../../testSupport/company';
 import CompanyRegisterPage from '.';
-import { companyPreferences, renderCompanyPage } from '../testSupport';
+import { companyPreferences, renderCompanyPage } from '../../../testSupport/company';
 import { ownAppointmentsKey } from '../team/appointments';
 import { allotmentsKey } from './useRegisterAllotments';
 
 const api = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn() }));
 const save = vi.hoisted(() => vi.fn());
 vi.mock('@services/apiClient', () => ({ default: api }));
-vi.mock('./useCompanyRegister', async (original) => ({ ...(await original<object>()), saveFile: save }));
+vi.mock('@utils/saveFile', async (original) => ({ ...(await original<object>()), saveFile: save }));
 const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
 let pendingFileRelease: (() => void) | undefined;
 let pendingReadRelease: (() => void) | undefined;

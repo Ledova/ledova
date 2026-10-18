@@ -21,7 +21,7 @@ import { SignupCompanyRegistration } from '@pages/signup/company-registration';
 import CompanyDashboardPage from '@pages/company/dashboard';
 import { PageTitle } from '@components/PageTitle';
 import { ProtectedRoute } from './routes/ProtectedRoute';
-import { COMPANY_DASHBOARD_PATH } from './routes/companyDashboard';
+import { COMPANY_DASHBOARD_PATH } from '@utils/paths';
 import Layout from '@components/Layout';
 import { FullScreenSpinner } from '@components/FullScreenSpinner';
 

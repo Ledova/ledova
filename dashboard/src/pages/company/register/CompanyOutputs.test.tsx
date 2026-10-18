@@ -5,13 +5,8 @@ import { QueryClient } from '@tanstack/react-query';
 import { act, cleanup, fireEvent, screen, waitFor } from '@testing-library/react';
 import { useState } from 'react';
 import { afterEach, expect, it, vi } from 'vitest';
-import {
-  OUTPUT_APPOINTMENT,
-  OUTPUT_ENTRY,
-  OUTPUT_PREVIEW,
-  OUTPUT_REGISTER,
-} from '../../../../../packages/shared/tests/fixtures/register-outputs';
-import { prepareCompanyClient, renderCompanyPage } from '../testSupport';
+import { OUTPUT_APPOINTMENT, OUTPUT_ENTRY, OUTPUT_PREVIEW, OUTPUT_REGISTER } from '../../../testSupport/company';
+import { prepareCompanyClient, renderCompanyPage } from '../../../testSupport/company';
 import { ClassCertificate } from './ClassCertificate';
 import { CompanyPack } from './CompanyPack';
 

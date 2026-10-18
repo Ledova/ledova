@@ -1,8 +1,8 @@
 import { WALLET_VERIFICATION_STATUS, getChainConfig } from '@ledova/shared';
 import type { Wallet } from '@ledova/shared';
 import { PageAction } from '@components/Page';
-import { useBuyCrypto } from '@hooks/useBuyCrypto';
-import { useSendTransfer } from '@hooks/useSendTransfer';
+import { useBuyCrypto } from '@components/wallet/useBuyCrypto';
+import { useSendTransfer } from '@components/wallet/useSendTransfer';
 
 export function CryptoActions({ wallets }: { wallets: Wallet[] | null }) {
   const { openBuyCrypto, canBuyCrypto } = useBuyCrypto();

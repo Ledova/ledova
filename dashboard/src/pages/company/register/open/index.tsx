@@ -14,7 +14,8 @@ import {
 import { Row, Rows, Section } from '@components/Ledger';
 import { Page, PageAction } from '@components/Page';
 import { Loading, Unavailable } from '../RegisterStatus';
-import { READ_TIMING, useRegisterClasses } from '../useCompanyRegister';
+import { READ_TIMING } from '@hooks/useRegisterAccess';
+import { useRegisterClasses } from '../useCompanyRegister';
 import { ownerGuard, useOwnAppointments } from '../useRegisterImports';
 import { openingHoldersKey, readOpeningHolders } from '../useRegisterOpenings';
 import { OpeningForm } from './OpeningForm';

@@ -15,7 +15,7 @@ import { PageAction } from '@components/Page';
 import { ownAppointmentsKey } from '../team/appointments';
 import { GrantRecord } from './GrantRecord';
 import { registerSteps } from './proposals';
-import { registerKey } from './useCompanyRegister';
+import { registerKey } from '@hooks/useRegisterAccess';
 import { entriesKey } from './useRegisterCorrections';
 import { useOwnAppointments } from './useRegisterImports';
 import { grantsKey, useRegisterGrants } from './useRegisterGrants';

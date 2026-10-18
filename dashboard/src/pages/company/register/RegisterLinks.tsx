@@ -11,7 +11,7 @@ import { PageAction } from '@components/Page';
 import { ownAppointmentsKey } from '../team/appointments';
 import { LinkRecord } from './LinkRecord';
 import { registerSteps } from './proposals';
-import { registerKey } from './useCompanyRegister';
+import { registerKey } from '@hooks/useRegisterAccess';
 import { useOwnAppointments } from './useRegisterImports';
 import { linksKey, useRegisterLinks, useWaitingWallets, waitingWalletsKey } from './useRegisterLinks';
 

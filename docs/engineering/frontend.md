@@ -77,12 +77,6 @@ Where today's code differs from these tables:
 - `routes/` does not yet hold the whole route table: `PublicOnlyRoute`, the sign-up step map, the
   public, company dashboard and not-found routes are still in `App.tsx`
   ([#1071](https://github.com/Ledova/ledova/issues/1071)).
-- The profile and register-access hooks still sit in page folders
-  (`pages/user-profile/useUserProfile.ts`, `pages/company/register/useCompanyRegister.ts`), the Buy
-  crypto and Send providers in `hooks/` render `pages/wallets` modals, and `utils/paths.ts` and
-  `testSupport/` do not exist yet (until then the web-only paths are in `routes/companyDashboard.ts`
-  and `routes/signupRoutes.tsx`, and test helpers in `pages/company/testSupport.tsx`)
-  ([#1067](https://github.com/Ledova/ledova/issues/1067)).
 - Page folders do not yet follow their addresses (`pages/home` serves `/wallets/holdings`,
   `pages/member-records` serves `/home`, the share class page is `classes/`, the eligibility pages
   share `eligibility-records/`, not-found is `pages/NotFound.tsx`)
@@ -278,7 +272,7 @@ included, gets the entry's title through `PageTitle`; the web titles `home` Dash
 shares. `/member-records` is an alias of `/home`, and `companyRegisterSetup` and
 `companyRegisterImport` render the same page. Outside the table sit the
 [sign-up steps](#sign-up-routes) and `/company/dashboard` (`COMPANY_DASHBOARD_PATH` in
-`dashboard/src/routes/companyDashboard.ts`, routed in `dashboard/src/App.tsx` under `ProtectedRoute`
+`dashboard/src/utils/paths.ts`, routed in `dashboard/src/App.tsx` under `ProtectedRoute`
 with audience `everyone` and title Dashboard).
 
 `canOpen(role, audience)` lets an investor open `everyone` and `investing` pages, a company
@@ -291,7 +285,7 @@ non-company account that opens a sign-up step.
 `/` (`RootRedirect`) sends a signed-out visitor to sign in and an unfinished account into sign-up:
 to `/signup/company-registration` when the account may open company pages and its full name has more
 than one word, otherwise to `SIGNUP_RESUMES_AT`. A finished account opens `/company/dashboard` when
-`useRegisterEntryAccess` (`dashboard/src/pages/company/register/useCompanyRegister.ts`) confirms
+`useRegisterEntryAccess` (`dashboard/src/hooks/useRegisterAccess.ts`) confirms
 readable register access (the first page of readable register classes is not empty, or the person
 may personally administer one of their companies, read across every page) and `/home` otherwise; a
 failed check offers Try again. Sign-in navigates to `/`.
@@ -325,7 +319,7 @@ Native navigation is declared separately ([navigation](mobile.md#navigation)).
 
 ### Sign-up routes
 
-`SIGNUP_STEPS` (`dashboard/src/routes/signupRoutes.tsx`) lists the eight steps after the
+`SIGNUP_STEPS` (`dashboard/src/utils/paths.ts`) lists the eight steps after the
 create-account form: email confirmation, account type, pre-screening, identity verification, user
 profile, financial profile, company registration and review. `signupRoutes` wraps each in
 `SignupRoute`, which sends a finished company account to the company dashboard and other finished

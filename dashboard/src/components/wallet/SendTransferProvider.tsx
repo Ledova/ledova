@@ -1,17 +1,12 @@
-import { createContext, useContext, useState, useCallback, type ReactNode } from 'react';
+import { useState, useCallback, type ReactNode } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { useTransferFlow } from '@pages/wallets/hooks/useTransferFlow';
-import { WalletSelectionModal } from '@pages/wallets/components/WalletSelectionModal';
-import { SendFormModal } from '@pages/wallets/components/SendFormModal';
-import { TransferSigningFlow } from '@pages/wallets/components/TransferSigningFlow';
+import { useTransferFlow } from './useTransferFlow';
+import { WalletSelectionModal } from './WalletSelectionModal';
+import { SendFormModal } from './SendFormModal';
+import { TransferSigningFlow } from './TransferSigningFlow';
 import type { Wallet } from '@ledova/shared';
 
-interface SendTransferContextValue {
-  openSendTransfer: () => void;
-  openSendTransferFrom: (wallet: Wallet) => void;
-}
-
-const SendTransferContext = createContext<SendTransferContextValue | null>(null);
+import { SendTransferContext } from './SendTransferContext';
 
 export function SendTransferProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
@@ -121,12 +116,4 @@ export function SendTransferProvider({ children }: { children: ReactNode }) {
       )}
     </SendTransferContext.Provider>
   );
-}
-
-export function useSendTransfer(): SendTransferContextValue {
-  const context = useContext(SendTransferContext);
-  if (!context) {
-    throw new Error('useSendTransfer must be used within a SendTransferProvider');
-  }
-  return context;
 }

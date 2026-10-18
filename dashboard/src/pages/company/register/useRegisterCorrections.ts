@@ -12,7 +12,7 @@ import {
   type RegisterEntry,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
-import { READ_TIMING, registerKey } from './useCompanyRegister';
+import { READ_TIMING, registerKey } from '@hooks/useRegisterAccess';
 
 export type ClassCorrection = { proposal: RegisterCorrection; entry: RegisterEntry };
 

@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { getRegisterAllotments, readEveryPage, type OrderSubmissionOwner } from '@ledova/shared';
 import apiClient from '@services/apiClient';
-import { READ_TIMING, registerKey } from './useCompanyRegister';
+import { READ_TIMING, registerKey } from '@hooks/useRegisterAccess';
 export const allotmentsKey = (owner: OrderSubmissionOwner, token: string) => [
   ...registerKey(owner),
   'allotments',

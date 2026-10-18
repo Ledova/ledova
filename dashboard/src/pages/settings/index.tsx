@@ -17,7 +17,7 @@ import { Page, PageAction } from '@components/Page';
 import { LinkRow, Section, SwitchRow } from '@components/Ledger';
 import { FIELD_CLASS } from '@components/fieldClass';
 import { setTheme, useTheme } from '@hooks/useTheme';
-import { useRegisterEntry } from '@pages/company/register/useCompanyRegister';
+import { useRegisterEntry } from '@hooks/useRegisterAccess';
 
 function ActionRow({ description, label, onClick }: { description: string; label: string; onClick: () => void }) {
   return (

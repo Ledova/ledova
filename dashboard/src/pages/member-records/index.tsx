@@ -13,7 +13,7 @@ import { PageTitle } from '@components/PageTitle';
 import { FIELD_CLASS } from '@components/fieldClass';
 import { AwardStatus } from '@components/AwardStatus';
 import apiClient from '@services/apiClient';
-import { saveFile } from '../company/register/useCompanyRegister';
+import { saveFile } from '@utils/saveFile';
 
 const SUMMARY = 'cursor-pointer py-2 text-sm font-medium text-text-primary';
 

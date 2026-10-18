@@ -1,12 +1,12 @@
 import { Navigate } from 'react-router-dom';
 import { DESTINATIONS, canOpen, useAuth, useUserPreferences } from '@ledova/shared';
-import { useRegisterEntryAccess } from '@pages/company/register/useCompanyRegister';
+import { useRegisterEntryAccess } from '@hooks/useRegisterAccess';
 import { Page, PageAction } from '@components/Page';
 import { PageTitle } from '@components/PageTitle';
-import { COMPANY_DASHBOARD_PATH } from './companyDashboard';
-import { useUserProfile } from '@pages/user-profile/useUserProfile';
+import { COMPANY_DASHBOARD_PATH } from '@utils/paths';
+import { useUserProfile } from '@hooks/useUserProfile';
 import { AccountUnavailable } from './AccountUnavailable';
-import { SIGNUP_RESUMES_AT } from './signupRoutes';
+import { SIGNUP_RESUMES_AT } from '@utils/paths';
 
 export function RootRedirect() {
   const { isAuthenticated, isLoading } = useAuth();

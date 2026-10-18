@@ -10,7 +10,7 @@ import { PageAction } from '@components/Page';
 import { ownAppointmentsKey } from '../team/appointments';
 import { ParticularsRecord } from './ParticularsRecord';
 import { registerMembers, registerSteps } from './proposals';
-import { registerKey } from './useCompanyRegister';
+import { registerKey } from '@hooks/useRegisterAccess';
 import { useOwnAppointments } from './useRegisterImports';
 import { particularsKey, useRegisterParticulars } from './useRegisterParticulars';
 

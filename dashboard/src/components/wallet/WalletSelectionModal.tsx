@@ -5,7 +5,7 @@ import { ICON_LG } from '@components/iconSizes';
 import type { Wallet } from '@ledova/shared';
 import { Modal } from '@components/Modal';
 import { PageAction } from '@components/Page';
-import { WalletChoice } from '@components/Wallet';
+import { WalletChoice } from '@components/wallet';
 import apiClient from '@services/apiClient';
 
 interface WalletSelectionModalProps {

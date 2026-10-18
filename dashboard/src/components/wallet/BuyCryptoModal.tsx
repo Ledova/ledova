@@ -17,7 +17,7 @@ import { ICON_SM, ICON_MD } from '@components/iconSizes';
 import type { BuyableAssetConfig, Wallet } from '@ledova/shared';
 import { Modal } from '@components/Modal';
 import { PageAction } from '@components/Page';
-import { WalletChoice } from '@components/Wallet';
+import { WalletChoice } from '@components/wallet';
 import apiClient from '@services/apiClient';
 
 const ASSET_ICONS: Record<string, React.ReactNode> = {

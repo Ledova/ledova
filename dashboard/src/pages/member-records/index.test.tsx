@@ -14,14 +14,9 @@ import { MemoryRouter } from 'react-router-dom';
 import { webcrypto } from 'node:crypto';
 import { Buffer } from 'node:buffer';
 import { afterEach, expect, it, vi } from 'vitest';
-import { MEMBER_CODE, MEMBER_ENTRY, MEMBER_RECORD } from '../../../../packages/shared/tests/fixtures/member-access';
-import { AWARD_REQUEST, REGISTER, awardFrom } from '../../../../packages/shared/tests/fixtures/employee-awards';
-import {
-  FULFILLED_CERTIFICATE,
-  MEMBER_PDF,
-  OUTPUT_APPOINTMENT,
-  OUTPUT_PREVIEW,
-} from '../../../../packages/shared/tests/fixtures/register-outputs';
+import { MEMBER_CODE, MEMBER_ENTRY, MEMBER_RECORD } from '../../testSupport/company';
+import { AWARD_REQUEST, REGISTER, awardFrom } from '../../testSupport/company';
+import { FULFILLED_CERTIFICATE, MEMBER_PDF, OUTPUT_APPOINTMENT, OUTPUT_PREVIEW } from '../../testSupport/company';
 import MemberRecordsPage from './index';
 import { CompanyMemberAccess } from '../company/register/CompanyMemberAccess';
 

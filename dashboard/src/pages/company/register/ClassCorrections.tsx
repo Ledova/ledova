@@ -18,7 +18,7 @@ import { CorrectionRecord } from './CorrectionRecord';
 import { ClassCertificate } from './ClassCertificate';
 import { RegisterChanges } from './RegisterChanges';
 import { registerSteps } from './proposals';
-import { registerKey } from './useCompanyRegister';
+import { registerKey } from '@hooks/useRegisterAccess';
 import {
   correctionsKey,
   entriesKey,

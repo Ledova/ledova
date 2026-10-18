@@ -17,7 +17,7 @@ import { DecisionTrail } from './DecisionTrail';
 import { RegisterDecisions } from './RegisterDecisions';
 import { WalletStatus } from './WalletStatus';
 import { DOWNLOAD_FAILED, STAGE_TONES, retainedName, type RegisterSteps } from './proposals';
-import { saveFile } from './useCompanyRegister';
+import { saveFile } from '@utils/saveFile';
 
 const COPY = REGISTER_LINK_COPY;
 

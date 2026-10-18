@@ -14,7 +14,7 @@ import { PageAction } from '@components/Page';
 import { FIELD_CLASS } from '@components/fieldClass';
 import apiClient from '@services/apiClient';
 import { ownAppointmentsKey } from '../team/appointments';
-import { saveFile } from './useCompanyRegister';
+import { saveFile } from '@utils/saveFile';
 import { useOwnAppointments } from './useRegisterImports';
 
 const FAILED =

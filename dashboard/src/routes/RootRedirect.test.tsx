@@ -11,10 +11,10 @@ import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import type { AxiosInstance } from 'axios';
 import { Link, MemoryRouter, Route, Routes } from 'react-router-dom';
 import { expect, it, vi } from 'vitest';
-import { companyPreferences, prepareCompanyClient } from '@pages/company/testSupport';
+import { companyPreferences, prepareCompanyClient } from '../testSupport/company';
 import { RootRedirect } from './RootRedirect';
-import { COMPANY_DASHBOARD_PATH } from './companyDashboard';
-import { SIGNUP_RESUMES_AT } from './signupRoutes';
+import { COMPANY_DASHBOARD_PATH } from '@utils/paths';
+import { SIGNUP_RESUMES_AT } from '@utils/paths';
 
 const api = vi.hoisted(() => ({ get: vi.fn() }));
 vi.mock('@services/apiClient', () => ({ default: api }));

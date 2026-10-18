@@ -14,7 +14,7 @@ import { DecisionTrail } from './DecisionTrail';
 import { RegisterChanges } from './RegisterChanges';
 import { RegisterDecisions } from './RegisterDecisions';
 import { DOWNLOAD_FAILED, STAGE_TONES, describeEntry, retainedName, type RegisterSteps } from './proposals';
-import { saveFile } from './useCompanyRegister';
+import { saveFile } from '@utils/saveFile';
 import type { ClassCorrection } from './useRegisterCorrections';
 
 const COPY = REGISTER_CORRECTION_COPY;

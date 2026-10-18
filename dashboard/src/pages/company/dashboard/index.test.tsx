@@ -10,7 +10,7 @@ import { QueryClient } from '@tanstack/react-query';
 import { act, cleanup, fireEvent, screen, within } from '@testing-library/react';
 import { afterEach, expect, it, vi } from 'vitest';
 import CompanyDashboardPage from '.';
-import { companyPreferences, prepareCompanyClient, renderCompanyPage } from '../testSupport';
+import { companyPreferences, prepareCompanyClient, renderCompanyPage } from '../../../testSupport/company';
 import { countBarWidth, ownershipSegments, ownershipSummary } from './summary';
 
 const api = vi.hoisted(() => ({ get: vi.fn() }));

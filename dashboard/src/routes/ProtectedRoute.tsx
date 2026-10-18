@@ -3,12 +3,12 @@ import { Navigate } from 'react-router-dom';
 import { canOpen, landingFor, useAuth, type Audience } from '@ledova/shared';
 
 import { useRole } from '@hooks/useRole';
-import { useUserProfile } from '@pages/user-profile/useUserProfile';
+import { useUserProfile } from '@hooks/useUserProfile';
 import { InSignedInFrame } from '@components/InSignedInFrame';
 import { Page } from '@components/Page';
 import { FullScreenSpinner } from '@components/FullScreenSpinner';
 import { AccountUnavailable } from './AccountUnavailable';
-import { SIGNUP_RESUMES_AT } from './signupRoutes';
+import { SIGNUP_RESUMES_AT } from '@utils/paths';
 
 function RoleUnavailable({ onRetry }: { onRetry: () => void }) {
   return (

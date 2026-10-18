@@ -1,4 +1,4 @@
-import { useUserProfile } from '@pages/user-profile/useUserProfile';
+import { useUserProfile } from '@hooks/useUserProfile';
 import { useAuth } from '@ledova/shared';
 
 export function useSignupFinished() {

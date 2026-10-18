@@ -25,7 +25,7 @@ import { ICON_XS, ICON_SM, ICON_MD, ICON_LG } from '@components/iconSizes';
 import type { Wallet, WhitelistStatus } from '@ledova/shared';
 import { Modal } from '@components/Modal';
 import { useQRScanner, QRScannerView } from '@components/qr';
-import type { UnifiedAsset } from '../hooks/useTransferFlow';
+import type { UnifiedAsset } from './useTransferFlow';
 import { FIELD_BASE } from '@components/fieldClass';
 
 interface SendFormModalProps {
