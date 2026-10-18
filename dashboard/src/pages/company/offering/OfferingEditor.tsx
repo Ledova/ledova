@@ -1,19 +1,10 @@
-import { useEffect, useRef, useState } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Modal } from '@components/Modal';
-import {
-  apiErrorSentence,
-  createUserFriendlyError,
-  createOffering,
-  updateOffering,
-  type Company,
-  type OfferingInput,
-} from '@ledova/shared';
-import apiClient from '@services/apiClient';
+import { apiErrorSentence, type Company } from '@ledova/shared';
 import { CompanyReadNotice, type CompanyActionRead } from '@pages/company/shared/CompanyState';
 import { OfferingForm } from './OfferingForm';
 import { OfferingReadNotice } from './OfferingReadNotice';
-import { useCompanyOffering, type useOfferings } from './useOffering';
+import { type useOfferings } from './useOffering';
+import { useOfferingEditor } from './useOfferingEditor';
 
 export function OfferingEditor({
   uuid,
@@ -30,77 +21,14 @@ export function OfferingEditor({
   data: ReturnType<typeof useOfferings>;
   onClose: () => void;
 }) {
-  const detail = useCompanyOffering(uuid, targetCompany, companyRead);
-  const client = useQueryClient();
-  const mounted = useRef(true);
-  const pending = useRef(false);
-  const [assertCurrent] = useState(() => companyRead.assertCurrent);
-  const [config] = useState(() => companyRead.requestConfig(targetCompany, 'owner'));
-  useEffect(() => {
-    mounted.current = true;
-    return () => {
-      mounted.current = false;
-    };
-  }, []);
-  const guard = () => {
-    if (!mounted.current) throw createUserFriendlyError('This company action is closed.');
-    assertCurrent(targetCompany, 'owner');
-    data.assertCurrent();
-    if (uuid) data.assertOffering(uuid, 'edit');
-    if (uuid) {
-      const state = client.getQueryState<import('@ledova/shared').Offering>([
-        'offering',
-        targetCompany,
-        companyRead.scopeKey,
-        uuid,
-      ]);
-      if (
-        state?.status !== 'success' ||
-        state.fetchStatus !== 'idle' ||
-        !state.data ||
-        state.data.uuid !== uuid ||
-        !state.data.canBeEdited
-      )
-        throw createUserFriendlyError('Refresh the current offering before continuing.');
-    }
-  };
-  const belongs = company?.uuid === targetCompany;
-  const editable =
-    !uuid || (detail.data?.canBeEdited && data.tokens.some((token) => token.uuid === detail.data?.tokenUuid));
-  const blocked =
-    !belongs ||
-    !editable ||
-    !!companyRead.error ||
-    companyRead.isRefreshing ||
-    !!data.error ||
-    data.isRefreshing ||
-    (uuid !== undefined && (detail.isError || detail.isFetching));
-  const request = useMutation({
-    mutationFn: async (input: OfferingInput) => {
-      guard();
-      const requestConfig = { ...config, ledovaSubmissionGuard: guard };
-      const result = uuid
-        ? await updateOffering(apiClient, uuid, input, requestConfig)
-        : await createOffering(apiClient, input, requestConfig);
-      guard();
-      return result;
-    },
-    onSettled: () => {
-      pending.current = false;
-    },
-    onSuccess: async () => {
-      guard();
-      await data.refresh();
-      guard();
-      onClose();
-    },
+  const { detail, pendingRef, belongs, editable, blocked, request, refetch } = useOfferingEditor({
+    uuid,
+    targetCompany,
+    company,
+    companyRead,
+    data,
+    onClose,
   });
-  const refetch = async () => {
-    const companyResult = companyRead.error ? await companyRead.refetch() : [];
-    await data.refetch();
-    if (uuid) await detail.refetch();
-    return companyResult;
-  };
   return (
     <Modal
       isOpen
@@ -146,14 +74,14 @@ export function OfferingEditor({
             operatorName={data.operatorName}
             editing={uuid ? detail.data : undefined}
             onCreate={(input) => {
-              if (!blocked && !request.isPending && !pending.current) {
-                pending.current = true;
+              if (!blocked && !request.isPending && !pendingRef.current) {
+                pendingRef.current = true;
                 request.mutate(input);
               }
             }}
             onUpdate={(input) => {
-              if (!blocked && !request.isPending && !pending.current) {
-                pending.current = true;
+              if (!blocked && !request.isPending && !pendingRef.current) {
+                pendingRef.current = true;
                 request.mutate(input);
               }
             }}
