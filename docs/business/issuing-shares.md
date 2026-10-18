@@ -26,18 +26,25 @@ Contents:
 ## Share classes
 
 A share class is a company's equity instrument, with a name, a class code, a type (Ordinary,
-Preference or Redeemable) and authorised shares; shares are whole units in the register and on
+Preference or Redeemable) and a configured share limit; shares are whole units in the register and on
 chain. A class starts as a draft with no contract; once deployed it has one and can be paused. A
 class opened by an import can be deployed only while empty and never takes a chain opening or chain
 issue ([the register](register.md#the-register-and-the-companys-records)).
 
-Only the company owner creates a class, with Create share class on the Company page or in
-[register setup](register.md#bringing-in-existing-records); this creates no shares and no legal
-registration. Class codes are one to five letters, unique within the company, and may not reuse a
+The class-creation API requires a current personal company administrator or preparer appointment,
+rechecked under the company lock. Ownership or platform staff status alone supplies no authority.
+The existing client selectors still offer Create share class and
+[register setup](register.md#bringing-in-existing-records) to the company owner; the scoped-client
+setup follows under #1061. Creation records no shares and no legal registration. The technical
+limit is not statutory authorised capital; the class code and type do not define its economic rights.
+Class codes are one to five letters, unique within the company, and may not reuse a
 reserved asset symbol. Neither a company nor a class can be deleted through the app: a company that
 should close is delisted, and a class is paused to stop transfers. Deployment, capital increases and
 pausing are company decisions; earlier direct actions by the owner or platform staff are retired,
-and their records stay readable.
+and their records stay readable. The register API can confirm a zero-issued opening for a genuinely
+unopened draft class without a contract or former members. It creates no shareholder, holding or
+ISSUE; a subsequent approved grant or investor allotment records the first shares. The clients do
+not yet expose this empty-opening choice ([register setup](register.md#bringing-in-existing-records)).
 
 ### Deploying an empty class
 
@@ -445,11 +452,9 @@ rights, and transmission.
 Current limits, each with follow-up work proposed under the share lifecycle review
 ([#1060](https://github.com/Ledova/ledova/issues/1060)):
 
-- A new class that is not on chain and has no shareholders cannot receive its first issue: an import
-  needs at least one current member, and grants, awards and allotments need an opened import (an
-  empty class can still be deployed, opened from the chain and receive chain issues). Proposed under
-  [#1061](https://github.com/Ledova/ledova/issues/1061), which also proposes class creation through
-  company appointments rather than ownership. Direct transfers already check the class's declared
+- The server supports current company appointments creating classes and confirming zero-issued
+  non-tokenised openings. The corresponding client setup and class-limit terminology remain under
+  [#1061](https://github.com/Ledova/ledova/issues/1061). Direct transfers already check the class's declared
   transfer restriction ([transfer rules](register.md#non-paid-transfers-between-members)).
 - An issue or transfer is dated the day it is recorded rather than the company's effective date, and
   the investor issue review shows the holdings and issued shares before and after but no implied

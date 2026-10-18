@@ -299,7 +299,9 @@ requirement codes:
   deployment source, an approved issue or an applied register instruction leaves only a chain
   opening); `holdings_differ` (the class was opened from the chain and its stored holdings differ);
   `former_member_after_opening`; `former_member_before_retention` (ceased before the retention
-  cutoff). An opening correction adds `register_changed`, `mirror_snapshot_changed` (the corrected
+  cutoff); `empty_non_tokenised_opening_required` (an empty snapshot is only for a genuinely unopened
+  non-tokenised class, never a correction or former-member import). An opening correction adds
+  `register_changed`, `mirror_snapshot_changed` (the corrected
   import is no longer the latest applied one), and `mirror_correction_activity` and
   `mirror_correction_member_activity` (class or company activity that
   `tokens_mirror_correction_ready` refuses).
@@ -397,6 +399,13 @@ decimal places and names up to 255 characters; a member's 1 to 10,000 allotments
 and `fully_paid` agrees with a zero `amount_unpaid`. The stored row adds `amount_paid`, the sum of
 its allotments, and `tokens_mirror_members_valid` rechecks the stored shape in PostgreSQL. Earlier
 snapshots keep their missing fields unknown.
+
+Empty `members` and `former_members` arrays are accepted only for an unopened draft class with no
+chain activity or correction source. `tokens_empty_mirror_opening_ready` enforces that boundary
+when the snapshot is prepared and the opening entry is recorded. SQL empty totals use zero;
+non-empty rows keep their complete particulars validation. The unchanged decision path records
+one empty OPENING, no member or position, and zero issued supply. First grants, awards and
+allotments then use that applied import; no separate register mode or fabricated holder is added.
 
 Application creates the members, any opening entry and the particulars in one transaction. An
 opening correction keeps the previous snapshot, decisions and opening entry, adds the
