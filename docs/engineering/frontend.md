@@ -48,8 +48,8 @@ pending actions to the selected company and the session.
 The dashboard is organised by page. Each page has a folder under `dashboard/src/pages/`, named and
 nested by its address, holding everything only that page uses; a top-level folder of `pages/` is an
 area. The tables below are the standard; where today's code differs, the gap is listed after them
-with the issue that closes it. The other folders hold what several areas, the route table or the frame share, and
-`packages/shared` holds what both clients share.
+with the issue that closes it. The other folders hold what several areas, the route table or the
+frame share, and `packages/shared` holds what both clients share.
 
 | `dashboard/src/`      | Owns                                                                                                                                                                                                                                                                                                                                  |
 | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -94,9 +94,10 @@ Where today's code differs from these tables:
 
 Mobile maps onto the same layers, direction and placement, with `navigation/` for `routes/` and
 `screens/<area>/` for page folders; its cross-area imports are brought in line under
-[#1074](https://github.com/Ledova/ledova/issues/1074) ([mobile architecture](mobile.md#architecture)). `site/src` is a
-separate flat app (one file per page in `pages/`, `components/`, `styles.ts`, `theme.ts`) that
-cannot import the shared package; only the file-naming rules apply to it.
+[#1074](https://github.com/Ledova/ledova/issues/1074) ([mobile
+architecture](mobile.md#architecture)). `site/src` is a separate flat app (one file per page in
+`pages/`, `components/`, `styles.ts`, `theme.ts`) that cannot import the shared package; only the
+file-naming rules apply to it.
 
 ## Frontend layers
 
@@ -184,8 +185,9 @@ The [principles](README.md#principles) apply; in particular, do not add:
 - **Query keys.** The module that owns a query exports its key or key factory, and every other
   reader and invalidation imports it; a key both clients use is exported from the shared hook, as
   `AUTH_QUERY_KEY` is. A key is its resource's root (kebab-case for a new root), then the owner for
-  account-bound data (anything read or written for the signed-in account), then parameters. It never starts with another resource's root, and an
-  invalidation names the narrowest prefix that covers the change.
+  account-bound data (anything read or written for the signed-in account), then parameters. It never
+  starts with another resource's root, and an invalidation names the narrowest prefix that covers
+  the change.
 - **Paths and titles.** Link and navigate with `DESTINATIONS` paths, filling parameters with React
   Router's `generatePath`, or with the web-only paths in `utils/paths.ts` (the company dashboard,
   sign-in, sign-up and `SIGNUP_STEPS`); source writes no literal path. Titles come from
@@ -205,20 +207,21 @@ The [principles](README.md#principles) apply; in particular, do not add:
 - **Naming and exports.** A page folder takes the last fixed segment of its address and sits in the
   folder of the nearest page whose fixed address begins its own: `/company/register/:uuid/grant` is
   `pages/company/register/grant/`. An address that only adds a parameter to that page is `detail/`
-  (`/directory/:uuid` is `pages/directory/detail/`), and a `detail/` folder never holds sub-pages; an address that renders another's page
-  (`/member-records`, `/company/register/setup`) has no folder, and the not-found page is
-  `pages/not-found/`. Every folder name is kebab-case (`qr/`, `eligibility-requests/`).
-  A file is named after its main export, or after what small siblings share (`fieldClass.ts`):
-  `PascalCase.tsx` for a component, `use<Thing>.ts` for a hook without JSX, `<Thing>Provider.tsx`
-  for a provider, `PascalCase.ts` for a React context, camelCase `.ts` for a module without React.
-  Components and hooks are function declarations. A page entry default-exports its page and
-  nothing else; other exports are named, and only when another file imports them.
+  (`/directory/:uuid` is `pages/directory/detail/`), and a `detail/` folder never holds sub-pages;
+  an address that renders another's page (`/member-records`, `/company/register/setup`) has no
+  folder, and the not-found page is `pages/not-found/`. Every folder name is kebab-case (`qr/`,
+  `eligibility-requests/`). A file is named after its main export, or after what small siblings
+  share (`fieldClass.ts`): `PascalCase.tsx` for a component, `use<Thing>.ts` for a hook without JSX,
+  `<Thing>Provider.tsx` for a provider, `PascalCase.ts` for a React context, camelCase `.ts` for a
+  module without React. Components and hooks are function declarations. A page entry default-exports
+  its page and nothing else; other exports are named, and only when another file imports them.
 - **Types.** Types and interfaces use PascalCase and properties camelCase; query parameters keep the
   API's snake_case names. Entities use their bare name, queries `{Entity}QueryParams` and non-CRUD
   calls `{Action}Request` and `{Action}Response`, composed from the shared pagination, ordering and
-  date-range types; `packages/shared/eslint-naming-rules.js` enforces these names, the snake_case query-parameter
-  fields and the utility-type preferences on `packages/shared/src/types/`. Clients type-check against the generated contracts
-  ([the API type drift gate](gates.md#the-api-type-drift-gate)).
+  date-range types; `packages/shared/eslint-naming-rules.js` enforces these names, the snake_case
+  query-parameter fields and the utility-type preferences on `packages/shared/src/types/`. Clients
+  type-check against the generated contracts ([the API type drift
+  gate](gates.md#the-api-type-drift-gate)).
 - **Imports.** Relative paths never climb: import your own folder with `./` and everything else
   through an alias in `dashboard/tsconfig.app.json` (`@components`, `@hooks`, `@pages`,
   `@services`, `@utils`) or as `@ledova/shared`
@@ -309,12 +312,12 @@ refused row.
 The sidebar (`dashboard/src/components/Sidebar`) names items by `DESTINATIONS` key, or
 `companyDashboard`, optionally with a hash (`/company/register#awards`, `#documents`,
 `/home#documents`). Its company group follows `useRegisterEntry`, its investing group the investing
-role and Market `trading_enabled`
-([the app at a glance](../business/README.md#the-app-at-a-glance)). Settings opens `/settings` and
-stays marked active on `/company`, `/company/team`, `/company/authority` and
-`/company/register#access`, which the Settings page's Member access row opens. The register hashes switch the visible view
-without unmounting register forms or their recovery ([page mechanics](#page-mechanics)). The sidebar
-and phone drawer are 208 pixels wide (`lg:ml-52`), with page content beside them in a bounded grid.
+role and Market `trading_enabled` ([the app at a
+glance](../business/README.md#the-app-at-a-glance)). Settings opens `/settings` and stays marked
+active on `/company`, `/company/team`, `/company/authority` and `/company/register#access`, which
+the Settings page's Member access row opens. The register hashes switch the visible view without
+unmounting register forms or their recovery ([page mechanics](#page-mechanics)). The sidebar and
+phone drawer are 208 pixels wide (`lg:ml-52`), with page content beside them in a bounded grid.
 Native navigation is declared separately ([navigation](mobile.md#navigation)).
 
 ### Sign-up routes
@@ -480,13 +483,13 @@ Section spacing is scoped to the frame; sign-up keeps its own presentation.
 
 The title row holds the title and the page's actions, with a one-sentence muted lede under it only
 where it adds to the titles. The first section follows at the same gap as between sections (`Page`
-is one flex column with a single gap; add no margin under the title). On mobile `Page` is a scroll view on the page ground: the title
-(Newsreader, `theme.fontSize.xxxxl`), the lede, then the actions as one wrapping row, since a
-phone's large title leaves no room beside it; the stack header holds only the menu or back button
-and, on a top-level screen, the bell. Mobile screens framed differently: Help & Support keeps its
-stack title; Send, Transfer, Verify Wallet and Recovery Phrase are titled inside their `Panel` card
-(`mobile/src/components/panel`); Buy crypto is its dialog over the bare page ground, then the
-provider's web view.
+is one flex column with a single gap; add no margin under the title). On mobile `Page` is a scroll
+view on the page ground: the title (Newsreader, `theme.fontSize.xxxxl`), the lede, then the actions
+as one wrapping row, since a phone's large title leaves no room beside it; the stack header holds
+only the menu or back button and, on a top-level screen, the bell. Mobile screens framed
+differently: Help & Support keeps its stack title; Send, Transfer, Verify Wallet and Recovery Phrase
+are titled inside their `Panel` card (`mobile/src/components/panel`); Buy crypto is its dialog over
+the bare page ground, then the provider's web view.
 
 The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components/Ledger.tsx`) and
 `PageAction` (`dashboard/src/components/Page.tsx`) each enforce one rule:
