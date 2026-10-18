@@ -364,7 +364,7 @@ or failure.
 On the web, signing in and verifying an email (which also signs a new person in) remove every cached
 query except the authentication root, then await an exact authentication refetch. Signing out and
 account deletion mark authentication invalid before clearing the whole cache. These two reset
-sequences share `dashboard/src/hooks/session.ts`. The four device stores share the synchronous
+sequences share `dashboard/src/utils/session.ts`. The four device stores share the synchronous
 `dashboard/src/services/browserStorage.ts` adapter, resolving browser storage when each operation
 runs. Mobile clears the whole cache whenever the sign-in screen gains focus, and on sign-out and
 account deletion. A new person is never guarded by, or signs up against, the previous person's

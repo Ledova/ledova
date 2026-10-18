@@ -1,4 +1,4 @@
-import { clearSessionQueries } from '@hooks/session';
+import { clearSessionQueries } from '@utils/session';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';

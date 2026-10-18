@@ -1,4 +1,4 @@
-import { resetSessionQueries } from '@hooks/session';
+import { resetSessionQueries } from '@utils/session';
 import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { readSignInError, signin, FormErrors, SigninRequest } from '@ledova/shared';
