@@ -1,10 +1,8 @@
-import { useMutation } from '@tanstack/react-query';
 import {
   REGISTER_GRANT_COPY as COPY,
   REGISTER_AWARD_COPY as AWARD_COPY,
   REGISTER_GRANT_DECISIONS,
   apiErrorSentence,
-  downloadRegisterGrantFile,
   formatDateTime,
   type RegisterDecisionKind,
   type RegisterGrant,
@@ -12,17 +10,10 @@ import {
 } from '@ledova/shared';
 import { Row, Rows, Status } from '@components/Ledger';
 import { PageAction } from '@components/Page';
-import apiClient from '@services/apiClient';
 import { DecisionTrail } from '@pages/company/register/shared/DecisionTrail';
 import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
-import {
-  DOWNLOAD_FAILED,
-  STAGE_TONES,
-  retainedName,
-  shareCount,
-  type RegisterSteps,
-} from '@pages/company/shared/proposals';
-import { saveFile } from '@utils/saveFile';
+import { DOWNLOAD_FAILED, STAGE_TONES, shareCount, type RegisterSteps } from '@pages/company/shared/proposals';
+import { useGrantRecordDownload } from './useRegisterRecordDownload';
 
 const DECISION_COPY = { ...COPY, DECISIONS: { ...COPY.DECISIONS, apply: 'Record issue' } };
 
@@ -70,20 +61,7 @@ export function GrantRecord({
   onHeldChange?: (uuid: string, held: boolean) => void;
   newEffectGuard?: (kind: RegisterDecisionKind) => void;
 }) {
-  const download = useMutation({
-    mutationFn: async (kind: 'authority' | 'terms' | 'acceptance') => {
-      guard();
-      const { data } = await downloadRegisterGrantFile(apiClient, grant.uuid, kind, { ledovaSubmissionGuard: guard });
-      guard();
-      const snapshot =
-        kind === 'authority'
-          ? grant.evidenceSnapshot
-          : kind === 'terms'
-            ? grant.termsSnapshot
-            : grant.acceptanceSnapshot;
-      saveFile(data, retainedName(snapshot, `${kind}-${grant.uuid}`));
-    },
-  });
+  const download = useGrantRecordDownload(grant, guard);
   const context = `grant for ${grant.name} prepared ${formatDateTime(grant.createdAt)}`;
   const documents: ('authority' | 'terms' | 'acceptance')[] = grant.acceptanceEvidence
     ? ['authority', 'terms', 'acceptance']
