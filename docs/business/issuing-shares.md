@@ -314,9 +314,10 @@ powers to take a company down stay separate from this routine review.
 
 Under Investor Directory on the Offerings page, someone with current company administration turns on
 Show this company to eligible investors; it is off by default, and only an active company can be
-listed. The directory shows the share classes of active companies that are switched on, so
-suspension hides a company without changing the switch and reinstatement lists it again. The admin
-form changes the switch only for someone with company administration. Turning it off hides the
+listed. The directory shows the share classes of active companies that are switched on, so a
+compliance warning, suspension or delisting by [staff](companies.md#staff-registry-controls) hides a
+company without changing the switch, and resolving the warning or reinstating lists it again. The
+admin form changes the switch only for someone with company administration. Turning it off hides the
 company's classes but does not withdraw an offering under review.
 
 ### Creating and submitting an offering
