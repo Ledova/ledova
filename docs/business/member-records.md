@@ -312,9 +312,8 @@ stated limits, not proof of a bank payment, current contract ownership or a lodg
   contributions and allotments, register instructions, deployments, capital increases, pause
   changes, and wallet nominations and instructions, each with who prepared and decided it, under
   which appointment, and any supporting file Ledova retained
-  ([which records carry files](../engineering/records.md#company-decision-records)). Capital
-  increases, pause changes and the terms of a chain grant name a file the pack does not carry;
-  deployments and wallet nominations and instructions have none.
+  ([which records carry files](../engineering/records.md#company-decision-records)); deployments
+  and wallet nominations and instructions have none.
 - Issues, and subscriptions with a payment recorded by staff (not proved) still to be allotted or
   refunded, an obligation the company inherits.
 - Wallet approvals, the transactions Ledova sent for the company and the settlements it executed.
@@ -345,9 +344,12 @@ and identity source.
 | Ledova's source code                                                                                           | The software licence is noncommercial; the pack carries the contract interface files and the owner's statement ([position 5](../legal/positions.md#5-software-licensing-and-commercial-permission)) |
 
 No file is built from these areas except the register's own particulars, and the only stored files
-the pack opens are the company's documents and evidence copies. Decision records do name who
-prepared and decided each one, with their platform account number, and each entry's fingerprint
-input carries the recording account's number, without which the entries cannot be checked.
+the pack opens are the company's documents, evidence copies, publication documents and remittance
+evidence. Platform account numbers leave in two places only, even where the account is a member's:
+decision records give the number of each person who prepared, decided or recorded one and of each
+appointee they relied on, and the fingerprint input of each register entry and of each dividend
+payment record or withdrawal carries the number of the account that recorded it, without which it
+cannot be checked.
 
 ### Producing a core pack in the Register
 
@@ -420,8 +422,6 @@ What a recipient should know (the builder's own limits are in
 - A company document has no fingerprint of its own apart from the manifest's, so a reader can check
   an evidence copy against its record but a document only against the manifest. A document held
   only as a web address is listed, not fetched.
-- The README predates the company's decision records: it does not describe them, and it says no
-  platform account numbers leave, although those records carry them.
 - A withheld ballot's fingerprint cannot be recomputed, nor a tally recounted: a reader checks the
   ballots' links, the close and the tally against the roll and the number of ballots, and the split
   between for, against and abstain rests on Ledova's own verifier. A roll's audience fingerprint

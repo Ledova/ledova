@@ -169,7 +169,7 @@ def retained_sources(records):
     copies = {}
     for record in records:
         fields = ["agreement_snapshot"] if record._meta.model_name == "registeraward" else ["evidence_snapshot"]
-        if record._meta.model_name == "registergrant":
+        if record._meta.model_name in {"registergrant", "registerinstruction"}:
             fields += ["terms_snapshot", "acceptance_snapshot"]
         if record._meta.model_name == "registertransfer":
             fields += ["instrument_snapshot"]

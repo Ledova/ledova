@@ -828,9 +828,9 @@ table column, link or tag. Values Ledova produces are left as they are, and the 
   records](#company-decision-records)).
 - `documents/<document id>.<extension>`: each company document Ledova holds a file for, as uploaded.
 - `documents/evidence/<record kind>/<record id>.<extension>`: the retained copy behind each
-  authority or core record; `documents/evidence/<record kind>-<source>/<record id>.<extension>` a
-  record's second source (an import's `asic` extract, a grant's `terms` and `acceptance`, a
-  transfer's `instrument`).
+  authority or decision record; `documents/evidence/<record kind>-<source>/<record id>.<extension>`
+  a record's second source (an import's `asic` extract, a grant's or chain grant's `terms` and
+  `acceptance`, a transfer's `instrument`).
 - `classes/<class id>/`: `class.json`, `register.csv` (from the export's own code, with no export
   record, absent while the register has no opening), `entries.json` (with each entry's `preimage`),
   `authority.json` (register instructions include chain grants and paid issues), `chain.json`,
@@ -849,12 +849,13 @@ The record kind in an evidence path is the lowercase model name (`registeropenin
 `registerimport`, `registercorrection`, `registerinstruction`, `registerwalletlink`,
 `registerparticularschange`, `registeraward`, `registerawardvesting`, `registerawardend`,
 `registerawardvestingreversal`, `registeragreement`,
-`registercontribution`, `registerallotment`, `registergrant`, `registertransfer`), so records
-sharing an operation id cannot replace each other's copy. The extension is that of the media type
-the snapshot recorded (`.pdf`, `.png` or `.jpeg`; none for another type). Internal ids (user,
-profile, order, account, wallet and whitelist entry ids, worker and retry claim ids, the initiating
-actor), verification fingerprints and a snapshot's company identity, storage path and owner id stay
-behind, except the platform account numbers decision records carry.
+`registercontribution`, `registerallotment`, `registergrant`, `registertransfer`,
+`registercapitalincrease`, `registerpausechange`), so records sharing an operation id cannot replace
+each other's copy. The extension is that of the media type the snapshot recorded (`.pdf`, `.png` or
+`.jpeg`; none for another type). Internal ids (user, profile, order, account, wallet and whitelist
+entry ids, worker and retry claim ids, the initiating actor), verification fingerprints and a
+snapshot's company identity, storage path and owner id stay behind, except the platform account
+numbers that decision records and [preimages](#hash-preimages) carry.
 
 ### Company decision records
 
@@ -879,9 +880,14 @@ carries `recorded_at`, `recorded_by_name`, its preparing appointment, `sources` 
 with their platform account numbers (`prepared_by_id`, `decided_by_id`, `recorded_by`,
 `appointee_id`).
 
-Evidence copies are carried for openings, imports (with the ASIC extract), corrections, register
-instructions' authority, wallet links, particulars changes, awards, vesting events, entitlement endings, vesting reversals, agreements,
-contributions, allotments, grants (with terms and acceptance) and transfers (with the instrument).
+Every source `path` names a copy the archive carries. The history files' copies cover openings,
+imports (with the ASIC extract), corrections, register instructions' authority, wallet links and
+particulars changes; `retained_sources` in
+[company_pack_documents.py](../../backend/tokens/services/company_pack_documents.py) adds awards,
+vesting events, entitlement endings, vesting reversals, agreements, contributions, allotments,
+grants (with terms and acceptance), transfers (with the instrument), capital increases, pause
+changes and chain grants' terms and acceptance. Deployments, wallet instructions and wallet
+nominations have no sources.
 
 ### Authority records and history
 
@@ -932,7 +938,8 @@ README section 5 lists as unresolved a class `deploying`, its swap approval `pen
 `documents.json` and chooses the stored files, all under `companies/<company id>/` ([private
 files](security.md#private-files)).
 
-- Evidence copies come from the same objects the history files list, not a second query.
+- The history files' evidence copies come from the same objects those files list, not a second
+  query; `retained_sources` reads the decision records' other copies in the same snapshot.
 - While streaming an evidence copy the builder computes its size and SHA-256 and refuses the pack,
   naming the record, unless they are those its snapshot recorded. A publication document and
   remittance evidence are tied the same way to the SHA-256 recorded when each was stored. A company
@@ -968,11 +975,6 @@ as history.
 - The ceiling counts a company document by its recorded size, which staff can edit; uploads are
   bounded at 10 MiB each (`UPLOAD_MAX_BYTES` by default), so the error is bounded by the number of
   documents.
-- `company_mandates.json` names an evidence `path` for capital-increase and pause-change authority
-  copies and for chain-grant terms and acceptance copies, but the archive carries only the copies
-  listed under [company decision records](#company-decision-records), so those paths have no file.
-- The README predates the decision records: its file table omits `company_mandates.json`, and its
-  opening and preimage notes say no platform account ids leave, although that file carries them.
 - Production near the ceiling has not been measured; a proxy in front of the backend could time out
   a large download.
 
