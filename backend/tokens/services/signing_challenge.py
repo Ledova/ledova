@@ -148,7 +148,7 @@ def consume_challenge(
     if not digest or not signature:
         raise ChallengeUnknownException()
 
-    challenge = SigningChallenge.objects.consumable().select_for_update().filter(digest=digest).first()
+    challenge = SigningChallenge.objects.select_for_update().filter(digest=digest).first()
     if challenge is None:
         raise ChallengeUnknownException()
 

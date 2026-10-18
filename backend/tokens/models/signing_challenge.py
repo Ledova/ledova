@@ -38,12 +38,7 @@ class SigningChallenge(DerivesWalletFromOrder, BaseModel):
         "wallets.Wallet",
         on_delete=models.PROTECT,
         related_name="+",
-        null=True,
-        blank=True,
-        help_text=(
-            "Owner. Supplied by the service, which holds the authenticated caller's wallet; "
-            "null only for rows written before this column, whose address named no wallet or more than one"
-        ),
+        help_text="Owner. Supplied by the service, which holds the authenticated caller's wallet.",
     )
 
     payload = models.JSONField()
