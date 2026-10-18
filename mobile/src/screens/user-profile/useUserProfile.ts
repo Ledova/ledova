@@ -9,6 +9,7 @@ import {
   useAuth,
   useSubmissionOwner,
   type UpdateUserProfile,
+  USER_PROFILES_QUERY_KEY,
 } from '@ledova/shared';
 import { apiClient } from '../../services/apiClient';
 import { orderSubmissionSession } from '../../services/orderSubmissions';
@@ -23,7 +24,7 @@ export function useUserProfile() {
   const id = useId();
   const [generation, setGeneration] = useState({ owner, value: 0 });
   if (generation.owner !== owner) setGeneration({ owner, value: generation.value + 1 });
-  const key = ['userProfiles', owner?.userUuid, owner?.ownerAccountUuid, id, generation.value];
+  const key = [...USER_PROFILES_QUERY_KEY, owner?.userUuid, owner?.ownerAccountUuid, id, generation.value];
   const mounted = useRef(true);
   const pending = useRef(false);
   const transport = useRef<AbortController | null>(null);

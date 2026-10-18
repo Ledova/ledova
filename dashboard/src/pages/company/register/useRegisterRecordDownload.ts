@@ -29,7 +29,7 @@ import {
   awardVestingsKey,
   type useRegisterAwardVestings,
 } from '@pages/company/register/shared/useRegisterAwards';
-import { ownAppointmentsKey } from '@pages/company/shared/appointments';
+import { ownAppointmentsKey } from '@pages/company/shared/useOwnAppointments';
 import { saveFile } from '@utils/saveFile';
 
 export function useAllotmentRecordDownload(allotment: RegisterAllotment, guard: () => void) {

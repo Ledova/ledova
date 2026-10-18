@@ -4,7 +4,7 @@ import { REGISTER_RECONCILIATION_COPY } from '../constants/business/register-rec
 import { acknowledgeRegisterDiscrepancy } from '../services/register-reconciliations';
 import type { RegisterReconciliation } from '../types';
 import { apiErrorSentence, createUserFriendlyError, getErrorMessage } from '../utils/errors';
-import { failureStatus } from '../utils/register-commands';
+import { failureStatus } from '../utils/errors';
 import { isDiscrepancyAcknowledgementReceipt } from '../utils/register-reconciliations';
 import { useApiClient } from './useApiClient';
 

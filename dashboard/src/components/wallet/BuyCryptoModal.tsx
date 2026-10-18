@@ -12,6 +12,7 @@ import {
   useCurrency,
   useUserPreferences,
   canOpen,
+  WALLETS_QUERY_KEY,
 } from '@ledova/shared';
 import { ICON_SM, ICON_MD } from '@components/iconSizes';
 import type { BuyableAssetConfig, Wallet } from '@ledova/shared';
@@ -69,7 +70,7 @@ export function BuyCryptoModal({ isOpen, onClose, onNavigateToWidget, userAccoun
 
   const walletsQuery = useQuery({
     queryKey: [
-      'wallets',
+      ...WALLETS_QUERY_KEY,
       userAccountUuid,
       { chain: selectedAsset?.chain, verification_status: 'VERIFIED', ordering: 'signing_preference' },
     ],

@@ -3,12 +3,14 @@ import { useQuery } from '@tanstack/react-query';
 import * as Sharing from 'expo-sharing';
 import {
   CACHE_TIMING,
+  failureStatus,
   PUBLICATION_COPY,
   downloadPublication,
   getPublications,
   publicationFilename,
   readEveryPage,
   type UserFriendlyError,
+  PUBLICATIONS_QUERY_KEY,
 } from '@ledova/shared';
 import { apiClient } from '../../services/apiClient';
 import { shareDocumentCopy, UTI_BY_MIME_TYPE } from '../../services/documentCopies';
@@ -17,9 +19,7 @@ import { assertSessionEpoch, getSessionEpoch, subscribeSession } from '../../ser
 
 function openingFailure(error: unknown) {
   const cause = (error as UserFriendlyError | undefined)?.originalError ?? error;
-  return (cause as { response?: { status?: number } })?.response?.status === 503
-    ? PUBLICATION_COPY.UNDELIVERABLE
-    : PUBLICATION_COPY.FAILED;
+  return failureStatus(cause) === 503 ? PUBLICATION_COPY.UNDELIVERABLE : PUBLICATION_COPY.FAILED;
 }
 
 export function useIssuerPublications(read: CompanyActionRead) {
@@ -36,7 +36,7 @@ export function useIssuerPublications(read: CompanyActionRead) {
     };
   }, []);
   const listing = useQuery({
-    queryKey: ['publications', 'issuer', companyUuid, epoch, read.scopeKey],
+    queryKey: [...PUBLICATIONS_QUERY_KEY, 'issuer', companyUuid, epoch, read.scopeKey],
     enabled: enabled && !!companyUuid,
     staleTime: CACHE_TIMING.SHORT_STALE_TIME,
     queryFn: () =>

@@ -13,6 +13,7 @@ import {
   withdrawCompanyAuthorityRequest,
   type CompanyAuthorityRequest,
   type OrderSubmissionOwner,
+  COMPANIES_QUERY_KEY,
 } from '@ledova/shared';
 import { Page, PageAction } from '@components/Page';
 import { Section } from '@components/Ledger';
@@ -57,7 +58,7 @@ function OwnAuthorityRequests({
   const client = useQueryClient();
   const historyKey = ['company-authority-requests', owner.userUuid, owner.ownerAccountUuid];
   const companies = useQuery({
-    queryKey: ['companies', 'authority', owner.userUuid, owner.ownerAccountUuid],
+    queryKey: [...COMPANIES_QUERY_KEY, 'authority', owner.userUuid, owner.ownerAccountUuid],
     queryFn: () =>
       readEveryPage(async (page) => {
         guard();

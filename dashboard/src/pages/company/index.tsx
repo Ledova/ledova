@@ -1,10 +1,11 @@
+import { REGISTER_QUERY_KEY } from '@hooks/useRegisterAccess';
 import { useState } from 'react';
 import { generatePath } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { DESTINATIONS, formatShareCount, type Company, useCompanySelection } from '@ledova/shared';
 import { Page, PageAction } from '@components/Page';
 import { LinkRow, Row, Rows, Section, Status } from '@components/Ledger';
-import { useTokensList } from '@pages/company/shared/useTokensList';
+import { useTokensList, TOKENS_QUERY_KEY } from '@pages/company/shared/useTokensList';
 import { CompanyReadNotice, CompanyStatusMark } from '@pages/company/shared/CompanyState';
 import { CreateClassForm, EditCompanyForm } from './CompanyForms';
 import { CompanyDocuments } from './CompanyDocuments';
@@ -25,7 +26,8 @@ function CompanyDetails({ data }: { data: ReturnType<typeof useCompanySelection>
     Promise.all([
       queryClient.invalidateQueries({ queryKey: data.companyKey, exact: true }),
       queryClient.invalidateQueries({ queryKey: data.companiesKey, exact: true }),
-      queryClient.invalidateQueries({ queryKey: ['tokens'] }),
+      queryClient.invalidateQueries({ queryKey: TOKENS_QUERY_KEY }),
+      queryClient.invalidateQueries({ queryKey: REGISTER_QUERY_KEY }),
     ]);
   const address = company
     ? [

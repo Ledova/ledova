@@ -29,7 +29,7 @@ import type {
   InvestorClassification,
   OwnCompanyAppointment,
 } from '../types';
-import { createUserFriendlyError, getErrorMessage } from '../utils/errors';
+import { createUserFriendlyError, failureStatus, getErrorMessage } from '../utils/errors';
 import { isUuid } from '../utils/validation';
 import { readEveryPage } from '../utils/pagination';
 import { useSubmissionOwner } from './useSubmissionOwner';
@@ -82,6 +82,24 @@ const requestDraft: EligibilityRequestDraft = {
   requestedExpiresAt: '',
 };
 const decisionDraft: EligibilityDecisionDraft = { outcome: 'accepted', expiresAt: '', reason: '' };
+
+export const OWN_APPOINTMENTS_QUERY_KEY = ['company-appointments'] as const;
+
+export function eligibilityRecordsKey(
+  mode: 'company' | 'participant',
+  scope: readonly (string | number | undefined)[],
+) {
+  return ['eligibility-records', mode, ...scope];
+}
+
+export function eligibilityRecordKey(
+  mode: 'company' | 'participant',
+  scope: readonly (string | number | undefined)[],
+  company: string,
+  record: string,
+) {
+  return [...eligibilityRecordsKey(mode, scope), company, record];
+}
 
 export function isCurrentEligibilityAppointment(appointment: OwnCompanyAppointment) {
   return (
@@ -140,9 +158,9 @@ function useEligibilityRecords(
   selected.current = selection;
   const scope = [owner?.userUuid ?? '', owner?.ownerAccountUuid ?? '', session?.getEpoch() ?? 0];
   const sourceKey = ['eligibility-sources', ...scope];
-  const appointmentKey = ['company-appointments', ...scope.slice(0, 2)];
-  const listKey = ['eligibility-records', mode, ...scope, selection.company];
-  const detailKey = [...listKey, selection.record];
+  const appointmentKey = [...OWN_APPOINTMENTS_QUERY_KEY, ...scope.slice(0, 2)];
+  const listKey = [...eligibilityRecordsKey(mode, scope), selection.company];
+  const detailKey = eligibilityRecordKey(mode, scope, selection.company, selection.record);
   const ownerGuard = () => {
     const state = client.getQueryState(USER_PREFERENCES_QUERY_KEY);
     if (
@@ -654,10 +672,10 @@ function useEligibilityRecords(
       active.current = null;
       setAction(null);
       change({ record: record.uuid });
-      await client.invalidateQueries({ queryKey: ['eligibility-records', mode, ...scope] });
+      await client.invalidateQueries({ queryKey: eligibilityRecordsKey(mode, scope) });
     } catch (failure) {
       const original = (failure as { originalError?: unknown }).originalError ?? failure;
-      const status = (original as { response?: { status?: number } }).response?.status;
+      const status = failureStatus(original);
       if (!dispatched || (status && status < 500)) {
         if (transportStarted && !status) retries.current.set(command.binding, { ...command, uncertain: false });
         else retries.current.delete(command.binding);

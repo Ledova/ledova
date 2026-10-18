@@ -1,3 +1,4 @@
+import { USER_PREFERENCES_QUERY_KEY } from './useUserPreferences';
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
@@ -10,6 +11,8 @@ import { useApiClient } from './useApiClient';
 
 type SignupRole = Exclude<AccountRole, 'both'>;
 
+export const USER_ACCOUNT_QUERY_KEY = ['userAccount'] as const;
+
 export function useSignupAccountType() {
   const apiClient = useApiClient();
   const queryClient = useQueryClient();
@@ -17,7 +20,7 @@ export function useSignupAccountType() {
   const [error, setError] = useState('');
 
   const { data: accountResponse } = useQuery({
-    queryKey: ['userAccount'],
+    queryKey: USER_ACCOUNT_QUERY_KEY,
     queryFn: () => getUserAccount(apiClient),
     staleTime: CACHE_TIMING.DEFAULT_STALE_TIME,
   });
@@ -27,8 +30,8 @@ export function useSignupAccountType() {
   const updateRoleMutation = useMutation({
     mutationFn: (role: SignupRole) => setAccountRole(apiClient, account!.uuid, role),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['userAccount'] });
-      queryClient.invalidateQueries({ queryKey: ['userPreferences'] });
+      queryClient.invalidateQueries({ queryKey: USER_ACCOUNT_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: USER_PREFERENCES_QUERY_KEY });
     },
   });
 

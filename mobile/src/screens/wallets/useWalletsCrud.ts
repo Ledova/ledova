@@ -11,6 +11,8 @@ import {
   CACHE_TIMING,
   readEveryPage,
   useUserPreferences,
+  WALLETS_QUERY_KEY,
+  ALL_TRANSACTIONS_QUERY_KEY,
 } from '@ledova/shared';
 import type { CreateWallet } from '@ledova/shared';
 import { apiClient } from '../../services/apiClient';
@@ -25,7 +27,7 @@ export function useWalletsCrud() {
   const pendingSyncs = useRef(new Map<string, ReturnType<typeof syncWallet>>());
 
   const walletsQuery = useQuery({
-    queryKey: ['wallets', 'ledger', userAccount?.uuid, epoch],
+    queryKey: [...WALLETS_QUERY_KEY, 'ledger', userAccount?.uuid, epoch],
     queryFn: () =>
       readEveryPage(async (page) => {
         assertSessionEpoch(epoch);
@@ -38,7 +40,7 @@ export function useWalletsCrud() {
     gcTime: CACHE_TIMING.EXTRA_LONG_GC_TIME,
   });
 
-  const refresh = () => queryClient.invalidateQueries({ queryKey: ['wallets'] });
+  const refresh = () => queryClient.invalidateQueries({ queryKey: WALLETS_QUERY_KEY });
 
   const createMutation = useMutation({
     mutationFn: async ({ data, epoch: captured }: { data: CreateWallet; epoch: number }) => {
@@ -91,7 +93,7 @@ export function useWalletsCrud() {
       });
       if (captured !== getSessionEpoch()) return;
       await refresh();
-      await queryClient.invalidateQueries({ queryKey: ['all-transactions'] });
+      await queryClient.invalidateQueries({ queryKey: ALL_TRANSACTIONS_QUERY_KEY });
     },
   });
   const { mutateAsync } = syncMutation;

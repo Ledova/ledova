@@ -6,6 +6,7 @@ import * as Crypto from 'expo-crypto';
 import {
   apiErrorSentence,
   createUserFriendlyError,
+  failureStatus,
   DESTINATIONS,
   formatDate,
   formatRegisterChanges,
@@ -132,7 +133,7 @@ function PrepareRegisterCorrection({ epoch }: { epoch: number }) {
       guard();
       navigation.goBack();
     } catch (cause) {
-      const status = (cause as { response?: { status?: number } })?.response?.status;
+      const status = failureStatus(cause);
       if (status && status < 500) retry.current = null;
       try {
         guard();

@@ -3,9 +3,15 @@ import { getCompanyTokens, readEveryPage } from '@ledova/shared';
 import apiClient from '@services/apiClient';
 import type { CompanyActionRead } from './CompanyState';
 
+export const TOKENS_QUERY_KEY = ['tokens'] as const;
+
+export function companyTokensKey(companyUuid: string | undefined, scopeKey: string) {
+  return [...TOKENS_QUERY_KEY, 'company', companyUuid, scopeKey];
+}
+
 export function useTokensList(companyUuid: string | undefined, read: CompanyActionRead) {
   return useQuery({
-    queryKey: ['tokens', 'company', companyUuid, read.scopeKey],
+    queryKey: companyTokensKey(companyUuid, read.scopeKey),
     enabled: !!companyUuid && !read.error && !read.isRefreshing,
     queryFn: async () =>
       (

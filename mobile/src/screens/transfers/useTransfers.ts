@@ -26,6 +26,7 @@ import {
   shownSymbol,
   useUserPreferences,
   validatePreparedTransfer,
+  WALLETS_QUERY_KEY,
 } from '@ledova/shared';
 import { apiClient } from '../../services/apiClient';
 import type {
@@ -122,7 +123,7 @@ export function useTransfers(initialWallet: Wallet | null = null) {
   const [pendingBroadcast, setPendingBroadcast] = useState(false);
 
   const walletsQuery = useQuery({
-    queryKey: ['wallets', userAccount?.uuid],
+    queryKey: [...WALLETS_QUERY_KEY, userAccount?.uuid],
     queryFn: () => readEveryPage((page) => getWallets(apiClient, { page })),
     enabled: !!userAccount?.uuid,
     staleTime: CACHE_TIMING.DEFAULT_STALE_TIME,
@@ -189,7 +190,7 @@ export function useTransfers(initialWallet: Wallet | null = null) {
         step: 'success',
         txHash: response.data.txHash || '',
       }));
-      queryClient.invalidateQueries({ queryKey: ['wallets'] });
+      queryClient.invalidateQueries({ queryKey: WALLETS_QUERY_KEY });
     },
   });
 

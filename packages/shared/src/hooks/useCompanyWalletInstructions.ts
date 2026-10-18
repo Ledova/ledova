@@ -15,7 +15,7 @@ import {
 import { readEveryPage } from '../utils/pagination';
 import { appointmentForRegisterStep, type RegisterStep } from '../utils/register-commands';
 import { isPreparedCompanyWalletInstruction } from '../utils/company-wallets';
-import { createUserFriendlyError, getErrorMessage } from '../utils/errors';
+import { createUserFriendlyError, failureStatus, getErrorMessage } from '../utils/errors';
 import type {
   OwnCompanyAppointment,
   CompanyWalletInstruction,
@@ -355,7 +355,7 @@ export function useCompanyWalletInstructions(options: { newKey: () => string; se
       await accept(response.data);
     } catch (failure) {
       const cause = (failure as { originalError?: unknown }).originalError ?? failure;
-      const status = (cause as { response?: { status?: number } }).response?.status;
+      const status = failureStatus(cause);
       if (!dispatched || status === 400 || status === 409) setRetained(null);
       if (mounted.current && boundary.get() === owner)
         setError(

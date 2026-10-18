@@ -1,3 +1,5 @@
+import { WALLETS_QUERY_KEY } from './useSubscriptions';
+import { eligibilityRecordKey } from './useCompanyEligibilityRecords';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { AxiosRequestConfig, AxiosRequestTransformer } from 'axios';
@@ -8,7 +10,7 @@ import { getEligibilityRequest } from '../services/company-eligibility';
 import { getWallets } from '../services/wallets';
 import { createWalletNomination, getWalletNominations, previewWalletNomination } from '../services/company-wallets';
 import { readEveryPage } from '../utils/pagination';
-import { createUserFriendlyError, getErrorMessage } from '../utils/errors';
+import { createUserFriendlyError, failureStatus, getErrorMessage } from '../utils/errors';
 import { isWalletNominationReceipt } from '../utils/company-wallets';
 import type {
   CompanyEligibilityRequest,
@@ -45,8 +47,8 @@ export function useWalletNomination(options: {
   const [error, setError] = useState<string | null>(null);
   const scope = [owner?.userUuid, owner?.ownerAccountUuid, options.session?.getEpoch() ?? 0];
   const scopeKey = [...scope, options.requestUuid].join('/');
-  const requestKey = ['eligibility-records', 'participant', ...scope, '', options.requestUuid];
-  const walletKey = ['wallets', 'nomination', ...scope];
+  const requestKey = eligibilityRecordKey('participant', scope, '', options.requestUuid);
+  const walletKey = [...WALLETS_QUERY_KEY, 'nomination', ...scope];
   const nominationKey = ['wallet-nominations', ...scope, options.requestUuid];
   useLayoutEffect(() => {
     selected.current = { owner, request: options.requestUuid, wallet: walletUuid };
@@ -265,7 +267,7 @@ export function useWalletNomination(options: {
       guard();
     } catch (failure) {
       const cause = (failure as { originalError?: unknown }).originalError ?? failure;
-      const status = (cause as { response?: { status?: number } }).response?.status;
+      const status = failureStatus(cause);
       if (!dispatched || status === 400 || status === 409) setRetained(null);
       if (mounted.current && boundary.get() === owner)
         setError(

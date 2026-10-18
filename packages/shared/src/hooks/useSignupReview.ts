@@ -1,3 +1,5 @@
+import { AUTH_QUERY_ROOT } from './useAuth';
+import { USER_PREFERENCES_QUERY_KEY } from './useUserPreferences';
 import { useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
@@ -9,9 +11,13 @@ import { getUserProfiles, updateUserProfileCompletion } from '../services/users'
 import type { AccountRole, ReviewData } from '../types';
 import { apiErrorSentence, describeFailure } from '../utils/errors';
 import { useApiClient } from './useApiClient';
-import { useFinancialProfile } from './useFinancialProfile';
+import { useFinancialProfile, FINANCIAL_PROFILES_QUERY_KEY } from './useFinancialProfile';
 import type { OrderSubmissionSession } from './useOrderSubmissions';
-import { useSignupCompanyAuthority } from './useSignupCompanyAuthority';
+import { useSignupCompanyAuthority, SIGNUP_AUTHORITY_QUERY_KEY } from './useSignupCompanyAuthority';
+
+export const USER_PROFILES_QUERY_KEY = ['userProfiles'] as const;
+export const SIGNUP_COMPANY_QUERY_KEY = ['signup', 'company'] as const;
+export const SIGNUP_COMPANY_DETAIL_QUERY_KEY = ['signup', 'company-detail'] as const;
 
 export function useSignupReview(
   role: AccountRole,
@@ -24,7 +30,7 @@ export function useSignupReview(
   const isCompany = canOpen(role, 'company');
 
   const userProfileQuery = useQuery({
-    queryKey: ['userProfiles'],
+    queryKey: USER_PROFILES_QUERY_KEY,
     queryFn: () => getUserProfiles(apiClient),
     staleTime: CACHE_TIMING.DEFAULT_STALE_TIME,
     gcTime: CACHE_TIMING.EXTRA_LONG_GC_TIME,
@@ -35,7 +41,7 @@ export function useSignupReview(
   const { financialProfile, isLoading: financialProfileLoading, error: financialProfileError } = useFinancialProfile();
 
   const companyQuery = useQuery({
-    queryKey: ['signup', 'company'],
+    queryKey: SIGNUP_COMPANY_QUERY_KEY,
     queryFn: () => getCompanies(apiClient),
     enabled: isCompany,
     staleTime: CACHE_TIMING.DEFAULT_STALE_TIME,
@@ -43,7 +49,7 @@ export function useSignupReview(
 
   const selectedUuid = isCompany ? companyQuery.data?.data.results[0]?.uuid : undefined;
   const detailQuery = useQuery({
-    queryKey: ['signup', 'company-detail', selectedUuid],
+    queryKey: [...SIGNUP_COMPANY_DETAIL_QUERY_KEY, selectedUuid],
     queryFn: () => getCompany(apiClient, selectedUuid!),
     enabled: Boolean(selectedUuid),
     staleTime: CACHE_TIMING.DEFAULT_STALE_TIME,
@@ -106,7 +112,7 @@ export function useSignupReview(
     },
     onSuccess: async () => {
       authority.guardCompletion();
-      queryClient.invalidateQueries({ queryKey: ['userPreferences'] });
+      queryClient.invalidateQueries({ queryKey: USER_PREFERENCES_QUERY_KEY });
       await onComplete(authority.guardCompletion);
     },
     onError: async (error) => {
@@ -125,17 +131,17 @@ export function useSignupReview(
     authority.clearAuthorityError();
     completeSignupMutation.reset();
     await Promise.all([
-      queryClient.invalidateQueries({ queryKey: ['userProfiles'] }),
-      ...(isCompany ? [queryClient.invalidateQueries({ queryKey: ['signup', 'company'] })] : []),
-      ...(!isCompany ? [queryClient.invalidateQueries({ queryKey: ['financialProfiles'] })] : []),
+      queryClient.invalidateQueries({ queryKey: USER_PROFILES_QUERY_KEY }),
+      ...(isCompany ? [queryClient.invalidateQueries({ queryKey: SIGNUP_COMPANY_QUERY_KEY })] : []),
+      ...(!isCompany ? [queryClient.invalidateQueries({ queryKey: FINANCIAL_PROFILES_QUERY_KEY })] : []),
       ...(selectedUuid
-        ? [queryClient.invalidateQueries({ queryKey: ['signup', 'company-detail', selectedUuid] })]
+        ? [queryClient.invalidateQueries({ queryKey: [...SIGNUP_COMPANY_DETAIL_QUERY_KEY, selectedUuid] })]
         : []),
       ...(isCompany
         ? [
-            queryClient.invalidateQueries({ queryKey: ['auth'] }),
-            queryClient.invalidateQueries({ queryKey: ['userPreferences'] }),
-            queryClient.invalidateQueries({ queryKey: ['signup', 'authority'] }),
+            queryClient.invalidateQueries({ queryKey: AUTH_QUERY_ROOT }),
+            queryClient.invalidateQueries({ queryKey: USER_PREFERENCES_QUERY_KEY }),
+            queryClient.invalidateQueries({ queryKey: SIGNUP_AUTHORITY_QUERY_KEY }),
           ]
         : []),
     ]);

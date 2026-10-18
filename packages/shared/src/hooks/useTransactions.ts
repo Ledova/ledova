@@ -1,3 +1,4 @@
+import { WALLETS_QUERY_KEY } from './useSubscriptions';
 import { useState } from 'react';
 import { useQuery, useInfiniteQuery } from '@tanstack/react-query';
 
@@ -14,18 +15,20 @@ export type TransactionFilters = Pick<
   'wallet' | 'direction' | 'chain' | 'start_date' | 'end_date'
 >;
 
+export const ALL_TRANSACTIONS_QUERY_KEY = ['all-transactions'] as const;
+
 export function useTransactions() {
   const apiClient = useApiClient();
   const [filters, setFilters] = useState<TransactionFilters>({});
   const [appliedFilters, setAppliedFilters] = useState<TransactionFilters>({});
 
   const walletsQuery = useQuery({
-    queryKey: ['wallets', 'activity-filter'],
+    queryKey: [...WALLETS_QUERY_KEY, 'activity-filter'],
     queryFn: () => readEveryPage((page) => getWallets(apiClient, { page })),
     staleTime: CACHE_TIMING.DEFAULT_STALE_TIME,
   });
 
-  const queryKey = ['all-transactions', appliedFilters];
+  const queryKey = [...ALL_TRANSACTIONS_QUERY_KEY, appliedFilters];
   const query = useInfiniteQuery({
     queryKey,
     queryFn: async ({ pageParam }) => {

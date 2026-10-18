@@ -1,3 +1,4 @@
+import { USER_PROFILES_QUERY_KEY, SIGNUP_COMPANY_QUERY_KEY, SIGNUP_COMPANY_DETAIL_QUERY_KEY } from './useSignupReview';
 import { useState, useCallback, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
@@ -7,7 +8,7 @@ import { getUserProfiles } from '../services/users';
 import type { CompanyRegistration, CompanyType } from '../types';
 import { apiErrorSentence, readApiError } from '../utils/errors';
 import { useApiClient } from './useApiClient';
-import { AUTH_QUERY_KEY, useAuth } from './useAuth';
+import { AUTH_QUERY_KEY, useAuth, AUTH_QUERY_ROOT } from './useAuth';
 import type { OrderSubmissionSession } from './useOrderSubmissions';
 import { useSubmissionOwner } from './useSubmissionOwner';
 import { USER_PREFERENCES_QUERY_KEY, useUserPreferences } from './useUserPreferences';
@@ -78,7 +79,7 @@ export function useSignupCompanyRegistration(session?: OrderSubmissionSession) {
       throw new Error('Your signed-in account changed. Reload company setup before continuing.');
   }, [accountOwner, boundary, queryClient]);
   const profilesQuery = useQuery({
-    queryKey: ['userProfiles', accountOwner?.userUuid, accountOwner?.ownerAccountUuid],
+    queryKey: [...USER_PROFILES_QUERY_KEY, accountOwner?.userUuid, accountOwner?.ownerAccountUuid],
     queryFn: async () => {
       guard();
       const response = await getUserProfiles(apiClient, { ...session?.requestConfig(), ledovaSubmissionGuard: guard });
@@ -90,7 +91,7 @@ export function useSignupCompanyRegistration(session?: OrderSubmissionSession) {
     enabled: !!accountOwner,
   });
   const companiesQuery = useQuery({
-    queryKey: ['signup', 'company', accountOwner?.userUuid, accountOwner?.ownerAccountUuid],
+    queryKey: [...SIGNUP_COMPANY_QUERY_KEY, accountOwner?.userUuid, accountOwner?.ownerAccountUuid],
     queryFn: async () => {
       guard();
       const response = await getCompanies(apiClient, undefined, {
@@ -106,7 +107,12 @@ export function useSignupCompanyRegistration(session?: OrderSubmissionSession) {
   const existingCompany = companiesQuery.data?.data.results[0] || null;
   const selectedUuid = companiesQuery.data ? (existingCompany?.uuid ?? null) : undefined;
   const detailQuery = useQuery({
-    queryKey: ['signup', 'company-detail', selectedUuid, accountOwner?.userUuid, accountOwner?.ownerAccountUuid],
+    queryKey: [
+      ...SIGNUP_COMPANY_DETAIL_QUERY_KEY,
+      selectedUuid,
+      accountOwner?.userUuid,
+      accountOwner?.ownerAccountUuid,
+    ],
     queryFn: async () => {
       guard();
       const response = await getCompany(apiClient, selectedUuid!, {
@@ -218,9 +224,9 @@ export function useSignupCompanyRegistration(session?: OrderSubmissionSession) {
       return response;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['auth'] });
-      queryClient.invalidateQueries({ queryKey: ['userPreferences'] });
-      queryClient.invalidateQueries({ queryKey: ['signup', 'company'] });
+      queryClient.invalidateQueries({ queryKey: AUTH_QUERY_ROOT });
+      queryClient.invalidateQueries({ queryKey: USER_PREFERENCES_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: SIGNUP_COMPANY_QUERY_KEY });
     },
   });
   const updateMutation = useMutation({
@@ -234,8 +240,8 @@ export function useSignupCompanyRegistration(session?: OrderSubmissionSession) {
       return response;
     },
     onSuccess: (_response, data) => {
-      queryClient.invalidateQueries({ queryKey: ['signup', 'company'] });
-      queryClient.invalidateQueries({ queryKey: ['signup', 'company-detail', data.uuid] });
+      queryClient.invalidateQueries({ queryKey: SIGNUP_COMPANY_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: [...SIGNUP_COMPANY_DETAIL_QUERY_KEY, data.uuid] });
     },
   });
 
@@ -358,7 +364,7 @@ export function useSignupCompanyRegistration(session?: OrderSubmissionSession) {
         });
         setGeneralError(reading.generalError ?? '');
         setErrors(reading.fieldErrors ?? {});
-        await queryClient.invalidateQueries({ queryKey: ['signup', 'company'] });
+        await queryClient.invalidateQueries({ queryKey: SIGNUP_COMPANY_QUERY_KEY });
       } finally {
         if (submission.current === attempt) submission.current = null;
       }
@@ -386,10 +392,10 @@ export function useSignupCompanyRegistration(session?: OrderSubmissionSession) {
     ]);
     if (queryClient.getQueryState(USER_PREFERENCES_QUERY_KEY)?.status !== 'success') return;
     await Promise.all([
-      queryClient.invalidateQueries({ queryKey: ['userProfiles'] }),
-      queryClient.invalidateQueries({ queryKey: ['signup', 'company'] }),
+      queryClient.invalidateQueries({ queryKey: USER_PROFILES_QUERY_KEY }),
+      queryClient.invalidateQueries({ queryKey: SIGNUP_COMPANY_QUERY_KEY }),
       ...(selectedUuid
-        ? [queryClient.invalidateQueries({ queryKey: ['signup', 'company-detail', selectedUuid] })]
+        ? [queryClient.invalidateQueries({ queryKey: [...SIGNUP_COMPANY_DETAIL_QUERY_KEY, selectedUuid] })]
         : []),
     ]);
   }, [queryClient, selectedUuid]);

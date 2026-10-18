@@ -1,3 +1,4 @@
+import { ownAppointmentsKey } from '@pages/company/shared/useOwnAppointments';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -23,13 +24,7 @@ import apiClient from '@services/apiClient';
 import { AcceptInvitationForm } from './AcceptInvitationForm';
 import { AppointmentRecord } from './AppointmentRecord';
 import { TeamInvitationForm } from './TeamInvitationForm';
-import {
-  appointmentReceipt,
-  currentAppointment,
-  ownAppointmentsKey,
-  sameScope,
-  scopeLabels,
-} from '@pages/company/shared/appointments';
+import { appointmentReceipt, currentAppointment, sameScope, scopeLabels } from '@pages/company/shared/appointments';
 
 export default function CompanyTeamPage() {
   const { owner, boundary } = useSubmissionOwner();

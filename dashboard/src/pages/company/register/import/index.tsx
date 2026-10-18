@@ -21,8 +21,8 @@ import { READ_TIMING, registerKey } from '@hooks/useRegisterAccess';
 import { readRegister, useRegisterClasses } from '@pages/company/shared/useCompanyRegister';
 import { importsKey, useRegisterImports } from '@pages/company/register/shared/useRegisterImports';
 import { ownerGuard } from '@pages/company/register/shared/ownerGuard';
-import { useOwnAppointments } from '@pages/company/register/shared/useOwnAppointments';
-import { ownAppointmentsKey } from '@pages/company/shared/appointments';
+import { useOwnAppointments, ownAppointmentsKey } from '@pages/company/shared/useOwnAppointments';
+
 import { transferMembersKey, useTransferMembers } from '@pages/company/register/shared/useRegisterTransfers';
 import { ImportForm } from './ImportForm';
 import { NewClassSetup } from './NewClassSetup';

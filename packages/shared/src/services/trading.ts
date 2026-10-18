@@ -1,5 +1,6 @@
 import type { AxiosInstance, AxiosRequestConfig } from 'axios';
 import { TRADING_ENDPOINTS } from '../constants';
+import { failureStatus } from '../utils/errors';
 import type {
   ShareToken,
   TransferOrder,
@@ -202,7 +203,7 @@ export function parseTradingError(error: unknown): string {
     if (data.message) return data.message;
   }
 
-  if (axiosError.response?.status === 403) {
+  if (failureStatus(error) === 403) {
     return 'Your wallet is not authorized to trade. The operator must add it to the trading allowlist.';
   }
 

@@ -7,6 +7,7 @@ import {
   BLOCKCHAIN,
   canonicalDecimal,
   validatePreparedTransfer,
+  WALLETS_QUERY_KEY,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
 import type { Wallet, PreparedWalletTransfer } from '@ledova/shared';
@@ -82,7 +83,7 @@ export function useCryptoTransferSigning({
     },
     onSuccess: () => {
       setBroadcastError(null);
-      queryClient.invalidateQueries({ queryKey: ['wallets'] });
+      queryClient.invalidateQueries({ queryKey: WALLETS_QUERY_KEY });
     },
     onError: (err) => {
       const message = getErrorMessage(err);
