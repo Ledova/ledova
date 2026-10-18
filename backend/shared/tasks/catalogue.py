@@ -120,7 +120,7 @@ SYSTEM_WIDE = {
     "wallets.tasks.confirmation.check_all_pending_transactions": "Requeues pending transactions and unfinished "
     "balance reconciliation across all accounts.",
     "whitelist.tasks.sync.sync_all_entries": "Mirrors each company's on-chain whitelist registry into the "
-    "staff-only approval rows. It reads chain state for every company and acts for no principal.",
+    "company approval rows. It reads chain state for every company and acts for no principal.",
     "shared.tasks.job_retention.remove_old_jobs": "Removes the worker queue's finished job records through "
     "Procrastinate's job manager, as Procrastinate's own builtin does: succeeded jobs a week after they finished, "
     "failed, cancelled and aborted jobs after thirty days, and never a job still to do or running. The queue is "
@@ -181,12 +181,13 @@ CONVERTED_IN = {
 
 OPERATOR_BOUNDARIES = {
     "tokens.services.deployment.retry_confirmation": "Reads the original deployment claim for a signed retry form.",
-    "tokens.services.deployment._admit": "Freezes one issuer-visible token's deployment intent after locked ownership "
-    "and token-identity checks; public lifecycle writes retain the issuer connection.",
+    "tokens.services.deployment._admit": "Locks the admitted token and company on the operator connection, verifies "
+    "deployment identity and creates a missing journal only from the applied company source.",
     "tokens.services.deployment._process": "Uses the private shared signer journal for one admitted deployment. Its "
     "local signing callback rechecks ownership and commits bytes, hash and token association together before RPC.",
     "tokens.services.deployment_journal.record_outcome": "Records the original operation's receipt and transaction "
-    "outcome; public token and asset projection stays on the caller's connection.",
+    "outcome on the operator connection; the deployment worker and recovery project the token and asset on "
+    "the operator connection too.",
     "tokens.services.deployment_journal.mark_projected": "Commits the attributed token projection marker with "
     "one immutable swap approval disposition and its exact recovery job.",
     "shareholders.services.resolutions.cast_ballot": "Records one member's ballot. The resolution and the "
