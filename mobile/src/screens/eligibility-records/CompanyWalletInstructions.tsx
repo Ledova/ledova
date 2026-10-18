@@ -15,8 +15,8 @@ import {
 import { Action, Choice, Row, Rows, Section } from '../../components/Ledger';
 import { getSessionEpoch, subscribeSession } from '../../services/sessionScope';
 import { orderSubmissionSession } from '../../services/orderSubmissions';
-import { RegisterDecision } from '../company-register/RegisterDecision';
-import { useCompanyStyles } from '../company-register/styles';
+import { RegisterDecision } from '../../components/register/RegisterDecision';
+import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 import { EligibilityExpiry } from './EligibilityExpiry';
 
 type Read = ReturnType<typeof useCompanyWalletInstructions>;

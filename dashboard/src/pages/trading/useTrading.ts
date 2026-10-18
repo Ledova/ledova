@@ -1,24 +1,13 @@
-import { useQuery, useQueries } from '@tanstack/react-query';
 import {
-  getOrders,
-  getWallets,
-  getWhitelistStatus,
-  getWalletBalances,
-  BLOCKCHAIN,
-  CACHE_TIMING,
-  WALLET_VERIFICATION_STATUS,
-  readEveryPage,
   useUserPreferences,
-  tradingQueryKeys,
-  WALLETS_QUERY_KEY,
+  tradingWalletsQueryKey,
+  useTradingWalletsQuery,
+  useTradingWhitelistQueries,
+  useTradingBalanceQueries,
+  useTradingUserOrdersQuery,
 } from '@ledova/shared';
 import type { Wallet, WhitelistStatus } from '@ledova/shared';
-import apiClient from '@services/apiClient';
-
-export const TRADING_USER_ORDERS_QUERY_KEY = [...tradingQueryKeys.userOrdersPrefix, 'all'] as const;
-
-export const tradingWalletsQueryKey = (ownerAccountUuid: string | undefined) =>
-  [...WALLETS_QUERY_KEY, ownerAccountUuid, 'trading'] as const;
+export { TRADING_USER_ORDERS_QUERY_KEY, tradingWalletsQueryKey } from '@ledova/shared';
 
 export function isTradingWalletsQueryKey(queryKey: readonly unknown[], ownerAccountUuid: string | undefined) {
   const expected = tradingWalletsQueryKey(ownerAccountUuid);
@@ -28,24 +17,7 @@ export function isTradingWalletsQueryKey(queryKey: readonly unknown[], ownerAcco
 export function useUserTradingWallets() {
   const { userAccount, isLoading: isLoadingPortfolio } = useUserPreferences();
 
-  const walletsQuery = useQuery({
-    queryKey: tradingWalletsQueryKey(userAccount?.uuid),
-    queryFn: async () => ({
-      data: { results: await readEveryPage((page) => getWallets(apiClient, { page })) },
-    }),
-    staleTime: CACHE_TIMING.DEFAULT_STALE_TIME,
-    gcTime: CACHE_TIMING.EXTRA_LONG_GC_TIME,
-    select: (data) => ({
-      wallets: data.data.results.filter(
-        (w: Wallet) =>
-          w.verificationStatus === WALLET_VERIFICATION_STATUS.VERIFIED &&
-          (w.chain === BLOCKCHAIN.ETHEREUM || w.chain === BLOCKCHAIN.BASE),
-      ),
-      actionWallets: data.data.results.filter(
-        (wallet: Wallet) => wallet.chain === BLOCKCHAIN.ETHEREUM || wallet.chain === BLOCKCHAIN.BASE,
-      ),
-    }),
-  });
+  const walletsQuery = useTradingWalletsQuery(userAccount?.uuid);
 
   return {
     wallets: walletsQuery.isError ? [] : walletsQuery.data?.wallets || ([] as Wallet[]),
@@ -59,16 +31,7 @@ export function useUserTradingWallets() {
 }
 
 export function useWalletsWhitelistStatus(tokenAddress: string | undefined, walletAddresses: string[]) {
-  const queries = useQueries({
-    queries: walletAddresses.map((address) => ({
-      queryKey: tradingQueryKeys.whitelistStatus(tokenAddress ?? '', address),
-      queryFn: () => getWhitelistStatus(apiClient, tokenAddress!, address).then((res) => res.data),
-      enabled: !!tokenAddress && !!address,
-      staleTime: CACHE_TIMING.DEFAULT_STALE_TIME,
-      gcTime: CACHE_TIMING.DEFAULT_GC_TIME,
-      retry: false,
-    })),
-  });
+  const queries = useTradingWhitelistQueries(tokenAddress, walletAddresses);
 
   const isLoading = queries.some((q) => q.isFetching);
 
@@ -92,15 +55,7 @@ export function useWalletsWhitelistStatus(tokenAddress: string | undefined, wall
 }
 
 function useAllWalletTokenBalances(walletAddresses: string[]) {
-  const queries = useQueries({
-    queries: walletAddresses.map((address) => ({
-      queryKey: tradingQueryKeys.walletBalances(address),
-      queryFn: () => getWalletBalances(apiClient, address).then((res) => res.data),
-      enabled: !!address,
-      staleTime: CACHE_TIMING.DEFAULT_STALE_TIME,
-      gcTime: CACHE_TIMING.DEFAULT_GC_TIME,
-    })),
-  });
+  const queries = useTradingBalanceQueries(walletAddresses);
 
   const isLoading = queries.some((q) => q.isLoading);
   const error = queries.find((q) => q.error)?.error;
@@ -135,12 +90,7 @@ function useAllWalletTokenBalances(walletAddresses: string[]) {
 }
 
 export function useTrading({ walletAddresses = [] }: { walletAddresses?: string[] } = {}) {
-  const orders = useQuery({
-    queryKey: TRADING_USER_ORDERS_QUERY_KEY,
-    queryFn: () => readEveryPage((page) => getOrders(apiClient, { page })),
-    staleTime: CACHE_TIMING.DEFAULT_STALE_TIME,
-    gcTime: CACHE_TIMING.DEFAULT_GC_TIME,
-  });
+  const orders = useTradingUserOrdersQuery();
   const tokenBalances = useAllWalletTokenBalances(walletAddresses);
   return {
     userOrders: orders.isError ? [] : (orders.data ?? []),

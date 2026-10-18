@@ -4,9 +4,9 @@ import { Action, Rows, Section } from '../../components/Ledger';
 import { Page } from '../../components/Page';
 import { useCompanyProfile } from '../../hooks/useCompanyProfile';
 import type { BottomTabParamList } from '../../navigation/BottomTabNavigator';
-import { CompanyReadNotice } from '../company/CompanyState';
-import { CompanySelection } from '../company/CompanySelection';
-import { useCompanyStyles } from '../company-register/styles';
+import { CompanyReadNotice } from '../../components/company/CompanyState';
+import { CompanySelection } from '../../components/company/CompanySelection';
+import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 import { PublicationRecord } from './PublicationRecord';
 import { useIssuerPublications } from './useIssuerPublications';
 

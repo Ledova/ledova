@@ -16,7 +16,7 @@ import { apiClient } from '../../services/apiClient';
 import { EXTENSION_BY_MIME_TYPE, shareDocumentCopy, UTI_BY_MIME_TYPE } from '../../services/documentCopies';
 import { getSessionEpoch } from '../../services/sessionScope';
 import { PUBLIC_LINKS } from '../../config/publicLinks';
-import { useCompanyStyles } from '../company-register/styles';
+import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 
 function scopeLabels(values: CompanyCapability[]) {
   return values

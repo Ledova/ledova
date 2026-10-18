@@ -13,7 +13,7 @@ import {
 import { Action, Choice, Row, Rows } from '../../components/Ledger';
 import { apiClient } from '../../services/apiClient';
 import { getSessionEpoch } from '../../services/sessionScope';
-import { useCompanyStyles } from '../company-register/styles';
+import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 import { InvitationDateField } from './InvitationDateField';
 import { scopeLabels } from './AppointmentRecord';
 

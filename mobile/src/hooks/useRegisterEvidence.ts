@@ -1,0 +1,85 @@
+import { useRef, useState } from 'react';
+import * as Crypto from 'expo-crypto';
+import {
+  createUserFriendlyError,
+  failureStatus,
+  isRegisterEvidenceReceipt,
+  REGISTER_CORRECTION_COPY,
+  REGISTER_IMPORT_COPY,
+  REGISTER_PARTICULARS_COPY,
+  uploadRegisterEvidence,
+  type RegisterEvidence,
+  type RegisterEvidenceKind,
+  type RegisterEvidenceUpload,
+} from '@ledova/shared';
+import { useDocumentUpload } from './useDocumentUpload';
+import { apiClient } from '../services/apiClient';
+import { uploadSize, type UploadFile } from '../services/documentCopies';
+
+const EVIDENCE: Record<RegisterEvidenceKind, { noun: string; unconfirmed: string }> = {
+  share_register: { noun: 'share register', unconfirmed: REGISTER_IMPORT_COPY.UPLOAD_RECEIPT_FAILED },
+  asic_extract: { noun: 'ASIC extract', unconfirmed: REGISTER_IMPORT_COPY.UPLOAD_RECEIPT_FAILED },
+  authority: { noun: 'authority document', unconfirmed: REGISTER_CORRECTION_COPY.UPLOAD_RECEIPT_FAILED },
+  supporting: { noun: 'supporting document', unconfirmed: REGISTER_PARTICULARS_COPY.UPLOAD_RECEIPT_FAILED },
+};
+
+export function useRegisterEvidence(company: string, kind: RegisterEvidenceKind) {
+  const document = useDocumentUpload(company);
+  const [receipt, setReceipt] = useState<RegisterEvidence | null>(null);
+  const retry = useRef<{ file: UploadFile; appointment: string; key: string } | null>(null);
+  const upload = async (appointment: string, guard: () => void) => {
+    if (!document.file && receipt?.appointment === appointment) return receipt;
+    let uploaded: RegisterEvidence | undefined;
+    const completed = await document.submit(async ({ file, owner, sessionEpoch, assertCurrent }) => {
+      const current = () => {
+        guard();
+        assertCurrent();
+      };
+      const key =
+        retry.current?.file === file && retry.current.appointment === appointment
+          ? retry.current.key
+          : Crypto.randomUUID();
+      retry.current = { file, appointment, key };
+      const request = { companyId: owner, appointment, kind, idempotencyKey: key };
+      const size = uploadSize(file);
+      current();
+      try {
+        const response = await uploadRegisterEvidence(
+          apiClient,
+          { ...request, file: file as unknown as RegisterEvidenceUpload['file'] },
+          { ledovaSessionEpoch: sessionEpoch, ledovaSubmissionGuard: current },
+        );
+        current();
+        if (!isRegisterEvidenceReceipt(response.data, request, size)) {
+          retry.current = null;
+          throw createUserFriendlyError(EVIDENCE[kind].unconfirmed);
+        }
+        uploaded = response.data;
+      } catch (failure) {
+        const status = failureStatus(failure);
+        if (status && status < 500) retry.current = null;
+        throw failure;
+      }
+    });
+    guard();
+    if (!completed || !uploaded) throw createUserFriendlyError(`Choose the ${EVIDENCE[kind].noun} again.`);
+    retry.current = null;
+    setReceipt(uploaded);
+    return uploaded;
+  };
+  return {
+    name: document.file?.name ?? receipt?.originalFilename ?? null,
+    uploaded: !document.file && !!receipt,
+    busy: document.isPicking || document.isSubmitting,
+    pick: async () => {
+      const selected = await document.pick();
+      if (selected) setReceipt(null);
+      return selected;
+    },
+    clear: () => {
+      document.clear();
+      setReceipt(null);
+    },
+    upload,
+  };
+}

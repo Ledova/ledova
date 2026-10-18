@@ -42,8 +42,11 @@ folder names, with relative imports and no path aliases:
 | `config/`, `styles/`  |                         | Network policy and public links; the theme                                                                  |
 | `testSupport/`        | `testSupport/`          | Test helpers                                                                                                |
 
-Mobile's navigation and hooks still import hooks from `screens/`, and screens import other areas'
-files; both are brought in line under [#1074](https://github.com/Ledova/ledova/issues/1074).
+Shared company, register, identity and transfer UI lives in `components/`; their styles and
+cross-area reads live in `hooks/`. Production screens import no other area’s internals. Profile, trading,
+operator and publication-list reads and shared register helpers live in `packages/shared`, with
+native session, result and transport policies kept in the client. The native certifier labels live
+in `mobile/src/config/investorEligibility.ts`; register reads remain per client.
 
 ### Shared package resolution
 
@@ -64,7 +67,8 @@ sign-in clears the query cache on focus),
 (`DrawerNavigator`), the bottom tabs (`BottomTabNavigator`) and a stack per area; the dashboard's
 routes and guards do not apply. Labels come from the `DESTINATIONS` titles, but screens set their
 own titles, so a few differ from the web (Eligibility requests). A company account with readable
-register access (`useRegisterAccess`) starts on the Register tab, others on Home (My shares). The
+register access (`useRegisterAccess` in `mobile/src/hooks/useCompanyRegister.ts`) starts on the
+Register tab, others on Home (My shares). The
 tab bar shows only Home, Register (with that access) and Wallets; other destinations are hidden tab
 routes (`tabBarItemStyle: { display: 'none' }`) opened from the drawer, Market only for an investing
 account while `trading_enabled` is on, under Invest. Routes and business sections are in

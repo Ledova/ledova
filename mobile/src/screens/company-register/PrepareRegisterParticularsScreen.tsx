@@ -19,10 +19,10 @@ import { Page } from '../../components/Page';
 import type { CompanyStackParamList } from '../../navigation/CompanyStackNavigator';
 import { apiClient } from '../../services/apiClient';
 import { assertSessionEpoch, getSessionEpoch, subscribeSession } from '../../services/sessionScope';
-import { EvidencePicker, Field, isoDay, utcToday } from './RegisterFields';
-import { useCompanyStyles } from './styles';
-import { particularsKey, useClassRegister, useRegisterAppointments } from './useCompanyRegister';
-import { useRegisterEvidence } from './useRegisterEvidence';
+import { EvidencePicker, Field, isoDay, utcToday } from '../../components/register/RegisterFields';
+import { useCompanyStyles } from '../../hooks/useCompanyStyles';
+import { particularsKey, useClassRegister, useRegisterAppointments } from '../../hooks/useCompanyRegister';
+import { useRegisterEvidence } from '../../hooks/useRegisterEvidence';
 
 const FAILED = 'The change could not be prepared. Retry with the same details.';
 

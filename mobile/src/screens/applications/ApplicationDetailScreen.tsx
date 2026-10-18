@@ -1,3 +1,4 @@
+import { marketQuantity } from '@ledova/shared';
 import { Text, View } from 'react-native';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -12,10 +13,11 @@ import {
 import type { ApplicationsStackParamList } from '../../navigation/ApplicationsStackNavigator';
 import { Action, Row, Rows, Section } from '../../components/Ledger';
 import { getSessionEpoch } from '../../services/sessionScope';
-import { ApplicationsPage, useApplicationStyles } from './ApplicationsPage';
+import { ApplicationsPage } from './ApplicationsPage';
+import { useApplicationStyles } from '../../hooks/useApplicationStyles';
 import { PaymentInstruction } from './PaymentInstruction';
 import { useSubscription } from './useApplications';
-import { applicationHistory, applicationShares, applicationState } from './presentation';
+import { applicationHistory, applicationState } from './presentation';
 
 const NEXT: Record<string, string> = {
   draft: SUBSCRIPTION_COPY.DRAFT_HELP,
@@ -64,9 +66,9 @@ export function ApplicationDetailScreen() {
           <Section title={`${subscription.companyName} · ${subscription.tokenName}`}>
             <Rows>
               <Row label="Status">{applicationState(subscription)}</Row>
-              <Row label="Shares applied for">{applicationShares(subscription.quantity)}</Row>
+              <Row label="Shares applied for">{marketQuantity(subscription.quantity)}</Row>
               {subscription.allottedQuantity !== null && subscription.allottedQuantity !== subscription.quantity && (
-                <Row label="Shares to be allotted">{applicationShares(subscription.allottedQuantity)}</Row>
+                <Row label="Shares to be allotted">{marketQuantity(subscription.allottedQuantity)}</Row>
               )}
               <Row label="Price per share">{amount(subscription.pricePerShare)}</Row>
               <Row label="Amount due">{amount(subscription.amountDue)}</Row>

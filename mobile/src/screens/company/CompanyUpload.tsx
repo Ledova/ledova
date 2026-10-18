@@ -5,8 +5,8 @@ import { Action } from '../../components/Ledger';
 import { CustomModal } from '../../components/modal';
 import { useDocumentUpload } from '../../hooks/useDocumentUpload';
 import { getSessionEpoch } from '../../services/sessionScope';
-import { CompanyReadNotice, type CompanyActionRead } from './CompanyState';
-import { useCompanyStyles } from '../company-register/styles';
+import { CompanyReadNotice, type CompanyActionRead } from '../../components/company/CompanyState';
+import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 import type { CompanyDocumentUpload } from '../../hooks/useCompanyDocumentActions';
 
 export function CompanyUpload({

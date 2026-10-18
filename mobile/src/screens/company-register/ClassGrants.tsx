@@ -10,14 +10,14 @@ import {
 } from '@ledova/shared';
 import { Action } from '../../components/Ledger';
 import { GrantRecord } from './GrantRecord';
-import { useCompanyStyles } from './styles';
+import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 import {
   entriesKey,
   grantsKey,
   registerAppointmentsKey,
   transferMembersKey,
   useRegisterGrants,
-} from './useCompanyRegister';
+} from '../../hooks/useCompanyRegister';
 import { assertSessionEpoch } from '../../services/sessionScope';
 import { awardsKey } from './useRegisterAwards';
 

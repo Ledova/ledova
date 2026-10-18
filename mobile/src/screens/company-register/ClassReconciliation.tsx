@@ -15,8 +15,8 @@ import {
 import { Action, Row, Rows } from '../../components/Ledger';
 import { CustomModal } from '../../components/modal';
 import { assertSessionEpoch } from '../../services/sessionScope';
-import { useCompanyStyles } from './styles';
-import { reconciliationKey, useRegisterReconciliation } from './useCompanyRegister';
+import { useCompanyStyles } from '../../hooks/useCompanyStyles';
+import { reconciliationKey, useRegisterReconciliation } from '../../hooks/useCompanyRegister';
 
 type Field = keyof typeof COPY.FIELDS;
 

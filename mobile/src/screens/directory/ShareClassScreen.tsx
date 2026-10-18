@@ -14,8 +14,8 @@ import type { DirectoryStackParamList } from '../../navigation/DirectoryStackNav
 import { Action, Row, Rows, Section } from '../../components/Ledger';
 import { DirectoryPage, useDirectoryStyles } from './DirectoryPage';
 import { OfferDocuments } from './OfferDocuments';
-import { ApplyForm, type ApplicationDraft } from '../applications/ApplyForm';
-import { useCreateSubscription } from '../applications/useApplications';
+import { ApplyForm, type ApplicationDraft } from './ApplyForm';
+import { useCreateSubscription } from './useCreateSubscription';
 import { getSessionEpoch } from '../../services/sessionScope';
 
 export function ShareClassScreen() {
