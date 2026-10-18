@@ -1,4 +1,4 @@
-import { useOwnAppointments, ownAppointmentsKey } from '@pages/company/shared/useOwnAppointments';
+import { useOwnAppointments, ownAppointmentsKey } from '@hooks/useOwnAppointments';
 import {
   apiErrorSentence,
   REGISTER_DEPLOYMENT_COPY as COPY,

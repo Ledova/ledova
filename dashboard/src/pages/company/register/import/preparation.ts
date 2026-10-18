@@ -8,6 +8,7 @@ import {
   type RegisterImportFormerRow,
   type TokenHoldersResponse,
   type RegisterTransferMember,
+  type CompanyShareTokenListItem,
 } from '@ledova/shared';
 
 export type AllotmentDraft = Omit<
@@ -135,6 +136,26 @@ export function memberRows(members: MemberDraft[]): RegisterImportCurrentMemberR
   }));
 }
 
+export function canOpenEmptyRegister(
+  register: TokenHoldersResponse,
+  token: Pick<CompanyShareTokenListItem, 'uuid' | 'status' | 'contractAddress' | 'chain' | 'deployedAt'>,
+) {
+  return (
+    token.uuid === register.token.uuid &&
+    token.status === 'draft' &&
+    token.contractAddress === null &&
+    token.chain === null &&
+    token.deployedAt === null &&
+    register.token.status === 'draft' &&
+    register.initialized === false &&
+    register.issuedSupply === null &&
+    register.holders.length === 0 &&
+    register.totalHolders === 0 &&
+    register.formerMembers.length === 0 &&
+    (register.waitingEffects === null || register.waitingEffects === 0)
+  );
+}
+
 export function memberIdentityProblems(
   members: MemberDraft[],
   known: RegisterTransferMember[],
@@ -193,7 +214,7 @@ export function figuresDiffer(draft: PreparationDraft) {
   return stated?.total !== undefined && stated.total !== imported.total;
 }
 
-export function preparationProblems(draft: PreparationDraft, today: string) {
+export function preparationProblems(draft: PreparationDraft, today: string, emptyOpeningAllowed = false) {
   const problems: string[] = [];
   const dated = (day: string) =>
     DAY.test(day) &&
@@ -205,7 +226,8 @@ export function preparationProblems(draft: PreparationDraft, today: string) {
   if (!dated(draft.asAt) || draft.asAt > today) problems.push('Enter a record date that is not in the future.');
   if (!draft.reference.trim()) problems.push('The record attribution is unavailable. Reload the setup and try again.');
   if (!draft.reason.trim()) problems.push('Give a reason for correcting the mirror.');
-  if (draft.members.length === 0) problems.push('Add at least one current shareholder.');
+  if (draft.members.length === 0 && (!emptyOpeningAllowed || draft.former.length > 0))
+    problems.push('Add at least one current shareholder.');
   draft.members.forEach((row, index) => {
     const label = `Shareholder ${index + 1}`;
     if (incomplete(row) || !dated(row.enteredOn))

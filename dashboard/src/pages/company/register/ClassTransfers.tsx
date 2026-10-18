@@ -15,7 +15,7 @@ import { PageAction } from '@components/Page';
 import { TransferRecord } from './TransferRecord';
 import { registerSteps } from '@pages/company/shared/proposals';
 import { entriesKey } from '@pages/company/register/shared/useRegisterEntries';
-import { useOwnAppointments, ownAppointmentsKey } from '@pages/company/shared/useOwnAppointments';
+import { useOwnAppointments, ownAppointmentsKey } from '@hooks/useOwnAppointments';
 import {
   transferMembersKey,
   transfersKey,

@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { failureStatus, type OrderSubmissionOwner, type OwnCompanyAppointment } from '@ledova/shared';
 import { READ_TIMING } from '@hooks/useRegisterAccess';
-import type { useOwnAppointments } from '@pages/company/shared/useOwnAppointments';
+import type { useOwnAppointments } from '@hooks/useOwnAppointments';
 import { openingHoldersKey, readOpeningHolders } from '@pages/company/register/shared/useRegisterOpenings';
 
 export function useOpeningHolders(

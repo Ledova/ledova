@@ -26,7 +26,7 @@ import {
   type ClassCorrection,
 } from '@pages/company/register/shared/useClassCorrections';
 import { entriesKey, useRegisterEntries } from '@pages/company/register/shared/useRegisterEntries';
-import { useOwnAppointments, ownAppointmentsKey } from '@pages/company/shared/useOwnAppointments';
+import { useOwnAppointments, ownAppointmentsKey } from '@hooks/useOwnAppointments';
 
 const COPY = REGISTER_CORRECTION_COPY;
 

@@ -78,7 +78,7 @@ function OwnDashboard({
       ) : preferences.isFetching || classes.isPending || (company && registers.isPending) || (company && !fresh) ? (
         <Loading />
       ) : companies.length === 0 ? (
-        <RegisterSetup />
+        <RegisterSetup owner={owner} currentOwner={currentOwner} />
       ) : !company ? (
         <p className="py-3 text-sm text-text-muted">Select a company to show its ownership.</p>
       ) : fresh && scoped && summary ? (
