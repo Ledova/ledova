@@ -1109,7 +1109,7 @@ private evidence and original-request recovery remain required. An award,
 recorded vesting, approval, external capital receipt and issued ownership stay
 distinct. There is no extra Overview page, task engine, new role, legal document
 generator, payment collection rail or filing integration in this direction.
-Delivered behaviour is described in [clients](engineering/frontend.md) and each
+Delivered behaviour is described in [frontend](engineering/frontend.md) and each
 increment guide; later refinements remain planned until their PRs land.
 
 ## Ownership dashboard and compact sidebar
@@ -1137,7 +1137,7 @@ issued award shares are already in holdings. Incomplete reads never imply zero
 ownership or complete totals. No valuation, forecast, chart dependency, new role
 or company-wide member disclosure is introduced. Broader personal visibility
 needs a separate owner decision. Current delivery is described in
-[clients](engineering/frontend.md); signup and native landing remain as delivered.
+[frontend](engineering/frontend.md); signup and native landing remain as delivered.
 
 The signup constraint above was replaced by the
 [14 October combined signup decision](#combined-company-signup-and-initial-authority).
@@ -1166,7 +1166,7 @@ This supersedes the "One look" choice under
 [the signed-in app](#the-signed-in-app) and the #792 reason for storing no theme
 preference. Dark is a second palette for the same semantic tokens. The web
 and mobile delivery is described in
-[clients](engineering/frontend.md#design-tokens-and-themes).
+[frontend](engineering/frontend.md#design-tokens-and-themes).
 
 ## The signed-in app
 

@@ -38,8 +38,7 @@ Two rules are gated without a script of their own: migration drift through
 `makemigrations --check --dry-run` in the backend group, and generated design tokens through the
 non-writing `generate-css-tokens.mjs --check` in `make check`. The Makefile also runs the mobile
 test-await control, the real native dependency resolver (`npm --prefix mobile run check:resolution`)
-and the dashboard React singleton check. `check-self-imports.mjs` prevents the shared package
-importing its own public barrel. [Dependency advisories](#dependency-advisories) have their own
+and the dashboard React singleton check. [Dependency advisories](#dependency-advisories) have their own
 helper.
 
 ## Gate debt and exceptions
