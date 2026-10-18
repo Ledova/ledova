@@ -14,7 +14,7 @@ import type { CreateWallet, DerivedAddress, HardwareWalletImport } from '@ledova
 import { Modal, ModalActions } from '@components/Modal';
 import { PageAction } from '@components/Page';
 import apiClient from '@services/apiClient';
-import { useWalletForm } from '../hooks/useWalletForm';
+import { useWalletForm } from './useWalletForm';
 import { extractFromKeystoneQR } from '@utils/keystone/bcurDecoder';
 
 const FIELD_CLASS =

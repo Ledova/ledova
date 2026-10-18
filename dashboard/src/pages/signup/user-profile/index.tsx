@@ -1,8 +1,8 @@
 import { useNavigate } from 'react-router-dom';
 import { UserIcon } from '@phosphor-icons/react';
-import LoadingState from '@components/signup/LoadingState';
-import ErrorState from '@components/signup/ErrorState';
-import { UserProfileForm } from '@pages/signup/user-profile/components/UserProfileForm';
+import { LoadingState } from '@pages/signup/shared/LoadingState';
+import { ErrorState } from '@pages/signup/shared/ErrorState';
+import { UserProfileForm } from './UserProfileForm';
 import { useRole } from '@hooks/useRole';
 import { AuthLayout } from '@components/AuthLayout';
 import { useSignupUserProfile } from '@ledova/shared';

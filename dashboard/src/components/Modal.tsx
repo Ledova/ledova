@@ -1,6 +1,6 @@
 import { Fragment, type ReactNode } from 'react';
 import { Dialog, DialogPanel, DialogTitle, Transition, TransitionChild } from '@headlessui/react';
-import { PageAction } from '@components/Page';
+import { PageAction } from './Page';
 
 interface ModalProps {
   isOpen: boolean;

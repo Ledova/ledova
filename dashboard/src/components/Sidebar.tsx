@@ -15,14 +15,14 @@ import {
   UsersIcon,
 } from '@phosphor-icons/react';
 import { DESTINATIONS, useFeatureFlags, type DestinationKey } from '@ledova/shared';
-import { ICON_MD } from '@components/iconSizes';
+import { ICON_MD } from './iconSizes';
 import { useRole } from '@hooks/useRole';
 import { useUserProfile } from '@hooks/useUserProfile';
 import { SITE_URL } from '@utils/siteUrl';
-import { Logo } from '@components/Logo';
-import { NotificationBell } from '@components/NotificationBell';
-import { SignOutButton } from '@components/SignOutButton';
-import { ThemeToggle } from '@components/ThemeToggle';
+import { Logo } from './Logo';
+import { NotificationBell } from './NotificationBell';
+import { SignOutButton } from './SignOutButton';
+import { ThemeToggle } from './ThemeToggle';
 import { useRegisterEntry } from '@hooks/useRegisterAccess';
 import { COMPANY_DASHBOARD_PATH } from '@utils/paths';
 

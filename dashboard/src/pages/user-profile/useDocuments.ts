@@ -8,8 +8,8 @@ import {
   listDocuments,
   uploadDocument,
   type UploadDocumentInput,
-} from '@services/documents';
-import type { Document } from '../types/document';
+} from '@ledova/shared';
+import type { Document } from '@ledova/shared';
 
 const DOCUMENTS_KEY = ['documents'] as const;
 const documentKey = (uuid: string) => ['document', uuid] as const;

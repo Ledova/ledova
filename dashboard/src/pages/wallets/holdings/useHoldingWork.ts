@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { CACHE_TIMING, getPublications, getSubscriptions, readEveryPage, usePublicationSummary } from '@ledova/shared';
 import { useRole } from '@hooks/useRole';
 import apiClient from '@services/apiClient';
-import { applicationWork } from '@pages/wallets/holdings/applicationWork';
+import { applicationWork } from './applicationWork';
 
 export function useHoldingWork() {
   const role = useRole();

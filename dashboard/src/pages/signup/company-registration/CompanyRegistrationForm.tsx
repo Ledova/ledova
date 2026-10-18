@@ -1,7 +1,7 @@
 import { Field, Label, Input, Description } from '@headlessui/react';
 import { BuildingsIcon, WarningIcon, CaretDownIcon } from '@phosphor-icons/react';
 import { ICON_MD } from '@components/iconSizes';
-import { COMPANY_TYPES } from '../constants';
+import { COMPANY_TYPES } from '@pages/signup/shared/constants';
 import { AUTH_BUTTON_CLASS, ERROR_BANNER_CLASS } from '@components/fieldClass';
 
 interface CompanyFormData {

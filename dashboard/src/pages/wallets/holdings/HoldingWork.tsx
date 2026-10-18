@@ -11,8 +11,8 @@ import {
 } from '@ledova/shared';
 import { Section, Status } from '@components/Ledger';
 import { PageAction } from '@components/Page';
-import { useHoldingWork } from '@pages/wallets/holdings/hooks/useHoldingWork';
-import type { ApplicationWork } from '@pages/wallets/holdings/applicationWork';
+import { useHoldingWork } from './useHoldingWork';
+import type { ApplicationWork } from './applicationWork';
 
 const LINK = 'text-sm font-medium text-brand-light underline underline-offset-4';
 

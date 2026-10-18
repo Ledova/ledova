@@ -1,6 +1,13 @@
 import { useId } from 'react';
 import { Checkbox, Field, Label } from '@headlessui/react';
-import type { CheckboxGroupFieldProps } from '@ledova/shared';
+
+interface CheckboxGroupFieldProps {
+  label: string;
+  value: string[];
+  options: Array<{ value: string; label: string }>;
+  error?: string[];
+  onChange: (values: string[]) => void;
+}
 
 const CheckboxGroupField = ({ label, value, options, error, onChange }: CheckboxGroupFieldProps) => {
   const labelId = useId();

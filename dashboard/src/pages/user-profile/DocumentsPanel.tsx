@@ -19,10 +19,10 @@ import {
   useDocumentClaims,
   useDocuments,
   useUploadDocument,
-} from '@hooks/useDocuments';
-import type { Document, DocumentType, ExtractionStatus } from '../../types/document';
+} from './useDocuments';
+import type { Document, UserDocumentType, ExtractionStatus } from '@ledova/shared';
 
-const DOCUMENT_TYPE_LABELS: Record<DocumentType, string> = {
+const DOCUMENT_TYPE_LABELS: Record<UserDocumentType, string> = {
   payslip: 'Payslip',
   bank_statement: 'Bank statement',
   tax_return: 'Tax return',
@@ -31,14 +31,14 @@ const DOCUMENT_TYPE_LABELS: Record<DocumentType, string> = {
 
 const MAX_FILE_MB = 10;
 
-function formatMoney(raw: string | null): string {
+function formatDocumentMoney(raw: string | null): string {
   if (!raw) return '—';
   const n = Number(raw);
   if (Number.isNaN(n)) return raw;
   return n.toLocaleString(undefined, { style: 'currency', currency: 'AUD', maximumFractionDigits: 2 });
 }
 
-function formatDate(iso: string | null): string {
+function formatDocumentDate(iso: string | null): string {
   if (!iso) return '—';
   return new Date(iso).toLocaleDateString('en-AU', { day: '2-digit', month: 'short', year: 'numeric' });
 }
@@ -86,13 +86,16 @@ function PayslipResult({ data, durationMs }: { data: object; durationMs: number 
     { label: 'Employee', value: text('employeeName') ?? '—' },
     { label: 'Employer', value: text('employerName') ?? '—' },
     { label: 'ABN', value: text('abn') ?? '—' },
-    { label: 'Pay period', value: `${formatDate(text('periodStart'))} → ${formatDate(text('periodEnd'))}` },
-    { label: 'Gross pay', value: formatMoney(text('grossPay')) },
-    { label: 'Net pay', value: formatMoney(text('netPay')) },
-    { label: 'Tax withheld', value: formatMoney(text('taxWithheld')) },
-    { label: 'Superannuation', value: formatMoney(text('superannuation')) },
-    { label: 'YTD gross', value: formatMoney(text('ytdGross')) },
-    { label: 'YTD tax', value: formatMoney(text('ytdTax')) },
+    {
+      label: 'Pay period',
+      value: `${formatDocumentDate(text('periodStart'))} → ${formatDocumentDate(text('periodEnd'))}`,
+    },
+    { label: 'Gross pay', value: formatDocumentMoney(text('grossPay')) },
+    { label: 'Net pay', value: formatDocumentMoney(text('netPay')) },
+    { label: 'Tax withheld', value: formatDocumentMoney(text('taxWithheld')) },
+    { label: 'Superannuation', value: formatDocumentMoney(text('superannuation')) },
+    { label: 'YTD gross', value: formatDocumentMoney(text('ytdGross')) },
+    { label: 'YTD tax', value: formatDocumentMoney(text('ytdTax')) },
   ];
 
   return (
@@ -172,7 +175,7 @@ function DocumentCard({ initialDoc, claims }: { initialDoc: Document; claims: In
         <div className="min-w-0 flex-1">
           <p className="text-sm text-text-primary truncate">{doc.originalFilename}</p>
           <p className="text-xs text-text-muted">
-            {DOCUMENT_TYPE_LABELS[doc.documentType]} · {formatDate(doc.createdAt)}
+            {DOCUMENT_TYPE_LABELS[doc.documentType]} · {formatDocumentDate(doc.createdAt)}
           </p>
         </div>
         <StatusPill status={extraction?.status} />
@@ -192,7 +195,7 @@ function DocumentCard({ initialDoc, claims }: { initialDoc: Document; claims: In
       {doc.classification ? (
         <p className="mt-3 text-xs text-text-muted">
           Attached to claim {doc.classification.slice(0, 8)}. Retained{' '}
-          {doc.retentionUntil ? `until ${formatDate(doc.retentionUntil)}` : 'with the claim'}.
+          {doc.retentionUntil ? `until ${formatDocumentDate(doc.retentionUntil)}` : 'with the claim'}.
         </p>
       ) : (
         <div className="mt-3 space-y-2">
@@ -212,7 +215,7 @@ function DocumentCard({ initialDoc, claims }: { initialDoc: Document; claims: In
           </button>
           <p className="text-xs text-text-muted">
             Unattached payslips are removed{' '}
-            {doc.retentionUntil ? `on ${formatDate(doc.retentionUntil)}` : 'according to the retention policy'}.
+            {doc.retentionUntil ? `on ${formatDocumentDate(doc.retentionUntil)}` : 'according to the retention policy'}.
           </p>
         </div>
       )}
@@ -241,7 +244,7 @@ function DocumentCard({ initialDoc, claims }: { initialDoc: Document; claims: In
 
 function UploadCard({ claims }: { claims: InvestorClassification[] }) {
   const [file, setFile] = useState<File | null>(null);
-  const [documentType, setDocumentType] = useState<DocumentType>('payslip');
+  const [documentType, setDocumentType] = useState<UserDocumentType>('payslip');
   const [note, setNote] = useState('');
   const [classification, setClassification] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -299,7 +302,7 @@ function UploadCard({ claims }: { claims: InvestorClassification[] }) {
           <div className="flex flex-wrap gap-2">
             <select
               value={documentType}
-              onChange={(e) => setDocumentType(e.target.value as DocumentType)}
+              onChange={(e) => setDocumentType(e.target.value as UserDocumentType)}
               className="max-w-full rounded-lg border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary"
               disabled={upload.isPending}
             >

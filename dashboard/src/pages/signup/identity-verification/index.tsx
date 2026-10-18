@@ -6,7 +6,7 @@ import {
   ClockCountdownIcon,
   ArrowCounterClockwiseIcon,
 } from '@phosphor-icons/react';
-import LoadingState from '@components/signup/LoadingState';
+import { LoadingState } from '@pages/signup/shared/LoadingState';
 import { useIdentityVerification } from '@hooks/useIdentityVerification';
 import { AuthLayout } from '@components/AuthLayout';
 import { ICON_MD, ICON_LG } from '@components/iconSizes';

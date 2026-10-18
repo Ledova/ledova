@@ -1,8 +1,8 @@
 import { useNavigate } from 'react-router-dom';
 import { Checkbox, Description, Field, Label } from '@headlessui/react';
 import { ShieldCheckIcon, WarningIcon, CheckCircleIcon } from '@phosphor-icons/react';
-import LoadingState from '@components/signup/LoadingState';
-import ErrorState from '@components/signup/ErrorState';
+import { LoadingState } from '@pages/signup/shared/LoadingState';
+import { ErrorState } from '@pages/signup/shared/ErrorState';
 import { AuthLayout } from '@components/AuthLayout';
 import { useSignupPreScreening } from '@ledova/shared';
 import { ICON_MD } from '@components/iconSizes';

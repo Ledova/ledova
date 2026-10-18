@@ -1,7 +1,11 @@
-import type { LoadingStateProps } from '@ledova/shared';
 import { AuthLayout } from '@components/AuthLayout';
 
-export default function LoadingState({ message = 'Loading data...', className = '' }: LoadingStateProps) {
+interface LoadingStateProps {
+  message?: string;
+  className?: string;
+}
+
+export function LoadingState({ message = 'Loading data...', className = '' }: LoadingStateProps) {
   return (
     <AuthLayout>
       <div className={`py-8 text-center ${className}`}>

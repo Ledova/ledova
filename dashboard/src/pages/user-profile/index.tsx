@@ -2,10 +2,10 @@ import { useState } from 'react';
 import { formatDate, formatDateTime, getUserVerificationStatus } from '@ledova/shared';
 import { Page, PageAction } from '@components/Page';
 import { Row, Rows, Section, Status } from '@components/Ledger';
-import { DocumentsPanel } from '@components/DocumentsPanel';
+import { DocumentsPanel } from './DocumentsPanel';
 import { FIELD_CLASS } from '@components/fieldClass';
 import { useUserProfile } from '@hooks/useUserProfile';
-import { IdentityVerificationModal } from './components/IdentityVerificationModal';
+import { IdentityVerificationModal } from './IdentityVerificationModal';
 
 function UserProfilePage() {
   const {

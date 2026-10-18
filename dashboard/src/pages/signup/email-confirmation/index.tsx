@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { EnvelopeIcon } from '@phosphor-icons/react';
-import { EmailConfirmationForm } from '@pages/signup/email-confirmation/components/EmailConfirmationForm';
+import { EmailConfirmationForm } from './EmailConfirmationForm';
 import { useSignupEmailConfirmation } from './useSignupEmailConfirmation';
 import { AuthLayout } from '@components/AuthLayout';
 import { ICON_MD } from '@components/iconSizes';

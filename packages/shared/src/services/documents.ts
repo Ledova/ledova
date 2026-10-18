@@ -1,12 +1,12 @@
 import type { AxiosInstance } from 'axios';
-import type { ApiRequest, ApiResponse } from '@ledova/shared';
-import type { Document } from '../types/document';
+import { USER_DOCUMENT_ENDPOINTS } from '../constants';
+import type { ApiRequest, ApiResponse, Document } from '../types';
 
 export const listDocuments = (apiClient: AxiosInstance) =>
-  apiClient.get<ApiResponse<'api_v1_documents_list'>>('/api/v1/documents/');
+  apiClient.get<ApiResponse<'api_v1_documents_list'>>(USER_DOCUMENT_ENDPOINTS.BASE);
 
 export const getDocument = (apiClient: AxiosInstance, uuid: string) =>
-  apiClient.get<Document>(`/api/v1/documents/${uuid}/`);
+  apiClient.get<Document>(USER_DOCUMENT_ENDPOINTS.DETAIL(uuid));
 
 export type UploadDocumentInput = ApiRequest<'api_v1_documents_create'>;
 
@@ -17,13 +17,13 @@ export const uploadDocument = (apiClient: AxiosInstance, input: UploadDocumentIn
   if (input.note) form.append('note', input.note);
   if (input.classification) form.append('classification', input.classification);
 
-  return apiClient.post<Document>('/api/v1/documents/', form, {
+  return apiClient.post<Document>(USER_DOCUMENT_ENDPOINTS.BASE, form, {
     headers: { 'Content-Type': 'multipart/form-data' },
   });
 };
 
 export const deleteDocument = (apiClient: AxiosInstance, uuid: string) =>
-  apiClient.delete(`/api/v1/documents/${uuid}/`);
+  apiClient.delete(USER_DOCUMENT_ENDPOINTS.DETAIL(uuid));
 
 export const attachDocument = (apiClient: AxiosInstance, uuid: string, classification: string) =>
-  apiClient.post<Document>(`/api/v1/documents/${uuid}/attach/`, { classification });
+  apiClient.post<Document>(USER_DOCUMENT_ENDPOINTS.ATTACH(uuid), { classification });

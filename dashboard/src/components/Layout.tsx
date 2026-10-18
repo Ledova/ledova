@@ -1,14 +1,18 @@
+import type { ReactNode } from 'react';
 import { Sidebar } from './Sidebar';
 import { MobileHeader } from './MobileHeader';
 import Footer from './Footer';
-import type { LayoutProps } from '@ledova/shared';
 import { BuyCryptoProvider } from '@components/wallet/BuyCryptoProvider';
 import { SendTransferProvider } from '@components/wallet/SendTransferProvider';
 import { useSignupFinished } from '@hooks/useSignupFinished';
 import { useAuth } from '@ledova/shared';
-import { AuthLayoutAction } from './AuthLayout/AuthLayoutAction';
+import { AuthLayoutAction } from './AuthLayoutAction';
 import { InSignedInFrame } from './InSignedInFrame';
 import { SignOutButton } from './SignOutButton';
+
+interface LayoutProps {
+  children: ReactNode;
+}
 
 export default function Layout({ children }: LayoutProps) {
   const framed = useSignupFinished();

@@ -1,7 +1,14 @@
-import type { ErrorStateProps } from '@ledova/shared';
 import { AuthLayout } from '@components/AuthLayout';
 
-export default function ErrorState({
+interface ErrorStateProps {
+  title?: string;
+  message?: string;
+  retryLabel?: string;
+  onRetry: () => void;
+  className?: string;
+}
+
+export function ErrorState({
   title = 'Error Loading Data',
   message = 'We encountered an issue while loading required data.',
   retryLabel = 'Retry',

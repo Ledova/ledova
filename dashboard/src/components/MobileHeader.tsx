@@ -1,11 +1,11 @@
 import { useState, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
 import { ListIcon, XIcon } from '@phosphor-icons/react';
-import { NotificationBell } from '@components/NotificationBell';
-import { Sidebar } from '@components/Sidebar';
-import { Logo } from '@components/Logo';
-import { ThemeToggle } from '@components/ThemeToggle';
-import { ICON_MD } from '@components/iconSizes';
+import { NotificationBell } from './NotificationBell';
+import { Sidebar } from './Sidebar';
+import { Logo } from './Logo';
+import { ThemeToggle } from './ThemeToggle';
+import { ICON_MD } from './iconSizes';
 
 export function MobileHeader() {
   const [isOpen, setIsOpen] = useState(false);

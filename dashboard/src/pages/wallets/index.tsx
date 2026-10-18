@@ -4,15 +4,15 @@ import type { Wallet as WalletType, DerivedAddress, HardwareWalletImport } from 
 import { Page, PageAction } from '@components/Page';
 import { LinkRow, Section } from '@components/Ledger';
 import { WalletItem } from './WalletItem';
-import { useWallets } from './hooks/useWallets';
-import { WalletActions } from './components/WalletActions';
-import { WalletSort } from './components/WalletSort';
-import { EditWalletModal } from './components/EditWalletModal';
-import { DeleteWalletModal } from './components/DeleteWalletModal';
+import { useWallets } from './useWallets';
+import { WalletActions } from './WalletActions';
+import { WalletSort } from './WalletSort';
+import { EditWalletModal } from './EditWalletModal';
+import { DeleteWalletModal } from './DeleteWalletModal';
 import { WalletVerificationModal } from '@components/wallet/WalletVerificationModal';
-import { DeriveAddressModal } from './components/DeriveAddressModal';
-import { AddWalletModal } from './components/AddWalletModal';
-import { CryptoActions } from './components/CryptoActions';
+import { DeriveAddressModal } from './DeriveAddressModal';
+import { AddWalletModal } from './AddWalletModal';
+import { CryptoActions } from './CryptoActions';
 
 const LEDE = 'Verify a wallet to send from it or buy crypto into it.';
 

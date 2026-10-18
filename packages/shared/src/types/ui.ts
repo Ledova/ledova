@@ -1,4 +1,3 @@
-import type * as React from 'react';
 import type { UserProfile, FinancialProfile, AssetQueryParams } from './domain';
 import type { FieldValidation, FormValidation } from './validation';
 
@@ -35,37 +34,4 @@ export interface EmailConfirmationValidation {
   isValid: boolean;
   isEmpty: boolean;
   isValidFormat: boolean;
-}
-
-export interface RadioGroupFieldProps<Value extends string = string> {
-  label: string;
-  value: Value;
-  options: Array<{ value: Value; label: string }>;
-  error?: string[];
-  onChange: (value: Value) => void;
-}
-
-export interface CheckboxGroupFieldProps {
-  label: string;
-  value: string[];
-  options: Array<{ value: string; label: string }>;
-  error?: string[];
-  onChange: (values: string[]) => void;
-}
-
-export interface LayoutProps {
-  children: React.ReactNode;
-}
-
-export interface LoadingStateProps {
-  message?: string;
-  className?: string;
-}
-
-export interface ErrorStateProps {
-  title?: string;
-  message?: string;
-  retryLabel?: string;
-  onRetry: () => void;
-  className?: string;
 }

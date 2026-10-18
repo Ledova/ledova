@@ -6,7 +6,7 @@ import { ICON_LG } from '@components/iconSizes';
 import { useReview } from './useReview';
 import { AuthLayout } from '@components/AuthLayout';
 import { Section } from '@components/Ledger';
-import { COMPANY_TYPES } from '@pages/signup/company-registration/constants';
+import { COMPANY_TYPES } from '@pages/signup/shared/constants';
 import { SITE_URL } from '@utils/siteUrl';
 import { AUTH_BUTTON_CLASS } from '@components/fieldClass';
 

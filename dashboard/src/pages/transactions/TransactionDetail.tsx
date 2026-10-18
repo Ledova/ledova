@@ -11,7 +11,7 @@ import {
 } from '@ledova/shared';
 import type { Transaction } from '@ledova/shared';
 import { Row, Rows, Status } from '@components/Ledger';
-import { activityState } from '../presentation';
+import { activityState } from './presentation';
 
 export function TransactionDetail({ transaction }: { transaction: Transaction }) {
   const state = activityState(transaction);
