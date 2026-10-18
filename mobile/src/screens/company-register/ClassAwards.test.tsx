@@ -290,7 +290,19 @@ beforeEach(() => {
         },
       };
     }
-    if (url === URLS.REGISTER_MEMBERS(REGISTER.token.uuid)) return { data: { members: [] } };
+    if (url === URLS.REGISTER_MEMBERS(REGISTER.token.uuid))
+      return {
+        data: {
+          members: [],
+          awardRecipients: [
+            {
+              member: AWARD_REQUEST.member,
+              name: AWARD_REQUEST.name,
+              residentialAddress: AWARD_REQUEST.residentialAddress,
+            },
+          ],
+        },
+      };
     if (url === URLS.REGISTER_LINK_WAITING_WALLETS) return { data: { wallets: [] } };
     return { data: { results: [], next: null } };
   });

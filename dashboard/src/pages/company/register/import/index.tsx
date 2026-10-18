@@ -13,7 +13,7 @@ import {
   type OrderSubmissionOwner,
   type RegisterImport,
   type TokenHoldersResponse,
-  type RegisterTransferMember,
+  type RegisterTransferMembers,
 } from '@ledova/shared';
 import { Page } from '@components/Page';
 import { PageTitle } from '@components/PageTitle';
@@ -24,7 +24,7 @@ import { importsKey, useRegisterImports } from '@pages/company/register/shared/u
 import { ownerGuard } from '@pages/company/shared/ownerGuard';
 import { useOwnAppointments, ownAppointmentsKey } from '@hooks/useOwnAppointments';
 
-import { transferMembersKey, useTransferMembers } from '@pages/company/register/shared/useRegisterTransfers';
+import { importMembersKey, useImportMembers } from './useImportMembers';
 import { ImportForm } from './ImportForm';
 import { NewClassSetup } from './NewClassSetup';
 import { canOpenEmptyRegister } from './preparation';
@@ -64,7 +64,7 @@ type Retained = {
   steps: RegisterSteps;
   correction?: RegisterImport;
   saved?: RegisterImport;
-  members: RegisterTransferMember[];
+  members: RegisterTransferMembers;
 };
 
 function OwnImport({
@@ -87,7 +87,8 @@ function OwnImport({
   const steps = listed && appointments.data ? registerSteps(appointments.data, listed.companyUuid) : null;
   const readable = !!(steps?.prepare || steps?.approve || steps?.apply);
   const imports = useRegisterImports(owner, uuid, guard, readable);
-  const members = useTransferMembers(owner, uuid, guard, readable);
+  const membersCompany = listed?.companyUuid ?? retained?.listed.companyUuid ?? '';
+  const members = useImportMembers(owner, membersCompany, uuid, guard, readable);
   const register = useImportRegister(owner, uuid, readable, guard);
   const correction = imports.data?.find((proposal) => proposal.status === 'applied' && proposal.correctionAllowed);
   const record = search.get('record');
@@ -144,7 +145,7 @@ function OwnImport({
       ownAppointmentsKey(owner),
       importRegisterKey(owner, uuid),
       importsKey(owner, uuid),
-      transferMembersKey(owner, uuid),
+      importMembersKey(owner, membersCompany, uuid),
     ]) {
       const state = client.getQueryState(key);
       if (state?.status !== 'success' || state.fetchStatus !== 'idle')
@@ -202,7 +203,8 @@ function OwnImport({
       companyName={retained.listed.companyName}
       shareClass={{ name: retained.listed.name, symbol: retained.listed.symbol }}
       register={retained.register}
-      companyMembers={members.data ?? retained.members}
+      companyMembers={(members.data ?? retained.members).members}
+      awardRecipients={(members.data ?? retained.members).awardRecipients}
       emptyOpeningAllowed={
         !!listed &&
         !!register.data &&
