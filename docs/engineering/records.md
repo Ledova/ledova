@@ -430,8 +430,8 @@ discrepancy](../business/register.md#acknowledging-a-discrepancy). `POST
 register-reconciliations/{uuid}/acknowledge/` names a `discrepancy`, counted from zero through the
 record's `discrepancies` in API order. A row is `acknowledgeable` while its reconciliation is the
 class's `latest`, its kind can be acknowledged and nothing acknowledges it yet. `providedBy` is
-`company`, or `staff`, with no appointment or name, for one recorded before acknowledgement was
-company-run. A new acknowledgement answers 201; an identical retry under the same `idempotency_key`
+`company`; its appointment is required and its appointee's name is blank if not recorded.
+A new acknowledgement answers 201; an identical retry under the same `idempotency_key`
 answers 200, even after a later reconciliation; the same key with any change answers 409. The
 request records nothing and refuses a reconciliation the caller cannot read or an appointment that
 is not the caller's current one holding `admin` or `approve` (both as not found), a position outside

@@ -91,19 +91,14 @@ class RegisterAcknowledgement(BaseModel):
     reason = models.CharField(max_length=1000, editable=False)
     acknowledged_by_id = models.PositiveBigIntegerField(editable=False)
     appointment = models.ForeignKey(
-        "companies.CompanyAppointment", on_delete=models.PROTECT, null=True, related_name="+", editable=False
+        "companies.CompanyAppointment", on_delete=models.PROTECT, related_name="+", editable=False
     )
-    idempotency_key = models.UUIDField(null=True, editable=False)
+    idempotency_key = models.UUIDField(editable=False)
 
     class Meta:
         ordering = ["created_at", "uuid"]
         constraints = [
             models.UniqueConstraint(fields=["reconciliation", "discrepancy"], name="register_acknowledged_once"),
-            models.CheckConstraint(
-                condition=models.Q(appointment__isnull=True, idempotency_key__isnull=True)
-                | models.Q(appointment__isnull=False, idempotency_key__isnull=False),
-                name="register_acknowledgement_exact_provenance",
-            ),
             models.UniqueConstraint(
                 fields=["acknowledged_by_id", "idempotency_key"],
                 condition=models.Q(idempotency_key__isnull=False),

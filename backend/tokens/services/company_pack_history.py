@@ -415,7 +415,7 @@ def reconciliations(token) -> list:
                 "reason": acknowledgement.reason,
                 "acknowledged_by": _name(people.get(acknowledgement.acknowledged_by_id)),
                 "acknowledged_at": acknowledgement.created_at,
-                "provided_by": "company" if acknowledgement.appointment_id else "staff",
+                "provided_by": "company",
             }
         )
     return [

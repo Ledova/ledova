@@ -475,8 +475,7 @@ for that transaction, and a member, unlinked or supply difference is added to wh
 further change shows as a new difference. Once every row is acknowledged, the next run is Matched.
 An acknowledgement records nothing in the register. It is kept with the reconciliation, the row, the
 reason, the person, their appointment and the time, and the
-[company pack](member-records.md#the-company-pack) lists it. Acknowledgements made before 5 October
-2026 show as given by Ledova staff.
+[company pack](member-records.md#the-company-pack) lists it as acknowledged by the company.
 
 ## The Register page
 

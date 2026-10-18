@@ -56,10 +56,7 @@ export const REGISTER_RECONCILIATION_COPY = {
   READ_ONLY_NOTE:
     'You can read these reconciliations. Acknowledging a discrepancy needs an appointment with administration or ' +
     'approval.',
-  PROVIDED_BY: {
-    company: 'Acknowledged by the company',
-    staff: 'Acknowledged by Ledova staff before acknowledgement was company-run',
-  } as Record<string, string>,
+  PROVIDED_BY: 'Acknowledged by the company',
   ACKNOWLEDGE: 'Acknowledge',
   ACKNOWLEDGE_REASON: 'Reason for acknowledging',
   UNREADABLE: 'The reconciliation could not be read.',

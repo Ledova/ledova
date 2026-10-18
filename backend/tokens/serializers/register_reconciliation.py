@@ -15,20 +15,15 @@ class RegisterAcknowledgeSerializer(serializers.Serializer):
 class RegisterAcknowledgementSerializer(serializers.ModelSerializer):
     acknowledged_by_name = serializers.SerializerMethodField()
     acknowledged_at = serializers.DateTimeField(source="created_at", read_only=True)
-    provided_by = serializers.SerializerMethodField()
+    provided_by = serializers.CharField(default="company", read_only=True)
 
     class Meta:
         model = RegisterAcknowledgement
         fields = ["reason", "appointment", "acknowledged_by_name", "acknowledged_at", "provided_by"]
         read_only_fields = fields
 
-    def get_acknowledged_by_name(self, obj) -> str | None:
-        if obj.appointment is None:
-            return None
+    def get_acknowledged_by_name(self, obj) -> str:
         return obj.appointment.appointee_profile.full_name or ""
-
-    def get_provided_by(self, obj) -> str:
-        return "company" if obj.appointment_id else "staff"
 
 
 class RegisterDiscrepancySerializer(serializers.Serializer):

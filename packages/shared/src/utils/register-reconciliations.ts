@@ -9,8 +9,8 @@ function isAcknowledgement(value: unknown) {
   const row = value as Record<string, unknown> | undefined;
   return (
     !!row &&
-    ['reason', 'acknowledgedAt', 'providedBy'].every((key) => typeof row[key] === 'string') &&
-    ['appointment', 'acknowledgedByName'].every((key) => row[key] === null || typeof row[key] === 'string')
+    ['reason', 'acknowledgedAt', 'appointment', 'acknowledgedByName'].every((key) => typeof row[key] === 'string') &&
+    row.providedBy === 'company'
   );
 }
 
