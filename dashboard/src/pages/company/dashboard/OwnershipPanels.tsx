@@ -1,7 +1,7 @@
 import { useId } from 'react';
 import { REGISTER_COPY, formatShareCount, type TokenHoldersResponse } from '@ledova/shared';
 import { Section } from '@components/Ledger';
-import { ownershipSegments, ownershipSummary } from './summary';
+import { ownershipSegments, ownershipSummary } from '@pages/company/shared/summary';
 
 export function OwnershipMetrics({ summary }: { summary: ReturnType<typeof ownershipSummary> }) {
   return (

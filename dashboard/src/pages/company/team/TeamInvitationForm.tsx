@@ -9,7 +9,7 @@ import {
 import { FIELD_CLASS, LABEL } from '@components/fieldClass';
 import { PageAction } from '@components/Page';
 import apiClient from '@services/apiClient';
-import { sameScope } from './appointments';
+import { sameScope } from '@pages/company/shared/appointments';
 
 export function TeamInvitationForm({
   source,

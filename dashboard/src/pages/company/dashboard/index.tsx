@@ -3,12 +3,12 @@ import { useLocation } from 'react-router-dom';
 import { useSubmissionOwner, useUserPreferences, type OrderSubmissionOwner } from '@ledova/shared';
 import { Page } from '@components/Page';
 import { PageTitle } from '@components/PageTitle';
-import { CompanySelection } from '../CompanySelection';
-import { Loading, Unavailable } from '../register/RegisterStatus';
-import { useCompanyRegister } from '../register/useCompanyRegister';
+import { CompanySelection } from '@pages/company/shared/CompanySelection';
+import { Loading, Unavailable } from '@pages/company/shared/RegisterStatus';
+import { useCompanyRegister } from '@pages/company/shared/useCompanyRegister';
 import { OwnershipMetrics, ShareholderPanels } from './OwnershipPanels';
 import { RegisterSetup } from './RegisterSetup';
-import { ownershipSummary } from './summary';
+import { ownershipSummary } from '@pages/company/shared/summary';
 
 export default function CompanyDashboardPage() {
   const { owner } = useSubmissionOwner();

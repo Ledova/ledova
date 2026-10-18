@@ -20,7 +20,7 @@ import {
 import { PageAction } from '@components/Page';
 import { FIELD_CLASS, LABEL } from '@components/fieldClass';
 import apiClient from '@services/apiClient';
-import { transfersKey } from '../useRegisterTransfers';
+import { transfersKey } from '@pages/company/register/shared/useRegisterTransfers';
 
 type Draft = {
   fromMember: string;

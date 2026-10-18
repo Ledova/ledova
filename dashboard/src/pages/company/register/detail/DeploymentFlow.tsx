@@ -25,11 +25,11 @@ import {
 import { Row, Rows, Section, Status } from '@components/Ledger';
 import { PageAction } from '@components/Page';
 import apiClient from '@services/apiClient';
-import { DecisionTrail } from '@pages/company/register/DecisionTrail';
-import { RegisterDecisions } from '@pages/company/register/RegisterDecisions';
-import { registerSteps, STAGE_TONES } from '@pages/company/register/proposals';
+import { DecisionTrail } from '@pages/company/register/shared/DecisionTrail';
+import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
+import { registerSteps, STAGE_TONES } from '@pages/company/shared/proposals';
 import type { useShareClass } from './useShareClass';
-import { ownAppointmentsKey } from '@pages/company/team/appointments';
+import { ownAppointmentsKey } from '@pages/company/shared/appointments';
 
 function SnapshotRows({ snapshot }: { snapshot: RegisterDeploymentSnapshot }) {
   const register = snapshot.register;

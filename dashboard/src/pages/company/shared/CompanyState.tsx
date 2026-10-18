@@ -1,7 +1,7 @@
 import type { CompanyStatus } from '@ledova/shared';
 import { Status, type Tone } from '@components/Ledger';
 import { PageAction } from '@components/Page';
-import type { useCompany } from './hooks/useCompany';
+import type { useCompany } from './useCompany';
 
 type CompanyRead = Pick<ReturnType<typeof useCompany>, 'error' | 'isRefreshing' | 'refetch'>;
 export type CompanyActionRead = CompanyRead &

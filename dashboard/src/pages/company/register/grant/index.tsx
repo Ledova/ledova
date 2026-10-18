@@ -13,12 +13,13 @@ import {
 } from '@ledova/shared';
 import { Section } from '@components/Ledger';
 import { Page, PageAction } from '@components/Page';
-import { Loading, Unavailable } from '../RegisterStatus';
-import { registersQuery, useRegisterClasses } from '../useCompanyRegister';
-import { ownerGuard, useOwnAppointments } from '../useRegisterImports';
+import { Loading, Unavailable } from '@pages/company/shared/RegisterStatus';
+import { registersQuery, useRegisterClasses } from '@pages/company/shared/useCompanyRegister';
+import { ownerGuard } from '@pages/company/register/shared/ownerGuard';
+import { useOwnAppointments } from '@pages/company/register/shared/useOwnAppointments';
 import { GrantForm } from './GrantForm';
-import { useRegisterAward } from '../useRegisterAwards';
-import { useTransferMembers } from '../useRegisterTransfers';
+import { useRegisterAward } from '@pages/company/register/shared/useRegisterAwards';
+import { useTransferMembers } from '@pages/company/register/shared/useRegisterTransfers';
 
 const LEDE =
   'Prepare a non-paid share grant on an opened register with the company’s terms, authority and any required acceptance.';

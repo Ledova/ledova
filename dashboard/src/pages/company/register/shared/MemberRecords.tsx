@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { formatDate, formatShareCount, registerImportTotals, type RegisterImportMemberRow } from '@ledova/shared';
 import { Modal } from '@components/Modal';
 import { PageAction } from '@components/Page';
-import { countBarWidth } from '../../dashboard/summary';
+import { countBarWidth } from '@pages/company/shared/summary';
 
 export function MemberRecords({ members }: { members: RegisterImportMemberRow[] }) {
   const [selectedId, setSelectedId] = useState<string | null>(null);

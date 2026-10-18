@@ -1,8 +1,8 @@
 import { Link } from 'react-router-dom';
 import { DESTINATIONS, REGISTER_IMPORT_COPY } from '@ledova/shared';
 import { Section } from '@components/Ledger';
-import { useCompany } from '../hooks/useCompany';
-import { Loading, Unavailable } from '../register/RegisterStatus';
+import { useCompany } from '@pages/company/shared/useCompany';
+import { Loading, Unavailable } from '@pages/company/shared/RegisterStatus';
 
 export function RegisterSetup() {
   const read = useCompany({ personalOnly: true });

@@ -10,7 +10,7 @@ import {
   type OfferingInput,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
-import { CompanyReadNotice, type CompanyActionRead } from '../CompanyState';
+import { CompanyReadNotice, type CompanyActionRead } from '@pages/company/shared/CompanyState';
 import { OfferingForm } from './OfferingForm';
 import { OfferingReadNotice } from './OfferingReadNotice';
 import { useCompanyOffering, type useOfferings } from './useOffering';

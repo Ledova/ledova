@@ -12,7 +12,7 @@ import {
   type Publication,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
-import type { CompanyActionRead } from '../CompanyState';
+import type { CompanyActionRead } from '@pages/company/shared/CompanyState';
 
 function saveACopy(document_: Blob, filename: string) {
   const url = URL.createObjectURL(document_);

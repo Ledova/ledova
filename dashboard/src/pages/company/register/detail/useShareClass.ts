@@ -12,8 +12,8 @@ import {
   createUserFriendlyError,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
-import { useRegisterDownload } from '@pages/company/register/useCompanyRegister';
-import { ownershipSummary } from '@pages/company/dashboard/summary';
+import { useRegisterDownload } from '@pages/company/shared/useCompanyRegister';
+import { ownershipSummary } from '@pages/company/shared/summary';
 
 export function useShareClass(uuid: string) {
   const queryClient = useQueryClient();

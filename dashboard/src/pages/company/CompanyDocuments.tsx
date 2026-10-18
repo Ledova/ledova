@@ -16,7 +16,7 @@ import { FIELD_CLASS, LABEL } from '@components/fieldClass';
 import { PageAction } from '@components/Page';
 import { Modal } from '@components/Modal';
 import apiClient from '@services/apiClient';
-import type { CompanyActionRead } from './CompanyState';
+import type { CompanyActionRead } from '@pages/company/shared/CompanyState';
 import { UploadModal } from './UploadModal';
 
 function DocumentRecord({

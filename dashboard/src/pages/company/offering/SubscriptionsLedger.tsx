@@ -3,7 +3,7 @@ import { formatDate, formatMoney, formatShareCount, REGISTER_COPY, type Offering
 import { Rows, Row, Section, Status } from '@components/Ledger';
 import { OfferingReadNotice } from './OfferingReadNotice';
 import { useCompanyOfferingSubscriptions } from './useOffering';
-import type { CompanyActionRead } from '../CompanyState';
+import type { CompanyActionRead } from '@pages/company/shared/CompanyState';
 
 export function SubscriptionsLedger({
   offerings,

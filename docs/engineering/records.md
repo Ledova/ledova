@@ -160,7 +160,7 @@ applied AUD allotment whose ISSUE entry and company-recorded receipt match its c
 entered from the position, the earliest allotment and `imported_membership_dates`.
 
 The company Dashboard's ownership summary counts distinct members from each opened class's holders
-read ([summary.ts](../../dashboard/src/pages/company/dashboard/summary.ts)).
+read ([summary.ts](../../dashboard/src/pages/company/shared/summary.ts)).
 `ShareIssuance.objects.distinct_recipient_addresses()` only counts ambiguous and unidentified
 allotment addresses for the operator worklist
 ([operators/services.py](../../backend/operators/services.py)): with no identity-stamp fallback,

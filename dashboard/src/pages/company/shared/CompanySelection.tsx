@@ -1,5 +1,5 @@
 import { FIELD_CLASS, LABEL } from '@components/fieldClass';
-import type { useCompany } from './hooks/useCompany';
+import type { useCompany } from './useCompany';
 
 type Selection = Pick<ReturnType<typeof useCompany>, 'companyUuid' | 'selectionBlocked' | 'selectCompany'> & {
   companies: { uuid: string; name: string }[];

@@ -11,7 +11,7 @@ import {
   COMPANY_SIGNUP_DECLARATION_VERSION,
 } from '@ledova/shared';
 import { APPOINTMENT } from '../../../testSupport/company';
-import { appointmentReceipt } from '../../company/team/appointments';
+import { appointmentReceipt } from '@pages/company/shared/appointments';
 
 vi.mock('./useReview', () => ({ useReview: vi.fn() }));
 
