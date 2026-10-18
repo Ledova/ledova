@@ -9,7 +9,6 @@ import { ClassRegister } from '../../components/register/ClassRegister';
 import { RegisterDownload } from '../../components/register/RegisterDownload';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 import { useTokenDetail } from './useTokenDetail';
-import { TokenPauseControls } from './TokenPauseControls';
 import { DeploymentFlow } from './DeploymentFlow';
 import { CompanyIssueFlow } from './CompanyIssueFlow';
 import { CompanyCapitalFlow } from './CompanyCapitalFlow';
@@ -138,9 +137,6 @@ function ShareClass({ uuid }: { uuid: string }) {
                 </Text>
               )}
             </Section>
-            {data.isOwner && (token.status === 'deployed' || token.status === 'paused') && (
-              <TokenPauseControls token={token} refreshing={data.token.isFetching} />
-            )}
             <Section title="Register of members">
               <RegisterDownload
                 uuid={uuid}

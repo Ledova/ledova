@@ -9,9 +9,6 @@ export type TokenCreate = ApiRequest<'api_v1_tokens_create'>;
 
 export type CompanyShareTokenListItem = ApiResponse<'api_v1_tokens_list'>['results'][number];
 
-export type PauseSubmissionRequest = ApiRequest<'api_v1_tokens_pause_create'>;
-export type PauseSubmissionResponse = ApiResponse<'api_v1_tokens_pause_create'>;
-
 export type TokenHoldersResponse = ApiResponse<'api_v1_tokens_holders_retrieve'>;
 
 export type RegisterInspectionPreview = ApiResponse<'api_v1_tokens_register_inspection_copy_retrieve'>;

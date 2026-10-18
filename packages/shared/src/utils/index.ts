@@ -73,8 +73,6 @@ export { OrderAction } from './order-action';
 export type { OrderActionState, OrderActionPhase } from './order-action';
 export { createSwapSettlementStore } from './swap-settlement-storage';
 export type { SavedSwapSettlement, SwapSettlementStore } from './swap-settlement-storage';
-export { createPauseSubmissionStore, createSyncPauseSubmissionStore } from './pause-submission-storage';
-export type { SavedPause } from './pause-submission-storage';
 export { createLocalSigner } from './local-signer';
 export { readIdentityVerification } from './identity-verification';
 export { SwapSettlement } from './swap-settlement';

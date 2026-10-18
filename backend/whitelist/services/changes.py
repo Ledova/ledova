@@ -103,19 +103,6 @@ def _target(change):
     return target_transaction(change.chain_id, change.registry_address, change.address)
 
 
-def _same_submission(change, action, address, actor, authority, wallet_uuid, company, expires_at):
-    if (
-        change.action != action
-        or change.address != address
-        or change.initiated_by_id != actor.pk
-        or change.authority != authority
-        or change.requested_wallet_id != wallet_uuid
-        or change.company_id != company.pk
-        or change.expires_at != expires_at
-    ):
-        raise WhitelistChangeConflict("This submission already identifies different whitelist terms or authority.")
-
-
 def _observe_membership(change, client):
     if _change_intent(change) != change.intent:
         raise WhitelistChangeConflict("The whitelist configuration changed after admission.")
@@ -303,40 +290,6 @@ def _process(change):
         outgoing.broadcast_operation(claim, client)
         outgoing.reconcile_operation(claim, client)
     return _project(change, claim)
-
-
-def submit(
-    submission_id,
-    action,
-    address,
-    user,
-    *,
-    company,
-    expires_at=None,
-    authority=WhitelistAuthority.OPERATOR_API,
-    wallet_uuid=None,
-):
-    _boundary()
-    try:
-        submission_id = UUID(str(submission_id))
-        wallet_uuid = UUID(str(wallet_uuid)) if wallet_uuid is not None else None
-    except (ValueError, TypeError):
-        raise WhitelistChangeConflict("A whitelist recovery requires valid original identifiers.") from None
-    if not isinstance(company, Company) or not Web3.is_address(address):
-        raise WhitelistChangeConflict("A whitelist recovery requires its exact original company and address.")
-    change = WhitelistChange.objects.filter(pk=submission_id).first()
-    if change is None:
-        raise PermissionDenied("New wallet changes require a retained company instruction.")
-    address = Web3.to_checksum_address(address).lower()
-    requested = expires_at.replace(microsecond=0) if expires_at is not None else None
-    _same_submission(change, action, address, user, authority, wallet_uuid, company, requested)
-    try:
-        return with_current_approval(_process(change))
-    except (PermissionDenied, WhitelistChangeConflict):
-        raise
-    except Exception:
-        logger.warning("Whitelist recovery remains unresolved: submission=%s", change.pk)
-        raise WhitelistChangeUnresolved() from None
 
 
 def recover(submission_id):

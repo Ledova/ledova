@@ -550,9 +550,8 @@ Company steps and what an outcome means:
 A current personal appointment prepares a strict boolean target, reason, authority reference and
 private AUTHORITY evidence; the proposal also freezes the configured contract, signer and a copied
 evidence snapshot. Application admits one source-bound PENDING `PauseChange`, refused before the
-proposal is consumed while the target is unresolved. Owner-row POST replay and private GET recovery
-keep their original account, actor, company, class, UUID and direction; a never-admitted UUID gets
-an explicit fresh-admission refusal.
+proposal is consumed while the target is unresolved. Company proposal reads and decision retries
+retain the original actor, company, class, UUID and direction; workers recover only admitted commands.
 
 A verified initial boolean at a recorded block may produce `observed` (block number and hash,
 observation time; no operation, signature or nonce). The decision is serialised against an executing
@@ -560,9 +559,8 @@ peer. `confirmed` needs a unique matching `Paused` or `Unpaused` from the admitt
 sender in the original receipt, and completed projection; no finality policy applies, and a
 `completedAt` value cannot stand in. The incomplete command reserves its chain and contract until
 projection, observed or confirmed outcomes included. Projection locks target, company, class, source
-and journal on one operator alias; a retained NULL-source pause projects through its original owner
-path, with no operator fallback. The API and clients report the requested state and the observation
-or receipt separately from the class's current state.
+and journal on one operator alias under the original company operation. The API and clients report
+the requested state and the observation or receipt separately from the class's current state.
 
 ### Mint requests
 

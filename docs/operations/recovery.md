@@ -103,8 +103,8 @@ untouched for ten minutes, oldest update first, keeping the original signed byte
 finishing an already recorded outcome without provider access. Approval alone admits no execution;
 what a pending result does and does not mean is in
 [pausing and unpausing a class](../business/issuing-shares.md#pausing-and-unpausing-a-class). A
-request saved on the device keeps Check outcome and Retry same request in both clients, for an
-existing exact row only. A completed failure permits a deliberate new company preparation
+company pause panel reads the original proposal and its recorded execution outcome. A completed
+failure permits a deliberate new company preparation
 ([pause and unpause](../engineering/chain.md#pause-and-unpause)).
 
 ## Wallet transfers and trading

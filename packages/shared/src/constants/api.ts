@@ -109,10 +109,6 @@ export const COMPANY_TOKEN_ENDPOINTS = {
   REGISTER_PAID_ISSUE_DECIDE: (uuid: string) => `/api/v1/tokens/register-paid-issues/${uuid}/decide/`,
   BASE: '/api/v1/tokens/',
   DETAIL: (uuid: string) => `/api/v1/tokens/${uuid}/` as const,
-  PAUSE: (uuid: string) => `/api/v1/tokens/${uuid}/pause/` as const,
-  UNPAUSE: (uuid: string) => `/api/v1/tokens/${uuid}/unpause/` as const,
-  PAUSE_SUBMISSION: (uuid: string, submissionId: string) =>
-    `/api/v1/tokens/${uuid}/pause-submissions/${submissionId}/` as const,
   REGISTER: '/api/v1/tokens/register/',
   HOLDERS: (uuid: string) => `/api/v1/tokens/${uuid}/holders/` as const,
   REGISTER_EXPORT: (uuid: string) => `/api/v1/tokens/${uuid}/register/export/` as const,

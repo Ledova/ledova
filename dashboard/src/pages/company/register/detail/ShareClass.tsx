@@ -15,7 +15,6 @@ import {
 } from '@ledova/shared';
 import { Page, PageAction } from '@components/Page';
 import { Row, Rows, Section, Status } from '@components/Ledger';
-import { TokenPauseControls } from './TokenPauseControls';
 import { ClassRegister } from '@pages/company/register/shared/ClassRegister';
 import { CompanyShareholders } from '@pages/company/register/shared/CompanyShareholders';
 import { useShareClass } from './useShareClass';
@@ -111,8 +110,6 @@ function ShareClassDetails({ data }: { data: ReturnType<typeof useShareClass> })
           </div>
         </>
       );
-    const deployed = token.status === 'deployed';
-    const paused = token.status === 'paused';
     const addressUrl =
       token.chain && token.contractAddress ? getBlockExplorerAddressUrl(token.chain, token.contractAddress) : '';
     const txUrl =
@@ -196,7 +193,6 @@ function ShareClassDetails({ data }: { data: ReturnType<typeof useShareClass> })
               View deployment transaction
             </a>
           )}
-          {data.isOwner && (deployed || paused) && <TokenPauseControls token={token} />}
         </Section>
         <Section title="Register of members">
           <p className="text-sm text-text-muted">{REGISTER_COPY.PRIVACY_NOTE}</p>
