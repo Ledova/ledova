@@ -74,7 +74,7 @@ frame share, and `packages/shared` holds what both clients share.
 
 Where today's code differs from these standards:
 
-- Inline data calls and query-key ownership still need
+- Inline data calls outside register records and outputs, and query-key ownership, still need
   [#1072](https://github.com/Ledova/ledova/issues/1072).
 - Existing unscoped account-bound keys stay unchanged; broader account scoping needs the owner
   decision on [#1065](https://github.com/Ledova/ledova/issues/1065).

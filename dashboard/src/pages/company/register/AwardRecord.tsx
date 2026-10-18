@@ -1,11 +1,8 @@
-import { useLayoutEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { generatePath } from 'react-router-dom';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   DESTINATIONS,
   REGISTER_AWARD_COPY as COPY,
-  downloadRegisterAwardFile,
-  downloadRegisterAwardVestingFile,
   formatDateTime,
   type OrderSubmissionOwner,
   type OwnCompanyAppointment,
@@ -14,16 +11,10 @@ import {
 import { LinkRow, Row, Rows } from '@components/Ledger';
 import { PageAction } from '@components/Page';
 import { AwardStatus } from '@components/AwardStatus';
-import apiClient from '@services/apiClient';
-import { retainedName, shareCount } from '@pages/company/shared/proposals';
-import { saveFile } from '@utils/saveFile';
-import {
-  awardsKey,
-  awardVestingsKey,
-  useRegisterAwardVestings,
-} from '@pages/company/register/shared/useRegisterAwards';
-import { ownAppointmentsKey } from '@pages/company/shared/appointments';
+import { shareCount } from '@pages/company/shared/proposals';
+import { useRegisterAwardVestings } from '@pages/company/register/shared/useRegisterAwards';
 import { AwardVestingForm } from './AwardVestingForm';
+import { useAwardRecordDownload } from './useRegisterRecordDownload';
 
 const SUMMARY = 'cursor-pointer py-2 text-sm font-medium text-text-primary';
 
@@ -49,39 +40,10 @@ export function AwardRecord({
   const [editing, setEditing] = useState(false);
   const [formAppointment, setFormAppointment] = useState<OwnCompanyAppointment | null>(null);
   const [formHeld, setFormHeld] = useState(false);
-  const client = useQueryClient();
+
   const events = useRegisterAwardVestings(owner, award.company, award.uuid, guard);
-  const latestReady = useRef({ blocked, visible });
-  useLayoutEffect(() => {
-    latestReady.current = { blocked, visible };
-  }, [blocked, visible]);
-  const download = useMutation({
-    mutationFn: async (eventId?: string) => {
-      const check = () => {
-        guard();
-        const keys = [awardsKey(owner, award.token), ownAppointmentsKey(owner)];
-        if (eventId) keys.push(awardVestingsKey(owner, award.uuid));
-        if (
-          latestReady.current.blocked ||
-          !latestReady.current.visible ||
-          keys.some((key) => {
-            const state = client.getQueryState(key);
-            return state?.status !== 'success' || state.fetchStatus !== 'idle';
-          })
-        )
-          throw new Error('Refresh the current award and its events before downloading evidence.');
-      };
-      check();
-      const { data } = eventId
-        ? await downloadRegisterAwardVestingFile(apiClient, eventId, { ledovaSubmissionGuard: check })
-        : await downloadRegisterAwardFile(apiClient, award.uuid, { ledovaSubmissionGuard: check });
-      check();
-      const snapshot = eventId
-        ? events.data?.find((row) => row.uuid === eventId)?.evidenceSnapshot
-        : award.agreementSnapshot;
-      saveFile(data, retainedName(snapshot, `award-${eventId || award.uuid}`));
-    },
-  });
+
+  const download = useAwardRecordDownload(owner, award, guard, blocked, visible, events);
   const settle = async () => {
     guard();
     await Promise.all([events.refetch({ throwOnError: true }), onSettled()]);
