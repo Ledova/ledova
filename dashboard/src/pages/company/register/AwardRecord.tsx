@@ -1,3 +1,4 @@
+import { RecordShell, RecordDownloadFailure } from './RecordShell';
 import { useState } from 'react';
 import { generatePath } from 'react-router-dom';
 import {
@@ -55,7 +56,7 @@ export function AwardRecord({
   };
   const eventReady = !events.isPending && !events.isFetching && !events.isError;
   return (
-    <li
+    <RecordShell
       className={`flex flex-col gap-4 ${visible ? 'rounded-xl border border-border-subtle bg-surface-raised p-4 sm:p-5' : ''}`}
     >
       {visible && (
@@ -102,9 +103,9 @@ export function AwardRecord({
             />
           </details>
           {download.isError && (
-            <p role="alert" className="text-sm text-error-light">
+            <RecordDownloadFailure>
               The retained document could not be downloaded. Refresh and try again.
-            </p>
+            </RecordDownloadFailure>
           )}
           {events.isPending ? (
             <p role="status" className="text-sm text-text-muted">
@@ -175,6 +176,6 @@ export function AwardRecord({
           onRecorded={settle}
         />
       )}
-    </li>
+    </RecordShell>
   );
 }

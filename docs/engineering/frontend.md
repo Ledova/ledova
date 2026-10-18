@@ -74,7 +74,7 @@ frame share, and `packages/shared` holds what both clients share.
 
 Where today's code differs from these standards:
 
-- Browser downloads and register shells still repeat fragments; their consolidation is tracked on
+- Browser downloads still repeat fragments; their consolidation is tracked on
   [#1073](https://github.com/Ledova/ledova/issues/1073).
 - Existing unscoped account-bound keys stay unchanged; broader account scoping needs the owner
   decision on [#1065](https://github.com/Ledova/ledova/issues/1065).
@@ -477,6 +477,14 @@ takes the reason for
 [acknowledging a discrepancy](../business/register.md#acknowledging-a-discrepancy), keeps the
 appointment it opened with and holds confirmation if a refresh changes it. Form inputs are described
 with each procedure in [the register of members](../business/register.md).
+
+The web register's repeated row wrappers, stage rows and download failures use
+`dashboard/src/pages/company/register/RecordShell.tsx`; `shared/DecisionTrail.tsx` serves both
+the Register and share-class detail page. Six records use `useRegisterTaskGuard.ts` for their existing visible-task
+check, while grant, allotment and award keep their distinct guards and wrappers. The preparation
+pages share `PreparationShell.tsx` for Back, preference fallback and read-only paragraphs, and
+`useRegisterPreparationOwner.ts` for the same account boundary and preferences reads. Page and form
+keys, held work, specialised refusal states and the import title remain with their pages.
 
 ## Signed-in page conventions
 
