@@ -18,11 +18,13 @@ import {
   type TokenHoldersResponse,
   type OwnCompanyAppointment,
   type RegisterTransferMember,
+  type RegisterAwardRecipient,
+  type CompanyShareToken,
 } from '@ledova/shared';
 import SettingsPage from '@pages/settings';
 import apiClient from '@services/apiClient';
 import { QueryClient, QueryClientProvider, onlineManager } from '@tanstack/react-query';
-import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, renderHook, screen, waitFor, within } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { Link, MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
@@ -31,7 +33,15 @@ import CompanyDashboardPage from '../dashboard';
 import { ShareClass } from './detail/ShareClass';
 import CompanyRegisterImportPage from './import';
 import { ImportForm } from './import/ImportForm';
-import { blankAllotment, blankMember, preparationProblems, type MemberDraft } from './import/preparation';
+import { useNewShareClass } from './import/useNewShareClass';
+import { importMembersKey, readImportMembers } from './import/useImportMembers';
+import {
+  blankAllotment,
+  blankMember,
+  canOpenEmptyRegister,
+  preparationProblems,
+  type MemberDraft,
+} from './import/preparation';
 import { APPOINTMENT as CURRENT_APPOINTMENT } from '../../../testSupport/company';
 import {
   companyRecord,
@@ -493,6 +503,40 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
       '2026-10-14',
     ),
   ).toEqual(expect.arrayContaining([expect.stringMatching(/record date/), expect.stringMatching(/beneficially/)]));
+  const emptyDraft = {
+    registerFile: null,
+    asicFile: null,
+    asAt: '2026-10-14',
+    reference: 'Company-provided share records',
+    reason: 'Record an empty opening',
+    members: [],
+    former: [],
+    statedTotal: '',
+    statedCount: '',
+  };
+  expect(preparationProblems(emptyDraft, '2026-10-14', true)).toEqual([]);
+  expect(preparationProblems(emptyDraft, '2026-10-14')).toContain('Add at least one current shareholder.');
+  expect(preparationProblems({ ...emptyDraft, members: [blankMember()] }, '2026-10-14', true).length).toBeGreaterThan(
+    0,
+  );
+  expect(
+    preparationProblems(
+      {
+        ...emptyDraft,
+        former: [
+          {
+            id: 'former',
+            name: 'Earlier Member',
+            residentialAddress: '1 Example Street',
+            shares: '1',
+            ceasedOn: '2026-01-01',
+          },
+        ],
+      },
+      '2026-10-14',
+      true,
+    ),
+  ).toContain('Add at least one current shareholder.');
   let visibleClass = false;
   let createdClass = false;
   let opened = false;
@@ -501,11 +545,14 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   let interruptNextApply = false;
   let proposal: RegisterImport | undefined;
   let companyMembers: RegisterTransferMember[] = [];
+  let awardRecipients: RegisterAwardRecipient[] = [];
   let membersUnavailable = false;
-  const company = companyRecord();
+  let classCreationGuard = () => {};
+  const company = companyRecord({ isOwner: false, administrativeAccess: { capabilities: [], draftSetup: false } });
   let appointment: OwnCompanyAppointment = {
     ...CURRENT_APPOINTMENT,
     company: company.uuid,
+    companyName: company.name,
     uuid: 'prepare-only',
     capabilities: ['prepare'],
   };
@@ -518,32 +565,36 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
     symbol: 'ORD',
     tokenType: 'ordinary',
     totalSupply: (2n ** 256n - 1n).toString(),
-    status: 'draft',
+    status: 'draft' as CompanyShareToken['status'],
     contractAddress: null,
+    chain: null,
+    deployedAt: null,
+    deploymentTxHash: null,
   };
   const dataPage = (results: unknown[]) => ({ data: { results, count: results.length, next: null, previous: null } });
   const holders = (): TokenHoldersResponse => ({
     token: { ...token },
     initialized: opened,
-    issuedSupply: opened ? '600' : null,
-    totalHolders: opened ? 1 : 0,
+    issuedSupply: opened ? (proposal?.members.length ? '600' : '0') : null,
+    totalHolders: opened && proposal?.members.length ? 1 : 0,
     waitingEffects: opened ? 0 : null,
-    holders: opened
-      ? [
-          {
-            member: proposal!.members[0].member,
-            name: 'Example Shareholder',
-            balance: '600',
-            percentage: 100,
-            holderType: 'member',
-            enteredOn: '2020-01-01',
-            identitySource: 'particulars',
-            shareClass: token.uuid,
-            source: 'register',
-            wallets: [],
-          },
-        ]
-      : [],
+    holders:
+      opened && proposal?.members.length
+        ? [
+            {
+              member: proposal!.members[0].member,
+              name: 'Example Shareholder',
+              balance: '600',
+              percentage: 100,
+              holderType: 'member',
+              enteredOn: '2020-01-01',
+              identitySource: 'particulars',
+              shareClass: token.uuid,
+              source: 'register',
+              wallets: [],
+            },
+          ]
+        : [],
     formerMembers: [],
     formerMembersAsAt: null,
     formerMembersBlock: null,
@@ -559,13 +610,15 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
     if (url === COMPANY_TOKEN_ENDPOINTS.HOLDERS(token.uuid)) return { data: holders() };
     if (url === COMPANY_TOKEN_ENDPOINTS.REGISTER_MEMBERS(token.uuid)) {
       if (membersUnavailable) throw new Error('Member choices unavailable');
-      return { data: { members: companyMembers } };
+      return { data: { members: companyMembers, awardRecipients } };
     }
     if (url === IMPORTS) return dataPage(proposal ? [proposal] : []);
     return dataPage([]);
   });
-  api.post.mockImplementation(async (url: string, body: RegisterImportPreparation | RegisterDecideRequest) => {
+  api.post.mockImplementation(async (url: string, body: RegisterImportPreparation | RegisterDecideRequest, config) => {
     if (url === COMPANY_TOKEN_ENDPOINTS.BASE) {
+      classCreationGuard = config.ledovaSubmissionGuard;
+      classCreationGuard();
       createdClass = true;
       throw new Error('Interrupted class creation response');
     }
@@ -713,6 +766,8 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   expect(futureImport.getAttribute('type')).toBe('button');
   fireEvent.click(futureImport);
   expect(api.post).not.toHaveBeenCalled();
+  expect(api.get.mock.calls.map(([url]) => url)).not.toContain(COMPANY_ENDPOINTS.BASE);
+  expect(api.get.mock.calls.map(([url]) => url)).not.toContain(COMPANY_ENDPOINTS.DETAIL(company.uuid));
   expect(screen.getByLabelText('Record date')).toBeTruthy();
   expect(screen.queryByRole('link', { name: /Back to dashboard/ })).toBeNull();
   fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
@@ -772,6 +827,12 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   const recover = await screen.findByRole('button', { name: 'Recover saved records' });
   expect(createdClass).toBe(true);
   expect(screen.queryByRole('button', { name: 'Back to share details' })).toBeNull();
+  appointment = { ...appointment, status: 'revoked', isEffective: false, revokedAt: '2026-10-14T00:00:00Z' };
+  await act(async () => client.invalidateQueries({ queryKey: ['company-appointments'] }));
+  expect(() => classCreationGuard()).toThrow(/company or authority changed/);
+  expect(api.post.mock.calls.filter(([url]) => url === COMPANY_TOKEN_ENDPOINTS.BASE)).toHaveLength(1);
+  appointment = { ...appointment, status: 'active', isEffective: true, revokedAt: null };
+  await act(async () => client.invalidateQueries({ queryKey: ['company-appointments'] }));
   fireEvent.click(recover);
   await screen.findByText(/original class creation result is still uncertain/);
   expect(api.post.mock.calls.filter(([url]) => url === COMPANY_TOKEN_ENDPOINTS.BASE)).toHaveLength(1);
@@ -1088,7 +1149,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
     if (url === COMPANY_TOKEN_ENDPOINTS.HOLDERS(token.uuid)) return { data: holders() };
     if (url === COMPANY_TOKEN_ENDPOINTS.REGISTER_MEMBERS(token.uuid)) {
       if (membersUnavailable) throw new Error('Member choices unavailable');
-      return { data: { members: companyMembers } };
+      return { data: { members: companyMembers, awardRecipients } };
     }
     if (url === IMPORTS) return dataPage(proposal ? [proposal] : []);
     return dataPage([]);
@@ -1121,7 +1182,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   fireEvent.change(selector, { target: { value: token.uuid } });
   await waitFor(() => expect(screen.queryByLabelText('Class code')).toBeNull());
   expect(await screen.findByLabelText('Record date')).toBeTruthy();
-  for (const status of ['deployed', 'paused', 'deploying']) {
+  for (const status of ['deployed', 'paused', 'deploying'] as const) {
     cleanup();
     client.clear();
     token.status = status;
@@ -1228,11 +1289,357 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   fireEvent.click(screen.getByRole('button', { name: 'Save draft and review' }));
   await waitFor(() => expect(api.post).toHaveBeenCalledOnce());
   expect((api.post.mock.calls[0][1] as RegisterImportPreparation).members[0].member).toBe(companyMembers[0].member);
+  cleanup();
+  client.clear();
+  api.post.mockClear();
+  opened = false;
+  proposal = undefined;
+  companyMembers = [];
+  const trustedRecipient: RegisterAwardRecipient = {
+    member: 'award-only-recipient',
+    name: 'Award Recipient',
+    residentialAddress: '2 Example Road, Sydney NSW 2000',
+  };
+  awardRecipients = [trustedRecipient];
+  const prepareAwardOpening = async (url: string, request: RegisterImportPreparation) => {
+    expect(url).toBe(IMPORTS);
+    proposal = {
+      ...rejected,
+      uuid: request.operationId,
+      token: request.tokenId,
+      preparingAppointment: request.appointment,
+      asAt: request.asAt,
+      sourceReference: request.sourceReference,
+      authorityReference: request.sourceReference,
+      registerEvidence: null,
+      asicEvidence: null,
+      asicIssuedTotal: null,
+      asicMemberCount: null,
+      status: 'submitted',
+      stage: 'submitted',
+      correctionOf: null,
+      reason: request.reason,
+      members: request.members.map((member) => ({ ...member, amountPaid: '600.00' })),
+    };
+    return { data: proposal };
+  };
+  api.post.mockImplementation(prepareAwardOpening);
+  showJourney(importPath);
+  fireEvent.click(await screen.findByRole('button', { name: 'Continue' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Add a shareholder' }));
+  expect(screen.getByRole('group', { name: 'Award recipients without registered shares' })).toBeTruthy();
+  fireEvent.change(screen.getByLabelText('Company shareholder'), { target: { value: trustedRecipient.member } });
+  expect((screen.getByLabelText('Name') as HTMLInputElement).value).toBe(trustedRecipient.name);
+  expect((screen.getByLabelText('Address') as HTMLInputElement).value).toBe(trustedRecipient.residentialAddress);
+  expect((screen.getByLabelText('Name') as HTMLInputElement).readOnly).toBe(true);
+  expect((screen.getByLabelText('Address') as HTMLInputElement).readOnly).toBe(true);
+  for (const label of [
+    'Date first added to register',
+    'Shares held',
+    'Allotment date',
+    'Shares in allotment',
+    'Amount paid',
+  ])
+    expect((screen.getByLabelText(label) as HTMLInputElement).value).toBe('');
+  enterHolding();
+  fireEvent.click(screen.getByRole('button', { name: 'Add to draft' }));
+  const preferences = companyPreferences();
+  const recipientKey = importMembersKey(
+    { userUuid: preferences.userProfile, ownerAccountUuid: preferences.userAccount!.uuid },
+    company.uuid,
+    token.uuid,
+  );
+  awardRecipients = [{ ...trustedRecipient, name: 'Changed recipient name' }];
+  await act(async () => client.invalidateQueries({ queryKey: recipientKey, exact: true }));
+  fireEvent.click(await screen.findByRole('button', { name: 'Save draft and review' }));
+  expect(await screen.findByText(/keep the award recipient’s recorded name and address/)).toBeTruthy();
+  expect(api.post).not.toHaveBeenCalled();
+  awardRecipients = [];
+  await act(async () => client.invalidateQueries({ queryKey: recipientKey, exact: true }));
+  fireEvent.click(await screen.findByRole('button', { name: 'Save draft and review' }));
+  expect((await screen.findAllByText(/award recipient is no longer available/)).length).toBeGreaterThan(0);
+  expect(api.post).not.toHaveBeenCalled();
+  awardRecipients = [trustedRecipient];
+  await act(async () => client.invalidateQueries({ queryKey: recipientKey, exact: true }));
+  fireEvent.click(await screen.findByRole('button', { name: 'Save draft and review' }));
+  await waitFor(() => expect(api.post).toHaveBeenCalledOnce());
+  const awardOpening = api.post.mock.calls[0][1] as RegisterImportPreparation;
+  expect(awardOpening.members[0]).toMatchObject({
+    member: trustedRecipient.member,
+    name: trustedRecipient.name,
+    residentialAddress: trustedRecipient.residentialAddress,
+    enteredOn: '2020-01-01',
+    shares: '600',
+  });
+  expect(awardOpening.members[0].allotments[0].allottedOn).toBe('2015-01-01');
+  expect(companyMembers).toEqual([]);
+  cleanup();
+  client.clear();
+  api.post.mockClear();
+  proposal = undefined;
+  let freshClassCreated = false;
+  const freshToken = {
+    ...token,
+    uuid: 'fresh-award-class',
+    name: 'Preference shares',
+    symbol: 'PRF',
+    tokenType: 'preference',
+  };
+  const oldReads = api.get.getMockImplementation()!;
+  api.get.mockImplementation((url, config) => {
+    if (url === REGISTER)
+      return Promise.resolve(dataPage([...setupClasses, ...(freshClassCreated ? [freshToken] : [])]));
+    if (url === COMPANY_TOKEN_ENDPOINTS.HOLDERS(freshToken.uuid))
+      return Promise.resolve({ data: { ...holders(), token: freshToken } });
+    if (url === COMPANY_TOKEN_ENDPOINTS.REGISTER_MEMBERS(freshToken.uuid))
+      return Promise.resolve({ data: { members: companyMembers, awardRecipients } });
+    return oldReads(url, config);
+  });
+  api.post.mockImplementation(async (url, request, config) => {
+    config.ledovaSubmissionGuard();
+    if (url === COMPANY_TOKEN_ENDPOINTS.BASE) {
+      freshClassCreated = true;
+      awardRecipients = [];
+      return { data: freshToken };
+    }
+    return prepareAwardOpening(url, request);
+  });
+  showJourney(DESTINATIONS.companyRegisterSetup.path);
+  fireEvent.change(await screen.findByLabelText('Share class'), { target: { value: 'preference' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Add a shareholder' }));
+  fireEvent.change(screen.getByLabelText('Company shareholder'), { target: { value: trustedRecipient.member } });
+  expect((screen.getByLabelText('Name') as HTMLInputElement).value).toBe(trustedRecipient.name);
+  expect(api.post).not.toHaveBeenCalled();
+  enterHolding();
+  fireEvent.click(screen.getByRole('button', { name: 'Add to draft' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Save draft and review' }));
+  expect((await screen.findAllByText(/award recipient is no longer available/)).length).toBeGreaterThan(0);
+  await waitFor(() => expect(client.isFetching()).toBe(0));
+  expect(api.post.mock.calls.filter(([url]) => url === COMPANY_TOKEN_ENDPOINTS.BASE)).toHaveLength(1);
+  expect(api.post.mock.calls.filter(([url]) => url === IMPORTS)).toHaveLength(0);
+  awardRecipients = [trustedRecipient];
+  await act(async () => client.invalidateQueries({ queryKey: recipientKey, exact: true }));
+  fireEvent.click(await screen.findByRole('button', { name: 'Save draft and review' }));
+  await waitFor(() => expect(api.post.mock.calls.filter(([url]) => url === IMPORTS)).toHaveLength(1));
+  expect(api.post.mock.calls.filter(([url]) => url === COMPANY_TOKEN_ENDPOINTS.BASE)).toHaveLength(1);
+  const freshAwardOpening = api.post.mock.calls.find(([url]) => url === IMPORTS)![1] as RegisterImportPreparation;
+  expect(freshAwardOpening.tokenId).toBe(freshToken.uuid);
+  expect(freshAwardOpening.members[0].member).toBe(trustedRecipient.member);
+  expect(freshAwardOpening.members[0].enteredOn).toBe('2020-01-01');
+  cleanup();
+  client.clear();
+  api.post.mockClear();
+  opened = false;
+  proposal = undefined;
+  companyMembers = [];
+  awardRecipients = [];
+  api.get.mockImplementation(oldReads);
+  appointment = { ...appointment, uuid: 'empty-register-appointee', capabilities: ['prepare', 'approve', 'apply'] };
+  const previousReads = api.get.getMockImplementation()!;
+  api.get.mockImplementation((url, config) =>
+    url === REGISTER ? Promise.resolve(dataPage([token])) : previousReads(url, config),
+  );
+  expect(canOpenEmptyRegister(holders(), token)).toBe(true);
+  expect(canOpenEmptyRegister({ ...holders(), initialized: true }, token)).toBe(false);
+  expect(canOpenEmptyRegister({ ...holders(), waitingEffects: 1 }, token)).toBe(false);
+  expect(canOpenEmptyRegister(holders(), { ...token, contractAddress: '0x123' })).toBe(false);
+  expect(canOpenEmptyRegister(holders(), { ...token, chain: 'base' })).toBe(false);
+  expect(canOpenEmptyRegister(holders(), { ...token, deployedAt: '2026-10-14T00:00:00Z' })).toBe(false);
+  let interruptedEmpty = false;
+  api.post.mockImplementation(async (url: string, body: RegisterImportPreparation | RegisterDecideRequest, config) => {
+    config.ledovaSubmissionGuard();
+    if (url === IMPORTS) {
+      const request = body as RegisterImportPreparation;
+      expect(request.members).toEqual([]);
+      expect(request.formerMembers).toEqual([]);
+      expect(request.correctionOf).toBeUndefined();
+      proposal ??= {
+        ...rejected,
+        uuid: request.operationId,
+        preparingAppointment: request.appointment,
+        asAt: request.asAt,
+        status: 'submitted',
+        stage: 'submitted',
+        decisions: [],
+        reviewedAt: null,
+        registerEvidence: null,
+        asicEvidence: null,
+        asicIssuedTotal: null,
+        asicMemberCount: null,
+        correctionOf: null,
+        reason: request.reason,
+        sourceReference: request.sourceReference,
+        authorityReference: request.sourceReference,
+        members: [],
+        formerMembers: [],
+      };
+      if (!interruptedEmpty) {
+        interruptedEmpty = true;
+        throw new Error('Interrupted empty opening');
+      }
+      return { data: proposal };
+    }
+    const request = body as RegisterDecideRequest;
+    expect(request.appointment).toBe(appointment.uuid);
+    if (url.endsWith('/decision-preview/'))
+      return {
+        data: {
+          canDecide: true,
+          unmetRequirements: [],
+          previewDigest: 'e'.repeat(64),
+          comparison: [],
+          opensRegister: !opened,
+          registerSequence: 0,
+          importedTotal: '0',
+          importedMemberCount: 0,
+          statedTotal: null,
+          statedMemberCount: null,
+          sourceReference: proposal!.sourceReference,
+          correctionOf: null,
+          correctionAllowed: false,
+        },
+      };
+    if (url.endsWith('/decide/')) {
+      proposal = {
+        ...proposal!,
+        stage: request.kind === 'approve' ? 'approved' : 'applied',
+        status: request.kind === 'approve' ? 'submitted' : 'applied',
+        reviewedAt: request.kind === 'approve' ? null : '2026-10-14T00:00:00Z',
+        decisions: [
+          ...proposal!.decisions,
+          {
+            uuid: crypto.randomUUID(),
+            appointment: request.appointment,
+            idempotencyKey: request.idempotencyKey,
+            kind: request.kind,
+            digest: request.previewDigest,
+            reason: request.reason ?? '',
+            decidedAt: '2026-10-14T00:00:00Z',
+            decidedBy: 1,
+            decidedByName: 'Example Director',
+          },
+        ],
+      };
+      if (request.kind === 'apply') opened = true;
+      return { data: proposal };
+    }
+    throw new Error(`Unexpected empty-opening write ${url}`);
+  });
+  showJourney(importPath);
+  fireEvent.click(await screen.findByRole('button', { name: 'Continue' }));
+  expect(screen.getByText(/continue with no shareholders/)).toBeTruthy();
+  expect(screen.getByText('No shareholders added yet.')).toBeTruthy();
+  fireEvent.click(screen.getByRole('button', { name: 'Save draft and review' }));
+  fireEvent.click(await screen.findByRole('button', { name: 'Recover saved records' }));
+  const emptyConfirm = await screen.findByRole('button', { name: 'Confirm' });
+  await waitFor(() => expect((emptyConfirm as HTMLButtonElement).disabled).toBe(false));
+  expect(proposal!.members).toEqual([]);
+  const emptyRequests = api.post.mock.calls.filter(([url]) => url === IMPORTS).map(([, request]) => request);
+  expect(emptyRequests).toHaveLength(2);
+  expect(emptyRequests[0]).toEqual(emptyRequests[1]);
+  fireEvent.click(emptyConfirm);
+  expect(await screen.findByText(/No issued shares or current shareholders/)).toBeTruthy();
+  expect(proposal!.decisions.map((decision) => decision.kind)).toEqual(['approve', 'apply']);
+  expect(proposal!.members).toEqual([]);
+  expect(api.post.mock.calls.map(([url]) => url)).not.toContain(COMPANY_TOKEN_ENDPOINTS.BASE);
+  cleanup();
+  client.clear();
+  api.post.mockClear();
+  let readRefusal: number | null = null;
+  api.get.mockImplementation(async (url, config) => {
+    config.ledovaSubmissionGuard();
+    expect(url).toBe(REGISTER);
+    if (readRefusal !== null)
+      throw Object.assign(new Error('Recovery read refused'), { response: { status: readRefusal } });
+    return dataPage([]);
+  });
+  api.post.mockImplementation(async () => {
+    throw new Error('Class result lost');
+  });
+  const createHook = () =>
+    renderHook(() => useNewShareClass({ guard: () => {}, checkCurrent: () => {}, company, classes: [], ready: true }), {
+      wrapper: ({ children }: { children: ReactNode }) => <MemoryRouter>{children}</MemoryRouter>,
+    });
+  const uncertainClass = createHook();
+  await act(async () => {
+    await expect(uncertainClass.result.current.resolveRegister()).rejects.toThrow('Class result lost');
+  });
+  for (const status of [400, 409]) {
+    readRefusal = status;
+    await act(async () => {
+      await expect(uncertainClass.result.current.resolveRegister()).rejects.toThrow('Recovery read refused');
+    });
+    expect(uncertainClass.result.current.classLocked).toBe(true);
+  }
+  readRefusal = null;
+  await act(async () => {
+    await expect(uncertainClass.result.current.resolveRegister()).rejects.toThrow(/no second creation request/);
+  });
+  expect(api.post).toHaveBeenCalledOnce();
+  uncertainClass.unmount();
+  api.post.mockClear();
+  let creationRefusal = 400;
+  api.post.mockImplementation(async () => {
+    throw Object.assign(new Error('Class creation refused'), { response: { status: creationRefusal } });
+  });
+  const refusedClass = createHook();
+  for (const status of [400, 409]) {
+    creationRefusal = status;
+    await act(async () => {
+      await expect(refusedClass.result.current.resolveRegister()).rejects.toThrow('Class creation refused');
+    });
+    expect(refusedClass.result.current.classLocked).toBe(false);
+    act(() => refusedClass.result.current.setSymbol('EMP'));
+  }
+  expect(api.post).toHaveBeenCalledTimes(2);
+  expect(api.post.mock.calls.map(([, request]) => request.symbol)).toEqual(['ORD', 'EMP']);
+  refusedClass.unmount();
+  const retainedIdentity = {
+    ...trustedRecipient,
+    currentShares: '0',
+    enteredOn: null,
+    lastCeasedOn: null,
+    walletless: true,
+    particularsRetained: true,
+  };
+  for (const response of [
+    null,
+    { members: [] },
+    { members: [null], awardRecipients: [] },
+    { members: [retainedIdentity], awardRecipients: [trustedRecipient] },
+    { members: [{ ...retainedIdentity, currentShares: '1.5' }], awardRecipients: [] },
+    { members: [], awardRecipients: [trustedRecipient, trustedRecipient] },
+    { members: [], awardRecipients: [{ ...trustedRecipient, name: '' }] },
+  ]) {
+    api.get.mockResolvedValue({ data: response });
+    await expect(readImportMembers(token.uuid, () => {})).rejects.toThrow(/choices could not be confirmed/);
+  }
+  const nullableParticulars = { ...retainedIdentity, name: null, residentialAddress: null };
+  api.get.mockResolvedValue({ data: { members: [nullableParticulars], awardRecipients: [] } });
+  await expect(readImportMembers(token.uuid, () => {})).resolves.toEqual({
+    members: [nullableParticulars],
+    awardRecipients: [],
+  });
+  let ownerStillCurrent = true;
+  let completeIdentityRead!: () => void;
+  api.get.mockImplementation(
+    () =>
+      new Promise((resolve) => {
+        completeIdentityRead = () => resolve({ data: { members: [], awardRecipients: [trustedRecipient] } });
+      }),
+  );
+  const lateIdentityRead = readImportMembers(token.uuid, () => {
+    if (!ownerStillCurrent) throw new Error('The account changed before recipient choices returned.');
+  });
+  ownerStillCurrent = false;
+  completeIdentityRead();
+  await expect(lateIdentityRead).rejects.toThrow(/account changed/);
 });
 
 it('shows an account without register access a calm empty state, reads no members and offers no entry', async () => {
   api.get.mockImplementation(async (url: string) => {
-    if (url === REGISTER || url === COMPANY_ENDPOINTS.BASE) return page([]);
+    if (url === REGISTER || url === COMPANY_ENDPOINTS.BASE || url === APPOINTMENTS) return page([]);
     throw new Error(`Unexpected read ${url}`);
   });
   show('investor');
@@ -1243,7 +1650,7 @@ it('shows an account without register access a calm empty state, reads no member
   cleanup();
   show('investor', <SettingsPage />, 'Settings');
   expect(await screen.findByRole('link', { name: 'Team and appointments' })).toBeTruthy();
-  await waitFor(() => expect(readUrls()).toEqual([REGISTER, REGISTER, COMPANY_ENDPOINTS.BASE]));
+  await waitFor(() => expect(readUrls()).toEqual([REGISTER, REGISTER, COMPANY_ENDPOINTS.BASE, APPOINTMENTS]));
   await waitFor(() => expect(client.isFetching()).toBe(0));
   expect(screen.queryByRole('link', { name: 'Register' })).toBeNull();
 });

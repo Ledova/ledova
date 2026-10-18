@@ -1,11 +1,18 @@
+import {
+  AUTH_BUTTON_CLASS,
+  ERROR_BANNER_CLASS,
+  AuthCard,
+  AuthInput,
+  authFieldClass,
+  AuthDivider,
+} from '@components/auth';
 import React from 'react';
 import { FormErrors, FinancialProfileFormState, SOURCE_OF_FUNDS_OPTIONS, INTENDED_USE_OPTIONS } from '@ledova/shared';
 import { ICON_MD } from '@components/iconSizes';
-import { Field, Label, Input, Description } from '@headlessui/react';
+import { Field, Label, Description } from '@headlessui/react';
 import { WarningIcon } from '@phosphor-icons/react';
 import RadioGroupField from './RadioGroupField';
 import CheckboxGroupField from './CheckboxGroupField';
-import { AUTH_BUTTON_CLASS, ERROR_BANNER_CLASS } from '@components/fieldClass';
 
 interface FinancialProfileFormProps {
   form: FinancialProfileFormState;
@@ -35,132 +42,111 @@ export function FinancialProfileForm({
 
   return (
     <>
-      <div className="rounded-xl border border-border bg-surface-raised">
-        <div className="p-4 sm:p-5">
-          <form onSubmit={onSubmit} className="space-y-6">
-            {generalError && (
-              <div className={ERROR_BANNER_CLASS}>
-                <div className="flex items-start">
-                  <div className="flex-shrink-0">
-                    <WarningIcon size={ICON_MD} className="text-error-light" />
-                  </div>
-                  <div className="ml-3">
-                    <p className="text-sm text-error-light" role="alert">
-                      {generalError}
-                    </p>
-                  </div>
+      <AuthCard>
+        <form onSubmit={onSubmit} className="space-y-6">
+          {generalError && (
+            <div className={ERROR_BANNER_CLASS}>
+              <div className="flex items-start">
+                <div className="flex-shrink-0">
+                  <WarningIcon size={ICON_MD} className="text-error-light" />
+                </div>
+                <div className="ml-3">
+                  <p className="text-sm text-error-light" role="alert">
+                    {generalError}
+                  </p>
                 </div>
               </div>
-            )}
+            </div>
+          )}
 
-            <CheckboxGroupField
-              label="What is your primary source of funds?"
-              value={form.sourceOfFunds}
-              options={SOURCE_OF_FUNDS_OPTIONS}
-              error={errors.sourceOfFunds}
-              onChange={handleSourceOfFundsChange}
-            />
+          <CheckboxGroupField
+            label="What is your primary source of funds?"
+            value={form.sourceOfFunds}
+            options={SOURCE_OF_FUNDS_OPTIONS}
+            error={errors.sourceOfFunds}
+            onChange={handleSourceOfFundsChange}
+          />
 
-            {form.sourceOfFunds.includes('other') && (
-              <Field className="space-y-2">
-                <Label className="block text-sm font-medium text-text-body">Please specify your source of funds</Label>
-                <Input
-                  type="text"
-                  name="sourceOfFundsOtherText"
-                  value={form.sourceOfFundsOtherText || ''}
-                  onChange={(e) => setFieldValue('sourceOfFundsOtherText', e.target.value)}
-                  className={`w-full bg-surface-tertiary border ${
-                    errors.sourceOfFundsOtherText
-                      ? 'border-error bg-error-subtle focus:ring-error'
-                      : 'border-border focus:ring-border-focus'
-                  } rounded-lg px-3 py-3 text-text-primary placeholder-text-muted focus:outline-none focus:ring-2 focus:border-transparent transition-colors`}
-                  placeholder="Enter details"
-                  disabled={isSubmitting}
-                />
-                {errors.sourceOfFundsOtherText && (
-                  <Description className="text-error-light text-xs mt-1" role="alert">
-                    {errors.sourceOfFundsOtherText.join(' ')}
-                  </Description>
-                )}
-              </Field>
-            )}
-
-            <RadioGroupField
-              label="What is your intended use of the platform?"
-              value={form.intendedUse}
-              options={INTENDED_USE_OPTIONS}
-              error={errors.intendedUse}
-              onChange={(value) => setFieldValue('intendedUse', value)}
-            />
-
-            {form.intendedUse === 'other' && (
-              <Field className="space-y-2">
-                <Label className="block text-sm font-medium text-text-body">Please specify your intended use</Label>
-                <Input
-                  type="text"
-                  name="intendedUseOtherText"
-                  value={form.intendedUseOtherText || ''}
-                  onChange={(e) => setFieldValue('intendedUseOtherText', e.target.value)}
-                  className={`w-full bg-surface-tertiary border ${
-                    errors.intendedUseOtherText
-                      ? 'border-error bg-error-subtle focus:ring-error'
-                      : 'border-border focus:ring-border-focus'
-                  } rounded-lg px-3 py-3 text-text-primary placeholder-text-muted focus:outline-none focus:ring-2 focus:border-transparent transition-colors`}
-                  placeholder="Enter details"
-                  disabled={isSubmitting}
-                />
-                {errors.intendedUseOtherText && (
-                  <Description className="text-error-light text-xs mt-1" role="alert">
-                    {errors.intendedUseOtherText.join(' ')}
-                  </Description>
-                )}
-              </Field>
-            )}
-
+          {form.sourceOfFunds.includes('other') && (
             <Field className="space-y-2">
-              <Label className="block text-sm font-medium text-text-body">What is your occupation?</Label>
-              <Input
+              <Label className="block text-sm font-medium text-text-body">Please specify your source of funds</Label>
+              <AuthInput
                 type="text"
-                name="occupation"
-                value={form.occupation || ''}
-                onChange={(e) => setFieldValue('occupation', e.target.value)}
-                className={`w-full bg-surface-tertiary border ${
-                  errors.occupation
-                    ? 'border-error bg-error-subtle focus:ring-error'
-                    : 'border-border focus:ring-border-focus'
-                } rounded-lg px-3 py-3 text-text-primary placeholder-text-muted focus:outline-none focus:ring-2 focus:border-transparent transition-colors`}
-                placeholder="Enter your occupation"
+                name="sourceOfFundsOtherText"
+                value={form.sourceOfFundsOtherText || ''}
+                onChange={(e) => setFieldValue('sourceOfFundsOtherText', e.target.value)}
+                className={authFieldClass(errors.sourceOfFundsOtherText)}
+                placeholder="Enter details"
                 disabled={isSubmitting}
               />
-              {errors.occupation && (
+              {errors.sourceOfFundsOtherText && (
                 <Description className="text-error-light text-xs mt-1" role="alert">
-                  {errors.occupation.join(' ')}
+                  {errors.sourceOfFundsOtherText.join(' ')}
                 </Description>
               )}
             </Field>
+          )}
 
-            <button type="submit" disabled={isSubmitting} onClick={onSubmit} className={AUTH_BUTTON_CLASS}>
-              {isSubmitting ? (
-                <div className="flex items-center justify-center space-x-2">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
-                  <span>Saving...</span>
-                </div>
-              ) : (
-                'Continue'
+          <RadioGroupField
+            label="What is your intended use of the platform?"
+            value={form.intendedUse}
+            options={INTENDED_USE_OPTIONS}
+            error={errors.intendedUse}
+            onChange={(value) => setFieldValue('intendedUse', value)}
+          />
+
+          {form.intendedUse === 'other' && (
+            <Field className="space-y-2">
+              <Label className="block text-sm font-medium text-text-body">Please specify your intended use</Label>
+              <AuthInput
+                type="text"
+                name="intendedUseOtherText"
+                value={form.intendedUseOtherText || ''}
+                onChange={(e) => setFieldValue('intendedUseOtherText', e.target.value)}
+                className={authFieldClass(errors.intendedUseOtherText)}
+                placeholder="Enter details"
+                disabled={isSubmitting}
+              />
+              {errors.intendedUseOtherText && (
+                <Description className="text-error-light text-xs mt-1" role="alert">
+                  {errors.intendedUseOtherText.join(' ')}
+                </Description>
               )}
-            </button>
-          </form>
-        </div>
-      </div>
+            </Field>
+          )}
 
-      <div className="relative my-6">
-        <div className="absolute inset-0 flex items-center">
-          <div className="w-full border-t border-border"></div>
-        </div>
-        <div className="relative flex justify-center text-sm">
-          <span className="px-4 bg-surface-base text-text-subtle font-medium">or</span>
-        </div>
-      </div>
+          <Field className="space-y-2">
+            <Label className="block text-sm font-medium text-text-body">What is your occupation?</Label>
+            <AuthInput
+              type="text"
+              name="occupation"
+              value={form.occupation || ''}
+              onChange={(e) => setFieldValue('occupation', e.target.value)}
+              className={authFieldClass(errors.occupation)}
+              placeholder="Enter your occupation"
+              disabled={isSubmitting}
+            />
+            {errors.occupation && (
+              <Description className="text-error-light text-xs mt-1" role="alert">
+                {errors.occupation.join(' ')}
+              </Description>
+            )}
+          </Field>
+
+          <button type="submit" disabled={isSubmitting} onClick={onSubmit} className={AUTH_BUTTON_CLASS}>
+            {isSubmitting ? (
+              <div className="flex items-center justify-center space-x-2">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
+                <span>Saving...</span>
+              </div>
+            ) : (
+              'Continue'
+            )}
+          </button>
+        </form>
+      </AuthCard>
+
+      <AuthDivider />
 
       <div className="text-center">
         {onBack && (

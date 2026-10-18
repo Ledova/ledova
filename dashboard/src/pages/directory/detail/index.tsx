@@ -1,3 +1,4 @@
+import { DIRECTORY_OFFERING_TONES } from '@pages/directory/shared/presentation';
 import { useState } from 'react';
 import { generatePath, useNavigate, useParams } from 'react-router-dom';
 import {
@@ -141,7 +142,7 @@ export default function DirectoryTokenPage() {
       </div>
       <Section title="Current offering">
         <p className="py-2 text-sm text-text-primary">
-          <Status tone={offering ? 'moving' : 'waiting'}>
+          <Status tone={DIRECTORY_OFFERING_TONES.get(!!offering)!}>
             {offering ? 'Open for applications' : 'No offering open'}
           </Status>
         </p>

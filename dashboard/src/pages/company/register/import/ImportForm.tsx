@@ -34,6 +34,8 @@ export function ImportForm({
   classProblems = [],
   resolveRegister,
   companyMembers,
+  awardRecipients,
+  emptyOpeningAllowed = false,
   visible = true,
   onHeldChange,
 }: ImportFormProps) {
@@ -41,6 +43,7 @@ export function ImportForm({
     importDescription,
     today,
     knownMembers,
+    knownAwardRecipients,
     preserveParticulars,
     draft,
     proposal,
@@ -91,6 +94,8 @@ export function ImportForm({
     classProblems,
     resolveRegister,
     companyMembers,
+    awardRecipients,
+    emptyOpeningAllowed,
     visible,
     onHeldChange,
   });
@@ -169,11 +174,18 @@ export function ImportForm({
                     setMember={setMember}
                     setFormer={setFormer}
                     companyMembers={knownMembers}
+                    awardRecipients={knownAwardRecipients}
                     preserveParticulars={preserveParticulars}
                     step={phase === 'details' ? 'details' : 'shareholders'}
                     validateMember={holderProblems}
                     onEditorChange={setHolderEditor}
                   />
+                  {phase === 'shareholders' && emptyOpeningAllowed && !correction && draft.members.length === 0 && (
+                    <p className="text-sm text-text-muted">
+                      If no shares have been issued, continue with no shareholders. Confirming records an empty opening;
+                      the first share issue is a separate company decision.
+                    </p>
+                  )}
                 </fieldset>
                 {attempted && (phase === 'details' ? detailProblems : problems).length > 0 && (
                   <ul role="alert" className="space-y-1 text-sm text-error-light">

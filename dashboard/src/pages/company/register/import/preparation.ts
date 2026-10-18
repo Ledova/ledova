@@ -8,6 +8,8 @@ import {
   type RegisterImportFormerRow,
   type TokenHoldersResponse,
   type RegisterTransferMember,
+  type RegisterAwardRecipient,
+  type CompanyShareTokenListItem,
 } from '@ledova/shared';
 
 export type AllotmentDraft = Omit<
@@ -27,7 +29,7 @@ export type MemberDraft = {
   shares: string;
   enteredOn: string;
   allotments: AllotmentDraft[];
-  identityChoice?: 'existing' | 'new';
+  identityChoice?: 'existing' | 'award' | 'new';
 };
 
 export type FormerDraft = { id: string; name: string; residentialAddress: string; shares: string; ceasedOn: string };
@@ -135,23 +137,51 @@ export function memberRows(members: MemberDraft[]): RegisterImportCurrentMemberR
   }));
 }
 
+export function canOpenEmptyRegister(
+  register: TokenHoldersResponse,
+  token: Pick<CompanyShareTokenListItem, 'uuid' | 'status' | 'contractAddress' | 'chain' | 'deployedAt'>,
+) {
+  return (
+    token.uuid === register.token.uuid &&
+    token.status === 'draft' &&
+    token.contractAddress === null &&
+    token.chain === null &&
+    token.deployedAt === null &&
+    register.token.status === 'draft' &&
+    register.initialized === false &&
+    register.issuedSupply === null &&
+    register.holders.length === 0 &&
+    register.totalHolders === 0 &&
+    register.formerMembers.length === 0 &&
+    (register.waitingEffects === null || register.waitingEffects === 0)
+  );
+}
+
 export function memberIdentityProblems(
   members: MemberDraft[],
   known: RegisterTransferMember[],
   preserveParticulars: boolean,
+  awardRecipients: RegisterAwardRecipient[] = [],
 ) {
   const problems: string[] = [];
   if (new Set(members.map((row) => row.member)).size !== members.length)
     problems.push('Each company shareholder can appear only once in this class. Combine their allotments in one row.');
   members.forEach((row, index) => {
     const member = known.find((candidate) => candidate.member === row.member);
+    const recipient = awardRecipients.find((candidate) => candidate.member === row.member);
     if (row.identityChoice === 'existing' && !member)
       problems.push(
         `Shareholder ${index + 1}: the existing company member is no longer available. Refresh before continuing.`,
       );
-    if (known.length && !member && row.identityChoice !== 'new')
+    if (row.identityChoice === 'award' && !recipient && !member)
+      problems.push(`Shareholder ${index + 1}: the award recipient is no longer available. Refresh before continuing.`);
+    if ((known.length || awardRecipients.length) && !member && !recipient && row.identityChoice !== 'new')
       problems.push(
         `Shareholder ${index + 1}: choose an existing company shareholder or explicitly choose a new shareholder.`,
+      );
+    if (recipient && (row.name !== recipient.name || row.residentialAddress !== recipient.residentialAddress))
+      problems.push(
+        `Shareholder ${index + 1}: keep the award recipient’s recorded name and address when recording their first shares.`,
       );
     if (
       preserveParticulars &&
@@ -193,7 +223,7 @@ export function figuresDiffer(draft: PreparationDraft) {
   return stated?.total !== undefined && stated.total !== imported.total;
 }
 
-export function preparationProblems(draft: PreparationDraft, today: string) {
+export function preparationProblems(draft: PreparationDraft, today: string, emptyOpeningAllowed = false) {
   const problems: string[] = [];
   const dated = (day: string) =>
     DAY.test(day) &&
@@ -205,7 +235,8 @@ export function preparationProblems(draft: PreparationDraft, today: string) {
   if (!dated(draft.asAt) || draft.asAt > today) problems.push('Enter a record date that is not in the future.');
   if (!draft.reference.trim()) problems.push('The record attribution is unavailable. Reload the setup and try again.');
   if (!draft.reason.trim()) problems.push('Give a reason for correcting the mirror.');
-  if (draft.members.length === 0) problems.push('Add at least one current shareholder.');
+  if (draft.members.length === 0 && (!emptyOpeningAllowed || draft.former.length > 0))
+    problems.push('Add at least one current shareholder.');
   draft.members.forEach((row, index) => {
     const label = `Shareholder ${index + 1}`;
     if (incomplete(row) || !dated(row.enteredOn))

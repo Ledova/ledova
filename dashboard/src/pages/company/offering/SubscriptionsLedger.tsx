@@ -1,7 +1,8 @@
+import { companySubscriptionTone } from '@components/statusTones';
+import { CompanyReadNotice } from '@pages/company/shared/CompanyState';
 import { useState } from 'react';
 import { formatDate, formatMoney, formatShareCount, REGISTER_COPY, type OfferingListItem } from '@ledova/shared';
 import { Rows, Row, Section, Status } from '@components/Ledger';
-import { OfferingReadNotice } from './OfferingReadNotice';
 import { useCompanyOfferingSubscriptions } from './useOffering';
 import type { CompanyActionRead } from '@pages/company/shared/CompanyState';
 
@@ -38,7 +39,7 @@ export function SubscriptionsLedger({
         </select>
       </label>
       {read.isError ? (
-        <OfferingReadNotice
+        <CompanyReadNotice
           read={{ error: read.error, isRefreshing: read.isFetching, refetch: read.refetch }}
           label={REGISTER_COPY.APPLICATIONS_TITLE}
         />
@@ -61,17 +62,7 @@ export function SubscriptionsLedger({
                 </p>
                 <Rows>
                   <Row label="Status">
-                    <Status
-                      tone={
-                        row.status === 'allotted'
-                          ? 'done'
-                          : row.status === 'withdrawn' || row.status === 'refunded' || row.status === 'rejected'
-                            ? 'closed'
-                            : 'waiting'
-                      }
-                    >
-                      {row.statusDisplay}
-                    </Status>
+                    <Status tone={companySubscriptionTone(row.status)}>{row.statusDisplay}</Status>
                   </Row>
                   <Row label="Requested shares">{formatShareCount(String(row.quantity))}</Row>
                   <Row label="Allotted shares">

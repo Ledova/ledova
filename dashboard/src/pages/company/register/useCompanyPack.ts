@@ -10,9 +10,9 @@ import {
   type OwnCompanyAppointment,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
-import { ownAppointmentsKey } from '@pages/company/shared/useOwnAppointments';
+import { ownAppointmentsKey } from '@hooks/useOwnAppointments';
 import { saveFile } from '@utils/saveFile';
-import { useOwnAppointments } from '@pages/company/shared/useOwnAppointments';
+import { useOwnAppointments } from '@hooks/useOwnAppointments';
 
 const FAILED =
   'The company pack could not be downloaded. Refresh your appointment and try again. A full pack is unavailable when it includes unsupported records; use supported inspection copies or unsigned certificates where applicable.';

@@ -1,3 +1,4 @@
+import { AuthLayout, AuthHeader } from '@components/auth';
 import { SIGNUP_PATHS } from '@utils/paths';
 import { useNavigate } from 'react-router-dom';
 import { UserIcon } from '@phosphor-icons/react';
@@ -5,7 +6,7 @@ import { LoadingState } from '@pages/signup/shared/LoadingState';
 import { ErrorState } from '@pages/signup/shared/ErrorState';
 import { UserProfileForm } from './UserProfileForm';
 import { useRole } from '@hooks/useRole';
-import { AuthLayout } from '@components/AuthLayout';
+
 import { useSignupUserProfile } from '@ledova/shared';
 import { ICON_MD } from '@components/iconSizes';
 
@@ -52,14 +53,7 @@ export default function SignupUserProfile() {
 
   return (
     <AuthLayout>
-      <div className="text-center mb-6">
-        <div className="flex justify-center mb-3">
-          <div className="p-2 rounded-full bg-surface-raised border border-border">
-            <UserIcon size={ICON_MD} className="text-text-muted" />
-          </div>
-        </div>
-        <h1 className="font-display text-3xl tracking-[-0.01em] text-text-primary">Personal Details</h1>
-      </div>
+      <AuthHeader title="Personal Details" icon={<UserIcon size={ICON_MD} className="text-text-muted" />} />
 
       <UserProfileForm
         form={form}

@@ -59,6 +59,22 @@ EXCEPTION WHEN invalid_datetime_format OR datetime_field_overflow OR invalid_tex
 END;
 $function$;
 
+CREATE OR REPLACE FUNCTION public.tokens_mirror_award_identities_valid(issuer uuid, proposal_uuid uuid, members jsonb)
+RETURNS boolean LANGUAGE sql STABLE SECURITY INVOKER SET search_path TO 'pg_catalog', 'public', 'pg_temp'
+AS $function$
+    SELECT NOT EXISTS (SELECT 1 FROM jsonb_array_elements(members) item
+        JOIN tokens_registeraward award ON award.member::text = item->>'member'
+        WHERE NOT EXISTS (SELECT 1 FROM tokens_registermember member
+            JOIN tokens_shareregister register ON register.company_id = member.company_id
+            JOIN tokens_registerentry entry ON entry.register_id = register.uuid
+            WHERE member.uuid::text = item->>'member' AND member.company_id = issuer
+                AND entry.operation_id IS DISTINCT FROM proposal_uuid
+                AND EXISTS (SELECT 1 FROM jsonb_array_elements(entry.changes) change
+                    WHERE change->>'member' = item->>'member'))
+            AND (award.company_id IS DISTINCT FROM issuer OR award.name IS DISTINCT FROM item->>'name'
+                OR award.residential_address IS DISTINCT FROM item->>'residential_address'));
+$function$;
+
 CREATE OR REPLACE FUNCTION public.tokens_mirror_changes(proposal_uuid uuid)
 RETURNS jsonb LANGUAGE sql STABLE SET search_path TO 'pg_catalog', 'public', 'pg_temp'
 AS $function$
@@ -144,6 +160,7 @@ BEGIN
             OR candidate.authority_reference <> candidate.source_reference OR candidate.approving_director <> ''
             OR length(btrim(candidate.reason)) = 0 OR candidate.source_document IS NOT NULL OR candidate.asic_document IS NOT NULL
             OR candidate.as_at > current_date OR NOT tokens_mirror_members_valid(candidate.members, candidate.as_at)
+            OR NOT tokens_mirror_award_identities_valid(candidate.company_id, candidate.uuid, candidate.members)
             OR NOT tokens_empty_mirror_opening_ready(candidate)
             OR NOT tokens_register_appointment_current(candidate.preparing_appointment_id, candidate.company_id, principal, 'prepare', at_time)
             OR EXISTS (SELECT 1 FROM jsonb_array_elements(candidate.members) item JOIN tokens_registermember member ON member.uuid::text = item->>'member'
@@ -206,6 +223,7 @@ BEGIN
         RETURN candidate;
     END IF;
     IF candidate.register_sequence IS DISTINCT FROM head.sequence OR candidate.rejection_reason <> ''
+        OR NOT tokens_mirror_award_identities_valid(candidate.company_id, candidate.uuid, candidate.members)
         OR NOT tokens_register_import_approved(candidate.uuid, at_time)
         OR EXISTS (SELECT 1 FROM jsonb_array_elements(candidate.members) item WHERE NOT EXISTS (
             SELECT 1 FROM tokens_registerposition position JOIN tokens_registermemberparticulars particulars ON particulars.member_id = position.member_id
@@ -248,6 +266,7 @@ BEGIN
         OR current_setting('app.company_id', true) IS DISTINCT FROM head.company_id::text
         OR NEW.recorded_by_id IS DISTINCT FROM principal OR NEW.corrects_id IS NOT NULL OR NEW.effective_on <> proposal.as_at
         OR NEW.changes IS DISTINCT FROM tokens_mirror_changes(proposal.uuid)
+        OR NOT tokens_mirror_award_identities_valid(proposal.company_id, proposal.uuid, proposal.members)
         OR (NEW.kind = 'opening' AND NOT tokens_empty_mirror_opening_ready(proposal))
         OR NOT tokens_register_import_approved(proposal.uuid, clock_timestamp())
         OR NOT EXISTS (SELECT 1 FROM tokens_registerimportdecision decision WHERE decision.register_import_id = proposal.uuid
@@ -261,3 +280,19 @@ END;
 $function$;
 DROP TRIGGER IF EXISTS tokens_mirror_entry_guard ON tokens_registerentry;
 CREATE TRIGGER tokens_mirror_entry_guard BEFORE INSERT ON tokens_registerentry FOR EACH ROW EXECUTE FUNCTION tokens_guard_mirror_entry();
+
+CREATE OR REPLACE FUNCTION public.tokens_check_mirror_award_identity()
+RETURNS trigger LANGUAGE plpgsql SECURITY INVOKER SET search_path TO 'pg_catalog', 'public', 'pg_temp'
+AS $function$
+DECLARE proposal tokens_registerimport;
+BEGIN
+    SELECT * INTO proposal FROM tokens_registerimport WHERE uuid = NEW.uuid;
+    IF proposal.source_reference <> '' AND proposal.status <> 'rejected'
+        AND NOT tokens_mirror_award_identities_valid(proposal.company_id, proposal.uuid, proposal.members) THEN
+        RAISE EXCEPTION 'Copied first holdings retain their exact award recipient identity at commit' USING ERRCODE = '23514'; END IF;
+    RETURN NULL;
+END;
+$function$;
+DROP TRIGGER IF EXISTS tokens_mirror_award_identity ON tokens_registerimport;
+CREATE CONSTRAINT TRIGGER tokens_mirror_award_identity AFTER INSERT OR UPDATE ON tokens_registerimport
+    DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION tokens_check_mirror_award_identity();

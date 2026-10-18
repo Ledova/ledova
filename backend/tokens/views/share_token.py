@@ -293,7 +293,7 @@ class ShareTokenViewSet(
     @extend_schema(responses=RegisterMembersSerializer)
     @action(detail=True, methods=["get"], url_path="register/members")
     def register_members(self, request, uuid=None):
-        return Response(RegisterMembersSerializer(register_members(self.get_object())).data)
+        return Response(RegisterMembersSerializer(register_members(self.get_object(), request.user)).data)
 
     @extend_schema(
         responses=ShareRegisterEntrySerializer(many=True),

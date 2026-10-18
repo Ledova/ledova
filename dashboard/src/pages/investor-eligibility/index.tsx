@@ -8,14 +8,21 @@ import { CATEGORIES, REASON_TEXT, WHOLESALE_ONLY_NOTICE } from './constants';
 import { ClaimModal } from './ClaimModal';
 import { useInvestorEligibility } from '@hooks/useInvestorEligibility';
 
+const CLASSIFICATION_TONES = new Map<string, Tone>([['submitted', 'moving']]);
+const READINESS_TONES = new Map<boolean, Tone>([
+  [true, 'done'],
+  [false, 'waiting'],
+]);
+
 function claimState(classification: InvestorClassification): { label: string; tone: Tone } {
-  if (classification.status === 'submitted') return { label: 'Available to share', tone: 'moving' };
+  const tone = CLASSIFICATION_TONES.get(classification.status) ?? 'closed';
+  if (classification.status === 'submitted') return { label: 'Available to share', tone };
   if (classification.status === 'verified')
     return {
       label: classification.isExpired ? 'Historical verification expired' : 'Historical verification',
-      tone: 'closed',
+      tone,
     };
-  return { label: classification.statusDisplay, tone: 'closed' };
+  return { label: classification.statusDisplay, tone };
 }
 
 export default function InvestorEligibilityPage() {
@@ -49,7 +56,7 @@ export default function InvestorEligibilityPage() {
             <Section title="Account readiness">
               <LinkRow to={DESTINATIONS.eligibilityRequests.path} label={DESTINATIONS.eligibilityRequests.title} />
               <p className="py-2 text-sm text-text-primary">
-                <Status tone={isReady ? 'done' : 'waiting'}>
+                <Status tone={READINESS_TONES.get(!!isReady)!}>
                   {isReady ? 'Account ready' : 'Account checks needed'}
                 </Status>
               </p>

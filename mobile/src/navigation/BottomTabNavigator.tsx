@@ -61,7 +61,7 @@ export function BottomTabNavigator({ onNotifications, unreadCount }: BottomTabNa
 
   return (
     <Tab.Navigator
-      initialRouteName={isCompany && access.allowed ? 'Company' : 'Home'}
+      initialRouteName={isCompany && access.hasClasses ? 'Company' : 'Home'}
       screenOptions={() => ({
         ...getMainHeaderStyle(theme),
         ...MainHeader({ theme, onNotifications, unreadCount }),

@@ -1,3 +1,4 @@
+import { requestTone, SHARE_CLASS_STATUS_TONES } from '@pages/company/shared/statusTones';
 import { CompanyPaidIssueFlow } from './CompanyPaidIssueFlow';
 import { useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -11,10 +12,9 @@ import {
   getBlockExplorerAddressUrl,
   getBlockExplorerTxUrl,
   useUserPreferences,
-  type CapitalIncreaseStatus,
 } from '@ledova/shared';
 import { Page, PageAction } from '@components/Page';
-import { Row, Rows, Section, Status, type Tone } from '@components/Ledger';
+import { Row, Rows, Section, Status } from '@components/Ledger';
 import { TokenPauseControls } from './TokenPauseControls';
 import { ClassRegister } from '@pages/company/register/shared/ClassRegister';
 import { CompanyShareholders } from '@pages/company/register/shared/CompanyShareholders';
@@ -23,13 +23,6 @@ import { DeploymentFlow } from './DeploymentFlow';
 import { CompanyIssueFlow } from './CompanyIssueFlow';
 import { CompanyCapitalFlow } from './CompanyCapitalFlow';
 import { CompanyPauseFlow } from './CompanyPauseFlow';
-
-function requestTone(status: CapitalIncreaseStatus): Tone {
-  if (status === 'executed') return 'done';
-  if (status === 'submitted' || status === 'under_review' || status === 'approved' || status === 'executing')
-    return 'moving';
-  return status === 'draft' ? 'waiting' : 'closed';
-}
 
 interface ReadState {
   isPending: boolean;
@@ -135,13 +128,9 @@ function ShareClassDetails({ data }: { data: ReturnType<typeof useShareClass> })
           </p>
           <Rows>
             <Row label="Class state">
-              <Status tone={deployed ? 'done' : token.status === 'deploying' ? 'moving' : 'waiting'}>
-                {token.statusDisplay}
-              </Status>
+              <Status tone={SHARE_CLASS_STATUS_TONES.get(token.status) ?? 'waiting'}>{token.statusDisplay}</Status>
             </Row>
-            <Row
-              label={token.totalSupply !== (2n ** 256n - 1n).toString() ? 'Authorised shares' : 'Technical share limit'}
-            >
+            <Row label="Technical share limit">
               {token.totalSupply !== (2n ** 256n - 1n).toString() ? (
                 <span className="break-all">{formatShareCount(token.totalSupply)}</span>
               ) : (

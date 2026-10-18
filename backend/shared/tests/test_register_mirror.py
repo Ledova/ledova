@@ -1,14 +1,18 @@
 from copy import deepcopy
+from unittest.mock import patch
 from uuid import uuid4
 
+from django.core.files.base import ContentFile
 from django.db import DatabaseError
 from django.utils import timezone
 from rest_framework.test import APITransactionTestCase
 
+from companies.services.administration import company_operation
 from shared.db import atomic, use_operator
 from shared.tests.core_fixtures import CoreFixtures, retained_evidence
 from tokens.constants import MAX_UINT256
 from tokens.models import (
+    RegisterAward,
     RegisterEntry,
     RegisterEvidenceKind,
     RegisterImport,
@@ -100,6 +104,15 @@ class RegisterMirrorTest(CoreFixtures, APITransactionTestCase):
         self.assertEqual(confirmed["members"][0]["enteredOn"], "2020-01-01")
         self.assertEqual(confirmed["members"][0]["allotments"][0]["allottedOn"], "2019-01-01")
         self.assertFalse(confirmed["members"][0]["allotments"][1]["beneficiallyHeld"])
+        award = self.award_payload(
+            token_id=str(token.pk),
+            member=payload["members"][0]["member"],
+            new_member=False,
+            name=payload["members"][0]["name"],
+            residential_address=payload["members"][0]["residential_address"],
+        )
+        recorded_award = self.client.post("/api/v1/tokens/register-awards/", award, format="json")
+        self.assertEqual(recorded_award.status_code, 201, recorded_award.content)
         correction = deepcopy(payload)
         correction.update(operation_id=str(uuid4()), correction_of=identifier, reason="Correct a copied quantity")
         correction["members"][0]["shares"] = "90"
@@ -134,6 +147,7 @@ class RegisterMirrorTest(CoreFixtures, APITransactionTestCase):
             reason="Correct copied address and original entry date",
         )
         metadata["members"][0]["residential_address"] = "2 Example Street"
+        metadata["members"][0]["name"] = "Corrected Synthetic Founder"
         metadata["members"][0]["entered_on"] = "2018-01-01"
         metadata["former_members"][0]["name"] = "Corrected synthetic former member"
         prepared = self.client.post(endpoint, metadata, format="json")
@@ -154,6 +168,38 @@ class RegisterMirrorTest(CoreFixtures, APITransactionTestCase):
         self.assertEqual(RegisterEntry.objects.filter(register__token=token).count(), 2)
         particulars = RegisterMemberParticulars.objects.get(member_id=payload["members"][0]["member"])
         self.assertEqual(particulars.residential_address, "2 Example Street")
+        self.assertEqual(particulars.name, "Corrected Synthetic Founder")
+        self.assertEqual(particulars.source_import_id, RegisterImport.objects.get(pk=metadata_id).pk)
+        retained_award = RegisterAward.objects.get(pk=recorded_award.json()["uuid"])
+        self.assertEqual(
+            (retained_award.name, retained_award.residential_address), (award["name"], award["residential_address"])
+        )
+        another_class = self.client.post(
+            "/api/v1/tokens/",
+            {
+                "company": str(self.company.pk),
+                "name": "Existing shareholder class",
+                "symbol": "B",
+                "total_supply": "1000",
+            },
+            format="json",
+        )
+        self.assertEqual(another_class.status_code, 201, another_class.content)
+        another_opening = deepcopy(metadata)
+        another_opening.update(
+            operation_id=str(uuid4()), token_id=another_class.json()["uuid"], correction_of=None, former_members=[]
+        )
+        prepared = self.client.post(endpoint, another_opening, format="json")
+        self.assertEqual(prepared.status_code, 201, prepared.content)
+        another_id = prepared.json()["uuid"]
+        self.decision(endpoint, another_id, "approve")
+        self.decision(endpoint, another_id, "apply")
+        particulars.refresh_from_db()
+        self.assertEqual(particulars.source_import_id, RegisterImport.objects.get(pk=another_id).pk)
+        self.assertEqual(
+            (particulars.name, particulars.residential_address), ("Corrected Synthetic Founder", "2 Example Street")
+        )
+        self.assertEqual(RegisterPosition.objects.get(register__token_id=another_class.json()["uuid"]).shares, 90)
         holders = self.client.get(f"/api/v1/tokens/{token.pk}/holders/")
         self.assertEqual(holders.status_code, 200, holders.content)
         self.assertEqual(holders.json()["holders"][0]["enteredOn"], "2018-01-01")
@@ -255,6 +301,88 @@ class RegisterMirrorTest(CoreFixtures, APITransactionTestCase):
 
     def test_mirror_refuses_incomplete_records_stale_heads_and_later_member_or_share_activity(self):
         endpoint = "/api/v1/tokens/register-imports/"
+        award = self.award_payload()
+        recorded = self.client.post("/api/v1/tokens/register-awards/", award, format="json")
+        self.assertEqual(recorded.status_code, 201, recorded.content)
+        with use_operator():
+            copied_token = ShareToken.objects.create(
+                company=self.company, name="Copied employee holding", symbol="EMP", total_supply="1000"
+            )
+        copied = self.mirror_payload(copied_token)
+        copied["members"][0].update(
+            member=award["member"], name=award["name"], residential_address=award["residential_address"]
+        )
+        for field in ("name", "residential_address"):
+            mismatched = deepcopy(copied)
+            mismatched["members"][0][field] = "A different retained identity"
+            refused = self.client.post(endpoint, mismatched, format="json")
+            self.assertEqual(refused.status_code, 400, refused.content)
+            with patch("tokens.services.register_imports._award_identities_valid", return_value=True):
+                refused = self.client.post(endpoint, mismatched, format="json")
+                self.assertEqual(refused.status_code, 409, refused.content)
+        prepared = self.client.post(endpoint, copied, format="json")
+        self.assertEqual(prepared.status_code, 201, prepared.content)
+        copied_id = prepared.json()["uuid"]
+        self.decision(endpoint, copied_id, "approve")
+        fields = {"appointment": str(self.appointment.pk), "kind": "apply"}
+        preview = self.client.post(f"{endpoint}{copied_id}/decision-preview/", fields, format="json")
+        self.assertTrue(preview.json()["canDecide"])
+        with use_operator():
+            original_award = RegisterAward.objects.get(pk=award["operation_id"])
+            original_import = RegisterImport.objects.get(pk=copied_id)
+        late_award = RegisterAward(
+            **{
+                field.attname: getattr(original_award, field.attname)
+                for field in RegisterAward._meta.concrete_fields
+                if field.name not in {"uuid", "created_at", "updated_at", "file", "name"}
+            },
+            name="Identity changed inside the preparation transaction",
+        )
+        with original_award.file.open("rb") as retained:
+            late_award.file.save("agreement.bin", ContentFile(retained.read()), save=False)
+        uncommitted = RegisterImport(
+            **{
+                field.attname: getattr(original_import, field.attname)
+                for field in RegisterImport._meta.concrete_fields
+                if field.name not in {"uuid", "created_at", "updated_at"}
+            }
+        )
+        try:
+            with self.assertRaisesMessage(
+                DatabaseError, "Copied first holdings retain their exact award recipient identity at commit"
+            ):
+                with register_command(self.owner, self.company.pk, "register_import_prepare"):
+                    uncommitted.save(force_insert=True)
+                    with company_operation(self.owner, self.company.pk, "register_award_record"):
+                        late_award.save(force_insert=True)
+        finally:
+            late_award.file.delete(save=False)
+        self.assertFalse(RegisterImport.objects.filter(pk=uncommitted.pk).exists())
+        self.assertFalse(RegisterAward.objects.filter(pk=late_award.pk).exists())
+        conflicting = self.client.post(
+            "/api/v1/tokens/register-awards/",
+            {**award, "operation_id": str(uuid4()), "name": "Conflicting employee identity"},
+            format="json",
+        )
+        self.assertEqual(conflicting.status_code, 201, conflicting.content)
+        selections = self.client.get(f"/api/v1/tokens/{self.token.pk}/register/members/")
+        self.assertEqual(selections.json()["awardRecipients"], [])
+        changed = self.client.post(f"{endpoint}{copied_id}/decision-preview/", fields, format="json")
+        self.assertFalse(changed.json()["canDecide"])
+        self.assertIn("award_recipient_identity_changed", changed.json()["unmetRequirements"])
+        application = {
+            **fields,
+            "idempotency_key": str(uuid4()),
+            "preview_digest": preview.json()["previewDigest"],
+            "confirmation": True,
+        }
+        refused = self.client.post(f"{endpoint}{copied_id}/decide/", application, format="json")
+        self.assertEqual(refused.status_code, 400, refused.content)
+        with patch("tokens.services.register_imports._award_identities_valid", return_value=True):
+            refused = self.client.post(f"{endpoint}{copied_id}/decide/", application, format="json")
+            self.assertEqual(refused.status_code, 409, refused.content)
+        self.assertFalse(RegisterMember.objects.filter(pk=award["member"]).exists())
+        self.assertFalse(RegisterEntry.objects.filter(register__token=copied_token).exists())
         original = RegisterImport.objects.get(token=self.token, status="applied")
         payload = self.mirror_payload(self.token, correction_of=str(original.pk))
         payload["members"] = [

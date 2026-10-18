@@ -8,11 +8,12 @@ import { useQueryClient } from '@tanstack/react-query';
 import {
   REGISTER_IMPORT_COPY,
   createUserFriendlyError,
+  formatShareCount,
   type CompanyShareTokenListItem,
   type OrderSubmissionOwner,
   type RegisterImport,
   type TokenHoldersResponse,
-  type RegisterTransferMember,
+  type RegisterTransferMembers,
 } from '@ledova/shared';
 import { Page } from '@components/Page';
 import { PageTitle } from '@components/PageTitle';
@@ -21,11 +22,12 @@ import { registerSteps, type RegisterSteps } from '@pages/company/shared/proposa
 import { useRegisterClasses, registerClassesKey } from '@pages/company/shared/useCompanyRegister';
 import { importsKey, useRegisterImports } from '@pages/company/register/shared/useRegisterImports';
 import { ownerGuard } from '@pages/company/shared/ownerGuard';
-import { useOwnAppointments, ownAppointmentsKey } from '@pages/company/shared/useOwnAppointments';
+import { useOwnAppointments, ownAppointmentsKey } from '@hooks/useOwnAppointments';
 
-import { transferMembersKey, useTransferMembers } from '@pages/company/register/shared/useRegisterTransfers';
+import { importMembersKey, useImportMembers } from './useImportMembers';
 import { ImportForm } from './ImportForm';
 import { NewClassSetup } from './NewClassSetup';
+import { canOpenEmptyRegister } from './preparation';
 
 export default function CompanyRegisterImportPage() {
   const { uuid = '' } = useParams();
@@ -62,7 +64,7 @@ type Retained = {
   steps: RegisterSteps;
   correction?: RegisterImport;
   saved?: RegisterImport;
-  members: RegisterTransferMember[];
+  members: RegisterTransferMembers;
 };
 
 function OwnImport({
@@ -85,7 +87,8 @@ function OwnImport({
   const steps = listed && appointments.data ? registerSteps(appointments.data, listed.companyUuid) : null;
   const readable = !!(steps?.prepare || steps?.approve || steps?.apply);
   const imports = useRegisterImports(owner, uuid, guard, readable);
-  const members = useTransferMembers(owner, uuid, guard, readable);
+  const membersCompany = listed?.companyUuid ?? retained?.listed.companyUuid ?? '';
+  const members = useImportMembers(owner, membersCompany, uuid, guard, readable);
   const register = useImportRegister(owner, uuid, readable, guard);
   const correction = imports.data?.find((proposal) => proposal.status === 'applied' && proposal.correctionAllowed);
   const record = search.get('record');
@@ -142,7 +145,7 @@ function OwnImport({
       ownAppointmentsKey(owner),
       importRegisterKey(owner, uuid),
       importsKey(owner, uuid),
-      transferMembersKey(owner, uuid),
+      importMembersKey(owner, membersCompany, uuid),
     ]) {
       const state = client.getQueryState(key);
       if (state?.status !== 'success' || state.fetchStatus !== 'idle')
@@ -200,13 +203,27 @@ function OwnImport({
       companyName={retained.listed.companyName}
       shareClass={{ name: retained.listed.name, symbol: retained.listed.symbol }}
       register={retained.register}
-      companyMembers={members.data ?? retained.members}
+      companyMembers={(members.data ?? retained.members).members}
+      awardRecipients={(members.data ?? retained.members).awardRecipients}
+      emptyOpeningAllowed={
+        !!listed &&
+        !!register.data &&
+        !correction &&
+        !imports.data?.some((proposal) => proposal.status === 'applied') &&
+        canOpenEmptyRegister(register.data, listed)
+      }
       classFields={
         <dl className="grid gap-4 sm:grid-cols-2">
           {[
-            ['Share class', retained.listed.name],
+            ['Class name', retained.listed.name],
             ['Class code', retained.listed.symbol],
             ['Class type', retained.listed.tokenTypeDisplay || 'Not recorded'],
+            [
+              'Technical share limit',
+              retained.listed.totalSupply === (2n ** 256n - 1n).toString()
+                ? 'Internal quantity guard'
+                : formatShareCount(retained.listed.totalSupply),
+            ],
           ].map(([label, value]) => (
             <div key={label}>
               <dt className="text-sm text-text-muted">{label}</dt>

@@ -1,27 +1,31 @@
 import { useNewShareClass, type FreshClassProps } from './useNewShareClass';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { generatePath, Link, useSearchParams } from 'react-router-dom';
 import {
   DESTINATIONS,
   REGISTER_IMPORT_COPY,
+  AUTH_QUERY_KEY,
+  USER_PREFERENCES_QUERY_KEY,
+  createUserFriendlyError,
   type Company,
+  type OwnCompanyAppointment,
   type OrderSubmissionOwner,
   type TokenType,
-  type RegisterTransferMember,
-  useCompanySelection,
+  type RegisterTransferMembers,
 } from '@ledova/shared';
 import { FIELD_CLASS, LABEL } from '@components/fieldClass';
 
 import { CompanySelection } from '@pages/company/shared/CompanySelection';
 import { Loading, Unavailable } from '@pages/company/shared/RegisterStatus';
 import { registerSteps } from '@pages/company/shared/proposals';
-import { useRegisterClasses } from '@pages/company/shared/useCompanyRegister';
+import { useRegisterClasses, registerClassesKey } from '@pages/company/shared/useCompanyRegister';
 import { ownerGuard } from '@pages/company/shared/ownerGuard';
-import { useOwnAppointments } from '@pages/company/shared/useOwnAppointments';
-import { useTransferMembers } from '@pages/company/register/shared/useRegisterTransfers';
+import { useOwnAppointments, ownAppointmentsKey } from '@hooks/useOwnAppointments';
+import { useImportMembers, importMembersKey } from './useImportMembers';
 import { ImportForm } from './ImportForm';
 
-const NO_MEMBERS: RegisterTransferMember[] = [];
+const NO_MEMBERS: RegisterTransferMembers = { members: [], awardRecipients: [] };
 const COMMON_CLASSES: { type: TokenType; name: string; symbol: string; label: string }[] = [
   { type: 'ordinary', name: 'Ordinary shares', symbol: 'ORD', label: 'Ordinary (ORD)' },
   { type: 'preference', name: 'Preference shares', symbol: 'PRF', label: 'Preference (PRF)' },
@@ -35,33 +39,41 @@ export function NewClassSetup({
   owner: OrderSubmissionOwner;
   currentOwner: () => OrderSubmissionOwner | null;
 }) {
-  const read = useCompanySelection({ personalOnly: true });
+  const client = useQueryClient();
   const [search] = useSearchParams();
   const preferred = search.get('company');
+  const [selected, setSelected] = useState('');
   const [held, setHeld] = useState(false);
-  const [retained, setRetained] = useState<{ company: Company; steps: ReturnType<typeof registerSteps> } | null>(null);
-  const appliedPreference = useRef('');
-  useEffect(() => {
-    if (!preferred || appliedPreference.current === preferred || read.isLoading || read.isRefreshing) return;
-    if (read.companies.some((company) => company.uuid === preferred)) read.selectCompany(preferred);
-    appliedPreference.current = preferred;
-  }, [preferred, read]);
+  const [retained, setRetained] = useState<{
+    company: Pick<Company, 'uuid' | 'name'>;
+    steps: ReturnType<typeof registerSteps>;
+  } | null>(null);
+  const [appliedPreference, setAppliedPreference] = useState('');
   const guard = useMemo(() => ownerGuard(owner, currentOwner), [owner, currentOwner]);
   const appointments = useOwnAppointments(owner, guard);
   const classes = useRegisterClasses(owner, guard);
+  const companies = [
+    ...new Map(
+      (appointments.data ?? [])
+        .filter((appointment) => !appointment.revokedAt && registerSteps([appointment], appointment.company).prepare)
+        .map((appointment) => [appointment.company, { uuid: appointment.company, name: appointment.companyName }]),
+    ).values(),
+  ];
+  if (preferred && appliedPreference !== preferred && appointments.isSuccess && !appointments.isFetching) {
+    if (companies.some((company) => company.uuid === preferred)) setSelected(preferred);
+    setAppliedPreference(preferred);
+  }
   const retry = () => {
-    void read.refetch();
     void appointments.refetch();
     void classes.refetch();
     if (anchor) void members.refetch();
   };
-  const company = read.company;
+  const companyUuid = selected || (companies.length === 1 ? companies[0].uuid : '');
+  const company = companies.find((item) => item.uuid === companyUuid);
   const steps = company && appointments.data ? registerSteps(appointments.data, company.uuid) : null;
   const anchor = classes.data?.find((token) => token.companyUuid === company?.uuid)?.uuid;
-  const members = useTransferMembers(owner, anchor ?? '', guard, !!anchor && !!steps?.prepare);
+  const members = useImportMembers(owner, companyUuid, anchor ?? '', guard, !!anchor && !!steps?.prepare);
   const ready =
-    !read.error &&
-    !read.isRefreshing &&
     classes.isSuccess &&
     !classes.isFetching &&
     appointments.isSuccess &&
@@ -74,22 +86,55 @@ export function NewClassSetup({
     company &&
     steps &&
     (retained?.company.uuid !== company.uuid ||
-      retained.company.updatedAt !== company.updatedAt ||
+      retained.company.name !== company.name ||
       retained.steps.prepare?.uuid !== steps.prepare?.uuid)
   )
     setRetained({ company, steps });
   const context = held ? retained : company && steps ? { company, steps } : null;
-  if ((!held || !context) && (read.error || classes.isError || appointments.isError || members.isError))
-    return (
-      <Unavailable
-        retry={retry}
-        busy={read.isRefreshing || classes.isFetching || appointments.isFetching || members.isFetching}
-      />
-    );
-  if (!context && (read.isLoading || !classes.data || !appointments.data)) return <Loading />;
+  const current = useRef({ companyUuid, steps, ready });
+  useLayoutEffect(() => {
+    current.current = { companyUuid, steps, ready };
+  }, [companyUuid, steps, ready]);
+  const checkCurrent = () => {
+    guard();
+    for (const key of [
+      AUTH_QUERY_KEY,
+      USER_PREFERENCES_QUERY_KEY,
+      ownAppointmentsKey(owner),
+      registerClassesKey(owner),
+      ...(anchor ? [importMembersKey(owner, companyUuid, anchor)] : []),
+    ]) {
+      const state = client.getQueryState(key);
+      if (state?.status !== 'success' || state.fetchStatus !== 'idle')
+        throw createUserFriendlyError('Refresh current company authority and records before continuing.');
+    }
+    const rows = client.getQueryData<OwnCompanyAppointment[]>(ownAppointmentsKey(owner)) ?? [];
+    const appointment = registerSteps(
+      rows.filter((item) => !item.revokedAt),
+      companyUuid,
+    ).prepare;
+    if (
+      !current.current.ready ||
+      current.current.companyUuid !== companyUuid ||
+      !appointment ||
+      appointment.uuid !== steps?.prepare?.uuid ||
+      current.current.steps?.prepare?.uuid !== steps?.prepare?.uuid
+    )
+      throw createUserFriendlyError('Your company or authority changed. Reopen this action.');
+  };
+  if ((!held || !context) && (classes.isError || appointments.isError || members.isError))
+    return <Unavailable retry={retry} busy={classes.isFetching || appointments.isFetching || members.isFetching} />;
+  if (!context && (!classes.data || !appointments.data)) return <Loading />;
   return (
     <div className="space-y-5">
-      <CompanySelection read={{ ...read, selectionBlocked: read.selectionBlocked || held }} />
+      <CompanySelection
+        read={{
+          companyUuid: context?.company.uuid ?? companyUuid,
+          companies,
+          selectionBlocked: held || classes.isFetching || appointments.isFetching,
+          selectCompany: setSelected,
+        }}
+      />
       {!context ? (
         <p className="text-sm text-text-muted">Select the company whose existing records you want to mirror.</p>
       ) : !context.steps.prepare ? (
@@ -100,9 +145,10 @@ export function NewClassSetup({
           owner={owner}
           guard={guard}
           company={context.company}
-          read={read}
+          checkCurrent={checkCurrent}
           classes={(classes.data ?? []).filter((token) => token.companyUuid === context.company.uuid)}
-          companyMembers={anchor ? (members.data ?? NO_MEMBERS) : NO_MEMBERS}
+          companyMembers={(anchor ? (members.data ?? NO_MEMBERS) : NO_MEMBERS).members}
+          awardRecipients={(anchor ? (members.data ?? NO_MEMBERS) : NO_MEMBERS).awardRecipients}
           steps={steps ?? context.steps}
           ready={ready && company?.uuid === context.company.uuid}
           onHeldChange={setHeld}
@@ -116,10 +162,11 @@ export function NewClassSetup({
 function FreshClass({
   owner,
   guard,
-  read,
+  checkCurrent,
   company,
   classes,
   companyMembers,
+  awardRecipients,
   steps,
   ready,
   onHeldChange,
@@ -140,7 +187,7 @@ function FreshClass({
     check,
     resolveRegister,
     problems,
-  } = useNewShareClass({ guard, read, company, classes, ready });
+  } = useNewShareClass({ guard, checkCurrent, company, classes, ready });
 
   return (
     <ImportForm
@@ -151,6 +198,7 @@ function FreshClass({
       companyName={company.name}
       shareClass={{ name, symbol }}
       companyMembers={companyMembers}
+      awardRecipients={awardRecipients}
       appointment={steps.prepare!}
       steps={steps}
       blocked={!ready}
@@ -158,6 +206,7 @@ function FreshClass({
       onConflict={onConflict}
       onHeldChange={onHeldChange}
       resolveRegister={resolveRegister}
+      emptyOpeningAllowed
       classProblems={problems}
       classFields={
         <fieldset className="space-y-5">
@@ -259,6 +308,10 @@ function FreshClass({
           {choice === 'custom' && (
             <p className="text-xs text-text-muted">Use the recorded class code of 1–5 letters, such as A or ORD.</p>
           )}
+          <p className="text-xs text-text-muted">
+            Class code and type do not define the rights attached to the shares. The technical share limit is an
+            internal quantity guard, not authorised capital.
+          </p>
         </fieldset>
       }
     />

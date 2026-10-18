@@ -16,7 +16,7 @@ import { ImportRecord } from './ImportRecord';
 import { registerSteps } from '@pages/company/shared/proposals';
 import { entriesKey } from '@pages/company/register/shared/useRegisterEntries';
 import { importsKey, useRegisterImports } from '@pages/company/register/shared/useRegisterImports';
-import { useOwnAppointments, ownAppointmentsKey } from '@pages/company/shared/useOwnAppointments';
+import { useOwnAppointments, ownAppointmentsKey } from '@hooks/useOwnAppointments';
 
 export function ClassImports({
   owner,

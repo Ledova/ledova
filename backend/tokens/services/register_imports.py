@@ -1,3 +1,4 @@
+import json
 import re
 from collections import defaultdict
 from datetime import date
@@ -5,13 +6,13 @@ from decimal import Decimal
 from uuid import UUID
 
 from django.core.files.base import ContentFile
-from django.db import IntegrityError
+from django.db import IntegrityError, connections
 from django.utils import timezone
 from rest_framework.exceptions import NotFound, ValidationError
 
 from companies.models import CompanyCapability
 from companies.services.authority_requests import _requester_principal
-from shared.db import use_operator
+from shared.db import current_alias, use_operator
 from tokens.constants import MAX_UINT256, REGISTER_IMPORT_ADDRESS_LENGTH
 from tokens.exceptions import RegisterChangeConflict
 from tokens.models import (
@@ -330,6 +331,15 @@ def _company_of(actor, token_id):
     return company_id
 
 
+def _award_identities_valid(company_id, operation_id, members):
+    with connections[current_alias()].cursor() as cursor:
+        cursor.execute(
+            "SELECT tokens_mirror_award_identities_valid(%s, %s, %s::jsonb)",
+            [company_id, operation_id, json.dumps(members)],
+        )
+        return cursor.fetchone()[0]
+
+
 def prepare_import(
     *,
     actor,
@@ -395,6 +405,10 @@ def prepare_import(
             token = ShareToken.objects.select_for_update().filter(pk=token_id, company=company).first()
             if token is None:
                 raise NotFound("Share class not found.")
+            if not _award_identities_valid(company.pk, operation_id, current):
+                raise ValidationError(
+                    "An award recipient must retain their exact company, name and residential address."
+                )
             expected = {
                 **values,
                 "company_id": company.pk,
@@ -569,6 +583,8 @@ def _effect_requirements(proposal):
     from tokens.services.register_deployments import pending_deployment
 
     unmet = _empty_opening_requirements(proposal)
+    if not _award_identities_valid(proposal.company_id, proposal.pk, proposal.members):
+        unmet.append("award_recipient_identity_changed")
     if pending_deployment(proposal.token):
         unmet.append("deployment_pending")
     try:
