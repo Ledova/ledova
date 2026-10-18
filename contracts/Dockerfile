@@ -1,7 +1,7 @@
 # The local stack's chain-deploy service (docker-compose.yml): it checks the core contracts on the
 # stack's chain and deploys them on a new one. Local development only; nothing deploys this image.
 # Match the repository's validated Node/npm toolchain.
-FROM node:22.15.1-alpine
+FROM node:22.22.2-alpine
 
 RUN npm install -g npm@11.5.2
 

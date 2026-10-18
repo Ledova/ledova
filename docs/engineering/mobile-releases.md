@@ -27,7 +27,7 @@ The app uses the versions `mobile/package-lock.json` resolves, currently Expo SD
 
 | Component                | Build baseline                                                              |
 | ------------------------ | --------------------------------------------------------------------------- |
-| Node / npm               | 22.15.1 / 11.5.2                                                            |
+| Node / npm               | 22.22.2 / 11.5.2                                                            |
 | Android                  | JDK 17, SDK/target 36, minimum API 24, Build Tools 36.0.0                   |
 | Android native toolchain | NDK 27.1.12297006, CMake 3.22.1, Gradle 8.14.3                              |
 | iOS                      | Xcode 16.4, minimum deployment target 15.1, ad hoc signed simulator Release |
