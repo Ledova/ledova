@@ -23,6 +23,17 @@ alternative entrypoint that also serves a health endpoint on `PORT` (default 808
 that require one. Senders defer jobs rather than doing the work in the request, so notifications,
 recovery and every task below wait until a worker is running.
 
+The queue connects through `PROCRASTINATE_DATABASE_ALIAS=operator`, using the configured
+`RLS_OPERATOR_DB_USER` and `RLS_OPERATOR_DB_PASSWORD`, rather than the migration/schema-owner
+connection. The worker's ORM ambient is also `operator`; an individual task may enter its
+captured user's app scope. Run `python manage.py check_rls_roles` before starting a worker to
+verify the configured queue alias and its actual login and active role.
+
+Queue role selection does not make every request defer atomic. Producers that explicitly bind
+their connector to the current database alias share that transaction; plain defers use the
+global operator connector. The remaining producer conversion is tracked in
+[#1131](https://github.com/Ledova/ledova/issues/1131).
+
 ## Schedule
 
 | Schedule              | Task                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |

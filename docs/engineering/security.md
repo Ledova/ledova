@@ -142,6 +142,17 @@ the principal, it refuses a missing ID. Worker ambient authority is operator, so
 would widen access; `acting_for(None)` deliberately selects operator authority and suits only a
 classified administrative invocation.
 
+Procrastinate's queue connection is separate from the task's ORM scope.
+`PROCRASTINATE_DATABASE_ALIAS` selects `operator` for the global Django connector and the
+worker's own connector; queue registration, scheduling, retry, completion and pruning therefore
+use the operator role. `check_rls_roles` checks the setting and the worker connector's actual
+login and active role. This gives the queue no company decision authority.
+
+The producers that explicitly use `DjangoConnector(alias=current_alias())` insert their jobs on
+the producer's connection. Plain task defers use the global operator connector and do not join
+an app-alias transaction. Converting those remaining producers to a shared transaction boundary
+is the second increment under [#1131](https://github.com/Ledova/ledova/issues/1131).
+
 The [task catalogue](../../backend/shared/tasks/catalogue.py) records authority and bounded operator
 handoffs. Deployments, issuance execution, capital increases, pause changes and subscription
 allotment are operator jobs that a company's applied decision produces; `executed_by` records the

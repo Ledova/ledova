@@ -35,6 +35,7 @@ DATABASES = {
 }
 
 RLS_AMBIENT_ALIAS = os.environ.get("RLS_AMBIENT_ALIAS", "app")
+PROCRASTINATE_DATABASE_ALIAS = "operator"
 
 DATABASE_ROUTERS = ["shared.db.router.LedovaRouter"]
 
