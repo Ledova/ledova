@@ -707,8 +707,7 @@ OPERATOR_ONLY = {
     "register outputs admin and for _build_company_pack on both company pack paths; RegisterExportAdmin for staff; "
     "and the trigger function tokens_guard_member_certificate_fulfilment, which checks the export a member "
     "certificate is bound to. Only tokens/services/former_holders.py purge_register_exports deletes them, on the "
-    "retention clock; an export bound to a member certificate is protected, so the purge will raise once one "
-    "passes the clock, which #1113 tracks.",
+    "retention clock, and it keeps every export bound to a member certificate fulfilment.",
     "shareholders_publicationread": "Append-only records of who opened a publication a company made to its "
     "members, or the remittance evidence of one of its payment records, written on the operator connection by "
     "the delivery service for the publication file route and the publications admin, and read only by permitted "
