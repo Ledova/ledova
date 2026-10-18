@@ -1,11 +1,4 @@
 import { createSyncPauseSubmissionStore } from '@ledova/shared';
+import { browserStorage } from './browserStorage';
 
-export const pauseSubmissionStore = createSyncPauseSubmissionStore(
-  {
-    getAllKeys: () => Object.keys(localStorage),
-    getItem: (key) => localStorage.getItem(key),
-    setItem: (key, value) => localStorage.setItem(key, value),
-    removeItem: (key) => localStorage.removeItem(key),
-  },
-  () => crypto.randomUUID(),
-);
+export const pauseSubmissionStore = createSyncPauseSubmissionStore(browserStorage, () => crypto.randomUUID());
