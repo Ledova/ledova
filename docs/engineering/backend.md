@@ -453,9 +453,10 @@ writes (create, edit, delete, submit, withdraw, attach documents) run inside
   under the caller's principal and run `_require_frozen_economics` and
   `require_subscription_eligibility`, then take `offerings_lock_subscription_admission`, re-read and
   run both again before writing. `_require_frozen_economics` answers 400 through
-  `SubscriptionRefusedException` when the offering is no longer open (`_require_open`), the
-  quantity is outside its bounds or the frozen terms changed. Admin `accept` runs
-  `require_subscription_acceptance_eligibility` behind the same lock.
+  `SubscriptionRefusedException` when the offering, its class or its company is no longer open
+  (`_require_open`), the quantity is outside its bounds or the frozen terms changed. Admin `accept`
+  runs `_require_frozen_economics` and `require_subscription_acceptance_eligibility` before and
+  after taking the same lock.
 - Acceptance issues the payment instruction. `generate_reference` appends an eight-character
   Crockford base32 code to `Operator.payment_reference_prefix` and refuses a normalised prefix over
   the `shared.payment_references` limit even when a write bypassed model validation, so the code is
