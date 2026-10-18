@@ -546,8 +546,8 @@ FRAMEWORK = {
     "principal exists.",
     "token_blacklist_blacklistedtoken": "Revoked refresh tokens, read during authentication for the same reason.",
     "procrastinate_jobs": "The worker queue. The worker, and plain defers made inside it, use procrastinate's own "
-    "connection on the default alias, and plain defers in web processes use Django's default-alias connection, "
-    "both as the migration role; staff read it in admin on the operator connection. Producers whose job must "
+    "connection on the operator alias, and plain defers in web processes use Django's operator-alias connection, "
+    "both as the operator role; staff read it in admin on the operator connection. Producers whose job must "
     "commit with their own transaction defer through DjangoConnector(alias=current_alias()): "
     "compliance/services/transaction_monitoring.py queue_new_transaction and "
     "wallets/services/transaction_confirmation.py _notify_wallet_users do so on the app connection when they act "

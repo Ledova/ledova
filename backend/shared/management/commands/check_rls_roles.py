@@ -3,7 +3,9 @@ import json
 from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
 from django.db import OperationalError, connections
+from procrastinate.exceptions import ConnectorException
 
+from ledova_backend.procrastinate_app import app
 from shared.db import APP_ALIAS, MIGRATE_ALIAS, OPERATOR_ALIAS, PRINCIPAL_SETTING
 from shared.db.policy_sql import reachable_by_the_app_role
 
@@ -68,6 +70,17 @@ def _ask(alias, statement):
         ) from error
 
 
+def _worker_roles():
+    connector = app.connector.get_worker_connector().get_sync_connector()
+    try:
+        connector.open()
+        return connector.execute_query_one("SELECT session_user AS session_role, current_user AS active_role")
+    except ConnectorException as error:
+        raise CommandError("The job queue cannot connect through its worker connector.") from error
+    finally:
+        connector.close()
+
+
 class Command(BaseCommand):
     help = "Assert the row-level-security role plumbing that no test can see."
 
@@ -77,6 +90,13 @@ class Command(BaseCommand):
             raise CommandError(
                 f"DATABASES has no {', '.join(missing)} alias, so the roles this checks for cannot be "
                 "reached. Run it against a deployment that configures all three."
+            )
+
+        queue_alias = getattr(settings, "PROCRASTINATE_DATABASE_ALIAS", MIGRATE_ALIAS)
+        if queue_alias != OPERATOR_ALIAS:
+            raise CommandError(
+                f"PROCRASTINATE_DATABASE_ALIAS must be {OPERATOR_ALIAS!r}, not {queue_alias!r}, "
+                "so the job queue uses the operator connection rather than the schema owner."
             )
 
         users = {alias: settings.DATABASES[alias]["USER"] for alias in (APP_ALIAS, OPERATOR_ALIAS, MIGRATE_ALIAS)}
@@ -99,6 +119,13 @@ class Command(BaseCommand):
             findings.append(
                 f"{users[OPERATOR_ALIAS]} has no BYPASSRLS, so the admin, the workers and the commands "
                 "are scoped to a principal none of them has"
+            )
+
+        worker_roles = _worker_roles()
+        if worker_roles != {"session_role": users[OPERATOR_ALIAS], "active_role": users[OPERATOR_ALIAS]}:
+            findings.append(
+                f"the worker connector must log in and run as {users[OPERATOR_ALIAS]}, "
+                f"but its roles are {worker_roles}"
             )
 
         if not _ask(MIGRATE_ALIAS, OWNED):
@@ -134,5 +161,5 @@ class Command(BaseCommand):
         self.stdout.write(
             f"{users[APP_ALIAS]} is scoped, owns nothing and reaches exactly the {len(reached)} tables "
             f"the catalogue lists, {users[OPERATOR_ALIAS]} bypasses, {users[MIGRATE_ALIAS]} owns the "
-            "tables, and a fresh connection carries no principal."
+            "tables, a fresh connection carries no principal, and the job queue connects as the operator."
         )
