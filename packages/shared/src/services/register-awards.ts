@@ -8,6 +8,12 @@ import type {
   RegisterAwardVesting,
   RegisterAwardVestingPreparation,
   RegisterAwardVestingQueryParams,
+  RegisterAwardEnd,
+  RegisterAwardEndPreparation,
+  RegisterAwardEndQueryParams,
+  RegisterAwardVestingReversal,
+  RegisterAwardVestingReversalPreparation,
+  RegisterAwardVestingReversalQueryParams,
 } from '../types';
 
 export const getRegisterAwards = (
@@ -53,3 +59,58 @@ export const downloadRegisterAwardVestingFile = (
   config: AxiosRequestConfig = {},
 ) =>
   apiClient.get<Blob>(COMPANY_TOKEN_ENDPOINTS.REGISTER_AWARD_VESTING_FILE(uuid), { ...config, responseType: 'blob' });
+
+export const getRegisterAwardEnds = (
+  apiClient: AxiosInstance,
+  params: RegisterAwardEndQueryParams = {},
+  config: AxiosRequestConfig = {},
+) =>
+  apiClient.get<PaginatedResponse<RegisterAwardEnd>>(COMPANY_TOKEN_ENDPOINTS.REGISTER_AWARD_ENDS, {
+    ...config,
+    params,
+  });
+
+export const getRegisterAwardEnd = (apiClient: AxiosInstance, uuid: string, config: AxiosRequestConfig = {}) =>
+  apiClient.get<RegisterAwardEnd>(COMPANY_TOKEN_ENDPOINTS.REGISTER_AWARD_END(uuid), config);
+
+export const recordRegisterAwardEnd = (
+  apiClient: AxiosInstance,
+  data: RegisterAwardEndPreparation,
+  config: AxiosRequestConfig = {},
+) => apiClient.post<RegisterAwardEnd>(COMPANY_TOKEN_ENDPOINTS.REGISTER_AWARD_ENDS, data, config);
+
+export const downloadRegisterAwardEndFile = (apiClient: AxiosInstance, uuid: string, config: AxiosRequestConfig = {}) =>
+  apiClient.get<Blob>(COMPANY_TOKEN_ENDPOINTS.REGISTER_AWARD_END_FILE(uuid), { ...config, responseType: 'blob' });
+
+export const getRegisterAwardVestingReversals = (
+  apiClient: AxiosInstance,
+  params: RegisterAwardVestingReversalQueryParams = {},
+  config: AxiosRequestConfig = {},
+) =>
+  apiClient.get<PaginatedResponse<RegisterAwardVestingReversal>>(
+    COMPANY_TOKEN_ENDPOINTS.REGISTER_AWARD_VESTING_REVERSALS,
+    { ...config, params },
+  );
+
+export const getRegisterAwardVestingReversal = (
+  apiClient: AxiosInstance,
+  uuid: string,
+  config: AxiosRequestConfig = {},
+) => apiClient.get<RegisterAwardVestingReversal>(COMPANY_TOKEN_ENDPOINTS.REGISTER_AWARD_VESTING_REVERSAL(uuid), config);
+
+export const recordRegisterAwardVestingReversal = (
+  apiClient: AxiosInstance,
+  data: RegisterAwardVestingReversalPreparation,
+  config: AxiosRequestConfig = {},
+) =>
+  apiClient.post<RegisterAwardVestingReversal>(COMPANY_TOKEN_ENDPOINTS.REGISTER_AWARD_VESTING_REVERSALS, data, config);
+
+export const downloadRegisterAwardVestingReversalFile = (
+  apiClient: AxiosInstance,
+  uuid: string,
+  config: AxiosRequestConfig = {},
+) =>
+  apiClient.get<Blob>(COMPANY_TOKEN_ENDPOINTS.REGISTER_AWARD_VESTING_REVERSAL_FILE(uuid), {
+    ...config,
+    responseType: 'blob',
+  });

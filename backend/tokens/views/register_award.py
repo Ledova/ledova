@@ -8,14 +8,28 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from shared.views import AuthenticatedReadOnlyViewSet, stream_stored_file
-from tokens.models import RegisterAward, RegisterAwardVesting
+from tokens.models import (
+    RegisterAward,
+    RegisterAwardEnd,
+    RegisterAwardVesting,
+    RegisterAwardVestingReversal,
+)
 from tokens.serializers.register_award import (
     RegisterAwardCreateSerializer,
+    RegisterAwardEndCreateSerializer,
+    RegisterAwardEndSerializer,
     RegisterAwardSerializer,
     RegisterAwardVestingCreateSerializer,
+    RegisterAwardVestingReversalCreateSerializer,
+    RegisterAwardVestingReversalSerializer,
     RegisterAwardVestingSerializer,
 )
-from tokens.services.register_awards import record_award, record_award_vesting
+from tokens.services.register_awards import (
+    record_award,
+    record_award_end,
+    record_award_vesting,
+    record_award_vesting_reversal,
+)
 
 
 @extend_schema_view(
@@ -124,3 +138,55 @@ class RegisterAwardVestingViewSet(AuthenticatedReadOnlyViewSet):
             response.close()
             raise
         return response
+
+
+@extend_schema_view(
+    list=extend_schema(
+        parameters=[OpenApiParameter("company", OpenApiTypes.UUID), OpenApiParameter("award", OpenApiTypes.UUID)]
+    )
+)
+class RegisterAwardEndViewSet(RegisterAwardVestingViewSet):
+    queryset = RegisterAwardEnd.objects.none()
+    serializer_class = RegisterAwardEndSerializer
+    scoped_model = RegisterAwardEnd
+    operator_actions_because = (
+        "Append-only entitlement facts and private evidence require current exact-company register appointments. "
+        "The bounded preparation producer locks the award and rechecks quantities, dates and commit-time authority."
+    )
+
+    @extend_schema(
+        request=RegisterAwardEndCreateSerializer,
+        responses={201: RegisterAwardEndSerializer, 200: RegisterAwardEndSerializer},
+    )
+    def create(self, request):
+        serializer = RegisterAwardEndCreateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        fact, created = record_award_end(actor=request.user, **serializer.validated_data)
+        current = self.get_queryset().get(pk=fact.pk)
+        return Response(RegisterAwardEndSerializer(current).data, status=201 if created else 200)
+
+
+@extend_schema_view(
+    list=extend_schema(
+        parameters=[OpenApiParameter("company", OpenApiTypes.UUID), OpenApiParameter("award", OpenApiTypes.UUID)]
+    )
+)
+class RegisterAwardVestingReversalViewSet(RegisterAwardVestingViewSet):
+    queryset = RegisterAwardVestingReversal.objects.none()
+    serializer_class = RegisterAwardVestingReversalSerializer
+    scoped_model = RegisterAwardVestingReversal
+    operator_actions_because = (
+        "Append-only entitlement facts and private evidence require current exact-company register appointments. "
+        "The bounded preparation producer locks the award and rechecks quantities, dates and commit-time authority."
+    )
+
+    @extend_schema(
+        request=RegisterAwardVestingReversalCreateSerializer,
+        responses={201: RegisterAwardVestingReversalSerializer, 200: RegisterAwardVestingReversalSerializer},
+    )
+    def create(self, request):
+        serializer = RegisterAwardVestingReversalCreateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        fact, created = record_award_vesting_reversal(actor=request.user, **serializer.validated_data)
+        current = self.get_queryset().get(pk=fact.pk)
+        return Response(RegisterAwardVestingReversalSerializer(current).data, status=201 if created else 200)

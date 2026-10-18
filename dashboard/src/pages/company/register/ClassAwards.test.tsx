@@ -10,12 +10,27 @@ import {
   ApiClientProvider,
   USER_PREFERENCES_QUERY_KEY,
 } from '@ledova/shared';
-import type { OwnCompanyAppointment, RegisterAward, RegisterAwardVesting, RegisterGrant } from '@ledova/shared';
+import type {
+  OwnCompanyAppointment,
+  RegisterAward,
+  RegisterAwardVesting,
+  RegisterAwardEnd,
+  RegisterAwardVestingReversal,
+  RegisterGrant,
+} from '@ledova/shared';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
-import { APPOINTMENT, AWARD_REQUEST, REGISTER, awardFrom, vestingFrom } from '../../../testSupport/company';
+import {
+  APPOINTMENT,
+  AWARD_REQUEST,
+  REGISTER,
+  awardFrom,
+  vestingFrom,
+  endFrom,
+  vestingReversalFrom,
+} from '../../../testSupport/company';
 import { ClassAwards } from './ClassAwards';
 import { GrantForm } from './grant/GrantForm';
 
@@ -32,7 +47,10 @@ let client: QueryClient;
 let appointments: OwnCompanyAppointment[];
 let awards: RegisterAward[];
 let events: RegisterAwardVesting[];
-let failedRead: 'award' | 'vesting' | null;
+let ends: RegisterAwardEnd[];
+let reversals: RegisterAwardVestingReversal[];
+let mismatchedEndReceipt: boolean;
+let failedRead: 'award' | 'vesting' | 'change' | null;
 const submissions = (url: string) =>
   api.post.mock.calls.filter(([endpoint]) => endpoint === url).map(([, body]) => body);
 
@@ -59,6 +77,9 @@ beforeEach(() => {
   appointments = [APPOINTMENT];
   awards = [];
   events = [];
+  ends = [];
+  reversals = [];
+  mismatchedEndReceipt = false;
   failedRead = null;
   api.save.mockReset();
   api.get.mockReset().mockImplementation(async (url) => {
@@ -71,6 +92,19 @@ beforeEach(() => {
       if (failedRead === 'vesting') throw new Error('Recorded vesting could not be refreshed');
       return { data: { results: events, next: null } };
     }
+    if (url === URLS.REGISTER_AWARD_ENDS || url === URLS.REGISTER_AWARD_VESTING_REVERSALS) {
+      if (failedRead === 'change') throw new Error('Award changes could not be refreshed');
+      return { data: { results: url === URLS.REGISTER_AWARD_ENDS ? ends : reversals, next: null } };
+    }
+    if (ends.some((event) => url === URLS.REGISTER_AWARD_END(event.uuid)))
+      return {
+        data: {
+          ...ends.find((event) => url === URLS.REGISTER_AWARD_END(event.uuid))!,
+          ...(mismatchedEndReceipt ? { evidenceFingerprint: 'b'.repeat(64) } : {}),
+        },
+      };
+    if (reversals.some((event) => url === URLS.REGISTER_AWARD_VESTING_REVERSAL(event.uuid)))
+      return { data: reversals.find((event) => url === URLS.REGISTER_AWARD_VESTING_REVERSAL(event.uuid)) };
     if (events.some((event) => url === URLS.REGISTER_AWARD_VESTING(event.uuid)))
       return { data: events.find((event) => url === URLS.REGISTER_AWARD_VESTING(event.uuid)) };
     if (url === URLS.REGISTER_MEMBERS(REGISTER.token.uuid)) return { data: { members: [] } };
@@ -105,7 +139,14 @@ beforeEach(() => {
     if (url === URLS.REGISTER_AWARD_VESTINGS) {
       const event = vestingFrom(body);
       events = [event];
-      awards = [{ ...awards[0], vestedShares: event.shares, availableShares: event.shares }];
+      awards = [
+        {
+          ...awards[0],
+          vestedShares: event.shares,
+          availableShares: event.shares,
+          unvestedRemainingShares: (BigInt(awards[0].shares) - BigInt(event.shares)).toString(),
+        },
+      ];
       failedRead = 'vesting';
       return { data: event };
     }
@@ -224,6 +265,8 @@ it('retains original award, vesting and linked issue preparations through interr
       url === URLS.REGISTER_MEMBERS(REGISTER.token.uuid)
     )
       return get(url, config);
+    if (url.startsWith(URLS.REGISTER_AWARD_ENDS) || url.startsWith(URLS.REGISTER_AWARD_VESTING_REVERSALS))
+      return get(url, config);
     if (url.startsWith('/api/v1/tokens/')) return { data: { results: [], next: null } };
     return get(url, config);
   });
@@ -280,7 +323,7 @@ it('retains original award, vesting and linked issue preparations through interr
         };
         if (body.kind === 'apply') {
           effectCount++;
-          awards = [{ ...awards[0], issuedShares: '10', availableShares: '90' }];
+          awards = [{ ...awards[0], issuedShares: '10', availableShares: '90', remainingUnissuedShares: '90' }];
           throw new Error('Issue committed but response interrupted');
         }
       }
@@ -508,6 +551,98 @@ it('retains original award, vesting and linked issue preparations through interr
   expect(api.get.mock.calls.filter(([url]) => url === URLS.REGISTER_GRANTS)).toHaveLength(beforeLookup + 2);
   expect(submissions(URLS.REGISTER_EVIDENCE)).toHaveLength(1);
   expect(awards[0].issuedShares).toBe('10');
+  refusedView.unmount();
+  appointments = [APPOINTMENT];
+  api.post.mockImplementation(async (url, body) => {
+    if (url === URLS.REGISTER_AWARD_ENDS) {
+      const event = endFrom(body);
+      ends = [...ends, event];
+      awards = [{ ...awards[0], endedVestedShares: '20', availableShares: '70', remainingUnissuedShares: '70' }];
+      throw new Error('Ending response interrupted');
+    }
+    if (url === URLS.REGISTER_AWARD_VESTING_REVERSALS) {
+      const event = vestingReversalFrom(body, awards[0].uuid);
+      reversals = [event];
+      awards = [{ ...awards[0], vestedShares: '90', availableShares: '60', unvestedRemainingShares: '10' }];
+      return { data: { ...event, reversedShares: '11' } };
+    }
+    return post(url, body);
+  });
+  const changes = show();
+  await act(async () => client.refetchQueries({ queryKey: ownAppointmentsKey(OWNER) }));
+  const ending = await screen.findByRole('button', { name: COPY.END });
+  await waitFor(() => expect((ending as HTMLButtonElement).disabled).toBe(false));
+  fireEvent.click(ending);
+  expect((screen.getByLabelText(COPY.COMPANY_EVENT_ON) as HTMLInputElement).value).toBe('');
+  fireEvent.change(screen.getByLabelText(COPY.END_VESTED), { target: { value: '91' } });
+  fireEvent.change(screen.getByLabelText(COPY.COMPANY_EVENT_ON), { target: { value: '2026-10-12' } });
+  fireEvent.change(screen.getByLabelText(COPY.REASON), {
+    target: { value: 'Company ends part of unissued vested rights' },
+  });
+  fireEvent.change(screen.getByLabelText(COPY.ADJUSTMENT_DOCUMENT), { target: { files: [FILE] } });
+  expect((screen.getByRole('button', { name: COPY.END }) as HTMLButtonElement).disabled).toBe(true);
+  fireEvent.change(screen.getByLabelText(COPY.END_VESTED), { target: { value: '20' } });
+  fireEvent.click(screen.getByRole('button', { name: COPY.END }));
+  await screen.findByRole('alert');
+  const endRequest = submissions(URLS.REGISTER_AWARD_ENDS)[0];
+  expect(endRequest).toEqual(
+    expect.objectContaining({
+      award: awards[0].uuid,
+      unvestedShares: '0',
+      vestedShares: '20',
+      companyEventOn: '2026-10-12',
+    }),
+  );
+  appointments = [{ ...APPOINTMENT, capabilities: ['read_register'] }];
+  await act(async () => client.refetchQueries({ queryKey: ownAppointmentsKey(OWNER) }));
+  await waitFor(() =>
+    expect((screen.getByRole('button', { name: COPY.END }) as HTMLButtonElement).disabled).toBe(false),
+  );
+  expect((screen.getByLabelText(COPY.END_VESTED).closest('fieldset') as HTMLFieldSetElement).disabled).toBe(true);
+  mismatchedEndReceipt = true;
+  fireEvent.click(screen.getByRole('button', { name: COPY.END }));
+  await waitFor(() =>
+    expect((screen.getByRole('button', { name: COPY.END }) as HTMLButtonElement).disabled).toBe(false),
+  );
+  expect(screen.getByRole('alert')).toBeTruthy();
+  expect(submissions(URLS.REGISTER_AWARD_ENDS)).toEqual([endRequest]);
+  expect(screen.getByLabelText(COPY.END_VESTED)).toBeTruthy();
+  mismatchedEndReceipt = false;
+  fireEvent.click(screen.getByRole('button', { name: COPY.END }));
+  await waitFor(() => expect(screen.queryByRole('button', { name: 'Close change form' })).toBeNull());
+  expect(submissions(URLS.REGISTER_AWARD_ENDS)).toEqual([endRequest]);
+  appointments = [APPOINTMENT];
+  await act(async () => client.refetchQueries({ queryKey: ownAppointmentsKey(OWNER) }));
+  fireEvent.click(screen.getByText(/Recorded vesting history/));
+  const correct = await screen.findByRole('button', { name: new RegExp(`^${COPY.REVERSE}`) });
+  await waitFor(() => expect((correct as HTMLButtonElement).disabled).toBe(false));
+  fireEvent.click(correct);
+  fireEvent.change(screen.getByLabelText(COPY.REVERSED_SHARES), { target: { value: '10' } });
+  fireEvent.change(screen.getByLabelText(COPY.COMPANY_EVENT_ON), { target: { value: '2026-10-13' } });
+  fireEvent.change(screen.getByLabelText(COPY.REASON), { target: { value: 'Correct the original vesting quantity' } });
+  fireEvent.change(screen.getByLabelText(COPY.ADJUSTMENT_DOCUMENT), { target: { files: [FILE] } });
+  fireEvent.click(screen.getByRole('button', { name: COPY.REVERSE }));
+  await screen.findByRole('alert');
+  const reversalRequest = submissions(URLS.REGISTER_AWARD_VESTING_REVERSALS)[0];
+  expect(reversalRequest).toEqual(
+    expect.objectContaining({ vesting: events[0].uuid, reversedShares: '10', companyEventOn: '2026-10-13' }),
+  );
+  fireEvent.click(screen.getByRole('button', { name: COPY.REVERSE }));
+  await waitFor(() => expect(screen.queryByRole('button', { name: 'Close change form' })).toBeNull());
+  expect(submissions(URLS.REGISTER_AWARD_VESTING_REVERSALS)).toEqual([reversalRequest]);
+  expect(awards[0]).toEqual(
+    expect.objectContaining({
+      shares: '100',
+      vestedShares: '90',
+      issuedShares: '10',
+      availableShares: '60',
+      endedVestedShares: '20',
+      remainingUnissuedShares: '70',
+    }),
+  );
+  expect(events[0].shares).toBe('100');
+  expect(screen.getByRole('img', { name: /20 vested rights ended/ })).toBeTruthy();
+  changes.unmount();
 });
 
 it('hides cached private award rows and document actions when current company authority is lost', async () => {

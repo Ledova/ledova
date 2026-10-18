@@ -1,5 +1,8 @@
 import type { AxiosInstance, AxiosRequestConfig } from 'axios';
 import { COMPANY_TOKEN_ENDPOINTS as URLS } from '../constants/api';
+import { REGISTER_AWARD_COPY } from '../constants/business/register-awards';
+import { createUserFriendlyError } from '../utils/errors';
+import { hasValidOwnMemberAward } from '../utils/register-awards';
 import type {
   MemberAssociation,
   MemberAssociationRevoke,
@@ -21,10 +24,24 @@ import type {
   RegisterParticularsChange,
 } from '../types';
 
-export const getOwnMemberRecords = (api: AxiosInstance, page = 1, config: AxiosRequestConfig = {}) =>
-  api.get<PaginatedResponse<OwnMemberRecord>>(URLS.MEMBER_RECORDS, { ...config, params: { page } });
-export const getOwnMemberRecord = (api: AxiosInstance, uuid: string, config: AxiosRequestConfig = {}) =>
-  api.get<OwnMemberRecord>(URLS.MEMBER_RECORD(uuid), config);
+function validOwnAwards(record: OwnMemberRecord) {
+  return !!record && Array.isArray(record.awards) && record.awards.every(hasValidOwnMemberAward);
+}
+
+export const getOwnMemberRecords = async (api: AxiosInstance, page = 1, config: AxiosRequestConfig = {}) => {
+  const response = await api.get<PaginatedResponse<OwnMemberRecord>>(URLS.MEMBER_RECORDS, {
+    ...config,
+    params: { page },
+  });
+  if (!response.data || !Array.isArray(response.data.results) || !response.data.results.every(validOwnAwards))
+    throw createUserFriendlyError(REGISTER_AWARD_COPY.MEMBER_RECORDS_FAILED);
+  return response;
+};
+export const getOwnMemberRecord = async (api: AxiosInstance, uuid: string, config: AxiosRequestConfig = {}) => {
+  const response = await api.get<OwnMemberRecord>(URLS.MEMBER_RECORD(uuid), config);
+  if (!validOwnAwards(response.data)) throw createUserFriendlyError(REGISTER_AWARD_COPY.MEMBER_RECORDS_FAILED);
+  return response;
+};
 export const getOwnMemberEntries = (api: AxiosInstance, uuid: string, token: string, config: AxiosRequestConfig = {}) =>
   api.get<OwnMemberEntries>(URLS.MEMBER_ENTRIES(uuid), { ...config, params: { token } });
 export const createMemberInvitation = (

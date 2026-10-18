@@ -20,6 +20,11 @@ def install(apps, schema_editor):
             "tokens_guard_transfer_register_entry",
         ),
         "database_award_guards.sql": (
+            "tokens_employee_award_reversed",
+            "tokens_employee_award_ended",
+            "tokens_employee_award_latest_on",
+            "tokens_employee_award_adjustments",
+            "tokens_employee_award_vested_on",
             "tokens_employee_award_grant_matches",
             "tokens_register_grant_ready",
             "tokens_guard_register_grant",

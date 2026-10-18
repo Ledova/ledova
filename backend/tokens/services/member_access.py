@@ -356,7 +356,7 @@ def own_record(association):
         )
     awards = []
     for award in RegisterAward.objects.filter(company=association.company, member=association.member).prefetch_related(
-        "vestings"
+        "vestings", "ends", "vesting_reversals"
     ):
         awards.append(
             {
@@ -370,6 +370,28 @@ def own_record(association):
                 "vestings": [
                     {"uuid": fact.pk, "shares": fact.shares, "vested_on": fact.vested_on}
                     for fact in award.vestings.all()
+                ],
+                "ends": [
+                    {
+                        "uuid": fact.pk,
+                        "unvested_shares": fact.unvested_shares,
+                        "vested_shares": fact.vested_shares,
+                        "company_event_on": fact.company_event_on,
+                        "reason": fact.reason,
+                        "created_at": fact.created_at,
+                    }
+                    for fact in award.ends.all()
+                ],
+                "vesting_reversals": [
+                    {
+                        "uuid": fact.pk,
+                        "vesting": fact.vesting_id,
+                        "reversed_shares": fact.reversed_shares,
+                        "company_event_on": fact.company_event_on,
+                        "reason": fact.reason,
+                        "created_at": fact.created_at,
+                    }
+                    for fact in award.vesting_reversals.all()
                 ],
             }
         )

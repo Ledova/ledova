@@ -3,13 +3,14 @@ import * as Crypto from 'expo-crypto';
 import { Text, View } from 'react-native';
 import {
   DESTINATIONS,
+  REGISTER_AWARD_COPY as AWARD_COPY,
   formatShareCount,
   formatDateTime,
   useMemberRecords,
   getMemberCertificateFileBytes,
   type MemberCertificateRequest,
 } from '@ledova/shared';
-import { Action, Choice, Section } from '../../components/Ledger';
+import { Action, Choice, Section, Row, Rows } from '../../components/Ledger';
 import { Page } from '../../components/Page';
 import { apiClient } from '../../services/apiClient';
 import { orderSubmissionSession } from '../../services/orderSubmissions';
@@ -164,9 +165,27 @@ function MemberRecords({
                             {award.termsOn} · {award.terms}
                           </Text>
                           <Text style={styles.muted}>{award.schedule}</Text>
+                          <Rows>
+                            <Row label={AWARD_COPY.ENDED_UNVESTED}>{award.endedUnvestedShares}</Row>
+                            <Row label={AWARD_COPY.ENDED_VESTED}>{award.endedVestedShares}</Row>
+                            <Row label={AWARD_COPY.UNVESTED_REMAINING}>{award.unvestedRemainingShares}</Row>
+                            <Row label={AWARD_COPY.REMAINING_UNISSUED}>{award.remainingUnissuedShares}</Row>
+                          </Rows>
                           {award.vestings.map((event) => (
                             <Text key={event.uuid} style={styles.muted}>
                               {event.vestedOn} · {formatShareCount(event.shares)} recorded vested
+                            </Text>
+                          ))}
+                          {award.ends.map((event) => (
+                            <Text key={event.uuid} style={styles.muted}>
+                              {event.companyEventOn} · {formatShareCount(event.unvestedShares)} unvested and{' '}
+                              {formatShareCount(event.vestedShares)} vested unissued rights ended · {event.reason}
+                            </Text>
+                          ))}
+                          {award.vestingReversals.map((event) => (
+                            <Text key={event.uuid} style={styles.muted}>
+                              {event.companyEventOn} · {formatShareCount(event.reversedShares)} vesting reversed ·
+                              original {event.vesting} · {event.reason}
                             </Text>
                           ))}
                         </View>

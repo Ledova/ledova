@@ -4,7 +4,9 @@ from tokens.models import (
     RegisterAgreement,
     RegisterAllotment,
     RegisterAward,
+    RegisterAwardEnd,
     RegisterAwardVesting,
+    RegisterAwardVestingReversal,
     RegisterCapitalIncrease,
     RegisterContribution,
     RegisterCorrection,
@@ -497,6 +499,36 @@ def section(company):
         )
         for record in _facts(RegisterAwardVesting, company)
     ]
+    award_ends = [
+        _fact(
+            record,
+            record.submitted_by,
+            sources={"evidence": _source(record, "evidence", "evidence_fingerprint", "evidence_snapshot")},
+            data={
+                "award": _related(record, record.award),
+                "unvested_shares": str(record.unvested_shares),
+                "vested_shares": str(record.vested_shares),
+                "company_event_on": record.company_event_on,
+                "reason": record.reason,
+            },
+        )
+        for record in _facts(RegisterAwardEnd, company)
+    ]
+    vesting_reversals = [
+        _fact(
+            record,
+            record.submitted_by,
+            sources={"evidence": _source(record, "evidence", "evidence_fingerprint", "evidence_snapshot")},
+            data={
+                "award": _related(record, record.award),
+                "vesting": _related(record, record.vesting),
+                "reversed_shares": str(record.reversed_shares),
+                "company_event_on": record.company_event_on,
+                "reason": record.reason,
+            },
+        )
+        for record in _facts(RegisterAwardVestingReversal, company)
+    ]
     agreements = [
         _fact(
             record,
@@ -558,7 +590,16 @@ def section(company):
     }
     appointment_ids = {
         appointment
-        for rows in [*records.values(), awards, vestings, agreements, contributions, allotments]
+        for rows in [
+            *records.values(),
+            awards,
+            vestings,
+            award_ends,
+            vesting_reversals,
+            agreements,
+            contributions,
+            allotments,
+        ]
         for record in rows
         for appointment in [
             record["preparing_appointment"],
@@ -578,6 +619,8 @@ def section(company):
         "wallet_nominations": nominations,
         "awards": awards,
         "vestings": vestings,
+        "award_ends": award_ends,
+        "vesting_reversals": vesting_reversals,
         "agreements": agreements,
         "contributions": contributions,
         "allotments": allotments,

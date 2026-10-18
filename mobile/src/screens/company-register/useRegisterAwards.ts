@@ -3,7 +3,11 @@ import {
   getRegisterAward,
   getRegisterAwards,
   getRegisterAwardVestings,
+  getRegisterAwardEnds,
+  getRegisterAwardVestingReversals,
   hasValidRegisterAwardTotals,
+  hasValidRegisterAwardEnd,
+  hasValidRegisterAwardVestingReversal,
   readEveryPage,
 } from '@ledova/shared';
 import { apiClient } from '../../services/apiClient';
@@ -78,6 +82,61 @@ export function useRegisterAwardVestings(epoch: number, company: string, award: 
       });
       if (rows.some((row) => row.company !== company || row.award !== award || !/^[1-9]\d*$/.test(row.shares)))
         throw new Error('The vesting events do not belong to this award.');
+      return [...new Map(rows.map((row) => [row.uuid, row])).values()].sort(
+        (left, right) => Date.parse(right.createdAt) - Date.parse(left.createdAt),
+      );
+    },
+  });
+}
+
+export const awardEndsKey = (epoch: number, award: string) => [...registerKey(epoch), 'award-ends', award];
+export const awardVestingReversalsKey = (epoch: number, award: string) => [
+  ...registerKey(epoch),
+  'award-vesting-reversals',
+  award,
+];
+
+export function useRegisterAwardEnds(epoch: number, company: string, award: string, guard: () => void) {
+  return useQuery({
+    queryKey: awardEndsKey(epoch, award),
+    queryFn: async ({ signal }) => {
+      const rows = await readEveryPage(async (page) => {
+        guard();
+        const response = await getRegisterAwardEnds(
+          apiClient,
+          { company, award, page },
+          { ledovaSessionEpoch: epoch, ledovaSubmissionGuard: guard, signal },
+        );
+        guard();
+        return response;
+      });
+      if (rows.some((row) => row.company !== company || row.award !== award || !hasValidRegisterAwardEnd(row)))
+        throw new Error('The entitlement changes do not belong to this award.');
+      return [...new Map(rows.map((row) => [row.uuid, row])).values()].sort(
+        (left, right) => Date.parse(right.createdAt) - Date.parse(left.createdAt),
+      );
+    },
+  });
+}
+
+export function useRegisterAwardVestingReversals(epoch: number, company: string, award: string, guard: () => void) {
+  return useQuery({
+    queryKey: awardVestingReversalsKey(epoch, award),
+    queryFn: async ({ signal }) => {
+      const rows = await readEveryPage(async (page) => {
+        guard();
+        const response = await getRegisterAwardVestingReversals(
+          apiClient,
+          { company, award, page },
+          { ledovaSessionEpoch: epoch, ledovaSubmissionGuard: guard, signal },
+        );
+        guard();
+        return response;
+      });
+      if (
+        rows.some((row) => row.company !== company || row.award !== award || !hasValidRegisterAwardVestingReversal(row))
+      )
+        throw new Error('The vesting corrections do not belong to this award.');
       return [...new Map(rows.map((row) => [row.uuid, row])).values()].sort(
         (left, right) => Date.parse(right.createdAt) - Date.parse(left.createdAt),
       );

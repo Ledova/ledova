@@ -581,6 +581,10 @@ OPERATOR_ONLY = {
     "reached through their private parent.",
     "tokens_registeraward": "Immutable private company employee agreements, served only through current "
     "exact-company register appointments on the operator connection.",
+    "tokens_registerawardend": "Append-only company entitlement endings and private evidence "
+    "require exact company appointments.",
+    "tokens_registerawardvestingreversal": "Append-only referenced vesting reversals and private evidence "
+    "require exact company appointments.",
     "tokens_registerawardvesting": "Append-only company-confirmed vesting facts and private evidence, "
     "served only through current exact-company register appointments on the operator connection.",
     "tokens_registerpausechange": "Private immutable company pause sources and retained authority evidence, "

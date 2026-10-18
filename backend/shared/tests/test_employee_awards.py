@@ -1,34 +1,39 @@
 import json
+from datetime import timedelta
 from uuid import uuid4
 
-from django.db import connections
+from django.db import IntegrityError, connections
 from django.utils import timezone
 from rest_framework.test import APITransactionTestCase
 
 from companies.models import CompanyAppointment, CompanyCapability
 from companies.services.authority import DECLARATION_VERSION
 from companies.services.team import revoke_company_appointment
-from shared.db import current_alias, use_operator
+from shared.db import atomic, current_alias, use_operator
 from shared.tests.core_fixtures import CoreFixtures, person, retained_evidence
 from tokens.models import (
     RegisterAward,
+    RegisterAwardEnd,
     RegisterAwardVesting,
+    RegisterAwardVestingReversal,
     RegisterEvidence,
     RegisterEvidenceKind,
     RegisterGrant,
     RegisterMember,
     RegisterPosition,
 )
+from tokens.services.register_authority import register_command
 from tokens.services.register_evidence import retain_register_evidence
 
 
 class EmployeeAwardTest(CoreFixtures, APITransactionTestCase):
     def test_vesting_cannot_exceed_the_promise_and_transfers_do_not_recycle_issued_entitlement(self):
-        award = self.award_payload(shares="10")
+        yesterday = (timezone.now().date() - timedelta(days=1)).isoformat()
+        award = self.award_payload(shares="10", terms_on=yesterday)
         response = self.client.post("/api/v1/tokens/register-awards/", award, format="json")
         self.assertEqual(response.status_code, 201, response.content)
         award_receipt = response.json()
-        vesting = self.vesting_payload(award["operation_id"], shares="6")
+        vesting = self.vesting_payload(award["operation_id"], shares="6", vested_on=yesterday)
         response = self.client.post("/api/v1/tokens/register-award-vestings/", vesting, format="json")
         self.assertEqual(response.status_code, 201, response.content)
         excess = self.client.post(
@@ -217,6 +222,217 @@ class EmployeeAwardTest(CoreFixtures, APITransactionTestCase):
             self.assertEqual(RegisterGrant.objects.filter(award_id=award["operation_id"], status="applied").count(), 2)
             self.token.stored_register.refresh_from_db()
             self.assertEqual(int(self.token.stored_register.issued_supply), 106)
+        extra_vesting = self.vesting_payload(award["operation_id"], shares="2")
+        vested = self.client.post("/api/v1/tokens/register-award-vestings/", extra_vesting, format="json")
+        self.assertEqual(vested.status_code, 201, vested.content)
+        pending = self.client.post(
+            endpoint, self.linked_grant_payload(award, shares="2", new_member=False), format="json"
+        )
+        self.assertEqual(pending.status_code, 201, pending.content)
+        self.decision(endpoint, pending.json()["uuid"], "approve")
+        still_available = self.client.post(
+            endpoint, self.linked_grant_payload(award, shares="1", new_member=False), format="json"
+        )
+        self.assertEqual(still_available.status_code, 201, still_available.content)
+        self.decision(endpoint, still_available.json()["uuid"], "approve")
+        end_evidence = retained_evidence(self.owner, self.appointment, RegisterEvidenceKind.SUPPORTING)
+        end_payload = {
+            "operation_id": str(uuid4()),
+            "appointment": str(self.appointment.pk),
+            "award": award["operation_id"],
+            "unvested_shares": "1",
+            "vested_shares": "1",
+            "company_event_on": timezone.now().date().isoformat(),
+            "reason": "Company ends selected unissued rights",
+            "evidence": str(end_evidence.pk),
+        }
+        ends = "/api/v1/tokens/register-award-ends/"
+        for changes in (
+            {"company_event_on": yesterday},
+            {"unvested_shares": "0", "vested_shares": "0"},
+            {"unvested_shares": "3"},
+            {"vested_shares": "3"},
+            {"evidence": original_request["authority_evidence"]},
+        ):
+            refused = self.client.post(ends, {**end_payload, **changes}, format="json")
+            self.assertEqual(refused.status_code, 400, refused.content)
+        ended = self.client.post(ends, end_payload, format="json")
+        self.assertEqual(ended.status_code, 201, ended.content)
+        self.assertEqual(self.client.post(ends, end_payload, format="json").status_code, 200)
+        self.assertEqual(self.client.get(f"{ends}{end_payload['operation_id']}/").json(), ended.json())
+        changed = self.client.post(ends, {**end_payload, "reason": "Changed fact"}, format="json")
+        self.assertEqual(changed.status_code, 409, changed.content)
+        for table, family, field, operation in (
+            ("tokens_registerawardend", "register-award-ends", "unvested_shares", "register_award_end_record"),
+            ("tokens_registerawardend", "register-award-ends", "vested_shares", "register_award_end_record"),
+            (
+                "tokens_registerawardvestingreversal",
+                "register-award-vesting-reversals",
+                "reversed_shares",
+                "register_award_vesting_reversal_record",
+            ),
+        ):
+            operation_id = str(uuid4())
+            changes = {
+                "uuid": operation_id,
+                "unvested_shares": "0",
+                "vested_shares": "0",
+                field: "0.6",
+                "vesting_id": vesting["operation_id"],
+                "file": f"companies/{self.company.pk}/{family}/{operation_id}/{uuid4()}.bin",
+            }
+            with self.assertRaises(IntegrityError) as refusal:
+                with register_command(self.owner, self.company.pk, operation), connections[
+                    current_alias()
+                ].cursor() as cursor:
+                    cursor.execute(
+                        f"INSERT INTO {table} SELECT (jsonb_populate_record(NULL::{table}, "
+                        "to_jsonb(fact) || %s::jsonb)).* FROM tokens_registerawardend fact WHERE fact.uuid = %s",
+                        [json.dumps(changes), end_payload["operation_id"]],
+                    )
+            self.assertEqual(refusal.exception.__cause__.sqlstate, "23514")
+        preview = self.client.post(
+            f"{endpoint}{pending.json()['uuid']}/decision-preview/",
+            {"appointment": str(self.appointment.pk), "kind": "apply"},
+            format="json",
+        )
+        self.assertIn("approval_lapsed", str(preview.json()))
+        self.assertIn("recorded_vested_quantity_required", str(preview.json()))
+        sufficient = self.client.post(
+            f"{endpoint}{still_available.json()['uuid']}/decision-preview/",
+            {"appointment": str(self.appointment.pk), "kind": "apply"},
+            format="json",
+        )
+        self.assertEqual(sufficient.json()["unmetRequirements"], ["approval_lapsed"])
+        self.assertFalse(sufficient.json()["canDecide"])
+        stale = self.client.post(
+            f"{endpoint}{pending.json()['uuid']}/decide/",
+            {
+                "appointment": str(self.appointment.pk),
+                "kind": "apply",
+                "idempotency_key": str(uuid4()),
+                "preview_digest": preview.json()["previewDigest"],
+                "confirmation": True,
+            },
+            format="json",
+        )
+        self.assertEqual(stale.status_code, 400, stale.content)
+        rejection = {
+            "appointment": str(self.appointment.pk),
+            "kind": "reject",
+            "reason": "Reprepare after the company entitlement fact",
+        }
+        preview_reject = self.client.post(
+            f"{endpoint}{pending.json()['uuid']}/decision-preview/", rejection, format="json"
+        )
+        rejected = self.client.post(
+            f"{endpoint}{pending.json()['uuid']}/decide/",
+            {
+                **rejection,
+                "idempotency_key": str(uuid4()),
+                "preview_digest": preview_reject.json()["previewDigest"],
+                "confirmation": True,
+            },
+            format="json",
+        )
+        self.assertEqual(rejected.status_code, 200, rejected.content)
+        sufficient_reject = self.client.post(
+            f"{endpoint}{still_available.json()['uuid']}/decision-preview/", rejection, format="json"
+        )
+        refused_pending = self.client.post(
+            f"{endpoint}{still_available.json()['uuid']}/decide/",
+            {
+                **rejection,
+                "idempotency_key": str(uuid4()),
+                "preview_digest": sufficient_reject.json()["previewDigest"],
+                "confirmation": True,
+            },
+            format="json",
+        )
+        self.assertEqual(refused_pending.status_code, 200, refused_pending.content)
+        reversal_payload = {
+            "operation_id": str(uuid4()),
+            "appointment": str(self.appointment.pk),
+            "vesting": vesting["operation_id"],
+            "reversed_shares": "1",
+            "company_event_on": timezone.now().date().isoformat(),
+            "reason": "Correct an overstated vesting record",
+            "evidence": str(end_evidence.pk),
+        }
+        reversals = "/api/v1/tokens/register-award-vesting-reversals/"
+        reversed_fact = self.client.post(reversals, reversal_payload, format="json")
+        self.assertEqual(reversed_fact.status_code, 201, reversed_fact.content)
+        self.assertEqual(self.client.post(reversals, reversal_payload, format="json").status_code, 200)
+        self.assertEqual(
+            self.client.get(f"{reversals}{reversal_payload['operation_id']}/").json(), reversed_fact.json()
+        )
+        for changes in ({"reversed_shares": "2"}, {"vesting": str(uuid4())}):
+            refused = self.client.post(
+                reversals, {**reversal_payload, "operation_id": str(uuid4()), **changes}, format="json"
+            )
+            self.assertEqual(refused.status_code, 404 if "vesting" in changes else 400, refused.content)
+        quantities = self.client.get(f"/api/v1/tokens/register-awards/{award['operation_id']}/").json()
+        self.assertEqual(
+            tuple(
+                quantities[key]
+                for key in (
+                    "shares",
+                    "vestedShares",
+                    "issuedShares",
+                    "endedUnvestedShares",
+                    "endedVestedShares",
+                    "availableShares",
+                    "unvestedRemainingShares",
+                    "remainingUnissuedShares",
+                )
+            ),
+            ("10", "7", "6", "1", "1", "0", "2", "2"),
+        )
+        self.assertEqual(self.client.post("/api/v1/tokens/register-awards/", award, format="json").status_code, 200)
+        self.assertEqual(
+            self.client.post("/api/v1/tokens/register-award-vestings/", vesting, format="json").status_code, 200
+        )
+        self.assertEqual(
+            self.client.post(f"{endpoint}{identifier}/decide/", earlier_decision, format="json").json()[
+                "registerEntry"
+            ],
+            original_applied.json()["registerEntry"],
+        )
+        for model, operation in (
+            (RegisterAwardEnd, end_payload["operation_id"]),
+            (RegisterAwardVestingReversal, reversal_payload["operation_id"]),
+        ):
+            with self.assertRaises(IntegrityError), use_operator(), atomic():
+                model.objects.filter(pk=operation).update(reason="Rewrite retained fact")
+            with self.assertRaises(IntegrityError), use_operator(), atomic():
+                model.objects.filter(pk=operation).delete()
+        final_vesting = self.vesting_payload(award["operation_id"], shares="2")
+        self.assertEqual(
+            self.client.post("/api/v1/tokens/register-award-vestings/", final_vesting, format="json").status_code, 201
+        )
+        final_end = self.client.post(
+            ends,
+            {**end_payload, "operation_id": str(uuid4()), "unvested_shares": "0", "vested_shares": "2"},
+            format="json",
+        )
+        self.assertEqual(final_end.status_code, 201, final_end.content)
+        final_quantities = self.client.get(f"/api/v1/tokens/register-awards/{award['operation_id']}/").json()
+        self.assertEqual(
+            (
+                final_quantities["issuedShares"],
+                final_quantities["remainingUnissuedShares"],
+                final_quantities["availableShares"],
+            ),
+            ("6", "0", "0"),
+        )
+        self.assertEqual(
+            self.client.post(
+                "/api/v1/tokens/register-award-vestings/",
+                {**final_vesting, "operation_id": str(uuid4()), "shares": "1"},
+                format="json",
+            ).status_code,
+            400,
+        )
         revoke_company_appointment(requester=self.owner, appointment_id=appointment.pk)
         self.client.force_authenticate(preparer)
         refused = self.client.post(endpoint, {**reused, "operation_id": str(uuid4())}, format="json")

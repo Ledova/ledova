@@ -475,7 +475,8 @@ conventions, and the register hash format is unchanged.
 ### Employee awards API
 
 What an award is: [employee awards](../business/issuing-shares.md#employee-awards-and-vesting).
-`register-awards/` and `register-award-vestings/` record under a retry key with no decision;
+`register-awards/`, `register-award-vestings/`, `register-award-ends/` and
+`register-award-vesting-reversals/` record under a retry key with no decision;
 `register-grants/` with an `award` is an award's only issue path, and an award records no member,
 entry, position or supply. Awards and vesting events are append-only and keep their actor,
 appointment, operation id and creation time; identity triggers require exact current company
@@ -483,6 +484,28 @@ authority, recipient, class and agreement, or exact award, quantity, date and ev
 constraint triggers recheck the recording authority at commit. Concurrent events and linked grant
 applications serialise the allocation check, and a failed effect rolls back whole. The tables are
 operator-only.
+
+An end states nonnegative `unvested_shares` and `vested_shares`, at least one positive; a reversal
+states positive `reversed_shares` against one original vesting. Both retain a company event date,
+reason, current preparing appointment, actual actor and recording time, and a fingerprinted private
+copy of supporting evidence. They never edit the original award or positive vesting records.
+`vested_shares` is net vesting after reversals; `issued_shares` permanently counts applied linked
+grants even after transfers or ledger corrections. `ended_unvested_shares` and `ended_vested_shares`
+are cumulative endings. Available vested rights are net vested less issued and ended vested;
+unvested remaining is the original promise less net vested and ended unvested; remaining unissued
+is the promise less issued and both endings. All quantities must stay nonnegative. Cumulative
+reversals cannot exceed their referenced vesting, and cannot remove issued or ended vested rights.
+
+New vesting, end and reversal facts, and newly applied linked grants, cannot precede the latest
+accepted award fact or known linked-issue company date, or be future-dated. Earlier pending grants
+must be rejected and prepared afresh; dates are never inferred or changed. Both current availability
+and company-date vesting eligibility are rechecked. Historical applied unknown dates and original
+receipts remain unchanged. The grant digest includes ending/reversal snapshots only when present,
+so an empty history preserves retained digests. An ending or reversal must be recorded before
+the approval’s actual decision time; a later fact lapses prior approval even if the quantity still fits.
+The new-fact guard stamps actual immutable recording clocks, independent of company event dates.
+Company readers have private fact/file endpoints; own-member reads expose the quantities, source
+vesting, dates and reason without private evidence metadata.
 
 A linked grant can set its existing `terms_evidence` to the award’s `agreement_evidence` without
 another upload. Under current company preparation authority, the producer checks that exact source’s
@@ -820,7 +843,8 @@ table column, link or tag. Values Ledova produces are left as they are, and the 
 
 The record kind in an evidence path is the lowercase model name (`registeropening`,
 `registerimport`, `registercorrection`, `registerinstruction`, `registerwalletlink`,
-`registerparticularschange`, `registeraward`, `registerawardvesting`, `registeragreement`,
+`registerparticularschange`, `registeraward`, `registerawardvesting`, `registerawardend`,
+`registerawardvestingreversal`, `registeragreement`,
 `registercontribution`, `registerallotment`, `registergrant`, `registertransfer`), so records
 sharing an operation id cannot replace each other's copy. The extension is that of the media type
 the snapshot recorded (`.pdf`, `.png` or `.jpeg`; none for another type). Internal ids (user,
@@ -835,7 +859,7 @@ behind, except the platform account numbers decision records carry.
 `openings`, `imports`, `corrections`, `wallet_links`, `particulars_changes`, `grants`, `transfers`,
 `instructions` (register instructions, chain grants and paid issues), `deployments`,
 `capital_increases`, `pause_changes`, `wallet_instructions` and `allotments`; the company-recorded
-facts `awards`, `vestings`, `agreements` and `contributions`; the `wallet_nominations`; and the
+facts `awards`, `vestings`, `award_ends`, `vesting_reversals`, `agreements` and `contributions`; the `wallet_nominations`; and the
 `appointments` any of them used. A decision record carries its company and class, preparer and
 `prepared_at`, `status`, `approval_decision`, reviewer, `reviewed_at` and `rejection_reason`;
 `decisions` (each with kind, appointment, decider, time, digest and reason); `sources` (each with
@@ -852,7 +876,7 @@ with their platform account numbers (`prepared_by_id`, `decided_by_id`, `recorde
 `appointee_id`).
 
 Evidence copies are carried for openings, imports (with the ASIC extract), corrections, register
-instructions' authority, wallet links, particulars changes, awards, vesting events, agreements,
+instructions' authority, wallet links, particulars changes, awards, vesting events, entitlement endings, vesting reversals, agreements,
 contributions, allotments, grants (with terms and acceptance) and transfers (with the instrument).
 
 ### Authority records and history

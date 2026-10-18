@@ -1,7 +1,12 @@
 from rest_framework import serializers
 
 from tokens.constants import REGISTER_IMPORT_ADDRESS_LENGTH
-from tokens.models import RegisterAward, RegisterAwardVesting
+from tokens.models import (
+    RegisterAward,
+    RegisterAwardEnd,
+    RegisterAwardVesting,
+    RegisterAwardVestingReversal,
+)
 from tokens.services.register_awards import award_quantities
 
 
@@ -37,6 +42,10 @@ class RegisterAwardSerializer(serializers.ModelSerializer):
     vested_shares = serializers.CharField(read_only=True)
     issued_shares = serializers.CharField(read_only=True)
     available_shares = serializers.CharField(read_only=True)
+    ended_unvested_shares = serializers.CharField(read_only=True)
+    ended_vested_shares = serializers.CharField(read_only=True)
+    unvested_remaining_shares = serializers.CharField(read_only=True)
+    remaining_unissued_shares = serializers.CharField(read_only=True)
 
     class Meta:
         model = RegisterAward
@@ -63,6 +72,10 @@ class RegisterAwardSerializer(serializers.ModelSerializer):
             "vested_shares",
             "issued_shares",
             "available_shares",
+            "ended_unvested_shares",
+            "ended_vested_shares",
+            "unvested_remaining_shares",
+            "remaining_unissued_shares",
         ]
         read_only_fields = fields
 
@@ -82,6 +95,79 @@ class RegisterAwardVestingSerializer(serializers.ModelSerializer):
             "award",
             "shares",
             "vested_on",
+            "evidence",
+            "evidence_fingerprint",
+            "evidence_snapshot",
+            "preparing_appointment",
+            "prepared_by_name",
+            "submitted_by",
+            "created_at",
+            "provided_by",
+        ]
+        read_only_fields = fields
+
+
+class RegisterAwardEndCreateSerializer(serializers.Serializer):
+    operation_id = serializers.UUIDField()
+    appointment = serializers.UUIDField()
+    award = serializers.UUIDField()
+    unvested_shares = serializers.RegexField(regex=r"^(0|[1-9][0-9]{0,77})$")
+    vested_shares = serializers.RegexField(regex=r"^(0|[1-9][0-9]{0,77})$")
+    company_event_on = serializers.DateField()
+    reason = serializers.CharField(max_length=1000)
+    evidence = serializers.UUIDField()
+
+
+class RegisterAwardVestingReversalCreateSerializer(serializers.Serializer):
+    operation_id = serializers.UUIDField()
+    appointment = serializers.UUIDField()
+    vesting = serializers.UUIDField()
+    reversed_shares = serializers.RegexField(regex=r"^[1-9][0-9]{0,77}$")
+    company_event_on = serializers.DateField()
+    reason = serializers.CharField(max_length=1000)
+    evidence = serializers.UUIDField()
+
+
+class RegisterAwardEndSerializer(serializers.ModelSerializer):
+    prepared_by_name = serializers.CharField(source="preparing_appointment.appointee_profile.full_name", read_only=True)
+    provided_by = serializers.CharField(default="company", read_only=True)
+
+    class Meta:
+        model = RegisterAwardEnd
+        fields = [
+            "uuid",
+            "company",
+            "award",
+            "unvested_shares",
+            "vested_shares",
+            "company_event_on",
+            "reason",
+            "evidence",
+            "evidence_fingerprint",
+            "evidence_snapshot",
+            "preparing_appointment",
+            "prepared_by_name",
+            "submitted_by",
+            "created_at",
+            "provided_by",
+        ]
+        read_only_fields = fields
+
+
+class RegisterAwardVestingReversalSerializer(serializers.ModelSerializer):
+    prepared_by_name = serializers.CharField(source="preparing_appointment.appointee_profile.full_name", read_only=True)
+    provided_by = serializers.CharField(default="company", read_only=True)
+
+    class Meta:
+        model = RegisterAwardVestingReversal
+        fields = [
+            "uuid",
+            "company",
+            "award",
+            "vesting",
+            "reversed_shares",
+            "company_event_on",
+            "reason",
             "evidence",
             "evidence_fingerprint",
             "evidence_snapshot",

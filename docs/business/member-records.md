@@ -78,15 +78,16 @@ inviting administrator, another person's account or a conflicting association is
 ### What a member can read
 
 An accepted member reads their own company-recorded particulars, share-class balances, the entries
-that changed their holding, and their employee-award terms with recorded vesting and issued
-quantities; no wallet or company approval is needed. Company totals, other members, private
+that changed their holding, and their employee-award terms, original vesting, endings and referenced reversals with net vested,
+issued, ended and remaining quantities; no wallet or company approval is needed. Company totals, other members, private
 company decisions, financial documents and other members' parts of an entry are never shown. An
 award is an entitlement, not a holding. Editing the personal Profile does not change the register;
 only a [particulars request](#particulars-requests) can.
 
 **Dashboard** (web) and **My shares** (mobile) show issued shares by class apart from awards, with
-a bar splitting each award into unvested, vested but unissued, and issued quantities (issued award
-shares already belong to the holding), then certificates, recent own changes and request status,
+the original award promise and its remaining and ended quantities. The web bar includes unvested,
+vested but unissued, issued and ended rights; issued award shares already belong to the holding.
+Both clients also show certificates, recent own changes and request status,
 with particulars and the longer history in expandable sections on the same page. Wallet holdings
 are on [the Wallet shares page](#the-wallet-shares-page).
 
@@ -307,7 +308,7 @@ stated limits, not proof of a bank payment, current contract ownership or a lodg
   and their acknowledgements, completed effects still waiting to be recorded, and the certificates
   and notice figures still due.
 - The company's decision records: appointments, openings, imports, corrections, wallet links,
-  particulars changes, grants, transfers, employee awards and vesting, external agreements,
+  particulars changes, grants, transfers, employee awards, vesting, entitlement endings and vesting reversals, external agreements,
   contributions and allotments, register instructions, deployments, capital increases, pause
   changes, and wallet nominations and instructions, each with who prepared and decided it, under
   which appointment, and any supporting file Ledova retained
@@ -359,7 +360,7 @@ This route produces only a complete core pack: every share class is an opened im
 never put on chain, and the company has no chain issues, subscriptions awaiting allotment,
 settlements, deployments, capital increases, pause changes, wallet approvals, nominations,
 instructions or links, retained register instructions or publications. Such a pack carries its
-decisions, awards and vesting, external agreements, contributions and allotments with their
+decisions, awards and their vesting, endings and reversals, external agreements, contributions and allotments with their
 original supporting files. Anything else refuses the whole download rather than silently leaving
 records out, and the company asks platform staff for the broader pack.
 
