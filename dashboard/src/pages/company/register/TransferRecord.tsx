@@ -1,27 +1,18 @@
 import { useLayoutEffect, useRef } from 'react';
-import { useMutation } from '@tanstack/react-query';
 import {
   REGISTER_TRANSFER_COPY as COPY,
   REGISTER_TRANSFER_DECISIONS,
   apiErrorSentence,
-  downloadRegisterTransferFile,
   formatDateTime,
   type RegisterTransfer,
   type RegisterTransferDecisionPreview,
 } from '@ledova/shared';
 import { Row, Rows, Status } from '@components/Ledger';
 import { PageAction } from '@components/Page';
-import apiClient from '@services/apiClient';
 import { DecisionTrail } from '@pages/company/register/shared/DecisionTrail';
 import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
-import {
-  DOWNLOAD_FAILED,
-  STAGE_TONES,
-  retainedName,
-  shareCount,
-  type RegisterSteps,
-} from '@pages/company/shared/proposals';
-import { saveFile } from '@utils/saveFile';
+import { DOWNLOAD_FAILED, STAGE_TONES, shareCount, type RegisterSteps } from '@pages/company/shared/proposals';
+import { useTransferRecordDownload } from './useRegisterRecordDownload';
 
 function TransferRows({ transfer }: { transfer: RegisterTransfer | RegisterTransferDecisionPreview }) {
   return (
@@ -70,22 +61,7 @@ export function TransferRecord({
     guard();
     if (!available.current) throw new Error('Open the current register task before reading or deciding this record.');
   };
-  const download = useMutation({
-    mutationFn: async (kind: 'authority' | 'instrument') => {
-      check();
-      const { data } = await downloadRegisterTransferFile(apiClient, transfer.uuid, kind, {
-        ledovaSubmissionGuard: check,
-      });
-      check();
-      saveFile(
-        data,
-        retainedName(
-          kind === 'authority' ? transfer.evidenceSnapshot : transfer.instrumentSnapshot,
-          `${kind}-${transfer.uuid}`,
-        ),
-      );
-    },
-  });
+  const download = useTransferRecordDownload(transfer, check);
   const context = `transfer from ${transfer.fromName} to ${transfer.name} prepared ${formatDateTime(transfer.createdAt)}`;
   return (
     <li hidden={!visible} className="flex flex-col gap-3 py-4">
