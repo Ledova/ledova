@@ -45,6 +45,7 @@ export function useAllotmentForm({
     name: '',
     residentialAddress: '',
     shares: '',
+    companyEventOn: '',
     consideration: '',
     receivedAmount: '',
     agreementReference: '',
@@ -94,17 +95,19 @@ export function useAllotmentForm({
         ? 'Enter a positive whole number of shares.'
         : !consideration || received !== consideration
           ? 'The company-reported receipt must equal the full positive AUD consideration, with at most two decimal places.'
-          : [fields.agreementOn, fields.receivedOn].some((date) => !/^\d{4}-\d{2}-\d{2}$/.test(date) || date > today)
-            ? 'Agreement and receipt dates must be today (UTC) or earlier.'
-            : !fields.agreementReference.trim() ||
-                !fields.terms.trim() ||
-                !fields.approvingDirector.trim() ||
-                !fields.authorityReference.trim() ||
-                !fields.reason.trim()
-              ? 'Give the external agreement, approving director, company authority and reason.'
-              : (['authority', 'agreement', 'receipt'] as const).some((kind) => !files[kind])
-                ? 'Choose the authority, agreement and receipt evidence.'
-                : null;
+          : !/^\d{4}-\d{2}-\d{2}$/.test(fields.companyEventOn) || fields.companyEventOn > today
+            ? 'Enter the company issue date no later than today (UTC).'
+            : [fields.agreementOn, fields.receivedOn].some((date) => !/^\d{4}-\d{2}-\d{2}$/.test(date) || date > today)
+              ? 'Agreement and receipt dates must be today (UTC) or earlier.'
+              : !fields.agreementReference.trim() ||
+                  !fields.terms.trim() ||
+                  !fields.approvingDirector.trim() ||
+                  !fields.authorityReference.trim() ||
+                  !fields.reason.trim()
+                ? 'Give the external agreement, approving director, company authority and reason.'
+                : (['authority', 'agreement', 'receipt'] as const).some((kind) => !files[kind])
+                  ? 'Choose the authority, agreement and receipt evidence.'
+                  : null;
   const upload = async (kind: DocumentKind) => {
     const file = files[kind]!;
     if (uploads.current[kind]?.file !== file) uploads.current[kind] = { file, key: crypto.randomUUID(), receipt: null };
@@ -154,6 +157,7 @@ export function useAllotmentForm({
               ? { name: fields.name.trim(), residentialAddress: fields.residentialAddress.trim() }
               : {}),
             shares: fields.shares,
+            companyEventOn: fields.companyEventOn,
             consideration: consideration!,
             receivedAmount: received!,
             currency: 'AUD',

@@ -6859,6 +6859,11 @@
       },
       "MemberRecordEntry": {
         "properties": {
+          "companyEventOn": {
+            "format": "date",
+            "nullable": true,
+            "type": "string"
+          },
           "correctedBy": {
             "format": "uuid",
             "nullable": true,
@@ -6894,6 +6899,7 @@
           }
         },
         "required": [
+          "companyEventOn",
           "correctedBy",
           "corrects",
           "createdAt",
@@ -11432,6 +11438,12 @@
             "readOnly": true,
             "type": "string"
           },
+          "companyEventOn": {
+            "format": "date",
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
           "consideration": {
             "format": "decimal",
             "pattern": "^-?\\d{0,18}(?:\\.\\d{0,2})?$",
@@ -11574,6 +11586,7 @@
           "authorityEvidence",
           "authorityReference",
           "company",
+          "companyEventOn",
           "consideration",
           "contribution",
           "createdAt",
@@ -11634,6 +11647,10 @@
           "authorityReference": {
             "maxLength": 255,
             "minLength": 1,
+            "type": "string"
+          },
+          "companyEventOn": {
+            "format": "date",
             "type": "string"
           },
           "consideration": {
@@ -11706,6 +11723,7 @@
           "approvingDirector",
           "authorityEvidence",
           "authorityReference",
+          "companyEventOn",
           "consideration",
           "currency",
           "member",
@@ -11842,6 +11860,11 @@
           "canDecide": {
             "type": "boolean"
           },
+          "companyEventOn": {
+            "format": "date",
+            "nullable": true,
+            "type": "string"
+          },
           "consideration": {
             "type": "string"
           },
@@ -11856,6 +11879,7 @@
           },
           "effectiveOn": {
             "format": "date",
+            "nullable": true,
             "type": "string"
           },
           "issuedSupply": {
@@ -11901,6 +11925,7 @@
           "authorisedSupply",
           "authorityReference",
           "canDecide",
+          "companyEventOn",
           "consideration",
           "contribution",
           "currency",
@@ -14228,6 +14253,12 @@
             "readOnly": true,
             "type": "string"
           },
+          "companyEventOn": {
+            "format": "date",
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
           "createdAt": {
             "format": "date-time",
             "readOnly": true,
@@ -14378,6 +14409,7 @@
           "authorityReference",
           "award",
           "company",
+          "companyEventOn",
           "createdAt",
           "decisions",
           "effectiveOn",
@@ -14442,6 +14474,10 @@
             "nullable": true,
             "type": "string"
           },
+          "companyEventOn": {
+            "format": "date",
+            "type": "string"
+          },
           "member": {
             "format": "uuid",
             "type": "string"
@@ -14497,6 +14533,7 @@
           "approvingDirector",
           "authorityEvidence",
           "authorityReference",
+          "companyEventOn",
           "member",
           "newMember",
           "operationId",
@@ -14643,11 +14680,17 @@
           "canDecide": {
             "type": "boolean"
           },
+          "companyEventOn": {
+            "format": "date",
+            "nullable": true,
+            "type": "string"
+          },
           "currentShares": {
             "type": "string"
           },
           "effectiveOn": {
             "format": "date",
+            "nullable": true,
             "type": "string"
           },
           "issuedSupply": {
@@ -14696,6 +14739,7 @@
           "approvingDirector",
           "authorisedSupply",
           "canDecide",
+          "companyEventOn",
           "currentShares",
           "effectiveOn",
           "issuedSupply",
@@ -18569,6 +18613,12 @@
             "readOnly": true,
             "type": "string"
           },
+          "companyEventOn": {
+            "format": "date",
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
           "createdAt": {
             "format": "date-time",
             "readOnly": true,
@@ -18744,6 +18794,7 @@
           "authorityEvidence",
           "authorityReference",
           "company",
+          "companyEventOn",
           "createdAt",
           "decisions",
           "effectiveOn",
@@ -18817,6 +18868,10 @@
             "minLength": 1,
             "type": "string"
           },
+          "companyEventOn": {
+            "format": "date",
+            "type": "string"
+          },
           "fromMember": {
             "format": "uuid",
             "type": "string"
@@ -18879,6 +18934,7 @@
           "approvingDirector",
           "authorityEvidence",
           "authorityReference",
+          "companyEventOn",
           "fromMember",
           "instrumentEvidence",
           "lodgedOn",
@@ -19008,8 +19064,14 @@
           "canDecide": {
             "type": "boolean"
           },
+          "companyEventOn": {
+            "format": "date",
+            "nullable": true,
+            "type": "string"
+          },
           "effectiveOn": {
             "format": "date",
+            "nullable": true,
             "type": "string"
           },
           "fromAfterShares": {
@@ -19086,6 +19148,7 @@
           "authorisedSupply",
           "authority",
           "canDecide",
+          "companyEventOn",
           "effectiveOn",
           "fromAfterShares",
           "fromCurrentShares",
@@ -20890,6 +20953,11 @@
             },
             "type": "array"
           },
+          "companyEventOn": {
+            "format": "date",
+            "nullable": true,
+            "type": "string"
+          },
           "correctable": {
             "type": "boolean"
           },
@@ -20924,6 +20992,7 @@
         },
         "required": [
           "changes",
+          "companyEventOn",
           "correctable",
           "correctedBy",
           "corrects",

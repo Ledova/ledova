@@ -19,8 +19,9 @@ export const REGISTER_ALLOTMENT_COPY = {
   AUTHORITY_REFERENCE: 'Company authority reference',
   REASON: 'Reason for allotment',
   DOCUMENTS: { authority: 'Authority document', agreement: 'Agreement document', receipt: 'Receipt evidence' },
+  COMPANY_EVENT_ON: 'Company issue date',
   EFFECTIVE_NOTE:
-    'The register ISSUE is dated on the actual application day (UTC). Agreement and receipt dates are retained separately.',
+    'The company supplies the issue date from its records. Ledova records preparation, decisions and application separately.',
   RECOVERY_NOTE: 'If a response is interrupted, recover the same request before starting another allotment.',
   STAGES: { submitted: 'Prepared', approved: 'Approved', applied: 'Applied', rejected: 'Rejected' } as Record<
     string,
@@ -54,7 +55,11 @@ export const REGISTER_ALLOTMENT_UNMET_COPY: Record<string, string> = {
   imported_non_tokenised_register_required:
     'This requires an opened imported register for a draft class without a deployed contract.',
   authorised_headroom_required: 'This allotment exceeds the authorised share supply.',
-  effective_date_before_latest_entry: 'The latest register entry is dated after today.',
+  company_event_date_required:
+    'The company event date was not recorded. Reject this preparation and prepare it again with the company’s date.',
+  company_event_date_in_future: 'The company event date cannot be after today (UTC).',
+  effective_date_before_latest_entry:
+    'The company event date is before a later register event. Use the company’s correction or reconciliation process.',
   approving_director_conflict: 'The recipient cannot be the approving director.',
   member_reference_conflict: 'This new member already exists. Prepare a new instruction.',
   identified_company_member_required: 'Select an identified member of this company.',

@@ -24,6 +24,7 @@ class RegisterGrant(BaseModel):
     name = models.CharField(max_length=255)
     residential_address = models.TextField()
     shares = models.DecimalField(max_digits=78, decimal_places=0)
+    company_event_on = models.DateField(null=True)
     terms_on = models.DateField()
     approving_director = models.CharField(max_length=255)
     terms = models.CharField(max_length=1000)

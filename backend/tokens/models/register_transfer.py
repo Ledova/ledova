@@ -29,6 +29,7 @@ class RegisterTransfer(BaseModel):
     residential_address = models.TextField()
     to_particulars = models.JSONField(null=True)
     shares = models.DecimalField(max_digits=78, decimal_places=0)
+    company_event_on = models.DateField(null=True)
     signed_on = models.DateField()
     lodged_on = models.DateField()
     terms = models.CharField(max_length=1000)

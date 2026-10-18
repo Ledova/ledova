@@ -86,8 +86,13 @@ function EntryHistory({
                       {formatDate(entry.effectiveOn)}
                     </summary>
                     <p className="text-xs text-text-muted">
-                      Effective {formatDate(entry.effectiveOn)} · Recorded {formatDateTime(entry.recordedAt)}
+                      Ledger date {formatDate(entry.effectiveOn)} · Recorded {formatDateTime(entry.recordedAt)}
                     </p>
+                    {['ISSUE', 'TRANSFER'].includes(entry.kind.toUpperCase()) && (
+                      <p className="text-xs text-text-muted">
+                        Company date {entry.companyEventOn ? formatDate(entry.companyEventOn) : 'Not recorded'}
+                      </p>
+                    )}
                     <div className="text-sm text-text-primary">
                       <RegisterChanges changes={entry.changes} />
                     </div>

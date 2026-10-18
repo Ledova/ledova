@@ -14,8 +14,11 @@ export const REGISTER_TRANSFER_UNMET_COPY: Record<string, string> = {
     'This share class is recorded as non-transferable. Ask the company to review its class settings.',
   sufficient_holding_required: 'The transferor no longer holds enough shares for this transfer.',
   share_limit_required: 'The recipient holding exceeds the supported share limit.',
+  company_event_date_required:
+    'The company event date was not recorded. Reject this preparation and prepare it again with the company’s date.',
+  company_event_date_in_future: 'The company event date cannot be after today (UTC).',
   effective_date_before_latest_entry:
-    'The register’s latest entry is dated after today. This transfer cannot be recorded yet.',
+    'The company event date is before a later register event. Use the company’s correction or reconciliation process.',
   identified_company_member_required: 'Both parties must be identified members of this company.',
   member_particulars_changed: 'A party’s particulars changed. Reject this transfer and prepare a new one.',
   member_reference_conflict:
@@ -50,8 +53,9 @@ export const REGISTER_TRANSFER_COPY = {
   PROVIDED_BY_COMPANY: 'The instrument, authority, terms and particulars are provided by the company.',
   RECOVERY_NOTE:
     'If a decision response is interrupted, refresh transfers to read its recorded outcome before retrying.',
+  COMPANY_EVENT_ON: 'Company transfer date',
   EFFECTIVE_NOTE:
-    'Application records the transfer on the actual day the register entry is made (UTC). Signing and lodgement keep their own dates.',
+    'The company supplies the transfer date from its records. Ledova records preparation, decisions and application separately.',
   STAGES: { submitted: 'Prepared', approved: 'Approved', applied: 'Applied', rejected: 'Rejected' } as Record<
     string,
     string

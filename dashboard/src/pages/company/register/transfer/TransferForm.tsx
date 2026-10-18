@@ -116,8 +116,8 @@ export function TransferForm({
             {label}
             <input
               className={FIELD_CLASS}
-              type={key === 'signedOn' || key === 'lodgedOn' ? 'date' : 'text'}
-              max={key === 'signedOn' || key === 'lodgedOn' ? today : undefined}
+              type={key.endsWith('On') ? 'date' : 'text'}
+              max={key.endsWith('On') ? today : undefined}
               inputMode={key === 'shares' ? 'numeric' : undefined}
               value={draft[key]}
               maxLength={maxLength}

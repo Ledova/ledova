@@ -50,6 +50,7 @@ export function AllotmentForm({
           name: 'Investor name',
           residentialAddress: 'Residential address',
           shares: COPY.SHARES,
+          companyEventOn: COPY.COMPANY_EVENT_ON,
           consideration: COPY.CONSIDERATION,
           receivedAmount: COPY.RECEIVED_AMOUNT,
           agreementReference: COPY.AGREEMENT_REFERENCE,
@@ -132,6 +133,7 @@ export function AllotmentForm({
         </fieldset>
         <fieldset className="grid gap-4 rounded-xl border border-border-subtle bg-surface-raised p-4 sm:grid-cols-2 [&>p]:sm:col-span-2">
           <legend className="px-1 text-sm font-medium">3. Company authority and review</legend>
+          {field('companyEventOn')}
           {field('approvingDirector')}
           {field('authorityReference')}
           {field('reason')}

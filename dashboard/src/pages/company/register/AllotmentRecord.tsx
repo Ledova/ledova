@@ -35,7 +35,11 @@ function AllotmentRows({ allotment }: { allotment: RegisterAllotment | RegisterA
       <Row label="Receipt attested">
         {allotment.contribution.recordedBy} · {formatDateTime(allotment.contribution.recordedAt)}
       </Row>
-      <Row label="Register ISSUE date">{allotment.effectiveOn || 'Recorded on application'}</Row>
+      <Row label={COPY.COMPANY_EVENT_ON}>{allotment.companyEventOn || 'Not recorded'}</Row>
+      {'registerEntry' in allotment &&
+        allotment.registerEntry &&
+        allotment.effectiveOn &&
+        allotment.effectiveOn !== allotment.companyEventOn && <Row label="Ledger date">{allotment.effectiveOn}</Row>}
       <Row label={COPY.DIRECTOR}>{allotment.approvingDirector}</Row>
     </Rows>
   );
@@ -82,7 +86,7 @@ export function AllotmentRecord({
           </div>
           <p className="text-sm text-text-muted">
             {allotment.stage === 'applied'
-              ? `Shares issued on ${allotment.effectiveOn}. The company remains responsible for any required ASIC notification and certificate execution and delivery. Generated certificates remain unsigned.`
+              ? `${allotment.companyEventOn ? `Shares issued on ${allotment.companyEventOn}` : 'Shares issued; company issue date not recorded'}. The company remains responsible for any required ASIC notification and certificate execution and delivery. Generated certificates remain unsigned.`
               : allotment.stage === 'approved'
                 ? 'Next: record the approved share issue. Approval has not changed ownership.'
                 : allotment.stage === 'rejected'

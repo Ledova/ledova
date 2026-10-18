@@ -42,6 +42,7 @@ class EmployeeAwardTest(CoreFixtures, APITransactionTestCase):
                 "to_member": str(self.member.pk),
                 "new_member": False,
                 "shares": "4",
+                "company_event_on": timezone.now().date().isoformat(),
                 "signed_on": timezone.now().date().isoformat(),
                 "lodged_on": timezone.now().date().isoformat(),
                 "terms": "Transfer issued shares without restoring the award entitlement",

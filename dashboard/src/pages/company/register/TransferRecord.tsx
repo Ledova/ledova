@@ -31,7 +31,11 @@ function TransferRows({ transfer }: { transfer: RegisterTransfer | RegisterTrans
       <Row label={COPY.SHARES}>{shareCount(transfer.shares)}</Row>
       <Row label={COPY.SIGNED_ON}>{transfer.signedOn}</Row>
       <Row label={COPY.LODGED_ON}>{transfer.lodgedOn}</Row>
-      <Row label="Register entry date">{transfer.effectiveOn || 'Recorded on application'}</Row>
+      <Row label={COPY.COMPANY_EVENT_ON}>{transfer.companyEventOn || 'Not recorded'}</Row>
+      {'registerEntry' in transfer &&
+        transfer.registerEntry &&
+        transfer.effectiveOn &&
+        transfer.effectiveOn !== transfer.companyEventOn && <Row label="Ledger date">{transfer.effectiveOn}</Row>}
       <Row label={COPY.TERMS}>{transfer.terms}</Row>
       <Row label={COPY.DIRECTOR}>{transfer.approvingDirector}</Row>
     </Rows>

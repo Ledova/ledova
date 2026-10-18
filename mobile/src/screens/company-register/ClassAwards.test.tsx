@@ -147,6 +147,7 @@ function grantFrom(body: RegisterGrantPreparation): RegisterGrant {
     name: body.name || awards[0].name,
     residentialAddress: body.residentialAddress || awards[0].residentialAddress,
     shares: body.shares,
+    companyEventOn: body.companyEventOn,
     termsOn: body.termsOn,
     terms: body.terms,
     approvingDirector: body.approvingDirector,
@@ -349,7 +350,7 @@ beforeEach(() => {
         awardVestedShares: awards[0].vestedShares,
         awardIssuedShares: awards[0].issuedShares,
         awardAvailableShares: awards[0].availableShares,
-        effectiveOn: '2026-10-11',
+        effectiveOn: grants[0].companyEventOn,
         previewDigest: 'b'.repeat(64),
         canDecide: true,
         unmetRequirements: [],
@@ -387,7 +388,7 @@ beforeEach(() => {
                   status: 'applied',
                   stage: 'applied',
                   registerEntry: 'entry-a',
-                  effectiveOn: '2026-10-11',
+                  effectiveOn: grants[0].companyEventOn,
                   reviewedAt: '2026-10-11T00:00:00Z',
                   reviewedBy: 1,
                 }
@@ -500,6 +501,7 @@ it('recovers captured award, vesting and issue requests under read access and re
   await view.findByTestId('prepare-grant-screen');
   await view.findByText(AWARD_REQUEST.name!);
   expect(view.queryByLabelText(GRANT_COPY.NAME)).toBeNull();
+  expect(view.getByLabelText('Company issue date (YYYY-MM-DD)')).toHaveDisplayValue('');
   for (const [label, value] of [
     [GRANT_COPY.SHARES, '100'],
     [GRANT_COPY.DIRECTOR, 'Synthetic Director'],
@@ -511,6 +513,10 @@ it('recovers captured award, vesting and issue requests under read access and re
     await fireEvent.press(view.getByRole('button', { name: `Choose the ${noun}` }));
     await view.findByRole('button', { name: `Replace the ${noun}` });
   }
+  expect(view.getByRole('button', { name: 'Prepare share issue' })).toBeDisabled();
+  await fireEvent.changeText(view.getByLabelText('Company issue date (YYYY-MM-DD)'), '2999-01-01');
+  expect(view.getByRole('button', { name: 'Prepare share issue' })).toBeDisabled();
+  await fireEvent.changeText(view.getByLabelText('Company issue date (YYYY-MM-DD)'), '2026-10-10');
   await fireEvent.press(view.getByRole('button', { name: 'Prepare share issue' }));
   await view.findByRole('alert');
   const originalGrant = submissions(URLS.REGISTER_GRANTS)[0];
@@ -520,6 +526,7 @@ it('recovers captured award, vesting and issue requests under read access and re
       tokenId: REGISTER.token.uuid,
       award: awards[0].uuid,
       member: awards[0].member,
+      companyEventOn: '2026-10-10',
     }),
   );
   listed = false;
@@ -552,6 +559,8 @@ it('recovers captured award, vesting and issue requests under read access and re
   await view.findByRole('alert');
   expect(submissions(URLS.REGISTER_GRANTS)).toEqual([originalGrant]);
   expect(view.getByLabelText(GRANT_COPY.SHARES).props.editable).toBe(false);
+  expect(view.getByLabelText('Company issue date (YYYY-MM-DD)')).toHaveProp('editable', false);
+  expect(view.getByLabelText('Company issue date (YYYY-MM-DD)')).toHaveDisplayValue('2026-10-10');
   expect(client.getQueryData([...registerKey(getSessionEpoch()), 'classes'])).toEqual([OTHER_COMPANY]);
   failedRead = null;
   failedClasses = true;
@@ -594,6 +603,16 @@ it('recovers captured award, vesting and issue requests under read access and re
   expect(submissions(URLS.REGISTER_EVIDENCE)).toHaveLength(4);
   expect(view.queryByRole('button', { name: /^Approve the non-paid grant/ })).toBeNull();
   appointments = [APPOINTMENT];
+  const datedGrant = grants[0];
+  grants = [{ ...datedGrant, companyEventOn: null }];
+  await fireEvent.press(view.getByRole('button', { name: 'Refresh grants' }));
+  await fireEvent.press(await view.findByRole('button', { name: `Issue records for ${AWARD_REQUEST.name}` }));
+  expect(view.getByText('Not recorded')).toBeTruthy();
+  expect(view.queryByRole('button', { name: /^Approve the non-paid grant/ })).toBeNull();
+  expect(view.queryByRole('button', { name: /^Record issue the non-paid grant/ })).toBeNull();
+  expect(view.getByRole('button', { name: /^Reject the non-paid grant/ })).toBeTruthy();
+  await fireEvent.press(view.getByRole('button', { name: `Issue records for ${AWARD_REQUEST.name}` }));
+  grants = [datedGrant];
   await fireEvent.press(view.getByRole('button', { name: 'Refresh grants' }));
   for (const kind of ['approve', 'apply'] as const) {
     const decision = await view.findByRole('button', {
@@ -603,6 +622,8 @@ it('recovers captured award, vesting and issue requests under read access and re
     await fireEvent.press(decision);
     const confirm = await view.findByRole('button', { name: 'Confirm' });
     await waitFor(() => expect(confirm).not.toBeDisabled());
+    expect(view.getByText('Company issue date')).toBeTruthy();
+    expect(view.getByText('2026-10-10')).toBeTruthy();
     await fireEvent.press(confirm);
     await waitFor(() => expect(grants[0].decisions).toHaveLength(kind === 'approve' ? 1 : 2));
     if (kind === 'approve') {

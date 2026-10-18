@@ -200,6 +200,7 @@ class ShareRegisterEntrySerializer(serializers.Serializer):
     sequence = serializers.IntegerField()
     kind = serializers.ChoiceField(choices=RegisterEntryKind.choices)
     effective_on = serializers.DateField()
+    company_event_on = serializers.DateField(allow_null=True)
     recorded_at = serializers.DateTimeField()
     changes = ShareRegisterEntryChangeSerializer(many=True)
     corrects = serializers.UUIDField(allow_null=True)

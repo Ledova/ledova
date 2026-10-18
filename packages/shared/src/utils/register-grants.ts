@@ -19,6 +19,7 @@ export function isPreparedRegisterGrant(grant: RegisterGrant, request: RegisterG
     (!(request.newMember || request.name) || grant.name === request.name) &&
     (!(request.newMember || request.residentialAddress) || grant.residentialAddress === request.residentialAddress) &&
     grant.shares === request.shares &&
+    grant.companyEventOn === request.companyEventOn &&
     grant.termsOn === request.termsOn &&
     grant.approvingDirector === request.approvingDirector &&
     grant.terms === request.terms &&
@@ -29,7 +30,7 @@ export function isPreparedRegisterGrant(grant: RegisterGrant, request: RegisterG
     grant.acceptanceRequired === request.acceptanceRequired &&
     grant.acceptanceEvidence === (request.acceptanceEvidence ?? null) &&
     grant.providedBy === 'company' &&
-    (grant.status !== 'applied' || (!!grant.registerEntry && !!grant.effectiveOn))
+    (grant.status !== 'applied' || (!!grant.registerEntry && grant.effectiveOn === request.companyEventOn))
   );
 }
 
@@ -41,7 +42,9 @@ export function isRegisterGrantDecisionReceipt(
 ) {
   return (
     isRegisterDecisionReceipt(grant, uuid, request) &&
-    (!preview || (grant.award ?? null) === (preview.award ?? null)) &&
-    (request.kind !== 'apply' || (!!grant.registerEntry && !!grant.effectiveOn))
+    (!preview ||
+      ((grant.award ?? null) === (preview.award ?? null) && grant.companyEventOn === preview.companyEventOn)) &&
+    (request.kind !== 'apply' ||
+      (!!grant.registerEntry && !!grant.companyEventOn && grant.effectiveOn === grant.companyEventOn))
   );
 }

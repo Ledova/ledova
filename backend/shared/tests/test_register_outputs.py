@@ -50,6 +50,7 @@ class RegisterOutputsTest(CoreFixtures, APITransactionTestCase):
                 "name": award["name"],
                 "residential_address": award["residential_address"],
                 "shares": "10",
+                "company_event_on": timezone.now().date().isoformat(),
                 "signed_on": timezone.now().date().isoformat(),
                 "lodged_on": timezone.now().date().isoformat(),
                 "terms": "Synthetic signed instrument",
@@ -87,6 +88,8 @@ class RegisterOutputsTest(CoreFixtures, APITransactionTestCase):
         self.assertIn("Synthetic Member", company_text)
         self.assertIn("Synthetic Employee", company_text)
         self.assertIn("Prepared unsigned", company_text)
+        self.assertIn(f"Company event date: {transfer.json()['companyEventOn']}", company_text)
+        self.assertIn(f"Recorded at: {entry.created_at.date().isoformat()}", company_text)
         invitation = self.client.post(
             "/api/v1/tokens/member-invitations/", self.invitation_payload(member=award["member"]), format="json"
         )
@@ -190,6 +193,8 @@ class RegisterOutputsTest(CoreFixtures, APITransactionTestCase):
             self.assertEqual(sources["contributions"][0]["data"]["company_recorded"], True)
             self.assertEqual(sources["contributions"][0]["data"]["verified_by_ledova"], False)
             self.assertEqual(sources["allotments"][0]["command"]["consideration"], "250.00")
+            for family in ("grants", "allotments", "transfers"):
+                self.assertEqual(sources[family][0]["command"]["company_event_on"], transfer.json()["companyEventOn"])
             self.assertEqual(
                 sources["allotments"][0]["result"]["entry"]["uuid"],
                 allotment.json().get("registerEntry")

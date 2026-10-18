@@ -241,6 +241,7 @@ class MemberRecordEntrySerializer(serializers.Serializer):
     sequence = serializers.IntegerField()
     kind = serializers.CharField()
     effective_on = serializers.DateField()
+    company_event_on = serializers.DateField(allow_null=True)
     delta = serializers.DecimalField(max_digits=78, decimal_places=0)
     created_at = serializers.DateTimeField()
     corrects = serializers.UUIDField(allow_null=True)

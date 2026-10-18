@@ -38,6 +38,7 @@ export const MEMBER_ENTRY = {
   uuid: '11111111-1111-4111-8111-111111111111',
   sequence: 1,
   kind: 'ISSUE',
+  companyEventOn: null,
   effectiveOn: '2026-10-01',
   delta: '10',
   createdAt: '2026-10-01T00:00:00Z',

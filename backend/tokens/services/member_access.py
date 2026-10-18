@@ -37,6 +37,7 @@ from tokens.services.former_holders import retention_cutoff
 from tokens.services.register import _stored_register, imported_membership_dates
 from tokens.services.register_authority import register_appointment, register_command
 from tokens.services.register_awards import award_quantities
+from tokens.services.register_events import with_company_event_dates
 from users.models import UserAccount
 
 NOT_FOUND = "Member association or retained company record not found."
@@ -388,7 +389,7 @@ def own_entries(association, token):
     queryset = RegisterEntry.objects.filter(register__company=association.company, register__token_id=token).order_by(
         "sequence"
     )
-    for entry in queryset.select_related("correction"):
+    for entry in with_company_event_dates(queryset).select_related("correction"):
         delta = sum(
             (Decimal(change["shares"]) for change in entry.changes if change["member"] == str(association.member)),
             Decimal(0),
@@ -401,6 +402,7 @@ def own_entries(association, token):
                 "sequence": entry.sequence,
                 "kind": entry.kind,
                 "effective_on": entry.effective_on,
+                "company_event_on": entry.company_event_on,
                 "delta": delta,
                 "created_at": entry.created_at,
                 "corrects": entry.corrects_id,

@@ -50,6 +50,8 @@ export function GrantForm({
     setAddress,
     shares,
     setShares,
+    companyEventOn,
+    setCompanyEventOn,
     setTermsOn,
     approvingDirector,
     setApprovingDirector,
@@ -143,6 +145,16 @@ export function GrantForm({
             inputMode="numeric"
             value={shares}
             onChange={(event) => setShares(event.target.value.trim())}
+          />
+        </label>
+        <label className={LABEL}>
+          {COPY.COMPANY_EVENT_ON}
+          <input
+            type="date"
+            max={today}
+            className={FIELD_CLASS}
+            value={companyEventOn}
+            onChange={(event) => setCompanyEventOn(event.target.value)}
           />
         </label>
         <label className={LABEL}>

@@ -1,3 +1,53 @@
+CREATE OR REPLACE FUNCTION public.tokens_register_company_date_ready(proposal jsonb)
+RETURNS boolean LANGUAGE sql STABLE SET search_path TO 'pg_catalog', 'public', 'pg_temp'
+AS $function$
+    SELECT proposal->>'company_event_on' IS NOT NULL
+        AND (proposal->>'company_event_on')::date <= (clock_timestamp() AT TIME ZONE 'UTC')::date
+        AND NOT EXISTS (SELECT 1 FROM tokens_registerentry entry JOIN tokens_shareregister register
+            ON register.uuid = entry.register_id WHERE register.token_id = (proposal->>'token_id')::uuid
+                AND entry.effective_on > (proposal->>'company_event_on')::date);
+$function$;
+
+CREATE OR REPLACE FUNCTION public.tokens_register_company_event_on(entry tokens_registerentry)
+RETURNS date LANGUAGE sql STABLE SET search_path TO 'pg_catalog', 'public', 'pg_temp'
+AS $function$
+    SELECT (source.fact->>'company_event_on')::date
+    FROM tokens_shareregister register CROSS JOIN LATERAL (
+        SELECT to_jsonb(proposal) AS fact FROM tokens_registergrant proposal
+            WHERE entry.kind = 'issue' AND proposal.uuid = entry.operation_id
+        UNION ALL SELECT to_jsonb(proposal) FROM tokens_registerallotment proposal
+            WHERE entry.kind = 'issue' AND proposal.uuid = entry.operation_id
+        UNION ALL SELECT to_jsonb(proposal) FROM tokens_registertransfer proposal
+            WHERE entry.kind = 'transfer' AND proposal.uuid = entry.operation_id
+    ) source WHERE register.uuid = entry.register_id
+        AND source.fact->>'company_id' = register.company_id::text
+        AND source.fact->>'token_id' = register.token_id::text
+        AND source.fact->>'status' = 'applied'
+        AND source.fact->>'register_entry_id' = entry.uuid::text;
+$function$;
+
+CREATE OR REPLACE FUNCTION public.tokens_register_transition_on(entry tokens_registerentry)
+RETURNS date LANGUAGE sql STABLE SET search_path TO 'pg_catalog', 'public', 'pg_temp'
+AS $function$
+    SELECT CASE WHEN tokens_register_company_event_on(entry) IS NOT NULL OR EXISTS (
+        SELECT 1 FROM tokens_shareregister register CROSS JOIN LATERAL (
+            SELECT to_jsonb(proposal) AS fact, 'register_grant_apply' AS command
+                FROM tokens_registergrant proposal WHERE entry.kind = 'issue' AND proposal.uuid = entry.operation_id
+            UNION ALL SELECT to_jsonb(proposal), 'register_allotment_apply'
+                FROM tokens_registerallotment proposal WHERE entry.kind = 'issue' AND proposal.uuid = entry.operation_id
+            UNION ALL SELECT to_jsonb(proposal), 'register_transfer_apply'
+                FROM tokens_registertransfer proposal WHERE entry.kind = 'transfer' AND proposal.uuid = entry.operation_id
+        ) source WHERE register.uuid = entry.register_id
+            AND source.fact->>'company_id' = register.company_id::text
+            AND source.fact->>'token_id' = register.token_id::text
+            AND source.fact->>'status' = 'submitted' AND source.fact->>'register_entry_id' IS NULL
+            AND (source.fact->>'company_event_on')::date = entry.effective_on
+            AND current_setting('app.company_operation', true) = source.command
+            AND current_setting('app.company_id', true) = register.company_id::text
+            AND current_setting('app.user_id', true) = entry.recorded_by_id::text
+    ) THEN (entry.created_at AT TIME ZONE 'UTC')::date ELSE entry.effective_on END;
+$function$;
+
 CREATE UNIQUE INDEX tokens_registermemberwallet_company_address_ci ON public.tokens_registermemberwallet USING btree (company_id, lower((address)::text));
 
 ALTER TABLE public.tokens_swaporder DROP CONSTRAINT tokens_swaporder_buy_order_id_5999ca66_fk_tokens_tr;
@@ -3215,7 +3265,7 @@ BEGIN
         OR current_setting('app.company_operation', true) IS DISTINCT FROM 'register_grant_apply'
         OR current_setting('app.company_id', true) IS DISTINCT FROM issuer::text
         OR proposal.company_id IS DISTINCT FROM issuer OR proposal.token_id IS DISTINCT FROM token_uuid OR proposal.status <> 'submitted'
-        OR NEW.kind <> 'issue' OR NEW.recorded_by_id IS DISTINCT FROM principal OR NEW.effective_on IS DISTINCT FROM (clock_timestamp() AT TIME ZONE 'UTC')::date
+        OR NEW.kind <> 'issue' OR NEW.recorded_by_id IS DISTINCT FROM principal OR NEW.effective_on IS DISTINCT FROM (to_jsonb(proposal)->>'company_event_on')::date
         OR NEW.changes IS DISTINCT FROM jsonb_build_array(jsonb_build_object('member', proposal.member::text, 'shares', proposal.shares::text))
         OR NOT tokens_register_grant_ready(proposal, false) OR NOT tokens_register_grant_approved(proposal.uuid, clock_timestamp())
         OR NOT EXISTS (SELECT 1 FROM tokens_registergrantdecision decision WHERE decision.register_grant_id = proposal.uuid
@@ -3910,7 +3960,8 @@ BEGIN
         OR (NEW.status = 'applied' AND (NEW.rejection_reason <> '' OR NOT EXISTS (
             SELECT 1 FROM tokens_registerentry entry JOIN tokens_shareregister register ON register.uuid = entry.register_id
             WHERE entry.uuid = NEW.register_entry_id AND register.token_id = NEW.token_id AND entry.operation_id = NEW.uuid
-                AND entry.kind = 'issue' AND entry.recorded_by_id = principal AND entry.effective_on = (clock_timestamp() AT TIME ZONE 'UTC')::date
+                AND entry.kind = 'issue' AND entry.recorded_by_id = principal AND entry.created_at >= NEW.reviewed_at
+                AND entry.effective_on = (to_jsonb(NEW)->>'company_event_on')::date
                 AND entry.changes = jsonb_build_array(jsonb_build_object('member', NEW.member::text, 'shares', NEW.shares::text)))))
         OR (NEW.status = 'rejected' AND (NEW.register_entry_id IS NOT NULL OR NEW.rejection_reason !~ '[^[:space:]]'))
     THEN
@@ -4977,8 +5028,8 @@ BEGIN
         OR (NEW.status = 'applied' AND (NEW.rejection_reason <> '' OR NOT tokens_register_transfer_approved(NEW.uuid, clock_timestamp()) OR NOT EXISTS (
             SELECT 1 FROM tokens_registerentry entry JOIN tokens_shareregister register ON register.uuid = entry.register_id
             WHERE entry.uuid = NEW.register_entry_id AND register.token_id = NEW.token_id AND entry.operation_id = NEW.uuid
-                AND entry.kind = 'transfer' AND entry.recorded_by_id = principal
-                AND entry.effective_on = (entry.created_at AT TIME ZONE 'UTC')::date AND entry.changes = tokens_register_transfer_changes(NEW))))
+                AND entry.kind = 'transfer' AND entry.recorded_by_id = principal AND entry.created_at >= NEW.reviewed_at
+                AND entry.effective_on = (to_jsonb(NEW)->>'company_event_on')::date AND entry.changes = tokens_register_transfer_changes(NEW))))
         OR (NEW.status = 'rejected' AND (NEW.register_entry_id IS NOT NULL OR NEW.rejection_reason !~ '[^[:space:]]'))
     THEN RAISE EXCEPTION 'Only its exact company decision may decide an immutable register transfer' USING ERRCODE = '23514'; END IF;
     RETURN NEW;
@@ -5516,8 +5567,7 @@ BEGIN
         OR current_setting('app.company_operation', true) IS DISTINCT FROM 'register_transfer_apply'
         OR current_setting('app.company_id', true) IS DISTINCT FROM issuer::text OR proposal.company_id IS DISTINCT FROM issuer
         OR proposal.token_id IS DISTINCT FROM token_uuid OR proposal.status <> 'submitted' OR NEW.kind <> 'transfer' OR NEW.recorded_by_id IS DISTINCT FROM principal
-        OR NEW.effective_on IS DISTINCT FROM (NEW.created_at AT TIME ZONE 'UTC')::date
-        OR NEW.effective_on IS DISTINCT FROM (clock_timestamp() AT TIME ZONE 'UTC')::date
+        OR NEW.effective_on IS DISTINCT FROM (to_jsonb(proposal)->>'company_event_on')::date
         OR NEW.changes IS DISTINCT FROM tokens_register_transfer_changes(proposal)
         OR NOT tokens_register_transfer_ready(proposal, false) OR NOT tokens_register_transfer_approved(proposal.uuid, clock_timestamp())
         OR NOT EXISTS (SELECT 1 FROM tokens_registertransferdecision decision WHERE decision.register_transfer_id = proposal.uuid AND decision.kind = 'apply'
@@ -5841,14 +5891,14 @@ BEGIN
     FOR effect IN SELECT value FROM jsonb_array_elements(NEW.changes) LOOP
         delta := (effect->>'shares')::numeric;
         UPDATE tokens_registerposition SET shares = shares + delta,
-            entered_on = CASE WHEN shares = 0 THEN NEW.effective_on ELSE entered_on END,
+            entered_on = CASE WHEN shares = 0 THEN tokens_register_transition_on(NEW) ELSE entered_on END,
             last_entry_id = NEW.uuid, updated_at = NEW.created_at
             WHERE register_id = NEW.register_id AND member_id = (effect->>'member')::uuid;
         IF NOT FOUND THEN
             INSERT INTO tokens_registerposition
                 (uuid, created_at, updated_at, register_id, member_id, shares, entered_on, last_entry_id)
             VALUES (gen_random_uuid(), NEW.created_at, NEW.created_at, NEW.register_id,
-                (effect->>'member')::uuid, delta, NEW.effective_on, NEW.uuid);
+                (effect->>'member')::uuid, delta, tokens_register_transition_on(NEW), NEW.uuid);
         END IF;
         total := total + delta;
     END LOOP;
@@ -6194,8 +6244,8 @@ CREATE OR REPLACE FUNCTION public.tokens_register_grant_decision_digest(grant_uu
  STABLE
  SET search_path TO 'pg_catalog', 'public', 'pg_temp'
 AS $function$
-    SELECT encode(sha256(convert_to(jsonb_build_object('version', '1', 'grant', to_jsonb(proposal),
-        'effective_on', (clock_timestamp() AT TIME ZONE 'UTC')::date,
+    SELECT encode(sha256(convert_to(jsonb_build_object('version', '1', 'grant', (to_jsonb(proposal) - CASE WHEN to_jsonb(proposal)->>'company_event_on' IS NULL THEN 'company_event_on' ELSE '' END),
+        'effective_on', CASE WHEN to_jsonb(proposal)->>'company_event_on' IS NULL THEN (clock_timestamp() AT TIME ZONE 'UTC')::date ELSE (to_jsonb(proposal)->>'company_event_on')::date END,
         'kind', decision_kind, 'actor', actor, 'appointment', appointment_uuid, 'reason', decision_reason,
         'register', to_jsonb(register), 'authorised_supply', token.total_supply,
         'token_status', token.status, 'deployment', token.deployment_id, 'contract', token.contract_address,
@@ -6233,8 +6283,7 @@ AS $function$
             AND register.issued_supply + proposal.shares <= token.total_supply::numeric
             AND register.issued_supply + proposal.shares < 2::numeric^256
             AND EXISTS (SELECT 1 FROM tokens_registerimport source WHERE source.token_id = token.uuid AND source.status = 'applied')
-            AND NOT EXISTS (SELECT 1 FROM tokens_registerentry entry WHERE entry.register_id = register.uuid
-                AND entry.sequence = register.sequence AND entry.effective_on > (clock_timestamp() AT TIME ZONE 'UTC')::date))
+            AND tokens_register_company_date_ready(to_jsonb(proposal)))
         AND lower(btrim(regexp_replace(proposal.approving_director, '[[:space:]]+', ' ', 'g')))
             <> lower(btrim(regexp_replace(proposal.name, '[[:space:]]+', ' ', 'g')))
         AND NOT EXISTS (SELECT 1 FROM tokens_registermemberwallet wallet WHERE wallet.company_id = proposal.company_id AND wallet.member_id = proposal.member)
@@ -6778,7 +6827,7 @@ CREATE OR REPLACE FUNCTION public.tokens_register_transfer_decision_digest(trans
  STABLE
  SET search_path TO 'pg_catalog', 'public', 'pg_temp'
 AS $function$
-    SELECT encode(sha256(convert_to(jsonb_build_object('version', '1', 'transfer', to_jsonb(proposal),
+    SELECT encode(sha256(convert_to(jsonb_build_object('version', '1', 'transfer', (to_jsonb(proposal) - CASE WHEN to_jsonb(proposal)->>'company_event_on' IS NULL THEN 'company_event_on' ELSE '' END),
         'kind', decision_kind, 'actor', actor, 'appointment', appointment_uuid, 'reason', decision_reason,
         'register', to_jsonb(register), 'authorised_supply', token.total_supply, 'token_status', token.status,
         'is_transferable', token.is_transferable,
@@ -6786,7 +6835,7 @@ AS $function$
         'legacy_hash', token.deployment_tx_hash, 'deployed_at', token.deployed_at, 'chain', token.chain,
         'from_particulars', tokens_register_particulars_snapshot(proposal.from_member),
         'to_particulars', tokens_register_particulars_snapshot(proposal.to_member),
-        'effective_on', (clock_timestamp() AT TIME ZONE 'UTC')::date)::text, 'UTF8')), 'hex')
+        'effective_on', CASE WHEN to_jsonb(proposal)->>'company_event_on' IS NULL THEN (clock_timestamp() AT TIME ZONE 'UTC')::date ELSE (to_jsonb(proposal)->>'company_event_on')::date END)::text, 'UTF8')), 'hex')
     FROM tokens_registertransfer proposal JOIN tokens_sharetoken token ON token.uuid = proposal.token_id
         LEFT JOIN tokens_shareregister register ON register.token_id = token.uuid WHERE proposal.uuid = transfer_uuid;
 $function$;
@@ -6816,8 +6865,7 @@ AS $function$
             AND register.sequence > 0 AND EXISTS (SELECT 1 FROM tokens_registerimport source WHERE source.token_id = token.uuid AND source.status = 'applied')
             AND COALESCE((SELECT shares FROM tokens_registerposition WHERE register_id = register.uuid AND member_id = proposal.from_member), 0) >= proposal.shares
             AND COALESCE((SELECT shares FROM tokens_registerposition WHERE register_id = register.uuid AND member_id = proposal.to_member), 0) + proposal.shares < 2::numeric^256
-            AND NOT EXISTS (SELECT 1 FROM tokens_registerentry entry WHERE entry.register_id = register.uuid AND entry.sequence = register.sequence
-                AND entry.effective_on > (clock_timestamp() AT TIME ZONE 'UTC')::date))
+            AND tokens_register_company_date_ready(to_jsonb(proposal)))
         AND EXISTS (SELECT 1 FROM tokens_registermember member WHERE member.uuid = proposal.from_member AND member.company_id = proposal.company_id)
         AND tokens_register_particulars_snapshot(proposal.from_member) IS NOT DISTINCT FROM proposal.from_particulars
         AND NOT EXISTS (SELECT 1 FROM tokens_registermemberwallet wallet WHERE wallet.company_id = proposal.company_id

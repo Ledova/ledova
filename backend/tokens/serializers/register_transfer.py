@@ -24,6 +24,7 @@ class RegisterTransferCreateSerializer(serializers.Serializer):
         max_length=REGISTER_IMPORT_ADDRESS_LENGTH, allow_blank=True, required=False, default=""
     )
     shares = serializers.RegexField(regex=r"^[1-9][0-9]{0,77}$")
+    company_event_on = serializers.DateField()
     signed_on = serializers.DateField()
     lodged_on = serializers.DateField()
     terms = serializers.CharField(max_length=1000)
@@ -58,7 +59,8 @@ class RegisterTransferDecisionPreviewSerializer(serializers.Serializer):
     shares = serializers.CharField()
     signed_on = serializers.DateField()
     lodged_on = serializers.DateField()
-    effective_on = serializers.DateField()
+    company_event_on = serializers.DateField(allow_null=True)
+    effective_on = serializers.DateField(allow_null=True)
     terms = serializers.CharField()
     authority = serializers.CharField()
     approving_director = serializers.CharField()
@@ -101,6 +103,7 @@ class RegisterTransferSerializer(RegisterDecidedSerializer):
             "signed_on",
             "lodged_on",
             "effective_on",
+            "company_event_on",
             "terms",
             "authority",
             "approving_director",
