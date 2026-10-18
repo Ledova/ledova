@@ -9,7 +9,8 @@ records, workflows and tools. This index lists what has been delivered under it 
 [engineering documents](../../engineering/README.md) its mechanism. The owner's
 [authority rules](../../decisions.md#company-run-register-authority-and-evidence) and the
 [9 October priority](../../decisions.md#essential-registry-and-development-workflow-priority) are in the decisions
-log; new integrated AUD payments, trading, advanced governance and filings are deferred.
+log. New integrated AUD payments remain deferred; the trading, advanced governance and filing
+expansion tickets were [closed as not planned on 18 October](../../decisions.md#registry-focus-and-cancelled-expansion-tickets).
 
 ## Delivered increments
 
@@ -49,7 +50,6 @@ log; new integrated AUD payments, trading, advanced governance and filings are d
 | Issue                                               | Remaining                                                                                                                                                                                                        | Current prerequisites                                         |
 | --------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
 | [#624](https://github.com/Ledova/ledova/issues/624) | Physical-device and live human release acceptance                                                                                                                                                                | Genuine device/human and configured-chain evidence            |
-| Deferred                                            | [#869](https://github.com/Ledova/ledova/issues/869) trading and settlement, [#870](https://github.com/Ledova/ledova/issues/870) advanced governance, [#872](https://github.com/Ledova/ledova/issues/872) filings | Scheduled by the owner; no essential increment waits for them |
 
 Programme [#860](https://github.com/Ledova/ledova/issues/860), now closed, tracked the transition to one registry
 product; closed [#645](https://github.com/Ledova/ledova/issues/645) delivered the earlier foundation and

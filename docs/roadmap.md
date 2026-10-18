@@ -69,11 +69,7 @@ simulator observation does not establish them.
 ### Deferred
 
 - Integrated AUD collection, partly paid allotments and calls, payment
-  automation, reconciliation, refunds and secondary settlement, and new trading
-  work ([#869](https://github.com/Ledova/ledova/issues/869)).
-- Advanced publications, voting and distributions
-  ([#870](https://github.com/Ledova/ledova/issues/870)) and filing preparation
-  and submission ([#872](https://github.com/Ledova/ledova/issues/872)).
+  automation, reconciliation and refunds.
 - Tokenising an imported register, and splits and consolidations. A later
   mirror must preserve existing supply rather than issue those shares again.
 
@@ -83,6 +79,12 @@ optional investor crypto on-ramp keeps
 [#920](https://github.com/Ledova/ledova/issues/920)'s guards.
 
 ## Not on the roadmap
+
+The owner [closed the expansion tickets as not planned on 18 October](decisions.md#registry-focus-and-cancelled-expansion-tickets):
+secondary share sales and AUD settlement expansion ([#869](https://github.com/Ledova/ledova/issues/869)),
+advanced company resolutions and distributions ([#870](https://github.com/Ledova/ledova/issues/870)),
+and filing preparation and submission integrations ([#872](https://github.com/Ledova/ledova/issues/872)).
+These closures do not remove existing functionality or establish delivery of the proposals.
 
 No off-ramp, public investor directory, retail offering or mainnet deployment
 configuration is planned for the first releases. The
