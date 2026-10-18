@@ -210,12 +210,13 @@ The [principles](README.md#principles) apply; in particular, do not add:
   `pages/company/register/grant/`. An address that only adds a parameter to that page is `detail/`
   (`/directory/:uuid` is `pages/directory/detail/`), and a `detail/` folder never holds sub-pages;
   an address that renders another's page (`/member-records`, `/company/register/setup`) has no
-  folder, and the not-found page is `pages/not-found/`. Page folders and `components/` groups are kebab-case
-  (`eligibility-requests/`, `qr/`). A file is named after its main export, or after what small siblings
-  share (`fieldClass.ts`): `PascalCase.tsx` for a component, `use<Thing>.ts` for a hook without JSX,
-  `<Thing>Provider.tsx` for a provider, `PascalCase.ts` for a React context, camelCase `.ts` for a
-  module without React. Components and hooks are function declarations. A page entry default-exports
-  its page and nothing else; other exports are named, and only when another file imports them.
+  folder, and the not-found page is `pages/not-found/`. Page folders and `components/` groups are
+  kebab-case (`eligibility-requests/`, `qr/`). A file is named after its main export, or after what
+  small siblings share (`fieldClass.ts`): `PascalCase.tsx` for a component, `use<Thing>.ts` for a
+  hook without JSX, `<Thing>Provider.tsx` for a provider, `PascalCase.ts` for a React context,
+  camelCase `.ts` for a module without React. Components and hooks are function declarations. A page
+  entry default-exports its page and nothing else; other exports are named, and only when another
+  file imports them.
 - **Types.** Types and interfaces use PascalCase and properties camelCase; query parameters keep the
   API's snake_case names. Entities use their bare name, queries `{Entity}QueryParams` and non-CRUD
   calls `{Action}Request` and `{Action}Response`, composed from the shared pagination, ordering and
