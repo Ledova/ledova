@@ -11,7 +11,7 @@ SCHEMA_COMPARISON ?= /tmp/ledova-schema-comparison.json
 CLIENT_OPERATIONS_REPORT ?= /tmp/ledova-client-operations.json
 
 .PHONY: help install install-backend install-node-if-missing init-local check-local-env build generate-tokens check check-comments check-layers \
-	check-logging check-connection-binding check-error-bodies check-schema-responses check-test-shadowing check-docs check-api-types check-self-imports check-mobile-test-awaits test-gates audit audit-node audit-backend test preflight backend-test ci-checks \
+	check-logging check-connection-binding check-error-bodies check-schema-responses check-test-shadowing check-docs check-api-types check-self-imports check-frontend-imports check-mobile-test-awaits test-gates audit audit-node audit-backend test preflight backend-test ci-checks \
 	dev-up dev-down dev-logs dev-seed dev-clean docker-prune contracts-deploy-local \
 	contracts-deploy-testnet chain-test smoke lint check-type-check \
 	install-schema-environment generate-api-schema check-api-schema update-api-schema update-api-types check-client-operations
@@ -41,6 +41,7 @@ help:
 	@echo "  make generate-tokens          Regenerate the CSS design tokens from packages/shared"
 	@echo "  make check                    Run source and client static checks"
 	@echo "  make check-self-imports       Check workspace package imports after installing Node dependencies"
+	@echo "  make check-frontend-imports   Check frontend import direction and pinned debt"
 	@echo "  make lint                     Run ESLint and solhint across every workspace"
 	@echo "  make check-comments           Fail on any comment or docstring in source"
 	@echo "  make check-layers             Fail on a new backend layer violation"
@@ -109,7 +110,7 @@ generate-tokens:
 	$(NPM) exec -- tsx packages/scripts/generate-css-tokens.mjs
 
 check: check-comments check-layers check-logging check-connection-binding check-error-bodies check-type-check check-schema-responses check-test-shadowing check-docs
-	$(MAKE) check-self-imports check-api-types check-client-operations
+	$(MAKE) check-self-imports check-frontend-imports check-api-types check-client-operations
 	$(NPM) run typecheck
 	$(NPM) --prefix mobile run check:resolution
 	$(MAKE) check-mobile-test-awaits
@@ -186,6 +187,9 @@ check-logging:
 
 check-self-imports:
 	node scripts/check-self-imports.mjs
+
+check-frontend-imports:
+	node scripts/check-frontend-imports.mjs
 
 check-mobile-test-awaits:
 	node --test scripts/tests/check-mobile-test-awaits.test.mjs

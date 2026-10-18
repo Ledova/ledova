@@ -33,6 +33,7 @@ naming no script fails.
 | `check-api-types.mjs`         | [The API type drift gate](#the-api-type-drift-gate)                  | yes          | Source and client checks |
 | `check-client-operations.mjs` | [The API type drift gate](#the-api-type-drift-gate)                  | yes          | Source and client checks |
 | `check-self-imports.mjs`      | [Shared package imports](frontend.md#clients-and-the-shared-package) | yes          | Source and client checks |
+| `check-frontend-imports.mjs`  | [The frontend import gate](#the-frontend-import-gate)                | yes          | Source and client checks |
 
 Two rules are gated without a script of their own: migration drift through
 `makemigrations --check --dry-run` in the backend group, and generated design tokens through the
@@ -175,14 +176,40 @@ a requests error's text names the URL it failed on, key included. This gate and 
 are syntax analyses with bounded local reasoning: a passing result does not establish privacy
 through arbitrary helper calls or runtime-computed names, so read new data flows yourself.
 
+## The frontend import gate
+
+`make check-frontend-imports` checks non-test dashboard source imports against the
+[frontend placement rules](frontend.md#dependency-direction-and-placement). It reads imports,
+re-exports, import types, dynamic imports and literal `require` calls through TypeScript and
+resolves relative paths and the dashboard's configured aliases.
+
+Only `App.tsx` imports route modules from outside `routes/`; route modules may use their own guards
+and table. Only pages and routes import pages, and routes import page entries. A page imports its
+own code and the `shared/` folders of its own or enclosing page or area, not another page's files.
+Only `main.tsx`, non-JSX `use*.ts` hooks and `services/` import the API singleton. Relative paths
+cannot climb. The gate reports each new finding with its file, line and rule.
+
+`scripts/frontend-import-debt.json` pins existing counts by file and rule. A count above its pin fails;
+a pin above the actual count also fails. Remove or lower stale pins as code moves; a moved file
+may retain its pin under the new path only while its findings are unchanged. Review compares the
+debt change with the merging base: pins may only shrink, never excuse new violations. There is no
+automatic repinning. The gate covers these path rules, not query-key semantics, UI behaviour or
+every placement rule; review still checks those.
+
 ## The documentation gate
 
 `make check-docs` checks relative inline links and heading anchors in root README, CONTRIBUTING,
-SECURITY and CODE_OF_CONDUCT, plus **every Markdown document recursively under docs/**. It holds the
+SECURITY and CODE_OF_CONDUCT, `site/README.md`, plus **every Markdown document recursively under docs/**. It holds the
 [job schedule](../operations/jobs-and-storage.md#schedule) to the names of the backend's
-`@app.periodic` tasks, `def` or `async def`, and the gate inventory above to `scripts/check-*`, in
+`@app.periodic` tasks, `def` or `async def`, and the gate inventory above to `scripts/` files matching `check-*`, in
 both directions. `check-port-free` is deliberately not a gate (`NOT_A_GATE`: Makefile plumbing for
 `make chain-test`).
+
+Backticked repository paths beginning with `backend/`, `contracts/`, `dashboard/`, `docs/`,
+`mobile/`, `packages/`, `scripts/` or `site/` must exist inside the checkout. Inline code spans are
+checked, including wrapped spans; fenced examples are not repository citations. Describe generated
+files, local configuration, archive members and patterns as such rather than as tracked source
+paths. A missing source citation cannot be excused by a debt entry.
 
 The checker compares paths, anchors and names, with GitHub's space-to-hyphen heading behaviour. It
 does not verify external URLs, cron values, arbitrary Markdown syntax or behavioural claims. New

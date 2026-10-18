@@ -751,10 +751,10 @@ table column, link or tag. Values Ledova produces are left as they are, and the 
   `settlements.json`, `issues.json`, `former_members.json`, `reconciliations.json`, `waiting.json`
   (`waiting_list(token)`, or `null` where the API's is) and `due.json` (the class's rows of
   `outputs_due(company=company)`).
-- `contracts/contracts.json` ([contract information](#contract-information)) and
-  `contracts/<Name>.json`, the interfaces of `ShareToken`, `WhitelistRegistry`, `ShareTokenFactory`
+- In the generated pack’s `contracts/` folder: `contracts.json` ([contract information](#contract-information)) and
+  `<Name>.json`, the interfaces of `ShareToken`, `WhitelistRegistry`, `ShareTokenFactory`
   and `AtomicSwap` committed under [backend/contracts/](../../backend/contracts/ShareToken.json),
-  never a local `contracts/artifacts/` build.
+  never a local `artifacts/` build from `contracts/`.
 - `publications/<publication id>/`: `publication.json`, `roll.json`, `events.json`,
   `document.<extension>` and `payments/<record id>.<extension>` ([publications in the
   pack](#publications-in-the-pack)).

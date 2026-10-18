@@ -238,11 +238,12 @@ The [principles](README.md#principles) apply; in particular, do not add:
 Enforced today: ESLint and Prettier (`make lint`, with the shared type naming rules),
 [the type-check gate](gates.md#the-type-check-gate) with the typed `PAGES` and sign-up maps,
 [the comment gate](gates.md#the-comment-gate),
-[the logging privacy gate](gates.md#the-logging-privacy-gate), the self-import gate and
-[the API type drift gate](gates.md#the-api-type-drift-gate). Not yet enforced: placement, import
-direction, data access, query keys, paths, naming and test placement. Review checks these until the
-frontend import gate ([#1066](https://github.com/Ledova/ledova/issues/1066)) takes the `routes/`
-and `pages/` import rules, climbing relative paths and `apiClient` placement.
+[the logging privacy gate](gates.md#the-logging-privacy-gate), the self-import gate,
+[the frontend import gate](gates.md#the-frontend-import-gate) and
+[the API type drift gate](gates.md#the-api-type-drift-gate). The frontend gate covers `routes/`
+and `pages/` import direction, climbing relative paths and `apiClient` placement, with existing
+debt pinned by file and rule. Other placement rules, data access, query keys, paths, naming and
+test placement remain review checks. Moves remove the corresponding debt in the same change.
 
 ## Adding a page or feature
 

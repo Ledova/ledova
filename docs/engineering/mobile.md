@@ -50,7 +50,7 @@ files; both are brought in line under [#1074](https://github.com/Ledova/ledova/i
 The app imports `@ledova/shared` from source, like the dashboard
 ([clients and the shared package](frontend.md#clients-and-the-shared-package)), and supplies one
 copy of each peer, `react` and `@tanstack/react-query`: `mobile/metro.config.js` resolves both as if
-imported from `mobile/index.ts`, `mobile/jest.config.js` maps them to `mobile/node_modules`, and
+imported from `mobile/index.ts`, `mobile/jest.config.js` maps them to the mobile app’s `node_modules` directory, and
 `mobile/scripts/shared-peer-resolution.mjs`, the last step of `check-resolution.mjs`, fails if real
 Metro resolutions from `App.tsx` and from a shared hook disagree. Run
 `npm --prefix mobile run check:resolution` after dependency changes; `make check` runs it too.

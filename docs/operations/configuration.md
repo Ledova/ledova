@@ -42,8 +42,8 @@ In the local stack, `docker-compose.yml` gives `migrate`, `backend` and `worker`
 `REDIS_URL=redis://redis:6379/0`, `UPLOAD_SCANNER_HOST=clamav`, `STORAGE_BACKEND=local`,
 `DEBUG=true` and the stack's chain settings
 ([the local stack's chain](chains.md#the-local-stacks-chain)). These `environment:` entries win
-over `backend/.env`, so an `s3` storage backend, `DEBUG=false`, a custom `REDIS_URL` or other chain
-settings in that file are silently ignored inside the stack. `backend/.env` is still needed:
+over the local `.env` file in `backend/`, so an `s3` storage backend, `DEBUG=false`, a custom `REDIS_URL` or other chain
+settings in that file are silently ignored inside the stack. The local `.env` file in `backend/` is still needed:
 `SECRET_KEY` and `POSTGRES_PASSWORD` come only from it, and without it `migrate` stops on
 `KeyError: 'SECRET_KEY'`.
 
@@ -304,11 +304,11 @@ inbox works without push configuration but needs a running worker
 Client variables are public build configuration embedded in the bundle, so they must never hold a
 secret. `VITE_MARKETING_URL` and `EXPO_PUBLIC_MARKETING_URL` hold the public site's URL.
 
-| File             | Variables                                                                                                                                |
-| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| `dashboard/.env` | `VITE_API_URL`, `VITE_MARKETING_URL`, `VITE_HOST`, `VITE_PORT`, `VITE_ALLOWED_HOSTS`                                                     |
-| `site/.env`      | `VITE_LEDOVA_URL`, `VITE_HOST`, `VITE_PORT`, `VITE_ALLOWED_HOSTS`                                                                        |
-| `mobile/.env`    | `EXPO_PUBLIC_API_URL`, `EXPO_PUBLIC_DEV_API_HOST`, `EXPO_PUBLIC_MARKETING_URL`, `EXPO_PUBLIC_SUPPORT_EMAIL`, `EXPO_PUBLIC_APP_STORE_URL` |
+| File                   | Variables                                                                                                                                |
+| ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `.env` in `dashboard/` | `VITE_API_URL`, `VITE_MARKETING_URL`, `VITE_HOST`, `VITE_PORT`, `VITE_ALLOWED_HOSTS`                                                     |
+| `.env` in `site/`      | `VITE_LEDOVA_URL`, `VITE_HOST`, `VITE_PORT`, `VITE_ALLOWED_HOSTS`                                                                        |
+| `.env` in `mobile/`    | `EXPO_PUBLIC_API_URL`, `EXPO_PUBLIC_DEV_API_HOST`, `EXPO_PUBLIC_MARKETING_URL`, `EXPO_PUBLIC_SUPPORT_EMAIL`, `EXPO_PUBLIC_APP_STORE_URL` |
 
 The production images never read these files, because the `.dockerignore` files keep every `.env`
 out of the build context. Pass the public origins as build arguments instead:
@@ -323,7 +323,7 @@ LAN address `EXPO_PUBLIC_DEV_API_HOST` selects, are in
 
 Hardhat loads nothing from a file: `contracts/hardhat.config.ts` and the deploy scripts read
 `process.env` directly, so export the values in the deploying shell. `contracts/.env.example` is
-only a checklist of the names; nothing creates or loads `contracts/.env`.
+only a checklist of the names; nothing creates or loads `.env` in `contracts/`.
 
 | Variable                                                                                                                                                            | Used by                                                                                                                        |
 | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
