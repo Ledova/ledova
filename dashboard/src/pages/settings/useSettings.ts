@@ -12,6 +12,7 @@ import {
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
 import { SIGNIN_PATH } from '@utils/paths';
+import { saveFile } from '@utils/saveFile';
 import { useTheme } from '@hooks/useTheme';
 import { useRegisterEntry } from '@hooks/useRegisterAccess';
 
@@ -63,12 +64,7 @@ export function useSettings() {
     mutationFn: () => exportAccountData(apiClient),
     onSuccess: (response) => {
       const blob = new Blob([JSON.stringify(response.data, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `ledova-data-export-${new Date().toISOString().split('T')[0]}.json`;
-      link.click();
-      URL.revokeObjectURL(url);
+      saveFile(blob, `ledova-data-export-${new Date().toISOString().split('T')[0]}.json`);
       setModal(null);
     },
   });

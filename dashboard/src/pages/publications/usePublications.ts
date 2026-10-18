@@ -15,20 +15,10 @@ import {
 } from '@ledova/shared';
 import type { BallotChoice, UserFriendlyError } from '@ledova/shared';
 import apiClient from '@services/apiClient';
+import { saveFile } from '@utils/saveFile';
 
 const PUBLICATIONS_KEY = PUBLICATIONS_QUERY_KEY;
 const PERSONAL_NOTICES_KEY = [...PUBLICATIONS_KEY, 'addressed', 'me'];
-
-function saveACopy(document_: Blob, filename: string) {
-  const url = URL.createObjectURL(document_);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = filename;
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-  window.setTimeout(() => URL.revokeObjectURL(url), 60000);
-}
 
 function whyItCouldNotBeOpened(error: unknown): string {
   const cause = (error as UserFriendlyError | undefined)?.originalError ?? error;
@@ -55,7 +45,7 @@ export function usePublications() {
   const opening = useMutation({
     mutationFn: async (uuid: string) => {
       const response = await openPublication(apiClient, uuid);
-      saveACopy(response.data, publicationFilename(uuid, response.data.type));
+      saveFile(response.data, publicationFilename(uuid, response.data.type));
     },
   });
 
