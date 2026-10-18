@@ -33,10 +33,9 @@ issue ([the register](register.md#the-register-and-the-companys-records)).
 
 The class-creation API requires a current personal company administrator or preparer appointment,
 rechecked under the company lock. Ownership or platform staff status alone supplies no authority.
-On the web, [register setup](register.md#bringing-in-existing-records) lists companies from those
+[Register setup](register.md#bringing-in-existing-records) on web and mobile lists companies from those
 appointments, including a preparer who is not the owner. Company Settings keeps its administration
 boundary, lists scoped register classes and lets a current personal administrator create a class.
-The mobile client update remains under [#1061](https://github.com/Ledova/ledova/issues/1061).
 Creation records no shares and no legal registration. The technical
 limit is not statutory authorised capital; the class code and type do not define its economic rights.
 Class codes are one to five letters, unique within the company, and may not reuse a
@@ -45,7 +44,7 @@ should close is delisted, and a class is paused to stop transfers. Deployment, c
 pausing are company decisions; earlier direct actions by the owner or platform staff are retired,
 and their records stay readable. The register API can confirm a zero-issued opening for a genuinely
 unopened draft class without a contract or former members. It creates no shareholder, holding or
-ISSUE; a subsequent approved grant or investor allotment records the first shares. Web setup exposes
+ISSUE; a subsequent approved grant or investor allotment records the first shares. Both clients expose
 this empty-opening choice through the same draft, review and confirmation as copied holdings
 ([register setup](register.md#bringing-in-existing-records)).
 
@@ -455,10 +454,6 @@ rights, and transmission.
 Current limits, each with follow-up work proposed under the share lifecycle review
 ([#1060](https://github.com/Ledova/ledova/issues/1060)):
 
-- The server and web setup support current company appointments creating classes and confirming
-  zero-issued non-tokenised openings. The mobile setup and class-limit terminology update remain under
-  [#1061](https://github.com/Ledova/ledova/issues/1061). Direct transfers already check the class's declared
-  transfer restriction ([transfer rules](register.md#non-paid-transfers-between-members)).
 - An issue or transfer is dated the day it is recorded rather than the company's effective date, and
   the investor issue review shows the holdings and issued shares before and after but no implied
   price per share or ownership percentages. Proposed under [#1062](https://github.com/Ledova/ledova/issues/1062).

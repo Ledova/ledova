@@ -198,9 +198,8 @@ The register API also accepts an empty opening with no current or former members
 unopened draft class without chain activity. It retains the same company confirmation and separate
 approval/application, records an empty Opening state and creates no shares or shareholders. It
 cannot replace a populated or chain opening or erase records through a correction. The first
-subsequent approved issue uses the same register. The web setup checks current class and register
+subsequent approved issue uses the same register. Web and mobile setup check current class and register
 metadata before allowing the empty draft; incomplete entered rows still need correction or removal.
-The mobile setup update remains under [#1061](https://github.com/Ledova/ledova/issues/1061).
 
 Inviting members is optional ([member access](member-records.md#member-access)). Unsaved edits are
 kept only in the open page and are lost if you leave it. After a failed or uncertain response, use Recover saved records or Recover
