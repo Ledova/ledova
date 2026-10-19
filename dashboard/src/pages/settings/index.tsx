@@ -85,8 +85,8 @@ function SettingsPage() {
     <Page narrow>
       <Section title="Company settings">
         <div className="divide-y divide-border-subtle">
-          <LinkRow to={DESTINATIONS.company.path} label="Company details and share classes">
-            <p className="text-text-muted">Company setup and the classes you can administer.</p>
+          <LinkRow to={DESTINATIONS.company.path} label="Company details">
+            <p className="text-text-muted">Company information and administration.</p>
           </LinkRow>
           <LinkRow to={`${DESTINATIONS.company.path}#documents`} label="Company documents">
             <p className="text-text-muted">Upload optional supporting documents after company setup.</p>

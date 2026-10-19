@@ -1,8 +1,8 @@
 import { FIELD_CLASS } from '@components/fieldClass';
 import { Modal } from '@components/Modal';
-import { apiErrorSentence, type TokenType } from '@ledova/shared';
+import { apiErrorSentence } from '@ledova/shared';
 import { CompanyReadNotice } from '@pages/company/shared/CompanyState';
-import { EDIT_FIELDS, useCreateClassForm, useEditCompanyForm, type FormProps } from './useCompanyForms';
+import { EDIT_FIELDS, useEditCompanyForm, type FormProps } from './useCompanyForms';
 
 export function EditCompanyForm(props: FormProps) {
   const { company, target, read, onClose, draft, setDraft, pendingRef, canChangeName, valid, save } =
@@ -63,102 +63,6 @@ export function EditCompanyForm(props: FormProps) {
             </label>
           ))}
         </div>
-      </fieldset>
-    </Modal>
-  );
-}
-
-export function CreateClassForm(props: FormProps) {
-  const {
-    company,
-    target,
-    read,
-    onClose,
-    name,
-    setName,
-    symbol,
-    setSymbol,
-    tokenType,
-    setTokenType,
-    totalSupply,
-    setTotalSupply,
-    pendingRef,
-    quantity,
-    valid,
-    create,
-  } = useCreateClassForm(props);
-  return (
-    <Modal
-      isOpen
-      title="Create share class"
-      showFooter
-      confirmLabel="Create share class"
-      confirmLoading={create.isPending}
-      confirmDisabled={!valid || create.isPending}
-      onConfirm={() => {
-        if (valid && !pendingRef.current) {
-          pendingRef.current = true;
-          create.mutate();
-        }
-      }}
-      onClose={() => {
-        if (!create.isPending) onClose();
-      }}
-    >
-      <fieldset disabled={create.isPending} className="space-y-4">
-        <CompanyReadNotice read={read} />
-        {company?.uuid !== target.uuid && (
-          <p role="alert" className="text-sm text-text-muted">
-            This draft belongs to a company that is no longer selected.
-          </p>
-        )}
-        <p className="text-sm text-text-muted">
-          Create a draft class. Its code and type do not define economic rights. The technical share limit is not
-          statutory authorised capital. Deployment and issuance are separate steps.
-        </p>
-        {create.isError && (
-          <p role="alert" className="text-sm text-error-light">
-            {apiErrorSentence(create.error, 'The share class could not be created. Try again.')}
-          </p>
-        )}
-        <label className="block text-sm">
-          Class name
-          <input className={FIELD_CLASS} value={name} onChange={(event) => setName(event.target.value)} />
-        </label>
-        <label className="block text-sm">
-          Class code
-          <input
-            className={FIELD_CLASS}
-            value={symbol}
-            onChange={(event) => setSymbol(event.target.value.toUpperCase())}
-          />
-        </label>
-        <label className="block text-sm">
-          Class type
-          <select
-            className={FIELD_CLASS}
-            value={tokenType}
-            onChange={(event) => setTokenType(event.target.value as TokenType)}
-          >
-            <option value="ordinary">Ordinary</option>
-            <option value="preference">Preference</option>
-            <option value="redeemable">Redeemable</option>
-          </select>
-        </label>
-        <label className="block text-sm">
-          Technical share limit
-          <input
-            className={FIELD_CLASS}
-            inputMode="numeric"
-            value={totalSupply}
-            onChange={(event) => setTotalSupply(event.target.value)}
-          />
-        </label>
-        {totalSupply !== '' && (quantity === null || quantity <= 0n) && (
-          <p role="alert" className="text-sm text-error-light">
-            Enter a positive whole number of shares.
-          </p>
-        )}
       </fieldset>
     </Modal>
   );

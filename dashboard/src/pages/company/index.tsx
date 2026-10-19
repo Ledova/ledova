@@ -1,13 +1,12 @@
 import { REGISTER_QUERY_KEY } from '@hooks/useRegisterAccess';
 import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { DESTINATIONS, type Company, useCompanySelection, useSubmissionOwner } from '@ledova/shared';
+import { DESTINATIONS, type Company, useCompanySelection } from '@ledova/shared';
 import { Page, PageAction } from '@components/Page';
 import { LinkRow, Row, Rows, Section } from '@components/Ledger';
 import { TOKENS_QUERY_KEY } from '@pages/company/shared/useTokensList';
-import { CompanyClasses } from './CompanyClasses';
 import { CompanyReadNotice, CompanyStatusMark } from '@pages/company/shared/CompanyState';
-import { CreateClassForm, EditCompanyForm } from './CompanyForms';
+import { EditCompanyForm } from './CompanyForms';
 import { CompanyDocuments } from './CompanyDocuments';
 import { CompanySelection } from '@pages/company/shared/CompanySelection';
 
@@ -18,10 +17,8 @@ export default function CompanyPage() {
 
 function CompanyDetails({ data }: { data: ReturnType<typeof useCompanySelection> }) {
   const { company } = data;
-  const { owner, boundary } = useSubmissionOwner();
   const queryClient = useQueryClient();
   const [editing, setEditing] = useState<Company | null>(null);
-  const [creating, setCreating] = useState<Company | null>(null);
   const refresh = () =>
     Promise.all([
       queryClient.invalidateQueries({ queryKey: data.companyKey, exact: true }),
@@ -103,15 +100,6 @@ function CompanyDetails({ data }: { data: ReturnType<typeof useCompanySelection>
                 )}
               </div>
             </Section>
-            {(data.ownerBusiness || data.canPersonalAdmin) && owner && (
-              <CompanyClasses
-                owner={owner}
-                currentOwner={boundary.get}
-                company={company}
-                read={data}
-                onCreate={() => setCreating(company)}
-              />
-            )}
           </>
         )}
         {data.retainedCompany && (
@@ -131,16 +119,6 @@ function CompanyDetails({ data }: { data: ReturnType<typeof useCompanySelection>
           company={company}
           read={data}
           onClose={() => setEditing(null)}
-          onSuccess={refresh}
-        />
-      )}
-      {creating && (
-        <CreateClassForm
-          key={`${data.scopeKey}/${creating.uuid}`}
-          target={creating}
-          company={company}
-          read={data}
-          onClose={() => setCreating(null)}
           onSuccess={refresh}
         />
       )}

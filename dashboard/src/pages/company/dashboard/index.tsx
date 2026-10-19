@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef } from 'react';
-import { useLocation } from 'react-router-dom';
-import { useSubmissionOwner, useUserPreferences, type OrderSubmissionOwner } from '@ledova/shared';
+import { Link, useLocation } from 'react-router-dom';
+import { DESTINATIONS, useSubmissionOwner, useUserPreferences, type OrderSubmissionOwner } from '@ledova/shared';
 import { Page } from '@components/Page';
 import { CompanySelection } from '@pages/company/shared/CompanySelection';
 import { Loading, Unavailable } from '@pages/company/shared/RegisterStatus';
@@ -8,7 +8,6 @@ import { useCompanyRegister } from '@pages/company/shared/useCompanyRegister';
 import { ownerGuard } from '@pages/company/shared/ownerGuard';
 import { ActivationPrompt } from './ActivationPrompt';
 import { OwnershipMetrics, ShareholderPanels } from './OwnershipPanels';
-import { RegisterSetup } from './RegisterSetup';
 import { ownershipSummary } from '@pages/company/shared/summary';
 
 export default function CompanyDashboardPage() {
@@ -80,7 +79,13 @@ function OwnDashboard({
       ) : preferences.isFetching || classes.isPending || (company && registers.isPending) || (company && !fresh) ? (
         <Loading />
       ) : companies.length === 0 ? (
-        <RegisterSetup owner={owner} currentOwner={currentOwner} />
+        <p className="py-3 text-sm text-text-muted">
+          No share register yet.{' '}
+          <Link to={DESTINATIONS.companyRegister.path} className="text-brand-light underline">
+            Open Register
+          </Link>{' '}
+          to set it up.
+        </p>
       ) : !company ? (
         <p className="py-3 text-sm text-text-muted">Select a company to show its ownership.</p>
       ) : fresh && scoped && summary ? (

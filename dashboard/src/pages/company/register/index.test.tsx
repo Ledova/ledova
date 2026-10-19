@@ -736,7 +736,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
         <ApiClientProvider client={apiClient}>
           <MemoryRouter initialEntries={[path]}>
             <Routes>
-              <Route path="/" element={<CompanyDashboardPage />} />
+              <Route path="/" element={<CompanyRegisterPage />} />
               <Route path="/company/dashboard" element={<CompanyDashboardPage />} />
               <Route path={DESTINATIONS.companyRegisterSetup.path} element={<CompanyRegisterImportPage />} />
               <Route path={DESTINATIONS.companyRegisterImport.path} element={<CompanyRegisterImportPage />} />
@@ -1650,7 +1650,7 @@ it('shows an account without register access a calm empty state, reads no member
   cleanup();
   show('investor', <SettingsPage />, 'Settings');
   expect(await screen.findByRole('link', { name: 'Team and appointments' })).toBeTruthy();
-  await waitFor(() => expect(readUrls()).toEqual([REGISTER, REGISTER, COMPANY_ENDPOINTS.BASE, APPOINTMENTS]));
+  await waitFor(() => expect(readUrls()).toEqual([REGISTER, APPOINTMENTS, REGISTER, COMPANY_ENDPOINTS.BASE]));
   await waitFor(() => expect(client.isFetching()).toBe(0));
   expect(screen.queryByRole('link', { name: 'Register' })).toBeNull();
 });
