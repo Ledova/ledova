@@ -44,7 +44,7 @@ expansion tickets were [closed as not planned on 18 October](../../decisions.md#
 | [#1020](https://github.com/Ledova/ledova/issues/1020), [#1022](https://github.com/Ledova/ledova/issues/1022)                                                        | Company details and initial admission in one signup flow, one authority and Terms statement, files and team setup after registration               |
 | [#1025](https://github.com/Ledova/ledova/issues/1025), [#1029](https://github.com/Ledova/ledova/issues/1029), [#1036](https://github.com/Ledova/ledova/issues/1036) | The existing-register mirror: copied particulars and bounded corrections, web setup from share details to shareholders to review, and manual entry |
 | [#1031](https://github.com/Ledova/ledova/issues/1031)                                                                                                               | Consistent signed-in web presentation                                                                                                              |
-| [#1155](https://github.com/Ledova/ledova/issues/1155)                                                                                                               | Dashboard overview and Getting started, register setup and share classes only in Register, verification and activation atop Settings (web)         |
+| [#1155](https://github.com/Ledova/ledova/issues/1155), [#1157](https://github.com/Ledova/ledova/issues/1157)                                                        | Dashboard overview and Getting started, register setup and share classes only in Register, verification and activation atop Settings (web, mobile) |
 
 ## Remaining scope
 
