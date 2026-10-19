@@ -751,12 +751,13 @@ for reporting and portability, recorded in
   until real member data is held.
 - **Only what the register holds leaves** of a member: name, residential
   address, holding, linked wallets and identity source. Email, phone, date of
-  birth and verification evidence stay. Platform account ids stayed too until
-  19 October 2026, when the owner aligned this decision with what the pack
+  birth and verification evidence stay. The decision kept platform account ids
+  back too until 19 October 2026, when the owner aligned it with what the pack
   carries: platform account numbers leave in decision records and in the
-  fingerprint inputs of register entries and dividend payment records, even
-  where the account is a member's
-  ([what never leaves](business/member-records.md#what-never-leaves-and-why)).
+  fingerprint inputs of register entries and of dividend payment records and
+  their withdrawals, even where the account is a member's
+  ([what never leaves](business/member-records.md#what-never-leaves-and-why);
+  [#1139](https://github.com/Ledova/ledova/issues/1139#issuecomment-6262477255)).
 - **The company sees resolution tallies and read counts**, never how a member
   voted or who opened what, while every vote's record still verifies.
 - **The pack explains how control of the contracts would be handed over and
