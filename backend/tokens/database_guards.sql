@@ -6392,7 +6392,7 @@ AS $function$
             AND linked.member_id = member.uuid AND lower(linked.address) = approval.address)
         AND proposal.snapshot->'member'->>'address' = approval.address
         AND proposal.snapshot->'member'->>'identity_source' = 'profile'
-        AND proposal.snapshot->'member'->>'name' = COALESCE(NULLIF(regexp_replace(profile.full_name, '^[[:space:]]+|[[:space:]]+$', '', 'g'), ''), actor.email)
+        AND proposal.snapshot->'member'->>'name' = NULLIF(regexp_replace(profile.full_name, '^[[:space:]]+|[[:space:]]+$', '', 'g'), '')
         AND proposal.snapshot->'member'->>'residential_address' = regexp_replace(COALESCE(profile.residential_address, ''), '^[[:space:]]+|[[:space:]]+$', '', 'g')
         AND regexp_replace(COALESCE(profile.residential_address, ''), '^[[:space:]]+|[[:space:]]+$', '', 'g') <> ''
         AND NOT EXISTS (SELECT 1 FROM tokens_registermemberwallet linked WHERE linked.company_id = company.uuid
@@ -6403,11 +6403,10 @@ AS $function$
         AND NOT EXISTS (SELECT 1 FROM tokens_registermemberwallet linked JOIN whitelist_whitelistentry entry ON lower(COALESCE((SELECT address FROM wallets WHERE uuid = entry.wallet_id), entry.address)) = lower(linked.address)
             LEFT JOIN wallets wallet ON wallet.uuid = entry.wallet_id LEFT JOIN customer_accounts_account account ON account.uuid = wallet.user_account_id
             LEFT JOIN users_userprofile other_profile ON other_profile.uuid = account.user_profile_id
-            LEFT JOIN authentication_customuser other_actor ON other_actor.id = other_profile.user_id
             WHERE linked.company_id = company.uuid AND linked.member_id = member.uuid
                 AND (entry.wallet_id IS NULL OR wallet.chain = 'base') AND (
                     wallet.uuid IS NULL OR (account.user_profile_id IS NOT NULL AND (
-                        COALESCE(NULLIF(regexp_replace(other_profile.full_name, '^[[:space:]]+|[[:space:]]+$', '', 'g'), ''), other_actor.email) IS DISTINCT FROM proposal.snapshot->'member'->>'name'
+                        NULLIF(regexp_replace(other_profile.full_name, '^[[:space:]]+|[[:space:]]+$', '', 'g'), '') IS DISTINCT FROM proposal.snapshot->'member'->>'name'
                         OR regexp_replace(COALESCE(other_profile.residential_address, ''), '^[[:space:]]+|[[:space:]]+$', '', 'g') IS DISTINCT FROM proposal.snapshot->'member'->>'residential_address'))))
         AND request.token_id = token.uuid AND request.company_id = company.uuid AND request.amount BETWEEN 1 AND 2147483647
         AND lower(request.recipient_address) = approval.address AND request.recipient_name = proposal.snapshot->'member'->>'name'
@@ -6446,7 +6445,6 @@ AS $function$
       JOIN tokens_registermember member ON member.uuid = proposal.member_id
       JOIN whitelist_companywalletnomination nomination ON nomination.uuid = proposal.nomination_id
       JOIN users_userprofile profile ON profile.uuid::text = nomination.snapshot->>'profile'
-      JOIN authentication_customuser actor ON actor.id = profile.user_id
       JOIN whitelist_whitelistchange approval ON approval.uuid = proposal.wallet_approval_id
       JOIN whitelist_companywalletinstruction wallet_source ON wallet_source.uuid = approval.source_instruction_id
       JOIN tokens_registerevidence authority ON authority.uuid = proposal.authority_evidence_id
@@ -6607,7 +6605,7 @@ AS $function$
         AND proposal.snapshot->'source'->>'recipient_address' = lower(wallet.address)
         AND proposal.snapshot->'source'->>'recipient_name' = (CASE WHEN (SELECT count(*) FROM wallets same
             WHERE same.chain = token.chain AND lower(same.address) = lower(wallet.address)) = 1 THEN
-            COALESCE(NULLIF(regexp_replace(profile.full_name, '^[[:space:]]+|[[:space:]]+$', '', 'g'), ''), actor.email, '') ELSE '' END)
+            COALESCE(NULLIF(regexp_replace(profile.full_name, '^[[:space:]]+|[[:space:]]+$', '', 'g'), ''), '') ELSE '' END)
         AND proposal.snapshot->'source'->>'shares' = COALESCE(subscription.allotted_quantity, subscription.quantity)::text
         AND proposal.snapshot->'source'->>'requested_shares' = subscription.quantity::text
         AND proposal.snapshot->'source'->>'currency' = subscription.currency
@@ -6664,7 +6662,7 @@ AS $function$
         FROM offerings_subscription subscription JOIN offerings_offering offering ON offering.uuid = subscription.offering_id
         JOIN tokens_sharetoken token ON token.uuid = offering.token_id JOIN companies_company company ON company.uuid = token.company_id
         JOIN wallets wallet ON wallet.uuid = subscription.wallet_id LEFT JOIN customer_accounts_account account ON account.uuid = wallet.user_account_id
-        LEFT JOIN users_userprofile profile ON profile.uuid = account.user_profile_id LEFT JOIN authentication_customuser actor ON actor.id = profile.user_id
+        LEFT JOIN users_userprofile profile ON profile.uuid = account.user_profile_id
         JOIN tokens_registerevidence authority ON authority.uuid = proposal.authority_evidence_id
         WHERE subscription.uuid = proposal.paid_subscription_id AND token.uuid = proposal.token_id AND company.uuid = proposal.company_id), false);
 $function$;

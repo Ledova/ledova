@@ -115,6 +115,11 @@ hide an ambiguous one ([decision](../decisions.md#the-stored-register)), so prof
 the register and conflicts stay visible. Older issues with no recorded identity are not filled in by
 guessing.
 
+An email address is never used as a member's name. A wallet owner who has not given a full name in
+Profile has no live identity, so without other recorded identity the member shows as Unidentified;
+a share issue to them waits until they add their name, as it does for a missing residential
+address, and a paid issue records no name. Entries recorded earlier keep what they recorded.
+
 A treasury label names an address, not a person, and gives no residential address: a member at a
 labelled treasury address stays Treasury, named by its recorded particulars or else the label. A
 treasury address beside another identity is Ambiguous. Every register output, publication roll and
