@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useSyncExternalStore } from 'react';
 import { Text, View, RefreshControl } from 'react-native';
 import { useNavigation, type NavigationProp } from '@react-navigation/native';
+import { useQueryClient } from '@tanstack/react-query';
 import * as Crypto from 'expo-crypto';
 import { companyActivationOutcome, formatDate, useCompanyActivation } from '@ledova/shared';
 import type { BottomTabParamList } from '../../navigation/BottomTabNavigator';
@@ -8,6 +9,8 @@ import { Action, Choice, Row, Rows, Section } from '../../components/Ledger';
 import { Page } from '../../components/Page';
 import { CustomModal } from '../../components/modal';
 import { useCompanyProfile } from '../../hooks/useCompanyProfile';
+import { registerAppointmentsKey } from '../../hooks/useCompanyRegister';
+import { getSessionEpoch, subscribeSession } from '../../services/sessionScope';
 import { CompanyReadNotice } from '../../components/company/CompanyState';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 import { CompanySelection } from '../../components/company/CompanySelection';
@@ -139,6 +142,8 @@ function ActivationDetails({ read }: { read: ReturnType<typeof useCompanyProfile
 
 function ActivationConfirmation({ action }: { action: ReturnType<typeof useCompanyActivation> }) {
   const styles = useCompanyStyles();
+  const queryClient = useQueryClient();
+  const epoch = useSyncExternalStore(subscribeSession, getSessionEpoch);
   const target = action.preview!;
   const [acceptance, setAcceptance] = useState<typeof action.preview>(null);
   const accepted = acceptance === target;
@@ -154,7 +159,10 @@ function ActivationConfirmation({ action }: { action: ReturnType<typeof useCompa
           primary
           disabled={!accepted || action.busy}
           onPress={() => {
-            if (accepted) void action.confirm(target);
+            if (accepted)
+              void action
+                .confirm(target)
+                .then(() => queryClient.invalidateQueries({ queryKey: registerAppointmentsKey(epoch) }));
           }}
         />
       }

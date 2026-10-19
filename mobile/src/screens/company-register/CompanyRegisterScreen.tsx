@@ -115,7 +115,7 @@ function CompanyRegister({ epoch }: { epoch: number }) {
           />
         ))}
       </View>
-      <ActivationPrompt appointments={appointments} />
+      <ActivationPrompt appointments={appointments.data ?? []} />
       {(classes.isPending || appointments.isPending || (!!company && registers.isPending)) && (
         <Text style={styles.muted}>Loading your register…</Text>
       )}
