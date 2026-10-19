@@ -329,8 +329,8 @@ warning and reinstate. A registry retry does not change the status. Resolving a 
 reinstating returns the company to Active only after a fresh matching lookup and either the
 company's genuine applied activation or a historical officeholder attestation. These controls
 cannot activate a new draft or act as company appointment authority, and the status changes send
-no notification. They exist only in admin: there is no API for them, and the database refuses a
-status change by a staff account without the change permission.
+no notification. They exist only in admin: there is no API for them, and the database refuses
+these status changes from a staff account without the change permission.
 
 ## Representative identity requirement
 
