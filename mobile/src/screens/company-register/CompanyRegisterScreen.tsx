@@ -92,6 +92,7 @@ function CompanyRegister({ epoch }: { epoch: number }) {
   const gettingStarted =
     section === 'register' &&
     !!company &&
+    appointments.isSuccess &&
     classes.isSuccess &&
     registers.isSuccess &&
     own.some(
