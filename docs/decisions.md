@@ -14,11 +14,12 @@ stay here as history and are marked where they appear.
 | --------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- | ------------------------------------------------------------------ |
 | [Company-managed registers and one product](#company-managed-registers-and-one-product)                         | 3 October 2026                                 | Current; replaces routine register work by platform staff          |
 | [Company-run register authority and evidence](#company-run-register-authority-and-evidence)                     | 5 October 2026                                 | Current                                                            |
-| [Company representative verification](#company-representative-verification)                                     | 4 October 2026                                 | Current                                                            |
+| [Company representative verification](#company-representative-verification)                                     | 4 October 2026                                 | Current; ABR lookup moved to activation by #1148                   |
 | [Combined company signup and initial authority](#combined-company-signup-and-initial-authority)                 | 14 October 2026                                | Current; amended by #1022 below                                    |
-| [Simple signup, documents and team after registration](#simple-signup-documents-and-team-after-registration)    | 14 October 2026                                | Current; #1022                                                     |
+| [Simple signup, documents and team after registration](#simple-signup-documents-and-team-after-registration)    | 14 October 2026                                | Current; #1022; ABR lookup moved to activation by #1148            |
 | [Identity verification after signup](#identity-verification-after-signup)                                       | 19 October 2026                                | Current; #1141                                                     |
 | [Verified email and email changes during signup](#verified-email-and-email-changes-during-signup)               | 19 October 2026                                | Current; #1146                                                     |
+| [ABR company lookup at activation](#abr-company-lookup-at-activation)                                           | 19 October 2026                                | Current; #1148                                                     |
 | [Existing register mirror and simple setup](#existing-register-mirror-and-simple-setup)                         | 14 October 2026                                | Current; setup amended by #1029                                    |
 | [Manual register setup: shares before shareholders](#manual-register-setup-shares-before-shareholders)          | 14 October 2026                                | Current; #1029, CSV entry removed under #1036                      |
 | [Eligibility and ownership records](#eligibility-and-ownership-records)                                         | September to 6 October 2026                    | Current                                                            |
@@ -158,7 +159,8 @@ agreement is required for representative authority; those prerequisites no longe
 block #862–#873. A declaration can establish the initial representative's
 authority in the initial admission workflow. The existing representative identity
 check and ABR company lookup remain unchanged, as do tenant isolation and
-signed-transaction safeguards. The
+signed-transaction safeguards; the lookup later moved from admission to
+activation ([19 October](#abr-company-lookup-at-activation)). The
 [authority guide](business/companies.md)
 describes the delivered admission, invitation, delegation and revocation
 workflows.
@@ -181,7 +183,9 @@ account can sign in to resume. Completion requires a confirmed appointment;
 submission alone is not admission.
 
 The [same-day amendment below](#simple-signup-documents-and-team-after-registration)
-supersedes the file and delegation choices in the original decision that follows.
+supersedes the file and delegation choices in the original decision that follows,
+and the [19 October decision](#abr-company-lookup-at-activation) moves its ABR
+lookup to activation.
 
 The initial personal scope is `admin`. Delegation is a separate visible choice:
 it is empty by default and includes `admin` only when explicitly selected.
@@ -217,7 +221,8 @@ checkbox. The initial personal scope remains `admin`; its recorded delegation
 includes all six capabilities for team setup afterwards. Documents and invitations
 use the existing company dashboard settings, with current company authority and the checked
 private-file flow for actual uploads. Identity, ABR, immutable declarations,
-tenant isolation, revocation and action-specific approvals remain. A missing
+tenant isolation, revocation and action-specific approvals remain; the ABR lookup
+later moved to activation ([19 October](#abr-company-lookup-at-activation)). A missing
 or failed required provider check cannot be treated as success. This replaces
 the mandatory signup file and optional administrator-delegation choice under
 #1020; it does not make evidence optional for later actions that require it.
@@ -272,6 +277,22 @@ account is left behind, and clears the account type, eligibility answers, and
 personal and financial details. Companies are never deleted by design, so a
 saved draft company stays with the account instead of being cleared; weakening
 that safeguard was not authorised.
+
+### ABR company lookup at activation
+
+Later on 19 October 2026 the owner decided
+([#1148](https://github.com/Ledova/ledova/issues/1148)) that the ABR company
+lookup is not part of signup. It belongs with the dashboard verification steps,
+where identity is checked, so it runs only at **Company → Activation**, which
+already looked the company up again before making it Active. **Complete company
+setup** appoints the representative on their declaration, keeping the draft
+ownership, unchanged-details, expiry and required-identity checks, so signup
+finishes without ABR configuration and the company stays Draft. Everything the
+lookup protects already waits for an Active company. This replaces the ABR part
+of the [4 October](#company-representative-verification) and
+[#1022](#simple-signup-documents-and-team-after-registration) statements that
+admission keeps the lookup; earlier lookups and their links to appointments
+remain as history.
 
 ## Existing register mirror and simple setup
 

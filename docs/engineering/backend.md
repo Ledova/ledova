@@ -337,9 +337,10 @@ MIME type and terms with the retained digest and current identities without resc
 validates any file and rechecks draft ownership.
 
 `admit/` reruns the [admission checks](../business/companies.md#company-signup) on the live
-requester and draft, with the ABR adapter under a separate authority purpose whose genuine result
-must match that company and lifecycle revision, and creates one immutable initial appointment per
-company; a provider failure creates none, and a repeated admission returns the retained outcome.
+requester and draft without an ABR lookup, which runs only at activation, and creates one
+immutable initial appointment per company; a refused check creates none, and a repeated admission
+returns the retained outcome. A new initial appointment records no registry check; earlier
+appointments keep the authority-purpose check they were admitted with.
 Admission and `withdraw/` share the request lock, so whichever commits first excludes the other; a
 repeated `revoke/` returns its original outcome.
 

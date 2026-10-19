@@ -24,6 +24,9 @@ who holds which capability is in [company capabilities](README.md#company-capabi
 Company signup and the representative's initial authority finish in one flow on web and mobile
 ([combined signup decision](../decisions.md#combined-company-signup-and-initial-authority),
 as amended the [same day](../decisions.md#simple-signup-documents-and-team-after-registration)).
+Signup does not look the company up in the ABR; that happens at
+[activation](#activation-and-the-registry-check)
+([decision](../decisions.md#abr-company-lookup-at-activation)).
 
 1. Create your account, verify your email and choose **Company Representative** as the account
    type.
@@ -37,15 +40,14 @@ as amended the [same day](../decisions.md#simple-signup-documents-and-team-after
    choose **Verify your identity** here first; **Complete company setup** waits until the check
    passes.
 5. Choose **Complete company setup**. This records your acceptance of that declaration, keeps a
-   no-file authority request and admits it through the identity and registry checks. Signup
-   completes only once your initial appointment is confirmed.
+   no-file authority request and admits it. Signup completes only once your initial appointment is
+   confirmed.
 
-Admission needs a passing registry lookup for the exact company and its current details. A pending,
-failed or unconfigured lookup leaves the request pending and signup unfinished; a pending request
-grants no authority. Admission also checks that you still own the draft company, that its name,
-identifiers and type and your own email and name have not changed since the request was captured,
-and that any expiry you chose has not passed. A company has exactly one initial admission; expiry
-or revocation of that appointment does not permit another.
+Admission checks that you still own the draft company, that its name, identifiers and type and your
+own email and name have not changed since the request was captured, that any expiry you chose has
+not passed and, where your instance requires it, that your identity is verified. A refused admission
+leaves the request pending and signup unfinished; a pending request grants no authority. A company
+has exactly one initial admission; expiry or revocation of that appointment does not permit another.
 
 The initial appointment gives you Manage company information and team personally, and all six
 capabilities as delegatable so that you can build the team afterwards. It records you, the company,
@@ -53,8 +55,9 @@ the declaration version and text and the admission time.
 
 After signup, add optional supporting files at **Settings → Company documents** and invite users at
 **Settings → Team and appointments**; mobile reaches both from **Settings → Company settings**.
-Later documents do not alter the retained signup request. The company remains Draft: registration
-does not incorporate a company with ASIC, appoint a director, activate the company or issue shares.
+Later documents do not alter the retained signup request. The company remains Draft until
+**Company → Activation** passes the registry check: registration does not incorporate a company
+with ASIC, appoint a director, activate the company or issue shares.
 
 Resuming an unfinished signup:
 
@@ -93,9 +96,9 @@ An owner of a draft company can also request initial authority outside signup, f
 4. Submit the request. The platform freezes the company and representative details, the
    capabilities, the expiry and any file, and shows what it captured.
 5. Accept the displayed declaration of your workspace and team authority, which also accepts the
-   Terms on the company's behalf, and admit the request. The identity and registry checks must
-   pass; a missing or mismatched result leaves the request pending. Admission does not activate the
-   company.
+   Terms on the company's behalf, and admit the request. Where your instance requires a verified
+   identity, an unverified one leaves the request pending. Admission runs no registry check and does
+   not activate the company.
 6. Read the appointment's personal and delegatable capabilities, expiry and status. An attached
    file stays available from the request history.
 7. Withdraw a pending request you no longer want. After admission, **Revoke appointment** asks you
@@ -260,7 +263,8 @@ A current personal administrator activates the company on web or mobile. Activat
 allows participants to request the company's eligibility decisions and, once it is
 [open to investors](issuing-shares.md#listing-the-company-in-the-directory), to apply for its
 offerings. It establishes no offering, share issue, payment, participant eligibility or wallet
-approval.
+approval. Signup does not look the company up in the ABR; activation does, and share issues,
+capital increases and deployments all wait for an Active company.
 
 1. Establish your authority first, through signup or an accepted administrator invitation.
 2. Open **Company → Activation** (shown only to personal administrators) and refresh the company

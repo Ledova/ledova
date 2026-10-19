@@ -5,9 +5,7 @@ from companies.identity import company_identity, registered_name
 from companies.models import (
     Company,
     CompanyRegistryCheck,
-    CompanyStatus,
     CompanyType,
-    RegistryCheckPurpose,
     RegistryCheckStatus,
 )
 from companies.services.administration import company_operation, lock_company_actor
@@ -31,17 +29,8 @@ def registry_check_timestamp():
 def begin_registry_check(company, purpose, initiated_by):
     with company_operation(initiated_by, company.pk, "registry"), atomic():
         current, actor, _profile, _operator = lock_company_actor(initiated_by, company.pk)
-        if (
-            not actor.is_active
-            or (
-                purpose == RegistryCheckPurpose.AUTHORITY
-                and (
-                    not actor.is_email_verified or current.owner_id != actor.pk or current.status != CompanyStatus.DRAFT
-                )
-            )
-            or (purpose != RegistryCheckPurpose.AUTHORITY and not actor.is_staff)
-        ):
-            raise PermissionDenied("The registry check requires its current company owner or staff reviewer.")
+        if not actor.is_active or not actor.is_staff:
+            raise PermissionDenied("The registry check requires a staff reviewer.")
         check = _begin_registry_check(current, purpose, actor)
         for field in REGISTRY_FIELDS:
             setattr(company, field, getattr(current, field))

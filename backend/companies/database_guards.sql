@@ -725,8 +725,7 @@ BEGIN
             OR NEW.entity_status <> '' OR NEW.retrieved_at <> '' OR NEW.effective_from IS NOT NULL OR NEW.register_updated_at IS NOT NULL
             OR (NEW.initiating_appointment_id IS NOT NULL AND NOT COALESCE(companies_current_activation_source(NEW), false))
             OR (NEW.initiating_appointment_id IS NULL AND NOT (
-                (NEW.purpose = 'authority' AND actor.is_email_verified AND issuer.owner_id = actor.id AND issuer.status = 'draft')
-                OR (NEW.purpose IN ('retry', 'activation') AND actor.is_staff AND issuer.status IN ('active', 'warning', 'suspended'))))
+                NEW.purpose IN ('retry', 'activation') AND actor.is_staff AND issuer.status IN ('active', 'warning', 'suspended')))
         THEN RAISE EXCEPTION 'Registry admission requires the exact current company actor and pending provenance'
             USING ERRCODE = '23514'; END IF;
     ELSIF operation = 'activation' THEN
