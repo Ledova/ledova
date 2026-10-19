@@ -180,12 +180,13 @@ updates:
         patterns: ["*"]
 
   # PyMuPDF 2.0 loads onnxruntime and numpy on import, about 3.6 GB of address
-  # space, so the sandboxed upload worker, limited to 512 MiB, refuses every
-  # document (#1158). backend/requirements.txt caps it below 2 but pins nothing;
-  # Dependabot then takes the current version from the `>=1.28.2` floor, which it
-  # reads only in x.y.z form. Drop this when #1160 adopts 2.0: the worker passes
-  # within limits the owner accepts, the new packages' licences are cleared under
-  # legal position 12 (docs/legal/positions.md), and certificate bytes still match.
+  # space, so the sandboxed upload worker, limited to 512 MiB, refuses every PDF
+  # (#1158). backend/requirements.txt caps it below 2 without pinning it, so
+  # Dependabot reads the current version from the `>=1.28.2` floor, which works
+  # only while the floor is x.y.z and the cap stays `<2`. Drop this when #1160
+  # adopts 2.0: the worker passes within limits the owner accepts without loading
+  # the new dependency tree, the new packages' licences are cleared under legal
+  # position 12 (docs/legal/positions.md), and certificate bytes still match.
   - package-ecosystem: pip
     directory: /backend
     schedule:
