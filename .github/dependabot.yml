@@ -1,7 +1,7 @@
 # Grouped so a weekly run opens a handful of pull requests, not forty.
 # Every manifest in the repository is listed; add one here when a new one appears.
 #
-# Four ecosystems carry an `ignore` block for a specific major. Each one blocks its
+# Five ecosystems carry an `ignore` block for a specific major. Each one blocks its
 # whole group: Dependabot bundles the breaking major with the routine bumps, the
 # install or the build fails, and nothing in the group lands. Ignoring the one
 # major lets the other twenty through, and names the upgrade as work somebody owns
@@ -179,11 +179,22 @@ updates:
       all:
         patterns: ["*"]
 
+  # PyMuPDF 2.0 loads onnxruntime and numpy on import, about 3.6 GB of address
+  # space, so the sandboxed upload worker, limited to 512 MiB, refuses every PDF
+  # (#1158). backend/requirements.txt caps it below 2 without pinning it, so
+  # Dependabot reads the current version from the `>=1.28.2` floor, which works
+  # only while the floor is x.y.z and the cap stays `<2`. Drop this when #1160
+  # adopts 2.0: the worker passes within limits the owner accepts without loading
+  # the new dependency tree, the new packages' licences are cleared under legal
+  # position 12 (docs/legal/positions.md), and certificate bytes still match.
   - package-ecosystem: pip
     directory: /backend
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    ignore:
+      - dependency-name: pymupdf
+        update-types: ["version-update:semver-major"]
     groups:
       all:
         patterns: ["*"]
