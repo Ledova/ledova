@@ -293,8 +293,9 @@ issues, paid issues, capital increases and company wallet instructions. Before
 it, the company's administrators can keep the company's own non-tokenised
 register records, such as the mirrored register, awards, allotments, transfers
 and member access, without any lookup; until this decision, admission's lookup
-came first. This replaces the ABR part of the
-[4 October](#company-representative-verification) and
+came first. The owner confirmed that after the independent review of
+[#1149](https://github.com/Ledova/ledova/pull/1149) raised it. This replaces the
+ABR part of the [4 October](#company-representative-verification) and
 [#1022](#simple-signup-documents-and-team-after-registration) statements that
 admission keeps the lookup; earlier lookups and their links to appointments
 remain as history.
