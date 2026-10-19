@@ -3,6 +3,7 @@ from datetime import datetime
 from decimal import Decimal
 from uuid import uuid4
 
+from django.db import IntegrityError
 from django.utils import timezone
 from rest_framework import serializers
 
@@ -12,6 +13,7 @@ from authentication.services import TokenService
 from authentication.services.sessions import resolve_signup_email
 from companies.models import CompanyAppointment, CompanyAuthorityRequest
 from portfolios.models import Portfolio
+from shared.db import atomic
 from shared.utils.token_amounts import plain_amount
 from users.models import FinancialProfile, UserAccount, UserProfile
 from users.models.user_account import AccountRole
@@ -73,6 +75,7 @@ SIGNUP_ANSWERS = {
 
 def restart_signup(user, email, current_password):
     with invalidation_writer_context(user):
+        account = UserAccount.objects.select_for_update(no_key=True).filter(user_profile__user_id=user.pk).first()
         user.refresh_from_db(from_queryset=user.__class__.objects.select_for_update(no_key=True))
         if not user.check_password(current_password):
             raise serializers.ValidationError({"current_password": ["Current password is incorrect."]})
@@ -93,16 +96,24 @@ def restart_signup(user, email, current_password):
             raise serializers.ValidationError({"email": ["This is already your email address."]})
         if lookup.state is not EmailLookupState.ABSENT:
             raise serializers.ValidationError({"email": ["Email already registered"]})
-        account = UserAccount.objects.select_for_update(no_key=True).filter(user_profile=profile).first()
         if user.is_email_verified and account is not None:
             enqueue_for_account(account.pk, user, cause_fields=["is_email_verified"])
         user.email = destination
         user.is_email_verified = False
         user.email_verification_token = None
         user.email_verification_attempts = 0
-        user.save(
-            update_fields=["email", "is_email_verified", "email_verification_token", "email_verification_attempts"]
-        )
+        try:
+            with atomic():
+                user.save(
+                    update_fields=[
+                        "email",
+                        "is_email_verified",
+                        "email_verification_token",
+                        "email_verification_attempts",
+                    ]
+                )
+        except IntegrityError:
+            raise serializers.ValidationError({"email": ["Email already registered"]}) from None
         for field, value in SIGNUP_ANSWERS.items():
             setattr(profile, field, value)
         profile.save(update_fields=[*SIGNUP_ANSWERS, "updated_at"])

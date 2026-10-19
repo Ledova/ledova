@@ -12,6 +12,7 @@ const sameAddress = (left: string, right: string) => left.trim().toLowerCase() =
 export function useSignupRestart(verifiedEmail: string, rememberEmail: (email: string) => Promise<void> | void) {
   const apiClient = useApiClient();
   const [editedEmail, setEditedEmail] = useState<string | null>(null);
+  const [confirmEmail, setConfirmEmail] = useState('');
   const [currentPassword, setCurrentPassword] = useState('');
   const [errors, setErrors] = useState<FormErrors>({});
   const [generalError, setGeneralError] = useState('');
@@ -35,6 +36,10 @@ export function useSignupRestart(verifiedEmail: string, rememberEmail: (email: s
       setErrors({ email: ['Email is required'] });
       return;
     }
+    if (!sameAddress(confirmEmail, address)) {
+      setErrors({ confirmEmail: ['Enter the same new email twice'] });
+      return;
+    }
     if (!currentPassword) {
       setErrors({ currentPassword: ['Enter your current password to change your email'] });
       return;
@@ -43,8 +48,6 @@ export function useSignupRestart(verifiedEmail: string, rememberEmail: (email: s
     clearErrors();
     try {
       await restartSignup(apiClient, { email: address, currentPassword });
-      await rememberEmail(address);
-      await onRestarted();
     } catch (error: unknown) {
       console.error(`Signup restart failed: ${describeFailure(error)}`);
       const reading = readApiError(error, {
@@ -54,13 +57,21 @@ export function useSignupRestart(verifiedEmail: string, rememberEmail: (email: s
       });
       setGeneralError(reading.generalError ?? '');
       setErrors(reading.fieldErrors ?? {});
-    } finally {
       setIsSubmitting(false);
+      return;
     }
+    try {
+      await rememberEmail(address);
+    } catch (error: unknown) {
+      console.error(`Remembering the new signup email failed: ${describeFailure(error)}`);
+    }
+    setIsSubmitting(false);
+    await onRestarted();
   };
 
   return {
     email,
+    confirmEmail,
     currentPassword,
     changed,
     errors,
@@ -68,6 +79,10 @@ export function useSignupRestart(verifiedEmail: string, rememberEmail: (email: s
     isSubmitting,
     setEmail: (value: string) => {
       setEditedEmail(value);
+      clearErrors();
+    },
+    setConfirmEmail: (value: string) => {
+      setConfirmEmail(value);
       clearErrors();
     },
     setCurrentPassword: (value: string) => {

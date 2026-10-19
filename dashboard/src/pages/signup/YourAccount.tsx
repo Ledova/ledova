@@ -15,12 +15,14 @@ export function YourAccount() {
   const { userProfile } = useUserProfile();
   const {
     email,
+    confirmEmail,
     currentPassword,
     changed,
     errors,
     generalError,
     isSubmitting,
     setEmail,
+    setConfirmEmail,
     setCurrentPassword,
     handleSubmit,
   } = useSignupRestart(userProfile?.email ?? '', (address) => localStorage.setItem('signup_email', address));
@@ -95,6 +97,28 @@ export function YourAccount() {
                 type, eligibility answers, and personal and financial details. A company you have already saved stays
                 with your account.
               </p>
+              <Field className="space-y-2">
+                <Label className="block text-sm font-medium text-text-body">Confirm new email</Label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <EnvelopeIcon size={ICON_MD} className="text-text-subtle" />
+                  </div>
+                  <AuthInput
+                    type="email"
+                    name="confirmEmail"
+                    value={confirmEmail}
+                    onChange={(e) => setConfirmEmail(e.target.value)}
+                    placeholder="your@email.com"
+                    required
+                    disabled={isSubmitting}
+                  />
+                </div>
+                {errors.confirmEmail && errors.confirmEmail.length > 0 && (
+                  <Description className="text-error-light text-sm mt-1" role="alert">
+                    {errors.confirmEmail.join(' ')}
+                  </Description>
+                )}
+              </Field>
               <Field className="space-y-2">
                 <Label className="block text-sm font-medium text-text-body">Current password</Label>
                 <div className="relative">

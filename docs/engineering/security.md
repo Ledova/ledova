@@ -26,7 +26,8 @@ files, retains and purges them, and validates uploads. For engineers; the settin
   cookie replayed beside it. The readable `csrftoken` cookie is issued by `auth/verify`, sign-in
   and email verification; the dashboard's axios client echoes it as `X-CSRFToken`.
 - Sign-up requires an emailed six-digit code, hashed at rest, expiring after ten minutes and capped
-  at five attempts. Sign-in, sign-up, verification and resend are throttled per address
+  at five attempts. Sign-in, sign-up, a signup email change, verification and resend are throttled
+  per address
   (`auth_email`, ten attempts in a rolling hour) across every backend worker: `CACHES["default"]`
   reserves each attempt atomically in Redis on Redis's clock. Successful and unsuccessful
   credential checks both count; over the limit answers 429 with `Retry-After`. The count survives

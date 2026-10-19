@@ -42,11 +42,12 @@ Once your email is verified, **Go Back** never returns to the code screen. From 
 Type it opens **Your Account**, which shows your verified email; **Continue** keeps everything you
 have saved.
 
-To use a different email, change it there and enter your current password. This starts signup again
-on the same account: Ledova sends a code to the new address, signs you out elsewhere and clears your
-account type, eligibility answers, and personal and financial details. A company you have already
-saved stays with your account, because companies are never deleted. Once you have chosen
-**Complete company setup**, or signup is complete, the email can no longer be changed this way.
+To use a different email, enter the new address twice there with your current password. This starts
+signup again on the same account: Ledova sends a code to the new address, signs you out everywhere
+and clears your account type, eligibility answers, and personal and financial details. A company you
+have already saved and a completed identity check stay with your account, because companies are
+never deleted. Once you have chosen **Complete company setup**, or signup is complete, the email can
+no longer be changed this way.
 
 ### Account readiness
 

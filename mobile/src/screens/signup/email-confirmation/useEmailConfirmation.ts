@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
-import { useEmailVerification } from '@ledova/shared';
+import { useAuth, useEmailVerification } from '@ledova/shared';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { storeTokens } from '../../../services/tokenStorage';
 
 export const useEmailConfirmation = () => {
   const [email, setEmail] = useState('');
+  const { refetch: refetchAuth } = useAuth();
 
   useEffect(() => {
     AsyncStorage.getItem('signup_email').then((storedEmail) => {
@@ -21,5 +22,6 @@ export const useEmailConfirmation = () => {
         await storeTokens({ accessToken: token.accessToken, refreshToken: token.refreshToken });
       }
     }
+    await refetchAuth();
   });
 };

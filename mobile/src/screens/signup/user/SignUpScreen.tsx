@@ -317,6 +317,31 @@ export function SignUpScreen() {
                         already saved stays with your account.
                       </Text>
                       <View style={styles.fieldContainer}>
+                        <Text style={styles.label}>Confirm new email</Text>
+                        <View style={styles.inputWrapper}>
+                          <EnvelopeSimpleIcon
+                            size={theme.icon.sizes.md}
+                            color={theme.colors.text.subtle}
+                            style={styles.inputIcon}
+                          />
+                          <TextInput
+                            accessibilityLabel="Confirm new email"
+                            style={styles.input}
+                            placeholder="your@email.com"
+                            placeholderTextColor={theme.colors.form.placeholder}
+                            value={account.confirmEmail}
+                            onChangeText={account.setConfirmEmail}
+                            keyboardType="email-address"
+                            autoCapitalize="none"
+                            autoCorrect={false}
+                            editable={!account.isSubmitting}
+                          />
+                        </View>
+                        {account.errors.confirmEmail && (
+                          <Text style={styles.fieldError}>{account.errors.confirmEmail.join(' ')}</Text>
+                        )}
+                      </View>
+                      <View style={styles.fieldContainer}>
                         <Text style={styles.label}>Current password</Text>
                         <View style={styles.inputWrapper}>
                           <LockIcon
