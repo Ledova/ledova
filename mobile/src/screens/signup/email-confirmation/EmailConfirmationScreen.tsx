@@ -1,11 +1,12 @@
+import { useEffect } from 'react';
 import { View, Text, TextInput, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { GradientBackground } from '../../../components/GradientBackground';
 import { PrimaryButton } from '../../../components/buttons';
-import { useNavigation, NavigationProp } from '@react-navigation/native';
+import { StackActions, useIsFocused, useNavigation, NavigationProp } from '@react-navigation/native';
 import type { RootStackParamList } from '../../../navigation/AppNavigator';
 import { useEmailConfirmation } from './useEmailConfirmation';
-import { formatVerificationToken, EMAIL_CONFIRMATION_VALIDATION } from '@ledova/shared';
+import { formatVerificationToken, EMAIL_CONFIRMATION_VALIDATION, useAuth } from '@ledova/shared';
 import { EnvelopeOpenIcon, CheckCircleIcon, WarningCircleIcon } from 'phosphor-react-native';
 import { layout } from '../../../styles';
 import { useAppTheme, useThemedStyles } from '../../../contexts';
@@ -160,6 +161,13 @@ export function EmailConfirmationScreen() {
     handleVerify,
     handleResend,
   } = useEmailConfirmation();
+
+  const { isAuthenticated } = useAuth();
+  const isFocused = useIsFocused();
+
+  useEffect(() => {
+    if (isAuthenticated && isFocused) navigation.dispatch(StackActions.replace('AccountType'));
+  }, [isAuthenticated, isFocused, navigation]);
 
   const handleConfirm = async () => {
     await handleVerify(() => {

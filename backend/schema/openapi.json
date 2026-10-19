@@ -22127,6 +22127,26 @@
         },
         "type": "object"
       },
+      "SignupRestartRequest": {
+        "properties": {
+          "currentPassword": {
+            "maxLength": 255,
+            "minLength": 1,
+            "type": "string",
+            "writeOnly": true
+          },
+          "email": {
+            "maxLength": 254,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "currentPassword",
+          "email"
+        ],
+        "type": "object"
+      },
       "SubmissionOrder": {
         "properties": {
           "canBeModified": {
@@ -26152,6 +26172,56 @@
             "csrfHeader": []
           },
           {}
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/restart-signup/": {
+      "post": {
+        "operationId": "api_restart_signup_create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SignupRestartRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/SignupRestartRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/SignupRestartRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthIdentity"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": [],
+            "csrfCookie": [],
+            "csrfHeader": []
+          }
         ],
         "tags": [
           "api"

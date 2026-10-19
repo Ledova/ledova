@@ -17,19 +17,12 @@ import SignupCompanyRegistration from '@pages/signup/company-registration';
 import CompanyDashboardPage from '@pages/company/dashboard';
 import { PageTitle } from '@components/PageTitle';
 import { ProtectedRoute } from './ProtectedRoute';
-import {
-  COMPANY_DASHBOARD_PATH,
-  ROOT_PATH,
-  SIGNIN_PATH,
-  SIGNUP_PATH,
-  SIGNUP_PATHS,
-  NOT_FOUND_PATH,
-} from '@utils/paths';
+import { COMPANY_DASHBOARD_PATH, ROOT_PATH, SIGNIN_PATH, SIGNUP_PATHS, NOT_FOUND_PATH } from '@utils/paths';
 import { PublicOnlyRoute } from './PublicOnlyRoute';
 
 const SIGNED_IN_ROUTES = signedInRoutes(PAGES);
 
-const SIGNUP_ROUTES = signupRoutes({
+const SIGNUP_ROUTES = signupRoutes(<SignupUser />, {
   [SIGNUP_PATHS.emailConfirmation]: <SignupEmailConfirmation />,
   [SIGNUP_PATHS.accountType]: <SignupAccountType />,
   [SIGNUP_PATHS.preScreening]: <SignupPreScreening />,
@@ -47,20 +40,12 @@ export function AppRoutes() {
       <Route
         path={SIGNIN_PATH}
         element={
-          <PublicOnlyRoute signIn>
+          <PublicOnlyRoute>
             <SignInPage />
           </PublicOnlyRoute>
         }
       />
 
-      <Route
-        path={SIGNUP_PATH}
-        element={
-          <PublicOnlyRoute>
-            <SignupUser />
-          </PublicOnlyRoute>
-        }
-      />
       {SIGNUP_ROUTES}
 
       {SIGNED_IN_ROUTES}

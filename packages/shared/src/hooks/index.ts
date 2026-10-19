@@ -60,6 +60,7 @@ export {
   OPERATOR_QUERY_KEY,
 } from './useDirectory';
 export { SIGNUP_USER_FIELDS, useSignupUser } from './useSignupUser';
+export { SIGNUP_RESTART_FIELDS, useSignupRestart } from './useSignupRestart';
 export { EMAIL_VERIFICATION_FIELDS, useEmailVerification } from './useEmailVerification';
 export { useSignupAccountType, USER_ACCOUNT_QUERY_KEY } from './useSignupAccountType';
 export { useSignupPreScreening } from './useSignupPreScreening';

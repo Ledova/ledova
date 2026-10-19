@@ -4,6 +4,7 @@ import type {
   ApiResponse,
   SigninRequest,
   SignupRequest,
+  SignupRestartRequest,
   EmailVerificationRequest,
   ResendVerificationRequest,
   TokenRefreshResult,
@@ -23,6 +24,10 @@ export const signout = (apiClient: AxiosInstance) => {
 
 export const signup = (apiClient: AxiosInstance, data: SignupRequest) => {
   return apiClient.post<ApiResponse<'api_signup_create'>>(AUTH_ENDPOINTS.SIGNUP, data);
+};
+
+export const restartSignup = (apiClient: AxiosInstance, data: SignupRestartRequest) => {
+  return apiClient.post<ApiResponse<'api_restart_signup_create'>>(AUTH_ENDPOINTS.RESTART_SIGNUP, data);
 };
 
 export const verifyEmail = (apiClient: AxiosInstance, data: EmailVerificationRequest) => {

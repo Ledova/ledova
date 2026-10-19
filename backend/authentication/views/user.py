@@ -28,6 +28,7 @@ from authentication.serializers.user import (
     ChangePasswordSerializer,
     EmailVerificationSerializer,
     ResendVerificationSerializer,
+    SignupRestartSerializer,
     UserSigninSerializer,
     UserSignupSerializer,
 )
@@ -37,8 +38,17 @@ from authentication.services.sessions import SessionService
 from authentication.services.tokens import TokenService
 from authentication.throttles import EmailRateThrottle
 from shared.views.principal import SetsThePrincipalOnTheConnection
+from users.services import lifecycle
 
 TRANSPORT_HEADER = "X-Auth-Transport"
+AUTH_IDENTITY = inline_serializer(
+    name="AuthIdentity",
+    fields={
+        "uuid": serializers.UUIDField(allow_null=True),
+        "email": serializers.EmailField(),
+        "is_email_verified": serializers.BooleanField(),
+    },
+)
 
 
 def bearer_transport(request):
@@ -93,7 +103,7 @@ class TokenCookieMixin:
 
 class AuthViewSet(SetsThePrincipalOnTheConnection, TokenCookieMixin, ViewSet):
     throttle_scope = "auth"
-    email_throttled_actions = ("signin", "signup", "email_verification", "resend_verification")
+    email_throttled_actions = ("signin", "signup", "restart_signup", "email_verification", "resend_verification")
 
     def get_throttles(self):
         throttles = super().get_throttles()
@@ -102,22 +112,13 @@ class AuthViewSet(SetsThePrincipalOnTheConnection, TokenCookieMixin, ViewSet):
         return throttles
 
     def get_permissions(self):
-        if self.action in ["change_password", "signout_all"]:
+        if self.action in ["change_password", "signout_all", "restart_signup"]:
             return [IsAuthenticated()]
         return [AllowAny()]
 
     @extend_schema(
         request=UserSignupSerializer,
-        responses={
-            201: inline_serializer(
-                name="AuthIdentity",
-                fields={
-                    "uuid": serializers.UUIDField(allow_null=True),
-                    "email": serializers.EmailField(),
-                    "is_email_verified": serializers.BooleanField(),
-                },
-            )
-        },
+        responses={201: AUTH_IDENTITY},
     )
     @action(detail=False, methods=["post"], url_path="signup")
     def signup(self, request):
@@ -133,6 +134,21 @@ class AuthViewSet(SetsThePrincipalOnTheConnection, TokenCookieMixin, ViewSet):
 
         response_serializer = UserSignupSerializer(instance=user)
         return Response(response_serializer.data, status=status.HTTP_201_CREATED)
+
+    @extend_schema(
+        request=SignupRestartSerializer,
+        responses=AUTH_IDENTITY,
+    )
+    @action(detail=False, methods=["post"], url_path="restart-signup")
+    def restart_signup(self, request):
+        serializer = SignupRestartSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = lifecycle.restart_signup(
+            request.user, serializer.validated_data["email"], serializer.validated_data["current_password"]
+        )
+        EmailCodeService.send(user)
+        response = Response(SignupRestartSerializer(instance=user).data, status=status.HTTP_200_OK)
+        return self.clear_token_cookies(response)
 
     @extend_schema(
         request=UserSigninSerializer,

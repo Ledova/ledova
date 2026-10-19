@@ -13,7 +13,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Field, Label, Description } from '@headlessui/react';
 import { EyeIcon, EyeSlashIcon, EnvelopeIcon, LockIcon, UserIcon, WarningIcon } from '@phosphor-icons/react';
 
-import { useSignupUser } from '@ledova/shared';
+import { useAuth, useSignupUser } from '@ledova/shared';
+import { YourAccount } from './YourAccount';
 import { ICON_MD } from '@components/iconSizes';
 
 function emailRefusal(sentence: string) {
@@ -44,12 +45,16 @@ export default function SignupUser() {
     handleSubmit,
   } = useSignupUser((email) => localStorage.setItem('signup_email', email));
 
+  const { isAuthenticated } = useAuth();
+
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     await handleSubmit(() => {
       navigate(SIGNUP_PATHS.emailConfirmation);
     });
   };
+
+  if (isAuthenticated) return <YourAccount />;
 
   return (
     <AuthLayout>

@@ -3,10 +3,12 @@ from datetime import timedelta
 from unittest.mock import patch
 from uuid import uuid4
 
+from django.contrib.auth import get_user_model
+from django.core import mail
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import DatabaseError
 from django.utils import timezone
-from rest_framework.test import APITransactionTestCase
+from rest_framework.test import APIClient, APITransactionTestCase
 
 from companies.models import (
     Company,
@@ -20,9 +22,11 @@ from companies.services.authority import (
     SIGNUP_DECLARATION_TEXT,
     SIGNUP_DECLARATION_VERSION,
 )
+from companies.services.authority_requests import submit_authority_request
 from companies.services.team import revoke_company_appointment
 from shared.db import atomic, use_migrate, use_operator
 from shared.tests.core_fixtures import (
+    PASSWORD,
     CoreFixtures,
     matching_observation,
     pdf_bytes,
@@ -39,9 +43,85 @@ from tokens.models import (
 )
 from tokens.services.creation import create_share_token
 from tokens.services.register_events import record_entry
+from users.models import FinancialProfile
+from users.services.setup import ensure_defaults
+
+
+def unfinished_signup(label, acn):
+    with use_operator():
+        user = get_user_model().objects.create_user(
+            email=f"{label}@example.test", password=PASSWORD, is_active=True, is_email_verified=True
+        )
+        profile, account, _, _ = ensure_defaults(user)
+        profile.full_name = f"Synthetic {label}"
+        profile.confirmed_over_18 = True
+        profile.save(update_fields=["full_name", "confirmed_over_18"])
+        account.role = "company"
+        account.save(update_fields=["role"])
+        FinancialProfile.objects.create(user_profile=profile, occupation="Synthetic")
+    with use_migrate():
+        company = Company.objects.create(owner=user, name=f"Synthetic {label} Pty Ltd", acn=acn)
+    return user, profile, account, company
 
 
 class RegistryCoreTest(CoreFixtures, APITransactionTestCase):
+    def test_unfinished_signup_restarts_with_a_new_email_only_before_company_setup(self):
+        def sign_in(user):
+            self.client.force_authenticate(user=None)
+            response = self.client.post("/api/signin/", {"email": user.email, "password": PASSWORD}, format="json")
+            self.assertEqual(response.status_code, 200, response.content)
+
+        starter, profile, account, draft = unfinished_signup("restart-first", "707070700")
+        sign_in(starter)
+        for payload, message in (
+            ({"email": "restart-new@example.test", "current_password": "wrong-password"}, "Current password"),
+            ({"email": self.foreign.email, "current_password": PASSWORD}, "Email already registered"),
+            ({"email": starter.email, "current_password": PASSWORD}, "already your email"),
+        ):
+            refused = self.client.post("/api/restart-signup/", payload, format="json")
+            self.assertEqual(refused.status_code, 400, refused.content)
+            self.assertIn(message, str(refused.json()))
+        old_session = self.client.cookies["access"].value
+        mail.outbox.clear()
+        restarted = self.client.post(
+            "/api/restart-signup/", {"email": "restart-new@example.test", "current_password": PASSWORD}, format="json"
+        )
+        self.assertEqual(restarted.status_code, 200, restarted.content)
+        self.assertEqual(restarted.cookies["access"].value, "")
+        self.assertEqual([message.to for message in mail.outbox], [["restart-new@example.test"]])
+        replayed = APIClient()
+        replayed.cookies["access"] = old_session
+        self.assertIn(replayed.get("/api/user-profiles/").status_code, (401, 403))
+        with use_operator():
+            starter.refresh_from_db()
+            profile.refresh_from_db()
+            account.refresh_from_db()
+            self.assertEqual((starter.email, starter.is_email_verified), ("restart-new@example.test", False))
+            self.assertEqual((profile.full_name, profile.confirmed_over_18, account.role), (None, False, "investor"))
+            self.assertFalse(FinancialProfile.objects.filter(user_profile=profile).exists())
+            self.assertTrue(Company.objects.filter(pk=draft.pk, owner=starter).exists())
+        submitter, _, _, submitted = unfinished_signup("restart-submitted", "808080800")
+        submit_authority_request(
+            requester=submitter,
+            company_id=submitted.pk,
+            idempotency_key=uuid4(),
+            requested_capabilities=[CompanyCapability.ADMIN],
+            delegatable_capabilities=list(CompanyCapability.values),
+        )
+        for user, message in ((submitter, "Company setup has been submitted"), (self.owner, "Signup is complete")):
+            sign_in(user)
+            refused = self.client.post(
+                "/api/restart-signup/",
+                {"email": "restart-late@example.test", "current_password": PASSWORD},
+                format="json",
+            )
+            self.assertEqual(refused.status_code, 400, refused.content)
+            self.assertIn(message, str(refused.json()))
+            with use_operator():
+                user.refresh_from_db()
+                self.assertTrue(user.is_email_verified)
+                self.assertNotEqual(user.email, "restart-late@example.test")
+
     def test_company_registration_records_the_owner_and_contact(self):
         user, profile = person("registration")
         self.client.force_authenticate(user)

@@ -1,5 +1,5 @@
 import { AuthLayout, AuthHeader, AuthDivider } from '@components/auth';
-import { SIGNUP_PATHS } from '@utils/paths';
+import { SIGNUP_PATH, SIGNUP_PATHS } from '@utils/paths';
 import { useNavigate } from 'react-router-dom';
 import { UserIcon, BuildingsIcon, WarningIcon } from '@phosphor-icons/react';
 import { useSignupAccountType } from '@ledova/shared';
@@ -43,7 +43,7 @@ export default function SignupAccountType() {
     });
 
   const handleBack = () => {
-    navigate(SIGNUP_PATHS.emailConfirmation);
+    navigate(SIGNUP_PATH);
   };
 
   return (

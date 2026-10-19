@@ -383,6 +383,22 @@ export interface ApiPaths {
     patch?: never;
     trace?: never;
   };
+  '/api/restart-signup/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: ApiOperations['api_restart_signup_create'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/signin/': {
     parameters: {
       query?: never;
@@ -8509,6 +8525,10 @@ export interface ApiComponents {
         type: string;
       }[];
     };
+    SignupRestartRequest: {
+      currentPassword: string;
+      email: string;
+    };
     SubmissionOrder: {
       canBeModified: boolean;
       completedAt: string | null;
@@ -9689,6 +9709,31 @@ export interface ApiOperations {
         };
         content: {
           'application/json': ApiComponents['schemas']['AuthVerificationResent'];
+        };
+      };
+    };
+  };
+  api_restart_signup_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': ApiComponents['schemas']['SignupRestartRequest'];
+        'application/x-www-form-urlencoded': ApiComponents['schemas']['SignupRestartRequest'];
+        'multipart/form-data': ApiComponents['schemas']['SignupRestartRequest'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['AuthIdentity'];
         };
       };
     };

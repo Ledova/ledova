@@ -15,8 +15,9 @@ files, retains and purges them, and validates uploads. For engineers; the settin
   blacklists the token presented; `signout` revokes one session, `signout-all` every session. The
   access token carries its refresh's jti (`rjti`), and every request checks that session is live,
   so revocation takes effect on the next request. An admin email change
-  (`authentication/admin/user.py`) and an account deletion (`users/services/lifecycle.py`) revoke
-  every session; a password change (`authentication/views/user.py`) keeps only its own (`keep_jti`).
+  (`authentication/admin/user.py`), an account deletion and a signup email change (`restart-signup`;
+  both in `users/services/lifecycle.py`) revoke every session; a password change
+  (`authentication/views/user.py`) keeps only its own (`keep_jti`).
 - `X-Auth-Transport: bearer` returns the tokens in the response body and sets no cookie; without
   the header the access and refresh cookies are set (`httponly`, flags from
   `settings.AUTH_COOKIE`). The dashboard uses cookies, mobile sends the header.
@@ -25,7 +26,8 @@ files, retains and purges them, and validates uploads. For engineers; the settin
   cookie replayed beside it. The readable `csrftoken` cookie is issued by `auth/verify`, sign-in
   and email verification; the dashboard's axios client echoes it as `X-CSRFToken`.
 - Sign-up requires an emailed six-digit code, hashed at rest, expiring after ten minutes and capped
-  at five attempts. Sign-in, sign-up, verification and resend are throttled per address
+  at five attempts. Sign-in, sign-up, a signup email change, verification and resend are throttled
+  per address
   (`auth_email`, ten attempts in a rolling hour) across every backend worker: `CACHES["default"]`
   reserves each attempt atomically in Redis on Redis's clock. Successful and unsuccessful
   credential checks both count; over the limit answers 429 with `Retry-After`. The count survives

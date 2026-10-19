@@ -50,6 +50,16 @@ class ResendVerificationSerializer(serializers.Serializer):
     email = NormalizedEmailField(required=False)
 
 
+class SignupRestartSerializer(serializers.Serializer):
+    email = NormalizedEmailField(required=True)
+    current_password = serializers.CharField(
+        max_length=255, write_only=True, required=True, style={"input_type": "password"}
+    )
+
+    def to_representation(self, instance):
+        return _identity(instance)
+
+
 class ChangePasswordSerializer(serializers.Serializer):
     current_password = serializers.CharField(
         max_length=255, write_only=True, required=True, style={"input_type": "password"}

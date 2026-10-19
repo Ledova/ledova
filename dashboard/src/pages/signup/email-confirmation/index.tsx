@@ -1,6 +1,7 @@
 import { AuthLayout, AuthHeader } from '@components/auth';
-import { SIGNUP_PATHS, SIGNUP_PATH } from '@utils/paths';
-import { useNavigate } from 'react-router-dom';
+import { ROOT_PATH, SIGNUP_PATHS, SIGNUP_PATH } from '@utils/paths';
+import { Navigate, useNavigate } from 'react-router-dom';
+import { useAuth } from '@ledova/shared';
 import { EnvelopeIcon } from '@phosphor-icons/react';
 import { EmailConfirmationForm } from './EmailConfirmationForm';
 import { useSignupEmailConfirmation } from './useSignupEmailConfirmation';
@@ -8,6 +9,7 @@ import { ICON_MD } from '@components/iconSizes';
 
 export default function SignupEmailConfirmation() {
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
   const {
     email,
     verificationCode,
@@ -31,6 +33,8 @@ export default function SignupEmailConfirmation() {
   const handleBack = () => {
     navigate(SIGNUP_PATH);
   };
+
+  if (isAuthenticated) return <Navigate to={ROOT_PATH} replace />;
 
   return (
     <AuthLayout>

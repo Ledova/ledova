@@ -36,6 +36,19 @@ Signup does not include identity verification. Complete it afterwards from Profi
 identity check**; while the investor identity requirement is on, investing waits for it
 ([account readiness](#account-readiness)). An unfinished account can sign in again and resume.
 
+### Going back and changing your email
+
+Once your email is verified, **Go Back** never returns to the code screen. From Choose Account
+Type it opens **Your Account**, which shows your verified email; **Continue** keeps everything you
+have saved.
+
+To use a different email, enter the new address twice there with your current password. This starts
+signup again on the same account: Ledova sends a code to the new address, signs you out everywhere
+and clears your account type, eligibility answers, and personal and financial details. A company you
+have already saved stays with your account, because companies are never deleted, and a completed
+identity check is kept too. Once you have chosen **Complete company setup**, or signup is complete,
+the email can no longer be changed this way.
+
 ### Account readiness
 
 An account is Pending Verification, Active, Rejected, Suspended or Terminated. To invest, a person

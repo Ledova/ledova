@@ -133,7 +133,7 @@ export function AccountTypeScreen() {
     });
 
   const handleBack = () => {
-    navigation.navigate('EmailConfirmation');
+    navigation.navigate('SignUp');
   };
 
   return (
