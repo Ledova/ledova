@@ -44,7 +44,7 @@ stay here as history and are marked where they appear.
 | [The signed-in app](#the-signed-in-app)                                                                         | 26 September to 2 October 2026                 | Navigation superseded 11 October; one look superseded 14 October   |
 | [Simpler signed-in journeys](#simpler-signed-in-journeys)                                                       | 11 October 2026                                | Web layout superseded 12 October; native journey remains delivered |
 | [Ownership dashboard and compact sidebar](#ownership-dashboard-and-compact-sidebar)                             | 12 October 2026                                | Current; increments #1012–#1014; classes moved to Register (#1155) |
-| [Dashboard, Settings and Register for a new company](#dashboard-settings-and-register-for-a-new-company)        | 19 October 2026                                | Current on the web; #1155; mobile follows                          |
+| [Dashboard, Settings and Register for a new company](#dashboard-settings-and-register-for-a-new-company)        | 19 October 2026                                | Current on the web; #1155; mobile under #1157                      |
 | [Paper and Dark themes](#paper-and-dark-themes)                                                                 | 14 October 2026                                | Current; #1040                                                     |
 | [The account-data export](#the-account-data-export)                                                             | 23 September 2026                              | Current                                                            |
 | [Tenancy, sessions and deployment](#tenancy-sessions-and-deployment)                                            | 3 October 2026                                 | Current                                                            |
@@ -1249,7 +1249,7 @@ which changes the [12 October](#ownership-dashboard-and-compact-sidebar)
 placement of classes under Settings. The register stays usable before activation
 ([19 October](#abr-company-lookup-at-activation)) and is listed after it in the
 next steps. The web came first, in small steps the owner checked one at a time;
-the mobile app follows in a later increment.
+the mobile app follows under [#1157](https://github.com/Ledova/ledova/issues/1157).
 
 ## Paper and Dark themes
 

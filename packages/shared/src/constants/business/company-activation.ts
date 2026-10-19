@@ -14,18 +14,9 @@ const ACTIVATION_CHECKS =
   'Activation checks the company against the Australian Business Register and, where required, your verified identity.';
 
 export const COMPANY_ACTIVATION_COPY = {
+  CHECKS: ACTIVATION_CHECKS,
   PROMPT: `${ACTIVATION_CHECKS} Eligibility decisions, offerings and share issues on the blockchain wait for it; your own register records don't.`,
   ACTION: 'Review activation',
-};
-
-export const GETTING_STARTED_COPY = {
-  TITLE: 'Getting started',
-  ACTIVATE: 'Verify and activate your company',
-  ACTIVATE_NOTE: ACTIVATION_CHECKS,
-  REGISTER: 'Set up your share register',
-  REGISTER_NOTE: "Bring in the company's existing share records. This doesn't wait for activation.",
-  DONE: 'Done',
-  TO_DO: 'To do',
 };
 
 export function awaitsActivation(company: { status: string; activatedAt?: string | null }) {

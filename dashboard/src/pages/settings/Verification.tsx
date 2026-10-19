@@ -1,11 +1,6 @@
-import {
-  DESTINATIONS,
-  GETTING_STARTED_COPY,
-  companiesAwaitingActivation,
-  getUserVerificationStatus,
-} from '@ledova/shared';
+import { DESTINATIONS, companiesAwaitingActivation, getUserVerificationStatus } from '@ledova/shared';
 import { LinkRow, Section, Status } from '@components/Ledger';
-import { SetupStep } from '@components/SetupStep';
+import { ActivationStep } from '@components/SetupStep';
 import { VERIFICATION_TONES } from '@components/statusTones';
 import { useSignedInAppointments } from '@hooks/useOwnAppointments';
 import { useUserProfile } from '@hooks/useUserProfile';
@@ -17,16 +12,9 @@ export function Verification() {
   const administers = own.some((appointment) => appointment.isEffective && appointment.capabilities.includes('admin'));
   const identity = getUserVerificationStatus(userProfile);
   return (
-    <Section title={administers ? 'Verification and activation' : 'Verification'}>
+    <Section title={administers ? 'Verification and activation' : 'Identity'}>
       <div className="divide-y divide-border-subtle">
-        {administers && (
-          <SetupStep
-            to={DESTINATIONS.companyListing.path}
-            label={GETTING_STARTED_COPY.ACTIVATE}
-            note={GETTING_STARTED_COPY.ACTIVATE_NOTE}
-            done={companiesAwaitingActivation(own).length === 0}
-          />
-        )}
+        {administers && <ActivationStep done={companiesAwaitingActivation(own).length === 0} />}
         <LinkRow
           to={DESTINATIONS.userProfile.path}
           label="Verify your identity"

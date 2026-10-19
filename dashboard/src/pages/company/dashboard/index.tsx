@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef } from 'react';
-import { useLocation } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import {
+  DESTINATIONS,
+  appointmentForRegisterStep,
   companiesAwaitingActivation,
   useSubmissionOwner,
   useUserPreferences,
@@ -81,8 +83,21 @@ function OwnDashboard({
       : undefined);
   const status = own.find((appointment) => appointment.company === shown?.uuid)?.companyStatusDisplay;
   const activated = companiesAwaitingActivation(own).length === 0;
+  const opened = (uuid: string) =>
+    company?.uuid === uuid
+      ? scoped && rows.some(({ initialized }) => initialized)
+      : companies.some((item) => item.uuid === uuid);
+  const registered = administered.every((appointment) => opened(appointment.company));
+  const preparing = own.some(
+    (appointment) =>
+      !appointment.revokedAt && appointmentForRegisterStep([appointment], appointment.company, 'prepare'),
+  );
   const gettingStarted =
-    appointments.isSuccess && classes.isSuccess && administered.length > 0 && (!activated || companies.length === 0);
+    appointments.isSuccess &&
+    classes.isSuccess &&
+    (!company || (registers.isSuccess && !invalid)) &&
+    administered.length > 0 &&
+    (!activated || !registered);
   const refresh = () => {
     void preferences.refetch();
     void classes.refetch();
@@ -91,7 +106,7 @@ function OwnDashboard({
   };
   return (
     <Page lede={shown ? [shown.name, status].filter(Boolean).join(' · ') : "Your company's recorded share ownership."}>
-      {gettingStarted && <GettingStarted activated={activated} registered={companies.length > 0} />}
+      {gettingStarted && <GettingStarted activated={activated} registered={registered} />}
       {preferencesReady && classes.isSuccess && !classes.isFetching && companies.length > 1 && (
         <CompanySelection read={{ companies, companyUuid: company?.uuid, selectionBlocked: false, selectCompany }} />
       )}
@@ -107,7 +122,20 @@ function OwnDashboard({
         (company && !fresh) ? (
         <Loading />
       ) : companies.length === 0 ? (
-        !gettingStarted && <p className="py-3 text-sm text-text-muted">No share register yet.</p>
+        !gettingStarted && (
+          <p className="py-3 text-sm text-text-muted">
+            No share register yet.
+            {preparing && (
+              <>
+                {' '}
+                <Link to={DESTINATIONS.companyRegister.path} className="text-brand-light underline">
+                  Open Register
+                </Link>{' '}
+                to set it up.
+              </>
+            )}
+          </p>
+        )
       ) : !company ? (
         <p className="py-3 text-sm text-text-muted">Select a company to show its ownership.</p>
       ) : fresh && scoped && summary ? (

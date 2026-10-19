@@ -491,7 +491,8 @@ reason, the person, their appointment and the time, and the
 ## The Register page
 
 On the web Register is open to every signed-in account and shows the registers of companies the
-person owns or where their appointment includes register access, or says there are none. A company
+person owns or where their appointment includes register access. With none, it offers **Set up your
+share register** to someone who can prepare one and otherwise says there are none. A company
 selector appears when several companies are readable. Register, Employee awards and Documents in the
 web sidebar, and Member access (reached from Settings), are views of one page, so switching between
 them keeps unfinished forms and their recovery
@@ -511,7 +512,9 @@ The Register view shows:
   shares ([non-paid transfers](#non-paid-transfers-between-members)) and History. History holds,
   under Recorded changes, a link to the class's Share class page, Openings (for a class on chain),
   Register mirror, Register entries (newest first, with certificate controls), Corrections and
-  Reconciliation with the chain, then the company's Particulars changes and Wallet links.
+  Reconciliation with the chain, then the company's Particulars changes and Wallet links;
+- **Add share class** beside the tasks, for someone who can prepare the register, opening
+  [register setup](#bringing-in-existing-records) for the selected company.
 
 History shows each record as one line (its kind, date and stage) that opens on demand to its
 snapshot, documents and decision trail; a prepared record starts open. Stages read Prepared,

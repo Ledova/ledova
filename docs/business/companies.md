@@ -59,7 +59,7 @@ Later documents do not alter the retained signup request. The company remains Dr
 activation passes the registry check: registration does not incorporate a company with ASIC,
 appoint a director, activate the company or issue shares. Until then, the company Dashboard's
 **Getting started** list links its personal administrators to Activation and to register setup
-([the Dashboard](README.md#the-app-at-a-glance)); on mobile, an **Activate** card on the Company
+([the Dashboard](README.md#the-app-at-a-glance)); on mobile, an **Activate** card on the Register
 tab links to Activation.
 
 Resuming an unfinished signup:
@@ -342,9 +342,10 @@ authority: initial admission, accepting an invitation, activation, company admin
 eligibility decisions, member invitations, and register and wallet decisions. Staff technical
 recovery of a company is not affected. A representative becomes verified only through the
 configured identity provider, from **Verify your identity** at signup review or later from Profile
-(on the web also **Settings → Verify your identity**) with **Review identity check**; with the requirement on and no provider, every company decision is
-refused ([operator configuration](../operations/operator-console.md#operator-configuration)). The
-investor requirement is separate ([participants](participants.md#account-readiness)).
+(on the web also **Settings → Verify your identity**) with **Review identity check**; with the
+requirement on and no provider, every company decision is refused
+([operator configuration](../operations/operator-console.md#operator-configuration)). The investor
+requirement is separate ([participants](participants.md#account-readiness)).
 
 ## The Company page
 
