@@ -75,7 +75,11 @@ SIGNUP_ANSWERS = {
 
 def restart_signup(user, email, current_password):
     with invalidation_writer_context(user):
-        account = UserAccount.objects.select_for_update(no_key=True).filter(user_profile__user_id=user.pk).first()
+        account = (
+            UserAccount.objects.select_for_update(no_key=True, of=("self",))
+            .filter(user_profile__user_id=user.pk)
+            .first()
+        )
         user.refresh_from_db(from_queryset=user.__class__.objects.select_for_update(no_key=True))
         if not user.check_password(current_password):
             raise serializers.ValidationError({"current_password": ["Current password is incorrect."]})

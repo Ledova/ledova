@@ -3,7 +3,7 @@ import { View, Text, TextInput, ScrollView, KeyboardAvoidingView, Platform } fro
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { GradientBackground } from '../../../components/GradientBackground';
 import { PrimaryButton } from '../../../components/buttons';
-import { useIsFocused, useNavigation, NavigationProp } from '@react-navigation/native';
+import { StackActions, useIsFocused, useNavigation, NavigationProp } from '@react-navigation/native';
 import type { RootStackParamList } from '../../../navigation/AppNavigator';
 import { useEmailConfirmation } from './useEmailConfirmation';
 import { formatVerificationToken, EMAIL_CONFIRMATION_VALIDATION, useAuth } from '@ledova/shared';
@@ -166,7 +166,7 @@ export function EmailConfirmationScreen() {
   const isFocused = useIsFocused();
 
   useEffect(() => {
-    if (isAuthenticated && isFocused) navigation.navigate('AccountType');
+    if (isAuthenticated && isFocused) navigation.dispatch(StackActions.replace('AccountType'));
   }, [isAuthenticated, isFocused, navigation]);
 
   const handleConfirm = async () => {

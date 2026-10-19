@@ -45,9 +45,9 @@ have saved.
 To use a different email, enter the new address twice there with your current password. This starts
 signup again on the same account: Ledova sends a code to the new address, signs you out everywhere
 and clears your account type, eligibility answers, and personal and financial details. A company you
-have already saved and a completed identity check stay with your account, because companies are
-never deleted. Once you have chosen **Complete company setup**, or signup is complete, the email can
-no longer be changed this way.
+have already saved stays with your account, because companies are never deleted, and a completed
+identity check is kept too. Once you have chosen **Complete company setup**, or signup is complete,
+the email can no longer be changed this way.
 
 ### Account readiness
 
