@@ -21,6 +21,6 @@ base58>=2.1.1
 bech32>=1.2.0
 openai>=3.31.0
 pydantic>=2.14.1
-PyMuPDF>=1.28.2
+PyMuPDF>=1.28.2,<2
 Pillow>=12.3.0
 pycountry>=26.2.16
