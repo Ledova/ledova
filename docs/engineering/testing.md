@@ -28,7 +28,7 @@ the replaced cases or the approval, and independent review checks them
 
 | Suite               | Delivered cases | Maximum | Essential coverage                                                                                                             |
 | ------------------- | --------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| Backend, PostgreSQL | 22              | 150     | Core API happy paths, tenant isolation, company authority, ownership totals and issuance idempotency, one fake-scanner refusal |
+| Backend, PostgreSQL | 23              | 150     | Core API happy paths, tenant isolation, company authority, ownership totals and issuance idempotency, one fake-scanner refusal |
 | Dashboard unit      | 20              | 20      | Main pages, sign-in, core flows                                                                                                |
 | Playwright smoke    | 9               | 9       | Core browser journeys and route wiring                                                                                         |
 | Mobile Jest         | 10              | 10      | App start, sign-in, core flows                                                                                                 |
@@ -83,7 +83,8 @@ The backend suite covers:
   exports. Planned journeys need implementation first; a fixture or mock does not establish their
   delivery.
 - Company A cannot read or change company B through the API or the database.
-- A user without the necessary appointment cannot approve, issue or allot.
+- A user without the necessary appointment cannot approve, issue or allot, and a staff account
+  without the company change permission cannot change a company's status.
 - Issued shares equal holdings, and a repeated request produces one issue.
 - One fake-scanner test refuses infected or unscannable uploads. The ordinary suite stubs the
   scanner and cache and needs no chain node or scanner service.

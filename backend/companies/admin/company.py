@@ -517,9 +517,7 @@ class CompanyAdmin(admin.ModelAdmin):
         }
 
         try:
-            company = transition_company(
-                company, spec["method"], actor=request.user, declaration=declaration, admin_review=True, **kwargs
-            )
+            company = transition_company(company, spec["method"], actor=request.user, declaration=declaration, **kwargs)
         except APIException as exc:
             messages.error(request, str(exc.detail))
         else:

@@ -436,13 +436,6 @@ READS_WIDER_THAN_OWNERSHIP = {
         "tokens_sharetoken: the market predicate, wider than the directory because a token is tradeable "
         "without its issuer opting into the browse surface",
     ),
-    "Company.all on the administrative actions": (
-        "companies/views/company.py CompanyViewSet.narrow, for the administrative_actions that get_permissions "
-        "limits to IsAdminUser",
-        "no policy term: those actions run on the operator connection by operator_actions, because a staff "
-        "member does not own the company they administer. The view's other operator actions stay narrowed to "
-        "readable_by and for_activation",
-    ),
 }
 
 PUBLIC_TERM = {

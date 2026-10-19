@@ -831,22 +831,6 @@ export interface ApiPaths {
     patch?: never;
     trace?: never;
   };
-  '/api/v1/companies/{uuid}/status/': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    post: ApiOperations['api_v1_companies_status_create'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
   '/api/v1/company-authority/appointments/': {
     parameters: {
       query?: never;
@@ -4765,18 +4749,6 @@ export interface ApiComponents {
       | 'delisted'
       | 'rejected'
       | 'withdrawn';
-    CompanyStatusUpdated: {
-      company: ApiComponents['schemas']['CompanyDetail'];
-      message: string;
-    };
-    CompanyStatusUpdateRequest: {
-      attestOfficeholder?: boolean;
-      boardResolutionReference?: string;
-      declarantName?: string;
-      reason?: string;
-      status: ApiComponents['schemas']['CompanyStatusUpdateStatusEnum'];
-    };
-    CompanyStatusUpdateStatusEnum: 'active' | 'warning' | 'suspended' | 'delisted';
     CompanyTeamAppointment: {
       capabilities: ApiComponents['schemas']['CompanyCapabilityEnum'][];
       company: string;
@@ -10485,33 +10457,6 @@ export interface ApiOperations {
         };
         content: {
           'application/zip': Blob;
-        };
-      };
-    };
-  };
-  api_v1_companies_status_create: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        uuid: string;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': ApiComponents['schemas']['CompanyStatusUpdateRequest'];
-        'application/x-www-form-urlencoded': ApiComponents['schemas']['CompanyStatusUpdateRequest'];
-        'multipart/form-data': ApiComponents['schemas']['CompanyStatusUpdateRequest'];
-      };
-    };
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['CompanyStatusUpdated'];
         };
       };
     };

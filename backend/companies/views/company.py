@@ -3,23 +3,19 @@ from drf_spectacular.utils import OpenApiTypes, extend_schema, inline_serializer
 from rest_framework import serializers, status
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
-from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
 
-from companies.exceptions import InvalidStatusTransitionException
 from companies.filters import CompanyFilter
-from companies.models import Company, CompanyStatus
+from companies.models import Company
 from companies.serializers import (
     CompanyActivateSerializer,
     CompanyActivationAttemptSerializer,
     CompanyDetailSerializer,
     CompanyListSerializer,
     CompanyRegistrationSerializer,
-    CompanyStatusUpdateSerializer,
     CompanyUpdateSerializer,
 )
 from companies.serializers.pack import CompanyPackRequestSerializer
-from companies.services import transition_company
 from companies.services.activation import activate_company
 from shared.db import set_principal
 from shared.views import AuthenticatedModelViewSet
@@ -28,8 +24,7 @@ from tokens.services.company_pack_outputs import prepare_company_pack
 
 
 class CompanyViewSet(AuthenticatedModelViewSet):
-    administrative_actions = frozenset({"status_update"})
-    operator_actions = administrative_actions | frozenset({"list", "retrieve", "activate", "pack"})
+    operator_actions = frozenset({"list", "retrieve", "activate", "pack"})
     operator_actions_because = (
         "Company metadata reads retain the exact current owner alongside current personal administration. "
         "Private documents and contact remain separately administration-scoped. Activation requires "
@@ -58,14 +53,7 @@ class CompanyViewSet(AuthenticatedModelViewSet):
             return CompanyUpdateSerializer
         if self.action == "activate":
             return CompanyActivateSerializer
-        if self.action == "status_update":
-            return CompanyStatusUpdateSerializer
         return CompanyDetailSerializer
-
-    def get_permissions(self):
-        if self.action in self.administrative_actions:
-            return [IsAdminUser()]
-        return super().get_permissions()
 
     @extend_schema(
         responses=inline_serializer(
@@ -94,50 +82,6 @@ class CompanyViewSet(AuthenticatedModelViewSet):
         serializer.is_valid(raise_exception=True)
         company = serializer.save()
         return Response(CompanyDetailSerializer(company, context=self.get_serializer_context()).data)
-
-    @extend_schema(
-        responses=inline_serializer(
-            name="CompanyStatusUpdated",
-            fields={"message": serializers.CharField(), "company": CompanyDetailSerializer()},
-        )
-    )
-    @action(detail=True, methods=["post"], url_path="status")
-    def status_update(self, request, uuid=None):
-        company = self.get_object()
-
-        serializer = CompanyStatusUpdateSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-
-        new_status = serializer.validated_data["status"]
-        reason = serializer.validated_data.get("reason", "")
-
-        transitions = {
-            CompanyStatus.ACTIVE: ("set_active", {}),
-            CompanyStatus.WARNING: ("issue_warning", {"reason": reason}),
-            CompanyStatus.SUSPENDED: ("suspend", {"reason": reason}),
-            CompanyStatus.DELISTED: ("delist", {"reason": reason}),
-        }
-        if new_status not in transitions:
-            raise InvalidStatusTransitionException(
-                from_status=company.get_status_display(),
-                to_status=CompanyStatus(new_status).label,
-            )
-        method, kwargs = transitions[new_status]
-        declaration = {
-            key: serializer.validated_data[key]
-            for key in ("declarant_name", "board_resolution_reference", "attest_officeholder")
-            if key in serializer.validated_data
-        }
-        company = transition_company(company, method, actor=request.user, declaration=declaration, **kwargs)
-
-        return Response(
-            {
-                "message": f"Company status updated to {company.get_status_display()}",
-                "company": CompanyDetailSerializer(
-                    company, context={**self.get_serializer_context(), "company_review": True}
-                ).data,
-            }
-        )
 
     @extend_schema(
         request=CompanyActivateSerializer,
@@ -185,8 +129,6 @@ class CompanyViewSet(AuthenticatedModelViewSet):
         return response
 
     def narrow(self, queryset):
-        if self.action in self.administrative_actions:
-            return queryset
         if self.action in {"list", "retrieve"}:
             return queryset.readable_by(self.request.user)
         if self.action in {"activate", "pack"}:
