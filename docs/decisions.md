@@ -1250,6 +1250,10 @@ placement of classes under Settings. The register stays usable before activation
 ([19 October](#abr-company-lookup-at-activation)) and is listed after it in the
 next steps. The web came first, in small steps the owner checked one at a time;
 the mobile app follows under [#1157](https://github.com/Ledova/ledova/issues/1157).
+When the independent review of
+[#1156](https://github.com/Ledova/ledova/pull/1156) raised it, the owner chose to
+keep it simple: share classes created on the web carry the internal quantity
+guard, with no custom technical share limit, and mobile follows the same rule.
 
 ## Paper and Dark themes
 
