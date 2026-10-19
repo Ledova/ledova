@@ -46,7 +46,7 @@ it('shows company details and destinations without share classes, and uploads do
   expect(screen.getByText(/Company information is provided by the company/)).toBeTruthy();
   expect(screen.getByRole('link', { name: /Company team/ }).getAttribute('href')).toBe('/company/team');
   expect(screen.getByText('company@example.invalid')).toBeTruthy();
-  expect(screen.getByRole('link', { name: 'Activation' }).getAttribute('href')).toBe('/company/listing');
+  expect(screen.queryByRole('link', { name: 'Activation' })).toBeNull();
   expect(screen.getByRole('link', { name: 'Published to your members' }).getAttribute('href')).toBe(
     '/company/publications',
   );

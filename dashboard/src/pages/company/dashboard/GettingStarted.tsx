@@ -1,7 +1,7 @@
 import { DESTINATIONS, GETTING_STARTED_COPY } from '@ledova/shared';
 import { LinkRow, Section, Status } from '@components/Ledger';
 
-function Step({ to, label, note, done }: { to: string; label: string; note: string; done: boolean }) {
+export function Step({ to, label, note, done }: { to: string; label: string; note: string; done: boolean }) {
   return (
     <LinkRow
       to={to}

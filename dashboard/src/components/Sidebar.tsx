@@ -179,6 +179,7 @@ export function Sidebar({ onNavigate, withNotifications = false }: SidebarProps 
                     itemPath(item) === activePath ||
                     (item.destination === 'settings' &&
                       (location.pathname === DESTINATIONS.company.path ||
+                        location.pathname === DESTINATIONS.companyListing.path ||
                         location.pathname === DESTINATIONS.companyTeam.path ||
                         location.pathname === DESTINATIONS.companyAuthority.path ||
                         (location.pathname === DESTINATIONS.companyRegister.path && location.hash === '#access')))

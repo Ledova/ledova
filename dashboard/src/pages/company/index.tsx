@@ -90,9 +90,6 @@ function CompanyDetails({ data }: { data: ReturnType<typeof useCompanySelection>
                     <LinkRow to={DESTINATIONS.companyAuthority.path} label={DESTINATIONS.companyAuthority.title} />
                   </>
                 )}
-                {data.canPersonalAdmin && (
-                  <LinkRow to={DESTINATIONS.companyListing.path} label={DESTINATIONS.companyListing.title} />
-                )}
                 <LinkRow to={DESTINATIONS.companyTeam.path} label={DESTINATIONS.companyTeam.title} />
                 <LinkRow to={DESTINATIONS.companyEligibility.path} label={DESTINATIONS.companyEligibility.title} />
                 {data.ownerBusiness && (
