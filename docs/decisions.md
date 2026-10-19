@@ -29,7 +29,7 @@ stay here as history and are marked where they appear.
 | [Splits and consolidations](#splits-and-consolidations)                                                         | 23 September 2026                              | Design only; deferred                                              |
 | [The company pack](#the-company-pack)                                                                           | 23 September 2026                              | Current                                                            |
 | [Essential registry and development workflow priority](#essential-registry-and-development-workflow-priority)   | 9 October 2026                                 | Register priority current; workflow part superseded 11 October     |
-| [Registry focus and cancelled expansion tickets](#registry-focus-and-cancelled-expansion-tickets)               | 18 October 2026                                | Current; #869, #870 and #872 not planned                            |
+| [Registry focus and cancelled expansion tickets](#registry-focus-and-cancelled-expansion-tickets)               | 18 October 2026                                | Current; #869, #870 and #872 not planned                           |
 | [First scopes for employee awards and external capital](#first-scopes-for-employee-awards-and-external-capital) | 10 October 2026                                | Delivered 11 October (#973, #974)                                  |
 | [Member invitations and account association](#member-invitations-and-account-association)                       | 11 October 2026                                | Current; #866 implements it                                        |
 | [Minimum tests and fresh migrations](#minimum-tests-and-fresh-migrations)                                       | 11 October 2026                                | Current                                                            |
@@ -751,7 +751,13 @@ for reporting and portability, recorded in
   until real member data is held.
 - **Only what the register holds leaves** of a member: name, residential
   address, holding, linked wallets and identity source. Email, phone, date of
-  birth, verification evidence and platform account ids stay.
+  birth and verification evidence stay. The decision kept platform account ids
+  back too until 19 October 2026, when the owner aligned it with what the pack
+  carries: platform account numbers leave in decision records and in the
+  fingerprint inputs of register entries and of dividend payment records and
+  their withdrawals, even where the account is a member's
+  ([what never leaves](business/member-records.md#what-never-leaves-and-why);
+  [#1139](https://github.com/Ledova/ledova/issues/1139#issuecomment-6262477255)).
 - **The company sees resolution tallies and read counts**, never how a member
   voted or who opened what, while every vote's record still verifies.
 - **The pack explains how control of the contracts would be handed over and
