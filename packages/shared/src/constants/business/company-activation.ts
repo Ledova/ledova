@@ -1,4 +1,36 @@
-import type { CompanyActivationAttempt } from '../../types';
+import type { CompanyActivationAttempt, OwnCompanyAppointment } from '../../types';
+
+const AWAITING_ACTIVATION: readonly string[] = [
+  'draft',
+  'submitted',
+  'review',
+  'info_required',
+  'approved',
+  'rejected',
+  'withdrawn',
+];
+
+export const COMPANY_ACTIVATION_COPY = {
+  PROMPT:
+    "Activation checks the company against the Australian Business Register and, where required, your verified identity. Eligibility decisions, offerings and share issues on the blockchain wait for it; your own register records don't.",
+  ACTION: 'Review activation',
+};
+
+export function awaitsActivation(company: { status: string; activatedAt?: string | null }) {
+  return !company.activatedAt && AWAITING_ACTIVATION.includes(company.status);
+}
+
+export function companiesAwaitingActivation(appointments: readonly OwnCompanyAppointment[]) {
+  const companies = new Map<string, string>();
+  for (const appointment of appointments)
+    if (
+      appointment.isEffective &&
+      appointment.capabilities.includes('admin') &&
+      awaitsActivation({ status: appointment.companyStatus })
+    )
+      companies.set(appointment.company, appointment.companyName);
+  return [...companies].map(([uuid, name]) => ({ uuid, name }));
+}
 
 const REASONS: Record<string, string> = {
   unconfigured: 'The ABR lookup is not configured.',

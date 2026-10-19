@@ -16,6 +16,7 @@ export const APPOINTMENT: OwnCompanyAppointment = {
   uuid: 'appointment-a',
   company: 'company-a',
   companyName: 'Synthetic Company',
+  companyStatus: 'active',
   capabilities: ['admin'],
   delegatableCapabilities: [],
   status: 'active',

@@ -5849,6 +5849,7 @@ export interface ApiComponents {
       capabilities: ApiComponents['schemas']['CompanyCapabilityEnum'][];
       company: string;
       companyName: string;
+      companyStatus: string;
       createdAt: string;
       declarationText: string | null;
       declarationVersion: string | null;

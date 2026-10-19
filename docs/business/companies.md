@@ -57,7 +57,9 @@ After signup, add optional supporting files at **Settings → Company documents*
 **Settings → Team and appointments**; mobile reaches both from **Settings → Company settings**.
 Later documents do not alter the retained signup request. The company remains Draft until
 **Company → Activation** passes the registry check: registration does not incorporate a company
-with ASIC, appoint a director, activate the company or issue shares.
+with ASIC, appoint a director, activate the company or issue shares. Until then, an **Activate**
+card at the top of the company Dashboard (on mobile, the Company tab) links its personal
+administrators to Activation.
 
 Resuming an unfinished signup:
 
@@ -270,9 +272,10 @@ chain deployments and issues, paid issues, capital increases and company wallet 
 for an Active company.
 
 1. Establish your authority first, through signup or an accepted administrator invitation.
-2. Open **Company → Activation** (shown only to personal administrators) and refresh the company
-   details and your appointment. A company account role or an owned draft does not substitute for an
-   appointment; an appointed investor can use the same page.
+2. Open **Company → Activation** (shown only to personal administrators), or choose **Review
+   activation** on the Activate card, and refresh the company details and your appointment. A
+   company account role or an owned draft does not substitute for an appointment; an appointed
+   investor can use the same page.
 3. Choose **Review activation**, read the company and the exact declaration, tick **I accept this
    declaration for this company** and choose **Confirm activation** once.
 4. Read the retained outcome. A passing attempt makes the company Active. A pending, failed or

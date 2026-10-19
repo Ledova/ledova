@@ -19,6 +19,7 @@ import { useCompanyRegister } from '../../hooks/useCompanyRegister';
 import { useRegisterClassCreation } from '../../hooks/useRegisterClassCreation';
 import { CreateClassForm } from '../../components/company/CreateClassForm';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
+import { ActivationPrompt } from './ActivationPrompt';
 import { ClassRecords } from './ClassRecords';
 import { CompanyLinks } from './CompanyLinks';
 import { CompanyMemberAccess } from './CompanyMemberAccess';
@@ -114,6 +115,7 @@ function CompanyRegister({ epoch }: { epoch: number }) {
           />
         ))}
       </View>
+      <ActivationPrompt appointments={appointments} />
       {(classes.isPending || appointments.isPending || (!!company && registers.isPending)) && (
         <Text style={styles.muted}>Loading your register…</Text>
       )}
