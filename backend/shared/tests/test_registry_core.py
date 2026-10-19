@@ -44,9 +44,14 @@ from tokens.models import (
     ShareToken,
 )
 from tokens.services.creation import create_share_token
+from tokens.services.holder_identity import identity_at_allotment
+from tokens.services.register import MEMBER_AMBIGUOUS, _member_identity
 from tokens.services.register_events import record_entry
-from users.models import FinancialProfile
+from users.models import FinancialProfile, UserAccount
 from users.services.setup import ensure_defaults
+from wallets.models import Wallet
+from whitelist.models import WhitelistEntry
+from whitelist.services.identity import entry_identity, identities_for
 
 
 def unfinished_signup(label, acn):
@@ -224,6 +229,34 @@ class RegistryCoreTest(CoreFixtures, APITransactionTestCase):
             format="json",
         )
         self.assertEqual(invited.status_code, 201, invited.content)
+
+    def test_a_member_without_a_full_name_is_never_named_by_email(self):
+        holder, profile = person("core-unnamed")
+        address, named_address = "0x" + "ab" * 20, "0x" + "cd" * 20
+        with use_migrate():
+            profile.full_name = "  "
+            profile.residential_address = "1 Synthetic Street"
+            profile.save(update_fields=["full_name", "residential_address"])
+            entry = WhitelistEntry.objects.create(
+                wallet=Wallet.objects.create(
+                    user_account=UserAccount.objects.get(user_profile=profile), address=address, chain="base"
+                )
+            )
+            WhitelistEntry.objects.create(
+                wallet=Wallet.objects.create(
+                    user_account=UserAccount.objects.get(user_profile=self.profile),
+                    address=named_address,
+                    chain="base",
+                )
+            )
+        with use_operator():
+            identity = entry_identity(WhitelistEntry.objects.get(pk=entry.pk))
+            stamped = identity_at_allotment(address, chain="base")
+            shared = _member_identity([named_address, address], identities_for([named_address, address]), {})
+        self.assertEqual((identity.holder_type, identity.name), ("unidentified", ""))
+        self.assertFalse(stamped)
+        self.assertNotIn(holder.email, (identity.name, stamped.name))
+        self.assertEqual(shared, MEMBER_AMBIGUOUS)
 
     def test_company_status_changes_need_the_staff_change_permission(self):
         staff, _ = person("core-staff")

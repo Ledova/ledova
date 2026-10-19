@@ -68,7 +68,7 @@ class SubscriptionQuerySet(QuerySet):
         return (
             self.for_offering(offering)
             .with_relations()
-            .prefetch_related("user_account__user_profile__user")
+            .prefetch_related("user_account__user_profile")
             .order_by("-created_at")
         )
 

@@ -34,7 +34,7 @@ def _holder(entry: WhitelistEntry):
 
 
 def profile_name(profile) -> str:
-    return (profile.full_name or "").strip() or profile.user.email
+    return (profile.full_name or "").strip()
 
 
 def entry_identity(entry: WhitelistEntry, whitelist_status: str = "") -> HolderIdentity:
@@ -43,7 +43,9 @@ def entry_identity(entry: WhitelistEntry, whitelist_status: str = "") -> HolderI
     holder = _holder(entry)
     name = profile_name(holder) if holder else ""
     if not name:
-        return HolderIdentity(HolderType.UNIDENTIFIED.value, "", "", whitelist_status)
+        return HolderIdentity(
+            HolderType.UNIDENTIFIED.value, "", "", whitelist_status, holder.user_id if holder else None
+        )
     return HolderIdentity(
         HolderType.MEMBER.value,
         name,

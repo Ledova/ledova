@@ -99,7 +99,7 @@ def candidates(found):
         result.append(
             Candidate(
                 key=profile.user.email,
-                name=profile.full_name or profile.user.email,
+                name=(profile.full_name or "").strip(),
                 role=role,
                 joined_at=profile.user.date_joined,
                 wallets=wallets,
