@@ -243,7 +243,8 @@ register** ([register setup](register.md#bringing-in-existing-records)), each ma
 Register setup reads Done once the register of the company shown is opened, not when a class is
 merely created, and it does not wait for activation. Someone who can prepare the register but is
 not an administrator is pointed to Register instead. On mobile, the Register tab opens with the
-same line and Getting started list.
+same line and shows Getting started to an administrator of the company shown, judging register
+setup by that company's register.
 
 Once a register exists, the Dashboard shows the selected company's recorded ownership: issued
 shares, current shareholders (each person counted once across classes) and the number of share

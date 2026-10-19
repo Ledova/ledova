@@ -60,31 +60,26 @@ function CompanyDetails({ data }: { data: ReturnType<typeof useCompanyProfile> }
             {data.companies.length > 0 ? 'Choose a company above.' : 'No company administration available.'}
           </Text>
         ) : (
-          <>
-            <Section title={company.name}>
-              <Text style={styles.muted}>Company information is provided by the company.</Text>
-              <Rows>
-                <Row label="Status">{company.statusDisplay}</Row>
-                {company.tradingName && <Row label="Trading name">{company.tradingName}</Row>}
-                <Row label="Type">{company.companyTypeDisplay}</Row>
-                <Row label="ACN">{company.acn}</Row>
-                {company.abn && <Row label="ABN">{company.abn}</Row>}
-                {data.canAdmin && company.email && <Row label="Email">{company.email}</Row>}
-                {company.phone && <Row label="Phone">{company.phone}</Row>}
-                {!!address && <Row label="Address">{address}</Row>}
-              </Rows>
-              <Rows>
-                <LinkRow label="Representative authority" onPress={() => navigation.navigate('CompanyAuthority')} />
-                <LinkRow label="Company team" onPress={() => navigation.navigate('CompanyTeam')} />
-                {data.ownerBusiness && (
-                  <LinkRow
-                    label="Published to your members"
-                    onPress={() => navigation.navigate('CompanyPublications')}
-                  />
-                )}
-              </Rows>
-            </Section>
-          </>
+          <Section title={company.name}>
+            <Text style={styles.muted}>Company information is provided by the company.</Text>
+            <Rows>
+              <Row label="Status">{company.statusDisplay}</Row>
+              {company.tradingName && <Row label="Trading name">{company.tradingName}</Row>}
+              <Row label="Type">{company.companyTypeDisplay}</Row>
+              <Row label="ACN">{company.acn}</Row>
+              {company.abn && <Row label="ABN">{company.abn}</Row>}
+              {data.canAdmin && company.email && <Row label="Email">{company.email}</Row>}
+              {company.phone && <Row label="Phone">{company.phone}</Row>}
+              {!!address && <Row label="Address">{address}</Row>}
+            </Rows>
+            <Rows>
+              <LinkRow label="Representative authority" onPress={() => navigation.navigate('CompanyAuthority')} />
+              <LinkRow label="Company team" onPress={() => navigation.navigate('CompanyTeam')} />
+              {data.ownerBusiness && (
+                <LinkRow label="Published to your members" onPress={() => navigation.navigate('CompanyPublications')} />
+              )}
+            </Rows>
+          </Section>
         )}
         {data.retainedCompany && <CompanyDocuments read={data} />}
       </Page>

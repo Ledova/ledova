@@ -86,22 +86,18 @@ function CompanyRegister({ epoch }: { epoch: number }) {
   const navigation = useNavigation<NativeStackNavigationProp<CompanyStackParamList>>();
   const [expanded, setExpanded] = useState<string[]>([]);
   const own = appointments.data ?? [];
-  const administered = own.filter(
-    (appointment) => appointment.isEffective && appointment.capabilities.includes('admin'),
-  );
   const status = own.find((appointment) => appointment.company === company?.uuid)?.companyStatusDisplay;
   const activated = companiesAwaitingActivation(own).length === 0;
-  const opened = (uuid: string) =>
-    company?.uuid === uuid
-      ? registers.isSuccess && shownRegisters.some(({ initialized }) => initialized)
-      : companies.some((item) => item.uuid === uuid && item.classes.length > 0);
-  const registered = administered.every((appointment) => opened(appointment.company));
+  const registered = shownRegisters.some(({ initialized }) => initialized);
   const gettingStarted =
     section === 'register' &&
-    appointments.isSuccess &&
+    !!company &&
     classes.isSuccess &&
-    (!company || registers.isSuccess) &&
-    administered.length > 0 &&
+    registers.isSuccess &&
+    own.some(
+      (appointment) =>
+        appointment.company === company.uuid && appointment.isEffective && appointment.capabilities.includes('admin'),
+    ) &&
     (!activated || !registered);
   const unopened = shownRegisters.find(({ initialized }) => !initialized);
   const setUp = () => {

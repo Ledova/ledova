@@ -340,7 +340,7 @@ authority: initial admission, accepting an invitation, activation, company admin
 eligibility decisions, member invitations, and register and wallet decisions. Staff technical
 recovery of a company is not affected. A representative becomes verified only through the
 configured identity provider, from **Verify your identity** at signup review or later from Profile
-(on the web also **Settings → Verify your identity**) with **Review identity check**; with the
+(also **Settings → Verify your identity**) with **Review identity check**; with the
 requirement on and no provider, every company decision is refused
 ([operator configuration](../operations/operator-console.md#operator-configuration)). The investor
 requirement is separate ([participants](participants.md#account-readiness)).
