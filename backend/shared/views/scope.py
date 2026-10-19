@@ -20,11 +20,10 @@ BOTH = (
     "product filtering in narrow(), which receives the queryset governed by database policies."
 )
 UNEXPLAINED_OPERATOR_ACTION = (
-    "{view} routes {actions} to the operator connection and neither names them administrative nor "
-    "says why they need it. An action on that connection is not scoped by any policy, so it must "
-    "either be administrative - the set get_permissions turns into IsAdminUser - or state its reason "
-    "in operator_actions_because. A statutory register an issuer is entitled to read is the second "
-    "case: it needs the connection and must not need IsAdminUser."
+    "{view} routes {actions} to the operator connection and does not say why they need it. An action "
+    "on that connection is not scoped by any policy, so it must state its reason in "
+    "operator_actions_because. A statutory register an issuer is entitled to read is such a case: it "
+    "needs the connection and must not need IsAdminUser."
 )
 
 
@@ -51,7 +50,7 @@ class PolicyQuerysets:
         for hook in ("get_queryset", "get_object"):
             if hook in cls.__dict__:
                 raise ImproperlyConfigured(BOTH.format(view=cls.__name__, hook=hook))
-        wider = frozenset(getattr(cls, "operator_actions", ())) - frozenset(getattr(cls, "administrative_actions", ()))
+        wider = frozenset(getattr(cls, "operator_actions", ()))
         if wider and len(cls.__dict__.get("operator_actions_because", "")) < REASON_ENOUGH:
             raise ImproperlyConfigured(UNEXPLAINED_OPERATOR_ACTION.format(view=cls.__name__, actions=sorted(wider)))
 

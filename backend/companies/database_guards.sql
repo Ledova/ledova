@@ -412,8 +412,8 @@ BEGIN
             OR OLD.registry_revision IS DISTINCT FROM OLD.lifecycle_revision
         THEN RAISE EXCEPTION 'Activation requires its exact current personal appointment and applied provider receipt'
             USING ERRCODE = '23514'; END IF;
-    ELSIF operation IN ('workflow', 'admin_workflow') THEN
-        IF operation = 'admin_workflow' AND NOT (actor.is_superuser OR EXISTS (SELECT 1 FROM auth_permission permission
+    ELSIF operation = 'admin_workflow' THEN
+        IF NOT (actor.is_superuser OR EXISTS (SELECT 1 FROM auth_permission permission
             JOIN django_content_type kind ON kind.id = permission.content_type_id
             WHERE kind.app_label = 'companies' AND permission.codename = 'change_company'
                 AND (EXISTS (SELECT 1 FROM authentication_customuser_user_permissions assigned

@@ -122,15 +122,11 @@ def company_administrative_access(company, actor):
         return {"capabilities": capabilities, "draft_setup": draft_setup}
 
 
-def company_contact(company, actor, *, review=False):
+def company_contact(company, actor):
     with use_operator(), _requester_principal(actor.pk):
-        companies = Company.objects.administrable_by(actor)
-        if review:
-            if not get_user_model().objects.filter(pk=actor.pk, is_active=True, is_staff=True).exists():
-                return None
-            companies = Company.objects.all()
         contact = (
-            companies.filter(pk=company.pk)
+            Company.objects.administrable_by(actor)
+            .filter(pk=company.pk)
             .values("owner__email", "owner__userprofile__uuid", "owner__userprofile__full_name")
             .first()
         )

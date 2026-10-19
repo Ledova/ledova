@@ -8,6 +8,7 @@ from django.core import mail
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import DatabaseError
 from django.utils import timezone
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.test import APIClient, APITransactionTestCase
 
 from companies.models import (
@@ -17,6 +18,7 @@ from companies.models import (
     CompanyDocument,
     CompanySignupTermsAcceptance,
 )
+from companies.services import transition_company
 from companies.services.authority import (
     DECLARATION_VERSION,
     SIGNUP_DECLARATION_TEXT,
@@ -222,6 +224,23 @@ class RegistryCoreTest(CoreFixtures, APITransactionTestCase):
             format="json",
         )
         self.assertEqual(invited.status_code, 201, invited.content)
+
+    def test_company_status_changes_need_the_staff_change_permission(self):
+        staff, _ = person("core-staff")
+        with use_migrate():
+            get_user_model().objects.filter(pk=staff.pk).update(is_staff=True)
+        staff.refresh_from_db()
+        self.client.force_authenticate(staff)
+        removed = self.client.post(
+            f"/api/v1/companies/{self.company.pk}/status/",
+            {"status": "suspended", "reason": "Synthetic"},
+            format="json",
+        )
+        self.assertEqual(removed.status_code, 404, removed.content)
+        with self.assertRaisesMessage(
+            PermissionDenied, "Company recovery requires the current model change permission."
+        ):
+            transition_company(self.company, "suspend", actor=staff, reason="Synthetic reason")
 
     def test_company_team_invitation_records_the_invitees_exact_capability(self):
         response = self.client.post(

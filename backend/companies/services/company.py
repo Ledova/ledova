@@ -95,11 +95,10 @@ ACTIVE_METHODS = {
 }
 
 
-def _registry_transition(company, method, actor, declaration, admin_review):
-    operation = "admin_workflow" if admin_review else "workflow"
-    with company_operation(actor, company.pk, operation), atomic(durable=True):
+def _registry_transition(company, method, actor, declaration):
+    with company_operation(actor, company.pk, "admin_workflow"), atomic(durable=True):
         current, actor, _profile, _operator = lock_company_actor(actor, company.pk)
-        _require_workflow_actor(current, actor, method, admin_review)
+        _require_workflow_actor(actor)
         if method == "retry_registry":
             current._require_status(
                 [CompanyStatus.ACTIVE, CompanyStatus.WARNING, CompanyStatus.SUSPENDED],
@@ -107,9 +106,8 @@ def _registry_transition(company, method, actor, declaration, admin_review):
             )
             purpose = RegistryCheckPurpose.RETRY
         else:
-            allowed = [state for state, transition in ACTIVE_METHODS.items() if method in (transition, "set_active")]
+            allowed = [state for state, transition in ACTIVE_METHODS.items() if method == transition]
             current._require_status(allowed, CompanyStatus.ACTIVE)
-            method = ACTIVE_METHODS[current.status]
             if declaration:
                 _attest_officeholder(current, actor, declaration)
             if not current.has_initial_activation_provenance:
@@ -119,34 +117,32 @@ def _registry_transition(company, method, actor, declaration, admin_review):
     check = perform_registry_check(check)
     if purpose != RegistryCheckPurpose.ACTIVATION:
         return Company.objects.get(pk=company.pk)
-    with company_operation(actor, company.pk, operation), atomic(durable=True):
+    with company_operation(actor, company.pk, "admin_workflow"), atomic(durable=True):
         current, actor, _profile, _operator = lock_company_actor(actor, company.pk)
-        _require_workflow_actor(current, actor, method, admin_review)
+        _require_workflow_actor(actor)
         if current.registry_check_id != check.pk:
             raise RegistryVerificationRequiredException()
         getattr(current, method)()
     return current
 
 
-def _require_workflow_actor(company, actor, method, admin_review=False):
+def _require_workflow_actor(actor):
     if not actor.is_active or not actor.is_staff:
         raise PermissionDenied("A current active staff account is required for technical company recovery.")
-    if admin_review and not actor.has_perm("companies.change_company"):
+    if not actor.has_perm("companies.change_company"):
         raise PermissionDenied("Company recovery requires the current model change permission.")
 
 
-def transition_company(
-    company: Company, method: str, *, actor=None, declaration=None, admin_review=False, **kwargs
-) -> Company:
+def transition_company(company: Company, method: str, *, actor=None, declaration=None, **kwargs) -> Company:
     if actor is None:
         raise PermissionDenied("An authenticated company actor is required.")
-    registry_methods = {"retry_registry", "set_active", *ACTIVE_METHODS.values()}
+    registry_methods = {"retry_registry", *ACTIVE_METHODS.values()}
     if method not in registry_methods | {"issue_warning", "suspend", "delist"}:
         raise PermissionDenied("Company activation is instructed by a current personal company administrator.")
     if method in registry_methods:
-        return _registry_transition(company, method, actor, declaration, admin_review)
-    with company_operation(actor, company.pk, "admin_workflow" if admin_review else "workflow"), atomic():
+        return _registry_transition(company, method, actor, declaration)
+    with company_operation(actor, company.pk, "admin_workflow"), atomic():
         current, actor, _profile, _operator = lock_company_actor(actor, company.pk)
-        _require_workflow_actor(current, actor, method, admin_review)
+        _require_workflow_actor(actor)
         getattr(current, method)(**kwargs)
     return current

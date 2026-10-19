@@ -136,12 +136,9 @@ class CompanyDetailSerializer(_CompanyAdministrativeSerializer):
         actor = getattr(self.context.get("request"), "user", None)
         if actor is None:
             return CompanyDocumentSerializer(obj.documents.all(), many=True, context=self.context).data
-        documents = CompanyDocument.objects.filter(company_id=obj.pk)
-        if self.context.get("company_review", False):
-            if company_contact(obj, actor, review=True) is None:
-                return []
-        else:
-            documents = documents.filter(company__in=Company.objects.administrable_by(actor))
+        documents = CompanyDocument.objects.filter(
+            company_id=obj.pk, company__in=Company.objects.administrable_by(actor)
+        )
         return CompanyDocumentSerializer(documents, many=True, context=self.context).data
 
     @extend_schema_field(serializers.EmailField(allow_null=True))
@@ -149,7 +146,7 @@ class CompanyDetailSerializer(_CompanyAdministrativeSerializer):
         actor = getattr(self.context.get("request"), "user", None)
         if actor is None:
             return obj.email
-        contact = company_contact(obj, actor, review=self.context.get("company_review", False))
+        contact = company_contact(obj, actor)
         return contact["email"] if contact else None
 
     operator_wallet = serializers.UUIDField(source="operator_wallet_id", allow_null=True, read_only=True)
@@ -159,7 +156,7 @@ class CompanyDetailSerializer(_CompanyAdministrativeSerializer):
         actor = getattr(self.context.get("request"), "user", None)
         if actor is None:
             return _CompanyUserProfileSerializer(obj.primary_contact).data if obj.primary_contact else None
-        contact = company_contact(obj, actor, review=self.context.get("company_review", False))
+        contact = company_contact(obj, actor)
         profile = contact["primary_contact"] if contact else None
         return _CompanyUserProfileSerializer(profile).data if profile is not None else None
 
@@ -331,26 +328,3 @@ class CompanyUpdateSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         return update_company(instance, validated_data, actor=self.context["request"].user)
-
-
-class CompanyStatusUpdateSerializer(serializers.Serializer):
-
-    status = serializers.ChoiceField(
-        choices=[CompanyStatus.ACTIVE, CompanyStatus.WARNING, CompanyStatus.SUSPENDED, CompanyStatus.DELISTED]
-    )
-    reason = serializers.CharField(required=False, allow_blank=True)
-    declarant_name = serializers.CharField(max_length=255, required=False)
-    board_resolution_reference = serializers.CharField(max_length=255, required=False)
-    attest_officeholder = serializers.BooleanField(required=False)
-
-    def validate(self, data):
-        new_status = data["status"]
-
-        if new_status in [
-            CompanyStatus.SUSPENDED,
-            CompanyStatus.WARNING,
-            CompanyStatus.DELISTED,
-        ] and not data.get("reason"):
-            raise serializers.ValidationError({"reason": f"Reason is required when changing status to {new_status}."})
-
-        return data

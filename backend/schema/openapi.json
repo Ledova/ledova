@@ -2830,58 +2830,6 @@
         ],
         "type": "string"
       },
-      "CompanyStatusUpdateRequest": {
-        "properties": {
-          "attestOfficeholder": {
-            "type": "boolean"
-          },
-          "boardResolutionReference": {
-            "maxLength": 255,
-            "minLength": 1,
-            "type": "string"
-          },
-          "declarantName": {
-            "maxLength": 255,
-            "minLength": 1,
-            "type": "string"
-          },
-          "reason": {
-            "type": "string"
-          },
-          "status": {
-            "$ref": "#/components/schemas/CompanyStatusUpdateStatusEnum"
-          }
-        },
-        "required": [
-          "status"
-        ],
-        "type": "object"
-      },
-      "CompanyStatusUpdateStatusEnum": {
-        "description": "* `active` - active\n* `warning` - warning\n* `suspended` - suspended\n* `delisted` - delisted",
-        "enum": [
-          "active",
-          "warning",
-          "suspended",
-          "delisted"
-        ],
-        "type": "string"
-      },
-      "CompanyStatusUpdated": {
-        "properties": {
-          "company": {
-            "$ref": "#/components/schemas/CompanyDetail"
-          },
-          "message": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "company",
-          "message"
-        ],
-        "type": "object"
-      },
       "CompanyTeamAppointment": {
         "properties": {
           "capabilities": {
@@ -27874,68 +27822,6 @@
                 "schema": {
                   "format": "binary",
                   "type": "string"
-                }
-              }
-            },
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": [],
-            "csrfCookie": [],
-            "csrfHeader": []
-          }
-        ],
-        "tags": [
-          "api"
-        ]
-      }
-    },
-    "/api/v1/companies/{uuid}/status/": {
-      "post": {
-        "operationId": "api_v1_companies_status_create",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "uuid",
-            "required": true,
-            "schema": {
-              "description": "Unique identifier (primary key)",
-              "format": "uuid",
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CompanyStatusUpdateRequest"
-              }
-            },
-            "application/x-www-form-urlencoded": {
-              "schema": {
-                "$ref": "#/components/schemas/CompanyStatusUpdateRequest"
-              }
-            },
-            "multipart/form-data": {
-              "schema": {
-                "$ref": "#/components/schemas/CompanyStatusUpdateRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CompanyStatusUpdated"
                 }
               }
             },
