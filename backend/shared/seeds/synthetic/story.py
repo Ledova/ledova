@@ -93,7 +93,7 @@ JOIN_RANGES = {
     "kyc_red": (6, 150),
     "kyc_rejected": (30, 150),
 }
-STALLED_STEPS = ("account-type", "identity-verification", "financial-profile")
+STALLED_STEPS = ("account-type", "user-profile", "financial-profile")
 PENDING_STATES = (("kycaid", "pending"), ("sumsub", "queued"), ("sumsub", "onHold"), ("kycaid", "pending"))
 RED_LABELS = (("DOCUMENT_EXPIRED",), ("SELFIE_MISMATCH",), ("DOCUMENT_DAMAGED", "BAD_PHOTO_QUALITY"))
 RESUBMIT_LABELS = (("UNSATISFACTORY_PHOTOS",), ("DOCUMENT_PAGE_MISSING", "INCOMPLETE_DOCUMENT"))

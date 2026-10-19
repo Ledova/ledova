@@ -315,9 +315,11 @@ Native navigation is declared separately ([navigation](mobile.md#navigation)).
 
 ### Sign-up routes
 
-`SIGNUP_STEPS` (`dashboard/src/utils/paths.ts`) lists the eight steps after the
-create-account form: email confirmation, account type, pre-screening, identity verification, user
-profile, financial profile, company registration and review. The step map in
+`SIGNUP_STEPS` (`dashboard/src/utils/paths.ts`) lists the steps after the create-account form:
+email confirmation, account type, pre-screening, user profile, financial profile, company
+registration and review. Identity verification is not a step: when `useSignupReview` reports
+`identityRequired`, company review offers **Verify your identity**, which opens the
+`IdentityVerificationModal` that Profile uses (native: `VerificationModal`). The step map in
 `dashboard/src/routes/AppRoutes.tsx` uses the named `SIGNUP_PATHS`, and `signupRoutes` wraps each in
 `SignupRoute`, which sends a finished company account to the company dashboard and other finished
 accounts to `landingFor(role)`, lets an unfinished account or a signed-out visitor through, and
@@ -549,8 +551,8 @@ Inside cards and dialogs nothing is boxed: fields share the card's surface with 
 (`rounded-lg border border-border bg-surface-raised`; `useDialogStyles` on mobile), steps are
 numbered lines, and warnings (beside an icon) and errors are coloured text, not tinted boxes. The
 exceptions are the tinted extraction-status pill beside a saved payslip on Profile, the dashed
-upload area, and sign-in, the sign-up steps and the identity check's outcomes, which keep tinted
-fields and boxed outcomes within the same cards and titles. Addresses, hashes and signing summaries
+upload area, and sign-in and the sign-up steps, which keep tinted fields and boxed outcomes within
+the same cards and titles. Addresses, hashes and signing summaries
 use the monospaced face (`font-mono`; `theme.fontFamily.mono`).
 
 Show ownership, status and one primary next action directly, with labels beside their values and

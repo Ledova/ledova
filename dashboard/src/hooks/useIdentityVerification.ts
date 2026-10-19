@@ -38,18 +38,8 @@ export function useIdentityVerification() {
   });
 
   const status = statusQuery.data;
-  const {
-    isVerified,
-    hasApplicant,
-    isRejected,
-    showPendingBanner,
-    showOnHoldBanner,
-    showRejectedBanner,
-    showRetryBanner,
-    showForm,
-    showContinue,
-    showSkip,
-  } = readIdentityVerification(status, justSubmitted);
+  const { isVerified, isRejected, showPendingBanner, showOnHoldBanner, showRejectedBanner, showRetryBanner, showForm } =
+    readIdentityVerification(status, justSubmitted);
 
   useEffect(() => {
     if (justSubmitted && (isVerified || isRejected)) {
@@ -138,18 +128,14 @@ export function useIdentityVerification() {
   return {
     status,
     isLoadingStatus: statusQuery.isLoading,
-    refetchStatus: statusQuery.refetch,
 
     showPendingBanner,
     showOnHoldBanner,
     showRejectedBanner,
     showRetryBanner,
     showForm,
-    showContinue,
-    showSkip,
 
     isVerified,
-    hasApplicant,
     sdkActive,
 
     launchVerification,

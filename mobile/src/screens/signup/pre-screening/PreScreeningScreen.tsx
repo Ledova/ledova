@@ -193,7 +193,7 @@ export function PreScreeningScreen() {
 
   const handleContinue = async () => {
     await handleSubmit(() => {
-      navigation.navigate('IdentityVerification');
+      navigation.navigate('UserProfile');
     });
   };
 

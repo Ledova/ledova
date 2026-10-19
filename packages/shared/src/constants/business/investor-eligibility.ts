@@ -43,7 +43,7 @@ export function certifierBodies(caAnzLabel: string): { value: CertifierBody; lab
 export const REASON_TEXT: Record<InvestorReadinessReason, string> = {
   no_investor_account: 'This login has no investor account.',
   account_not_in_good_standing: 'Your account is not in good standing.',
-  identity_not_verified: 'Finish the configured identity verification for your account.',
+  identity_not_verified: 'Verify your identity from Profile.',
   actor_not_ready: 'Your login must be active and your email verified.',
   principal_required: 'Sign in again to check your own account.',
 };

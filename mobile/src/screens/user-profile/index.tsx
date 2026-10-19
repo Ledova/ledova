@@ -4,7 +4,7 @@ import { formatDate, formatDateTime, getUserVerificationStatus } from '@ledova/s
 import { Action, Row, Rows, Section } from '../../components/Ledger';
 import { Page } from '../../components/Page';
 import { useUserProfile } from '../../hooks/useUserProfile';
-import { VerificationModal } from './components/VerificationModal';
+import { VerificationModal } from '../../components/identity/VerificationModal';
 import { useAccountStyles } from '../../hooks/useAccountStyles';
 export function UserProfileScreen() {
   const styles = useAccountStyles();

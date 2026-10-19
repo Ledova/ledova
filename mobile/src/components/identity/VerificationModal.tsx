@@ -1,12 +1,12 @@
 import React, { useEffect } from 'react';
 import { View, Text, ActivityIndicator } from 'react-native';
 import { WarningCircleIcon } from 'phosphor-react-native';
-import { useAppTheme, useThemedStyles } from '../../../contexts';
-import { useIdentityVerification } from '../../../hooks/useIdentityVerification';
+import { useAppTheme, useThemedStyles } from '../../contexts';
+import { useIdentityVerification } from '../../hooks/useIdentityVerification';
 import { useIsFocused } from '@react-navigation/native';
-import { CustomModal, useDialogStyles } from '../../../components/modal';
-import { StatusBanners } from '../../../components/identity/StatusBanners';
-import { VerificationFormModal } from '../../../components/identity/VerificationFormModal';
+import { CustomModal, useDialogStyles } from '../modal';
+import { StatusBanners } from './StatusBanners';
+import { VerificationFormModal } from './VerificationFormModal';
 
 interface VerificationModalProps {
   visible: boolean;
@@ -124,7 +124,6 @@ export function VerificationModal({ visible, onClose, onRefresh }: VerificationM
         )}
 
         <StatusBanners
-          plain
           isVerified={isVerified}
           showPendingBanner={showPendingBanner}
           showOnHoldBanner={showOnHoldBanner}

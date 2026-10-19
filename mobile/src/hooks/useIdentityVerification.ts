@@ -23,7 +23,6 @@ export function useIdentityVerification(enabled = true) {
       disposed: false,
       launching: false,
       sdkError: null as string | null,
-      tokenError: null as Error | null,
       accessToken: null as string | null,
       formUrl: null as string | null,
     }),
@@ -59,8 +58,10 @@ export function useIdentityVerification(enabled = true) {
   });
 
   const status = statusQuery.data;
-  const { isVerified, needsRetry, hasApplicant, isPending, isOnHold, isRejected, hasSubmitted } =
-    readIdentityVerification(status, justSubmitted);
+  const { isVerified, needsRetry, isPending, isOnHold, isRejected, hasSubmitted } = readIdentityVerification(
+    status,
+    justSubmitted,
+  );
 
   useEffect(() => {
     if (!scope.disposed && submission.epoch === getSessionEpoch() && justSubmitted && (isVerified || isRejected)) {
@@ -99,7 +100,6 @@ export function useIdentityVerification(enabled = true) {
     const currentLaunch = () => isCurrent() && scope.generation === generation;
     scope.launching = true;
     scope.sdkError = null;
-    scope.tokenError = null;
     render();
     try {
       const data = await tokenMutation.mutateAsync();
@@ -111,7 +111,6 @@ export function useIdentityVerification(enabled = true) {
     } catch (error: unknown) {
       if (!currentLaunch()) return;
       scope.sdkError = error instanceof Error ? error.message : 'Failed to initialize verification';
-      scope.tokenError = error instanceof Error ? error : null;
     } finally {
       if (currentLaunch()) {
         scope.launching = false;
@@ -125,28 +124,17 @@ export function useIdentityVerification(enabled = true) {
     closeFormModal();
     // eslint-disable-next-line react-hooks/immutability
     scope.sdkError = null;
-    scope.tokenError = null;
     // eslint-disable-next-line react-hooks/immutability
     submission.justSubmitted = false;
     render();
   }, [scope, submission, isCurrent, closeFormModal]);
 
-  const clearError = useCallback(() => {
-    if (!isCurrent()) return;
-    // eslint-disable-next-line react-hooks/immutability
-    scope.sdkError = null;
-    scope.tokenError = null;
-    render();
-  }, [scope, isCurrent]);
-
   return {
     status,
     isLoadingStatus: statusQuery.isLoading,
-    refetchStatus: statusQuery.refetch,
 
     isVerified,
     needsRetry,
-    hasApplicant,
     isPending,
     isOnHold,
     isRejected,
@@ -164,8 +152,6 @@ export function useIdentityVerification(enabled = true) {
 
     justSubmitted,
     sdkError: scope.sdkError,
-    clearError,
-    tokenError: scope.tokenError,
     resetState,
   };
 }

@@ -38,7 +38,7 @@ export default function SignupAccountType() {
       if (role === 'investor') {
         navigate(SIGNUP_PATHS.preScreening);
       } else {
-        navigate(SIGNUP_PATHS.identityVerification);
+        navigate(SIGNUP_PATHS.userProfile);
       }
     });
 

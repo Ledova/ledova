@@ -4,7 +4,6 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { SignInScreen } from '../screens/signin';
 import { SignUpScreen } from '../screens/signup/user';
 import { EmailConfirmationScreen } from '../screens/signup/email-confirmation';
-import { IdentityVerificationScreen } from '../screens/signup/identity-verification';
 import { PreScreeningScreen } from '../screens/signup/pre-screening';
 import { UserProfileScreen } from '../screens/signup/user-profile';
 import { FinancialProfileScreen } from '../screens/signup/financial-profile';
@@ -19,7 +18,6 @@ export type RootStackParamList = {
   SignUp: undefined;
   EmailConfirmation: undefined;
   AccountType: undefined;
-  IdentityVerification: undefined;
   PreScreening: undefined;
   UserProfile: undefined;
   FinancialProfile: undefined;
@@ -93,15 +91,6 @@ export const AppNavigator = () => {
           component={AccountTypeScreen}
           options={{
             headerShown: false,
-          }}
-        />
-        <Stack.Screen
-          name="IdentityVerification"
-          component={IdentityVerificationScreen}
-          options={{
-            headerShown: false,
-            presentation: 'card',
-            animation: 'slide_from_right',
           }}
         />
         <Stack.Screen

@@ -15,7 +15,6 @@ interface StatusBannersProps {
   showRejectedBanner: boolean;
   showRetryBanner: boolean;
   rejectionLabels?: string[] | null;
-  plain?: boolean;
 }
 
 const COPY = {
@@ -83,204 +82,49 @@ export function StatusBanners({
   showRejectedBanner,
   showRetryBanner,
   rejectionLabels,
-  plain = false,
 }: StatusBannersProps) {
   const theme = useAppTheme();
-  const styles = useThemedStyles((theme) => ({
-    successContainer: {
-      alignItems: 'center',
-      paddingVertical: theme.spacing.xl,
-      paddingHorizontal: theme.spacing.lg,
-      backgroundColor: `${theme.colors.status.success.icon}20`,
-      borderWidth: 1,
-      borderColor: `${theme.colors.success.dark}80`,
-      borderRadius: theme.borderRadius.lg,
-      marginBottom: theme.spacing.lg,
-    },
-    successTitle: {
-      fontSize: theme.fontSize.lg,
-      fontWeight: theme.fontWeight.semibold,
-      color: theme.colors.status.success.text,
-      marginTop: theme.spacing.sm,
-    },
-    pendingContainer: {
-      alignItems: 'center',
-      paddingVertical: theme.spacing.xl,
-      paddingHorizontal: theme.spacing.lg,
-      backgroundColor: `${theme.colors.interactive.active}20`,
-      borderWidth: 1,
-      borderColor: theme.colors.interactive.active,
-      borderRadius: theme.borderRadius.lg,
-      marginBottom: theme.spacing.lg,
-    },
-    pendingTitle: {
-      fontSize: theme.fontSize.lg,
-      fontWeight: theme.fontWeight.semibold,
-      color: theme.colors.interactive.active,
-      marginTop: theme.spacing.sm,
-    },
-    warningContainer: {
-      alignItems: 'center',
-      paddingVertical: theme.spacing.xl,
-      paddingHorizontal: theme.spacing.lg,
-      backgroundColor: `${theme.colors.status.warning.icon}15`,
-      borderWidth: 1,
-      borderColor: `${theme.colors.status.warning.icon}40`,
-      borderRadius: theme.borderRadius.lg,
-      marginBottom: theme.spacing.lg,
-    },
-    warningTitle: {
-      fontSize: theme.fontSize.lg,
-      fontWeight: theme.fontWeight.semibold,
-      color: theme.colors.status.warning.text,
-      marginTop: theme.spacing.sm,
-    },
-    rejectedContainer: {
-      alignItems: 'center',
-      paddingVertical: theme.spacing.xl,
-      paddingHorizontal: theme.spacing.lg,
-      backgroundColor: theme.colors.error.backgroundSubtle,
-      borderWidth: 1,
-      borderColor: theme.colors.form.borderError,
-      borderRadius: theme.borderRadius.lg,
-      marginBottom: theme.spacing.lg,
-    },
-    rejectedTitle: {
-      fontSize: theme.fontSize.lg,
-      fontWeight: theme.fontWeight.semibold,
-      color: theme.colors.form.error,
-      marginTop: theme.spacing.sm,
-    },
-    bannerText: {
-      fontSize: theme.fontSize.sm,
-      color: theme.colors.text.secondary,
-      textAlign: 'center',
-      marginTop: theme.spacing.xs,
-    },
-    rejectionReasons: {
-      marginTop: theme.spacing.sm,
-      width: '100%',
-    },
-    reasonsLabel: {
-      fontSize: theme.fontSize.xs,
-      color: theme.colors.text.muted,
-      textTransform: 'uppercase',
-      marginTop: theme.spacing.sm,
-    },
-    reasonItem: {
-      fontSize: theme.fontSize.sm,
-      color: theme.colors.text.secondary,
-      marginTop: theme.spacing.xs,
-    },
-  }));
-  if (plain) {
-    const size = theme.icon.sizes.md;
-    return (
-      <>
-        {isVerified && (
-          <Outcome
-            icon={<CheckCircleIcon size={size} color={theme.colors.status.success.icon} weight="fill" />}
-            tone={theme.colors.status.success.text}
-            {...COPY.verified}
-          />
-        )}
-        {showPendingBanner && (
-          <Outcome
-            icon={<CheckCircleIcon size={size} color={theme.colors.interactive.active} weight="fill" />}
-            tone={theme.colors.interactive.active}
-            {...COPY.pending}
-          />
-        )}
-        {showOnHoldBanner && (
-          <Outcome
-            icon={<ClockCountdownIcon size={size} color={theme.colors.status.warning.icon} />}
-            tone={theme.colors.status.warning.text}
-            {...COPY.onHold}
-          />
-        )}
-        {showRejectedBanner && (
-          <Outcome
-            icon={<WarningCircleIcon size={size} color={theme.colors.status.error.icon} />}
-            tone={theme.colors.form.error}
-            {...COPY.rejected}
-          >
-            <RejectionReasons labels={rejectionLabels} />
-          </Outcome>
-        )}
-        {showRetryBanner && (
-          <Outcome
-            icon={<ArrowCounterClockwiseIcon size={size} color={theme.colors.status.warning.icon} />}
-            tone={theme.colors.status.warning.text}
-            {...COPY.retry}
-          >
-            <RejectionReasons labels={rejectionLabels} />
-          </Outcome>
-        )}
-      </>
-    );
-  }
+  const size = theme.icon.sizes.md;
   return (
     <>
       {isVerified && (
-        <View style={styles.successContainer}>
-          <CheckCircleIcon
-            size={theme.icon.sizes.md}
-            color={theme.colors.status.success.icon}
-            weight={theme.icon.weights.regular}
-          />
-          <Text style={styles.successTitle}>{COPY.verified.title}</Text>
-          <Text style={styles.bannerText}>{COPY.verified.body}</Text>
-        </View>
+        <Outcome
+          icon={<CheckCircleIcon size={size} color={theme.colors.status.success.icon} weight="fill" />}
+          tone={theme.colors.status.success.text}
+          {...COPY.verified}
+        />
       )}
-
       {showPendingBanner && (
-        <View style={styles.pendingContainer}>
-          <CheckCircleIcon
-            size={theme.icon.sizes.md}
-            color={theme.colors.interactive.active}
-            weight={theme.icon.weights.regular}
-          />
-          <Text style={styles.pendingTitle}>{COPY.pending.title}</Text>
-          <Text style={styles.bannerText}>{COPY.pending.body}</Text>
-        </View>
+        <Outcome
+          icon={<CheckCircleIcon size={size} color={theme.colors.interactive.active} weight="fill" />}
+          tone={theme.colors.interactive.active}
+          {...COPY.pending}
+        />
       )}
-
       {showOnHoldBanner && (
-        <View style={styles.warningContainer}>
-          <ClockCountdownIcon
-            size={theme.icon.sizes.md}
-            color={theme.colors.status.warning.icon}
-            weight={theme.icon.weights.regular}
-          />
-          <Text style={styles.warningTitle}>{COPY.onHold.title}</Text>
-          <Text style={styles.bannerText}>{COPY.onHold.body}</Text>
-        </View>
+        <Outcome
+          icon={<ClockCountdownIcon size={size} color={theme.colors.status.warning.icon} />}
+          tone={theme.colors.status.warning.text}
+          {...COPY.onHold}
+        />
       )}
-
       {showRejectedBanner && (
-        <View style={styles.rejectedContainer}>
-          <WarningCircleIcon
-            size={theme.icon.sizes.md}
-            color={theme.colors.status.error.icon}
-            weight={theme.icon.weights.regular}
-          />
-          <Text style={styles.rejectedTitle}>{COPY.rejected.title}</Text>
-          <Text style={styles.bannerText}>{COPY.rejected.body}</Text>
+        <Outcome
+          icon={<WarningCircleIcon size={size} color={theme.colors.status.error.icon} />}
+          tone={theme.colors.form.error}
+          {...COPY.rejected}
+        >
           <RejectionReasons labels={rejectionLabels} />
-        </View>
+        </Outcome>
       )}
-
       {showRetryBanner && (
-        <View style={styles.warningContainer}>
-          <ArrowCounterClockwiseIcon
-            size={theme.icon.sizes.md}
-            color={theme.colors.status.warning.icon}
-            weight={theme.icon.weights.regular}
-          />
-          <Text style={styles.warningTitle}>{COPY.retry.title}</Text>
-          <Text style={styles.bannerText}>{COPY.retry.body}</Text>
+        <Outcome
+          icon={<ArrowCounterClockwiseIcon size={size} color={theme.colors.status.warning.icon} />}
+          tone={theme.colors.status.warning.text}
+          {...COPY.retry}
+        >
           <RejectionReasons labels={rejectionLabels} />
-        </View>
+        </Outcome>
       )}
     </>
   );
