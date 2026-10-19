@@ -938,8 +938,9 @@ README section 5 lists as unresolved a class `deploying`, its swap approval `pen
 `documents.json` and chooses the stored files, all under `companies/<company id>/` ([private
 files](security.md#private-files)).
 
-- The history files' evidence copies come from the same objects those files list, not a second
-  query; `retained_sources` reads the decision records' other copies in the same snapshot.
+- The history files' evidence copies come from the objects those files list, and `retained_sources`
+  adds the decision records' copies from the same snapshot; a copy both name, such as a register
+  instruction's authority copy, is one archive entry.
 - While streaming an evidence copy the builder computes its size and SHA-256 and refuses the pack,
   naming the record, unless they are those its snapshot recorded. A publication document and
   remittance evidence are tied the same way to the SHA-256 recorded when each was stored. A company
