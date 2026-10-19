@@ -102,6 +102,7 @@ class CompanySignupTermsReceiptSerializer(serializers.Serializer):
 class OwnCompanyAppointmentSerializer(CompanyAppointmentSerializer):
     company_name = serializers.CharField(source="company.name", read_only=True)
     company_status = serializers.CharField(source="company.status", read_only=True)
+    company_status_display = serializers.CharField(source="company.get_status_display", read_only=True)
     source = serializers.SerializerMethodField()
     signup_terms = serializers.SerializerMethodField()
 
@@ -111,6 +112,7 @@ class OwnCompanyAppointmentSerializer(CompanyAppointmentSerializer):
             "company",
             "company_name",
             "company_status",
+            "company_status_display",
             "source",
             "signup_terms",
         ]

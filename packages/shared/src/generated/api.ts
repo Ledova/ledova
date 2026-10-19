@@ -5822,6 +5822,7 @@ export interface ApiComponents {
       company: string;
       companyName: string;
       companyStatus: string;
+      companyStatusDisplay: string;
       createdAt: string;
       declarationText: string | null;
       declarationVersion: string | null;
