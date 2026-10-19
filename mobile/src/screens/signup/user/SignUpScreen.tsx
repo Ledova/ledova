@@ -1,11 +1,23 @@
-import { View, Text, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  ScrollView,
+  KeyboardAvoidingView,
+  Platform,
+  Alert,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { GradientBackground } from '../../../components/GradientBackground';
 import { PrimaryButton } from '../../../components/buttons';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import type { RootStackParamList } from '../../../navigation/AppNavigator';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useSignupUser } from '@ledova/shared';
+import { useQueryClient } from '@tanstack/react-query';
+import { useAuth, useSignupRestart, useSignupUser } from '@ledova/shared';
+import { useUserProfile } from '../../../hooks/useUserProfile';
+import { clearTokens } from '../../../services/tokenStorage';
 import {
   UserPlusIcon,
   EnvelopeSimpleIcon,
@@ -147,6 +159,17 @@ export function SignUpScreen() {
       fontSize: theme.fontSize.xs,
       marginTop: theme.spacing.xs,
     },
+    fieldNote: {
+      color: theme.colors.text.muted,
+      fontSize: theme.fontSize.xs,
+      marginTop: theme.spacing.xs,
+    },
+    restartNote: {
+      color: theme.colors.text.body,
+      fontSize: theme.fontSize.sm,
+      lineHeight: theme.lineHeight.normal * theme.fontSize.sm,
+      marginBottom: theme.spacing.lg,
+    },
     signUpButton: {
       marginTop: theme.spacing.md,
       shadowColor: theme.colors.interactive.active,
@@ -197,11 +220,35 @@ export function SignUpScreen() {
     togglePassword,
     handleSubmit,
   } = useSignupUser((email) => AsyncStorage.setItem('signup_email', email));
+  const queryClient = useQueryClient();
+  const { isAuthenticated } = useAuth();
+  const { userProfile } = useUserProfile();
+  const account = useSignupRestart(userProfile?.email ?? '', (email) => AsyncStorage.setItem('signup_email', email));
 
   const handleSignUp = async () => {
     await handleSubmit(() => {
       navigation.navigate('EmailConfirmation');
     });
+  };
+
+  const handleContinue = async () => {
+    await account.handleSubmit(
+      () => navigation.navigate('AccountType'),
+      async () => {
+        const retired = await clearTokens().then(
+          () => true,
+          () => false,
+        );
+        queryClient.clear();
+        navigation.reset({ index: 0, routes: [{ name: 'EmailConfirmation' }] });
+        if (!retired) {
+          Alert.alert(
+            'Email Changed',
+            'Your email was changed, but this device could not confirm that your saved sign-in was removed.',
+          );
+        }
+      },
+    );
   };
 
   return (
@@ -217,144 +264,237 @@ export function SignUpScreen() {
                   weight={theme.icon.weights.regular}
                 />
               </View>
-              <Text style={styles.title}>Create Your Account</Text>
+              <Text style={styles.title}>{isAuthenticated ? 'Your Account' : 'Create Your Account'}</Text>
             </View>
 
             <View style={styles.formContainer}>
-              {generalError && (
-                <View style={styles.errorContainer}>
-                  <WarningCircleIcon
-                    size={theme.icon.sizes.md}
-                    color={theme.colors.status.error.icon}
-                    weight={theme.icon.weights.regular}
-                  />
-                  <Text style={styles.errorText}>{generalError}</Text>
-                </View>
-              )}
-
-              <View style={styles.fieldContainer}>
-                <Text style={styles.label}>Email</Text>
-                <View style={styles.inputWrapper}>
-                  <EnvelopeSimpleIcon
-                    size={theme.icon.sizes.md}
-                    color={theme.colors.text.subtle}
-                    style={styles.inputIcon}
-                  />
-                  <TextInput
-                    accessibilityLabel="Email"
-                    style={styles.input}
-                    placeholder="your@email.com"
-                    placeholderTextColor={theme.colors.form.placeholder}
-                    value={form.email}
-                    onChangeText={(text) => setFieldValue('email', text)}
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                    editable={!isLoading}
-                  />
-                </View>
-                {errors.email && !generalError && <Text style={styles.fieldError}>{errors.email.join(' ')}</Text>}
-              </View>
-
-              <View style={styles.fieldContainer}>
-                <Text style={styles.label}>Password</Text>
-                <View style={styles.inputWrapper}>
-                  <LockIcon size={theme.icon.sizes.md} color={theme.colors.text.subtle} style={styles.inputIcon} />
-                  <TextInput
-                    accessibilityLabel="Password"
-                    style={[styles.input, styles.passwordInput]}
-                    placeholder="••••••••"
-                    placeholderTextColor={theme.colors.form.placeholder}
-                    value={form.password}
-                    onChangeText={(text) => setFieldValue('password', text)}
-                    secureTextEntry={!showPassword}
-                    autoCapitalize="none"
-                    editable={!isLoading}
-                  />
-                  <TouchableOpacity onPress={togglePassword} style={styles.eyeButton} disabled={isLoading}>
-                    {showPassword ? (
-                      <EyeSlashIcon
+              {isAuthenticated ? (
+                <>
+                  {account.generalError && (
+                    <View style={styles.errorContainer}>
+                      <WarningCircleIcon
                         size={theme.icon.sizes.md}
-                        color={theme.colors.text.subtle}
+                        color={theme.colors.status.error.icon}
                         weight={theme.icon.weights.regular}
                       />
+                      <Text style={styles.errorText}>{account.generalError}</Text>
+                    </View>
+                  )}
+                  <View style={styles.fieldContainer}>
+                    <Text style={styles.label}>Email</Text>
+                    <View style={styles.inputWrapper}>
+                      <EnvelopeSimpleIcon
+                        size={theme.icon.sizes.md}
+                        color={theme.colors.text.subtle}
+                        style={styles.inputIcon}
+                      />
+                      <TextInput
+                        accessibilityLabel="Email"
+                        style={styles.input}
+                        placeholder="your@email.com"
+                        placeholderTextColor={theme.colors.form.placeholder}
+                        value={account.email}
+                        onChangeText={account.setEmail}
+                        keyboardType="email-address"
+                        autoCapitalize="none"
+                        autoCorrect={false}
+                        editable={!account.isSubmitting}
+                      />
+                    </View>
+                    {account.errors.email ? (
+                      <Text style={styles.fieldError}>{account.errors.email.join(' ')}</Text>
                     ) : (
-                      <EyeIcon
+                      !account.changed && (
+                        <Text style={styles.fieldNote}>Verified. Continue to keep your progress.</Text>
+                      )
+                    )}
+                  </View>
+                  {account.changed && (
+                    <>
+                      <Text style={styles.restartNote}>
+                        Changing your email starts signup again. We will send a code to the new address and clear your
+                        account type, eligibility answers, and personal and financial details. A company you have
+                        already saved stays with your account.
+                      </Text>
+                      <View style={styles.fieldContainer}>
+                        <Text style={styles.label}>Current password</Text>
+                        <View style={styles.inputWrapper}>
+                          <LockIcon
+                            size={theme.icon.sizes.md}
+                            color={theme.colors.text.subtle}
+                            style={styles.inputIcon}
+                          />
+                          <TextInput
+                            accessibilityLabel="Current password"
+                            style={styles.input}
+                            placeholder="••••••••"
+                            placeholderTextColor={theme.colors.form.placeholder}
+                            value={account.currentPassword}
+                            onChangeText={account.setCurrentPassword}
+                            secureTextEntry
+                            autoCapitalize="none"
+                            editable={!account.isSubmitting}
+                          />
+                        </View>
+                        {account.errors.currentPassword && (
+                          <Text style={styles.fieldError}>{account.errors.currentPassword.join(' ')}</Text>
+                        )}
+                      </View>
+                    </>
+                  )}
+                  <PrimaryButton
+                    onPress={handleContinue}
+                    loading={account.isSubmitting}
+                    fullWidth
+                    style={styles.signUpButton}
+                  >
+                    {account.changed ? 'Change email and start again' : 'Continue'}
+                  </PrimaryButton>
+                </>
+              ) : (
+                <>
+                  {generalError && (
+                    <View style={styles.errorContainer}>
+                      <WarningCircleIcon
                         size={theme.icon.sizes.md}
-                        color={theme.colors.text.subtle}
+                        color={theme.colors.status.error.icon}
                         weight={theme.icon.weights.regular}
                       />
+                      <Text style={styles.errorText}>{generalError}</Text>
+                    </View>
+                  )}
+
+                  <View style={styles.fieldContainer}>
+                    <Text style={styles.label}>Email</Text>
+                    <View style={styles.inputWrapper}>
+                      <EnvelopeSimpleIcon
+                        size={theme.icon.sizes.md}
+                        color={theme.colors.text.subtle}
+                        style={styles.inputIcon}
+                      />
+                      <TextInput
+                        accessibilityLabel="Email"
+                        style={styles.input}
+                        placeholder="your@email.com"
+                        placeholderTextColor={theme.colors.form.placeholder}
+                        value={form.email}
+                        onChangeText={(text) => setFieldValue('email', text)}
+                        keyboardType="email-address"
+                        autoCapitalize="none"
+                        autoCorrect={false}
+                        editable={!isLoading}
+                      />
+                    </View>
+                    {errors.email && !generalError && <Text style={styles.fieldError}>{errors.email.join(' ')}</Text>}
+                  </View>
+
+                  <View style={styles.fieldContainer}>
+                    <Text style={styles.label}>Password</Text>
+                    <View style={styles.inputWrapper}>
+                      <LockIcon size={theme.icon.sizes.md} color={theme.colors.text.subtle} style={styles.inputIcon} />
+                      <TextInput
+                        accessibilityLabel="Password"
+                        style={[styles.input, styles.passwordInput]}
+                        placeholder="••••••••"
+                        placeholderTextColor={theme.colors.form.placeholder}
+                        value={form.password}
+                        onChangeText={(text) => setFieldValue('password', text)}
+                        secureTextEntry={!showPassword}
+                        autoCapitalize="none"
+                        editable={!isLoading}
+                      />
+                      <TouchableOpacity onPress={togglePassword} style={styles.eyeButton} disabled={isLoading}>
+                        {showPassword ? (
+                          <EyeSlashIcon
+                            size={theme.icon.sizes.md}
+                            color={theme.colors.text.subtle}
+                            weight={theme.icon.weights.regular}
+                          />
+                        ) : (
+                          <EyeIcon
+                            size={theme.icon.sizes.md}
+                            color={theme.colors.text.subtle}
+                            weight={theme.icon.weights.regular}
+                          />
+                        )}
+                      </TouchableOpacity>
+                    </View>
+
+                    <View style={styles.passwordRequirements}>
+                      <Text style={styles.requirementsTitle}>Password must:</Text>
+                      <View style={styles.requirement}>
+                        <View
+                          style={[
+                            styles.requirementDot,
+                            form.password && !passwordValidation.lengthValid && styles.requirementDotError,
+                          ]}
+                        />
+                        <Text
+                          style={[
+                            styles.requirementText,
+                            form.password && !passwordValidation.lengthValid && styles.requirementTextError,
+                          ]}
+                        >
+                          Be at least 8 characters long
+                        </Text>
+                      </View>
+                      <View style={styles.requirement}>
+                        <View
+                          style={[
+                            styles.requirementDot,
+                            form.password && !passwordValidation.notNumeric && styles.requirementDotError,
+                          ]}
+                        />
+                        <Text
+                          style={[
+                            styles.requirementText,
+                            form.password && !passwordValidation.notNumeric && styles.requirementTextError,
+                          ]}
+                        >
+                          Not be entirely numeric
+                        </Text>
+                      </View>
+                    </View>
+
+                    {errors.password && !generalError && (
+                      <Text style={styles.fieldError}>{errors.password.join(' ')}</Text>
                     )}
-                  </TouchableOpacity>
+                  </View>
+
+                  <PrimaryButton
+                    onPress={handleSignUp}
+                    loading={isLoading}
+                    disabled={
+                      (!passwordValidation.lengthValid && form.password.length > 0) ||
+                      (!passwordValidation.notNumeric && form.password.length > 0)
+                    }
+                    fullWidth
+                    style={styles.signUpButton}
+                  >
+                    Continue
+                  </PrimaryButton>
+                </>
+              )}
+            </View>
+
+            {!isAuthenticated && (
+              <>
+                <View style={styles.divider}>
+                  <View style={styles.dividerLine} />
+                  <Text style={styles.dividerText}>or</Text>
+                  <View style={styles.dividerLine} />
                 </View>
 
-                <View style={styles.passwordRequirements}>
-                  <Text style={styles.requirementsTitle}>Password must:</Text>
-                  <View style={styles.requirement}>
-                    <View
-                      style={[
-                        styles.requirementDot,
-                        form.password && !passwordValidation.lengthValid && styles.requirementDotError,
-                      ]}
-                    />
-                    <Text
-                      style={[
-                        styles.requirementText,
-                        form.password && !passwordValidation.lengthValid && styles.requirementTextError,
-                      ]}
-                    >
-                      Be at least 8 characters long
+                <View style={styles.signInSection}>
+                  <Text style={styles.signInText}>
+                    Already have an account?{' '}
+                    <Text style={styles.signInLink} onPress={() => !isLoading && navigation.navigate('SignIn')}>
+                      Sign In
                     </Text>
-                  </View>
-                  <View style={styles.requirement}>
-                    <View
-                      style={[
-                        styles.requirementDot,
-                        form.password && !passwordValidation.notNumeric && styles.requirementDotError,
-                      ]}
-                    />
-                    <Text
-                      style={[
-                        styles.requirementText,
-                        form.password && !passwordValidation.notNumeric && styles.requirementTextError,
-                      ]}
-                    >
-                      Not be entirely numeric
-                    </Text>
-                  </View>
+                  </Text>
                 </View>
-
-                {errors.password && !generalError && <Text style={styles.fieldError}>{errors.password.join(' ')}</Text>}
-              </View>
-
-              <PrimaryButton
-                onPress={handleSignUp}
-                loading={isLoading}
-                disabled={
-                  (!passwordValidation.lengthValid && form.password.length > 0) ||
-                  (!passwordValidation.notNumeric && form.password.length > 0)
-                }
-                fullWidth
-                style={styles.signUpButton}
-              >
-                Continue
-              </PrimaryButton>
-            </View>
-
-            <View style={styles.divider}>
-              <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>or</Text>
-              <View style={styles.dividerLine} />
-            </View>
-
-            <View style={styles.signInSection}>
-              <Text style={styles.signInText}>
-                Already have an account?{' '}
-                <Text style={styles.signInLink} onPress={() => !isLoading && navigation.navigate('SignIn')}>
-                  Sign In
-                </Text>
-              </Text>
-            </View>
+              </>
+            )}
           </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>

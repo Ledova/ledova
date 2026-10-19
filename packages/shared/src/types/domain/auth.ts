@@ -3,6 +3,8 @@ export type SigninRequest = ApiRequest<'api_signin_create'>;
 
 export type SignupRequest = ApiRequest<'api_signup_create'>;
 
+export type SignupRestartRequest = ApiRequest<'api_restart_signup_create'>;
+
 export type EmailVerificationRequest = ApiRequest<'api_email_verification_create'>;
 
 export type ResendVerificationRequest = ApiRequest<'api_resend_verification_create'>;

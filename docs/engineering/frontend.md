@@ -320,12 +320,14 @@ email confirmation, account type, pre-screening, user profile, financial profile
 registration and review. Identity verification is not a step: when `useSignupReview` reports
 `identityRequired`, company review offers **Verify your identity**, which opens the
 `IdentityVerificationModal` that Profile uses (native: `VerificationModal`). The step map in
-`dashboard/src/routes/AppRoutes.tsx` uses the named `SIGNUP_PATHS`, and `signupRoutes` wraps each in
-`SignupRoute`, which sends a finished company account to the company dashboard and other finished
-accounts to `landingFor(role)`, lets an unfinished account or a signed-out visitor through, and
-shows `AccountUnavailable` when the profile cannot be read. The create-account form (`/signup`) and
-sign-in sit under `PublicOnlyRoute`, which sends a signed-in visitor to `landingFor(role)` and to
-`/` respectively.
+`dashboard/src/routes/AppRoutes.tsx` uses the named `SIGNUP_PATHS`, and `signupRoutes` wraps each,
+with `/signup`, in `SignupRoute`, which sends a finished company account to the company dashboard
+and other finished accounts to `landingFor(role)`, lets an unfinished account or a signed-out
+visitor through, and shows `AccountUnavailable` when the profile cannot be read. `/signup` shows
+the create-account form when signed out and **Your Account** (`useSignupRestart`) when signed in.
+Verified accounts never return to email confirmation: account type goes back to `/signup`,
+pre-screening to account type, and the confirmation step sends a signed-in visitor to `/`. Sign-in
+sits under `PublicOnlyRoute`, which sends a signed-in visitor to `/`.
 
 Email verification and sign-up completion issue the session and await the explicit authentication
 refresh (sign-up completion a fresh profile too) before navigating, as sign-in does, so the steps

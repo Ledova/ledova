@@ -15,7 +15,7 @@ User = get_user_model()
 logger = logging.getLogger(__name__)
 
 
-def _resolve_signup_email(email):
+def resolve_signup_email(email):
     try:
         destination_key = normalize_email(email)
     except EmailError:
@@ -66,7 +66,7 @@ class SessionService:
         if password != password_confirmation:
             raise serializers.ValidationError({"password": ["Passwords do not match."]})
 
-        email, lookup = _resolve_signup_email(email)
+        email, lookup = resolve_signup_email(email)
         if lookup.state is EmailLookupState.AMBIGUOUS:
             raise serializers.ValidationError({"email": ["Email already registered"]})
         existing_user = lookup.user

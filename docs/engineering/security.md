@@ -15,8 +15,9 @@ files, retains and purges them, and validates uploads. For engineers; the settin
   blacklists the token presented; `signout` revokes one session, `signout-all` every session. The
   access token carries its refresh's jti (`rjti`), and every request checks that session is live,
   so revocation takes effect on the next request. An admin email change
-  (`authentication/admin/user.py`) and an account deletion (`users/services/lifecycle.py`) revoke
-  every session; a password change (`authentication/views/user.py`) keeps only its own (`keep_jti`).
+  (`authentication/admin/user.py`), an account deletion and a signup email change (`restart-signup`;
+  both in `users/services/lifecycle.py`) revoke every session; a password change
+  (`authentication/views/user.py`) keeps only its own (`keep_jti`).
 - `X-Auth-Transport: bearer` returns the tokens in the response body and sets no cookie; without
   the header the access and refresh cookies are set (`httponly`, flags from
   `settings.AUTH_COOKIE`). The dashboard uses cookies, mobile sends the header.

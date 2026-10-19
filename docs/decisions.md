@@ -18,6 +18,7 @@ stay here as history and are marked where they appear.
 | [Combined company signup and initial authority](#combined-company-signup-and-initial-authority)                 | 14 October 2026                                | Current; amended by #1022 below                                    |
 | [Simple signup, documents and team after registration](#simple-signup-documents-and-team-after-registration)    | 14 October 2026                                | Current; #1022                                                     |
 | [Identity verification after signup](#identity-verification-after-signup)                                       | 19 October 2026                                | Current; #1141                                                     |
+| [Verified email and email changes during signup](#verified-email-and-email-changes-during-signup)               | 19 October 2026                                | Current; #1146                                                     |
 | [Existing register mirror and simple setup](#existing-register-mirror-and-simple-setup)                         | 14 October 2026                                | Current; setup amended by #1029                                    |
 | [Manual register setup: shares before shareholders](#manual-register-setup-shares-before-shareholders)          | 14 October 2026                                | Current; #1029, CSV entry removed under #1036                      |
 | [Eligibility and ownership records](#eligibility-and-ownership-records)                                         | September to 6 October 2026                    | Current                                                            |
@@ -257,6 +258,20 @@ admission still refuses an unverified person, so the owner chose that company
 review offers the same identity check before **Complete company setup** rather
 than changing that rule. The investor and representative identity requirements
 and where they apply are unchanged.
+
+### Verified email and email changes during signup
+
+Later on 19 October 2026 the owner reviewed signup's **Go Back** and decided
+([#1146](https://github.com/Ledova/ledova/issues/1146)) that going back and
+forward with the same verified email keeps it verified and never shows the code
+step again, while changing the email restarts signup so the new address is
+verified from the start. The owner chose the recommended defaults: the change
+needs the current password and is allowed only before **Complete company setup**
+is submitted. Restarting keeps the same account, so no second, half-finished
+account is left behind, and clears the account type, eligibility answers, and
+personal and financial details. Companies are never deleted by design, so a
+saved draft company stays with the account instead of being cleared; weakening
+that safeguard was not authorised.
 
 ## Existing register mirror and simple setup
 

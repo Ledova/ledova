@@ -9,9 +9,12 @@ from rest_framework import serializers
 from authentication.email import normalize_email
 from authentication.managers.user import EmailLookupState
 from authentication.services import TokenService
+from authentication.services.sessions import resolve_signup_email
+from companies.models import CompanyAppointment, CompanyAuthorityRequest
 from portfolios.models import Portfolio
 from shared.utils.token_amounts import plain_amount
 from users.models import FinancialProfile, UserAccount, UserProfile
+from users.models.user_account import AccountRole
 from wallets.models import Transaction, Wallet
 from whitelist.services.eligibility_invalidation import invalidation_writer_context
 from whitelist.services.refresh import enqueue_for_account
@@ -52,6 +55,64 @@ def delete_account(user):
             pass
 
         logger.info("Account successfully deleted")
+
+
+SIGNUP_ANSWERS = {
+    "full_name": None,
+    "phone_country_code": None,
+    "phone_number": None,
+    "date_of_birth": None,
+    "residential_address": None,
+    "citizenship_country": None,
+    "residence_country": None,
+    "confirmed_over_18": False,
+    "confirmed_australian_resident": False,
+    "confirmed_individual_account": False,
+}
+
+
+def restart_signup(user, email, current_password):
+    with invalidation_writer_context(user):
+        user.refresh_from_db(from_queryset=user.__class__.objects.select_for_update(no_key=True))
+        if not user.check_password(current_password):
+            raise serializers.ValidationError({"current_password": ["Current password is incorrect."]})
+        profile = UserProfile.objects.select_for_update(no_key=True).get(user=user)
+        if profile.is_signup_completed:
+            raise serializers.ValidationError(
+                {"email": ["Signup is complete, so this email can no longer be changed here."]}
+            )
+        if (
+            CompanyAuthorityRequest.objects.filter(requester=user).exists()
+            or CompanyAppointment.objects.filter(appointee=user).exists()
+        ):
+            raise serializers.ValidationError(
+                {"email": ["Company setup has been submitted, so this email can no longer be changed."]}
+            )
+        destination, lookup = resolve_signup_email(email)
+        if lookup.user is not None and lookup.user.pk == user.pk:
+            raise serializers.ValidationError({"email": ["This is already your email address."]})
+        if lookup.state is not EmailLookupState.ABSENT:
+            raise serializers.ValidationError({"email": ["Email already registered"]})
+        account = UserAccount.objects.select_for_update(no_key=True).filter(user_profile=profile).first()
+        if user.is_email_verified and account is not None:
+            enqueue_for_account(account.pk, user, cause_fields=["is_email_verified"])
+        user.email = destination
+        user.is_email_verified = False
+        user.email_verification_token = None
+        user.email_verification_attempts = 0
+        user.save(
+            update_fields=["email", "is_email_verified", "email_verification_token", "email_verification_attempts"]
+        )
+        for field, value in SIGNUP_ANSWERS.items():
+            setattr(profile, field, value)
+        profile.save(update_fields=[*SIGNUP_ANSWERS, "updated_at"])
+        if account is not None and account.role != AccountRole.INVESTOR:
+            account.role = AccountRole.INVESTOR
+            account.save(update_fields=["role", "updated_at"])
+        FinancialProfile.objects.filter(user_profile=profile).delete()
+        TokenService.revoke_all(user)
+    logger.info("Signup restarted with a new email")
+    return user
 
 
 def export_account_data(user):

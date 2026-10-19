@@ -61,6 +61,9 @@ Resuming an unfinished signup:
 - An unfinished account can sign in again. On the web, a company account with saved personal
   details returns to Company Details with its saved company; other accounts resume at the account
   type step.
+- Before choosing **Complete company setup**, you can change your email from **Your Account**
+  ([changing your email](participants.md#going-back-and-changing-your-email)). Signup starts
+  again, and your draft company stays with your account and reappears at Company Details.
 - A retry must settle the retained authority request and the Terms outcome before completion. It
   cannot infer success from a submitted request or a lost response.
 - If the pending request's personal scope is not exactly Manage company information and team, its

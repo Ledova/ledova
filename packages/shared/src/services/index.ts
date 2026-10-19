@@ -2,6 +2,7 @@ export {
   signin,
   signout,
   signup,
+  restartSignup,
   verifyEmail,
   resendVerificationCode,
   refreshToken,

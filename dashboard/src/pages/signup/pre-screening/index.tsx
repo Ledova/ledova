@@ -32,7 +32,7 @@ export default function SignupPreScreening() {
   };
 
   const handleBack = () => {
-    navigate(SIGNUP_PATHS.emailConfirmation);
+    navigate(SIGNUP_PATHS.accountType);
   };
 
   const declarations = [

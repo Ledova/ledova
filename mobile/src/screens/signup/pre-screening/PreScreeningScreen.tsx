@@ -198,7 +198,7 @@ export function PreScreeningScreen() {
   };
 
   const handleBack = () => {
-    navigation.navigate('EmailConfirmation');
+    navigation.navigate('AccountType');
   };
 
   if (isLoading) {
