@@ -135,7 +135,7 @@ export function LinkRow({
   );
 }
 
-export type Tone = 'waiting' | 'done';
+export type Tone = 'waiting' | 'done' | 'closed';
 
 export function Status({ tone, children }: { tone: Tone; children: ReactNode }) {
   const styles = useThemedStyles((theme) => ({
@@ -143,6 +143,7 @@ export function Status({ tone, children }: { tone: Tone; children: ReactNode }) 
     mark: { width: 8, height: 8, borderRadius: 4 },
     waiting: { borderWidth: 1, borderColor: theme.colors.text.muted },
     done: { backgroundColor: theme.colors.brand.mid },
+    closed: { backgroundColor: theme.colors.text.muted },
     label: { fontFamily: theme.fontFamily.regular, fontSize: 14, color: theme.colors.text.primary },
   }));
   return (

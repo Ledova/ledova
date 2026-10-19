@@ -11,6 +11,7 @@ import { apiClient } from '../../services/apiClient';
 import { CustomModal } from '../../components/modal';
 import { useAccountStyles } from '../../hooks/useAccountStyles';
 import { useSettings } from './useSettings';
+import { Verification } from './Verification';
 
 export function SettingsScreen() {
   const styles = useAccountStyles();
@@ -112,6 +113,7 @@ export function SettingsScreen() {
   return (
     <>
       <Page title="Settings">
+        <Verification />
         <Section title="Company settings">
           <Text style={styles.muted}>
             Company details and optional supporting documents can be managed after signup.

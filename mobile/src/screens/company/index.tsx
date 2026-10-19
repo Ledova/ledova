@@ -4,7 +4,6 @@ import { useNavigation, type NavigationProp } from '@react-navigation/native';
 import { useQueryClient } from '@tanstack/react-query';
 import type { Company } from '@ledova/shared';
 import type { CompanyStackParamList } from '../../navigation/CompanyStackNavigator';
-import type { BottomTabParamList } from '../../navigation/BottomTabNavigator';
 import { Action, LinkRow, Row, Section, Rows } from '../../components/Ledger';
 import { Page } from '../../components/Page';
 import { useCompanyProfile } from '../../hooks/useCompanyProfile';
@@ -21,7 +20,7 @@ export function CompanyScreen() {
 
 function CompanyDetails({ data }: { data: ReturnType<typeof useCompanyProfile> }) {
   const styles = useCompanyStyles();
-  const navigation = useNavigation<NavigationProp<CompanyStackParamList & BottomTabParamList>>();
+  const navigation = useNavigation<NavigationProp<CompanyStackParamList>>();
   const { company } = data;
   const queryClient = useQueryClient();
   const [editing, setEditing] = useState<Company | null>(null);
@@ -75,7 +74,6 @@ function CompanyDetails({ data }: { data: ReturnType<typeof useCompanyProfile> }
                 {!!address && <Row label="Address">{address}</Row>}
               </Rows>
               <Rows>
-                {data.canPersonalAdmin && <LinkRow label="Activation" onPress={() => navigation.navigate('Listing')} />}
                 <LinkRow label="Representative authority" onPress={() => navigation.navigate('CompanyAuthority')} />
                 <LinkRow label="Company team" onPress={() => navigation.navigate('CompanyTeam')} />
                 {data.ownerBusiness && (
