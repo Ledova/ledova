@@ -15,7 +15,7 @@ stay here as history and are marked where they appear.
 | [Company-managed registers and one product](#company-managed-registers-and-one-product)                         | 3 October 2026                                 | Current; replaces routine register work by platform staff          |
 | [Company-run register authority and evidence](#company-run-register-authority-and-evidence)                     | 5 October 2026                                 | Current                                                            |
 | [Company representative verification](#company-representative-verification)                                     | 4 October 2026                                 | Current; ABR lookup moved to activation by #1148                   |
-| [Combined company signup and initial authority](#combined-company-signup-and-initial-authority)                 | 14 October 2026                                | Current; amended by #1022 below                                    |
+| [Combined company signup and initial authority](#combined-company-signup-and-initial-authority)                 | 14 October 2026                                | Current; amended by #1022; ABR lookup moved to activation by #1148 |
 | [Simple signup, documents and team after registration](#simple-signup-documents-and-team-after-registration)    | 14 October 2026                                | Current; #1022; ABR lookup moved to activation by #1148            |
 | [Identity verification after signup](#identity-verification-after-signup)                                       | 19 October 2026                                | Current; #1141                                                     |
 | [Verified email and email changes during signup](#verified-email-and-email-changes-during-signup)               | 19 October 2026                                | Current; #1146                                                     |
@@ -283,13 +283,18 @@ that safeguard was not authorised.
 Later on 19 October 2026 the owner decided
 ([#1148](https://github.com/Ledova/ledova/issues/1148)) that the ABR company
 lookup is not part of signup. It belongs with the dashboard verification steps,
-where identity is checked, so it runs only at **Company → Activation**, which
-already looked the company up again before making it Active. **Complete company
-setup** appoints the representative on their declaration, keeping the draft
-ownership, unchanged-details, expiry and required-identity checks, so signup
-finishes without ABR configuration and the company stays Draft. Everything the
-lookup protects already waits for an Active company. This replaces the ABR part
-of the [4 October](#company-representative-verification) and
+where identity is checked, so a new company is looked up at **Company →
+Activation**, which already repeated the lookup before making it Active.
+**Complete company setup** appoints the representative on their declaration,
+keeping the draft ownership, unchanged-details, expiry and required-identity
+checks, so signup finishes without ABR configuration and the company stays Draft.
+Activation still gates eligibility decisions, offerings, chain deployments and
+issues, paid issues, capital increases and company wallet instructions. Before
+it, the company's administrators can keep the company's own non-tokenised
+register records, such as the mirrored register, awards, allotments, transfers
+and member access, without any lookup; until this decision, admission's lookup
+came first. This replaces the ABR part of the
+[4 October](#company-representative-verification) and
 [#1022](#simple-signup-documents-and-team-after-registration) statements that
 admission keeps the lookup; earlier lookups and their links to appointments
 remain as history.

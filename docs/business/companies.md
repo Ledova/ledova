@@ -263,8 +263,11 @@ A current personal administrator activates the company on web or mobile. Activat
 allows participants to request the company's eligibility decisions and, once it is
 [open to investors](issuing-shares.md#listing-the-company-in-the-directory), to apply for its
 offerings. It establishes no offering, share issue, payment, participant eligibility or wallet
-approval. Signup does not look the company up in the ABR; activation does, and share issues,
-capital increases and deployments all wait for an Active company.
+approval. Signup does not look the company up in the ABR; activation does. Before activation, the
+company's administrators can keep its own non-tokenised register records, such as the mirrored
+register, awards, allotments, transfers and member access, but eligibility decisions, offerings,
+chain deployments and issues, paid issues, capital increases and company wallet instructions wait
+for an Active company.
 
 1. Establish your authority first, through signup or an accepted administrator invitation.
 2. Open **Company → Activation** (shown only to personal administrators) and refresh the company
