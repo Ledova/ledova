@@ -1,14 +1,21 @@
 import { useEffect, useMemo, useRef } from 'react';
-import { useLocation } from 'react-router-dom';
-import { useSubmissionOwner, useUserPreferences, type OrderSubmissionOwner } from '@ledova/shared';
+import { Link, useLocation } from 'react-router-dom';
+import {
+  DESTINATIONS,
+  appointmentForRegisterStep,
+  companiesAwaitingActivation,
+  useSubmissionOwner,
+  useUserPreferences,
+  type OrderSubmissionOwner,
+} from '@ledova/shared';
 import { Page } from '@components/Page';
 import { CompanySelection } from '@pages/company/shared/CompanySelection';
 import { Loading, Unavailable } from '@pages/company/shared/RegisterStatus';
 import { useCompanyRegister } from '@pages/company/shared/useCompanyRegister';
 import { ownerGuard } from '@pages/company/shared/ownerGuard';
-import { ActivationPrompt } from './ActivationPrompt';
+import { useOwnAppointments } from '@hooks/useOwnAppointments';
+import { GettingStarted } from './GettingStarted';
 import { OwnershipMetrics, ShareholderPanels } from './OwnershipPanels';
-import { RegisterSetup } from './RegisterSetup';
 import { ownershipSummary } from '@pages/company/shared/summary';
 
 export default function CompanyDashboardPage() {
@@ -37,6 +44,7 @@ function OwnDashboard({
   const preferences = useUserPreferences();
   const guard = useMemo(() => ownerGuard(owner, currentOwner), [owner, currentOwner]);
   const { classes, companies, company, selectCompany, registers } = useCompanyRegister(owner, guard);
+  const appointments = useOwnAppointments(owner, guard);
   const location = useLocation();
   const entered = useRef('');
   useEffect(() => {
@@ -64,23 +72,70 @@ function OwnDashboard({
   const preferencesReady = !!preferences.preferences && !preferences.isError && !preferences.isFetching;
   const fresh =
     preferencesReady && classes.isSuccess && !classes.isFetching && registers.isSuccess && !registers.isFetching;
+  const own = appointments.data ?? [];
+  const administered = own.filter(
+    (appointment) => appointment.isEffective && appointment.capabilities.includes('admin'),
+  );
+  const shown =
+    company ??
+    (companies.length === 0 && new Set(administered.map((appointment) => appointment.company)).size === 1
+      ? { uuid: administered[0]!.company, name: administered[0]!.companyName }
+      : undefined);
+  const status = own.find((appointment) => appointment.company === shown?.uuid)?.companyStatusDisplay;
+  const activated = companiesAwaitingActivation(own).length === 0;
+  const opened = (uuid: string) =>
+    company?.uuid === uuid
+      ? scoped && rows.some(({ initialized }) => initialized)
+      : companies.some((item) => item.uuid === uuid);
+  const registered = administered.every((appointment) => opened(appointment.company));
+  const preparing = own.some(
+    (appointment) =>
+      !appointment.revokedAt && appointmentForRegisterStep([appointment], appointment.company, 'prepare'),
+  );
+  const gettingStarted =
+    appointments.isSuccess &&
+    classes.isSuccess &&
+    (!company || (registers.isSuccess && !invalid)) &&
+    administered.length > 0 &&
+    (!activated || !registered);
   const refresh = () => {
     void preferences.refetch();
     void classes.refetch();
+    void appointments.refetch();
     if (company) void registers.refetch();
   };
   return (
-    <Page lede={company ? `${company.name} · Recorded share ownership` : "Your company's recorded share ownership."}>
-      <ActivationPrompt owner={owner} guard={guard} />
+    <Page lede={shown ? [shown.name, status].filter(Boolean).join(' · ') : "Your company's recorded share ownership."}>
+      {gettingStarted && <GettingStarted activated={activated} registered={registered} />}
       {preferencesReady && classes.isSuccess && !classes.isFetching && companies.length > 1 && (
         <CompanySelection read={{ companies, companyUuid: company?.uuid, selectionBlocked: false, selectCompany }} />
       )}
-      {preferences.isError || classes.isError || registers.isError || invalid ? (
-        <Unavailable retry={refresh} busy={preferences.isFetching || classes.isFetching || registers.isFetching} />
-      ) : preferences.isFetching || classes.isPending || (company && registers.isPending) || (company && !fresh) ? (
+      {preferences.isError || classes.isError || registers.isError || appointments.isError || invalid ? (
+        <Unavailable
+          retry={refresh}
+          busy={preferences.isFetching || classes.isFetching || registers.isFetching || appointments.isFetching}
+        />
+      ) : preferences.isFetching ||
+        classes.isPending ||
+        appointments.isPending ||
+        (company && registers.isPending) ||
+        (company && !fresh) ? (
         <Loading />
       ) : companies.length === 0 ? (
-        <RegisterSetup owner={owner} currentOwner={currentOwner} />
+        !gettingStarted && (
+          <p className="py-3 text-sm text-text-muted">
+            No share register yet.
+            {preparing && (
+              <>
+                {' '}
+                <Link to={DESTINATIONS.companyRegister.path} className="text-brand-light underline">
+                  Open Register
+                </Link>{' '}
+                to set it up.
+              </>
+            )}
+          </p>
+        )
       ) : !company ? (
         <p className="py-3 text-sm text-text-muted">Select a company to show its ownership.</p>
       ) : fresh && scoped && summary ? (

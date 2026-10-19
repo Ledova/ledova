@@ -188,16 +188,18 @@ contract it is the opening, creating the members, the Opening state entry and th
 together; for a class opened from the chain it adds particulars and former members from before
 Ledova, and its holdings must match the stored register. On the web:
 
-1. Choose Set up your share register on the Dashboard (shown while no share class is readable), or
-   on Register choose History, the class, then Bring records under Register mirror. Record investor
-   share issue and Transfer shares also offer Set up share register for a class not yet set up.
+1. On Register, choose **Set up your share register** (shown while no share class is readable) or,
+   once a register exists, **Add share class**; or choose History, the class, then Bring records
+   under Register mirror. Record investor share issue and Transfer shares also offer Set up share
+   register for a class not yet set up. Register is the only place on the web where share classes
+   are created.
 2. Share details: select an existing draft class, a common class (Ordinary ORD, Preference PRF or
    Redeemable RED), or Another class with the company's own name, code and type. The company choices
    come from current personal administrator or preparer appointments, without granting access to
    private company Settings ([share classes](issuing-shares.md#share-classes)). A class set up here
    carries a technical share limit instead of authorised capital. Repeat for each class.
-   With no classes yet, a preparer can use the company sidebar's Dashboard and its existing setup
-   action. Preparation access does not change their initial landing page or account role.
+   With no classes yet, a preparer uses the company sidebar's Register and its setup action.
+   Preparation access does not change their initial landing page or account role.
 3. Shareholders, one at a time: pick an existing company shareholder record or explicitly create one
    (names never link records, and existing names and addresses are kept), then enter from this
    class's records the name, residential address, original date entered, whole-share holding and
@@ -489,7 +491,8 @@ reason, the person, their appointment and the time, and the
 ## The Register page
 
 On the web Register is open to every signed-in account and shows the registers of companies the
-person owns or where their appointment includes register access, or says there are none. A company
+person owns or where their appointment includes register access. With none, it offers **Set up your
+share register** to someone who can prepare one and otherwise says there are none. A company
 selector appears when several companies are readable. Register, Employee awards and Documents in the
 web sidebar, and Member access (reached from Settings), are views of one page, so switching between
 them keeps unfinished forms and their recovery
@@ -509,7 +512,9 @@ The Register view shows:
   shares ([non-paid transfers](#non-paid-transfers-between-members)) and History. History holds,
   under Recorded changes, a link to the class's Share class page, Openings (for a class on chain),
   Register mirror, Register entries (newest first, with certificate controls), Corrections and
-  Reconciliation with the chain, then the company's Particulars changes and Wallet links.
+  Reconciliation with the chain, then the company's Particulars changes and Wallet links;
+- **Add share class** beside the tasks, for someone who can prepare the register, opening
+  [register setup](#bringing-in-existing-records) for the selected company.
 
 History shows each record as one line (its kind, date and stage) that opens on demand to its
 snapshot, documents and decision trail; a prepared record starts open. Stages read Prepared,

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { generatePath, useLocation } from 'react-router-dom';
+import { generatePath, Link, useLocation } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   DESTINATIONS,
@@ -34,6 +34,7 @@ import { CompanyMemberAccess } from './CompanyMemberAccess';
 import { CompanyPack } from './CompanyPack';
 import { RegisterLinks } from './RegisterLinks';
 import { RegisterParticulars } from './RegisterParticulars';
+import { RegisterSetup } from './RegisterSetup';
 import { Loading, Unavailable } from '@pages/company/shared/RegisterStatus';
 import {
   registersQuery,
@@ -211,6 +212,7 @@ function OwnRegister({
       : company && registers.data
         ? { company, registers: registers.data }
         : null;
+  const appointments = useOwnAppointments(owner, guard, { enabled: !!scope });
   const readable =
     preferences?.status === 'success' &&
     classes.isSuccess &&
@@ -327,6 +329,13 @@ function OwnRegister({
   const selectedToken = scope?.registers.some(({ token }) => token.uuid === candidateToken)
     ? candidateToken
     : scope?.registers[0]?.token.uuid;
+  const canAddClass =
+    !held &&
+    sourceReady &&
+    !!scope &&
+    appointments.isSuccess &&
+    !appointments.isFetching &&
+    !!appointmentForRegisterStep(appointments.data, scope.company.uuid, 'prepare');
   const chooseTask = (task: RegisterTask) => {
     if (held || !sourceReady || !scope || !selectedToken) return;
     setTaskSelection({ company: scope.company.uuid, token: selectedToken, task, locationKey: location.key });
@@ -429,7 +438,7 @@ function OwnRegister({
           busy={classes.isFetching || registers.isFetching}
         />
       ) : companies.length === 0 ? (
-        <p className="py-3 text-sm text-text-muted">{REGISTER_COPY.NO_REGISTER}</p>
+        <RegisterSetup owner={owner} guard={guard} />
       ) : !company ? (
         <p className="py-3 text-sm text-text-muted">Select a company to show its register.</p>
       ) : registers.isPending ? (
@@ -480,6 +489,14 @@ function OwnRegister({
                   onClick={() => chooseTask(task)}
                 />
               ))}
+              {canAddClass && (
+                <Link
+                  to={`${DESTINATIONS.companyRegisterSetup.path}?company=${scope.company.uuid}`}
+                  className="inline-flex w-fit rounded-lg border border-border px-3.5 py-2 text-sm font-medium text-text-primary hover:bg-surface-tertiary"
+                >
+                  Add share class
+                </Link>
+              )}
             </div>
             {selectedTask && sourceReady && scope.registers.length > 1 && (
               <label className={`${LABEL} max-w-sm`}>

@@ -18,3 +18,8 @@ export const RESOLUTION_RESULT_TONES = new Map<boolean, Tone>([
   [true, 'done'],
   [false, 'closed'],
 ]);
+
+export const VERIFICATION_TONES = new Map<string, Tone>([
+  ['verified', 'done'],
+  ['rejected', 'closed'],
+]);

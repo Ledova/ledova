@@ -1,16 +1,12 @@
 import { useState } from 'react';
 import { formatDate, formatDateTime, getUserVerificationStatus } from '@ledova/shared';
 import { Page, PageAction } from '@components/Page';
-import { Row, Rows, Section, Status, type Tone } from '@components/Ledger';
+import { Row, Rows, Section, Status } from '@components/Ledger';
+import { VERIFICATION_TONES } from '@components/statusTones';
 import { DocumentsPanel } from './DocumentsPanel';
 import { FIELD_CLASS } from '@components/fieldClass';
 import { useUserProfile } from '@hooks/useUserProfile';
 import { IdentityVerificationModal } from '@components/IdentityVerificationModal';
-
-const VERIFICATION_TONES = new Map<string, Tone>([
-  ['verified', 'done'],
-  ['rejected', 'closed'],
-]);
 
 function UserProfilePage() {
   const {

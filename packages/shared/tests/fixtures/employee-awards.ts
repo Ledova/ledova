@@ -17,6 +17,7 @@ export const APPOINTMENT: OwnCompanyAppointment = {
   company: 'company-a',
   companyName: 'Synthetic Company',
   companyStatus: 'active',
+  companyStatusDisplay: 'Active',
   capabilities: ['admin'],
   delegatableCapabilities: [],
   status: 'active',

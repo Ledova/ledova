@@ -34,7 +34,7 @@ function CompanyActivation({ read }: { read: ReturnType<typeof useCompanySelecti
       <Page
         narrow
         loading={read.isLoading}
-        actions={<PageAction label="Back to Company" onClick={() => navigate(DESTINATIONS.company.path)} />}
+        actions={<PageAction label="Back to Settings" onClick={() => navigate(DESTINATIONS.settings.path)} />}
       >
         <CompanySelection read={read} />
         {action.busy && (

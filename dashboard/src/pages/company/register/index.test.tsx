@@ -62,6 +62,7 @@ const RECONCILIATIONS = COMPANY_TOKEN_ENDPOINTS.REGISTER_RECONCILIATIONS;
 const PARTICULARS = COMPANY_TOKEN_ENDPOINTS.REGISTER_PARTICULARS_CHANGES;
 const LINKS = COMPANY_TOKEN_ENDPOINTS.REGISTER_LINKS;
 const APPOINTMENTS = '/api/v1/company-authority/appointments/';
+const PROFILES = '/api/user-profiles/';
 const NO_REGISTER = REGISTER_COPY.NO_REGISTER;
 let client: QueryClient;
 
@@ -736,7 +737,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
         <ApiClientProvider client={apiClient}>
           <MemoryRouter initialEntries={[path]}>
             <Routes>
-              <Route path="/" element={<CompanyDashboardPage />} />
+              <Route path="/" element={<CompanyRegisterPage />} />
               <Route path="/company/dashboard" element={<CompanyDashboardPage />} />
               <Route path={DESTINATIONS.companyRegisterSetup.path} element={<CompanyRegisterImportPage />} />
               <Route path={DESTINATIONS.companyRegisterImport.path} element={<CompanyRegisterImportPage />} />
@@ -1639,7 +1640,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
 
 it('shows an account without register access a calm empty state, reads no members and offers no entry', async () => {
   api.get.mockImplementation(async (url: string) => {
-    if (url === REGISTER || url === COMPANY_ENDPOINTS.BASE || url === APPOINTMENTS) return page([]);
+    if ([REGISTER, COMPANY_ENDPOINTS.BASE, APPOINTMENTS, PROFILES].includes(url)) return page([]);
     throw new Error(`Unexpected read ${url}`);
   });
   show('investor');
@@ -1650,7 +1651,7 @@ it('shows an account without register access a calm empty state, reads no member
   cleanup();
   show('investor', <SettingsPage />, 'Settings');
   expect(await screen.findByRole('link', { name: 'Team and appointments' })).toBeTruthy();
-  await waitFor(() => expect(readUrls()).toEqual([REGISTER, REGISTER, COMPANY_ENDPOINTS.BASE, APPOINTMENTS]));
+  await waitFor(() => expect(readUrls()).toEqual([REGISTER, APPOINTMENTS, PROFILES, REGISTER, COMPANY_ENDPOINTS.BASE]));
   await waitFor(() => expect(client.isFetching()).toBe(0));
   expect(screen.queryByRole('link', { name: 'Register' })).toBeNull();
 });

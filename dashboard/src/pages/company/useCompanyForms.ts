@@ -1,13 +1,4 @@
-import {
-  createCompanyToken,
-  createUserFriendlyError,
-  updateCompany,
-  wholeShares,
-  type Company,
-  type CompanyUpdate,
-  type TokenType,
-  type useCompanySelection,
-} from '@ledova/shared';
+import { createUserFriendlyError, updateCompany, type Company, type CompanyUpdate } from '@ledova/shared';
 import { type CompanyActionRead } from '@pages/company/shared/CompanyState';
 import apiClient from '@services/apiClient';
 import { useMutation } from '@tanstack/react-query';
@@ -26,7 +17,7 @@ type Draft = Record<(typeof EDIT_FIELDS)[number][0], string>;
 export interface FormProps {
   company: Company | null;
   target: Company;
-  read: CompanyActionRead & Pick<ReturnType<typeof useCompanySelection>, 'canPersonalAdmin'>;
+  read: CompanyActionRead;
   onClose: () => void;
   onSuccess: () => Promise<unknown>;
 }
@@ -89,76 +80,4 @@ export function useEditCompanyForm(props: FormProps) {
     },
   });
   return { company, target, read, onClose, draft, setDraft, pendingRef, canChangeName, valid, save };
-}
-export function useCreateClassForm(props: FormProps) {
-  const { company, target, read, onClose, onSuccess } = props;
-  const [name, setName] = useState('');
-  const [symbol, setSymbol] = useState('');
-  const [tokenType, setTokenType] = useState<TokenType>('ordinary');
-  const [totalSupply, setTotalSupply] = useState('');
-  const pendingRef = useRef(false);
-  const mounted = useRef(true);
-  useEffect(() => {
-    mounted.current = true;
-    return () => {
-      mounted.current = false;
-    };
-  }, []);
-  const [assertCurrent] = useState(() => read.assertCurrent);
-  const guard = (uuid: string) => {
-    if (!mounted.current) throw createUserFriendlyError('This company action is closed. Reopen it before continuing.');
-    assertCurrent(uuid, 'personal');
-  };
-  const [config] = useState(() => read.requestConfig(target.uuid, 'personal'));
-  const quantity = wholeShares(totalSupply);
-  const valid =
-    targetAvailable(props) &&
-    read.canPersonalAdmin &&
-    name.trim() !== '' &&
-    symbol.trim() !== '' &&
-    quantity !== null &&
-    quantity > 0n;
-  const create = useMutation({
-    mutationFn: () => {
-      guard(target.uuid);
-      return createCompanyToken(
-        apiClient,
-        {
-          company: target.uuid,
-          name: name.trim(),
-          symbol: symbol.trim(),
-          tokenType,
-          totalSupply,
-        },
-        { ...config, ledovaSubmissionGuard: () => guard(target.uuid) },
-      );
-    },
-    onSuccess: async () => {
-      guard(target.uuid);
-      await onSuccess();
-      guard(target.uuid);
-      onClose();
-    },
-    onSettled: () => {
-      pendingRef.current = false;
-    },
-  });
-  return {
-    company,
-    target,
-    read,
-    onClose,
-    name,
-    setName,
-    symbol,
-    setSymbol,
-    tokenType,
-    setTokenType,
-    totalSupply,
-    setTotalSupply,
-    pendingRef,
-    quantity,
-    valid,
-    create,
-  };
 }

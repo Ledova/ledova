@@ -6,6 +6,7 @@ import { Page, PageAction } from '@components/Page';
 import { LinkRow, Section, SwitchRow } from '@components/Ledger';
 import { FIELD_CLASS } from '@components/fieldClass';
 import { setTheme } from '@hooks/useTheme';
+import { Verification } from './Verification';
 
 function ActionRow({ description, label, onClick }: { description: string; label: string; onClick: () => void }) {
   return (
@@ -83,10 +84,11 @@ function SettingsPage() {
   } = useSettings();
   return (
     <Page narrow>
+      <Verification />
       <Section title="Company settings">
         <div className="divide-y divide-border-subtle">
-          <LinkRow to={DESTINATIONS.company.path} label="Company details and share classes">
-            <p className="text-text-muted">Company setup and the classes you can administer.</p>
+          <LinkRow to={DESTINATIONS.company.path} label="Company details">
+            <p className="text-text-muted">Company information and administration.</p>
           </LinkRow>
           <LinkRow to={`${DESTINATIONS.company.path}#documents`} label="Company documents">
             <p className="text-text-muted">Upload optional supporting documents after company setup.</p>
@@ -106,7 +108,7 @@ function SettingsPage() {
       <Section title="Profile and security">
         <div className="divide-y divide-border-subtle">
           <LinkRow to={DESTINATIONS.userProfile.path} label={DESTINATIONS.userProfile.title}>
-            <p className="text-text-muted">View your personal information and identity check.</p>
+            <p className="text-text-muted">View and edit your personal information.</p>
           </LinkRow>
           <ActionRow
             description="Choose a new password for your account."

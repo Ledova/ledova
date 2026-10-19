@@ -56,10 +56,11 @@ the declaration version and text and the admission time.
 After signup, add optional supporting files at **Settings → Company documents** and invite users at
 **Settings → Team and appointments**; mobile reaches both from **Settings → Company settings**.
 Later documents do not alter the retained signup request. The company remains Draft until
-**Company → Activation** passes the registry check: registration does not incorporate a company
-with ASIC, appoint a director, activate the company or issue shares. Until then, an **Activate**
-card at the top of the company Dashboard (on mobile, the Company tab) links its personal
-administrators to Activation.
+activation passes the registry check: registration does not incorporate a company with ASIC,
+appoint a director, activate the company or issue shares. Until then, the company Dashboard's
+**Getting started** list links its personal administrators to Activation and to register setup
+([the Dashboard](README.md#the-app-at-a-glance)); on mobile, an **Activate** card on the Register
+tab links to Activation.
 
 Resuming an unfinished signup:
 
@@ -272,10 +273,11 @@ chain deployments and issues, paid issues, capital increases and company wallet 
 for an Active company.
 
 1. Establish your authority first, through signup or an accepted administrator invitation.
-2. Open **Company → Activation** (shown only to personal administrators), or choose **Review
-   activation** on the Activate card, and refresh the company details and your appointment. A
-   company account role or an owned draft does not substitute for an appointment; an appointed
-   investor can use the same page.
+2. Open Activation, shown only to personal administrators: on the web from **Settings → Verify
+   and activate your company** or the same step in the Dashboard's Getting started list, and on
+   mobile from **Company → Activation** or **Review activation** on the Activate card. Refresh the
+   company details and your appointment. A company account role or an owned draft does not
+   substitute for an appointment; an appointed investor can use the same page.
 3. Choose **Review activation**, read the company and the exact declaration, tick **I accept this
    declaration for this company** and choose **Confirm activation** once.
 4. Read the retained outcome. A passing attempt makes the company Active. A pending, failed or
@@ -340,9 +342,10 @@ authority: initial admission, accepting an invitation, activation, company admin
 eligibility decisions, member invitations, and register and wallet decisions. Staff technical
 recovery of a company is not affected. A representative becomes verified only through the
 configured identity provider, from **Verify your identity** at signup review or later from Profile
-with **Review identity check**; with the requirement on and no provider, every company decision is
-refused ([operator configuration](../operations/operator-console.md#operator-configuration)). The
-investor requirement is separate ([participants](participants.md#account-readiness)).
+(on the web also **Settings → Verify your identity**) with **Review identity check**; with the
+requirement on and no provider, every company decision is refused
+([operator configuration](../operations/operator-console.md#operator-configuration)). The investor
+requirement is separate ([participants](participants.md#account-readiness)).
 
 ## The Company page
 
@@ -352,15 +355,17 @@ type, ACN, ABN, email (administrators only), phone and address. Administrators s
 Its Company administration section links to:
 
 - **Representative authority**, for the company's owner on the web and for everyone on mobile;
-- **Activation**, for personal administrators;
+- **Activation**, for personal administrators on mobile; on the web it is at the top of Settings;
 - **Company team** and **Company eligibility** (on mobile, Company eligibility is reached from
   Company team);
 - **Published to your members**, for the company's owner
   ([the Published page](publications.md#the-published-page)).
 
-For the company's owner it lists every share class with its status, code, type and authorised
-shares, links to the Register and offers **Create share class**
-([share classes](issuing-shares.md#share-classes)). Company documents follow for administrators.
+On mobile, for the company's owner it also lists every share class with its status, code, type and
+authorised shares, links to the Register and offers **Create share class**
+([share classes](issuing-shares.md#share-classes)); on the web, share classes are listed and added
+only in [Register](register.md#bringing-in-existing-records). Company documents follow for
+administrators.
 
 Next: [participants and eligibility](participants.md) ·
 [register of members](register.md) ·
