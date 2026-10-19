@@ -98,11 +98,13 @@ export function LinkRow({
   label,
   onPress,
   accessibilityLabel,
+  aside,
   children,
 }: {
   label: string;
   onPress: () => void;
   accessibilityLabel?: string;
+  aside?: ReactNode;
   children?: ReactNode;
 }) {
   const theme = useAppTheme();
@@ -127,8 +129,27 @@ export function LinkRow({
         <Text style={styles.label}>{label}</Text>
         {children}
       </View>
+      {aside}
       <CaretRightIcon size={CARET_SIZE} color={theme.colors.text.muted} />
     </Pressable>
+  );
+}
+
+export type Tone = 'waiting' | 'done';
+
+export function Status({ tone, children }: { tone: Tone; children: ReactNode }) {
+  const styles = useThemedStyles((theme) => ({
+    status: { flexDirection: 'row' as const, alignItems: 'center' as const, gap: theme.spacing.sm },
+    mark: { width: 8, height: 8, borderRadius: 4 },
+    waiting: { borderWidth: 1, borderColor: theme.colors.text.muted },
+    done: { backgroundColor: theme.colors.brand.mid },
+    label: { fontFamily: theme.fontFamily.regular, fontSize: 14, color: theme.colors.text.primary },
+  }));
+  return (
+    <View style={styles.status}>
+      <View style={[styles.mark, styles[tone]]} />
+      <Text style={styles.label}>{children}</Text>
+    </View>
   );
 }
 

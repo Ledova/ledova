@@ -33,7 +33,7 @@ export default function CompanyRegisterImportPage() {
   const { uuid = '' } = useParams();
   const { owner, boundary, preferences } = useRegisterPreparationOwner();
   return (
-    <PageTitle.Provider value="Set up your share register">
+    <PageTitle.Provider value={REGISTER_IMPORT_COPY.SETUP}>
       <Page narrow>
         {owner && !preferences.isError ? (
           uuid ? (

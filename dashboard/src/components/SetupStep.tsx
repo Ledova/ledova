@@ -13,7 +13,7 @@ export function ActivationStep({ done }: { done: boolean }) {
   return (
     <SetupStep
       to={DESTINATIONS.companyListing.path}
-      label="Verify and activate your company"
+      label={COMPANY_ACTIVATION_COPY.STEP}
       note={COMPANY_ACTIVATION_COPY.CHECKS}
       done={done}
     />
