@@ -101,11 +101,19 @@ class CompanySignupTermsReceiptSerializer(serializers.Serializer):
 
 class OwnCompanyAppointmentSerializer(CompanyAppointmentSerializer):
     company_name = serializers.CharField(source="company.name", read_only=True)
+    company_status = serializers.CharField(source="company.status", read_only=True)
     source = serializers.SerializerMethodField()
     signup_terms = serializers.SerializerMethodField()
 
     class Meta(CompanyAppointmentSerializer.Meta):
-        fields = [*CompanyAppointmentSerializer.Meta.fields, "company", "company_name", "source", "signup_terms"]
+        fields = [
+            *CompanyAppointmentSerializer.Meta.fields,
+            "company",
+            "company_name",
+            "company_status",
+            "source",
+            "signup_terms",
+        ]
         read_only_fields = fields
 
     @extend_schema_field(serializers.ChoiceField(choices=["initial", "invitation", "legacy_owner"]))

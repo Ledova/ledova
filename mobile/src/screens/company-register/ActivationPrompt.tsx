@@ -1,0 +1,19 @@
+import { Text } from 'react-native';
+import { useNavigation, type NavigationProp } from '@react-navigation/native';
+import { COMPANY_ACTIVATION_COPY, companiesAwaitingActivation, type OwnCompanyAppointment } from '@ledova/shared';
+import type { BottomTabParamList } from '../../navigation/BottomTabNavigator';
+import { Action, Section } from '../../components/Ledger';
+import { useCompanyStyles } from '../../hooks/useCompanyStyles';
+
+export function ActivationPrompt({ appointments }: { appointments: readonly OwnCompanyAppointment[] }) {
+  const styles = useCompanyStyles();
+  const navigation = useNavigation<NavigationProp<BottomTabParamList>>();
+  const companies = companiesAwaitingActivation(appointments);
+  if (companies.length === 0) return null;
+  return (
+    <Section title={companies.length === 1 ? `Activate ${companies[0]!.name}` : 'Activate your companies'}>
+      <Text style={styles.muted}>{COMPANY_ACTIVATION_COPY.PROMPT}</Text>
+      <Action primary label={COMPANY_ACTIVATION_COPY.ACTION} onPress={() => navigation.navigate('Listing')} />
+    </Section>
+  );
+}

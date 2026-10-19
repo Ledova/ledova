@@ -8528,6 +8528,10 @@
             "readOnly": true,
             "type": "string"
           },
+          "companyStatus": {
+            "readOnly": true,
+            "type": "string"
+          },
           "createdAt": {
             "format": "date-time",
             "readOnly": true,
@@ -8602,6 +8606,7 @@
           "capabilities",
           "company",
           "companyName",
+          "companyStatus",
           "createdAt",
           "declarationText",
           "declarationVersion",

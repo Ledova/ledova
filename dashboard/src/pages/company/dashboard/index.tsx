@@ -6,6 +6,7 @@ import { CompanySelection } from '@pages/company/shared/CompanySelection';
 import { Loading, Unavailable } from '@pages/company/shared/RegisterStatus';
 import { useCompanyRegister } from '@pages/company/shared/useCompanyRegister';
 import { ownerGuard } from '@pages/company/shared/ownerGuard';
+import { ActivationPrompt } from './ActivationPrompt';
 import { OwnershipMetrics, ShareholderPanels } from './OwnershipPanels';
 import { RegisterSetup } from './RegisterSetup';
 import { ownershipSummary } from '@pages/company/shared/summary';
@@ -70,6 +71,7 @@ function OwnDashboard({
   };
   return (
     <Page lede={company ? `${company.name} · Recorded share ownership` : "Your company's recorded share ownership."}>
+      <ActivationPrompt owner={owner} guard={guard} />
       {preferencesReady && classes.isSuccess && !classes.isFetching && companies.length > 1 && (
         <CompanySelection read={{ companies, companyUuid: company?.uuid, selectionBlocked: false, selectCompany }} />
       )}

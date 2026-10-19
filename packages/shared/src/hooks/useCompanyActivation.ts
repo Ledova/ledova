@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { awaitsActivation } from '../constants';
 import { activateCompany } from '../services/companies';
 import type { Company, CompanyActivate, CompanyActivationAttempt } from '../types';
 import { createUserFriendlyError, failureStatus, getErrorMessage } from '../utils/errors';
 import { isUuid } from '../utils/validation';
 import type { useCompanySelection } from './useCompanySelection';
 import { useApiClient } from './useApiClient';
+import { OWN_APPOINTMENTS_QUERY_KEY } from './useCompanyEligibilityRecords';
 
 type Selection = ReturnType<typeof useCompanySelection>;
 type Preview = {
@@ -100,10 +102,7 @@ export function useCompanyActivation(read: Selection, newKey: () => string) {
     try {
       await read.refetch();
       const { company, signature } = current();
-      if (
-        company.activatedAt ||
-        !['draft', 'submitted', 'review', 'info_required', 'approved', 'rejected', 'withdrawn'].includes(company.status)
-      )
+      if (!awaitsActivation(company))
         throw createUserFriendlyError('This company cannot be activated through onboarding.');
       const activation = company.activation!;
       const key = retry.current?.signature === signature ? retry.current.key : newKey();
@@ -171,6 +170,7 @@ export function useCompanyActivation(read: Selection, newKey: () => string) {
       await Promise.all([
         client.invalidateQueries({ queryKey: read.companyKey }),
         client.invalidateQueries({ queryKey: read.companiesKey }),
+        client.invalidateQueries({ queryKey: OWN_APPOINTMENTS_QUERY_KEY }),
       ]);
     } catch (failure) {
       const response = (failure as { response?: { status?: number; data?: { code?: string } } })?.response;
@@ -200,12 +200,7 @@ export function useCompanyActivation(read: Selection, newKey: () => string) {
     error,
     identityRequired,
     latestAttempt,
-    canActivate:
-      !!activation?.appointment &&
-      !!company &&
-      !company.activatedAt &&
-      ['draft', 'submitted', 'review', 'info_required', 'approved', 'rejected', 'withdrawn'].includes(company.status) &&
-      !busy,
+    canActivate: !!activation?.appointment && !!company && awaitsActivation(company) && !busy,
     open,
     confirm,
     cancel: () => {

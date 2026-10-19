@@ -88,7 +88,7 @@ class CompanyAppointmentViewSet(mixins.ListModelMixin, AuthenticatedGenericViewS
     http_method_names = ["get", "post", "head", "options"]
     operator_actions = frozenset({"list", "team", "revoke"})
     operator_actions_because = (
-        "Own appointment lists bind the appointee before loading company names. Team reads and revocation "
+        "Own appointment lists bind the appointee before loading company names and status. Team reads and revocation "
         "services require current administration of the exact company or the target's own appointee."
     )
 

@@ -241,8 +241,10 @@ shareholders (each person counted once across classes) and the number of share c
 ownership donut per class with its five largest shareholders and Others, with exact share counts
 and percentages of that class's issued shares. A class without an opened register makes the
 company totals incomplete, and a failed or inconsistent read withholds totals and charts rather
-than showing zero. With no share class it can read, the Dashboard links to register setup.
-Detailed history and every action are on the [Register page](register.md#the-register-page).
+than showing zero. With no share class it can read, the Dashboard links to register setup. A
+personal administrator of a company not yet Active also sees an Activate card linking to
+[activation](companies.md#activation-and-the-registry-check). Detailed history and every action are
+on the [Register page](register.md#the-register-page).
 
 The personal Dashboard (My shares on mobile) shows the person's own register records, with no
 wallet needed and never company totals or other shareholders; personal Documents holds their
