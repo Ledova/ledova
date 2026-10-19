@@ -34,8 +34,10 @@ issue ([the register](register.md#the-register-and-the-companys-records)).
 The class-creation API requires a current personal company administrator or preparer appointment,
 rechecked under the company lock. Ownership or platform staff status alone supplies no authority.
 [Register setup](register.md#bringing-in-existing-records) on web and mobile lists companies from those
-appointments, including a preparer who is not the owner. Company Settings keeps its administration
-boundary, lists scoped register classes and lets a current personal administrator create a class.
+appointments, including a preparer who is not the owner. On the web, classes are created only
+through that setup on the Register page (**Set up your share register**, then **Add share class**).
+On mobile, the Company screen keeps its administration boundary, lists scoped register classes and
+lets a current personal administrator create a class.
 Creation records no shares and no legal registration. The technical
 limit is not statutory authorised capital; the class code and type do not define its economic rights.
 Class codes are one to five letters, unique within the company, and may not reuse a

@@ -307,8 +307,8 @@ The sidebar (`dashboard/src/components/Sidebar.tsx`) names items by `DESTINATION
 `/home#documents`). Its company group follows `useRegisterEntry`, its investing group the investing
 role and Market `trading_enabled` ([the app at a
 glance](../business/README.md#the-app-at-a-glance)). Settings opens `/settings` and stays marked
-active on `/company`, `/company/team`, `/company/authority` and `/company/register#access`, which
-the Settings page's Member access row opens. The register hashes switch the visible view without
+active on `/company`, `/company/listing` (Activation), `/company/team`, `/company/authority` and
+`/company/register#access`, which the Settings page's Member access row opens. The register hashes switch the visible view without
 unmounting register forms or their recovery ([page mechanics](#page-mechanics)). The sidebar and
 phone drawer are 208 pixels wide (`lg:ml-52`), with page content beside them in a bounded grid.
 Native navigation is declared separately ([navigation](mobile.md#navigation)).

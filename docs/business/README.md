@@ -236,15 +236,20 @@ Signing in opens the company Dashboard for a person who can read a company's reg
 personal Dashboard otherwise. Account preference alone does not choose a company workspace; if the
 access check fails, the page offers a retry rather than guessing.
 
-The company Dashboard shows the selected company's recorded ownership: issued shares, current
-shareholders (each person counted once across classes) and the number of share classes, then one
-ownership donut per class with its five largest shareholders and Others, with exact share counts
-and percentages of that class's issued shares. A class without an opened register makes the
-company totals incomplete, and a failed or inconsistent read withholds totals and charts rather
-than showing zero. With no share class it can read, the Dashboard links to register setup. A
-personal administrator of a company not yet Active also sees an Activate card linking to
-[activation](companies.md#activation-and-the-registry-check). Detailed history and every action are
-on the [Register page](register.md#the-register-page).
+The company Dashboard opens with one line naming the company and its status. Until setup is
+complete, a personal administrator also sees **Getting started**: **Verify and activate your
+company** ([activation](companies.md#activation-and-the-registry-check)) and **Set up your share
+register** ([register setup](register.md#bringing-in-existing-records)), each marked To do or Done;
+register setup does not wait for activation. On mobile, an Activate card on the Company tab links
+to activation instead.
+
+Once a register exists, the Dashboard shows the selected company's recorded ownership: issued
+shares, current shareholders (each person counted once across classes) and the number of share
+classes, then one ownership donut per class with its five largest shareholders and Others, with
+exact share counts and percentages of that class's issued shares. A class without an opened
+register makes the company totals incomplete, and a failed or inconsistent read withholds totals
+and charts rather than showing zero. Detailed history and every action are on the
+[Register page](register.md#the-register-page).
 
 The personal Dashboard (My shares on mobile) shows the person's own register records, with no
 wallet needed and never company totals or other shareholders; personal Documents holds their
