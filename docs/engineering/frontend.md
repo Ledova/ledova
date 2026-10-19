@@ -665,8 +665,8 @@ Each page links to its business section; the audience is the `DESTINATIONS` audi
   correction lookup answering with entries it was not asked for fail the read. Each repeated control
   is named for screen readers after its visible label and its entry, proposal or discrepancy. Native
   section parameters switch the visible section, keeping the register mounted.
-- Company: reads the selected company's complete detail and team, and on mobile every page of its
-  share classes; an edit sends only changed fields.
+- Company: reads the selected company's complete detail, and on mobile every page of its share
+  classes; an edit sends only changed fields.
 - Published to your members: reads every page of the selected company's publications with `issuer`
   set, so the card title carries the complete count.
 - Wallet shares: reads every page of the person's wallets, names each asset from the API's current

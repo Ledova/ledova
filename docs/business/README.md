@@ -240,8 +240,8 @@ The company Dashboard opens with one line naming the company and its status. Unt
 complete, a personal administrator also sees **Getting started**: **Verify and activate your
 company** ([activation](companies.md#activation-and-the-registry-check)) and **Set up your share
 register** ([register setup](register.md#bringing-in-existing-records)), each marked To do or Done.
-Register setup reads Done once the register is opened, not when a class is merely created, and it
-does not wait for activation. Someone who can prepare the register but is not an administrator is
+Register setup reads Done once the register of the company shown is opened, not when a class is
+merely created, and it does not wait for activation. Someone who can prepare the register but is not an administrator is
 pointed to Register instead. On mobile, an Activate card on the Register tab links to activation.
 
 Once a register exists, the Dashboard shows the selected company's recorded ownership: issued
