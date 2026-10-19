@@ -246,12 +246,20 @@ def _merged(allotments):
 
 
 def _member_identity(addresses, identities, stamps, recorded=None):
+    found_identities = [identities.get(address.lower(), UNIDENTIFIED) for address in addresses]
     people = {
         (identity.holder_type, identity.name, identity.residential_address)
-        for identity in (identities.get(address.lower(), UNIDENTIFIED) for address in addresses)
+        for identity in found_identities
         if identity.holder_type != HolderType.UNIDENTIFIED.value
     }
-    if len(people) > 1 or any(holder_type == HolderType.AMBIGUOUS.value for holder_type, _, _ in people):
+    unnamed_owners = {
+        identity.user_id
+        for identity in found_identities
+        if identity.holder_type == HolderType.UNIDENTIFIED.value and identity.user_id
+    }
+    if len(people) + len(unnamed_owners) > 1 or any(
+        holder_type == HolderType.AMBIGUOUS.value for holder_type, _, _ in people
+    ):
         return MEMBER_AMBIGUOUS
     if people:
         holder_type, name, residential_address = people.pop()
