@@ -28,11 +28,14 @@ from tokens.models import (
     RegisterAwardEnd,
     RegisterAwardVesting,
     RegisterAwardVestingReversal,
+    RegisterCapitalIncrease,
     RegisterContribution,
     RegisterEntry,
     RegisterExport,
     RegisterExportKind,
     RegisterGrant,
+    RegisterInstruction,
+    RegisterPauseChange,
     RegisterTransfer,
     ShareRegister,
     ShareToken,
@@ -423,7 +426,7 @@ def _build_company_pack(company, *, instruction, recipient, validate_contents=No
         published = publications.section(company)
         mandate_source = mandates.section(company)
         mandate_records = _json(mandate_source)
-        core_records = [
+        source_records = [
             record
             for model in (
                 RegisterAward,
@@ -435,10 +438,13 @@ def _build_company_pack(company, *, instruction, recipient, validate_contents=No
                 RegisterAllotment,
                 RegisterGrant,
                 RegisterTransfer,
+                RegisterCapitalIncrease,
+                RegisterPauseChange,
+                RegisterInstruction,
             )
             for record in model.objects.filter(company=company).order_by("created_at", "uuid")
         ]
-        copies.update(documents.retained_sources(core_records))
+        copies.update(documents.retained_sources(source_records))
         if validate_contents is not None:
             validate_contents(company, classes, approvals, published, mandate_source)
     stored = {**held, **copies, **published["stored"]}
