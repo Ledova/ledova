@@ -165,20 +165,22 @@ class RegistryCoreTest(CoreFixtures, APITransactionTestCase):
         missing = self.client.get(f"/api/v1/company-authority/requests/{response.json()['uuid']}/file/")
         self.assertEqual(missing.status_code, 404, missing.content)
         declaration = {"declaration_version": SIGNUP_DECLARATION_VERSION, "accept_declaration": True}
-        with patch("companies.services.registry.lookup_company", return_value=matching_observation(company)):
+        with patch("companies.services.registry.lookup_company") as lookup:
             admitted = self.client.post(
                 f"/api/v1/company-authority/requests/{response.json()['uuid']}/admit/", declaration, format="json"
             )
-            self.assertEqual(admitted.status_code, 200, admitted.content)
-            appointment = admitted.json()["appointment"]["uuid"]
-            self.assertEqual(admitted.json()["appointment"]["declarationText"], SIGNUP_DECLARATION_TEXT)
-            self.assertEqual(admitted.json()["appointment"]["declarationVersion"], SIGNUP_DECLARATION_VERSION)
-            accepted_terms = self.client.post(
-                f"/api/v1/company-authority/appointments/{appointment}/signup-terms/", declaration, format="json"
-            )
-            self.assertEqual(accepted_terms.status_code, 200, accepted_terms.content)
-            self.assertEqual(accepted_terms.json()["signupTerms"]["declarationText"], SIGNUP_DECLARATION_TEXT)
-            self.assertEqual(CompanySignupTermsAcceptance.objects.count(), 0)
+            lookup.assert_not_called()
+        self.assertEqual(admitted.status_code, 200, admitted.content)
+        appointment = admitted.json()["appointment"]["uuid"]
+        self.assertEqual(admitted.json()["appointment"]["declarationText"], SIGNUP_DECLARATION_TEXT)
+        self.assertEqual(admitted.json()["appointment"]["declarationVersion"], SIGNUP_DECLARATION_VERSION)
+        accepted_terms = self.client.post(
+            f"/api/v1/company-authority/appointments/{appointment}/signup-terms/", declaration, format="json"
+        )
+        self.assertEqual(accepted_terms.status_code, 200, accepted_terms.content)
+        self.assertEqual(accepted_terms.json()["signupTerms"]["declarationText"], SIGNUP_DECLARATION_TEXT)
+        self.assertEqual(CompanySignupTermsAcceptance.objects.count(), 0)
+        with patch("companies.services.registry.lookup_company", return_value=matching_observation(company)):
             activated = self.client.post(
                 f"/api/v1/companies/{company.pk}/activate/",
                 {

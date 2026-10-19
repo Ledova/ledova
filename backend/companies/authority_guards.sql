@@ -100,7 +100,6 @@ DECLARE
     representative users_userprofile;
     issuer companies_company;
     proposal companies_companyauthorityrequest;
-    provider_check companies_companyregistrycheck;
     principal bigint;
     requires_identity boolean;
 BEGIN
@@ -121,7 +120,6 @@ BEGIN
     SELECT * INTO actor FROM authentication_customuser WHERE id = proposal.requester_id FOR UPDATE;
     SELECT * INTO representative FROM users_userprofile WHERE uuid = proposal.requester_profile_id FOR UPDATE;
     SELECT * INTO proposal FROM companies_companyauthorityrequest WHERE uuid = NEW.request_id FOR UPDATE;
-    SELECT * INTO provider_check FROM companies_companyregistrycheck WHERE uuid = NEW.registry_check_id FOR SHARE;
     SELECT issuer_kyc_required INTO requires_identity FROM operators_operator WHERE id = 1 FOR SHARE;
     IF current_user = @APP_ROLE@ OR principal IS DISTINCT FROM actor.id
         OR actor.id IS NULL OR NOT actor.is_active OR NOT actor.is_email_verified
@@ -143,15 +141,9 @@ BEGIN
             'user_id', actor.id, 'profile_uuid', representative.uuid::text,
             'email', actor.email, 'full_name', COALESCE(representative.full_name, ''))
         OR COALESCE(requires_identity, false) AND NOT representative.is_id_verified
-        OR provider_check.uuid IS NULL OR provider_check.company_id IS DISTINCT FROM issuer.uuid
-        OR provider_check.initiated_by_id IS DISTINCT FROM actor.id
-        OR provider_check.purpose IS DISTINCT FROM 'authority' OR provider_check.status IS DISTINCT FROM 'passed'
-        OR provider_check.completed_at IS NULL OR provider_check.lifecycle_revision IS DISTINCT FROM issuer.lifecycle_revision
-        OR provider_check.identity IS DISTINCT FROM proposal.company_identity
-        OR provider_check.requested_name IS DISTINCT FROM issuer.name
-        OR provider_check.requested_acn IS DISTINCT FROM issuer.acn OR provider_check.requested_abn IS DISTINCT FROM issuer.abn
+        OR NEW.registry_check_id IS NOT NULL
     THEN
-        RAISE EXCEPTION 'Initial company authority requires the exact current declaration, requester and ABR result'
+        RAISE EXCEPTION 'Initial company authority requires the exact current declaration and requester'
             USING ERRCODE = '23514';
     END IF;
     RETURN NEW;

@@ -15,17 +15,13 @@ from companies.models import (
     CompanyAppointmentRevocation,
     CompanyAuthorityRequest,
     CompanyCapability,
-    CompanyRegistryCheck,
     CompanyStatus,
-    RegistryCheckPurpose,
-    RegistryCheckStatus,
 )
 from companies.services.authority_requests import (
     _requester_principal,
     _require_requester,
     _snapshots,
 )
-from companies.services.registry import begin_registry_check, perform_registry_check
 from operators.models import Operator
 from shared.db import atomic, use_app, use_operator
 from users.models import UserProfile
@@ -102,43 +98,23 @@ def admit_authority_request(*, requester, request_id, declaration_version, accep
     _require_declaration(declaration_version, accept_declaration, version=SIGNUP_DECLARATION_VERSION)
     with use_app(), _requester_principal(requester.pk):
         get_object_or_404(CompanyAuthorityRequest.objects.filter(requester=requester), pk=request_id)
-    with use_operator(), _requester_principal(requester.pk):
-        with atomic():
-            actor, profile, company, proposal = _locked_request(requester, request_id)
-            if _existing_admission(company, proposal):
-                return _retained_request(proposal.pk)
-            _require_initial_admission(actor, profile, company, proposal)
-            check = begin_registry_check(company, RegistryCheckPurpose.AUTHORITY, actor)
-        check = perform_registry_check(check)
-        with atomic():
-            actor, profile, company, proposal = _locked_request(requester, request_id)
-            if _existing_admission(company, proposal):
-                return _retained_request(proposal.pk)
-            _require_initial_admission(actor, profile, company, proposal)
-            check = CompanyRegistryCheck.objects.select_for_update().get(pk=check.pk)
-            if not (
-                check.status == RegistryCheckStatus.PASSED
-                and check.completed_at
-                and check.company_id == company.pk
-                and check.initiated_by_id == actor.pk
-                and check.purpose == RegistryCheckPurpose.AUTHORITY
-                and check.identity == proposal.company_identity
-                and check.lifecycle_revision == company.lifecycle_revision
-            ):
-                raise ValidationError({"company": "A current matching ABR company lookup must pass. Retry admission."})
-            CompanyAppointment.objects.create(
-                company=company,
-                appointee_id=proposal.requester_id,
-                appointee_profile_id=proposal.requester_profile_id,
-                request=proposal,
-                registry_check=check,
-                capabilities=proposal.requested_capabilities,
-                delegatable_capabilities=proposal.delegatable_capabilities,
-                expires_at=proposal.requested_expires_at,
-                declaration_version=SIGNUP_DECLARATION_VERSION,
-                declaration_text=SIGNUP_DECLARATION_TEXT,
-            )
+    with use_operator(), _requester_principal(requester.pk), atomic():
+        actor, profile, company, proposal = _locked_request(requester, request_id)
+        if _existing_admission(company, proposal):
             return _retained_request(proposal.pk)
+        _require_initial_admission(actor, profile, company, proposal)
+        CompanyAppointment.objects.create(
+            company=company,
+            appointee_id=proposal.requester_id,
+            appointee_profile_id=proposal.requester_profile_id,
+            request=proposal,
+            capabilities=proposal.requested_capabilities,
+            delegatable_capabilities=proposal.delegatable_capabilities,
+            expires_at=proposal.requested_expires_at,
+            declaration_version=SIGNUP_DECLARATION_VERSION,
+            declaration_text=SIGNUP_DECLARATION_TEXT,
+        )
+        return _retained_request(proposal.pk)
 
 
 def is_company_appointment_effective(appointment):

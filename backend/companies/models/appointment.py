@@ -51,7 +51,6 @@ class CompanyAppointment(BaseModel):
                         request__isnull=False,
                         invitation__isnull=True,
                         legacy_owner__isnull=True,
-                        registry_check__isnull=False,
                         declaration_version__isnull=False,
                         declaration_text__isnull=False,
                     )

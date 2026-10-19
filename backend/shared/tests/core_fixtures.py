@@ -73,13 +73,12 @@ def company_for(owner, name, acn):
         requested_capabilities=[CompanyCapability.ADMIN],
         delegatable_capabilities=list(CompanyCapability.values),
     )
-    with patch("companies.services.registry.lookup_company", return_value=matching_observation(company)):
-        appointment = admit_authority_request(
-            requester=owner,
-            request_id=proposal.pk,
-            declaration_version=SIGNUP_DECLARATION_VERSION,
-            accept_declaration=True,
-        ).appointment
+    appointment = admit_authority_request(
+        requester=owner,
+        request_id=proposal.pk,
+        declaration_version=SIGNUP_DECLARATION_VERSION,
+        accept_declaration=True,
+    ).appointment
     return company, appointment
 
 
