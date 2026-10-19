@@ -157,7 +157,7 @@ def worklist() -> list[WorklistRow]:
             SEVERITY_DANGER,
         ),
         WorklistRow(
-            "Allotment addresses with no member behind them",
+            "Allotment addresses with no named member behind them",
             unnameable.unidentified,
             _changelist("whitelist", "whitelistentry"),
             SEVERITY_DANGER,

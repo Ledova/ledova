@@ -103,8 +103,9 @@ shares; a member can have no linked wallet or several. Holder types:
 - Treasury: held at a labelled company treasury address, such as an employee share trust.
 - Ambiguous: its wallets point to more than one person, or two wallet records share its address, so
   no name is shown and the Register says the identity needs review.
-- Unidentified: no wallet resolves to a person and no particulars are recorded, so the Register
-  suggests asking the participant to verify and nominate the wallet for approval.
+- Unidentified: no wallet resolves to a named person and no particulars are recorded, so the
+  Register suggests asking the participant to add their full name in Profile, or to verify and
+  nominate the wallet for approval.
 
 A member's name and residential address come from the first available of: the live verified identity
 behind its wallets, if unambiguous; the latest identity recorded when shares were allotted to one of
@@ -118,7 +119,10 @@ guessing.
 An email address is never used as a member's name. A wallet owner who has not given a full name in
 Profile has no live identity, so without other recorded identity the member shows as Unidentified;
 a share issue to them waits until they add their name, as it does for a missing residential
-address, and a paid issue records no name. Entries recorded earlier keep what they recorded.
+address, and a paid issue records no name or address. A publication roll made meanwhile keeps
+them without an account, like any member the register cannot name
+([frozen roll](publications.md#the-frozen-roll)). Entries recorded earlier keep what they
+recorded.
 
 A treasury label names an address, not a person, and gives no residential address: a member at a
 labelled treasury address stays Treasury, named by its recorded particulars or else the label. A

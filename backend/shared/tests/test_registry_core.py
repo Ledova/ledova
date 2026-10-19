@@ -244,7 +244,7 @@ class RegistryCoreTest(CoreFixtures, APITransactionTestCase):
             identity = entry_identity(WhitelistEntry.objects.get(pk=entry.pk))
             stamped = identity_at_allotment(address, chain="base")
         self.assertEqual((identity.holder_type, identity.name), ("unidentified", ""))
-        self.assertEqual((stamped.name, stamped.residential_address), ("", "1 Synthetic Street"))
+        self.assertFalse(stamped)
         self.assertNotIn(holder.email, (identity.name, stamped.name))
 
     def test_company_status_changes_need_the_staff_change_permission(self):

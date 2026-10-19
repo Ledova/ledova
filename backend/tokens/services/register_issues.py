@@ -31,6 +31,7 @@ from tokens.models import (
     ShareRegister,
     ShareToken,
 )
+from tokens.models.choices import IDENTITY_LIVE
 from tokens.services.register import member_identities
 from tokens.services.register_authority import register_appointment
 from tokens.services.register_decisions import DecisionFamily, _scalar, decide, preview
@@ -96,6 +97,7 @@ def _identity(token, member, address):
     if (
         not identity.name
         or not identity.residential_address
+        or identity.source != IDENTITY_LIVE
         or identity.holder_type in ("unidentified", "ambiguous", "treasury")
     ):
         raise ValidationError({"unmet_requirements": ["member_identity_unavailable"]})

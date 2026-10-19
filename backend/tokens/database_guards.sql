@@ -6605,7 +6605,7 @@ AS $function$
         AND proposal.snapshot->'source'->>'recipient_address' = lower(wallet.address)
         AND proposal.snapshot->'source'->>'recipient_name' = (CASE WHEN (SELECT count(*) FROM wallets same
             WHERE same.chain = token.chain AND lower(same.address) = lower(wallet.address)) = 1 THEN
-            COALESCE(NULLIF(regexp_replace(profile.full_name, '^[[:space:]]+|[[:space:]]+$', '', 'g'), ''), '') ELSE '' END)
+            COALESCE(regexp_replace(profile.full_name, '^[[:space:]]+|[[:space:]]+$', '', 'g'), '') ELSE '' END)
         AND proposal.snapshot->'source'->>'shares' = COALESCE(subscription.allotted_quantity, subscription.quantity)::text
         AND proposal.snapshot->'source'->>'requested_shares' = subscription.quantity::text
         AND proposal.snapshot->'source'->>'currency' = subscription.currency

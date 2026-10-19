@@ -202,6 +202,8 @@ class WhitelistEntryAdmin(admin.ModelAdmin):
         identity = entry_identity(obj)
         if identity.name:
             return identity.name
+        if obj.wallet_id and obj.wallet.user_account_id:
+            return "Owner has not given a full name"
         return mark_safe('<span style="color: #dc3545;">Unassigned</span>')
 
     wallet_owner.short_description = "Owner"

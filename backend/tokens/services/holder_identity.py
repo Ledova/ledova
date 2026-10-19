@@ -17,5 +17,7 @@ def identity_at_allotment(address: str, *, chain: str) -> StampedIdentity:
         return StampedIdentity()
 
     holder = wallets[0].user_account.user_profile
-
-    return StampedIdentity(profile_name(holder), (holder.residential_address or "").strip())
+    name = profile_name(holder)
+    if not name:
+        return StampedIdentity()
+    return StampedIdentity(name, (holder.residential_address or "").strip())
