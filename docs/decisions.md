@@ -251,7 +251,7 @@ deployment or further backup work.
 On 19 October 2026 the owner removed the identity verification step from web
 and mobile signup ([#1141](https://github.com/Ledova/ledova/issues/1141)) to
 keep signup simple: people verify their identity afterwards from Profile, which
-already offered the same check, and completing signup never required it. Where
+already offered the same check, and investor signup never required it. Where
 an instance requires a verified identity for company representatives, initial
 admission still refuses an unverified person, so the owner chose that company
 review offers the same identity check before **Complete company setup** rather

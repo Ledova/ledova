@@ -27,5 +27,5 @@ interface PrimaryButtonProps {
 }
 
 export function PrimaryButton(props: PrimaryButtonProps) {
-  return <Button variant="primary" {...props} />;
+  return <Button {...props} />;
 }

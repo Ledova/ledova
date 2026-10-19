@@ -154,6 +154,10 @@ export function ReviewScreen() {
       shadowRadius: 8,
       elevation: 4,
     },
+    identityNotice: {
+      gap: theme.spacing.md,
+      marginBottom: theme.spacing.md,
+    },
     validationText: {
       marginBottom: theme.spacing.md,
       fontSize: theme.fontSize.sm,
@@ -444,7 +448,7 @@ export function ReviewScreen() {
             </View>
             <View style={styles.buttonContainer}>
               {identityRequired ? (
-                <View style={styles.infoList}>
+                <View style={styles.identityNotice}>
                   <Text style={styles.termsText}>This platform requires a verified identity before company setup.</Text>
                   <Action label="Verify your identity" onPress={() => setVerificationOpen(true)} />
                 </View>
@@ -483,7 +487,10 @@ export function ReviewScreen() {
         {identityRequired && (
           <VerificationModal
             visible={verificationOpen}
-            onClose={() => setVerificationOpen(false)}
+            onClose={() => {
+              setVerificationOpen(false);
+              void retryLoad();
+            }}
             onRefresh={() => void retryLoad()}
           />
         )}

@@ -2,7 +2,6 @@ import React from 'react';
 import { Pressable, Text, ActivityIndicator, View, ViewStyle, TextStyle } from 'react-native';
 import { useAppTheme, useThemedStyles } from '../../contexts';
 
-type ButtonVariant = 'primary' | 'secondary';
 type ButtonSize = 'small' | 'medium' | 'large';
 
 const BUTTON_SIZES = {
@@ -11,28 +10,16 @@ const BUTTON_SIZES = {
   large: { height: 56, paddingHorizontal: 32, fontSize: 18, iconSize: 24, gap: 10 },
 } as const;
 
-function getButtonVariants(theme: ReturnType<typeof useAppTheme>) {
+function getButtonColors(theme: ReturnType<typeof useAppTheme>) {
   return {
-    primary: {
-      background: theme.colors.brand.default,
-      backgroundDisabled: theme.colors.interactive.disabled,
-      text: theme.colors.utility.white,
-      textDisabled: theme.colors.text.subtle,
-      borderColor: 'transparent',
-    },
-    secondary: {
-      background: theme.colors.surface.disabled,
-      backgroundDisabled: theme.colors.surface.disabled,
-      text: theme.colors.text.primary,
-      textDisabled: theme.colors.text.subtle,
-      borderColor: theme.colors.border.default,
-    },
+    background: theme.colors.brand.default,
+    backgroundDisabled: theme.colors.interactive.disabled,
+    text: theme.colors.utility.white,
+    textDisabled: theme.colors.text.subtle,
   };
 }
 
 interface ButtonProps {
-  variant?: ButtonVariant;
-
   size?: ButtonSize;
 
   disabled?: boolean;
@@ -57,7 +44,6 @@ interface ButtonProps {
 }
 
 export function Button({
-  variant = 'primary',
   size = 'medium',
   disabled = false,
   loading = false,
@@ -91,7 +77,7 @@ export function Button({
     },
   }));
   const sizeConfig = BUTTON_SIZES[size];
-  const variantConfig = getButtonVariants(theme)[variant];
+  const colors = getButtonColors(theme);
 
   const isDisabled = disabled || loading;
   const handlePress = () => {
@@ -104,10 +90,10 @@ export function Button({
     ...styles.button,
     height: sizeConfig.height,
     paddingHorizontal: sizeConfig.paddingHorizontal,
-    backgroundColor: isDisabled ? variantConfig.backgroundDisabled : variantConfig.background,
+    backgroundColor: isDisabled ? colors.backgroundDisabled : colors.background,
     borderRadius: theme.borderRadius.lg,
     borderWidth: 1,
-    borderColor: variant === 'secondary' ? variantConfig.borderColor : 'transparent',
+    borderColor: 'transparent',
     ...(fullWidth && { width: '100%' }),
     ...customStyle,
   };
@@ -116,7 +102,7 @@ export function Button({
     ...styles.text,
     fontSize: sizeConfig.fontSize,
     fontFamily: theme.fontFamily.semibold,
-    color: isDisabled ? variantConfig.textDisabled : variantConfig.text,
+    color: isDisabled ? colors.textDisabled : colors.text,
     ...customTextStyle,
   };
 
@@ -135,7 +121,7 @@ export function Button({
       style={({ pressed }) => [buttonStyle, { opacity: pressed ? 0.7 : (buttonStyle.opacity ?? 1) }]}
     >
       {loading ? (
-        <ActivityIndicator size="small" color={variantConfig.text} />
+        <ActivityIndicator size="small" color={colors.text} />
       ) : (
         <View style={[styles.content, contentStyle]}>
           {icon && iconPosition === 'left' && <View style={styles.icon}>{icon}</View>}

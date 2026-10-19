@@ -274,9 +274,9 @@ change reaches JavaScript
 
 ## Identity-provider WebView lifetime
 
-The identity verification form (`VerificationModal`, opened from Profile and company review)
-mounts its provider WebView only while the owner is visible and focused and app-lock admission
-allows the camera
+The identity verification form (`VerificationFormModal`, opened by `VerificationModal` on
+Profile and at company review) mounts its provider WebView only while the owner is visible and
+focused and app-lock admission allows the camera
 ([QR scanner permission timing](#qr-scanner-permission-timing)); the same synchronous admission and
 session check rejects retained completion, navigation and load callbacks before React removes the
 view. After a pause a fresh view mounts for the same form; a completed or closed form stays retired.
