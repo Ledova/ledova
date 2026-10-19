@@ -7,14 +7,14 @@ import {
   type OwnCompanyAppointment,
   useSubmissionOwner,
 } from '@ledova/shared';
-import { assertSessionEpoch } from '../services/sessionScope';
-import { orderSubmissionSession } from '../services/orderSubmissions';
+import { assertSessionEpoch } from '../../services/sessionScope';
+import { orderSubmissionSession } from '../../services/orderSubmissions';
 import {
   registerAppointmentsKey,
   registerClassesKey,
   useRegisterAppointments,
   useRegisterClasses,
-} from './useCompanyRegister';
+} from '../../hooks/useCompanyRegister';
 
 export function useRegisterClassCreation(epoch: number, companyUuid: string | undefined) {
   const client = useQueryClient();

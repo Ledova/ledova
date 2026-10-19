@@ -6,6 +6,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import {
   DESTINATIONS,
   REGISTER_COPY,
+  TECHNICAL_SHARE_LIMIT,
   USER_PREFERENCES_QUERY_KEY,
   formatDate,
   formatShareCount,
@@ -128,11 +129,11 @@ function ShareClassDetails({ data }: { data: ReturnType<typeof useShareClass> })
               <Status tone={SHARE_CLASS_STATUS_TONES.get(token.status) ?? 'waiting'}>{token.statusDisplay}</Status>
             </Row>
             <Row label="Technical share limit">
-              {token.totalSupply !== (2n ** 256n - 1n).toString() ? (
+              {token.totalSupply !== TECHNICAL_SHARE_LIMIT ? (
                 <span className="break-all">{formatShareCount(token.totalSupply)}</span>
               ) : (
                 <details>
-                  <summary className="cursor-pointer">Internal quantity guard</summary>
+                  <summary className="cursor-pointer">{REGISTER_COPY.QUANTITY_GUARD}</summary>
                   <span className="break-all">{formatShareCount(token.totalSupply)}</span>
                 </details>
               )}

@@ -17,10 +17,9 @@ import type { CompanyStackParamList } from '../../navigation/CompanyStackNavigat
 import { getSessionEpoch, subscribeSession } from '../../services/sessionScope';
 import { CompanySelection } from '../../components/company/CompanySelection';
 import { useCompanyRegister } from '../../hooks/useCompanyRegister';
-import { useRegisterClassCreation } from '../../hooks/useRegisterClassCreation';
-import { CreateClassForm } from '../../components/company/CreateClassForm';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 import { ClassRecords } from './ClassRecords';
+import { CreateClassForm } from './CreateClassForm';
 import { CompanyLinks } from './CompanyLinks';
 import { CompanyMemberAccess } from './CompanyMemberAccess';
 import { CompanyPack } from './CompanyPack';
@@ -28,6 +27,7 @@ import { GettingStarted } from './GettingStarted';
 import { CompanyParticulars } from './CompanyParticulars';
 import { RegisterDownload } from '../../components/register/RegisterDownload';
 import { RegisterInspectionCopy } from './RegisterInspectionCopy';
+import { useRegisterClassCreation } from './useRegisterClassCreation';
 
 export function CompanyRegisterScreen() {
   const epoch = useSyncExternalStore(subscribeSession, getSessionEpoch);

@@ -1,4 +1,4 @@
-import { REGISTER_COPY, formatShareCount, type TokenHoldersResponse } from '@ledova/shared';
+import { REGISTER_COPY, TECHNICAL_SHARE_LIMIT, formatShareCount, type TokenHoldersResponse } from '@ledova/shared';
 import { Rows, Row, Status, type Tone } from '@components/Ledger';
 
 const REGISTER_INITIALIZATION_TONES = new Map<boolean, Tone>([
@@ -30,7 +30,7 @@ export function ClassRegister({ register }: { register: TokenHoldersResponse }) 
           </Status>
         </p>
       </section>
-      {register.token.totalSupply !== (2n ** 256n - 1n).toString() ? (
+      {register.token.totalSupply !== TECHNICAL_SHARE_LIMIT ? (
         <p className="text-sm text-text-muted">
           Authorised shares ·{' '}
           <span className="break-all font-medium text-text-primary">

@@ -1,7 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
-import { apiErrorSentence, createCompanyToken, failureStatus, wholeShares, type TokenType } from '@ledova/shared';
-import { apiClient } from '../services/apiClient';
+import {
+  apiErrorSentence,
+  createCompanyToken,
+  failureStatus,
+  TECHNICAL_SHARE_LIMIT,
+  type TokenType,
+} from '@ledova/shared';
+import { apiClient } from '../../services/apiClient';
 import type { useRegisterClassCreation } from './useRegisterClassCreation';
 
 interface Props {
@@ -12,20 +18,9 @@ interface Props {
   name: string;
   symbol: string;
   tokenType: TokenType;
-  totalSupply: string;
 }
 
-export function useCreateRegisterClass({
-  target,
-  read,
-  onClose,
-  onSuccess,
-  name,
-  symbol,
-  tokenType,
-  totalSupply,
-}: Props) {
-  const quantity = wholeShares(totalSupply);
+export function useCreateRegisterClass({ target, read, onClose, onSuccess, name, symbol, tokenType }: Props) {
   const mounted = useRef(true);
   const [authority] = useState(() => read.assertCurrent);
   useEffect(() => {
@@ -52,9 +47,7 @@ export function useCreateRegisterClass({
     name.trim() !== '' &&
     name.trim().length <= 100 &&
     /^[A-Z]{1,5}$/.test(symbol.trim()) &&
-    !read.classes.data?.some((item) => item.companyUuid === target.uuid && item.symbol === symbol.trim()) &&
-    quantity !== null &&
-    quantity > 0n;
+    !read.classes.data?.some((item) => item.companyUuid === target.uuid && item.symbol === symbol.trim());
   const create = useMutation({
     mutationFn: async () => {
       guard();
@@ -70,7 +63,7 @@ export function useCreateRegisterClass({
             name: name.trim(),
             symbol: symbol.trim(),
             tokenType,
-            totalSupply,
+            totalSupply: TECHNICAL_SHARE_LIMIT,
           },
           config,
         );
@@ -88,7 +81,7 @@ export function useCreateRegisterClass({
         result.data.name !== name.trim() ||
         result.data.symbol !== symbol.trim() ||
         result.data.tokenType !== tokenType ||
-        result.data.totalSupply !== quantity?.toString() ||
+        result.data.totalSupply !== TECHNICAL_SHARE_LIMIT ||
         result.data.status !== 'draft' ||
         result.data.contractAddress !== null ||
         result.data.chain !== null ||
@@ -121,7 +114,7 @@ export function useCreateRegisterClass({
             item.name === name.trim() &&
             item.symbol === symbol.trim() &&
             item.tokenType === tokenType &&
-            item.totalSupply === quantity?.toString() &&
+            item.totalSupply === TECHNICAL_SHARE_LIMIT &&
             item.status === 'draft' &&
             item.contractAddress === null &&
             item.chain === null &&

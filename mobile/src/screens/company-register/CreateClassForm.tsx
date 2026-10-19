@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { Text, TextInput, View } from 'react-native';
-import { apiErrorSentence, wholeShares, type TokenType } from '@ledova/shared';
-import { CustomModal } from '../modal';
-import { Choice, Action } from '../Ledger';
+import { apiErrorSentence, type TokenType } from '@ledova/shared';
+import { CustomModal } from '../../components/modal';
+import { Choice, Action } from '../../components/Ledger';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
-import { useCreateRegisterClass } from '../../hooks/useCreateRegisterClass';
-import type { useRegisterClassCreation } from '../../hooks/useRegisterClassCreation';
+import { useCreateRegisterClass } from './useCreateRegisterClass';
+import type { useRegisterClassCreation } from './useRegisterClassCreation';
 
 interface Props {
   target: { uuid: string; name: string };
@@ -19,8 +19,6 @@ export function CreateClassForm({ target, read, onClose, onSuccess }: Props) {
   const [name, setName] = useState('');
   const [symbol, setSymbol] = useState('');
   const [tokenType, setTokenType] = useState<TokenType>('ordinary');
-  const [totalSupply, setTotalSupply] = useState('');
-  const quantity = wholeShares(totalSupply);
   const { valid, create, uncertain, recoveryError, refreshClasses, close, submit } = useCreateRegisterClass({
     target,
     read,
@@ -29,7 +27,6 @@ export function CreateClassForm({ target, read, onClose, onSuccess }: Props) {
     name,
     symbol,
     tokenType,
-    totalSupply,
   });
   return (
     <CustomModal
@@ -120,21 +117,6 @@ export function CreateClassForm({ target, read, onClose, onSuccess }: Props) {
             />
           ))}
         </View>
-        <Text style={styles.text}>Technical share limit</Text>
-        <Text style={styles.muted}>Ledova’s maximum for this class, not statutory authorised capital.</Text>
-        <TextInput
-          accessibilityLabel="Technical share limit"
-          style={styles.input}
-          value={totalSupply}
-          editable={!create.isPending && !uncertain}
-          keyboardType="number-pad"
-          onChangeText={setTotalSupply}
-        />
-        {totalSupply !== '' && (quantity === null || quantity <= 0n) && (
-          <Text accessibilityRole="alert" style={styles.error}>
-            Enter a positive whole number of shares.
-          </Text>
-        )}
       </View>
     </CustomModal>
   );
