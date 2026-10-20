@@ -2,6 +2,7 @@ import { AxiosInstance, AxiosRequestConfig } from 'axios';
 import { OFFERING_ENDPOINTS } from '../constants';
 import type {
   IssuerSubscription,
+  IssuerSubscriptionQueryParams,
   Offering,
   OfferingDocumentsInput,
   OfferingListItem,
@@ -42,12 +43,15 @@ export const submitOffering = (apiClient: AxiosInstance, uuid: string, config?: 
     ? apiClient.post<Offering>(OFFERING_ENDPOINTS.SUBMIT(uuid), {})
     : apiClient.post<Offering>(OFFERING_ENDPOINTS.SUBMIT(uuid), {}, config);
 
-export const getOfferingSubscriptions = (apiClient: AxiosInstance, uuid: string, page?: number) =>
-  page === undefined
-    ? apiClient.get<PaginatedResponse<IssuerSubscription>>(OFFERING_ENDPOINTS.SUBSCRIPTIONS(uuid))
-    : apiClient.get<PaginatedResponse<IssuerSubscription>>(OFFERING_ENDPOINTS.SUBSCRIPTIONS(uuid), {
-        params: { page },
-      });
+export const getOfferingSubscriptions = (
+  apiClient: AxiosInstance,
+  uuid: string,
+  page?: number,
+  query: Omit<IssuerSubscriptionQueryParams, 'page'> = {},
+) =>
+  apiClient.get<PaginatedResponse<IssuerSubscription>>(OFFERING_ENDPOINTS.SUBSCRIPTIONS(uuid), {
+    params: { page, ...query },
+  });
 
 export const withdrawOffering = (
   apiClient: AxiosInstance,
