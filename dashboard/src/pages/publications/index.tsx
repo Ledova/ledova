@@ -3,6 +3,7 @@ import { PUBLICATION_COPY, PUBLICATION_KIND_LABELS, formatDate, formatShareCount
 import type { BallotChoice, Publication } from '@ledova/shared';
 import { Page, PageAction } from '@components/Page';
 import { Row, Rows, Section } from '@components/Ledger';
+import { LoadMore } from '@components/List';
 import { Distribution } from './Distribution';
 import { Resolution } from './Resolution';
 import { usePublications } from './usePublications';
@@ -119,24 +120,14 @@ export default function PublicationsPage() {
               />
             ))
           )}
-          {moreFailed ? (
-            <div role="alert" className="flex flex-col items-start gap-3 py-3">
-              <p className="text-sm text-text-primary">Earlier notices could not be loaded. The list is incomplete.</p>
-              <PageAction label="Try earlier notices again" onClick={loadMore} disabled={isRefreshing} />
-            </div>
-          ) : (
-            hasMore && (
-              <div className="flex justify-start py-3">
-                <PageAction
-                  label={PUBLICATION_COPY.LOAD_MORE}
-                  busy={isLoadingMore}
-                  busyLabel={PUBLICATION_COPY.LOADING_MORE}
-                  onClick={loadMore}
-                  disabled={isRefreshing}
-                />
-              </div>
-            )
-          )}
+          <LoadMore
+            noun={['notice', 'notices']}
+            hasMore={hasMore}
+            failed={moreFailed}
+            loading={isLoadingMore}
+            disabled={isRefreshing}
+            onLoad={loadMore}
+          />
           {publications.length > 0 && <p className="text-xs text-text-muted">{PUBLICATION_COPY.FROZEN_HELP}</p>}
         </>
       )}

@@ -4,6 +4,7 @@ import { DESTINATIONS, formatDate, formatMoney, useSubscriptions } from '@ledova
 import type { Subscription } from '@ledova/shared';
 import { LinkRow, Row, Rows, Section, Status } from '@components/Ledger';
 import { Page, PageAction } from '@components/Page';
+import { LoadMore } from '@components/List';
 import { applicationState } from '@pages/subscriptions/shared/presentation';
 
 function ApplicationRow({ application }: { application: Subscription }) {
@@ -64,26 +65,14 @@ export default function SubscriptionsPage() {
           ) : (
             subscriptions.map((application) => <ApplicationRow key={application.uuid} application={application} />)
           )}
-          {moreFailed ? (
-            <div role="alert" className="flex flex-col items-start gap-3 py-3">
-              <p className="text-sm text-text-primary">
-                More applications could not be loaded. The list is incomplete.
-              </p>
-              <PageAction label="Try more applications again" onClick={() => void loadMore()} disabled={isRefreshing} />
-            </div>
-          ) : (
-            hasMore && (
-              <div className="py-3">
-                <PageAction
-                  label="Load more applications"
-                  busy={isLoadingMore}
-                  busyLabel="Loading applications…"
-                  onClick={() => void loadMore()}
-                  disabled={isRefreshing}
-                />
-              </div>
-            )
-          )}
+          <LoadMore
+            noun={['application', 'applications']}
+            hasMore={hasMore}
+            failed={moreFailed}
+            loading={isLoadingMore}
+            disabled={isRefreshing}
+            onLoad={() => void loadMore()}
+          />
         </>
       )}
     </Page>
