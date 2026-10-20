@@ -80,11 +80,6 @@ export function keepWithin<T>(key: QueryKey) {
     query && key.every((part, index) => query.queryKey[index] === part) ? previous : undefined;
 }
 
-export function retryServerFailures(failures: number, error: unknown) {
-  const status = failureStatus(error);
-  return !(status !== undefined && status >= 400 && status < 500) && failures < 3;
-}
-
 export function useFirstPageWhenGone(list: ListParams<string>, error: unknown) {
   const gone = list.page > 1 && failureStatus(error) === 404;
   useEffect(() => {

@@ -5,10 +5,12 @@ export function RecordsList({
   records,
   select,
   selected,
+  disabled = false,
 }: {
   records: CompanyEligibilityRequest[];
   select: (uuid: string) => void;
   selected?: string;
+  disabled?: boolean;
 }) {
   return records.length === 0 ? (
     <p>No requests recorded.</p>
@@ -26,6 +28,7 @@ export function RecordsList({
           <PageAction
             label={`View request ${record.uuid}`}
             pressed={selected === record.uuid}
+            disabled={disabled}
             onClick={() => select(record.uuid)}
           />
         </li>

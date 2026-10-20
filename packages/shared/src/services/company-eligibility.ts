@@ -3,6 +3,7 @@ import type {
   ApiResponse,
   CompanyEligibilityDecisionCreate,
   CompanyEligibilityDecisionPreview,
+  CompanyEligibilityQueueQuery,
   CompanyEligibilityRequestCreate,
   CompanyEligibilityRequestPreview,
   CompanyEligibilityRevocationCreate,
@@ -38,10 +39,11 @@ export const getCompanyEligibilityRequests = (
   companyUuid: string,
   page = 1,
   config: AxiosRequestConfig = {},
+  query: Omit<CompanyEligibilityQueueQuery, 'page'> = {},
 ) =>
   api.get<ApiResponse<'api_v1_companies_eligibility_requests_list'>>(company(companyUuid), {
     ...config,
-    params: { page },
+    params: { page, ...query },
   });
 export const getCompanyEligibilityRequest = (
   api: AxiosInstance,
