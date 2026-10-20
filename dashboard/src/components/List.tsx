@@ -12,6 +12,7 @@ export interface Column {
   label: string;
   detail?: string;
   align?: 'right';
+  hidden?: boolean;
 }
 
 export function Table({ caption, columns, children }: { caption: string; columns: Column[]; children: ReactNode }) {
