@@ -11,6 +11,8 @@ import {
   formatDate,
 } from '@ledova/shared';
 import { LinkRow, Section } from '@components/Ledger';
+import { Pager } from '@components/List';
+import { PAGE_SIZE, useFirstPageWhenGone, useListParams } from '@hooks/useListParams';
 import { Page, PageAction } from '@components/Page';
 import { ActionConfirmation, EligibilityHistory, RecordsList, TextField } from '@components/eligibility';
 import { CompanyWalletInstructions } from './CompanyWalletInstructions';
@@ -20,8 +22,29 @@ const OUTCOMES = [
   ['accepted', 'Accept'],
   ['refused', 'Refuse'],
 ] as const;
+const QUEUE_OUTCOMES = [
+  ['', 'All'],
+  ['pending', 'Pending'],
+  ['accepted', 'Accepted'],
+  ['refused', 'Refused'],
+  ['withdrawn', 'Withdrawn'],
+  ['revoked', 'Revoked'],
+  ['expired', 'Expired'],
+] as const;
+
+type QueueOutcome = Exclude<(typeof QUEUE_OUTCOMES)[number][0], ''>;
+
 export default function CompanyEligibilityPage() {
-  const read = useCompanyEligibilityRecords(() => crypto.randomUUID());
+  const list = useListParams(['outcome']);
+  const outcome = QUEUE_OUTCOMES.find(([value]) => value && value === list.filters.outcome)?.[0] as
+    QueueOutcome | undefined;
+  const read = useCompanyEligibilityRecords(() => crypto.randomUUID(), undefined, {
+    page: list.page,
+    pageSize: PAGE_SIZE,
+    outcome,
+  });
+  const gone = useFirstPageWhenGone(list, read.listError);
+  const queue = read.queue;
   const [revocationReason, setRevocationReason] = useState('');
   const { running, track } = useRunningAction();
   const appointment = read.appointments.find(
@@ -46,7 +69,7 @@ export default function CompanyEligibilityPage() {
         <p>Your signed-in account must be checked before opening these records.</p>
       ) : (
         <>
-          {read.error && (
+          {read.error && !gone && (
             <p role="alert" className="text-sm text-error-light">
               {read.error}
             </p>
@@ -63,6 +86,7 @@ export default function CompanyEligibilityPage() {
               onChange={(uuid) => {
                 read.setCompany(uuid);
                 setRevocationReason('');
+                if (list.page > 1) list.setPage(1, true);
               }}
             />
             {read.companies.length === 0 && <p>No current personal prepare or approve appointments are available.</p>}
@@ -92,13 +116,35 @@ export default function CompanyEligibilityPage() {
           </Section>
           {read.companyUuid && (
             <Section title="Company request queue">
-              <RecordsList
-                records={read.records}
-                select={(uuid) => {
-                  read.selectRecord(uuid);
-                  setRevocationReason('');
-                }}
-                selected={read.selectedRecord?.uuid}
+              <Choices
+                legend="Outcome"
+                options={QUEUE_OUTCOMES}
+                value={outcome ?? ''}
+                onChange={(value) => list.setFilter('outcome', value)}
+              />
+              {queue?.settled && queue.rows.length === 0 ? (
+                <p role="status" className="text-sm text-text-muted">
+                  {outcome ? 'No requests match.' : 'No requests recorded.'}
+                </p>
+              ) : queue?.rows.length ? (
+                <div aria-busy={queue.busy} className={queue.busy ? 'opacity-60' : undefined}>
+                  <RecordsList
+                    records={queue.rows}
+                    disabled={queue.busy}
+                    select={(uuid) => {
+                      read.selectRecord(uuid);
+                      setRevocationReason('');
+                    }}
+                    selected={read.selectedRecord?.uuid}
+                  />
+                </div>
+              ) : null}
+              <Pager
+                label="Request pages"
+                list={list}
+                noun={['request', 'requests']}
+                count={queue?.count ?? 0}
+                busy={queue?.busy}
               />
             </Section>
           )}

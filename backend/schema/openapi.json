@@ -27427,6 +27427,22 @@
             }
           },
           {
+            "description": "* `pending` - pending\n* `accepted` - accepted\n* `refused` - refused\n* `withdrawn` - withdrawn\n* `revoked` - revoked\n* `expired` - expired",
+            "in": "query",
+            "name": "outcome",
+            "schema": {
+              "enum": [
+                "accepted",
+                "expired",
+                "pending",
+                "refused",
+                "revoked",
+                "withdrawn"
+              ],
+              "type": "string"
+            }
+          },
+          {
             "description": "A page number within the paginated result set.",
             "in": "query",
             "name": "page",

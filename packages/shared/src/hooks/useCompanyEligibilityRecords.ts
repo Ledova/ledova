@@ -26,10 +26,17 @@ import type {
   CompanyEligibilityDecisionCreate,
   CompanyEligibilityRevocationCreate,
   CompanyEligibilityWithdrawalCreate,
+  CompanyEligibilityQueueQuery,
   InvestorClassification,
   OwnCompanyAppointment,
 } from '../types';
-import { createUserFriendlyError, failureStatus, refusalSentence, failureSentence } from '../utils/errors';
+import {
+  createUserFriendlyError,
+  failureStatus,
+  refusalSentence,
+  failureSentence,
+  retryServerFailures,
+} from '../utils/errors';
 import { COMPANY_ELIGIBILITY_UNMET_COPY } from '../constants/business/investor-eligibility';
 import { isUuid } from '../utils/validation';
 import { readEveryPage } from '../utils/pagination';
@@ -114,6 +121,12 @@ export function isCurrentEligibilityAppointment(appointment: OwnCompanyAppointme
   );
 }
 
+function confirmedPage<T>(response: AxiosResponse<{ results: T[]; next?: string | null; count: number }>) {
+  if (!Array.isArray(response.data?.results) || !Number.isSafeInteger(response.data.count) || response.data.count < 0)
+    throw createUserFriendlyError('The records response could not be confirmed. Refresh before continuing.');
+  return response;
+}
+
 async function everyPage<T>(
   read: (page: number) => Promise<AxiosResponse<{ results: T[]; next?: string | null; count: number }>>,
   guard: () => void,
@@ -122,10 +135,19 @@ async function everyPage<T>(
     guard();
     const response = await read(page);
     guard();
-    if (!Array.isArray(response.data?.results) || !Number.isSafeInteger(response.data.count) || response.data.count < 0)
-      throw createUserFriendlyError('The records response could not be confirmed. Refresh before continuing.');
-    return response;
+    return confirmedPage(response);
   });
+}
+
+async function onePage<T>(
+  read: () => Promise<AxiosResponse<{ results: T[]; next?: string | null; count: number }>>,
+  guard: () => void,
+) {
+  guard();
+  const response = await read();
+  guard();
+  const { data } = confirmedPage(response);
+  return { rows: data.results, count: data.count };
 }
 
 function expiry(value: string) {
@@ -134,10 +156,19 @@ function expiry(value: string) {
   return new Date(moment).toISOString();
 }
 
+type EligibilityList = { rows: CompanyEligibilityRequest[]; count: number };
+
+export interface EligibilityQueuePage {
+  page: number;
+  pageSize: number;
+  outcome?: CompanyEligibilityQueueQuery['outcome'];
+}
+
 function useEligibilityRecords(
   mode: 'participant' | 'company',
   newKey: () => string,
   session?: OrderSubmissionSession,
+  queue?: EligibilityQueuePage,
 ) {
   const api = useApiClient();
   const client = useQueryClient();
@@ -163,7 +194,11 @@ function useEligibilityRecords(
   const scope = [owner?.userUuid ?? '', owner?.ownerAccountUuid ?? '', session?.getEpoch() ?? 0];
   const sourceKey = ['eligibility-sources', ...scope];
   const appointmentKey = [...OWN_APPOINTMENTS_QUERY_KEY, ...scope.slice(0, 2)];
-  const listKey = [...eligibilityRecordsKey(mode, scope), selection.company];
+  const listKey = [
+    ...eligibilityRecordsKey(mode, scope),
+    selection.company,
+    ...(mode === 'company' && queue ? [queue.page, queue.pageSize, queue.outcome ?? ''] : []),
+  ];
   const detailKey = eligibilityRecordKey(mode, scope, selection.company, selection.record);
   const ownerGuard = () => {
     const state = client.getQueryState(USER_PREFERENCES_QUERY_KEY);
@@ -216,9 +251,20 @@ function useEligibilityRecords(
     if (mode === 'company') companyGuard();
     else ownerGuard();
   };
+  const paged = mode === 'company' && !!queue;
+  const listScope = [...eligibilityRecordsKey(mode, scope), selection.company];
   const list = useQuery({
     queryKey: listKey,
     enabled: !!owner && (mode === 'participant' || !!selection.company),
+    ...(paged
+      ? {
+          placeholderData: (previous: EligibilityList | undefined, previousQuery?: { queryKey: readonly unknown[] }) =>
+            previousQuery && listScope.every((part, index) => previousQuery.queryKey[index] === part)
+              ? previous
+              : undefined,
+          retry: retryServerFailures,
+        }
+      : {}),
     queryFn: async () => {
       const companyUuid = selection.company;
       const guard =
@@ -229,20 +275,30 @@ function useEligibilityRecords(
               if (selected.current.company !== companyUuid)
                 throw createUserFriendlyError('The selected company changed.');
             };
-      const rows = await everyPage(
-        (page) =>
-          mode === 'participant'
-            ? getEligibilityRequests(api, page, config(guard))
-            : getCompanyEligibilityRequests(api, companyUuid, page, config(guard)),
-        guard,
-      );
+      const { rows, count } =
+        mode === 'company' && queue
+          ? await onePage(
+              () =>
+                getCompanyEligibilityRequests(api, companyUuid, queue.page, config(guard), {
+                  page_size: queue.pageSize,
+                  outcome: queue.outcome,
+                }),
+              guard,
+            )
+          : await everyPage(
+              (page) =>
+                mode === 'participant'
+                  ? getEligibilityRequests(api, page, config(guard))
+                  : getCompanyEligibilityRequests(api, companyUuid, page, config(guard)),
+              guard,
+            ).then((every) => ({ rows: every, count: every.length }));
       if (
         rows.some((row) =>
           mode === 'participant' ? row.userAccount !== owner!.ownerAccountUuid : row.company !== companyUuid,
         )
       )
         throw createUserFriendlyError('The records audience could not be confirmed.');
-      return rows;
+      return { rows, count };
     },
   });
   const detail = useQuery({
@@ -303,11 +359,9 @@ function useEligibilityRecords(
             ?.filter((row) => row.company === selected.current.company)
         : null,
       selected.current.record
-        ? client.getQueryData<CompanyEligibilityRequest>([
-            ...listKey.slice(0, -1),
-            selected.current.company,
-            selected.current.record,
-          ])
+        ? client.getQueryData<CompanyEligibilityRequest>(
+            eligibilityRecordKey(mode, scope, selected.current.company, selected.current.record),
+          )
         : null,
     ]);
   const commandGuard = (target: Command) => {
@@ -722,7 +776,8 @@ function useEligibilityRecords(
     !readError &&
     relevantReads.every((read) => read.isSuccess && !read.isFetching) &&
     (!selection.record || (detail.isSuccess && !detail.isFetching));
-  const records = readReady ? (list.data ?? []) : [];
+  const records = readReady ? (list.data?.rows ?? []) : [];
+  const shown = available && companyReadable && !readError;
   const selectedRecord = readReady && selection.record && detail.isSuccess && !detail.isFetching ? detail.data : null;
   const companies = Array.from(
     new Map(
@@ -748,6 +803,15 @@ function useEligibilityRecords(
           : null),
     refresh,
     records,
+    queue: paged
+      ? {
+          rows: shown && list.data ? list.data.rows : [],
+          count: shown ? (list.data?.count ?? 0) : 0,
+          busy: list.isFetching,
+          settled: shown && list.isSuccess && !list.isFetching && !list.isPlaceholderData,
+        }
+      : undefined,
+    listError: list.error,
     selectedRecord,
     selectedRequestUuid: selection.record,
     guardOwnRequest: (uuid: string) => {
@@ -798,7 +862,11 @@ export function useParticipantEligibilityRecords(newKey: () => string, session?:
   return { ...read, draft: read.requestDraft, updateDraft: read.updateRequest };
 }
 
-export function useCompanyEligibilityRecords(newKey: () => string, session?: OrderSubmissionSession) {
-  const read = useEligibilityRecords('company', newKey, session);
+export function useCompanyEligibilityRecords(
+  newKey: () => string,
+  session?: OrderSubmissionSession,
+  queue?: EligibilityQueuePage,
+) {
+  const read = useEligibilityRecords('company', newKey, session, queue);
   return { ...read, draft: read.decisionDraft, updateDraft: read.updateDecision };
 }
