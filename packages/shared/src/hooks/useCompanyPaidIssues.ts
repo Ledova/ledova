@@ -15,7 +15,8 @@ import {
 import { readEveryPage } from '../utils/pagination';
 import { appointmentForRegisterStep, type RegisterStep } from '../utils/register-commands';
 import { isPreparedRegisterPaidIssue, isRegisterPaidIssueSource } from '../utils/register-paid-issues';
-import { failureStatus, createUserFriendlyError, getErrorMessage } from '../utils/errors';
+import { failureStatus, createUserFriendlyError, apiErrorSentence, refusalSentence } from '../utils/errors';
+import { REGISTER_PAID_ISSUE_UNMET_COPY } from '../constants/business/register-paid-issues';
 import type {
   CompanyShareToken,
   OwnCompanyAppointment,
@@ -24,6 +25,9 @@ import type {
   RegisterPaidIssueSource,
 } from '../types';
 import { useApiClient } from './useApiClient';
+
+const REFRESH_FAILED = 'Current paid issue records could not be refreshed.';
+const OUTCOME_UNCERTAIN = 'The outcome is uncertain. Recover the identical original request.';
 
 type Input = Omit<RegisterPaidIssuePreparation, 'operationId' | 'appointment'>;
 type Source = { source: RegisterPaidIssueSource; token: CompanyShareToken | undefined };
@@ -294,7 +298,7 @@ export function useCompanyPaidIssues(
       }
     } catch (failure) {
       if (mounted.current && boundary.get() === owner)
-        setError(getErrorMessage(failure, 'Current paid issue records could not be refreshed.'));
+        setError(apiErrorSentence(failure, REFRESH_FAILED, REFRESH_FAILED));
     }
   };
   const accept = async (record: RegisterPaidIssue) => {
@@ -354,7 +358,10 @@ export function useCompanyPaidIssues(
       const status = failureStatus(cause);
       if (!dispatched || status === 400 || status === 409) setOriginal(null);
       if (mounted.current && boundary.get() === owner)
-        setError(getErrorMessage(failure, 'The outcome is uncertain. Recover the identical original request.'));
+        setError(
+          refusalSentence(failure, REGISTER_PAID_ISSUE_UNMET_COPY) ??
+            apiErrorSentence(failure, OUTCOME_UNCERTAIN, OUTCOME_UNCERTAIN),
+        );
     } finally {
       pending.current = false;
       if (mounted.current) setBusy(false);

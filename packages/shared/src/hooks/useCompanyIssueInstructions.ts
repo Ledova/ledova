@@ -15,7 +15,8 @@ import { readEveryPage } from '../utils/pagination';
 import { appointmentForRegisterStep, type RegisterStep } from '../utils/register-commands';
 import { isPreparedRegisterLink } from '../utils/register-links';
 import { isPreparedRegisterIssue } from '../utils/register-issues';
-import { failureStatus, createUserFriendlyError, getErrorMessage } from '../utils/errors';
+import { failureStatus, createUserFriendlyError, apiErrorSentence, refusalSentence } from '../utils/errors';
+import { REGISTER_ISSUE_UNMET_COPY } from '../constants/business/register-issues';
 import type {
   CompanyShareToken,
   CompanyWalletNomination,
@@ -29,6 +30,9 @@ import type {
   TokenHoldersResponse,
 } from '../types';
 import { useApiClient } from './useApiClient';
+
+const REFRESH_FAILED = 'Current company grant records could not be refreshed.';
+const OUTCOME_UNCERTAIN = 'The outcome is uncertain. Recover the identical original request.';
 
 type IssueInput = Omit<RegisterIssuePreparation, 'operationId' | 'appointment' | 'token'>;
 type LinkInput = Omit<RegisterLinkPreparation, 'operationId' | 'appointment' | 'companyId'>;
@@ -399,7 +403,7 @@ export function useCompanyIssueInstructions(
       guard();
     } catch (failure) {
       if (mounted.current && boundary.get() === owner)
-        setError(getErrorMessage(failure, 'Current company grant records could not be refreshed.'));
+        setError(apiErrorSentence(failure, REFRESH_FAILED, REFRESH_FAILED));
     }
   };
   const accept = async (record: RegisterIssue) => {
@@ -489,7 +493,10 @@ export function useCompanyIssueInstructions(
       const status = failureStatus(cause);
       if (!dispatched || status === 400 || status === 409) setOriginal(null);
       if (mounted.current && boundary.get() === owner)
-        setError(getErrorMessage(failure, 'The outcome is uncertain. Recover the identical original request.'));
+        setError(
+          refusalSentence(failure, REGISTER_ISSUE_UNMET_COPY) ??
+            apiErrorSentence(failure, OUTCOME_UNCERTAIN, OUTCOME_UNCERTAIN),
+        );
     } finally {
       pending.current = false;
       if (mounted.current) setBusy(false);

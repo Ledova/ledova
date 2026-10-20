@@ -1,12 +1,15 @@
 import {
   createCompanyTeamInvitation,
-  getErrorMessage,
   type CompanyCapability,
   type OwnCompanyAppointment,
+  apiErrorSentence,
+  createUserFriendlyError,
 } from '@ledova/shared';
 import { sameScope } from '@pages/company/shared/appointments';
 import apiClient from '@services/apiClient';
 import { useEffect, useRef, useState } from 'react';
+
+const RECORD_FAILED = 'The invitation could not be recorded. Retry with the same details.';
 
 export function useTeamInvitationForm({
   source,
@@ -41,7 +44,7 @@ export function useTeamInvitationForm({
   }, []);
   const check = () => {
     guard();
-    if (!mounted.current) throw new Error('Your selected appointment changed. Reopen the invitation.');
+    if (!mounted.current) throw createUserFriendlyError('Your selected appointment changed. Reopen the invitation.');
   };
   const change = (apply: () => void) => {
     keyRef.current = null;
@@ -59,7 +62,7 @@ export function useTeamInvitationForm({
     try {
       check();
       if (![...personal, ...delegatable].every((value) => available.includes(value)))
-        throw new Error('Your delegation scope changed. Choose the permitted actions again.');
+        throw createUserFriendlyError('Your delegation scope changed. Choose the permitted actions again.');
       keyRef.current ??= crypto.randomUUID();
       const { data, status } = await createCompanyTeamInvitation(
         apiClient,
@@ -93,17 +96,14 @@ export function useTeamInvitationForm({
           (status === 201 && typeof data.code === 'string' && /^[A-Za-z0-9_-]{43}$/.test(data.code))
         )
       )
-        throw new Error('The invitation outcome could not be confirmed. Retry with the same details.');
+        throw createUserFriendlyError('The invitation outcome could not be confirmed. Retry with the same details.');
       setRecorded({ uuid: data.uuid, code: data.code });
       onRecorded();
     } catch (failure) {
       if (mounted.current) {
         try {
           guard();
-          setError(
-            getErrorMessage(failure, 'The invitation could not be recorded. Retry with the same details.') ??
-              'The invitation could not be recorded. Retry with the same details.',
-          );
+          setError(apiErrorSentence(failure, RECORD_FAILED, RECORD_FAILED));
         } catch {
           return;
         }

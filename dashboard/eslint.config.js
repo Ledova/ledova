@@ -57,6 +57,19 @@ export default tseslint.config(
     rules: {
       'no-restricted-globals': ['error', ...NODE_GLOBALS_THE_BROWSER_LACKS],
       'no-alert': 'error',
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            {
+              name: '@ledova/shared',
+              importNames: ['getErrorMessage'],
+              message:
+                'Read a failed request with apiErrorSentence or readApiError (docs/engineering/frontend-ux.md#validation).',
+            },
+          ],
+        },
+      ],
     },
   },
   {

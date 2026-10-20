@@ -9,6 +9,7 @@ import {
   type RegisterImportPreparation,
   type RegisterDecideRequest,
   REGISTER_COPY,
+  REGISTER_IMPORT_COPY,
   REGISTER_PARTICULARS_COPY,
   HOLDER_TYPE_LABELS,
   TECHNICAL_SHARE_LIMIT,
@@ -1081,7 +1082,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   interruptNextApply = true;
   showJourney(`${importPath}?record=${proposal.uuid}`);
   expect(await screen.findByRole('table', { name: 'Shareholders' })).toBeTruthy();
-  expect(await screen.findByText('Interrupted preview response')).toBeTruthy();
+  expect(await screen.findByText(REGISTER_IMPORT_COPY.PREVIEW_FAILED)).toBeTruthy();
   expect(api.post.mock.calls.filter(([url]) => url.endsWith('/decision-preview/'))).toHaveLength(1);
   expect(api.post.mock.calls.filter(([url]) => url.endsWith('/decide/'))).toHaveLength(0);
   expect((screen.getByRole('button', { name: 'Confirm' }) as HTMLButtonElement).disabled).toBe(true);

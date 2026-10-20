@@ -9,16 +9,21 @@ import {
   formatDateTime,
   formatMoney,
   formatShareCount,
-  getErrorMessage,
   registerPaidIssueExecutionState,
   useCompanyPaidIssues,
   type RegisterPaidIssue,
   type RegisterPaidIssueSource,
+  apiErrorSentence,
+  createUserFriendlyError,
+  refusalSentences,
 } from '@ledova/shared';
 import { DecisionTrail } from '@pages/company/register/shared/DecisionTrail';
 import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
 import { usePaidIssuePreparation, usePaidIssueRecord, type Commands } from './useCompanyPaidIssueFlow';
 import type { useShareClass } from './useShareClass';
+
+const PICKER_UNAVAILABLE = 'The authority picker is unavailable.';
+const DOCUMENT_UNSELECTED = 'The authority document could not be selected.';
 const STAGES: Record<string, string> = COPY.STAGES;
 
 const SUBSCRIPTIONS = ['subscription', 'subscriptions'] as const;
@@ -122,9 +127,9 @@ function PaidIssueRecord({ record, commands }: { record: RegisterPaidIssue; comm
           <p className="text-sm text-text-muted">{COPY.PROVIDED_BY_COMPANY}</p>
           <DecisionTrail proposal={record} labels={COPY.DECISIONS} />
           <p className="text-sm text-text-muted">{COPY.ADMITTED_NOTE}</p>
-          {record.executionUnmetRequirements.map((code) => (
-            <p key={code} className="text-sm text-text-muted">
-              {REGISTER_PAID_ISSUE_UNMET_COPY[code] ?? code}
+          {refusalSentences(record.executionUnmetRequirements, REGISTER_PAID_ISSUE_UNMET_COPY).map((sentence) => (
+            <p key={sentence} className="text-sm text-text-muted">
+              {sentence}
             </p>
           ))}
           <PageAction
@@ -270,10 +275,7 @@ function Preparation({ commands }: { commands: Commands }) {
               check();
             } catch (failure) {
               event.preventDefault();
-              setError(
-                getErrorMessage(failure, 'The authority picker is unavailable.') ??
-                  'The source could not be confirmed.',
-              );
+              setError(apiErrorSentence(failure, PICKER_UNAVAILABLE, PICKER_UNAVAILABLE));
             }
           }}
           onChange={(event) => {
@@ -286,15 +288,12 @@ function Preparation({ commands }: { commands: Commands }) {
                   chosen.size <= 0 ||
                   chosen.size > 10 * 1024 * 1024)
               )
-                throw new Error('Choose a PDF, PNG or JPEG of up to 10 MB.');
+                throw createUserFriendlyError('Choose a PDF, PNG or JPEG of up to 10 MB.');
               uploadRef.current = null;
               setFile(chosen);
               setError('');
             } catch (failure) {
-              setError(
-                getErrorMessage(failure, 'The authority document could not be selected.') ??
-                  'The document could not be selected.',
-              );
+              setError(apiErrorSentence(failure, DOCUMENT_UNSELECTED, DOCUMENT_UNSELECTED));
             }
           }}
         />

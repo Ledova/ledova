@@ -1,6 +1,6 @@
 import type { AxiosInstance, AxiosRequestConfig } from 'axios';
 import { TRADING_ENDPOINTS } from '../constants';
-import { failureStatus } from '../utils/errors';
+import { apiErrorSentence, failureStatus, hasServiceErrorDetail } from '../utils/errors';
 import type {
   ShareToken,
   TransferOrder,
@@ -25,6 +25,11 @@ declare module 'axios' {
     ledovaSubmissionGuard?: () => void;
   }
 }
+
+const NOT_ALLOWLISTED =
+  'Your wallet is not on the trading allowlist. The operator must add it before you can place orders.';
+const NOT_AUTHORISED = 'Your wallet is not authorized to trade. The operator must add it to the trading allowlist.';
+const ORDER_FAILED = 'The order could not be processed. Try again.';
 
 export const getShareTokens = (apiClient: AxiosInstance, page?: number) =>
   apiClient.get<PaginatedResponse<ShareToken>>(TRADING_ENDPOINTS.TOKENS.LIST, page ? { params: { page } } : undefined);
@@ -179,40 +184,9 @@ export const modifyOrder = (
   );
 
 export function parseTradingError(error: unknown): string {
-  if (!error) return 'An unknown error occurred';
-
-  const axiosError = error as {
-    response?: { data?: { detail?: string; code?: string; message?: string }; status?: number };
-    message?: string;
-  };
-
-  if (axiosError.response?.data) {
-    const data = axiosError.response.data;
-
-    if (data.code === 'not_whitelisted') {
-      return 'Your wallet is not on the trading allowlist. The operator must add it before you can place orders.';
-    }
-
-    if (data.detail) {
-      if (data.detail.includes('not whitelisted')) {
-        return 'Your wallet is not on the trading allowlist. The operator must add it before you can place orders.';
-      }
-      return data.detail;
-    }
-
-    if (data.message) return data.message;
-  }
-
-  if (failureStatus(error) === 403) {
-    return 'Your wallet is not authorized to trade. The operator must add it to the trading allowlist.';
-  }
-
-  if (axiosError.message) {
-    if (axiosError.message.includes('403')) {
-      return 'Your wallet is not authorized to trade. The operator must add it to the trading allowlist.';
-    }
-    return axiosError.message;
-  }
-
-  return 'An error occurred while processing your request';
+  const data = (error as { response?: { data?: { code?: unknown; detail?: unknown } } } | null)?.response?.data;
+  if (data?.code === 'not_whitelisted' || (typeof data?.detail === 'string' && data.detail.includes('not whitelisted')))
+    return NOT_ALLOWLISTED;
+  if (failureStatus(error) === 403 && !hasServiceErrorDetail(error)) return NOT_AUTHORISED;
+  return apiErrorSentence(error, ORDER_FAILED, ORDER_FAILED);
 }

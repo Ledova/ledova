@@ -16,6 +16,8 @@ import {
   type RegisterAwardEndPreparation,
   type RegisterAwardVestingReversalPreparation,
   type RegisterEvidence,
+  REGISTER_AWARD_UNMET_COPY,
+  refusalSentence,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
@@ -275,7 +277,10 @@ export function useAwardAdjustmentForm({
       } catch {
         return;
       }
-      setError(apiErrorSentence(cause, COPY.ADJUSTMENT_FAILED, COPY.ADJUSTMENT_FAILED));
+      setError(
+        refusalSentence(cause, REGISTER_AWARD_UNMET_COPY) ??
+          apiErrorSentence(cause, COPY.ADJUSTMENT_FAILED, COPY.ADJUSTMENT_FAILED),
+      );
     } finally {
       pending.current = false;
       if (live.current) {

@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
+  apiErrorSentence,
   prepareTransfer,
   prepareBitcoinTransfer,
   broadcastTransfer,
@@ -11,6 +12,9 @@ import {
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
 import type { Wallet, PreparedWalletTransfer } from '@ledova/shared';
+
+const PREPARE_FAILED = 'The transfer could not be prepared. Check the details and try again.';
+const BROADCAST_FAILED = 'The transaction could not be broadcast. Try again.';
 
 interface UseCryptoTransferSigningParams {
   wallet: Wallet | null;
@@ -60,8 +64,7 @@ export function useCryptoTransferSigning({
       setPrepareError(null);
     },
     onError: (err) => {
-      const message = getErrorMessage(err);
-      setPrepareError(message);
+      setPrepareError(apiErrorSentence(err, PREPARE_FAILED, PREPARE_FAILED));
       setPreparedTransaction(null);
     },
   });
@@ -86,8 +89,7 @@ export function useCryptoTransferSigning({
       queryClient.invalidateQueries({ queryKey: WALLETS_QUERY_KEY });
     },
     onError: (err) => {
-      const message = getErrorMessage(err);
-      setBroadcastError(message);
+      setBroadcastError(apiErrorSentence(err, BROADCAST_FAILED, BROADCAST_FAILED));
     },
   });
 
@@ -120,20 +122,4 @@ export function useCryptoTransferSigning({
     broadcast,
     reset,
   };
-}
-
-function getErrorMessage(error: unknown): string {
-  if (!error) return 'An unknown error occurred';
-  if (typeof error === 'string') return error;
-
-  const axiosError = error as {
-    response?: { data?: { detail?: string; message?: string }; status?: number };
-    message?: string;
-  };
-
-  if (axiosError.response?.data?.detail) return axiosError.response.data.detail;
-  if (axiosError.response?.data?.message) return axiosError.response.data.message;
-  if (axiosError.message) return axiosError.message;
-
-  return 'An error occurred while processing your request';
 }

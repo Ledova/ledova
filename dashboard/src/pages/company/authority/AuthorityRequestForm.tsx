@@ -2,11 +2,13 @@ import { FormActions, PageAction } from '@components/Page';
 import { FIELD_CLASS, LABEL } from '@components/fieldClass';
 import {
   COMPANY_AUTHORITY_CAPABILITIES,
-  getErrorMessage,
   type CompanyAuthorityRequest,
   type CompanyListItem,
+  apiErrorSentence,
 } from '@ledova/shared';
 import { useAuthorityRequestForm } from './useAuthorityRequestForm';
+
+const RECORD_FAILED = 'The request could not be recorded. Retry with the same details.';
 
 export function AuthorityRequestForm({
   company,
@@ -107,7 +109,7 @@ export function AuthorityRequestForm({
       </p>
       {submission.isError && (
         <p role="alert" className="text-sm text-error-light">
-          {getErrorMessage(submission.error, 'The request could not be recorded. Retry with the same details.')}
+          {apiErrorSentence(submission.error, RECORD_FAILED, RECORD_FAILED)}
         </p>
       )}
       <FormActions>

@@ -12,7 +12,8 @@ import { readEveryPage } from '../utils/pagination';
 import { appointmentForRegisterStep, type RegisterStep } from '../utils/register-commands';
 import { isPreparedRegisterCapitalIncrease } from '../utils/register-capital-increases';
 import { requestShares, wholeShares } from '../utils/share-quantities';
-import { failureStatus, createUserFriendlyError, getErrorMessage } from '../utils/errors';
+import { failureStatus, createUserFriendlyError, apiErrorSentence, refusalSentence } from '../utils/errors';
+import { REGISTER_CAPITAL_INCREASE_UNMET_COPY } from '../constants/business/register-capital-increases';
 import type {
   CompanyShareToken,
   OwnCompanyAppointment,
@@ -20,6 +21,9 @@ import type {
   RegisterCapitalIncreasePreparation,
 } from '../types';
 import { useApiClient } from './useApiClient';
+
+const REFRESH_FAILED = 'Current capital records could not be refreshed.';
+const OUTCOME_UNCERTAIN = 'The outcome is uncertain. Recover the identical original request.';
 
 type Input = Omit<RegisterCapitalIncreasePreparation, 'operationId' | 'appointment' | 'token'>;
 type Source = { priorAuthorizedTotal: string; additionalShares: number; newAuthorizedTotal: number };
@@ -256,7 +260,7 @@ export function useCompanyCapitalIncreases(
       guard();
     } catch (failure) {
       if (mounted.current && boundary.get() === owner)
-        setError(getErrorMessage(failure, 'Current capital records could not be refreshed.'));
+        setError(apiErrorSentence(failure, REFRESH_FAILED, REFRESH_FAILED));
     }
   };
   const accept = async (record: RegisterCapitalIncrease) => {
@@ -318,7 +322,10 @@ export function useCompanyCapitalIncreases(
       const status = failureStatus(cause);
       if (!dispatched || status === 400 || status === 409) setOriginal(null);
       if (mounted.current && boundary.get() === owner)
-        setError(getErrorMessage(failure, 'The outcome is uncertain. Recover the identical original request.'));
+        setError(
+          refusalSentence(failure, REGISTER_CAPITAL_INCREASE_UNMET_COPY) ??
+            apiErrorSentence(failure, OUTCOME_UNCERTAIN, OUTCOME_UNCERTAIN),
+        );
     } finally {
       pending.current = false;
       if (mounted.current) setBusy(false);

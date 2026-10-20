@@ -1,7 +1,9 @@
-import { acceptCompanyTeamInvitation, getErrorMessage } from '@ledova/shared';
+import { acceptCompanyTeamInvitation, apiErrorSentence, createUserFriendlyError } from '@ledova/shared';
 import { appointmentReceipt } from '@pages/company/shared/appointments';
 import apiClient from '@services/apiClient';
 import { useEffect, useRef, useState } from 'react';
+
+const ACCEPT_FAILED = 'The invitation could not be accepted. Retry the same code.';
 
 export function useAcceptInvitationForm({
   disabled,
@@ -29,7 +31,7 @@ export function useAcceptInvitationForm({
   }, []);
   const check = () => {
     guard();
-    if (!mounted.current) throw new Error('Your signed-in account changed. Reopen company team.');
+    if (!mounted.current) throw createUserFriendlyError('Your signed-in account changed. Reopen company team.');
   };
   const ready = accepted && /^[A-Za-z0-9_-]{43}$/.test(code);
   const send = async () => {
@@ -44,7 +46,9 @@ export function useAcceptInvitationForm({
       const { data } = await acceptCompanyTeamInvitation(apiClient, code, { ledovaSubmissionGuard: check });
       check();
       if (!appointmentReceipt(data) || data.source !== 'invitation')
-        throw new Error('The appointment outcome could not be confirmed. Retry the same code or refresh.');
+        throw createUserFriendlyError(
+          'The appointment outcome could not be confirmed. Retry the same code or refresh.',
+        );
       setCode('');
       setAccepted(false);
       setReceipt(`Appointment recorded for ${data.companyName}: ${data.uuid}.`);
@@ -53,10 +57,7 @@ export function useAcceptInvitationForm({
       if (mounted.current) {
         try {
           guard();
-          setError(
-            getErrorMessage(failure, 'The invitation could not be accepted. Retry the same code.') ??
-              'The invitation could not be accepted. Retry the same code.',
-          );
+          setError(apiErrorSentence(failure, ACCEPT_FAILED, ACCEPT_FAILED));
         } catch {
           return;
         }

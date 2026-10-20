@@ -2,18 +2,21 @@ import { useOwnAppointments, ownAppointmentsKey } from '@hooks/useOwnAppointment
 import {
   getCompanyTeam,
   getCompanyTeamInvitations,
-  getErrorMessage,
   readEveryPage,
   revokeCompanyAppointment,
   USER_PREFERENCES_QUERY_KEY,
   type CompanyTeamAppointment,
   type OrderSubmissionOwner,
   type OwnCompanyAppointment,
+  apiErrorSentence,
+  createUserFriendlyError,
 } from '@ledova/shared';
 import { appointmentReceipt, currentAppointment, sameScope } from '@pages/company/shared/appointments';
 import apiClient from '@services/apiClient';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useRef, useState } from 'react';
+
+const REVOKE_FAILED = 'The appointment could not be revoked. Refresh or retry.';
 
 export function teamInvitationsKey(owner: OrderSubmissionOwner) {
   return ['company-team-invitations', owner.userUuid, owner.ownerAccountUuid];
@@ -38,7 +41,7 @@ export function useCompanyTeam({
       currentOwner() !== owner ||
       client.getQueryState(USER_PREFERENCES_QUERY_KEY)?.status !== 'success'
     )
-      throw new Error('Your signed-in account changed. Reopen company team.');
+      throw createUserFriendlyError('Your signed-in account changed. Reopen company team.');
   }, [client, currentOwner, owner]);
   const ownKey = ownAppointmentsKey(owner);
   const invitationKey = teamInvitationsKey(owner);
@@ -94,7 +97,7 @@ export function useCompanyTeam({
       const result = await getCompanyTeam(apiClient, company, { ledovaSubmissionGuard: guard });
       guard();
       if (result.data.some((item) => item.company !== company))
-        throw new Error('The company team outcome could not be confirmed.');
+        throw createUserFriendlyError('The company team outcome could not be confirmed.');
       return result.data;
     },
   });
@@ -136,7 +139,8 @@ export function useCompanyTeam({
     try {
       const check = () => {
         guard();
-        if (!canRevoke(target)) throw new Error('Your company appointment changed. Refresh before revoking it.');
+        if (!canRevoke(target))
+          throw createUserFriendlyError('Your company appointment changed. Refresh before revoking it.');
       };
       check();
       const { data } = await revokeCompanyAppointment(apiClient, target.uuid, { ledovaSubmissionGuard: check });
@@ -154,7 +158,9 @@ export function useCompanyTeam({
         data.createdAt !== target.createdAt ||
         data.expiresAt !== target.expiresAt
       )
-        throw new Error('The revocation outcome could not be confirmed. Refresh your appointments or retry.');
+        throw createUserFriendlyError(
+          'The revocation outcome could not be confirmed. Refresh your appointments or retry.',
+        );
       await Promise.all([
         client.cancelQueries({ queryKey: ownKey, exact: true }),
         client.cancelQueries({ queryKey: teamKey, exact: true }),
@@ -175,10 +181,7 @@ export function useCompanyTeam({
     } catch (failure) {
       try {
         guard();
-        setError(
-          getErrorMessage(failure, 'The appointment could not be revoked. Refresh or retry.') ??
-            'The appointment could not be revoked. Refresh or retry.',
-        );
+        setError(apiErrorSentence(failure, REVOKE_FAILED, REVOKE_FAILED));
       } catch {
         return;
       }
@@ -203,7 +206,7 @@ export function useCompanyTeam({
       !sameScope(current.delegatableCapabilities, source.delegatableCapabilities) ||
       (canAdmin && !administrator)
     )
-      throw new Error('Your company appointment changed. Refresh and select a current source.');
+      throw createUserFriendlyError('Your company appointment changed. Refresh and select a current source.');
   };
   const companyName = companies.find(([uuid]) => uuid === company)?.[1] ?? '';
   return {

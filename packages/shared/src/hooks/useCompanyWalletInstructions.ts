@@ -15,7 +15,8 @@ import {
 import { readEveryPage } from '../utils/pagination';
 import { appointmentForRegisterStep, type RegisterStep } from '../utils/register-commands';
 import { isPreparedCompanyWalletInstruction } from '../utils/company-wallets';
-import { createUserFriendlyError, failureStatus, getErrorMessage } from '../utils/errors';
+import { createUserFriendlyError, failureStatus, apiErrorSentence, refusalSentence } from '../utils/errors';
+import { COMPANY_WALLET_UNMET_COPY } from '../constants/business/company-wallets';
 import type {
   OwnCompanyAppointment,
   CompanyWalletInstruction,
@@ -24,6 +25,10 @@ import type {
   CompanyWalletTarget,
 } from '../types';
 import { useApiClient } from './useApiClient';
+
+const REFRESH_FAILED = 'Current private company wallet access could not be refreshed. Original requests are retained.';
+const OUTCOME_UNCERTAIN =
+  'The preparation outcome is uncertain. Recover its identical original body and operation UUID.';
 
 export function useCompanyWalletInstructions(options: { newKey: () => string; session?: OrderSubmissionSession }) {
   const api = useApiClient();
@@ -249,12 +254,7 @@ export function useCompanyWalletInstructions(options: { newKey: () => string; se
       }
     } catch (failure) {
       if (mounted.current && boundary.get() === owner)
-        setError(
-          getErrorMessage(
-            failure,
-            'Current private company wallet access could not be refreshed. Original requests are retained.',
-          ),
-        );
+        setError(apiErrorSentence(failure, REFRESH_FAILED, REFRESH_FAILED));
     }
   };
   const accept = async (record: CompanyWalletInstruction) => {
@@ -359,10 +359,8 @@ export function useCompanyWalletInstructions(options: { newKey: () => string; se
       if (!dispatched || status === 400 || status === 409) setRetained(null);
       if (mounted.current && boundary.get() === owner)
         setError(
-          getErrorMessage(
-            failure,
-            'The preparation outcome is uncertain. Recover its identical original body and operation UUID.',
-          ),
+          refusalSentence(failure, COMPANY_WALLET_UNMET_COPY) ??
+            apiErrorSentence(failure, OUTCOME_UNCERTAIN, OUTCOME_UNCERTAIN),
         );
     } finally {
       pending.current = false;

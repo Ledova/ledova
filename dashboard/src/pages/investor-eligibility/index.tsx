@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { DESTINATIONS, formatDate, getErrorMessage } from '@ledova/shared';
+import { DESTINATIONS, formatDate, apiErrorSentence, refusalSentences } from '@ledova/shared';
 import type { InvestorCategory, InvestorClassification } from '@ledova/shared';
 import { LinkRow, Row, Rows, Section, Status, type Tone } from '@components/Ledger';
 import { Page, PageAction } from '@components/Page';
@@ -8,6 +8,8 @@ import { useInvestorWithdrawal } from './useInvestorWithdrawal';
 import { CATEGORIES, REASON_TEXT, WHOLESALE_ONLY_NOTICE } from './constants';
 import { ClaimModal } from './ClaimModal';
 import { useInvestorEligibility } from '@hooks/useInvestorEligibility';
+
+const WITHDRAW_FAILED = 'Your claim could not be withdrawn. Try again.';
 
 const CLASSIFICATION_TONES = new Map<string, Tone>([['submitted', 'moving']]);
 const READINESS_TONES = new Map<boolean, Tone>([
@@ -66,8 +68,8 @@ export default function InvestorEligibilityPage() {
                 <LinkRow to={DESTINATIONS.directory.path} label={DESTINATIONS.directory.title} />
               ) : (
                 <ul className="space-y-1 text-sm text-text-muted">
-                  {(eligibility?.reasons ?? []).map((reason) => (
-                    <li key={reason}>{REASON_TEXT[reason] ?? reason}</li>
+                  {refusalSentences(eligibility?.reasons ?? [], REASON_TEXT).map((sentence) => (
+                    <li key={sentence}>{sentence}</li>
                   ))}
                 </ul>
               )}
@@ -81,7 +83,7 @@ export default function InvestorEligibilityPage() {
             <Section title="Your claims">
               {withdraw.isError && (
                 <p role="alert" className="py-2 text-sm text-error-light">
-                  {getErrorMessage(withdraw.error, 'Your claim could not be withdrawn. Try again.')}
+                  {apiErrorSentence(withdraw.error, WITHDRAW_FAILED, WITHDRAW_FAILED)}
                 </p>
               )}
               {classifications.length === 0 ? (

@@ -1,3 +1,4 @@
+import { createUserFriendlyError } from './errors';
 import { isUuid } from './validation';
 
 export interface OrderSubmissionOwner {
@@ -21,12 +22,14 @@ export interface OrderSubmissionStorage {
 const PREFIX = 'ledova.order-submissions.v1.';
 
 function scopePrefix(owner: OrderSubmissionOwner): string {
-  if (!isUuid(owner.userUuid) || !isUuid(owner.ownerAccountUuid)) throw new Error('Order account is unavailable.');
+  if (!isUuid(owner.userUuid) || !isUuid(owner.ownerAccountUuid))
+    throw createUserFriendlyError('Order account is unavailable.');
   return `${PREFIX}${owner.userUuid}.${owner.ownerAccountUuid}.`;
 }
 
 function storageKey(record: SavedOrderSubmission): string {
-  if (!isUuid(record.walletUuid) || !isUuid(record.submissionId)) throw new Error('Order identity is unavailable.');
+  if (!isUuid(record.walletUuid) || !isUuid(record.submissionId))
+    throw createUserFriendlyError('Order identity is unavailable.');
   return `${scopePrefix(record)}${record.walletUuid}.${record.submissionId}`;
 }
 
@@ -38,7 +41,7 @@ function decodeRecord(value: string, key: string): SavedOrderSubmission {
     Object.keys(record).sort().join(',') !== 'ownerAccountUuid,submissionId,userUuid,version,walletUuid' ||
     storageKey(record) !== key
   )
-    throw new Error('Saved order information could not be read.');
+    throw createUserFriendlyError('Saved order information could not be read.');
   return record;
 }
 
@@ -72,9 +75,11 @@ export function createOrderSubmissionStore(storage: OrderSubmissionStorage, newU
     const value = JSON.stringify(record);
     await list(record);
     const existing = await storage.getItem(key);
-    if (existing !== null && (!retry || existing !== value)) throw new Error('This saved order already exists.');
+    if (existing !== null && (!retry || existing !== value))
+      throw createUserFriendlyError('This saved order already exists.');
     await storage.setItem(key, value);
-    if ((await storage.getItem(key)) !== value) throw new Error('The order could not be saved on this device.');
+    if ((await storage.getItem(key)) !== value)
+      throw createUserFriendlyError('The order could not be saved on this device.');
     return record;
   };
 
@@ -87,7 +92,8 @@ export function createOrderSubmissionStore(storage: OrderSubmissionStorage, newU
     async remove(record: SavedOrderSubmission): Promise<void> {
       const key = storageKey(record);
       await storage.removeItem(key);
-      if ((await storage.getItem(key)) !== null) throw new Error('The saved order reminder could not be cleared.');
+      if ((await storage.getItem(key)) !== null)
+        throw createUserFriendlyError('The saved order reminder could not be cleared.');
     },
   };
 }

@@ -8,14 +8,23 @@ import {
   syncWallet,
   CACHE_TIMING,
   getChainByShortName,
-  getErrorMessage,
   importedParentKey,
   canDeriveNextWalletAddress,
   readEveryPage,
   WALLETS_QUERY_KEY,
+  apiErrorSentence,
+  createUserFriendlyError,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
 import type { Wallet, CreateWallet, DerivedAddress, HardwareWalletImport } from '@ledova/shared';
+
+const errorSentence = (error: unknown, fallback: string) =>
+  error ? apiErrorSentence(error, fallback, fallback) : null;
+const IMPORT_UNFINISHED = 'The remaining import could not finish.';
+const ADD_FAILED = 'The wallet could not be added. Try again.';
+const SAVE_FAILED = 'The wallet could not be saved. Try again.';
+const DELETE_FAILED = 'The wallet could not be deleted. Try again.';
+const SYNC_FAILED = 'Wallet sync could not finish. Please try again later.';
 
 export function useWallets() {
   const queryClient = useQueryClient();
@@ -42,7 +51,7 @@ export function useWallets() {
     }) => {
       const requests = addresses.map((addr): CreateWallet => {
         const chain = getChainByShortName(addr.networkType);
-        if (!chain?.isActive) throw new Error('Choose addresses on a supported network.');
+        if (!chain?.isActive) throw createUserFriendlyError('Choose addresses on a supported network.');
         return {
           address: addr.address,
           chain: chain.code,
@@ -59,8 +68,8 @@ export function useWallets() {
           await createWallet(apiClient, data);
           imported.current.add(key);
         } catch (error) {
-          throw new Error(
-            `${imported.current.size} wallet(s) added. ${getErrorMessage(error, 'The remaining import could not finish.')} Retry keeps the confirmed additions.`,
+          throw createUserFriendlyError(
+            `${imported.current.size} wallet(s) added. ${apiErrorSentence(error, IMPORT_UNFINISHED, IMPORT_UNFINISHED)} Retry keeps the confirmed additions.`,
           );
         }
       }
@@ -121,13 +130,10 @@ export function useWallets() {
     isUpdating: updateMutation.isPending,
     isDeleting: deleteMutation.isPending,
     isSyncing: syncMutation.isPending,
-    createError: getErrorMessage(
-      importMutation.error ?? createMutation.error,
-      'The wallet could not be added. Try again.',
-    ),
-    updateError: getErrorMessage(updateMutation.error, 'The wallet could not be saved. Try again.'),
-    deleteError: getErrorMessage(deleteMutation.error, 'The wallet could not be deleted. Try again.'),
-    syncError: getErrorMessage(syncMutation.error, 'Wallet sync could not finish. Please try again later.'),
+    createError: errorSentence(importMutation.error ?? createMutation.error, ADD_FAILED),
+    updateError: errorSentence(updateMutation.error, SAVE_FAILED),
+    deleteError: errorSentence(deleteMutation.error, DELETE_FAILED),
+    syncError: errorSentence(syncMutation.error, SYNC_FAILED),
     syncWalletUuid: syncMutation.variables,
     resetCreate,
     resetUpdate: updateMutation.reset,

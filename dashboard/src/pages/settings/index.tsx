@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { DESTINATIONS } from '@ledova/shared';
+import { DESTINATIONS, apiErrorSentence } from '@ledova/shared';
 import { useSettings } from './useSettings';
 import { Modal } from '@components/Modal';
 import { Page, PageAction } from '@components/Page';
@@ -7,6 +7,9 @@ import { LinkRow, Section, SwitchRow } from '@components/Ledger';
 import { FIELD_CLASS } from '@components/fieldClass';
 import { setTheme } from '@hooks/useTheme';
 import { Verification } from './Verification';
+
+const EXPORT_FAILED = 'Your data could not be exported. Try again.';
+const DELETE_FAILED = 'Your account could not be deleted. Try again or contact the deployment operator.';
 
 function ActionRow({ description, label, onClick }: { description: string; label: string; onClick: () => void }) {
   return (
@@ -240,7 +243,7 @@ function SettingsPage() {
         </p>
         {exportMutation.isError && (
           <p role="alert" className="mt-3 text-sm text-error-light">
-            Your data could not be exported. Try again.
+            {apiErrorSentence(exportMutation.error, EXPORT_FAILED, EXPORT_FAILED)}
           </p>
         )}
       </Modal>
@@ -262,7 +265,7 @@ function SettingsPage() {
         </p>
         {deleteMutation.isError && (
           <p role="alert" className="mt-3 text-sm text-error-light">
-            Your account could not be deleted. Try again or contact the deployment operator.
+            {apiErrorSentence(deleteMutation.error, DELETE_FAILED, DELETE_FAILED)}
           </p>
         )}
       </Modal>

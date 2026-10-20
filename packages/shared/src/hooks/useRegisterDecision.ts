@@ -70,7 +70,7 @@ import type {
   RegisterParticularsChange,
   RegisterParticularsChangeDecisionPreview,
 } from '../types';
-import { failureStatus, createUserFriendlyError, getErrorMessage } from '../utils/errors';
+import { failureStatus, createUserFriendlyError, apiErrorSentence, refusalSentence } from '../utils/errors';
 import { isRegisterDecisionReceipt } from '../utils/register-commands';
 import { isRegisterCorrectionDecisionReceipt } from '../utils/register-corrections';
 import { isRegisterGrantDecisionReceipt } from '../utils/register-grants';
@@ -251,13 +251,6 @@ export type RegisterDecisionOptions<Proposal> = {
   onRefused?: () => Promise<unknown> | void;
 };
 
-function refusal(failure: unknown, unmet: Record<string, string>, fallback: string) {
-  const codes = (failure as { response?: { data?: { unmetRequirements?: unknown } } })?.response?.data
-    ?.unmetRequirements;
-  if (!Array.isArray(codes) || !codes.length) return null;
-  return [...new Set(codes.map((code) => unmet[String(code)] ?? fallback))].join(' ');
-}
-
 export function useRegisterDecision<Proposal, Preview extends DecisionPreview>(
   family: RegisterDecisionFamily<Proposal, Preview>,
   proposal: { uuid: string } | undefined,
@@ -321,7 +314,7 @@ export function useRegisterDecision<Proposal, Preview extends DecisionPreview>(
         request: { ...request, idempotencyKey: key, previewDigest: response.data.previewDigest, confirmation: true },
       });
     } catch (failure) {
-      if (mounted.current) setError(getErrorMessage(failure, family.copy.PREVIEW_FAILED));
+      if (mounted.current) setError(apiErrorSentence(failure, family.copy.PREVIEW_FAILED, family.copy.PREVIEW_FAILED));
       const status = failureStatus(failure);
       refused = status === 400 || status === 404;
     } finally {
@@ -359,8 +352,8 @@ export function useRegisterDecision<Proposal, Preview extends DecisionPreview>(
       settle(null);
       if (mounted.current)
         setError(
-          refusal(failure, family.unmet, family.copy.DECIDE_FAILED) ??
-            getErrorMessage(failure, family.copy.DECIDE_FAILED),
+          refusalSentence(failure, family.unmet, family.copy.DECIDE_FAILED) ??
+            apiErrorSentence(failure, family.copy.DECIDE_FAILED, family.copy.DECIDE_FAILED),
         );
       if (status === 400 || status === 404 || status === 409) await options.onRefused?.();
     } finally {

@@ -15,7 +15,7 @@ import {
 } from '../services/member-access';
 import { appointmentForRegisterStep, hasCurrentRegisterReadAuthority } from '../utils/register-commands';
 import { isCurrentEligibilityAppointment } from './useCompanyEligibilityRecords';
-import { failureStatus, getErrorMessage } from '../utils/errors';
+import { failureStatus, apiErrorSentence, createUserFriendlyError } from '../utils/errors';
 import { readEveryPage } from '../utils/pagination';
 import { useSubmissionOwner } from './useSubmissionOwner';
 import { USER_PREFERENCES_QUERY_KEY } from './useUserPreferences';
@@ -28,6 +28,10 @@ import type {
   MemberCertificateFulfilmentCreate,
 } from '../types';
 import { useApiClient } from './useApiClient';
+
+const RESULT_UNCONFIRMED = 'The result could not be confirmed. Refresh or retry the original command.';
+const PREVIEW_UNCONFIRMED = 'The certificate preview could not be confirmed.';
+const REFRESH_FAILED = 'The member access could not be refreshed.';
 
 type Command =
   | { kind: 'invite'; payload: MemberInvitationCreate }
@@ -89,7 +93,7 @@ export function useCompanyMemberAccess(
       preferences?.status !== 'success' ||
       preferences.fetchStatus !== 'idle'
     )
-      throw new Error('Your signed-in account changed. Reopen member access.');
+      throw createUserFriendlyError('Your signed-in account changed. Reopen member access.');
   };
   const config = (guard = guardOwner) => ({ ...session?.requestConfig(), ledovaSubmissionGuard: guard });
   const appointments = useQuery({
@@ -107,12 +111,12 @@ export function useCompanyMemberAccess(
     guardOwner();
     const state = client.getQueryState(appointmentKey);
     if (state?.status !== 'success' || state.fetchStatus !== 'idle')
-      throw new Error('Refresh your current company appointments.');
+      throw createUserFriendlyError('Refresh your current company appointments.');
     return client.getQueryData<OwnCompanyAppointment[]>(appointmentKey) ?? [];
   };
   const guardRead = () => {
     if (!hasCurrentRegisterReadAuthority(currentAppointments(), company))
-      throw new Error('A current company register appointment is required.');
+      throw createUserFriendlyError('A current company register appointment is required.');
   };
   const adminAppointment = (rows: OwnCompanyAppointment[]) =>
     rows.find(
@@ -147,7 +151,7 @@ export function useCompanyMemberAccess(
         }),
       ]);
       if ([...particulars, ...certificates].some((row) => row.company !== company))
-        throw new Error('The member requests belong to another company.');
+        throw createUserFriendlyError('The member requests belong to another company.');
       return { particulars, certificates };
     },
   });
@@ -159,11 +163,12 @@ export function useCompanyMemberAccess(
       state.fetchStatus !== 'idle' ||
       client.getQueryState(adminKey)?.status === 'error'
     )
-      throw new Error('Refresh current member requests before continuing.');
+      throw createUserFriendlyError('Refresh current member requests before continuing.');
   };
   const guardAdmin = () => {
     guardRead();
-    if (!adminAppointment(currentAppointments())) throw new Error('Current personal ADMIN authority is required.');
+    if (!adminAppointment(currentAppointments()))
+      throw createUserFriendlyError('Current personal ADMIN authority is required.');
   };
   const access = useQuery({
     queryKey: adminKey,
@@ -184,7 +189,7 @@ export function useCompanyMemberAccess(
         }),
       ]);
       if ([...invitations, ...associations].some((row) => row.company !== company))
-        throw new Error('The member access belongs to another company.');
+        throw createUserFriendlyError('The member access belongs to another company.');
       return { invitations, associations };
     },
   });
@@ -192,7 +197,7 @@ export function useCompanyMemberAccess(
     guardAdmin();
     const state = client.getQueryState(adminKey);
     if (state?.status !== 'success' || state.fetchStatus !== 'idle')
-      throw new Error('Refresh current member access before continuing.');
+      throw createUserFriendlyError('Refresh current member access before continuing.');
   };
   const refresh = async () => {
     guardOwner();
@@ -218,7 +223,7 @@ export function useCompanyMemberAccess(
               )
             : adminAppointment(currentAppointments());
       if (appointment?.uuid !== command.payload.appointment)
-        throw new Error('Your exact company appointment changed. Refresh before continuing.');
+        throw createUserFriendlyError('Your exact company appointment changed. Refresh before continuing.');
       setRetry(command);
       if (command.kind === 'invite') {
         let response;
@@ -239,10 +244,10 @@ export function useCompanyMemberAccess(
           data.appointment !== command.payload.appointment ||
           data.intendedEmail.toLowerCase() !== command.payload.intendedEmail.toLowerCase()
         )
-          throw new Error('The invitation result does not match the original request.');
+          throw createUserFriendlyError('The invitation result does not match the original request.');
         const receivedCode = 'code' in data ? data.code : null;
         if (receivedCode !== null && (typeof receivedCode !== 'string' || !/^[A-Za-z0-9_-]{43}$/.test(receivedCode)))
-          throw new Error('The one-time invitation code could not be confirmed.');
+          throw createUserFriendlyError('The one-time invitation code could not be confirmed.');
         setCode(receivedCode);
         setNotice(
           receivedCode
@@ -253,13 +258,13 @@ export function useCompanyMemberAccess(
         const { data } = await revokeMemberAssociation(api, command.uuid, command.payload, config(check));
         check();
         if (data.uuid !== command.uuid || data.company !== company || data.current)
-          throw new Error('The association revocation could not be confirmed.');
+          throw createUserFriendlyError('The association revocation could not be confirmed.');
       } else if (command.kind === 'fulfil') {
         const original = client
           .getQueryData<{ certificates: MemberCertificateRequest[] }>(queueKey)
           ?.certificates.find((row) => row.uuid === command.uuid);
         if (!original || original.status === 'withdrawn')
-          throw new Error('The original certificate request is unavailable.');
+          throw createUserFriendlyError('The original certificate request is unavailable.');
         const { data } = await fulfilMemberCertificateRequest(api, command.uuid, command.payload, config(check));
         check();
         if (
@@ -279,7 +284,9 @@ export function useCompanyMemberAccess(
           !Number.isSafeInteger(data.fulfilment.fileSize) ||
           data.fulfilment.fileSize < 1
         )
-          throw new Error('The certificate fulfilment does not match the original request. Retry the original action.');
+          throw createUserFriendlyError(
+            'The certificate fulfilment does not match the original request. Retry the original action.',
+          );
         setCertificateTarget(null);
         setNotice('The unsigned recipient certificate is recorded. The member can download their own PDF.');
       } else {
@@ -288,7 +295,7 @@ export function useCompanyMemberAccess(
             queueKey,
           )
           ?.particulars.find((row) => row.uuid === command.uuid);
-        if (!original) throw new Error('The original member request is unavailable.');
+        if (!original) throw createUserFriendlyError('The original member request is unavailable.');
         const { data } = await prepareMemberParticularsRequest(api, command.uuid, command.payload, config(check));
         check();
         if (
@@ -301,7 +308,7 @@ export function useCompanyMemberAccess(
           data.supportingEvidence !== command.payload.supportingEvidence ||
           data.preparingAppointment !== command.payload.appointment
         )
-          throw new Error('The company instruction does not match the member request.');
+          throw createUserFriendlyError('The company instruction does not match the member request.');
         if (particularsQueryKey) await client.invalidateQueries({ queryKey: particularsQueryKey });
         setNotice(
           `Company particulars instruction ${data.uuid} recorded. Approval and application remain separate in Register particulars changes.`,
@@ -312,7 +319,7 @@ export function useCompanyMemberAccess(
     } catch (failure) {
       if (failureStatus(failure) && failureStatus(failure)! < 500) setRetry(null);
       if (live.current && boundary.get() === owner)
-        setError(getErrorMessage(failure, 'The result could not be confirmed. Refresh or retry the original command.'));
+        setError(apiErrorSentence(failure, RESULT_UNCONFIRMED, RESULT_UNCONFIRMED));
     } finally {
       pending.current = false;
       if (live.current) setBusy(false);
@@ -329,7 +336,7 @@ export function useCompanyMemberAccess(
       const original = client
         .getQueryData<{ certificates: MemberCertificateRequest[] }>(queueKey)
         ?.certificates.find((row) => row.uuid === uuid && row.status === 'requested');
-      if (!original) throw new Error('Refresh the original member certificate request.');
+      if (!original) throw createUserFriendlyError('Refresh the original member certificate request.');
       const { data } = await getMemberCertificateFulfilmentPreview(api, uuid, config(guardQueue));
       guardQueue();
       if (
@@ -349,7 +356,7 @@ export function useCompanyMemberAccess(
         !Number.isSafeInteger(data.pageCount) ||
         data.pageCount !== 1
       )
-        throw new Error('The certificate preview does not identify the requested member and entry.');
+        throw createUserFriendlyError('The certificate preview does not identify the requested member and entry.');
       setCertificateTarget({
         preview: Object.freeze({ ...data }),
         command: {
@@ -365,7 +372,7 @@ export function useCompanyMemberAccess(
       });
     } catch (failure) {
       if (live.current && boundary.get() === owner)
-        setError(getErrorMessage(failure, 'The certificate preview could not be confirmed.'));
+        setError(apiErrorSentence(failure, PREVIEW_UNCONFIRMED, PREVIEW_UNCONFIRMED));
     } finally {
       pending.current = false;
       if (live.current) setBusy(false);
@@ -397,12 +404,12 @@ export function useCompanyMemberAccess(
     refresh: () =>
       refresh().catch((failure) => {
         if (live.current && boundary.get() === owner)
-          setError(getErrorMessage(failure, 'The member access could not be refreshed.'));
+          setError(apiErrorSentence(failure, REFRESH_FAILED, REFRESH_FAILED));
       }),
     guardPrepare: () => {
       guardQueue();
       if (!appointmentForRegisterStep(currentAppointments(), company, 'prepare'))
-        throw new Error('Current preparation authority is required.');
+        throw createUserFriendlyError('Current preparation authority is required.');
     },
     invite: (member: string, intendedEmail: string) =>
       admin &&

@@ -7,7 +7,7 @@ import type {
 } from '../types';
 import { createOrder, getOrderCreateMessage, getOrderSubmission, parseTradingError } from '../services/trading';
 import type { OrderSubmissionStore, SavedOrderSubmission } from './order-submission-storage';
-import { failureStatus } from './errors';
+import { createUserFriendlyError, failureStatus } from './errors';
 
 export type OrderSubmissionPhase = 'preparing' | 'ready' | 'signing' | 'submitting' | 'created' | 'refused' | 'error';
 
@@ -81,7 +81,7 @@ export class OrderSubmission {
       ...this.dependencies.requestConfig,
       ledovaSubmissionGuard: () => {
         if (!this.current(generation))
-          throw new Error('This order view is no longer active. Check its saved status to continue.');
+          throw createUserFriendlyError('This order view is no longer active. Check its saved status to continue.');
       },
     };
   }
@@ -97,7 +97,7 @@ export class OrderSubmission {
       (snapshot.status === 'created' && !snapshot.order) ||
       (snapshot.status === 'refused' && !snapshot.refusal)
     ) {
-      throw new Error('The saved order response did not match this order.');
+      throw createUserFriendlyError('The saved order response did not match this order.');
     }
     const challenge = snapshot.challenge;
     if (
@@ -107,7 +107,7 @@ export class OrderSubmission {
         challenge.message.ownerAccountUuid !== this.record.ownerAccountUuid ||
         challenge.message.walletUuid !== this.record.walletUuid)
     ) {
-      throw new Error('The signing request did not match this order.');
+      throw createUserFriendlyError('The signing request did not match this order.');
     }
   }
 
@@ -124,7 +124,8 @@ export class OrderSubmission {
     if (!this.current(generation)) return;
     this.validate(snapshot);
     if (snapshot.status === 'pending') {
-      if (!snapshot.challenge) throw new Error('A fresh signing request is unavailable. Check this order again.');
+      if (!snapshot.challenge)
+        throw createUserFriendlyError('A fresh signing request is unavailable. Check this order again.');
       this.publish({ phase: 'ready', snapshot, challenge: snapshot.challenge, error: null, recovered });
       return;
     }

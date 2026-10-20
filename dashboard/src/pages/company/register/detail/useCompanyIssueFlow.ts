@@ -2,7 +2,6 @@ import {
   downloadRegisterIssueFile,
   downloadRegisterLinkFile,
   failureStatus,
-  getErrorMessage,
   isRegisterEvidenceReceipt,
   requestShares,
   uploadRegisterEvidence,
@@ -10,10 +9,16 @@ import {
   type RegisterEvidence,
   type RegisterIssue,
   type RegisterLink,
+  apiErrorSentence,
+  createUserFriendlyError,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
 import { saveFile } from '@utils/saveFile';
 import { useEffect, useRef, useState } from 'react';
+
+const COPY_DOWNLOAD_FAILED = 'The retained copy could not be downloaded.';
+const AUTHORITY_DOWNLOAD_FAILED = 'The retained authority copy could not be downloaded.';
+const PREPARE_FAILED = 'The grant could not be prepared.';
 export type Commands = ReturnType<typeof useCompanyIssueInstructions>;
 export type EvidenceKind = 'authority' | 'terms' | 'acceptance';
 export function useIssueRecord({ record, commands }: { record: RegisterIssue; commands: Commands }) {
@@ -29,9 +34,7 @@ export function useIssueRecord({ record, commands }: { record: RegisterIssue; co
       commands.guard();
       saveFile(response.data, `${kind}-${record.uuid}`);
     } catch (failure) {
-      setError(
-        getErrorMessage(failure, 'The retained copy could not be downloaded.') ?? 'The request could not be confirmed.',
-      );
+      setError(apiErrorSentence(failure, COPY_DOWNLOAD_FAILED, COPY_DOWNLOAD_FAILED));
     } finally {
       setBusy(false);
     }
@@ -47,10 +50,7 @@ export function useIssueLinkRecord({ record, commands }: { record: RegisterLink;
       commands.guard();
       saveFile(response.data, `authority-${record.uuid}`);
     } catch (failure) {
-      setError(
-        getErrorMessage(failure, 'The retained authority copy could not be downloaded.') ??
-          'The request could not be confirmed.',
-      );
+      setError(apiErrorSentence(failure, AUTHORITY_DOWNLOAD_FAILED, AUTHORITY_DOWNLOAD_FAILED));
     }
   };
   return { error, download };
@@ -118,7 +118,7 @@ export function useIssuePreparation({ commands }: { commands: Commands }) {
     setError('');
     const mapping = [{ address: chosen!.address, member: selectedMember }];
     const check = () => {
-      if (!mounted.current) throw new Error('This grant form is closed.');
+      if (!mounted.current) throw createUserFriendlyError('This grant form is closed.');
       if (kind === 'link') commands.guardLink('prepare', { mapping, nomination });
       else commands.guardIssue('prepare', { member: selectedMember, nomination, walletApproval: approval });
     };
@@ -140,7 +140,7 @@ export function useIssuePreparation({ commands }: { commands: Commands }) {
       const response = await uploadRegisterEvidence(apiClient, { ...request, file }, commands.config(check));
       check();
       if (!isRegisterEvidenceReceipt(response.data, request, file.size))
-        throw new Error('The exact evidence receipt could not be confirmed.');
+        throw createUserFriendlyError('The exact evidence receipt could not be confirmed.');
       uploads.current[slot] = { file, appointment, key, receipt: response.data };
       return response.data;
     };
@@ -179,8 +179,7 @@ export function useIssuePreparation({ commands }: { commands: Commands }) {
       }
     } catch (failure) {
       if (failureStatus(failure) === 409) uploads.current = {};
-      if (mounted.current)
-        setError(getErrorMessage(failure, 'The grant could not be prepared.') ?? 'The request could not be confirmed.');
+      if (mounted.current) setError(apiErrorSentence(failure, PREPARE_FAILED, PREPARE_FAILED));
     } finally {
       if (mounted.current) setBusy(null);
     }

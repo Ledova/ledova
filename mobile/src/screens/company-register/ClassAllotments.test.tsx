@@ -171,7 +171,9 @@ it('recovers the fully paid company allotment once, separates approval from ISSU
       const request = body as RegisterAllotmentDecideRequest;
       if (request.kind === 'approve' && staleApproval) {
         staleApproval = false;
-        throw Object.assign(new Error('The ownership snapshot changed. Preview again.'), { response: { status: 409 } });
+        throw Object.assign(new Error('Request failed with status code 409'), {
+          response: { status: 409, data: { detail: 'The ownership snapshot changed. Preview again.' } },
+        });
       }
       if (!rows[0].decisions.some((decision) => decision.idempotencyKey === request.idempotencyKey))
         rows = [allotmentDecision(rows[0], request)];

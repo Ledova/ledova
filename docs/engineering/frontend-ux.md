@@ -14,6 +14,7 @@ and [mobile](mobile.md); what each page does is in the business section.
 - [Choosing from a short fixed list](#choosing-from-a-short-fixed-list)
 - [Choosing from a bounded list](#choosing-from-a-bounded-list)
 - [How the choice rules are enforced](#how-the-choice-rules-are-enforced)
+- [Validation](#validation)
 
 ## Signed-in page conventions
 
@@ -306,6 +307,30 @@ An ESLint rule in `dashboard/eslint.config.js` refuses a `select` element writte
 source, apart from `SelectField` and the sign-up country code, and names the three controls. It
 does not see Headless UI's `Select`, which only sign-up's company type uses, or test files. Which
 control fits which list is checked in review against this page.
+
+## Validation
+
+This section covers what a page shows when the server refuses a request. Checking forms before they
+are sent is still to come ([#1179](https://github.com/Ledova/ledova/issues/1179)).
+
+- **Request errors.** A failed request reads as one `role="alert"` sentence from `apiErrorSentence`
+  (`packages/shared/src/utils/errors.ts`), never the transport's "Request failed with status code
+  400". The sentence is the server's own words, each field error included, or else the caller's
+  fallback, which names what failed ("The wallet could not be saved. Try again."). Callers pass
+  that fallback twice, so a failure that never reached the server shows its friendly message, such
+  as "Unable to connect to our servers…" or "Your signed-in account changed. Reopen company team.",
+  and any other local error shows the fallback, never its technical text. A message the client means
+  people to read is thrown with `createUserFriendlyError`. Sign-in and sign-up place field errors on
+  their fields with `readApiError`; other forms show them in the one sentence.
+- **Refusal codes.** The server names unmet requirements and refusals as codes. Each family's copy
+  map in `packages/shared/src/constants/business/` turns them into sentences: `refusalSentences`
+  for a preview's or record's list, `refusalSentence` for a refused request, with "Another
+  requirement is not met. Refresh before continuing." for a code the map lacks. `readApiError` never
+  reads a code list as a sentence, so a code never reaches the screen.
+- **Enforcement.** ESLint refuses `getErrorMessage` in the dashboard (`no-restricted-imports`) and in
+  the shared package (`no-restricted-syntax`), so neither reads an error's own message. Mobile still
+  uses `getErrorMessage`, so a field error can read "Request failed with status code 400" there
+  until [#1201](https://github.com/Ledova/ledova/issues/1201) moves it to these rules.
 
 Next: [frontend](frontend.md), [mobile](mobile.md) and
 [the register's person choice](../business/register.md#choosing-a-person).

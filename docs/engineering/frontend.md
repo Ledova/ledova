@@ -183,11 +183,10 @@ The [principles](README.md#principles) apply; in particular, do not add:
   sign-in, sign-up and `SIGNUP_STEPS`); source writes no literal path. Titles come from
   `signedInRoutes` ([routes, audiences and guards](#routes-audiences-and-guards)); a page sets
   `PageTitle` only for a hash view.
-- **Errors and waiting.** A failed request reads as a `role="alert"` sentence from
-  `apiErrorSentence`, or `readApiError` where a form marks fields
-  (`packages/shared/src/utils/errors.ts`). Read a status with `failureStatus`, never an inline cast,
-  and keep `getErrorMessage` for errors that are not API responses. A page's first read renders
-  `<Page loading>`; a failed read offers Try again ([lists](#lists-figures-and-currency)).
+- **Errors and waiting.** A failed request reads as a `role="alert"` sentence
+  ([validation](frontend-ux.md#validation)). Read a status with `failureStatus`, never an inline
+  cast. A page's first read renders `<Page loading>`; a failed read offers Try again
+  ([lists](#lists-figures-and-currency)).
 - **Formatting.** Figures, amounts and dates use the shared formatters (`formatMoney`,
   `formatShareCount`, `marketQuantity`, `formatCryptoBalance`, `formatDate`;
   [lists, figures and currency](#lists-figures-and-currency)). Never define a local formatter or

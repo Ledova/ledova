@@ -11,7 +11,8 @@ import { getRegisterPauseChanges, prepareRegisterPauseChange } from '../services
 import { readEveryPage } from '../utils/pagination';
 import { appointmentForRegisterStep, type RegisterStep } from '../utils/register-commands';
 import { isPreparedRegisterPauseChange } from '../utils/register-pause-changes';
-import { failureStatus, createUserFriendlyError, getErrorMessage } from '../utils/errors';
+import { failureStatus, createUserFriendlyError, apiErrorSentence, refusalSentence } from '../utils/errors';
+import { REGISTER_PAUSE_CHANGE_UNMET_COPY } from '../constants/business/register-pause-changes';
 import type {
   CompanyShareToken,
   OwnCompanyAppointment,
@@ -19,6 +20,9 @@ import type {
   RegisterPauseChangePreparation,
 } from '../types';
 import { useApiClient } from './useApiClient';
+
+const REFRESH_FAILED = 'Current pause records could not be refreshed.';
+const OUTCOME_UNCERTAIN = 'The outcome is uncertain. Recover the identical original request.';
 
 type Input = Omit<RegisterPauseChangePreparation, 'operationId' | 'appointment' | 'token'>;
 type Source = Pick<Input, 'paused' | 'reason' | 'authorityReference'> & { token: CompanyShareToken | undefined };
@@ -261,7 +265,7 @@ export function useCompanyPauseChanges(
       guard();
     } catch (failure) {
       if (mounted.current && boundary.get() === owner)
-        setError(getErrorMessage(failure, 'Current pause records could not be refreshed.'));
+        setError(apiErrorSentence(failure, REFRESH_FAILED, REFRESH_FAILED));
     }
   };
   const accept = async (record: RegisterPauseChange) => {
@@ -324,7 +328,10 @@ export function useCompanyPauseChanges(
       const status = failureStatus(cause);
       if (!dispatched || status === 400 || status === 409) setOriginal(null);
       if (mounted.current && boundary.get() === owner)
-        setError(getErrorMessage(failure, 'The outcome is uncertain. Recover the identical original request.'));
+        setError(
+          refusalSentence(failure, REGISTER_PAUSE_CHANGE_UNMET_COPY) ??
+            apiErrorSentence(failure, OUTCOME_UNCERTAIN, OUTCOME_UNCERTAIN),
+        );
     } finally {
       pending.current = false;
       if (mounted.current) setBusy(false);

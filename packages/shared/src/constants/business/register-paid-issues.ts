@@ -32,6 +32,8 @@ export const REGISTER_PAID_ISSUE_UNMET_COPY: Record<string, string> = {
   subscription_refunded: 'An actual refund changed this subscription before issue admission.',
   nothing_to_allot: 'The actual recorded allotment contains no shares.',
   insufficient_headroom: 'The exact allotment exceeds the offering or class headroom.',
+  provider_unavailable: 'The class supply could not be read from the chain. Try again shortly.',
+  wallet_source_changed: 'The original wallet or participant source changed.',
   imported_register: 'This imported register is not supported for this chain issue.',
   approving_director_conflict: 'The company must name a director other than the actual recipient.',
   evidence_unavailable: 'The retained company authority evidence is unavailable.',

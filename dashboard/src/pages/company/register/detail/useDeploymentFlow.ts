@@ -8,6 +8,7 @@ import {
   isPreparedRegisterDeployment,
   prepareRegisterDeployment,
   readEveryPage,
+  refusalSentence,
   REGISTER_DEPLOYMENT_UNMET_COPY,
   type CompanyShareToken,
   type OwnCompanyAppointment,
@@ -131,12 +132,9 @@ export function useDeploymentFlow({ uuid, data }: { uuid: string; data: ReturnTy
       const status = failureStatus(failure);
       if (status === 400 || status === 409) original.current = null;
       setUncertain(!!original.current);
-      const codes = (failure as { response?: { data?: { unmetRequirements?: string[] } } }).response?.data
-        ?.unmetRequirements;
       setError(
-        codes?.length
-          ? codes.map((code) => REGISTER_DEPLOYMENT_UNMET_COPY[code] ?? code).join(' ')
-          : apiErrorSentence(failure, COPY.PREPARE_FAILED, COPY.PREPARATION_RECEIPT_FAILED),
+        refusalSentence(failure, REGISTER_DEPLOYMENT_UNMET_COPY) ??
+          apiErrorSentence(failure, COPY.PREPARE_FAILED, COPY.PREPARATION_RECEIPT_FAILED),
       );
     } finally {
       pending.current = false;

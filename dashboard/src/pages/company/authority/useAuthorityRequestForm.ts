@@ -3,6 +3,7 @@ import {
   type CompanyAuthorityRequest,
   type CompanyCapability,
   type CompanyListItem,
+  createUserFriendlyError,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
 import { useMutation } from '@tanstack/react-query';
@@ -34,7 +35,7 @@ export function useAuthorityRequestForm({
   }, []);
   const check = () => {
     guard();
-    if (!active.current) throw new Error('The selected company changed. Reopen the request to continue.');
+    if (!active.current) throw createUserFriendlyError('The selected company changed. Reopen the request to continue.');
   };
   const submission = useMutation({
     mutationFn: async () => {

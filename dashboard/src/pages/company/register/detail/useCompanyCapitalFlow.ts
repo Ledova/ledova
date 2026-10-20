@@ -1,7 +1,6 @@
 import {
   downloadRegisterCapitalIncreaseFile,
   failureStatus,
-  getErrorMessage,
   isRegisterEvidenceReceipt,
   raisedSupply,
   requestShares,
@@ -9,10 +8,15 @@ import {
   useCompanyCapitalIncreases,
   type RegisterCapitalIncrease,
   type RegisterEvidence,
+  apiErrorSentence,
+  createUserFriendlyError,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
 import { saveFile } from '@utils/saveFile';
 import { useEffect, useRef, useState } from 'react';
+
+const DOWNLOAD_FAILED = 'The retained authority copy could not be downloaded.';
+const PREPARE_FAILED = 'The capital increase could not be prepared.';
 export type Commands = ReturnType<typeof useCompanyCapitalIncreases>;
 export function useCapitalRecord({ record, commands }: { record: RegisterCapitalIncrease; commands: Commands }) {
   const [error, setError] = useState('');
@@ -31,10 +35,7 @@ export function useCapitalRecord({ record, commands }: { record: RegisterCapital
       commands.guard();
       saveFile(response.data, `capital-authority-${record.uuid}`);
     } catch (failure) {
-      setError(
-        getErrorMessage(failure, 'The retained authority copy could not be downloaded.') ??
-          'The request could not be confirmed.',
-      );
+      setError(apiErrorSentence(failure, DOWNLOAD_FAILED, DOWNLOAD_FAILED));
     } finally {
       setBusy(false);
     }
@@ -78,7 +79,7 @@ export function useCapitalPreparation({ commands }: { commands: Commands }) {
     setBusy(true);
     setError('');
     const check = () => {
-      if (!mounted.current) throw new Error('This capital form is closed.');
+      if (!mounted.current) throw createUserFriendlyError('This capital form is closed.');
       commands.guardCapital('prepare', {
         priorAuthorizedTotal: before,
         additionalShares: additionalShares!,
@@ -98,7 +99,7 @@ export function useCapitalPreparation({ commands }: { commands: Commands }) {
         const response = await uploadRegisterEvidence(apiClient, { ...body, file: file! }, commands.config(check));
         check();
         if (!isRegisterEvidenceReceipt(response.data, body, file!.size))
-          throw new Error('The exact company authority receipt could not be confirmed.');
+          throw createUserFriendlyError('The exact company authority receipt could not be confirmed.');
         receipt = response.data;
         uploadRef.current = { file: file!, appointment, key, receipt };
       }
@@ -118,11 +119,7 @@ export function useCapitalPreparation({ commands }: { commands: Commands }) {
       if (failureStatus(failure) === 409) uploadRef.current = null;
       try {
         commands.guard();
-        if (mounted.current)
-          setError(
-            getErrorMessage(failure, 'The capital increase could not be prepared.') ??
-              'The request could not be confirmed.',
-          );
+        if (mounted.current) setError(apiErrorSentence(failure, PREPARE_FAILED, PREPARE_FAILED));
       } catch {
         return;
       }

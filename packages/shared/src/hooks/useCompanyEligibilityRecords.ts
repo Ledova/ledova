@@ -29,13 +29,18 @@ import type {
   InvestorClassification,
   OwnCompanyAppointment,
 } from '../types';
-import { createUserFriendlyError, failureStatus, getErrorMessage } from '../utils/errors';
+import { createUserFriendlyError, failureStatus, apiErrorSentence, refusalSentence } from '../utils/errors';
+import { COMPANY_ELIGIBILITY_UNMET_COPY } from '../constants/business/investor-eligibility';
 import { isUuid } from '../utils/validation';
 import { readEveryPage } from '../utils/pagination';
 import { useSubmissionOwner } from './useSubmissionOwner';
 import { USER_PREFERENCES_QUERY_KEY } from './useUserPreferences';
 import type { OrderSubmissionSession } from './useOrderSubmissions';
 import { useApiClient } from './useApiClient';
+
+const PREPARE_FAILED = 'The action could not be prepared. Refresh and try again.';
+const RESULT_UNCERTAIN =
+  'The result is uncertain. Retry this exact confirmation and key, or refresh its retained history.';
 
 export const ELIGIBILITY_RECORDS_NOTICE =
   'Each company decides eligibility for its own offerings and share classes. New actions recheck the current decision, evidence and exact scope.';
@@ -562,7 +567,7 @@ function useEligibilityRecords(
       setAction(target);
     } catch (failure) {
       if (mounted.current && ticket === generation.current)
-        setError(getErrorMessage(failure, 'The action could not be prepared. Refresh and try again.'));
+        setError(apiErrorSentence(failure, PREPARE_FAILED, PREPARE_FAILED));
     } finally {
       pending.current = false;
       if (mounted.current) setBusy(false);
@@ -690,10 +695,8 @@ function useEligibilityRecords(
       }
       if (mounted.current && boundary.get() === owner && command.generation === generation.current)
         setError(
-          getErrorMessage(
-            failure,
-            'The result is uncertain. Retry this exact confirmation and key, or refresh its retained history.',
-          ),
+          refusalSentence(failure, COMPANY_ELIGIBILITY_UNMET_COPY) ??
+            apiErrorSentence(failure, RESULT_UNCERTAIN, RESULT_UNCERTAIN),
         );
     } finally {
       pending.current = false;

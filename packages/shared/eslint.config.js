@@ -30,6 +30,20 @@ export default tseslint.config(
     },
   },
   {
+    files: ['src/**/*.ts'],
+    ignores: ['src/utils/errors.ts'],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: "CallExpression[callee.name='getErrorMessage']",
+          message:
+            'Read a failed request with apiErrorSentence or readApiError (docs/engineering/frontend-ux.md#validation).',
+        },
+      ],
+    },
+  },
+  {
     files: ['src/types/**/*.ts'],
     rules: {
       ...namingConventions.rules,

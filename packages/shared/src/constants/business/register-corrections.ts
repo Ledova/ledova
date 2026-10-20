@@ -11,6 +11,7 @@ export const REGISTER_CORRECTION_UNMET_COPY: Record<string, string> = {
   approval_lapsed: "The approver's appointment has ended. Approve this correction again before applying it.",
   evidence_unavailable:
     'The retained copy of the authority document no longer matches its record. Prepare a new correction.',
+  deployment_pending: 'A share-class deployment is pending. Wait for its outcome before applying this correction.',
   register_changed:
     'The register has a newer entry than the one this correction was prepared against. Reject it and prepare a new ' +
     'one against the current register.',

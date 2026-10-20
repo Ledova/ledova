@@ -89,6 +89,8 @@ const ANNOUNCEMENT_KEYS = ['detail', 'error', 'message'] as const;
 
 const KEYS_BELONGING_TO_NO_FIELD = ['nonFieldErrors', 'non_field_errors'] as const;
 
+const KEYS_HOLDING_CODES = ['unmetRequirements'] as const;
+
 const MARKUP = /<[a-z!/?][^<>]*>/i;
 
 function isSentence(value: unknown): value is string {
@@ -142,6 +144,7 @@ export function readApiError(error: unknown, options: ReadApiErrorOptions): ApiE
 
   for (const [key, value] of Object.entries(body)) {
     if ((ANNOUNCEMENT_KEYS as readonly string[]).includes(key)) continue;
+    if ((KEYS_HOLDING_CODES as readonly string[]).includes(key)) continue;
     const sentences = sentenceListOf(value);
     if (!sentences) continue;
     const noFieldWillRenderIt =
@@ -165,6 +168,30 @@ export function apiErrorSentence(error: unknown, fallback: string, unanswered?: 
   if (reading.fieldErrors)
     for (const sentences of Object.values(reading.fieldErrors)) everythingItSaid.push(...sentences);
   return everythingItSaid.length > 0 ? everythingItSaid.join(' ') : fallback;
+}
+
+const UNLISTED_REQUIREMENT = 'Another requirement is not met. Refresh before continuing.';
+
+export function refusalSentences(
+  codes: readonly unknown[],
+  copy: Readonly<Record<string, string>>,
+  otherwise = UNLISTED_REQUIREMENT,
+): string[] {
+  const sentenceFor = (code: unknown) => {
+    const key = String(code);
+    return (Object.prototype.hasOwnProperty.call(copy, key) && copy[key]) || otherwise;
+  };
+  return [...new Set(codes.map(sentenceFor))];
+}
+
+export function refusalSentence(
+  error: unknown,
+  copy: Readonly<Record<string, string>>,
+  otherwise?: string,
+): string | null {
+  const codes = (error as { response?: { data?: { unmetRequirements?: unknown } } } | null)?.response?.data
+    ?.unmetRequirements;
+  return Array.isArray(codes) && codes.length > 0 ? refusalSentences(codes, copy, otherwise).join(' ') : null;
 }
 
 export interface SignInErrorReading {

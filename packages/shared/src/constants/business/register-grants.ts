@@ -9,6 +9,12 @@ export const REGISTER_GRANT_UNMET_COPY: Record<string, string> = {
   award_chronology_changed:
     'The issue date is before a later accepted award event or known issue. Reject this preparation and prepare it again with the company’s correct date.',
   evidence_unavailable: 'A retained document no longer matches its record. Prepare a new grant.',
+  award_binding_required:
+    'This grant no longer matches its employee award. Reject it and prepare a new grant from the award.',
+  recorded_vested_quantity_required:
+    'The grant exceeds the award’s recorded vested shares not yet issued or ended. Record the vesting first, or ' +
+    'reject this grant.',
+  award_evidence_unavailable: 'A retained award agreement or event document no longer matches its record.',
   company_provided_evidence_required: 'This grant must retain evidence provided by the company.',
   imported_non_tokenised_register_required:
     'This grant requires an opened, imported register for a draft share class without a deployed contract.',

@@ -2,6 +2,7 @@ import { useEffect, useRef, useCallback, useState } from 'react';
 import { CheckCircleIcon, WarningCircleIcon, SpinnerGapIcon, ArrowSquareOutIcon } from '@phosphor-icons/react';
 import { AnimatedQRCode } from '@keystonehq/animated-qr';
 import {
+  apiErrorSentence,
   formatWalletAddressMedium,
   BLOCKCHAIN,
   getBlockExplorerTxUrl,
@@ -17,6 +18,8 @@ import type { Wallet, WalletTokenBalance, PreparedWalletTransfer } from '@ledova
 import { encodeEthereumTransaction } from '@utils/keystone/urEncoder';
 import { decodeKeystoneSignedTransaction } from '@utils/keystone/urDecoder';
 import { BitcoinSignStep } from './BitcoinSignStep';
+
+const BROADCAST_FAILED = 'The transaction could not be broadcast. Try again.';
 
 type TransferType = 'crypto' | 'stablecoin' | 'share_token';
 
@@ -194,7 +197,7 @@ export function TransferSigningFlow({
         setSigningStep('success');
         onSuccess?.(hash);
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to broadcast transaction');
+        setError(apiErrorSentence(err, BROADCAST_FAILED, BROADCAST_FAILED));
         setSigningStep('error');
       }
     },

@@ -6,8 +6,8 @@ import {
   SUBSCRIPTION_COPY,
   SUBSCRIPTION_SUBMITTABLE_STATUSES,
   SUBSCRIPTION_WITHDRAWABLE_STATUSES,
+  apiErrorSentence,
   formatMoney,
-  getErrorMessage,
 } from '@ledova/shared';
 import type { SubscriptionDetail } from '@ledova/shared';
 import { Row, Rows, Section, Status, Timeline, type TimelineEvent } from '@components/Ledger';
@@ -117,7 +117,8 @@ export default function SubscriptionDetailPage() {
   const canSubmit = SUBSCRIPTION_SUBMITTABLE_STATUSES.includes(subscription.status);
   const canWithdraw = SUBSCRIPTION_WITHDRAWABLE_STATUSES.includes(subscription.status) && !hasPayment;
   const busy = submit.isPending || withdraw.isPending || isRefreshing;
-  const message = getErrorMessage(submit.error ?? withdraw.error, ACTION_ERROR_FALLBACK);
+  const failure = submit.error ?? withdraw.error;
+  const message = failure ? apiErrorSentence(failure, ACTION_ERROR_FALLBACK, ACTION_ERROR_FALLBACK) : null;
   const next = NEXT[subscription.status];
 
   return (
