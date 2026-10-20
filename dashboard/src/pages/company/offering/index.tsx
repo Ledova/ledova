@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { OFFERING_STATUS_TONES } from '@pages/company/shared/statusTones';
-import { Row, Rows, Section, Status, SwitchRow } from '@components/Ledger';
+import { Outcome, Row, Rows, Section, Status, SwitchRow } from '@components/Ledger';
 import { Page, PageAction } from '@components/Page';
 import { Confirmation } from '@components/Modal';
 import {
@@ -117,6 +117,7 @@ function CompanyOfferings({ companyRead }: { companyRead: ReturnType<typeof useC
     listing,
     ready,
     run,
+    notice,
     pending,
   } = useCompanyOfferings({ companyRead });
   const [confirming, setConfirming] = useState<{ action: 'withdraw' | 'remove'; row: OfferingListItem } | null>(null);
@@ -153,6 +154,7 @@ function CompanyOfferings({ companyRead }: { companyRead: ReturnType<typeof useC
             {!data.error && (
               <>
                 <Section title={`Your offerings (${data.offerings.length})`}>
+                  {notice && <Outcome>{notice}</Outcome>}
                   {data.offerings.length === 0 ? (
                     <p className="text-sm text-text-muted">
                       You have no offerings yet. Create one and submit it for review.

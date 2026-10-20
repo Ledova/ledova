@@ -322,6 +322,7 @@ function UploadCard({ claims }: { claims: InvestorClassification[] }) {
               }}
               className="text-text-muted hover:text-text-primary p-1 flex-shrink-0"
               disabled={upload.isPending}
+              aria-label="Remove selected file"
             >
               <XCircleIcon size={20} />
             </button>

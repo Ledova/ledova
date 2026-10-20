@@ -8,6 +8,7 @@ and [mobile](mobile.md); what each page does is in the business section.
 
 - [Signed-in page conventions](#signed-in-page-conventions)
 - [Actions](#actions)
+- [Feedback](#feedback)
 - [Choosing a person](#choosing-a-person)
 - [Choosing a company](#choosing-a-company)
 - [Choosing a wallet or a paid subscription](#choosing-a-wallet-or-a-paid-subscription)
@@ -128,9 +129,32 @@ same destructive dialog with their own text. Company eligibility's request withd
 revocation are confirmed in their own review step instead, which shows the exact record and needs a
 confirming tick before its destructive action; Trading's order cancellation is confirmed by its
 signing steps. Reversible actions, such as signing out, turning a switch off or removing a row from
-an unsaved form, aren't confirmed. The dashboard uses no browser `confirm` or `alert` (ESLint's
-`no-alert`). Mobile doesn't follow this yet: some of these actions run at once there, and others
+an unsaved form, aren't confirmed. Dismissing a notification archives it at once. Register
+decisions, such as rejecting a proposal, and evidence forms, such as ending unissued rights, are
+confirmed by their own decision dialog or form. The dashboard uses no browser `confirm` or `alert`
+(ESLint's `no-alert`). Mobile doesn't follow this yet: some of these actions run at once there, and others
 confirm with native alerts.
+
+## Feedback
+
+`Outcome` (`dashboard/src/components/Ledger.tsx`) says what just happened in one line: a
+`role="status"` sentence in the primary text colour, after the mark `Status` uses for done. It sits
+under the change or on the record you land on, and stays until the next action replaces it; there
+are no toasts. It names the record rather than its identifier; team invitations, appointments and
+authority requests show their identifier in their own details. It reports:
+
+- a changed password, saved personal details, and an offering submitted for review, withdrawn or
+  deleted;
+- the downloaded unsigned certificate, inspection copy and company pack;
+- a recorded team invitation, an accepted invitation and a representative authority request;
+- member access's recorded invitation, certificate fulfilment and particulars instruction;
+- a placed or recovered order with its share class, above Trading's orders, until another order
+  action or a class change starts.
+
+Other signing flows and identity verification show their result in their own dialog, sign-in and
+sign-up keep their boxed outcomes, and the payment instruction's copy buttons confirm with Copied
+beside them. Register forms and preparations don't use it. Mobile still reports success with native alerts and its success
+dialog.
 
 ## Choosing a person
 
