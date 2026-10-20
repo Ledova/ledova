@@ -3,12 +3,15 @@ import { useOpeningPreparation, type OpeningFormProps, COPY } from './useOpening
 import { type RegisterCorrectionAuthority } from '@ledova/shared';
 import { PageAction } from '@components/Page';
 import { FIELD_CLASS, LABEL } from '@components/fieldClass';
+import { SearchSelect } from '@components/SearchSelect';
 
 import { shareCount } from '@pages/company/shared/proposals';
 
 const EVIDENCE = 'application/pdf,image/png,image/jpeg';
 
 const AUTHORITIES = Object.entries(COPY.AUTHORITIES) as [RegisterCorrectionAuthority, string][];
+
+const MEMBERS = ['member', 'members'] as const;
 
 export function OpeningForm({
   owner,
@@ -38,6 +41,7 @@ export function OpeningForm({
     choose,
     submit,
   } = useOpeningPreparation({ owner, guard, company, token, holders, appointment, blocked, onConflict, onMissing });
+  const memberChoices = [...labels].map(([value, label]) => ({ value, label }));
 
   return (
     <form
@@ -132,20 +136,13 @@ export function OpeningForm({
                   <p className="text-sm text-text-muted">{COPY.LINKED_NOTE}</p>
                 </>
               ) : (
-                <label className={LABEL}>
-                  {COPY.MEMBER}
-                  <select
-                    value={memberOf(holding)}
-                    className={FIELD_CLASS}
-                    onChange={(event) => choose(holding, event.target.value)}
-                  >
-                    {[...labels].map(([value, label]) => (
-                      <option key={value} value={value}>
-                        {label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                <SearchSelect
+                  label={COPY.MEMBER}
+                  choices={memberChoices}
+                  value={memberOf(holding)}
+                  onChange={(value) => choose(holding, value)}
+                  noun={MEMBERS}
+                />
               )}
             </fieldset>
           ))}

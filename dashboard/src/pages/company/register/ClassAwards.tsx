@@ -7,12 +7,13 @@ import {
   type OrderSubmissionOwner,
   type OwnCompanyAppointment,
   type TokenHoldersResponse,
+  peopleFrom,
 } from '@ledova/shared';
 import { PageAction } from '@components/Page';
 import { AwardForm } from './AwardForm';
 import { AwardRecord } from './AwardRecord';
 import { useOwnAppointments } from '@hooks/useOwnAppointments';
-import { allPeopleKey, peopleFrom, usePeople } from '@pages/company/register/shared/usePeople';
+import { allPeopleKey, usePeople } from '@pages/company/register/shared/usePeople';
 import { useRegisterAwards } from '@pages/company/register/shared/useRegisterAwards';
 
 export function ClassAwards({

@@ -9,6 +9,7 @@ import {
   type OrderSubmissionOwner,
   type OwnCompanyAppointment,
   type TokenHoldersResponse,
+  peopleFrom,
 } from '@ledova/shared';
 import { useQueryClient } from '@tanstack/react-query';
 import { registerSteps } from '@pages/company/shared/proposals';
@@ -18,7 +19,7 @@ import { LinkRow } from '@components/Ledger';
 import { AllotmentForm } from './AllotmentForm';
 import { AllotmentRecord } from './AllotmentRecord';
 import { useOwnAppointments, ownAppointmentsKey } from '@hooks/useOwnAppointments';
-import { allPeopleKey, peopleFrom, usePeople } from '@pages/company/register/shared/usePeople';
+import { allPeopleKey, usePeople } from '@pages/company/register/shared/usePeople';
 import { allotmentsKey, useRegisterAllotments } from './useRegisterAllotments';
 
 export function ClassAllotments({

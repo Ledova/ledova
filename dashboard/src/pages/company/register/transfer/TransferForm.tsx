@@ -1,11 +1,10 @@
 import { useTransferPreparation, type TransferFormProps } from './useTransferPreparation';
 
-import { REGISTER_TRANSFER_COPY as COPY } from '@ledova/shared';
+import { REGISTER_TRANSFER_COPY as COPY, type Person } from '@ledova/shared';
 import { PageAction } from '@components/Page';
 import { FIELD_CLASS, LABEL } from '@components/fieldClass';
 import { formatShareCount } from '@ledova/shared';
 import { PersonFields, PersonSelect } from '@pages/company/register/shared/PersonPicker';
-import type { Person } from '@pages/company/register/shared/usePeople';
 
 function inClass(person: Person) {
   return person.awardOnly ? '' : `${formatShareCount(person.currentShares)} shares in this class`;
@@ -64,7 +63,6 @@ export function TransferForm({
           value={draft.fromMember}
           onChange={(value) => change('fromMember', value)}
           allowNew={false}
-          placeholder="Choose the transferor"
           context={inClass}
         />
         <PersonSelect

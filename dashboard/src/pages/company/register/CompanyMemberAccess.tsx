@@ -49,6 +49,7 @@ export function CompanyMemberAccess({
     refresh,
     prepare,
   } = useCompanyMemberRequests({ company, owner, guard, registers, sourceReady, inviteMember, onHeldChange });
+  const candidateOf = new Map(candidates.map((candidate) => [candidate.uuid, candidate]));
   const invite = useRef<HTMLHeadingElement>(null);
   const shown = !!inviteMember && member?.uuid === inviteMember;
   useEffect(() => {
@@ -98,10 +99,9 @@ export function CompanyMemberAccess({
             value={member?.uuid ?? ''}
             onChange={(value) => setInvitation({ company, member: value, email })}
             allowNew={false}
-            placeholder="Select a member"
             disabled={held || !recipientsReady}
             context={(person) => {
-              const candidate = candidates.find(({ uuid }) => uuid === person.member);
+              const candidate = candidateOf.get(person.member);
               return candidate
                 ? [candidate.classes.join(', '), ...(person.awardOnly ? [] : [candidate.sources.join(', ')])].join(
                     ' · ',
