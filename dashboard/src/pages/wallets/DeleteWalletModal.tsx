@@ -31,17 +31,17 @@ export function DeleteWalletModal({
   return (
     <Modal
       isOpen={isOpen}
-      onClose={() => {
-        if (!isDeleting) onClose();
-      }}
+      onClose={onClose}
       title="Delete Wallet"
       showFooter
-      confirmLabel="Delete"
+      confirmLabel="Delete wallet"
+      destructive
       onConfirm={() => {
         if (!isDeleting && !readBlocked) onConfirm();
       }}
       confirmDisabled={readBlocked}
-      confirmLoading={isDeleting}
+      busy={isDeleting}
+      busyLabel="Deleting wallet…"
     >
       <div className="space-y-2">
         {notice}

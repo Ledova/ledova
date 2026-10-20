@@ -1,5 +1,6 @@
 import { SelectField } from '@components/SelectField';
 import { PageAction } from '@components/Page';
+import { Confirmation } from '@components/Modal';
 import { Choices } from '@components/Choices';
 import { DESTINATIONS } from '@ledova/shared';
 import { useRef, useState } from 'react';
@@ -177,10 +178,7 @@ function DocumentCard({ initialDoc, claims }: { initialDoc: Document; claims: In
   const attach = useAttachDocument();
   const [classification, setClassification] = useState('');
 
-  const handleDelete = () => {
-    if (!window.confirm(`Delete "${doc.originalFilename}"? This cannot be undone.`)) return;
-    del.mutate(doc.uuid);
-  };
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
 
   return (
     <div className="border-t border-border-subtle pt-3">
@@ -196,7 +194,7 @@ function DocumentCard({ initialDoc, claims }: { initialDoc: Document; claims: In
         {!doc.classification && (
           <button
             type="button"
-            onClick={handleDelete}
+            onClick={() => setConfirmingDelete(true)}
             disabled={del.isPending}
             title="Delete document"
             className="p-1.5 text-text-muted hover:text-error-light transition-colors disabled:opacity-50 flex-shrink-0"
@@ -238,6 +236,19 @@ function DocumentCard({ initialDoc, claims }: { initialDoc: Document; claims: In
           {apiErrorSentence(attach.error || del.error, 'The document could not be updated.')}
         </p>
       )}
+      {confirmingDelete && (
+        <Confirmation
+          isOpen
+          title="Delete this document?"
+          confirmLabel="Delete document"
+          busy={del.isPending}
+          busyLabel="Deleting…"
+          onClose={() => setConfirmingDelete(false)}
+          onConfirm={() => del.mutate(doc.uuid, { onSettled: () => setConfirmingDelete(false) })}
+        >
+          {doc.originalFilename} is deleted. This can&apos;t be undone.
+        </Confirmation>
+      )}
 
       {extraction?.status === 'succeeded' &&
         extraction.parsedJson !== null &&
@@ -264,12 +275,12 @@ function UploadCard({ claims }: { claims: InvestorClassification[] }) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const upload = useUploadDocument();
 
+  const [tooLarge, setTooLarge] = useState(false);
   const handleSubmit = async () => {
     if (!file) return;
-    if (file.size > MAX_FILE_MB * 1024 * 1024) {
-      alert(`File too large. Max ${MAX_FILE_MB} MB.`);
-      return;
-    }
+    const oversized = file.size > MAX_FILE_MB * 1024 * 1024;
+    setTooLarge(oversized);
+    if (oversized) return;
     upload.mutate(
       { file, documentType, note, classification: classification || undefined },
       {
@@ -305,7 +316,10 @@ function UploadCard({ claims }: { claims: InvestorClassification[] }) {
             </div>
             <button
               type="button"
-              onClick={() => setFile(null)}
+              onClick={() => {
+                setFile(null);
+                setTooLarge(false);
+              }}
               className="text-text-muted hover:text-text-primary p-1 flex-shrink-0"
               disabled={upload.isPending}
             >
@@ -355,9 +369,17 @@ function UploadCard({ claims }: { claims: InvestorClassification[] }) {
         ref={fileInputRef}
         type="file"
         accept="application/pdf,image/png,image/jpeg,image/jpg"
-        onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+        onChange={(e) => {
+          setTooLarge(false);
+          setFile(e.target.files?.[0] ?? null);
+        }}
         className="hidden"
       />
+      {tooLarge && (
+        <p role="alert" className="text-sm text-error-light">
+          The file is larger than {MAX_FILE_MB} MB. Choose a smaller file.
+        </p>
+      )}
       {upload.error && (
         <p role="alert" className="text-sm text-error-light">
           {apiErrorSentence(upload.error, 'The payslip could not be uploaded.')}

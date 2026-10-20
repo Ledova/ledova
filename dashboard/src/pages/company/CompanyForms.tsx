@@ -14,17 +14,16 @@ export function EditCompanyForm(props: FormProps) {
       size="lg"
       showFooter
       confirmLabel="Save changes"
-      confirmLoading={save.isPending}
-      confirmDisabled={!valid || save.isPending}
+      busy={save.isPending}
+      busyLabel="Saving changes…"
+      confirmDisabled={!valid}
       onConfirm={() => {
         if (valid && !pendingRef.current) {
           pendingRef.current = true;
           save.mutate();
         }
       }}
-      onClose={() => {
-        if (!save.isPending) onClose();
-      }}
+      onClose={onClose}
     >
       <fieldset disabled={save.isPending} className="space-y-4">
         <CompanyReadNotice read={read} />

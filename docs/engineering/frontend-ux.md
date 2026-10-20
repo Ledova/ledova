@@ -70,7 +70,11 @@ A dialog (`Modal` in `dashboard/src/components/Modal.tsx`; `CustomModal` in
 `mobile/src/components/modal`) is the same card over the dimmed page, labelled by its Newsreader
 title (on mobile a header with `accessibilityViewIsModal`, since React Native cannot make it the
 accessible name). Its body scrolls inside, and `ModalActions` ends it with one right-aligned,
-wrapping row of content-width actions: a plain Cancel, Close or Back, then the one primary action.
+wrapping row of content-width actions: a plain Cancel, Close or Back, then the one primary action,
+which is destructive in a confirmation. On the web Escape and the backdrop close it. A dialog whose
+confirm action starts a request passes `busy` and `busyLabel`, so the action names its work while
+Escape, the backdrop and Cancel wait for the request to end. A form in its body can use the confirm
+action as its submit button (`formId`, as Change password does), so Enter in a field submits it.
 On mobile the backdrop closes it; a busy dialog holds the backdrop, Android Back and Cancel.
 
 Inside cards and dialogs nothing is boxed: fields share the card's surface with a hairline border
@@ -91,7 +95,8 @@ authorises.
 ## Actions
 
 `PageAction` (`dashboard/src/components/Page.tsx`) is the standard action on a signed-in page. It
-looks plain, primary (the one main action of its card or form) or pressed, and comes in four forms:
+looks plain, primary (the one main action of its card or form), destructive (the confirm action of a
+confirmation) or pressed, and comes in four forms:
 
 - **A button** runs its action on click.
 - **A submit button** (`type="submit"`) ends every page form, inside `FormActions`: a rule, then one
@@ -110,6 +115,22 @@ to a claim. Other page actions that start a request keep their label while it ru
 register setup's Import placeholder, the payslip upload area and Trading keep their own controls,
 and dialog footers use the same order as `FormActions`. Mobile's `Action` has no busy or pressed
 form yet.
+
+An action that deletes, withdraws or revokes something saved asks first, in a dialog that names the
+consequence, with Cancel and a destructive action that repeats the verb, such as "Withdraw
+offering" or "Revoke access". `Confirmation` (`dashboard/src/components/Modal.tsx`) is that dialog:
+its text is the dialog's description, its action needs whatever enabled the action that opened it,
+and it stays open and busy until the request ends. It confirms withdrawing an offering, an
+application, a claim, a certificate request or a representative authority request; deleting a draft
+offering or a profile document; revoking member access; and removing a saved order reminder.
+Deleting a wallet, a company document or the account, and revoking a company appointment, use the
+same destructive dialog with their own text. Company eligibility's request withdrawal and acceptance
+revocation are confirmed in their own review step instead, which shows the exact record and needs a
+confirming tick before its destructive action; Trading's order cancellation is confirmed by its
+signing steps. Reversible actions, such as signing out, turning a switch off or removing a row from
+an unsaved form, aren't confirmed. The dashboard uses no browser `confirm` or `alert` (ESLint's
+`no-alert`). Mobile doesn't follow this yet: some of these actions run at once there, and others
+confirm with native alerts.
 
 ## Choosing a person
 

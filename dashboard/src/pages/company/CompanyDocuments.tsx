@@ -148,8 +148,10 @@ export function CompanyDocuments({
           title="Remove company document?"
           showFooter
           confirmLabel="Remove document"
+          destructive
           confirmDisabled={!ready}
-          confirmLoading={remove.isPending}
+          busy={remove.isPending}
+          busyLabel="Removing document…"
           onClose={() => {
             if (!pendingRef.current) {
               confirmationRef.current = null;

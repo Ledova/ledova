@@ -11,7 +11,7 @@ import {
 } from '@ledova/shared';
 import { PageAction } from '@components/Page';
 import { Row, Rows, Status } from '@components/Ledger';
-import { Modal } from '@components/Modal';
+import { Confirmation, Modal } from '@components/Modal';
 import { SITE_URL } from '@utils/siteUrl';
 
 function scopeLabels(values: CompanyCapability[]) {
@@ -37,11 +37,12 @@ export function AuthorityRequestRecord({
   opening: boolean;
   action?: 'withdraw' | 'admit' | 'revoke';
   onDownload: () => void;
-  onWithdraw: () => void;
+  onWithdraw: () => Promise<unknown>;
   onAdmit: () => void;
-  onRevoke: () => void;
+  onRevoke: () => Promise<unknown>;
 }) {
   const [accepted, setAccepted] = useState(false);
+  const [confirmingWithdrawal, setConfirmingWithdrawal] = useState(false);
   const [confirmingRevocation, setConfirmingRevocation] = useState<symbol | null>(null);
   const revocationConfirmation = useRef<symbol | null>(null);
   const appointment = request.appointment;
@@ -125,8 +126,27 @@ export function AuthorityRequestRecord({
           <PageAction
             label={`${action === 'withdraw' ? 'Withdrawing' : 'Withdraw'} request ${request.originalFilename || request.companyIdentityRaw.name}`}
             disabled={blocked}
-            onClick={onWithdraw}
+            onClick={() => setConfirmingWithdrawal(true)}
           />
+          {confirmingWithdrawal && (
+            <Confirmation
+              isOpen
+              title="Withdraw this authority request?"
+              confirmLabel="Withdraw request"
+              confirmDisabled={blocked}
+              busy={action === 'withdraw'}
+              busyLabel="Withdrawing…"
+              onClose={() => setConfirmingWithdrawal(false)}
+              onConfirm={() =>
+                void onWithdraw()
+                  .catch(() => undefined)
+                  .finally(() => setConfirmingWithdrawal(false))
+              }
+            >
+              Your request for {request.companyIdentityRaw.name} is retired and can&apos;t be admitted. Its evidence is
+              retained.
+            </Confirmation>
+          )}
         </>
       )}
       {appointment && (
@@ -178,6 +198,9 @@ export function AuthorityRequestRecord({
             title="Revoke appointment permanently?"
             showFooter
             confirmLabel="Permanently revoke appointment"
+            destructive
+            busy={action === 'revoke'}
+            busyLabel="Revoking…"
             confirmDisabled={!confirmingRevocation || blocked || appointment.status === 'revoked'}
             onConfirm={() => {
               if (
@@ -187,8 +210,9 @@ export function AuthorityRequestRecord({
                 appointment.status === 'revoked'
               )
                 return;
-              closeRevocationConfirmation();
-              onRevoke();
+              void onRevoke()
+                .catch(() => undefined)
+                .finally(closeRevocationConfirmation);
             }}
           >
             <p className="text-sm text-text-primary">

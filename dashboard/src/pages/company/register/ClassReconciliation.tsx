@@ -132,9 +132,7 @@ export function ClassReconciliation({
     setAttempted(false);
     setOpen({ record: record.uuid, index, appointment: acknowledger.uuid });
   };
-  const close = () => {
-    if (!acknowledgement.busy) setOpen(null);
-  };
+  const close = () => setOpen(null);
   if (
     !visible ||
     (reconciliation.isSuccess &&
@@ -233,7 +231,8 @@ export function ClassReconciliation({
           title={TITLE}
           showFooter
           confirmLabel={TITLE}
-          confirmLoading={acknowledgement.busy}
+          busy={acknowledgement.busy}
+          busyLabel="Recording acknowledgement…"
           confirmDisabled={!ready}
           onConfirm={() => {
             if (!ready || !open) return;

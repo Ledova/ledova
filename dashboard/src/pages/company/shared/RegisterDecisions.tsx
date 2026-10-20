@@ -92,7 +92,6 @@ export function RegisterDecisions<Shown extends Proposal, Previewed extends Prev
     void decisions[kind].open(kind);
   };
   const close = () => {
-    if (decision?.busy) return;
     decision?.cancel();
     setActive(null);
   };
@@ -139,7 +138,8 @@ export function RegisterDecisions<Shown extends Proposal, Previewed extends Prev
         title={title}
         showFooter
         confirmLabel={active ? title : 'Confirm'}
-        confirmLoading={!!decision?.busy}
+        busy={!!decision?.busy}
+        busyLabel="Recording decision…"
         confirmDisabled={!ready}
         onConfirm={() => {
           if (ready && decision) void (decision.recovery ? decision.recover() : decision.confirm());

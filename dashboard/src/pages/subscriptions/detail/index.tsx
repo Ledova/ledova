@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { marketQuantity } from '@ledova/shared';
 import { useParams } from 'react-router-dom';
 import {
@@ -11,6 +12,7 @@ import {
 import type { SubscriptionDetail } from '@ledova/shared';
 import { Row, Rows, Section, Status, Timeline, type TimelineEvent } from '@components/Ledger';
 import { Page, PageAction, PageLink } from '@components/Page';
+import { Confirmation } from '@components/Modal';
 import { PaymentInstructionCard } from './PaymentInstructionCard';
 import { useSubscription } from './useSubscription';
 import { applicationState } from '@pages/subscriptions/shared/presentation';
@@ -82,6 +84,7 @@ function Summary({ subscription }: { subscription: SubscriptionDetail }) {
 export default function SubscriptionDetailPage() {
   const { uuid } = useParams<{ uuid: string }>();
   const { subscription, isLoading, notFound, hasError, isRefreshing, retry, submit, withdraw } = useSubscription(uuid);
+  const [confirmingWithdraw, setConfirmingWithdraw] = useState(false);
 
   if (isLoading) {
     return <Page narrow loading />;
@@ -128,7 +131,7 @@ export default function SubscriptionDetailPage() {
                 label="Withdraw"
                 busy={withdraw.isPending}
                 busyLabel="Withdrawing…"
-                onClick={() => withdraw.mutate('Withdrawn by the investor')}
+                onClick={() => setConfirmingWithdraw(true)}
                 disabled={busy}
               />
             )}
@@ -172,6 +175,21 @@ export default function SubscriptionDetailPage() {
           <p className="text-sm text-text-muted">{SUBSCRIPTION_COPY.MONEY_IN_HELP}</p>
         )}
       </Section>
+      <Confirmation
+        isOpen={confirmingWithdraw && canWithdraw}
+        title="Withdraw this application?"
+        confirmLabel="Withdraw application"
+        confirmDisabled={busy}
+        busy={withdraw.isPending}
+        busyLabel="Withdrawing…"
+        onClose={() => setConfirmingWithdraw(false)}
+        onConfirm={() =>
+          withdraw.mutate('Withdrawn by the investor', { onSettled: () => setConfirmingWithdraw(false) })
+        }
+      >
+        Your application for {subscription.tokenName} shares in {subscription.companyName} ends. This can&apos;t be
+        undone.
+      </Confirmation>
     </Page>
   );
 }

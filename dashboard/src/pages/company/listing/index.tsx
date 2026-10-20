@@ -124,7 +124,8 @@ function ActivationConfirmation({ action }: { action: ReturnType<typeof useCompa
       title="Activate company"
       showFooter
       confirmLabel="Confirm activation"
-      confirmLoading={action.busy}
+      busy={action.busy}
+      busyLabel="Activating…"
       confirmDisabled={!accepted}
       onClose={action.cancel}
       onConfirm={() => {

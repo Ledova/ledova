@@ -116,9 +116,10 @@ export function PlaceOrderPanel({
         title={`${isBuy ? 'Buy' : 'Sell'} ${token.symbol}`}
         size="md"
         showFooter
-        confirmLabel={isSubmitting ? 'Placing...' : `Place ${isBuy ? 'Buy' : 'Sell'} Order`}
+        confirmLabel={`Place ${isBuy ? 'Buy' : 'Sell'} Order`}
         confirmDisabled={isConfirmDisabled}
-        confirmLoading={isSubmitting}
+        busy={isSubmitting}
+        busyLabel="Placing order…"
         onConfirm={() => formRef.current?.submit()}
       >
         <div className="space-y-4">

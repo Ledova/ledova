@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { AnimatedQRCode } from '@keystonehq/animated-qr';
 import { marketAmount, useOrderActionSigning, type OrderAction, type Wallet } from '@ledova/shared';
-import { Modal, ModalActions } from '@components/Modal';
+import { Confirmation, Modal, ModalActions } from '@components/Modal';
 import { PageAction } from '@components/Page';
 import { SeedPhraseInput } from '@components/SeedPhraseInput';
 import { QRCodeFrame, QRScannerView, useQRScanner } from '@components/qr';
@@ -18,6 +18,7 @@ interface Props {
 
 export function OrderActionFlow({ action, wallets, onClose }: Props) {
   const [seedPhrase, setSeedPhrase] = useState('');
+  const [removal, setRemoval] = useState<'confirming' | 'removing' | null>(null);
   const signing = useOrderActionSigning(action, wallets, (message, wallet) => {
     const encoded = encodeEthereumTypedData(
       wallet.address,
@@ -215,7 +216,7 @@ export function OrderActionFlow({ action, wallets, onClose }: Props) {
             />
           )}
           {state.phase === 'error' && state.canRemoveReminder && (
-            <PageAction label="Remove saved reminder" onClick={() => void action.removeReminder()} />
+            <PageAction label="Remove saved reminder" onClick={() => setRemoval('confirming')} />
           )}
           {state.phase === 'error' && (
             <PageAction
@@ -247,6 +248,24 @@ export function OrderActionFlow({ action, wallets, onClose }: Props) {
             <PageAction label="I've signed it" primary onClick={signing.scan} />
           )}
         </ModalActions>
+        {removal && (
+          <Confirmation
+            isOpen
+            title="Remove this saved reminder?"
+            confirmLabel="Remove reminder"
+            confirmDisabled={state.phase !== 'error' || !state.canRemoveReminder}
+            busy={removal === 'removing'}
+            busyLabel="Removing…"
+            onClose={() => setRemoval(null)}
+            onConfirm={() => {
+              setRemoval('removing');
+              void action.removeReminder().finally(() => setRemoval(null));
+            }}
+          >
+            The reminder is removed from this browser and can&apos;t be restored. It doesn&apos;t cancel an action you
+            already submitted.
+          </Confirmation>
+        )}
       </div>
     </Modal>
   );

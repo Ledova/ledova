@@ -56,6 +56,7 @@ export default tseslint.config(
     ignores: ['src/**/*.test.{ts,tsx}'],
     rules: {
       'no-restricted-globals': ['error', ...NODE_GLOBALS_THE_BROWSER_LACKS],
+      'no-alert': 'error',
     },
   },
   {

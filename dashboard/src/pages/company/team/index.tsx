@@ -55,6 +55,7 @@ function OwnTeam({
     canAdmin,
     team,
     disabled,
+    revoking,
     close,
     canRevoke,
     confirm,
@@ -235,6 +236,9 @@ function OwnTeam({
         title="Revoke appointment permanently?"
         showFooter
         confirmLabel="Permanently revoke appointment"
+        destructive
+        busy={revoking}
+        busyLabel="Revoking…"
         confirmDisabled={!confirmation || disabled || !canRevoke(confirmation.appointment)}
         onConfirm={() => {
           if (
@@ -244,9 +248,7 @@ function OwnTeam({
             !canRevoke(confirmation.appointment)
           )
             return;
-          const target = confirmation.appointment;
-          close();
-          void revoke(target);
+          void revoke(confirmation.appointment).finally(close);
         }}
       >
         <p className="text-sm text-text-primary">

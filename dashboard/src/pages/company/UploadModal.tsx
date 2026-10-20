@@ -35,17 +35,16 @@ export function UploadModal({
       title={`Upload ${label}`}
       showFooter
       confirmLabel="Upload"
-      confirmLoading={upload.isPending}
-      confirmDisabled={!valid || upload.isPending}
+      busy={upload.isPending}
+      busyLabel="Uploading…"
+      confirmDisabled={!valid}
       onConfirm={() => {
         if (valid && !pendingRef.current) {
           pendingRef.current = true;
           upload.mutate();
         }
       }}
-      onClose={() => {
-        if (!upload.isPending) onClose();
-      }}
+      onClose={onClose}
     >
       <fieldset disabled={upload.isPending} className="space-y-4">
         <CompanyReadNotice read={read} />

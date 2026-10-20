@@ -64,17 +64,17 @@ export function ClaimModal({
     <Modal
       isOpen={isOpen}
       onClose={() => {
-        if (isSubmitting) return;
         reset();
         onClose();
       }}
       title={spec ? `Claim: ${spec.label}` : 'Claim'}
       size="lg"
       showFooter
-      confirmLabel={isSubmitting ? 'Submitting...' : 'Save private evidence'}
+      confirmLabel="Save private evidence"
       onConfirm={handleSubmit}
-      confirmDisabled={!isComplete || isSubmitting}
-      confirmLoading={isSubmitting}
+      confirmDisabled={!isComplete}
+      busy={isSubmitting}
+      busyLabel="Saving…"
     >
       <div className="space-y-4">
         {submissionBlockedReason && (

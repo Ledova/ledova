@@ -175,9 +175,7 @@ function WalletsPage() {
         error={createError}
         readBlocked={readBlocked}
         notice={readNotice}
-        onClose={() => {
-          if (!isCreating) setShowAddModal(false);
-        }}
+        onClose={() => setShowAddModal(false)}
         onSubmit={handleAddWalletSubmit}
         onBatchSubmit={handleBatchSubmit}
       />
@@ -186,9 +184,7 @@ function WalletsPage() {
         key={editingWallet?.uuid}
         wallet={editingWallet}
         isOpen={!!editingWallet}
-        onClose={() => {
-          if (!isUpdating) setEditingWallet(null);
-        }}
+        onClose={() => setEditingWallet(null)}
         onSave={handleSaveWallet}
         isUpdating={isUpdating}
         error={updateError}
@@ -204,9 +200,7 @@ function WalletsPage() {
         readBlocked={readBlocked}
         notice={readNotice}
         onConfirm={handleConfirmDelete}
-        onClose={() => {
-          if (!isDeleting) setDeletingWallet(null);
-        }}
+        onClose={() => setDeletingWallet(null)}
       />
 
       <WalletVerificationModal

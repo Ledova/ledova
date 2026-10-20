@@ -122,5 +122,6 @@ export function useCompanyOfferings({ companyRead }: { companyRead: ReturnType<t
     listing,
     ready,
     run,
+    pending: actions.withdraw.isPending ? 'withdraw' : actions.remove.isPending ? 'remove' : null,
   };
 }
