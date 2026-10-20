@@ -70,8 +70,8 @@ function RegisterPage({
       ? 'Employee awards'
       : hash === '#documents'
         ? 'Documents'
-        : hash === '#access'
-          ? 'Member access'
+        : hash === '#shareholders'
+          ? 'Shareholders'
           : 'Register';
   return (
     <PageTitle.Provider value={title}>
@@ -81,9 +81,9 @@ function RegisterPage({
             ? 'Record employee entitlements and vesting. Shares are issued through a separate company decision.'
             : hash === '#documents'
               ? 'Prepare permitted register copies, certificates and company packs.'
-              : hash === '#access'
-                ? 'Invite named members and manage their access to company records.'
-                : 'Company-recorded ownership and share issue decisions.'
+              : hash === '#shareholders'
+                ? 'Who holds shares, what they hold in each class, and their access to their own records.'
+                : 'Share classes, share issues, transfers and the history of recorded changes.'
         }
       >
         {selection}
@@ -302,7 +302,13 @@ function OwnRegister({
     selectCompany,
   ]);
   const view =
-    hash === '#awards' ? 'awards' : hash === '#documents' ? 'documents' : hash === '#access' ? 'access' : 'register';
+    hash === '#awards'
+      ? 'awards'
+      : hash === '#documents'
+        ? 'documents'
+        : hash === '#shareholders'
+          ? 'shareholders'
+          : 'register';
   const requestedToken =
     scope && scope.company.uuid === registerCompany && scope.registers.some(({ token }) => token.uuid === registerToken)
       ? registerToken
@@ -347,7 +353,7 @@ function OwnRegister({
       focusedContext.current === location.key ||
       held ||
       !sourceReady ||
-      view === 'access' ||
+      view === 'shareholders' ||
       !registerToken ||
       scope?.company.uuid !== registerCompany ||
       !scope.registers.some(({ token }) => token.uuid === registerToken)
@@ -387,7 +393,7 @@ function OwnRegister({
       sections={
         scope && (
           <>
-            <div hidden={view !== 'access'}>
+            <div hidden={view !== 'shareholders'}>
               <CompanyMemberAccess
                 key={`members/${scope.company.uuid}`}
                 owner={owner}
@@ -444,40 +450,41 @@ function OwnRegister({
       ) : registers.isPending ? (
         <Loading />
       ) : null}
+      {scope && (view === 'register' || view === 'shareholders') && ownershipInvalid && (
+        <Unavailable
+          retry={() => {
+            void classes.refetch();
+            void registers.refetch();
+          }}
+          busy={classes.isFetching || registers.isFetching}
+        />
+      )}
+      {scope && view === 'shareholders' && ownershipReady && (
+        <RegisterShareholders
+          key={scope.company.uuid}
+          owner={owner}
+          guard={guard}
+          company={scope.company.uuid}
+          registers={scope.registers}
+        />
+      )}
       {scope && view === 'register' && (
         <>
-          {ownershipInvalid ? (
-            <Unavailable
-              retry={() => {
-                void classes.refetch();
-                void registers.refetch();
-              }}
-              busy={classes.isFetching || registers.isFetching}
-            />
-          ) : ownershipReady ? (
-            <>
-              <div aria-label="Share class summaries" className="grid items-start gap-4 sm:grid-cols-2">
-                {scope.registers.map((register) => (
-                  <section
-                    key={register.token.uuid}
-                    className="min-w-0 space-y-4 rounded-xl border border-border bg-surface-raised p-4 sm:p-5"
-                  >
-                    <p className="break-words text-base font-medium text-text-primary">
-                      {register.token.name} · {register.token.symbol}
-                    </p>
-                    <ClassRegister register={register} />
-                  </section>
-                ))}
-              </div>
-              <RegisterShareholders
-                key={scope.company.uuid}
-                owner={owner}
-                guard={guard}
-                company={scope.company.uuid}
-                registers={scope.registers}
-              />
-            </>
-          ) : null}
+          {ownershipReady && (
+            <div aria-label="Share class summaries" className="grid items-start gap-4 sm:grid-cols-2">
+              {scope.registers.map((register) => (
+                <section
+                  key={register.token.uuid}
+                  className="min-w-0 space-y-4 rounded-xl border border-border bg-surface-raised p-4 sm:p-5"
+                >
+                  <p className="break-words text-base font-medium text-text-primary">
+                    {register.token.name} · {register.token.symbol}
+                  </p>
+                  <ClassRegister register={register} />
+                </section>
+              ))}
+            </div>
+          )}
           <section aria-label="Register tasks" className="space-y-4">
             <div className="flex flex-wrap gap-2">
               {TASKS.map(([task, label]) => (
@@ -527,7 +534,7 @@ function OwnRegister({
         </>
       )}
       {scope && (
-        <ul hidden={view === 'access'} className="space-y-6">
+        <ul hidden={view === 'shareholders'} className="space-y-6">
           {scope.registers.map((register) => (
             <li
               key={register.token.uuid}

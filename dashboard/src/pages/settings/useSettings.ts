@@ -14,13 +14,11 @@ import apiClient from '@services/apiClient';
 import { SIGNIN_PATH } from '@utils/paths';
 import { saveFile } from '@utils/saveFile';
 import { useTheme } from '@hooks/useTheme';
-import { useRegisterEntry } from '@hooks/useRegisterAccess';
 
 export function useSettings() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const preferences = useUserPreferences();
-  const registerEntry = useRegisterEntry();
   const theme = useTheme();
   const transactionAlerts = preferences.preferences?.transactionAlerts;
   const alerts = useMutation({
@@ -89,7 +87,6 @@ export function useSettings() {
 
   return {
     preferences,
-    registerEntry,
     theme,
     transactionAlerts,
     alerts,
