@@ -167,6 +167,9 @@ class RegisterMemberParticulars(BaseModel):
     source_transfer = models.ForeignKey(
         "tokens.RegisterTransfer", on_delete=models.PROTECT, related_name="particulars", null=True
     )
+    source_award = models.ForeignKey(
+        "tokens.RegisterAward", on_delete=models.PROTECT, related_name="particulars", null=True
+    )
 
     class Meta:
         constraints = [
@@ -177,6 +180,7 @@ class RegisterMemberParticulars(BaseModel):
                     source_grant__isnull=True,
                     source_transfer__isnull=True,
                     source_allotment__isnull=True,
+                    source_award__isnull=True,
                 )
                 | models.Q(
                     source_import__isnull=True,
@@ -184,6 +188,7 @@ class RegisterMemberParticulars(BaseModel):
                     source_grant__isnull=True,
                     source_transfer__isnull=True,
                     source_allotment__isnull=True,
+                    source_award__isnull=True,
                 )
                 | models.Q(
                     source_import__isnull=True,
@@ -191,6 +196,7 @@ class RegisterMemberParticulars(BaseModel):
                     source_grant__isnull=False,
                     source_transfer__isnull=True,
                     source_allotment__isnull=True,
+                    source_award__isnull=True,
                 )
                 | models.Q(
                     source_import__isnull=True,
@@ -198,6 +204,7 @@ class RegisterMemberParticulars(BaseModel):
                     source_grant__isnull=True,
                     source_transfer__isnull=False,
                     source_allotment__isnull=True,
+                    source_award__isnull=True,
                 )
                 | models.Q(
                     source_import__isnull=True,
@@ -205,6 +212,15 @@ class RegisterMemberParticulars(BaseModel):
                     source_grant__isnull=True,
                     source_transfer__isnull=True,
                     source_allotment__isnull=False,
+                    source_award__isnull=True,
+                )
+                | models.Q(
+                    source_import__isnull=True,
+                    source_change__isnull=True,
+                    source_grant__isnull=True,
+                    source_transfer__isnull=True,
+                    source_allotment__isnull=True,
+                    source_award__isnull=False,
                 ),
                 name="register_member_particulars_one_source",
             ),

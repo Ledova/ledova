@@ -477,11 +477,15 @@ conventions, and the register hash format is unchanged.
 What an award is: [employee awards](../business/issuing-shares.md#employee-awards-and-vesting).
 `register-awards/`, `register-award-vestings/`, `register-award-ends/` and
 `register-award-vesting-reversals/` record under a retry key with no decision;
-`register-grants/` with an `award` is an award's only issue path, and an award records no member,
-entry, position or supply. Awards and vesting events are append-only and keep their actor,
-appointment, operation id and creation time; identity triggers require exact current company
-authority, recipient, class and agreement, or exact award, quantity, date and evidence, and
-constraint triggers recheck the recording authority at commit. Concurrent events and linked grant
+`register-grants/` with an `award` is an award's only issue path. An award records no entry, position
+or supply. For a new recipient it creates their person record in the same transaction: a member and
+particulars whose source is the award (`source_award`). A deferred trigger refuses an award that
+commits without it. Later awards, issues and transfers then name that member with the retained
+particulars, and a new-member request under its ID is refused (`member_reference_conflict`). Awards
+show the person's current particulars beside the award's own copy. Awards and vesting events are
+append-only and keep their actor, appointment, operation id and creation time; identity triggers
+require exact current company authority, recipient, class and agreement, or exact award, quantity,
+date and evidence, and constraint triggers recheck the recording authority at commit. Concurrent events and linked grant
 applications serialise the allocation check, and a failed effect rolls back whole. The tables are
 operator-only.
 

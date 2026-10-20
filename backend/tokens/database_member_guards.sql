@@ -1,14 +1,11 @@
 CREATE FUNCTION tokens_member_identity(issuer uuid, member_uuid uuid) RETURNS jsonb
 LANGUAGE sql STABLE SECURITY INVOKER SET search_path = pg_catalog, public, pg_temp AS $$
-    SELECT CASE WHEN EXISTS (SELECT 1 FROM tokens_registermember WHERE uuid = member_uuid) THEN
-        (SELECT jsonb_build_object('name', held.name, 'residential_address', held.residential_address)
-         FROM tokens_registermember member JOIN tokens_registermemberparticulars held ON held.member_id = member.uuid
-         WHERE member.uuid = member_uuid AND member.company_id = issuer
-           AND (EXISTS (SELECT 1 FROM tokens_registerposition WHERE member_id = member_uuid AND shares > 0)
-             OR tokens_register_member_left_on(member_uuid) >= (clock_timestamp() AT TIME ZONE 'UTC')::date - 2557))
-    ELSE (SELECT jsonb_build_object('name', min(name), 'residential_address', min(residential_address))
-          FROM tokens_registeraward WHERE company_id = issuer AND member = member_uuid
-          HAVING count(DISTINCT (name, residential_address)) = 1) END;
+    SELECT jsonb_build_object('name', held.name, 'residential_address', held.residential_address)
+        FROM tokens_registermember member JOIN tokens_registermemberparticulars held ON held.member_id = member.uuid
+        WHERE member.uuid = member_uuid AND member.company_id = issuer
+            AND (EXISTS (SELECT 1 FROM tokens_registerposition WHERE member_id = member_uuid AND shares > 0)
+                OR EXISTS (SELECT 1 FROM tokens_registeraward WHERE company_id = issuer AND member = member_uuid)
+                OR tokens_register_member_left_on(member_uuid) >= (clock_timestamp() AT TIME ZONE 'UTC')::date - 2557);
 $$;
 CREATE FUNCTION tokens_member_invitation_current(invitation_uuid uuid) RETURNS boolean
 LANGUAGE sql STABLE SECURITY INVOKER SET search_path = pg_catalog, public, pg_temp AS $$

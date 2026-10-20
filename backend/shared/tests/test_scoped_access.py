@@ -51,7 +51,6 @@ from tokens.models import (
     RegisterContribution,
     RegisterEvidenceKind,
     RegisterGrant,
-    RegisterMember,
     RegisterParticularsChange,
     RegisterPosition,
     ShareToken,
@@ -326,9 +325,14 @@ class ScopedAccessTest(CoreFixtures, APITransactionTestCase):
         self.assertEqual(hidden.status_code, 404, hidden.content)
         self.sign_in(self.owner)
         selections = self.client.get(f"/api/v1/tokens/{self.token.pk}/register/members/")
+        self.assertEqual(selections.json()["awardRecipients"], [])
         self.assertEqual(
-            selections.json()["awardRecipients"],
-            [{"member": award["member"], "name": award["name"], "residentialAddress": award["residential_address"]}],
+            [
+                (row["name"], row["onRegister"])
+                for row in selections.json()["members"]
+                if row["member"] == award["member"]
+            ],
+            [(award["name"], False)],
         )
         self.assertNotIn(foreign_award["member"], str(selections.json()))
         with use_operator():
@@ -350,7 +354,8 @@ class ScopedAccessTest(CoreFixtures, APITransactionTestCase):
             {**foreign_award, "operation_id": str(uuid4()), "member": award["member"]},
             format="json",
         )
-        self.assertEqual(duplicated.status_code, 201, duplicated.content)
+        self.assertEqual(duplicated.status_code, 400, duplicated.content)
+        self.assertNotIn(award["name"], str(duplicated.json()))
         self.sign_in(self.owner)
         self.assertEqual(
             self.client.get(f"/api/v1/tokens/{self.token.pk}/register/members/").json()["awardRecipients"], []
@@ -646,7 +651,7 @@ class ScopedAccessTest(CoreFixtures, APITransactionTestCase):
             ("25", "0", "25"),
         )
         with use_operator():
-            self.assertFalse(RegisterMember.objects.filter(pk=award["member"]).exists())
+            self.assertFalse(RegisterPosition.objects.filter(member_id=award["member"]).exists())
             self.assertEqual(int(self.token.stored_register.issued_supply), 100)
         prepared = self.client.post("/api/v1/tokens/register-grants/", self.linked_grant_payload(award), format="json")
         self.assertEqual(prepared.status_code, 201, prepared.content)

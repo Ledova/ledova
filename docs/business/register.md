@@ -234,10 +234,11 @@ confirmation in setup ([uncertain outcomes](README.md#when-the-outcome-is-uncert
 appointee can resume review or confirmation without preparation access. Edit records retires a saved
 preparation for editing and needs preparation and rejection authority.
 
-Award recipients without shares appear in the same list as members, marked as such. Select the exact company recipient to retain their ID, recorded name and residential address and any accepted
-member access; enter their source membership date, holdings and allotments yourself. Changed,
-unavailable, conflicting or foreign identities block preparation, review or application; names alone
-never join people. A first copied holding records an opening balance, not an award-linked issue.
+Award recipients without shares appear in the same list as members, marked as such. Select the
+exact company recipient to keep their ID, current particulars and any accepted member access; enter
+their source membership date, holdings and allotments yourself. Changed, unavailable, conflicting or
+foreign identities block preparation, review or application; names alone never join people. A first
+copied holding records an opening balance, not an award-linked issue.
 
 Web imports are attributed to "Company-provided share records", with a snapshot naming the company,
 record date and preparer; the mobile app asks for a source reference and keeps separate Review and
@@ -590,8 +591,9 @@ Each flow keeps its own rule for who can be chosen:
   members without a linked wallet whose name and address are retained;
 - invitations: current and former members and award recipients.
 
-An award recipient without shares keeps their reserved member ID and the particulars on their award
-in every flow, so an issue, a transfer or another award reaches the same person. On a shareholder's
+An award recipient without shares has a person record from their first award. Every flow uses
+their member ID and current particulars, so an issue, a transfer or another award reaches the same
+person, and the company corrects their particulars with an ordinary particulars change. On a shareholder's
 page, **Issue shares to them** and, on each holding, **Transfer shares** start those flows with the
 person chosen.
 

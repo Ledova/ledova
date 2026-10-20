@@ -12135,6 +12135,14 @@
             "readOnly": true,
             "type": "string"
           },
+          "recipientName": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "recipientResidentialAddress": {
+            "readOnly": true,
+            "type": "string"
+          },
           "remainingUnissuedShares": {
             "readOnly": true,
             "type": "string"
@@ -12203,6 +12211,8 @@
           "preparedByName",
           "preparingAppointment",
           "providedBy",
+          "recipientName",
+          "recipientResidentialAddress",
           "remainingUnissuedShares",
           "residentialAddress",
           "schedule",
@@ -16873,6 +16883,9 @@
             "nullable": true,
             "type": "string"
           },
+          "onRegister": {
+            "type": "boolean"
+          },
           "particularsRetained": {
             "type": "boolean"
           },
@@ -18389,6 +18402,11 @@
             "nullable": true,
             "type": "string"
           },
+          "sourceAward": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
           "sourceChange": {
             "format": "uuid",
             "nullable": true,
@@ -18415,6 +18433,7 @@
           "name",
           "residentialAddress",
           "sourceAllotment",
+          "sourceAward",
           "sourceChange",
           "sourceGrant",
           "sourceImport",

@@ -14,6 +14,7 @@ from tokens.exceptions import RegisterUnavailableException
 from tokens.models import (
     FormerHolder,
     ImportedFormerMember,
+    RegisterAward,
     RegisterExport,
     RegisterMemberCessation,
     RegisterMemberParticulars,
@@ -220,6 +221,7 @@ def purge_member_particulars(now=None) -> int:
         RegisterMemberParticulars.objects.exclude(
             member_id__in=RegisterPosition.objects.filter(shares__gt=0).values("member_id")
         )
+        .exclude(member_id__in=RegisterAward.objects.values("member"))
         .annotate(left_on=Subquery(last_held))
         .filter(left_on__lt=cutoff)
         .values_list("pk", flat=True)

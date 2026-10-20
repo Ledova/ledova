@@ -6558,6 +6558,8 @@ export interface ApiComponents {
       preparedByName: string;
       preparingAppointment: string;
       providedBy: string;
+      recipientName: string;
+      recipientResidentialAddress: string;
       remainingUnissuedShares: string;
       residentialAddress: string;
       schedule: string;
@@ -7487,6 +7489,7 @@ export interface ApiComponents {
       lastCeasedOn: string | null;
       member: string;
       name: string | null;
+      onRegister?: boolean;
       particularsRetained: boolean;
       residentialAddress: string | null;
       walletless: boolean;
@@ -7780,6 +7783,7 @@ export interface ApiComponents {
       name: string;
       residentialAddress: string;
       sourceAllotment: string | null;
+      sourceAward: string | null;
       sourceChange: string | null;
       sourceGrant: string | null;
       sourceImport: string | null;

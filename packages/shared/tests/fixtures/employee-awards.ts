@@ -73,6 +73,8 @@ export function awardFrom(body: RegisterAwardPreparation): RegisterAward {
     endedVestedShares: '0',
     unvestedRemainingShares: body.shares,
     remainingUnissuedShares: body.shares,
+    recipientName: body.name || 'Retained Recipient',
+    recipientResidentialAddress: body.residentialAddress || AWARD_REQUEST.residentialAddress!,
   };
 }
 

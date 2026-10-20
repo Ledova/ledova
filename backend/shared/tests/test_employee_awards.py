@@ -20,6 +20,7 @@ from tokens.models import (
     RegisterEvidenceKind,
     RegisterGrant,
     RegisterMember,
+    RegisterMemberParticulars,
     RegisterPosition,
 )
 from tokens.services.register_authority import register_command
@@ -27,6 +28,94 @@ from tokens.services.register_evidence import retain_register_evidence
 
 
 class EmployeeAwardTest(CoreFixtures, APITransactionTestCase):
+    def test_an_award_records_one_person_whose_particulars_every_later_flow_keeps(self):
+        award = self.award_payload()
+        response = self.client.post("/api/v1/tokens/register-awards/", award, format="json")
+        self.assertEqual(response.status_code, 201, response.content)
+        with use_operator():
+            held = RegisterMemberParticulars.objects.select_related("member").get(member_id=award["member"])
+            self.assertEqual(
+                (held.member.company_id, str(held.source_award_id), held.name, held.residential_address),
+                (self.company.pk, award["operation_id"], award["name"], award["residential_address"]),
+            )
+            self.assertFalse(RegisterPosition.objects.filter(member_id=award["member"]).exists())
+        people = self.client.get(f"/api/v1/tokens/{self.token.pk}/register/members/").json()
+        self.assertEqual(people["awardRecipients"], [])
+        recipient = next(row for row in people["members"] if row["member"] == award["member"])
+        self.assertEqual(
+            (recipient["name"], recipient["currentShares"], recipient["onRegister"]), (award["name"], "0", False)
+        )
+        evidence = self.grant_payload()
+        renamed = {"name": "Synthetic Other Employee", "residential_address": "9 Other Street, Sydney NSW 2000"}
+        transfer = {
+            "operation_id": str(uuid4()),
+            "appointment": str(self.appointment.pk),
+            "token_id": str(self.token.pk),
+            "from_member": str(self.member.pk),
+            "to_member": award["member"],
+            "new_member": True,
+            **renamed,
+            "shares": "1",
+            "company_event_on": timezone.now().date().isoformat(),
+            "signed_on": timezone.now().date().isoformat(),
+            "lodged_on": timezone.now().date().isoformat(),
+            "terms": "Transfer to a new holder",
+            "approving_director": "Synthetic Independent Director",
+            "authority_reference": "SYNTHETIC-AWARD-IDENTITY",
+            "reason": "Record the company-approved transfer",
+            "authority_evidence": evidence["authority_evidence"],
+            "instrument_evidence": evidence["terms_evidence"],
+        }
+        for endpoint, payload, refusal in (
+            ("register-awards", self.award_payload(member=award["member"]), "already identifies a member"),
+            (
+                "register-awards",
+                self.award_payload(member=award["member"], new_member=False, **renamed),
+                "must match the retained particulars",
+            ),
+            ("register-allotments", self.allotment_payload(member=award["member"]), "member_reference_conflict"),
+            (
+                "register-allotments",
+                self.allotment_payload(member=award["member"], new_member=False, **renamed),
+                "must match the retained particulars",
+            ),
+            ("register-grants", self.linked_grant_payload(award, new_member=True), "member_reference_conflict"),
+            ("register-grants", self.linked_grant_payload(award, **renamed), "must match the retained particulars"),
+            ("register-transfers", transfer, "must match the retained particulars"),
+        ):
+            refused = self.client.post(f"/api/v1/tokens/{endpoint}/", payload, format="json")
+            self.assertEqual(refused.status_code, 400, (endpoint, refused.content))
+            self.assertIn(refusal, refused.content.decode(), endpoint)
+        second = self.award_payload(member=award["member"], new_member=False, name="", residential_address="")
+        response = self.client.post("/api/v1/tokens/register-awards/", second, format="json")
+        self.assertEqual(response.status_code, 201, response.content)
+        supporting = retained_evidence(self.owner, self.appointment, RegisterEvidenceKind.SUPPORTING)
+        change = self.client.post(
+            "/api/v1/tokens/register-particulars-changes/",
+            {
+                "operation_id": str(uuid4()),
+                "appointment": str(self.appointment.pk),
+                "member": award["member"],
+                "supporting_evidence": str(supporting.pk),
+                **renamed,
+                "as_at": timezone.now().date().isoformat(),
+                "reason": "Correct the award recipient's particulars",
+            },
+            format="json",
+        )
+        self.assertEqual(change.status_code, 201, change.content)
+        self.decision("/api/v1/tokens/register-particulars-changes/", change.json()["uuid"], "approve")
+        self.decision("/api/v1/tokens/register-particulars-changes/", change.json()["uuid"], "apply")
+        for promised in (award, second):
+            shown = self.client.get(f"/api/v1/tokens/register-awards/{promised['operation_id']}/").json()
+            self.assertEqual(
+                (shown["recipientName"], shown["recipientResidentialAddress"]),
+                (renamed["name"], renamed["residential_address"]),
+            )
+        with use_operator():
+            self.assertEqual(RegisterMember.objects.filter(pk=award["member"]).count(), 1)
+            self.assertFalse(RegisterPosition.objects.filter(member_id=award["member"]).exists())
+
     def test_vesting_cannot_exceed_the_promise_and_transfers_do_not_recycle_issued_entitlement(self):
         yesterday = (timezone.now().date() - timedelta(days=1)).isoformat()
         award = self.award_payload(shares="10", terms_on=yesterday)
@@ -100,7 +189,7 @@ class EmployeeAwardTest(CoreFixtures, APITransactionTestCase):
         )
         excess = self.client.post(
             "/api/v1/tokens/register-grants/",
-            self.linked_grant_payload(award, shares="3", new_member=False),
+            self.linked_grant_payload(award, shares="3"),
             format="json",
         )
         self.assertEqual(excess.status_code, 400, excess.content)
@@ -138,7 +227,6 @@ class EmployeeAwardTest(CoreFixtures, APITransactionTestCase):
         reused = self.linked_grant_payload(
             award,
             shares="2",
-            new_member=False,
             appointment=str(appointment.pk),
             authority_evidence=str(authority.pk),
             acceptance_required=True,
@@ -225,14 +313,10 @@ class EmployeeAwardTest(CoreFixtures, APITransactionTestCase):
         extra_vesting = self.vesting_payload(award["operation_id"], shares="2")
         vested = self.client.post("/api/v1/tokens/register-award-vestings/", extra_vesting, format="json")
         self.assertEqual(vested.status_code, 201, vested.content)
-        pending = self.client.post(
-            endpoint, self.linked_grant_payload(award, shares="2", new_member=False), format="json"
-        )
+        pending = self.client.post(endpoint, self.linked_grant_payload(award, shares="2"), format="json")
         self.assertEqual(pending.status_code, 201, pending.content)
         self.decision(endpoint, pending.json()["uuid"], "approve")
-        still_available = self.client.post(
-            endpoint, self.linked_grant_payload(award, shares="1", new_member=False), format="json"
-        )
+        still_available = self.client.post(endpoint, self.linked_grant_payload(award, shares="1"), format="json")
         self.assertEqual(still_available.status_code, 201, still_available.content)
         self.decision(endpoint, still_available.json()["uuid"], "approve")
         end_evidence = retained_evidence(self.owner, self.appointment, RegisterEvidenceKind.SUPPORTING)
