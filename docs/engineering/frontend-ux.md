@@ -14,6 +14,7 @@ and [mobile](mobile.md); what each page does is in the business section.
 - [Choosing from a short fixed list](#choosing-from-a-short-fixed-list)
 - [Choosing from a bounded list](#choosing-from-a-bounded-list)
 - [How the choice rules are enforced](#how-the-choice-rules-are-enforced)
+- [Lists, search, filters and paging](#lists-search-filters-and-paging)
 
 ## Signed-in page conventions
 
@@ -306,6 +307,33 @@ An ESLint rule in `dashboard/eslint.config.js` refuses a `select` element writte
 source, apart from `SelectField` and the sign-up country code, and names the three controls. It
 does not see Headless UI's `Select`, which only sign-up's company type uses, or test files. Which
 control fits which list is checked in review against this page.
+
+## Lists, search, filters and paging
+
+Browsing records is a list or table, never a picker. Tables page by number and feeds load more, and
+a list that grows with a company reads one page at a time, with its search and filters run by the
+server:
+
+- **Search box:** `ListSearch` (`dashboard/src/components/List.tsx`) is a labelled search field
+  with a hint naming what it searches, Clear while it holds text, and the list's filters beside it.
+  It searches 300 ms after typing stops. The server matches every typed word, ignoring case. While
+  a search or filter applies, a polite status line counts the matches, such as "3 applications match
+  your search" or "No applications match".
+- **The address:** `useListParams` (`dashboard/src/hooks/useListParams.ts`) keeps the search
+  (`q`), the filters and the page in the URL, so Back, a refresh or a shared link keep them. Typing
+  replaces the history entry, while a filter or page change adds one. Any change but the page
+  returns to the first page, and so does a page that no longer exists.
+- **Tables:** `Table` is the one table markup: a framed table that scrolls sideways within its card,
+  with a screen-reader caption, a header row of `scope="col"` cells and each row named by its first
+  cell as a row header. `Pager` under it gives the rows shown, such as "1–25 of 1,240
+  applications", and Previous, the page number and Next when there is more than one page. While
+  new results load, the shown rows stay, dimmed and marked busy.
+- **Page size:** 25 rows. The API accepts `page_size` up to 100 on every paged list.
+
+An offering's applications on Offerings are the first table: search by investor name, wallet
+address or payment reference, filter by status, with the chosen offering kept in the address too.
+Activity, an investor's Applications, Notices and a class's register entries load more on request.
+Other lists still read every page ([frontend](frontend.md#lists-figures-and-currency)).
 
 Next: [frontend](frontend.md), [mobile](mobile.md) and
 [the register's person choice](../business/register.md#choosing-a-person).

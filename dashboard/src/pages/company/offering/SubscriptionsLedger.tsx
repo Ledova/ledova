@@ -1,11 +1,41 @@
 import { SelectField } from '@components/SelectField';
 import { companySubscriptionTone } from '@components/statusTones';
 import { CompanyReadNotice } from '@pages/company/shared/CompanyState';
-import { useState } from 'react';
-import { formatDate, formatMoney, formatShareCount, REGISTER_COPY, type OfferingListItem } from '@ledova/shared';
-import { Rows, Row, Section, Status } from '@components/Ledger';
+import {
+  formatDate,
+  formatMoney,
+  formatShareCount,
+  REGISTER_COPY,
+  type OfferingListItem,
+  type SubscriptionStatus,
+} from '@ledova/shared';
+import { Section, Status } from '@components/Ledger';
+import { ListSearch, Pager, Table, type Noun } from '@components/List';
+import { useFirstPageWhenGone, useListParams } from '@hooks/useListParams';
 import { useCompanyOfferingSubscriptions } from './useOffering';
 import type { CompanyActionRead } from '@pages/company/shared/CompanyState';
+
+const NOUN: Noun = ['application', 'applications'];
+
+const STATUSES: Record<SubscriptionStatus, string> = {
+  draft: 'Draft',
+  submitted: 'Submitted',
+  accepted: 'Accepted',
+  awaiting_payment: 'Awaiting payment',
+  paid: 'Paid',
+  allotted: 'Allotted',
+  rejected: 'Rejected',
+  withdrawn: 'Withdrawn',
+  refunded: 'Refunded',
+};
+
+const COLUMNS = [
+  { label: 'Investor' },
+  { label: 'Status' },
+  { label: 'Shares', align: 'right' as const },
+  { label: 'Amount', align: 'right' as const },
+  { label: 'Allotment' },
+];
 
 export function SubscriptionsLedger({
   offerings,
@@ -18,10 +48,12 @@ export function SubscriptionsLedger({
   companyUuid: string;
   companyRead: CompanyActionRead;
 }) {
-  const [selected, setSelected] = useState('');
-  const offering = offerings.find((row) => row.uuid === selected) ?? offerings[0];
-  const read = useCompanyOfferingSubscriptions(offering?.uuid, companyUuid, companyRead);
+  const list = useListParams(['offering', 'status']);
+  const offering = offerings.find((row) => row.uuid === list.filters.offering) ?? offerings[0];
+  const read = useCompanyOfferingSubscriptions(offering?.uuid, companyUuid, companyRead, list);
+  useFirstPageWhenGone(list, read.error);
   if (!offering) return null;
+  const narrowed = !!list.search || !!list.filters.status;
   return (
     <Section title={REGISTER_COPY.APPLICATIONS_TITLE}>
       <p className="text-sm text-text-muted">{REGISTER_COPY.APPLICATIONS_NOTE(operatorName)}</p>
@@ -33,7 +65,7 @@ export function SubscriptionsLedger({
           reference: row.uuid.slice(0, 8),
         }))}
         value={offering.uuid}
-        onChange={setSelected}
+        onChange={(value) => list.setFilter('offering', value)}
       />
       {read.isError ? (
         <CompanyReadNotice
@@ -44,44 +76,78 @@ export function SubscriptionsLedger({
         <p role="status" className="text-sm text-text-muted">
           Loading applications…
         </p>
-      ) : read.data.length === 0 ? (
+      ) : read.data.count === 0 && !narrowed ? (
         <p className="text-sm text-text-muted">{REGISTER_COPY.APPLICATIONS_EMPTY}</p>
       ) : (
         <>
-          <p className="text-sm text-text-muted">
-            {read.data.length} application{read.data.length === 1 ? '' : 's'}
-          </p>
-          <ul className="divide-y divide-border-subtle">
-            {read.data.map((row) => (
-              <li key={row.uuid} className="space-y-2 py-4">
-                <p className="break-all text-sm font-medium text-text-primary">
-                  {row.investorName || row.walletAddress}
-                </p>
-                <Rows>
-                  <Row label="Status">
-                    <Status tone={companySubscriptionTone(row.status)}>{row.statusDisplay}</Status>
-                  </Row>
-                  <Row label="Requested shares">{formatShareCount(String(row.quantity))}</Row>
-                  <Row label="Allotted shares">
-                    {row.allottedQuantity === null ? '—' : formatShareCount(String(row.allottedQuantity))}
-                  </Row>
-                  <Row label="Due">{formatMoney(row.amountDue, offering.priceCurrency)}</Row>
-                  <Row label="Received">
-                    {row.amountReceived === null ? '—' : formatMoney(row.amountReceived, offering.priceCurrency)}
-                  </Row>
-                  <Row label="Payment method">{row.settlementRailDisplay}</Row>
-                  {row.reference && (
-                    <Row label="Reference">
-                      <span className="break-all">{row.reference}</span>
-                    </Row>
-                  )}
-                  {row.paymentDueAt && <Row label="Payment due">{formatDate(row.paymentDueAt)}</Row>}
-                  {row.paymentConfirmedAt && <Row label="Payment confirmed">{formatDate(row.paymentConfirmedAt)}</Row>}
-                  <Row label="Allotment">{row.allotmentState}</Row>
-                </Rows>
-              </li>
-            ))}
-          </ul>
+          <ListSearch
+            label="Search applications"
+            hint="Investor name, wallet address or payment reference"
+            list={list}
+            noun={NOUN}
+            count={read.isPlaceholderData ? undefined : read.data.count}
+            filtered={!!list.filters.status}
+          >
+            <SelectField
+              label="Status"
+              options={[
+                { value: '', label: 'All statuses' },
+                ...Object.entries(STATUSES).map(([value, label]) => ({ value, label })),
+              ]}
+              value={list.filters.status}
+              onChange={(value) => list.setFilter('status', value)}
+            />
+          </ListSearch>
+          {read.data.results.length > 0 && (
+            <div aria-busy={read.isPlaceholderData} className={read.isPlaceholderData ? 'opacity-60' : undefined}>
+              <Table caption={`Applications to the ${offering.tokenName} offering`} columns={COLUMNS}>
+                {read.data.results.map((row) => (
+                  <tr key={row.uuid} className="align-top">
+                    <th scope="row" className="px-4 py-3 text-left font-normal">
+                      <p className="break-words font-medium text-text-primary">
+                        {row.investorName || 'Name not recorded'}
+                      </p>
+                      <p title={row.walletAddress} className="mt-1 max-w-48 truncate font-mono text-xs text-text-muted">
+                        {row.walletAddress}
+                      </p>
+                      {row.reference && (
+                        <p className="mt-1 break-all text-xs text-text-muted">Reference {row.reference}</p>
+                      )}
+                    </th>
+                    <td className="px-4 py-3">
+                      <Status tone={companySubscriptionTone(row.status)}>{row.statusDisplay}</Status>
+                      <p className="mt-1 text-xs text-text-muted">
+                        {row.settlementRailDisplay}
+                        {row.paymentConfirmedAt
+                          ? ` · paid ${formatDate(row.paymentConfirmedAt)}`
+                          : row.paymentDueAt
+                            ? ` · due ${formatDate(row.paymentDueAt)}`
+                            : ''}
+                      </p>
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-3 text-right tabular-nums">
+                      {formatShareCount(String(row.quantity))}
+                      {row.allottedQuantity !== null && (
+                        <p className="mt-1 text-xs text-text-muted">
+                          {formatShareCount(String(row.allottedQuantity))} allotted
+                        </p>
+                      )}
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-3 text-right tabular-nums">
+                      {formatMoney(row.amountDue, offering.priceCurrency)}
+                      {row.amountReceived !== null && (
+                        <p className="mt-1 text-xs text-text-muted">
+                          {formatMoney(row.amountReceived, offering.priceCurrency)} received
+                        </p>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">{row.allotmentState}</td>
+                  </tr>
+                ))}
+              </Table>
+            </div>
+          )}
+          <Pager label="Application pages" list={list} noun={NOUN} count={read.data.count} />
         </>
       )}
     </Section>

@@ -1,4 +1,5 @@
-from drf_spectacular.utils import extend_schema, extend_schema_view
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import OpenApiParameter, extend_schema, extend_schema_view
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
@@ -7,7 +8,8 @@ from companies.services.administration import (
     require_company_documents,
 )
 from offerings.exceptions import OfferingRefusedException
-from offerings.models import Offering, Subscription
+from offerings.filters import IssuerSubscriptionFilter
+from offerings.models import Offering, Subscription, SubscriptionStatus
 from offerings.serializers import (
     IssuerSubscriptionSerializer,
     OfferingDetailSerializer,
@@ -22,6 +24,7 @@ from offerings.services import (
     submit_offering,
     transition_offering,
 )
+from shared.api.search import SEARCH_PARAMETER, filtered
 from shared.db import set_principal
 from shared.views import AuthenticatedModelViewSet
 
@@ -95,12 +98,21 @@ class OfferingViewSet(AuthenticatedModelViewSet):
             submit_offering(offering, submitted_by=request.user)
         return Response(OfferingDetailSerializer(offering, context=self.get_serializer_context()).data)
 
-    @extend_schema(responses=IssuerSubscriptionSerializer(many=True), filters=False)
+    @extend_schema(
+        responses=IssuerSubscriptionSerializer(many=True),
+        filters=False,
+        parameters=[
+            SEARCH_PARAMETER,
+            OpenApiParameter("status", OpenApiTypes.STR, enum=SubscriptionStatus.values),
+        ],
+    )
     @action(detail=True, methods=["get"])
     def subscriptions(self, request, uuid=None):
         offering = self.get_object()
-        subscriptions = Subscription.objects.filter(offering__in=Offering.objects.issued_by(request.user)).for_issuer(
-            offering
+        subscriptions = filtered(
+            IssuerSubscriptionFilter,
+            request,
+            Subscription.objects.filter(offering__in=Offering.objects.issued_by(request.user)).for_issuer(offering),
         )
         page = self.paginate_queryset(subscriptions)
         return self.get_paginated_response(IssuerSubscriptionSerializer(page, many=True).data)
