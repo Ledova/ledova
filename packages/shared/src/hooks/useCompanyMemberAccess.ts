@@ -304,7 +304,7 @@ export function useCompanyMemberAccess(
           throw new Error('The company instruction does not match the member request.');
         if (particularsQueryKey) await client.invalidateQueries({ queryKey: particularsQueryKey });
         setNotice(
-          `Company particulars instruction ${data.uuid} recorded. Approval and application remain separate in Register particulars changes.`,
+          'Company particulars instruction recorded. Approval and application remain separate in Register particulars changes.',
         );
       }
       setRetry(null);

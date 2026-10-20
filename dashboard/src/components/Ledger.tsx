@@ -175,6 +175,15 @@ export function Status({ tone, mark, children }: { tone: Tone; mark?: string; ch
   );
 }
 
+export function Outcome({ children }: { children: ReactNode }) {
+  return (
+    <p role="status" className="flex items-baseline gap-2 text-sm text-text-primary">
+      <span aria-hidden="true" className={`h-2 w-2 flex-shrink-0 translate-y-[-1px] rounded-full ${MARKS.done}`} />
+      <span>{children}</span>
+    </p>
+  );
+}
+
 export interface TimelineEvent {
   label: string;
   at: string;

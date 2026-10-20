@@ -1,5 +1,4 @@
 import { useState, useMemo, useRef, useEffect, useLayoutEffect } from 'react';
-import { CheckCircleIcon } from '@phosphor-icons/react';
 import { useQueryClient } from '@tanstack/react-query';
 import type { TransferOrder, CreateOrderRequest, Wallet, SwapOrder } from '@ledova/shared';
 import {
@@ -14,10 +13,8 @@ import {
   useSwapOrdersMulti,
   useSwapSettlements,
 } from '@ledova/shared';
-import { ICON_MD } from '@components/iconSizes';
 import { orderSubmissionStore } from '@services/orderSubmissions';
 import { settlementWalletKey, swapSettlementCrypto, swapSettlementStore } from '@services/swapSettlements';
-import { Modal } from '@components/Modal';
 import { isTradingWalletsQueryKey, useTrading, useUserTradingWallets, useWalletsWhitelistStatus } from './useTrading';
 import { SwapSettlementFlow } from './SwapSettlementFlow';
 import { OrderSigningFlow } from './OrderSigningFlow';
@@ -28,50 +25,7 @@ import { OrdersPanel } from './OrdersPanel';
 import { PlaceOrderPanel } from './PlaceOrderPanel';
 import { useTradingEvents } from './useTradingEvents';
 import { Page, PageAction } from '@components/Page';
-import { Row, Rows, Section } from '@components/Ledger';
-
-function OrderSuccessModal({
-  isOpen,
-  order,
-  onClose,
-  recovered,
-}: {
-  isOpen: boolean;
-  order: TransferOrder | null;
-  onClose: () => void;
-  recovered: boolean;
-}) {
-  if (!order) return null;
-  const isBuy = order.orderType === 'buy';
-
-  return (
-    <Modal
-      isOpen={isOpen}
-      onClose={onClose}
-      title={recovered ? 'Order recovered' : 'Order created'}
-      size="sm"
-      showFooter
-      showCancelButton={false}
-      confirmLabel="Done"
-      onConfirm={onClose}
-    >
-      <div className="space-y-2">
-        <h3 className="flex items-center gap-2 text-sm font-medium text-success-light">
-          <CheckCircleIcon size={ICON_MD} weight="fill" />
-          {isBuy ? 'Buy' : 'Sell'} order {recovered ? 'recovered' : 'placed'}
-        </h3>
-        <p className="text-sm text-text-muted">
-          Current status: {order.statusDisplay ?? order.status.replace(/_/g, ' ')}.
-        </p>
-        <Rows>
-          <Row label="Quantity">{marketQuantity(order.quantity)} shares</Row>
-          <Row label="Price">{marketAmount(order.pricePerShare)}</Row>
-          <Row label="Total">{marketAmount(order.totalValue)}</Row>
-        </Rows>
-      </div>
-    </Modal>
-  );
-}
+import { Outcome, Section } from '@components/Ledger';
 
 function TradingPage() {
   const queryClient = useQueryClient();
@@ -97,9 +51,7 @@ function TradingPage() {
   const isReady = eligibility?.isReady ?? false;
   const [selectedTokenUuid, setSelectedTokenUuid] = useState<string | null>(null);
 
-  const [successModalOpen, setSuccessModalOpen] = useState(false);
-  const [createdOrder, setCreatedOrder] = useState<TransferOrder | null>(null);
-  const [recoveredOrder, setRecoveredOrder] = useState(false);
+  const [placed, setPlaced] = useState<{ order: TransferOrder; recovered: boolean } | null>(null);
 
   const [swapSelectionError, setSwapSelectionError] = useState<string | null>(null);
 
@@ -185,6 +137,7 @@ function TradingPage() {
       data.token !== selectedToken.uuid
     )
       return Promise.resolve(false);
+    setPlaced(null);
     closeSwapSigning();
     actions.close();
     const signingWallet = wallets.find((w) => w.uuid === data.walletUuid);
@@ -244,11 +197,7 @@ function TradingPage() {
 
   const handleOrderSigningSuccess = (order: TransferOrder, recovered = false) => {
     if (signingGeneration.current !== currentSigningGeneration) return;
-    if (submissions.active) {
-      setCreatedOrder(order);
-      setRecoveredOrder(recovered);
-      setSuccessModalOpen(true);
-    }
+    if (submissions.active) setPlaced({ order, recovered });
     handleCloseOrderSigningFlow();
   };
 
@@ -280,6 +229,14 @@ function TradingPage() {
             Retry wallets
           </button>
         </div>
+      )}
+      {placed && (
+        <Outcome>
+          {placed.order.orderType === 'buy' ? 'Buy' : 'Sell'} order {placed.recovered ? 'recovered' : 'placed'}:{' '}
+          {marketQuantity(placed.order.quantity)} shares at {marketAmount(placed.order.pricePerShare)},{' '}
+          {marketAmount(placed.order.totalValue)} in total. Current status:{' '}
+          {placed.order.statusDisplay ?? placed.order.status.replace(/_/g, ' ')}.
+        </Outcome>
       )}
       <OrdersPanel
         tokenSymbol={!tokensQuery.isError ? (selectedToken?.symbol ?? null) : null}
@@ -408,13 +365,6 @@ function TradingPage() {
           />
         </>
       )}
-
-      <OrderSuccessModal
-        isOpen={successModalOpen}
-        order={createdOrder}
-        recovered={recoveredOrder}
-        onClose={() => setSuccessModalOpen(false)}
-      />
 
       {settlements.active && (
         <SwapSettlementFlow settlement={settlements.active} wallets={wallets} onClose={closeSwapSigning} />

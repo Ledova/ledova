@@ -1,5 +1,5 @@
 import { type OrderSubmissionOwner } from '@ledova/shared';
-import { Section } from '@components/Ledger';
+import { Outcome, Section } from '@components/Ledger';
 import { PageAction } from '@components/Page';
 import { FIELD_CLASS } from '@components/fieldClass';
 import { useCompanyPackAuthority, useCompanyPack } from './useCompanyPack';
@@ -97,11 +97,7 @@ function PackForm({
           {error}
         </p>
       )}
-      {downloaded && (
-        <p role="status" className="text-sm text-text-muted">
-          The company pack was downloaded.
-        </p>
-      )}
+      {downloaded && <Outcome>The company pack was downloaded.</Outcome>}
     </div>
   );
 }

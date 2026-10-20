@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { formatDate, formatDateTime, getUserVerificationStatus } from '@ledova/shared';
 import { FormActions, Page, PageAction } from '@components/Page';
-import { Row, Rows, Section, Status } from '@components/Ledger';
+import { Outcome, Row, Rows, Section, Status } from '@components/Ledger';
 import { VERIFICATION_TONES } from '@components/statusTones';
 import { DocumentsPanel } from './DocumentsPanel';
 import { FIELD_CLASS } from '@components/fieldClass';
@@ -24,6 +24,7 @@ function UserProfilePage() {
   } = useUserProfile();
   const verification = getUserVerificationStatus(userProfile);
   const [editing, setEditing] = useState<{ source: string | null; owner: string | null } | null>(null);
+  const [saved, setSaved] = useState<{ source: string | null; owner: string | null } | null>(null);
   const [fullName, setFullName] = useState('');
   const [residentialAddress, setResidentialAddress] = useState('');
   const [phoneCode, setPhoneCode] = useState('');
@@ -36,6 +37,7 @@ function UserProfilePage() {
     setPhoneCode(userProfile?.phoneCountryCode || '');
     setPhoneNumber(userProfile?.phoneNumber || '');
     resetUpdate();
+    setSaved(null);
     setEditing({ source: sourceKey, owner: ownerKey });
   }
 
@@ -97,7 +99,10 @@ function UserProfilePage() {
                     phoneCountryCode: phoneCode,
                     phoneNumber,
                   },
-                  () => setEditing(null),
+                  () => {
+                    setEditing(null);
+                    setSaved({ source: sourceKey, owner: ownerKey });
+                  },
                 );
             }}
           >
@@ -168,7 +173,12 @@ function UserProfilePage() {
             </FormActions>
           </form>
         ) : (
-          <PageAction label="Edit personal details" disabled={blocked} onClick={editDetails} />
+          <>
+            {saved?.source === sourceKey && saved?.owner === ownerKey && (
+              <Outcome>Your personal details were saved.</Outcome>
+            )}
+            <PageAction label="Edit personal details" disabled={blocked} onClick={editDetails} />
+          </>
         )}
       </Section>
       <Section title="Account status">
