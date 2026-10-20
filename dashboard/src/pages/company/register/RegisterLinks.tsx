@@ -1,4 +1,5 @@
 import { registerEntriesKey } from '@pages/company/register/shared/useRegisterEntries';
+import { allPeopleKey } from '@pages/company/register/shared/usePeople';
 import { registerHoldersKey } from '@pages/company/shared/useCompanyRegister';
 import { generatePath } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
@@ -64,6 +65,7 @@ export function RegisterLinks({
     await Promise.all(
       [
         linksKey(owner, company),
+        allPeopleKey(owner),
         waitingWalletsKey(owner, company),
         registerHoldersKey(owner),
         registerEntriesKey(owner),

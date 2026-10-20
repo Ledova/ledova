@@ -2,7 +2,7 @@ import { PreparationBack, PreparationNotice, PreparationShell } from '@pages/com
 import { useRegisterPreparationOwner } from '@pages/company/register/shared/useRegisterPreparationOwner';
 import { useTransferRegister } from './useTransferRegister';
 import { useMemo, type ReactNode } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 
 import {
   DESTINATIONS,
@@ -16,7 +16,7 @@ import { Loading, Unavailable } from '@pages/company/shared/RegisterStatus';
 import { useRegisterClasses } from '@pages/company/shared/useCompanyRegister';
 import { ownerGuard } from '@pages/company/shared/ownerGuard';
 import { useOwnAppointments } from '@hooks/useOwnAppointments';
-import { useTransferMembers } from '@pages/company/register/shared/useRegisterTransfers';
+import { peopleFrom, usePeople } from '@pages/company/register/shared/usePeople';
 import { TransferForm } from './TransferForm';
 
 const LEDE =
@@ -51,6 +51,7 @@ function OwnTransfer({
   currentOwner: () => OrderSubmissionOwner | null;
   back: ReactNode;
 }) {
+  const { state } = useLocation();
   const guard = useMemo(() => ownerGuard(owner, currentOwner), [owner, currentOwner]);
   const classes = useRegisterClasses(owner, guard);
   const appointments = useOwnAppointments(owner, guard);
@@ -61,7 +62,7 @@ function OwnTransfer({
       : undefined;
   const registers = useTransferRegister(owner, uuid, listed, guard);
   const register = registers.data?.[0];
-  const members = useTransferMembers(owner, uuid, guard, !!appointment);
+  const members = usePeople(owner, uuid, guard, !!appointment);
   const busy = classes.isFetching || appointments.isFetching || registers.isFetching || members.isFetching;
   const stale = classes.isError || appointments.isError || registers.isError || members.isError;
   const retry = () => {
@@ -97,10 +98,11 @@ function OwnTransfer({
             guard={guard}
             company={listed.companyUuid}
             token={uuid}
-            members={members.data}
+            people={peopleFrom(members.data)}
             appointment={appointment}
             blocked={stale || busy}
             onRefused={retry}
+            initialFrom={typeof state?.fromMember === 'string' ? state.fromMember : ''}
           />
         </Section>
       </>

@@ -202,8 +202,9 @@ Ledova, and its holdings must match the stored register. On the web:
    carries a technical share limit instead of authorised capital. Repeat for each class.
    With no classes yet, a preparer uses the company sidebar's Register and its setup action.
    Preparation access does not change their initial landing page or account role.
-3. Shareholders, one at a time: pick an existing company shareholder record or explicitly create one
-   (names never link records, and existing names and addresses are kept), then enter from this
+3. Shareholders, one at a time: choose a recorded person or New person
+   ([choosing a person](#choosing-a-person); names never link records, and existing names and
+   addresses are kept), then enter from this
    class's records the name, residential address, original date entered, whole-share holding and
    each allotment (date, quantity, paid and unpaid amounts, and Held for someone else?, where Yes
    means held non-beneficially), with optional share and certificate references. Allotments must add
@@ -227,8 +228,8 @@ confirmation in setup ([uncertain outcomes](README.md#when-the-outcome-is-uncert
 appointee can resume review or confirmation without preparation access. Edit records retires a saved
 preparation for editing and needs preparation and rejection authority.
 
-Web and mobile list registered members and consistent award-only recipients separately. Select the
-exact company recipient to retain their ID, recorded name and residential address and any accepted
+On the web, award recipients without shares appear in the same list as members, marked as such;
+mobile lists them separately. Select the exact company recipient to retain their ID, recorded name and residential address and any accepted
 member access; enter their source membership date, holdings and allotments yourself. Changed,
 unavailable, conflicting or foreign identities block preparation, review or application; names alone
 never join people. A first copied holding records an opening balance, not an award-linked issue.
@@ -352,7 +353,8 @@ account, payment, application or chain transaction.
 
 1. On Register, choose Transfer shares, the class, then Prepare a non-paid transfer. For a tokenised
    class the task says its transfers use wallet and chain controls.
-2. Choose the transferor, recipient and shares. An existing recipient, including a former member
+2. Choose the transferor, recipient and shares ([choosing a person](#choosing-a-person)). An
+   existing recipient, including a former member
    returning from zero, keeps their member ID; a new one gets a new member ID with the name and
    residential address the instrument gives. If a returning member's particulars were lawfully
    purged, the company supplies new ones.
@@ -563,6 +565,25 @@ Each shareholder has a page, reached from Details on Shareholders, showing:
 Details show only while the account, the classes and the holdings read are current; a refresh
 withholds them rather than showing stale ownership. Particulars, history and awards also need a
 current company register appointment and settled reads, as on Register.
+
+### Choosing a person
+
+On the web, every register flow chooses its person the same way: register setup, investor and
+non-paid issues, transfers, employee awards and member invitations. One list holds the company's
+members, named by their recorded particulars, and award recipients without shares, marked as
+such. Each option reads "Name ·
+address", with a short record reference only when two people share both. **New person** asks for a
+name and residential address. Each flow keeps its own rule for who can be chosen:
+
+- issues and awards: people without a linked wallet whose particulars are retained;
+- a transfer: a transferor holding shares in the class, and a recipient without a linked wallet;
+- register setup: everyone on the list;
+- invitations: current and former members and award recipients.
+
+An award recipient without shares keeps their reserved member ID and the particulars on their award
+in every flow, so an issue, a transfer or another award reaches the same person. On a shareholder's
+page, **Issue shares to them** and, on each holding, **Transfer shares** start those flows with the
+person chosen.
 
 ### The Share class page
 

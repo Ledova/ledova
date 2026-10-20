@@ -107,7 +107,7 @@ beforeEach(() => {
       return { data: reversals.find((event) => url === URLS.REGISTER_AWARD_VESTING_REVERSAL(event.uuid)) };
     if (events.some((event) => url === URLS.REGISTER_AWARD_VESTING(event.uuid)))
       return { data: events.find((event) => url === URLS.REGISTER_AWARD_VESTING(event.uuid)) };
-    if (url === URLS.REGISTER_MEMBERS(REGISTER.token.uuid)) return { data: { members: [] } };
+    if (url === URLS.REGISTER_MEMBERS(REGISTER.token.uuid)) return { data: { members: [], awardRecipients: [] } };
     throw new Error(`Unexpected request: ${url}`);
   });
   api.post.mockReset().mockImplementation(async (url, body) => {
@@ -168,7 +168,7 @@ it('retains original award, vesting and linked issue preparations through interr
     fireEvent.click(open);
     if (kind === 'award') {
       for (const [label, value] of [
-        ['Recipient name', AWARD_REQUEST.name!],
+        ['Name', AWARD_REQUEST.name!],
         ['Residential address', AWARD_REQUEST.residentialAddress!],
         [COPY.SHARES, AWARD_REQUEST.shares],
         [COPY.TERMS_ON, AWARD_REQUEST.termsOn],
@@ -382,7 +382,7 @@ it('retains original award, vesting and linked issue preparations through interr
                   guard={() => {}}
                   company={APPOINTMENT.company}
                   token={REGISTER.token.uuid}
-                  members={[]}
+                  people={[]}
                   appointment={APPOINTMENT}
                   blocked={false}
                   canPrepare={canPrepare}

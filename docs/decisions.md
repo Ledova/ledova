@@ -45,7 +45,7 @@ stay here as history and are marked where they appear.
 | [Simpler signed-in journeys](#simpler-signed-in-journeys)                                                       | 11 October 2026                                | Web layout superseded 12 October; native journey remains delivered                                              |
 | [Ownership dashboard and compact sidebar](#ownership-dashboard-and-compact-sidebar)                             | 12 October 2026                                | Current; increments #1012–#1014; classes moved to Register (#1155); member access moved to Shareholders (#1166) |
 | [Dashboard, Settings and Register for a new company](#dashboard-settings-and-register-for-a-new-company)        | 19 October 2026                                | Current on the web; #1155; mobile under #1157                                                                   |
-| [Share classes, shareholders and employee awards](#share-classes-shareholders-and-employee-awards)              | 20 October 2026                                | Shareholders page delivered on the web (#1166); #1167–#1170 planned                                             |
+| [Share classes, shareholders and employee awards](#share-classes-shareholders-and-employee-awards)              | 20 October 2026                                | Shareholders page (#1166) and one person picker (#1167) on the web; #1168–#1170 planned                         |
 | [Paper and Dark themes](#paper-and-dark-themes)                                                                 | 14 October 2026                                | Current; #1040                                                                                                  |
 | [The account-data export](#the-account-data-export)                                                             | 23 September 2026                              | Current                                                                                                         |
 | [Tenancy, sessions and deployment](#tenancy-sessions-and-deployment)                                            | 3 October 2026                                 | Current                                                                                                         |
@@ -1268,9 +1268,9 @@ shows who holds shares, with a page per person for their particulars, holdings, 
 access to their own records. Member access moves there from Settings, which changes the
 [12 October](#ownership-dashboard-and-compact-sidebar) placement of named-member invitations.
 Employee awards stays a distinct workflow, because an award is an entitlement, not a shareholding
-([10 October](#first-scopes-for-employee-awards-and-external-capital)); its recipients are to be
-chosen with the same person picker, and issuing vested shares is to use the same issue flow as
-Register. For award recipients the owner chose a person record from the award onwards, without a
+([10 October](#first-scopes-for-employee-awards-and-external-capital)); on the web its recipients
+are chosen with the same person picker as every other flow, and issuing vested shares is to use the same issue
+flow as Register. For award recipients the owner chose a person record from the award onwards, without a
 place on the register of members until shares are issued. The web comes first, in steps the owner
 checks one at a time: the Shareholders page
 ([#1166](https://github.com/Ledova/ledova/issues/1166)), one person picker

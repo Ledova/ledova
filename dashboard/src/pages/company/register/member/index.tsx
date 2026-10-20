@@ -184,7 +184,7 @@ function OwnShareholder({
       (register.formerMembers ?? []).filter((row) => row.member === member).map((row) => ({ register, row })),
     );
     const recorded = settled(data.particulars)
-      ? data.particulars.data?.find((row) => row.member === member)
+      ? data.particulars.data?.members.find((row) => row.member === member)
       : undefined;
     title = holdings.length
       ? holdings[0].holder.name || HOLDER_TYPE_LABELS[holdings[0].holder.holderType]
@@ -199,6 +199,9 @@ function OwnShareholder({
         .filter((row) => row.member === member && row.status === 'requested')
         .map((row) => ({ uuid: row.uuid, text: 'They asked the company for a certificate.' })),
     ];
+    const issueClass = [...holdings.map(({ register }) => register), ...registers].find(
+      (register) => register.initialized && register.token.status === 'draft',
+    )?.token.uuid;
     const className = (token: string) => {
       const register = registers.find((item) => item.token.uuid === token);
       return register ? `${register.token.name} · ${register.token.symbol}` : 'Share class';
@@ -279,6 +282,15 @@ function OwnShareholder({
                     <p className="text-sm text-text-muted">{REGISTER_COPY.NO_WALLET}</p>
                   )}
                 </div>
+                {prepare && !holder.wallets.length && register.initialized && register.token.status === 'draft' && (
+                  <Link
+                    to={generatePath(DESTINATIONS.companyRegisterTransfer.path, { uuid: register.token.uuid })}
+                    state={{ fromMember: member }}
+                    className={LINK_CLASS}
+                  >
+                    Transfer shares
+                  </Link>
+                )}
               </section>
             ))}
             {former.map(({ register, row }) => (
@@ -289,6 +301,15 @@ function OwnShareholder({
                 {row.correctedBy ? ' · cessation corrected' : ''}
               </p>
             ))}
+            {prepare && issueClass && recorded?.walletless && recorded.particularsRetained && (
+              <Link
+                to={DESTINATIONS.companyRegister.path}
+                state={{ registerCompany: company, registerToken: issueClass, issueMember: member }}
+                className={LINK_CLASS}
+              >
+                Issue shares to them
+              </Link>
+            )}
             {former.some(({ register }) => register.formerMembersStale) && (
               <p role="status" className="text-sm text-text-muted">
                 The former-member history needs a refresh before relying on it.

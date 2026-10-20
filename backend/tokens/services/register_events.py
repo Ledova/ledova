@@ -12,6 +12,7 @@ from tokens.models import (
     RegisterEntry,
     RegisterEntryKind,
     RegisterMember,
+    RegisterMemberParticulars,
     RegisterPosition,
     ShareRegister,
     ShareToken,
@@ -82,6 +83,23 @@ def with_company_event_dates(entries):
             [],
         ),
     )
+
+
+def matching_particulars(held, name, residential_address):
+    if (name and name.strip() != held.name) or (
+        residential_address and residential_address.strip() != held.residential_address
+    ):
+        raise ValidationError("An existing member's identity must match the retained particulars.")
+    return held.name, held.residential_address
+
+
+def retained_particulars(company, member, name, residential_address):
+    held = (
+        RegisterMemberParticulars.objects.select_for_update().filter(member_id=member, member__company=company).first()
+    )
+    if held is None:
+        raise ValidationError("Choose an identified member of this company's register.")
+    return matching_particulars(held, name, residential_address)
 
 
 def create_member(*, company_id, member_id):

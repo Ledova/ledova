@@ -9,14 +9,14 @@ import apiClient from '@services/apiClient';
 import { READ_TIMING, registerKey } from '@hooks/useRegisterAccess';
 import { registersQuery, useRegisterClasses } from '@pages/company/shared/useCompanyRegister';
 import { readMemberEntries, registerEntriesKey } from '@pages/company/register/shared/useRegisterEntries';
-import { useTransferMembers } from '@pages/company/register/shared/useRegisterTransfers';
+import { usePeople } from '@pages/company/register/shared/usePeople';
 
 export function useShareholder(owner: OrderSubmissionOwner, guard: () => void, company: string, member: string) {
   const classes = useRegisterClasses(owner, guard);
   const listed = (classes.data ?? []).filter((item) => item.companyUuid === company);
   const tokens = listed.map(({ uuid }) => uuid);
   const registers = useQuery(registersQuery(owner, tokens, guard));
-  const particulars = useTransferMembers(owner, tokens[0] ?? '', guard, tokens.length > 0);
+  const particulars = usePeople(owner, tokens[0] ?? '', guard, tokens.length > 0);
   const entries = useQuery({
     queryKey: [...registerEntriesKey(owner), 'member', member, ...tokens],
     enabled: tokens.length > 0,
