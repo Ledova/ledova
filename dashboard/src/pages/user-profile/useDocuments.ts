@@ -1,6 +1,5 @@
-import { INVESTOR_CLASSIFICATIONS_QUERY_KEY } from '@ledova/shared';
+import { INVESTOR_CLASSIFICATIONS_QUERY_KEY, readEveryPage } from '@ledova/shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { getInvestorClassifications } from '@ledova/shared';
 import apiClient from '@services/apiClient';
 import {
   attachDocument,
@@ -15,17 +14,10 @@ import type { Document } from '@ledova/shared';
 const DOCUMENTS_KEY = ['documents'] as const;
 const documentKey = (uuid: string) => ['document', uuid] as const;
 
-export function useDocumentClaims() {
-  return useQuery({
-    queryKey: INVESTOR_CLASSIFICATIONS_QUERY_KEY,
-    queryFn: () => getInvestorClassifications(apiClient),
-  });
-}
-
 export function useDocuments() {
   return useQuery({
     queryKey: DOCUMENTS_KEY,
-    queryFn: () => listDocuments(apiClient).then((r) => r.data),
+    queryFn: () => readEveryPage((page) => listDocuments(apiClient, page)),
   });
 }
 

@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useInfiniteQuery, useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { CACHE_TIMING } from '../constants/api';
 import {
   archiveNotification,
@@ -7,7 +7,11 @@ import {
   markAllNotificationsRead,
   markNotificationRead,
 } from '../services/notifications';
+import { assertNextPageAdvances, getNextPageParam } from '../utils/pagination';
 import { useApiClient } from './useApiClient';
+import { useLaterPages } from './useLaterPages';
+
+const NOTIFICATIONS_LIST_KEY = ['notifications', 'list'];
 
 export function useNotifications() {
   const apiClient = useApiClient();
@@ -20,12 +24,19 @@ export function useNotifications() {
     refetchInterval: 60 * 1000,
   });
 
-  const notificationsQuery = useQuery({
-    queryKey: ['notifications', 'list'],
-    queryFn: () => getNotifications(apiClient),
+  const notificationsQuery = useInfiniteQuery({
+    queryKey: NOTIFICATIONS_LIST_KEY,
+    queryFn: async ({ pageParam }) => {
+      const { data } = await getNotifications(apiClient, pageParam);
+      assertNextPageAdvances(pageParam, data);
+      return data;
+    },
+    getNextPageParam,
+    initialPageParam: 1,
     staleTime: CACHE_TIMING.VERY_SHORT_STALE_TIME,
     enabled: false,
   });
+  const pages = useLaterPages(NOTIFICATIONS_LIST_KEY, notificationsQuery);
 
   const refresh = () => {
     queryClient.invalidateQueries({ queryKey: ['notifications'] });
@@ -49,9 +60,17 @@ export function useNotifications() {
 
   return {
     unreadCount: unreadCountQuery.data?.data?.unreadCount ?? 0,
-    notifications: notificationsQuery.data?.data?.results ?? [],
+    notifications: [
+      ...new Map(
+        (notificationsQuery.data?.pages ?? []).flatMap((page) => page.results).map((item) => [item.uuid, item]),
+      ).values(),
+    ],
     isLoadingNotifications: notificationsQuery.isLoading || notificationsQuery.isFetching,
     fetchNotifications: notificationsQuery.refetch,
+    hasMoreNotifications: notificationsQuery.hasNextPage,
+    isLoadingMoreNotifications: notificationsQuery.isFetchingNextPage,
+    moreNotificationsFailed: pages.moreFailed,
+    loadMoreNotifications: pages.loadMore,
     markAsRead: markReadMutation.mutate,
     archive: archiveMutation.mutate,
     markAllAsRead: markAllReadMutation.mutate,

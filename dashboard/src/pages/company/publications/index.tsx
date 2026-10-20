@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { DESTINATIONS, useCompanySelection } from '@ledova/shared';
 import { Section } from '@components/Ledger';
+import { LoadMore } from '@components/List';
 import { Page, PageAction, PageLink } from '@components/Page';
 import { CompanyReadNotice } from '@pages/company/shared/CompanyState';
 import { CompanySelection } from '@pages/company/shared/CompanySelection';
@@ -16,9 +17,9 @@ export default function IssuerPublicationsPage() {
 
 function CompanyPublications({ companyRead }: { companyRead: ReturnType<typeof useCompanySelection> }) {
   const { company } = companyRead;
-  const { listing, open, openingUuid, openError } = useIssuerPublications(company?.uuid, companyRead);
+  const { listing, publications, count, hasError, moreFailed, loadMore, open, openingUuid, openError } =
+    useIssuerPublications(company?.uuid, companyRead);
   const blocked = !!companyRead.error || companyRead.isRefreshing || listing.isError || listing.isFetching;
-  const publications = listing.data;
   return (
     <Page
       narrow
@@ -45,7 +46,7 @@ function CompanyPublications({ companyRead }: { companyRead: ReturnType<typeof u
         <p className="text-sm text-text-muted">No company information available.</p>
       ) : (
         <>
-          {listing.isError ? (
+          {hasError ? (
             <div role="alert" className="space-y-2 text-sm text-text-muted">
               <p>Your company&apos;s publications could not be loaded. Try again before continuing.</p>
               <PageAction
@@ -57,8 +58,8 @@ function CompanyPublications({ companyRead }: { companyRead: ReturnType<typeof u
           ) : (
             <>
               <CompanyReadNotice read={companyRead} />
-              <Section title={publications ? `Publications (${publications.length})` : 'Publications'}>
-                {listing.isFetching && (
+              <Section title={count === undefined ? 'Publications' : `Publications (${count})`}>
+                {listing.isFetching && !listing.isFetchingNextPage && (
                   <p role="status" className="text-sm text-text-muted">
                     Refreshing company publications…
                   </p>
@@ -88,6 +89,14 @@ function CompanyPublications({ companyRead }: { companyRead: ReturnType<typeof u
                         </li>
                       ))}
                     </ul>
+                    <LoadMore
+                      noun={['publication', 'publications']}
+                      hasMore={listing.hasNextPage}
+                      failed={moreFailed}
+                      loading={listing.isFetchingNextPage}
+                      disabled={listing.isFetching && !listing.isFetchingNextPage}
+                      onLoad={loadMore}
+                    />
                     <p className="text-xs text-text-muted">
                       These are the stored documents as published. Company and share class names are frozen at
                       publication.
