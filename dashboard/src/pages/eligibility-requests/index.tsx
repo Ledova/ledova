@@ -44,6 +44,7 @@ export default function ParticipantEligibilityPage() {
                 ...read.sources.map((item) => ({
                   value: item.uuid,
                   label: `${item.categoryDisplay} · ${item.statusDisplay} · ${formatDate(item.createdAt)}`,
+                  reference: item.uuid.slice(0, 8),
                 })),
               ]}
               value={read.draft.source}

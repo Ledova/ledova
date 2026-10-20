@@ -195,8 +195,9 @@ Ledova, and its holdings must match the stored register. On the web:
    under Register mirror. Record investor share issue and Transfer shares also offer Set up share
    register for a class not yet set up. Register is the only place where share classes are
    created, on the web and on mobile.
-2. Share details: select an existing draft class, a common class (Ordinary ORD, Preference PRF or
-   Redeemable RED), or Another class with the company's own name, code and type. The company choices
+2. Share details: open an existing draft class from its link, or choose a common class (Ordinary
+   ORD, Preference PRF or Redeemable RED) or Another class with the company's own name, code and
+   type. The company choices
    come from current personal administrator or preparer appointments, without granting access to
    private company Settings ([share classes](issuing-shares.md#share-classes)). A class set up here
    carries a technical share limit instead of authorised capital. Repeat for each class.

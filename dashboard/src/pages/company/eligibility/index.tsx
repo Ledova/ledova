@@ -13,6 +13,7 @@ import { LinkRow, Section } from '@components/Ledger';
 import { Page, PageAction } from '@components/Page';
 import { ActionConfirmation, EligibilityHistory, RecordsList, TextField } from '@components/eligibility';
 import { CompanyWalletInstructions } from './CompanyWalletInstructions';
+import { scopeLabels } from '@pages/company/shared/appointments';
 
 const OUTCOMES = [
   ['accepted', 'Accept'],
@@ -76,9 +77,10 @@ export default function CompanyEligibilityPage() {
                     )
                     .map((item) => ({
                       value: item.uuid,
-                      label: `${item.capabilities.join(', ') || 'No personal actions'} · appointed ${formatDate(item.createdAt)}${
+                      label: `${scopeLabels(item.capabilities)} · appointed ${formatDate(item.createdAt)}${
                         isCurrentEligibilityAppointment(item) ? '' : ' · inactive'
                       }`,
+                      reference: item.uuid.slice(0, 8),
                     })),
                 ]}
                 value={read.appointmentUuid}

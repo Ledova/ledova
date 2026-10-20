@@ -5,7 +5,7 @@ import { BLOCKCHAIN, formatDate } from '@ledova/shared';
 import type { TransactionFilters, Wallet } from '@ledova/shared';
 import { Disclosure } from '@components/Ledger';
 import { PageAction } from '@components/Page';
-import { FIELD_CLASS } from '@components/fieldClass';
+import { FIELD_CLASS, LABEL } from '@components/fieldClass';
 
 interface TransactionFilterProps {
   ref?: Ref<HTMLButtonElement>;
@@ -87,22 +87,12 @@ export function TransactionFilter({
       >
         <div className="flex flex-col gap-4">
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-            <fieldset>
-              <legend className="mb-1 text-sm text-text-muted">Direction</legend>
-              <div className="flex flex-wrap gap-2">
-                {directions.map((option) => (
-                  <button
-                    key={option.value}
-                    type="button"
-                    aria-pressed={(filters.direction ?? '') === option.value}
-                    onClick={() => onFilterChange('direction', option.value)}
-                    className="rounded-lg border border-border px-3 py-2 text-sm text-text-primary aria-pressed:border-brand-mid aria-pressed:text-brand-light"
-                  >
-                    {option.label}
-                  </button>
-                ))}
-              </div>
-            </fieldset>
+            <Choices
+              legend="Direction"
+              options={directions.map((option) => [option.value, option.label] as const)}
+              value={filters.direction ?? ''}
+              onChange={(direction) => onFilterChange('direction', direction)}
+            />
             <Choices
               legend="Network"
               options={networks.map((option) => [option.value, option.label] as const)}
@@ -140,7 +130,7 @@ export function TransactionFilter({
             </div>
           </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            <label className="block text-sm text-text-muted">
+            <label className={LABEL}>
               From date
               <input
                 type="date"
@@ -149,7 +139,7 @@ export function TransactionFilter({
                 onChange={(event) => onFilterChange('start_date', event.target.value)}
               />
             </label>
-            <label className="block text-sm text-text-muted">
+            <label className={LABEL}>
               Through date
               <input
                 type="date"

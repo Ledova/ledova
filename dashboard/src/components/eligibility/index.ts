@@ -1,4 +1,3 @@
-export { Field } from './Field';
 export { TextField } from './TextField';
 export { EligibilitySummary } from './EligibilitySummary';
 export { EligibilityHistory } from './EligibilityHistory';

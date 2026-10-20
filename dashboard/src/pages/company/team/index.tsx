@@ -129,6 +129,7 @@ function OwnTeam({
                 ...sources.map((item) => ({
                   value: item.uuid,
                   label: `${scopeLabels(item.delegatableCapabilities)} · appointed ${formatDate(item.createdAt)}`,
+                  reference: item.uuid.slice(0, 8),
                 })),
               ]}
               value={sourceId}

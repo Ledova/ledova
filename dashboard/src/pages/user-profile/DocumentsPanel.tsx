@@ -1,4 +1,5 @@
 import { SelectField } from '@components/SelectField';
+import { Choices } from '@components/Choices';
 import { DESTINATIONS } from '@ledova/shared';
 import { useRef, useState } from 'react';
 import {
@@ -31,7 +32,15 @@ const DOCUMENT_TYPE_LABELS: Record<UserDocumentType, string> = {
   other: 'Other',
 };
 
+const DOCUMENT_TYPES = [
+  ['payslip', 'Payslip'],
+  ['bank_statement', 'Bank statement (coming soon)'],
+  ['tax_return', 'Tax return (coming soon)'],
+] as const;
+
 const MAX_FILE_MB = 10;
+
+const claimLabel = (claim: InvestorClassification) => `${claim.categoryDisplay} · ${formatDate(claim.createdAt)}`;
 
 function formatDocumentMoney(raw: string | null): string {
   if (!raw) return '—';
@@ -144,7 +153,7 @@ function ClaimSelector({
         { value: '', label: 'Keep unattached' },
         ...claims
           .filter((claim) => claim.status === 'submitted')
-          .map((claim) => ({ value: claim.uuid, label: `${claim.categoryDisplay} · ${formatDate(claim.createdAt)}` })),
+          .map((claim) => ({ value: claim.uuid, label: claimLabel(claim), reference: claim.uuid.slice(0, 8) })),
       ]}
       value={value}
       disabled={disabled}
@@ -157,6 +166,7 @@ function DocumentCard({ initialDoc, claims }: { initialDoc: Document; claims: In
   const liveQuery = useDocument(initialDoc.uuid);
   const doc = liveQuery.data ?? initialDoc;
   const extraction = doc.latestExtraction;
+  const attached = claims.find((claim) => claim.uuid === doc.classification);
   const del = useDeleteDocument();
   const attach = useAttachDocument();
   const [classification, setClassification] = useState('');
@@ -192,7 +202,7 @@ function DocumentCard({ initialDoc, claims }: { initialDoc: Document; claims: In
 
       {doc.classification ? (
         <p className="mt-3 text-xs text-text-muted">
-          Attached to claim {doc.classification.slice(0, 8)}. Retained{' '}
+          Attached to claim {attached ? claimLabel(attached) : doc.classification.slice(0, 8)}. Retained{' '}
           {doc.retentionUntil ? `until ${formatDocumentDate(doc.retentionUntil)}` : 'with the claim'}.
         </p>
       ) : (
@@ -298,16 +308,13 @@ function UploadCard({ claims }: { claims: InvestorClassification[] }) {
           </div>
 
           <div className="flex flex-wrap gap-2">
-            <SelectField
-              label="Document type"
-              options={[
-                { value: 'payslip', label: 'Payslip' },
-                { value: 'bank_statement', label: 'Bank statement (coming soon)', disabled: true },
-                { value: 'tax_return', label: 'Tax return (coming soon)', disabled: true },
-              ]}
+            <Choices<UserDocumentType>
+              legend="Document type"
+              options={DOCUMENT_TYPES}
               value={documentType}
+              unavailable={['bank_statement', 'tax_return']}
               disabled={upload.isPending}
-              onChange={(type) => setDocumentType(type as UserDocumentType)}
+              onChange={setDocumentType}
             />
             <label className="flex min-w-0 flex-1 basis-40 flex-col gap-1 text-sm text-text-primary">
               Note (optional)

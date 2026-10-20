@@ -5,12 +5,14 @@ export function Choices<T extends string>({
   options,
   value,
   onChange,
+  unavailable = [],
   disabled = false,
 }: {
   legend: string;
   options: readonly (readonly [T, string])[];
   value: T | '';
   onChange: (value: T) => void;
+  unavailable?: readonly T[];
   disabled?: boolean;
 }) {
   const name = useId();
@@ -25,8 +27,9 @@ export function Choices<T extends string>({
               name={name}
               value={option}
               checked={value === option}
+              disabled={unavailable.includes(option)}
               onChange={() => onChange(option)}
-              className="h-4 w-4 accent-brand"
+              className="h-4 w-4"
             />
             {label}
           </label>

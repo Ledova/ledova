@@ -1680,9 +1680,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
     throw new Error('Class result lost');
   });
   const createHook = () =>
-    renderHook(() => useNewShareClass({ guard: () => {}, checkCurrent: () => {}, company, classes: [], ready: true }), {
-      wrapper: ({ children }: { children: ReactNode }) => <MemoryRouter>{children}</MemoryRouter>,
-    });
+    renderHook(() => useNewShareClass({ guard: () => {}, checkCurrent: () => {}, company, classes: [], ready: true }));
   const uncertainClass = createHook();
   await act(async () => {
     await expect(uncertainClass.result.current.resolveRegister()).rejects.toThrow('Class result lost');

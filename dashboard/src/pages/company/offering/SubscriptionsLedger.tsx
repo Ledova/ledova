@@ -30,6 +30,7 @@ export function SubscriptionsLedger({
         options={offerings.map((row) => ({
           value: row.uuid,
           label: `${row.tokenName} · ${row.statusDisplay} · ${formatDate(row.createdAt)}`,
+          reference: row.uuid.slice(0, 8),
         }))}
         value={offering.uuid}
         onChange={setSelected}
