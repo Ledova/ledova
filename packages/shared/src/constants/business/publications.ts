@@ -44,7 +44,7 @@ export const PUBLICATION_COPY = {
   HOLDING_LABEL: 'Your holding on the record date',
   RECORD_DATE_LABEL: 'Record date',
   OPEN: 'Open the document',
-  OPENING: 'Opening...',
+  OPENING: 'Opening…',
   FROZEN_HELP:
     'The holding shown is the one frozen when the publication was made, not your holding today. The document is ' +
     'the one that was published: it is stored, never regenerated.',
@@ -53,7 +53,7 @@ export const PUBLICATION_COPY = {
   LIST_FAILED: 'What has been published to you could not be loaded.',
   RETRY: 'Try again',
   LOAD_MORE: 'Show earlier publications',
-  LOADING_MORE: 'Loading...',
+  LOADING_MORE: 'Loading…',
   QUESTION_LABEL: 'The question put to members',
   WINDOW_LABEL: 'Voting',
   WINDOW_TO: 'to',
@@ -67,7 +67,7 @@ export const PUBLICATION_COPY = {
   CONFIRM_BODY: 'A ballot cannot be changed or withdrawn once it is cast.',
   CONFIRM: 'Cast my ballot',
   CANCEL: 'Cancel',
-  CASTING: 'Casting...',
+  CASTING: 'Casting…',
   YOU_VOTED: {
     for: 'You voted for',
     against: 'You voted against',

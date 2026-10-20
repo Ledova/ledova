@@ -234,10 +234,10 @@ export function SwapSettlementFlow({ settlement, wallets, onClose }: Props) {
         {!ready && state.phase !== 'error' && (
           <p role="status">
             {state.phase === 'loading'
-              ? 'Loading the saved trade...'
+              ? 'Loading the saved trade…'
               : ['submitting', 'approval-submitting'].includes(state.phase)
                 ? 'Submitting. You can close and check the saved status later.'
-                : 'Checking or signing this trade...'}
+                : 'Checking or signing this trade…'}
           </p>
         )}
         {state.error && (

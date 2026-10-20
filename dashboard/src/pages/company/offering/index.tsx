@@ -195,7 +195,7 @@ function CompanyOfferings({ companyRead }: { companyRead: ReturnType<typeof useC
                 />
               </>
             )}
-            <Section title="Investor Directory">
+            <Section title="Investor directory">
               <p className="text-sm text-text-muted">
                 Your company is listed in the investor directory only while this is on. Nothing is listed by default,
                 and a compliance warning, suspension or delisting by {data.operatorName} also hides your company without

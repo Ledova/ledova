@@ -185,10 +185,10 @@ test.describe('the built dashboard encodes Keystone QR codes', () => {
       .getByRole('button', { name: 'Verify', exact: true })
       .click();
 
-    const verify = page.getByRole('dialog', { name: 'Verify Wallet' });
+    const verify = page.getByRole('dialog', { name: 'Verify wallet' });
     await verify.getByRole('button', { name: 'Continue' }).click();
 
-    await expect(verify.getByRole('heading', { name: 'Scan Challenge' })).toBeVisible();
+    await expect(verify.getByRole('heading', { name: 'Scan challenge' })).toBeVisible();
     await expect(verify.locator('svg[role="img"]')).toBeVisible();
     await expect(verify.getByText('Failed to generate QR code')).toHaveCount(0);
     await page.screenshot({ path: 'test-results/keystone-verification-qr.png' });
@@ -201,11 +201,11 @@ test.describe('the built dashboard encodes Keystone QR codes', () => {
     await page.getByRole('button', { name: 'Send', exact: true }).click();
 
     const send = page.getByRole('dialog', { name: 'Send' });
-    await send.getByPlaceholder('0x...').fill(RECIPIENT);
+    await send.getByPlaceholder('0x…').fill(RECIPIENT);
     await send.getByPlaceholder('0.00').fill('0.001');
     await send.getByRole('button', { name: 'Continue' }).click();
 
-    const signing = page.getByRole('dialog', { name: 'Sign Transfer' });
+    const signing = page.getByRole('dialog', { name: 'Sign transfer' });
     await signing.getByRole('button', { name: 'Continue' }).click();
 
     await expect(signing.getByText('Scan this QR code with your hardware wallet to sign the transfer.')).toBeVisible();
