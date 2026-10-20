@@ -542,7 +542,7 @@ Each page links to its business section; the audience is the `DESTINATIONS` audi
 | -------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ | --------- |
 | [Company dashboard](../business/README.md#the-app-at-a-glance)                                           | `/company/dashboard` (web only)                                                      | everyone  |
 | [Personal dashboard](../business/member-records.md#what-a-member-can-read)                               | `/home`, `/home#documents`, alias `/member-records`                                  | everyone  |
-| [Register, Shareholders, ESS, Documents](../business/register.md#the-register-page)                      | `/company/register` and `#shareholders`, `#awards`, `#documents`; preparation routes | everyone  |
+| [Register, Shareholders, Employee share scheme, Documents](../business/register.md#the-register-page)    | `/company/register` and `#shareholders`, `#awards`, `#documents`; preparation routes | everyone  |
 | [A shareholder's page](../business/register.md#a-shareholders-page)                                      | `/company/register/members/:member?company=`                                         | everyone  |
 | [Share class](../business/register.md#the-share-class-page)                                              | `/company/register/:uuid`                                                            | everyone  |
 | [Company, Representative authority, Company team, Activation](../business/companies.md#the-company-page) | `/company`, `/company/authority` (company), `/company/team`, `/company/listing`      | everyone  |
