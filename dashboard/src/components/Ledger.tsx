@@ -18,12 +18,14 @@ export function Section({ title, children }: { title: string; children: ReactNod
 
 export function LinkRow({
   to,
+  state,
   label,
   context,
   aside,
   children,
 }: {
   to: string;
+  state?: Record<string, string>;
   label: string;
   context?: string;
   aside?: ReactNode;
@@ -34,6 +36,7 @@ export function LinkRow({
       <div className="min-w-0 flex-1">
         <Link
           to={to}
+          state={state}
           className="break-words font-medium text-text-primary after:absolute after:inset-0 group-hover:text-brand-light"
         >
           {label}

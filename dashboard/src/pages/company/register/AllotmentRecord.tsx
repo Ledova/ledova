@@ -68,10 +68,7 @@ export function AllotmentRecord({
   const documents: ('authority' | 'agreement' | 'receipt')[] = ['authority', 'agreement', 'receipt'];
   const decisionSteps = allotment.stage === 'submitted' ? { ...steps, apply: undefined } : steps;
   return (
-    <RecordShell
-      hidden={!visible}
-      className="flex flex-col gap-4 rounded-xl border border-border-subtle bg-surface-raised p-4 sm:p-5"
-    >
+    <RecordShell hidden={!visible} className="flex flex-col gap-4 py-4">
       {visible && (
         <>
           <div className="flex flex-wrap items-start justify-between gap-3">

@@ -20,8 +20,7 @@ import { CompanySelection } from '@pages/company/shared/CompanySelection';
 import { ownershipSummary } from '@pages/company/shared/summary';
 import { ClassCorrections } from './ClassCorrections';
 import { ClassImports } from './ClassImports';
-import { ClassGrants } from './ClassGrants';
-import { ClassAllotments } from './ClassAllotments';
+import { ClassIssues } from './ClassIssues';
 import { ClassAwards } from './ClassAwards';
 import { ClassTransfers } from './ClassTransfers';
 import { ClassOpenings } from './ClassOpenings';
@@ -41,7 +40,7 @@ import { useOwnAppointments } from '@hooks/useOwnAppointments';
 
 const ON_CHAIN = ['deployed', 'paused'];
 const TASKS = [
-  ['investor', 'Record investor share issue'],
+  ['issue', 'Issue shares'],
   ['transfer', 'Transfer shares'],
   ['history', 'History'],
 ] as const;
@@ -224,20 +223,20 @@ function OwnRegister({
   );
   const location = useLocation();
   const { hash } = location;
-  const issueToken = typeof location.state?.awardIssueToken === 'string' ? location.state.awardIssueToken : '';
-  const issueCompany = typeof location.state?.awardIssueCompany === 'string' ? location.state.awardIssueCompany : '';
-  const registerCompany =
-    typeof location.state?.registerCompany === 'string' ? location.state.registerCompany : issueCompany;
+  const registerCompany = typeof location.state?.registerCompany === 'string' ? location.state.registerCompany : '';
   const registerToken = typeof location.state?.registerToken === 'string' ? location.state.registerToken : '';
-  const contextToken = registerToken || issueToken;
   const inviteMember = typeof location.state?.inviteMember === 'string' ? location.state.inviteMember : undefined;
   const issueMember = typeof location.state?.issueMember === 'string' ? location.state.issueMember : undefined;
+  const issueAward = typeof location.state?.issueAward === 'string' ? location.state.issueAward : undefined;
+  const registerRecord = typeof location.state?.registerRecord === 'string' ? location.state.registerRecord : undefined;
   const enteredIssue = useRef('');
   useEffect(() => {
     if (enteredIssue.current === location.key || !classes.isSuccess || classes.isFetching || held) return;
     if (
       registerCompany &&
-      classes.data.some((item) => item.companyUuid === registerCompany && (!contextToken || item.uuid === contextToken))
+      classes.data.some(
+        (item) => item.companyUuid === registerCompany && (!registerToken || item.uuid === registerToken),
+      )
     )
       selectCompany(registerCompany);
     enteredIssue.current = location.key;
@@ -248,7 +247,7 @@ function OwnRegister({
     classes.isFetching,
     classes.data,
     held,
-    contextToken,
+    registerToken,
     registerCompany,
     selectCompany,
   ]);
@@ -269,18 +268,18 @@ function OwnRegister({
       ? taskSelection
       : null;
   const pinned = [...heldClasses].find((key) =>
-    ['allotments/', 'transfer/', 'history/'].some((prefix) => key.startsWith(prefix)),
+    ['allotments/', 'grants/', 'transfer/', 'history/'].some((prefix) => key.startsWith(prefix)),
   );
   const pinnedParts = pinned?.split('/');
   const selectedTask =
-    pinnedParts?.[0] === 'allotments'
-      ? 'investor'
+    pinnedParts?.[0] === 'allotments' || pinnedParts?.[0] === 'grants'
+      ? 'issue'
       : pinnedParts?.[0] === 'transfer'
         ? 'transfer'
         : pinnedParts?.[0] === 'history'
           ? 'history'
           : (localSelection?.task ??
-            (requestedToken ? (location.state?.registerHistory === true ? 'history' : 'investor') : undefined));
+            (requestedToken ? (location.state?.registerHistory === true ? 'history' : 'issue') : undefined));
   const candidateToken =
     pinnedParts && pinnedParts[1] !== 'company' ? pinnedParts[1] : (localSelection?.token ?? requestedToken);
   const selectedToken = scope?.registers.some(({ token }) => token.uuid === candidateToken)
@@ -316,10 +315,12 @@ function OwnRegister({
       const history = section.querySelector<HTMLDetailsElement>('details[data-register-history]');
       if (history) history.open = true;
     }
-    section.focus({ preventScroll: true });
-    section.scrollIntoView?.({ block: 'start' });
+    if (!registerRecord) {
+      section.focus({ preventScroll: true });
+      section.scrollIntoView?.({ block: 'start' });
+    }
     focusedContext.current = location.key;
-  }, [location.key, location.state, held, sourceReady, view, registerToken, registerCompany, scope]);
+  }, [location.key, location.state, held, sourceReady, view, registerToken, registerRecord, registerCompany, scope]);
 
   return (
     <RegisterPage
@@ -505,19 +506,22 @@ function OwnRegister({
                   {sourceReady ? `${register.token.name} · ${register.token.symbol}` : 'Register task recovery'}
                 </h2>
                 <div className="space-y-5">
-                  <div hidden={view !== 'register' || selectedTask !== 'investor'}>
-                    <ClassAllotments
-                      key={`allotments/${scope.company.uuid}/${register.token.uuid}`}
+                  <div hidden={view !== 'register' || selectedTask !== 'issue'}>
+                    <ClassIssues
+                      key={`issues/${scope.company.uuid}/${register.token.uuid}`}
                       owner={owner}
                       guard={guard}
                       register={register}
                       company={scope.company.uuid}
                       sourceReady={sourceReady}
-                      visible={
-                        view === 'register' && selectedTask === 'investor' && selectedToken === register.token.uuid
+                      visible={view === 'register' && selectedTask === 'issue' && selectedToken === register.token.uuid}
+                      onAllotmentHeld={allotmentHeld}
+                      onGrantHeld={grantHeld}
+                      request={
+                        register.token.uuid === requestedToken
+                          ? { key: location.key, member: issueMember, award: issueAward, record: registerRecord }
+                          : undefined
                       }
-                      onHeldChange={allotmentHeld}
-                      issueMember={register.token.uuid === requestedToken ? issueMember : undefined}
                     />
                   </div>
                   <div hidden={view !== 'register' || selectedTask !== 'transfer'}>
@@ -618,20 +622,6 @@ function OwnRegister({
                       sourceReady={sourceReady}
                       onHeldChange={awardHeld}
                     />
-                    <details
-                      open={issueToken === register.token.uuid}
-                      className="space-y-3 border-t border-border-subtle pt-4"
-                    >
-                      <summary className="cursor-pointer text-sm font-medium">Non-paid share issues</summary>
-                      <ClassGrants
-                        owner={owner}
-                        guard={guard}
-                        register={register}
-                        company={scope.company.uuid}
-                        sourceReady={sourceReady}
-                        onHeldChange={grantHeld}
-                      />
-                    </details>
                   </div>
                   <div hidden={view !== 'documents'} className="space-y-5">
                     {readable && (

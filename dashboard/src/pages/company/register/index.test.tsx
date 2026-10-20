@@ -236,7 +236,7 @@ it('reads every class page and groups exact holdings by member identity with sea
   expect(screen.getByRole('heading', { level: 1, name: 'Shareholders' })).toBeTruthy();
   expect(screen.getByRole('heading', { name: 'Current shareholders' })).toBeTruthy();
   expect(screen.getByRole('heading', { name: 'Member access and requests' })).toBeTruthy();
-  for (const name of ['Record investor share issue', 'Transfer shares', 'History'])
+  for (const name of ['Issue shares', 'Transfer shares', 'History'])
     expect(screen.queryByRole('button', { name })).toBeNull();
   const formerSection = screen.getByRole('heading', { name: 'Former shareholders' }).closest('section')!;
   expect(within(formerSection).getByRole('heading', { name: /^Ordinary shares ·/ })).toBeTruthy();

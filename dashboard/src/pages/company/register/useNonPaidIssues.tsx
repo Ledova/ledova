@@ -1,42 +1,54 @@
 import { registerHoldersKey } from '@pages/company/shared/useCompanyRegister';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { generatePath } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import {
-  DESTINATIONS,
   hasCurrentRegisterReadAuthority,
   appointmentForRegisterStep,
+  peopleFrom,
   type RegisterDecisionKind,
   type OwnCompanyAppointment,
   REGISTER_GRANT_COPY as COPY,
   type OrderSubmissionOwner,
   type TokenHoldersResponse,
 } from '@ledova/shared';
-import { LinkRow } from '@components/Ledger';
 import { PageAction } from '@components/Page';
 
+import { GrantForm } from './GrantForm';
 import { GrantRecord } from './GrantRecord';
 import { registerSteps } from '@pages/company/shared/proposals';
 import { entriesKey } from '@pages/company/register/shared/useRegisterEntries';
 import { useOwnAppointments, ownAppointmentsKey } from '@hooks/useOwnAppointments';
 import { grantsKey, useRegisterGrants } from '@pages/company/register/shared/useRegisterGrants';
-import { awardsKey } from '@pages/company/register/shared/useRegisterAwards';
-import { allPeopleKey } from '@pages/company/register/shared/usePeople';
+import { awardsKey, useRegisterAward } from '@pages/company/register/shared/useRegisterAwards';
+import { allPeopleKey, usePeople } from '@pages/company/register/shared/usePeople';
 
-export function ClassGrants({
+const AWARD_NOTE =
+  'Prepare the company’s issue of recorded vested shares. The employee does not purchase them; approval and recording the issue are separate steps.';
+
+export function useNonPaidIssues({
   owner,
   guard,
   register,
   company,
   sourceReady = true,
+  visible = true,
   onHeldChange,
+  award: awardUuid = '',
+  focusRecord,
+  open,
+  onClosed,
 }: {
   owner: OrderSubmissionOwner;
   guard: () => void;
   register: TokenHoldersResponse;
   company: string;
   sourceReady?: boolean;
+  visible?: boolean;
   onHeldChange?: (token: string, held: boolean) => void;
+  award?: string;
+  focusRecord?: { key: string; uuid: string };
+  open: boolean;
+  onClosed: () => void;
 }) {
   const client = useQueryClient();
   const token = register.token.uuid;
@@ -79,10 +91,13 @@ export function ClassGrants({
       return next;
     });
   }, []);
+  const [formAppointment, setFormAppointment] = useState<OwnCompanyAppointment | null>(null);
+  const [formHeld, setFormHeld] = useState(false);
+  const held = formHeld || heldRecords.size > 0;
   useEffect(() => {
-    onHeldChange?.(token, heldRecords.size > 0);
+    onHeldChange?.(token, held);
     return () => onHeldChange?.(token, false);
-  }, [token, heldRecords.size, onHeldChange]);
+  }, [token, held, onHeldChange]);
   const refresh = async () => {
     guard();
     await appointments.refetch({ throwOnError: true });
@@ -102,12 +117,102 @@ export function ClassGrants({
       throw new Error('Current company authority is required for this issue.');
   };
   const supported = register.initialized && register.token.status === 'draft';
-  return (
-    <div className="mt-4 flex flex-col gap-3 border-t border-border-subtle pt-4">
-      <h3 className="text-sm font-medium text-text-primary">{COPY.TITLE}</h3>
-      {privateReady && steps.prepare && supported && (
-        <LinkRow to={generatePath(DESTINATIONS.companyRegisterGrant.path, { uuid: token })} label={COPY.PREPARE} />
+  const appointment =
+    readable && appointments.isSuccess ? appointmentForRegisterStep(appointments.data, company, 'prepare') : undefined;
+  const reading = (open || !!formAppointment) && !!appointment && supported && sourceReady;
+  const people = usePeople(owner, token, check, reading);
+  const award = useRegisterAward(owner, company, token, awardUuid, check, reading);
+  const awardMember = people.data?.members.find((row) => row.member === award.data?.member) ?? null;
+  const recipientReady =
+    !awardUuid ||
+    (award.isSuccess &&
+      people.isSuccess &&
+      !(
+        (awardMember && (!awardMember.walletless || !awardMember.particularsRetained)) ||
+        (!awardMember && (!award.data.newMember || BigInt(award.data.issuedShares) > 0n))
+      ));
+  const busy = appointments.isFetching || people.isFetching || (!!awardUuid && award.isFetching);
+  const stale = appointments.isError || people.isError || (!!awardUuid && award.isError);
+  const ready =
+    sourceReady &&
+    readable &&
+    people.isSuccess &&
+    (!awardUuid || award.isSuccess) &&
+    (!!formAppointment || (!!appointment && supported && recipientReady));
+  const formVisible = visible && ready && !stale && !busy;
+  if (
+    open &&
+    formVisible &&
+    appointment &&
+    (!formAppointment || (!formHeld && formAppointment.uuid !== appointment.uuid))
+  )
+    setFormAppointment(appointment);
+  if (!open && formAppointment && !formHeld) setFormAppointment(null);
+  const retry = () => {
+    void appointments.refetch();
+    if (reading) {
+      void people.refetch();
+      if (awardUuid) void award.refetch();
+    }
+  };
+  const form = (open || formHeld) && (
+    <>
+      <p className="text-sm text-text-muted">{awardUuid ? AWARD_NOTE : COPY.NOTE}</p>
+      {stale ? (
+        <div role="alert" className="flex flex-col items-start gap-2">
+          <p className="text-sm text-error-light">The non-paid issue form could not be prepared. Try again.</p>
+          <PageAction label="Retry non-paid issue" disabled={busy} onClick={retry} />
+        </div>
+      ) : appointments.isSuccess && !appointment && !formAppointment ? (
+        <p className="text-sm text-text-muted">{COPY.READ_ONLY_NOTE}</p>
+      ) : award.isSuccess && people.isSuccess && !recipientReady ? (
+        <p className="text-sm text-text-muted">
+          This award’s recipient needs current retained walletless particulars before a grant can be prepared.
+        </p>
+      ) : (
+        !formVisible && (
+          <p role="status" className="text-sm text-text-muted">
+            Loading the non-paid issue form…
+          </p>
+        )
       )}
+      {formAppointment && (
+        <div hidden={!formVisible}>
+          <GrantForm
+            key={`${formAppointment.uuid}/${awardUuid}`}
+            owner={owner}
+            guard={check}
+            company={company}
+            token={token}
+            people={peopleFrom(people.data)}
+            appointment={formAppointment}
+            blocked={!ready || stale || busy}
+            visible={formVisible}
+            onHeldChange={setFormHeld}
+            canPrepare={
+              supported &&
+              recipientReady &&
+              !!appointmentForRegisterStep(
+                appointments.isSuccess ? appointments.data.filter((item) => item.uuid === formAppointment.uuid) : [],
+                company,
+                'prepare',
+              )
+            }
+            onRefused={retry}
+            onRecorded={() => {
+              setFormAppointment(null);
+              onClosed();
+            }}
+            award={awardUuid ? award.data : undefined}
+            awardMember={awardMember}
+          />
+        </div>
+      )}
+    </>
+  );
+  const records = (
+    <div className="mt-4 flex flex-col gap-3 border-t border-border-subtle pt-4">
+      <h3 className="text-sm font-medium text-text-primary">Non-paid issues</h3>
       {appointments.isError && (
         <div role="alert" className="flex flex-col items-start gap-2">
           <p className="text-sm text-error-light">
@@ -154,7 +259,8 @@ export function ClassGrants({
             steps={steps}
             guard={privateGuard}
             newEffectGuard={newEffectGuard}
-            visible={privateReady}
+            visible={visible && privateReady}
+            focusKey={focusRecord?.uuid === grant.uuid ? focusRecord.key : undefined}
             onHeldChange={recordHeld}
             onSettled={refresh}
           />
@@ -162,4 +268,5 @@ export function ClassGrants({
       </ul>
     </div>
   );
+  return { form, records, held };
 }

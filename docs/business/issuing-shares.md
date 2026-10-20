@@ -116,6 +116,16 @@ members, and publications still reach them.
 A grant on a class with no contract is a register entry only; a chain grant mints shares, and the
 register records the issue once the mint is final.
 
+On the web, the first three paths start from Register's **Issue shares** task, which asks **What
+kind of issue?**:
+
+- **Investor issue** opens the external allotment form.
+- **Non-paid issue** opens the non-paid grant form, in place.
+
+The class's Investor issues and Non-paid issues are listed under the form, each with its stage and
+next action. For a deployed class the task links to Share class settings, where chain grants and paid
+issues stay.
+
 ### What each record changes
 
 | Record                                                               | Effect on issued shares and holdings                                                                                                |
@@ -156,8 +166,8 @@ Each path is a [company decision](README.md#how-a-company-decision-works); in ad
 A non-paid grant records a company-authorised issue as an Issue entry, with no application, payment,
 wallet or chain transaction.
 
-1. Under Employee awards, open the class's Non-paid share issues and choose Prepare a non-paid
-   grant, or choose Issue vested shares on an award.
+1. On Register, choose Issue shares and the class, then Non-paid issue; or choose Issue vested
+   shares on an award under Employee awards.
 2. Choose who receives the shares ([choosing a person](register.md#choosing-a-person)), or New person
    with their name and residential address; names never link an account.
 3. Give the shares, the company issue date, the separate date of the terms, the non-paid terms, the
@@ -169,9 +179,9 @@ Applying checks the authority, evidence, identity, director, register and author
 lapsed approval needs a new one), and records one Issue entry with, for a new member, the member and
 their particulars. The recipient must have no linked wallet anywhere in the company; a member with
 one receives shares through a [chain grant](#non-paid-chain-grants). The member can then be invited
-to read their own holding ([member access](member-records.md#member-access)). The issue list shows
-the recipient, quantity, stage and next action, with particulars, documents and decision history in
-the details.
+to read their own holding ([member access](member-records.md#member-access)). The Non-paid issues
+list shows the recipient, quantity, stage and next action, with particulars, documents and decision
+history in the details.
 
 ## Employee awards and vesting
 
@@ -200,11 +210,12 @@ remaining quantities. The web chart keeps the original promise as its total, inc
 2. Choose Record vesting on the award for a company-confirmed event with its shares, date and
    evidence. Dates are no later than today (UTC), an event cannot predate the agreement, and total
    vesting cannot exceed the remaining unvested entitlement.
-3. When vested shares are available, choose Issue vested shares. The grant form opens with the
-   recipient and available quantity, bound to the award's class, recipient and retained agreement;
-   upload the authority document, name the approving director and add any required
-   acceptance. Preparing returns to Employee awards with the class's Non-paid share issues open;
-   approve, then choose Record issue.
+3. When vested shares are available, choose Issue vested shares. Register opens Issue shares with
+   Non-paid issue chosen. The grant form shows the recipient and available quantity, and is bound to
+   the award's class, recipient and retained agreement. Upload the authority document, name the
+   approving director and add any required acceptance. Preparing keeps you on Issue shares, with the
+   new issue in the Non-paid issues list; approve, then choose Record issue. The award lists the
+   non-paid issues prepared from it, each with its stage and a link to its record on Register.
 4. To reduce or end an entitlement, choose End unissued rights. Enter exactly how many unvested and/or
    vested-but-unissued rights the company ends, its event date, reason and evidence. Zero is allowed
    for either pool, but the total must be positive. Ledova applies no automatic leaver policy.
@@ -244,8 +255,7 @@ award fulfilment.
 A company records an investment it arranged outside Ledova and the fully paid allotment it approves.
 No deployment, application, payment or chain receipt is involved.
 
-1. On Register, choose Record investor share issue and the class, then Prepare an external
-   allotment.
+1. On Register, choose Issue shares and the class, then Investor issue.
 2. Person and shares: choose who receives the shares, or New person with their particulars
    ([choosing a person](register.md#choosing-a-person)), then give the shares
    and the full consideration in AUD.

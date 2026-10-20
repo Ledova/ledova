@@ -45,7 +45,7 @@ stay here as history and are marked where they appear.
 | [Simpler signed-in journeys](#simpler-signed-in-journeys)                                                       | 11 October 2026                                | Web layout superseded 12 October; native journey remains delivered                                              |
 | [Ownership dashboard and compact sidebar](#ownership-dashboard-and-compact-sidebar)                             | 12 October 2026                                | Current; increments #1012–#1014; classes moved to Register (#1155); member access moved to Shareholders (#1166) |
 | [Dashboard, Settings and Register for a new company](#dashboard-settings-and-register-for-a-new-company)        | 19 October 2026                                | Current; #1155 (web), #1157 (mobile)                                                                            |
-| [Share classes, shareholders and employee awards](#share-classes-shareholders-and-employee-awards)              | 20 October 2026                                | Shareholders page (#1166) and one person picker (#1167) on the web; #1168–#1170 planned                         |
+| [Share classes, shareholders and employee awards](#share-classes-shareholders-and-employee-awards)              | 20 October 2026                                | Shareholders (#1166), person picker (#1167) and issuing from Register (#1168) on the web; #1169–#1170 planned   |
 | [Paper and Dark themes](#paper-and-dark-themes)                                                                 | 14 October 2026                                | Current; #1040                                                                                                  |
 | [Frontend UX standards](#frontend-ux-standards)                                                                 | 20 October 2026                                | Searchable person choice on the web (#1176); #1177–#1183 planned                                                |
 | [The account-data export](#the-account-data-export)                                                             | 23 September 2026                              | Current                                                                                                         |
@@ -1279,6 +1279,14 @@ checks one at a time: the Shareholders page
 ([#1168](https://github.com/Ledova/ledova/issues/1168)), award recipients as person records
 ([#1169](https://github.com/Ledova/ledova/issues/1169)) and the mobile app
 ([#1170](https://github.com/Ledova/ledova/issues/1170)).
+
+On 20 October 2026 the owner approved the
+[design for issuing from Register](https://github.com/Ledova/ledova/issues/1168#issuecomment-6288493034):
+"I approve the #1168 design as drafted: Issue shares with Investor issue and Non-paid issue, two
+record lists, and awards listing their non-paid issues." Register's one task, Issue shares, asks
+which kind of issue, shows that form in place, and lists the class's investor and non-paid issues
+under it. Each award lists the non-paid issues prepared from it. Tokenised classes keep their chain
+issues in Share class settings.
 
 ## Paper and Dark themes
 

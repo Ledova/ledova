@@ -22,7 +22,7 @@ import { useOwnAppointments, ownAppointmentsKey } from '@hooks/useOwnAppointment
 import { allPeopleKey, usePeople } from '@pages/company/register/shared/usePeople';
 import { allotmentsKey, useRegisterAllotments } from './useRegisterAllotments';
 
-export function ClassAllotments({
+export function useInvestorIssues({
   owner,
   company,
   register,
@@ -31,6 +31,8 @@ export function ClassAllotments({
   visible = true,
   onHeldChange,
   issueMember,
+  open,
+  onClosed,
 }: {
   owner: OrderSubmissionOwner;
   company: string;
@@ -40,6 +42,8 @@ export function ClassAllotments({
   visible?: boolean;
   onHeldChange?: (token: string, held: boolean) => void;
   issueMember?: string;
+  open: boolean;
+  onClosed: () => void;
 }) {
   const client = useQueryClient();
   const [editing, setEditing] = useState<OwnCompanyAppointment | null>(null);
@@ -85,12 +89,7 @@ export function ClassAllotments({
   const appointment =
     readable && appointments.isSuccess ? appointmentForRegisterStep(appointments.data, company, 'prepare') : undefined;
   const supported = register.initialized && register.token.status === 'draft';
-  const members = usePeople(
-    owner,
-    token,
-    check,
-    !!(editing || issueMember) && !!appointment && supported && sourceReady,
-  );
+  const members = usePeople(owner, token, check, (open || !!editing) && !!appointment && supported && sourceReady);
   const financialReady = allotments.isSuccess && allotments.fetchStatus === 'idle';
   const privateReady = readable && financialReady && sourceReady && !appointments.isError;
   const blocked =
@@ -106,28 +105,22 @@ export function ClassAllotments({
     writeReady.current = !blocked && visible;
     privateAvailable.current = privateReady && visible;
   }, [blocked, privateReady, visible]);
-  const opened = useRef(false);
-  useEffect(() => {
-    if (editing) opened.current = true;
-  }, [editing]);
-  useEffect(() => {
-    if (
-      !issueMember ||
-      opened.current ||
-      editing ||
-      !appointment ||
-      blocked ||
-      !members.isSuccess ||
-      members.isFetching
-    )
-      return;
-    opened.current = true;
-    setEditing(appointment);
-  }, [issueMember, editing, appointment, blocked, members.isSuccess, members.isFetching]);
   const recordHeld = useCallback((uuid: string, held: boolean) => {
     setDecisionHolds((current) => (current[uuid] === held ? current : { ...current, [uuid]: held }));
   }, []);
   const held = formHeld || Object.values(decisionHolds).some(Boolean);
+  if (
+    open &&
+    !editing &&
+    appointment &&
+    supported &&
+    privateReady &&
+    !blocked &&
+    !held &&
+    (!issueMember || (members.isSuccess && !members.isFetching))
+  )
+    setEditing(appointment);
+  if (!open && editing && !formHeld) setEditing(null);
   useEffect(() => {
     onHeldChange?.(token, held);
     return () => onHeldChange?.(token, false);
@@ -144,18 +137,16 @@ export function ClassAllotments({
       client.invalidateQueries({ queryKey: allPeopleKey(owner) }),
     ]);
   };
-  return (
-    <div className="mt-4 flex flex-col gap-3 border-t border-border-subtle pt-4">
-      <h3 className="text-sm font-medium text-text-primary">{COPY.TITLE}</h3>
-      <p className="text-sm text-text-muted">{COPY.NOTE}</p>
-      {!supported && sourceReady && (
+  const setup = !supported && (
+    <>
+      {sourceReady && (
         <p className="text-sm text-text-muted">
           {register.token.status === 'draft'
-            ? 'Set up this share register before recording an investor share issue.'
+            ? 'Set up this share register before issuing shares.'
             : 'Tokenised share issue controls remain in Share class settings.'}
         </p>
       )}
-      {!supported && appointment && privateReady && (
+      {appointment && privateReady && (
         <LinkRow
           to={generatePath(
             (register.token.status === 'draft' ? DESTINATIONS.companyRegisterImport : DESTINATIONS.companyClass).path,
@@ -164,6 +155,62 @@ export function ClassAllotments({
           label={register.token.status === 'draft' ? 'Set up share register' : 'Share class settings'}
         />
       )}
+    </>
+  );
+  const form = editing && (
+    <>
+      <p className="text-sm text-text-muted">{COPY.NOTE}</p>
+      {members.isPending ? (
+        <p role="status" className="text-sm text-text-muted">
+          Loading retained recipients…
+        </p>
+      ) : members.isError ? (
+        <>
+          <p role="alert" className="text-sm text-error-light">
+            The retained recipients could not be read.
+          </p>
+          <PageAction
+            label="Retry allotment recipients"
+            disabled={members.isFetching}
+            onClick={() => void members.refetch()}
+          />
+        </>
+      ) : null}
+      <AllotmentForm
+        key={`${company}/${token}/${editing.uuid}`}
+        company={company}
+        token={token}
+        people={peopleFrom(members.data)}
+        initialMember={issueMember}
+        appointment={editing}
+        guard={financialGuard}
+        newEffectGuard={() => {
+          if (
+            !writeReady.current ||
+            appointmentForRegisterStep(
+              client.getQueryData<OwnCompanyAppointment[]>(ownAppointmentsKey(owner)) ?? [],
+              company,
+              'prepare',
+            )?.uuid !== editing.uuid
+          )
+            throw new Error('Refresh the register and your preparation appointment.');
+        }}
+        blocked={blocked || members.isFetching}
+        visible={visible && privateReady && members.isSuccess && !members.isFetching}
+        onHeldChange={setFormHeld}
+        onRecorded={async () => {
+          check();
+          await refresh(true);
+          check();
+          setEditing(null);
+          onClosed();
+        }}
+      />
+    </>
+  );
+  const records = (
+    <div className="mt-4 flex flex-col gap-3 border-t border-border-subtle pt-4">
+      <h3 className="text-sm font-medium text-text-primary">Investor issues</h3>
       {appointments.isError && (
         <>
           <p role="alert" className="text-sm text-error-light">
@@ -177,61 +224,6 @@ export function ClassAllotments({
         </>
       )}
       {appointments.isSuccess && !appointment && <p className="text-sm text-text-muted">{COPY.READ_ONLY_NOTE}</p>}
-      {appointment && supported && privateReady && (
-        <PageAction
-          label={editing ? 'Close allotment form' : COPY.PREPARE}
-          disabled={blocked || held}
-          onClick={() => setEditing((value) => (value ? null : appointment))}
-        />
-      )}
-      {editing &&
-        (members.isPending ? (
-          <p role="status" className="text-sm text-text-muted">
-            Loading retained recipients…
-          </p>
-        ) : members.isError ? (
-          <>
-            <p role="alert" className="text-sm text-error-light">
-              The retained recipients could not be read.
-            </p>
-            <PageAction
-              label="Retry allotment recipients"
-              disabled={members.isFetching}
-              onClick={() => void members.refetch()}
-            />
-          </>
-        ) : null)}
-      {editing && (
-        <AllotmentForm
-          key={`${company}/${token}/${editing.uuid}`}
-          company={company}
-          token={token}
-          people={peopleFrom(members.data)}
-          initialMember={issueMember}
-          appointment={editing}
-          guard={financialGuard}
-          newEffectGuard={() => {
-            if (
-              !writeReady.current ||
-              appointmentForRegisterStep(
-                client.getQueryData<OwnCompanyAppointment[]>(ownAppointmentsKey(owner)) ?? [],
-                company,
-                'prepare',
-              )?.uuid !== editing.uuid
-            )
-              throw new Error('Refresh the register and your preparation appointment.');
-          }}
-          blocked={blocked || members.isFetching}
-          visible={visible && privateReady && members.isSuccess && !members.isFetching}
-          onHeldChange={setFormHeld}
-          onRecorded={async () => {
-            check();
-            await refresh(true);
-            check();
-            setEditing(null);
-          }}
-        />
-      )}
       {!readable ? (
         <p className="text-sm text-text-muted">
           A current company register appointment is required to read external allotments.
@@ -256,7 +248,8 @@ export function ClassAllotments({
           onClick={() => void refresh().catch(() => {})}
         />
       )}
-      <ul className="space-y-4">
+      {privateReady && allotments.data?.length === 0 && <p className="text-sm text-text-muted">{COPY.EMPTY}</p>}
+      <ul className="divide-y divide-border-subtle">
         {allotments.data?.map((allotment) => (
           <AllotmentRecord
             key={allotment.uuid}
@@ -283,4 +276,5 @@ export function ClassAllotments({
       </ul>
     </div>
   );
+  return { setup, form, records, held, prepare: !!appointment && supported };
 }

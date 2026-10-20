@@ -93,7 +93,7 @@ large register. Each one uses a searchable list built on Headless UI's `Combobox
 
 - **`PersonSelect`** (`dashboard/src/pages/company/register/shared/PersonPicker.tsx`) is used where a
   flow names one person:
-  - register setup's shareholder, Record investor share issue, non-paid issues, a transfer's
+  - register setup's shareholder, an investor or non-paid issue under Issue shares, a transfer's
     transferor and recipient, and an employee award's recipient. These read one validated list of
     the class's members and award recipients (`usePeople`).
   - member invitations, which list the company's current and former holders in every class and its
@@ -188,6 +188,7 @@ answers. It asks for:
 - the authority for a correction, wallet link or register opening;
 - whether a mirrored allotment is held for someone else;
 - a new share class's type;
+- the kind of issue on Register's Issue shares task, which opens that kind's form in place;
 - the requested state of a pause change;
 - the exemption an offering relies on;
 - a company eligibility decision's outcome and a wallet instruction's action;
@@ -214,7 +215,7 @@ field and options named in words:
 - an offering reads as its class, status and date;
 - a company ADD for a nominated wallet reads as when it was admitted and until when.
 
-These five lists add a short record reference only to options that would otherwise read the same,
+These lists add a short record reference only to options that would otherwise read the same,
 as with people who share a name and address. Wallet options show the wallet's name or address.
 
 Register setup offers a class already started as links in a sentence, and the new class's kind as
