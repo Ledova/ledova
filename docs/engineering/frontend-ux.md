@@ -390,10 +390,13 @@ server:
 
 An offering's applications on Offerings are searched and paged by the server: search by investor
 name, wallet address or payment reference, filter by status, with the chosen offering kept in the
-address too. Shareholders searches and pages the register the page has already read in full, since
-its ownership totals need every holding: the same box and pager, matching every word ignoring case
-and accents (`searchRows` in `packages/shared/src/utils/search.ts`), with the share class as its
-filter.
+address too. Company eligibility's request queue pages the same way, with no search box: its one
+filter is the outcome, as radio buttons, which the server derives from each request's decision,
+withdrawal, revocation and expiry. While another page or outcome loads, its rows stay dimmed and
+their View buttons wait; mobile still reads every page of the queue. Shareholders searches and pages
+the register the page has already read in full, since its ownership totals need every holding: the
+same box and pager, matching every word ignoring case and accents (`searchRows` in
+`packages/shared/src/utils/search.ts`), with the share class as its filter.
 
 The feeds are Activity, an investor's Applications, Notices, the notification bell, Published to
 your members, a class's register entries, a share class's issuance requests, authorised share
