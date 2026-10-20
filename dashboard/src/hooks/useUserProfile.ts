@@ -10,7 +10,7 @@ export function useUserProfile() {
     refreshProfile: () => profile.refetch(),
     updateProfile,
     isUpdating: update.isPending,
-    updateError: update.isError,
+    updateError: update.error,
     resetUpdate: update.reset,
     sourceKey,
     ownerKey,

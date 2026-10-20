@@ -96,7 +96,9 @@ function RegisterDownload({ register }: { register: TokenHoldersResponse }) {
       <PageAction
         label={REGISTER_COPY.DOWNLOAD}
         onClick={() => download.mutate()}
-        disabled={!register.initialized || download.isPending}
+        disabled={!register.initialized}
+        busy={download.isPending}
+        busyLabel="Downloading…"
       />
       {download.isError && (
         <p role="alert" className="text-sm text-error-light">

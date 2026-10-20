@@ -1,6 +1,7 @@
 import { Choices } from '@components/Choices';
 import { CompanyPicker } from '@components/CompanyPicker';
 import { useState } from 'react';
+import { useRunningAction } from '@hooks/useRunningAction';
 import {
   useCompanyWalletInstructions,
   COMPANY_WALLET_COPY as COPY,
@@ -10,6 +11,7 @@ import {
   formatDateTime,
   type CompanyWalletInstruction,
   type CompanyWalletDecisionPreview,
+  refusalSentences,
 } from '@ledova/shared';
 import { Row, Rows, Section } from '@components/Ledger';
 import { PageAction } from '@components/Page';
@@ -79,9 +81,9 @@ function Record({ record, data }: { record: CompanyWalletInstruction; data: Read
             {!!record.execution?.txHash && <Row label="Transaction">{record.execution.txHash}</Row>}
             {!!record.execution?.failureCode && <Row label="Failure">{record.execution.failureCode}</Row>}
           </Rows>
-          {record.executionUnmetRequirements.map((code) => (
-            <p key={code} className="text-sm text-text-muted">
-              {COMPANY_WALLET_UNMET_COPY[code] ?? code}
+          {refusalSentences(record.executionUnmetRequirements, COMPANY_WALLET_UNMET_COPY).map((sentence) => (
+            <p key={sentence} className="text-sm text-text-muted">
+              {sentence}
             </p>
           ))}
           <p className="text-sm text-text-muted">
@@ -115,6 +117,7 @@ function Record({ record, data }: { record: CompanyWalletInstruction; data: Read
   );
 }
 function Preparation({ data }: { data: Read }) {
+  const { running, track } = useRunningAction();
   const [draft, setDraft] = useState<{
     owner: typeof data.owner;
     action: 'add' | 'remove';
@@ -180,9 +183,9 @@ function Preparation({ data }: { data: Read }) {
           <Row label="Shared address">{selected.address}</Row>
           <Row label="Possession proof completed">{formatDateTime(selected.proofCompletedAt)}</Row>
           <Row label="Maximum eligibility expiry">{formatDateTime(selected.eligibilityExpiresAt)}</Row>
-          {selected.unmetRequirements.map((code) => (
-            <Row key={code} label="Current readiness">
-              {COMPANY_WALLET_UNMET_COPY[code] ?? code}
+          {refusalSentences(selected.unmetRequirements, COMPANY_WALLET_UNMET_COPY).map((sentence) => (
+            <Row key={sentence} label="Current readiness">
+              {sentence}
             </Row>
           ))}
         </Rows>
@@ -201,12 +204,17 @@ function Preparation({ data }: { data: Read }) {
       )}
       <PageAction
         label="Prepare wallet instruction"
+        busy={running === 'prepare'}
+        busyLabel="Preparing…"
         disabled={blocked || !valid || (action === 'add' && !!selected?.unmetRequirements.length)}
         onClick={() =>
-          void data.prepare(
-            action === 'add'
-              ? { action, nomination: source, expiresAt: new Date(moment).toISOString() }
-              : { action, targetChange: source },
+          track(
+            'prepare',
+            data.prepare(
+              action === 'add'
+                ? { action, nomination: source, expiresAt: new Date(moment).toISOString() }
+                : { action, targetChange: source },
+            ),
           )
         }
       />

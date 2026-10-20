@@ -195,13 +195,10 @@ function ShareClassDetails({ data }: { data: ReturnType<typeof useShareClass> })
           <p className="text-sm text-text-muted">{REGISTER_COPY.PRIVACY_NOTE}</p>
           <PageAction
             label={REGISTER_COPY.DOWNLOAD}
+            busy={data.download.isPending}
+            busyLabel="Downloading…"
             onClick={() => data.download.mutate()}
-            disabled={
-              data.register.isPending ||
-              data.register.isError ||
-              !data.register.data?.initialized ||
-              data.download.isPending
-            }
+            disabled={data.register.isPending || data.register.isError || !data.register.data?.initialized}
           />
           {data.download.isError && (
             <p role="alert" className="text-sm text-error-light">

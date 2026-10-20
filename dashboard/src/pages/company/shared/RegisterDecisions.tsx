@@ -1,5 +1,10 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { useRegisterDecision, type RegisterDecisionFamily, type RegisterDecisionKind } from '@ledova/shared';
+import {
+  useRegisterDecision,
+  type RegisterDecisionFamily,
+  type RegisterDecisionKind,
+  refusalSentences,
+} from '@ledova/shared';
 import { Modal } from '@components/Modal';
 import { PageAction } from '@components/Page';
 import { FIELD_CLASS, LABEL } from '@components/fieldClass';
@@ -205,8 +210,8 @@ export function RegisterDecisions<Shown extends Proposal, Previewed extends Prev
                   <div className="flex flex-col gap-1">
                     <p className="text-sm text-text-muted">This decision cannot be recorded yet:</p>
                     <ul className="flex flex-col gap-1 text-sm text-text-primary">
-                      {preview.unmetRequirements.map((code) => (
-                        <li key={code}>{family.unmet[code] ?? code}</li>
+                      {refusalSentences(preview.unmetRequirements, family.unmet).map((sentence) => (
+                        <li key={sentence}>{sentence}</li>
                       ))}
                     </ul>
                   </div>

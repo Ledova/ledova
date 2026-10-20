@@ -41,6 +41,9 @@ export {
   readSignInError,
   readApiError,
   apiErrorSentence,
+  failureSentence,
+  refusalSentence,
+  refusalSentences,
 } from './errors';
 export type { SignInErrorReading, ApiErrorReading, ReadApiErrorOptions } from './errors';
 export { getHoldingTokenDeployment } from './asset-deployment';

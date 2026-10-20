@@ -1,16 +1,17 @@
 import {
   downloadRegisterPaidIssueFile,
   failureStatus,
-  getErrorMessage,
   isRegisterEvidenceReceipt,
   uploadRegisterEvidence,
   useCompanyPaidIssues,
   type RegisterEvidence,
   type RegisterPaidIssue,
+  failureSentence,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
 import { saveFile } from '@utils/saveFile';
 import { useEffect, useRef, useState } from 'react';
+
 export type Commands = ReturnType<typeof useCompanyPaidIssues>;
 export function usePaidIssueRecord({ record, commands }: { record: RegisterPaidIssue; commands: Commands }) {
   const [error, setError] = useState('');
@@ -25,10 +26,7 @@ export function usePaidIssueRecord({ record, commands }: { record: RegisterPaidI
       commands.guard();
       saveFile(response.data, `paid-issue-authority-${record.uuid}`);
     } catch (failure) {
-      setError(
-        getErrorMessage(failure, 'The retained authority copy could not be downloaded.') ??
-          'The request could not be confirmed.',
-      );
+      setError(failureSentence(failure, 'The retained authority copy could not be downloaded.'));
     } finally {
       setBusy(false);
     }
@@ -78,9 +76,7 @@ export function usePaidIssuePreparation({ commands }: { commands: Commands }) {
       setFile(null);
       setError('');
     } catch (failure) {
-      setError(
-        getErrorMessage(failure, 'The paid source could not be selected.') ?? 'The source could not be confirmed.',
-      );
+      setError(failureSentence(failure, 'The paid source could not be selected.'));
     }
   };
   const submit = async () => {
@@ -119,10 +115,7 @@ export function usePaidIssuePreparation({ commands }: { commands: Commands }) {
       if (failureStatus(failure) === 409) uploadRef.current = null;
       try {
         commands.guard();
-        if (mounted.current)
-          setError(
-            getErrorMessage(failure, 'The paid issue could not be prepared.') ?? 'The request could not be confirmed.',
-          );
+        if (mounted.current) setError(failureSentence(failure, 'The paid issue could not be prepared.'));
       } catch {
         return;
       }

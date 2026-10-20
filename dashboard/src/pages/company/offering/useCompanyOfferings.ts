@@ -132,6 +132,7 @@ export function useCompanyOfferings({ companyRead }: { companyRead: ReturnType<t
     ready,
     run,
     notice,
+    submitting: actions.submit.isPending ? actions.submit.variables : null,
     pending: actions.withdraw.isPending ? 'withdraw' : actions.remove.isPending ? 'remove' : null,
   };
 }
