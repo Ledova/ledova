@@ -58,14 +58,13 @@ export function DeriveAddressModal({
   return (
     <Modal
       isOpen={isOpen}
-      onClose={() => {
-        if (!isCreating) onClose();
-      }}
+      onClose={onClose}
       title="Derive New Address"
       showFooter
-      confirmLabel={isCreating ? 'Adding...' : 'Add Address'}
-      confirmDisabled={!derivedAddress || isCreating || readBlocked}
-      confirmLoading={isCreating}
+      confirmLabel="Add Address"
+      confirmDisabled={!derivedAddress || readBlocked}
+      busy={isCreating}
+      busyLabel="Adding address…"
       onConfirm={handleConfirm}
     >
       <div className="space-y-4">

@@ -10,6 +10,7 @@ import {
   type MemberCertificateRequest,
 } from '@ledova/shared';
 import { LinkRow, Row, Rows, Section } from '@components/Ledger';
+import { Confirmation } from '@components/Modal';
 import { Page, PageAction } from '@components/Page';
 import { PageTitle } from '@components/PageTitle';
 import { FIELD_CLASS } from '@components/fieldClass';
@@ -57,6 +58,7 @@ function MemberRecords({
   const initialHistory = useRef('');
   const documentsOnly = useLocation().hash === '#documents';
   const held = read.busy || !!read.retry;
+  const [withdrawing, setWithdrawing] = useState<{ uuid: string; createdAt: string } | null>(null);
   useEffect(() => {
     if (read.record && read.record.uuid !== initialHistory.current && !held) {
       initialHistory.current = read.record.uuid;
@@ -439,7 +441,7 @@ function MemberRecords({
                               label="Withdraw certificate request"
                               context={request.createdAt}
                               disabled={held}
-                              onClick={() => void read.withdraw(request.uuid)}
+                              onClick={() => setWithdrawing({ uuid: request.uuid, createdAt: request.createdAt })}
                             />
                           )}
                           <details>
@@ -450,6 +452,20 @@ function MemberRecords({
                           </details>
                         </div>
                       ))}
+                      {withdrawing && (
+                        <Confirmation
+                          isOpen
+                          title="Withdraw this certificate request?"
+                          confirmLabel="Withdraw certificate request"
+                          busy={read.busy}
+                          busyLabel="Withdrawing…"
+                          onClose={() => setWithdrawing(null)}
+                          onConfirm={() => void read.withdraw(withdrawing.uuid).finally(() => setWithdrawing(null))}
+                        >
+                          The company won&apos;t fulfil your request of {formatDate(withdrawing.createdAt)}. You can
+                          request a certificate for the same entry again.
+                        </Confirmation>
+                      )}
                     </div>
                   </Section>
                 )}

@@ -233,7 +233,8 @@ export function ClassReconciliation({
           title={TITLE}
           showFooter
           confirmLabel={TITLE}
-          confirmLoading={acknowledgement.busy}
+          busy={acknowledgement.busy}
+          busyLabel="Recording acknowledgement…"
           confirmDisabled={!ready}
           onConfirm={() => {
             if (!ready || !open) return;

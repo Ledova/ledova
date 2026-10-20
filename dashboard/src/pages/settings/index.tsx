@@ -182,12 +182,14 @@ function SettingsPage() {
         title="Change password"
         showFooter
         confirmLabel="Change password"
-        onConfirm={savePassword}
-        confirmLoading={passwordMutation.isPending}
+        formId="change-password"
+        busy={passwordMutation.isPending}
+        busyLabel="Changing password…"
         confirmDisabled={!currentPassword || !newPassword || !confirmPassword}
       >
         {modal === 'password' && (
           <form
+            id="change-password"
             className="space-y-4"
             onSubmit={(event) => {
               event.preventDefault();
@@ -220,22 +222,18 @@ function SettingsPage() {
                 {passwordError}
               </p>
             )}
-            <button type="submit" className="sr-only" tabIndex={-1} disabled={passwordMutation.isPending}>
-              Save password
-            </button>
           </form>
         )}
       </Modal>
       <Modal
         isOpen={modal === 'export'}
-        onClose={() => {
-          if (!exportMutation.isPending) setModal(null);
-        }}
+        onClose={() => setModal(null)}
         title="Export data"
         showFooter
         confirmLabel="Export"
         onConfirm={() => exportMutation.mutate()}
-        confirmLoading={exportMutation.isPending}
+        busy={exportMutation.isPending}
+        busyLabel="Exporting…"
       >
         <p className="text-sm text-text-muted">
           Download your account data as a JSON file. The download starts when the export is ready.
@@ -248,14 +246,14 @@ function SettingsPage() {
       </Modal>
       <Modal
         isOpen={modal === 'delete'}
-        onClose={() => {
-          if (!deleteMutation.isPending) setModal(null);
-        }}
+        onClose={() => setModal(null)}
         title="Delete account"
         showFooter
         confirmLabel="Delete account"
+        destructive
         onConfirm={() => deleteMutation.mutate()}
-        confirmLoading={deleteMutation.isPending}
+        busy={deleteMutation.isPending}
+        busyLabel="Deleting account…"
       >
         <p className="mb-3 text-sm font-medium">This action cannot be undone.</p>
         <p className="text-sm text-text-muted">

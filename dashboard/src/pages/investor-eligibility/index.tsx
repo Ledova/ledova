@@ -3,6 +3,7 @@ import { DESTINATIONS, formatDate, getErrorMessage } from '@ledova/shared';
 import type { InvestorCategory, InvestorClassification } from '@ledova/shared';
 import { LinkRow, Row, Rows, Section, Status, type Tone } from '@components/Ledger';
 import { Page, PageAction } from '@components/Page';
+import { Confirmation } from '@components/Modal';
 import { useInvestorWithdrawal } from './useInvestorWithdrawal';
 import { CATEGORIES, REASON_TEXT, WHOLESALE_ONLY_NOTICE } from './constants';
 import { ClaimModal } from './ClaimModal';
@@ -30,6 +31,7 @@ export default function InvestorEligibilityPage() {
   const [claimCategory, setClaimCategory] = useState<InvestorCategory | null>(null);
 
   const withdraw = useInvestorWithdrawal(refresh);
+  const [withdrawing, setWithdrawing] = useState<InvestorClassification | null>(null);
 
   const isReady = eligibility?.isReady ?? false;
   const submittedCategories = new Set(
@@ -106,7 +108,7 @@ export default function InvestorEligibilityPage() {
                               label="Withdraw claim"
                               busy={withdraw.isPending && withdraw.variables === claim.uuid}
                               busyLabel="Withdrawing…"
-                              onClick={() => withdraw.mutate(claim.uuid)}
+                              onClick={() => setWithdrawing(claim)}
                               disabled={withdraw.isPending}
                             />
                           )}
@@ -152,6 +154,20 @@ export default function InvestorEligibilityPage() {
           </>
         )}
       </Page>
+      {withdrawing && (
+        <Confirmation
+          isOpen
+          title="Withdraw this claim?"
+          confirmLabel="Withdraw claim"
+          busy={withdraw.isPending}
+          busyLabel="Withdrawing…"
+          onClose={() => setWithdrawing(null)}
+          onConfirm={() => withdraw.mutate(withdrawing.uuid, { onSettled: () => setWithdrawing(null) })}
+        >
+          Your {withdrawing.categoryDisplay} claim is withdrawn and its evidence is no longer available to share. You
+          can submit new evidence later.
+        </Confirmation>
+      )}
       <ClaimModal
         isOpen={claimCategory !== null}
         onClose={() => setClaimCategory(null)}

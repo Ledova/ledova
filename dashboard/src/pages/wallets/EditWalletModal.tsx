@@ -65,13 +65,12 @@ export function EditWalletModal({
   return (
     <Modal
       isOpen={isOpen}
-      onClose={() => {
-        if (!isUpdating) onClose();
-      }}
+      onClose={onClose}
       title="Edit Wallet"
       showFooter
-      confirmLabel={isUpdating ? 'Saving...' : 'Save'}
-      confirmLoading={isUpdating}
+      confirmLabel="Save"
+      busy={isUpdating}
+      busyLabel="Saving…"
       confirmDisabled={readBlocked}
       onConfirm={handleSave}
     >

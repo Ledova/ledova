@@ -31,14 +31,7 @@ export function OfferingDocumentsEditor({
       onClose,
     });
   return (
-    <Modal
-      isOpen
-      title={OFFER_DOCUMENT_COPY.ADD}
-      size="lg"
-      onClose={() => {
-        if (!request.isPending) onClose();
-      }}
-    >
+    <Modal isOpen title={OFFER_DOCUMENT_COPY.ADD} size="lg" busy={request.isPending} onClose={onClose}>
       <fieldset disabled={request.isPending} className="space-y-4">
         <CompanyReadNotice read={{ ...companyRead, refetch }} />
         <CompanyReadNotice

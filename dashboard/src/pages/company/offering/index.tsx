@@ -1,6 +1,8 @@
+import { useState } from 'react';
 import { OFFERING_STATUS_TONES } from '@pages/company/shared/statusTones';
 import { Row, Rows, Section, Status, SwitchRow } from '@components/Ledger';
 import { Page, PageAction } from '@components/Page';
+import { Confirmation } from '@components/Modal';
 import {
   OFFERING_EXEMPTION_LABELS,
   OFFERING_PUBLISHED_STATUSES,
@@ -24,12 +26,14 @@ function OfferingRecord({
   row,
   busy,
   run,
+  confirm,
   edit,
   addDocuments,
 }: {
   row: OfferingListItem;
   busy: boolean;
   run: (action: 'submit' | 'withdraw' | 'remove', uuid: string) => void;
+  confirm: (action: 'withdraw' | 'remove') => void;
   edit: () => void;
   addDocuments: () => void;
 }) {
@@ -81,9 +85,9 @@ function OfferingRecord({
           </>
         )}
         {OFFERING_WITHDRAWABLE_STATUSES.includes(row.status) && (
-          <PageAction label="Withdraw" disabled={busy} onClick={() => run('withdraw', row.uuid)} />
+          <PageAction label="Withdraw" disabled={busy} onClick={() => confirm('withdraw')} />
         )}
-        {row.canBeDeleted && <PageAction label="Delete" disabled={busy} onClick={() => run('remove', row.uuid)} />}
+        {row.canBeDeleted && <PageAction label="Delete" disabled={busy} onClick={() => confirm('remove')} />}
         {OFFERING_PUBLISHED_STATUSES.includes(row.status) && (
           <PageAction label={OFFER_DOCUMENT_COPY.ADD} disabled={busy} onClick={addDocuments} />
         )}
@@ -113,7 +117,9 @@ function CompanyOfferings({ companyRead }: { companyRead: ReturnType<typeof useC
     listing,
     ready,
     run,
+    pending,
   } = useCompanyOfferings({ companyRead });
+  const [confirming, setConfirming] = useState<{ action: 'withdraw' | 'remove'; row: OfferingListItem } | null>(null);
   return (
     <>
       <Page
@@ -159,6 +165,9 @@ function CompanyOfferings({ companyRead }: { companyRead: ReturnType<typeof useC
                           row={row}
                           busy={!ready}
                           run={(action, uuid) => void run(action, uuid)}
+                          confirm={(action) => {
+                            if (ready) setConfirming({ action, row });
+                          }}
                           edit={() => {
                             if (ready) setEditor({ company: company.uuid, uuid: row.uuid });
                           }}
@@ -260,6 +269,21 @@ function CompanyOfferings({ companyRead }: { companyRead: ReturnType<typeof useC
           data={data}
           onClose={() => setDocumentsEditor(null)}
         />
+      )}
+      {confirming && (
+        <Confirmation
+          isOpen
+          title={confirming.action === 'withdraw' ? 'Withdraw this offering?' : 'Delete this draft offering?'}
+          confirmLabel={confirming.action === 'withdraw' ? 'Withdraw offering' : 'Delete offering'}
+          busy={pending === confirming.action}
+          busyLabel={confirming.action === 'withdraw' ? 'Withdrawing…' : 'Deleting…'}
+          onClose={() => setConfirming(null)}
+          onConfirm={() => void run(confirming.action, confirming.row.uuid).finally(() => setConfirming(null))}
+        >
+          {confirming.action === 'withdraw'
+            ? `The ${confirming.row.tokenName} offering stays visible as a record and can no longer be edited, resubmitted or deleted.`
+            : `The ${confirming.row.tokenName} draft offering is deleted. This can't be undone.`}
+        </Confirmation>
       )}
     </>
   );

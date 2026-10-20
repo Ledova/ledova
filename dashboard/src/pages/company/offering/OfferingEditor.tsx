@@ -29,14 +29,7 @@ export function OfferingEditor({
     onClose,
   });
   return (
-    <Modal
-      isOpen
-      title={uuid ? 'Edit offering' : 'New offering'}
-      size="xl"
-      onClose={() => {
-        if (!request.isPending) onClose();
-      }}
-    >
+    <Modal isOpen title={uuid ? 'Edit offering' : 'New offering'} size="xl" busy={request.isPending} onClose={onClose}>
       <div className="space-y-4">
         <CompanyReadNotice read={{ ...companyRead, refetch }} />
         <CompanyReadNotice read={{ ...data, refetch }} label="Offering information" />

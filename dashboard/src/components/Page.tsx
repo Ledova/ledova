@@ -55,14 +55,16 @@ interface ActionContent {
 }
 
 type PageActionProps = ActionContent & {
+  destructive?: boolean;
   pressed?: boolean;
   busy?: boolean;
   busyLabel?: string;
   disabled?: boolean;
-} & ({ type: 'submit'; onClick?: never } | { type?: 'button'; onClick: () => void });
+} & ({ type: 'submit'; form?: string; onClick?: never } | { type?: 'button'; form?: never; onClick: () => void });
 
 const ACTION_LOOKS = {
   primary: 'border-brand-mid bg-brand-mid text-white hover:bg-brand',
+  destructive: 'border-error bg-error text-white hover:bg-error-dark',
   pressed: 'border-brand-mid text-brand-light hover:bg-surface-tertiary',
   plain: 'border-border text-text-primary hover:bg-surface-tertiary',
 };
@@ -90,17 +92,26 @@ export function PageAction({
   label,
   context,
   primary = false,
+  destructive = false,
   pressed,
   busy = false,
   busyLabel,
   disabled = false,
   type = 'button',
+  form,
   onClick,
 }: PageActionProps) {
-  const look = primary ? ACTION_LOOKS.primary : pressed ? ACTION_LOOKS.pressed : ACTION_LOOKS.plain;
+  const look = destructive
+    ? ACTION_LOOKS.destructive
+    : primary
+      ? ACTION_LOOKS.primary
+      : pressed
+        ? ACTION_LOOKS.pressed
+        : ACTION_LOOKS.plain;
   return (
     <button
       type={type}
+      form={form}
       onClick={onClick}
       disabled={disabled || busy}
       aria-pressed={pressed}

@@ -225,6 +225,7 @@ export function useCompanyTeam({
     canAdmin,
     team,
     disabled,
+    revoking,
     close,
     canRevoke,
     confirm,

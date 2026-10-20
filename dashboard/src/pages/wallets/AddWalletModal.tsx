@@ -91,9 +91,10 @@ export function AddWalletModal({
       onClose={handleClose}
       title="Add wallet"
       showFooter={!form.showScanner}
-      confirmLabel={isLoading ? 'Adding...' : 'Add Wallet'}
-      confirmLoading={isLoading}
-      confirmDisabled={isLoading || readBlocked || !form.address.trim()}
+      confirmLabel="Add Wallet"
+      busy={isLoading}
+      busyLabel="Adding wallet…"
+      confirmDisabled={readBlocked || !form.address.trim()}
       onConfirm={() => {
         if (!readBlocked && !isLoading) form.handleSubmit();
       }}

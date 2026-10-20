@@ -14,7 +14,10 @@ interface ModalProps {
   onCancel?: () => void;
   onConfirm?: () => void;
   confirmDisabled?: boolean;
-  confirmLoading?: boolean;
+  busy?: boolean;
+  busyLabel?: string;
+  destructive?: boolean;
+  formId?: string;
   size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl';
   fullHeight?: boolean;
 }
@@ -27,6 +30,42 @@ const sizeClasses = {
   '2xl': 'max-w-2xl',
   '3xl': 'max-w-3xl',
 };
+
+export function Confirmation({
+  isOpen,
+  title,
+  confirmLabel,
+  busy = false,
+  busyLabel,
+  onConfirm,
+  onClose,
+  children,
+}: {
+  isOpen: boolean;
+  title: string;
+  confirmLabel: string;
+  busy?: boolean;
+  busyLabel?: string;
+  onConfirm: () => void;
+  onClose: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={title}
+      showFooter
+      confirmLabel={confirmLabel}
+      destructive
+      busy={busy}
+      busyLabel={busyLabel}
+      onConfirm={onConfirm}
+    >
+      <p className="text-sm text-text-primary">{children}</p>
+    </Modal>
+  );
+}
 
 export function ModalActions({ children }: { children: ReactNode }) {
   return <div className="flex flex-wrap items-center justify-end gap-2">{children}</div>;
@@ -44,13 +83,16 @@ export function Modal({
   onCancel,
   onConfirm,
   confirmDisabled = false,
-  confirmLoading = false,
+  busy = false,
+  busyLabel,
+  destructive = false,
+  formId,
   size = 'md',
   fullHeight = false,
 }: ModalProps) {
   return (
     <Transition appear show={isOpen} as={Fragment}>
-      <Dialog as="div" className="relative z-50" onClose={onClose}>
+      <Dialog as="div" className="relative z-50" onClose={busy ? () => undefined : onClose}>
         <TransitionChild
           as={Fragment}
           enter="ease-out duration-200"
@@ -86,15 +128,31 @@ export function Modal({
                 {showFooter && (
                   <ModalActions>
                     {showCancelButton && (
-                      <PageAction label={cancelLabel} onClick={onCancel ?? onClose} disabled={confirmLoading} />
+                      <PageAction label={cancelLabel} onClick={onCancel ?? onClose} disabled={busy} />
                     )}
-                    {onConfirm && (
+                    {formId ? (
                       <PageAction
-                        label={confirmLoading ? 'Loading...' : confirmLabel}
-                        primary
-                        onClick={onConfirm}
-                        disabled={confirmDisabled || confirmLoading}
+                        type="submit"
+                        form={formId}
+                        label={confirmLabel}
+                        primary={!destructive}
+                        destructive={destructive}
+                        busy={busy}
+                        busyLabel={busyLabel}
+                        disabled={confirmDisabled}
                       />
+                    ) : (
+                      onConfirm && (
+                        <PageAction
+                          label={confirmLabel}
+                          primary={!destructive}
+                          destructive={destructive}
+                          busy={busy}
+                          busyLabel={busyLabel}
+                          disabled={confirmDisabled}
+                          onClick={onConfirm}
+                        />
+                      )
                     )}
                   </ModalActions>
                 )}

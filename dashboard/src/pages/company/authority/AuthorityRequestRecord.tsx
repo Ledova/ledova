@@ -39,7 +39,7 @@ export function AuthorityRequestRecord({
   onDownload: () => void;
   onWithdraw: () => void;
   onAdmit: () => void;
-  onRevoke: () => void;
+  onRevoke: () => Promise<unknown>;
 }) {
   const [accepted, setAccepted] = useState(false);
   const [confirmingRevocation, setConfirmingRevocation] = useState<symbol | null>(null);
@@ -178,6 +178,9 @@ export function AuthorityRequestRecord({
             title="Revoke appointment permanently?"
             showFooter
             confirmLabel="Permanently revoke appointment"
+            destructive
+            busy={action === 'revoke'}
+            busyLabel="Revoking…"
             confirmDisabled={!confirmingRevocation || blocked || appointment.status === 'revoked'}
             onConfirm={() => {
               if (
@@ -187,8 +190,9 @@ export function AuthorityRequestRecord({
                 appointment.status === 'revoked'
               )
                 return;
-              closeRevocationConfirmation();
-              onRevoke();
+              void onRevoke()
+                .catch(() => undefined)
+                .finally(closeRevocationConfirmation);
             }}
           >
             <p className="text-sm text-text-primary">

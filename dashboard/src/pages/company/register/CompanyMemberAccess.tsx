@@ -3,6 +3,7 @@ import { formatDateTime, type OrderSubmissionOwner, type TokenHoldersResponse } 
 import { Section } from '@components/Ledger';
 import { PersonSelect } from '@pages/company/register/shared/PersonPicker';
 import { PageAction } from '@components/Page';
+import { Confirmation } from '@components/Modal';
 import { FIELD_CLASS } from '@components/fieldClass';
 import { useCompanyMemberRequests } from './useCompanyMemberRequests';
 
@@ -51,6 +52,7 @@ export function CompanyMemberAccess({
   } = useCompanyMemberRequests({ company, owner, guard, registers, sourceReady, inviteMember, onHeldChange });
   const candidateOf = new Map(candidates.map((candidate) => [candidate.uuid, candidate]));
   const [inviting, setInviting] = useState(false);
+  const [revoking, setRevoking] = useState<{ uuid: string; name: string } | null>(null);
   const invite = useRef<HTMLHeadingElement>(null);
   const shown = !!inviteMember && member?.uuid === inviteMember;
   useEffect(() => {
@@ -199,7 +201,7 @@ export function CompanyMemberAccess({
                 <PageAction
                   label={`Revoke access for ${memberName(association.member)}`}
                   disabled={held || !reason.trim()}
-                  onClick={() => void access.revoke(association.uuid, reason.trim())}
+                  onClick={() => setRevoking({ uuid: association.uuid, name: memberName(association.member) })}
                 />
               )}
             </div>
@@ -343,6 +345,22 @@ export function CompanyMemberAccess({
             </div>
           ))}
         </div>
+      )}
+      {revoking && (
+        <Confirmation
+          isOpen
+          title={`Revoke access for ${revoking.name}?`}
+          confirmLabel="Revoke access"
+          busy={access.busy}
+          busyLabel="Revoking…"
+          onClose={() => setRevoking(null)}
+          onConfirm={() =>
+            void Promise.resolve(access.revoke(revoking.uuid, reason.trim())).finally(() => setRevoking(null))
+          }
+        >
+          They lose access to their own records and files and can&apos;t make new requests, though they can still read
+          the status of requests they made. Relinking needs a new invitation.
+        </Confirmation>
       )}
     </Section>
   );
