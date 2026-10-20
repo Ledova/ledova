@@ -116,7 +116,7 @@ export function PlaceOrderPanel({
         title={`${isBuy ? 'Buy' : 'Sell'} ${token.symbol}`}
         size="md"
         showFooter
-        confirmLabel={`Place ${isBuy ? 'Buy' : 'Sell'} Order`}
+        confirmLabel={`Place ${isBuy ? 'buy' : 'sell'} order`}
         confirmDisabled={isConfirmDisabled}
         busy={isSubmitting}
         busyLabel="Placing order…"
@@ -138,7 +138,7 @@ export function PlaceOrderPanel({
               <ShieldWarningIcon size={ICON_MD} className="mt-px flex-shrink-0 text-warning-light" />
               <div className="space-y-1">
                 <h3 className="text-sm font-medium text-warning-light">
-                  {isWhitelistStatusUnknown ? 'Allowlist Status Unavailable' : 'Wallet Not Allowlisted'}
+                  {isWhitelistStatusUnknown ? 'Allowlist status unavailable' : 'Wallet not allowlisted'}
                 </h3>
                 <p className="text-sm text-text-muted">
                   {isWhitelistStatusUnknown

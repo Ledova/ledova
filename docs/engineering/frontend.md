@@ -324,7 +324,7 @@ registration and review. Identity verification is not a step: when `useSignupRev
 with `/signup`, in `SignupRoute`, which sends a finished company account to the company dashboard
 and other finished accounts to `landingFor(role)`, lets an unfinished account or a signed-out
 visitor through, and shows `AccountUnavailable` when the profile cannot be read. `/signup` shows
-the create-account form when signed out and **Your Account** (`useSignupRestart`) when signed in.
+the create-account form when signed out and **Your account** (`useSignupRestart`) when signed in.
 Verified accounts never return to email confirmation: account type goes back to `/signup`,
 pre-screening to account type, and the confirmation step sends a signed-in visitor to `/`. Sign-in
 sits under `PublicOnlyRoute`, which sends a signed-in visitor to `/`.
@@ -387,8 +387,8 @@ cached preferences are hidden again when authentication is lost.
 
 Every list follows these rules:
 
-- It reads every page, or loads further pages on request; a failed first read offers a retry, not an
-  empty list.
+- It pages as [lists, search, filters and paging](frontend-ux.md#lists-search-filters-and-paging)
+  describes. A failed first read offers a retry, not an empty list.
 - A failed later page keeps the known rows and labels the list incomplete (`useLaterPages`).
 - A failed refresh withholds stale rows and their actions until a retry succeeds; a failed or
   inconsistent read withholds totals and charts.

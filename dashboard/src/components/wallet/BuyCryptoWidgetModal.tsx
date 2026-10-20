@@ -37,14 +37,14 @@ export function BuyCryptoWidgetModal({ isOpen, onClose, onComplete, widgetUrl }:
           <iframe
             src={widgetUrl}
             className="w-full h-full border-0"
-            title="Buy Digital Assets"
+            title="Buy digital assets"
             allow="camera;microphone;payment"
             referrerPolicy="strict-origin-when-cross-origin"
           />
         ) : (
           <div className="flex flex-col items-center justify-center h-full gap-3">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-mid" />
-            <span className="text-sm text-text-muted">Loading...</span>
+            <span className="text-sm text-text-muted">Loading…</span>
           </div>
         )}
       </div>

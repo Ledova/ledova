@@ -24692,6 +24692,15 @@
             }
           },
           {
+            "description": "Number of results to return per page.",
+            "in": "query",
+            "name": "page_size",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
             "in": "query",
             "name": "search",
             "schema": {
@@ -25042,6 +25051,15 @@
             "schema": {
               "type": "integer"
             }
+          },
+          {
+            "description": "Number of results to return per page.",
+            "in": "query",
+            "name": "page_size",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
           }
         ],
         "responses": {
@@ -25136,6 +25154,15 @@
             "description": "A page number within the paginated result set.",
             "in": "query",
             "name": "page",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Number of results to return per page.",
+            "in": "query",
+            "name": "page_size",
             "required": false,
             "schema": {
               "type": "integer"
@@ -25292,6 +25319,15 @@
             "description": "A page number within the paginated result set.",
             "in": "query",
             "name": "page",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Number of results to return per page.",
+            "in": "query",
+            "name": "page_size",
             "required": false,
             "schema": {
               "type": "integer"
@@ -25472,6 +25508,15 @@
             "description": "A page number within the paginated result set.",
             "in": "query",
             "name": "page",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Number of results to return per page.",
+            "in": "query",
+            "name": "page_size",
             "required": false,
             "schema": {
               "type": "integer"
@@ -25693,6 +25738,15 @@
             "description": "A page number within the paginated result set.",
             "in": "query",
             "name": "page",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Number of results to return per page.",
+            "in": "query",
+            "name": "page_size",
             "required": false,
             "schema": {
               "type": "integer"
@@ -26548,6 +26602,15 @@
             }
           },
           {
+            "description": "Number of results to return per page.",
+            "in": "query",
+            "name": "page_size",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
             "in": "query",
             "name": "start_date",
             "schema": {
@@ -26606,6 +26669,15 @@
             "description": "A page number within the paginated result set.",
             "in": "query",
             "name": "page",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Number of results to return per page.",
+            "in": "query",
+            "name": "page_size",
             "required": false,
             "schema": {
               "type": "integer"
@@ -26719,6 +26791,15 @@
             "schema": {
               "type": "integer"
             }
+          },
+          {
+            "description": "Number of results to return per page.",
+            "in": "query",
+            "name": "page_size",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
           }
         ],
         "responses": {
@@ -26810,6 +26891,15 @@
             "description": "A page number within the paginated result set.",
             "in": "query",
             "name": "page",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Number of results to return per page.",
+            "in": "query",
+            "name": "page_size",
             "required": false,
             "schema": {
               "type": "integer"
@@ -27076,6 +27166,15 @@
             "description": "A page number within the paginated result set.",
             "in": "query",
             "name": "page",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Number of results to return per page.",
+            "in": "query",
+            "name": "page_size",
             "required": false,
             "schema": {
               "type": "integer"
@@ -27350,6 +27449,15 @@
             "description": "A page number within the paginated result set.",
             "in": "query",
             "name": "page",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Number of results to return per page.",
+            "in": "query",
+            "name": "page_size",
             "required": false,
             "schema": {
               "type": "integer"
@@ -27888,6 +27996,15 @@
             "schema": {
               "type": "integer"
             }
+          },
+          {
+            "description": "Number of results to return per page.",
+            "in": "query",
+            "name": "page_size",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
           }
         ],
         "responses": {
@@ -28082,6 +28199,15 @@
             "schema": {
               "type": "integer"
             }
+          },
+          {
+            "description": "Number of results to return per page.",
+            "in": "query",
+            "name": "page_size",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
           }
         ],
         "responses": {
@@ -28243,6 +28369,15 @@
             "description": "A page number within the paginated result set.",
             "in": "query",
             "name": "page",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Number of results to return per page.",
+            "in": "query",
+            "name": "page_size",
             "required": false,
             "schema": {
               "type": "integer"
@@ -28580,6 +28715,15 @@
             "schema": {
               "type": "integer"
             }
+          },
+          {
+            "description": "Number of results to return per page.",
+            "in": "query",
+            "name": "page_size",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
           }
         ],
         "responses": {
@@ -28838,6 +28982,15 @@
             "schema": {
               "type": "integer"
             }
+          },
+          {
+            "description": "Number of results to return per page.",
+            "in": "query",
+            "name": "page_size",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
           }
         ],
         "responses": {
@@ -29015,6 +29168,15 @@
             "description": "A page number within the paginated result set.",
             "in": "query",
             "name": "page",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Number of results to return per page.",
+            "in": "query",
+            "name": "page_size",
             "required": false,
             "schema": {
               "type": "integer"
@@ -29246,6 +29408,15 @@
             "description": "A page number within the paginated result set.",
             "in": "query",
             "name": "page",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Number of results to return per page.",
+            "in": "query",
+            "name": "page_size",
             "required": false,
             "schema": {
               "type": "integer"
@@ -29575,6 +29746,41 @@
             }
           },
           {
+            "description": "Number of results to return per page.",
+            "in": "query",
+            "name": "page_size",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Matches every word, ignoring case.",
+            "in": "query",
+            "name": "search",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "schema": {
+              "enum": [
+                "accepted",
+                "allotted",
+                "awaiting_payment",
+                "draft",
+                "paid",
+                "refunded",
+                "rejected",
+                "submitted",
+                "withdrawn"
+              ],
+              "type": "string"
+            }
+          },
+          {
             "in": "path",
             "name": "uuid",
             "required": true,
@@ -29721,6 +29927,15 @@
             "description": "A page number within the paginated result set.",
             "in": "query",
             "name": "page",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Number of results to return per page.",
+            "in": "query",
+            "name": "page_size",
             "required": false,
             "schema": {
               "type": "integer"
@@ -29900,6 +30115,15 @@
             "description": "A page number within the paginated result set.",
             "in": "query",
             "name": "page",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Number of results to return per page.",
+            "in": "query",
+            "name": "page_size",
             "required": false,
             "schema": {
               "type": "integer"
@@ -30160,6 +30384,15 @@
             }
           },
           {
+            "description": "Number of results to return per page.",
+            "in": "query",
+            "name": "page_size",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
             "in": "query",
             "name": "search",
             "schema": {
@@ -30285,6 +30518,15 @@
             }
           },
           {
+            "description": "Number of results to return per page.",
+            "in": "query",
+            "name": "page_size",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
             "in": "query",
             "name": "search",
             "schema": {
@@ -30357,6 +30599,15 @@
             "description": "A page number within the paginated result set.",
             "in": "query",
             "name": "page",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Number of results to return per page.",
+            "in": "query",
+            "name": "page_size",
             "required": false,
             "schema": {
               "type": "integer"
@@ -30436,6 +30687,15 @@
             "description": "A page number within the paginated result set.",
             "in": "query",
             "name": "page",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Number of results to return per page.",
+            "in": "query",
+            "name": "page_size",
             "required": false,
             "schema": {
               "type": "integer"
@@ -30610,6 +30870,15 @@
             "description": "A page number within the paginated result set.",
             "in": "query",
             "name": "page",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Number of results to return per page.",
+            "in": "query",
+            "name": "page_size",
             "required": false,
             "schema": {
               "type": "integer"
@@ -30981,6 +31250,15 @@
             "schema": {
               "type": "integer"
             }
+          },
+          {
+            "description": "Number of results to return per page.",
+            "in": "query",
+            "name": "page_size",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
           }
         ],
         "responses": {
@@ -31197,6 +31475,15 @@
             "description": "A page number within the paginated result set.",
             "in": "query",
             "name": "page",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Number of results to return per page.",
+            "in": "query",
+            "name": "page_size",
             "required": false,
             "schema": {
               "type": "integer"
@@ -31419,6 +31706,15 @@
             "schema": {
               "type": "integer"
             }
+          },
+          {
+            "description": "Number of results to return per page.",
+            "in": "query",
+            "name": "page_size",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
           }
         ],
         "responses": {
@@ -31568,6 +31864,15 @@
             "description": "A page number within the paginated result set.",
             "in": "query",
             "name": "page",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Number of results to return per page.",
+            "in": "query",
+            "name": "page_size",
             "required": false,
             "schema": {
               "type": "integer"
@@ -32001,6 +32306,15 @@
             "schema": {
               "type": "integer"
             }
+          },
+          {
+            "description": "Number of results to return per page.",
+            "in": "query",
+            "name": "page_size",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
           }
         ],
         "responses": {
@@ -32204,6 +32518,15 @@
             "schema": {
               "type": "integer"
             }
+          },
+          {
+            "description": "Number of results to return per page.",
+            "in": "query",
+            "name": "page_size",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
           }
         ],
         "responses": {
@@ -32403,6 +32726,15 @@
             "description": "A page number within the paginated result set.",
             "in": "query",
             "name": "page",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Number of results to return per page.",
+            "in": "query",
+            "name": "page_size",
             "required": false,
             "schema": {
               "type": "integer"
@@ -32612,6 +32944,15 @@
             }
           },
           {
+            "description": "Number of results to return per page.",
+            "in": "query",
+            "name": "page_size",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
             "in": "query",
             "name": "token",
             "schema": {
@@ -32809,6 +33150,15 @@
             "description": "A page number within the paginated result set.",
             "in": "query",
             "name": "page",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Number of results to return per page.",
+            "in": "query",
+            "name": "page_size",
             "required": false,
             "schema": {
               "type": "integer"
@@ -33138,6 +33488,15 @@
             "description": "A page number within the paginated result set.",
             "in": "query",
             "name": "page",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Number of results to return per page.",
+            "in": "query",
+            "name": "page_size",
             "required": false,
             "schema": {
               "type": "integer"
@@ -33491,6 +33850,15 @@
             }
           },
           {
+            "description": "Number of results to return per page.",
+            "in": "query",
+            "name": "page_size",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
             "in": "query",
             "name": "status",
             "schema": {
@@ -33831,6 +34199,15 @@
             "description": "A page number within the paginated result set.",
             "in": "query",
             "name": "page",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Number of results to return per page.",
+            "in": "query",
+            "name": "page_size",
             "required": false,
             "schema": {
               "type": "integer"
@@ -34258,6 +34635,15 @@
             }
           },
           {
+            "description": "Number of results to return per page.",
+            "in": "query",
+            "name": "page_size",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
             "in": "query",
             "name": "status",
             "schema": {
@@ -34628,6 +35014,15 @@
             "schema": {
               "type": "integer"
             }
+          },
+          {
+            "description": "Number of results to return per page.",
+            "in": "query",
+            "name": "page_size",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
           }
         ],
         "responses": {
@@ -34809,6 +35204,15 @@
             "description": "A page number within the paginated result set.",
             "in": "query",
             "name": "page",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Number of results to return per page.",
+            "in": "query",
+            "name": "page_size",
             "required": false,
             "schema": {
               "type": "integer"
@@ -35226,6 +35630,15 @@
             }
           },
           {
+            "description": "Number of results to return per page.",
+            "in": "query",
+            "name": "page_size",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
             "in": "query",
             "name": "status",
             "schema": {
@@ -35596,6 +36009,15 @@
             }
           },
           {
+            "description": "Number of results to return per page.",
+            "in": "query",
+            "name": "page_size",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
             "in": "query",
             "name": "status",
             "schema": {
@@ -35929,6 +36351,15 @@
             "description": "A page number within the paginated result set.",
             "in": "query",
             "name": "page",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Number of results to return per page.",
+            "in": "query",
+            "name": "page_size",
             "required": false,
             "schema": {
               "type": "integer"
@@ -36323,6 +36754,15 @@
             }
           },
           {
+            "description": "Number of results to return per page.",
+            "in": "query",
+            "name": "page_size",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
             "in": "query",
             "name": "status",
             "schema": {
@@ -36648,6 +37088,15 @@
             "description": "A page number within the paginated result set.",
             "in": "query",
             "name": "page",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Number of results to return per page.",
+            "in": "query",
+            "name": "page_size",
             "required": false,
             "schema": {
               "type": "integer"
@@ -36983,6 +37432,15 @@
             }
           },
           {
+            "description": "Number of results to return per page.",
+            "in": "query",
+            "name": "page_size",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
             "in": "query",
             "name": "token",
             "schema": {
@@ -37161,6 +37619,15 @@
             "description": "A page number within the paginated result set.",
             "in": "query",
             "name": "page",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Number of results to return per page.",
+            "in": "query",
+            "name": "page_size",
             "required": false,
             "schema": {
               "type": "integer"
@@ -37562,6 +38029,15 @@
             }
           },
           {
+            "description": "Number of results to return per page.",
+            "in": "query",
+            "name": "page_size",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
             "in": "query",
             "name": "search",
             "schema": {
@@ -37696,6 +38172,15 @@
             "description": "A page number within the paginated result set.",
             "in": "query",
             "name": "page",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Number of results to return per page.",
+            "in": "query",
+            "name": "page_size",
             "required": false,
             "schema": {
               "type": "integer"
@@ -37880,6 +38365,15 @@
             "description": "A page number within the paginated result set.",
             "in": "query",
             "name": "page",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Number of results to return per page.",
+            "in": "query",
+            "name": "page_size",
             "required": false,
             "schema": {
               "type": "integer"
@@ -38275,6 +38769,15 @@
             "description": "A page number within the paginated result set.",
             "in": "query",
             "name": "page",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Number of results to return per page.",
+            "in": "query",
+            "name": "page_size",
             "required": false,
             "schema": {
               "type": "integer"
@@ -39902,6 +40405,15 @@
             }
           },
           {
+            "description": "Number of results to return per page.",
+            "in": "query",
+            "name": "page_size",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
             "in": "query",
             "name": "wallet_address",
             "required": true,
@@ -39952,6 +40464,15 @@
             "description": "A page number within the paginated result set.",
             "in": "query",
             "name": "page",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Number of results to return per page.",
+            "in": "query",
+            "name": "page_size",
             "required": false,
             "schema": {
               "type": "integer"
@@ -40194,6 +40715,15 @@
             }
           },
           {
+            "description": "Number of results to return per page.",
+            "in": "query",
+            "name": "page_size",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
             "in": "query",
             "name": "status",
             "schema": {
@@ -40262,6 +40792,15 @@
             "description": "A page number within the paginated result set.",
             "in": "query",
             "name": "page",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Number of results to return per page.",
+            "in": "query",
+            "name": "page_size",
             "required": false,
             "schema": {
               "type": "integer"
@@ -40548,6 +41087,15 @@
             }
           },
           {
+            "description": "Number of results to return per page.",
+            "in": "query",
+            "name": "page_size",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
             "in": "query",
             "name": "request",
             "schema": {
@@ -40646,6 +41194,15 @@
             "description": "A page number within the paginated result set.",
             "in": "query",
             "name": "page",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Number of results to return per page.",
+            "in": "query",
+            "name": "page_size",
             "required": false,
             "schema": {
               "type": "integer"
@@ -40850,6 +41407,15 @@
             "description": "A page number within the paginated result set.",
             "in": "query",
             "name": "page",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Number of results to return per page.",
+            "in": "query",
+            "name": "page_size",
             "required": false,
             "schema": {
               "type": "integer"
@@ -41108,6 +41674,15 @@
             "description": "A page number within the paginated result set.",
             "in": "query",
             "name": "page",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Number of results to return per page.",
+            "in": "query",
+            "name": "page_size",
             "required": false,
             "schema": {
               "type": "integer"

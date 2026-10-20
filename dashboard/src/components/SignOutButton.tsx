@@ -15,7 +15,7 @@ export function SignOutButton({ variant = 'header' }: { variant?: keyof typeof L
   return (
     <button type="button" onClick={signOut} disabled={isSigningOut} className={LOOKS[variant]}>
       {variant === 'sidebar' && <SignOutIcon size={ICON_MD} />}
-      {isSigningOut ? 'Signing out...' : 'Sign out'}
+      {isSigningOut ? 'Signing out…' : 'Sign out'}
     </button>
   );
 }

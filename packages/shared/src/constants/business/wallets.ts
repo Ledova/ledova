@@ -63,7 +63,7 @@ export const SUPPORTED_CHAINS: ChainConfig[] = [
     isActive: true,
     explorerTxUrl: 'https://sepolia.etherscan.io/tx/',
     explorerAddressUrl: 'https://sepolia.etherscan.io/address/',
-    addressPlaceholder: '0x...',
+    addressPlaceholder: '0x…',
     confirmationTime: '~2-3 minutes',
   },
   {
@@ -73,7 +73,7 @@ export const SUPPORTED_CHAINS: ChainConfig[] = [
     isActive: true,
     explorerTxUrl: 'https://blockstream.info/testnet/tx/',
     explorerAddressUrl: 'https://blockstream.info/testnet/address/',
-    addressPlaceholder: 'm..., n..., 2..., tb1... or bcrt1...',
+    addressPlaceholder: 'm…, n…, 2…, tb1… or bcrt1…',
     confirmationTime: '~10 minutes',
   },
   {
@@ -83,7 +83,7 @@ export const SUPPORTED_CHAINS: ChainConfig[] = [
     isActive: true,
     explorerTxUrl: 'https://sepolia.basescan.org/tx/',
     explorerAddressUrl: 'https://sepolia.basescan.org/address/',
-    addressPlaceholder: '0x...',
+    addressPlaceholder: '0x…',
     confirmationTime: '~2 seconds',
   },
   {
@@ -93,7 +93,7 @@ export const SUPPORTED_CHAINS: ChainConfig[] = [
     isActive: false,
     explorerTxUrl: '',
     explorerAddressUrl: '',
-    addressPlaceholder: '0x...',
+    addressPlaceholder: '0x…',
     confirmationTime: '~2 minutes',
   },
   {
@@ -113,7 +113,7 @@ export const SUPPORTED_CHAINS: ChainConfig[] = [
     isActive: false,
     explorerTxUrl: '',
     explorerAddressUrl: '',
-    addressPlaceholder: '0x...',
+    addressPlaceholder: '0x…',
     confirmationTime: '~2 minutes',
   },
 ];

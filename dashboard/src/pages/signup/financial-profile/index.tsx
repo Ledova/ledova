@@ -27,7 +27,7 @@ export default function SignupFinancialProfile() {
   };
 
   if (isLoading) {
-    return <LoadingState message="Loading financial profile..." />;
+    return <LoadingState message="Loading financial profile…" />;
   }
 
   if (generalError && !userProfileId) {
@@ -39,7 +39,7 @@ export default function SignupFinancialProfile() {
   if (!userProfileId) {
     return (
       <ErrorState
-        title="Profile Not Found"
+        title="Profile not found"
         message="Please complete your user profile before setting your financial profile."
         retryLabel="Go to Profile"
         onRetry={() => navigate(SIGNUP_PATHS.userProfile)}
@@ -49,7 +49,7 @@ export default function SignupFinancialProfile() {
 
   return (
     <AuthLayout>
-      <AuthHeader title="Financial Profile" icon={<ChartBarIcon size={ICON_MD} className="text-text-muted" />}>
+      <AuthHeader title="Financial profile" icon={<ChartBarIcon size={ICON_MD} className="text-text-muted" />}>
         <p className="text-sm text-text-muted mt-1">AML/CTF compliance information</p>
       </AuthHeader>
 

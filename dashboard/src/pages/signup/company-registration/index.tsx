@@ -37,16 +37,16 @@ export default function SignupCompanyRegistration() {
   };
 
   if (isLoading) {
-    return <LoadingState message="Loading company data..." />;
+    return <LoadingState message="Loading company data…" />;
   }
 
   if ((loadError && !hasLoadedForm) || (generalError && !form.name && !isSubmitting)) {
-    return <ErrorState title="Unable to Load" message={loadError || generalError} onRetry={retryLoad} />;
+    return <ErrorState title="Unable to load" message={loadError || generalError} onRetry={retryLoad} />;
   }
 
   return (
     <AuthLayout>
-      <AuthHeader title="Company Details" icon={<BuildingsIcon size={ICON_MD} className="text-text-muted" />}>
+      <AuthHeader title="Company details" icon={<BuildingsIcon size={ICON_MD} className="text-text-muted" />}>
         <p className="text-sm text-text-muted mt-1">
           Enter your company&apos;s basic information. Company information is provided by the company.
         </p>
@@ -56,7 +56,7 @@ export default function SignupCompanyRegistration() {
         <div role="alert" className="mb-4 text-error-light">
           <p>{loadError}</p>
           <button type="button" onClick={retryLoad} className="mt-2 font-semibold underline">
-            Try Again
+            Try again
           </button>
         </div>
       )}
