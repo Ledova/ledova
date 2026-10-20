@@ -1,6 +1,7 @@
 import { Choices } from '@components/Choices';
 import { CompanyPicker } from '@components/CompanyPicker';
 import { useState } from 'react';
+import { useRunningAction } from '@hooks/useRunningAction';
 import {
   useCompanyWalletInstructions,
   COMPANY_WALLET_COPY as COPY,
@@ -116,6 +117,7 @@ function Record({ record, data }: { record: CompanyWalletInstruction; data: Read
   );
 }
 function Preparation({ data }: { data: Read }) {
+  const { running, track } = useRunningAction();
   const [draft, setDraft] = useState<{
     owner: typeof data.owner;
     action: 'add' | 'remove';
@@ -202,12 +204,17 @@ function Preparation({ data }: { data: Read }) {
       )}
       <PageAction
         label="Prepare wallet instruction"
+        busy={running === 'prepare'}
+        busyLabel="Preparing…"
         disabled={blocked || !valid || (action === 'add' && !!selected?.unmetRequirements.length)}
         onClick={() =>
-          void data.prepare(
-            action === 'add'
-              ? { action, nomination: source, expiresAt: new Date(moment).toISOString() }
-              : { action, targetChange: source },
+          track(
+            'prepare',
+            data.prepare(
+              action === 'add'
+                ? { action, nomination: source, expiresAt: new Date(moment).toISOString() }
+                : { action, targetChange: source },
+            ),
           )
         }
       />

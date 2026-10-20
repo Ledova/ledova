@@ -128,6 +128,7 @@ function OwnAuthorityRequests({
                 request={request}
                 blocked={lifecycle.isPending || history.isFetching}
                 opening={opening.isPending}
+                downloading={opening.isPending && opening.variables?.uuid === request.uuid}
                 action={
                   lifecycle.isPending && lifecycle.variables?.request.uuid === request.uuid
                     ? lifecycle.variables.action

@@ -26,6 +26,7 @@ export function AuthorityRequestRecord({
   request,
   blocked,
   opening,
+  downloading,
   action,
   onDownload,
   onWithdraw,
@@ -35,6 +36,7 @@ export function AuthorityRequestRecord({
   request: CompanyAuthorityRequest;
   blocked: boolean;
   opening: boolean;
+  downloading: boolean;
   action?: 'withdraw' | 'admit' | 'revoke';
   onDownload: () => void;
   onWithdraw: () => Promise<unknown>;
@@ -80,6 +82,8 @@ export function AuthorityRequestRecord({
         <PageAction
           label={`Download evidence ${request.originalFilename || request.companyIdentityRaw.name}`}
           disabled={opening || blocked}
+          busy={downloading}
+          busyLabel="Downloading…"
           onClick={onDownload}
         />
       )}
@@ -110,7 +114,9 @@ export function AuthorityRequestRecord({
                 Accept authority declaration and Terms for {request.companyIdentityRaw.name}
               </label>
               <PageAction
-                label={`${action === 'admit' ? 'Admitting' : 'Establish'} appointment ${request.originalFilename || request.companyIdentityRaw.name}`}
+                label={`Establish appointment ${request.originalFilename || request.companyIdentityRaw.name}`}
+                busy={action === 'admit'}
+                busyLabel="Establishing appointment…"
                 primary
                 disabled={blocked || !accepted}
                 onClick={onAdmit}
@@ -124,7 +130,7 @@ export function AuthorityRequestRecord({
           )}
           <p className="text-sm text-text-muted">Withdrawing retires this request and retains its evidence.</p>
           <PageAction
-            label={`${action === 'withdraw' ? 'Withdrawing' : 'Withdraw'} request ${request.originalFilename || request.companyIdentityRaw.name}`}
+            label={`Withdraw request ${request.originalFilename || request.companyIdentityRaw.name}`}
             disabled={blocked}
             onClick={() => setConfirmingWithdrawal(true)}
           />
@@ -182,7 +188,7 @@ export function AuthorityRequestRecord({
           </p>
           {appointment.status !== 'revoked' && (
             <PageAction
-              label={`${action === 'revoke' ? 'Revoking' : 'Revoke'} appointment ${request.originalFilename || request.companyIdentityRaw.name}`}
+              label={`Revoke appointment ${request.originalFilename || request.companyIdentityRaw.name}`}
               disabled={blocked}
               onClick={() => {
                 if (blocked || revocationConfirmation.current) return;

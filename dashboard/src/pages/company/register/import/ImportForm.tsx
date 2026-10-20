@@ -1,4 +1,5 @@
 import { useImportPreparation, type ImportFormProps } from './useImportPreparation';
+import { useRunningAction } from '@hooks/useRunningAction';
 
 import {
   REGISTER_IMPORT_COPY,
@@ -40,6 +41,7 @@ export function ImportForm({
   visible = true,
   onHeldChange,
 }: ImportFormProps) {
+  const { running, track } = useRunningAction();
   const {
     importDescription,
     today,
@@ -57,6 +59,7 @@ export function ImportForm({
     attempted,
     setAttempted,
     autoApply,
+    editing,
     setEditing,
     canPrepare,
     finish,
@@ -394,6 +397,8 @@ export function ImportForm({
                     <FormActions>
                       <PageAction
                         label="Edit records"
+                        busy={editing}
+                        busyLabel="Reopening records…"
                         disabled={deciding || !!recovery || autoApply || !canPrepare || !steps.reject || blocked}
                         onClick={() => {
                           setEditing(true);
@@ -403,20 +408,20 @@ export function ImportForm({
                       {!currentTarget && !recovery && (
                         <PageAction
                           label="Load confirmation"
-                          busy={deciding}
+                          busy={running !== 'confirm' && decision.busy && !autoApply}
                           busyLabel="Loading confirmation…"
-                          disabled={busy || autoApply || blocked || !steps[kind]}
+                          disabled={busy || deciding || autoApply || blocked || !steps[kind]}
                           onClick={() => void loadPreview()}
                         />
                       )}
                       {!recovery && (
                         <PageAction
                           label={kind === 'approve' && !steps.apply ? 'Record review' : 'Confirm'}
-                          busy={deciding}
+                          busy={running === 'confirm' || (autoApply && deciding)}
                           busyLabel="Confirming…"
                           primary
-                          disabled={!ready || autoApply}
-                          onClick={() => void decision.confirm()}
+                          disabled={!ready || deciding || autoApply}
+                          onClick={() => track('confirm', decision.confirm())}
                         />
                       )}
                     </FormActions>
@@ -424,7 +429,13 @@ export function ImportForm({
                 )}
                 {proposal.status === 'applied' && (
                   <FormActions>
-                    <PageAction label="View company ownership" primary onClick={() => void finish()} />
+                    <PageAction
+                      label="View company ownership"
+                      primary
+                      busy={running === 'finish'}
+                      busyLabel="Opening company ownership…"
+                      onClick={() => track('finish', finish())}
+                    />
                   </FormActions>
                 )}
               </section>

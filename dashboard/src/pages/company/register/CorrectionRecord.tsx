@@ -64,7 +64,8 @@ export function CorrectionRecord({
             <PageAction
               label={COPY.DOWNLOAD}
               context={context}
-              disabled={download.isPending}
+              busy={download.isPending}
+              busyLabel="Downloading…"
               onClick={() => download.mutate()}
             />
           </div>
