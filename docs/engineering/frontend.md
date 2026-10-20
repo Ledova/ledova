@@ -387,9 +387,8 @@ cached preferences are hidden again when authentication is lost.
 
 Every list follows these rules:
 
-- A table reads one page at a time and a feed loads further pages on request
-  ([lists, search, filters and paging](frontend-ux.md#lists-search-filters-and-paging)); a list not
-  yet moved reads every page. A failed first read offers a retry, not an empty list.
+- It pages as [lists, search, filters and paging](frontend-ux.md#lists-search-filters-and-paging)
+  describes. A failed first read offers a retry, not an empty list.
 - A failed later page keeps the known rows and labels the list incomplete (`useLaterPages`).
 - A failed refresh withholds stale rows and their actions until a retry succeeds; a failed or
   inconsistent read withholds totals and charts.

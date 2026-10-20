@@ -1,4 +1,4 @@
-import { useId, type ReactNode } from 'react';
+import { useId, useRef, type ReactNode } from 'react';
 import { formatShareCount } from '@ledova/shared';
 import { FIELD_BASE, LABEL } from '@components/fieldClass';
 import { PageAction } from '@components/Page';
@@ -11,7 +11,6 @@ const counted = (count: number, [one, many]: Noun) => `${formatShareCount(String
 export interface Column {
   label: string;
   align?: 'right';
-  hidden?: boolean;
 }
 
 export function Table({ caption, columns, children }: { caption: string; columns: Column[]; children: ReactNode }) {
@@ -27,7 +26,7 @@ export function Table({ caption, columns, children }: { caption: string; columns
                 scope="col"
                 className={`px-4 py-3 font-medium ${column.align === 'right' ? 'text-right' : ''}`}
               >
-                {column.hidden ? <span className="sr-only">{column.label}</span> : column.label}
+                {column.label}
               </th>
             ))}
           </tr>
@@ -56,6 +55,7 @@ export function ListSearch({
   children?: ReactNode;
 }) {
   const id = useId();
+  const field = useRef<HTMLInputElement>(null);
   return (
     <div className="flex flex-col gap-2">
       <div className="flex flex-wrap items-start gap-3">
@@ -65,6 +65,7 @@ export function ListSearch({
           </label>
           <div className="mt-1 flex gap-2">
             <input
+              ref={field}
               id={`${id}search`}
               type="search"
               value={list.typed}
@@ -75,7 +76,16 @@ export function ListSearch({
               className={`${FIELD_BASE} [&::-webkit-search-cancel-button]:hidden`}
               onChange={(event) => list.type(event.target.value)}
             />
-            {(list.typed || list.search) && <PageAction label="Clear" context={label} onClick={list.clear} />}
+            {(list.typed || list.search) && (
+              <PageAction
+                label="Clear"
+                context={label}
+                onClick={() => {
+                  list.clear();
+                  field.current?.focus();
+                }}
+              />
+            )}
           </div>
           {hint && (
             <p id={`${id}hint`} className="mt-1 text-xs text-text-muted">
@@ -99,29 +109,31 @@ export function Pager({
   list,
   noun,
   count,
-  pageSize = PAGE_SIZE,
+  busy = false,
 }: {
   label: string;
   list: ListParams<string>;
   noun: Noun;
   count: number;
-  pageSize?: number;
+  busy?: boolean;
 }) {
   if (count === 0) return null;
-  const pages = Math.ceil(count / pageSize);
+  const pages = Math.ceil(count / PAGE_SIZE);
   const page = Math.min(list.page, pages);
-  const first = (page - 1) * pageSize + 1;
-  const last = Math.min(page * pageSize, count);
+  const first = (page - 1) * PAGE_SIZE + 1;
+  const last = Math.min(page * PAGE_SIZE, count);
   return (
-    <nav aria-label={label} className="flex flex-wrap items-center justify-between gap-3">
+    <nav aria-label={label} aria-busy={busy} className="flex flex-wrap items-center justify-between gap-3">
       <p className="text-sm tabular-nums text-text-muted">
-        {formatShareCount(String(first))}–{formatShareCount(String(last))} of {counted(count, noun)}
+        {busy
+          ? `Loading ${noun[1]}…`
+          : `${formatShareCount(String(first))}–${formatShareCount(String(last))} of ${counted(count, noun)}`}
       </p>
       {pages > 1 && (
         <div className="ml-auto flex flex-wrap items-center gap-2">
           <PageAction label="Previous" context={label} disabled={page === 1} onClick={() => list.setPage(page - 1)} />
           <span className="text-sm tabular-nums text-text-muted">
-            Page {page} of {pages}
+            Page {formatShareCount(String(page))} of {formatShareCount(String(pages))}
           </span>
           <PageAction label="Next" context={label} disabled={page === pages} onClick={() => list.setPage(page + 1)} />
         </div>
