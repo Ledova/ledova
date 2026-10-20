@@ -170,7 +170,7 @@ it('shows exact complete company ownership, refuses incomplete totals and discar
   mode = 'readable-investor';
   fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
   expect(await screen.findByRole('table', { name: 'Largest shareholders in ordinary shares' })).toBeTruthy();
-  expect(screen.queryByLabelText('Company')).toBeNull();
+  expect(screen.queryByRole('combobox', { name: 'Company' })).toBeNull();
   expect(api.get.mock.calls.map(([url]) => url)).not.toContain('/api/v1/companies/');
   view.unmount();
   client.clear();

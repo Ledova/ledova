@@ -1,3 +1,4 @@
+import { CompanyPicker } from '@components/CompanyPicker';
 import { useState } from 'react';
 import {
   DESTINATIONS,
@@ -47,23 +48,14 @@ export default function CompanyEligibilityPage() {
               Current personal prepare or approve authority permits reading this company&apos;s queue and preparing a
               decision. Recording a decision or revocation requires your own approve appointment.
             </p>
-            <Field label="Company">
-              <select
-                className={FIELD_CLASS}
-                value={read.companyUuid}
-                onChange={(event) => {
-                  read.setCompany(event.target.value);
-                  setRevocationReason('');
-                }}
-              >
-                <option value="">Select a company</option>
-                {read.companies.map((item) => (
-                  <option key={item.uuid} value={item.uuid}>
-                    {item.name} · {item.uuid}
-                  </option>
-                ))}
-              </select>
-            </Field>
+            <CompanyPicker
+              companies={read.companies}
+              value={read.companyUuid}
+              onChange={(uuid) => {
+                read.setCompany(uuid);
+                setRevocationReason('');
+              }}
+            />
             {read.companies.length === 0 && <p>No current personal prepare or approve appointments are available.</p>}
             {read.companyUuid && (
               <Field label="Your exact decision appointment">

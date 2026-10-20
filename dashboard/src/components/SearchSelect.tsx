@@ -100,7 +100,7 @@ export function SearchSelect({
     <Field className={LABEL} disabled={disabled}>
       <Combobox
         value={value}
-        onChange={(next) => next && onChange(next)}
+        onChange={(next) => next && next !== value && onChange(next)}
         onClose={() => {
           setQuery('');
           moved.current = false;
@@ -114,6 +114,7 @@ export function SearchSelect({
               <ComboboxInput
                 className={`${FIELD_BASE} pr-9`}
                 autoComplete="off"
+                data-1p-ignore
                 placeholder={placeholder}
                 displayValue={(current: string) => known.get(current) ?? ''}
                 onChange={(event) => {

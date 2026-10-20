@@ -1,5 +1,5 @@
-import { FIELD_CLASS, LABEL } from '@components/fieldClass';
 import type { useCompanySelection } from '@ledova/shared';
+import { CompanyPicker } from '@components/CompanyPicker';
 
 type Selection = Pick<ReturnType<typeof useCompanySelection>, 'companyUuid' | 'selectionBlocked' | 'selectCompany'> & {
   companies: { uuid: string; name: string }[];
@@ -8,21 +8,11 @@ type Selection = Pick<ReturnType<typeof useCompanySelection>, 'companyUuid' | 's
 export function CompanySelection({ read }: { read: Selection }) {
   if (read.companies.length < 2 && read.companyUuid) return null;
   return (
-    <label className={LABEL}>
-      Company
-      <select
-        className={FIELD_CLASS}
-        value={read.companyUuid ?? ''}
-        disabled={read.selectionBlocked}
-        onChange={(event) => read.selectCompany(event.target.value)}
-      >
-        <option value="">Select a company</option>
-        {read.companies.map((company) => (
-          <option key={company.uuid} value={company.uuid}>
-            {company.name}
-          </option>
-        ))}
-      </select>
-    </label>
+    <CompanyPicker
+      companies={read.companies}
+      value={read.companyUuid ?? ''}
+      onChange={read.selectCompany}
+      disabled={read.selectionBlocked}
+    />
   );
 }

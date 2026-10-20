@@ -1,3 +1,4 @@
+import { CompanyPicker } from '@components/CompanyPicker';
 import { useState } from 'react';
 import {
   useCompanyWalletInstructions,
@@ -12,9 +13,12 @@ import {
 import { Row, Rows, Section } from '@components/Ledger';
 import { PageAction } from '@components/Page';
 import { FIELD_CLASS } from '@components/fieldClass';
+import { SearchSelect } from '@components/SearchSelect';
 import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
 
 type Read = ReturnType<typeof useCompanyWalletInstructions>;
+
+const WALLETS = ['wallet', 'wallets'] as const;
 function Snapshot({ snapshot }: { snapshot: CompanyWalletInstruction['snapshot'] }) {
   return (
     <Rows>
@@ -136,7 +140,6 @@ function Preparation({ data }: { data: Read }) {
       <label className="text-sm">
         Instruction action
         <select
-          aria-label="Wallet instruction action"
           className={FIELD_CLASS}
           disabled={blocked}
           value={action}
@@ -148,30 +151,31 @@ function Preparation({ data }: { data: Read }) {
           <option value="remove">Remove retained approval</option>
         </select>
       </label>
-      <label className="text-sm">
-        {action === 'add' ? 'Explicitly shared wallet nomination' : 'Retained successful ADD target'}
-        <select
-          aria-label="Wallet instruction target"
-          className={FIELD_CLASS}
-          disabled={blocked}
-          value={source}
-          onChange={(event) => setDraft({ ...current, source: event.target.value })}
-        >
-          <option value="">Select exact target</option>
-          {action === 'add'
-            ? nominations.map((row) => (
-                <option key={row.uuid} value={row.uuid}>
-                  {row.address} · {row.uuid}
-                  {row.unmetRequirements.length ? ' · source not ready' : ''}
-                </option>
-              ))
-            : targets.map((row) => (
-                <option key={row.uuid} value={row.uuid}>
-                  {row.address} · {row.uuid} · {row.status}
-                </option>
-              ))}
-        </select>
-      </label>
+      <SearchSelect
+        label={action === 'add' ? 'Explicitly shared wallet nomination' : 'Retained successful ADD target'}
+        choices={
+          action === 'add'
+            ? nominations.map((row) => ({
+                value: row.uuid,
+                label: row.address,
+                detail: row.unmetRequirements.length
+                  ? 'Source not ready'
+                  : `Proof completed ${formatDateTime(row.proofCompletedAt)}`,
+              }))
+            : targets.map((row) => ({
+                value: row.uuid,
+                label: row.address,
+                detail: row.expiresAt
+                  ? `Approved until ${formatDateTime(row.expiresAt)}`
+                  : 'Approved without an expiry',
+              }))
+        }
+        value={source}
+        onChange={(uuid) => setDraft({ ...current, source: uuid })}
+        placeholder="Type part of a wallet address"
+        disabled={blocked}
+        noun={WALLETS}
+      />
       {selected && (
         <Rows>
           <Row label="Shared address">{selected.address}</Row>
@@ -188,7 +192,6 @@ function Preparation({ data }: { data: Read }) {
         <label className="text-sm">
           Finite approval expiry (local date and time)
           <input
-            aria-label="Wallet approval expiry"
             type="datetime-local"
             className={FIELD_CLASS}
             disabled={blocked}
@@ -223,23 +226,13 @@ export function CompanyWalletInstructions() {
             Current personal company administration or a register step grants this section. Earlier eligibility evidence
             sharing exposes no wallet directory.
           </p>
-          <label className="text-sm">
-            Wallet approval company
-            <select
-              aria-label="Wallet approval company"
-              className={FIELD_CLASS}
-              value={data.companyUuid}
-              disabled={data.busy}
-              onChange={(event) => data.setCompany(event.target.value)}
-            >
-              <option value="">Select company</option>
-              {data.companies.map((row) => (
-                <option key={row.uuid} value={row.uuid}>
-                  {row.name} · {row.uuid}
-                </option>
-              ))}
-            </select>
-          </label>
+          <CompanyPicker
+            label="Wallet approval company"
+            companies={data.companies}
+            value={data.companyUuid}
+            disabled={data.busy}
+            onChange={data.setCompany}
+          />
           {data.companyUuid && (
             <PageAction
               label="Refresh company wallet instructions"
