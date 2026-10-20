@@ -239,9 +239,23 @@ function useEligibilityRecords(
     if (mode === 'company') companyGuard();
     else ownerGuard();
   };
+  const paged = mode === 'company' && !!queue;
+  const listScope = [...eligibilityRecordsKey(mode, scope), selection.company];
   const list = useQuery({
     queryKey: listKey,
     enabled: !!owner && (mode === 'participant' || !!selection.company),
+    placeholderData: paged
+      ? (previous, previousQuery) =>
+          previousQuery && listScope.every((part, index) => previousQuery.queryKey[index] === part)
+            ? previous
+            : undefined
+      : undefined,
+    retry: paged
+      ? (failures, failure) => {
+          const status = failureStatus(failure);
+          return !(status !== undefined && status >= 400 && status < 500) && failures < 3;
+        }
+      : undefined,
     queryFn: async () => {
       const companyUuid = selection.company;
       const guard =
@@ -782,7 +796,14 @@ function useEligibilityRecords(
           : null),
     refresh,
     records,
-    recordCount: readReady ? (list.data?.count ?? 0) : 0,
+    queue: paged
+      ? {
+          rows: available && companyReadable && !readError && list.data ? list.data.rows : [],
+          count: list.data?.count ?? 0,
+          busy: list.isFetching,
+          settled: list.isSuccess && !list.isFetching && !list.isPlaceholderData,
+        }
+      : undefined,
     listError: list.error,
     selectedRecord,
     selectedRequestUuid: selection.record,

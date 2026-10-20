@@ -42,7 +42,8 @@ export default function CompanyEligibilityPage() {
     pageSize: PAGE_SIZE,
     outcome,
   });
-  useFirstPageWhenGone(list, read.listError);
+  const gone = useFirstPageWhenGone(list, read.listError);
+  const queue = read.queue;
   const [revocationReason, setRevocationReason] = useState('');
   const appointment = read.appointments.find(
     (item) => item.uuid === read.appointmentUuid && item.company === read.companyUuid,
@@ -66,7 +67,7 @@ export default function CompanyEligibilityPage() {
         <p>Your signed-in account must be checked before opening these records.</p>
       ) : (
         <>
-          {read.error && (
+          {read.error && !gone && (
             <p role="alert" className="text-sm text-error-light">
               {read.error}
             </p>
@@ -83,6 +84,7 @@ export default function CompanyEligibilityPage() {
               onChange={(uuid) => {
                 read.setCompany(uuid);
                 setRevocationReason('');
+                if (list.page > 1) list.setPage(1, true);
               }}
             />
             {read.companies.length === 0 && <p>No current personal prepare or approve appointments are available.</p>}
@@ -118,19 +120,30 @@ export default function CompanyEligibilityPage() {
                 value={outcome ?? ''}
                 onChange={(value) => list.setFilter('outcome', value)}
               />
-              {outcome && read.records.length === 0 ? (
-                <p className="text-sm text-text-muted">No requests match.</p>
-              ) : (
-                <RecordsList
-                  records={read.records}
-                  select={(uuid) => {
-                    read.selectRecord(uuid);
-                    setRevocationReason('');
-                  }}
-                  selected={read.selectedRecord?.uuid}
-                />
-              )}
-              <Pager label="Request pages" list={list} noun={['request', 'requests']} count={read.recordCount} />
+              {queue?.settled && queue.rows.length === 0 ? (
+                <p role="status" className="text-sm text-text-muted">
+                  {outcome ? 'No requests match.' : 'No requests recorded.'}
+                </p>
+              ) : queue?.rows.length ? (
+                <div aria-busy={queue.busy} className={queue.busy ? 'opacity-60' : undefined}>
+                  <RecordsList
+                    records={queue.rows}
+                    disabled={queue.busy}
+                    select={(uuid) => {
+                      read.selectRecord(uuid);
+                      setRevocationReason('');
+                    }}
+                    selected={read.selectedRecord?.uuid}
+                  />
+                </div>
+              ) : null}
+              <Pager
+                label="Request pages"
+                list={list}
+                noun={['request', 'requests']}
+                count={queue?.count ?? 0}
+                busy={queue?.busy}
+              />
             </Section>
           )}
           {read.selectedRecord && (

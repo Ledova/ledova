@@ -370,9 +370,10 @@ server:
 
 An offering's applications on Offerings are the first table: search by investor name, wallet
 address or payment reference, filter by status, with the chosen offering kept in the address too.
-Company eligibility's request queue pages the same way, filtered by outcome as radio buttons (the
-server filters on the outcome a request's decision, withdrawal, revocation and expiry give it);
-mobile still reads every page of the queue.
+Company eligibility's request queue pages the same way, with no search box: its one filter is the
+outcome, as radio buttons, which the server derives from each request's decision, withdrawal,
+revocation and expiry. While another page or outcome loads, its rows stay dimmed and their View
+buttons wait; mobile still reads every page of the queue.
 The feeds are Activity, an investor's Applications, Notices, the notification bell, Published to
 your members and a class's register entries. A list bounded by one person, such as their own
 documents, classification claims or wallets, reads every page. Other lists still read every page
