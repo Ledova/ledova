@@ -393,9 +393,9 @@ Dates on web forms:
 - **Other bases.** An inspection copy's request date is a Sydney date (`sydneyToday`). Offerings and
   company eligibility expiries are a local date and time (`datetime-local`), labelled so.
 - **Helpers.** `isCalendarDate` checks a typed date, and `addCalendarDays` and `addCalendarYears`
-  move one. An ESLint rule in `dashboard/eslint.config.js` refuses `toISOString()` sliced or split
-  into a date in the dashboard's source. Mobile keeps its own `utcToday`, and its deadlines are a
-  local date and time, until [#1201](https://github.com/Ledova/ledova/issues/1201).
+  move a valid one. An ESLint rule in `dashboard/eslint.config.js` refuses `toISOString()` sliced or
+  split into a date in the dashboard's source. Mobile keeps its own `utcToday`, and its deadlines are
+  a local date and time, until [#1201](https://github.com/Ledova/ledova/issues/1201).
 
 ## Validation
 

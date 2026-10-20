@@ -117,7 +117,7 @@ export function ClaimModal({
               <span className="text-sm font-medium text-text-primary">Certificate date (UTC)</span>
               <input
                 type="date"
-                min={addCalendarDays(addCalendarYears(utcToday(), -2), 1)}
+                min={addCalendarYears(addCalendarDays(utcToday(), 1), -2)}
                 max={utcToday()}
                 value={certificateIssuedAt}
                 onChange={(e) => setCertificateIssuedAt(e.target.value)}
