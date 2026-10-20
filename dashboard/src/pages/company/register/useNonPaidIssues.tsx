@@ -21,6 +21,7 @@ import { useOwnAppointments, ownAppointmentsKey } from '@hooks/useOwnAppointment
 import { grantsKey, useRegisterGrants } from '@pages/company/register/shared/useRegisterGrants';
 import { awardsKey, useRegisterAward } from '@pages/company/register/shared/useRegisterAwards';
 import { allPeopleKey, usePeople } from '@pages/company/register/shared/usePeople';
+import { LoadError } from '@components/Ledger';
 
 const AWARD_NOTE =
   'Prepare the company’s issue of recorded vested shares. The employee does not purchase them; approval and recording the issue are separate steps.';
@@ -218,16 +219,9 @@ export function useNonPaidIssues({
     <div className="mt-4 flex flex-col gap-3 border-t border-border-subtle pt-4">
       <h3 className="text-sm font-medium text-text-primary">Non-paid issues</h3>
       {appointments.isError && (
-        <div role="alert" className="flex flex-col items-start gap-2">
-          <p className="text-sm text-error-light">
-            Your appointments could not be loaded. Retry before preparing or deciding a grant.
-          </p>
-          <PageAction
-            label="Retry appointments"
-            disabled={appointments.isFetching}
-            onClick={() => void appointments.refetch()}
-          />
-        </div>
+        <LoadError retry={() => appointments.refetch()} busy={appointments.isFetching}>
+          Your appointments could not be loaded.
+        </LoadError>
       )}
       {readable && !Object.values(steps).some(Boolean) && (
         <p className="text-sm text-text-muted">{COPY.READ_ONLY_NOTE}</p>
@@ -237,16 +231,9 @@ export function useNonPaidIssues({
           Loading non-paid issues…
         </p>
       ) : !readable || grants.isError || appointments.isError ? (
-        <div role="alert">
-          <p className="text-sm text-error-light">
-            The non-paid issues could not be read. Refresh current company access.
-          </p>
-          <PageAction
-            label="Retry grants"
-            disabled={grants.isFetching || appointments.isFetching}
-            onClick={() => void refresh().catch(() => {})}
-          />
-        </div>
+        <LoadError retry={() => refresh().catch(() => {})} busy={grants.isFetching || appointments.isFetching}>
+          Non-paid issues could not be loaded. A current company register appointment is required.
+        </LoadError>
       ) : privateReady && grants.data.length === 0 ? (
         <p className="text-sm text-text-muted">{COPY.EMPTY}</p>
       ) : null}

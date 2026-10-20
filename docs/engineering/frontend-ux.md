@@ -17,6 +17,7 @@ and [mobile](mobile.md); what each page does is in the business section.
 - [Choosing from a bounded list](#choosing-from-a-bounded-list)
 - [How the choice rules are enforced](#how-the-choice-rules-are-enforced)
 - [Lists, search, filters and paging](#lists-search-filters-and-paging)
+- [Loading, empty and error states](#loading-empty-and-error-states)
 - [Validation](#validation)
 
 ## Signed-in page conventions
@@ -384,7 +385,7 @@ server:
   is loading.
 - **Feeds:** `LoadMore` ends a feed with "Load more notices" (or applications, activity,
   notifications and so on), which names its work while it runs. When a later page fails, the shown
-  rows stay, a sentence says the list is incomplete, and "Try more … again" retries.
+  rows stay and a [load error](#loading-empty-and-error-states) says the list is incomplete.
 - **Page size:** 25 rows. The API accepts `page_size` up to 100 on every paged list.
 
 An offering's applications on Offerings are the first table: search by investor name, wallet
@@ -394,6 +395,25 @@ your members and a class's register entries. A list bounded by one person, such 
 documents, classification claims or wallets, reads every page. Other lists still read every page
 ([frontend](frontend.md#lists-figures-and-currency)), and the register, ownership and import tables
 keep their own markup until they move.
+
+## Loading, empty and error states
+
+A read that fails shows `LoadError` (`dashboard/src/components/Ledger.tsx`): one `role="alert"`
+block with a sentence in the primary text colour and a Try again action. The sentence names what
+failed, such as "Your wallets could not be loaded.", and adds a second sentence only for a
+consequence the page can't otherwise show, such as "Trading actions are unavailable." or "The list
+is incomplete." Try again is described by that sentence, so a screen reader says which read it
+retries, and it stays disabled while the read runs again. Shared copy that both clients show passes through unchanged,
+such as an unreadable chain on a register opening.
+
+A failed read shows this block, never an empty state. The notification bell, profile documents and
+classification claims, which used to show none, now show the failure. On the company team page and
+a class's employee awards, a section whose read failed hides its Refresh action until the read
+succeeds again.
+
+Loading lines, refresh actions, a failed refresh and empty states are still to follow under
+[#1180](https://github.com/Ledova/ledova/issues/1180). So are the recoveries of an interrupted
+action, such as "Retry original member action", which keep their own wording until then.
 
 ## Validation
 

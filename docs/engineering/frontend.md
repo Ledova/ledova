@@ -185,8 +185,8 @@ The [principles](README.md#principles) apply; in particular, do not add:
   `PageTitle` only for a hash view.
 - **Errors and waiting.** A failed request reads as a `role="alert"` sentence
   ([validation](frontend-ux.md#validation)). Read a status with `failureStatus`, never an inline
-  cast. A page's first read renders `<Page loading>`; a failed read offers Try again
-  ([lists](#lists-figures-and-currency)).
+  cast. A page's first read renders `<Page loading>`; a failed read shows `LoadError` with Try again
+  ([loading, empty and error states](frontend-ux.md#loading-empty-and-error-states)).
 - **Formatting.** Figures, amounts and dates use the shared formatters (`formatMoney`,
   `formatShareCount`, `marketQuantity`, `formatCryptoBalance`, `formatDate`;
   [lists, figures and currency](#lists-figures-and-currency)). Never define a local formatter or

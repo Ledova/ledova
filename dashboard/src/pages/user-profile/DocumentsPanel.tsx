@@ -25,6 +25,7 @@ import { ICON_SM, ICON_MD } from '@components/iconSizes';
 
 import { useAttachDocument, useDeleteDocument, useDocument, useDocuments, useUploadDocument } from './useDocuments';
 import type { Document, UserDocumentType, ExtractionStatus } from '@ledova/shared';
+import { LoadError } from '@components/Ledger';
 
 const DOCUMENT_TYPE_LABELS: Record<UserDocumentType, string> = {
   payslip: 'Payslip',
@@ -405,7 +406,12 @@ export function DocumentsPanel() {
         Your payslips are private to you and permitted platform operations staff. Issuers cannot review them.
       </p>
       <UploadCard claims={claims} />
-      {!claims.some((claim) => claim.status === 'submitted') && (
+      {claimsQuery.isError && (
+        <LoadError retry={() => claimsQuery.refetch()} busy={claimsQuery.isFetching}>
+          Your classification claims could not be loaded.
+        </LoadError>
+      )}
+      {claimsQuery.isSuccess && !claims.some((claim) => claim.status === 'submitted') && (
         <a href={DESTINATIONS.investorEligibility.path} className="text-sm text-brand-light">
           Submit a classification claim to attach supporting evidence.
         </a>
@@ -413,7 +419,13 @@ export function DocumentsPanel() {
 
       {docs.isLoading && <p className="text-sm text-text-muted">Loading…</p>}
 
-      {!docs.isLoading && list.length === 0 && (
+      {docs.isError && (
+        <LoadError retry={() => docs.refetch()} busy={docs.isFetching}>
+          Your documents could not be loaded.
+        </LoadError>
+      )}
+
+      {docs.isSuccess && list.length === 0 && (
         <p className="text-sm text-text-muted">No documents yet — upload your first payslip above.</p>
       )}
 

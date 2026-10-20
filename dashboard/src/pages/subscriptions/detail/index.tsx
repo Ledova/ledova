@@ -10,7 +10,7 @@ import {
   formatMoney,
 } from '@ledova/shared';
 import type { SubscriptionDetail } from '@ledova/shared';
-import { Row, Rows, Section, Status, Timeline, type TimelineEvent } from '@components/Ledger';
+import { Row, Rows, Section, Status, Timeline, type TimelineEvent, LoadError } from '@components/Ledger';
 import { Page, PageAction, PageLink } from '@components/Page';
 import { Confirmation } from '@components/Modal';
 import { PaymentInstructionCard } from './PaymentInstructionCard';
@@ -93,12 +93,9 @@ export default function SubscriptionDetailPage() {
   if (hasError) {
     return (
       <Page narrow>
-        <div role="alert" className="flex flex-col items-start gap-3 py-6">
-          <p className="text-sm text-text-primary">
-            This application could not be loaded. Try again before continuing.
-          </p>
-          <PageAction label="Try again" onClick={() => void retry()} disabled={isRefreshing} />
-        </div>
+        <LoadError retry={retry} busy={isRefreshing}>
+          This application could not be loaded.
+        </LoadError>
       </Page>
     );
   }

@@ -11,9 +11,9 @@ import {
   failureStatus,
   type OrderSubmissionOwner,
 } from '@ledova/shared';
-import { Row, Rows, Section } from '@components/Ledger';
-import { Page, PageAction } from '@components/Page';
-import { Loading, Unavailable } from '@pages/company/shared/RegisterStatus';
+import { Row, Rows, Section, LoadError } from '@components/Ledger';
+import { Page } from '@components/Page';
+import { Loading } from '@pages/company/shared/RegisterStatus';
 
 import { useRegisterClasses } from '@pages/company/shared/useCompanyRegister';
 import { ownerGuard } from '@pages/company/shared/ownerGuard';
@@ -28,12 +28,10 @@ const LEDE =
 const REFUSED = 'This share class cannot be opened from the chain.';
 
 function HoldersFailure({ error, retry, busy }: { error: unknown; retry: () => void; busy: boolean }) {
-  if (failureStatus(error) !== 503) return <Unavailable retry={retry} busy={busy} />;
   return (
-    <div role="alert" className="flex flex-col items-start gap-3 py-3">
-      <p className="text-sm text-text-muted">{COPY.HOLDERS_UNAVAILABLE}</p>
-      <PageAction label="Try again" onClick={retry} disabled={busy} />
-    </div>
+    <LoadError retry={retry} busy={busy}>
+      {failureStatus(error) === 503 ? COPY.HOLDERS_UNAVAILABLE : 'The register could not be loaded.'}
+    </LoadError>
   );
 }
 
@@ -84,7 +82,14 @@ function OwnOpening({
   const failure = <HoldersFailure error={holders.error} retry={retry} busy={fetching} />;
   let content: ReactNode;
   if (!classes.data || !appointments.data)
-    content = classes.isError || appointments.isError ? <Unavailable retry={retry} busy={fetching} /> : <Loading />;
+    content =
+      classes.isError || appointments.isError ? (
+        <LoadError retry={retry} busy={fetching}>
+          The register could not be loaded.
+        </LoadError>
+      ) : (
+        <Loading />
+      );
   else if (!listed) content = <PreparationNotice className="py-3 text-sm text-text-muted" />;
   else if (!appointment)
     content = <PreparationNotice className="py-3 text-sm text-text-muted">{COPY.READ_ONLY_NOTE}</PreparationNotice>;

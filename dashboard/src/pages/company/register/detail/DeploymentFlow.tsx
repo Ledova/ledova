@@ -1,4 +1,4 @@
-import { Row, Rows, Section, Status } from '@components/Ledger';
+import { Row, Rows, Section, Status, LoadError } from '@components/Ledger';
 import { PageAction } from '@components/Page';
 import {
   REGISTER_DEPLOYMENT_COPY as COPY,
@@ -100,11 +100,9 @@ export function DeploymentFlow({ uuid, data }: { uuid: string; data: ReturnType<
       )}
       {!Object.values(steps).some(Boolean) && <p className="text-sm text-text-muted">{COPY.READ_ONLY_NOTE}</p>}
       {appointments.isError && (
-        <PageAction
-          label="Retry deployment appointments"
-          onClick={() => void appointments.refetch()}
-          disabled={appointments.isFetching}
-        />
+        <LoadError retry={() => appointments.refetch()} busy={appointments.isFetching}>
+          Your appointments could not be loaded.
+        </LoadError>
       )}
       {deployments.isError && (
         <p role="alert" className="text-sm text-error-light">

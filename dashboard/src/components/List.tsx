@@ -3,6 +3,7 @@ import { formatShareCount } from '@ledova/shared';
 import { FIELD_BASE, LABEL } from '@components/fieldClass';
 import { PageAction } from '@components/Page';
 import { PAGE_SIZE, type ListParams } from '@hooks/useListParams';
+import { LoadError } from '@components/Ledger';
 
 export type Noun = readonly [string, string];
 
@@ -159,10 +160,9 @@ export function LoadMore({
 }) {
   if (failed)
     return (
-      <div role="alert" className="flex flex-col items-start gap-3">
-        <p className="text-sm text-text-primary">More {noun[1]} could not be loaded. The list is incomplete.</p>
-        <PageAction label={`Try more ${noun[1]} again`} onClick={onLoad} disabled={disabled} />
-      </div>
+      <LoadError retry={onLoad} busy={disabled}>
+        More {noun[1]} could not be loaded. The list is incomplete.
+      </LoadError>
     );
   return hasMore ? (
     <PageAction

@@ -9,8 +9,7 @@ import {
   type OrderSubmissionOwner,
   type TokenHoldersResponse,
 } from '@ledova/shared';
-import { LinkRow } from '@components/Ledger';
-import { PageAction } from '@components/Page';
+import { LinkRow, LoadError } from '@components/Ledger';
 
 import { OpeningRecord } from './OpeningRecord';
 import { registerSteps } from '@pages/company/shared/proposals';
@@ -67,14 +66,9 @@ export function ClassOpenings({
     <div className="mt-4 flex flex-col gap-3 border-t border-border-subtle pt-4">
       <h3 className="text-sm font-medium text-text-primary">{COPY.TITLE}</h3>
       {appointments.isError ? (
-        <div role="alert" className="flex flex-col items-start gap-2 text-sm text-text-muted">
-          <p>Your appointments could not be loaded. Retry before preparing or deciding an opening.</p>
-          <PageAction
-            label="Retry appointments"
-            onClick={() => void appointments.refetch()}
-            disabled={appointments.isFetching}
-          />
-        </div>
+        <LoadError retry={() => appointments.refetch()} busy={appointments.isFetching}>
+          Your appointments could not be loaded.
+        </LoadError>
       ) : (
         steps && !Object.values(steps).some(Boolean) && <p className="text-sm text-text-muted">{COPY.READ_ONLY_NOTE}</p>
       )}
@@ -88,10 +82,9 @@ export function ClassOpenings({
           Loading openings…
         </p>
       ) : openings.isError ? (
-        <div role="alert" className="flex flex-col items-start gap-2 text-sm text-text-muted">
-          <p>We couldn&apos;t load the openings for this share class.</p>
-          <PageAction label="Retry openings" onClick={() => void openings.refetch()} disabled={openings.isFetching} />
-        </div>
+        <LoadError retry={() => openings.refetch()} busy={openings.isFetching}>
+          Openings could not be loaded.
+        </LoadError>
       ) : null}
       <ul className="divide-y divide-border-subtle">
         {(openings.data ?? []).map((proposal) => (

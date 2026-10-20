@@ -3,7 +3,7 @@ import { DESTINATIONS, failureSentence } from '@ledova/shared';
 import { useSettings } from './useSettings';
 import { Modal } from '@components/Modal';
 import { Page, PageAction } from '@components/Page';
-import { LinkRow, Outcome, Section, SwitchRow } from '@components/Ledger';
+import { LinkRow, Outcome, Section, SwitchRow, LoadError } from '@components/Ledger';
 import { FIELD_CLASS } from '@components/fieldClass';
 import { setTheme } from '@hooks/useTheme';
 import { Verification } from './Verification';
@@ -125,12 +125,9 @@ function SettingsPage() {
       </Section>
       <Section title="Notifications">
         {preferences.isError ? (
-          <>
-            <p role="alert" className="text-sm text-error-light">
-              Notification preferences could not be loaded.
-            </p>
-            <PageAction label="Try again" onClick={() => void preferences.refetch()} />
-          </>
+          <LoadError retry={() => preferences.refetch()} busy={preferences.isFetching}>
+            Notification preferences could not be loaded.
+          </LoadError>
         ) : preferences.isLoading ? (
           <p role="status" className="text-sm text-text-muted">
             Loading notification preferences…

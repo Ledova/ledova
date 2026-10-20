@@ -12,7 +12,7 @@ import {
   type OrderSubmissionOwner,
   type TokenHoldersResponse,
 } from '@ledova/shared';
-import { LinkRow } from '@components/Ledger';
+import { LinkRow, LoadError } from '@components/Ledger';
 import { PageTitle } from '@components/PageTitle';
 import { Page, PageAction, PageLink } from '@components/Page';
 import { CompanySelection } from '@pages/company/shared/CompanySelection';
@@ -33,7 +33,7 @@ import { CompanyPack } from './CompanyPack';
 import { RegisterLinks } from './RegisterLinks';
 import { RegisterParticulars } from './RegisterParticulars';
 import { RegisterSetup } from './RegisterSetup';
-import { Loading, Unavailable } from '@pages/company/shared/RegisterStatus';
+import { Loading } from '@pages/company/shared/RegisterStatus';
 import { useCompanyRegister, useRegisterDownload } from '@pages/company/shared/useCompanyRegister';
 import { ownerGuard } from '@pages/company/shared/ownerGuard';
 import { useOwnAppointments } from '@hooks/useOwnAppointments';
@@ -121,7 +121,9 @@ export default function CompanyRegisterPage() {
       {preferences.isLoading ? (
         <Loading />
       ) : (
-        <Unavailable retry={() => void preferences.refetch()} busy={preferences.isFetching} />
+        <LoadError retry={() => preferences.refetch()} busy={preferences.isFetching}>
+          Your account could not be loaded.
+        </LoadError>
       )}
     </RegisterPage>
   );
@@ -387,17 +389,21 @@ function OwnRegister({
       }
     >
       {preferenceRead.isError ? (
-        <Unavailable retry={() => void preferenceRead.refetch()} busy={preferenceRead.isFetching} />
+        <LoadError retry={() => preferenceRead.refetch()} busy={preferenceRead.isFetching}>
+          Your account could not be loaded.
+        </LoadError>
       ) : preferenceRead.isFetching || classes.isPending ? (
         <Loading />
       ) : classes.isError || registers.isError || (held && !sourceReady) ? (
-        <Unavailable
+        <LoadError
           retry={() => {
             void classes.refetch();
             void registers.refetch();
           }}
           busy={classes.isFetching || registers.isFetching}
-        />
+        >
+          The register could not be loaded.
+        </LoadError>
       ) : companies.length === 0 ? (
         <RegisterSetup owner={owner} guard={guard} />
       ) : !company ? (
@@ -406,13 +412,15 @@ function OwnRegister({
         <Loading />
       ) : null}
       {scope && (view === 'register' || view === 'shareholders') && ownershipInvalid && (
-        <Unavailable
+        <LoadError
           retry={() => {
             void classes.refetch();
             void registers.refetch();
           }}
           busy={classes.isFetching || registers.isFetching}
-        />
+        >
+          The register could not be loaded.
+        </LoadError>
       )}
       {scope && view === 'shareholders' && ownershipReady && (
         <>

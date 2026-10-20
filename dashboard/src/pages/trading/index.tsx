@@ -25,7 +25,7 @@ import { OrdersPanel } from './OrdersPanel';
 import { PlaceOrderPanel } from './PlaceOrderPanel';
 import { useTradingEvents } from './useTradingEvents';
 import { Page, PageAction } from '@components/Page';
-import { Outcome, Section } from '@components/Ledger';
+import { Outcome, Section, LoadError } from '@components/Ledger';
 
 function TradingPage() {
   const queryClient = useQueryClient();
@@ -229,12 +229,9 @@ function TradingPage() {
       />
 
       {tradingWallets.error && (
-        <div role="alert">
-          Wallets could not be loaded. Trading actions are unavailable.{' '}
-          <button className="underline" onClick={() => void tradingWallets.refetch()}>
-            Retry wallets
-          </button>
-        </div>
+        <LoadError retry={() => tradingWallets.refetch()} busy={tradingWallets.isFetching}>
+          Wallets could not be loaded. Trading actions are unavailable.
+        </LoadError>
       )}
       {placed && (
         <Outcome>
@@ -355,12 +352,7 @@ function TradingPage() {
       {selectedToken && (
         <>
           {balancesError && (
-            <div role="alert">
-              Share balances could not be loaded. Selling is unavailable.{' '}
-              <button className="underline" onClick={refreshBalances}>
-                Retry share balances
-              </button>
-            </div>
+            <LoadError retry={refreshBalances}>Share balances could not be loaded. Selling is unavailable.</LoadError>
           )}
           <PlaceOrderPanel
             token={selectedToken}

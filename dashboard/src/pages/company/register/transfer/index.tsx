@@ -10,9 +10,9 @@ import {
   type OrderSubmissionOwner,
   peopleFrom,
 } from '@ledova/shared';
-import { Section } from '@components/Ledger';
+import { Section, LoadError } from '@components/Ledger';
 import { Page } from '@components/Page';
-import { Loading, Unavailable } from '@pages/company/shared/RegisterStatus';
+import { Loading } from '@pages/company/shared/RegisterStatus';
 import { useRegisterClasses } from '@pages/company/shared/useCompanyRegister';
 import { ownerGuard } from '@pages/company/shared/ownerGuard';
 import { useOwnAppointments } from '@hooks/useOwnAppointments';
@@ -71,10 +71,24 @@ function OwnTransfer({
     void members.refetch();
   };
   let content: ReactNode;
-  if (!classes.data || !appointments.data) content = stale ? <Unavailable retry={retry} busy={busy} /> : <Loading />;
+  if (!classes.data || !appointments.data)
+    content = stale ? (
+      <LoadError retry={retry} busy={busy}>
+        The register could not be loaded.
+      </LoadError>
+    ) : (
+      <Loading />
+    );
   else if (!listed) content = <PreparationNotice />;
   else if (!appointment) content = <PreparationNotice>{COPY.READ_ONLY_NOTE}</PreparationNotice>;
-  else if (!register || !members.data) content = stale ? <Unavailable retry={retry} busy={busy} /> : <Loading />;
+  else if (!register || !members.data)
+    content = stale ? (
+      <LoadError retry={retry} busy={busy}>
+        The register could not be loaded.
+      </LoadError>
+    ) : (
+      <Loading />
+    );
   else if (!register.initialized || register.token.status !== 'draft')
     content = (
       <p className="text-sm text-text-muted">
@@ -91,7 +105,11 @@ function OwnTransfer({
           <p className="text-sm text-text-muted">{COPY.NOTE}</p>
         </Section>
         <Section title={COPY.PREPARE}>
-          {stale && <Unavailable retry={retry} busy={busy} />}
+          {stale && (
+            <LoadError retry={retry} busy={busy}>
+              The register could not be loaded.
+            </LoadError>
+          )}
           <TransferForm
             owner={owner}
             guard={guard}

@@ -8,8 +8,7 @@ import {
   type OrderSubmissionOwner,
   type TokenHoldersResponse,
 } from '@ledova/shared';
-import { Section } from '@components/Ledger';
-import { PageAction } from '@components/Page';
+import { Section, LoadError } from '@components/Ledger';
 
 import { ParticularsRecord } from './ParticularsRecord';
 import { registerMembers, registerSteps } from '@pages/company/shared/proposals';
@@ -65,14 +64,9 @@ export function RegisterParticulars({
   return (
     <Section title={COPY.TITLE}>
       {appointments.isError ? (
-        <div role="alert" className="flex flex-col items-start gap-2 text-sm text-text-muted">
-          <p>Your appointments could not be loaded. Retry before preparing or deciding a particulars change.</p>
-          <PageAction
-            label="Retry appointments"
-            onClick={() => void appointments.refetch()}
-            disabled={appointments.isFetching}
-          />
-        </div>
+        <LoadError retry={() => appointments.refetch()} busy={appointments.isFetching}>
+          Your appointments could not be loaded.
+        </LoadError>
       ) : (
         steps && !Object.values(steps).some(Boolean) && <p className="text-sm text-text-muted">{COPY.READ_ONLY_NOTE}</p>
       )}
@@ -81,14 +75,9 @@ export function RegisterParticulars({
           Loading particulars changes…
         </p>
       ) : changes.isError ? (
-        <div role="alert" className="flex flex-col items-start gap-2 text-sm text-text-muted">
-          <p>We couldn&apos;t load the particulars changes for this company.</p>
-          <PageAction
-            label="Retry particulars changes"
-            onClick={() => void changes.refetch()}
-            disabled={changes.isFetching}
-          />
-        </div>
+        <LoadError retry={() => changes.refetch()} busy={changes.isFetching}>
+          Particulars changes could not be loaded.
+        </LoadError>
       ) : null}
       <ul className="divide-y divide-border-subtle">
         {(changes.data ?? []).map((change) => (

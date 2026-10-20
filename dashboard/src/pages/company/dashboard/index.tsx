@@ -10,13 +10,14 @@ import {
 } from '@ledova/shared';
 import { Page } from '@components/Page';
 import { CompanySelection } from '@pages/company/shared/CompanySelection';
-import { Loading, Unavailable } from '@pages/company/shared/RegisterStatus';
+import { Loading } from '@pages/company/shared/RegisterStatus';
 import { useCompanyRegister } from '@pages/company/shared/useCompanyRegister';
 import { ownerGuard } from '@pages/company/shared/ownerGuard';
 import { useOwnAppointments } from '@hooks/useOwnAppointments';
 import { GettingStarted } from './GettingStarted';
 import { OwnershipMetrics, ShareholderPanels } from './OwnershipPanels';
 import { ownershipSummary } from '@pages/company/shared/summary';
+import { LoadError } from '@components/Ledger';
 
 export default function CompanyDashboardPage() {
   const { owner, boundary } = useSubmissionOwner();
@@ -28,7 +29,9 @@ export default function CompanyDashboardPage() {
       {preferences.isLoading ? (
         <Loading />
       ) : (
-        <Unavailable retry={() => void preferences.refetch()} busy={preferences.isFetching} />
+        <LoadError retry={() => preferences.refetch()} busy={preferences.isFetching}>
+          Your account could not be loaded.
+        </LoadError>
       )}
     </Page>
   );
@@ -111,10 +114,12 @@ function OwnDashboard({
         <CompanySelection read={{ companies, companyUuid: company?.uuid, selectionBlocked: false, selectCompany }} />
       )}
       {preferences.isError || classes.isError || registers.isError || appointments.isError || invalid ? (
-        <Unavailable
+        <LoadError
           retry={refresh}
           busy={preferences.isFetching || classes.isFetching || registers.isFetching || appointments.isFetching}
-        />
+        >
+          The register could not be loaded.
+        </LoadError>
       ) : preferences.isFetching ||
         classes.isPending ||
         appointments.isPending ||

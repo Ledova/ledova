@@ -12,9 +12,9 @@ import {
   type OrderSubmissionOwner,
   type OwnCompanyAppointment,
 } from '@ledova/shared';
-import { Section } from '@components/Ledger';
+import { Section, LoadError } from '@components/Ledger';
 import { Page } from '@components/Page';
-import { Loading, Unavailable } from '@pages/company/shared/RegisterStatus';
+import { Loading } from '@pages/company/shared/RegisterStatus';
 import { useRegisterClasses } from '@pages/company/shared/useCompanyRegister';
 import { ownerGuard } from '@pages/company/shared/ownerGuard';
 import { useOwnAppointments } from '@hooks/useOwnAppointments';
@@ -94,14 +94,23 @@ function OwnParticulars({
     classes.isError || appointments.isError || (found ? found.read.isError : registers.some((read) => read.isError));
   let content: ReactNode;
   if (!classes.data || !appointments.data)
-    content = classes.isError || appointments.isError ? <Unavailable retry={retry} busy={fetching} /> : <Loading />;
+    content =
+      classes.isError || appointments.isError ? (
+        <LoadError retry={retry} busy={fetching}>
+          The register could not be loaded.
+        </LoadError>
+      ) : (
+        <Loading />
+      );
   else if (preparing.length === 0)
     content = <PreparationNotice className="py-3 text-sm text-text-muted">{COPY.READ_ONLY_NOTE}</PreparationNotice>;
   else if (!found)
     content = registers.some((read) => read.isPending) ? (
       <Loading />
     ) : stale ? (
-      <Unavailable retry={retry} busy={fetching} />
+      <LoadError retry={retry} busy={fetching}>
+        The register could not be loaded.
+      </LoadError>
     ) : (
       <p className="py-3 text-sm text-text-muted">This member is not a current member of a register you can change.</p>
     );
@@ -113,7 +122,11 @@ function OwnParticulars({
           <p className="text-sm text-text-muted">{COPY.PRECEDENCE_NOTE}</p>
         </Section>
         <Section title={COPY.PREPARE}>
-          {stale && <Unavailable retry={retry} busy={fetching} />}
+          {stale && (
+            <LoadError retry={retry} busy={fetching}>
+              The register could not be loaded.
+            </LoadError>
+          )}
           <ParticularsForm
             owner={owner}
             guard={guard}

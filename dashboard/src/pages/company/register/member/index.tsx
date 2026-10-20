@@ -19,10 +19,10 @@ import {
   type OrderSubmissionOwner,
   type OwnCompanyAppointment,
 } from '@ledova/shared';
-import { Row, Rows, Section } from '@components/Ledger';
+import { Row, Rows, Section, LoadError } from '@components/Ledger';
 import { Page, PageLink } from '@components/Page';
 import { PageTitle } from '@components/PageTitle';
-import { Loading, Unavailable } from '@pages/company/shared/RegisterStatus';
+import { Loading } from '@pages/company/shared/RegisterStatus';
 import { ownerGuard } from '@pages/company/shared/ownerGuard';
 import { registerClassesKey, registersQuery } from '@pages/company/shared/useCompanyRegister';
 import { percentage } from '@pages/company/register/shared/shareholders';
@@ -75,7 +75,9 @@ export default function CompanyShareholderPage() {
       {preferences.isLoading ? (
         <Loading />
       ) : (
-        <Unavailable retry={() => void preferences.refetch()} busy={preferences.isFetching} />
+        <LoadError retry={() => preferences.refetch()} busy={preferences.isFetching}>
+          Your account could not be loaded.
+        </LoadError>
       )}
     </Page>
   );
@@ -140,15 +142,19 @@ function OwnShareholder({
     appointments.fetchStatus === 'idle' &&
     hasCurrentRegisterReadAuthority(appointments.data, company);
   const settled = (query: Read) => authorised && query.isSuccess && query.fetchStatus === 'idle';
-  const privately = (query: Read, render: () => ReactNode) =>
+  const privately = (query: Read, noun: string, render: () => ReactNode) =>
     appointments.isError ? (
-      <Unavailable retry={() => void appointments.refetch()} busy={appointments.isFetching} />
+      <LoadError retry={() => appointments.refetch()} busy={appointments.isFetching}>
+        Your appointments could not be loaded.
+      </LoadError>
     ) : !appointments.isSuccess || appointments.fetchStatus !== 'idle' ? (
       <Loading />
     ) : !authorised ? (
       <p className="text-sm text-text-muted">{PRIVATE_NOTE}</p>
     ) : query.isError ? (
-      <Unavailable retry={() => void query.refetch()} busy={query.isFetching} />
+      <LoadError retry={() => query.refetch()} busy={query.isFetching}>
+        {noun} could not be loaded.
+      </LoadError>
     ) : !settled(query) ? (
       <Loading />
     ) : (
@@ -158,17 +164,23 @@ function OwnShareholder({
   let title: string = DESTINATIONS.companyShareholder.title;
   let content: ReactNode;
   if (preferenceRead.isError)
-    content = <Unavailable retry={() => void preferenceRead.refetch()} busy={preferenceRead.isFetching} />;
+    content = (
+      <LoadError retry={() => preferenceRead.refetch()} busy={preferenceRead.isFetching}>
+        Your account could not be loaded.
+      </LoadError>
+    );
   else if (data.classes.isPending) content = <Loading />;
   else if (data.classes.isError || data.registers.isError)
     content = (
-      <Unavailable
+      <LoadError
         retry={() => {
           void data.classes.refetch();
           void data.registers.refetch();
         }}
         busy={data.classes.isFetching || data.registers.isFetching}
-      />
+      >
+        The register could not be loaded.
+      </LoadError>
     );
   else if (!data.company)
     content = <p className="py-3 text-sm text-text-muted">This shareholder is not on a register you can read.</p>;
@@ -210,7 +222,7 @@ function OwnShareholder({
       ) : (
         <>
           <Section title="Particulars">
-            {privately(data.particulars, () => (
+            {privately(data.particulars, 'Their particulars', () => (
               <Rows>
                 <Row label="Name">{recorded?.name || title}</Row>
                 <Row label="Residential address">{recorded?.residentialAddress || 'Not recorded'}</Row>
@@ -309,7 +321,7 @@ function OwnShareholder({
             )}
           </Section>
           <Section title="History">
-            {privately(data.entries, () =>
+            {privately(data.entries, 'Their history', () =>
               data.entries.data?.length ? (
                 <ul className="divide-y divide-border-subtle">
                   {data.entries.data.map(({ token, entry }) => (
@@ -336,7 +348,9 @@ function OwnShareholder({
           </Section>
           {authorised && data.awards.isError && (
             <Section title="Employee awards">
-              <Unavailable retry={() => void data.awards.refetch()} busy={data.awards.isFetching} />
+              <LoadError retry={() => data.awards.refetch()} busy={data.awards.isFetching}>
+                Employee awards could not be loaded.
+              </LoadError>
             </Section>
           )}
           {settled(data.awards) && !!data.awards.data?.length && (

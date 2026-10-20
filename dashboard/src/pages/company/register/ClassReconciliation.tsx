@@ -13,7 +13,7 @@ import {
   type RegisterDiscrepancy,
   type TokenHoldersResponse,
 } from '@ledova/shared';
-import { Row, Rows, Status, type Tone } from '@components/Ledger';
+import { Row, Rows, Status, type Tone, LoadError } from '@components/Ledger';
 import { Modal } from '@components/Modal';
 import { PageAction } from '@components/Page';
 import { FIELD_CLASS, LABEL } from '@components/fieldClass';
@@ -147,14 +147,9 @@ export function ClassReconciliation({
     <div className="mt-4 flex flex-col gap-3 border-t border-border-subtle pt-4">
       <h3 className="text-sm font-medium text-text-primary">{COPY.TITLE}</h3>
       {appointments.isError ? (
-        <div role="alert" className="flex flex-col items-start gap-2 text-sm text-text-muted">
-          <p>Your appointments could not be loaded. Retry before acknowledging a discrepancy.</p>
-          <PageAction
-            label="Retry appointments"
-            onClick={() => void appointments.refetch()}
-            disabled={appointments.isFetching}
-          />
-        </div>
+        <LoadError retry={() => appointments.refetch()} busy={appointments.isFetching}>
+          Your appointments could not be loaded.
+        </LoadError>
       ) : (
         appointments.isSuccess && !acknowledger && <p className="text-sm text-text-muted">{COPY.READ_ONLY_NOTE}</p>
       )}
@@ -163,14 +158,9 @@ export function ClassReconciliation({
           Loading the reconciliation…
         </p>
       ) : reconciliation.isError ? (
-        <div role="alert" className="flex flex-col items-start gap-2 text-sm text-text-muted">
-          <p>We couldn&apos;t load the reconciliation for this share class.</p>
-          <PageAction
-            label="Retry reconciliation"
-            onClick={() => void reconciliation.refetch()}
-            disabled={reconciliation.isFetching}
-          />
-        </div>
+        <LoadError retry={() => reconciliation.refetch()} busy={reconciliation.isFetching}>
+          The reconciliation could not be loaded.
+        </LoadError>
       ) : !privateReady ? null : !record ? (
         <p className="text-sm text-text-muted">{COPY.EMPTY}</p>
       ) : (

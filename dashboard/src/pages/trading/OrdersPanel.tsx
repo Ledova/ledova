@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { Wallet, OrderSubmissionOwner, TransferOrder, SwapOrder, OrderBook, OrderBookEntry } from '@ledova/shared';
 import { selectSwapSettlement, formatDateTime, marketAmount, marketQuantity } from '@ledova/shared';
-import { Section, Rows, Row, Status, type Tone } from '@components/Ledger';
+import { Section, Rows, Row, Status, type Tone, LoadError } from '@components/Ledger';
 
 function BookSide({ title, entries }: { title: string; entries: OrderBookEntry[] }) {
   return (
@@ -82,12 +82,7 @@ export function OrdersPanel({
       {tokenSymbol && (
         <Section title={`Orders for ${tokenSymbol}`}>
           {orderBookError ? (
-            <div role="alert">
-              The order lists could not be loaded.{' '}
-              <button className="underline" onClick={onRefreshBook}>
-                Retry order lists
-              </button>
-            </div>
+            <LoadError retry={() => onRefreshBook?.()}>The order lists could not be loaded.</LoadError>
           ) : isLoadingOrderBook ? (
             <p role="status">Loading order lists…</p>
           ) : (
@@ -103,12 +98,7 @@ export function OrdersPanel({
           Your recorded orders remain here when a share class is no longer listed.
         </p>
         {ordersError ? (
-          <div role="alert">
-            Your orders could not be loaded.{' '}
-            <button className="underline" onClick={onRefreshOrders}>
-              Retry your orders
-            </button>
-          </div>
+          <LoadError retry={() => onRefreshOrders?.()}>Your orders could not be loaded.</LoadError>
         ) : isLoadingUserOrders ? (
           <p role="status">Loading your orders…</p>
         ) : userOrders.length === 0 ? (
@@ -180,12 +170,7 @@ export function OrdersPanel({
       </Section>
       <Section title="Trades awaiting signatures">
         {swapsError ? (
-          <div role="alert">
-            Trades could not be loaded.{' '}
-            <button className="underline" onClick={onRefreshSwaps}>
-              Retry trades
-            </button>
-          </div>
+          <LoadError retry={() => onRefreshSwaps?.()}>Trades could not be loaded.</LoadError>
         ) : isLoadingSwaps ? (
           <p role="status">Loading trades…</p>
         ) : !swaps?.length ? (

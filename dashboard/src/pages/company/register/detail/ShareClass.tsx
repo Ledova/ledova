@@ -14,7 +14,7 @@ import {
   useUserPreferences,
 } from '@ledova/shared';
 import { Page, PageAction, PageLink } from '@components/Page';
-import { Row, Rows, Section, Status } from '@components/Ledger';
+import { Row, Rows, Section, Status, LoadError } from '@components/Ledger';
 import { ClassRegister } from '@pages/company/register/shared/ClassRegister';
 import { CompanyShareholders } from '@pages/company/register/shared/CompanyShareholders';
 import { useShareClass } from './useShareClass';
@@ -39,10 +39,9 @@ function ReadResult({ query, label, children }: { query: ReadState; label: strin
     );
   if (query.isError)
     return (
-      <div role="alert" className="flex flex-col items-start gap-2 py-3 text-sm text-text-muted">
-        <p>We couldn&apos;t load {label}.</p>
-        <PageAction label={`Retry ${label}`} onClick={() => void query.refetch()} disabled={query.isFetching} />
-      </div>
+      <LoadError retry={query.refetch} busy={query.isFetching}>
+        {label.charAt(0).toUpperCase() + label.slice(1)} could not be loaded.
+      </LoadError>
     );
   return <>{children}</>;
 }
@@ -97,14 +96,9 @@ function ShareClassDetails({ data }: { data: ReturnType<typeof useShareClass> })
     if (data.token.isPending) return <p role="status">Loading share class…</p>;
     if (data.token.isError || !token)
       return (
-        <>
-          <div role="alert" className="space-y-3">
-            <p className="text-sm text-text-muted">
-              This share class could not be loaded. It may be unavailable to this account.
-            </p>
-            <PageAction label="Try again" onClick={() => void data.token.refetch()} disabled={data.token.isFetching} />
-          </div>
-        </>
+        <LoadError retry={data.token.refetch} busy={data.token.isFetching}>
+          This share class could not be loaded. It may be unavailable to this account.
+        </LoadError>
       );
     const addressUrl =
       token.chain && token.contractAddress ? getBlockExplorerAddressUrl(token.chain, token.contractAddress) : '';
@@ -204,7 +198,7 @@ function ShareClassDetails({ data }: { data: ReturnType<typeof useShareClass> })
               {REGISTER_COPY.DOWNLOAD_FAILED}
             </p>
           )}
-          <ReadResult query={data.register} label="register">
+          <ReadResult query={data.register} label="the register">
             {registerReady && data.register.data && <ClassRegister register={data.register.data} />}
           </ReadResult>
         </Section>

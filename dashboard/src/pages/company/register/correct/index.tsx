@@ -10,10 +10,10 @@ import {
   type OrderSubmissionOwner,
   type RegisterEntry,
 } from '@ledova/shared';
-import { Row, Rows, Section } from '@components/Ledger';
+import { Row, Rows, Section, LoadError } from '@components/Ledger';
 import { Page } from '@components/Page';
 import { RegisterChanges } from '@pages/company/register/shared/RegisterChanges';
-import { Loading, Unavailable } from '@pages/company/shared/RegisterStatus';
+import { Loading } from '@pages/company/shared/RegisterStatus';
 import { describeEntry } from '@pages/company/shared/proposals';
 
 import { useRegisterClasses } from '@pages/company/shared/useCompanyRegister';
@@ -80,12 +80,25 @@ function OwnCorrection({
   const stale = classes.isError || appointments.isError || corrected.isError;
   let content: ReactNode;
   if (!classes.data || !appointments.data)
-    content = classes.isError || appointments.isError ? <Unavailable retry={retry} busy={fetching} /> : <Loading />;
+    content =
+      classes.isError || appointments.isError ? (
+        <LoadError retry={retry} busy={fetching}>
+          The register could not be loaded.
+        </LoadError>
+      ) : (
+        <Loading />
+      );
   else if (!listed) content = <PreparationNotice className="py-3 text-sm text-text-muted" />;
   else if (!appointment)
     content = <PreparationNotice className="py-3 text-sm text-text-muted">{COPY.READ_ONLY_NOTE}</PreparationNotice>;
   else if (corrected.data === undefined)
-    content = corrected.isError ? <Unavailable retry={retry} busy={fetching} /> : <Loading />;
+    content = corrected.isError ? (
+      <LoadError retry={retry} busy={fetching}>
+        The register could not be loaded.
+      </LoadError>
+    ) : (
+      <Loading />
+    );
   else if (corrected.data === null)
     content = <p className="py-3 text-sm text-text-muted">This entry is not in the register of this share class.</p>;
   else if (!corrected.data.correctable)
@@ -115,7 +128,11 @@ function OwnCorrection({
           <p className="text-sm text-text-muted">{COPY.COMPENSATION_NOTE}</p>
         </Section>
         <Section title={COPY.PREPARE}>
-          {stale && <Unavailable retry={retry} busy={fetching} />}
+          {stale && (
+            <LoadError retry={retry} busy={fetching}>
+              The register could not be loaded.
+            </LoadError>
+          )}
           <CorrectionForm
             owner={owner}
             guard={guard}

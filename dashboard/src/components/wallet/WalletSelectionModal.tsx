@@ -3,9 +3,9 @@ import { getActiveChains } from '@ledova/shared';
 import { ICON_LG } from '@components/iconSizes';
 import type { Wallet } from '@ledova/shared';
 import { Modal } from '@components/Modal';
-import { PageAction } from '@components/Page';
 import { WalletChoice } from '@components/wallet';
 import { useWalletSelection } from './useWalletSelection';
+import { LoadError } from '@components/Ledger';
 
 interface WalletSelectionModalProps {
   isOpen: boolean;
@@ -19,14 +19,9 @@ export function WalletSelectionModal({ isOpen, onClose, onSelectWallet }: Wallet
   const renderContent = () => {
     if (walletsQuery.isError) {
       return (
-        <div role="alert" className="flex flex-col items-start gap-3">
-          <p className="text-sm text-text-muted">Your wallets could not be loaded. Try again before continuing.</p>
-          <PageAction
-            label="Try again"
-            disabled={walletsQuery.isFetching}
-            onClick={() => void walletsQuery.refetch()}
-          />
-        </div>
+        <LoadError retry={() => walletsQuery.refetch()} busy={walletsQuery.isFetching}>
+          Your wallets could not be loaded.
+        </LoadError>
       );
     }
 
