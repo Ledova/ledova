@@ -106,9 +106,11 @@ export function PublicationRecord({
       )}
       <PageAction
         primary
-        label={opening ? PUBLICATION_COPY.OPENING : PUBLICATION_COPY.OPEN}
+        label={PUBLICATION_COPY.OPEN}
+        busy={opening}
+        busyLabel={PUBLICATION_COPY.OPENING}
         onClick={open}
-        disabled={opening || blocked}
+        disabled={blocked}
       />
     </article>
   );

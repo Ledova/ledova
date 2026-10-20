@@ -1,4 +1,4 @@
-import { PageAction } from '@components/Page';
+import { FormActions, PageAction } from '@components/Page';
 import { FIELD_CLASS, LABEL } from '@components/fieldClass';
 import { REGISTER_AWARD_COPY as COPY, type OwnCompanyAppointment, type RegisterAward } from '@ledova/shared';
 import { useAwardVestingForm } from './useAwardVestingForm';
@@ -78,14 +78,16 @@ export function AwardVestingForm({
         </p>
       )}
       {held && <p className="text-sm text-text-muted">{COPY.RECOVERY_NOTE}</p>}
-      <div className="flex justify-end border-t border-border-subtle pt-4">
+      <FormActions>
         <PageAction
+          type="submit"
           primary
-          label={busy ? 'Recording vesting…' : COPY.VEST}
-          disabled={busy || blocked || (!held && (!canPrepare || !!problem))}
-          onClick={() => void submit()}
+          label={COPY.VEST}
+          busy={busy}
+          busyLabel="Recording vesting…"
+          disabled={blocked || (!held && (!canPrepare || !!problem))}
         />
-      </div>
+      </FormActions>
     </form>
   );
 }

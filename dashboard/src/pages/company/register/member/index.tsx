@@ -1,5 +1,5 @@
 import { useMemo, useState, type ReactNode } from 'react';
-import { generatePath, Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { generatePath, useParams, useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   DESTINATIONS,
@@ -20,7 +20,7 @@ import {
   type OwnCompanyAppointment,
 } from '@ledova/shared';
 import { Row, Rows, Section } from '@components/Ledger';
-import { Page, PageAction } from '@components/Page';
+import { Page, PageLink } from '@components/Page';
 import { PageTitle } from '@components/PageTitle';
 import { Loading, Unavailable } from '@pages/company/shared/RegisterStatus';
 import { ownerGuard } from '@pages/company/shared/ownerGuard';
@@ -29,8 +29,6 @@ import { percentage } from '@pages/company/register/shared/shareholders';
 import { ownAppointmentsKey, useOwnAppointments } from '@hooks/useOwnAppointments';
 import { useShareholder } from './useShareholder';
 
-const LINK_CLASS =
-  'inline-flex w-fit rounded-lg border border-border px-3.5 py-2 text-sm font-medium text-text-primary hover:bg-surface-tertiary';
 const SHAREHOLDERS = `${DESTINATIONS.companyRegister.path}#shareholders`;
 const PRIVATE_NOTE =
   'Particulars, history and awards show only to someone with a current company register appointment.';
@@ -52,13 +50,13 @@ export default function CompanyShareholderPage() {
   const { member = '' } = useParams();
   const [params] = useSearchParams();
   const company = params.get('company') ?? '';
-  const navigate = useNavigate();
   const { owner, boundary } = useSubmissionOwner();
   const preferences = useUserPreferences();
   const back = (
-    <PageAction
+    <PageLink
+      to={SHAREHOLDERS}
+      state={company ? { registerCompany: company } : undefined}
       label="Back to Shareholders"
-      onClick={() => navigate(SHAREHOLDERS, company ? { state: { registerCompany: company } } : undefined)}
     />
   );
   if (owner)
@@ -219,9 +217,9 @@ function OwnShareholder({
               </Rows>
             ))}
             {prepare && holdings.length > 0 && (
-              <Link
+              <PageLink
                 to={generatePath(DESTINATIONS.companyRegisterParticulars.path, { member })}
-                className={LINK_CLASS}
+                label={REGISTER_PARTICULARS_COPY.PREPARE}
                 onClick={(event) => {
                   try {
                     guardPreparation();
@@ -231,9 +229,7 @@ function OwnShareholder({
                     setNavigationError(true);
                   }
                 }}
-              >
-                {REGISTER_PARTICULARS_COPY.PREPARE}
-              </Link>
+              />
             )}
             {navigationError && (
               <p role="alert" className="text-sm text-error-light">
@@ -283,13 +279,11 @@ function OwnShareholder({
                   )}
                 </div>
                 {prepare && !holder.wallets.length && register.initialized && register.token.status === 'draft' && (
-                  <Link
+                  <PageLink
                     to={generatePath(DESTINATIONS.companyRegisterTransfer.path, { uuid: register.token.uuid })}
                     state={{ fromMember: member }}
-                    className={LINK_CLASS}
-                  >
-                    Transfer shares
-                  </Link>
+                    label="Transfer shares"
+                  />
                 )}
               </section>
             ))}
@@ -302,13 +296,11 @@ function OwnShareholder({
               </p>
             ))}
             {prepare && issueClass && recorded?.walletless && recorded.particularsRetained && (
-              <Link
+              <PageLink
                 to={DESTINATIONS.companyRegister.path}
                 state={{ registerCompany: company, registerToken: issueClass, issueMember: member }}
-                className={LINK_CLASS}
-              >
-                Issue shares to them
-              </Link>
+                label="Issue shares to them"
+              />
             )}
             {former.some(({ register }) => register.formerMembersStale) && (
               <p role="status" className="text-sm text-text-muted">
@@ -357,13 +349,11 @@ function OwnShareholder({
                   </Row>
                 ))}
               </Rows>
-              <Link
+              <PageLink
                 to={`${DESTINATIONS.companyRegister.path}#awards`}
                 state={{ registerCompany: company }}
-                className={LINK_CLASS}
-              >
-                Open Employee awards
-              </Link>
+                label="Open Employee awards"
+              />
             </Section>
           )}
           {waiting.length > 0 && (
@@ -373,9 +363,7 @@ function OwnShareholder({
                   {row.text}
                 </p>
               ))}
-              <Link to={SHAREHOLDERS} state={{ registerCompany: company }} className={LINK_CLASS}>
-                Open member requests
-              </Link>
+              <PageLink to={SHAREHOLDERS} state={{ registerCompany: company }} label="Open member requests" />
             </Section>
           )}
           {access.access && (
@@ -388,13 +376,11 @@ function OwnShareholder({
                     : 'No access yet. An invitation lets them see their own holdings, history and certificates.'}
               </p>
               {!current && !invited && (
-                <Link
+                <PageLink
                   to={SHAREHOLDERS}
                   state={{ registerCompany: company, inviteMember: member }}
-                  className={LINK_CLASS}
-                >
-                  Invite to their records
-                </Link>
+                  label="Invite to their records"
+                />
               )}
             </Section>
           )}

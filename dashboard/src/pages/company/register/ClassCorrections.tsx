@@ -143,7 +143,9 @@ function EntryHistory({
       ) : (
         history.hasMore && (
           <PageAction
-            label={history.isLoadingMore ? 'Loading register entries…' : 'Load more register entries'}
+            label="Load more register entries"
+            busy={history.isLoadingMore}
+            busyLabel="Loading register entries…"
             onClick={history.loadMore}
             disabled={history.isFetching}
           />

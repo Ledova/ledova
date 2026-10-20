@@ -1,6 +1,7 @@
 import { useRef } from 'react';
 import { WALLET_SORTS, type WalletSortOption } from '@ledova/shared';
 import { Disclosure } from '@components/Ledger';
+import { PageAction } from '@components/Page';
 
 interface WalletSortProps {
   open: boolean;
@@ -28,18 +29,15 @@ export function WalletSort({ open, sort, onToggle, onSort }: WalletSortProps) {
       >
         <div className="flex flex-wrap gap-2">
           {WALLET_SORTS.map((option) => (
-            <button
+            <PageAction
               key={option.id}
-              type="button"
-              aria-pressed={option.id === sort}
+              label={option.label}
+              pressed={option.id === sort}
               onClick={() => {
                 onSort(option.id);
                 toggle.current?.focus();
               }}
-              className="rounded-lg border border-border px-3 py-2 text-sm text-text-primary aria-pressed:border-brand-mid aria-pressed:text-brand-light"
-            >
-              {option.label}
-            </button>
+            />
           ))}
         </div>
       </Disclosure>

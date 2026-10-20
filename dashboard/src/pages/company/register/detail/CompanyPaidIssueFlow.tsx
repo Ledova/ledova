@@ -301,7 +301,9 @@ function Preparation({ commands }: { commands: Commands }) {
       </label>
       {error && <p role="alert">{error}</p>}
       <PageAction
-        label={busy ? 'Preparing…' : 'Prepare paid issue'}
+        label="Prepare paid issue"
+        busy={busy}
+        busyLabel="Preparing…"
         disabled={waiting || !commands.canPrepare || !!commands.recovery || !termsValid || !file}
         onClick={() => void submit()}
       />

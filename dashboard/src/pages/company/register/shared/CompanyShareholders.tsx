@@ -1,9 +1,8 @@
 import { SelectField } from '@components/SelectField';
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
 import { HOLDER_TYPE_LABELS, formatShareCount, type TokenHoldersResponse } from '@ledova/shared';
 import { Section } from '@components/Ledger';
-import { PageAction } from '@components/Page';
+import { PageAction, PageLink } from '@components/Page';
 import { FIELD_CLASS, LABEL } from '@components/fieldClass';
 import { percentage, shareholderPath } from './shareholders';
 
@@ -161,12 +160,7 @@ export function CompanyShareholders({
                   {blocked ? (
                     <PageAction label="Details" context={member.name} disabled onClick={() => undefined} />
                   ) : (
-                    <Link
-                      to={shareholderPath(member.member, company)}
-                      className="relative inline-flex w-fit items-center gap-2 rounded-lg border border-border px-3.5 py-2 text-sm font-medium text-text-primary transition-colors hover:bg-surface-tertiary"
-                    >
-                      <span>Details</span> <span className="sr-only">({member.name})</span>
-                    </Link>
+                    <PageLink to={shareholderPath(member.member, company)} label="Details" context={member.name} />
                   )}
                 </td>
               </tr>

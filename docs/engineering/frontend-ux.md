@@ -7,6 +7,7 @@ one standard way to make each common choice. How the clients are built is in [fr
 and [mobile](mobile.md); what each page does is in the business section.
 
 - [Signed-in page conventions](#signed-in-page-conventions)
+- [Actions](#actions)
 - [Choosing a person](#choosing-a-person)
 - [Choosing a company](#choosing-a-company)
 - [Choosing a wallet or a paid subscription](#choosing-a-wallet-or-a-paid-subscription)
@@ -43,12 +44,12 @@ The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components
   nested card. An empty section keeps its real title, one muted sentence ("No activity yet.") and at
   most one action; a state is never a title.
 - `Rows` and `Row`: ruled label and value pairs, figures right-aligned in tabular numerals.
-- `LinkRow`: the one way a page reaches each sub-page or neighbour; the whole row is the link, named
+- `LinkRow`: how a list of sub-pages or neighbours links to each; the whole row is the link, named
   after its destination, with optional detail lines and an aside. A title row never repeats a
   sidebar destination; an underlined link belongs to a sentence or opens an external resource.
-- `PageAction` (`Action` on mobile): a content-width button placed with what it acts on: the title
-  row for the page (including the way back to the parent), a section for that section, a row for
-  that row's record alone. Nothing is selected before acting, and no toolbar waits under a list.
+- `PageAction` and `PageLink` (`Action` on mobile): a content-width action placed with what it acts
+  on: the title row for the page (including the way back to the parent), a section for that section,
+  a row for that row's record alone. Nothing is selected before acting, and no toolbar waits under a list.
 - `Disclosure`: a button with `aria-expanded` (expanded or collapsed on mobile) and a leading caret
   that opens its detail in place under its row, held only while open; other open rows stay open
   (`useOpenRows` from `@ledova/shared`). Activity's filter and Wallets' sort (once a chain holds two
@@ -86,6 +87,29 @@ repeat titles or general explanations or show read and edit views together. Acti
 authority, privacy, incomplete-data and recovery guidance stays visible where relevant, and a
 presentation change must not reset pending work, hide uncertainty or change what a confirmation
 authorises.
+
+## Actions
+
+`PageAction` (`dashboard/src/components/Page.tsx`) is the standard action on a signed-in page. It
+looks plain, primary (the one main action of its card or form) or pressed, and comes in four forms:
+
+- **A button** runs its action on click.
+- **A submit button** (`type="submit"`) ends every page form, inside `FormActions`: a rule, then one
+  right-aligned row with any plain actions first and the primary submit last. The form's own submit
+  handler does the work, so Enter in a field submits the form unless the submit button is disabled.
+- **A link** (`PageLink`, same looks, optional router state) is an action that only goes somewhere:
+  the title row's way back, Add share class, a shareholder's Details, Issue shares to them.
+- **A toggle** (`pressed`, which sets `aria-pressed`) marks the chosen option where pressing applies
+  it at once: the open Register task, the shown eligibility request and Wallets' sort.
+
+`busy` and `busyLabel` disable an action and name its work, such as "Preparing allotment…" or
+"Saving…". Every page form's submit button uses them, as does every page action that already showed a
+busy label, and six more: the offering form, an application's Withdraw and Submit for review,
+creating a member invitation, preparing a non-paid grant or its wallet link, and attaching a payslip
+to a claim. Other page actions that start a request keep their label while it runs. Icon buttons,
+register setup's Import placeholder, the payslip upload area and Trading keep their own controls,
+and dialog footers use the same order as `FormActions`. Mobile's `Action` has no busy or pressed
+form yet.
 
 ## Choosing a person
 

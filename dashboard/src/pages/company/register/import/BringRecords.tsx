@@ -6,7 +6,7 @@ import {
   type RegisterTransferMember,
   type RegisterAwardRecipient,
 } from '@ledova/shared';
-import { PageAction } from '@components/Page';
+import { FormActions, PageAction } from '@components/Page';
 import { FIELD_CLASS, LABEL } from '@components/fieldClass';
 import { MemberFields } from './MemberFields';
 import { blankMember, blankFormer, type PreparationDraft, type MemberDraft, type FormerDraft } from './preparation';
@@ -236,17 +236,7 @@ export function BringRecords({
                     ))}
                   </ul>
                 )}
-                <div className="flex flex-wrap justify-end gap-2 border-t border-border-subtle pt-4">
-                  <PageAction
-                    label={editor?.original ? 'Done editing' : 'Add to draft'}
-                    primary
-                    disabled={busy}
-                    onClick={() => {
-                      const errors = validateMember(editingIndex);
-                      setMemberErrors(errors);
-                      if (!errors.length) setEditor(null);
-                    }}
-                  />
+                <FormActions>
                   <PageAction
                     label="Cancel"
                     context="shareholder edit"
@@ -263,7 +253,17 @@ export function BringRecords({
                       setMemberErrors([]);
                     }}
                   />
-                </div>
+                  <PageAction
+                    label={editor?.original ? 'Done editing' : 'Add to draft'}
+                    primary
+                    disabled={busy}
+                    onClick={() => {
+                      const errors = validateMember(editingIndex);
+                      setMemberErrors(errors);
+                      if (!errors.length) setEditor(null);
+                    }}
+                  />
+                </FormActions>
               </div>
             )}
           </fieldset>

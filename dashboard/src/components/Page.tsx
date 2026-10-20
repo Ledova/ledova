@@ -1,4 +1,5 @@
-import { useContext, useId, type ReactNode } from 'react';
+import { useContext, useId, type MouseEvent, type ReactNode } from 'react';
+import { Link, type To } from 'react-router-dom';
 import { PageTitle } from './PageTitle';
 import { InSignedInFrame } from './InSignedInFrame';
 
@@ -46,39 +47,32 @@ export function Page({ actions, lede, loading = false, narrow = false, children 
   );
 }
 
-interface PageActionProps {
+interface ActionContent {
   icon?: ReactNode;
   label: string;
   context?: string;
-  onClick: () => void;
-  active?: boolean;
   primary?: boolean;
-  disabled?: boolean;
 }
+
+type PageActionProps = ActionContent & {
+  pressed?: boolean;
+  busy?: boolean;
+  busyLabel?: string;
+  disabled?: boolean;
+} & ({ type: 'submit'; onClick?: never } | { type?: 'button'; onClick: () => void });
 
 const ACTION_LOOKS = {
   primary: 'border-brand-mid bg-brand-mid text-white hover:bg-brand',
-  active: 'border-brand-mid text-brand-light hover:bg-surface-tertiary',
+  pressed: 'border-brand-mid text-brand-light hover:bg-surface-tertiary',
   plain: 'border-border text-text-primary hover:bg-surface-tertiary',
 };
 
-export function PageAction({
-  icon,
-  label,
-  context,
-  onClick,
-  active = false,
-  primary = false,
-  disabled = false,
-}: PageActionProps) {
-  const look = primary ? ACTION_LOOKS.primary : active ? ACTION_LOOKS.active : ACTION_LOOKS.plain;
+const actionClass = (look: string) =>
+  `relative inline-flex w-fit items-center gap-2 rounded-lg border px-3.5 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${look}`;
+
+function ActionText({ icon, label, context }: Omit<ActionContent, 'primary'>) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      className={`relative inline-flex w-fit items-center gap-2 rounded-lg border px-3.5 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${look}`}
-    >
+    <>
       {icon}
       <span>{label}</span>
       {context && (
@@ -87,6 +81,57 @@ export function PageAction({
           <span className="sr-only">({context})</span>
         </>
       )}
+    </>
+  );
+}
+
+export function PageAction({
+  icon,
+  label,
+  context,
+  primary = false,
+  pressed,
+  busy = false,
+  busyLabel,
+  disabled = false,
+  type = 'button',
+  onClick,
+}: PageActionProps) {
+  const look = primary ? ACTION_LOOKS.primary : pressed ? ACTION_LOOKS.pressed : ACTION_LOOKS.plain;
+  return (
+    <button
+      type={type}
+      onClick={onClick}
+      disabled={disabled || busy}
+      aria-pressed={pressed}
+      className={actionClass(look)}
+    >
+      <ActionText icon={icon} label={busy && busyLabel ? busyLabel : label} context={context} />
     </button>
+  );
+}
+
+interface PageLinkProps extends ActionContent {
+  to: To;
+  state?: unknown;
+  onClick?: (event: MouseEvent<HTMLAnchorElement>) => void;
+}
+
+export function PageLink({ icon, label, context, primary = false, to, state, onClick }: PageLinkProps) {
+  return (
+    <Link
+      to={to}
+      state={state}
+      onClick={onClick}
+      className={actionClass(primary ? ACTION_LOOKS.primary : ACTION_LOOKS.plain)}
+    >
+      <ActionText icon={icon} label={label} context={context} />
+    </Link>
+  );
+}
+
+export function FormActions({ children }: { children: ReactNode }) {
+  return (
+    <div className="flex flex-wrap items-center justify-end gap-2 border-t border-border-subtle pt-4">{children}</div>
   );
 }

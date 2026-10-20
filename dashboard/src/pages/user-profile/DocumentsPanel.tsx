@@ -1,4 +1,5 @@
 import { SelectField } from '@components/SelectField';
+import { PageAction } from '@components/Page';
 import { Choices } from '@components/Choices';
 import { DESTINATIONS } from '@ledova/shared';
 import { useRef, useState } from 'react';
@@ -218,14 +219,14 @@ function DocumentCard({ initialDoc, claims }: { initialDoc: Document; claims: In
             onChange={setClassification}
             disabled={attach.isPending}
           />
-          <button
-            type="button"
-            disabled={!classification || attach.isPending}
+          <PageAction
+            primary
+            label="Attach to claim"
+            busy={attach.isPending}
+            busyLabel="Attaching…"
+            disabled={!classification}
             onClick={() => attach.mutate({ uuid: doc.uuid, classification })}
-            className="px-3 py-2 rounded bg-brand text-white text-sm disabled:bg-surface-disabled disabled:text-text-secondary"
-          >
-            Attach to claim
-          </button>
+          />
           <p className="text-xs text-text-muted">
             Unattached payslips are removed{' '}
             {doc.retentionUntil ? `on ${formatDocumentDate(doc.retentionUntil)}` : 'according to the retention policy'}.
@@ -340,14 +341,13 @@ function UploadCard({ claims }: { claims: InvestorClassification[] }) {
             onChange={setClassification}
             disabled={upload.isPending}
           />
-          <button
-            type="button"
-            onClick={handleSubmit}
-            disabled={upload.isPending}
-            className="w-full px-4 py-2 rounded bg-brand text-white hover:bg-brand-hover text-sm font-medium disabled:bg-surface-disabled disabled:text-text-secondary"
-          >
-            {upload.isPending ? 'Uploading…' : 'Upload & extract'}
-          </button>
+          <PageAction
+            primary
+            label="Upload & extract"
+            busy={upload.isPending}
+            busyLabel="Uploading…"
+            onClick={() => void handleSubmit()}
+          />
         </div>
       )}
 

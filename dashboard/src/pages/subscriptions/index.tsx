@@ -75,7 +75,9 @@ export default function SubscriptionsPage() {
             hasMore && (
               <div className="py-3">
                 <PageAction
-                  label={isLoadingMore ? 'Loading applications…' : 'Load more applications'}
+                  label="Load more applications"
+                  busy={isLoadingMore}
+                  busyLabel="Loading applications…"
                   onClick={() => void loadMore()}
                   disabled={isRefreshing}
                 />

@@ -8,7 +8,7 @@ import {
   registerImportTotals,
 } from '@ledova/shared';
 import { Row, Rows } from '@components/Ledger';
-import { PageAction } from '@components/Page';
+import { FormActions, PageAction } from '@components/Page';
 
 import { BringRecords } from './BringRecords';
 import { MemberRecords } from '@pages/company/register/shared/MemberRecords';
@@ -195,7 +195,7 @@ export function ImportForm({
                   </ul>
                 )}
                 {!uncertain && !holderEditor && (
-                  <div className="flex flex-wrap items-center justify-end gap-2 border-t border-border-subtle pt-4">
+                  <FormActions>
                     {phase === 'shareholders' && (
                       <PageAction
                         label="Back to share details"
@@ -206,20 +206,6 @@ export function ImportForm({
                         }}
                       />
                     )}
-                    <PageAction
-                      label={phase === 'details' ? 'Continue' : busy ? 'Saving draft…' : 'Save draft and review'}
-                      primary
-                      disabled={busy || blocked || holderEditor}
-                      onClick={() => {
-                        if (phase === 'details') {
-                          setAttempted(true);
-                          if (!detailProblems.length) {
-                            setAttempted(false);
-                            setPhase('shareholders');
-                          }
-                        } else void prepare();
-                      }}
-                    />
                     {phase === 'details' && (
                       <>
                         <button
@@ -236,7 +222,15 @@ export function ImportForm({
                         </span>
                       </>
                     )}
-                  </div>
+                    <PageAction
+                      type="submit"
+                      label={phase === 'details' ? 'Continue' : 'Save draft and review'}
+                      primary
+                      busy={phase === 'shareholders' && busy}
+                      busyLabel="Saving draft…"
+                      disabled={busy || blocked || holderEditor}
+                    />
+                  </FormActions>
                 )}
               </form>
             ) : (
@@ -394,7 +388,7 @@ export function ImportForm({
                         ))}
                       </ul>
                     ) : null}
-                    <div className="flex flex-wrap items-center justify-end gap-2 border-t border-border-subtle pt-4">
+                    <FormActions>
                       <PageAction
                         label="Edit records"
                         disabled={deciding || !!recovery || autoApply || !canPrepare || !steps.reject || blocked}
@@ -405,28 +399,30 @@ export function ImportForm({
                       />
                       {!currentTarget && !recovery && (
                         <PageAction
-                          label={deciding ? 'Loading confirmation…' : 'Load confirmation'}
-                          disabled={deciding || busy || autoApply || blocked || !steps[kind]}
+                          label="Load confirmation"
+                          busy={deciding}
+                          busyLabel="Loading confirmation…"
+                          disabled={busy || autoApply || blocked || !steps[kind]}
                           onClick={() => void loadPreview()}
                         />
                       )}
                       {!recovery && (
                         <PageAction
-                          label={
-                            deciding ? 'Confirming…' : kind === 'approve' && !steps.apply ? 'Record review' : 'Confirm'
-                          }
+                          label={kind === 'approve' && !steps.apply ? 'Record review' : 'Confirm'}
+                          busy={deciding}
+                          busyLabel="Confirming…"
                           primary
-                          disabled={deciding || !ready || autoApply}
+                          disabled={!ready || autoApply}
                           onClick={() => void decision.confirm()}
                         />
                       )}
-                    </div>
+                    </FormActions>
                   </>
                 )}
                 {proposal.status === 'applied' && (
-                  <div className="flex justify-end border-t border-border-subtle pt-4">
+                  <FormActions>
                     <PageAction label="View company ownership" primary onClick={() => void finish()} />
-                  </div>
+                  </FormActions>
                 )}
               </section>
             )

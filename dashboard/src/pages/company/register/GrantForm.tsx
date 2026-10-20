@@ -1,7 +1,7 @@
 import { useGrantPreparation, type GrantFormProps, type DocumentKind } from './useGrantPreparation';
 
 import { REGISTER_GRANT_COPY as COPY, formatShareCount } from '@ledova/shared';
-import { PageAction } from '@components/Page';
+import { FormActions, PageAction } from '@components/Page';
 import { FIELD_CLASS, LABEL } from '@components/fieldClass';
 import { PersonFields, PersonSelect } from '@pages/company/register/shared/PersonPicker';
 
@@ -224,22 +224,16 @@ export function GrantForm({
         If a response is interrupted, recover the original preparation before starting another. Preparation creates no
         issued shares.
       </p>
-      <div className="flex justify-end border-t border-border-subtle pt-4">
+      <FormActions>
         <PageAction
+          type="submit"
           primary
-          label={
-            busy
-              ? 'Preparing grant…'
-              : held
-                ? 'Recover original grant preparation'
-                : award
-                  ? 'Prepare vested share issue'
-                  : COPY.SUBMIT
-          }
-          disabled={busy || blocked || (!held && (!canPrepare || !!problem))}
-          onClick={() => void submit()}
+          label={held ? 'Recover original grant preparation' : award ? 'Prepare vested share issue' : COPY.SUBMIT}
+          busy={busy}
+          busyLabel="Preparing grant…"
+          disabled={blocked || (!held && (!canPrepare || !!problem))}
         />
-      </div>
+      </FormActions>
     </form>
   );
 }

@@ -1,7 +1,7 @@
 import { useTransferPreparation, type TransferFormProps } from './useTransferPreparation';
 
 import { REGISTER_TRANSFER_COPY as COPY, type Person } from '@ledova/shared';
-import { PageAction } from '@components/Page';
+import { FormActions, PageAction } from '@components/Page';
 import { FIELD_CLASS, LABEL } from '@components/fieldClass';
 import { formatShareCount } from '@ledova/shared';
 import { PersonFields, PersonSelect } from '@pages/company/register/shared/PersonPicker';
@@ -153,14 +153,16 @@ export function TransferForm({
       <p className="text-sm text-text-muted">
         If the preparation response is interrupted, retry with unchanged details to retrieve the same transfer.
       </p>
-      <div className="flex justify-end border-t border-border-subtle pt-4">
+      <FormActions>
         <PageAction
+          type="submit"
           primary
-          label={busy ? 'Preparing transfer…' : COPY.SUBMIT}
-          disabled={busy || blocked || (!operation && !!problem)}
-          onClick={() => void submit()}
+          label={COPY.SUBMIT}
+          busy={busy}
+          busyLabel="Preparing transfer…"
+          disabled={blocked || (!operation && !!problem)}
         />
-      </div>
+      </FormActions>
     </form>
   );
 }
