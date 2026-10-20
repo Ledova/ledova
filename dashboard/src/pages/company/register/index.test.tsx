@@ -342,9 +342,9 @@ it('reads every class page and groups exact holdings by member identity with sea
   expect(within(formerHistory).getByText(former.name)).toBeTruthy();
   expect(within(formerHistory).getByText(former.member!)).toBeTruthy();
   expect(within(formerHistory).getByText(former.walletAddress!)).toBeTruthy();
-  expect(
-    within(classNamesakes[0]).getByRole('link', { name: 'Details (Example Member)' }).getAttribute('href'),
-  ).toBe('/company/register/members/member-one?company=harbour');
+  expect(within(classNamesakes[0]).getByRole('link', { name: 'Details (Example Member)' }).getAttribute('href')).toBe(
+    '/company/register/members/member-one?company=harbour',
+  );
 
   pauseHolders = true;
   const holderKey = ['token', 'ordinary', 'profile-one', 'account-one', 'holders'];
