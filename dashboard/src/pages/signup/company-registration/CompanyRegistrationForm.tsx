@@ -86,14 +86,14 @@ export function CompanyRegistrationForm({
           </Field>
 
           <Field className="space-y-1">
-            <Label className="block text-sm font-medium text-text-body">Trading Name (optional)</Label>
+            <Label className="block text-sm font-medium text-text-body">Trading name (optional)</Label>
             <AuthInput
               type="text"
               name="tradingName"
               value={form.tradingName}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFieldValue('tradingName', e.target.value)}
               className={authFieldClass(!!errors.tradingName)}
-              placeholder="Trading as..."
+              placeholder="Trading as…"
               disabled={isSubmitting}
             />
             {errors.tradingName && (
@@ -104,7 +104,7 @@ export function CompanyRegistrationForm({
           </Field>
 
           <Field className="space-y-1">
-            <Label className="block text-sm font-medium text-text-body">Company Type *</Label>
+            <Label className="block text-sm font-medium text-text-body">Company type *</Label>
             <div className="relative">
               <Select
                 name="companyType"
@@ -173,7 +173,7 @@ export function CompanyRegistrationForm({
             {isSubmitting ? (
               <div className="flex items-center justify-center space-x-2">
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
-                <span>Saving...</span>
+                <span>Saving…</span>
               </div>
             ) : (
               'Continue'
@@ -192,7 +192,7 @@ export function CompanyRegistrationForm({
             disabled={isSubmitting}
             className="font-semibold text-brand-light hover:text-brand-subtle transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Go Back
+            Go back
           </button>
         </p>
       </div>

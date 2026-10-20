@@ -5,7 +5,7 @@ interface LoadingStateProps {
   className?: string;
 }
 
-export function LoadingState({ message = 'Loading data...', className = '' }: LoadingStateProps) {
+export function LoadingState({ message = 'Loading data…', className = '' }: LoadingStateProps) {
   return (
     <AuthLayout>
       <div className={`py-8 text-center ${className}`}>

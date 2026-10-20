@@ -326,7 +326,7 @@ powers to take a company down stay separate from this routine review.
 
 ### Listing the company in the directory
 
-Under Investor Directory on the Offerings page, someone with current company administration turns on
+Under Investor directory on the Offerings page, someone with current company administration turns on
 Show this company to eligible investors; it is off by default, and only an active company can be
 listed. The directory shows the share classes of active companies that are switched on, so a
 compliance warning, suspension or delisting by [staff](companies.md#staff-registry-controls) hides a
@@ -538,7 +538,7 @@ mapped holding against final chain evidence before claiming a mirror.
 ## The Offerings page
 
 Offerings, under More in the web sidebar and in the mobile app, lists every offering of the selected
-company the person owns, with its applications, followed by Investor Directory and What happens
+company the person owns, with its applications, followed by Investor directory and What happens
 next. Each offering shows its terms, status, any rejection, previous rejection or closing reason,
 and the actions its status allows. New offering needs a deployed class; without one the page says to
 deploy a class first.

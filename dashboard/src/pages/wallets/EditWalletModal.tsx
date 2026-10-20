@@ -66,7 +66,7 @@ export function EditWalletModal({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="Edit Wallet"
+      title="Edit wallet"
       showFooter
       confirmLabel="Save"
       busy={isUpdating}
@@ -101,7 +101,7 @@ export function EditWalletModal({
                 ))}
             </span>
           </Row>
-          <Row label="Last Sync">{formatDate(wallet.lastSyncedAt)}</Row>
+          <Row label="Last sync">{formatDate(wallet.lastSyncedAt)}</Row>
           <Row label="Verification">
             <span
               className={`inline-flex items-center gap-1.5 ${isVerified ? 'text-success-light' : 'text-warning-light'}`}
@@ -113,7 +113,7 @@ export function EditWalletModal({
         </Rows>
 
         <div className="space-y-1">
-          <label className="text-sm font-medium text-text-primary">Wallet Name</label>
+          <label className="text-sm font-medium text-text-primary">Wallet name</label>
           <input
             type="text"
             aria-label="Wallet name"

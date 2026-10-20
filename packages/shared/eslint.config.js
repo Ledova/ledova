@@ -4,6 +4,18 @@ import prettierPlugin from 'eslint-plugin-prettier';
 import prettierConfig from 'eslint-config-prettier';
 import { namingConventions } from './eslint-naming-rules.js';
 
+const MESSAGE = 'Write the ellipsis character "…", not three dots (docs/engineering/frontend-ux.md).';
+const NO_THREE_DOTS = [
+  { selector: 'Literal[value=/\\.\\.\\./]', message: MESSAGE },
+  { selector: 'TemplateElement[value.raw=/\\.\\.\\./]', message: MESSAGE },
+  { selector: 'JSXText[value=/\\.\\.\\./]', message: MESSAGE },
+];
+const NO_GET_ERROR_MESSAGE = {
+  selector: "CallExpression[callee.name='getErrorMessage']",
+  message:
+    'Read a failure with failureSentence, or apiErrorSentence and readApiError (docs/engineering/frontend-ux.md#validation).',
+};
+
 export default tseslint.config(
   { ignores: ['node_modules'] },
   {
@@ -31,16 +43,15 @@ export default tseslint.config(
   },
   {
     files: ['src/**/*.{ts,tsx}'],
-    ignores: ['src/utils/errors.ts'],
+    ignores: ['src/generated/**', 'src/utils/errors.ts'],
     rules: {
-      'no-restricted-syntax': [
-        'error',
-        {
-          selector: "CallExpression[callee.name='getErrorMessage']",
-          message:
-            'Read a failure with failureSentence, or apiErrorSentence and readApiError (docs/engineering/frontend-ux.md#validation).',
-        },
-      ],
+      'no-restricted-syntax': ['error', ...NO_THREE_DOTS, NO_GET_ERROR_MESSAGE],
+    },
+  },
+  {
+    files: ['src/utils/errors.ts'],
+    rules: {
+      'no-restricted-syntax': ['error', ...NO_THREE_DOTS],
     },
   },
   {

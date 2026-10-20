@@ -16,6 +16,13 @@ const NODE_GLOBALS_THE_BROWSER_LACKS = [
   { name: 'global', message: 'The browser has no global variable. Use globalThis.' },
 ];
 
+const MESSAGE = 'Write the ellipsis character "…", not three dots (docs/engineering/frontend-ux.md).';
+const NO_THREE_DOTS = [
+  { selector: 'Literal[value=/\\.\\.\\./]', message: MESSAGE },
+  { selector: 'TemplateElement[value.raw=/\\.\\.\\./]', message: MESSAGE },
+  { selector: 'JSXText[value=/\\.\\.\\./]', message: MESSAGE },
+];
+
 export default tseslint.config(
   { ignores: ['dist'] },
   {
@@ -57,6 +64,7 @@ export default tseslint.config(
     rules: {
       'no-restricted-globals': ['error', ...NODE_GLOBALS_THE_BROWSER_LACKS],
       'no-alert': 'error',
+      'no-restricted-syntax': ['error', ...NO_THREE_DOTS],
       'no-restricted-imports': [
         'error',
         {
@@ -87,6 +95,7 @@ export default tseslint.config(
           message:
             'Choose the control by the data: Choices, SelectField or SearchSelect (docs/engineering/frontend-ux.md).',
         },
+        ...NO_THREE_DOTS,
       ],
     },
   },

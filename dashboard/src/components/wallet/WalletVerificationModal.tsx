@@ -123,7 +123,7 @@ export function WalletVerificationModal({ isOpen, wallet, guard, onClose }: Wall
                 />
               )}
               <PageAction
-                label={isRequestingChallenge ? 'Generating Challenge...' : 'Continue'}
+                label={isRequestingChallenge ? 'Generating challenge…' : 'Continue'}
                 primary
                 onClick={handleStartVerification}
                 disabled={isRequestingChallenge}
@@ -136,7 +136,7 @@ export function WalletVerificationModal({ isOpen, wallet, guard, onClose }: Wall
         return (
           <div className="space-y-4">
             <div className="space-y-1">
-              <h3 className="text-sm font-medium text-text-primary">Scan Challenge</h3>
+              <h3 className="text-sm font-medium text-text-primary">Scan challenge</h3>
               <p className="text-sm text-text-muted">Scan this QR code with your hardware wallet</p>
             </div>
 
@@ -150,7 +150,7 @@ export function WalletVerificationModal({ isOpen, wallet, guard, onClose }: Wall
 
             <ModalActions>
               <PageAction label="Back" onClick={goBack} />
-              <PageAction label="I've Signed the Message" primary onClick={proceedToScanSignature} />
+              <PageAction label="I've signed the message" primary onClick={proceedToScanSignature} />
             </ModalActions>
           </div>
         );
@@ -159,7 +159,7 @@ export function WalletVerificationModal({ isOpen, wallet, guard, onClose }: Wall
         return (
           <div className="space-y-4">
             <div className="space-y-1">
-              <h3 className="text-sm font-medium text-text-primary">Scan Signature</h3>
+              <h3 className="text-sm font-medium text-text-primary">Scan signature</h3>
               <p className="text-sm text-text-muted">
                 Point your camera at the signature QR code on your hardware wallet
               </p>
@@ -172,7 +172,7 @@ export function WalletVerificationModal({ isOpen, wallet, guard, onClose }: Wall
             {isVerifying && (
               <div className="flex items-center gap-2">
                 <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-brand-mid"></div>
-                <span className="text-sm text-text-muted">Verifying signature...</span>
+                <span className="text-sm text-text-muted">Verifying signature…</span>
               </div>
             )}
 
@@ -186,11 +186,11 @@ export function WalletVerificationModal({ isOpen, wallet, guard, onClose }: Wall
         return (
           <div className="space-y-4">
             <div className="space-y-1">
-              <h3 className="text-sm font-medium text-text-primary">Sign with Seed Phrase</h3>
+              <h3 className="text-sm font-medium text-text-primary">Sign with seed phrase</h3>
               <p className="text-sm text-text-muted">
                 Enter the seed phrase for wallet{' '}
                 <span className="font-mono text-xs text-text-secondary">
-                  {wallet.address.slice(0, 6)}...{wallet.address.slice(-4)}
+                  {wallet.address.slice(0, 6)}…{wallet.address.slice(-4)}
                 </span>
               </p>
             </div>
@@ -215,7 +215,7 @@ export function WalletVerificationModal({ isOpen, wallet, guard, onClose }: Wall
             <ModalActions>
               <PageAction label="Back" onClick={handleBackFromSeedPhrase} />
               <PageAction
-                label={isSigningWithSeedPhrase || isVerifying ? 'Verifying...' : 'Sign and Verify'}
+                label={isSigningWithSeedPhrase || isVerifying ? 'Verifying…' : 'Sign and verify'}
                 primary
                 onClick={handleSignWithSeedPhrase}
                 disabled={!seedPhrase.trim() || isSigningWithSeedPhrase || isVerifying}
@@ -229,7 +229,7 @@ export function WalletVerificationModal({ isOpen, wallet, guard, onClose }: Wall
           <div className="space-y-1">
             <h3 className="flex items-center gap-2 text-sm font-medium text-success-light">
               <CheckCircleIcon size={ICON_MD} weight="fill" />
-              Wallet Verified!
+              Wallet verified!
             </h3>
             <p className="text-sm text-text-muted">Your wallet has been successfully verified.</p>
           </div>
@@ -241,7 +241,7 @@ export function WalletVerificationModal({ isOpen, wallet, guard, onClose }: Wall
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={handleClose} title="Verify Wallet">
+    <Modal isOpen={isOpen} onClose={handleClose} title="Verify wallet">
       {renderStepContent()}
     </Modal>
   );

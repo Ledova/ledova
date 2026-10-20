@@ -9,6 +9,7 @@ and [mobile](mobile.md); what each page does is in the business section.
 - [Signed-in page conventions](#signed-in-page-conventions)
 - [Actions](#actions)
 - [Feedback](#feedback)
+- [Copy](#copy)
 - [Choosing a person](#choosing-a-person)
 - [Choosing a company](#choosing-a-company)
 - [Choosing a wallet or a paid subscription](#choosing-a-wallet-or-a-paid-subscription)
@@ -156,6 +157,15 @@ Other signing flows and identity verification show their result in their own dia
 sign-up keep their boxed outcomes, and the payment instruction's copy buttons confirm with Copied
 beside them. Register forms and preparations don't use it. Mobile still reports success with native alerts and its success
 dialog.
+
+## Copy
+
+Text uses sentence case: titles, labels, buttons and options capitalise only their first word and
+names, such as page names (Back to Shareholders), document names (Terms of Service) and
+organisations. An ellipsis is one character, "…"; ESLint refuses three dots in the text of the
+dashboard's and the shared package's source. Labels the backend supplies, such as company and
+document types and some statuses ("Under Review", "Awaiting Payment"), keep its title case. Mobile's
+own copy doesn't follow this yet (#1201); the shared strings it shows do.
 
 ## Choosing a person
 
@@ -343,9 +353,9 @@ still to come ([#1179](https://github.com/Ledova/ledova/issues/1179)).
   (`apiErrorSentence`), or else the caller's fallback, which names what failed ("The wallet could
   not be saved. Try again."). A failure that never reached the server shows its own message, such as
   "Unable to connect to our servers…" or "Your signed-in account changed. Reopen company team.", or
-  the fallback when it has none. Pages that read with `apiErrorSentence` show their fallback for such
-  a failure instead: the register preparation forms, unless it was thrown with
-  `createUserFriendlyError`, and documents, offerings, publications and identity verification.
+  the fallback when it has none. Pages that still read with `apiErrorSentence`, such as the register
+  preparation forms, documents and sign-up, show their fallback for such a failure instead; those
+  that pass the fallback twice still show a message thrown with `createUserFriendlyError`.
   Sign-in and sign-up place field errors on their fields with `readApiError`; other forms show them
   in the one sentence.
 - **Refusal codes.** The server names unmet requirements and refusals as codes. Each family's copy

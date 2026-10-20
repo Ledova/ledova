@@ -67,7 +67,7 @@ export function TransactionDetail({ transaction }: { transaction: Transaction })
           rel="noopener noreferrer"
           className="mt-3 inline-block text-sm text-brand-light underline"
         >
-          View on Explorer
+          View on explorer
         </a>
       )}
     </>
