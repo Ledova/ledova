@@ -58,6 +58,7 @@ export function ImportForm({
     attempted,
     setAttempted,
     autoApply,
+    editing,
     setEditing,
     canPrepare,
     finish,
@@ -393,6 +394,8 @@ export function ImportForm({
                     <FormActions>
                       <PageAction
                         label="Edit records"
+                        busy={editing}
+                        busyLabel="Reopening records…"
                         disabled={deciding || !!recovery || autoApply || !canPrepare || !steps.reject || blocked}
                         onClick={() => {
                           setEditing(true);
@@ -402,20 +405,20 @@ export function ImportForm({
                       {!currentTarget && !recovery && (
                         <PageAction
                           label="Load confirmation"
-                          busy={deciding}
+                          busy={running === 'load'}
                           busyLabel="Loading confirmation…"
-                          disabled={busy || autoApply || blocked || !steps[kind]}
-                          onClick={() => void loadPreview()}
+                          disabled={busy || deciding || autoApply || blocked || !steps[kind]}
+                          onClick={() => track('load', loadPreview())}
                         />
                       )}
                       {!recovery && (
                         <PageAction
                           label={kind === 'approve' && !steps.apply ? 'Record review' : 'Confirm'}
-                          busy={deciding}
+                          busy={running === 'confirm' || (autoApply && deciding)}
                           busyLabel="Confirming…"
                           primary
-                          disabled={!ready || autoApply}
-                          onClick={() => void decision.confirm()}
+                          disabled={!ready || deciding || autoApply}
+                          onClick={() => track('confirm', decision.confirm())}
                         />
                       )}
                     </FormActions>

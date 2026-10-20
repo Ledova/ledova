@@ -524,6 +524,7 @@ export function useImportPreparation({
     attempted,
     setAttempted,
     autoApply,
+    editing,
     setEditing,
     canPrepare,
     finish,
