@@ -26,7 +26,7 @@ function SignInPage() {
 
   return (
     <AuthLayout>
-      <AuthHeader title="Welcome Back" icon={<LockIcon size={ICON_MD} className="text-text-muted" />} />
+      <AuthHeader title="Welcome back" icon={<LockIcon size={ICON_MD} className="text-text-muted" />} />
 
       <AuthCard>
         <form onSubmit={handleSignIn} className="space-y-6">
@@ -105,7 +105,7 @@ function SignInPage() {
             {isLoading ? (
               <div className="flex items-center justify-center space-x-2">
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
-                <span>Signing in...</span>
+                <span>Signing in…</span>
               </div>
             ) : (
               'Sign in'
@@ -120,7 +120,7 @@ function SignInPage() {
         <p className="text-sm text-text-subtle">
           Don&apos;t have an account?{' '}
           <Link to={SIGNUP_PATH} className="font-semibold text-brand-light hover:text-brand-subtle transition-colors">
-            Get Started
+            Get started
           </Link>
         </p>
       </div>

@@ -42,8 +42,8 @@ export const detectChainFromAddress = (address: string): 'BTC' | 'ETH' | null =>
 const formatWalletAddress = (address: string, maxLength: number = 16): string => {
   if (address.length <= maxLength) return address;
   const prefixLength = Math.floor(maxLength / 2) - 2;
-  const suffixLength = maxLength - prefixLength - 3;
-  return `${address.slice(0, prefixLength)}...${address.slice(-suffixLength)}`;
+  const suffixLength = maxLength - prefixLength - 1;
+  return `${address.slice(0, prefixLength)}…${address.slice(-suffixLength)}`;
 };
 
 export const formatWalletAddressShort = (address: string): string => formatWalletAddress(address, 12);

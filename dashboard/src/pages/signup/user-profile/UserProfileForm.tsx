@@ -59,7 +59,7 @@ export function UserProfileForm({
           )}
 
           <Field className="space-y-1">
-            <Label className="block text-sm font-medium text-text-body">Full Name</Label>
+            <Label className="block text-sm font-medium text-text-body">Full name</Label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <UserIcon size={ICON_MD} className="text-text-subtle" />
@@ -85,7 +85,7 @@ export function UserProfileForm({
           </Field>
 
           <Field className="space-y-1">
-            <Label className="block text-sm font-medium text-text-body">Date of Birth</Label>
+            <Label className="block text-sm font-medium text-text-body">Date of birth</Label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <CalendarIcon size={ICON_MD} className="text-text-subtle" />
@@ -110,7 +110,7 @@ export function UserProfileForm({
           </Field>
 
           <Field className="space-y-1">
-            <Label className="block text-sm font-medium text-text-body">Phone Number</Label>
+            <Label className="block text-sm font-medium text-text-body">Phone number</Label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none z-10">
                 <PhoneIcon size={ICON_MD} className="text-text-subtle" />
@@ -150,7 +150,7 @@ export function UserProfileForm({
           </Field>
 
           <Field className="space-y-1">
-            <Label className="block text-sm font-medium text-text-body">Residential Address</Label>
+            <Label className="block text-sm font-medium text-text-body">Residential address</Label>
             <Description className="text-text-subtle text-xs">
               Include street number, city, state and postcode
             </Description>
@@ -183,7 +183,7 @@ export function UserProfileForm({
             {isSubmitting ? (
               <div className="flex items-center justify-center space-x-2">
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
-                <span>Saving...</span>
+                <span>Saving…</span>
               </div>
             ) : (
               'Continue'
@@ -203,7 +203,7 @@ export function UserProfileForm({
               disabled={isSubmitting}
               className="font-semibold text-brand-light hover:text-brand-subtle transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Go Back
+              Go back
             </button>
           </p>
         )}

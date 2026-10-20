@@ -9,7 +9,7 @@ interface ErrorStateProps {
 }
 
 export function ErrorState({
-  title = 'Error Loading Data',
+  title = 'Error loading data',
   message = 'We encountered an issue while loading required data.',
   retryLabel = 'Retry',
   onRetry,

@@ -75,7 +75,7 @@ export function BitcoinSignStep({
           id="bitcoin-signed-transaction"
           value={signedTransaction}
           onChange={(event) => onSignedTransactionChange(event.target.value)}
-          placeholder="02000000..."
+          placeholder="02000000…"
           rows={4}
           spellCheck={false}
           className="block w-full resize-none rounded-lg border border-border bg-surface-raised px-3 py-2 font-mono text-xs text-text-primary placeholder:text-text-muted focus:border-brand-mid focus:outline-none focus:ring-1 focus:ring-brand-mid"

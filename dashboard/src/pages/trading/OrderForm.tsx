@@ -158,7 +158,7 @@ export const OrderForm = forwardRef<OrderFormRef, OrderFormProps>(function Order
           )}
           {!isBuy && balance !== undefined && (
             <button type="button" className="text-sm underline" onClick={() => setQuantity(balance)}>
-              Use Max
+              Use max
             </button>
           )}
           {!withinBalance && <p className="text-sm">The source wallet does not have this quantity available.</p>}

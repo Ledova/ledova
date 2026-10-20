@@ -137,7 +137,7 @@ export function FinancialProfileForm({
             {isSubmitting ? (
               <div className="flex items-center justify-center space-x-2">
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
-                <span>Saving...</span>
+                <span>Saving…</span>
               </div>
             ) : (
               'Continue'
@@ -157,7 +157,7 @@ export function FinancialProfileForm({
               disabled={isSubmitting}
               className="font-semibold text-brand-light hover:text-brand-subtle transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Go Back
+              Go back
             </button>
           </p>
         )}

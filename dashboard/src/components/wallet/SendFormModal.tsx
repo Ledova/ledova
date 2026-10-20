@@ -202,7 +202,7 @@ export function SendFormModal({
         {isLoadingAssets ? (
           <div className="flex items-center py-2">
             <ArrowsClockwiseIcon size={ICON_LG} className="animate-spin text-text-muted" />
-            <span className="ml-2 text-sm text-text-muted">Loading assets...</span>
+            <span className="ml-2 text-sm text-text-muted">Loading assets…</span>
           </div>
         ) : assets.length === 0 ? (
           <p className="text-sm text-text-muted">No assets in this wallet</p>
@@ -266,7 +266,7 @@ export function SendFormModal({
 
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <label className="text-sm font-medium text-text-primary">Destination Address</label>
+            <label className="text-sm font-medium text-text-primary">Destination address</label>
             <button
               type="button"
               onClick={() => setShowAddressScanner(!showAddressScanner)}
@@ -307,7 +307,7 @@ export function SendFormModal({
             {isCheckingRecipientWhitelist ? (
               <span className="flex items-center gap-1 text-xs text-text-muted">
                 <ArrowsClockwiseIcon size={ICON_XS} className="animate-spin" />
-                Checking whitelist...
+                Checking whitelist…
               </span>
             ) : isRecipientWhitelisted ? (
               <span className="flex items-center gap-1 text-xs text-text-muted">
@@ -360,7 +360,7 @@ export function SendFormModal({
                 {isShareToken && ' (whole numbers only)'}
               </p>
               <button type="button" onClick={handleUseMax} className="text-xs text-brand-light font-medium">
-                Use Max
+                Use max
               </button>
             </div>
             {amount && !isValidAmount && parsedAmount > parsedBalance && (
