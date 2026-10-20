@@ -9,6 +9,7 @@ and [mobile](mobile.md); what each page does is in the business section.
 - [Signed-in page conventions](#signed-in-page-conventions)
 - [Actions](#actions)
 - [Feedback](#feedback)
+- [Copy](#copy)
 - [Choosing a person](#choosing-a-person)
 - [Choosing a company](#choosing-a-company)
 - [Choosing a wallet or a paid subscription](#choosing-a-wallet-or-a-paid-subscription)
@@ -155,6 +156,14 @@ Other signing flows and identity verification show their result in their own dia
 sign-up keep their boxed outcomes, and the payment instruction's copy buttons confirm with Copied
 beside them. Register forms and preparations don't use it. Mobile still reports success with native alerts and its success
 dialog.
+
+## Copy
+
+Text uses sentence case: titles, labels, buttons and options capitalise only their first word and
+names, such as page names (Back to Shareholders), document names (Terms of Service) and
+organisations. An ellipsis is one character, "…"; ESLint refuses three dots in the text of the
+dashboard's and the shared package's source. Company and document types keep the title case names
+the backend supplies. Mobile doesn't follow this yet.
 
 ## Choosing a person
 

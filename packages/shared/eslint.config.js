@@ -4,6 +4,13 @@ import prettierPlugin from 'eslint-plugin-prettier';
 import prettierConfig from 'eslint-config-prettier';
 import { namingConventions } from './eslint-naming-rules.js';
 
+const MESSAGE = 'Write the ellipsis character "…", not three dots (docs/engineering/frontend-ux.md).';
+const NO_THREE_DOTS = [
+  { selector: 'Literal[value=/\\.\\.\\./]', message: MESSAGE },
+  { selector: 'TemplateElement[value.raw=/\\.\\.\\./]', message: MESSAGE },
+  { selector: 'JSXText[value=/\\.\\.\\./]', message: MESSAGE },
+];
+
 export default tseslint.config(
   { ignores: ['node_modules'] },
   {
@@ -27,6 +34,13 @@ export default tseslint.config(
       '@typescript-eslint/explicit-function-return-type': 'off',
       '@typescript-eslint/explicit-module-boundary-types': 'off',
       '@typescript-eslint/no-explicit-any': 'error',
+    },
+  },
+  {
+    files: ['src/**/*.{ts,tsx}'],
+    ignores: ['src/**/*.test.{ts,tsx}', 'src/generated/**'],
+    rules: {
+      'no-restricted-syntax': ['error', ...NO_THREE_DOTS],
     },
   },
   {

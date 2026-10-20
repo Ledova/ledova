@@ -129,13 +129,13 @@ export function TransferSigningFlow({
   const getTitle = () => {
     switch (transferType) {
       case 'crypto':
-        return 'Sign Transfer';
+        return 'Sign transfer';
       case 'stablecoin':
-        return 'Sign Stablecoin Transfer';
+        return 'Sign stablecoin transfer';
       case 'share_token':
-        return 'Sign Token Transfer';
+        return 'Sign token transfer';
       default:
-        return 'Sign Transfer';
+        return 'Sign transfer';
     }
   };
 
@@ -252,7 +252,7 @@ export function TransferSigningFlow({
         <div className="space-y-4">
           <div className="flex flex-col items-center justify-center py-8 gap-3">
             <SpinnerGapIcon size={ICON_XL} className="text-brand-light animate-spin" />
-            <p className="text-sm text-text-muted">Preparing transaction...</p>
+            <p className="text-sm text-text-muted">Preparing transaction…</p>
           </div>
           <ModalActions>{cancel}</ModalActions>
         </div>
@@ -324,7 +324,7 @@ export function TransferSigningFlow({
             <ModalActions>
               {cancel}
               <PageAction label="Back" onClick={goBack} />
-              <PageAction label="I've Signed It" primary onClick={() => setSigningStep('scan-signature')} />
+              <PageAction label="I've Signed it" primary onClick={() => setSigningStep('scan-signature')} />
             </ModalActions>
           </div>
         );
@@ -362,7 +362,7 @@ export function TransferSigningFlow({
           <div className="space-y-4">
             <div className="flex flex-col items-center justify-center py-8 gap-3">
               <SpinnerGapIcon size={ICON_XL} className="text-brand-light animate-spin" />
-              <p className="text-sm text-text-muted">Broadcasting transaction...</p>
+              <p className="text-sm text-text-muted">Broadcasting transaction…</p>
               <p className="text-xs text-text-subtle">This may take a moment</p>
             </div>
             <ModalActions>{cancel}</ModalActions>
@@ -376,14 +376,14 @@ export function TransferSigningFlow({
             <div className="space-y-1">
               <h3 className="flex items-center gap-2 text-sm font-medium text-success-light">
                 <CheckCircleIcon size={ICON_MD} weight="fill" />
-                Transfer Sent!
+                Transfer sent!
               </h3>
               <p className="text-sm text-text-muted">Your transaction has been submitted to the network.</p>
             </div>
 
             {txHash && (
               <div className="space-y-1 border-t border-border-subtle pt-3">
-                <h3 className="text-sm font-medium text-text-primary">Transaction Hash</h3>
+                <h3 className="text-sm font-medium text-text-primary">Transaction hash</h3>
                 <p className="text-xs font-mono text-text-primary break-all">{txHash}</p>
                 {explorerUrl && (
                   <a
@@ -416,13 +416,13 @@ export function TransferSigningFlow({
             <div className="space-y-1">
               <h3 className="flex items-center gap-2 text-sm font-medium text-error-light">
                 <WarningCircleIcon size={ICON_MD} weight="fill" />
-                Transfer Failed
+                Transfer failed
               </h3>
               <p className="text-sm text-text-muted">{error || 'An error occurred'}</p>
             </div>
             <ModalActions>
               <PageAction label="Close" onClick={handleClose} />
-              <PageAction label="Try Again" primary onClick={goBack} />
+              <PageAction label="Try again" primary onClick={goBack} />
             </ModalActions>
           </div>
         );

@@ -88,13 +88,13 @@ export function IdentityVerificationModal({ isOpen, onClose }: IdentityVerificat
   const canStart = showForm && !isLoadingStatus && !sdkActive && !formUrl;
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Identity Verification" size="lg" fullHeight={!!formUrl}>
+    <Modal isOpen={isOpen} onClose={onClose} title="Identity verification" size="lg" fullHeight={!!formUrl}>
       <div className="space-y-4">
         {(isLoadingStatus || isLaunching) && (
           <div className="flex flex-col items-center py-8">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-light"></div>
             <p className="text-sm text-text-muted mt-4">
-              {isLaunching ? 'Preparing verification...' : 'Loading status...'}
+              {isLaunching ? 'Preparing verification…' : 'Loading status…'}
             </p>
           </div>
         )}
@@ -102,7 +102,7 @@ export function IdentityVerificationModal({ isOpen, onClose }: IdentityVerificat
         {isVerified && (
           <VerificationResult
             icon={<CheckCircleIcon size={ICON_MD} weight="fill" />}
-            title="Already Verified"
+            title="Already verified"
             tone="text-success-light"
           >
             <p className="text-sm text-text-secondary">Your identity has been verified successfully.</p>
@@ -112,7 +112,7 @@ export function IdentityVerificationModal({ isOpen, onClose }: IdentityVerificat
         {showPendingBanner && (
           <VerificationResult
             icon={<CheckCircleIcon size={ICON_MD} weight="fill" />}
-            title="Verification Submitted"
+            title="Verification submitted"
             tone="text-brand-light"
           >
             <p className="text-sm text-text-secondary">
@@ -124,7 +124,7 @@ export function IdentityVerificationModal({ isOpen, onClose }: IdentityVerificat
         {showOnHoldBanner && (
           <VerificationResult
             icon={<ClockCountdownIcon size={ICON_MD} />}
-            title="Verification On Hold"
+            title="Verification on hold"
             tone="text-warning-light"
           >
             <p className="text-sm text-text-secondary">
@@ -137,7 +137,7 @@ export function IdentityVerificationModal({ isOpen, onClose }: IdentityVerificat
         {showRejectedBanner && (
           <VerificationResult
             icon={<WarningIcon size={ICON_MD} />}
-            title="Verification Rejected"
+            title="Verification rejected"
             tone="text-error-light"
           >
             <p className="text-sm text-text-secondary">
@@ -151,7 +151,7 @@ export function IdentityVerificationModal({ isOpen, onClose }: IdentityVerificat
         {showRetryBanner && (
           <VerificationResult
             icon={<ArrowCounterClockwiseIcon size={ICON_MD} />}
-            title="Retry Needed"
+            title="Retry needed"
             tone="text-warning-light"
           >
             <p className="text-sm text-text-secondary">
@@ -179,7 +179,7 @@ export function IdentityVerificationModal({ isOpen, onClose }: IdentityVerificat
         {formUrl && (
           <iframe
             src={formUrl}
-            title="Identity Verification"
+            title="Identity verification"
             className="w-full rounded-lg border border-border"
             style={{ height: '800px' }}
             allow="camera; microphone"
@@ -190,7 +190,7 @@ export function IdentityVerificationModal({ isOpen, onClose }: IdentityVerificat
           <PageAction label="Close" onClick={onClose} />
           {canStart && (
             <PageAction
-              label={isLaunching ? 'Preparing...' : 'Start Verification'}
+              label={isLaunching ? 'Preparing…' : 'Start verification'}
               primary
               onClick={() => launchVerification('#sumsub-profile-websdk-container')}
               disabled={isLaunching}
@@ -198,7 +198,7 @@ export function IdentityVerificationModal({ isOpen, onClose }: IdentityVerificat
           )}
           {showRetryBanner && (
             <PageAction
-              label={isLaunching ? 'Preparing...' : 'Retry Verification'}
+              label={isLaunching ? 'Preparing…' : 'Retry verification'}
               primary
               onClick={() => launchVerification('#sumsub-profile-websdk-container')}
               disabled={isLaunching}

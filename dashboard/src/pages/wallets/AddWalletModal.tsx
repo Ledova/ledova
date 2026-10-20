@@ -91,7 +91,7 @@ export function AddWalletModal({
       onClose={handleClose}
       title="Add wallet"
       showFooter={!form.showScanner}
-      confirmLabel="Add Wallet"
+      confirmLabel="Add wallet"
       busy={isLoading}
       busyLabel="Adding wallet…"
       confirmDisabled={readBlocked || !form.address.trim()}
@@ -112,7 +112,7 @@ export function AddWalletModal({
 
         <div className="space-y-1">
           <div className="flex items-center justify-between">
-            <label className="text-sm text-text-muted">Wallet Address</label>
+            <label className="text-sm text-text-muted">Wallet address</label>
             <button
               type="button"
               onClick={form.toggleScanner}
@@ -120,7 +120,7 @@ export function AddWalletModal({
               className="flex items-center gap-1 text-sm text-brand-light transition-colors"
             >
               <QrCodeIcon size={ICON_SM} />
-              <span>{form.showScanner ? 'Hide Scanner' : 'Scan QR'}</span>
+              <span>{form.showScanner ? 'Hide scanner' : 'Scan QR'}</span>
             </button>
           </div>
 
@@ -149,7 +149,7 @@ export function AddWalletModal({
                 value={form.address}
                 onChange={(e) => form.handleAddressChange(e.target.value)}
                 className={`${FIELD_CLASS} font-mono ${form.errors.address ? 'border-error-light' : 'border-border'}`}
-                placeholder="0x... or tb1..."
+                placeholder="0x… or tb1…"
                 disabled={isLoading}
               />
               {form.errors.address && <p className="text-xs text-error-light">{form.errors.address}</p>}
@@ -168,7 +168,7 @@ export function AddWalletModal({
         )}
         {!form.showScanner && (
           <div className="space-y-1">
-            <label className="text-sm text-text-muted">Wallet Name (Optional)</label>
+            <label className="text-sm text-text-muted">Wallet name (optional)</label>
             <input
               type="text"
               aria-label="Wallet name"
@@ -265,7 +265,7 @@ function ImportAccounts({
       <div className="max-h-[300px] divide-y divide-border-subtle overflow-y-auto">
         {addresses.map((derivedAddress) => {
           const isSelected = selectedAddresses.has(importAddressKey(derivedAddress));
-          const balance = balances.get(importAddressKey(derivedAddress)) || 'Loading...';
+          const balance = balances.get(importAddressKey(derivedAddress)) || 'Loading…';
           const networkName = getBlockchainDisplayName(derivedAddress.networkType);
 
           return (
@@ -291,7 +291,7 @@ function ImportAccounts({
                   <span className="text-sm font-semibold text-text-primary">{balance}</span>
                 </div>
                 <p className="text-xs font-mono text-text-muted truncate">
-                  {derivedAddress.address.slice(0, 10)}...{derivedAddress.address.slice(-8)}
+                  {derivedAddress.address.slice(0, 10)}…{derivedAddress.address.slice(-8)}
                 </p>
               </div>
             </button>
@@ -304,7 +304,7 @@ function ImportAccounts({
         <PageAction
           label={
             isImporting
-              ? 'Importing...'
+              ? 'Importing…'
               : `Import ${selectedAddresses.size} Wallet${selectedAddresses.size !== 1 ? 's' : ''}`
           }
           primary
