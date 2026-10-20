@@ -593,7 +593,8 @@ Each page links to its business section; the audience is the `DESTINATIONS` audi
   - Member invitations give `PersonSelect` the company's holders and award recipients from
     `invitationMembers`.
   - The share-class issue's member choice reads `register/members/` through
-    `useCompanyIssueInstructions`.
+    `useCompanyIssueInstructions`, which leaves out award recipients without shares on web and
+    mobile.
   - Wallet links label the holders of every class with `registerLinkMemberLabels`, and register
     opening labels its linked members with `openingMemberLabels`.
 

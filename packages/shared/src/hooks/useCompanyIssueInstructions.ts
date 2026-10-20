@@ -176,7 +176,10 @@ export function useCompanyIssueInstructions(
       guard();
       const response = await getRegisterTransferMembers(api, tokenUuid, config(guard));
       guard();
-      return response.data;
+      return {
+        ...response.data,
+        members: response.data.members.filter((member) => member.onRegister !== false),
+      };
     },
   });
   const links = useQuery({

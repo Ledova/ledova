@@ -268,7 +268,7 @@ function Preparation({ commands }: { commands: Commands }) {
   const memberChoices = useMemo(
     () =>
       personChoices(
-        peopleFrom(commands.members.data).filter((person) => person.onRegister !== false),
+        peopleFrom(commands.members.data).filter((person) => !person.awardOnly),
         (person) => `${formatShareCount(person.currentShares)} shares`,
       ),
     [commands.members.data],
