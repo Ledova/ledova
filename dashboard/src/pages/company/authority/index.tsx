@@ -1,4 +1,4 @@
-import { CompanyPicker } from '@pages/company/shared/CompanySelection';
+import { CompanyPicker } from '@components/CompanyPicker';
 import { Section } from '@components/Ledger';
 import { Page, PageAction } from '@components/Page';
 import { getErrorMessage, useSubmissionOwner, useUserPreferences, type OrderSubmissionOwner } from '@ledova/shared';

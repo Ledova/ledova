@@ -1,4 +1,4 @@
-import { CompanyPicker } from '@pages/company/shared/CompanySelection';
+import { CompanyPicker } from '@components/CompanyPicker';
 import { useState } from 'react';
 import {
   DESTINATIONS,

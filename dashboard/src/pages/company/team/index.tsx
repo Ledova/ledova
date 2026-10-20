@@ -1,4 +1,4 @@
-import { CompanyPicker } from '@pages/company/shared/CompanySelection';
+import { CompanyPicker } from '@components/CompanyPicker';
 import { FIELD_CLASS, LABEL } from '@components/fieldClass';
 import { LinkRow, Row, Rows, Section } from '@components/Ledger';
 import { Modal } from '@components/Modal';

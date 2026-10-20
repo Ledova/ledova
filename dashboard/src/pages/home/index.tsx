@@ -1,4 +1,4 @@
-import { CompanyPicker } from '@pages/company/shared/CompanySelection';
+import { CompanyPicker } from '@components/CompanyPicker';
 import { DESTINATIONS } from '@ledova/shared';
 import { useEffect, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';

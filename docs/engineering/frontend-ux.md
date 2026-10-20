@@ -146,7 +146,7 @@ The mobile app still chooses people from buttons; #1177 brings it to the same st
 ## Choosing a company
 
 Every web page that asks which company to work on uses `CompanyPicker`
-(`dashboard/src/pages/company/shared/CompanySelection.tsx`): the same searchable list as
+(`dashboard/src/components/CompanyPicker.tsx`): the same searchable list as
 [choosing a person](#choosing-a-person), labelled **Company**, showing each company's name and, where
 it helps, a muted detail such as a draft company's ACN, never an internal identifier.
 
@@ -154,7 +154,7 @@ it helps, a muted detail such as a draft company's ACN, never an internal identi
   follow the company chosen for the session through `CompanySelection`, which hides the list when
   the account has one company and it is already chosen.
 - Your shares shows it when the person holds records in more than one company.
-- Company team, Representative authority (offering draft companies only), Company eligibility and
+- Company team, Representative authority (which lists only draft companies), Company eligibility and
   its wallet approvals show it whenever they ask for a company.
 
 ## Choosing a wallet or a paid subscription
