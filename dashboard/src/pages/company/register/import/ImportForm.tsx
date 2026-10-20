@@ -1,4 +1,5 @@
 import { useImportPreparation, type ImportFormProps } from './useImportPreparation';
+import { useRunningAction } from '@hooks/useRunningAction';
 
 import {
   REGISTER_IMPORT_COPY,
@@ -39,6 +40,7 @@ export function ImportForm({
   visible = true,
   onHeldChange,
 }: ImportFormProps) {
+  const { running, track } = useRunningAction();
   const {
     importDescription,
     today,
@@ -421,7 +423,13 @@ export function ImportForm({
                 )}
                 {proposal.status === 'applied' && (
                   <FormActions>
-                    <PageAction label="View company ownership" primary onClick={() => void finish()} />
+                    <PageAction
+                      label="View company ownership"
+                      primary
+                      busy={running === 'finish'}
+                      busyLabel="Opening company ownership…"
+                      onClick={() => track('finish', finish())}
+                    />
                   </FormActions>
                 )}
               </section>

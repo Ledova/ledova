@@ -77,7 +77,9 @@ export function OfferingDocumentsEditor({
                 request.mutate(addable);
               }
             }}
-            disabled={blocked || addable.length === 0 || request.isPending}
+            busy={request.isPending}
+            busyLabel="Adding documents…"
+            disabled={blocked || addable.length === 0}
           />
         </div>
       </fieldset>

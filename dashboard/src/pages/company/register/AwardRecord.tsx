@@ -213,7 +213,11 @@ export function AwardRecord({
                     </Rows>
                     <PageAction
                       label="Download vesting evidence"
-                      busy={download.isPending && download.variables?.uuid === event.uuid}
+                      busy={
+                        download.isPending &&
+                        download.variables?.kind === 'vesting' &&
+                        download.variables.uuid === event.uuid
+                      }
                       busyLabel="Downloading…"
                       context={`${event.shares} shares dated ${event.vestedOn}`}
                       disabled={blocked || download.isPending || !eventReady}
@@ -281,7 +285,9 @@ export function AwardRecord({
                   </Rows>
                   <PageAction
                     label="Download entitlement evidence"
-                    busy={download.isPending && download.variables?.uuid === event.uuid}
+                    busy={
+                      download.isPending && download.variables?.kind === 'end' && download.variables.uuid === event.uuid
+                    }
                     busyLabel="Downloading…"
                     context={event.companyEventOn}
                     disabled={blocked || download.isPending || !eventReady}
@@ -301,7 +307,11 @@ export function AwardRecord({
                   </Rows>
                   <PageAction
                     label="Download correction evidence"
-                    busy={download.isPending && download.variables?.uuid === event.uuid}
+                    busy={
+                      download.isPending &&
+                      download.variables?.kind === 'reversal' &&
+                      download.variables.uuid === event.uuid
+                    }
                     busyLabel="Downloading…"
                     context={event.companyEventOn}
                     disabled={blocked || download.isPending || !eventReady}

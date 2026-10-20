@@ -44,6 +44,7 @@ export function useIssueLinkRecord({ record, commands }: { record: RegisterLink;
   const download = async () => {
     if (busy) return;
     setBusy(true);
+    setError('');
     try {
       commands.guard();
       const response = await downloadRegisterLinkFile(apiClient, record.uuid, commands.config(commands.guard));

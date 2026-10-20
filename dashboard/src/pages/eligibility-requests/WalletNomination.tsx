@@ -124,11 +124,9 @@ export function WalletNomination({ requestUuid, guardRequest }: { requestUuid: s
               </label>
               <PageAction
                 label="Submit wallet nomination"
-                busy={running === 'submit'}
-                busyLabel="Submitting…"
                 primary
                 disabled={blocked || !accepted || !preview.canSubmit}
-                onClick={() => track('submit', data.confirm())}
+                onClick={() => void data.confirm()}
               />
             </div>
           )}

@@ -190,18 +190,20 @@ export function IdentityVerificationModal({ isOpen, onClose }: IdentityVerificat
           <PageAction label="Close" onClick={onClose} />
           {canStart && (
             <PageAction
-              label={isLaunching ? 'Preparing…' : 'Start verification'}
+              label="Start verification"
               primary
+              busy={isLaunching}
+              busyLabel="Preparing…"
               onClick={() => launchVerification('#sumsub-profile-websdk-container')}
-              disabled={isLaunching}
             />
           )}
           {showRetryBanner && (
             <PageAction
-              label={isLaunching ? 'Preparing…' : 'Retry verification'}
+              label="Retry verification"
               primary
+              busy={isLaunching}
+              busyLabel="Preparing…"
               onClick={() => launchVerification('#sumsub-profile-websdk-container')}
-              disabled={isLaunching}
             />
           )}
         </ModalActions>
