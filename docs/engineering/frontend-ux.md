@@ -364,13 +364,18 @@ server:
   "1–25 of 1,240 applications", and Previous, the page number and Next when there is more than one
   page. While new results load, the shown rows stay, dimmed and marked busy, and the pager says it
   is loading.
+- **Feeds:** `LoadMore` ends a feed with "Load more notices" (or applications, activity,
+  notifications and so on), which names its work while it runs. When a later page fails, the shown
+  rows stay, a sentence says the list is incomplete, and "Try more … again" retries.
 - **Page size:** 25 rows. The API accepts `page_size` up to 100 on every paged list.
 
 An offering's applications on Offerings are the first table: search by investor name, wallet
 address or payment reference, filter by status, with the chosen offering kept in the address too.
-Activity, an investor's Applications, Notices and a class's register entries load more on request.
-Other lists still read every page ([frontend](frontend.md#lists-figures-and-currency)), and the
-register, ownership and import tables keep their own markup until they move.
+The feeds are Activity, an investor's Applications, Notices, the notification bell, Published to
+your members and a class's register entries. A list bounded by one person, such as their own
+documents, classification claims or wallets, reads every page. Other lists still read every page
+([frontend](frontend.md#lists-figures-and-currency)), and the register, ownership and import tables
+keep their own markup until they move.
 
 ## Validation
 
