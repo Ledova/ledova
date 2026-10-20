@@ -7,6 +7,7 @@ Start with the question you need answered. Each entry page leads to focused docu
 | I want to…                                 | Start here                                                                                                  |
 | ------------------------------------------ | ----------------------------------------------------------------------------------------------------------- |
 | Understand Ledova and what works today     | [Product and functionality](product.md) · [Implementation index](plans/company-managed-registers/README.md) |
+| Understand the market and competition      | [Market and competition](market.md)                                                                        |
 | Understand how the business processes work | [Business processes](business/README.md)                                                                    |
 | Understand how the software is built       | [Engineering](engineering/README.md)                                                                        |
 | Run it locally                             | [Getting started](getting-started.md)                                                                       |
