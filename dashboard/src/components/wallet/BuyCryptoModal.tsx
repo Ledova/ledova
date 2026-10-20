@@ -58,6 +58,7 @@ export function BuyCryptoModal({ isOpen, onClose, onNavigateToWidget, userAccoun
                   className="flex w-full items-center justify-between py-3 text-left disabled:opacity-50"
                   onClick={() => handleSelectAsset(asset)}
                   disabled={isProcessingAsset}
+                  aria-busy={isAssetProcessing || undefined}
                 >
                   <div className="flex items-center gap-3">
                     {ASSET_ICONS[asset.symbol]}

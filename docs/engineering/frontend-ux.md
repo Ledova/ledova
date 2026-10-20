@@ -421,6 +421,12 @@ record's own page.
 
 ## Loading, empty and error states
 
+A page's first read renders `<Page loading>`. A section that is still loading shows `Loading`
+(`dashboard/src/components/Ledger.tsx`): one muted `role="status"` line that names what it loads,
+such as "Loading your wallets…" or "Loading the register…". A spinner that stands for a whole step
+carries a status role with its words, such as the session check, sign-up's steps and the transfer
+flow.
+
 A read that fails shows `LoadError` (`dashboard/src/components/Ledger.tsx`): one `role="alert"`
 block with a sentence in the primary text colour and a Try again action. The sentence names what
 failed, such as "Your wallets could not be loaded." or "The register or your appointments could
@@ -437,7 +443,7 @@ failure. On the company team page and in a class's employee awards and non-paid 
 takes the place of the section's Refresh action while its read has failed; deployments do the same
 while no records show.
 
-Loading lines, refresh actions, a failed refresh and empty states are still to follow under
+Refresh actions, a failed refresh and empty states are still to follow under
 [#1180](https://github.com/Ledova/ledova/issues/1180). Until then:
 
 - The company's eligibility queue, your company eligibility requests, member access and Home's

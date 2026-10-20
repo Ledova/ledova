@@ -9,7 +9,7 @@ import {
   useResolutionStatus,
   type Publication,
 } from '@ledova/shared';
-import { Section, Status, LoadError } from '@components/Ledger';
+import { Section, Status, LoadError, Loading } from '@components/Ledger';
 import { useHoldingWork } from './useHoldingWork';
 import type { ApplicationWork } from './applicationWork';
 
@@ -83,18 +83,14 @@ export function HoldingWork() {
               Your account type and applications could not be loaded.
             </LoadError>
           ) : !role.isKnown || (role.isInvestor && applications.isPending) ? (
-            <p role="status" className="text-sm text-text-muted">
-              Checking your applications…
-            </p>
+            <Loading>Loading your applications…</Loading>
           ) : role.isInvestor && applications.isError ? (
             <LoadError retry={() => applications.refetch()} busy={applications.isFetching}>
               Your applications could not be loaded.
             </LoadError>
           ) : null}
           {notices.isPending ? (
-            <p role="status" className="text-sm text-text-muted">
-              Checking your notices…
-            </p>
+            <Loading>Loading your notices…</Loading>
           ) : notices.isError ? (
             <LoadError retry={() => notices.retry()} busy={notices.isFetching}>
               Your notices could not be loaded.
@@ -154,9 +150,7 @@ export function HoldingWork() {
 
       <Section title="Recently published to you">
         {recent.isPending ? (
-          <p role="status" className="py-3 text-sm text-text-muted">
-            Checking what was published to you…
-          </p>
+          <Loading>Loading what has been published to you…</Loading>
         ) : recent.isError ? (
           <LoadError retry={() => recent.refetch()} busy={recent.isFetching}>
             What has been published to you could not be loaded.

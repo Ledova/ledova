@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import type { ShareToken } from '@ledova/shared';
 import { formatShareCount, DIRECTORY_COPY, DESTINATIONS, marketAmount } from '@ledova/shared';
-import { Section, Rows, Row, LoadError } from '@components/Ledger';
+import { Section, Rows, Row, LoadError, Loading } from '@components/Ledger';
 
 interface MarketOverviewProps {
   tokens: ShareToken[];
@@ -35,7 +35,7 @@ export function MarketOverview({
           Share classes could not be loaded.
         </LoadError>
       ) : isLoading ? (
-        <p role="status">Loading share classes…</p>
+        <Loading>Loading share classes…</Loading>
       ) : tokens.length === 0 ? (
         <div className="space-y-2 text-sm">
           <p>{isReady ? DIRECTORY_COPY.MARKET_EMPTY_TITLE : DIRECTORY_COPY.INELIGIBLE_TITLE}</p>

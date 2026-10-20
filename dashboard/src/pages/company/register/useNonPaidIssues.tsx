@@ -21,7 +21,7 @@ import { useOwnAppointments, ownAppointmentsKey } from '@hooks/useOwnAppointment
 import { grantsKey, useRegisterGrants } from '@pages/company/register/shared/useRegisterGrants';
 import { awardsKey, useRegisterAward } from '@pages/company/register/shared/useRegisterAwards';
 import { allPeopleKey, usePeople } from '@pages/company/register/shared/usePeople';
-import { LoadError } from '@components/Ledger';
+import { LoadError, Loading } from '@components/Ledger';
 
 const AWARD_NOTE =
   'Prepare the company’s issue of recorded vested shares. The employee does not purchase them; approval and recording the issue are separate steps.';
@@ -174,11 +174,7 @@ export function useNonPaidIssues({
           This award’s recipient needs current retained walletless particulars before a grant can be prepared.
         </p>
       ) : (
-        !formVisible && (
-          <p role="status" className="text-sm text-text-muted">
-            Loading the non-paid issue form…
-          </p>
-        )
+        !formVisible && <Loading>Loading the non-paid issue form…</Loading>
       )}
       {formAppointment && (
         <div hidden={!formVisible}>
@@ -226,9 +222,7 @@ export function useNonPaidIssues({
         <p className="text-sm text-text-muted">{COPY.READ_ONLY_NOTE}</p>
       )}
       {!sourceReady || grants.isPending ? (
-        <p role="status" className="text-sm text-text-muted">
-          Loading non-paid issues…
-        </p>
+        <Loading>Loading non-paid issues…</Loading>
       ) : appointments.isError ? null : !readable ? (
         <p className="text-sm text-text-muted">
           A current company register appointment is required to read non-paid issues.

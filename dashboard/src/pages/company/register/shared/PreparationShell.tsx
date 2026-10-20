@@ -2,8 +2,7 @@ import type { ReactNode } from 'react';
 import type { To } from 'react-router-dom';
 import { DESTINATIONS, type useUserPreferences } from '@ledova/shared';
 import { Page, PageLink } from '@components/Page';
-import { Loading } from '@pages/company/shared/RegisterStatus';
-import { LoadError } from '@components/Ledger';
+import { LoadError, Loading } from '@components/Ledger';
 
 export function PreparationBack({
   to = DESTINATIONS.companyRegister.path,
@@ -17,7 +16,7 @@ export function PreparationBack({
 
 export function PreparationPreferences({ preferences }: { preferences: ReturnType<typeof useUserPreferences> }) {
   return preferences.isLoading ? (
-    <Loading />
+    <Loading>Loading your account…</Loading>
   ) : (
     <LoadError retry={() => preferences.refetch()} busy={preferences.isFetching}>
       Your account could not be loaded.

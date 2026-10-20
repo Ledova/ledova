@@ -12,6 +12,7 @@ import { useReview } from './useReview';
 import { Section } from '@components/Ledger';
 import { COMPANY_TYPES } from '@pages/signup/shared/constants';
 import { SITE_URL } from '@utils/siteUrl';
+import { LoadingState } from '@pages/signup/shared/LoadingState';
 
 function displayCompanyType(companyType: string | undefined) {
   return COMPANY_TYPES.find((type) => type.value === companyType)?.label ?? companyType ?? '';
@@ -47,14 +48,7 @@ export default function SignupReview() {
   };
 
   if (isLoading) {
-    return (
-      <AuthLayout>
-        <div className="flex flex-col items-center justify-center py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand mb-4"></div>
-          <p className="text-text-muted">Loading review data…</p>
-        </div>
-      </AuthLayout>
-    );
+    return <LoadingState message="Loading your answers…" />;
   }
 
   if (error) {

@@ -177,7 +177,7 @@ export function WalletVerificationModal({ isOpen, wallet, guard, onClose }: Wall
             {verificationError && <p className="text-sm text-error-light">{verificationError}</p>}
 
             {isVerifying && (
-              <div className="flex items-center gap-2">
+              <div role="status" className="flex items-center gap-2">
                 <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-brand-mid"></div>
                 <span className="text-sm text-text-muted">Verifying signature…</span>
               </div>

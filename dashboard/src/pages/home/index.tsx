@@ -10,7 +10,7 @@ import {
   useMemberRecords,
   type MemberCertificateRequest,
 } from '@ledova/shared';
-import { LinkRow, Row, Rows, Section } from '@components/Ledger';
+import { LinkRow, Row, Rows, Section, Loading } from '@components/Ledger';
 import { Confirmation } from '@components/Modal';
 import { Page, PageAction } from '@components/Page';
 import { PageTitle } from '@components/PageTitle';
@@ -194,7 +194,7 @@ function MemberRecords({
         {!read.owner ? (
           <p role="status">Check your signed-in account before opening member records.</p>
         ) : read.loading || refreshing || (read.busy && read.records.length === 0) ? (
-          <p role="status">Loading member records…</p>
+          <Loading>Loading member records…</Loading>
         ) : (
           <>
             {read.records.length > 1 && (
@@ -322,7 +322,7 @@ function MemberRecords({
                     !read.requests.certificates.some(
                       (request) => request.status === 'fulfilled' && request.fulfilment,
                     ) && <p className="text-sm text-text-muted">No issued certificates available.</p>}
-                  {!read.requests && <p role="status">Loading your documents and requests…</p>}
+                  {!read.requests && <Loading>Loading your documents and requests…</Loading>}
                   {!documentsOnly && (
                     <LinkRow
                       to={`${DESTINATIONS.home.path}#documents`}

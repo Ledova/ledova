@@ -19,10 +19,9 @@ import {
   type OrderSubmissionOwner,
   type OwnCompanyAppointment,
 } from '@ledova/shared';
-import { Row, Rows, Section, LoadError } from '@components/Ledger';
+import { Row, Rows, Section, LoadError, Loading } from '@components/Ledger';
 import { Page, PageLink } from '@components/Page';
 import { PageTitle } from '@components/PageTitle';
-import { Loading } from '@pages/company/shared/RegisterStatus';
 import { ownerGuard } from '@pages/company/shared/ownerGuard';
 import { registerClassesKey, registersQuery } from '@pages/company/shared/useCompanyRegister';
 import { percentage } from '@pages/company/register/shared/shareholders';
@@ -73,7 +72,7 @@ export default function CompanyShareholderPage() {
   return (
     <Page narrow actions={back}>
       {preferences.isLoading ? (
-        <Loading />
+        <Loading>Loading your account…</Loading>
       ) : (
         <LoadError retry={() => preferences.refetch()} busy={preferences.isFetching}>
           Your account could not be loaded.
@@ -148,7 +147,7 @@ function OwnShareholder({
         Your appointments could not be loaded.
       </LoadError>
     ) : !appointments.isSuccess || appointments.fetchStatus !== 'idle' ? (
-      <Loading />
+      <Loading>Loading your appointments…</Loading>
     ) : !authorised ? (
       <p className="text-sm text-text-muted">{PRIVATE_NOTE}</p>
     ) : query.isError ? (
@@ -156,7 +155,7 @@ function OwnShareholder({
         {noun} could not be loaded.
       </LoadError>
     ) : !settled(query) ? (
-      <Loading />
+      <Loading>Loading {noun.toLowerCase()}…</Loading>
     ) : (
       render()
     );
@@ -169,7 +168,7 @@ function OwnShareholder({
         Your account could not be loaded.
       </LoadError>
     );
-  else if (data.classes.isPending) content = <Loading />;
+  else if (data.classes.isPending) content = <Loading>Loading the register…</Loading>;
   else if (data.classes.isError || data.registers.isError)
     content = (
       <LoadError
@@ -184,7 +183,7 @@ function OwnShareholder({
     );
   else if (!data.company)
     content = <p className="py-3 text-sm text-text-muted">This shareholder is not on a register you can read.</p>;
-  else if (!sourceReady) content = <Loading />;
+  else if (!sourceReady) content = <Loading>Loading the register…</Loading>;
   else {
     const registers = data.registers.data ?? [];
     const holdings = registers.flatMap((register) =>

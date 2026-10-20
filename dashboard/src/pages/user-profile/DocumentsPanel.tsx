@@ -25,7 +25,7 @@ import { ICON_SM, ICON_MD } from '@components/iconSizes';
 
 import { useAttachDocument, useDeleteDocument, useDocument, useDocuments, useUploadDocument } from './useDocuments';
 import type { Document, UserDocumentType, ExtractionStatus } from '@ledova/shared';
-import { LoadError } from '@components/Ledger';
+import { LoadError, Loading } from '@components/Ledger';
 
 const DOCUMENT_TYPE_LABELS: Record<UserDocumentType, string> = {
   payslip: 'Payslip',
@@ -417,7 +417,7 @@ export function DocumentsPanel() {
         </a>
       )}
 
-      {docs.isLoading && <p className="text-sm text-text-muted">Loading…</p>}
+      {docs.isLoading && <Loading>Loading your documents…</Loading>}
 
       {docs.isError && (
         <LoadError retry={() => docs.refetch()} busy={docs.isFetching}>

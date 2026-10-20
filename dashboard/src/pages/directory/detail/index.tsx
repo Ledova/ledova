@@ -13,7 +13,7 @@ import {
   useSubscribableWallets,
   type DirectoryDocument,
 } from '@ledova/shared';
-import { Row, Rows, Section, Status, LoadError } from '@components/Ledger';
+import { Row, Rows, Section, Status, LoadError, Loading } from '@components/Ledger';
 import { Page, PageLink } from '@components/Page';
 import { SubscribeForm } from './SubscribeForm';
 import { useCreateSubscription } from './useCreateSubscription';
@@ -22,9 +22,7 @@ function OfferDocuments({ read }: { read: ReturnType<typeof useDirectoryDocument
   return (
     <Section title={OFFER_DOCUMENT_COPY.TITLE}>
       {read.isLoading ? (
-        <p role="status" className="py-2 text-sm text-text-muted">
-          {OFFER_DOCUMENT_COPY.LOADING}
-        </p>
+        <Loading>{OFFER_DOCUMENT_COPY.LOADING}</Loading>
       ) : read.hasError ? (
         <LoadError retry={read.retry} busy={read.isRefreshing}>
           {OFFER_DOCUMENT_COPY.FAILED}
@@ -155,9 +153,7 @@ export default function DirectoryTokenPage() {
       <OfferDocuments read={documents} />
       {offering &&
         (wallets.isLoading ? (
-          <p role="status" className="py-3 text-sm text-text-muted">
-            Loading your receiving wallets…
-          </p>
+          <Loading>Loading your receiving wallets…</Loading>
         ) : wallets.hasError ? (
           <LoadError retry={wallets.retry} busy={wallets.isRefreshing}>
             Your receiving wallets could not be loaded.
@@ -176,9 +172,7 @@ export default function DirectoryTokenPage() {
         ))}
       <Section title="Payments">
         {operatorLoading ? (
-          <p role="status" className="text-sm text-text-muted">
-            Loading operator details…
-          </p>
+          <Loading>Loading operator details…</Loading>
         ) : operatorFailed ? (
           <LoadError retry={retryOperator} busy={operatorRefreshing}>
             Operator details could not be loaded.

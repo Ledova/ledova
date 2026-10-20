@@ -21,12 +21,13 @@ import {
   parseFiatValue,
   useCurrency,
 } from '@ledova/shared';
-import { ICON_XS, ICON_SM, ICON_MD, ICON_LG } from '@components/iconSizes';
+import { ICON_XS, ICON_SM, ICON_MD } from '@components/iconSizes';
 import type { Wallet, WhitelistStatus } from '@ledova/shared';
 import { Modal } from '@components/Modal';
 import { useQRScanner, QRScannerView } from '@components/qr';
 import type { UnifiedAsset } from './useTransferFlow';
 import { FIELD_BASE } from '@components/fieldClass';
+import { Loading } from '@components/Ledger';
 
 interface SendFormModalProps {
   isOpen: boolean;
@@ -200,10 +201,7 @@ export function SendFormModal({
         </p>
 
         {isLoadingAssets ? (
-          <div className="flex items-center py-2">
-            <ArrowsClockwiseIcon size={ICON_LG} className="animate-spin text-text-muted" />
-            <span className="ml-2 text-sm text-text-muted">Loading assets…</span>
-          </div>
+          <Loading>Loading this wallet&apos;s assets…</Loading>
         ) : assets.length === 0 ? (
           <p className="text-sm text-text-muted">No assets in this wallet</p>
         ) : (
@@ -305,7 +303,7 @@ export function SendFormModal({
         {isShareToken && isValidAddress && (
           <div className="flex items-center gap-2">
             {isCheckingRecipientWhitelist ? (
-              <span className="flex items-center gap-1 text-xs text-text-muted">
+              <span role="status" className="flex items-center gap-1 text-xs text-text-muted">
                 <ArrowsClockwiseIcon size={ICON_XS} className="animate-spin" />
                 Checking whitelist…
               </span>

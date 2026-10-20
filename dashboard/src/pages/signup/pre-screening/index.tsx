@@ -64,7 +64,7 @@ export default function SignupPreScreening() {
   ];
 
   if (isLoading) {
-    return <LoadingState message="Loading…" />;
+    return <LoadingState message="Loading your answers…" />;
   }
 
   if (generalError && !isSubmitting) {

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { Wallet, OrderSubmissionOwner, TransferOrder, SwapOrder, OrderBook, OrderBookEntry } from '@ledova/shared';
 import { selectSwapSettlement, formatDateTime, marketAmount, marketQuantity } from '@ledova/shared';
-import { Section, Rows, Row, Status, type Tone, LoadError } from '@components/Ledger';
+import { Section, Rows, Row, Status, type Tone, LoadError, Loading } from '@components/Ledger';
 
 function BookSide({ title, entries }: { title: string; entries: OrderBookEntry[] }) {
   return (
@@ -92,7 +92,7 @@ export function OrdersPanel({
               The order lists could not be loaded.
             </LoadError>
           ) : isLoadingOrderBook ? (
-            <p role="status">Loading order lists…</p>
+            <Loading>Loading order lists…</Loading>
           ) : (
             <div className="grid gap-8 md:grid-cols-2">
               <BookSide title="For sale" entries={orderBook?.sellOrders ?? []} />
@@ -110,7 +110,7 @@ export function OrdersPanel({
             Your orders could not be loaded.
           </LoadError>
         ) : isLoadingUserOrders ? (
-          <p role="status">Loading your orders…</p>
+          <Loading>Loading your orders…</Loading>
         ) : userOrders.length === 0 ? (
           <p className="text-sm text-text-muted">No recorded orders.</p>
         ) : (
@@ -184,7 +184,7 @@ export function OrdersPanel({
             Trades could not be loaded.
           </LoadError>
         ) : isLoadingSwaps ? (
-          <p role="status">Loading trades…</p>
+          <Loading>Loading trades…</Loading>
         ) : !swaps?.length ? (
           <p className="text-sm text-text-muted">No trades awaiting signatures for your verified wallets.</p>
         ) : (

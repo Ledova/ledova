@@ -3,7 +3,7 @@ import { Choices } from '@components/Choices';
 import type { Ref } from 'react';
 import { BLOCKCHAIN, formatDate } from '@ledova/shared';
 import type { TransactionFilters, Wallet } from '@ledova/shared';
-import { Disclosure, LoadError } from '@components/Ledger';
+import { Disclosure, LoadError, Loading } from '@components/Ledger';
 import { PageAction } from '@components/Page';
 import { FIELD_CLASS, LABEL } from '@components/fieldClass';
 
@@ -116,11 +116,7 @@ export function TransactionFilter({
                 disabled={walletsLoading || walletsFailed}
                 onChange={(wallet) => onFilterChange('wallet', wallet)}
               />
-              {walletsLoading && (
-                <p role="status" className="text-sm text-text-muted">
-                  Loading wallets…
-                </p>
-              )}
+              {walletsLoading && <Loading>Loading wallets…</Loading>}
               {walletsFailed && (
                 <LoadError retry={onRetryWallets} busy={walletsRefreshing}>
                   Wallet filters could not be loaded. Your activity can still be viewed.
