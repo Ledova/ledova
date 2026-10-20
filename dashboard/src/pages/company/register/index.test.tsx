@@ -960,7 +960,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   expect(within(shareholderTable).getByText('Example Shareholder')).toBeTruthy();
   expect(within(shareholderTable).getByText('1 Example Street, Sydney NSW 2000')).toBeTruthy();
   expect(within(shareholderTable).getByText('100.00%')).toBeTruthy();
-  fireEvent.click(within(shareholderTable).getByRole('button', { name: 'Details (Example Shareholder)' }));
+  fireEvent.click(within(shareholderTable).getByRole('button', { name: 'Allotments (Example Shareholder)' }));
   const shareholderDetails = await screen.findByRole('dialog', { name: 'Example Shareholder' });
   expect(within(shareholderDetails).getByText('CERT-001')).toBeTruthy();
   expect(within(shareholderDetails).getByText('1 Example Street, Sydney NSW 2000')).toBeTruthy();
@@ -996,7 +996,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   const previewGuard = api.post.mock.calls.find(([url]) => url.endsWith('/decision-preview/'))![2]
     .ledovaSubmissionGuard;
   expect(screen.getAllByText(displayedRecordDate).length).toBeGreaterThan(0);
-  fireEvent.click(screen.getByRole('button', { name: 'Details (Example Shareholder)' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Allotments (Example Shareholder)' }));
   expect(await screen.findByRole('dialog', { name: 'Example Shareholder' })).toBeTruthy();
   visibleClass = false;
   await act(async () => {
@@ -1015,7 +1015,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   });
   expect(await screen.findByRole('button', { name: 'Record review' })).toBeTruthy();
   expect(screen.getAllByText(displayedRecordDate).length).toBeGreaterThan(0);
-  fireEvent.click(screen.getByRole('button', { name: 'Details (Example Shareholder)' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Allotments (Example Shareholder)' }));
   expect(await screen.findByRole('dialog', { name: 'Example Shareholder' })).toBeTruthy();
   appointment = { ...appointment, status: 'revoked', isEffective: false, revokedAt: '2026-10-14T00:00:00Z' };
   await act(async () => {
@@ -1065,7 +1065,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   expect(within(copiedMembers).getByText('600')).toBeTruthy();
   expect(within(copiedMembers).getByText(formatDate('2020-01-01'))).toBeTruthy();
   const transferTask = screen.getByRole('button', { name: 'Transfer shares' });
-  fireEvent.click(within(copiedMembers).getByRole('button', { name: 'Details (Example Shareholder)' }));
+  fireEvent.click(within(copiedMembers).getByRole('button', { name: 'Allotments (Example Shareholder)' }));
   const copiedDetails = await screen.findByRole('dialog', { name: 'Example Shareholder' });
   expect(within(copiedDetails).getByText('CERT-001')).toBeTruthy();
   expect(within(copiedDetails).getAllByRole('heading', { name: /^Allotment / })).toHaveLength(2);
