@@ -15,6 +15,7 @@ import {
 } from '@ledova/shared';
 import { Page, PageAction, PageLink } from '@components/Page';
 import { Row, Rows, Section, Status } from '@components/Ledger';
+import { LoadMore } from '@components/List';
 import { ClassRegister } from '@pages/company/register/shared/ClassRegister';
 import { CompanyShareholders } from '@pages/company/register/shared/CompanyShareholders';
 import { useShareClass } from './useShareClass';
@@ -110,9 +111,9 @@ function ShareClassDetails({ data }: { data: ReturnType<typeof useShareClass> })
       token.chain && token.contractAddress ? getBlockExplorerAddressUrl(token.chain, token.contractAddress) : '';
     const txUrl =
       token.chain && token.deploymentTxHash ? getBlockExplorerTxUrl(token.chain, token.deploymentTxHash) : '';
-    const requests = data.requests.data ?? [];
-    const capital = data.capital.data ?? [];
-    const issuances = data.issuances.data ?? [];
+    const requests = data.requests.rows;
+    const capital = data.capital.rows;
+    const issuances = data.issuances.rows;
     return (
       <>
         <Section title={token.name}>
@@ -242,6 +243,7 @@ function ShareClassDetails({ data }: { data: ReturnType<typeof useShareClass> })
                   ))}
                 </ul>
               )}
+              <LoadMore noun={['issuance request', 'issuance requests']} {...data.requests.more} />
             </ReadResult>
           </Section>
         )}
@@ -270,6 +272,7 @@ function ShareClassDetails({ data }: { data: ReturnType<typeof useShareClass> })
                   ))}
                 </ul>
               )}
+              <LoadMore noun={['authorised share request', 'authorised share requests']} {...data.capital.more} />
             </ReadResult>
           </Section>
         )}
@@ -295,6 +298,7 @@ function ShareClassDetails({ data }: { data: ReturnType<typeof useShareClass> })
                   ))}
                 </ul>
               )}
+              <LoadMore noun={['issuance', 'issuances']} {...data.issuances.more} />
             </ReadResult>
           </Section>
         )}

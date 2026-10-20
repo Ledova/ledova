@@ -9,7 +9,7 @@ from tokens.serializers import CapitalIncreaseListSerializer
 class CapitalIncreaseViewSet(mixins.ListModelMixin, AuthenticatedGenericViewSet):
     lookup_field = "uuid"
     filterset_class = CapitalIncreaseFilter
-    ordering = ["-created_at"]
+    ordering = ["-created_at", "-uuid"]
     ordering_fields = ["created_at", "status", "additional_shares"]
     scoped_model = CapitalIncreaseRequest
     serializer_class = CapitalIncreaseListSerializer

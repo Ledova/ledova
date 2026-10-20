@@ -6,8 +6,8 @@ import { firstOfEach } from './registerReads';
 export function useRecordFeed<Row extends { uuid: string }>(
   queryKey: QueryKey,
   read: (page: number) => Promise<{ data: PaginatedResponse<Row> }>,
-  check: (rows: Row[]) => void,
   enabled = true,
+  check: (rows: Row[]) => void = () => undefined,
 ) {
   const query = useInfiniteQuery({
     queryKey,
@@ -27,7 +27,7 @@ export function useRecordFeed<Row extends { uuid: string }>(
     rows: firstOfEach(query.data?.pages.flatMap((page) => page.results) ?? [], ({ uuid }) => uuid),
     isPending: query.isPending,
     isFetching: query.isFetching,
-    hasError: pages.hasError,
+    isError: pages.hasError,
     more: {
       hasMore: query.hasNextPage,
       failed: pages.moreFailed,
