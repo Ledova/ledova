@@ -24,6 +24,8 @@ import {
   type TokenHoldersResponse,
   type RegisterTransferMember,
   type RegisterAwardRecipient,
+  REGISTER_IMPORT_UNMET_COPY,
+  refusalSentence,
 } from '@ledova/shared';
 
 import apiClient from '@services/apiClient';
@@ -458,11 +460,12 @@ export function useImportPreparation({
       } else setUncertain(true);
       if (mounted.current)
         setError(
-          apiErrorSentence(
-            failure,
-            'The records could not be saved. Retry the same request.',
-            'The records could not be confirmed. Recover the original request.',
-          ),
+          refusalSentence(failure, REGISTER_IMPORT_UNMET_COPY) ??
+            apiErrorSentence(
+              failure,
+              'The records could not be saved. Retry the same request.',
+              'The records could not be confirmed. Recover the original request.',
+            ),
         );
     } finally {
       pending.current = false;

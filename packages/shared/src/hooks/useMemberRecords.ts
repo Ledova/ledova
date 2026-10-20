@@ -12,7 +12,7 @@ import {
   withdrawMemberCertificateRequest,
 } from '../services/member-access';
 import type { OwnMemberRecord, MemberCertificateRequest } from '../types';
-import { failureStatus, getErrorMessage } from '../utils/errors';
+import { failureStatus, failureSentence } from '../utils/errors';
 import { readEveryPage } from '../utils/pagination';
 import { useSubmissionOwner } from './useSubmissionOwner';
 import { USER_PREFERENCES_QUERY_KEY } from './useUserPreferences';
@@ -301,7 +301,7 @@ export function useMemberRecords(newKey: () => string, session?: OrderSubmission
       if (status && status < 500) setRetry(null);
       if (live.current && boundary.get() === owner)
         setError(
-          getErrorMessage(failure, 'The outcome could not be confirmed. Refresh or retry the original request.'),
+          failureSentence(failure, 'The outcome could not be confirmed. Refresh or retry the original request.'),
         );
     } finally {
       pending.current = false;
@@ -355,7 +355,7 @@ export function useMemberRecords(newKey: () => string, session?: OrderSubmission
       if (live.current && boundary.get() === owner) setError(null);
       return refresh().catch((failure) => {
         if (live.current && boundary.get() === owner)
-          setError(getErrorMessage(failure, 'The member records could not be refreshed.'));
+          setError(failureSentence(failure, 'The member records could not be refreshed.'));
       });
     },
     select: (uuid: string) => {

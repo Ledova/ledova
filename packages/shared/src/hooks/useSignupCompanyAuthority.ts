@@ -15,7 +15,7 @@ import {
   COMPANY_SIGNUP_DECLARATION_VERSION,
 } from '../constants/business/company-authority';
 import type { CompanyAuthorityRequest, Company, CompanyCapability, OwnCompanyAppointment, UserProfile } from '../types';
-import { getErrorMessage } from '../utils/errors';
+import { failureSentence } from '../utils/errors';
 import { readEveryPage } from '../utils/pagination';
 import { useApiClient } from './useApiClient';
 import type { OrderSubmissionSession } from './useOrderSubmissions';
@@ -167,7 +167,7 @@ export function useSignupCompanyAuthority(
       : enabled && preferences.isError
         ? 'Your signed-in account could not be checked. Reload company setup.'
         : authority.isError
-          ? getErrorMessage(authority.error, 'Your administrator access could not be checked. Reload company setup.')
+          ? failureSentence(authority.error, 'Your administrator access could not be checked. Reload company setup.')
           : stopped
             ? 'Your company administrator appointment is no longer current. Another initial declaration cannot restore it.'
             : !authorityReady &&
@@ -303,7 +303,7 @@ export function useSignupCompanyAuthority(
     authorityReady,
     authorityLoading: enabled && (preferences.isLoading || authority.isLoading),
     authorityError: reset.isError
-      ? getErrorMessage(reset.error, 'Your pending authority request could not be replaced.')
+      ? failureSentence(reset.error, 'Your pending authority request could not be replaced.')
       : authorityError,
     resetAuthorityRequest: () => reset.mutateAsync(),
     isResettingAuthority: reset.isPending,

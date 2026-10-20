@@ -10,7 +10,8 @@ import { getEligibilityRequest } from '../services/company-eligibility';
 import { getWallets } from '../services/wallets';
 import { createWalletNomination, getWalletNominations, previewWalletNomination } from '../services/company-wallets';
 import { readEveryPage } from '../utils/pagination';
-import { createUserFriendlyError, failureStatus, getErrorMessage } from '../utils/errors';
+import { createUserFriendlyError, failureStatus, refusalSentence, failureSentence } from '../utils/errors';
+import { COMPANY_WALLET_UNMET_COPY } from '../constants/business/company-wallets';
 import { isWalletNominationReceipt } from '../utils/company-wallets';
 import type {
   CompanyEligibilityRequest,
@@ -154,7 +155,7 @@ export function useWalletNomination(options: {
     } catch (failure) {
       if (mounted.current && boundary.get() === owner)
         setError(
-          getErrorMessage(failure, 'Current own wallet access could not be refreshed. Original requests are retained.'),
+          failureSentence(failure, 'Current own wallet access could not be refreshed. Original requests are retained.'),
         );
     }
   };
@@ -198,7 +199,7 @@ export function useWalletNomination(options: {
       });
     } catch (failure) {
       if (mounted.current && boundary.get() === owner)
-        setError(getErrorMessage(failure, 'Wallet nomination could not be previewed.'));
+        setError(failureSentence(failure, 'Wallet nomination could not be previewed.'));
     } finally {
       pending.current = false;
       if (mounted.current) setBusy(false);
@@ -271,7 +272,8 @@ export function useWalletNomination(options: {
       if (!dispatched || status === 400 || status === 409) setRetained(null);
       if (mounted.current && boundary.get() === owner)
         setError(
-          getErrorMessage(failure, 'The nomination outcome is uncertain. Recover its exact original body and key.'),
+          refusalSentence(failure, COMPANY_WALLET_UNMET_COPY) ??
+            failureSentence(failure, 'The nomination outcome is uncertain. Recover its exact original body and key.'),
         );
     } finally {
       pending.current = false;

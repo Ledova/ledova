@@ -7,15 +7,17 @@ import {
   REGISTER_PAUSE_CHANGE_DECISIONS,
   REGISTER_PAUSE_CHANGE_UNMET_COPY,
   formatDateTime,
-  getErrorMessage,
   registerPauseChangeExecutionState,
   useCompanyPauseChanges,
   type RegisterPauseChange,
+  refusalSentences,
+  failureSentence,
 } from '@ledova/shared';
 import { DecisionTrail } from '@pages/company/register/shared/DecisionTrail';
 import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
 import { usePausePreparation, usePauseRecord, type Commands } from './useCompanyPauseFlow';
 import type { useShareClass } from './useShareClass';
+
 const STAGES: Record<string, string> = COPY.STAGES;
 
 const STATES = [
@@ -87,9 +89,9 @@ function PauseRecord({ record, commands }: { record: RegisterPauseChange; comman
           <p className="text-sm text-text-muted">{COPY.PROVIDED_BY_COMPANY}</p>
           <DecisionTrail proposal={record} labels={COPY.DECISIONS} />
           <p className="text-sm text-text-muted">{COPY.ADMITTED_NOTE}</p>
-          {record.executionUnmetRequirements.map((code) => (
-            <p key={code} className="text-sm text-text-muted">
-              {REGISTER_PAUSE_CHANGE_UNMET_COPY[code] ?? code}
+          {refusalSentences(record.executionUnmetRequirements, REGISTER_PAUSE_CHANGE_UNMET_COPY).map((sentence) => (
+            <p key={sentence} className="text-sm text-text-muted">
+              {sentence}
             </p>
           ))}
           <PageAction
@@ -206,10 +208,7 @@ function Preparation({ commands }: { commands: Commands }) {
               setFile(chosen);
               setError('');
             } catch (failure) {
-              setError(
-                getErrorMessage(failure, 'The authority document could not be selected.') ??
-                  'The document could not be selected.',
-              );
+              setError(failureSentence(failure, 'The authority document could not be selected.'));
             }
           }}
         />

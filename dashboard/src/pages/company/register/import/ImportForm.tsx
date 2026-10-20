@@ -6,6 +6,7 @@ import {
   formatDate,
   formatShareCount,
   registerImportTotals,
+  refusalSentences,
 } from '@ledova/shared';
 import { Row, Rows } from '@components/Ledger';
 import { FormActions, PageAction } from '@components/Page';
@@ -383,9 +384,11 @@ export function ImportForm({
                     )}
                     {preview?.unmetRequirements.length ? (
                       <ul role="alert" className="space-y-1 text-sm text-error-light">
-                        {preview.unmetRequirements.map((code) => (
-                          <li key={code}>{REGISTER_IMPORT_DECISIONS.unmet[code] ?? code}</li>
-                        ))}
+                        {refusalSentences(preview.unmetRequirements, REGISTER_IMPORT_DECISIONS.unmet).map(
+                          (sentence) => (
+                            <li key={sentence}>{sentence}</li>
+                          ),
+                        )}
                       </ul>
                     ) : null}
                     <FormActions>

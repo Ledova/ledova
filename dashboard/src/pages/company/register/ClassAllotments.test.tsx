@@ -168,7 +168,9 @@ it('preserves original preparation and issue recovery through refresh, keeps app
     if (url === URLS.REGISTER_ALLOTMENT_DECIDE(rows[0].uuid)) {
       if (body.kind === 'approve' && staleApproval) {
         staleApproval = false;
-        throw Object.assign(new Error('The ownership snapshot changed. Preview again.'), { response: { status: 409 } });
+        throw Object.assign(new Error('Request failed with status code 409'), {
+          response: { status: 409, data: { detail: 'The ownership snapshot changed. Preview again.' } },
+        });
       }
       const repeated = rows[0].decisions.some((decision) => decision.idempotencyKey === body.idempotencyKey);
       if (!repeated) rows = [allotmentDecision(rows[0], body)];

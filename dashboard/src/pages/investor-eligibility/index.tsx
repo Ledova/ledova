@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { DESTINATIONS, formatDate, getErrorMessage } from '@ledova/shared';
+import { DESTINATIONS, formatDate, refusalSentences, failureSentence } from '@ledova/shared';
 import type { InvestorCategory, InvestorClassification } from '@ledova/shared';
 import { LinkRow, Row, Rows, Section, Status, type Tone } from '@components/Ledger';
 import { Page, PageAction } from '@components/Page';
@@ -66,8 +66,8 @@ export default function InvestorEligibilityPage() {
                 <LinkRow to={DESTINATIONS.directory.path} label={DESTINATIONS.directory.title} />
               ) : (
                 <ul className="space-y-1 text-sm text-text-muted">
-                  {(eligibility?.reasons ?? []).map((reason) => (
-                    <li key={reason}>{REASON_TEXT[reason] ?? reason}</li>
+                  {refusalSentences(eligibility?.reasons ?? [], REASON_TEXT).map((sentence) => (
+                    <li key={sentence}>{sentence}</li>
                   ))}
                 </ul>
               )}
@@ -81,7 +81,7 @@ export default function InvestorEligibilityPage() {
             <Section title="Your claims">
               {withdraw.isError && (
                 <p role="alert" className="py-2 text-sm text-error-light">
-                  {getErrorMessage(withdraw.error, 'Your claim could not be withdrawn. Try again.')}
+                  {failureSentence(withdraw.error, 'Your claim could not be withdrawn. Try again.')}
                 </p>
               )}
               {classifications.length === 0 ? (

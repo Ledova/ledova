@@ -11,7 +11,6 @@ import {
   REGISTER_LINK_DECISIONS,
   formatDateTime,
   formatShareCount,
-  getErrorMessage,
   peopleFrom,
   personChoices,
   registerIssueExecutionState,
@@ -19,6 +18,8 @@ import {
   type RegisterIssue,
   type RegisterIssueSnapshot,
   type RegisterLink,
+  refusalSentences,
+  failureSentence,
 } from '@ledova/shared';
 import { DecisionTrail } from '@pages/company/register/shared/DecisionTrail';
 import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
@@ -31,6 +32,7 @@ import {
   type EvidenceKind,
 } from './useCompanyIssueFlow';
 import type { useShareClass } from './useShareClass';
+
 const stages: Record<string, string> = COPY.STAGES;
 
 const NEW_MEMBER = [{ value: 'new', label: 'Create a new member through the documentary link' }];
@@ -103,9 +105,9 @@ function IssueRecord({ record, commands }: { record: RegisterIssue; commands: Co
           <p className="text-sm text-text-muted">{COPY.PROVIDED_BY_COMPANY}</p>
           <DecisionTrail proposal={record} labels={COPY.DECISIONS} />
           {record.status === 'applied' && <p className="text-sm text-text-muted">{COPY.ADMITTED_NOTE}</p>}
-          {record.executionUnmetRequirements.map((code) => (
-            <p key={code} className="text-sm text-text-muted">
-              {REGISTER_ISSUE_UNMET_COPY[code] ?? code}
+          {refusalSentences(record.executionUnmetRequirements, REGISTER_ISSUE_UNMET_COPY).map((sentence) => (
+            <p key={sentence} className="text-sm text-text-muted">
+              {sentence}
             </p>
           ))}
           <div className="flex flex-wrap gap-2">
@@ -420,10 +422,7 @@ export function CompanyIssueFlow({ uuid, data }: { uuid: string; data: ReturnTyp
     try {
       await commands.refresh();
     } catch (failure) {
-      setRefreshError(
-        getErrorMessage(failure, 'Current company records could not be refreshed.') ??
-          'The request could not be confirmed.',
-      );
+      setRefreshError(failureSentence(failure, 'Current company records could not be refreshed.'));
     }
   };
   if (!commands.owner) return null;

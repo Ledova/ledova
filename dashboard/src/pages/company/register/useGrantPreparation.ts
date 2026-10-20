@@ -19,6 +19,8 @@ import {
   type RegisterTransferMember,
   personRequest,
   type Person,
+  REGISTER_GRANT_UNMET_COPY,
+  refusalSentence,
 } from '@ledova/shared';
 
 import apiClient from '@services/apiClient';
@@ -276,7 +278,7 @@ export function useGrantPreparation({
       } catch {
         return;
       }
-      setError(apiErrorSentence(failure, FAILED, FAILED));
+      setError(refusalSentence(failure, REGISTER_GRANT_UNMET_COPY) ?? apiErrorSentence(failure, FAILED, FAILED));
       if (status === 400 || status === 404 || status === 409) onRefused();
     } finally {
       pending.current = false;

@@ -2,7 +2,6 @@ import {
   downloadRegisterIssueFile,
   downloadRegisterLinkFile,
   failureStatus,
-  getErrorMessage,
   isRegisterEvidenceReceipt,
   requestShares,
   uploadRegisterEvidence,
@@ -10,10 +9,12 @@ import {
   type RegisterEvidence,
   type RegisterIssue,
   type RegisterLink,
+  failureSentence,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
 import { saveFile } from '@utils/saveFile';
 import { useEffect, useRef, useState } from 'react';
+
 export type Commands = ReturnType<typeof useCompanyIssueInstructions>;
 export type EvidenceKind = 'authority' | 'terms' | 'acceptance';
 export function useIssueRecord({ record, commands }: { record: RegisterIssue; commands: Commands }) {
@@ -29,9 +30,7 @@ export function useIssueRecord({ record, commands }: { record: RegisterIssue; co
       commands.guard();
       saveFile(response.data, `${kind}-${record.uuid}`);
     } catch (failure) {
-      setError(
-        getErrorMessage(failure, 'The retained copy could not be downloaded.') ?? 'The request could not be confirmed.',
-      );
+      setError(failureSentence(failure, 'The retained copy could not be downloaded.'));
     } finally {
       setBusy(false);
     }
@@ -47,10 +46,7 @@ export function useIssueLinkRecord({ record, commands }: { record: RegisterLink;
       commands.guard();
       saveFile(response.data, `authority-${record.uuid}`);
     } catch (failure) {
-      setError(
-        getErrorMessage(failure, 'The retained authority copy could not be downloaded.') ??
-          'The request could not be confirmed.',
-      );
+      setError(failureSentence(failure, 'The retained authority copy could not be downloaded.'));
     }
   };
   return { error, download };
@@ -179,8 +175,7 @@ export function useIssuePreparation({ commands }: { commands: Commands }) {
       }
     } catch (failure) {
       if (failureStatus(failure) === 409) uploads.current = {};
-      if (mounted.current)
-        setError(getErrorMessage(failure, 'The grant could not be prepared.') ?? 'The request could not be confirmed.');
+      if (mounted.current) setError(failureSentence(failure, 'The grant could not be prepared.'));
     } finally {
       if (mounted.current) setBusy(null);
     }
