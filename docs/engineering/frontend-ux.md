@@ -17,6 +17,7 @@ and [mobile](mobile.md); what each page does is in the business section.
 - [Choosing from a bounded list](#choosing-from-a-bounded-list)
 - [How the choice rules are enforced](#how-the-choice-rules-are-enforced)
 - [Lists, search, filters and paging](#lists-search-filters-and-paging)
+- [Forms](#forms)
 - [Validation](#validation)
 
 ## Signed-in page conventions
@@ -376,6 +377,25 @@ your members and a class's register entries. A list bounded by one person, such 
 documents, classification claims or wallets, reads every page. Other lists still read every page
 ([frontend](frontend.md#lists-figures-and-currency)), and the register, ownership and import tables
 keep their own markup until they move.
+
+## Forms
+
+Dates on web forms:
+
+- **Fields.** A date field is `type="date"`, bounded with `min` and `max` wherever the server has a
+  rule, and its label or message names the time zone where it matters.
+- **UTC dates.** Register and company dates are UTC calendar dates: `utcToday`
+  (`packages/shared/src/utils/date.ts`) is their default and their `max`, so a date the server
+  would refuse as in the future can't be picked. A team invitation's deadline and appointment
+  expiry, and a representative authority request's expiry, are the end of the chosen UTC day; the
+  deadline is bounded to the next 30 days. A certificate date is bounded to the two years an
+  accountant's certificate stays current.
+- **Other bases.** An inspection copy's request date is a Sydney date (`sydneyToday`). Offerings and
+  company eligibility expiries are a local date and time (`datetime-local`), labelled so.
+- **Helpers.** `isCalendarDate` checks a typed date, and `addCalendarDays` and `addCalendarYears`
+  move one. An ESLint rule in `dashboard/eslint.config.js` refuses `toISOString()` sliced or split
+  into a date in the dashboard's source. Mobile keeps its own `utcToday`, and its deadlines are a
+  local date and time, until [#1201](https://github.com/Ledova/ledova/issues/1201).
 
 ## Validation
 

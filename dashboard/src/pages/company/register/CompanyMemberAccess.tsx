@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { formatDateTime, type OrderSubmissionOwner, type TokenHoldersResponse } from '@ledova/shared';
+import { formatDateTime, type OrderSubmissionOwner, type TokenHoldersResponse, utcToday } from '@ledova/shared';
 import { Outcome, Section } from '@components/Ledger';
 import { PersonSelect } from '@pages/company/register/shared/PersonPicker';
 import { PageAction } from '@components/Page';
@@ -254,6 +254,7 @@ export function CompanyMemberAccess({
                   <input
                     className={FIELD_CLASS}
                     type="date"
+                    max={utcToday()}
                     value={asAt}
                     disabled={held}
                     onChange={(event) => setAsAt(event.target.value)}

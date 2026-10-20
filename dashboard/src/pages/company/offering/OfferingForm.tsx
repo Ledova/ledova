@@ -178,7 +178,7 @@ export function OfferingForm({
         />
       </Field>
 
-      <Field label="Opens at">
+      <Field label="Opens at (local date and time)">
         <input
           type="datetime-local"
           value={opensAt}
@@ -187,7 +187,7 @@ export function OfferingForm({
         />
       </Field>
 
-      <Field label="Closes at (optional)">
+      <Field label="Closes at (local date and time, optional)">
         <input
           type="datetime-local"
           value={closesAt}

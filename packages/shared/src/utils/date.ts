@@ -1,4 +1,34 @@
 const CALENDAR_DATE = /^\d{4}-\d{2}-\d{2}$/;
+const DAY_MS = 86_400_000;
+
+export function utcToday(at: Date = new Date()): string {
+  return at.toISOString().slice(0, 10);
+}
+
+export function sydneyToday(at: Date = new Date()): string {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Australia/Sydney',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(at);
+}
+
+export function isCalendarDate(value: string): boolean {
+  if (!CALENDAR_DATE.test(value)) return false;
+  const time = Date.parse(`${value}T00:00:00Z`);
+  return !Number.isNaN(time) && new Date(time).toISOString().slice(0, 10) === value;
+}
+
+export function addCalendarDays(day: string, days: number): string {
+  return new Date(Date.parse(`${day}T00:00:00Z`) + days * DAY_MS).toISOString().slice(0, 10);
+}
+
+export function addCalendarYears(day: string, years: number): string {
+  const moment = new Date(`${day}T00:00:00Z`);
+  moment.setUTCFullYear(moment.getUTCFullYear() + years);
+  return moment.toISOString().slice(0, 10);
+}
 
 export function formatDate(
   dateString: string | null | undefined,

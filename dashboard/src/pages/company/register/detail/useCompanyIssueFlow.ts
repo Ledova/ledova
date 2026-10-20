@@ -10,6 +10,8 @@ import {
   type RegisterIssue,
   type RegisterLink,
   failureSentence,
+  utcToday,
+  isCalendarDate,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
 import { saveFile } from '@utils/saveFile';
@@ -60,7 +62,7 @@ export function useIssuePreparation({ commands }: { commands: Commands }) {
   const [reference, setReference] = useState('');
   const [reason, setReason] = useState('');
   const [shares, setShares] = useState('');
-  const [termsOn, setTermsOn] = useState(() => new Date().toISOString().slice(0, 10));
+  const [termsOn, setTermsOn] = useState(utcToday);
   const [terms, setTerms] = useState('');
   const [acceptanceRequired, setAcceptanceRequired] = useState(false);
   const [files, setFiles] = useState<Partial<Record<EvidenceKind, File>>>({});
@@ -102,8 +104,8 @@ export function useIssuePreparation({ commands }: { commands: Commands }) {
     displayedMember === 'new' ||
     !approval ||
     requestShares(shares) === null ||
-    !/^\d{4}-\d{2}-\d{2}$/.test(termsOn) ||
-    termsOn > new Date().toISOString().slice(0, 10) ||
+    !isCalendarDate(termsOn) ||
+    termsOn > utcToday() ||
     !terms.trim() ||
     !files.terms ||
     (acceptanceRequired && !files.acceptance);

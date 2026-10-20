@@ -15,6 +15,7 @@ import {
   type Person,
   REGISTER_AWARD_UNMET_COPY,
   refusalSentence,
+  utcToday,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
@@ -47,7 +48,7 @@ export function useAwardForm({
   const [name, setName] = useState('');
   const [address, setAddress] = useState('');
   const [shares, setShares] = useState('');
-  const [termsOn, setTermsOn] = useState(() => new Date().toISOString().slice(0, 10));
+  const [termsOn, setTermsOn] = useState(utcToday);
   const [terms, setTerms] = useState('');
   const [schedule, setSchedule] = useState('');
   const [file, setFile] = useState<File | null>(null);
@@ -74,7 +75,7 @@ export function useAwardForm({
       throw createUserFriendlyError('Refresh company access and award records before continuing.');
     if (!live.current) throw createUserFriendlyError('This award form is closed. Reopen it before continuing.');
   };
-  const today = new Date().toISOString().slice(0, 10);
+  const today = utcToday();
   const problem =
     member === 'new' && (!name.trim() || !address.trim())
       ? 'Give the new person’s name and residential address.'

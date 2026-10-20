@@ -1,4 +1,16 @@
-export { formatDate, formatTime, formatDateTime, formatSyncAge, parseDateString, formatDateToString } from './date';
+export {
+  addCalendarDays,
+  addCalendarYears,
+  formatDate,
+  formatTime,
+  formatDateTime,
+  formatSyncAge,
+  isCalendarDate,
+  parseDateString,
+  formatDateToString,
+  sydneyToday,
+  utcToday,
+} from './date';
 export {
   formatCurrency,
   type FormatCurrencyOptions,

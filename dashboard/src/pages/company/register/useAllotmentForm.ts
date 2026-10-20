@@ -16,6 +16,7 @@ import {
   type Person,
   REGISTER_ALLOTMENT_UNMET_COPY,
   refusalSentence,
+  utcToday,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
 import { useEffect, useRef, useState } from 'react';
@@ -44,7 +45,7 @@ export function useAllotmentForm({
   onHeldChange: (held: boolean) => void;
   visible?: boolean;
 }) {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = utcToday();
   const [memberId] = useState(() => crypto.randomUUID());
   const [member, setMember] = useState(() =>
     people.some((person) => person.member === initialMember && person.walletless && person.particularsRetained)

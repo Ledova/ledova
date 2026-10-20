@@ -18,6 +18,7 @@ import {
   type RegisterEvidence,
   REGISTER_AWARD_UNMET_COPY,
   refusalSentence,
+  utcToday,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
@@ -85,7 +86,7 @@ export function useAwardAdjustmentForm({
     check();
     if (!preparable.current) throw createUserFriendlyError('Current preparation authority is required.');
   };
-  const today = new Date().toISOString().slice(0, 10);
+  const today = utcToday();
   const problem = vesting
     ? !/^[1-9]\d*$/.test(reversedShares) ||
       !reversibleShares ||

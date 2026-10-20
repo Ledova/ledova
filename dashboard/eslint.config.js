@@ -23,6 +23,13 @@ const NO_THREE_DOTS = [
   { selector: 'JSXText[value=/\\.\\.\\./]', message: MESSAGE },
 ];
 
+const INLINE_CALENDAR_DATES = {
+  selector:
+    "CallExpression[callee.object.callee.property.name='toISOString'][callee.property.name=/^(slice|split|substring)$/]",
+  message:
+    'Use utcToday, sydneyToday, isCalendarDate or addCalendarDays from @ledova/shared (docs/engineering/frontend-ux.md#forms).',
+};
+
 export default tseslint.config(
   { ignores: ['dist'] },
   {
@@ -64,7 +71,7 @@ export default tseslint.config(
     rules: {
       'no-restricted-globals': ['error', ...NODE_GLOBALS_THE_BROWSER_LACKS],
       'no-alert': 'error',
-      'no-restricted-syntax': ['error', ...NO_THREE_DOTS],
+      'no-restricted-syntax': ['error', ...NO_THREE_DOTS, INLINE_CALENDAR_DATES],
       'no-restricted-imports': [
         'error',
         {
@@ -96,6 +103,7 @@ export default tseslint.config(
             'Choose the control by the data: Choices, SelectField or SearchSelect (docs/engineering/frontend-ux.md).',
         },
         ...NO_THREE_DOTS,
+        INLINE_CALENDAR_DATES,
       ],
     },
   },

@@ -2,7 +2,7 @@ import { Choices } from '@components/Choices';
 import { FileIcon, UploadSimpleIcon, XIcon } from '@phosphor-icons/react';
 import { Modal } from '@components/Modal';
 import { PageAction } from '@components/Page';
-import { formatFileSize } from '@ledova/shared';
+import { addCalendarDays, addCalendarYears, formatFileSize, utcToday } from '@ledova/shared';
 import type { InvestorCategory } from '@ledova/shared';
 import { useInvestorClaim } from './useInvestorClaim';
 import { CERTIFIER_BODIES, WHOLESALE_ONLY_NOTICE } from './constants';
@@ -114,9 +114,11 @@ export function ClaimModal({
         {needsCertifier && (
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="block">
-              <span className="text-sm font-medium text-text-primary">Certificate date</span>
+              <span className="text-sm font-medium text-text-primary">Certificate date (UTC)</span>
               <input
                 type="date"
+                min={addCalendarDays(addCalendarYears(utcToday(), -2), 1)}
+                max={utcToday()}
                 value={certificateIssuedAt}
                 onChange={(e) => setCertificateIssuedAt(e.target.value)}
                 className={FIELD_CLASS}
