@@ -1,10 +1,17 @@
 import type { ReactNode } from 'react';
-import type { useUserPreferences } from '@ledova/shared';
-import { Page, PageAction } from '@components/Page';
+import type { To } from 'react-router-dom';
+import { DESTINATIONS, type useUserPreferences } from '@ledova/shared';
+import { Page, PageLink } from '@components/Page';
 import { Loading, Unavailable } from '@pages/company/shared/RegisterStatus';
 
-export function PreparationBack({ onClick, label = 'Back to Register' }: { onClick: () => void; label?: string }) {
-  return <PageAction label={label} onClick={onClick} />;
+export function PreparationBack({
+  to = DESTINATIONS.companyRegister.path,
+  label = 'Back to Register',
+}: {
+  to?: To;
+  label?: string;
+}) {
+  return <PageLink to={to} label={label} />;
 }
 
 export function PreparationPreferences({ preferences }: { preferences: ReturnType<typeof useUserPreferences> }) {

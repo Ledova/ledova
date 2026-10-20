@@ -1,5 +1,4 @@
 import { useState } from 'react';
-
 import { DESTINATIONS, companyActivationOutcome, useCompanyActivation, useCompanySelection } from '@ledova/shared';
 import { Page, PageAction, PageLink } from '@components/Page';
 import { LinkRow, Row, Rows, Section, Timeline, type TimelineEvent } from '@components/Ledger';

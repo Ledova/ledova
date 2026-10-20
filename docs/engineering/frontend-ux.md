@@ -44,12 +44,12 @@ The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components
   nested card. An empty section keeps its real title, one muted sentence ("No activity yet.") and at
   most one action; a state is never a title.
 - `Rows` and `Row`: ruled label and value pairs, figures right-aligned in tabular numerals.
-- `LinkRow`: the one way a page reaches each sub-page or neighbour; the whole row is the link, named
+- `LinkRow`: how a list of sub-pages or neighbours links to each; the whole row is the link, named
   after its destination, with optional detail lines and an aside. A title row never repeats a
   sidebar destination; an underlined link belongs to a sentence or opens an external resource.
-- `PageAction` (`Action` on mobile): a content-width button placed with what it acts on: the title
-  row for the page (including the way back to the parent), a section for that section, a row for
-  that row's record alone. Nothing is selected before acting, and no toolbar waits under a list.
+- `PageAction` and `PageLink` (`Action` on mobile): a content-width action placed with what it acts
+  on: the title row for the page (including the way back to the parent), a section for that section,
+  a row for that row's record alone. Nothing is selected before acting, and no toolbar waits under a list.
 - `Disclosure`: a button with `aria-expanded` (expanded or collapsed on mobile) and a leading caret
   that opens its detail in place under its row, held only while open; other open rows stay open
   (`useOpenRows` from `@ledova/shared`). Activity's filter and Wallets' sort (once a chain holds two
@@ -103,12 +103,13 @@ looks plain, primary (the one main action of its card or form) or pressed, and c
   it at once: the open Register task, the shown eligibility request and Wallets' sort.
 
 `busy` and `busyLabel` disable an action and name its work, such as "Preparing allotment…" or
-"Saving…". Every page form's submit button uses them, as do every page action that already showed a
-busy label and five more: the offering form, an application's Withdraw and Submit for review,
-creating a member invitation, and preparing a non-paid grant or its wallet link. Other page actions
-that start a request keep their label while it runs. Icon buttons, the password visibility toggle and
-Trading's lists keep their own controls, and dialogs end with `ModalActions` in the same order as
-`FormActions`. Mobile's `Action` has no busy or pressed form yet.
+"Saving…". Every page form's submit button uses them, as does every page action that already showed a
+busy label, and six more: the offering form, an application's Withdraw and Submit for review,
+creating a member invitation, preparing a non-paid grant or its wallet link, and attaching a payslip
+to a claim. Other page actions that start a request keep their label while it runs. Icon buttons,
+register setup's Import placeholder, the payslip upload area and Trading keep their own controls,
+and dialog footers use the same order as `FormActions`. Mobile's `Action` has no busy or pressed
+form yet.
 
 ## Choosing a person
 

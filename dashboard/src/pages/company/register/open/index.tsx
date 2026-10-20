@@ -2,10 +2,9 @@ import { PreparationBack, PreparationNotice, PreparationShell } from '@pages/com
 import { useRegisterPreparationOwner } from '@pages/company/register/shared/useRegisterPreparationOwner';
 import { useOpeningHolders } from './useOpeningHolders';
 import { useMemo, type ReactNode } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 
 import {
-  DESTINATIONS,
   REGISTER_OPENING_COPY,
   apiErrorSentence,
   appointmentForRegisterStep,
@@ -40,9 +39,8 @@ function HoldersFailure({ error, retry, busy }: { error: unknown; retry: () => v
 
 export default function CompanyRegisterOpeningPage() {
   const { uuid = '' } = useParams();
-  const navigate = useNavigate();
   const { owner, boundary, preferences } = useRegisterPreparationOwner();
-  const back = <PreparationBack onClick={() => navigate(DESTINATIONS.companyRegister.path)} />;
+  const back = <PreparationBack />;
   if (owner && !preferences.isError)
     return (
       <OwnOpening

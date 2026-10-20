@@ -2,7 +2,7 @@ import { PreparationBack, PreparationNotice, PreparationShell } from '@pages/com
 import { useRegisterPreparationOwner } from '@pages/company/register/shared/useRegisterPreparationOwner';
 import { useParticularsRegisters } from './useParticularsRegisters';
 import { useMemo, type ReactNode } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 
 import {
   DESTINATIONS,
@@ -47,13 +47,9 @@ function preparingCompanies(classes: CompanyShareTokenListItem[], appointments: 
 
 export default function CompanyRegisterParticularsPage() {
   const { member = '' } = useParams();
-  const navigate = useNavigate();
   const { owner, boundary, preferences } = useRegisterPreparationOwner();
   const back = (
-    <PreparationBack
-      label="Back to Shareholders"
-      onClick={() => navigate(`${DESTINATIONS.companyRegister.path}#shareholders`)}
-    />
+    <PreparationBack label="Back to Shareholders" to={`${DESTINATIONS.companyRegister.path}#shareholders`} />
   );
   if (owner && !preferences.isError)
     return (
@@ -79,7 +75,6 @@ function OwnParticulars({
   currentOwner: () => OrderSubmissionOwner | null;
   back: ReactNode;
 }) {
-  const navigate = useNavigate();
   const guard = useMemo(() => ownerGuard(owner, currentOwner), [owner, currentOwner]);
   const classes = useRegisterClasses(owner, guard);
   const appointments = useOwnAppointments(owner, guard);
@@ -136,10 +131,7 @@ function OwnParticulars({
       </>
     );
   const back = found ? (
-    <PreparationBack
-      label="Back to shareholder"
-      onClick={() => navigate(shareholderPath(member, found.company.uuid))}
-    />
+    <PreparationBack label="Back to shareholder" to={shareholderPath(member, found.company.uuid)} />
   ) : (
     list
   );

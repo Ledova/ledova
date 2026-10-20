@@ -2,14 +2,9 @@ import { PreparationBack, PreparationNotice, PreparationShell } from '@pages/com
 import { useRegisterPreparationOwner } from '@pages/company/register/shared/useRegisterPreparationOwner';
 import { useLinkRegisters } from './useLinkRegisters';
 import { useMemo, type ReactNode } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 
-import {
-  DESTINATIONS,
-  REGISTER_LINK_COPY,
-  appointmentForRegisterStep,
-  type OrderSubmissionOwner,
-} from '@ledova/shared';
+import { REGISTER_LINK_COPY, appointmentForRegisterStep, type OrderSubmissionOwner } from '@ledova/shared';
 import { Section } from '@components/Ledger';
 import { Page } from '@components/Page';
 import { Loading, Unavailable } from '@pages/company/shared/RegisterStatus';
@@ -26,9 +21,8 @@ const LEDE =
 
 export default function CompanyRegisterLinksPage() {
   const { company = '' } = useParams();
-  const navigate = useNavigate();
   const { owner, boundary, preferences } = useRegisterPreparationOwner();
-  const back = <PreparationBack onClick={() => navigate(DESTINATIONS.companyRegister.path)} />;
+  const back = <PreparationBack />;
   if (owner && !preferences.isError)
     return (
       <OwnLinks

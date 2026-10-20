@@ -2,10 +2,9 @@ import { PreparationBack, PreparationNotice, PreparationShell } from '@pages/com
 import { useRegisterPreparationOwner } from '@pages/company/register/shared/useRegisterPreparationOwner';
 import { useTransferRegister } from './useTransferRegister';
 import { useMemo, type ReactNode } from 'react';
-import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useParams } from 'react-router-dom';
 
 import {
-  DESTINATIONS,
   REGISTER_TRANSFER_COPY as COPY,
   appointmentForRegisterStep,
   type OrderSubmissionOwner,
@@ -25,9 +24,8 @@ const LEDE =
 
 export default function CompanyRegisterTransferPage() {
   const { uuid = '' } = useParams();
-  const navigate = useNavigate();
   const { owner, boundary, preferences } = useRegisterPreparationOwner();
-  const back = <PreparationBack onClick={() => navigate(DESTINATIONS.companyRegister.path)} />;
+  const back = <PreparationBack />;
   if (owner && !preferences.isError)
     return (
       <OwnTransfer

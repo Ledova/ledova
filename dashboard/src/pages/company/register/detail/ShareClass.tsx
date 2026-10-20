@@ -1,7 +1,6 @@
 import { requestTone, SHARE_CLASS_STATUS_TONES } from '@pages/company/shared/statusTones';
 import { CompanyPaidIssueFlow } from './CompanyPaidIssueFlow';
 import { useState, type ReactNode } from 'react';
-
 import { useQueryClient } from '@tanstack/react-query';
 import {
   DESTINATIONS,
