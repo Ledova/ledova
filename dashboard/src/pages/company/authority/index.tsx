@@ -1,5 +1,5 @@
 import { CompanyPicker } from '@components/CompanyPicker';
-import { Section } from '@components/Ledger';
+import { Outcome, Section } from '@components/Ledger';
 import { Page, PageAction } from '@components/Page';
 import { useSubmissionOwner, useUserPreferences, type OrderSubmissionOwner, apiErrorSentence } from '@ledova/shared';
 import { AuthorityRequestForm } from './AuthorityRequestForm';
@@ -87,10 +87,8 @@ function OwnAuthorityRequests({
           />
         )}
         {recorded ? (
-          <div role="status" className="space-y-2 text-sm text-text-primary">
-            <p>
-              Request recorded: {recorded.uuid}. {recorded.verificationMessage}
-            </p>
+          <div className="space-y-2">
+            <Outcome>Request recorded. {recorded.verificationMessage}</Outcome>
             <PageAction label="Start another request" onClick={() => setRecorded(null)} />
           </div>
         ) : (

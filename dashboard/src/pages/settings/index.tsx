@@ -3,7 +3,7 @@ import { DESTINATIONS, apiErrorSentence } from '@ledova/shared';
 import { useSettings } from './useSettings';
 import { Modal } from '@components/Modal';
 import { Page, PageAction } from '@components/Page';
-import { LinkRow, Section, SwitchRow } from '@components/Ledger';
+import { LinkRow, Outcome, Section, SwitchRow } from '@components/Ledger';
 import { FIELD_CLASS } from '@components/fieldClass';
 import { setTheme } from '@hooks/useTheme';
 import { Verification } from './Verification';
@@ -116,11 +116,7 @@ function SettingsPage() {
             }}
           />
         </div>
-        {passwordChanged && (
-          <p role="status" className="text-sm text-brand-light">
-            Your password was changed.
-          </p>
-        )}
+        {passwordChanged && <Outcome>Your password was changed.</Outcome>}
       </Section>
       <Section title="Appearance">
         <SwitchRow

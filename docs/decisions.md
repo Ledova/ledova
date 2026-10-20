@@ -47,7 +47,7 @@ stay here as history and are marked where they appear.
 | [Dashboard, Settings and Register for a new company](#dashboard-settings-and-register-for-a-new-company)        | 19 October 2026                                | Current; #1155 (web), #1157 (mobile)                                                                            |
 | [Share classes, shareholders and employee awards](#share-classes-shareholders-and-employee-awards)              | 20 October 2026                                | Shareholders (#1166), person picker (#1167) and issuing from Register (#1168) on the web; #1169–#1170 planned   |
 | [Paper and Dark themes](#paper-and-dark-themes)                                                                 | 14 October 2026                                | Current; #1040                                                                                                  |
-| [Frontend UX standards](#frontend-ux-standards)                                                                 | 20 to 21 October 2026                          | Web selection (#1176); mobile people (#1177, part 1); web actions (#1178) in progress; #1179–#1183 planned      |
+| [Frontend UX standards](#frontend-ux-standards)                                                                 | 20 to 21 October 2026                          | Web selection (#1176); #1178 in progress; mobile people (#1196), rest in #1201; #1179–#1183 planned             |
 | [The account-data export](#the-account-data-export)                                                             | 23 September 2026                              | Current                                                                                                         |
 | [Tenancy, sessions and deployment](#tenancy-sessions-and-deployment)                                            | 3 October 2026                                 | Current                                                                                                         |
 | [Contracts compiler and toolchain](#contracts-compiler-and-toolchain)                                           | Undated                                        | Current                                                                                                         |
@@ -1338,6 +1338,11 @@ proposal are in #1174, and the owner approved it as recommended:
   owner's Chrome, and the rest of the mobile work waits for the owner's go-ahead. Asked about the
   first mobile person-choice PR (#1196), already approved after its walkthrough, the owner chose to
   merge it.
+- **One mobile issue (21 October 2026):** "Also everything related to mobile we should put on a
+  separated git issue so we can continue to addressing all the issues and close it as we progress
+  and what is pertinent to mobile we will add to this one single git issue". So all mobile work is
+  in #1201, #1170 and #1177 closed as duplicates of it, and each step's issue closes when its web
+  half lands.
 
 ## The signed-in app
 

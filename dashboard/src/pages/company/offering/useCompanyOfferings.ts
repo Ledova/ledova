@@ -17,6 +17,7 @@ export function useCompanyOfferings({ companyRead }: { companyRead: ReturnType<t
   const [editor, setEditor] = useState<{ company: string; uuid?: string } | null>(null);
   const [documentsEditor, setDocumentsEditor] = useState<{ company: string; uuid: string } | null>(null);
   const [actionError, setActionError] = useState<{ listing: boolean; message: string } | null>(null);
+  const [notice, setNotice] = useState('');
   const listingPendingRef = useRef(false);
   const actionPending = useRef(false);
   const mounted = useRef(true);
@@ -95,11 +96,19 @@ export function useCompanyOfferings({ companyRead }: { companyRead: ReturnType<t
     if (action === 'remove' && !offering.canBeDeleted) return;
     if (action === 'withdraw' && !OFFERING_WITHDRAWABLE_STATUSES.includes(offering.status)) return;
     setActionError(null);
+    setNotice('');
     actionPending.current = true;
     try {
       ownerGuard();
       if (action === 'withdraw') await actions.withdraw.mutateAsync({ uuid, reason: 'Withdrawn by the issuer' });
       else await actions[action].mutateAsync(uuid);
+      setNotice(
+        action === 'submit'
+          ? `The ${offering.tokenName} offering was submitted for review.`
+          : action === 'withdraw'
+            ? `The ${offering.tokenName} offering was withdrawn.`
+            : `The ${offering.tokenName} draft offering was deleted.`,
+      );
     } catch (error) {
       setActionError({
         listing: false,
@@ -122,6 +131,7 @@ export function useCompanyOfferings({ companyRead }: { companyRead: ReturnType<t
     listing,
     ready,
     run,
+    notice,
     pending: actions.withdraw.isPending ? 'withdraw' : actions.remove.isPending ? 'remove' : null,
   };
 }

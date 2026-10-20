@@ -62,7 +62,7 @@ export function EmailConfirmationForm({
                   <CheckCircleIcon size={ICON_MD} className="text-success-light" />
                 </div>
                 <div className="ml-3">
-                  <p className="text-sm text-success-light" role="alert">
+                  <p className="text-sm text-success-light" role="status">
                     {successMessage}
                   </p>
                 </div>

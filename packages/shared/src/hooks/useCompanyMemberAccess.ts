@@ -251,7 +251,7 @@ export function useCompanyMemberAccess(
         setCode(receivedCode);
         setNotice(
           receivedCode
-            ? 'Copy the one-time invitation code now and share it privately with the intended recipient.'
+            ? 'Invitation recorded. Copy the one-time code now and share it privately with the intended recipient.'
             : 'The invitation is recorded. Its code is unavailable on recovery; use the original code or issue a new invitation if it was lost.',
         );
       } else if (command.kind === 'revoke') {
@@ -311,7 +311,7 @@ export function useCompanyMemberAccess(
           throw createUserFriendlyError('The company instruction does not match the member request.');
         if (particularsQueryKey) await client.invalidateQueries({ queryKey: particularsQueryKey });
         setNotice(
-          `Company particulars instruction ${data.uuid} recorded. Approval and application remain separate in Register particulars changes.`,
+          'Company particulars instruction recorded. Approval and application remain separate in Register particulars changes.',
         );
       }
       setRetry(null);

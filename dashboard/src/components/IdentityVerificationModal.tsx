@@ -12,7 +12,7 @@ interface IdentityVerificationModalProps {
   onClose: () => void;
 }
 
-function Outcome({
+function VerificationResult({
   icon,
   title,
   tone,
@@ -100,17 +100,17 @@ export function IdentityVerificationModal({ isOpen, onClose }: IdentityVerificat
         )}
 
         {isVerified && (
-          <Outcome
+          <VerificationResult
             icon={<CheckCircleIcon size={ICON_MD} weight="fill" />}
             title="Already Verified"
             tone="text-success-light"
           >
             <p className="text-sm text-text-secondary">Your identity has been verified successfully.</p>
-          </Outcome>
+          </VerificationResult>
         )}
 
         {showPendingBanner && (
-          <Outcome
+          <VerificationResult
             icon={<CheckCircleIcon size={ICON_MD} weight="fill" />}
             title="Verification Submitted"
             tone="text-brand-light"
@@ -118,35 +118,47 @@ export function IdentityVerificationModal({ isOpen, onClose }: IdentityVerificat
             <p className="text-sm text-text-secondary">
               Your documents have been submitted. We&apos;ll review them shortly and notify you of the result.
             </p>
-          </Outcome>
+          </VerificationResult>
         )}
 
         {showOnHoldBanner && (
-          <Outcome icon={<ClockCountdownIcon size={ICON_MD} />} title="Verification On Hold" tone="text-warning-light">
+          <VerificationResult
+            icon={<ClockCountdownIcon size={ICON_MD} />}
+            title="Verification On Hold"
+            tone="text-warning-light"
+          >
             <p className="text-sm text-text-secondary">
               Your verification is currently on hold. We may need additional information. Please check back later or
               contact support.
             </p>
-          </Outcome>
+          </VerificationResult>
         )}
 
         {showRejectedBanner && (
-          <Outcome icon={<WarningIcon size={ICON_MD} />} title="Verification Rejected" tone="text-error-light">
+          <VerificationResult
+            icon={<WarningIcon size={ICON_MD} />}
+            title="Verification Rejected"
+            tone="text-error-light"
+          >
             <p className="text-sm text-text-secondary">
               Unfortunately, your verification was not approved. You may retry with different documents or contact
               support for assistance.
             </p>
             <Reasons labels={status?.rejectionLabels} />
-          </Outcome>
+          </VerificationResult>
         )}
 
         {showRetryBanner && (
-          <Outcome icon={<ArrowCounterClockwiseIcon size={ICON_MD} />} title="Retry Needed" tone="text-warning-light">
+          <VerificationResult
+            icon={<ArrowCounterClockwiseIcon size={ICON_MD} />}
+            title="Retry Needed"
+            tone="text-warning-light"
+          >
             <p className="text-sm text-text-secondary">
               Your previous verification attempt needs to be retried. Please try again with clearer documents.
             </p>
             <Reasons labels={status?.rejectionLabels} />
-          </Outcome>
+          </VerificationResult>
         )}
 
         {verificationError && (

@@ -32,7 +32,7 @@ export function useTeamInvitationForm({
   const [expiry, setExpiry] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
-  const [recorded, setRecorded] = useState<{ uuid: string; code: string | null } | null>(null);
+  const [recorded, setRecorded] = useState<{ code: string | null } | null>(null);
   const keyRef = useRef<string | null>(null);
   const pending = useRef(false);
   const mounted = useRef(true);
@@ -97,7 +97,7 @@ export function useTeamInvitationForm({
         )
       )
         throw createUserFriendlyError('The invitation outcome could not be confirmed. Retry with the same details.');
-      setRecorded({ uuid: data.uuid, code: data.code });
+      setRecorded({ code: data.code });
       onRecorded();
     } catch (failure) {
       if (mounted.current) {

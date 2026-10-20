@@ -51,7 +51,7 @@ export function useAcceptInvitationForm({
         );
       setCode('');
       setAccepted(false);
-      setReceipt(`Appointment recorded for ${data.companyName}: ${data.uuid}.`);
+      setReceipt(`Appointment recorded for ${data.companyName}.`);
       onRecorded();
     } catch (failure) {
       if (mounted.current) {

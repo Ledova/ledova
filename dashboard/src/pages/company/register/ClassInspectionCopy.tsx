@@ -1,5 +1,5 @@
 import { type TokenHoldersResponse } from '@ledova/shared';
-import { Row, Rows } from '@components/Ledger';
+import { Outcome, Row, Rows } from '@components/Ledger';
 import { PageAction } from '@components/Page';
 import { FIELD_CLASS } from '@components/fieldClass';
 import { useClassInspectionCopy } from './useClassInspectionCopy';
@@ -108,11 +108,7 @@ function InspectionForm({
           {error}
         </p>
       )}
-      {downloaded && (
-        <p role="status" className="text-sm text-text-muted">
-          The inspection copy was downloaded.
-        </p>
-      )}
+      {downloaded && <Outcome>The inspection copy was downloaded.</Outcome>}
     </div>
   );
 }
