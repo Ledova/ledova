@@ -51,6 +51,7 @@ it('preserves original preparation and issue recovery through refresh, keeps app
   let releaseFile: (() => void) | undefined;
   let incompleteImpact = false;
   let staleApproval = true;
+  let slowRegister = false;
   const preference = {
     ...REGISTER,
     token: { ...REGISTER.token, uuid: 'preference', name: 'Preference shares', symbol: 'PRF' },
@@ -79,7 +80,8 @@ it('preserves original preparation and issue recovery through refresh, keeps app
         },
       };
     }
-    if (url === URLS.HOLDERS(REGISTER.token.uuid))
+    if (url === URLS.HOLDERS(REGISTER.token.uuid)) {
+      if (slowRegister) await new Promise((resolve) => setTimeout(resolve, 40));
       return {
         data: rows[0]?.registerEntry
           ? {
@@ -103,6 +105,7 @@ it('preserves original preparation and issue recovery through refresh, keeps app
             }
           : REGISTER,
       };
+    }
     if (url === URLS.HOLDERS(preference.token.uuid)) return { data: preference };
     if (url === URLS.REGISTER_LINK_WAITING_WALLETS) return { data: { wallets: [] } };
     if (url === '/api/v1/company-authority/appointments/') return { data: { results: appointments, next: null } };
@@ -179,8 +182,8 @@ it('preserves original preparation and issue recovery through refresh, keeps app
   const transferTask = screen.getByRole('button', { name: 'Transfer shares' });
   const historyTask = screen.getByRole('button', { name: 'History' });
   fireEvent.click(investorTask);
-  const taskClass = (await screen.findByLabelText('Task share class')) as HTMLSelectElement;
-  fireEvent.change(taskClass, { target: { value: REGISTER.token.uuid } });
+  const taskClass = () => screen.getByLabelText('Task share class') as HTMLSelectElement;
+  fireEvent.change(await screen.findByLabelText('Task share class'), { target: { value: REGISTER.token.uuid } });
   const allotments = within((await screen.findByRole('group', { name: 'What kind of issue?' })).parentElement!);
   const investorIssue = await allotments.findByRole('radio', { name: 'Investor issue' });
   await waitFor(() => expect(investorIssue.matches(':disabled')).toBe(false));
@@ -228,7 +231,7 @@ it('preserves original preparation and issue recovery through refresh, keeps app
   expect(rows[0].registerEntry).toBeNull();
   expect(rows[0].companyEventOn).toBe(ALLOTMENT_REQUEST.companyEventOn);
   expect(allotments.getByLabelText(COPY.CONSIDERATION).matches(':disabled')).toBe(true);
-  expect(taskClass.disabled).toBe(true);
+  expect(taskClass().disabled).toBe(true);
   expect(investorTask.matches(':disabled')).toBe(true);
   expect(transferTask.matches(':disabled')).toBe(true);
   expect(historyTask.matches(':disabled')).toBe(true);
@@ -246,7 +249,7 @@ it('preserves original preparation and issue recovery through refresh, keeps app
   expect(api.post.mock.calls.filter(([url]) => url === URLS.REGISTER_ALLOTMENTS)).toHaveLength(1);
   rows = [preparedAllotment];
   fireEvent.click(historyTask);
-  expect(taskClass.value).toBe(REGISTER.token.uuid);
+  expect(taskClass().value).toBe(REGISTER.token.uuid);
   expect(allotments.getByLabelText(COPY.CONSIDERATION)).toBeTruthy();
   failedRead = true;
   await refreshAllotments();
@@ -255,8 +258,10 @@ it('preserves original preparation and issue recovery through refresh, keeps app
   failedRead = false;
   fireEvent.click(allotments.getByRole('button', { name: 'Retry allotments' }));
   await allotments.findByLabelText('Name');
+  slowRegister = true;
   fireEvent.click(allotments.getByRole('button', { name: COPY.SUBMIT }));
   await waitFor(() => expect(allotments.queryByRole('button', { name: 'Close issue form' })).toBeNull());
+  slowRegister = false;
   expect(api.post.mock.calls.filter(([url]) => url === URLS.REGISTER_ALLOTMENTS)).toHaveLength(1);
   expect(api.post.mock.calls.filter(([url]) => url === URLS.REGISTER_EVIDENCE)).toHaveLength(3);
   expect(allotments.queryByRole('button', { name: /^Record issue [(]allotment/ })).toBeNull();
@@ -317,11 +322,11 @@ it('preserves original preparation and issue recovery through refresh, keeps app
     }
   }
   await allotments.findByRole('button', { name: /^Recover record issue receipt/ });
-  expect(taskClass.disabled).toBe(true);
+  expect(taskClass().disabled).toBe(true);
   expect(transferTask.matches(':disabled')).toBe(true);
   expect(historyTask.matches(':disabled')).toBe(true);
   fireEvent.click(transferTask);
-  expect(taskClass.value).toBe(REGISTER.token.uuid);
+  expect(taskClass().value).toBe(REGISTER.token.uuid);
   expect(allotments.getByRole('button', { name: /^Recover record issue receipt/ })).toBeTruthy();
   pauseRead = true;
   failedRead = true;
@@ -414,15 +419,15 @@ it('preserves original preparation and issue recovery through refresh, keeps app
   fireEvent.click(close);
   expect(rows[0].registerEntry).toBe('entry-a');
   expect(rows[0].decisions).toHaveLength(2);
-  await waitFor(() => expect(taskClass.disabled).toBe(false));
+  await waitFor(() => expect(taskClass().disabled).toBe(false));
   expect(historyTask.matches(':disabled')).toBe(false);
   fireEvent.click(historyTask);
-  fireEvent.change(taskClass, { target: { value: preference.token.uuid } });
+  fireEvent.change(taskClass(), { target: { value: preference.token.uuid } });
   expect(
     await screen.findByRole('heading', { name: `${preference.token.name} · ${preference.token.symbol}` }),
   ).toBeTruthy();
   expect(screen.queryByText('entry-a')).toBeNull();
-  fireEvent.change(taskClass, { target: { value: REGISTER.token.uuid } });
+  fireEvent.change(taskClass(), { target: { value: REGISTER.token.uuid } });
   fireEvent.click(investorTask);
   await allotments.findByText('Shares issued');
   expect(rows[0].registerEntry).toBe('entry-a');
