@@ -129,6 +129,8 @@ export function ImportRecord({
             {(proposal.registerEvidence || proposal.sourceDocument) && (
               <PageAction
                 label={REGISTER_IMPORT_COPY.DOWNLOAD_REGISTER}
+                busy={download.isPending && download.variables === 'register'}
+                busyLabel="Downloading…"
                 disabled={download.isPending}
                 onClick={() => download.mutate('register')}
               />
@@ -136,6 +138,8 @@ export function ImportRecord({
             {proposal.asicEvidence !== null && (
               <PageAction
                 label={REGISTER_IMPORT_COPY.DOWNLOAD_ASIC}
+                busy={download.isPending && download.variables === 'asic'}
+                busyLabel="Downloading…"
                 disabled={download.isPending}
                 onClick={() => download.mutate('asic')}
               />

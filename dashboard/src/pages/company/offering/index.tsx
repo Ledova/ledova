@@ -25,6 +25,7 @@ import { useCompanyOfferings } from './useCompanyOfferings';
 function OfferingRecord({
   row,
   busy,
+  submitting,
   run,
   confirm,
   edit,
@@ -32,6 +33,7 @@ function OfferingRecord({
 }: {
   row: OfferingListItem;
   busy: boolean;
+  submitting: boolean;
   run: (action: 'submit' | 'withdraw' | 'remove', uuid: string) => void;
   confirm: (action: 'withdraw' | 'remove') => void;
   edit: () => void;
@@ -79,6 +81,8 @@ function OfferingRecord({
               primary
               label={row.status === 'rejected' ? 'Submit again' : 'Submit for review'}
               disabled={busy}
+              busy={submitting}
+              busyLabel="Submitting…"
               onClick={() => run('submit', row.uuid)}
             />
             <PageAction label="Edit" disabled={busy} onClick={edit} />
@@ -118,6 +122,7 @@ function CompanyOfferings({ companyRead }: { companyRead: ReturnType<typeof useC
     ready,
     run,
     notice,
+    submitting,
     pending,
   } = useCompanyOfferings({ companyRead });
   const [confirming, setConfirming] = useState<{ action: 'withdraw' | 'remove'; row: OfferingListItem } | null>(null);
@@ -166,6 +171,7 @@ function CompanyOfferings({ companyRead }: { companyRead: ReturnType<typeof useC
                           key={row.uuid}
                           row={row}
                           busy={!ready}
+                          submitting={submitting === row.uuid}
                           run={(action, uuid) => void run(action, uuid)}
                           confirm={(action) => {
                             if (ready) setConfirming({ action, row });

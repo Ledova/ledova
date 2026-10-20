@@ -70,7 +70,7 @@ function SnapshotRows({ snapshot }: { snapshot: RegisterIssueSnapshot }) {
 }
 
 function IssueRecord({ record, commands }: { record: RegisterIssue; commands: Commands }) {
-  const { error, busy, download } = useIssueRecord({ record, commands });
+  const { error, downloading, download } = useIssueRecord({ record, commands });
   return (
     <div className="space-y-3 border-t border-border py-4">
       {commands.visible && (
@@ -118,7 +118,9 @@ function IssueRecord({ record, commands }: { record: RegisterIssue; commands: Co
                   key={kind}
                   label={`Download ${kind} document`}
                   context={`grant ${record.uuid}`}
-                  disabled={busy}
+                  disabled={!!downloading}
+                  busy={downloading === kind}
+                  busyLabel="Downloading…"
                   onClick={() => void download(kind)}
                 />
               ),
@@ -171,7 +173,7 @@ function IssueRecord({ record, commands }: { record: RegisterIssue; commands: Co
 }
 
 function LinkRecord({ record, commands }: { record: RegisterLink; commands: Commands }) {
-  const { error, download } = useIssueLinkRecord({ record, commands });
+  const { error, busy, download } = useIssueLinkRecord({ record, commands });
   return (
     <div className="space-y-3 border-t border-border py-4">
       {commands.visible && (
@@ -189,7 +191,13 @@ function LinkRecord({ record, commands }: { record: RegisterLink; commands: Comm
             <Row label="Link preparation">{record.uuid}</Row>
           </Rows>
           <DecisionTrail proposal={record} labels={REGISTER_LINK_COPY.DECISIONS} />
-          <PageAction label="Download link authority" context={`link ${record.uuid}`} onClick={() => void download()} />
+          <PageAction
+            label="Download link authority"
+            context={`link ${record.uuid}`}
+            busy={busy}
+            busyLabel="Downloading…"
+            onClick={() => void download()}
+          />
           {error && <p role="alert">{error}</p>}
         </>
       )}

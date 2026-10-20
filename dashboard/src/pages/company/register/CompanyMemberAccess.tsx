@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useRunningAction } from '@hooks/useRunningAction';
 import { formatDateTime, type OrderSubmissionOwner, type TokenHoldersResponse, utcToday } from '@ledova/shared';
 import { Outcome, Section } from '@components/Ledger';
 import { PersonSelect } from '@pages/company/register/shared/PersonPicker';
@@ -51,7 +52,7 @@ export function CompanyMemberAccess({
     prepare,
   } = useCompanyMemberRequests({ company, owner, guard, registers, sourceReady, inviteMember, onHeldChange });
   const candidateOf = new Map(candidates.map((candidate) => [candidate.uuid, candidate]));
-  const [inviting, setInviting] = useState(false);
+  const { running, track } = useRunningAction();
   const [revoking, setRevoking] = useState<{ uuid: string; name: string } | null>(null);
   const invite = useRef<HTMLHeadingElement>(null);
   const shown = !!inviteMember && member?.uuid === inviteMember;
@@ -143,13 +144,11 @@ export function CompanyMemberAccess({
           <PageAction
             label="Create member invitation"
             primary
-            busy={inviting}
+            busy={running === 'invite'}
             busyLabel="Creating invitation…"
             disabled={held || !recipientsReady || !member || !email.trim()}
             onClick={() => {
-              if (!member) return;
-              setInviting(true);
-              void Promise.resolve(access.invite(member.uuid, email.trim())).finally(() => setInviting(false));
+              if (member) track('invite', access.invite(member.uuid, email.trim()));
             }}
           />
           {access.code && (
@@ -279,8 +278,10 @@ export function CompanyMemberAccess({
                 <PageAction
                   label="Record company particulars instruction"
                   primary
+                  busy={running === 'particulars'}
+                  busyLabel="Recording instruction…"
                   disabled={held || !file || !reason.trim() || !asAt}
-                  onClick={() => void prepare()}
+                  onClick={() => track('particulars', prepare())}
                 />
               </div>
             )}
@@ -309,8 +310,10 @@ export function CompanyMemberAccess({
               <PageAction
                 label="Confirm recipient certificate fulfilment"
                 primary
+                busy={running === 'fulfil'}
+                busyLabel="Confirming fulfilment…"
                 disabled={held}
-                onClick={() => void access.fulfilCertificate()}
+                onClick={() => track('fulfil', access.fulfilCertificate())}
               />
               <PageAction label="Edit recipient certificate request" disabled={held} onClick={access.editCertificate} />
             </div>
@@ -335,8 +338,12 @@ export function CompanyMemberAccess({
               {item.status === 'requested' && (
                 <PageAction
                   label={`Preview certificate for ${memberName(item.member)}`}
+                  busy={running === `preview:${item.uuid}`}
+                  busyLabel="Previewing…"
                   disabled={held || !!access.certificateTarget || !certificateInstruction.trim()}
-                  onClick={() => void access.previewCertificate(item.uuid, certificateInstruction.trim())}
+                  onClick={() =>
+                    track(`preview:${item.uuid}`, access.previewCertificate(item.uuid, certificateInstruction.trim()))
+                  }
                 />
               )}
             </div>

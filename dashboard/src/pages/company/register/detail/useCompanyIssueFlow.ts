@@ -21,10 +21,10 @@ export type Commands = ReturnType<typeof useCompanyIssueInstructions>;
 export type EvidenceKind = 'authority' | 'terms' | 'acceptance';
 export function useIssueRecord({ record, commands }: { record: RegisterIssue; commands: Commands }) {
   const [error, setError] = useState('');
-  const [busy, setBusy] = useState(false);
+  const [downloading, setDownloading] = useState<EvidenceKind | null>(null);
   const download = async (kind: EvidenceKind) => {
-    if (busy) return;
-    setBusy(true);
+    if (downloading) return;
+    setDownloading(kind);
     setError('');
     try {
       commands.guard();
@@ -34,14 +34,18 @@ export function useIssueRecord({ record, commands }: { record: RegisterIssue; co
     } catch (failure) {
       setError(failureSentence(failure, 'The retained copy could not be downloaded.'));
     } finally {
-      setBusy(false);
+      setDownloading(null);
     }
   };
-  return { error, busy, download };
+  return { error, downloading, download };
 }
 export function useIssueLinkRecord({ record, commands }: { record: RegisterLink; commands: Commands }) {
   const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
   const download = async () => {
+    if (busy) return;
+    setBusy(true);
+    setError('');
     try {
       commands.guard();
       const response = await downloadRegisterLinkFile(apiClient, record.uuid, commands.config(commands.guard));
@@ -49,9 +53,11 @@ export function useIssueLinkRecord({ record, commands }: { record: RegisterLink;
       saveFile(response.data, `authority-${record.uuid}`);
     } catch (failure) {
       setError(failureSentence(failure, 'The retained authority copy could not be downloaded.'));
+    } finally {
+      setBusy(false);
     }
   };
-  return { error, download };
+  return { error, busy, download };
 }
 export function useIssuePreparation({ commands }: { commands: Commands }) {
   const [nomination, setNomination] = useState('');

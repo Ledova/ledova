@@ -97,7 +97,8 @@ function PauseRecord({ record, commands }: { record: RegisterPauseChange; comman
           <PageAction
             label="Download pause authority"
             context={`pause ${record.uuid}`}
-            disabled={busy}
+            busy={busy}
+            busyLabel="Downloading…"
             onClick={() => void download()}
           />
           {error && <p role="alert">{error}</p>}
