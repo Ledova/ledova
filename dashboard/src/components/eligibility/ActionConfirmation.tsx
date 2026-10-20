@@ -113,7 +113,8 @@ export function ActionConfirmation({
           label={label}
           busy={busy}
           busyLabel="Recording…"
-          primary
+          primary={action.kind === 'request' || action.kind === 'decision'}
+          destructive={action.kind === 'withdrawal' || action.kind === 'revocation'}
           disabled={!can}
           onClick={() =>
             void confirm(action, {

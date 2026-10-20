@@ -67,7 +67,6 @@ export function useSettings() {
   });
 
   function closePassword() {
-    if (passwordMutation.isPending) return;
     setModal(null);
     setCurrentPassword('');
     setNewPassword('');
@@ -79,8 +78,7 @@ export function useSettings() {
   function savePassword() {
     if (passwordMutation.isPending) return;
     setPasswordError('');
-    if (!currentPassword || !newPassword || !confirmPassword) setPasswordError('All fields are required.');
-    else if (newPassword.length < 8) setPasswordError('New password must be at least 8 characters.');
+    if (newPassword.length < 8) setPasswordError('New password must be at least 8 characters.');
     else if (newPassword !== confirmPassword) setPasswordError('Passwords do not match.');
     else passwordMutation.mutate();
   }

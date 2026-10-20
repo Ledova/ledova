@@ -136,7 +136,7 @@ function OwnAuthorityRequests({
                     : undefined
                 }
                 onDownload={() => opening.mutate(request)}
-                onWithdraw={() => lifecycle.mutate({ request, action: 'withdraw' })}
+                onWithdraw={() => lifecycle.mutateAsync({ request, action: 'withdraw' })}
                 onAdmit={() => lifecycle.mutate({ request, action: 'admit' })}
                 onRevoke={() => lifecycle.mutateAsync({ request, action: 'revoke' })}
               />

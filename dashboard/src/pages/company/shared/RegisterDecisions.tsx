@@ -92,7 +92,6 @@ export function RegisterDecisions<Shown extends Proposal, Previewed extends Prev
     void decisions[kind].open(kind);
   };
   const close = () => {
-    if (decision?.busy) return;
     decision?.cancel();
     setActive(null);
   };

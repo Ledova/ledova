@@ -1,5 +1,5 @@
 import { Fragment, type ReactNode } from 'react';
-import { Dialog, DialogPanel, DialogTitle, Transition, TransitionChild } from '@headlessui/react';
+import { Description, Dialog, DialogPanel, DialogTitle, Transition, TransitionChild } from '@headlessui/react';
 import { PageAction } from './Page';
 
 interface ModalProps {
@@ -35,6 +35,7 @@ export function Confirmation({
   isOpen,
   title,
   confirmLabel,
+  confirmDisabled = false,
   busy = false,
   busyLabel,
   onConfirm,
@@ -44,6 +45,7 @@ export function Confirmation({
   isOpen: boolean;
   title: string;
   confirmLabel: string;
+  confirmDisabled?: boolean;
   busy?: boolean;
   busyLabel?: string;
   onConfirm: () => void;
@@ -57,12 +59,13 @@ export function Confirmation({
       title={title}
       showFooter
       confirmLabel={confirmLabel}
+      confirmDisabled={confirmDisabled}
       destructive
       busy={busy}
       busyLabel={busyLabel}
       onConfirm={onConfirm}
     >
-      <p className="text-sm text-text-primary">{children}</p>
+      <Description className="text-sm text-text-primary">{children}</Description>
     </Modal>
   );
 }

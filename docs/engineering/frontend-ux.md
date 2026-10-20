@@ -116,16 +116,21 @@ register setup's Import placeholder, the payslip upload area and Trading keep th
 and dialog footers use the same order as `FormActions`. Mobile's `Action` has no busy or pressed
 form yet.
 
-An action that deletes something or can't be undone asks first, in a dialog that names the
+An action that deletes, withdraws or revokes something saved asks first, in a dialog that names the
 consequence, with Cancel and a destructive action that repeats the verb, such as "Withdraw
-offering" or "Revoke access". `Confirmation` (`dashboard/src/components/Modal.tsx`) is that dialog;
-it stays open and busy until the request ends. It confirms withdrawing an offering, an application,
-a claim or a certificate request, deleting a draft offering or a profile document, revoking member
-access, and removing a saved order reminder. Deleting a wallet, a company document or the account,
-and revoking a company appointment, use the same destructive dialog with their own text. Reversible
-actions, such as signing out or turning a switch off, aren't confirmed. The dashboard uses no
-browser `confirm` or `alert` (ESLint's `no-alert`). Mobile doesn't follow this yet: some of these
-actions run at once there, and others confirm with native alerts.
+offering" or "Revoke access". `Confirmation` (`dashboard/src/components/Modal.tsx`) is that dialog:
+its text is the dialog's description, its action needs whatever enabled the action that opened it,
+and it stays open and busy until the request ends. It confirms withdrawing an offering, an
+application, a claim, a certificate request or a representative authority request; deleting a draft
+offering or a profile document; revoking member access; and removing a saved order reminder.
+Deleting a wallet, a company document or the account, and revoking a company appointment, use the
+same destructive dialog with their own text. Company eligibility's request withdrawal and acceptance
+revocation are confirmed in their own review step instead, which shows the exact record and needs a
+confirming tick before its destructive action; Trading's order cancellation is confirmed by its
+signing steps. Reversible actions, such as signing out, turning a switch off or removing a row from
+an unsaved form, aren't confirmed. The dashboard uses no browser `confirm` or `alert` (ESLint's
+`no-alert`). Mobile doesn't follow this yet: some of these actions run at once there, and others
+confirm with native alerts.
 
 ## Choosing a person
 

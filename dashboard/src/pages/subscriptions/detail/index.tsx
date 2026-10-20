@@ -179,6 +179,7 @@ export default function SubscriptionDetailPage() {
         isOpen={confirmingWithdraw && canWithdraw}
         title="Withdraw this application?"
         confirmLabel="Withdraw application"
+        confirmDisabled={busy}
         busy={withdraw.isPending}
         busyLabel="Withdrawing…"
         onClose={() => setConfirmingWithdraw(false)}

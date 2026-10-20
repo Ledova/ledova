@@ -316,7 +316,10 @@ function UploadCard({ claims }: { claims: InvestorClassification[] }) {
             </div>
             <button
               type="button"
-              onClick={() => setFile(null)}
+              onClick={() => {
+                setFile(null);
+                setTooLarge(false);
+              }}
               className="text-text-muted hover:text-text-primary p-1 flex-shrink-0"
               disabled={upload.isPending}
             >

@@ -275,6 +275,7 @@ function CompanyOfferings({ companyRead }: { companyRead: ReturnType<typeof useC
           isOpen
           title={confirming.action === 'withdraw' ? 'Withdraw this offering?' : 'Delete this draft offering?'}
           confirmLabel={confirming.action === 'withdraw' ? 'Withdraw offering' : 'Delete offering'}
+          confirmDisabled={!ready}
           busy={pending === confirming.action}
           busyLabel={confirming.action === 'withdraw' ? 'Withdrawing…' : 'Deleting…'}
           onClose={() => setConfirming(null)}

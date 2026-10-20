@@ -253,6 +253,7 @@ export function OrderActionFlow({ action, wallets, onClose }: Props) {
             isOpen
             title="Remove this saved reminder?"
             confirmLabel="Remove reminder"
+            confirmDisabled={state.phase !== 'error' || !state.canRemoveReminder}
             busy={removal === 'removing'}
             busyLabel="Removing…"
             onClose={() => setRemoval(null)}

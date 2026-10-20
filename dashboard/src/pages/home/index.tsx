@@ -452,20 +452,6 @@ function MemberRecords({
                           </details>
                         </div>
                       ))}
-                      {withdrawing && (
-                        <Confirmation
-                          isOpen
-                          title="Withdraw this certificate request?"
-                          confirmLabel="Withdraw certificate request"
-                          busy={read.busy}
-                          busyLabel="Withdrawing…"
-                          onClose={() => setWithdrawing(null)}
-                          onConfirm={() => void read.withdraw(withdrawing.uuid).finally(() => setWithdrawing(null))}
-                        >
-                          The company won&apos;t fulfil your request of {formatDate(withdrawing.createdAt)}. You can
-                          request a certificate for the same entry again.
-                        </Confirmation>
-                      )}
                     </div>
                   </Section>
                 )}
@@ -487,6 +473,21 @@ function MemberRecords({
           </>
         )}
       </Page>
+      {withdrawing && (
+        <Confirmation
+          isOpen
+          title="Withdraw this certificate request?"
+          confirmLabel="Withdraw certificate request"
+          confirmDisabled={held}
+          busy={read.busy}
+          busyLabel="Withdrawing…"
+          onClose={() => setWithdrawing(null)}
+          onConfirm={() => void read.withdraw(withdrawing.uuid).finally(() => setWithdrawing(null))}
+        >
+          The company won&apos;t fulfil your request of {formatDate(withdrawing.createdAt)}. You can request a
+          certificate for the same entry again.
+        </Confirmation>
+      )}
     </PageTitle.Provider>
   );
 }

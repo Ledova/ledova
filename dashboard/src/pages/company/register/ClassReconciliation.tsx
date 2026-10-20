@@ -132,9 +132,7 @@ export function ClassReconciliation({
     setAttempted(false);
     setOpen({ record: record.uuid, index, appointment: acknowledger.uuid });
   };
-  const close = () => {
-    if (!acknowledgement.busy) setOpen(null);
-  };
+  const close = () => setOpen(null);
   if (
     !visible ||
     (reconciliation.isSuccess &&

@@ -351,6 +351,7 @@ export function CompanyMemberAccess({
           isOpen
           title={`Revoke access for ${revoking.name}?`}
           confirmLabel="Revoke access"
+          confirmDisabled={held || !reason.trim() || !access.admin}
           busy={access.busy}
           busyLabel="Revoking…"
           onClose={() => setRevoking(null)}

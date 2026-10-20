@@ -164,8 +164,8 @@ export default function InvestorEligibilityPage() {
           onClose={() => setWithdrawing(null)}
           onConfirm={() => withdraw.mutate(withdrawing.uuid, { onSettled: () => setWithdrawing(null) })}
         >
-          Your {withdrawing.categoryDisplay} claim is withdrawn and its evidence is no longer available to share. You
-          can submit new evidence later.
+          Your {withdrawing.categoryDisplay} claim is withdrawn and can&apos;t be shared again. Any company eligibility
+          that relies on it ends. You can submit new evidence later.
         </Confirmation>
       )}
       <ClaimModal
