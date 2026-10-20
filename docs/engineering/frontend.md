@@ -536,7 +536,7 @@ The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components
   company to eligible investors), as an On/Off pill or native switch (`role="switch"`,
   `aria-checked` the saved value), disabled while saving; a refusal keeps the saved value and shows
   an alert in the card. A choice saved with a form stays a checkbox.
-- `Status` (web) is words after a small mark, read as words only; `Timeline` (web) dates each event;
+- `Status` is words after a small mark, read as words only; `Timeline` (web) dates each event;
   `Choice` (mobile) is an outlined choice marked selected. Each status family has its own
   tone map; shared subscription and resolution-result tones live in
   `dashboard/src/components/statusTones.ts`. Personal applications retain their moving fallback,
@@ -637,7 +637,9 @@ Each page links to its business section; the audience is the `DESTINATIONS` audi
   and computes issued-share totals, holders deduplicated across classes and each class's shares with
   `BigInt` (`dashboard/src/pages/company/shared/summary.ts`); it draws each class's donut itself. The
   person's own appointments (`useOwnAppointments`) give the status line and Getting started, which
-  reads the register step from the selected company's opened registers.
+  reads the register step from the selected company's opened registers. Mobile's Register tab
+  gives the same line and, for an administrator of the company shown, the same list, judging the
+  register step by that company's registers alone.
 - Personal dashboard: reads the person's own member projection; the first own class's history loads
   when a member record opens, and choosing another class reads that class's own entries.
 - Register on the web (`dashboard/src/pages/company/register/index.tsx`): one page renders the
@@ -682,8 +684,7 @@ Each page links to its business section; the audience is the `DESTINATIONS` audi
   correction lookup answering with entries it was not asked for fail the read. Each repeated control
   is named for screen readers after its visible label and its entry, proposal or discrepancy. Native
   section parameters switch the visible section, keeping the register mounted.
-- Company: reads the selected company's complete detail, and on mobile every page of its share
-  classes; an edit sends only changed fields.
+- Company: reads the selected company's complete detail; an edit sends only changed fields.
 - Published to your members: reads every page of the selected company's publications with `issuer`
   set, so the card title carries the complete count.
 - Wallet shares: reads every page of the person's wallets, names each asset from the API's current

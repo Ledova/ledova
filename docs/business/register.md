@@ -193,8 +193,8 @@ Ledova, and its holdings must match the stored register. On the web:
 1. On Register, choose **Set up your share register** (shown while no share class is readable) or,
    once a register exists, **Add share class**; or choose History, the class, then Bring records
    under Register mirror. Record investor share issue and Transfer shares also offer Set up share
-   register for a class not yet set up. Register is the only place on the web where share classes
-   are created.
+   register for a class not yet set up. Register is the only place where share classes are
+   created, on the web and on mobile.
 2. Share details: select an existing draft class, a common class (Ordinary ORD, Preference PRF or
    Redeemable RED), or Another class with the company's own name, code and type. The company choices
    come from current personal administrator or preparer appointments, without granting access to
@@ -214,6 +214,11 @@ Ledova, and its holdings must match the stored register. On the web:
 4. Review the shares, shareholders and record date in one table, with particulars under Details.
    Confirm loads a fresh preview and records approval and application together; an appointee who may
    only review records the approval for another to apply.
+
+On mobile, setup starts on the Register tab: **Create share class** (or **Set up your share
+register** in Getting started) records the class's name, code and type, and **Bring records** under
+the class's Register mirror prepares its records for review and confirmation. Once a class exists,
+the Getting started step opens that class's register setup.
 
 The register API also accepts an empty opening with no current or former members for a genuinely
 unopened draft class without chain activity. It retains the same company confirmation and separate

@@ -10,13 +10,10 @@ const AWAITING_ACTIVATION: readonly string[] = [
   'withdrawn',
 ];
 
-const ACTIVATION_CHECKS =
-  'Activation checks the company against the Australian Business Register and, where required, your verified identity.';
-
 export const COMPANY_ACTIVATION_COPY = {
-  CHECKS: ACTIVATION_CHECKS,
-  PROMPT: `${ACTIVATION_CHECKS} Eligibility decisions, offerings and share issues on the blockchain wait for it; your own register records don't.`,
-  ACTION: 'Review activation',
+  STEP: 'Verify and activate your company',
+  CHECKS:
+    'Activation checks the company against the Australian Business Register and, where required, your verified identity.',
 };
 
 export function awaitsActivation(company: { status: string; activatedAt?: string | null }) {

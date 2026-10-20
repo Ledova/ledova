@@ -2,7 +2,14 @@ import { CompanyPaidIssueFlow } from './CompanyPaidIssueFlow';
 import { useEffect, useState, type ReactNode } from 'react';
 import { Text, View, RefreshControl, Linking } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
-import { formatDate, formatShareCount, getBlockExplorerAddressUrl, getBlockExplorerTxUrl } from '@ledova/shared';
+import {
+  formatDate,
+  formatShareCount,
+  getBlockExplorerAddressUrl,
+  getBlockExplorerTxUrl,
+  REGISTER_COPY,
+  TECHNICAL_SHARE_LIMIT,
+} from '@ledova/shared';
 import { Section, Row, Rows, Action } from '../../components/Ledger';
 import { Page } from '../../components/Page';
 import { ClassRegister } from '../../components/register/ClassRegister';
@@ -102,9 +109,13 @@ function ShareClass({ uuid }: { uuid: string }) {
               <Rows>
                 <Row label="Class state">{token.statusDisplay}</Row>
                 <Row label="Share type">{token.tokenTypeDisplay}</Row>
-                <Row label={token.contractAddress ? 'Authorised shares' : 'Technical share limit'}>
-                  {formatShareCount(token.totalSupply)}
-                </Row>
+                {token.totalSupply === TECHNICAL_SHARE_LIMIT ? (
+                  <Row label="Technical share limit">{REGISTER_COPY.QUANTITY_GUARD}</Row>
+                ) : (
+                  <Row label={token.contractAddress ? 'Authorised shares' : 'Technical share limit'}>
+                    {formatShareCount(token.totalSupply)}
+                  </Row>
+                )}
                 <Row label="Issued shares">
                   {data.register.isPending
                     ? 'Loading…'

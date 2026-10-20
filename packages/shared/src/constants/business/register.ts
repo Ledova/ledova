@@ -9,7 +9,10 @@ export const HOLDER_TYPE_LABELS: Record<HolderType, string> = {
   unidentified: 'Unidentified',
 };
 
+export const TECHNICAL_SHARE_LIMIT = (2n ** 256n - 1n).toString();
+
 export const REGISTER_COPY = {
+  QUANTITY_GUARD: 'Internal quantity guard',
   DOWNLOAD: 'Download CSV',
   DOWNLOAD_FAILED: 'The register could not be downloaded. Try again.',
   PRIVACY_NOTE:

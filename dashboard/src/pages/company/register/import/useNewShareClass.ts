@@ -7,6 +7,7 @@ import {
   getRegisterClasses,
   getCompanyToken,
   readEveryPage,
+  TECHNICAL_SHARE_LIMIT,
   type CompanyShareToken,
   type Company,
   type OrderSubmissionOwner,
@@ -23,8 +24,6 @@ import { readRegister } from '@pages/company/shared/useCompanyRegister';
 
 import { readPeople } from '@pages/company/register/shared/usePeople';
 import { canOpenEmptyRegister } from './preparation';
-
-const TECHNICAL_SHARE_LIMIT = (2n ** 256n - 1n).toString();
 
 export type FreshClassProps = {
   owner: OrderSubmissionOwner;

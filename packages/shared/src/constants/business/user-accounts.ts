@@ -1,3 +1,8 @@
+export const IDENTITY_CHECK_COPY = {
+  STEP: 'Verify your identity',
+  NOTE: 'Your identity check, used where activation or eligibility requires it.',
+};
+
 export const SOURCE_OF_FUNDS_OPTIONS = [
   { value: 'employment_income', label: 'Employment income' },
   { value: 'business_income', label: 'Business income' },

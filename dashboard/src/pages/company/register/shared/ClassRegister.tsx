@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { REGISTER_COPY, formatShareCount, type TokenHoldersResponse } from '@ledova/shared';
+import { REGISTER_COPY, TECHNICAL_SHARE_LIMIT, formatShareCount, type TokenHoldersResponse } from '@ledova/shared';
 import { Rows, Row, Section, Status, type Tone } from '@components/Ledger';
 import { PageAction } from '@components/Page';
 import { shareholderPath } from './shareholders';
@@ -33,7 +33,7 @@ export function ClassRegister({ register, former = true }: { register: TokenHold
           </Status>
         </p>
       </section>
-      {register.token.totalSupply !== (2n ** 256n - 1n).toString() ? (
+      {register.token.totalSupply !== TECHNICAL_SHARE_LIMIT ? (
         <p className="text-sm text-text-muted">
           Authorised shares ·{' '}
           <span className="break-all font-medium text-text-primary">
