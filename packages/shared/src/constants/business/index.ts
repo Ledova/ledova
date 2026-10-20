@@ -31,3 +31,4 @@ export * from './register-paid-issues';
 export * from './register-allotments';
 
 export * from './investor-eligibility';
+export * from './field-limits';

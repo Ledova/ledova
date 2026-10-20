@@ -4,6 +4,7 @@ import { CompanyPicker } from '@components/CompanyPicker';
 import { useState } from 'react';
 import { useRunningAction } from '@hooks/useRunningAction';
 import {
+  FIELD_LIMITS,
   DESTINATIONS,
   ELIGIBILITY_RECORDS_NOTICE,
   isCurrentEligibilityAppointment,
@@ -169,6 +170,7 @@ export default function CompanyEligibilityPage() {
                   ) : (
                     <TextField
                       label="Refusal reason"
+                      maxLength={FIELD_LIMITS.ELIGIBILITY_REASON}
                       value={read.draft.reason}
                       onChange={(reason) => read.updateDraft({ reason })}
                     />
@@ -186,6 +188,7 @@ export default function CompanyEligibilityPage() {
                 <Section title="Revoke this acceptance">
                   <TextField
                     label="Revocation reason"
+                    maxLength={FIELD_LIMITS.ELIGIBILITY_REASON}
                     value={revocationReason}
                     onChange={(value) => {
                       read.cancel();

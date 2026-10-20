@@ -1,6 +1,11 @@
 import { FormActions, PageAction } from '@components/Page';
 import { FIELD_CLASS, LABEL } from '@components/fieldClass';
-import { REGISTER_AWARD_COPY as COPY, type OwnCompanyAppointment, type RegisterAward } from '@ledova/shared';
+import {
+  FIELD_LIMITS,
+  REGISTER_AWARD_COPY as COPY,
+  type OwnCompanyAppointment,
+  type RegisterAward,
+} from '@ledova/shared';
 import { useAwardVestingForm } from './useAwardVestingForm';
 
 export function AwardVestingForm({
@@ -45,7 +50,7 @@ export function AwardVestingForm({
           <input
             className={FIELD_CLASS}
             inputMode="numeric"
-            maxLength={78}
+            maxLength={FIELD_LIMITS.REGISTER_SHARES}
             value={shares}
             onChange={(event) => setShares(event.target.value.trim())}
           />

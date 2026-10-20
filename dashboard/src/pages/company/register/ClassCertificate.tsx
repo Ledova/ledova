@@ -1,3 +1,4 @@
+import { FIELD_LIMITS } from '@ledova/shared';
 import { useState } from 'react';
 import { Outcome, Row, Rows } from '@components/Ledger';
 import { PageAction } from '@components/Page';
@@ -48,7 +49,7 @@ function CertificateForm({ register, entry, guard, sourceReady, close }: Source 
         Certificate instruction reference
         <input
           className={FIELD_CLASS}
-          maxLength={255}
+          maxLength={FIELD_LIMITS.REFERENCE}
           value={instruction}
           disabled={blocked || !!target}
           onChange={(event) => setInstruction(event.target.value)}

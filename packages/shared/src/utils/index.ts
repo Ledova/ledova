@@ -150,7 +150,7 @@ export { isPreparedRegisterDeployment } from './register-deployments';
 export { isWalletNominationReceipt, isPreparedCompanyWalletInstruction } from './company-wallets';
 export { isPreparedRegisterTransfer } from './register-transfers';
 export { appointmentForAcknowledgement, isDiscrepancyAcknowledgementReceipt } from './register-reconciliations';
-export { MAX_REQUEST_SHARES, raisedSupply, requestShares, wholeShares } from './share-quantities';
+export { MAX_ORDER_SHARES, MAX_REQUEST_SHARES, raisedSupply, requestShares, wholeShares } from './share-quantities';
 export { marketAmount, marketQuantity, priceCents } from './market-data';
 export { activityAmount, activityDirection, activityStatus, feeUnit } from './activity';
 export { shownSymbol } from './asset-symbol';

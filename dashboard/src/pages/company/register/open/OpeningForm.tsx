@@ -1,7 +1,7 @@
 import { Choices } from '@components/Choices';
 import { useOpeningPreparation, type OpeningFormProps, COPY } from './useOpeningPreparation';
 
-import { type RegisterCorrectionAuthority } from '@ledova/shared';
+import { FIELD_LIMITS, type RegisterCorrectionAuthority } from '@ledova/shared';
 import { FormActions, PageAction } from '@components/Page';
 import { FIELD_CLASS, LABEL } from '@components/fieldClass';
 import { SearchSelect } from '@components/SearchSelect';
@@ -79,7 +79,7 @@ export function OpeningForm({
               {COPY.APPROVING_DIRECTOR}
               <input
                 value={draft.director}
-                maxLength={255}
+                maxLength={FIELD_LIMITS.DIRECTOR}
                 className={FIELD_CLASS}
                 onChange={(event) => update({ director: event.target.value })}
               />
@@ -89,7 +89,7 @@ export function OpeningForm({
             {COPY.AUTHORITY_REFERENCE}
             <input
               value={draft.reference}
-              maxLength={255}
+              maxLength={FIELD_LIMITS.REFERENCE}
               className={FIELD_CLASS}
               onChange={(event) => update({ reference: event.target.value })}
             />
@@ -99,7 +99,7 @@ export function OpeningForm({
             <textarea
               rows={3}
               value={draft.reason}
-              maxLength={1000}
+              maxLength={FIELD_LIMITS.REASON}
               className={FIELD_CLASS}
               onChange={(event) => update({ reason: event.target.value })}
             />

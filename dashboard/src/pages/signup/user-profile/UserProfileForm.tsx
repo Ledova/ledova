@@ -9,7 +9,7 @@ import {
 import { Field, Label, Textarea, Description } from '@headlessui/react';
 import { UserIcon, HouseIcon, PhoneIcon, WarningIcon, CalendarIcon } from '@phosphor-icons/react';
 import { CountrySelector } from './CountrySelector';
-import { utcToday } from '@ledova/shared';
+import { FIELD_LIMITS, utcToday } from '@ledova/shared';
 import type { FormErrors, UserProfileFormValidation, CountryData, UserProfileFormData } from '@ledova/shared';
 import { ICON_MD } from '@components/iconSizes';
 
@@ -68,6 +68,7 @@ export function UserProfileForm({
               <AuthInput
                 type="text"
                 name="fullName"
+                maxLength={FIELD_LIMITS.PROFILE_NAME}
                 value={form.fullName}
                 onChange={(e) => setFieldValue('fullName', e.target.value)}
                 className={`w-full bg-surface-tertiary border ${authFieldBorder(
@@ -130,6 +131,7 @@ export function UserProfileForm({
                   <AuthInput
                     type="tel"
                     name="phoneNumber"
+                    maxLength={FIELD_LIMITS.PHONE}
                     value={form.phoneNumber}
                     onChange={(e) => setFieldValue('phoneNumber', e.target.value)}
                     className={`w-full bg-surface-tertiary border ${authFieldBorder(

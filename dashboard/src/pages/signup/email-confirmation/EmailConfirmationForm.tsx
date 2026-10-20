@@ -1,3 +1,4 @@
+import { FIELD_LIMITS } from '@ledova/shared';
 import {
   AUTH_BUTTON_CLASS,
   ERROR_BANNER_CLASS,
@@ -88,7 +89,7 @@ export function EmailConfirmationForm({
                 placeholder="Enter verification code"
                 required
                 disabled={isLoading}
-                maxLength={6}
+                maxLength={FIELD_LIMITS.VERIFICATION_CODE}
               />
             </div>
             {errors.token && !generalError && (

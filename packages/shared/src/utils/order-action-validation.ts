@@ -7,11 +7,12 @@ import type {
 } from '../types';
 import type { SavedOrderAction } from './order-action-storage';
 import { isUuid } from './validation';
+import { MAX_ORDER_SHARES } from './share-quantities';
 
 const ADDRESS = /^0x[0-9a-f]{40}$/i;
 const STATUSES = ['open', 'partially_filled', 'held', 'matched', 'pending_signature', 'completed', 'cancelled'];
 
-function integer(value: unknown, max = 9223372036854775807n): value is string {
+function integer(value: unknown, max = MAX_ORDER_SHARES): value is string {
   return typeof value === 'string' && /^(0|[1-9]\d*)$/.test(value) && value.length <= 78 && BigInt(value) <= max;
 }
 

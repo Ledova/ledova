@@ -1,6 +1,13 @@
 import { SelectField } from '@components/SelectField';
 import { useState, useEffect, useMemo, useImperativeHandle, forwardRef } from 'react';
-import { formatWalletAddressShort, marketAmount, priceCents } from '@ledova/shared';
+import {
+  FIELD_LIMITS,
+  MAX_ORDER_SHARES,
+  formatShareCount,
+  formatWalletAddressShort,
+  marketAmount,
+  priceCents,
+} from '@ledova/shared';
 import type { ShareToken, CreateOrderRequest, Wallet, OrderType } from '@ledova/shared';
 import { Rows, Row } from '@components/Ledger';
 import { FIELD_BASE } from '@components/fieldClass';
@@ -25,7 +32,7 @@ export interface OrderFormRef {
 function wholeInput(value: string): bigint | null {
   if (!/^\d{1,19}$/.test(value)) return null;
   const parsed = BigInt(value);
-  return parsed <= 9223372036854775807n ? parsed : null;
+  return parsed <= MAX_ORDER_SHARES ? parsed : null;
 }
 
 export const OrderForm = forwardRef<OrderFormRef, OrderFormProps>(function OrderForm(
@@ -142,10 +149,9 @@ export const OrderForm = forwardRef<OrderFormRef, OrderFormProps>(function Order
           </label>
           <input
             id="order-quantity"
-            type="number"
-            min="1"
-            step="1"
-            max="9223372036854775807"
+            type="text"
+            inputMode="numeric"
+            maxLength={FIELD_LIMITS.ORDER_SHARES}
             value={quantity}
             onChange={(event) => setQuantity(event.target.value)}
             placeholder="Enter number of shares"
@@ -153,7 +159,7 @@ export const OrderForm = forwardRef<OrderFormRef, OrderFormProps>(function Order
           />
           {quantity && (qty === null || qty <= 0) && (
             <p role="alert" className="text-sm">
-              Enter a positive whole quantity up to 9,223,372,036,854,775,807 shares.
+              Enter a positive whole quantity up to {formatShareCount(MAX_ORDER_SHARES.toString())} shares.
             </p>
           )}
           {!isBuy && balance !== undefined && (
@@ -174,10 +180,9 @@ export const OrderForm = forwardRef<OrderFormRef, OrderFormProps>(function Order
               </label>
               <input
                 id="order-minimum"
-                type="number"
-                min="0"
-                step="1"
-                max={quantity || undefined}
+                type="text"
+                inputMode="numeric"
+                maxLength={FIELD_LIMITS.ORDER_SHARES}
                 value={minQuantity}
                 onChange={(event) => setMinQuantity(event.target.value)}
                 placeholder="0 = accept any partial fill"
@@ -198,9 +203,9 @@ export const OrderForm = forwardRef<OrderFormRef, OrderFormProps>(function Order
           </label>
           <input
             id="order-price"
-            type="number"
-            min="0.01"
-            step="0.01"
+            type="text"
+            inputMode="decimal"
+            maxLength={FIELD_LIMITS.PRICE}
             value={pricePerShare}
             onChange={(event) => setPricePerShare(event.target.value)}
             placeholder="Enter price per share"

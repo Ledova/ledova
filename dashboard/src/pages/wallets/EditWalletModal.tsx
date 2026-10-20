@@ -9,6 +9,7 @@ import {
   CurrencyBtcIcon,
 } from '@phosphor-icons/react';
 import {
+  FIELD_LIMITS,
   formatCryptoBalance,
   formatWalletAddressMedium,
   formatDate,
@@ -118,7 +119,7 @@ export function EditWalletModal({
             type="text"
             aria-label="Wallet name"
             disabled={isUpdating}
-            maxLength={100}
+            maxLength={FIELD_LIMITS.WALLET_NAME}
             value={name}
             onChange={(e) => setName(e.target.value)}
             className={FIELD_BASE}

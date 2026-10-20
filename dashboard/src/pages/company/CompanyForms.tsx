@@ -47,7 +47,7 @@ export function EditCompanyForm(props: FormProps) {
           </p>
         )}
         <div className="grid gap-4 sm:grid-cols-2">
-          {EDIT_FIELDS.map(([key, label]) => (
+          {EDIT_FIELDS.map(([key, label, maxLength]) => (
             <label
               key={key}
               className={`block text-sm ${['name', 'addressLine1', 'addressLine2'].includes(key) ? 'sm:col-span-2' : ''}`}
@@ -55,6 +55,7 @@ export function EditCompanyForm(props: FormProps) {
               {label}
               <input
                 className={FIELD_CLASS}
+                maxLength={maxLength}
                 value={draft[key]}
                 disabled={key === 'name' && !canChangeName}
                 onChange={(event) => setDraft({ ...draft, [key]: event.target.value })}

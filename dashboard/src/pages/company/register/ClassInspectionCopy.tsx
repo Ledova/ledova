@@ -1,4 +1,4 @@
-import { type TokenHoldersResponse } from '@ledova/shared';
+import { FIELD_LIMITS, type TokenHoldersResponse } from '@ledova/shared';
 import { Outcome, Row, Rows } from '@components/Ledger';
 import { PageAction } from '@components/Page';
 import { FIELD_CLASS } from '@components/fieldClass';
@@ -46,7 +46,7 @@ function InspectionForm({
           Written instruction reference
           <input
             className={FIELD_CLASS}
-            maxLength={255}
+            maxLength={FIELD_LIMITS.REFERENCE}
             value={draft.instruction}
             onChange={(event) => setDraft({ ...draft, instruction: event.target.value })}
           />
@@ -55,7 +55,7 @@ function InspectionForm({
           Recipient
           <input
             className={FIELD_CLASS}
-            maxLength={255}
+            maxLength={FIELD_LIMITS.NAME}
             value={draft.recipient}
             onChange={(event) => setDraft({ ...draft, recipient: event.target.value })}
           />

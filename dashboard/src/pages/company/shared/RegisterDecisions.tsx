@@ -1,5 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import {
+  FIELD_LIMITS,
   useRegisterDecision,
   type RegisterDecisionFamily,
   type RegisterDecisionKind,
@@ -173,7 +174,7 @@ export function RegisterDecisions<Shown extends Proposal, Previewed extends Prev
                   <textarea
                     className={FIELD_CLASS}
                     rows={3}
-                    maxLength={1000}
+                    maxLength={FIELD_LIMITS.REASON}
                     value={reason}
                     disabled={decision.busy || !!decision.recovery}
                     onChange={(event) => setReason(event.target.value)}

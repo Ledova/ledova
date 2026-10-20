@@ -1,6 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRunningAction } from '@hooks/useRunningAction';
-import { formatDateTime, type OrderSubmissionOwner, type TokenHoldersResponse, utcToday } from '@ledova/shared';
+import {
+  FIELD_LIMITS,
+  formatDateTime,
+  type OrderSubmissionOwner,
+  type TokenHoldersResponse,
+  utcToday,
+} from '@ledova/shared';
 import { Outcome, Section } from '@components/Ledger';
 import { PersonSelect } from '@pages/company/register/shared/PersonPicker';
 import { PageAction } from '@components/Page';
@@ -134,6 +140,7 @@ export function CompanyMemberAccess({
           <label className="block space-y-1 text-sm">
             Intended recipient email
             <input
+              maxLength={FIELD_LIMITS.EMAIL}
               className={FIELD_CLASS}
               type="email"
               value={email}
@@ -175,6 +182,7 @@ export function CompanyMemberAccess({
           <label className="block space-y-1 text-sm">
             Company action reason
             <textarea
+              maxLength={FIELD_LIMITS.REASON}
               className={FIELD_CLASS}
               value={reason}
               disabled={held}
@@ -263,6 +271,7 @@ export function CompanyMemberAccess({
                   <label className="block space-y-1 text-sm">
                     Company action reason
                     <textarea
+                      maxLength={FIELD_LIMITS.REASON}
                       className={FIELD_CLASS}
                       value={reason}
                       disabled={held}
@@ -295,7 +304,7 @@ export function CompanyMemberAccess({
             <input
               className={FIELD_CLASS}
               value={certificateInstruction}
-              maxLength={255}
+              maxLength={FIELD_LIMITS.REFERENCE}
               disabled={held || !!access.certificateTarget}
               onChange={(event) => setCertificateInstruction(event.target.value)}
             />

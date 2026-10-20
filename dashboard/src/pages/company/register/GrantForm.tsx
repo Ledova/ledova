@@ -1,6 +1,6 @@
 import { useGrantPreparation, type GrantFormProps, type DocumentKind } from './useGrantPreparation';
 
-import { REGISTER_GRANT_COPY as COPY, formatShareCount } from '@ledova/shared';
+import { FIELD_LIMITS, REGISTER_GRANT_COPY as COPY, formatShareCount } from '@ledova/shared';
 import { FormActions, PageAction } from '@components/Page';
 import { FIELD_CLASS, LABEL } from '@components/fieldClass';
 import { PersonFields, PersonSelect } from '@pages/company/register/shared/PersonPicker';
@@ -123,6 +123,7 @@ export function GrantForm({
         <label className={LABEL}>
           {COPY.SHARES}
           <input
+            maxLength={FIELD_LIMITS.REGISTER_SHARES}
             className={FIELD_CLASS}
             inputMode="numeric"
             value={shares}
@@ -154,7 +155,7 @@ export function GrantForm({
           {COPY.TERMS}
           <textarea
             className={FIELD_CLASS}
-            maxLength={1000}
+            maxLength={FIELD_LIMITS.TERMS}
             rows={3}
             value={retainedSummary}
             disabled={!!award}
@@ -165,7 +166,7 @@ export function GrantForm({
           {COPY.DIRECTOR}
           <input
             className={FIELD_CLASS}
-            maxLength={255}
+            maxLength={FIELD_LIMITS.DIRECTOR}
             value={approvingDirector}
             onChange={(event) => setApprovingDirector(event.target.value)}
           />
@@ -177,7 +178,7 @@ export function GrantForm({
           {COPY.AUTHORITY_REFERENCE}
           <input
             className={FIELD_CLASS}
-            maxLength={255}
+            maxLength={FIELD_LIMITS.REFERENCE}
             value={authorityReference}
             onChange={(event) => setAuthorityReference(event.target.value)}
           />
@@ -186,7 +187,7 @@ export function GrantForm({
           {COPY.REASON}
           <textarea
             className={FIELD_CLASS}
-            maxLength={1000}
+            maxLength={FIELD_LIMITS.REASON}
             rows={3}
             value={reason}
             onChange={(event) => setReason(event.target.value)}
