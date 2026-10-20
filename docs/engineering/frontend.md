@@ -586,11 +586,13 @@ Each page links to its business section; the audience is the `DESTINATIONS` audi
   retry and an uncertain decision its recovery. Private content renders only while its view is
   visible, its reads have settled and `hasCurrentRegisterReadAuthority` confirms a current
   register-read appointment.
-- Choosing a person on the web: every register flow reads one people list
+- Choosing a person on the web: the register flows that name one person read one people list
   (`dashboard/src/pages/company/register/shared/usePeople.ts`, the `register/members/` read validated by
-  `isRegisterImportMembers`) and renders `PersonSelect` and `PersonFields`
+  `isRegisterImportMembers`) and render `PersonSelect` and `PersonFields`
   (`shared/PersonPicker.tsx`), the searchable list in
-  [choosing a person](frontend-ux.md#choosing-a-person). `personRequest`
+  [choosing a person](frontend-ux.md#choosing-a-person). The share-class issue's member choice reads
+  `register/members/` through `useCompanyIssueInstructions`, and wallet links and register opening
+  label the class's holders with `registerLinkMemberLabels`. `personRequest`
   (`packages/shared/src/utils/people.ts`) sends an award recipient without shares under their
   reserved member ID with their award's particulars, as register setup does; each flow filters the
   list by its own rule. Navigation state `issueMember` opens Record investor share issue with that

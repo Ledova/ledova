@@ -21,7 +21,7 @@ import {
 } from '@ledova/shared';
 import { DecisionTrail } from '@pages/company/register/shared/DecisionTrail';
 import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   useIssueLinkRecord,
   useIssuePreparation,
@@ -252,6 +252,14 @@ function Preparation({ commands }: { commands: Commands }) {
     issueProblem,
     submit,
   } = useIssuePreparation({ commands });
+  const memberChoices = useMemo(
+    () =>
+      personChoices(
+        peopleFrom(commands.members.data).filter((person) => !person.awardOnly),
+        (person) => `${formatShareCount(person.currentShares)} shares`,
+      ),
+    [commands.members.data],
+  );
   if (!commands.visible || !commands.steps.prepare) return null;
   return (
     <fieldset
@@ -285,10 +293,7 @@ function Preparation({ commands }: { commands: Commands }) {
       )}
       <SearchSelect
         label="Member"
-        choices={personChoices(
-          peopleFrom(commands.members.data).filter((person) => !person.awardOnly),
-          (person) => `${formatShareCount(person.currentShares)} shares`,
-        )}
+        choices={memberChoices}
         first={NEW_MEMBER}
         value={displayedMember}
         onChange={setMember}

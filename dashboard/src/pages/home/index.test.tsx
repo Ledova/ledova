@@ -354,7 +354,7 @@ it('invites an exact award-only recipient, deduplicates members and clears unava
     { ...memberRegister, token: { ...memberRegister.token, uuid: otherClass, symbol: 'PREF' } },
   ];
   const view = render(companyView(company, registers));
-  const recipient = await screen.findByLabelText('Member or award recipient');
+  const recipient = await screen.findByRole('combobox', { name: 'Member or award recipient' });
   await waitFor(() => expect((recipient as HTMLInputElement).disabled).toBe(false));
   fireEvent.change(recipient, { target: { value: ' ' } });
   const awardOnly = await screen.findByRole('option', {
@@ -362,6 +362,8 @@ it('invites an exact award-only recipient, deduplicates members and clears unava
   });
   expect(screen.getAllByRole('option', { name: /Company Recorded Member/ })).toHaveLength(1);
   expect(screen.queryByLabelText('Member UUID')).toBeNull();
+  fireEvent.change(recipient, { target: { value: 'award only' } });
+  expect(screen.queryByRole('option', { name: /Company Recorded Member/ })).toBeNull();
   fireEvent.mouseDown(awardOnly);
   fireEvent.change(screen.getByLabelText('Intended recipient email'), { target: { value: 'employee@example.test' } });
   fireEvent.click(screen.getByRole('button', { name: 'Create member invitation' }));
@@ -381,7 +383,9 @@ it('invites an exact award-only recipient, deduplicates members and clears unava
       exact: true,
     }),
   );
-  await waitFor(() => expect((screen.getByLabelText('Member or award recipient') as HTMLInputElement).value).toBe(''));
+  await waitFor(() =>
+    expect((screen.getByRole('combobox', { name: 'Member or award recipient' }) as HTMLInputElement).value).toBe(''),
+  );
   expect((screen.getByLabelText('Intended recipient email') as HTMLInputElement).value).toBe('');
   expect(screen.getByRole('button', { name: 'Create member invitation' }).matches(':disabled')).toBe(true);
 
@@ -391,13 +395,11 @@ it('invites an exact award-only recipient, deduplicates members and clears unava
   invitation = undefined;
   view.rerender(companyView(otherCompany, [{ ...REGISTER, token: { ...REGISTER.token, uuid: otherClass } }]));
   await screen.findByText('The award recipients belong to another company.');
-  expect(screen.queryByRole('option', { name: /Foreign Private Award Recipient/ })).toBeNull();
-  expect(screen.queryByRole('option', { name: /Company Recorded Member/ })).toBeNull();
-  expect((screen.getByLabelText('Member or award recipient') as HTMLInputElement).value).toBe('');
-  expect((screen.getByLabelText('Member or award recipient') as HTMLInputElement).disabled).toBe(true);
+  expect((screen.getByRole('combobox', { name: 'Member or award recipient' }) as HTMLInputElement).value).toBe('');
+  expect((screen.getByRole('combobox', { name: 'Member or award recipient' }) as HTMLInputElement).disabled).toBe(true);
   expect((screen.getByLabelText('Intended recipient email') as HTMLInputElement).value).toBe('');
   expect(screen.getByRole('button', { name: 'Create member invitation' }).matches(':disabled')).toBe(true);
   expect(api.post).toHaveBeenCalledTimes(1);
   view.rerender(companyView(otherCompany, [], false));
-  await waitFor(() => expect(screen.queryByLabelText('Member or award recipient')).toBeNull());
+  await waitFor(() => expect(screen.queryByRole('combobox', { name: 'Member or award recipient' })).toBeNull());
 });

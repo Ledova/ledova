@@ -47,7 +47,7 @@ export function peopleFrom(data: RegisterTransferMembers | undefined): Person[] 
 
 export function personChoices(people: readonly Person[], context?: (person: Person) => string): PersonChoice[] {
   const records = new Map<string, Set<string>>();
-  const particulars = (person: Person) => `${person.name}\n${person.residentialAddress}`;
+  const particulars = (person: Person) => JSON.stringify([person.name, person.residentialAddress]);
   for (const person of people)
     records.set(particulars(person), (records.get(particulars(person)) ?? new Set()).add(person.member));
   return people.map((person) => ({

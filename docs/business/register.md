@@ -578,7 +578,8 @@ non-paid issues, transfers, employee awards and member invitations. One searchab
 company's members, named by their recorded particulars, and award recipients without shares, marked
 as such. Typing part of a name or address narrows it, so a large register stays quick to search.
 Each option shows the name above the address, with a short record reference only when two people
-share both. **New person** is always offered first and asks for a name and residential address.
+share both. Where a flow can add someone, **New person** is offered first and asks for a name and
+residential address; it steps aside while a search finds someone.
 Each flow keeps its own rule for who can be chosen:
 
 - issues and awards: people without a linked wallet whose particulars are retained;

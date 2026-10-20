@@ -1312,7 +1312,10 @@ proposal are in #1174, and the owner approved it as recommended:
   `Combobox` the dashboard already uses. Browsing records is a table or list with search, filters
   and paging, never a picker.
 - **People are searched in the browser for now**, over the one list each flow already reads; server
-  search follows when lists outgrow one read, behind the same control.
+  search follows when lists outgrow one read, behind the same control. After the first review the
+  owner kept two departures from the proposal ("Keep both"): a list shows at most 50 matches and
+  anyone further down is found by typing, with the full list on Shareholders, rather than scrolling
+  every person; and a choice can be replaced but not emptied, so there is no clear button.
 - **Forms are checked on submit**, with an error summary and a message on each field, rather than a
   disabled button that cannot say why.
 - **Tables page by number and feeds load more.**

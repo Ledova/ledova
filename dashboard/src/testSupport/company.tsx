@@ -21,7 +21,7 @@ globalThis.ResizeObserver ??= class {
 };
 
 export async function choose(label: string, option: string, search = option) {
-  const input = (await screen.findByLabelText(label)) as HTMLInputElement;
+  const input = (await screen.findByRole('combobox', { name: label })) as HTMLInputElement;
   await waitFor(() => {
     if (input.disabled) throw new Error(`${label} is disabled`);
   });

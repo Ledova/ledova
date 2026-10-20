@@ -1331,7 +1331,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   membersUnavailable = true;
   showJourney(DESTINATIONS.companyRegisterSetup.path);
   const retryChoices = await screen.findByRole('button', { name: 'Try again' });
-  expect(screen.queryByLabelText('Company shareholder')).toBeNull();
+  expect(screen.queryByRole('combobox', { name: 'Company shareholder' })).toBeNull();
   membersUnavailable = false;
   fireEvent.click(retryChoices);
   const useExistingDraft = await screen.findByLabelText('Share class');
@@ -1340,8 +1340,11 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   expect(await screen.findByLabelText('Record date')).toBeTruthy();
   fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
   fireEvent.click(screen.getByRole('button', { name: 'Add a shareholder' }));
-  expect((screen.getByLabelText('Company shareholder') as HTMLInputElement).value).toBe('');
-  await choose('Company shareholder', companyMembers[0].name!);
+  expect((screen.getByRole('combobox', { name: 'Company shareholder' }) as HTMLInputElement).value).toBe('');
+  const shareholder = screen.getByRole('combobox', { name: 'Company shareholder' });
+  fireEvent.change(shareholder, { target: { value: companyMembers[0].name } });
+  await screen.findByRole('option', { name: (name) => name.startsWith(companyMembers[0].name!) });
+  fireEvent.keyDown(shareholder, { key: 'Enter' });
   expect((screen.getByLabelText('Name') as HTMLInputElement).readOnly).toBe(true);
   expect((screen.getByLabelText('Residential address') as HTMLInputElement).readOnly).toBe(true);
   expect((screen.getByLabelText('Date first added to register') as HTMLInputElement).value).toBe('');
@@ -1382,7 +1385,9 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   enterHolding();
   fireEvent.click(screen.getByRole('button', { name: 'Add to draft' }));
   fireEvent.click(screen.getByRole('button', { name: 'Add a shareholder' }));
-  fireEvent.change(screen.getByLabelText('Company shareholder'), { target: { value: companyMembers[0].name } });
+  fireEvent.change(screen.getByRole('combobox', { name: 'Company shareholder' }), {
+    target: { value: companyMembers[0].name },
+  });
   const duplicate = await screen.findByRole('option', { name: (name) => name.startsWith(companyMembers[0].name!) });
   expect(duplicate.getAttribute('aria-disabled')).toBe('true');
   fireEvent.mouseDown(duplicate);

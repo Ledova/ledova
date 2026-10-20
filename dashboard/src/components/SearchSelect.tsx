@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import {
   Combobox,
   ComboboxButton,
@@ -21,6 +21,8 @@ export interface SearchChoice {
 }
 
 const SHOWN = 50;
+const NONE: readonly SearchChoice[] = [];
+const MOVES = new Set(['ArrowDown', 'ArrowUp', 'Home', 'End', 'PageDown', 'PageUp']);
 
 const folded = (text: string) => text.normalize('NFD').replace(/\p{M}/gu, '').toLocaleLowerCase('en-AU');
 
@@ -47,10 +49,10 @@ export function SearchSelect({
   choices,
   value,
   onChange,
-  first = [],
+  first = NONE,
   placeholder = 'Type to search',
   disabled = false,
-  noun = ['match', 'matches'],
+  noun = ['option', 'options'],
 }: {
   label: string;
   choices: readonly SearchChoice[];
@@ -62,6 +64,7 @@ export function SearchSelect({
   noun?: readonly [string, string];
 }) {
   const [query, setQuery] = useState('');
+  const moved = useRef(false);
   const known = useMemo(
     () => new Map([...first, ...choices].map((choice) => [choice.value, choice.label])),
     [first, choices],
@@ -71,66 +74,89 @@ export function SearchSelect({
     [choices],
   );
   const words = folded(query).split(/\s+/).filter(Boolean);
-  const found = words.length
+  const typed = words.length > 0;
+  const found = typed
     ? searchable.filter(({ text }) => words.every((word) => text.includes(word))).map(({ choice }) => choice)
     : choices;
+  const matched = typed && found.some((choice) => !choice.unavailable);
   const counted = (count: number) => `${formatShareCount(String(count))} ${count === 1 ? noun[0] : noun[1]}`;
   const searched = query.trim();
-  const status = !words.length
+  const status = !typed
     ? ''
     : found.length
       ? `${counted(found.length)} ${found.length === 1 ? 'matches' : 'match'} “${searched}”.`
       : `No ${noun[1]} match “${searched}”.`;
   const more =
     found.length > SHOWN ? `Showing the first ${SHOWN} of ${counted(found.length)}. Type more to narrow the list.` : '';
+  const keepChoice = (open: boolean) => (event: KeyboardEvent) => {
+    if (MOVES.has(event.key)) moved.current = true;
+    else if (open && (event.key === 'Enter' || event.key === 'Tab') && !moved.current && !matched) {
+      event.stopPropagation();
+      if (event.key === 'Enter') event.preventDefault();
+    }
+  };
   return (
     <Field className={LABEL} disabled={disabled}>
-      <Label>{label}</Label>
-      <Combobox value={value} onChange={(next) => next && onChange(next)} onClose={() => setQuery('')} immediate>
-        <div className="relative mt-1">
-          <ComboboxInput
-            className={`${FIELD_BASE} pr-9`}
-            autoComplete="off"
-            placeholder={placeholder}
-            displayValue={(current: string) => known.get(current) ?? ''}
-            onChange={(event) => setQuery(event.target.value)}
-            onFocus={(event) => event.currentTarget.select()}
-            onMouseUp={(event) => {
-              if (query) return;
-              event.preventDefault();
-              event.currentTarget.select();
-            }}
-          />
-          <ComboboxButton className="absolute inset-y-0 right-0 flex items-center px-2.5 text-text-muted transition-colors hover:text-text-primary">
-            <CaretDownIcon size={ICON_SM} aria-hidden />
-          </ComboboxButton>
-        </div>
-        <ComboboxOptions
-          anchor="bottom start"
-          modal={false}
-          className="z-50 max-h-72 w-[var(--input-width)] overflow-y-auto rounded-lg border border-border bg-surface-raised py-1 shadow-lg [--anchor-gap:4px] empty:invisible"
-        >
-          {first.map((choice) => (
-            <Choice key={choice.value} choice={choice} />
-          ))}
-          {found.slice(0, SHOWN).map((choice) => (
-            <Choice key={choice.value} choice={choice} />
-          ))}
-          {words.length > 0 && found.length === 0 && (
-            <p aria-hidden className="px-3 py-2 text-sm text-text-muted">
-              {status}
+      <Combobox
+        value={value}
+        onChange={(next) => next && onChange(next)}
+        onClose={() => {
+          setQuery('');
+          moved.current = false;
+        }}
+        immediate
+      >
+        {({ open }) => (
+          <>
+            <Label>{label}</Label>
+            <div className="relative mt-1" onKeyDownCapture={keepChoice(open)}>
+              <ComboboxInput
+                className={`${FIELD_BASE} pr-9`}
+                autoComplete="off"
+                placeholder={placeholder}
+                displayValue={(current: string) => known.get(current) ?? ''}
+                onChange={(event) => {
+                  moved.current = false;
+                  setQuery(event.target.value);
+                }}
+                onFocus={(event) => event.currentTarget.select()}
+                onMouseUp={(event) => {
+                  if (query) return;
+                  event.preventDefault();
+                  event.currentTarget.select();
+                }}
+              />
+              <ComboboxButton className="absolute inset-y-0 right-0 flex items-center px-2.5 text-text-muted transition-colors hover:text-text-primary">
+                <CaretDownIcon size={ICON_SM} aria-hidden />
+              </ComboboxButton>
+            </div>
+            <ComboboxOptions
+              anchor="bottom start"
+              modal={false}
+              className="z-50 max-h-72 w-[var(--input-width)] overflow-y-auto rounded-lg border border-border bg-surface-raised py-1 shadow-lg [--anchor-gap:4px] empty:invisible"
+            >
+              {!typed && first.map((choice) => <Choice key={choice.value} choice={choice} />)}
+              {found.slice(0, SHOWN).map((choice) => (
+                <Choice key={choice.value} choice={choice} />
+              ))}
+              {typed && !matched && first.map((choice) => <Choice key={choice.value} choice={choice} />)}
+              {typed && found.length === 0 && (
+                <p aria-hidden className="px-3 py-2 text-sm text-text-muted">
+                  {status}
+                </p>
+              )}
+              {more && (
+                <p aria-hidden className="px-3 py-2 text-xs text-text-muted">
+                  {more}
+                </p>
+              )}
+            </ComboboxOptions>
+            <p role="status" className="sr-only">
+              {open ? [status, more].filter(Boolean).join(' ') : ''}
             </p>
-          )}
-          {more && (
-            <p aria-hidden className="px-3 py-2 text-xs text-text-muted">
-              {more}
-            </p>
-          )}
-        </ComboboxOptions>
+          </>
+        )}
       </Combobox>
-      <p role="status" className="sr-only">
-        {[status, more].filter(Boolean).join(' ')}
-      </p>
     </Field>
   );
 }

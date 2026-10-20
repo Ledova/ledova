@@ -83,32 +83,57 @@ authorises.
 
 ## Choosing a person
 
-Every web register flow that names a person uses one searchable list: register setup and its
-wallet links and opening holdings, Record investor share issue, non-paid issues, transfers,
-employee awards, member invitations and the share-class issue's member. It is `PersonSelect`
-(`dashboard/src/pages/company/register/shared/PersonPicker.tsx`) or, where each row offers its own
-members, `SearchSelect` directly (`dashboard/src/components/SearchSelect.tsx`), built on Headless
-UI's `Combobox`. A dropdown of every person does not scale to a large register, so no flow lists
-people in a native select.
+No web flow lists people in a native select, because a dropdown of every person does not scale to a
+large register. Each one uses a searchable list built on Headless UI's `Combobox`:
 
-- The label sits above a text field. The list opens on focus, so a short list can be browsed, and
-  typing narrows it to the people whose name, address or record reference contains every typed
-  word, ignoring case and accents.
-- Each option is the name, then a muted line with the address, "Award recipient without shares",
-  the flow's own detail (for example the shares held) and, only when two people share a name and
-  address, a short record reference. Assistive technology reads the option as one name joined by
-  " · ".
-- **New person** comes first wherever a flow can add one, whatever is typed.
-- At most 50 matches are listed, with a note giving the total and asking for more of the name. The
-  number of matches, or "No people match …", is announced in a polite status region.
-- Arrow keys and Enter choose, and Escape closes the list without changing the choice. A choice
-  can be replaced but not emptied: clearing the text and leaving the field keeps the last choice,
-  since every flow either starts with **New person** or needs someone. Someone who cannot be
-  chosen, such as a person already added to a register setup draft, stays listed, disabled, with
-  the reason.
-- The people come from one read of the class's members and award recipients, so the search runs in
-  the browser. `peopleFrom`, `personChoices` and `personRequest` are in
+- **`PersonSelect`** (`dashboard/src/pages/company/register/shared/PersonPicker.tsx`) is used where a
+  flow names one person:
+  - register setup's shareholder;
+  - Record investor share issue and non-paid issues;
+  - a transfer's transferor and recipient;
+  - an employee award's recipient;
+  - member invitations.
+
+  These flows read one validated list of the class's members and award recipients (`usePeople`).
+
+- **`SearchSelect`** (`dashboard/src/components/SearchSelect.tsx`) is used directly for the
+  share-class issue's member, read from the class's members alone.
+- **Wallet links and register opening** offer, for each address, the class's holders by a one-line
+  label, then "A member not on the current register" and "New member N" where they apply.
+
+How the list behaves:
+
+- **Opening and searching:**
+  - The label sits above a text field, and the field, its toggle button and the list all carry it.
+  - The list opens on focus, so a short list can be browsed.
+  - Typing narrows it to the entries whose text contains every typed word, ignoring case and
+    accents. For people that text is their name, address and record reference.
+  - Focusing or clicking the field selects its text, so typing replaces it.
+- **What each person shows:** the name, then a muted line with the address, "Award recipient without
+  shares" and the flow's own detail, such as the shares held. A short record reference appears only
+  when two people share a name and address. Assistive technology reads the option as one name
+  joined by " · ".
+- **The first entry:** **New person**, or the share-class issue's "Create a new member through the
+  documentary link", comes first wherever a flow can add someone. It steps aside while a search
+  finds someone and returns when the search finds nobody or is cleared.
+- **Long lists:** at most 50 matches are listed, with a note giving the total. Someone further down
+  is reached by typing more of their name; the full list of people is on Shareholders.
+- **Announcements:** while the list is open, a polite status region announces the number of
+  matches, or "No people match …".
+- **Choosing with the keyboard:**
+  - Enter chooses the highlighted entry: the top match after typing, or the one reached with the
+    arrow keys.
+  - Enter or Tab with no match and no arrow-key move keeps the current choice, and so do Escape and
+    clearing the text before leaving the field.
+  - A choice can be replaced but not emptied, since every flow starts with **New person** or needs
+    someone.
+- **Unavailable people:** someone who cannot be chosen, such as a person already added to a register
+  setup draft, stays listed, disabled, with the reason.
+- **Shared logic:** `peopleFrom`, `personChoices` and `personRequest` are in
   `packages/shared/src/utils/people.ts`, so both clients can use the same list and rules.
+
+These rules are checked in review. The dashboard suite drives the list in register setup (typing a
+name and pressing Enter), a transfer and member invitations.
 
 The mobile app still chooses people from buttons; #1177 brings it to the same standard.
 

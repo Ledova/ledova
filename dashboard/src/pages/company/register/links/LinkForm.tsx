@@ -1,4 +1,3 @@
-import { useMemo } from 'react';
 import { useLinkPreparation, type LinkFormProps, COPY } from './useLinkPreparation';
 
 import { type RegisterCorrectionAuthority } from '@ledova/shared';
@@ -29,7 +28,7 @@ export function LinkForm({
   const { draft, busy, error, ordered, reset, memberOf, labels, problems, update, choose, submit } = useLinkPreparation(
     { owner, guard, company, wallets, registers, appointment, blocked, onRefused, onConflict, onMissing },
   );
-  const memberChoices = useMemo(() => [...labels].map(([value, label]) => ({ value, label })), [labels]);
+  const memberChoices = [...labels].map(([value, label]) => ({ value, label }));
 
   return (
     <form

@@ -1,4 +1,3 @@
-import { useMemo } from 'react';
 import { useOpeningPreparation, type OpeningFormProps, COPY } from './useOpeningPreparation';
 
 import { type RegisterCorrectionAuthority } from '@ledova/shared';
@@ -42,7 +41,7 @@ export function OpeningForm({
     choose,
     submit,
   } = useOpeningPreparation({ owner, guard, company, token, holders, appointment, blocked, onConflict, onMissing });
-  const memberChoices = useMemo(() => [...labels].map(([value, label]) => ({ value, label })), [labels]);
+  const memberChoices = [...labels].map(([value, label]) => ({ value, label }));
 
   return (
     <form
