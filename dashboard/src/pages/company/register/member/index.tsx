@@ -209,7 +209,7 @@ function OwnShareholder({
     );
     content =
       !holdings.length && !former.length && !recorded ? (
-        appointments.isSuccess && !authorised ? (
+        appointments.isSuccess && appointments.fetchStatus === 'idle' && !authorised ? (
           absent
         ) : (
           privately(data.particulars, () => absent)
