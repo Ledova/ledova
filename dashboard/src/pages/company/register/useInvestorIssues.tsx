@@ -32,6 +32,7 @@ export function useInvestorIssues({
   onHeldChange,
   issueMember,
   open,
+  kept,
   onClosed,
 }: {
   owner: OrderSubmissionOwner;
@@ -43,6 +44,7 @@ export function useInvestorIssues({
   onHeldChange?: (token: string, held: boolean) => void;
   issueMember?: string;
   open: boolean;
+  kept: boolean;
   onClosed: () => void;
 }) {
   const client = useQueryClient();
@@ -65,18 +67,25 @@ export function useInvestorIssues({
       live.current = false;
     };
   }, []);
-  const check = useMemo(
+  const authority = useMemo(
     () => () => {
       guard();
       if (!live.current) throw new Error('This allotment section is no longer open.');
       const state = client.getQueryState(ownAppointmentsKey(owner));
-      if (!sourceAvailable.current || state?.status !== 'success' || state.fetchStatus !== 'idle')
+      if (state?.status !== 'success' || state.fetchStatus !== 'idle')
         throw new Error('Refresh the register and current company appointments.');
       const current = client.getQueryData<OwnCompanyAppointment[]>(ownAppointmentsKey(owner)) ?? [];
       if (!hasCurrentRegisterReadAuthority(current, company))
         throw new Error('A current company register appointment is required.');
     },
     [guard, company, client, owner],
+  );
+  const check = useMemo(
+    () => () => {
+      authority();
+      if (!sourceAvailable.current) throw new Error('Refresh the register and current company appointments.');
+    },
+    [authority],
   );
   const token = register.token.uuid;
   const allotments = useRegisterAllotments(owner, company, token, check, readable && sourceReady);
@@ -120,7 +129,7 @@ export function useInvestorIssues({
     (!issueMember || (members.isSuccess && !members.isFetching))
   )
     setEditing(appointment);
-  if (!open && editing && !formHeld) setEditing(null);
+  if (!kept && editing && !formHeld) setEditing(null);
   useEffect(() => {
     onHeldChange?.(token, held);
     return () => onHeldChange?.(token, false);
@@ -158,7 +167,7 @@ export function useInvestorIssues({
     </>
   );
   const form = editing && (
-    <>
+    <div hidden={!open} className="flex flex-col gap-3">
       <p className="text-sm text-text-muted">{COPY.NOTE}</p>
       {members.isPending ? (
         <p role="status" className="text-sm text-text-muted">
@@ -177,7 +186,7 @@ export function useInvestorIssues({
         </>
       ) : null}
       <AllotmentForm
-        key={`${company}/${token}/${editing.uuid}`}
+        key={`${company}/${token}/${editing.uuid}/${issueMember ?? ''}`}
         company={company}
         token={token}
         people={peopleFrom(members.data)}
@@ -201,12 +210,12 @@ export function useInvestorIssues({
         onRecorded={async () => {
           check();
           await refresh(true);
-          check();
+          authority();
           setEditing(null);
           onClosed();
         }}
       />
-    </>
+    </div>
   );
   const records = (
     <div className="mt-4 flex flex-col gap-3 border-t border-border-subtle pt-4">

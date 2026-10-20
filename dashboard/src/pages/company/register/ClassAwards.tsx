@@ -84,14 +84,18 @@ export function ClassAwards({
     onHeldChange?.(token, held);
   }, [onHeldChange, token, held]);
   useLayoutEffect(() => () => heldCallback.current?.(token, false), [token]);
-  const refresh = (throwOnError = false) =>
-    Promise.all([
-      client.invalidateQueries({ queryKey: awardsKey(owner, token), refetchType: 'none' }),
+  const refresh = async (throwOnError = false) => {
+    await appointments.refetch({ throwOnError });
+    await Promise.all([
+      client.invalidateQueries({
+        queryKey: awardsKey(owner, token),
+        predicate: ({ queryKey }) => queryKey.length > awardsKey(owner, token).length,
+      }),
       awards.refetch({ throwOnError }),
-      appointments.refetch({ throwOnError }),
       client.invalidateQueries({ queryKey: allPeopleKey(owner) }),
       client.invalidateQueries({ queryKey: grantsKey(owner, token) }),
     ]);
+  };
   return (
     <div className="mt-4 flex flex-col gap-3 border-t border-border-subtle pt-4">
       <h3 className="text-sm font-medium text-text-primary">{COPY.TITLE}</h3>
