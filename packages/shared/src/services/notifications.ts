@@ -18,10 +18,8 @@ export const unregisterDeviceToken = (apiClient: AxiosInstance, data: Unregister
   return apiClient.post<void>(DEVICE_TOKEN_ENDPOINTS.UNREGISTER, data);
 };
 
-export const getNotifications = (apiClient: AxiosInstance, page?: number) => {
-  return page === undefined
-    ? apiClient.get<PaginatedResponse<Notification>>(NOTIFICATION_ENDPOINTS.BASE)
-    : apiClient.get<PaginatedResponse<Notification>>(NOTIFICATION_ENDPOINTS.BASE, { params: { page } });
+export const getNotifications = (apiClient: AxiosInstance, page = 1) => {
+  return apiClient.get<PaginatedResponse<Notification>>(NOTIFICATION_ENDPOINTS.BASE, { params: { page } });
 };
 
 export const getUnreadNotificationCount = (apiClient: AxiosInstance) => {

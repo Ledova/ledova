@@ -1343,6 +1343,14 @@ proposal are in #1174, and the owner approved it as recommended:
   and what is pertinent to mobile we will add to this one single git issue". So all mobile work is
   in #1201, #1170 and #1177 closed as duplicates of it, and each step's issue closes when its web
   half lands.
+- **The register's records load in full (21 October 2026).** Asked whether each share class's
+  register records (allotments, transfers, awards, grants, openings, imports, corrections,
+  particulars changes, member links, deployments and member access) should keep loading in full,
+  given each record holds its own recovery for an uncertain reply, the owner chose "Keep in full
+  (Recommended)": "Each share class's register records keep loading completely; they grow only with
+  one company's register decisions. Recorded in the standards as the one stated exception to 'never
+  read a growing list in full', to revisit if registers grow large. Shareholders, applications,
+  notices, the eligibility queue and request histories still page or load more."
 
 ## The signed-in app
 

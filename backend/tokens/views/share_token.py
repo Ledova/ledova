@@ -162,7 +162,7 @@ class ShareTokenViewSet(
         )
         if request.query_params.get("status"):
             issuances = issuances.filter(status=request.query_params["status"])
-        page = self.paginate_queryset(issuances.order_by("-completed_at"))
+        page = self.paginate_queryset(issuances.order_by("-completed_at", "-uuid"))
         return self.get_paginated_response(ShareIssuanceListSerializer(page, many=True).data)
 
     @extend_schema(responses=ShareTokenListSerializer(many=True))
