@@ -122,9 +122,10 @@ kind of issue?**:
 - **Investor issue** opens the external allotment form.
 - **Non-paid issue** opens the non-paid grant form, in place.
 
-The class's Investor issues and Non-paid issues are listed under the form, each with its stage and
-next action. For a deployed class the task links to Share class settings, where chain grants and paid
-issues stay.
+Switching between the two keeps what was entered in each form until the issue form is closed or an
+issue is prepared. The class's Investor issues and Non-paid issues are listed under the form, each
+with its stage and next action. For a deployed class the task links to Share class settings, where
+chain grants and paid issues stay.
 
 ### What each record changes
 
