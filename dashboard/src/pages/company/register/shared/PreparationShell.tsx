@@ -3,16 +3,8 @@ import type { useUserPreferences } from '@ledova/shared';
 import { Page, PageAction } from '@components/Page';
 import { Loading, Unavailable } from '@pages/company/shared/RegisterStatus';
 
-export function PreparationBack({
-  onClick,
-  label = 'Back to Register',
-  disabled,
-}: {
-  onClick: () => void;
-  label?: string;
-  disabled?: boolean;
-}) {
-  return <PageAction label={label} disabled={disabled} onClick={onClick} />;
+export function PreparationBack({ onClick, label = 'Back to Register' }: { onClick: () => void; label?: string }) {
+  return <PageAction label={label} onClick={onClick} />;
 }
 
 export function PreparationPreferences({ preferences }: { preferences: ReturnType<typeof useUserPreferences> }) {

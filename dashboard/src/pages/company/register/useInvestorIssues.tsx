@@ -276,5 +276,5 @@ export function useInvestorIssues({
       </ul>
     </div>
   );
-  return { setup, form, records, held, blocked, prepare: !!appointment && supported && privateReady };
+  return { setup, form, records, held, prepare: !!appointment && supported };
 }

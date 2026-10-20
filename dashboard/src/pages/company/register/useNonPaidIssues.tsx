@@ -155,7 +155,7 @@ export function useNonPaidIssues({
       if (awardUuid) void award.refetch();
     }
   };
-  const form = open && (
+  const form = (open || formHeld) && (
     <>
       <p className="text-sm text-text-muted">{awardUuid ? AWARD_NOTE : COPY.NOTE}</p>
       {stale ? (

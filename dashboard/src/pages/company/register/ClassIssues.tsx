@@ -89,7 +89,7 @@ export function ClassIssues({
             legend="What kind of issue?"
             options={KINDS}
             value={kind}
-            disabled={investor.blocked || held}
+            disabled={held}
             onChange={(next) => {
               setKind(next);
               setAward(undefined);

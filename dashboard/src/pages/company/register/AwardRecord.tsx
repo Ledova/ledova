@@ -310,6 +310,7 @@ export function AwardRecord({
                 <LinkRow
                   key={grant.uuid}
                   label={`${shareCount(grant.shares)}, prepared ${formatDateTime(grant.createdAt)}`}
+                  context={`issue from the award for ${award.name}`}
                   to={DESTINATIONS.companyRegister.path}
                   state={{ registerCompany: award.company, registerToken: award.token, registerRecord: grant.uuid }}
                   aside={

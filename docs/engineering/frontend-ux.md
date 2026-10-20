@@ -188,6 +188,7 @@ answers. It asks for:
 - the authority for a correction, wallet link or register opening;
 - whether a mirrored allotment is held for someone else;
 - a new share class's type;
+- the kind of issue on Register's Issue shares task, which opens that kind's form in place;
 - the requested state of a pause change;
 - the exemption an offering relies on;
 - a company eligibility decision's outcome and a wallet instruction's action;

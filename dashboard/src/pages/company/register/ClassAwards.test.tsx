@@ -227,6 +227,7 @@ it('retains original award, vesting and linked issue preparations through interr
   view.unmount();
   const post = api.post.getMockImplementation()!;
   let retainedGrant: RegisterGrant | null = null;
+  let slowGrants = false;
   let preferencesFailed = false;
   let listed = true;
   let effectCount = 0;
@@ -257,7 +258,10 @@ it('retains original award, vesting and linked issue preparations through interr
         },
       };
     if (url === URLS.REGISTER_LINK_WAITING_WALLETS) return { data: { wallets: [] } };
-    if (url === URLS.REGISTER_GRANTS) return { data: { results: retainedGrant ? [retainedGrant] : [], next: null } };
+    if (url === URLS.REGISTER_GRANTS) {
+      if (slowGrants) await new Promise((resolve) => setTimeout(resolve, 40));
+      return { data: { results: retainedGrant ? [retainedGrant] : [], next: null } };
+    }
     if (awards.some((award) => url === URLS.REGISTER_AWARD(award.uuid)))
       return { data: awards.find((award) => url === URLS.REGISTER_AWARD(award.uuid)) };
     if (
@@ -445,9 +449,11 @@ it('retains original award, vesting and linked issue preparations through interr
   await issues.findByRole('alert');
   expect(submissions(URLS.REGISTER_GRANTS)).toEqual([original]);
   retainedGrant = retainedReceipt;
+  slowGrants = true;
   fireEvent.click(recover);
   await issues.findByText('Next: review and approve the exact share issue.');
-  expect(issues.queryByRole('button', { name: 'Recover original grant preparation' })).toBeNull();
+  await waitFor(() => expect(issues.queryByRole('button', { name: 'Recover original grant preparation' })).toBeNull());
+  slowGrants = false;
   expect(submissions(URLS.REGISTER_GRANTS)).toEqual([original]);
   expect(submissions(URLS.REGISTER_EVIDENCE)).toHaveLength(3);
   awards = [retainedAward];
@@ -458,7 +464,9 @@ it('retains original award, vesting and linked issue preparations through interr
   expect(screen.getByText('Non-paid issues from this award · 1')).toBeTruthy();
   fireEvent.click(screen.getByRole('link', { name: /^10 shares, prepared/, hidden: true }));
   await waitFor(() =>
-    expect(document.activeElement?.textContent).toContain('Next: review and approve the exact share issue.'),
+    expect(document.activeElement).toBe(
+      issues.getByText('Next: review and approve the exact share issue.').closest('li'),
+    ),
   );
   expect(screen.queryByRole('button', { name: /^Record issue [(]grant/ })).toBeNull();
   for (const label of ['Approve', 'Record issue']) {
