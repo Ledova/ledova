@@ -4,6 +4,7 @@ import {
   getCompanyTokens,
   REGISTER_COPY,
   REGISTER_IMPORT_COPY,
+  TECHNICAL_SHARE_LIMIT,
   COMPANY_TOKEN_ENDPOINTS as URLS,
   USER_PREFERENCES_QUERY_KEY,
   type RegisterImportPreparation,
@@ -237,7 +238,7 @@ it('sets up an appointed company without issuing shares, recovers uncertain clas
     name: 'Class A',
     tokenType: 'ordinary',
     tokenTypeDisplay: 'Ordinary',
-    totalSupply: '1000',
+    totalSupply: TECHNICAL_SHARE_LIMIT,
     status: 'draft',
     statusDisplay: 'Draft',
     contractAddress: null,
@@ -299,7 +300,6 @@ it('sets up an appointed company without issuing shares, recovers uncertain clas
   for (const [label, value] of [
     ['Class name', 'Class A'],
     ['Class code', 'A'],
-    ['Technical share limit', '1000'],
   ])
     await fireEvent.changeText(setup.getByLabelText(label), value);
   jest.mocked(apiClient.post).mockRejectedValueOnce({ response: { status: 503 } });
@@ -308,7 +308,13 @@ it('sets up an appointed company without issuing shares, recovers uncertain clas
   expect(apiClient.post).toHaveBeenCalledTimes(1);
   expect(apiClient.post).toHaveBeenCalledWith(
     URLS.BASE,
-    { company: shareClass.companyUuid, name: 'Class A', symbol: 'A', tokenType: 'ordinary', totalSupply: '1000' },
+    {
+      company: shareClass.companyUuid,
+      name: 'Class A',
+      symbol: 'A',
+      tokenType: 'ordinary',
+      totalSupply: TECHNICAL_SHARE_LIMIT,
+    },
     { ledovaSessionEpoch: getSessionEpoch(), ledovaSubmissionGuard: expect.any(Function) },
   );
   const setupRead = read;

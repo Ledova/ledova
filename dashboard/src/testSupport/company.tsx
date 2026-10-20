@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { render } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { PageTitle } from '@components/PageTitle';
@@ -13,6 +13,21 @@ import {
   type AccountRole,
   type UserPreferences,
 } from '@ledova/shared';
+
+globalThis.ResizeObserver ??= class {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+};
+
+export async function choose(label: string, option: string, search = option) {
+  const input = (await screen.findByRole('combobox', { name: label })) as HTMLInputElement;
+  await waitFor(() => {
+    if (input.disabled) throw new Error(`${label} is disabled`);
+  });
+  fireEvent.change(input, { target: { value: search } });
+  fireEvent.mouseDown(await screen.findByRole('option', { name: (name) => name.startsWith(option) }));
+}
 
 export function companyPreferences(role: AccountRole = 'company'): UserPreferences {
   return {
@@ -81,15 +96,20 @@ export function companyRecord(overrides: Partial<Company> = {}): Company {
   };
 }
 
-export function renderCompanyPage(client: QueryClient, page: ReactNode, title: string) {
+export function renderCompanyPage(
+  client: QueryClient,
+  page: ReactNode,
+  title: string,
+  { entry = '/', path = '/' }: { entry?: string; path?: string } = {},
+) {
   if (!client.getQueryState(AUTH_QUERY_KEY)) prepareCompanyClient(client);
   return render(
     <QueryClientProvider client={client}>
       <ApiClientProvider client={apiClient}>
-        <MemoryRouter>
+        <MemoryRouter initialEntries={[entry]}>
           <PageTitle.Provider value={title}>
             <Routes>
-              <Route path="/" element={page} />
+              <Route path={path} element={page} />
               <Route path={DESTINATIONS.company.path} element={<p>Company page</p>} />
               <Route path={DESTINATIONS.companyRegister.path} element={<p>Register page</p>} />
             </Routes>

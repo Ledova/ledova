@@ -224,8 +224,8 @@ reply never acts for the new one
 
 On the web, the sidebar shows:
 
-- Company, for a person who can read a company's register: Dashboard, Register, Employee awards
-  and Documents. Personal holds Your shares.
+- Company, for a person who can read a company's register: Dashboard, Register, Shareholders,
+  Employee awards and Documents. Personal holds Your shares.
 - For everyone else: Dashboard and Documents, both personal.
 - Configuration: Settings ([Profile and Settings](participants.md#profile-and-settings)).
 - More: Notices and Activity; for investing accounts an Invest group with Directory, Applications,
@@ -241,8 +241,10 @@ complete, a personal administrator also sees **Getting started**: **Verify and a
 company** ([activation](companies.md#activation-and-the-registry-check)) and **Set up your share
 register** ([register setup](register.md#bringing-in-existing-records)), each marked To do or Done.
 Register setup reads Done once the register of the company shown is opened, not when a class is
-merely created, and it does not wait for activation. Someone who can prepare the register but is not an administrator is
-pointed to Register instead. On mobile, an Activate card on the Register tab links to activation.
+merely created, and it does not wait for activation. Someone who can prepare the register but is
+not an administrator is pointed to Register instead. On mobile, the Register tab opens with the
+same line and shows Getting started to an administrator of the company shown, judging register
+setup by that company's register.
 
 Once a register exists, the Dashboard shows the selected company's recorded ownership: issued
 shares, current shareholders (each person counted once across classes) and the number of share

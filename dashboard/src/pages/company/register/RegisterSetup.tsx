@@ -21,13 +21,13 @@ export function RegisterSetup({ owner, guard }: { owner: OrderSubmissionOwner; g
   );
   if (!canPrepare) return <p className="py-3 text-sm text-text-muted">{REGISTER_COPY.NO_REGISTER}</p>;
   return (
-    <Section title="Set up your share register">
+    <Section title={REGISTER_IMPORT_COPY.SETUP}>
       <p className="text-sm text-text-muted">{REGISTER_IMPORT_COPY.MIRROR_NOTE}</p>
       <Link
         to={DESTINATIONS.companyRegisterSetup.path}
         className="mt-2 inline-flex w-fit rounded-lg bg-brand-mid px-4 py-2 text-sm font-medium text-white hover:bg-brand"
       >
-        Set up your share register
+        {REGISTER_IMPORT_COPY.SETUP}
       </Link>
     </Section>
   );

@@ -13,6 +13,7 @@ import {
   BookOpenIcon,
   FilesIcon,
   UsersIcon,
+  UsersThreeIcon,
 } from '@phosphor-icons/react';
 import { DESTINATIONS, useFeatureFlags, type DestinationKey } from '@ledova/shared';
 import { ICON_MD } from './iconSizes';
@@ -44,6 +45,7 @@ interface NavGroup {
 const COMPANY: NavItem[] = [
   { destination: 'companyDashboard', icon: HouseIcon },
   { destination: 'companyRegister', icon: BookOpenIcon },
+  { destination: 'companyRegister', hash: 'shareholders', label: 'Shareholders', icon: UsersThreeIcon },
   { destination: 'companyRegister', hash: 'awards', label: 'Employee awards', icon: UsersIcon },
   { destination: 'companyRegister', hash: 'documents', label: 'Documents', icon: FilesIcon },
 ];
@@ -141,9 +143,11 @@ export function Sidebar({ onNavigate, withNotifications = false }: SidebarProps 
   ];
 
   const allItems = [...groups, ...secondaryGroups].flatMap((group) => group.items);
+  const shareholderPage = location.pathname.startsWith(`${DESTINATIONS.companyRegister.path}/members/`);
   const activePath = allItems
     .map(itemPath)
     .filter((path) => {
+      if (shareholderPage) return path === `${DESTINATIONS.companyRegister.path}#shareholders`;
       const [pathname, hash] = path.split('#');
       return (
         (location.pathname === pathname || location.pathname.startsWith(`${pathname}/`)) &&
@@ -181,8 +185,7 @@ export function Sidebar({ onNavigate, withNotifications = false }: SidebarProps 
                       (location.pathname === DESTINATIONS.company.path ||
                         location.pathname === DESTINATIONS.companyListing.path ||
                         location.pathname === DESTINATIONS.companyTeam.path ||
-                        location.pathname === DESTINATIONS.companyAuthority.path ||
-                        (location.pathname === DESTINATIONS.companyRegister.path && location.hash === '#access')))
+                        location.pathname === DESTINATIONS.companyAuthority.path))
                   }
                   onSelect={handleNav}
                 />

@@ -37850,6 +37850,14 @@
             }
           },
           {
+            "in": "query",
+            "name": "member",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
             "description": "A page number within the paginated result set.",
             "in": "query",
             "name": "page",

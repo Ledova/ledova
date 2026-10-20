@@ -1,4 +1,9 @@
-import { DESTINATIONS, companiesAwaitingActivation, getUserVerificationStatus } from '@ledova/shared';
+import {
+  DESTINATIONS,
+  IDENTITY_CHECK_COPY,
+  companiesAwaitingActivation,
+  getUserVerificationStatus,
+} from '@ledova/shared';
 import { LinkRow, Section, Status } from '@components/Ledger';
 import { ActivationStep } from '@components/SetupStep';
 import { VERIFICATION_TONES } from '@components/statusTones';
@@ -17,12 +22,12 @@ export function Verification() {
         {administers && <ActivationStep done={companiesAwaitingActivation(own).length === 0} />}
         <LinkRow
           to={DESTINATIONS.userProfile.path}
-          label="Verify your identity"
+          label={IDENTITY_CHECK_COPY.STEP}
           aside={
             userProfile && <Status tone={VERIFICATION_TONES.get(identity.type) ?? 'waiting'}>{identity.label}</Status>
           }
         >
-          <p className="text-text-muted">Your identity check, used where activation or eligibility requires it.</p>
+          <p className="text-text-muted">{IDENTITY_CHECK_COPY.NOTE}</p>
         </LinkRow>
       </div>
     </Section>

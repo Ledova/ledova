@@ -58,8 +58,8 @@ investment eligibility ([decision](../decisions.md#member-invitations-and-accoun
 
 ### Inviting a member
 
-1. A company administrator opens **Member access and requests**: on web from **Settings**, **Member
-   access**; on mobile under **Company**.
+1. A company administrator opens **Member access and requests**: on web on **Shareholders**, or with
+   **Invite to their records** on a shareholder's page; on mobile under **Company**.
 2. Under **Invite a member**, they choose a named member or award recipient (who can be invited
    before any shares are issued, and sees their own award), enter the recipient's email and choose
    **Create member invitation**.

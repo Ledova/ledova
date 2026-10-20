@@ -34,6 +34,7 @@ from tokens.services.register_decisions import DecisionFamily, decide, preview
 from tokens.services.register_events import (
     company_event_requirements,
     create_member,
+    matching_particulars,
     record_entry,
 )
 from tokens.services.register_evidence import (
@@ -291,11 +292,7 @@ def prepare_transfer(
                 raise ValidationError("Choose an identified transferor of this company's register.")
             recipient = particulars.get(to_member)
             if recipient is not None:
-                if (name and name.strip() != recipient.name) or (
-                    residential_address and residential_address.strip() != recipient.residential_address
-                ):
-                    raise ValidationError("An existing member's identity must match the retained particulars.")
-                name, residential_address = recipient.name, recipient.residential_address
+                name, residential_address = matching_particulars(recipient, name, residential_address)
             values.update(
                 name=_text(name, "recipient name", 255),
                 residential_address=_text(residential_address, "residential address", REGISTER_IMPORT_ADDRESS_LENGTH),

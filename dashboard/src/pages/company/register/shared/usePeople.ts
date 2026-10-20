@@ -3,11 +3,15 @@ import { getRegisterTransferMembers, isRegisterImportMembers, type OrderSubmissi
 import apiClient from '@services/apiClient';
 import { READ_TIMING, registerKey } from '@hooks/useRegisterAccess';
 
-export function importMembersKey(owner: OrderSubmissionOwner, company: string, token: string) {
-  return [...registerKey(owner), 'import-members', company, token];
+export function allPeopleKey(owner: OrderSubmissionOwner) {
+  return [...registerKey(owner), 'people'];
 }
 
-export async function readImportMembers(token: string, guard: () => void) {
+export function peopleKey(owner: OrderSubmissionOwner, token: string) {
+  return [...allPeopleKey(owner), token];
+}
+
+export async function readPeople(token: string, guard: () => void) {
   guard();
   const { data } = await getRegisterTransferMembers(apiClient, token, { ledovaSubmissionGuard: guard });
   guard();
@@ -16,17 +20,11 @@ export async function readImportMembers(token: string, guard: () => void) {
   return data;
 }
 
-export function useImportMembers(
-  owner: OrderSubmissionOwner,
-  company: string,
-  token: string,
-  guard: () => void,
-  enabled = true,
-) {
+export function usePeople(owner: OrderSubmissionOwner, token: string, guard: () => void, enabled = true) {
   return useQuery({
-    queryKey: importMembersKey(owner, company, token),
+    queryKey: peopleKey(owner, token),
     enabled,
-    queryFn: () => readImportMembers(token, guard),
+    queryFn: () => readPeople(token, guard),
     ...READ_TIMING,
   });
 }

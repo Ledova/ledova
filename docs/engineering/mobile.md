@@ -5,7 +5,7 @@
 How the Expo React Native app consumes the shared package, navigates, themes itself, reaches the
 network and stores secrets, and how scanners, provider web views and temporary files respond to
 focus, app lock and session changes. Shared page conventions are in
-[signed-in page conventions](frontend.md#signed-in-page-conventions); builds, probes and device
+[signed-in page conventions](frontend-ux.md#signed-in-page-conventions); builds, probes and device
 checks in [mobile releases](mobile-releases.md). Use a Ledova native build; Expo Go lacks its
 networking overrides and scanner module.
 
@@ -48,11 +48,12 @@ operator and publication-list reads and shared register helpers live in `package
 native session, result and transport policies kept in the client. The native certifier labels live
 in `mobile/src/config/investorEligibility.ts`; register reads remain per client.
 
-`mobile/src/components/company/CreateClassForm.tsx` is used by Company details and Register.
-Its controller, `mobile/src/hooks/useCreateRegisterClass.ts`, owns creation, captured appointment,
-company and session guards, and read-only receipt recovery. An uncertain request stays held without
-another POST. Empty-opening preparation checks current class and register metadata; the business
-rules are in [register setup](../business/register.md#bringing-in-existing-records).
+`mobile/src/screens/company-register/CreateClassForm.tsx` creates a class from the Register tab,
+always with the internal quantity guard (`TECHNICAL_SHARE_LIMIT`). Its controller,
+`useCreateRegisterClass.ts` beside it, owns creation, captured appointment, company and session
+guards, and read-only receipt recovery. An uncertain request stays held without another POST.
+Empty-opening preparation checks current class and register metadata; the business rules are in
+[register setup](../business/register.md#bringing-in-existing-records).
 
 ### Shared package resolution
 

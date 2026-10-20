@@ -34,11 +34,11 @@ issue ([the register](register.md#the-register-and-the-companys-records)).
 The class-creation API requires a current personal company administrator or preparer appointment,
 rechecked under the company lock. Ownership or platform staff status alone supplies no authority.
 [Register setup](register.md#bringing-in-existing-records) on web and mobile lists companies from those
-appointments, including a preparer who is not the owner. On the web, classes are created only
-through that setup on the Register page (**Set up your share register**, then **Add share class**).
-On mobile, the Company screen keeps its administration boundary, lists scoped register classes and
-lets a current personal administrator create a class.
-Creation records no shares and no legal registration. The technical
+appointments, including a preparer who is not the owner. Classes are created only through that
+setup in Register: on the web **Set up your share register**, then **Add share class**; on mobile
+**Set up your share register** in Getting started or **Create share class** on the Register tab.
+Every class created there carries the internal quantity guard as its technical share limit, with
+no custom limit. Creation records no shares and no legal registration. The technical
 limit is not statutory authorised capital; the class code and type do not define its economic rights.
 Class codes are one to five letters, unique within the company, and may not reuse a
 reserved asset symbol. Neither a company nor a class can be deleted through the app: a company that
@@ -158,8 +158,8 @@ wallet or chain transaction.
 
 1. Under Employee awards, open the class's Non-paid share issues and choose Prepare a non-paid
    grant, or choose Issue vested shares on an award.
-2. Choose an existing member, or give a new member's name and residential address; names never link
-   an account.
+2. Choose who receives the shares ([choosing a person](register.md#choosing-a-person)), or New person
+   with their name and residential address; names never link an account.
 3. Give the shares, the company issue date, the separate date of the terms, the non-paid terms, the
    approving director, the authority reference and the reason, and upload the authority document,
    the terms document and any acceptance the terms require.
@@ -193,8 +193,8 @@ remaining quantities. The web chart keeps the original promise as its total, inc
 | Unvested remaining        | Promise less net vesting and ended unvested rights                             |
 | Remaining unissued        | Promise less issued shares and both ended pools                                |
 
-1. Choose Employee awards, then Record an employee award on the class. Choose a new or existing
-   recipient and give the promised shares, the agreement date and terms, the recorded vesting
+1. Choose Employee awards, then Record an employee award on the class. Choose the recipient
+   ([choosing a person](register.md#choosing-a-person)) and give the promised shares, the agreement date and terms, the recorded vesting
    schedule and the agreement document. An award creates no member, entry, holding, issued share or
    certificate entitlement; a new recipient keeps the member ID their first grant will use.
 2. Choose Record vesting on the award for a company-confirmed event with its shares, date and
@@ -246,7 +246,8 @@ No deployment, application, payment or chain receipt is involved.
 
 1. On Register, choose Record investor share issue and the class, then Prepare an external
    allotment.
-2. Person and shares: choose a member or record a new investor's particulars, then give the shares
+2. Person and shares: choose who receives the shares, or New person with their particulars
+   ([choosing a person](register.md#choosing-a-person)), then give the shares
    and the full consideration in AUD.
 3. Agreement and company receipt: give the external agreement reference, date, terms and document,
    and separately the amount received, the date and the receipt evidence.

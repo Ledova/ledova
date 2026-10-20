@@ -1,6 +1,12 @@
-import { registerImportMoney, type RegisterTransferMember, type RegisterAwardRecipient } from '@ledova/shared';
+import {
+  registerImportMoney,
+  type RegisterTransferMember,
+  type RegisterAwardRecipient,
+  peopleFrom,
+} from '@ledova/shared';
 import { FIELD_CLASS, LABEL } from '@components/fieldClass';
 import { PageAction } from '@components/Page';
+import { PersonFields, PersonSelect } from '@pages/company/register/shared/PersonPicker';
 import { blankAllotment, type AllotmentDraft, type MemberDraft } from './preparation';
 
 export function MemberFields({
@@ -22,6 +28,7 @@ export function MemberFields({
   preserveParticulars: boolean;
   usedMembers: string[];
 }) {
+  const people = peopleFrom({ members: companyMembers, awardRecipients });
   const known = companyMembers.find((member) => member.member === row.member);
   const recipient = awardRecipients.find((candidate) => candidate.member === row.member);
   const retained = known ?? recipient;
@@ -32,87 +39,41 @@ export function MemberFields({
   return (
     <fieldset className="space-y-5">
       <legend className="sr-only">Shareholder details</legend>
-      {(companyMembers.length > 0 || awardRecipients.length > 0) && (
-        <label className={LABEL}>
-          Company shareholder
-          <select
-            className={FIELD_CLASS}
-            value={retained?.member ?? (row.identityChoice === 'new' ? 'new' : '')}
-            onChange={(event) => {
-              if (event.target.value === 'new')
+      {people.length > 0 && (
+        <PersonSelect
+          label="Company shareholder"
+          people={people}
+          value={retained?.member ?? (row.identityChoice === 'new' ? 'new' : '')}
+          disabledMembers={usedMembers}
+          onChange={(value) => {
+            if (value === 'new')
+              update({
+                member: retained ? crypto.randomUUID() : row.member,
+                identityChoice: 'new',
+                ...(retained ? { name: '', residentialAddress: '' } : {}),
+              });
+            else {
+              const selected = people.find((person) => person.member === value);
+              if (selected && !usedMembers.includes(selected.member))
                 update({
-                  member: retained ? crypto.randomUUID() : row.member,
-                  identityChoice: 'new',
-                  ...(retained ? { name: '', residentialAddress: '' } : {}),
+                  member: selected.member,
+                  identityChoice: selected.awardOnly ? 'award' : 'existing',
+                  name: selected.name,
+                  residentialAddress: selected.residentialAddress,
                 });
-              else {
-                const selected = [...companyMembers, ...awardRecipients].find(
-                  (member) => member.member === event.target.value,
-                );
-                if (selected && !usedMembers.includes(selected.member))
-                  update({
-                    member: selected.member,
-                    identityChoice: awardRecipients.some((candidate) => candidate.member === selected.member)
-                      ? 'award'
-                      : 'existing',
-                    name: selected.name ?? '',
-                    residentialAddress: selected.residentialAddress ?? '',
-                  });
-              }
-            }}
-          >
-            <option value="">Choose a recorded person or a new shareholder</option>
-            {companyMembers.map((member) => (
-              <option key={member.member} value={member.member} disabled={usedMembers.includes(member.member)}>
-                {member.name || 'Name not recorded'}
-                {member.residentialAddress && ` · ${member.residentialAddress}`}
-                {companyMembers.filter(
-                  (other) => other.name === member.name && other.residentialAddress === member.residentialAddress,
-                ).length > 1 && ` · Record ${member.member.slice(-8)}`}
-              </option>
-            ))}
-            {awardRecipients.length > 0 && (
-              <optgroup label="Award recipients without registered shares">
-                {awardRecipients.map((candidate) => (
-                  <option
-                    key={candidate.member}
-                    value={candidate.member}
-                    disabled={usedMembers.includes(candidate.member)}
-                  >
-                    {candidate.name} · {candidate.residentialAddress} · Award recipient
-                    {awardRecipients.filter(
-                      (other) =>
-                        other.name === candidate.name && other.residentialAddress === candidate.residentialAddress,
-                    ).length > 1 && ` · Record ${candidate.member.slice(-8)}`}
-                  </option>
-                ))}
-              </optgroup>
-            )}
-            <option value="new">New company shareholder</option>
-          </select>
-        </label>
+            }
+          }}
+        />
       )}
       <div className="grid gap-3 sm:grid-cols-2">
-        <label className={LABEL}>
-          Name
-          <input
-            value={row.name}
-            readOnly={!!recipient || (preserveParticulars && !!known?.name)}
-            maxLength={255}
-            className={`${FIELD_CLASS} read-only:bg-surface-tertiary read-only:text-text-muted`}
-            onChange={(event) => update({ name: event.target.value })}
-          />
-        </label>
-        <label className={LABEL}>
-          Address
-          <input
-            value={row.residentialAddress}
-            readOnly={!!recipient || (preserveParticulars && !!known?.residentialAddress)}
-            maxLength={1000}
-            className={`${FIELD_CLASS} read-only:bg-surface-tertiary read-only:text-text-muted`}
-            onChange={(event) => update({ residentialAddress: event.target.value })}
-          />
-        </label>
+        <PersonFields
+          name={row.name}
+          residentialAddress={row.residentialAddress}
+          onName={(name) => update({ name })}
+          onResidentialAddress={(residentialAddress) => update({ residentialAddress })}
+          nameReadOnly={!!recipient || (preserveParticulars && !!known?.name)}
+          addressReadOnly={!!recipient || (preserveParticulars && !!known?.residentialAddress)}
+        />
         <label className={LABEL}>
           Date first added to register
           <input

@@ -11,6 +11,7 @@ import {
   REGISTER_COPY,
   REGISTER_PARTICULARS_COPY,
   HOLDER_TYPE_LABELS,
+  TECHNICAL_SHARE_LIMIT,
   formatDate,
   USER_PREFERENCES_QUERY_KEY,
   USER_PREFERENCES_ENDPOINTS,
@@ -29,12 +30,13 @@ import type { ReactNode } from 'react';
 import { Link, MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import CompanyRegisterPage from '.';
+import CompanyShareholderPage from './member';
 import CompanyDashboardPage from '../dashboard';
 import { ShareClass } from './detail/ShareClass';
 import CompanyRegisterImportPage from './import';
 import { ImportForm } from './import/ImportForm';
 import { useNewShareClass } from './import/useNewShareClass';
-import { importMembersKey, readImportMembers } from './import/useImportMembers';
+import { peopleKey, readPeople } from './shared/usePeople';
 import {
   blankAllotment,
   blankMember,
@@ -44,6 +46,7 @@ import {
 } from './import/preparation';
 import { APPOINTMENT as CURRENT_APPOINTMENT } from '../../../testSupport/company';
 import {
+  choose,
   companyRecord,
   companyPreferences,
   prepareCompanyClient,
@@ -130,10 +133,15 @@ function noCommands(url: string) {
     : null;
 }
 
-function show(role: AccountRole = 'company', content: ReactNode = <CompanyRegisterPage />, title = 'Register') {
+function show(
+  role: AccountRole = 'company',
+  content: ReactNode = <CompanyRegisterPage />,
+  title = 'Register',
+  route?: { entry?: string; path?: string },
+) {
   prepareCompanyClient(client, role);
   client.setQueryData(['userAccount'], { data: { role } });
-  return renderCompanyPage(client, content, title);
+  return renderCompanyPage(client, content, title, route);
 }
 
 function readUrls() {
@@ -214,7 +222,7 @@ it('reads every class page and groups exact holdings by member identity with sea
         : page([harbour('ordinary')], 'https://example.test/tokens/register/?page=2');
     return noCommands(url) ?? { data: url.includes('preference') ? preference : ordinary };
   });
-  show();
+  show('company', <CompanyRegisterPage />, 'Register', { entry: '/#shareholders' });
   const table = await screen.findByRole('table', { name: 'Company shareholders' });
   expect(api.get).toHaveBeenCalledWith(REGISTER, {
     params: { page: 1 },
@@ -225,11 +233,18 @@ it('reads every class page and groups exact holdings by member identity with sea
     ledovaSubmissionGuard: expect.any(Function),
   });
   expect(screen.queryByLabelText('Company')).toBeNull();
-  expect(screen.getAllByRole('heading', { name: 'Shareholders' })).toHaveLength(1);
+  expect(screen.getByRole('heading', { level: 1, name: 'Shareholders' })).toBeTruthy();
+  expect(screen.getByRole('heading', { name: 'Current shareholders' })).toBeTruthy();
+  expect(screen.getByRole('heading', { name: 'Member access and requests' })).toBeTruthy();
   for (const name of ['Record investor share issue', 'Transfer shares', 'History'])
-    expect(screen.getByRole('button', { name })).toBeTruthy();
-  expect(screen.queryByRole('heading', { name: /^Ordinary shares ·/ })).toBeNull();
-  expect(screen.queryByRole('heading', { name: /^Preference shares ·/ })).toBeNull();
+    expect(screen.queryByRole('button', { name })).toBeNull();
+  const formerSection = screen.getByRole('heading', { name: 'Former shareholders' }).closest('section')!;
+  expect(within(formerSection).getByRole('heading', { name: /^Ordinary shares ·/ })).toBeTruthy();
+  expect(within(formerSection).queryByRole('heading', { name: /^Preference shares ·/ })).toBeNull();
+  expect(within(formerSection).getByText(`${REGISTER_COPY.FORMER_TITLE} · 1`)).toBeTruthy();
+  expect(within(formerSection).getByRole('link', { name: 'Details (Departed Shareholder)' }).getAttribute('href')).toBe(
+    '/company/register/members/former-member-private?company=harbour',
+  );
   expect(screen.queryByRole('button', { name: 'Download CSV' })).toBeNull();
   expect(within(table).getAllByRole('row')).toHaveLength(11);
   const namesakes = within(table).getAllByRole('row', { name: /Example Member/ });
@@ -244,33 +259,13 @@ it('reads every class page and groups exact holdings by member identity with sea
   expect(within(table).queryByText('Zed Member09')).toBeNull();
   expect(screen.queryByText(`0x${'1'.repeat(40)} · Active`)).toBeNull();
 
-  fireEvent.click(within(namesakes[0]).getByRole('button', { name: 'Details (Example Member)' }));
-  const details = await screen.findByRole('dialog', { name: 'Example Member' });
-  expect(within(details).getAllByText('9,007,199,254,740,993')).toHaveLength(2);
-  for (const [name, date] of [
-    [/^Ordinary shares ·/, '2026-09-01'],
-    [/^Preference shares ·/, '2026-09-03'],
-  ] as const) {
-    const holding = within(details).getByRole('heading', { name }).closest('section')!;
-    expect(within(holding).getByText(formatDate(date))).toBeTruthy();
-    expect(within(holding).getByText(HOLDER_TYPE_LABELS.member)).toBeTruthy();
-    expect(within(holding).getByText(`0x${'1'.repeat(40)} · Active`)).toBeTruthy();
-  }
-  expect(within(details).getByText('Preference Member Name')).toBeTruthy();
-  fireEvent.click(within(details).getByRole('button', { name: 'Close' }));
-  await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
-
-  fireEvent.click(within(namesakes[1]).getByRole('button', { name: 'Details (Example Member)' }));
-  const otherDetails = await screen.findByRole('dialog', { name: 'Example Member' });
-  expect(within(otherDetails).getByText('1')).toBeTruthy();
-  expect(within(otherDetails).getByText('<0.01%')).toBeTruthy();
-  expect(within(otherDetails).getByText(HOLDER_TYPE_LABELS.unidentified)).toBeTruthy();
-  expect(within(otherDetails).getByText(REGISTER_COPY.UNIDENTIFIED_NOTE)).toBeTruthy();
-  expect(within(otherDetails).getByText(REGISTER_COPY.NO_WALLET)).toBeTruthy();
-  expect(within(otherDetails).queryByText('9,007,199,254,740,993')).toBeNull();
-  expect(within(otherDetails).queryByRole('heading', { name: /^Preference shares ·/ })).toBeNull();
-  fireEvent.click(within(otherDetails).getByRole('button', { name: 'Close' }));
-  await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+  for (const [row, member] of [
+    [namesakes[0], 'member-one'],
+    [namesakes[1], 'member-two'],
+  ] as const)
+    expect(within(row).getByRole('link', { name: 'Details (Example Member)' }).getAttribute('href')).toBe(
+      `/company/register/members/${member}?company=harbour`,
+    );
 
   const pages = screen.getByRole('navigation', { name: 'Shareholder pages' });
   expect(within(pages).getByRole('button', { name: 'Previous' }).matches(':disabled')).toBe(true);
@@ -354,12 +349,9 @@ it('reads every class page and groups exact holdings by member identity with sea
   expect(within(formerHistory).getByText(former.name)).toBeTruthy();
   expect(within(formerHistory).getByText(former.member!)).toBeTruthy();
   expect(within(formerHistory).getByText(former.walletAddress!)).toBeTruthy();
-  fireEvent.click(within(classNamesakes[0]).getByRole('button', { name: 'Details (Example Member)' }));
-  const classDetails = await screen.findByRole('dialog', { name: 'Example Member' });
-  expect(within(classDetails).getByText('9,007,199,254,740,993')).toBeTruthy();
-  expect(within(classDetails).getByText(formatDate('2026-09-01'))).toBeTruthy();
-  expect(within(classDetails).getByText(`0x${'1'.repeat(40)} · Active`)).toBeTruthy();
-  expect(within(classDetails).queryByRole('link', { name: REGISTER_PARTICULARS_COPY.PREPARE })).toBeNull();
+  expect(within(classNamesakes[0]).getByRole('link', { name: 'Details (Example Member)' }).getAttribute('href')).toBe(
+    '/company/register/members/member-one?company=harbour',
+  );
 
   pauseHolders = true;
   const holderKey = ['token', 'ordinary', 'profile-one', 'account-one', 'holders'];
@@ -368,7 +360,6 @@ it('reads every class page and groups exact holdings by member identity with sea
     refreshing = client.refetchQueries({ queryKey: holderKey, exact: true });
   });
   await waitFor(() => expect(releaseHolders).toBeTypeOf('function'));
-  expect(screen.queryByRole('dialog')).toBeNull();
   expect(screen.queryByRole('table', { name: 'Company shareholders' })).toBeNull();
   expect(screen.queryByText('Example Member')).toBeNull();
   expect(screen.queryByText(`0x${'1'.repeat(40)} · Active`)).toBeNull();
@@ -378,7 +369,6 @@ it('reads every class page and groups exact holdings by member identity with sea
     await refreshing;
   });
   expect(await screen.findByRole('table', { name: 'Company shareholders' })).toBeTruthy();
-  expect(screen.queryByRole('dialog')).toBeNull();
   const refreshedHistory = screen.getByText(`${REGISTER_COPY.FORMER_TITLE} · 1`).closest('details')!;
   expect(refreshedHistory.open).toBe(false);
   fireEvent.click(refreshedHistory.querySelector('summary')!);
@@ -396,16 +386,13 @@ it('reads every class page and groups exact holdings by member identity with sea
         : Promise.resolve(preferenceResponse);
     return classRead(url, config);
   });
-  const refreshedTable = screen.getByRole('table', { name: 'Company shareholders' });
-  fireEvent.click(within(refreshedTable).getAllByRole('button', { name: 'Details (Example Member)' })[0]);
-  expect(await screen.findByRole('dialog', { name: 'Example Member' })).toBeTruthy();
+  expect(screen.getByRole('table', { name: 'Company shareholders' })).toBeTruthy();
   let refreshingPreferences!: Promise<void>;
   act(() => {
     refreshingPreferences = client.refetchQueries({ queryKey: USER_PREFERENCES_QUERY_KEY, exact: true });
   });
   await waitFor(() => expect(refusePreferences).toBeTypeOf('function'));
   expect(screen.queryByRole('table', { name: 'Company shareholders' })).toBeNull();
-  expect(screen.queryByRole('dialog')).toBeNull();
   expect(screen.queryByText('Example Member')).toBeNull();
   expect(screen.queryByText(`0x${'1'.repeat(40)} · Active`)).toBeNull();
   for (const text of [former.name, former.member!, former.walletAddress!]) expect(screen.queryByText(text)).toBeNull();
@@ -416,7 +403,6 @@ it('reads every class page and groups exact holdings by member identity with sea
   expect(client.getQueryState(USER_PREFERENCES_QUERY_KEY)?.status).toBe('error');
   expect(client.getQueryData(USER_PREFERENCES_QUERY_KEY)).toBe(preferenceResponse);
   expect(screen.queryByRole('table', { name: 'Company shareholders' })).toBeNull();
-  expect(screen.queryByRole('dialog')).toBeNull();
   expect(screen.queryByText('Example Member')).toBeNull();
   expect(screen.queryByText(`0x${'1'.repeat(40)} · Active`)).toBeNull();
   for (const text of [former.name, former.member!, former.walletAddress!]) expect(screen.queryByText(text)).toBeNull();
@@ -425,16 +411,13 @@ it('reads every class page and groups exact holdings by member identity with sea
     await client.refetchQueries({ queryKey: USER_PREFERENCES_QUERY_KEY, exact: true });
   });
   expect(await screen.findByRole('table', { name: 'Company shareholders' })).toBeTruthy();
-  expect(screen.queryByRole('dialog')).toBeNull();
   const recoveredHistory = screen.getByText(`${REGISTER_COPY.FORMER_TITLE} · 1`).closest('details')!;
   expect(recoveredHistory.open).toBe(false);
   fireEvent.click(recoveredHistory.querySelector('summary')!);
   expect(recoveredHistory.open).toBe(true);
   pauseHolders = false;
   try {
-    const resumedTable = screen.getByRole('table', { name: 'Company shareholders' });
-    fireEvent.click(within(resumedTable).getAllByRole('button', { name: 'Details (Example Member)' })[0]);
-    expect(await screen.findByRole('dialog', { name: 'Example Member' })).toBeTruthy();
+    expect(screen.getByRole('table', { name: 'Company shareholders' })).toBeTruthy();
     await act(async () => {
       onlineManager.setOnline(false);
       await client.refetchQueries({ queryKey: USER_PREFERENCES_QUERY_KEY, exact: true });
@@ -443,7 +426,6 @@ it('reads every class page and groups exact holdings by member identity with sea
     expect(client.getQueryState(USER_PREFERENCES_QUERY_KEY)?.fetchStatus).toBe('paused');
     expect(client.getQueryData(USER_PREFERENCES_QUERY_KEY)).toBe(preferenceResponse);
     await waitFor(() => expect(screen.queryByRole('table', { name: 'Company shareholders' })).toBeNull());
-    expect(screen.queryByRole('dialog')).toBeNull();
     expect(screen.queryByText('Example Member')).toBeNull();
     expect(screen.queryByText(`0x${'1'.repeat(40)} · Active`)).toBeNull();
     for (const text of [former.name, former.member!, former.walletAddress!])
@@ -451,11 +433,127 @@ it('reads every class page and groups exact holdings by member identity with sea
     await act(async () => onlineManager.setOnline(true));
     await waitFor(() => expect(client.getQueryState(USER_PREFERENCES_QUERY_KEY)?.fetchStatus).toBe('idle'));
     expect(await screen.findByRole('table', { name: 'Company shareholders' })).toBeTruthy();
-    expect(screen.queryByRole('dialog')).toBeNull();
     expect(screen.getByText(`${REGISTER_COPY.FORMER_TITLE} · 1`).closest('details')!.open).toBe(false);
   } finally {
     act(() => onlineManager.setOnline(true));
   }
+
+  cleanup();
+  client.clear();
+  let pauseMemberHolders = false;
+  let releaseMemberHolders!: () => void;
+  let revoked = false;
+  const empty = { data: { results: [], count: 0, next: null, previous: null } };
+  const reader = { ...CURRENT_APPOINTMENT, company: 'harbour', capabilities: ['read_register'] };
+  api.get.mockReset().mockImplementation(async (url: string, config?: { params?: Record<string, unknown> }) => {
+    if (url === REGISTER)
+      return config?.params?.page === 2
+        ? page([harbour('preference')])
+        : page([harbour('ordinary')], 'https://example.test/tokens/register/?page=2');
+    if (url === COMPANY_TOKEN_ENDPOINTS.HOLDERS('ordinary'))
+      return pauseMemberHolders
+        ? new Promise((resolve) => {
+            releaseMemberHolders = () => resolve({ data: ordinary });
+          })
+        : { data: ordinary };
+    if (url === COMPANY_TOKEN_ENDPOINTS.HOLDERS('preference')) return { data: preference };
+    if (url === COMPANY_TOKEN_ENDPOINTS.REGISTER_MEMBERS('ordinary'))
+      return {
+        data: {
+          members: [
+            {
+              member: 'member-one',
+              name: 'Example Member',
+              residentialAddress: '1 Example Street, Sydney NSW 2000',
+              currentShares: '9007199254740993',
+              enteredOn: '2026-09-01',
+              lastCeasedOn: null,
+              walletless: false,
+              particularsRetained: true,
+            },
+          ],
+          awardRecipients: [],
+        },
+      };
+    if (url === COMPANY_TOKEN_ENDPOINTS.REGISTER_ENTRIES('ordinary') && config?.params?.member === 'member-one')
+      return {
+        data: {
+          results: [
+            {
+              uuid: 'entry-one',
+              sequence: 1,
+              kind: 'issue',
+              effectiveOn: '2026-09-01',
+              companyEventOn: '2026-09-01',
+              recordedAt: '2026-09-01T00:00:00Z',
+              changes: [{ member: 'member-one', name: 'Example Member', shares: '9007199254740993' }],
+              corrects: null,
+              correctedBy: null,
+              correctable: true,
+            },
+          ],
+          count: 1,
+          next: null,
+          previous: null,
+        },
+      };
+    if (url === APPOINTMENTS)
+      return revoked ? empty : { data: { results: [reader], count: 1, next: null, previous: null } };
+    if (
+      url === COMPANY_TOKEN_ENDPOINTS.REGISTER_AWARDS ||
+      url.endsWith('/register/entries/') ||
+      url.includes('member-particulars-requests') ||
+      url.includes('member-certificate-requests')
+    )
+      return empty;
+    throw new Error(`Unexpected read ${url}`);
+  });
+  show('company', <CompanyShareholderPage />, 'Shareholder', {
+    entry: '/company/register/members/member-one?company=harbour',
+    path: DESTINATIONS.companyShareholder.path,
+  });
+  expect(await screen.findByRole('heading', { level: 1, name: 'Example Member' })).toBeTruthy();
+  expect(await screen.findByText('1 Example Street, Sydney NSW 2000')).toBeTruthy();
+  for (const [name, date] of [
+    [/^Ordinary shares ·/, '2026-09-01'],
+    [/^Preference shares ·/, '2026-09-03'],
+  ] as const) {
+    const holding = screen.getByRole('heading', { name }).closest('section')!;
+    expect(within(holding).getByText(formatDate(date))).toBeTruthy();
+    expect(within(holding).getByText(HOLDER_TYPE_LABELS.member)).toBeTruthy();
+    expect(within(holding).getByText(`0x${'1'.repeat(40)} · Active`)).toBeTruthy();
+  }
+  expect(screen.getByText('Preference Member Name')).toBeTruthy();
+  expect(await screen.findByText('+9,007,199,254,740,993 shares')).toBeTruthy();
+  for (const token of ['ordinary', 'preference'])
+    expect(api.get).toHaveBeenCalledWith(
+      COMPANY_TOKEN_ENDPOINTS.REGISTER_ENTRIES(token),
+      expect.objectContaining({ params: { member: 'member-one', page: 1 } }),
+    );
+  expect(screen.queryByRole('link', { name: REGISTER_PARTICULARS_COPY.PREPARE })).toBeNull();
+  expect(screen.queryByRole('heading', { name: 'Employee awards' })).toBeNull();
+  pauseMemberHolders = true;
+  let refreshingMember!: Promise<void>;
+  act(() => {
+    refreshingMember = client.refetchQueries({ predicate: ({ queryKey }) => queryKey.includes('holders') });
+  });
+  await waitFor(() => expect(releaseMemberHolders).toBeTypeOf('function'));
+  expect(screen.queryByText('1 Example Street, Sydney NSW 2000')).toBeNull();
+  expect(screen.queryByText(`0x${'1'.repeat(40)} · Active`)).toBeNull();
+  expect(screen.queryByRole('heading', { name: 'Example Member' })).toBeNull();
+  await act(async () => {
+    releaseMemberHolders();
+    await refreshingMember;
+  });
+  expect(await screen.findByText('1 Example Street, Sydney NSW 2000')).toBeTruthy();
+  revoked = true;
+  await act(async () => {
+    await client.refetchQueries({ queryKey: ['company-appointments'] });
+  });
+  await waitFor(() => expect(screen.queryByText('1 Example Street, Sydney NSW 2000')).toBeNull());
+  expect(screen.queryByText('+9,007,199,254,740,993 shares')).toBeNull();
+  expect(screen.getAllByText(/current company register appointment/)).toHaveLength(2);
+  expect(screen.getByRole('heading', { level: 1, name: 'Example Member' })).toBeTruthy();
   expect(api.post).not.toHaveBeenCalled();
 });
 
@@ -565,7 +663,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
     name: 'Ordinary shares',
     symbol: 'ORD',
     tokenType: 'ordinary',
-    totalSupply: (2n ** 256n - 1n).toString(),
+    totalSupply: TECHNICAL_SHARE_LIMIT,
     status: 'draft' as CompanyShareToken['status'],
     contractAddress: null,
     chain: null,
@@ -780,7 +878,9 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   expect(api.post).not.toHaveBeenCalled();
   fireEvent.click(screen.getByRole('button', { name: 'Add a shareholder' }));
   fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Example Shareholder' } });
-  fireEvent.change(screen.getByLabelText('Address'), { target: { value: '1 Example Street, Sydney NSW 2000' } });
+  fireEvent.change(screen.getByLabelText('Residential address'), {
+    target: { value: '1 Example Street, Sydney NSW 2000' },
+  });
   fireEvent.change(screen.getByLabelText('Date first added to register'), { target: { value: '2020-01-01' } });
   fireEvent.change(screen.getByLabelText('Shares held'), { target: { value: '600' } });
   fireEvent.change(screen.getByLabelText('Allotment date'), { target: { value: '2015-01-01' } });
@@ -1231,7 +1331,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   membersUnavailable = true;
   showJourney(DESTINATIONS.companyRegisterSetup.path);
   const retryChoices = await screen.findByRole('button', { name: 'Try again' });
-  expect(screen.queryByLabelText('Company shareholder')).toBeNull();
+  expect(screen.queryByRole('combobox', { name: 'Company shareholder' })).toBeNull();
   membersUnavailable = false;
   fireEvent.click(retryChoices);
   const useExistingDraft = await screen.findByLabelText('Share class');
@@ -1240,11 +1340,19 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   expect(await screen.findByLabelText('Record date')).toBeTruthy();
   fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
   fireEvent.click(screen.getByRole('button', { name: 'Add a shareholder' }));
-  const existing = screen.getByLabelText('Company shareholder');
-  expect((existing as HTMLSelectElement).value).toBe('');
-  fireEvent.change(existing, { target: { value: companyMembers[0].member } });
+  expect((screen.getByRole('combobox', { name: 'Company shareholder' }) as HTMLInputElement).value).toBe('');
+  const shareholder = screen.getByRole('combobox', { name: 'Company shareholder' });
+  fireEvent.change(shareholder, { target: { value: companyMembers[0].name } });
+  await screen.findByRole('option', { name: (name) => name.startsWith(companyMembers[0].name!) });
+  fireEvent.keyDown(shareholder, { key: 'Enter' });
   expect((screen.getByLabelText('Name') as HTMLInputElement).readOnly).toBe(true);
-  expect((screen.getByLabelText('Address') as HTMLInputElement).readOnly).toBe(true);
+  const chosen = screen.getByRole('combobox', { name: 'Company shareholder' });
+  fireEvent.change(chosen, { target: { value: 'nobody matches this' } });
+  await screen.findByRole('option', { name: 'New person' });
+  fireEvent.keyDown(chosen, { key: 'Enter' });
+  fireEvent.keyDown(chosen, { key: 'Escape' });
+  expect((screen.getByLabelText('Name') as HTMLInputElement).readOnly).toBe(true);
+  expect((screen.getByLabelText('Residential address') as HTMLInputElement).readOnly).toBe(true);
   expect((screen.getByLabelText('Date first added to register') as HTMLInputElement).value).toBe('');
   expect((screen.getByLabelText('Shares held') as HTMLInputElement).value).toBe('');
   expect(screen.getByRole('button', { name: 'Add to draft' })).toBeTruthy();
@@ -1266,25 +1374,29 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   };
   fireEvent.click(screen.getByRole('button', { name: 'Add a shareholder' }));
   fireEvent.change(screen.getByLabelText('Name'), { target: { value: companyMembers[0].name } });
-  fireEvent.change(screen.getByLabelText('Address'), { target: { value: companyMembers[0].residentialAddress } });
+  fireEvent.change(screen.getByLabelText('Residential address'), {
+    target: { value: companyMembers[0].residentialAddress },
+  });
   enterHolding();
   fireEvent.click(screen.getByRole('button', { name: 'Add to draft' }));
   expect(screen.getByText(/explicitly choose a new shareholder/)).toBeTruthy();
   expect(api.post).not.toHaveBeenCalled();
-  fireEvent.change(screen.getByLabelText('Company shareholder'), { target: { value: companyMembers[0].member } });
+  await choose('Company shareholder', companyMembers[0].name!);
   expect((screen.getByLabelText('Date first added to register') as HTMLInputElement).value).toBe('2020-01-01');
   expect(screen.getByRole('button', { name: 'Add to draft' })).toBeTruthy();
   fireEvent.click(screen.getByRole('button', { name: 'Cancel (shareholder edit)' }));
   expect(screen.getByText('No shareholders added yet.')).toBeTruthy();
   fireEvent.click(screen.getByRole('button', { name: 'Add a shareholder' }));
-  fireEvent.change(screen.getByLabelText('Company shareholder'), { target: { value: companyMembers[0].member } });
+  await choose('Company shareholder', companyMembers[0].name!);
   enterHolding();
   fireEvent.click(screen.getByRole('button', { name: 'Add to draft' }));
   fireEvent.click(screen.getByRole('button', { name: 'Add a shareholder' }));
-  const duplicateChoice = screen.getByLabelText('Company shareholder') as HTMLSelectElement;
-  expect([...duplicateChoice.options].find((option) => option.value === companyMembers[0].member)?.disabled).toBe(true);
-  fireEvent.change(duplicateChoice, { target: { value: companyMembers[0].member } });
-  expect(duplicateChoice.value).toBe('');
+  fireEvent.change(screen.getByRole('combobox', { name: 'Company shareholder' }), {
+    target: { value: companyMembers[0].name },
+  });
+  const duplicate = await screen.findByRole('option', { name: (name) => name.startsWith(companyMembers[0].name!) });
+  expect(duplicate.getAttribute('aria-disabled')).toBe('true');
+  fireEvent.mouseDown(duplicate);
   expect((screen.getByLabelText('Name') as HTMLInputElement).value).toBe('');
   fireEvent.click(screen.getByRole('button', { name: 'Cancel (shareholder edit)' }));
   fireEvent.click(screen.getByRole('button', { name: 'Save draft and review' }));
@@ -1328,12 +1440,17 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   showJourney(importPath);
   fireEvent.click(await screen.findByRole('button', { name: 'Continue' }));
   fireEvent.click(screen.getByRole('button', { name: 'Add a shareholder' }));
-  expect(screen.getByRole('group', { name: 'Award recipients without registered shares' })).toBeTruthy();
-  fireEvent.change(screen.getByLabelText('Company shareholder'), { target: { value: trustedRecipient.member } });
+  await choose(
+    'Company shareholder',
+    `${trustedRecipient.name} · ${trustedRecipient.residentialAddress} · Award recipient without shares`,
+    trustedRecipient.name,
+  );
   expect((screen.getByLabelText('Name') as HTMLInputElement).value).toBe(trustedRecipient.name);
-  expect((screen.getByLabelText('Address') as HTMLInputElement).value).toBe(trustedRecipient.residentialAddress);
+  expect((screen.getByLabelText('Residential address') as HTMLInputElement).value).toBe(
+    trustedRecipient.residentialAddress,
+  );
   expect((screen.getByLabelText('Name') as HTMLInputElement).readOnly).toBe(true);
-  expect((screen.getByLabelText('Address') as HTMLInputElement).readOnly).toBe(true);
+  expect((screen.getByLabelText('Residential address') as HTMLInputElement).readOnly).toBe(true);
   for (const label of [
     'Date first added to register',
     'Shares held',
@@ -1345,9 +1462,8 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   enterHolding();
   fireEvent.click(screen.getByRole('button', { name: 'Add to draft' }));
   const preferences = companyPreferences();
-  const recipientKey = importMembersKey(
+  const recipientKey = peopleKey(
     { userUuid: preferences.userProfile, ownerAccountUuid: preferences.userAccount!.uuid },
-    company.uuid,
     token.uuid,
   );
   awardRecipients = [{ ...trustedRecipient, name: 'Changed recipient name' }];
@@ -1409,7 +1525,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   fireEvent.change(await screen.findByLabelText('Share class'), { target: { value: 'preference' } });
   fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
   fireEvent.click(screen.getByRole('button', { name: 'Add a shareholder' }));
-  fireEvent.change(screen.getByLabelText('Company shareholder'), { target: { value: trustedRecipient.member } });
+  await choose('Company shareholder', trustedRecipient.name);
   expect((screen.getByLabelText('Name') as HTMLInputElement).value).toBe(trustedRecipient.name);
   expect(api.post).not.toHaveBeenCalled();
   enterHolding();
@@ -1614,11 +1730,11 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
     { members: [], awardRecipients: [{ ...trustedRecipient, name: '' }] },
   ]) {
     api.get.mockResolvedValue({ data: response });
-    await expect(readImportMembers(token.uuid, () => {})).rejects.toThrow(/choices could not be confirmed/);
+    await expect(readPeople(token.uuid, () => {})).rejects.toThrow(/choices could not be confirmed/);
   }
   const nullableParticulars = { ...retainedIdentity, name: null, residentialAddress: null };
   api.get.mockResolvedValue({ data: { members: [nullableParticulars], awardRecipients: [] } });
-  await expect(readImportMembers(token.uuid, () => {})).resolves.toEqual({
+  await expect(readPeople(token.uuid, () => {})).resolves.toEqual({
     members: [nullableParticulars],
     awardRecipients: [],
   });
@@ -1630,13 +1746,13 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
         completeIdentityRead = () => resolve({ data: { members: [], awardRecipients: [trustedRecipient] } });
       }),
   );
-  const lateIdentityRead = readImportMembers(token.uuid, () => {
+  const lateIdentityRead = readPeople(token.uuid, () => {
     if (!ownerStillCurrent) throw new Error('The account changed before recipient choices returned.');
   });
   ownerStillCurrent = false;
   completeIdentityRead();
   await expect(lateIdentityRead).rejects.toThrow(/account changed/);
-});
+}, 15_000);
 
 it('shows an account without register access a calm empty state, reads no members and offers no entry', async () => {
   api.get.mockImplementation(async (url: string) => {
@@ -1651,8 +1767,8 @@ it('shows an account without register access a calm empty state, reads no member
   cleanup();
   show('investor', <SettingsPage />, 'Settings');
   expect(await screen.findByRole('link', { name: 'Team and appointments' })).toBeTruthy();
-  await waitFor(() => expect(readUrls()).toEqual([REGISTER, APPOINTMENTS, PROFILES, REGISTER, COMPANY_ENDPOINTS.BASE]));
   await waitFor(() => expect(client.isFetching()).toBe(0));
+  expect(readUrls()).toEqual([REGISTER, APPOINTMENTS, PROFILES]);
   expect(screen.queryByRole('link', { name: 'Register' })).toBeNull();
 });
 
@@ -1697,14 +1813,10 @@ it("retains a dashboard's validated company/class context and reads only the cho
   expect(screen.queryByRole('heading', { name: /^Ordinary shares ·/ })).toBeNull();
   expect(readUrls()).toContain(COMPANY_TOKEN_ENDPOINTS.HOLDERS('preference'));
   expect(readUrls()).not.toContain(COMPANY_TOKEN_ENDPOINTS.HOLDERS('ordinary'));
-  const table = await screen.findByRole('table', { name: 'Company shareholders' });
-  fireEvent.click(within(table).getByRole('button', { name: 'Details (Example Member)' }));
-  expect(await screen.findByRole('dialog', { name: 'Example Member' })).toBeTruthy();
+  expect(screen.queryByRole('table', { name: 'Company shareholders' })).toBeNull();
 
   fireEvent.change(select, { target: { value: 'harbour' } });
-  expect(screen.queryByRole('dialog')).toBeNull();
-  expect(screen.queryByText(`0x${'1'.repeat(40)} · Active`)).toBeNull();
-  await screen.findByRole('table', { name: 'Company shareholders' });
+  await screen.findByText('Harbour Example Pty Ltd', { selector: 'p' });
   fireEvent.click(screen.getByRole('button', { name: 'History' }));
   await screen.findByRole('heading', { name: /^Ordinary shares ·/ });
   expect(screen.getByText('Harbour Example Pty Ltd', { selector: 'p' })).toBeTruthy();
@@ -1728,14 +1840,10 @@ it("starts again for another signed-in account without showing the previous acco
     if (url === REGISTER) return page([harbour('ordinary'), inland('preference')]);
     return noCommands(url) ?? { data: register(url.includes('preference') ? 'preference' : 'ordinary') };
   });
-  show('investor');
+  show('investor', <CompanyRegisterPage />, 'Register', { entry: '/#shareholders' });
   fireEvent.change(await screen.findByLabelText('Company'), { target: { value: 'inland' } });
   const table = await screen.findByRole('table', { name: 'Company shareholders' });
-  fireEvent.click(screen.getByRole('button', { name: 'History' }));
-  expect(await screen.findByRole('heading', { name: /^Preference shares ·/ })).toBeTruthy();
-  fireEvent.click(within(table).getByRole('button', { name: 'Details (Example Member)' }));
-  const details = await screen.findByRole('dialog', { name: 'Example Member' });
-  expect(within(details).getByText(`0x${'1'.repeat(40)} · Active`)).toBeTruthy();
+  expect(within(table).getByText('Example Member')).toBeTruthy();
 
   let finish!: (response: ReturnType<typeof page>) => void;
   api.get.mockImplementation((url: string) =>
@@ -1752,15 +1860,12 @@ it("starts again for another signed-in account without showing the previous acco
     }),
   );
   expect(screen.getByRole('status').textContent).toBe('Loading your register…');
-  expect(screen.queryByRole('heading', { name: /^Preference shares ·/ })).toBeNull();
+  expect(screen.queryByRole('table', { name: 'Company shareholders' })).toBeNull();
   expect(screen.queryByLabelText('Company')).toBeNull();
-  expect(screen.queryByRole('dialog')).toBeNull();
   expect(screen.queryByText('Example Member')).toBeNull();
-  expect(screen.queryByText(`0x${'1'.repeat(40)} · Active`)).toBeNull();
   await act(async () => finish(page([harbour('ordinary'), inland('preference')])));
   expect(((await screen.findByLabelText('Company')) as HTMLSelectElement).value).toBe('');
-  expect(screen.queryByRole('heading', { name: /^Preference shares ·/ })).toBeNull();
-  expect(screen.queryByRole('dialog')).toBeNull();
+  expect(screen.queryByRole('table', { name: 'Company shareholders' })).toBeNull();
   expect(screen.getByText('Select a company to show its register.')).toBeTruthy();
   expect(readUrls().filter((url) => url === REGISTER)).toHaveLength(2);
 });

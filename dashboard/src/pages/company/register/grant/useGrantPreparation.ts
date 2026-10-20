@@ -19,7 +19,8 @@ import {
   type RegisterGrantPreparation,
   type RegisterAward,
   type RegisterTransferMember,
-  type TokenHoldersResponse,
+  personRequest,
+  type Person,
 } from '@ledova/shared';
 
 import apiClient from '@services/apiClient';
@@ -36,7 +37,7 @@ export type GrantFormProps = {
   guard: () => void;
   company: string;
   token: string;
-  members: TokenHoldersResponse['holders'];
+  people: Person[];
   appointment: OwnCompanyAppointment;
   blocked: boolean;
   onRefused: () => void;
@@ -52,6 +53,7 @@ export function useGrantPreparation({
   guard,
   company,
   token,
+  people,
   appointment,
   blocked,
   onRefused,
@@ -60,7 +62,7 @@ export function useGrantPreparation({
   visible = true,
   onHeldChange,
   canPrepare = true,
-}: Omit<GrantFormProps, 'members'>) {
+}: GrantFormProps) {
   const client = useQueryClient();
   const navigate = useNavigate();
   const today = new Date().toISOString().slice(0, 10);
@@ -117,7 +119,7 @@ export function useGrantPreparation({
   const retainedSummary = award?.terms ?? terms.trim();
   const problem =
     newRecipient && (!recipientName || !recipientAddress)
-      ? 'Give the new member’s name and residential address.'
+      ? 'Give the new person’s name and residential address.'
       : !/^[1-9]\d*$/.test(shares)
         ? 'Enter a positive whole number of shares.'
         : award && BigInt(shares) > BigInt(award.availableShares)
@@ -204,9 +206,13 @@ export function useGrantPreparation({
           operationId: crypto.randomUUID(),
           appointment: appointment.uuid,
           tokenId: token,
-          member: award?.member ?? (newRecipient ? newMemberId : member),
-          newMember: newRecipient,
-          ...(newRecipient ? { name: recipientName, residentialAddress: recipientAddress } : {}),
+          ...(award
+            ? {
+                member: award.member,
+                newMember: newRecipient,
+                ...(newRecipient ? { name: recipientName, residentialAddress: recipientAddress } : {}),
+              }
+            : personRequest(member, people, newMemberId, name, address)),
           ...(award ? { award: award.uuid } : {}),
           shares,
           companyEventOn,

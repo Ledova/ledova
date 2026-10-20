@@ -1,4 +1,5 @@
 import { useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   REGISTER_AWARD_COPY as COPY,
   appointmentForRegisterStep,
@@ -6,12 +7,13 @@ import {
   type OrderSubmissionOwner,
   type OwnCompanyAppointment,
   type TokenHoldersResponse,
+  peopleFrom,
 } from '@ledova/shared';
 import { PageAction } from '@components/Page';
 import { AwardForm } from './AwardForm';
 import { AwardRecord } from './AwardRecord';
 import { useOwnAppointments } from '@hooks/useOwnAppointments';
-import { useTransferMembers } from '@pages/company/register/shared/useRegisterTransfers';
+import { allPeopleKey, usePeople } from '@pages/company/register/shared/usePeople';
 import { useRegisterAwards } from '@pages/company/register/shared/useRegisterAwards';
 
 export function ClassAwards({
@@ -29,6 +31,7 @@ export function ClassAwards({
   sourceReady?: boolean;
   onHeldChange?: (token: string, held: boolean) => void;
 }) {
+  const client = useQueryClient();
   const [editing, setEditing] = useState(false);
   const [formAppointment, setFormAppointment] = useState<OwnCompanyAppointment | null>(null);
   const [formHeld, setFormHeld] = useState(false);
@@ -64,7 +67,7 @@ export function ClassAwards({
   const appointment =
     readable && appointments.isSuccess ? appointmentForRegisterStep(appointments.data, company, 'prepare') : undefined;
   const supported = register.initialized && register.token.status === 'draft';
-  const members = useTransferMembers(owner, token, check, editing && !!appointment && supported);
+  const members = usePeople(owner, token, check, editing && !!appointment && supported);
   const blocked =
     !readable || !sourceReady || awards.isFetching || awards.isError || appointments.isFetching || appointments.isError;
   const visible =
@@ -80,7 +83,11 @@ export function ClassAwards({
   }, [onHeldChange, token, held]);
   useLayoutEffect(() => () => heldCallback.current?.(token, false), [token]);
   const refresh = (throwOnError = false) =>
-    Promise.all([awards.refetch({ throwOnError }), appointments.refetch({ throwOnError })]);
+    Promise.all([
+      awards.refetch({ throwOnError }),
+      appointments.refetch({ throwOnError }),
+      client.invalidateQueries({ queryKey: allPeopleKey(owner) }),
+    ]);
   return (
     <div className="mt-4 flex flex-col gap-3 border-t border-border-subtle pt-4">
       <h3 className="text-sm font-medium text-text-primary">{COPY.TITLE}</h3>
@@ -135,7 +142,7 @@ export function ClassAwards({
           key={`${company}/${token}/${formAppointment.uuid}`}
           company={company}
           token={token}
-          members={members.data ?? []}
+          people={peopleFrom(members.data)}
           appointment={formAppointment}
           guard={check}
           blocked={blocked || (!formHeld && (members.isPending || members.isFetching || members.isError))}

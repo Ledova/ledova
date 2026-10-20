@@ -15,7 +15,7 @@ import {
   type OwnCompanyAppointment,
   type RegisterEvidence,
   type RegisterTransferPreparation,
-  type RegisterTransferMember,
+  type Person,
 } from '@ledova/shared';
 
 import apiClient from '@services/apiClient';
@@ -47,10 +47,11 @@ export type TransferFormProps = {
   guard: () => void;
   company: string;
   token: string;
-  members: RegisterTransferMember[];
+  people: Person[];
   appointment: OwnCompanyAppointment;
   blocked: boolean;
   onRefused: () => void;
+  initialFrom?: string;
 };
 
 export function useTransferPreparation({
@@ -58,17 +59,26 @@ export function useTransferPreparation({
   guard,
   company,
   token,
-  members,
+  people,
   appointment,
   blocked,
   onRefused,
+  initialFrom = '',
 }: TransferFormProps) {
   const client = useQueryClient();
   const navigate = useNavigate();
   const today = new Date().toISOString().slice(0, 10);
   const [newMemberId] = useState(() => crypto.randomUUID());
   const [draft, setDraft] = useState<Draft>({
-    fromMember: '',
+    fromMember: people.some(
+      (person) =>
+        person.member === initialFrom &&
+        person.walletless &&
+        person.particularsRetained &&
+        BigInt(person.currentShares) > 0n,
+    )
+      ? initialFrom
+      : '',
     toMember: 'new',
     name: '',
     residentialAddress: '',
@@ -105,13 +115,14 @@ export function useTransferPreparation({
     setError('');
     setDraft((current) => ({ ...current, [key]: value }));
   };
-  const eligible = members.filter((member) => member.walletless);
+  const eligible = people.filter((member) => member.walletless);
   const from = eligible.find(
     (member) => member.member === draft.fromMember && member.particularsRetained && BigInt(member.currentShares) > 0n,
   );
   const recipient = eligible.find((member) => member.member === draft.toMember);
   const fresh =
-    operation?.newParticulars ?? (draft.toMember === 'new' || (!!recipient && !recipient.particularsRetained));
+    operation?.newParticulars ??
+    (draft.toMember === 'new' || (!!recipient && (!recipient.particularsRetained || recipient.awardOnly)));
   const problem = !from
     ? 'Select an identified transferor holding shares in this class.'
     : draft.toMember !== 'new' && (!recipient || draft.toMember === draft.fromMember)
@@ -180,7 +191,7 @@ export function useTransferPreparation({
           tokenId: token,
           fromMember: draft.fromMember,
           toMember: draft.toMember === 'new' ? newMemberId : draft.toMember,
-          newMember: draft.toMember === 'new',
+          newMember: draft.toMember === 'new' || !!recipient?.awardOnly,
           ...(fresh ? { name: draft.name.trim(), residentialAddress: draft.residentialAddress.trim() } : {}),
           shares: draft.shares,
           companyEventOn: draft.companyEventOn,

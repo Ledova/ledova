@@ -11,7 +11,8 @@ import {
   type OwnCompanyAppointment,
   type RegisterAwardPreparation,
   type RegisterEvidence,
-  type RegisterTransferMember,
+  personRequest,
+  type Person,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
@@ -19,6 +20,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 export function useAwardForm({
   company,
   token,
+  people,
   appointment,
   guard,
   blocked,
@@ -29,7 +31,7 @@ export function useAwardForm({
 }: {
   company: string;
   token: string;
-  members: RegisterTransferMember[];
+  people: Person[];
   appointment: OwnCompanyAppointment;
   guard: () => void;
   blocked: boolean;
@@ -73,7 +75,7 @@ export function useAwardForm({
   const today = new Date().toISOString().slice(0, 10);
   const problem =
     member === 'new' && (!name.trim() || !address.trim())
-      ? 'Give the promised recipient’s name and residential address.'
+      ? 'Give the new person’s name and residential address.'
       : !/^[1-9]\d*$/.test(shares) || BigInt(shares) >= 2n ** 256n
         ? 'Enter a positive whole number of promised shares.'
         : !/^\d{4}-\d{2}-\d{2}$/.test(termsOn) || termsOn > today
@@ -116,9 +118,7 @@ export function useAwardForm({
         const body = {
           appointment: appointment.uuid,
           tokenId: token,
-          member: member === 'new' ? memberId : member,
-          newMember: member === 'new',
-          ...(member === 'new' ? { name: name.trim(), residentialAddress: address.trim() } : {}),
+          ...personRequest(member, people, memberId, name, address),
           shares,
           termsOn,
           terms: terms.trim(),

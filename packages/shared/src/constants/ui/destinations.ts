@@ -40,6 +40,7 @@ export const DESTINATIONS = {
     title: 'Register',
     audience: 'everyone',
   },
+  companyShareholder: { path: '/company/register/members/:member', title: 'Shareholder', audience: 'everyone' },
   company: { path: '/company', title: 'Company', audience: 'everyone' },
   companyAuthority: { path: '/company/authority', title: 'Representative authority', audience: 'company' },
   companyTeam: { path: '/company/team', title: 'Company team', audience: 'everyone' },

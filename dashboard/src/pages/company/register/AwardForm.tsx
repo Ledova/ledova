@@ -1,12 +1,13 @@
 import { PageAction } from '@components/Page';
 import { FIELD_CLASS, LABEL } from '@components/fieldClass';
-import { REGISTER_AWARD_COPY as COPY, type OwnCompanyAppointment, type RegisterTransferMember } from '@ledova/shared';
+import { REGISTER_AWARD_COPY as COPY, type OwnCompanyAppointment, type Person } from '@ledova/shared';
+import { PersonFields, PersonSelect } from '@pages/company/register/shared/PersonPicker';
 import { useAwardForm } from './useAwardForm';
 
 export function AwardForm({
   company,
   token,
-  members,
+  people,
   appointment,
   guard,
   blocked,
@@ -17,7 +18,7 @@ export function AwardForm({
 }: {
   company: string;
   token: string;
-  members: RegisterTransferMember[];
+  people: Person[];
   appointment: OwnCompanyAppointment;
   guard: () => void;
   blocked: boolean;
@@ -51,7 +52,7 @@ export function AwardForm({
   } = useAwardForm({
     company,
     token,
-    members,
+    people,
     appointment,
     guard,
     blocked,
@@ -72,40 +73,14 @@ export function AwardForm({
       <fieldset disabled={busy || blocked || held || !canPrepare} className="space-y-4">
         <fieldset className="grid gap-4 sm:grid-cols-2">
           <legend className="pb-2 text-base font-medium">Person and promised shares</legend>
-          <label className={LABEL}>
-            Promised recipient
-            <select className={FIELD_CLASS} value={member} onChange={(event) => setMember(event.target.value)}>
-              <option value="new">New recipient</option>
-              {members
-                .filter((row) => row.walletless && row.particularsRetained)
-                .map((row) => (
-                  <option key={row.member} value={row.member}>
-                    {row.name} · {row.residentialAddress}
-                  </option>
-                ))}
-            </select>
-          </label>
+          <PersonSelect
+            label="Promised recipient"
+            people={people.filter((row) => row.walletless && row.particularsRetained)}
+            value={member}
+            onChange={setMember}
+          />
           {member === 'new' && (
-            <>
-              <label className={LABEL}>
-                Recipient name
-                <input
-                  className={FIELD_CLASS}
-                  value={name}
-                  maxLength={255}
-                  onChange={(event) => setName(event.target.value)}
-                />
-              </label>
-              <label className={LABEL}>
-                Residential address
-                <textarea
-                  className={FIELD_CLASS}
-                  value={address}
-                  maxLength={1000}
-                  onChange={(event) => setAddress(event.target.value)}
-                />
-              </label>
-            </>
+            <PersonFields name={name} residentialAddress={address} onName={setName} onResidentialAddress={setAddress} />
           )}
           <label className={LABEL}>
             {COPY.SHARES}

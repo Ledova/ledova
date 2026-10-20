@@ -4,6 +4,7 @@ import {
   HOLDER_TYPE_LABELS,
   REGISTER_COPY,
   REGISTER_PARTICULARS_COPY,
+  TECHNICAL_SHARE_LIMIT,
   type TokenHoldersResponse,
 } from '@ledova/shared';
 import { Action, Row, Rows } from '../Ledger';
@@ -23,7 +24,11 @@ export function ClassRegister({
         <Row label="Issued shares">
           {register.issuedSupply === null ? 'Not recorded' : formatShareCount(register.issuedSupply)}
         </Row>
-        <Row label="Authorised shares">{formatShareCount(register.token.totalSupply)}</Row>
+        {register.token.totalSupply === TECHNICAL_SHARE_LIMIT ? (
+          <Row label="Technical share limit">{REGISTER_COPY.QUANTITY_GUARD}</Row>
+        ) : (
+          <Row label="Authorised shares">{formatShareCount(register.token.totalSupply)}</Row>
+        )}
         <Row label="Register">{register.initialized ? 'Opened' : 'Not opened'}</Row>
       </Rows>
       {!register.initialized ? (

@@ -4,6 +4,7 @@ import { Text, View, RefreshControl, Pressable } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import {
+  companiesAwaitingActivation,
   formatShareCount,
   REGISTER_COPY,
   useUserPreferences,
@@ -16,17 +17,17 @@ import type { CompanyStackParamList } from '../../navigation/CompanyStackNavigat
 import { getSessionEpoch, subscribeSession } from '../../services/sessionScope';
 import { CompanySelection } from '../../components/company/CompanySelection';
 import { useCompanyRegister } from '../../hooks/useCompanyRegister';
-import { useRegisterClassCreation } from '../../hooks/useRegisterClassCreation';
-import { CreateClassForm } from '../../components/company/CreateClassForm';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
-import { ActivationPrompt } from './ActivationPrompt';
 import { ClassRecords } from './ClassRecords';
+import { CreateClassForm } from './CreateClassForm';
 import { CompanyLinks } from './CompanyLinks';
 import { CompanyMemberAccess } from './CompanyMemberAccess';
 import { CompanyPack } from './CompanyPack';
+import { GettingStarted } from './GettingStarted';
 import { CompanyParticulars } from './CompanyParticulars';
 import { RegisterDownload } from '../../components/register/RegisterDownload';
 import { RegisterInspectionCopy } from './RegisterInspectionCopy';
+import { useRegisterClassCreation } from './useRegisterClassCreation';
 
 export function CompanyRegisterScreen() {
   const epoch = useSyncExternalStore(subscribeSession, getSessionEpoch);
@@ -84,10 +85,37 @@ function CompanyRegister({ epoch }: { epoch: number }) {
   const styles = useCompanyStyles();
   const navigation = useNavigation<NativeStackNavigationProp<CompanyStackParamList>>();
   const [expanded, setExpanded] = useState<string[]>([]);
+  const own = appointments.data ?? [];
+  const status = own.find((appointment) => appointment.company === company?.uuid)?.companyStatusDisplay;
+  const activated = companiesAwaitingActivation(own).length === 0;
+  const registered = shownRegisters.some(({ initialized }) => initialized);
+  const gettingStarted =
+    section === 'register' &&
+    !!company &&
+    appointments.isSuccess &&
+    classes.isSuccess &&
+    registers.isSuccess &&
+    own.some(
+      (appointment) =>
+        appointment.company === company.uuid && appointment.isEffective && appointment.capabilities.includes('admin'),
+    ) &&
+    (!activated || !registered);
+  const unopened = shownRegisters.find(({ initialized }) => !initialized);
+  const setUp = () => {
+    if (!company || holding) return;
+    if (unopened) {
+      const uuid = unopened.token.uuid;
+      setExpanded((values) => (values.includes(uuid) ? values : [...values, uuid]));
+    } else if (company.classes.length === 0 && creation.canPrepare && sourceReady) {
+      onHeldChange('class-creation', true);
+      setCreating({ uuid: company.uuid, name: company.name });
+    }
+  };
   return (
     <Page
       testID="register-screen"
       title={{ register: 'Register', awards: 'Employee awards', documents: 'Documents', company: 'Company' }[section]}
+      lede={company ? [company.name, status].filter(Boolean).join(' · ') : undefined}
       refreshControl={<RefreshControl refreshing={isFetching} onRefresh={() => void refreshAll()} />}
     >
       {classes.isSuccess && !classes.isFetching && preferences?.status === 'success' && (
@@ -115,7 +143,7 @@ function CompanyRegister({ epoch }: { epoch: number }) {
           />
         ))}
       </View>
-      <ActivationPrompt appointments={appointments.data ?? []} />
+      {gettingStarted && <GettingStarted activated={activated} registered={registered} onSetUp={setUp} />}
       {(classes.isPending || appointments.isPending || (!!company && registers.isPending)) && (
         <Text style={styles.muted}>Loading your register…</Text>
       )}

@@ -21,7 +21,7 @@ import { entriesKey } from '@pages/company/register/shared/useRegisterEntries';
 import { useOwnAppointments, ownAppointmentsKey } from '@hooks/useOwnAppointments';
 import { grantsKey, useRegisterGrants } from '@pages/company/register/shared/useRegisterGrants';
 import { awardsKey } from '@pages/company/register/shared/useRegisterAwards';
-import { transferMembersKey } from '@pages/company/register/shared/useRegisterTransfers';
+import { allPeopleKey } from '@pages/company/register/shared/usePeople';
 
 export function ClassGrants({
   owner,
@@ -90,12 +90,9 @@ export function ClassGrants({
     await grants.refetch({ throwOnError: true });
     check();
     await Promise.all(
-      [
-        awardsKey(owner, token),
-        registerHoldersKey(owner),
-        entriesKey(owner, token),
-        transferMembersKey(owner, token),
-      ].map((queryKey) => client.invalidateQueries({ queryKey })),
+      [awardsKey(owner, token), registerHoldersKey(owner), entriesKey(owner, token), allPeopleKey(owner)].map(
+        (queryKey) => client.invalidateQueries({ queryKey }),
+      ),
     );
   };
   const newEffectGuard = (kind: RegisterDecisionKind) => {

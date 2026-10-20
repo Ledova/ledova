@@ -43,12 +43,7 @@ function ActivationDetails({ read }: { read: ReturnType<typeof useCompanyProfile
       <Page
         title="Activation"
         testID="activation-screen"
-        actions={
-          <Action
-            label="Back to Company"
-            onPress={() => navigation.navigate('Company', { screen: 'CompanyDetails' })}
-          />
-        }
+        actions={<Action label="Back to Settings" onPress={() => navigation.getParent()?.navigate('Settings')} />}
         refreshControl={<RefreshControl refreshing={read.isRefreshing} onRefresh={() => void read.refetch()} />}
       >
         <CompanySelection read={read} />

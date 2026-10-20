@@ -12,7 +12,8 @@ import {
   type OwnCompanyAppointment,
   type RegisterAllotmentPreparation,
   type RegisterEvidence,
-  type RegisterTransferMember,
+  personRequest,
+  type Person,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
 import { useEffect, useRef, useState } from 'react';
@@ -20,6 +21,8 @@ export type DocumentKind = 'authority' | 'agreement' | 'receipt';
 export function useAllotmentForm({
   company,
   token,
+  people,
+  initialMember,
   appointment,
   guard,
   newEffectGuard,
@@ -29,7 +32,8 @@ export function useAllotmentForm({
 }: {
   company: string;
   token: string;
-  members: RegisterTransferMember[];
+  people: Person[];
+  initialMember?: string;
   appointment: OwnCompanyAppointment;
   guard: () => void;
   newEffectGuard: () => void;
@@ -40,7 +44,11 @@ export function useAllotmentForm({
 }) {
   const today = new Date().toISOString().slice(0, 10);
   const [memberId] = useState(() => crypto.randomUUID());
-  const [member, setMember] = useState('new');
+  const [member, setMember] = useState(() =>
+    people.some((person) => person.member === initialMember && person.walletless && person.particularsRetained)
+      ? initialMember!
+      : 'new',
+  );
   const [fields, setFields] = useState({
     name: '',
     residentialAddress: '',
@@ -90,7 +98,7 @@ export function useAllotmentForm({
   const received = allotmentAud(fields.receivedAmount);
   const problem =
     member === 'new' && (!fields.name.trim() || !fields.residentialAddress.trim())
-      ? 'Give the investor’s name and residential address.'
+      ? 'Give the new person’s name and residential address.'
       : !/^[1-9]\d*$/.test(fields.shares) || BigInt(fields.shares) >= 2n ** 256n
         ? 'Enter a positive whole number of shares.'
         : !consideration || received !== consideration
@@ -151,11 +159,7 @@ export function useAllotmentForm({
             operationId: crypto.randomUUID(),
             appointment: appointment.uuid,
             tokenId: token,
-            member: member === 'new' ? memberId : member,
-            newMember: member === 'new',
-            ...(member === 'new'
-              ? { name: fields.name.trim(), residentialAddress: fields.residentialAddress.trim() }
-              : {}),
+            ...personRequest(member, people, memberId, fields.name, fields.residentialAddress),
             shares: fields.shares,
             companyEventOn: fields.companyEventOn,
             consideration: consideration!,

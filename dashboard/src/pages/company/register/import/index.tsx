@@ -6,7 +6,9 @@ import { useMemo, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import {
+  REGISTER_COPY,
   REGISTER_IMPORT_COPY,
+  TECHNICAL_SHARE_LIMIT,
   createUserFriendlyError,
   formatShareCount,
   type CompanyShareTokenListItem,
@@ -24,7 +26,7 @@ import { importsKey, useRegisterImports } from '@pages/company/register/shared/u
 import { ownerGuard } from '@pages/company/shared/ownerGuard';
 import { useOwnAppointments, ownAppointmentsKey } from '@hooks/useOwnAppointments';
 
-import { importMembersKey, useImportMembers } from './useImportMembers';
+import { peopleKey, usePeople } from '@pages/company/register/shared/usePeople';
 import { ImportForm } from './ImportForm';
 import { NewClassSetup } from './NewClassSetup';
 import { canOpenEmptyRegister } from './preparation';
@@ -33,7 +35,7 @@ export default function CompanyRegisterImportPage() {
   const { uuid = '' } = useParams();
   const { owner, boundary, preferences } = useRegisterPreparationOwner();
   return (
-    <PageTitle.Provider value="Set up your share register">
+    <PageTitle.Provider value={REGISTER_IMPORT_COPY.SETUP}>
       <Page narrow>
         {owner && !preferences.isError ? (
           uuid ? (
@@ -87,8 +89,7 @@ function OwnImport({
   const steps = listed && appointments.data ? registerSteps(appointments.data, listed.companyUuid) : null;
   const readable = !!(steps?.prepare || steps?.approve || steps?.apply);
   const imports = useRegisterImports(owner, uuid, guard, readable);
-  const membersCompany = listed?.companyUuid ?? retained?.listed.companyUuid ?? '';
-  const members = useImportMembers(owner, membersCompany, uuid, guard, readable);
+  const members = usePeople(owner, uuid, guard, readable);
   const register = useImportRegister(owner, uuid, readable, guard);
   const correction = imports.data?.find((proposal) => proposal.status === 'applied' && proposal.correctionAllowed);
   const record = search.get('record');
@@ -145,7 +146,7 @@ function OwnImport({
       ownAppointmentsKey(owner),
       importRegisterKey(owner, uuid),
       importsKey(owner, uuid),
-      importMembersKey(owner, membersCompany, uuid),
+      peopleKey(owner, uuid),
     ]) {
       const state = client.getQueryState(key);
       if (state?.status !== 'success' || state.fetchStatus !== 'idle')
@@ -220,8 +221,8 @@ function OwnImport({
             ['Class type', retained.listed.tokenTypeDisplay || 'Not recorded'],
             [
               'Technical share limit',
-              retained.listed.totalSupply === (2n ** 256n - 1n).toString()
-                ? 'Internal quantity guard'
+              retained.listed.totalSupply === TECHNICAL_SHARE_LIMIT
+                ? REGISTER_COPY.QUANTITY_GUARD
                 : formatShareCount(retained.listed.totalSupply),
             ],
           ].map(([label, value]) => (

@@ -30,6 +30,8 @@ export const REGISTER_IMPORT_UNMET_COPY: Record<string, string> = {
 };
 
 export const REGISTER_IMPORT_COPY = {
+  SETUP: 'Set up your share register',
+  SETUP_NOTE: "Bring in the company's existing share records. This doesn't wait for activation.",
   TITLE: 'Register mirror',
   EMPTY: 'Bring in the company’s existing records for this share class.',
   PREPARE: 'Bring records',
