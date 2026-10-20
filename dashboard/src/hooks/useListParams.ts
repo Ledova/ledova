@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import type { Query, QueryKey } from '@tanstack/react-query';
 import { failureStatus } from '@ledova/shared';
 
@@ -18,7 +18,9 @@ export interface ListParams<F extends string> {
 }
 
 export function useListParams<F extends string = never>(filterNames: readonly F[] = []): ListParams<F> {
-  const [params, setParams] = useSearchParams();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const params = new URLSearchParams(location.search);
   const search = params.get('q') ?? '';
   const page = Math.max(1, Math.floor(Number(params.get('page'))) || 1);
   const [typed, setTyped] = useState(search);
@@ -31,19 +33,16 @@ export function useListParams<F extends string = never>(filterNames: readonly F[
       setTyped(search);
     }
   }
-  const update = (changes: Record<string, string>, replace = false) =>
-    setParams(
-      (current) => {
-        const next = new URLSearchParams(current);
-        for (const [name, value] of Object.entries(changes)) {
-          if (value) next.set(name, value);
-          else next.delete(name);
-        }
-        if (!('page' in changes)) next.delete('page');
-        return next;
-      },
-      { replace },
-    );
+  const update = (changes: Record<string, string>, replace = false) => {
+    const next = new URLSearchParams(location.search);
+    for (const [name, value] of Object.entries(changes)) {
+      if (value) next.set(name, value);
+      else next.delete(name);
+    }
+    if (!('page' in changes)) next.delete('page');
+    const query = next.toString();
+    navigate({ search: query ? `?${query}` : '', hash: location.hash }, { replace, state: location.state });
+  };
   const write = (text: string) => {
     setWritten(text);
     update({ q: text }, true);
@@ -53,7 +52,7 @@ export function useListParams<F extends string = never>(filterNames: readonly F[
     if (text === written) return;
     const timer = setTimeout(() => write(text), SEARCH_DELAY_MS);
     return () => clearTimeout(timer);
-  }, [typed, written]);
+  }, [typed, written, location.search, location.hash]);
   return {
     typed,
     type: setTyped,
