@@ -1,7 +1,7 @@
+import { SelectField } from '@components/SelectField';
 import type { MouseEvent } from 'react';
 import { apiErrorSentence, formatDate, type Company, type CompanyDocument } from '@ledova/shared';
 import { Section } from '@components/Ledger';
-import { FIELD_CLASS, LABEL } from '@components/fieldClass';
 import { PageAction } from '@components/Page';
 import { Modal } from '@components/Modal';
 import { useCompanyDocuments } from './useCompanyDocuments';
@@ -116,24 +116,16 @@ export function CompanyDocuments({
             )}
             {editable && (
               <div className="grid items-end gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
-                <label className={LABEL}>
-                  Document type
-                  <select
-                    className={FIELD_CLASS}
-                    value={uploadChoice?.type ?? 'other'}
-                    disabled={!ready}
-                    onChange={(event) => {
-                      const choice = availableTypes.find((item) => item.type === event.target.value);
-                      if (choice) setSelectedType(choice.type);
-                    }}
-                  >
-                    {availableTypes.map(({ type, label }) => (
-                      <option key={type} value={type}>
-                        {label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                <SelectField
+                  label="Document type"
+                  options={availableTypes.map(({ type, label }) => ({ value: type, label }))}
+                  value={uploadChoice?.type ?? 'other'}
+                  disabled={!ready}
+                  onChange={(value) => {
+                    const choice = availableTypes.find((item) => item.type === value);
+                    if (choice) setSelectedType(choice.type);
+                  }}
+                />
                 <PageAction
                   label="Upload document"
                   primary

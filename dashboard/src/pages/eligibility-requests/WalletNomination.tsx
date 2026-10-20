@@ -1,3 +1,4 @@
+import { SelectField } from '@components/SelectField';
 import { useState } from 'react';
 import {
   useWalletNomination,
@@ -7,7 +8,6 @@ import {
 } from '@ledova/shared';
 import { PageAction } from '@components/Page';
 import { Row, Rows, Section } from '@components/Ledger';
-import { FIELD_CLASS } from '@components/fieldClass';
 import { WalletVerificationModal } from '@components/wallet/WalletVerificationModal';
 
 function Facts({ preview }: { preview: WalletNominationPreview }) {
@@ -68,23 +68,19 @@ export function WalletNomination({ requestUuid, guardRequest }: { requestUuid: s
       )}
       {!data.original && (
         <>
-          <label className="space-y-1 text-sm">
-            Your own Base wallet
-            <select
-              aria-label="Nomination wallet"
-              className={FIELD_CLASS}
-              value={data.walletUuid}
-              disabled={blocked}
-              onChange={(event) => data.setWallet(event.target.value)}
-            >
-              <option value="">Select one own wallet</option>
-              {wallets.map((row) => (
-                <option key={row.uuid} value={row.uuid}>
-                  {row.name || 'Own Base wallet'} · {row.address}
-                </option>
-              ))}
-            </select>
-          </label>
+          <SelectField
+            label="Your own Base wallet"
+            options={[
+              { value: '', label: 'Select one own wallet' },
+              ...wallets.map((row) => ({
+                value: row.uuid,
+                label: `${row.name || 'Own Base wallet'} · ${row.address}`,
+              })),
+            ]}
+            value={data.walletUuid}
+            disabled={blocked}
+            onChange={data.setWallet}
+          />
           {data.wallets.isSuccess && wallets.length === 0 && <p>No own Base wallets are available.</p>}
           {wallet && (
             <PageAction

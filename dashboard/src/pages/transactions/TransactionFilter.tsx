@@ -1,3 +1,4 @@
+import { SelectField } from '@components/SelectField';
 import { Choices } from '@components/Choices';
 import type { Ref } from 'react';
 import { BLOCKCHAIN, formatDate } from '@ledova/shared';
@@ -109,28 +110,22 @@ export function TransactionFilter({
               onChange={(chain) => onFilterChange('chain', chain)}
             />
             <div className="flex flex-col gap-2">
-              <label className="block text-sm text-text-muted">
-                Wallet
-                <select
-                  className={FIELD_CLASS}
-                  value={filters.wallet ?? ''}
-                  onChange={(event) => onFilterChange('wallet', event.target.value)}
-                  disabled={walletsLoading || walletsFailed}
-                >
-                  <option value="">All wallets</option>
-                  {filters.wallet && !wallets.some((wallet) => wallet.uuid === filters.wallet) && (
-                    <option value={filters.wallet} disabled>
-                      Selected wallet unavailable
-                    </option>
-                  )}
-                  {wallets.map((wallet) => (
-                    <option key={wallet.uuid} value={wallet.uuid}>
-                      {wallet.name ? `${wallet.name} · ` : ''}
-                      {wallet.address}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              <SelectField
+                label="Wallet"
+                options={[
+                  { value: '', label: 'All wallets' },
+                  ...(filters.wallet && !wallets.some((wallet) => wallet.uuid === filters.wallet)
+                    ? [{ value: filters.wallet, label: 'Selected wallet unavailable', disabled: true }]
+                    : []),
+                  ...wallets.map((wallet) => ({
+                    value: wallet.uuid,
+                    label: `${wallet.name ? `${wallet.name} · ` : ''}${wallet.address}`,
+                  })),
+                ]}
+                value={filters.wallet ?? ''}
+                disabled={walletsLoading || walletsFailed}
+                onChange={(wallet) => onFilterChange('wallet', wallet)}
+              />
               {walletsLoading && (
                 <p role="status" className="text-sm text-text-muted">
                   Loading wallets…

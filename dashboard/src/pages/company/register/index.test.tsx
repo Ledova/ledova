@@ -1259,31 +1259,30 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
     return dataPage([]);
   });
   showJourney(DESTINATIONS.companyRegisterSetup.path);
-  const selector = (await screen.findByLabelText('Share class')) as HTMLSelectElement;
-  expect([...selector.options].map((option) => option.value)).toEqual([
-    token.uuid,
-    'ordinary',
-    'preference',
-    'redeemable',
-    'custom',
-  ]);
-  expect(selector.value).toBe('ordinary');
+  const shareClass = await screen.findByRole('group', { name: 'Share class' });
+  const pick = (name: string) => fireEvent.click(within(shareClass).getByRole('radio', { name }));
+  expect(
+    within(shareClass)
+      .getAllByRole('radio')
+      .map((radio) => (radio as HTMLInputElement).value),
+  ).toEqual(['ordinary', 'preference', 'redeemable', 'custom']);
+  expect(within(shareClass).getByRole('radio', { checked: true }).getAttribute('value')).toBe('ordinary');
   expect(screen.queryByLabelText('Class code')).toBeNull();
-  fireEvent.change(selector, { target: { value: 'custom' } });
+  pick('Another class');
   fireEvent.change(screen.getByLabelText('Class name'), { target: { value: 'Company A shares' } });
   fireEvent.change(screen.getByLabelText('Class code'), { target: { value: 'A' } });
   expect(screen.getByText(`${company.name} · Company A shares (A)`)).toBeTruthy();
   expect((screen.getByLabelText('Class code') as HTMLInputElement).maxLength).toBe(5);
-  fireEvent.change(selector, { target: { value: 'preference' } });
+  pick('Preference (PRF)');
   expect(screen.getByText(`${company.name} · Preference shares (PRF)`)).toBeTruthy();
   expect(screen.queryByLabelText('Class name')).toBeNull();
   expect(screen.queryByLabelText('Class code')).toBeNull();
-  expect(screen.queryByLabelText('Class type')).toBeNull();
-  fireEvent.change(selector, { target: { value: 'redeemable' } });
+  expect(screen.queryByRole('group', { name: 'Class type' })).toBeNull();
+  pick('Redeemable (RED)');
   expect(screen.getByText(`${company.name} · Redeemable shares (RED)`)).toBeTruthy();
   expect(api.post).not.toHaveBeenCalled();
   expect(screen.getByRole('link', { name: 'open Register' }).getAttribute('href')).toBe('/company/register');
-  fireEvent.change(selector, { target: { value: token.uuid } });
+  fireEvent.click(screen.getByRole('link', { name: `${token.name} · ${token.symbol}` }));
   await waitFor(() => expect(screen.queryByLabelText('Class code')).toBeNull());
   expect(await screen.findByLabelText('Record date')).toBeTruthy();
   for (const status of ['deployed', 'paused', 'deploying'] as const) {
@@ -1298,13 +1297,13 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   cleanup();
   client.clear();
   showJourney(DESTINATIONS.companyRegisterSetup.path);
-  const noDraftClasses = (await screen.findByLabelText('Share class')) as HTMLSelectElement;
-  expect([...noDraftClasses.options].map((option) => option.value)).toEqual([
-    'ordinary',
-    'preference',
-    'redeemable',
-    'custom',
-  ]);
+  const noDraftClasses = await screen.findByRole('group', { name: 'Share class' });
+  expect(screen.queryByText(/Continue a class you started/)).toBeNull();
+  expect(
+    within(noDraftClasses)
+      .getAllByRole('radio')
+      .map((radio) => (radio as HTMLInputElement).value),
+  ).toEqual(['ordinary', 'preference', 'redeemable', 'custom']);
   expect(screen.queryByLabelText('Class code')).toBeNull();
   cleanup();
   client.clear();
@@ -1337,8 +1336,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   expect(screen.queryByRole('combobox', { name: 'Company shareholder' })).toBeNull();
   membersUnavailable = false;
   fireEvent.click(retryChoices);
-  const useExistingDraft = await screen.findByLabelText('Share class');
-  fireEvent.change(useExistingDraft, { target: { value: token.uuid } });
+  fireEvent.click(await screen.findByRole('link', { name: `${token.name} · ${token.symbol}` }));
   await waitFor(() => expect(screen.queryByLabelText('Class code')).toBeNull());
   expect(await screen.findByLabelText('Record date')).toBeTruthy();
   fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
@@ -1527,7 +1525,9 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
     return prepareAwardOpening(url, request);
   });
   showJourney(DESTINATIONS.companyRegisterSetup.path);
-  fireEvent.change(await screen.findByLabelText('Share class'), { target: { value: 'preference' } });
+  fireEvent.click(
+    within(await screen.findByRole('group', { name: 'Share class' })).getByRole('radio', { name: 'Preference (PRF)' }),
+  );
   fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
   fireEvent.click(screen.getByRole('button', { name: 'Add a shareholder' }));
   await choose('Company shareholder', trustedRecipient.name);

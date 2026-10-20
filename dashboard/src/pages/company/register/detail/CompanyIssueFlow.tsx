@@ -1,3 +1,4 @@
+import { SelectField } from '@components/SelectField';
 import { Row, Rows, Section } from '@components/Ledger';
 import { PageAction } from '@components/Page';
 import { FIELD_CLASS } from '@components/fieldClass';
@@ -327,17 +328,18 @@ function Preparation({ commands }: { commands: Commands }) {
         disabled={waiting || !commands.canPrepare || !!commonProblem || !!commands.recovery}
         onClick={() => void submit('link')}
       />
-      <label className="block text-sm">
-        Company ADD
-        <select className={FIELD_CLASS} value={approval} onChange={(event) => setApproval(event.target.value)}>
-          <option value="">Select the genuine successful ADD for this nomination</option>
-          {approvals.map((row) => (
-            <option key={row.uuid} value={row.changeId!}>
-              {row.changeId} · {formatDateTime(row.expiresAt)}
-            </option>
-          ))}
-        </select>
-      </label>
+      <SelectField
+        label="Company ADD"
+        options={[
+          { value: '', label: 'Select the genuine successful ADD for this nomination' },
+          ...approvals.map((row) => ({
+            value: row.changeId!,
+            label: `${row.changeId} · ${formatDateTime(row.expiresAt)}`,
+          })),
+        ]}
+        value={approval}
+        onChange={setApproval}
+      />
       <label className="block text-sm">
         Shares to grant
         <input

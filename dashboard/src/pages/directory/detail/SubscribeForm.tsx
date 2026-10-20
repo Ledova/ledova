@@ -1,3 +1,4 @@
+import { SelectField } from '@components/SelectField';
 import { DESTINATIONS, SUBSCRIPTION_COPY, formatMoney, getErrorMessage, applicationAmount } from '@ledova/shared';
 import type { DirectoryOpenOffering, Wallet } from '@ledova/shared';
 import { LinkRow, Row, Rows, Section } from '@components/Ledger';
@@ -60,24 +61,20 @@ export function SubscribeForm({
             aria-describedby={quantity !== '' && amount === null ? 'share-quantity-error' : undefined}
           />
         </label>
-        <label className="block min-w-0">
-          <span className="text-sm text-text-primary">Receiving wallet (Base)</span>
-          <select
+        <div className="min-w-0">
+          <SelectField
+            label="Receiving wallet (Base)"
+            options={[
+              { value: '', label: 'Choose a receiving wallet', disabled: true },
+              ...wallets.map((item) => ({
+                value: item.uuid,
+                label: `${item.name ? `${item.name} — ` : ''}${item.address}`,
+              })),
+            ]}
             value={chosenWallet}
-            onChange={(event) => onDraftChange({ ...draft, wallet: event.target.value })}
-            className={FIELD_CLASS}
-          >
-            <option value="" disabled>
-              Choose a receiving wallet
-            </option>
-            {wallets.map((item) => (
-              <option key={item.uuid} value={item.uuid}>
-                {item.name ? `${item.name} — ` : ''}
-                {item.address}
-              </option>
-            ))}
-          </select>
-        </label>
+            onChange={(wallet) => onDraftChange({ ...draft, wallet })}
+          />
+        </div>
       </div>
       {quantity !== '' && amount === null && (
         <p id="share-quantity-error" className="text-sm text-error-light">

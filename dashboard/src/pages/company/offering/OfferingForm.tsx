@@ -1,3 +1,4 @@
+import { SelectField } from '@components/SelectField';
 import { Choices } from '@components/Choices';
 import { useState } from 'react';
 import { PageAction } from '@components/Page';
@@ -127,20 +128,13 @@ export function OfferingForm({
 
   return (
     <fieldset disabled={busy} className="grid gap-4 sm:grid-cols-2">
-      <Field label="Share class">
-        <select
-          disabled={!!editing}
-          value={chosenToken}
-          onChange={(e) => setToken(e.target.value)}
-          className={FIELD_CLASS}
-        >
-          {tokens.map((item) => (
-            <option key={item.uuid} value={item.uuid}>
-              {item.name} ({item.symbol})
-            </option>
-          ))}
-        </select>
-      </Field>
+      <SelectField
+        label="Share class"
+        options={tokens.map((item) => ({ value: item.uuid, label: `${item.name} (${item.symbol})` }))}
+        value={chosenToken}
+        disabled={!!editing}
+        onChange={setToken}
+      />
 
       <Choices legend="Exemption relied on" options={EXEMPTIONS} value={exemption} onChange={setExemption} />
 

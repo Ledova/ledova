@@ -1,6 +1,6 @@
 import { Choices } from '@components/Choices';
 import { useNewShareClass, type FreshClassProps } from './useNewShareClass';
-import { useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { generatePath, Link, useSearchParams } from 'react-router-dom';
 import {
@@ -31,6 +31,11 @@ const COMMON_CLASSES: { type: TokenType; name: string; symbol: string; label: st
   { type: 'ordinary', name: 'Ordinary shares', symbol: 'ORD', label: 'Ordinary (ORD)' },
   { type: 'preference', name: 'Preference shares', symbol: 'PRF', label: 'Preference (PRF)' },
   { type: 'redeemable', name: 'Redeemable shares', symbol: 'RED', label: 'Redeemable (RED)' },
+];
+
+const NEW_CLASSES = [
+  ...COMMON_CLASSES.map((item) => [item.type, item.label] as const),
+  ['custom', 'Another class'] as const,
 ];
 
 const CLASS_TYPES: readonly (readonly [TokenType, string])[] = [
@@ -179,7 +184,6 @@ function FreshClass({
   onConflict,
 }: FreshClassProps) {
   const {
-    navigate,
     draftClasses,
     choice,
     setChoice,
@@ -216,51 +220,36 @@ function FreshClass({
       classProblems={problems}
       classFields={
         <fieldset className="space-y-5">
-          <label className={LABEL}>
-            Share class
-            <select
-              className={FIELD_CLASS}
-              value={choice}
-              disabled={classLocked}
-              onChange={(event) => {
-                const selected = event.target.value;
-                if (draftClasses.some((token) => token.uuid === selected)) {
-                  navigate(generatePath(DESTINATIONS.companyRegisterImport.path, { uuid: selected }));
-                  return;
-                }
-                const common = COMMON_CLASSES.find((item) => item.type === selected);
-                if (common) {
-                  setChoice(common.type);
-                  setName(common.name);
-                  setSymbol(common.symbol);
-                  setTokenType(common.type);
-                } else if (selected === 'custom') {
-                  setChoice('custom');
-                  setName('');
-                  setSymbol('');
-                  setTokenType('ordinary');
-                }
-              }}
-            >
-              {draftClasses.length > 0 && (
-                <optgroup label="Existing company classes">
-                  {draftClasses.map((token) => (
-                    <option key={token.uuid} value={token.uuid}>
-                      {token.name} · {token.symbol}
-                    </option>
-                  ))}
-                </optgroup>
-              )}
-              <optgroup label="New class">
-                {COMMON_CLASSES.map((item) => (
-                  <option key={item.type} value={item.type}>
-                    {item.label}
-                  </option>
-                ))}
-                <option value="custom">Another class</option>
-              </optgroup>
-            </select>
-          </label>
+          {draftClasses.length > 0 && !classLocked && (
+            <p className="text-sm text-text-muted">
+              Continue a class you started:{' '}
+              {draftClasses.map((token, index) => (
+                <Fragment key={token.uuid}>
+                  {index > 0 && ', '}
+                  <Link
+                    to={generatePath(DESTINATIONS.companyRegisterImport.path, { uuid: token.uuid })}
+                    className="text-brand-light underline"
+                  >
+                    {token.name} · {token.symbol}
+                  </Link>
+                </Fragment>
+              ))}
+              .
+            </p>
+          )}
+          <Choices
+            legend="Share class"
+            options={NEW_CLASSES}
+            value={choice}
+            disabled={classLocked}
+            onChange={(selected) => {
+              const common = COMMON_CLASSES.find((item) => item.type === selected);
+              setChoice(selected);
+              setName(common?.name ?? '');
+              setSymbol(common?.symbol ?? '');
+              setTokenType(common?.type ?? 'ordinary');
+            }}
+          />
           {classes.some((token) => token.status !== 'draft') && (
             <p className="text-sm text-text-muted">
               For existing chain classes,{' '}

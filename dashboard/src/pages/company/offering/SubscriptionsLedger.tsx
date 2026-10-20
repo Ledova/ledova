@@ -1,3 +1,4 @@
+import { SelectField } from '@components/SelectField';
 import { companySubscriptionTone } from '@components/statusTones';
 import { CompanyReadNotice } from '@pages/company/shared/CompanyState';
 import { useState } from 'react';
@@ -24,20 +25,15 @@ export function SubscriptionsLedger({
   return (
     <Section title={REGISTER_COPY.APPLICATIONS_TITLE}>
       <p className="text-sm text-text-muted">{REGISTER_COPY.APPLICATIONS_NOTE(operatorName)}</p>
-      <label className="block text-sm">
-        Offering
-        <select
-          className="mt-1 w-full rounded-lg border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary"
-          value={offering.uuid}
-          onChange={(event) => setSelected(event.target.value)}
-        >
-          {offerings.map((row) => (
-            <option key={row.uuid} value={row.uuid}>
-              {row.tokenName} · {row.statusDisplay} · {formatDate(row.createdAt)}
-            </option>
-          ))}
-        </select>
-      </label>
+      <SelectField
+        label="Offering"
+        options={offerings.map((row) => ({
+          value: row.uuid,
+          label: `${row.tokenName} · ${row.statusDisplay} · ${formatDate(row.createdAt)}`,
+        }))}
+        value={offering.uuid}
+        onChange={setSelected}
+      />
       {read.isError ? (
         <CompanyReadNotice
           read={{ error: read.error, isRefreshing: read.isFetching, refetch: read.refetch }}

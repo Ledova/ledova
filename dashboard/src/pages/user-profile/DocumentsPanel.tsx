@@ -1,3 +1,4 @@
+import { SelectField } from '@components/SelectField';
 import { DESTINATIONS } from '@ledova/shared';
 import { useRef, useState } from 'react';
 import {
@@ -10,7 +11,7 @@ import {
   TrashIcon,
 } from '@phosphor-icons/react';
 
-import { apiErrorSentence, formatFileSize, type InvestorClassification } from '@ledova/shared';
+import { apiErrorSentence, formatDate, formatFileSize, type InvestorClassification } from '@ledova/shared';
 import { ICON_SM, ICON_MD } from '@components/iconSizes';
 
 import {
@@ -137,22 +138,18 @@ function ClaimSelector({
   disabled: boolean;
 }) {
   return (
-    <select
-      aria-label="Classification claim"
+    <SelectField
+      label="Classification claim"
+      options={[
+        { value: '', label: 'Keep unattached' },
+        ...claims
+          .filter((claim) => claim.status === 'submitted')
+          .map((claim) => ({ value: claim.uuid, label: `${claim.categoryDisplay} · ${formatDate(claim.createdAt)}` })),
+      ]}
       value={value}
-      onChange={(event) => onChange(event.target.value)}
       disabled={disabled}
-      className="w-full rounded-lg border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary"
-    >
-      <option value="">Keep unattached</option>
-      {claims
-        .filter((claim) => claim.status === 'submitted')
-        .map((claim) => (
-          <option key={claim.uuid} value={claim.uuid}>
-            {claim.categoryDisplay} · {claim.uuid.slice(0, 8)}
-          </option>
-        ))}
-    </select>
+      onChange={onChange}
+    />
   );
 }
 
@@ -301,29 +298,28 @@ function UploadCard({ claims }: { claims: InvestorClassification[] }) {
           </div>
 
           <div className="flex flex-wrap gap-2">
-            <select
+            <SelectField
+              label="Document type"
+              options={[
+                { value: 'payslip', label: 'Payslip' },
+                { value: 'bank_statement', label: 'Bank statement (coming soon)', disabled: true },
+                { value: 'tax_return', label: 'Tax return (coming soon)', disabled: true },
+              ]}
               value={documentType}
-              onChange={(e) => setDocumentType(e.target.value as UserDocumentType)}
-              className="max-w-full rounded-lg border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary"
               disabled={upload.isPending}
-            >
-              <option value="payslip">Payslip</option>
-              <option value="bank_statement" disabled>
-                Bank statement (coming soon)
-              </option>
-              <option value="tax_return" disabled>
-                Tax return (coming soon)
-              </option>
-            </select>
-            <input
-              type="text"
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-              placeholder="Note (optional)"
-              maxLength={255}
-              className="min-w-0 flex-1 basis-40 rounded-lg border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary placeholder:text-text-muted"
-              disabled={upload.isPending}
+              onChange={(type) => setDocumentType(type as UserDocumentType)}
             />
+            <label className="flex min-w-0 flex-1 basis-40 flex-col gap-1 text-sm text-text-primary">
+              Note (optional)
+              <input
+                type="text"
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                maxLength={255}
+                className="w-full rounded-lg border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary placeholder:text-text-muted"
+                disabled={upload.isPending}
+              />
+            </label>
           </div>
 
           <ClaimSelector

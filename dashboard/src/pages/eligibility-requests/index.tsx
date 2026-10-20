@@ -1,8 +1,8 @@
-import { DESTINATIONS, ELIGIBILITY_RECORDS_NOTICE, useParticipantEligibilityRecords } from '@ledova/shared';
-import { FIELD_CLASS } from '@components/fieldClass';
+import { SelectField } from '@components/SelectField';
+import { DESTINATIONS, ELIGIBILITY_RECORDS_NOTICE, formatDate, useParticipantEligibilityRecords } from '@ledova/shared';
 import { LinkRow, Section } from '@components/Ledger';
 import { Page, PageAction } from '@components/Page';
-import { ActionConfirmation, EligibilityHistory, Field, RecordsList, TextField } from '@components/eligibility';
+import { ActionConfirmation, EligibilityHistory, RecordsList, TextField } from '@components/eligibility';
 import { WalletNomination } from './WalletNomination';
 
 export default function ParticipantEligibilityPage() {
@@ -37,22 +37,18 @@ export default function ParticipantEligibilityPage() {
               by the company, or an approved offering UUID for a product-value claim. The server confirms the target and
               terms.
             </p>
-            <Field label="Your evidence source">
-              <select
-                className={FIELD_CLASS}
-                value={read.draft.source}
-                onChange={(event) =>
-                  read.updateDraft({ source: event.target.value, company: '', offering: '', quantity: '' })
-                }
-              >
-                <option value="">Select a source</option>
-                {read.sources.map((item) => (
-                  <option key={item.uuid} value={item.uuid}>
-                    {item.categoryDisplay} · {item.statusDisplay} · {item.uuid}
-                  </option>
-                ))}
-              </select>
-            </Field>
+            <SelectField
+              label="Your evidence source"
+              options={[
+                { value: '', label: 'Select a source' },
+                ...read.sources.map((item) => ({
+                  value: item.uuid,
+                  label: `${item.categoryDisplay} · ${item.statusDisplay} · ${formatDate(item.createdAt)}`,
+                })),
+              ]}
+              value={read.draft.source}
+              onChange={(source) => read.updateDraft({ source, company: '', offering: '', quantity: '' })}
+            />
             {source?.category === 'product_value' ? (
               <>
                 <TextField

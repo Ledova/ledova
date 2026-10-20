@@ -11,6 +11,8 @@ and [mobile](mobile.md); what each page does is in the business section.
 - [Choosing a company](#choosing-a-company)
 - [Choosing a wallet or a paid subscription](#choosing-a-wallet-or-a-paid-subscription)
 - [Choosing from a short fixed list](#choosing-from-a-short-fixed-list)
+- [Choosing from a bounded list](#choosing-from-a-bounded-list)
+- [How the choice rules are enforced](#how-the-choice-rules-are-enforced)
 
 ## Signed-in page conventions
 
@@ -194,6 +196,25 @@ answers. It asks for:
 - the professional body behind an accountant's certificate.
 
 A question with no answer yet shows no button chosen.
+
+## Choosing from a bounded list
+
+A list too long for radio buttons that still cannot grow with the company, such as a person's own
+wallets, a company's share classes, its offerings or document types, or someone's appointments, is a
+native select in `SelectField` (`dashboard/src/components/SelectField.tsx`): the label above the
+field and options named in words. An appointment reads as its actions and the date it was made, and
+an evidence source as its kind, status and date, never an identifier.
+
+Register setup offers a class already started as links in a sentence, and the new class's kind as
+radio buttons, so choosing never moves the page by itself. Sign-up keeps its own presentation: its
+company type is Headless UI's `Select` inside the field so the label names it, and the phone number's
+country code is a native select named "Country code" beside the number.
+
+## How the choice rules are enforced
+
+An ESLint rule in `dashboard/eslint.config.js` refuses a native `select` element anywhere in the
+dashboard except `SelectField` and the sign-up country code, naming the three controls. Which control
+fits which list is checked in review against this page.
 
 Next: [frontend](frontend.md), [mobile](mobile.md) and
 [the register's person choice](../business/register.md#choosing-a-person).
