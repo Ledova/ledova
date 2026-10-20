@@ -184,6 +184,16 @@ export function ClassAwards({
           Employee awards could not be read. Retry before continuing.
         </p>
       )}
+      {grants.isError && (
+        <div role="alert" className="flex flex-col items-start gap-2">
+          <p className="text-sm text-error-light">The non-paid issues prepared from these awards could not be read.</p>
+          <PageAction
+            label="Retry non-paid issues"
+            disabled={grants.isFetching}
+            onClick={() => void grants.refetch()}
+          />
+        </div>
+      )}
       <PageAction
         label={awards.isError ? 'Retry awards' : 'Refresh awards'}
         disabled={awards.isFetching || appointments.isFetching}
@@ -196,7 +206,7 @@ export function ClassAwards({
             key={award.uuid}
             owner={owner}
             award={award}
-            grants={grants.data?.filter((grant) => grant.award === award.uuid) ?? []}
+            grants={grants.isSuccess ? grants.data.filter((grant) => grant.award === award.uuid) : []}
             appointment={supported ? appointment : undefined}
             guard={check}
             blocked={blocked}

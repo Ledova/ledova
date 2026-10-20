@@ -179,7 +179,7 @@ export function useNonPaidIssues({
       {formAppointment && (
         <div hidden={!formVisible}>
           <GrantForm
-            key={formAppointment.uuid}
+            key={`${formAppointment.uuid}/${awardUuid}`}
             owner={owner}
             guard={check}
             company={company}
