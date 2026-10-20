@@ -38,7 +38,7 @@ export default tseslint.config(
         {
           selector: "CallExpression[callee.name='getErrorMessage']",
           message:
-            'Read a failed request with apiErrorSentence or readApiError (docs/engineering/frontend-ux.md#validation).',
+            'Read a failure with failureSentence, or apiErrorSentence and readApiError (docs/engineering/frontend-ux.md#validation).',
         },
       ],
     },

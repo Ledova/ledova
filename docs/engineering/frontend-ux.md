@@ -343,10 +343,11 @@ still to come ([#1179](https://github.com/Ledova/ledova/issues/1179)).
   (`apiErrorSentence`), or else the caller's fallback, which names what failed ("The wallet could
   not be saved. Try again."). A failure that never reached the server shows its own message, such as
   "Unable to connect to our servers…" or "Your signed-in account changed. Reopen company team.", or
-  the fallback when it has none. The register preparation forms pass their fallback for both, so a
-  local failure there shows it unless it was thrown with `createUserFriendlyError`. Sign-in and
-  sign-up place field errors on their fields with `readApiError`; other forms show them in the one
-  sentence.
+  the fallback when it has none. Pages that read with `apiErrorSentence` show their fallback for such
+  a failure instead: the register preparation forms, unless it was thrown with
+  `createUserFriendlyError`, and documents, offerings, publications and identity verification.
+  Sign-in and sign-up place field errors on their fields with `readApiError`; other forms show them
+  in the one sentence.
 - **Refusal codes.** The server names unmet requirements and refusals as codes. Each family's copy
   map in `packages/shared/src/constants/business/` turns them into sentences: `refusalSentences` for
   a preview's or record's list, and `refusalSentence` for a refused request, before any other
