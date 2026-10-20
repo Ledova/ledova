@@ -1,6 +1,6 @@
 import type { AxiosInstance, AxiosRequestConfig } from 'axios';
 import { TRADING_ENDPOINTS } from '../constants';
-import { apiErrorSentence, failureStatus, hasServiceErrorDetail } from '../utils/errors';
+import { failureStatus, hasServiceErrorDetail, failureSentence } from '../utils/errors';
 import type {
   ShareToken,
   TransferOrder,
@@ -29,7 +29,6 @@ declare module 'axios' {
 const NOT_ALLOWLISTED =
   'Your wallet is not on the trading allowlist. The operator must add it before you can place orders.';
 const NOT_AUTHORISED = 'Your wallet is not authorized to trade. The operator must add it to the trading allowlist.';
-const ORDER_FAILED = 'The order could not be processed. Try again.';
 
 export const getShareTokens = (apiClient: AxiosInstance, page?: number) =>
   apiClient.get<PaginatedResponse<ShareToken>>(TRADING_ENDPOINTS.TOKENS.LIST, page ? { params: { page } } : undefined);
@@ -188,5 +187,5 @@ export function parseTradingError(error: unknown): string {
   if (data?.code === 'not_whitelisted' || (typeof data?.detail === 'string' && data.detail.includes('not whitelisted')))
     return NOT_ALLOWLISTED;
   if (failureStatus(error) === 403 && !hasServiceErrorDetail(error)) return NOT_AUTHORISED;
-  return apiErrorSentence(error, ORDER_FAILED, ORDER_FAILED);
+  return failureSentence(error, 'The order could not be processed. Try again.');
 }

@@ -15,15 +15,12 @@ import {
   COMPANY_SIGNUP_DECLARATION_VERSION,
 } from '../constants/business/company-authority';
 import type { CompanyAuthorityRequest, Company, CompanyCapability, OwnCompanyAppointment, UserProfile } from '../types';
-import { apiErrorSentence, createUserFriendlyError } from '../utils/errors';
+import { failureSentence } from '../utils/errors';
 import { readEveryPage } from '../utils/pagination';
 import { useApiClient } from './useApiClient';
 import type { OrderSubmissionSession } from './useOrderSubmissions';
 import { useSubmissionOwner } from './useSubmissionOwner';
 import { USER_PREFERENCES_QUERY_KEY, useUserPreferences } from './useUserPreferences';
-
-const ACCESS_UNCHECKED = 'Your administrator access could not be checked. Reload company setup.';
-const RESET_FAILED = 'Your pending authority request could not be replaced.';
 
 function signupScopes(capabilities: CompanyCapability[], delegatable: CompanyCapability[], expiresAt?: string | null) {
   return (
@@ -105,7 +102,7 @@ export function useSignupCompanyAuthority(
       current.current.profile?.uuid !== profile.uuid ||
       current.current.profile.fullName !== profile.fullName
     )
-      throw createUserFriendlyError('Your signed-in account changed. Sign in again to resume signup.');
+      throw new Error('Your signed-in account changed. Sign in again to resume signup.');
   }, [owner, boundary, client, profile]);
   const guardCompany = useCallback(() => {
     guardSession();
@@ -117,11 +114,10 @@ export function useSignupCompanyAuthority(
       current.current.company.abn !== company.abn ||
       current.current.company.companyType !== company.companyType
     )
-      throw createUserFriendlyError('Your account or company details changed. Reload company setup to continue.');
+      throw new Error('Your account or company details changed. Reload company setup to continue.');
   }, [guardSession, company]);
   const guard = useCallback(() => {
-    if (!mounted.current)
-      throw createUserFriendlyError('Company setup is no longer open. Reload it before continuing.');
+    if (!mounted.current) throw new Error('Company setup is no longer open. Reload it before continuing.');
     guardCompany();
   }, [guardCompany]);
   const read = useCallback(async () => {
@@ -134,7 +130,7 @@ export function useSignupCompanyAuthority(
         });
         guard();
         if (response.data.results.some((request) => request.company !== company!.uuid))
-          throw createUserFriendlyError('Your authority records did not match this company. Reload company setup.');
+          throw new Error('Your authority records did not match this company. Reload company setup.');
         return response;
       }),
       readEveryPage(async (page) => {
@@ -171,7 +167,7 @@ export function useSignupCompanyAuthority(
       : enabled && preferences.isError
         ? 'Your signed-in account could not be checked. Reload company setup.'
         : authority.isError
-          ? apiErrorSentence(authority.error, ACCESS_UNCHECKED, ACCESS_UNCHECKED)
+          ? failureSentence(authority.error, 'Your administrator access could not be checked. Reload company setup.')
           : stopped
             ? 'Your company administrator appointment is no longer current. Another initial declaration cannot restore it.'
             : !authorityReady &&
@@ -202,9 +198,7 @@ export function useSignupCompanyAuthority(
   const confirmTerms = async (appointment: OwnCompanyAppointment) => {
     guard();
     if (!currentAdministrator(appointment, company!.uuid))
-      throw createUserFriendlyError(
-        'Your company administrator appointment is no longer current. Refresh company setup.',
-      );
+      throw new Error('Your company administrator appointment is no longer current. Refresh company setup.');
     if (!currentTerms(appointment)) {
       const response = await acceptCompanySignupTerms(apiClient, appointment.uuid, { ledovaSubmissionGuard: guard });
       guard();
@@ -213,7 +207,7 @@ export function useSignupCompanyAuthority(
         !currentAdministrator(response.data, company!.uuid) ||
         !currentTerms(response.data)
       )
-        throw createUserFriendlyError(
+        throw new Error(
           'Your current company Terms acceptance could not be confirmed. Refresh company setup before retrying.',
         );
     }
@@ -225,15 +219,14 @@ export function useSignupCompanyAuthority(
       !currentAdministrator(confirmed.data.appointment, company!.uuid) ||
       !currentTerms(confirmed.data.appointment)
     )
-      throw createUserFriendlyError(
+      throw new Error(
         'Your current company authority and Terms acceptance could not be confirmed. Refresh company setup before retrying.',
       );
   };
   const canEstablishAuthority = enabled && !!owner && authority.isSuccess && !authority.isFetching && !authorityError;
   const establishAuthority = async () => {
     guard();
-    if (!canEstablishAuthority)
-      throw createUserFriendlyError('Company setup is not ready. Reload it before continuing.');
+    if (!canEstablishAuthority) throw new Error('Company setup is not ready. Reload it before continuing.');
     let state = await read();
     if (state.appointment) {
       await confirmTerms(state.appointment);
@@ -245,7 +238,7 @@ export function useSignupCompanyAuthority(
         (appointment) => appointment.company === company!.uuid && appointment.capabilities.includes('admin'),
       )
     )
-      throw createUserFriendlyError('Your initial administrator access is no longer current. Reload company setup.');
+      throw new Error('Your initial administrator access is no longer current. Reload company setup.');
     let request: CompanyAuthorityRequest | undefined = state.requests.find((entry) => entry.status === 'pending');
     if (!request) {
       key.current ??= newKey();
@@ -271,13 +264,11 @@ export function useSignupCompanyAuthority(
       request.company !== company!.uuid ||
       !signupScopes(request.requestedCapabilities, request.delegatableCapabilities, request.requestedExpiresAt)
     )
-      throw createUserFriendlyError('Your authority request did not match this company administrator setup.');
+      throw new Error('Your authority request did not match this company administrator setup.');
     const response = await admitCompanyAuthorityRequest(apiClient, request.uuid, { ledovaSubmissionGuard: guard });
     guard();
     if (response.data.uuid !== request.uuid || response.data.status !== 'admitted' || !response.data.appointment)
-      throw createUserFriendlyError(
-        'Administrator access could not be confirmed. Reload company setup before retrying.',
-      );
+      throw new Error('Administrator access could not be confirmed. Reload company setup before retrying.');
     state = await read();
     if (
       !state.appointment ||
@@ -288,7 +279,7 @@ export function useSignupCompanyAuthority(
       JSON.stringify([...state.appointment.delegatableCapabilities].sort()) !==
         JSON.stringify([...request.delegatableCapabilities].sort())
     )
-      throw createUserFriendlyError(
+      throw new Error(
         'Your administrator appointment did not match the retained setup. Reload company setup before retrying.',
       );
     await confirmTerms(state.appointment);
@@ -302,9 +293,7 @@ export function useSignupCompanyAuthority(
       });
       guard();
       if (response.data.uuid !== authorityRequest.uuid || response.data.status !== 'withdrawn')
-        throw createUserFriendlyError(
-          'The pending request could not be replaced. Reload company setup before retrying.',
-        );
+        throw new Error('The pending request could not be replaced. Reload company setup before retrying.');
       key.current = null;
       await authority.refetch({ throwOnError: true });
     },
@@ -313,14 +302,16 @@ export function useSignupCompanyAuthority(
     authorityRequest,
     authorityReady,
     authorityLoading: enabled && (preferences.isLoading || authority.isLoading),
-    authorityError: reset.isError ? apiErrorSentence(reset.error, RESET_FAILED, RESET_FAILED) : authorityError,
+    authorityError: reset.isError
+      ? failureSentence(reset.error, 'Your pending authority request could not be replaced.')
+      : authorityError,
     resetAuthorityRequest: () => reset.mutateAsync(),
     isResettingAuthority: reset.isPending,
     canEstablishAuthority,
     establishAuthority,
     guardCompletion: enabled ? guardCompany : guardSession,
     guardCommandCompletion: () => {
-      if (!mounted.current) throw createUserFriendlyError('Signup is no longer open. Reload it before continuing.');
+      if (!mounted.current) throw new Error('Signup is no longer open. Reload it before continuing.');
       (enabled ? guardCompany : guardSession)();
     },
     completionOwnerReady: !!owner && profile?.uuid === owner.userUuid && !preferences.isError,

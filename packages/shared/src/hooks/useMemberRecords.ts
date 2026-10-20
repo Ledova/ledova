@@ -12,15 +12,12 @@ import {
   withdrawMemberCertificateRequest,
 } from '../services/member-access';
 import type { OwnMemberRecord, MemberCertificateRequest } from '../types';
-import { failureStatus, apiErrorSentence, createUserFriendlyError } from '../utils/errors';
+import { failureStatus, failureSentence } from '../utils/errors';
 import { readEveryPage } from '../utils/pagination';
 import { useSubmissionOwner } from './useSubmissionOwner';
 import { USER_PREFERENCES_QUERY_KEY } from './useUserPreferences';
 import type { OrderSubmissionSession } from './useOrderSubmissions';
 import { useApiClient } from './useApiClient';
-
-const OUTCOME_UNCONFIRMED = 'The outcome could not be confirmed. Refresh or retry the original request.';
-const REFRESH_FAILED = 'The member records could not be refreshed.';
 
 type Command =
   | { kind: 'accept'; code: string; userAccount: string; confirmation: true }
@@ -73,7 +70,7 @@ export function useMemberRecords(newKey: () => string, session?: OrderSubmission
       preferences?.status !== 'success' ||
       preferences.fetchStatus !== 'idle'
     )
-      throw createUserFriendlyError('Your signed-in account changed. Reopen your member records.');
+      throw new Error('Your signed-in account changed. Reopen your member records.');
   };
   const config = (check = guard) => ({ ...session?.requestConfig(), ledovaSubmissionGuard: check });
   const list = useQuery({
@@ -91,7 +88,7 @@ export function useMemberRecords(newKey: () => string, session?: OrderSubmission
     guard();
     const state = client.getQueryState(key);
     if (state?.status !== 'success' || state.fetchStatus !== 'idle')
-      throw createUserFriendlyError('Refresh your current member associations before continuing.');
+      throw new Error('Refresh your current member associations before continuing.');
   };
   const guardSelection = () => {
     guardList();
@@ -99,7 +96,7 @@ export function useMemberRecords(newKey: () => string, session?: OrderSubmission
       current.current.selected !== selected ||
       !client.getQueryData<OwnMemberRecord[]>(key)?.some((row) => row.uuid === selected)
     )
-      throw createUserFriendlyError('Your member association changed.');
+      throw new Error('Your member association changed.');
   };
   const detail = useQuery({
     queryKey: detailKey,
@@ -115,7 +112,7 @@ export function useMemberRecords(newKey: () => string, session?: OrderSubmission
         data.company.uuid !== summary.company.uuid ||
         data.identitySource !== 'company_recorded'
       )
-        throw createUserFriendlyError('The member record does not identify your selected association.');
+        throw new Error('The member record does not identify your selected association.');
       return data;
     },
   });
@@ -123,7 +120,7 @@ export function useMemberRecords(newKey: () => string, session?: OrderSubmission
     guardSelection();
     const state = client.getQueryState(detailKey);
     if (state?.status !== 'success' || state.fetchStatus !== 'idle')
-      throw createUserFriendlyError('Refresh the selected member record before continuing.');
+      throw new Error('Refresh the selected member record before continuing.');
   };
   const requests = useQuery({
     queryKey: requestsKey,
@@ -157,7 +154,7 @@ export function useMemberRecords(newKey: () => string, session?: OrderSubmission
           (row) => row.association !== selected || row.company !== record.company.uuid || row.member !== record.member,
         )
       )
-        throw createUserFriendlyError('The requests do not belong to your selected member record.');
+        throw new Error('The requests do not belong to your selected member record.');
       return { particulars, certificates };
     },
   });
@@ -171,13 +168,13 @@ export function useMemberRecords(newKey: () => string, session?: OrderSubmission
           current.current.token !== token ||
           !client.getQueryData<OwnMemberRecord>(detailKey)?.classes.some((row) => row.uuid === token)
         )
-          throw createUserFriendlyError('The selected share class changed.');
+          throw new Error('The selected share class changed.');
       };
       check();
       const { data } = await getOwnMemberEntries(api, selected, token, config(check));
       check();
       if (!Array.isArray(data.entries) || data.entries.some((row) => !/^-?\d+$/.test(row.delta)))
-        throw createUserFriendlyError('The own entry deltas could not be confirmed.');
+        throw new Error('The own entry deltas could not be confirmed.');
       return data.entries;
     },
   });
@@ -186,7 +183,7 @@ export function useMemberRecords(newKey: () => string, session?: OrderSubmission
     const requestsState = client.getQueryState(requestsKey);
     const entriesState = client.getQueryState(entriesKey);
     if (requestsState?.status !== 'success' || requestsState.fetchStatus !== 'idle' || entriesState?.status === 'error')
-      throw createUserFriendlyError('Refresh your current member requests before continuing.');
+      throw new Error('Refresh your current member requests before continuing.');
   };
   const refresh = async () => {
     guard();
@@ -210,11 +207,11 @@ export function useMemberRecords(newKey: () => string, session?: OrderSubmission
         if (command.kind === 'accept') guard();
         else guardAction();
         if (command.kind === 'certificate' && current.current.token !== command.token)
-          throw createUserFriendlyError('The certificate request share class changed.');
+          throw new Error('The certificate request share class changed.');
       };
       check();
       if (command.kind !== 'accept' && command.kind !== 'withdraw' && command.association !== selected)
-        throw createUserFriendlyError('The request belongs to a different association.');
+        throw new Error('The request belongs to a different association.');
       if (command.kind === 'certificate') {
         const state = client.getQueryState(entriesKey);
         const entry = client
@@ -227,7 +224,7 @@ export function useMemberRecords(newKey: () => string, session?: OrderSubmission
           !['ISSUE', 'TRANSFER'].includes(entry.kind.toUpperCase()) ||
           BigInt(entry.delta) <= 0n
         )
-          throw createUserFriendlyError('Select a genuine positive own issue or transfer entry.');
+          throw new Error('Select a genuine positive own issue or transfer entry.');
       }
       if (command.kind === 'withdraw') {
         const state = client.getQueryState(requestsKey);
@@ -235,7 +232,7 @@ export function useMemberRecords(newKey: () => string, session?: OrderSubmission
           .getQueryData<{ certificates: { uuid: string; status: string }[] }>(requestsKey)
           ?.certificates.find((row) => row.uuid === command.uuid);
         if (state?.status !== 'success' || state.fetchStatus !== 'idle' || !request)
-          throw createUserFriendlyError('Refresh your own certificate request before withdrawing it.');
+          throw new Error('Refresh your own certificate request before withdrawing it.');
       }
       const record = client.getQueryData<OwnMemberRecord>(detailKey);
       setRetry(command);
@@ -247,9 +244,7 @@ export function useMemberRecords(newKey: () => string, session?: OrderSubmission
         );
         check();
         if (data.userAccount !== owner!.ownerAccountUuid || !data.current || !data.member || !data.company)
-          throw createUserFriendlyError(
-            'The accepted member association could not be confirmed. Retry the same invitation.',
-          );
+          throw new Error('The accepted member association could not be confirmed. Retry the same invitation.');
       } else if (command.kind === 'particulars') {
         const { data } = await createMemberParticularsRequest(
           api,
@@ -271,7 +266,7 @@ export function useMemberRecords(newKey: () => string, session?: OrderSubmission
           data.name !== command.name ||
           data.residentialAddress !== command.residentialAddress
         )
-          throw createUserFriendlyError('The particulars request could not be confirmed. Retry the unchanged request.');
+          throw new Error('The particulars request could not be confirmed. Retry the unchanged request.');
       } else if (command.kind === 'certificate') {
         const { data } = await createMemberCertificateRequest(
           api,
@@ -287,7 +282,7 @@ export function useMemberRecords(newKey: () => string, session?: OrderSubmission
           data.token !== command.token ||
           data.entry !== command.entry
         )
-          throw createUserFriendlyError('The certificate request could not be confirmed. Retry the unchanged request.');
+          throw new Error('The certificate request could not be confirmed. Retry the unchanged request.');
       } else {
         const { data } = await withdrawMemberCertificateRequest(
           api,
@@ -297,7 +292,7 @@ export function useMemberRecords(newKey: () => string, session?: OrderSubmission
         );
         check();
         if (data.uuid !== command.uuid || data.association !== selected || data.status !== 'withdrawn')
-          throw createUserFriendlyError('The withdrawal could not be confirmed. Retry the unchanged request.');
+          throw new Error('The withdrawal could not be confirmed. Retry the unchanged request.');
       }
       setRetry(null);
       await refresh();
@@ -305,7 +300,9 @@ export function useMemberRecords(newKey: () => string, session?: OrderSubmission
       const status = failureStatus(failure);
       if (status && status < 500) setRetry(null);
       if (live.current && boundary.get() === owner)
-        setError(apiErrorSentence(failure, OUTCOME_UNCONFIRMED, OUTCOME_UNCONFIRMED));
+        setError(
+          failureSentence(failure, 'The outcome could not be confirmed. Refresh or retry the original request.'),
+        );
     } finally {
       pending.current = false;
       if (live.current) setBusy(false);
@@ -343,7 +340,7 @@ export function useMemberRecords(newKey: () => string, session?: OrderSubmission
         !Number.isSafeInteger(request.fulfilment.fileSize) ||
         request.fulfilment.fileSize < 1
       )
-        throw createUserFriendlyError('Refresh your current certificate fulfilment before downloading it.');
+        throw new Error('Refresh your current certificate fulfilment before downloading it.');
       return request.fulfilment;
     },
     busy,
@@ -358,7 +355,7 @@ export function useMemberRecords(newKey: () => string, session?: OrderSubmission
       if (live.current && boundary.get() === owner) setError(null);
       return refresh().catch((failure) => {
         if (live.current && boundary.get() === owner)
-          setError(apiErrorSentence(failure, REFRESH_FAILED, REFRESH_FAILED));
+          setError(failureSentence(failure, 'The member records could not be refreshed.'));
       });
     },
     select: (uuid: string) => {

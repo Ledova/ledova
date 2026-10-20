@@ -1,7 +1,6 @@
 import { useState, useCallback } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
-  apiErrorSentence,
   prepareTransfer,
   prepareBitcoinTransfer,
   broadcastTransfer,
@@ -9,12 +8,10 @@ import {
   canonicalDecimal,
   validatePreparedTransfer,
   WALLETS_QUERY_KEY,
+  failureSentence,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
 import type { Wallet, PreparedWalletTransfer } from '@ledova/shared';
-
-const PREPARE_FAILED = 'The transfer could not be prepared. Check the details and try again.';
-const BROADCAST_FAILED = 'The transaction could not be broadcast. Try again.';
 
 interface UseCryptoTransferSigningParams {
   wallet: Wallet | null;
@@ -64,7 +61,7 @@ export function useCryptoTransferSigning({
       setPrepareError(null);
     },
     onError: (err) => {
-      setPrepareError(apiErrorSentence(err, PREPARE_FAILED, PREPARE_FAILED));
+      setPrepareError(failureSentence(err, 'The transfer could not be prepared. Check the details and try again.'));
       setPreparedTransaction(null);
     },
   });
@@ -89,7 +86,7 @@ export function useCryptoTransferSigning({
       queryClient.invalidateQueries({ queryKey: WALLETS_QUERY_KEY });
     },
     onError: (err) => {
-      setBroadcastError(apiErrorSentence(err, BROADCAST_FAILED, BROADCAST_FAILED));
+      setBroadcastError(failureSentence(err, 'The transaction could not be broadcast. Try again.'));
     },
   });
 

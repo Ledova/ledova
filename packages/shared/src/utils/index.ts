@@ -41,6 +41,7 @@ export {
   readSignInError,
   readApiError,
   apiErrorSentence,
+  failureSentence,
   refusalSentence,
   refusalSentences,
 } from './errors';

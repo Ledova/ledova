@@ -18,8 +18,8 @@ import {
   type RegisterIssue,
   type RegisterIssueSnapshot,
   type RegisterLink,
-  apiErrorSentence,
   refusalSentences,
+  failureSentence,
 } from '@ledova/shared';
 import { DecisionTrail } from '@pages/company/register/shared/DecisionTrail';
 import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
@@ -33,7 +33,6 @@ import {
 } from './useCompanyIssueFlow';
 import type { useShareClass } from './useShareClass';
 
-const REFRESH_FAILED = 'Current company records could not be refreshed.';
 const stages: Record<string, string> = COPY.STAGES;
 
 const NEW_MEMBER = [{ value: 'new', label: 'Create a new member through the documentary link' }];
@@ -423,7 +422,7 @@ export function CompanyIssueFlow({ uuid, data }: { uuid: string; data: ReturnTyp
     try {
       await commands.refresh();
     } catch (failure) {
-      setRefreshError(apiErrorSentence(failure, REFRESH_FAILED, REFRESH_FAILED));
+      setRefreshError(failureSentence(failure, 'Current company records could not be refreshed.'));
     }
   };
   if (!commands.owner) return null;

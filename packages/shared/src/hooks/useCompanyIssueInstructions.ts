@@ -15,7 +15,7 @@ import { readEveryPage } from '../utils/pagination';
 import { appointmentForRegisterStep, type RegisterStep } from '../utils/register-commands';
 import { isPreparedRegisterLink } from '../utils/register-links';
 import { isPreparedRegisterIssue } from '../utils/register-issues';
-import { failureStatus, createUserFriendlyError, apiErrorSentence, refusalSentence } from '../utils/errors';
+import { failureStatus, createUserFriendlyError, refusalSentence, failureSentence } from '../utils/errors';
 import { REGISTER_ISSUE_UNMET_COPY } from '../constants/business/register-issues';
 import type {
   CompanyShareToken,
@@ -30,9 +30,6 @@ import type {
   TokenHoldersResponse,
 } from '../types';
 import { useApiClient } from './useApiClient';
-
-const REFRESH_FAILED = 'Current company grant records could not be refreshed.';
-const OUTCOME_UNCERTAIN = 'The outcome is uncertain. Recover the identical original request.';
 
 type IssueInput = Omit<RegisterIssuePreparation, 'operationId' | 'appointment' | 'token'>;
 type LinkInput = Omit<RegisterLinkPreparation, 'operationId' | 'appointment' | 'companyId'>;
@@ -403,7 +400,7 @@ export function useCompanyIssueInstructions(
       guard();
     } catch (failure) {
       if (mounted.current && boundary.get() === owner)
-        setError(apiErrorSentence(failure, REFRESH_FAILED, REFRESH_FAILED));
+        setError(failureSentence(failure, 'Current company grant records could not be refreshed.'));
     }
   };
   const accept = async (record: RegisterIssue) => {
@@ -495,7 +492,7 @@ export function useCompanyIssueInstructions(
       if (mounted.current && boundary.get() === owner)
         setError(
           refusalSentence(failure, REGISTER_ISSUE_UNMET_COPY) ??
-            apiErrorSentence(failure, OUTCOME_UNCERTAIN, OUTCOME_UNCERTAIN),
+            failureSentence(failure, 'The outcome is uncertain. Recover the identical original request.'),
         );
     } finally {
       pending.current = false;

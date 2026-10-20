@@ -3,7 +3,6 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { CACHE_TIMING } from '../constants';
 import { getUserProfiles, updateUserProfile } from '../services/users';
 import type { UpdateUserProfile } from '../types';
-import { createUserFriendlyError } from '../utils/errors';
 import { AUTH_QUERY_KEY, useAuth } from './useAuth';
 import { USER_PREFERENCES_QUERY_KEY } from './useUserPreferences';
 import { USER_PROFILES_QUERY_KEY } from './useSignupReview';
@@ -43,7 +42,7 @@ export function useUserProfile({ session }: { session?: OrderSubmissionSession }
       !auth.data?.data.valid ||
       client.getQueryState(USER_PREFERENCES_QUERY_KEY)?.status !== 'success'
     )
-      throw createUserFriendlyError('Your signed-in account changed. Reopen Profile.');
+      throw new Error('Your signed-in account changed. Reopen Profile.');
   };
   const profile = useQuery({
     queryKey: key,
@@ -57,7 +56,7 @@ export function useUserProfile({ session }: { session?: OrderSubmissionSession }
       });
       guard();
       if (response.data.results.length > 1 || response.data.results.some((row) => row.uuid !== owner!.userUuid))
-        throw createUserFriendlyError('Your own profile could not be confirmed.');
+        throw new Error('Your own profile could not be confirmed.');
       return response;
     },
     staleTime: CACHE_TIMING.DEFAULT_STALE_TIME,
@@ -86,7 +85,7 @@ export function useUserProfile({ session }: { session?: OrderSubmissionSession }
           preferences.isInvalidated ||
           JSON.stringify(client.getQueryData<typeof profile.data>(key)?.data.results[0] ?? null) !== snapshot
         )
-          throw createUserFriendlyError('Your profile changed or could not be refreshed. Refresh before saving.');
+          throw new Error('Your profile changed or could not be refreshed. Refresh before saving.');
       };
       sourceGuard();
       const controller = new AbortController();
@@ -98,8 +97,7 @@ export function useUserProfile({ session }: { session?: OrderSubmissionSession }
           ledovaSubmissionGuard: sourceGuard,
         });
         sourceGuard();
-        if (response.data.uuid !== userProfile!.uuid)
-          throw createUserFriendlyError('Your saved profile could not be confirmed.');
+        if (response.data.uuid !== userProfile!.uuid) throw new Error('Your saved profile could not be confirmed.');
         return response;
       } finally {
         if (transport.current === controller) transport.current = null;

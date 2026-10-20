@@ -1,13 +1,10 @@
 import { CompanyPicker } from '@components/CompanyPicker';
 import { Outcome, Section } from '@components/Ledger';
 import { Page, PageAction } from '@components/Page';
-import { useSubmissionOwner, useUserPreferences, type OrderSubmissionOwner, apiErrorSentence } from '@ledova/shared';
+import { useSubmissionOwner, useUserPreferences, type OrderSubmissionOwner, failureSentence } from '@ledova/shared';
 import { AuthorityRequestForm } from './AuthorityRequestForm';
 import { AuthorityRequestRecord } from './AuthorityRequestRecord';
 import { useAuthorityRequests } from './useAuthorityRequests';
-
-const DOWNLOAD_FAILED = 'Your evidence could not be downloaded.';
-const OUTCOME_UNCONFIRMED = 'Your request outcome could not be confirmed. Refresh or retry.';
 
 export default function CompanyAuthorityPage() {
   const { owner, boundary } = useSubmissionOwner();
@@ -146,12 +143,12 @@ function OwnAuthorityRequests({
         )}
         {opening.isError && (
           <p role="alert" className="text-sm text-error-light">
-            {apiErrorSentence(opening.error, DOWNLOAD_FAILED, DOWNLOAD_FAILED)}
+            {failureSentence(opening.error, 'Your evidence could not be downloaded.')}
           </p>
         )}
         {lifecycle.isError && (
           <p role="alert" className="text-sm text-error-light">
-            {apiErrorSentence(lifecycle.error, OUTCOME_UNCONFIRMED, OUTCOME_UNCONFIRMED)}
+            {failureSentence(lifecycle.error, 'Your request outcome could not be confirmed. Refresh or retry.')}
           </p>
         )}
       </Section>

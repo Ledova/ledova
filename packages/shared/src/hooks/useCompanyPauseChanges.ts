@@ -11,7 +11,7 @@ import { getRegisterPauseChanges, prepareRegisterPauseChange } from '../services
 import { readEveryPage } from '../utils/pagination';
 import { appointmentForRegisterStep, type RegisterStep } from '../utils/register-commands';
 import { isPreparedRegisterPauseChange } from '../utils/register-pause-changes';
-import { failureStatus, createUserFriendlyError, apiErrorSentence, refusalSentence } from '../utils/errors';
+import { failureStatus, createUserFriendlyError, refusalSentence, failureSentence } from '../utils/errors';
 import { REGISTER_PAUSE_CHANGE_UNMET_COPY } from '../constants/business/register-pause-changes';
 import type {
   CompanyShareToken,
@@ -20,9 +20,6 @@ import type {
   RegisterPauseChangePreparation,
 } from '../types';
 import { useApiClient } from './useApiClient';
-
-const REFRESH_FAILED = 'Current pause records could not be refreshed.';
-const OUTCOME_UNCERTAIN = 'The outcome is uncertain. Recover the identical original request.';
 
 type Input = Omit<RegisterPauseChangePreparation, 'operationId' | 'appointment' | 'token'>;
 type Source = Pick<Input, 'paused' | 'reason' | 'authorityReference'> & { token: CompanyShareToken | undefined };
@@ -265,7 +262,7 @@ export function useCompanyPauseChanges(
       guard();
     } catch (failure) {
       if (mounted.current && boundary.get() === owner)
-        setError(apiErrorSentence(failure, REFRESH_FAILED, REFRESH_FAILED));
+        setError(failureSentence(failure, 'Current pause records could not be refreshed.'));
     }
   };
   const accept = async (record: RegisterPauseChange) => {
@@ -330,7 +327,7 @@ export function useCompanyPauseChanges(
       if (mounted.current && boundary.get() === owner)
         setError(
           refusalSentence(failure, REGISTER_PAUSE_CHANGE_UNMET_COPY) ??
-            apiErrorSentence(failure, OUTCOME_UNCERTAIN, OUTCOME_UNCERTAIN),
+            failureSentence(failure, 'The outcome is uncertain. Recover the identical original request.'),
         );
     } finally {
       pending.current = false;

@@ -6,7 +6,7 @@ import {
   SUBSCRIPTION_COPY,
   SUBSCRIPTION_SUBMITTABLE_STATUSES,
   SUBSCRIPTION_WITHDRAWABLE_STATUSES,
-  apiErrorSentence,
+  failureSentence,
   formatMoney,
 } from '@ledova/shared';
 import type { SubscriptionDetail } from '@ledova/shared';
@@ -118,7 +118,7 @@ export default function SubscriptionDetailPage() {
   const canWithdraw = SUBSCRIPTION_WITHDRAWABLE_STATUSES.includes(subscription.status) && !hasPayment;
   const busy = submit.isPending || withdraw.isPending || isRefreshing;
   const failure = submit.error ?? withdraw.error;
-  const message = failure ? apiErrorSentence(failure, ACTION_ERROR_FALLBACK, ACTION_ERROR_FALLBACK) : null;
+  const message = failure ? failureSentence(failure, ACTION_ERROR_FALLBACK) : null;
   const next = NEXT[subscription.status];
 
   return (

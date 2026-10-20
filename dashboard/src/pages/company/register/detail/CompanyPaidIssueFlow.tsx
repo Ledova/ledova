@@ -13,17 +13,14 @@ import {
   useCompanyPaidIssues,
   type RegisterPaidIssue,
   type RegisterPaidIssueSource,
-  apiErrorSentence,
-  createUserFriendlyError,
   refusalSentences,
+  failureSentence,
 } from '@ledova/shared';
 import { DecisionTrail } from '@pages/company/register/shared/DecisionTrail';
 import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
 import { usePaidIssuePreparation, usePaidIssueRecord, type Commands } from './useCompanyPaidIssueFlow';
 import type { useShareClass } from './useShareClass';
 
-const PICKER_UNAVAILABLE = 'The authority picker is unavailable.';
-const DOCUMENT_UNSELECTED = 'The authority document could not be selected.';
 const STAGES: Record<string, string> = COPY.STAGES;
 
 const SUBSCRIPTIONS = ['subscription', 'subscriptions'] as const;
@@ -275,7 +272,7 @@ function Preparation({ commands }: { commands: Commands }) {
               check();
             } catch (failure) {
               event.preventDefault();
-              setError(apiErrorSentence(failure, PICKER_UNAVAILABLE, PICKER_UNAVAILABLE));
+              setError(failureSentence(failure, 'The authority picker is unavailable.'));
             }
           }}
           onChange={(event) => {
@@ -288,12 +285,12 @@ function Preparation({ commands }: { commands: Commands }) {
                   chosen.size <= 0 ||
                   chosen.size > 10 * 1024 * 1024)
               )
-                throw createUserFriendlyError('Choose a PDF, PNG or JPEG of up to 10 MB.');
+                throw new Error('Choose a PDF, PNG or JPEG of up to 10 MB.');
               uploadRef.current = null;
               setFile(chosen);
               setError('');
             } catch (failure) {
-              setError(apiErrorSentence(failure, DOCUMENT_UNSELECTED, DOCUMENT_UNSELECTED));
+              setError(failureSentence(failure, 'The authority document could not be selected.'));
             }
           }}
         />

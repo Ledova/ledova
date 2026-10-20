@@ -6,15 +6,12 @@ import {
   useCompanyPauseChanges,
   type RegisterEvidence,
   type RegisterPauseChange,
-  apiErrorSentence,
-  createUserFriendlyError,
+  failureSentence,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
 import { saveFile } from '@utils/saveFile';
 import { useEffect, useRef, useState } from 'react';
 
-const DOWNLOAD_FAILED = 'The retained authority copy could not be downloaded.';
-const PREPARE_FAILED = 'The pause change could not be prepared.';
 export type Commands = ReturnType<typeof useCompanyPauseChanges>;
 export function usePauseRecord({ record, commands }: { record: RegisterPauseChange; commands: Commands }) {
   const [error, setError] = useState('');
@@ -29,7 +26,7 @@ export function usePauseRecord({ record, commands }: { record: RegisterPauseChan
       commands.guard();
       saveFile(response.data, `pause-authority-${record.uuid}`);
     } catch (failure) {
-      setError(apiErrorSentence(failure, DOWNLOAD_FAILED, DOWNLOAD_FAILED));
+      setError(failureSentence(failure, 'The retained authority copy could not be downloaded.'));
     } finally {
       setBusy(false);
     }
@@ -63,7 +60,7 @@ export function usePausePreparation({ commands }: { commands: Commands }) {
     reference.trim().length <= 255;
   const waiting = busy || commands.busy;
   const check = () => {
-    if (!mounted.current) throw createUserFriendlyError('This pause form is closed.');
+    if (!mounted.current) throw new Error('This pause form is closed.');
     commands.guardPause('prepare', {
       token: captured,
       paused: paused!,
@@ -88,7 +85,7 @@ export function usePausePreparation({ commands }: { commands: Commands }) {
         const response = await uploadRegisterEvidence(apiClient, { ...body, file }, commands.config(check));
         check();
         if (!isRegisterEvidenceReceipt(response.data, body, file.size))
-          throw createUserFriendlyError('The exact company authority receipt could not be confirmed.');
+          throw new Error('The exact company authority receipt could not be confirmed.');
         receipt = response.data;
         uploadRef.current = { file, appointment, key, receipt };
       }
@@ -106,7 +103,7 @@ export function usePausePreparation({ commands }: { commands: Commands }) {
       if (failureStatus(failure) === 409) uploadRef.current = null;
       try {
         commands.guard();
-        if (mounted.current) setError(apiErrorSentence(failure, PREPARE_FAILED, PREPARE_FAILED));
+        if (mounted.current) setError(failureSentence(failure, 'The pause change could not be prepared.'));
       } catch {
         return;
       }

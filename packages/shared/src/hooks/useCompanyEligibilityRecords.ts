@@ -29,7 +29,7 @@ import type {
   InvestorClassification,
   OwnCompanyAppointment,
 } from '../types';
-import { createUserFriendlyError, failureStatus, apiErrorSentence, refusalSentence } from '../utils/errors';
+import { createUserFriendlyError, failureStatus, refusalSentence, failureSentence } from '../utils/errors';
 import { COMPANY_ELIGIBILITY_UNMET_COPY } from '../constants/business/investor-eligibility';
 import { isUuid } from '../utils/validation';
 import { readEveryPage } from '../utils/pagination';
@@ -38,7 +38,6 @@ import { USER_PREFERENCES_QUERY_KEY } from './useUserPreferences';
 import type { OrderSubmissionSession } from './useOrderSubmissions';
 import { useApiClient } from './useApiClient';
 
-const PREPARE_FAILED = 'The action could not be prepared. Refresh and try again.';
 const RESULT_UNCERTAIN =
   'The result is uncertain. Retry this exact confirmation and key, or refresh its retained history.';
 
@@ -567,7 +566,7 @@ function useEligibilityRecords(
       setAction(target);
     } catch (failure) {
       if (mounted.current && ticket === generation.current)
-        setError(apiErrorSentence(failure, PREPARE_FAILED, PREPARE_FAILED));
+        setError(failureSentence(failure, 'The action could not be prepared. Refresh and try again.'));
     } finally {
       pending.current = false;
       if (mounted.current) setBusy(false);
@@ -695,8 +694,7 @@ function useEligibilityRecords(
       }
       if (mounted.current && boundary.get() === owner && command.generation === generation.current)
         setError(
-          refusalSentence(failure, COMPANY_ELIGIBILITY_UNMET_COPY) ??
-            apiErrorSentence(failure, RESULT_UNCERTAIN, RESULT_UNCERTAIN),
+          refusalSentence(failure, COMPANY_ELIGIBILITY_UNMET_COPY) ?? failureSentence(failure, RESULT_UNCERTAIN),
         );
     } finally {
       pending.current = false;

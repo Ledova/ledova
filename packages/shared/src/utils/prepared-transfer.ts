@@ -1,5 +1,3 @@
-import { createUserFriendlyError } from './errors';
-
 interface TransferFields {
   toAddress?: string;
   amountEth?: string;
@@ -54,7 +52,7 @@ export function canonicalDecimal(amount: string): string {
 }
 
 function mismatch(reason: string): never {
-  throw createUserFriendlyError(`The prepared transfer does not match what you entered: ${reason}.`);
+  throw new Error(`The prepared transfer does not match what you entered: ${reason}.`);
 }
 
 export function validatePreparedTransfer(

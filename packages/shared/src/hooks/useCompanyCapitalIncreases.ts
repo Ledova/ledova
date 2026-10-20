@@ -12,7 +12,7 @@ import { readEveryPage } from '../utils/pagination';
 import { appointmentForRegisterStep, type RegisterStep } from '../utils/register-commands';
 import { isPreparedRegisterCapitalIncrease } from '../utils/register-capital-increases';
 import { requestShares, wholeShares } from '../utils/share-quantities';
-import { failureStatus, createUserFriendlyError, apiErrorSentence, refusalSentence } from '../utils/errors';
+import { failureStatus, createUserFriendlyError, refusalSentence, failureSentence } from '../utils/errors';
 import { REGISTER_CAPITAL_INCREASE_UNMET_COPY } from '../constants/business/register-capital-increases';
 import type {
   CompanyShareToken,
@@ -21,9 +21,6 @@ import type {
   RegisterCapitalIncreasePreparation,
 } from '../types';
 import { useApiClient } from './useApiClient';
-
-const REFRESH_FAILED = 'Current capital records could not be refreshed.';
-const OUTCOME_UNCERTAIN = 'The outcome is uncertain. Recover the identical original request.';
 
 type Input = Omit<RegisterCapitalIncreasePreparation, 'operationId' | 'appointment' | 'token'>;
 type Source = { priorAuthorizedTotal: string; additionalShares: number; newAuthorizedTotal: number };
@@ -260,7 +257,7 @@ export function useCompanyCapitalIncreases(
       guard();
     } catch (failure) {
       if (mounted.current && boundary.get() === owner)
-        setError(apiErrorSentence(failure, REFRESH_FAILED, REFRESH_FAILED));
+        setError(failureSentence(failure, 'Current capital records could not be refreshed.'));
     }
   };
   const accept = async (record: RegisterCapitalIncrease) => {
@@ -324,7 +321,7 @@ export function useCompanyCapitalIncreases(
       if (mounted.current && boundary.get() === owner)
         setError(
           refusalSentence(failure, REGISTER_CAPITAL_INCREASE_UNMET_COPY) ??
-            apiErrorSentence(failure, OUTCOME_UNCERTAIN, OUTCOME_UNCERTAIN),
+            failureSentence(failure, 'The outcome is uncertain. Recover the identical original request.'),
         );
     } finally {
       pending.current = false;

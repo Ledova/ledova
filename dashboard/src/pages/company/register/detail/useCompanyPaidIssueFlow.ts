@@ -6,16 +6,12 @@ import {
   useCompanyPaidIssues,
   type RegisterEvidence,
   type RegisterPaidIssue,
-  apiErrorSentence,
-  createUserFriendlyError,
+  failureSentence,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
 import { saveFile } from '@utils/saveFile';
 import { useEffect, useRef, useState } from 'react';
 
-const DOWNLOAD_FAILED = 'The retained authority copy could not be downloaded.';
-const SOURCE_UNSELECTED = 'The paid source could not be selected.';
-const PREPARE_FAILED = 'The paid issue could not be prepared.';
 export type Commands = ReturnType<typeof useCompanyPaidIssues>;
 export function usePaidIssueRecord({ record, commands }: { record: RegisterPaidIssue; commands: Commands }) {
   const [error, setError] = useState('');
@@ -30,7 +26,7 @@ export function usePaidIssueRecord({ record, commands }: { record: RegisterPaidI
       commands.guard();
       saveFile(response.data, `paid-issue-authority-${record.uuid}`);
     } catch (failure) {
-      setError(apiErrorSentence(failure, DOWNLOAD_FAILED, DOWNLOAD_FAILED));
+      setError(failureSentence(failure, 'The retained authority copy could not be downloaded.'));
     } finally {
       setBusy(false);
     }
@@ -66,13 +62,13 @@ export function usePaidIssuePreparation({ commands }: { commands: Commands }) {
     reason.trim().length <= 1000;
   const waiting = busy || commands.busy;
   const check = () => {
-    if (!mounted.current || !captured) throw createUserFriendlyError('Choose an exact recorded paid subscription.');
+    if (!mounted.current || !captured) throw new Error('Choose an exact recorded paid subscription.');
     commands.guardPaidIssue('prepare', captured);
   };
   const select = (subscription: string) => {
     try {
       const source = commands.availableSubscriptions.data?.find((row) => row.subscription === subscription);
-      if (!source) throw createUserFriendlyError('Choose an available recorded paid subscription.');
+      if (!source) throw new Error('Choose an available recorded paid subscription.');
       const next = { source: { ...source }, token: commands.source ? { ...commands.source } : undefined };
       commands.guardPaidIssue('prepare', next);
       setCaptured(next);
@@ -80,7 +76,7 @@ export function usePaidIssuePreparation({ commands }: { commands: Commands }) {
       setFile(null);
       setError('');
     } catch (failure) {
-      setError(apiErrorSentence(failure, SOURCE_UNSELECTED, SOURCE_UNSELECTED));
+      setError(failureSentence(failure, 'The paid source could not be selected.'));
     }
   };
   const submit = async () => {
@@ -100,7 +96,7 @@ export function usePaidIssuePreparation({ commands }: { commands: Commands }) {
         const response = await uploadRegisterEvidence(apiClient, { ...body, file }, commands.config(check));
         check();
         if (!isRegisterEvidenceReceipt(response.data, body, file.size))
-          throw createUserFriendlyError('The exact company authority receipt could not be confirmed.');
+          throw new Error('The exact company authority receipt could not be confirmed.');
         receipt = response.data;
         uploadRef.current = { file, appointment, key, receipt };
       }
@@ -119,7 +115,7 @@ export function usePaidIssuePreparation({ commands }: { commands: Commands }) {
       if (failureStatus(failure) === 409) uploadRef.current = null;
       try {
         commands.guard();
-        if (mounted.current) setError(apiErrorSentence(failure, PREPARE_FAILED, PREPARE_FAILED));
+        if (mounted.current) setError(failureSentence(failure, 'The paid issue could not be prepared.'));
       } catch {
         return;
       }

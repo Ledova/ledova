@@ -3,14 +3,11 @@ import { useQueryClient } from '@tanstack/react-query';
 import { awaitsActivation } from '../constants';
 import { activateCompany } from '../services/companies';
 import type { Company, CompanyActivate, CompanyActivationAttempt } from '../types';
-import { createUserFriendlyError, failureStatus, apiErrorSentence } from '../utils/errors';
+import { createUserFriendlyError, failureStatus, failureSentence } from '../utils/errors';
 import { isUuid } from '../utils/validation';
 import type { useCompanySelection } from './useCompanySelection';
 import { useApiClient } from './useApiClient';
 import { OWN_APPOINTMENTS_QUERY_KEY } from './useCompanyEligibilityRecords';
-
-const PREPARE_FAILED = 'Activation could not be prepared. Refresh and try again.';
-const NOT_CONFIRMED = 'Activation was not confirmed. Retry the same request after refreshing.';
 
 type Selection = ReturnType<typeof useCompanySelection>;
 type Preview = {
@@ -125,7 +122,8 @@ export function useCompanyActivation(read: Selection, newKey: () => string) {
       confirmation.current = target;
       setPreview(target);
     } catch (failure) {
-      if (mounted.current) setError(apiErrorSentence(failure, PREPARE_FAILED, PREPARE_FAILED));
+      if (mounted.current)
+        setError(failureSentence(failure, 'Activation could not be prepared. Refresh and try again.'));
     } finally {
       pending.current = false;
       if (mounted.current) setBusy(false);
@@ -182,7 +180,7 @@ export function useCompanyActivation(read: Selection, newKey: () => string) {
         try {
           current();
           setIdentityRequired(response?.data?.code === 'issuer_identity_verification_required');
-          setError(apiErrorSentence(failure, NOT_CONFIRMED, NOT_CONFIRMED));
+          setError(failureSentence(failure, 'Activation was not confirmed. Retry the same request after refreshing.'));
         } catch {}
       }
       confirmation.current = null;

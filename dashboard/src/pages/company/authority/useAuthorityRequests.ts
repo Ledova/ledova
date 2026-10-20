@@ -9,7 +9,6 @@ import {
   type CompanyAuthorityRequest,
   type OrderSubmissionOwner,
   COMPANIES_QUERY_KEY,
-  createUserFriendlyError,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
 import { saveFile } from '@utils/saveFile';
@@ -32,8 +31,7 @@ export function useAuthorityRequests({
   currentOwner: () => OrderSubmissionOwner | null;
 }) {
   const guard = useCallback(() => {
-    if (currentOwner() !== owner)
-      throw createUserFriendlyError('Your signed-in account changed. Reopen representative authority.');
+    if (currentOwner() !== owner) throw new Error('Your signed-in account changed. Reopen representative authority.');
   }, [owner, currentOwner]);
   const [selected, setSelected] = useState('');
   const [recorded, setRecorded] = useState<CompanyAuthorityRequest | null>(null);
@@ -85,7 +83,7 @@ export function useAuthorityRequests({
         (action === 'revoke' &&
           (data.status !== 'admitted' || data.appointment?.status !== 'revoked' || !data.appointment.revokedAt))
       )
-        throw createUserFriendlyError('The request outcome could not be confirmed. Refresh your requests or retry.');
+        throw new Error('The request outcome could not be confirmed. Refresh your requests or retry.');
       return data;
     },
     onSuccess: async (request) => {

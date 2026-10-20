@@ -170,6 +170,11 @@ export function apiErrorSentence(error: unknown, fallback: string, unanswered?: 
   return everythingItSaid.length > 0 ? everythingItSaid.join(' ') : fallback;
 }
 
+export function failureSentence(error: unknown, fallback: string): string {
+  const own = error instanceof Error && error.message.trim() ? error.message : fallback;
+  return apiErrorSentence(error, fallback, own);
+}
+
 const UNLISTED_REQUIREMENT = 'Another requirement is not met. Refresh before continuing.';
 
 export function refusalSentences(

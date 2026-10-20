@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { DESTINATIONS, formatDate, apiErrorSentence, refusalSentences } from '@ledova/shared';
+import { DESTINATIONS, formatDate, refusalSentences, failureSentence } from '@ledova/shared';
 import type { InvestorCategory, InvestorClassification } from '@ledova/shared';
 import { LinkRow, Row, Rows, Section, Status, type Tone } from '@components/Ledger';
 import { Page, PageAction } from '@components/Page';
@@ -8,8 +8,6 @@ import { useInvestorWithdrawal } from './useInvestorWithdrawal';
 import { CATEGORIES, REASON_TEXT, WHOLESALE_ONLY_NOTICE } from './constants';
 import { ClaimModal } from './ClaimModal';
 import { useInvestorEligibility } from '@hooks/useInvestorEligibility';
-
-const WITHDRAW_FAILED = 'Your claim could not be withdrawn. Try again.';
 
 const CLASSIFICATION_TONES = new Map<string, Tone>([['submitted', 'moving']]);
 const READINESS_TONES = new Map<boolean, Tone>([
@@ -83,7 +81,7 @@ export default function InvestorEligibilityPage() {
             <Section title="Your claims">
               {withdraw.isError && (
                 <p role="alert" className="py-2 text-sm text-error-light">
-                  {apiErrorSentence(withdraw.error, WITHDRAW_FAILED, WITHDRAW_FAILED)}
+                  {failureSentence(withdraw.error, 'Your claim could not be withdrawn. Try again.')}
                 </p>
               )}
               {classifications.length === 0 ? (

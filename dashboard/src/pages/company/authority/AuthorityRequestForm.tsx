@@ -4,11 +4,9 @@ import {
   COMPANY_AUTHORITY_CAPABILITIES,
   type CompanyAuthorityRequest,
   type CompanyListItem,
-  apiErrorSentence,
+  failureSentence,
 } from '@ledova/shared';
 import { useAuthorityRequestForm } from './useAuthorityRequestForm';
-
-const RECORD_FAILED = 'The request could not be recorded. Retry with the same details.';
 
 export function AuthorityRequestForm({
   company,
@@ -109,7 +107,7 @@ export function AuthorityRequestForm({
       </p>
       {submission.isError && (
         <p role="alert" className="text-sm text-error-light">
-          {apiErrorSentence(submission.error, RECORD_FAILED, RECORD_FAILED)}
+          {failureSentence(submission.error, 'The request could not be recorded. Retry with the same details.')}
         </p>
       )}
       <FormActions>

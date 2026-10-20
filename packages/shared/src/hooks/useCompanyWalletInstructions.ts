@@ -15,7 +15,7 @@ import {
 import { readEveryPage } from '../utils/pagination';
 import { appointmentForRegisterStep, type RegisterStep } from '../utils/register-commands';
 import { isPreparedCompanyWalletInstruction } from '../utils/company-wallets';
-import { createUserFriendlyError, failureStatus, apiErrorSentence, refusalSentence } from '../utils/errors';
+import { createUserFriendlyError, failureStatus, refusalSentence, failureSentence } from '../utils/errors';
 import { COMPANY_WALLET_UNMET_COPY } from '../constants/business/company-wallets';
 import type {
   OwnCompanyAppointment,
@@ -26,7 +26,6 @@ import type {
 } from '../types';
 import { useApiClient } from './useApiClient';
 
-const REFRESH_FAILED = 'Current private company wallet access could not be refreshed. Original requests are retained.';
 const OUTCOME_UNCERTAIN =
   'The preparation outcome is uncertain. Recover its identical original body and operation UUID.';
 
@@ -254,7 +253,12 @@ export function useCompanyWalletInstructions(options: { newKey: () => string; se
       }
     } catch (failure) {
       if (mounted.current && boundary.get() === owner)
-        setError(apiErrorSentence(failure, REFRESH_FAILED, REFRESH_FAILED));
+        setError(
+          failureSentence(
+            failure,
+            'Current private company wallet access could not be refreshed. Original requests are retained.',
+          ),
+        );
     }
   };
   const accept = async (record: CompanyWalletInstruction) => {
@@ -358,10 +362,7 @@ export function useCompanyWalletInstructions(options: { newKey: () => string; se
       const status = failureStatus(cause);
       if (!dispatched || status === 400 || status === 409) setRetained(null);
       if (mounted.current && boundary.get() === owner)
-        setError(
-          refusalSentence(failure, COMPANY_WALLET_UNMET_COPY) ??
-            apiErrorSentence(failure, OUTCOME_UNCERTAIN, OUTCOME_UNCERTAIN),
-        );
+        setError(refusalSentence(failure, COMPANY_WALLET_UNMET_COPY) ?? failureSentence(failure, OUTCOME_UNCERTAIN));
     } finally {
       pending.current = false;
       if (mounted.current) setBusy(false);

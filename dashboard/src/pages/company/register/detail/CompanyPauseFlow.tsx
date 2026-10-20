@@ -10,16 +10,14 @@ import {
   registerPauseChangeExecutionState,
   useCompanyPauseChanges,
   type RegisterPauseChange,
-  apiErrorSentence,
-  createUserFriendlyError,
   refusalSentences,
+  failureSentence,
 } from '@ledova/shared';
 import { DecisionTrail } from '@pages/company/register/shared/DecisionTrail';
 import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
 import { usePausePreparation, usePauseRecord, type Commands } from './useCompanyPauseFlow';
 import type { useShareClass } from './useShareClass';
 
-const DOCUMENT_UNSELECTED = 'The authority document could not be selected.';
 const STAGES: Record<string, string> = COPY.STAGES;
 
 const STATES = [
@@ -205,12 +203,12 @@ function Preparation({ commands }: { commands: Commands }) {
                   chosen.size <= 0 ||
                   chosen.size > 10 * 1024 * 1024)
               )
-                throw createUserFriendlyError('Choose a PDF, PNG or JPEG of up to 10 MB.');
+                throw new Error('Choose a PDF, PNG or JPEG of up to 10 MB.');
               uploadRef.current = null;
               setFile(chosen);
               setError('');
             } catch (failure) {
-              setError(apiErrorSentence(failure, DOCUMENT_UNSELECTED, DOCUMENT_UNSELECTED));
+              setError(failureSentence(failure, 'The authority document could not be selected.'));
             }
           }}
         />

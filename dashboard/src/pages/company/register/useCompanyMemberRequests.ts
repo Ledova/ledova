@@ -1,8 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
-  apiErrorSentence,
-  createUserFriendlyError,
   getRegisterAwards,
   isRegisterEvidenceReceipt,
   readEveryPage,
@@ -11,13 +9,12 @@ import {
   type RegisterEvidence,
   type OrderSubmissionOwner,
   type TokenHoldersResponse,
+  failureSentence,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
 import { invitationMembers } from '@ledova/shared';
 import { READ_TIMING, registerKey } from '@hooks/useRegisterAccess';
 import { particularsKey } from '@pages/company/register/shared/useRegisterParticulars';
-
-const UPLOAD_FAILED = 'The supporting document could not be uploaded.';
 
 export function useCompanyMemberRequests({
   company,
@@ -129,12 +126,12 @@ export function useCompanyMemberRequests({
         );
         access.guardPrepare();
         if (!isRegisterEvidenceReceipt(data, evidenceRequest, file.size))
-          throw createUserFriendlyError('The company evidence upload could not be confirmed.');
+          throw new Error('The company evidence upload could not be confirmed.');
         current.receipt = data;
       }
       await access.prepareRequest(request, current.receipt.uuid, asAt, reason.trim());
     } catch (failure) {
-      setUploadError(apiErrorSentence(failure, UPLOAD_FAILED, UPLOAD_FAILED));
+      setUploadError(failureSentence(failure, 'The supporting document could not be uploaded.'));
     } finally {
       setUploading(false);
     }

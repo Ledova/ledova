@@ -70,7 +70,7 @@ import type {
   RegisterParticularsChange,
   RegisterParticularsChangeDecisionPreview,
 } from '../types';
-import { failureStatus, createUserFriendlyError, apiErrorSentence, refusalSentence } from '../utils/errors';
+import { failureStatus, createUserFriendlyError, refusalSentence, failureSentence } from '../utils/errors';
 import { isRegisterDecisionReceipt } from '../utils/register-commands';
 import { isRegisterCorrectionDecisionReceipt } from '../utils/register-corrections';
 import { isRegisterGrantDecisionReceipt } from '../utils/register-grants';
@@ -314,7 +314,7 @@ export function useRegisterDecision<Proposal, Preview extends DecisionPreview>(
         request: { ...request, idempotencyKey: key, previewDigest: response.data.previewDigest, confirmation: true },
       });
     } catch (failure) {
-      if (mounted.current) setError(apiErrorSentence(failure, family.copy.PREVIEW_FAILED, family.copy.PREVIEW_FAILED));
+      if (mounted.current) setError(failureSentence(failure, family.copy.PREVIEW_FAILED));
       const status = failureStatus(failure);
       refused = status === 400 || status === 404;
     } finally {
@@ -353,7 +353,7 @@ export function useRegisterDecision<Proposal, Preview extends DecisionPreview>(
       if (mounted.current)
         setError(
           refusalSentence(failure, family.unmet, family.copy.DECIDE_FAILED) ??
-            apiErrorSentence(failure, family.copy.DECIDE_FAILED, family.copy.DECIDE_FAILED),
+            failureSentence(failure, family.copy.DECIDE_FAILED),
         );
       if (status === 400 || status === 404 || status === 409) await options.onRefused?.();
     } finally {

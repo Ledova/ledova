@@ -10,7 +10,7 @@ import { getEligibilityRequest } from '../services/company-eligibility';
 import { getWallets } from '../services/wallets';
 import { createWalletNomination, getWalletNominations, previewWalletNomination } from '../services/company-wallets';
 import { readEveryPage } from '../utils/pagination';
-import { createUserFriendlyError, failureStatus, apiErrorSentence, refusalSentence } from '../utils/errors';
+import { createUserFriendlyError, failureStatus, refusalSentence, failureSentence } from '../utils/errors';
 import { COMPANY_WALLET_UNMET_COPY } from '../constants/business/company-wallets';
 import { isWalletNominationReceipt } from '../utils/company-wallets';
 import type {
@@ -21,10 +21,6 @@ import type {
   WalletNominationRequest,
 } from '../types';
 import { useApiClient } from './useApiClient';
-
-const REFRESH_FAILED = 'Current own wallet access could not be refreshed. Original requests are retained.';
-const PREVIEW_FAILED = 'Wallet nomination could not be previewed.';
-const OUTCOME_UNCERTAIN = 'The nomination outcome is uncertain. Recover its exact original body and key.';
 
 export function useWalletNomination(options: {
   requestUuid: string;
@@ -158,7 +154,9 @@ export function useWalletNomination(options: {
       guard();
     } catch (failure) {
       if (mounted.current && boundary.get() === owner)
-        setError(apiErrorSentence(failure, REFRESH_FAILED, REFRESH_FAILED));
+        setError(
+          failureSentence(failure, 'Current own wallet access could not be refreshed. Original requests are retained.'),
+        );
     }
   };
   const review = async () => {
@@ -201,7 +199,7 @@ export function useWalletNomination(options: {
       });
     } catch (failure) {
       if (mounted.current && boundary.get() === owner)
-        setError(apiErrorSentence(failure, PREVIEW_FAILED, PREVIEW_FAILED));
+        setError(failureSentence(failure, 'Wallet nomination could not be previewed.'));
     } finally {
       pending.current = false;
       if (mounted.current) setBusy(false);
@@ -275,7 +273,7 @@ export function useWalletNomination(options: {
       if (mounted.current && boundary.get() === owner)
         setError(
           refusalSentence(failure, COMPANY_WALLET_UNMET_COPY) ??
-            apiErrorSentence(failure, OUTCOME_UNCERTAIN, OUTCOME_UNCERTAIN),
+            failureSentence(failure, 'The nomination outcome is uncertain. Recover its exact original body and key.'),
         );
     } finally {
       pending.current = false;

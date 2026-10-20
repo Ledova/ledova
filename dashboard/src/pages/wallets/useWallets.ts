@@ -12,15 +12,12 @@ import {
   canDeriveNextWalletAddress,
   readEveryPage,
   WALLETS_QUERY_KEY,
-  apiErrorSentence,
-  createUserFriendlyError,
+  failureSentence,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
 import type { Wallet, CreateWallet, DerivedAddress, HardwareWalletImport } from '@ledova/shared';
 
-const errorSentence = (error: unknown, fallback: string) =>
-  error ? apiErrorSentence(error, fallback, fallback) : null;
-const IMPORT_UNFINISHED = 'The remaining import could not finish.';
+const errorSentence = (error: unknown, fallback: string) => (error ? failureSentence(error, fallback) : null);
 const ADD_FAILED = 'The wallet could not be added. Try again.';
 const SAVE_FAILED = 'The wallet could not be saved. Try again.';
 const DELETE_FAILED = 'The wallet could not be deleted. Try again.';
@@ -51,7 +48,7 @@ export function useWallets() {
     }) => {
       const requests = addresses.map((addr): CreateWallet => {
         const chain = getChainByShortName(addr.networkType);
-        if (!chain?.isActive) throw createUserFriendlyError('Choose addresses on a supported network.');
+        if (!chain?.isActive) throw new Error('Choose addresses on a supported network.');
         return {
           address: addr.address,
           chain: chain.code,
@@ -68,8 +65,8 @@ export function useWallets() {
           await createWallet(apiClient, data);
           imported.current.add(key);
         } catch (error) {
-          throw createUserFriendlyError(
-            `${imported.current.size} wallet(s) added. ${apiErrorSentence(error, IMPORT_UNFINISHED, IMPORT_UNFINISHED)} Retry keeps the confirmed additions.`,
+          throw new Error(
+            `${imported.current.size} wallet(s) added. ${failureSentence(error, 'The remaining import could not finish.')} Retry keeps the confirmed additions.`,
           );
         }
       }
