@@ -1797,6 +1797,9 @@ it("retains a dashboard's validated company/class context and reads only the cho
       <Link to="/" state={{ registerCompany: 'inland', registerToken: 'preference', registerHistory: true }}>
         Open dashboard class
       </Link>
+      <Link to="/#shareholders" state={{ registerCompany: 'inland' }}>
+        Open dashboard shareholders
+      </Link>
     </>,
   );
   const company = (await screen.findByRole('combobox', { name: 'Company' })) as HTMLInputElement;
@@ -1844,6 +1847,16 @@ it("retains a dashboard's validated company/class context and reads only the cho
       'inland',
       'harbour',
     ]);
+
+  fireEvent.click(screen.getByRole('link', { name: 'Open dashboard shareholders' }));
+  await screen.findByText('Inland Example Pty Ltd', { selector: 'p' });
+  await choose('Company', 'Harbour Example Pty Ltd', 'harbour');
+  await screen.findByText('Harbour Example Pty Ltd', { selector: 'p' });
+  fireEvent.change(await screen.findByLabelText('Search shareholders'), { target: { value: 'Example' } });
+  expect(await screen.findByText(/match(es)? your search\./)).toBeTruthy();
+  await act(async () => {});
+  expect(screen.getByText('Harbour Example Pty Ltd', { selector: 'p' })).toBeTruthy();
+  expect(screen.queryByText('Inland Example Pty Ltd', { selector: 'p' })).toBeNull();
 });
 
 it("starts again for another signed-in account without showing the previous account's register or choice", async () => {

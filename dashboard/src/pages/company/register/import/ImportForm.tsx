@@ -350,35 +350,37 @@ export function ImportForm({
                       the legal register.
                     </p>
                     {proposal.correctionOf && preview && (
-                      <p className="text-sm text-text-muted">Correction compared with the current mirror</p>
-                    )}
-                    {proposal.correctionOf && preview && (
-                      <Table
-                        caption="Correction compared with the current mirror"
-                        columns={[
-                          { label: 'Shareholder' },
-                          { label: 'Before', align: 'right' },
-                          { label: 'After', align: 'right' },
-                        ]}
-                      >
-                        {preview.comparison.map((row) => (
-                          <tr key={row.member}>
-                            <th scope="row" className="px-4 py-3 text-left font-normal">
-                              {row.name ?? row.liveName ?? 'Earlier shareholder'}
-                            </th>
-                            <td className="px-4 py-3 text-right tabular-nums">
-                              {row.stored === null ? 'Not held' : formatShareCount(row.stored)}
-                              <p className="text-xs text-text-muted">{formatDate(row.enteredOn, 'Not recorded')}</p>
-                            </td>
-                            <td className="px-4 py-3 text-right tabular-nums">
-                              {row.imported === null ? 'Not held' : formatShareCount(row.imported)}
-                              <p className="text-xs text-text-muted">
-                                {formatDate(row.importedEnteredOn, 'Not recorded')}
-                              </p>
-                            </td>
-                          </tr>
-                        ))}
-                      </Table>
+                      <>
+                        <p aria-hidden="true" className="text-sm text-text-muted">
+                          Correction compared with the current mirror
+                        </p>
+                        <Table
+                          caption="Correction compared with the current mirror"
+                          columns={[
+                            { label: 'Shareholder' },
+                            { label: 'Before', align: 'right' },
+                            { label: 'After', align: 'right' },
+                          ]}
+                        >
+                          {preview.comparison.map((row) => (
+                            <tr key={row.member}>
+                              <th scope="row" className="px-4 py-3 text-left font-normal">
+                                {row.name ?? row.liveName ?? 'Earlier shareholder'}
+                              </th>
+                              <td className="px-4 py-3 text-right tabular-nums">
+                                {row.stored === null ? 'Not held' : formatShareCount(row.stored)}
+                                <p className="text-xs text-text-muted">{formatDate(row.enteredOn, 'Not recorded')}</p>
+                              </td>
+                              <td className="px-4 py-3 text-right tabular-nums">
+                                {row.imported === null ? 'Not held' : formatShareCount(row.imported)}
+                                <p className="text-xs text-text-muted">
+                                  {formatDate(row.importedEnteredOn, 'Not recorded')}
+                                </p>
+                              </td>
+                            </tr>
+                          ))}
+                        </Table>
+                      </>
                     )}
                     {preview?.unmetRequirements.length ? (
                       <ul role="alert" className="space-y-1 text-sm text-error-light">

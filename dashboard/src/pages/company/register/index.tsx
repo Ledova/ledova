@@ -230,8 +230,9 @@ function OwnRegister({
   const issueAward = typeof location.state?.issueAward === 'string' ? location.state.issueAward : undefined;
   const registerRecord = typeof location.state?.registerRecord === 'string' ? location.state.registerRecord : undefined;
   const enteredIssue = useRef('');
+  const entered = `${registerCompany}/${registerToken}`;
   useEffect(() => {
-    if (enteredIssue.current === location.key || !classes.isSuccess || classes.isFetching || held) return;
+    if (enteredIssue.current === entered || !classes.isSuccess || classes.isFetching || held) return;
     if (
       registerCompany &&
       classes.data.some(
@@ -239,10 +240,10 @@ function OwnRegister({
       )
     )
       selectCompany(registerCompany);
-    enteredIssue.current = location.key;
+    enteredIssue.current = entered;
   }, [
     enteredIssue,
-    location.key,
+    entered,
     classes.isSuccess,
     classes.isFetching,
     classes.data,

@@ -356,7 +356,8 @@ server:
 - **The address:** `useListParams` (`dashboard/src/hooks/useListParams.ts`) keeps the search
   (`q`), the filters and the page in the URL, so Back, a refresh or a shared link keep them. Typing
   replaces the history entry, while a filter or page change adds one. Any change but the page
-  returns to the first page, and a page that no longer exists is replaced by the first.
+  returns to the first page. On a list paged by the server, a page that no longer exists is replaced
+  by the first; a list searched in the browser shows its last page instead.
 - **Tables:** `Table` is the markup for lists on these controls: a framed table that scrolls
   sideways within its card, with a screen-reader caption, a header row of `scope="col"` cells and
   each row named by its first cell as a row header. `Pager` under it gives the rows shown, such as
