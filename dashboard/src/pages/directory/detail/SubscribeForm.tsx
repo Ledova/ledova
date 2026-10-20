@@ -93,9 +93,11 @@ export function SubscribeForm({
       )}
       <div className="py-2">
         <PageAction
-          label={busy ? 'Creating draft…' : 'Create application'}
+          label="Create application"
+          busy={busy}
+          busyLabel="Creating draft…"
           primary
-          disabled={busy || amount === null || !chosenWallet}
+          disabled={amount === null || !chosenWallet}
           onClick={() => {
             if (amount !== null && chosenWallet && !busy)
               onSubscribe({ wallet: chosenWallet, quantity: Number(quantity) });

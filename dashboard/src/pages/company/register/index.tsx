@@ -1,6 +1,6 @@
 import { SelectField } from '@components/SelectField';
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { generatePath, Link, useLocation } from 'react-router-dom';
+import { generatePath, useLocation } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   DESTINATIONS,
@@ -14,7 +14,7 @@ import {
 } from '@ledova/shared';
 import { LinkRow } from '@components/Ledger';
 import { PageTitle } from '@components/PageTitle';
-import { Page, PageAction } from '@components/Page';
+import { Page, PageAction, PageLink } from '@components/Page';
 import { CompanySelection } from '@pages/company/shared/CompanySelection';
 
 import { ownershipSummary } from '@pages/company/shared/summary';
@@ -446,18 +446,16 @@ function OwnRegister({
                 <PageAction
                   key={task}
                   label={label}
-                  active={selectedTask === task}
+                  pressed={selectedTask === task}
                   disabled={held || !sourceReady}
                   onClick={() => chooseTask(task)}
                 />
               ))}
               {canAddClass && (
-                <Link
+                <PageLink
                   to={`${DESTINATIONS.companyRegisterSetup.path}?company=${scope.company.uuid}`}
-                  className="inline-flex w-fit rounded-lg border border-border px-3.5 py-2 text-sm font-medium text-text-primary hover:bg-surface-tertiary"
-                >
-                  Add share class
-                </Link>
+                  label="Add share class"
+                />
               )}
             </div>
             {selectedTask && sourceReady && scope.registers.length > 1 && (

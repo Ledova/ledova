@@ -1,5 +1,5 @@
 import { FIELD_CLASS, LABEL } from '@components/fieldClass';
-import { PageAction } from '@components/Page';
+import { FormActions, PageAction } from '@components/Page';
 import { COMPANY_AUTHORITY_CAPABILITIES, type CompanyCapability, type OwnCompanyAppointment } from '@ledova/shared';
 import { useTeamInvitationForm } from './useTeamInvitationForm';
 
@@ -143,12 +143,16 @@ export function TeamInvitationForm({
           {error}
         </p>
       )}
-      <PageAction
-        label={busy ? 'Creating invitation…' : 'Create invitation'}
-        primary
-        disabled={disabled || busy || (!personal.length && !delegatable.length)}
-        onClick={() => void send()}
-      />
+      <FormActions>
+        <PageAction
+          type="submit"
+          label="Create invitation"
+          busy={busy}
+          busyLabel="Creating invitation…"
+          primary
+          disabled={disabled || (!personal.length && !delegatable.length)}
+        />
+      </FormActions>
     </form>
   );
 }

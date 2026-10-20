@@ -1,4 +1,4 @@
-import { PageAction } from '@components/Page';
+import { FormActions, PageAction } from '@components/Page';
 import { FIELD_CLASS, LABEL } from '@components/fieldClass';
 import { REGISTER_ALLOTMENT_COPY as COPY, type OwnCompanyAppointment, type Person } from '@ledova/shared';
 import { PersonFields, PersonSelect } from '@pages/company/register/shared/PersonPicker';
@@ -143,14 +143,16 @@ export function AllotmentForm({
         </p>
       )}
       {held && <p className="text-sm text-text-muted">{COPY.RECOVERY_NOTE}</p>}
-      <div className="flex justify-end border-t border-border-subtle pt-4">
+      <FormActions>
         <PageAction
+          type="submit"
           primary
-          label={busy ? 'Preparing allotment…' : COPY.SUBMIT}
-          disabled={busy || blocked || (!held && !!problem)}
-          onClick={() => void submit()}
+          label={COPY.SUBMIT}
+          busy={busy}
+          busyLabel="Preparing allotment…"
+          disabled={blocked || (!held && !!problem)}
         />
-      </div>
+      </FormActions>
     </form>
   );
 }

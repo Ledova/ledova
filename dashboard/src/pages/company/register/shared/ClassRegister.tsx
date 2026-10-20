@@ -1,7 +1,6 @@
-import { Link } from 'react-router-dom';
 import { REGISTER_COPY, TECHNICAL_SHARE_LIMIT, formatShareCount, type TokenHoldersResponse } from '@ledova/shared';
 import { Rows, Row, Section, Status, type Tone } from '@components/Ledger';
-import { PageAction } from '@components/Page';
+import { PageAction, PageLink } from '@components/Page';
 import { shareholderPath } from './shareholders';
 
 const REGISTER_INITIALIZATION_TONES = new Map<boolean, Tone>([
@@ -103,12 +102,11 @@ export function FormerMembers({
               />
             )}
             {company && former.member && !blocked && (
-              <Link
+              <PageLink
                 to={shareholderPath(former.member, company)}
-                className="inline-flex w-fit items-center gap-2 rounded-lg border border-border px-3.5 py-2 text-sm font-medium text-text-primary transition-colors hover:bg-surface-tertiary"
-              >
-                <span>Details</span> <span className="sr-only">({former.name || 'Name not recorded'})</span>
-              </Link>
+                label="Details"
+                context={former.name || 'Name not recorded'}
+              />
             )}
             <Rows>
               {former.member && <Row label="Member ID">{former.member}</Row>}

@@ -1,5 +1,5 @@
 import { FIELD_CLASS, LABEL } from '@components/fieldClass';
-import { PageAction } from '@components/Page';
+import { FormActions, PageAction } from '@components/Page';
 import { COMPANY_AUTHORITY_DECLARATION, COMPANY_AUTHORITY_DECLARATION_VERSION } from '@ledova/shared';
 import { useAcceptInvitationForm } from './useAcceptInvitationForm';
 
@@ -71,12 +71,16 @@ export function AcceptInvitationForm({
           {receipt}
         </p>
       )}
-      <PageAction
-        label={busy ? 'Accepting invitation…' : 'Accept invitation'}
-        primary
-        disabled={disabled || busy || !ready}
-        onClick={() => void send()}
-      />
+      <FormActions>
+        <PageAction
+          type="submit"
+          label="Accept invitation"
+          busy={busy}
+          busyLabel="Accepting invitation…"
+          primary
+          disabled={disabled || !ready}
+        />
+      </FormActions>
     </form>
   );
 }

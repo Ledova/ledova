@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { formatDate, formatDateTime, getUserVerificationStatus } from '@ledova/shared';
-import { Page, PageAction } from '@components/Page';
+import { FormActions, Page, PageAction } from '@components/Page';
 import { Row, Rows, Section, Status } from '@components/Ledger';
 import { VERIFICATION_TONES } from '@components/statusTones';
 import { DocumentsPanel } from './DocumentsPanel';
@@ -155,16 +155,17 @@ function UserProfilePage() {
                 Your personal details could not be saved. Try again.
               </p>
             )}
-            <div className="flex flex-wrap gap-2">
-              <button
-                type="submit"
-                disabled={blocked}
-                className="inline-flex items-center rounded-lg border border-brand-mid bg-brand-mid px-3.5 py-2 text-sm font-medium text-white transition-colors hover:bg-brand disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {isUpdating ? 'Saving…' : 'Save personal details'}
-              </button>
+            <FormActions>
               <PageAction label="Cancel" disabled={blocked} onClick={() => setEditing(null)} />
-            </div>
+              <PageAction
+                type="submit"
+                primary
+                label="Save personal details"
+                busy={isUpdating}
+                busyLabel="Saving…"
+                disabled={blocked}
+              />
+            </FormActions>
           </form>
         ) : (
           <PageAction label="Edit personal details" disabled={blocked} onClick={editDetails} />

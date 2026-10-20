@@ -71,7 +71,7 @@ export function useIssuePreparation({ commands }: { commands: Commands }) {
   const uploads = useRef<
     Partial<Record<EvidenceKind, { file: File; appointment: string; key: string; receipt: RegisterEvidence | null }>>
   >({});
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState<'link' | 'issue' | null>(null);
   const [error, setError] = useState('');
   const mounted = useRef(true);
   useEffect(() => {
@@ -99,7 +99,7 @@ export function useIssuePreparation({ commands }: { commands: Commands }) {
         ),
     );
   const displayedMember = member === 'new' && appliedNewLink ? newMember : member;
-  const waiting = busy || commands.busy;
+  const waiting = !!busy || commands.busy;
   const commonProblem = !chosen || !director.trim() || !reference.trim() || !reason.trim() || !files.authority;
   const issueProblem =
     commonProblem ||
@@ -114,7 +114,7 @@ export function useIssuePreparation({ commands }: { commands: Commands }) {
   const submit = async (kind: 'link' | 'issue') => {
     if (waiting || !commands.canPrepare || commands.recovery || (kind === 'link' ? commonProblem : issueProblem))
       return;
-    setBusy(true);
+    setBusy(kind);
     setError('');
     const mapping = [{ address: chosen!.address, member: selectedMember }];
     const check = () => {
@@ -182,7 +182,7 @@ export function useIssuePreparation({ commands }: { commands: Commands }) {
       if (mounted.current)
         setError(getErrorMessage(failure, 'The grant could not be prepared.') ?? 'The request could not be confirmed.');
     } finally {
-      if (mounted.current) setBusy(false);
+      if (mounted.current) setBusy(null);
     }
   };
   return {
@@ -214,6 +214,7 @@ export function useIssuePreparation({ commands }: { commands: Commands }) {
     approvals,
     displayedMember,
     waiting,
+    preparing: busy,
     commonProblem,
     issueProblem,
     submit,

@@ -110,9 +110,11 @@ export function ActionConfirmation({
       )}
       <div className="flex flex-wrap gap-2">
         <PageAction
-          label={busy ? 'Recording…' : label}
+          label={label}
+          busy={busy}
+          busyLabel="Recording…"
           primary
-          disabled={busy || !can}
+          disabled={!can}
           onClick={() =>
             void confirm(action, {
               sharingAccepted: sharing,

@@ -25,7 +25,7 @@ export function RecordsList({
           </div>
           <PageAction
             label={`View request ${record.uuid}`}
-            active={selected === record.uuid}
+            pressed={selected === record.uuid}
             onClick={() => select(record.uuid)}
           />
         </li>

@@ -2,7 +2,7 @@ import { Choices } from '@components/Choices';
 import { useCorrectionPreparation, type CorrectionFormProps, COPY } from './useCorrectionPreparation';
 
 import { type RegisterCorrectionAuthority } from '@ledova/shared';
-import { PageAction } from '@components/Page';
+import { FormActions, PageAction } from '@components/Page';
 import { FIELD_CLASS, LABEL } from '@components/fieldClass';
 
 const EVIDENCE = 'application/pdf,image/png,image/jpeg';
@@ -115,14 +115,16 @@ export function CorrectionForm({
           {error}
         </p>
       )}
-      <div className="flex justify-end border-t border-border-subtle pt-4">
+      <FormActions>
         <PageAction
+          type="submit"
           primary
-          label={busy ? 'Preparing correction…' : COPY.SUBMIT}
-          disabled={busy || blocked || problems.length > 0}
-          onClick={() => void submit()}
+          label={COPY.SUBMIT}
+          busy={busy}
+          busyLabel="Preparing correction…"
+          disabled={blocked || problems.length > 0}
         />
-      </div>
+      </FormActions>
     </form>
   );
 }

@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { formatDateTime, type OrderSubmissionOwner, type TokenHoldersResponse } from '@ledova/shared';
 import { Section } from '@components/Ledger';
 import { PersonSelect } from '@pages/company/register/shared/PersonPicker';
@@ -50,6 +50,7 @@ export function CompanyMemberAccess({
     prepare,
   } = useCompanyMemberRequests({ company, owner, guard, registers, sourceReady, inviteMember, onHeldChange });
   const candidateOf = new Map(candidates.map((candidate) => [candidate.uuid, candidate]));
+  const [inviting, setInviting] = useState(false);
   const invite = useRef<HTMLHeadingElement>(null);
   const shown = !!inviteMember && member?.uuid === inviteMember;
   useEffect(() => {
@@ -144,8 +145,14 @@ export function CompanyMemberAccess({
           <PageAction
             label="Create member invitation"
             primary
+            busy={inviting}
+            busyLabel="Creating invitation…"
             disabled={held || !recipientsReady || !member || !email.trim()}
-            onClick={() => member && void access.invite(member.uuid, email.trim())}
+            onClick={() => {
+              if (!member) return;
+              setInviting(true);
+              void Promise.resolve(access.invite(member.uuid, email.trim())).finally(() => setInviting(false));
+            }}
           />
           {access.code && (
             <label className="block space-y-1 text-sm">

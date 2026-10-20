@@ -86,8 +86,10 @@ function PackForm({
       </fieldset>
       <PageAction
         primary
-        label={busy ? 'Preparing company pack…' : 'Prepare and download company pack'}
-        disabled={busy || !sourceReady || !valid}
+        label="Prepare and download company pack"
+        busy={busy}
+        busyLabel="Preparing company pack…"
+        disabled={!sourceReady || !valid}
         onClick={() => void download()}
       />
       {error && (

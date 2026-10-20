@@ -1,4 +1,3 @@
-import { Link } from 'react-router-dom';
 import {
   DESTINATIONS,
   REGISTER_COPY,
@@ -7,6 +6,7 @@ import {
   type OrderSubmissionOwner,
 } from '@ledova/shared';
 import { Section } from '@components/Ledger';
+import { PageLink } from '@components/Page';
 import { Loading, Unavailable } from '@pages/company/shared/RegisterStatus';
 import { useOwnAppointments } from '@hooks/useOwnAppointments';
 
@@ -23,12 +23,7 @@ export function RegisterSetup({ owner, guard }: { owner: OrderSubmissionOwner; g
   return (
     <Section title={REGISTER_IMPORT_COPY.SETUP}>
       <p className="text-sm text-text-muted">{REGISTER_IMPORT_COPY.MIRROR_NOTE}</p>
-      <Link
-        to={DESTINATIONS.companyRegisterSetup.path}
-        className="mt-2 inline-flex w-fit rounded-lg bg-brand-mid px-4 py-2 text-sm font-medium text-white hover:bg-brand"
-      >
-        {REGISTER_IMPORT_COPY.SETUP}
-      </Link>
+      <PageLink primary to={DESTINATIONS.companyRegisterSetup.path} label={REGISTER_IMPORT_COPY.SETUP} />
     </Section>
   );
 }

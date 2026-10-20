@@ -105,7 +105,9 @@ const TransactionsPage = () => {
             ) : (
               hasNextPage && (
                 <PageAction
-                  label={isLoadingMore ? 'Loading activity…' : 'Load more activity'}
+                  label="Load more activity"
+                  busy={isLoadingMore}
+                  busyLabel="Loading activity…"
                   onClick={() => void loadMore()}
                   disabled={isRefreshing}
                 />

@@ -250,6 +250,7 @@ function Preparation({ commands }: { commands: Commands }) {
     approvals,
     displayedMember,
     waiting,
+    preparing,
     commonProblem,
     issueProblem,
     submit,
@@ -325,6 +326,8 @@ function Preparation({ commands }: { commands: Commands }) {
       </p>
       <PageAction
         label="Prepare nominated wallet link"
+        busy={preparing === 'link'}
+        busyLabel="Preparing wallet link…"
         disabled={waiting || !commands.canPrepare || !!commonProblem || !!commands.recovery}
         onClick={() => void submit('link')}
       />
@@ -395,6 +398,8 @@ function Preparation({ commands }: { commands: Commands }) {
       <PageAction
         primary
         label={COPY.PREPARE}
+        busy={preparing === 'issue'}
+        busyLabel="Preparing non-paid grant…"
         disabled={waiting || !commands.canPrepare || !!issueProblem || !!commands.recovery}
         onClick={() => void submit('issue')}
       />

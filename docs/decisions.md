@@ -47,7 +47,7 @@ stay here as history and are marked where they appear.
 | [Dashboard, Settings and Register for a new company](#dashboard-settings-and-register-for-a-new-company)        | 19 October 2026                                | Current; #1155 (web), #1157 (mobile)                                                                            |
 | [Share classes, shareholders and employee awards](#share-classes-shareholders-and-employee-awards)              | 20 October 2026                                | Shareholders (#1166), person picker (#1167) and issuing from Register (#1168) on the web; #1169–#1170 planned   |
 | [Paper and Dark themes](#paper-and-dark-themes)                                                                 | 14 October 2026                                | Current; #1040                                                                                                  |
-| [Frontend UX standards](#frontend-ux-standards)                                                                 | 20 October 2026                                | Web selection (#1176); mobile person choice (#1177, in progress); #1178–#1183 planned                           |
+| [Frontend UX standards](#frontend-ux-standards)                                                                 | 20 to 21 October 2026                          | Web selection (#1176); mobile person choice (#1177); web actions (#1178) in progress; #1179–#1183 planned       |
 | [The account-data export](#the-account-data-export)                                                             | 23 September 2026                              | Current                                                                                                         |
 | [Tenancy, sessions and deployment](#tenancy-sessions-and-deployment)                                            | 3 October 2026                                 | Current                                                                                                         |
 | [Contracts compiler and toolchain](#contracts-compiler-and-toolchain)                                           | Undated                                        | Current                                                                                                         |
@@ -1332,6 +1332,12 @@ proposal are in #1174, and the owner approved it as recommended:
   delivered behaviour.
 - **Order:** the standards document and searchable person choice first (#1176), then issuing shares
   from Register (#1168), then the remaining steps (#1177–#1183) alternating with #1169 and #1170.
+- **Web first (21 October 2026):** "I think we should postpone the mobile changes, finish the
+  dashboard and them test using the Chrome extension and them once I'm happy with the results we can
+  start building the mobile". So the web half of each remaining step comes first, checked in the
+  owner's Chrome, and the rest of the mobile work waits for the owner's go-ahead. Asked about the
+  first mobile person-choice PR (#1196), already approved after its walkthrough, the owner chose to
+  merge it.
 
 ## The signed-in app
 

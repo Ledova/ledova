@@ -1,4 +1,4 @@
-import { PageAction } from '@components/Page';
+import { FormActions, PageAction } from '@components/Page';
 import { FIELD_CLASS, LABEL } from '@components/fieldClass';
 import { REGISTER_AWARD_COPY as COPY } from '@ledova/shared';
 import { useAwardAdjustmentForm } from './useAwardAdjustmentForm';
@@ -91,14 +91,16 @@ export function AwardAdjustmentForm(props: Parameters<typeof useAwardAdjustmentF
         </p>
       )}
       {form.held && <p className="text-sm text-text-muted">{COPY.RECOVERY_NOTE}</p>}
-      <div className="flex justify-end border-t border-border-subtle pt-4">
+      <FormActions>
         <PageAction
+          type="submit"
           primary
-          label={form.busy ? 'Recording change…' : props.vesting ? COPY.REVERSE : COPY.END}
-          disabled={form.busy || props.blocked || (!form.held && (!props.canPrepare || !!form.problem))}
-          onClick={() => void form.submit()}
+          label={props.vesting ? COPY.REVERSE : COPY.END}
+          busy={form.busy}
+          busyLabel="Recording change…"
+          disabled={props.blocked || (!form.held && (!props.canPrepare || !!form.problem))}
         />
-      </div>
+      </FormActions>
     </form>
   );
 }

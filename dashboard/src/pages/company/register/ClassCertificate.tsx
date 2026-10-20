@@ -57,7 +57,9 @@ function CertificateForm({ register, entry, guard, sourceReady, close }: Source 
       {!target ? (
         <PageAction
           primary
-          label={busy === 'preview' ? 'Preparing certificate preview…' : 'Preview unsigned certificate'}
+          label="Preview unsigned certificate"
+          busy={busy === 'preview'}
+          busyLabel="Preparing certificate preview…"
           disabled={blocked || !valid}
           onClick={() => void preview()}
         />
@@ -73,7 +75,9 @@ function CertificateForm({ register, entry, guard, sourceReady, close }: Source 
           <div className="flex flex-wrap gap-2">
             <PageAction
               primary
-              label={busy === 'download' ? 'Downloading certificate…' : 'Confirm and download unsigned PDF'}
+              label="Confirm and download unsigned PDF"
+              busy={busy === 'download'}
+              busyLabel="Downloading certificate…"
               disabled={blocked}
               onClick={() => void download()}
             />

@@ -307,6 +307,8 @@ export function OfferingForm({
         <PageAction
           label={editing ? 'Save changes' : 'Create draft offering'}
           primary
+          busy={busy}
+          busyLabel={editing ? 'Saving changes…' : 'Creating draft offering…'}
           onClick={handleSubmit}
           disabled={!isComplete || busy || blocked}
         />

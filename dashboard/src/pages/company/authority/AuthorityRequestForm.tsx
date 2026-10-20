@@ -1,4 +1,4 @@
-import { PageAction } from '@components/Page';
+import { FormActions, PageAction } from '@components/Page';
 import { FIELD_CLASS, LABEL } from '@components/fieldClass';
 import {
   COMPANY_AUTHORITY_CAPABILITIES,
@@ -110,12 +110,16 @@ export function AuthorityRequestForm({
           {getErrorMessage(submission.error, 'The request could not be recorded. Retry with the same details.')}
         </p>
       )}
-      <PageAction
-        label={busy ? 'Submitting…' : 'Submit authority request'}
-        primary
-        onClick={() => void send()}
-        disabled={!ready}
-      />
+      <FormActions>
+        <PageAction
+          type="submit"
+          label="Submit authority request"
+          busy={busy}
+          busyLabel="Submitting…"
+          primary
+          disabled={!ready}
+        />
+      </FormActions>
     </form>
   );
 }

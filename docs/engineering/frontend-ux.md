@@ -87,6 +87,24 @@ authority, privacy, incomplete-data and recovery guidance stays visible where re
 presentation change must not reset pending work, hide uncertainty or change what a confirmation
 authorises.
 
+## Actions
+
+`PageAction` (`dashboard/src/components/Page.tsx`) is the one button on a signed-in page. It looks
+plain, primary (the one main action of its card or form) or pressed, and comes in four forms:
+
+- **A button** runs its action on click.
+- **A submit button** (`type="submit"`) ends every page form, inside `FormActions`: a rule, then one
+  right-aligned row with any plain actions first and the primary submit last. The form's own submit
+  handler does the work, so Enter in a field submits the form unless the submit button is disabled.
+- **A link** (`PageLink`, same looks, optional router state) is an action that only goes somewhere:
+  Add share class, a shareholder's Details, Issue shares to them.
+- **A toggle** (`pressed`, which sets `aria-pressed`) marks the chosen option where pressing applies
+  it at once: the open Register task, the shown eligibility request and Wallets' sort.
+
+While its request runs, an action is disabled and names its work with its own label (`busy` and
+`busyLabel`), such as "Preparing allotment…" or "Saving…"; every page form's submit button has one.
+Dialogs end with `ModalActions` in the same order. Mobile's `Action` has no busy or pressed form yet.
+
 ## Choosing a person
 
 No web flow lists people in a native select, because a dropdown of every person does not scale to a

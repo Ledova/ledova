@@ -32,7 +32,7 @@ export function WalletActions({
       <PageAction label="Edit" onClick={onEdit} />
       {canVerify && <PageAction label={refreshProof ? 'Refresh possession proof' : 'Verify'} onClick={onVerify} />}
       {canDerive && <PageAction label="Derive address" onClick={onDerive} />}
-      <PageAction label={syncing ? 'Syncing…' : 'Sync'} onClick={onSync} disabled={syncDisabled} />
+      <PageAction label="Sync" busy={syncing} busyLabel="Syncing…" onClick={onSync} disabled={syncDisabled} />
       <PageAction label="Delete" onClick={onDelete} />
     </div>
   );

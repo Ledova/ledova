@@ -103,11 +103,9 @@ export default function InvestorEligibilityPage() {
                           </div>
                           {claim.status === 'submitted' && (
                             <PageAction
-                              label={
-                                withdraw.isPending && withdraw.variables === claim.uuid
-                                  ? 'Withdrawing…'
-                                  : 'Withdraw claim'
-                              }
+                              label="Withdraw claim"
+                              busy={withdraw.isPending && withdraw.variables === claim.uuid}
+                              busyLabel="Withdrawing…"
                               onClick={() => withdraw.mutate(claim.uuid)}
                               disabled={withdraw.isPending}
                             />

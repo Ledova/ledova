@@ -2,7 +2,7 @@ import { Choices } from '@components/Choices';
 import { useLinkPreparation, type LinkFormProps, COPY } from './useLinkPreparation';
 
 import { type RegisterCorrectionAuthority } from '@ledova/shared';
-import { PageAction } from '@components/Page';
+import { FormActions, PageAction } from '@components/Page';
 import { FIELD_CLASS, LABEL } from '@components/fieldClass';
 import { SearchSelect } from '@components/SearchSelect';
 
@@ -129,14 +129,16 @@ export function LinkForm({
           {error}
         </p>
       )}
-      <div className="flex justify-end border-t border-border-subtle pt-4">
+      <FormActions>
         <PageAction
+          type="submit"
           primary
-          label={busy ? 'Preparing wallet link…' : COPY.SUBMIT}
-          disabled={busy || blocked || problems.length > 0}
-          onClick={() => void submit()}
+          label={COPY.SUBMIT}
+          busy={busy}
+          busyLabel="Preparing wallet link…"
+          disabled={blocked || problems.length > 0}
         />
-      </div>
+      </FormActions>
     </form>
   );
 }

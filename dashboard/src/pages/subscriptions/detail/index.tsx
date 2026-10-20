@@ -130,12 +130,21 @@ export default function SubscriptionDetailPage() {
             {canWithdraw && (
               <PageAction
                 label="Withdraw"
+                busy={withdraw.isPending}
+                busyLabel="Withdrawing…"
                 onClick={() => withdraw.mutate('Withdrawn by the investor')}
                 disabled={busy}
               />
             )}
             {canSubmit && (
-              <PageAction label="Submit for review" onClick={() => submit.mutate()} disabled={busy} primary />
+              <PageAction
+                label="Submit for review"
+                busy={submit.isPending}
+                busyLabel="Submitting…"
+                onClick={() => submit.mutate()}
+                disabled={busy}
+                primary
+              />
             )}
           </>
         )

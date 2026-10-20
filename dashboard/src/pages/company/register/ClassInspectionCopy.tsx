@@ -74,7 +74,9 @@ function InspectionForm({
       {!target ? (
         <PageAction
           primary
-          label={busy === 'preview' ? 'Preparing preview…' : 'Preview inspection copy'}
+          label="Preview inspection copy"
+          busy={busy === 'preview'}
+          busyLabel="Preparing preview…"
           disabled={blocked || !valid}
           onClick={() => void preview()}
         />
@@ -90,7 +92,9 @@ function InspectionForm({
           <div className="flex flex-wrap gap-2">
             <PageAction
               primary
-              label={busy === 'download' ? 'Downloading inspection copy…' : 'Confirm and download inspection copy'}
+              label="Confirm and download inspection copy"
+              busy={busy === 'download'}
+              busyLabel="Downloading inspection copy…"
               disabled={blocked}
               onClick={() => void download()}
             />
