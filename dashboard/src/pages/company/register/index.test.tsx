@@ -1346,6 +1346,12 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   await screen.findByRole('option', { name: (name) => name.startsWith(companyMembers[0].name!) });
   fireEvent.keyDown(shareholder, { key: 'Enter' });
   expect((screen.getByLabelText('Name') as HTMLInputElement).readOnly).toBe(true);
+  const chosen = screen.getByRole('combobox', { name: 'Company shareholder' });
+  fireEvent.change(chosen, { target: { value: 'nobody matches this' } });
+  await screen.findByRole('option', { name: 'New person' });
+  fireEvent.keyDown(chosen, { key: 'Enter' });
+  fireEvent.keyDown(chosen, { key: 'Escape' });
+  expect((screen.getByLabelText('Name') as HTMLInputElement).readOnly).toBe(true);
   expect((screen.getByLabelText('Residential address') as HTMLInputElement).readOnly).toBe(true);
   expect((screen.getByLabelText('Date first added to register') as HTMLInputElement).value).toBe('');
   expect((screen.getByLabelText('Shares held') as HTMLInputElement).value).toBe('');

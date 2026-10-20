@@ -89,6 +89,7 @@ export function SearchSelect({
   const more =
     found.length > SHOWN ? `Showing the first ${SHOWN} of ${counted(found.length)}. Type more to narrow the list.` : '';
   const keepChoice = (open: boolean) => (event: KeyboardEvent) => {
+    if (event.nativeEvent.isComposing) return;
     if (MOVES.has(event.key)) moved.current = true;
     else if (open && (event.key === 'Enter' || event.key === 'Tab') && !moved.current && !matched) {
       event.stopPropagation();

@@ -88,18 +88,20 @@ large register. Each one uses a searchable list built on Headless UI's `Combobox
 
 - **`PersonSelect`** (`dashboard/src/pages/company/register/shared/PersonPicker.tsx`) is used where a
   flow names one person:
-  - register setup's shareholder;
-  - Record investor share issue and non-paid issues;
-  - a transfer's transferor and recipient;
-  - an employee award's recipient;
-  - member invitations.
-
-  These flows read one validated list of the class's members and award recipients (`usePeople`).
-
+  - register setup's shareholder, Record investor share issue, non-paid issues, a transfer's
+    transferor and recipient, and an employee award's recipient. These read one validated list of
+    the class's members and award recipients (`usePeople`).
+  - member invitations, which list the company's current and former holders in every class and its
+    award recipients (`invitationMembers`), without addresses.
 - **`SearchSelect`** (`dashboard/src/components/SearchSelect.tsx`) is used directly for the
   share-class issue's member, read from the class's members alone.
-- **Wallet links and register opening** offer, for each address, the class's holders by a one-line
-  label, then "A member not on the current register" and "New member N" where they apply.
+- **Wallet links** offer, for each waiting wallet, the holders of every class in the company
+  (`registerLinkMemberLabels`), then "A member not on the current register" and "New member N" where
+  they apply.
+- **Register opening** offers, for each unlinked holding, the members already linked in the class,
+  by name or numbered (`openingMemberLabels`), and a "New member N" for each address.
+
+Wallet links and register opening show one-line labels.
 
 How the list behaves:
 
@@ -107,7 +109,8 @@ How the list behaves:
   - The label sits above a text field, and the field, its toggle button and the list all carry it.
   - The list opens on focus, so a short list can be browsed.
   - Typing narrows it to the entries whose text contains every typed word, ignoring case and
-    accents. For people that text is their name, address and record reference.
+    accents. The text is everything the entry shows: a person's name, address, award marker and
+    record reference, and the flow's own detail.
   - Focusing or clicking the field selects its text, so typing replaces it.
 - **What each person shows:** the name, then a muted line with the address, "Award recipient without
   shares" and the flow's own detail, such as the shares held. A short record reference appears only
@@ -121,8 +124,9 @@ How the list behaves:
 - **Announcements:** while the list is open, a polite status region announces the number of
   matches, or "No people match …".
 - **Choosing with the keyboard:**
-  - Enter chooses the highlighted entry: the top match after typing, or the one reached with the
-    arrow keys.
+  - Enter chooses the highlighted entry. After typing, that is the current choice if it still
+    matches, otherwise the top match; or it is the entry reached with the arrow keys. Tab with a
+    match leaves the field on the highlighted entry in the same way.
   - Enter or Tab with no match and no arrow-key move keeps the current choice, and so do Escape and
     clearing the text before leaving the field.
   - A choice can be replaced but not emptied, since every flow starts with **New person** or needs
