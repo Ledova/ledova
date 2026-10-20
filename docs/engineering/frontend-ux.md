@@ -357,8 +357,12 @@ server:
   rows stay, a sentence says the list is incomplete, and "Try more … again" retries.
 - **Page size:** 25 rows. The API accepts `page_size` up to 100 on every paged list.
 
-An offering's applications on Offerings are the first table: search by investor name, wallet
-address or payment reference, filter by status, with the chosen offering kept in the address too.
+An offering's applications on Offerings are searched and paged by the server: search by investor
+name, wallet address or payment reference, filter by status, with the chosen offering kept in the
+address too. Shareholders searches and pages the register the page has already read in full, since
+its ownership totals need every holding: the same box and pager, matching every word ignoring case
+and accents (`searchRows` in `packages/shared/src/utils/search.ts`), with the share class as its
+filter. Each class's former shareholders show 25 at a time with Load more.
 The feeds are Activity, an investor's Applications, Notices, the notification bell, Published to
 your members and a class's register entries. A list bounded by one person, such as their own
 documents, classification claims or wallets, reads every page. Other lists still read every page
