@@ -9,7 +9,6 @@ import {
   apiErrorSentence,
   createUserFriendlyError,
   failureStatus,
-  formatDateToString,
   isPreparedRegisterImport,
   isRegisterEvidenceReceipt,
   prepareRegisterImport,
@@ -102,7 +101,7 @@ export function useImportPreparation({
   const client = useQueryClient();
   const navigate = useNavigate();
   const importDescription = useId();
-  const today = formatDateToString(new Date());
+  const today = new Date().toISOString().slice(0, 10);
   const [resolvedMembers, setResolvedMembers] = useState<{
     source: RegisterTransferMember[];
     awardSource: RegisterAwardRecipient[];
