@@ -30,7 +30,13 @@ import type {
   InvestorClassification,
   OwnCompanyAppointment,
 } from '../types';
-import { createUserFriendlyError, failureStatus, refusalSentence, failureSentence } from '../utils/errors';
+import {
+  createUserFriendlyError,
+  failureStatus,
+  refusalSentence,
+  failureSentence,
+  retryServerFailures,
+} from '../utils/errors';
 import { COMPANY_ELIGIBILITY_UNMET_COPY } from '../constants/business/investor-eligibility';
 import { isUuid } from '../utils/validation';
 import { readEveryPage } from '../utils/pagination';
@@ -150,6 +156,8 @@ function expiry(value: string) {
   return new Date(moment).toISOString();
 }
 
+type EligibilityList = { rows: CompanyEligibilityRequest[]; count: number };
+
 export interface EligibilityQueuePage {
   page: number;
   pageSize: number;
@@ -248,18 +256,15 @@ function useEligibilityRecords(
   const list = useQuery({
     queryKey: listKey,
     enabled: !!owner && (mode === 'participant' || !!selection.company),
-    placeholderData: paged
-      ? (previous, previousQuery) =>
-          previousQuery && listScope.every((part, index) => previousQuery.queryKey[index] === part)
-            ? previous
-            : undefined
-      : undefined,
-    retry: paged
-      ? (failures, failure) => {
-          const status = failureStatus(failure);
-          return !(status !== undefined && status >= 400 && status < 500) && failures < 3;
+    ...(paged
+      ? {
+          placeholderData: (previous: EligibilityList | undefined, previousQuery?: { queryKey: readonly unknown[] }) =>
+            previousQuery && listScope.every((part, index) => previousQuery.queryKey[index] === part)
+              ? previous
+              : undefined,
+          retry: retryServerFailures,
         }
-      : undefined,
+      : {}),
     queryFn: async () => {
       const companyUuid = selection.company;
       const guard =
@@ -772,6 +777,7 @@ function useEligibilityRecords(
     relevantReads.every((read) => read.isSuccess && !read.isFetching) &&
     (!selection.record || (detail.isSuccess && !detail.isFetching));
   const records = readReady ? (list.data?.rows ?? []) : [];
+  const shown = available && companyReadable && !readError;
   const selectedRecord = readReady && selection.record && detail.isSuccess && !detail.isFetching ? detail.data : null;
   const companies = Array.from(
     new Map(
@@ -799,10 +805,10 @@ function useEligibilityRecords(
     records,
     queue: paged
       ? {
-          rows: available && companyReadable && !readError && list.data ? list.data.rows : [],
-          count: list.data?.count ?? 0,
+          rows: shown && list.data ? list.data.rows : [],
+          count: shown ? (list.data?.count ?? 0) : 0,
           busy: list.isFetching,
-          settled: list.isSuccess && !list.isFetching && !list.isPlaceholderData,
+          settled: shown && list.isSuccess && !list.isFetching && !list.isPlaceholderData,
         }
       : undefined,
     listError: list.error,
