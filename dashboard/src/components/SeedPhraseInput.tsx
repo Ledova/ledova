@@ -9,7 +9,7 @@ interface SeedPhraseInputProps {
 export function SeedPhraseInput({ value, onChange, disabled = false }: SeedPhraseInputProps) {
   return (
     <div>
-      <label className="block text-sm font-medium text-text-secondary mb-2">Seed Phrase</label>
+      <label className="block text-sm font-medium text-text-secondary mb-2">Seed phrase</label>
       <textarea
         value={value}
         onChange={(e) => onChange(e.target.value)}

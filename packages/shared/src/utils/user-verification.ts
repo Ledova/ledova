@@ -11,8 +11,8 @@ const STATUS_LABELS: Record<VerificationStatusType, string> = {
   verified: 'Verified',
   pending: 'Pending',
   rejected: 'Rejected',
-  not_started: 'Not Started',
-  not_verified: 'Not Verified',
+  not_started: 'Not started',
+  not_verified: 'Not verified',
   unknown: 'Unknown',
 };
 

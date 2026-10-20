@@ -106,7 +106,7 @@ function NotificationList({
   };
 
   if (isLoading && notifications.length === 0) {
-    return <p className="px-4 py-8 text-center text-sm text-text-muted">Loading...</p>;
+    return <p className="px-4 py-8 text-center text-sm text-text-muted">Loading…</p>;
   }
   if (notifications.length === 0) {
     return <p className="px-4 py-8 text-center text-sm text-text-muted">No notifications yet</p>;

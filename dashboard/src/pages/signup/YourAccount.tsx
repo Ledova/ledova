@@ -40,7 +40,7 @@ export function YourAccount() {
 
   return (
     <AuthLayout>
-      <AuthHeader title="Your Account" icon={<UserIcon size={ICON_MD} className="text-text-muted" />}>
+      <AuthHeader title="Your account" icon={<UserIcon size={ICON_MD} className="text-text-muted" />}>
         <p className="text-sm text-text-muted mt-1 px-4">You are signed in with a verified email.</p>
       </AuthHeader>
 
@@ -148,7 +148,7 @@ export function YourAccount() {
             {isSubmitting ? (
               <div className="flex items-center justify-center space-x-2">
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
-                <span>Changing email...</span>
+                <span>Changing email…</span>
               </div>
             ) : changed ? (
               'Change email and start again'

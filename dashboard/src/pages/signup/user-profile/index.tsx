@@ -44,7 +44,7 @@ export default function SignupUserProfile() {
   };
 
   if (isLoading) {
-    return <LoadingState message="Loading profile data..." />;
+    return <LoadingState message="Loading profile data…" />;
   }
 
   if (generalError && !form.fullName) {
@@ -53,7 +53,7 @@ export default function SignupUserProfile() {
 
   return (
     <AuthLayout>
-      <AuthHeader title="Personal Details" icon={<UserIcon size={ICON_MD} className="text-text-muted" />} />
+      <AuthHeader title="Personal details" icon={<UserIcon size={ICON_MD} className="text-text-muted" />} />
 
       <UserProfileForm
         form={form}

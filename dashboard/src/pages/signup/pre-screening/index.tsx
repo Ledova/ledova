@@ -64,16 +64,16 @@ export default function SignupPreScreening() {
   ];
 
   if (isLoading) {
-    return <LoadingState message="Loading..." />;
+    return <LoadingState message="Loading…" />;
   }
 
   if (generalError && !isSubmitting) {
-    return <ErrorState title="Unable to Load" message={generalError} onRetry={retryLoad} />;
+    return <ErrorState title="Unable to load" message={generalError} onRetry={retryLoad} />;
   }
 
   return (
     <AuthLayout>
-      <AuthHeader title="Eligibility Check" icon={<ShieldCheckIcon size={ICON_MD} className="text-text-muted" />}>
+      <AuthHeader title="Eligibility check" icon={<ShieldCheckIcon size={ICON_MD} className="text-text-muted" />}>
         <p className="text-sm text-text-muted mt-1 px-4">
           Before we continue, please confirm the following requirements to comply with Australian regulations.
         </p>
@@ -118,7 +118,7 @@ export default function SignupPreScreening() {
             {isSubmitting ? (
               <div className="flex items-center justify-center space-x-2">
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
-                <span>Saving...</span>
+                <span>Saving…</span>
               </div>
             ) : (
               'Continue'
@@ -137,7 +137,7 @@ export default function SignupPreScreening() {
             disabled={isSubmitting}
             className="font-semibold text-brand-light hover:text-brand-subtle transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Go Back
+            Go back
           </button>
         </p>
       </div>

@@ -38,7 +38,7 @@ export default function SignupEmailConfirmation() {
 
   return (
     <AuthLayout>
-      <AuthHeader title="Verify Your Email" icon={<EnvelopeIcon size={ICON_MD} className="text-text-muted" />}>
+      <AuthHeader title="Verify your email" icon={<EnvelopeIcon size={ICON_MD} className="text-text-muted" />}>
         {email && <p className="text-sm text-text-muted mt-2">Code sent to {email}</p>}
       </AuthHeader>
 

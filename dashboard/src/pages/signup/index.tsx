@@ -58,7 +58,7 @@ export default function SignupUser() {
 
   return (
     <AuthLayout>
-      <AuthHeader title="Create Your Account" icon={<UserIcon size={ICON_MD} className="text-text-muted" />} />
+      <AuthHeader title="Create your account" icon={<UserIcon size={ICON_MD} className="text-text-muted" />} />
 
       <AuthCard>
         <form onSubmit={handleSignUp} className="space-y-6">
@@ -188,7 +188,7 @@ export default function SignupUser() {
             {isLoading ? (
               <div className="flex items-center justify-center space-x-2">
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
-                <span>Creating account...</span>
+                <span>Creating account…</span>
               </div>
             ) : (
               'Continue'

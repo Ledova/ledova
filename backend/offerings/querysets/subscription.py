@@ -69,7 +69,7 @@ class SubscriptionQuerySet(QuerySet):
             self.for_offering(offering)
             .with_relations()
             .prefetch_related("user_account__user_profile")
-            .order_by("-created_at")
+            .order_by("-created_at", "-uuid")
         )
 
     def for_applicant(self, user):

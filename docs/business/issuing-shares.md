@@ -326,7 +326,7 @@ powers to take a company down stay separate from this routine review.
 
 ### Listing the company in the directory
 
-Under Investor Directory on the Offerings page, someone with current company administration turns on
+Under Investor directory on the Offerings page, someone with current company administration turns on
 Show this company to eligible investors; it is off by default, and only an active company can be
 listed. The directory shows the share classes of active companies that are switched on, so a
 compliance warning, suspension or delisting by [staff](companies.md#staff-registry-controls) hides a
@@ -538,7 +538,7 @@ mapped holding against final chain evidence before claiming a mirror.
 ## The Offerings page
 
 Offerings, under More in the web sidebar and in the mobile app, lists every offering of the selected
-company the person owns, with its applications, followed by Investor Directory and What happens
+company the person owns, with its applications, followed by Investor directory and What happens
 next. Each offering shows its terms, status, any rejection, previous rejection or closing reason,
 and the actions its status allows. New offering needs a deployed class; without one the page says to
 deploy a class first.
@@ -550,9 +550,10 @@ is switched off. Quantities above 2,147,483,647 are refused. On an approved or c
 documents shows the attached documents ticked and locked and sends only new choices; if the offering
 has since left approved or closed, the dialog says so and sends nothing.
 
-Applications shows each application's requested and allotted shares, including zero allotments, as a
-read-only record; the company's paid issues are on the Share class page
-([company paid issues](#company-paid-issues)).
+Applications lists the chosen offering's applications 25 at a time, newest first. It searches by
+investor name, wallet address or payment reference and filters by status. Each application shows its
+requested and allotted shares, including zero allotments, as a read-only record; the company's paid
+issues are on the Share class page ([company paid issues](#company-paid-issues)).
 
 Next: [register of members](register.md), [member records and register outputs](member-records.md),
 [participants and eligibility](participants.md) and
