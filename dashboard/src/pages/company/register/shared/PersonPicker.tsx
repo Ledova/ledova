@@ -1,7 +1,12 @@
+import { useMemo } from 'react';
+import { NEW_PERSON, personChoices, type Person } from '@ledova/shared';
 import { FIELD_CLASS, LABEL } from '@components/fieldClass';
-import { NEW_PERSON, personLabel, type Person } from './usePeople';
+import { SearchSelect } from '@components/SearchSelect';
 
 const READ_ONLY = 'read-only:bg-surface-tertiary read-only:text-text-muted';
+const NEW_CHOICE = [{ value: 'new', label: NEW_PERSON }];
+const PEOPLE = ['person', 'people'] as const;
+const NONE: string[] = [];
 
 export function PersonSelect({
   label,
@@ -9,8 +14,7 @@ export function PersonSelect({
   value,
   onChange,
   allowNew = true,
-  placeholder,
-  disabledMembers = [],
+  disabledMembers = NONE,
   context,
   disabled = false,
 }: {
@@ -19,29 +23,27 @@ export function PersonSelect({
   value: string;
   onChange: (value: string) => void;
   allowNew?: boolean;
-  placeholder?: string;
   disabledMembers?: string[];
   context?: (person: Person) => string;
   disabled?: boolean;
 }) {
+  const choices = useMemo(() => {
+    const added = new Set(disabledMembers);
+    return personChoices(people, context).map((choice) =>
+      added.has(choice.value) ? { ...choice, unavailable: 'Already added' } : choice,
+    );
+  }, [people, context, disabledMembers]);
   return (
-    <label className={LABEL}>
-      {label}
-      <select
-        className={FIELD_CLASS}
-        value={value}
-        disabled={disabled}
-        onChange={(event) => onChange(event.target.value)}
-      >
-        {placeholder !== undefined && <option value="">{placeholder}</option>}
-        {allowNew && <option value="new">{NEW_PERSON}</option>}
-        {people.map((person) => (
-          <option key={person.member} value={person.member} disabled={disabledMembers.includes(person.member)}>
-            {personLabel(person, people, context?.(person))}
-          </option>
-        ))}
-      </select>
-    </label>
+    <SearchSelect
+      label={label}
+      choices={choices}
+      first={allowNew ? NEW_CHOICE : []}
+      value={value}
+      onChange={onChange}
+      placeholder="Type a name or address"
+      disabled={disabled}
+      noun={PEOPLE}
+    />
   );
 }
 

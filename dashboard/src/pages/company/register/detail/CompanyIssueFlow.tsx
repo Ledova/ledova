@@ -1,6 +1,7 @@
 import { Row, Rows, Section } from '@components/Ledger';
 import { PageAction } from '@components/Page';
 import { FIELD_CLASS } from '@components/fieldClass';
+import { SearchSelect } from '@components/SearchSelect';
 import {
   REGISTER_ISSUE_COPY as COPY,
   REGISTER_ISSUE_DECISIONS,
@@ -10,6 +11,8 @@ import {
   formatDateTime,
   formatShareCount,
   getErrorMessage,
+  peopleFrom,
+  personChoices,
   registerIssueExecutionState,
   useCompanyIssueInstructions,
   type RegisterIssue,
@@ -28,6 +31,9 @@ import {
 } from './useCompanyIssueFlow';
 import type { useShareClass } from './useShareClass';
 const stages: Record<string, string> = COPY.STAGES;
+
+const NEW_MEMBER = [{ value: 'new', label: 'Create a new member through the documentary link' }];
+const MEMBERS = ['member', 'members'] as const;
 
 function SnapshotRows({ snapshot }: { snapshot: RegisterIssueSnapshot }) {
   return (
@@ -277,18 +283,17 @@ function Preparation({ commands }: { commands: Commands }) {
           <Row label="Eligibility expiry">{formatDateTime(chosen.eligibilityExpiresAt)}</Row>
         </Rows>
       )}
-      <label className="block text-sm">
-        Member
-        <select className={FIELD_CLASS} value={displayedMember} onChange={(event) => setMember(event.target.value)}>
-          <option value="new">Create a new member through the documentary link</option>
-          {(commands.members.data?.members ?? []).map((row) => (
-            <option key={row.member} value={row.member}>
-              {row.name ?? 'Identity shown in grant preview'} · {row.member} · {formatShareCount(row.currentShares)}{' '}
-              shares
-            </option>
-          ))}
-        </select>
-      </label>
+      <SearchSelect
+        label="Member"
+        choices={personChoices(
+          peopleFrom(commands.members.data).filter((person) => !person.awardOnly),
+          (person) => `${formatShareCount(person.currentShares)} shares`,
+        )}
+        first={NEW_MEMBER}
+        value={displayedMember}
+        onChange={setMember}
+        noun={MEMBERS}
+      />
       {member === 'new' && <p className="text-sm text-text-muted">New stable member: {newMember}</p>}
       <label className="block text-sm">
         Approving director

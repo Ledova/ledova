@@ -16,7 +16,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { webcrypto } from 'node:crypto';
 import { Buffer } from 'node:buffer';
 import { afterEach, expect, it, vi } from 'vitest';
-import { MEMBER_CODE, MEMBER_ENTRY, MEMBER_RECORD } from '../../testSupport/company';
+import { MEMBER_CODE, MEMBER_ENTRY, MEMBER_RECORD, choose } from '../../testSupport/company';
 import { AWARD_REQUEST, REGISTER, awardFrom } from '../../testSupport/company';
 import { FULFILLED_CERTIFICATE, MEMBER_PDF, OUTPUT_APPOINTMENT, OUTPUT_PREVIEW } from '../../testSupport/company';
 import MemberRecordsPage from './index';
@@ -205,9 +205,7 @@ it('invites and associates a walletless member, recovers one exact request and r
     />,
     { wrapper },
   );
-  await screen.findByLabelText('Member or award recipient');
-  await waitFor(() => expect(screen.getByRole('option', { name: /Company Recorded Member/ })).toBeTruthy());
-  fireEvent.change(screen.getByLabelText('Member or award recipient'), { target: { value: MEMBER_RECORD.member } });
+  await choose('Member or award recipient', 'Company Recorded Member', 'recorded member');
   fireEvent.change(screen.getByLabelText('Intended recipient email'), { target: { value: 'member@example.test' } });
   fireEvent.click(screen.getByRole('button', { name: 'Create member invitation' }));
   await screen.findByLabelText('One-time member invitation code');
@@ -356,10 +354,15 @@ it('invites an exact award-only recipient, deduplicates members and clears unava
     { ...memberRegister, token: { ...memberRegister.token, uuid: otherClass, symbol: 'PREF' } },
   ];
   const view = render(companyView(company, registers));
-  await screen.findByRole('option', { name: 'Award Only Recipient · Award recipient without shares · ORD' });
+  const recipient = await screen.findByLabelText('Member or award recipient');
+  await waitFor(() => expect((recipient as HTMLInputElement).disabled).toBe(false));
+  fireEvent.change(recipient, { target: { value: ' ' } });
+  const awardOnly = await screen.findByRole('option', {
+    name: 'Award Only Recipient · Award recipient without shares · ORD',
+  });
   expect(screen.getAllByRole('option', { name: /Company Recorded Member/ })).toHaveLength(1);
   expect(screen.queryByLabelText('Member UUID')).toBeNull();
-  fireEvent.change(screen.getByLabelText('Member or award recipient'), { target: { value: awardMember } });
+  fireEvent.mouseDown(awardOnly);
   fireEvent.change(screen.getByLabelText('Intended recipient email'), { target: { value: 'employee@example.test' } });
   fireEvent.click(screen.getByRole('button', { name: 'Create member invitation' }));
   await screen.findByLabelText('One-time member invitation code');
@@ -378,11 +381,11 @@ it('invites an exact award-only recipient, deduplicates members and clears unava
       exact: true,
     }),
   );
-  await waitFor(() => expect((screen.getByLabelText('Member or award recipient') as HTMLSelectElement).value).toBe(''));
+  await waitFor(() => expect((screen.getByLabelText('Member or award recipient') as HTMLInputElement).value).toBe(''));
   expect((screen.getByLabelText('Intended recipient email') as HTMLInputElement).value).toBe('');
   expect(screen.getByRole('button', { name: 'Create member invitation' }).matches(':disabled')).toBe(true);
 
-  fireEvent.change(screen.getByLabelText('Member or award recipient'), { target: { value: MEMBER_RECORD.member } });
+  await choose('Member or award recipient', 'Company Recorded Member', 'recorded member');
   fireEvent.change(screen.getByLabelText('Intended recipient email'), { target: { value: 'member@example.test' } });
   awards = [{ ...award, name: 'Foreign Private Award Recipient' }];
   invitation = undefined;
@@ -390,7 +393,8 @@ it('invites an exact award-only recipient, deduplicates members and clears unava
   await screen.findByText('The award recipients belong to another company.');
   expect(screen.queryByRole('option', { name: /Foreign Private Award Recipient/ })).toBeNull();
   expect(screen.queryByRole('option', { name: /Company Recorded Member/ })).toBeNull();
-  expect((screen.getByLabelText('Member or award recipient') as HTMLSelectElement).value).toBe('');
+  expect((screen.getByLabelText('Member or award recipient') as HTMLInputElement).value).toBe('');
+  expect((screen.getByLabelText('Member or award recipient') as HTMLInputElement).disabled).toBe(true);
   expect((screen.getByLabelText('Intended recipient email') as HTMLInputElement).value).toBe('');
   expect(screen.getByRole('button', { name: 'Create member invitation' }).matches(':disabled')).toBe(true);
   expect(api.post).toHaveBeenCalledTimes(1);

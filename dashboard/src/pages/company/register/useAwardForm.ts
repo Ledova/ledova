@@ -11,9 +11,10 @@ import {
   type OwnCompanyAppointment,
   type RegisterAwardPreparation,
   type RegisterEvidence,
+  personRequest,
+  type Person,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
-import { personRequest, type Person } from '@pages/company/register/shared/usePeople';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 export function useAwardForm({

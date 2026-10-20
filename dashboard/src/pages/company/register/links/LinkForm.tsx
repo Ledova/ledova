@@ -1,14 +1,18 @@
+import { useMemo } from 'react';
 import { useLinkPreparation, type LinkFormProps, COPY } from './useLinkPreparation';
 
 import { type RegisterCorrectionAuthority } from '@ledova/shared';
 import { PageAction } from '@components/Page';
 import { FIELD_CLASS, LABEL } from '@components/fieldClass';
+import { SearchSelect } from '@components/SearchSelect';
 
 import { WalletStatus } from '@pages/company/register/shared/WalletStatus';
 
 const EVIDENCE = 'application/pdf,image/png,image/jpeg';
 
 const AUTHORITIES = Object.entries(COPY.AUTHORITIES) as [RegisterCorrectionAuthority, string][];
+
+const MEMBERS = ['member', 'members'] as const;
 
 export function LinkForm({
   owner,
@@ -25,6 +29,7 @@ export function LinkForm({
   const { draft, busy, error, ordered, reset, memberOf, labels, problems, update, choose, submit } = useLinkPreparation(
     { owner, guard, company, wallets, registers, appointment, blocked, onRefused, onConflict, onMissing },
   );
+  const memberChoices = useMemo(() => [...labels].map(([value, label]) => ({ value, label })), [labels]);
 
   return (
     <form
@@ -109,20 +114,13 @@ export function LinkForm({
               <legend className="break-all text-sm text-text-primary">{wallet.address}</legend>
               <p className="text-xs text-text-muted">{COPY.WAITING(wallet.waiting)}</p>
               <WalletStatus wallet={wallet} />
-              <label className={LABEL}>
-                {COPY.MEMBER}
-                <select
-                  value={memberOf(wallet.address.toLowerCase())}
-                  className={FIELD_CLASS}
-                  onChange={(event) => choose(wallet.address.toLowerCase(), event.target.value)}
-                >
-                  {[...labels].map(([value, label]) => (
-                    <option key={value} value={value}>
-                      {label}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              <SearchSelect
+                label={COPY.MEMBER}
+                choices={memberChoices}
+                value={memberOf(wallet.address.toLowerCase())}
+                onChange={(value) => choose(wallet.address.toLowerCase(), value)}
+                noun={MEMBERS}
+              />
             </fieldset>
           ))}
         </fieldset>

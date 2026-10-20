@@ -15,7 +15,7 @@ import { afterEach, expect, it, vi } from 'vitest';
 import { APPOINTMENT, REGISTER } from '../../../testSupport/company';
 import { ALLOTMENT_REQUEST, allotmentFrom, allotmentDecision, allotmentPreview } from '../../../testSupport/company';
 import CompanyRegisterPage from '.';
-import { companyPreferences, renderCompanyPage } from '../../../testSupport/company';
+import { choose, companyPreferences, renderCompanyPage } from '../../../testSupport/company';
 
 import { allotmentsKey } from './useRegisterAllotments';
 import { TransferForm } from './transfer/TransferForm';
@@ -460,8 +460,8 @@ it('preserves original preparation and issue recovery through refresh, keeps app
     'Transfer shares',
   );
   expect((screen.getByLabelText(TRANSFER_COPY.COMPANY_EVENT_ON) as HTMLInputElement).value).toBe('');
+  await choose(TRANSFER_COPY.FROM, 'Synthetic Transferor', 'synthetic');
   for (const [label, value] of [
-    [TRANSFER_COPY.FROM, 'transferor'],
     ['Name', 'Synthetic Recipient'],
     ['Residential address', '2 Example Street'],
     [TRANSFER_COPY.SHARES, '10'],
