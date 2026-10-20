@@ -8968,6 +8968,7 @@ export interface ApiOperations {
         is_active?: boolean;
         ordering?: string;
         page?: number;
+        page_size?: number;
         search?: string;
         symbol?: string;
       };
@@ -9148,6 +9149,7 @@ export interface ApiOperations {
       query?: {
         ordering?: string;
         page?: number;
+        page_size?: number;
       };
       header?: never;
       path?: never;
@@ -9195,6 +9197,7 @@ export interface ApiOperations {
       query?: {
         ordering?: string;
         page?: number;
+        page_size?: number;
       };
       header?: never;
       path?: never;
@@ -9269,6 +9272,7 @@ export interface ApiOperations {
       query?: {
         ordering?: string;
         page?: number;
+        page_size?: number;
       };
       header?: never;
       path?: never;
@@ -9357,6 +9361,7 @@ export interface ApiOperations {
         notification_type?: string;
         ordering?: string;
         page?: number;
+        page_size?: number;
       };
       header?: never;
       path?: never;
@@ -9470,6 +9475,7 @@ export interface ApiOperations {
         is_active?: boolean;
         ordering?: string;
         page?: number;
+        page_size?: number;
         user_account?: string;
         user_profile?: string;
       };
@@ -9863,6 +9869,7 @@ export interface ApiOperations {
         end_date?: string;
         ordering?: string;
         page?: number;
+        page_size?: number;
         start_date?: string;
         wallet?: string;
       };
@@ -9887,6 +9894,7 @@ export interface ApiOperations {
       query?: {
         ordering?: string;
         page?: number;
+        page_size?: number;
       };
       header?: never;
       path?: never;
@@ -9936,6 +9944,7 @@ export interface ApiOperations {
       query?: {
         ordering?: string;
         page?: number;
+        page_size?: number;
       };
       header?: never;
       path?: never;
@@ -9983,6 +9992,7 @@ export interface ApiOperations {
       query?: {
         ordering?: string;
         page?: number;
+        page_size?: number;
       };
       header?: never;
       path?: never;
@@ -10117,6 +10127,7 @@ export interface ApiOperations {
         company_type?: string;
         ordering?: string;
         page?: number;
+        page_size?: number;
         search?: string;
         status?: string;
       };
@@ -10235,6 +10246,7 @@ export interface ApiOperations {
       query?: {
         ordering?: string;
         page?: number;
+        page_size?: number;
       };
       header?: never;
       path: {
@@ -10467,6 +10479,7 @@ export interface ApiOperations {
       query?: {
         ordering?: string;
         page?: number;
+        page_size?: number;
       };
       header?: never;
       path?: never;
@@ -10558,6 +10571,7 @@ export interface ApiOperations {
       query?: {
         ordering?: string;
         page?: number;
+        page_size?: number;
       };
       header?: never;
       path?: never;
@@ -10639,6 +10653,7 @@ export interface ApiOperations {
         company?: string;
         ordering?: string;
         page?: number;
+        page_size?: number;
       };
       header?: never;
       path?: never;
@@ -10805,6 +10820,7 @@ export interface ApiOperations {
       query?: {
         ordering?: string;
         page?: number;
+        page_size?: number;
       };
       header?: never;
       path?: never;
@@ -10933,6 +10949,7 @@ export interface ApiOperations {
       query?: {
         ordering?: string;
         page?: number;
+        page_size?: number;
       };
       header?: never;
       path?: never;
@@ -11019,6 +11036,7 @@ export interface ApiOperations {
       query?: {
         ordering?: string;
         page?: number;
+        page_size?: number;
       };
       header?: never;
       path?: never;
@@ -11133,6 +11151,7 @@ export interface ApiOperations {
       query?: {
         ordering?: string;
         page?: number;
+        page_size?: number;
       };
       header?: never;
       path?: never;
@@ -11294,6 +11313,18 @@ export interface ApiOperations {
     parameters: {
       query?: {
         page?: number;
+        page_size?: number;
+        search?: string;
+        status?:
+          | 'accepted'
+          | 'allotted'
+          | 'awaiting_payment'
+          | 'draft'
+          | 'paid'
+          | 'refunded'
+          | 'rejected'
+          | 'submitted'
+          | 'withdrawn';
       };
       header?: never;
       path: {
@@ -11348,6 +11379,7 @@ export interface ApiOperations {
         kind?: 'distribution' | 'holding_statement' | 'meeting_notice' | 'resolution';
         ordering?: string;
         page?: number;
+        page_size?: number;
       };
       header?: never;
       path?: never;
@@ -11437,6 +11469,7 @@ export interface ApiOperations {
       query?: {
         ordering?: string;
         page?: number;
+        page_size?: number;
       };
       header?: never;
       path?: never;
@@ -11555,6 +11588,7 @@ export interface ApiOperations {
         contract_address?: string;
         ordering?: string;
         page?: number;
+        page_size?: number;
         search?: string;
         status?: string;
         token_type?: string;
@@ -11646,6 +11680,7 @@ export interface ApiOperations {
     parameters: {
       query?: {
         page?: number;
+        page_size?: number;
         status?: string;
       };
       header?: never;
@@ -11722,6 +11757,7 @@ export interface ApiOperations {
         entry?: string[];
         member?: string;
         page?: number;
+        page_size?: number;
       };
       header?: never;
       path: {
@@ -11879,6 +11915,7 @@ export interface ApiOperations {
         company?: string;
         ordering?: string;
         page?: number;
+        page_size?: number;
         search?: string;
         status?: string;
         token?: string;
@@ -11905,6 +11942,7 @@ export interface ApiOperations {
         company?: string;
         ordering?: string;
         page?: number;
+        page_size?: number;
         status?: string;
         token?: string;
       };
@@ -11931,6 +11969,7 @@ export interface ApiOperations {
         member?: string;
         ordering?: string;
         page?: number;
+        page_size?: number;
       };
       header?: never;
       path?: never;
@@ -12004,6 +12043,7 @@ export interface ApiOperations {
         member?: string;
         ordering?: string;
         page?: number;
+        page_size?: number;
       };
       header?: never;
       path?: never;
@@ -12178,6 +12218,7 @@ export interface ApiOperations {
         member?: string;
         ordering?: string;
         page?: number;
+        page_size?: number;
       };
       header?: never;
       path?: never;
@@ -12282,6 +12323,7 @@ export interface ApiOperations {
         member?: string;
         ordering?: string;
         page?: number;
+        page_size?: number;
       };
       header?: never;
       path?: never;
@@ -12393,6 +12435,7 @@ export interface ApiOperations {
       query?: {
         ordering?: string;
         page?: number;
+        page_size?: number;
       };
       header?: never;
       path?: never;
@@ -12461,6 +12504,7 @@ export interface ApiOperations {
         member?: string;
         ordering?: string;
         page?: number;
+        page_size?: number;
         status?: 'applied' | 'rejected' | 'submitted';
         token?: string;
       };
@@ -12658,6 +12702,7 @@ export interface ApiOperations {
         company?: string;
         ordering?: string;
         page?: number;
+        page_size?: number;
       };
       header?: never;
       path?: never;
@@ -12757,6 +12802,7 @@ export interface ApiOperations {
         company?: string;
         ordering?: string;
         page?: number;
+        page_size?: number;
       };
       header?: never;
       path?: never;
@@ -12856,6 +12902,7 @@ export interface ApiOperations {
         company?: string;
         ordering?: string;
         page?: number;
+        page_size?: number;
       };
       header?: never;
       path?: never;
@@ -12955,6 +13002,7 @@ export interface ApiOperations {
         member?: string;
         ordering?: string;
         page?: number;
+        page_size?: number;
         token?: string;
       };
       header?: never;
@@ -13054,6 +13102,7 @@ export interface ApiOperations {
         company?: string;
         ordering?: string;
         page?: number;
+        page_size?: number;
         status?: 'applied' | 'rejected' | 'submitted';
         token?: string;
       };
@@ -13200,6 +13249,7 @@ export interface ApiOperations {
         company?: string;
         ordering?: string;
         page?: number;
+        page_size?: number;
         register?: string;
         status?: 'applied' | 'rejected' | 'submitted';
         token?: string;
@@ -13355,6 +13405,7 @@ export interface ApiOperations {
         company?: string;
         ordering?: string;
         page?: number;
+        page_size?: number;
         status?: 'applied' | 'rejected' | 'submitted';
         token?: string;
       };
@@ -13512,6 +13563,7 @@ export interface ApiOperations {
         member?: string;
         ordering?: string;
         page?: number;
+        page_size?: number;
         status?: 'applied' | 'rejected' | 'submitted';
         token?: string;
       };
@@ -13708,6 +13760,7 @@ export interface ApiOperations {
         company?: string;
         ordering?: string;
         page?: number;
+        page_size?: number;
         status?: 'applied' | 'rejected' | 'submitted';
         token?: string;
       };
@@ -13882,6 +13935,7 @@ export interface ApiOperations {
       query?: {
         ordering?: string;
         page?: number;
+        page_size?: number;
       };
       header?: never;
       path?: never;
@@ -13972,6 +14026,7 @@ export interface ApiOperations {
         company?: string;
         ordering?: string;
         page?: number;
+        page_size?: number;
         status?: 'applied' | 'rejected' | 'submitted';
         token?: string;
       };
@@ -14160,6 +14215,7 @@ export interface ApiOperations {
         company?: string;
         ordering?: string;
         page?: number;
+        page_size?: number;
         status?: 'applied' | 'rejected' | 'submitted';
       };
       header?: never;
@@ -14334,6 +14390,7 @@ export interface ApiOperations {
         company?: string;
         ordering?: string;
         page?: number;
+        page_size?: number;
         status?: 'applied' | 'rejected' | 'submitted';
         token?: string;
       };
@@ -14488,6 +14545,7 @@ export interface ApiOperations {
         company?: string;
         ordering?: string;
         page?: number;
+        page_size?: number;
         status?: 'applied' | 'rejected' | 'submitted';
         token?: string;
       };
@@ -14657,6 +14715,7 @@ export interface ApiOperations {
         member?: string;
         ordering?: string;
         page?: number;
+        page_size?: number;
         status?: 'applied' | 'rejected' | 'submitted';
       };
       header?: never;
@@ -14810,6 +14869,7 @@ export interface ApiOperations {
         company?: string;
         ordering?: string;
         page?: number;
+        page_size?: number;
         status?: 'applied' | 'rejected' | 'submitted';
         token?: string;
       };
@@ -14956,6 +15016,7 @@ export interface ApiOperations {
         company?: string;
         ordering?: string;
         page?: number;
+        page_size?: number;
         token?: string;
       };
       header?: never;
@@ -15037,6 +15098,7 @@ export interface ApiOperations {
         from_member?: string;
         ordering?: string;
         page?: number;
+        page_size?: number;
         status?: 'applied' | 'rejected' | 'submitted';
         to_member?: string;
         token?: string;
@@ -15214,6 +15276,7 @@ export interface ApiOperations {
         contract_address?: string;
         ordering?: string;
         page?: number;
+        page_size?: number;
         search?: string;
         status?: string;
         token_type?: string;
@@ -15277,6 +15340,7 @@ export interface ApiOperations {
         order_type?: string;
         ordering?: string;
         page?: number;
+        page_size?: number;
         payment_asset?: string;
         search?: string;
         status?: string;
@@ -16218,6 +16282,7 @@ export interface ApiOperations {
       query: {
         ordering?: string;
         page?: number;
+        page_size?: number;
         wallet_address: string;
       };
       header?: never;
@@ -16241,6 +16306,7 @@ export interface ApiOperations {
       query?: {
         ordering?: string;
         page?: number;
+        page_size?: number;
       };
       header?: never;
       path?: never;
@@ -16351,6 +16417,7 @@ export interface ApiOperations {
         date_to?: string;
         ordering?: string;
         page?: number;
+        page_size?: number;
         status?: string;
       };
       header?: never;
@@ -16397,6 +16464,7 @@ export interface ApiOperations {
         company?: string;
         ordering?: string;
         page?: number;
+        page_size?: number;
         status?: 'applied' | 'rejected' | 'submitted';
       };
       header?: never;
@@ -16521,6 +16589,7 @@ export interface ApiOperations {
         company?: string;
         ordering?: string;
         page?: number;
+        page_size?: number;
         request?: string;
       };
       header?: never;
@@ -16566,6 +16635,7 @@ export interface ApiOperations {
         company?: string;
         ordering?: string;
         page?: number;
+        page_size?: number;
       };
       header?: never;
       path?: never;
@@ -16671,6 +16741,7 @@ export interface ApiOperations {
         company?: string;
         ordering?: string;
         page?: number;
+        page_size?: number;
         request?: string;
       };
       header?: never;
@@ -16775,6 +16846,7 @@ export interface ApiOperations {
         chain?: string;
         ordering?: string;
         page?: number;
+        page_size?: number;
         verification_status?: string;
       };
       header?: never;
