@@ -228,7 +228,7 @@ export function useInvestorIssues({
         </p>
       ) : allotments.isError ? (
         <LoadError retry={() => refresh().catch(() => {})} busy={allotments.isFetching || appointments.isFetching}>
-          External allotments could not be loaded. A current company register appointment is required.
+          External allotments could not be loaded.
         </LoadError>
       ) : null}
       {privateReady && allotments.data?.length === 0 && <p className="text-sm text-text-muted">{COPY.EMPTY}</p>}

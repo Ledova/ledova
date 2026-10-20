@@ -74,7 +74,7 @@ function OwnTransfer({
   if (!classes.data || !appointments.data)
     content = stale ? (
       <LoadError retry={retry} busy={busy}>
-        The register could not be loaded.
+        The register or your appointments could not be loaded.
       </LoadError>
     ) : (
       <Loading />
@@ -84,7 +84,7 @@ function OwnTransfer({
   else if (!register || !members.data)
     content = stale ? (
       <LoadError retry={retry} busy={busy}>
-        The register could not be loaded.
+        The register or your appointments could not be loaded.
       </LoadError>
     ) : (
       <Loading />
@@ -107,7 +107,7 @@ function OwnTransfer({
         <Section title={COPY.PREPARE}>
           {stale && (
             <LoadError retry={retry} busy={busy}>
-              The register could not be loaded.
+              The register or your appointments could not be loaded.
             </LoadError>
           )}
           <TransferForm

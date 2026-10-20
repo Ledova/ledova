@@ -164,10 +164,9 @@ export function useNonPaidIssues({
     <div hidden={!shown} className="flex flex-col gap-3">
       <p className="text-sm text-text-muted">{awardUuid ? AWARD_NOTE : COPY.NOTE}</p>
       {stale ? (
-        <div role="alert" className="flex flex-col items-start gap-2">
-          <p className="text-sm text-error-light">The non-paid issue form could not be prepared. Try again.</p>
-          <PageAction label="Retry non-paid issue" disabled={busy} onClick={retry} />
-        </div>
+        <LoadError retry={retry} busy={busy}>
+          The non-paid issue form could not be loaded.
+        </LoadError>
       ) : appointments.isSuccess && !appointment && !formAppointment ? (
         <p className="text-sm text-text-muted">{COPY.READ_ONLY_NOTE}</p>
       ) : award.isSuccess && people.isSuccess && !recipientReady ? (
@@ -230,18 +229,24 @@ export function useNonPaidIssues({
         <p role="status" className="text-sm text-text-muted">
           Loading non-paid issues…
         </p>
-      ) : !readable || grants.isError || appointments.isError ? (
+      ) : appointments.isError ? null : !readable ? (
+        <p className="text-sm text-text-muted">
+          A current company register appointment is required to read non-paid issues.
+        </p>
+      ) : grants.isError ? (
         <LoadError retry={() => refresh().catch(() => {})} busy={grants.isFetching || appointments.isFetching}>
-          Non-paid issues could not be loaded. A current company register appointment is required.
+          Non-paid issues could not be loaded.
         </LoadError>
       ) : privateReady && grants.data.length === 0 ? (
         <p className="text-sm text-text-muted">{COPY.EMPTY}</p>
       ) : null}
-      <PageAction
-        label="Refresh grants"
-        disabled={grants.isFetching || appointments.isFetching}
-        onClick={() => void refresh().catch(() => {})}
-      />
+      {!grants.isError && (
+        <PageAction
+          label="Refresh grants"
+          disabled={grants.isFetching || appointments.isFetching}
+          onClick={() => void refresh().catch(() => {})}
+        />
+      )}
       <ul className="divide-y divide-border-subtle">
         {grants.data?.map((grant) => (
           <GrantRecord

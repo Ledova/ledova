@@ -83,7 +83,7 @@ function OwnCorrection({
     content =
       classes.isError || appointments.isError ? (
         <LoadError retry={retry} busy={fetching}>
-          The register could not be loaded.
+          {classes.isError ? 'The register could not be loaded.' : 'Your appointments could not be loaded.'}
         </LoadError>
       ) : (
         <Loading />
@@ -130,7 +130,7 @@ function OwnCorrection({
         <Section title={COPY.PREPARE}>
           {stale && (
             <LoadError retry={retry} busy={fetching}>
-              The register could not be loaded.
+              The register or your appointments could not be loaded.
             </LoadError>
           )}
           <CorrectionForm

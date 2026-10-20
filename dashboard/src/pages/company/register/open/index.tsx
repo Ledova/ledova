@@ -30,7 +30,9 @@ const REFUSED = 'This share class cannot be opened from the chain.';
 function HoldersFailure({ error, retry, busy }: { error: unknown; retry: () => void; busy: boolean }) {
   return (
     <LoadError retry={retry} busy={busy}>
-      {failureStatus(error) === 503 ? COPY.HOLDERS_UNAVAILABLE : 'The register could not be loaded.'}
+      {failureStatus(error) === 503
+        ? COPY.HOLDERS_UNAVAILABLE
+        : 'The register or your appointments could not be loaded.'}
     </LoadError>
   );
 }
@@ -85,7 +87,7 @@ function OwnOpening({
     content =
       classes.isError || appointments.isError ? (
         <LoadError retry={retry} busy={fetching}>
-          The register could not be loaded.
+          {classes.isError ? 'The register could not be loaded.' : 'Your appointments could not be loaded.'}
         </LoadError>
       ) : (
         <Loading />

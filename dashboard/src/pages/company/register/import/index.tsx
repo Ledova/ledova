@@ -162,7 +162,7 @@ function OwnImport({
     if (stale)
       return (
         <LoadError retry={retry} busy={fetching}>
-          The register could not be loaded.
+          The register or your appointments could not be loaded.
         </LoadError>
       );
     if (

@@ -108,11 +108,13 @@ function TradingPage() {
   const {
     userOrders,
     isLoadingUserOrders,
+    isFetchingOrders,
     getWalletsWithHoldings,
     ordersError,
     refreshOrders,
     balancesError,
     isLoadingBalances,
+    isFetchingBalances,
     refreshBalances,
   } = useTrading({
     walletAddresses,
@@ -222,6 +224,7 @@ function TradingPage() {
         isLoading={isLoading || eligibilityQuery.isLoading}
         isReady={isReady}
         error={tokensQuery.error || eligibilityQuery.error}
+        isRetrying={tokensQuery.isFetching || eligibilityQuery.isFetching}
         onRetry={() => {
           void tokensQuery.refetch();
           void eligibilityQuery.refetch();
@@ -249,10 +252,12 @@ function TradingPage() {
         isLoadingOrderBook={isLoadingOrderBook}
         orderBookError={orderBookQuery.error}
         onRefreshBook={() => void orderBookQuery.refetch()}
+        isRefreshingBook={orderBookQuery.isFetching}
         userOrders={userOrders}
         isLoadingUserOrders={isLoadingUserOrders}
         ordersError={ordersError}
         onRefreshOrders={() => void refreshOrders()}
+        isRefreshingOrders={isFetchingOrders}
         onCancelOrder={handleCancelOrder}
         onEditOrder={handleEditOrder}
         swaps={swaps}
@@ -262,6 +267,7 @@ function TradingPage() {
           void tradingWallets.refetch();
           void swapsQuery.refetch();
         }}
+        isRefreshingSwaps={swapsQuery.isFetching || tradingWallets.isFetching}
         wallets={wallets}
         settlementOwner={settlements.owner}
         onSignSwap={handleSignSwap}
@@ -352,7 +358,9 @@ function TradingPage() {
       {selectedToken && (
         <>
           {balancesError && (
-            <LoadError retry={refreshBalances}>Share balances could not be loaded. Selling is unavailable.</LoadError>
+            <LoadError retry={refreshBalances} busy={isFetchingBalances}>
+              Share balances could not be loaded. Selling is unavailable.
+            </LoadError>
           )}
           <PlaceOrderPanel
             token={selectedToken}

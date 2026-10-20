@@ -10,6 +10,7 @@ interface MarketOverviewProps {
   isLoading: boolean;
   isReady: boolean;
   error?: unknown;
+  isRetrying?: boolean;
   onRetry?: () => void;
 }
 
@@ -20,6 +21,7 @@ export function MarketOverview({
   isLoading,
   isReady,
   error,
+  isRetrying = false,
   onRetry,
 }: MarketOverviewProps) {
   return (
@@ -29,7 +31,9 @@ export function MarketOverview({
         before placing an offer.
       </p>
       {error ? (
-        <LoadError retry={() => onRetry?.()}>Share classes could not be loaded.</LoadError>
+        <LoadError retry={() => onRetry?.()} busy={isRetrying}>
+          Share classes could not be loaded.
+        </LoadError>
       ) : isLoading ? (
         <p role="status">Loading share classes…</p>
       ) : tokens.length === 0 ? (

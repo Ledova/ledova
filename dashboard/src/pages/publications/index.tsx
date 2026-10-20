@@ -94,9 +94,7 @@ export default function PublicationsPage() {
       )}
       {listFailed ? (
         <LoadError retry={retry} busy={isRefreshing}>
-          {publications.length
-            ? 'Your notices could not be refreshed. Try again before continuing.'
-            : PUBLICATION_COPY.LIST_FAILED}
+          {publications.length ? 'Your notices could not be refreshed.' : PUBLICATION_COPY.LIST_FAILED}
         </LoadError>
       ) : (
         <>

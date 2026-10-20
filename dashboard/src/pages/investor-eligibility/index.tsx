@@ -38,7 +38,7 @@ export default function InvestorEligibilityPage() {
     classifications.filter((claim) => claim.status === 'submitted').map((claim) => claim.category),
   );
   const submissionBlockedReason = hasError
-    ? 'Your verification could not be loaded. Try again before continuing.'
+    ? 'Your verification could not be loaded.'
     : isLoading || isRefreshing
       ? 'Refreshing your verification before continuing.'
       : null;

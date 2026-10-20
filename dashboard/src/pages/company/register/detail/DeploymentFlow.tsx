@@ -104,18 +104,29 @@ export function DeploymentFlow({ uuid, data }: { uuid: string; data: ReturnType<
           Your appointments could not be loaded.
         </LoadError>
       )}
-      {deployments.isError && (
+      {deployments.isError && records.length > 0 && (
         <p role="alert" className="text-sm text-error-light">
           Deployment history could not be refreshed. Retained receipts remain below.
         </p>
       )}
-      <PageAction
-        label="Refresh deployments"
-        onClick={() => void refresh().catch(() => undefined)}
-        disabled={deployments.isFetching || appointments.isFetching}
-      />
+      {deployments.isError && !records.length ? (
+        <LoadError
+          retry={() => refresh().catch(() => undefined)}
+          busy={deployments.isFetching || appointments.isFetching}
+        >
+          Deployment history could not be loaded.
+        </LoadError>
+      ) : (
+        <PageAction
+          label="Refresh deployments"
+          onClick={() => void refresh().catch(() => undefined)}
+          disabled={deployments.isFetching || appointments.isFetching}
+        />
+      )}
       {!records.length ? (
-        <p className="text-sm text-text-muted">{deployments.isPending ? 'Loading deployments…' : COPY.EMPTY}</p>
+        !deployments.isError && (
+          <p className="text-sm text-text-muted">{deployments.isPending ? 'Loading deployments…' : COPY.EMPTY}</p>
+        )
       ) : (
         <ul className="divide-y divide-border-subtle">
           {records.map((proposal) => (

@@ -137,7 +137,7 @@ export function NewClassSetup({
   if ((!held || !context) && (classes.isError || appointments.isError || members.isError))
     return (
       <LoadError retry={retry} busy={classes.isFetching || appointments.isFetching || members.isFetching}>
-        The register could not be loaded.
+        The register or your appointments could not be loaded.
       </LoadError>
     );
   if (!context && (!classes.data || !appointments.data)) return <Loading />;

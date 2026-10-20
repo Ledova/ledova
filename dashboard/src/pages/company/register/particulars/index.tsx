@@ -97,7 +97,7 @@ function OwnParticulars({
     content =
       classes.isError || appointments.isError ? (
         <LoadError retry={retry} busy={fetching}>
-          The register could not be loaded.
+          {classes.isError ? 'The register could not be loaded.' : 'Your appointments could not be loaded.'}
         </LoadError>
       ) : (
         <Loading />
@@ -109,7 +109,7 @@ function OwnParticulars({
       <Loading />
     ) : stale ? (
       <LoadError retry={retry} busy={fetching}>
-        The register could not be loaded.
+        The register or your appointments could not be loaded.
       </LoadError>
     ) : (
       <p className="py-3 text-sm text-text-muted">This member is not a current member of a register you can change.</p>
@@ -124,7 +124,7 @@ function OwnParticulars({
         <Section title={COPY.PREPARE}>
           {stale && (
             <LoadError retry={retry} busy={fetching}>
-              The register could not be loaded.
+              The register or your appointments could not be loaded.
             </LoadError>
           )}
           <ParticularsForm

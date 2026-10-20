@@ -36,16 +36,19 @@ interface OrdersPanelProps {
   isLoadingOrderBook: boolean;
   orderBookError?: unknown;
   onRefreshBook?: () => void;
+  isRefreshingBook?: boolean;
   userOrders: TransferOrder[];
   isLoadingUserOrders: boolean;
   ordersError?: unknown;
   onRefreshOrders?: () => void;
+  isRefreshingOrders?: boolean;
   onCancelOrder: (uuid: string) => void;
   onEditOrder: (order: TransferOrder) => void;
   swaps: SwapOrder[] | undefined;
   isLoadingSwaps: boolean;
   swapsError?: unknown;
   onRefreshSwaps?: () => void;
+  isRefreshingSwaps?: boolean;
   wallets: Wallet[];
   settlementOwner: OrderSubmissionOwner | null;
   onSignSwap: (swap: SwapOrder) => void;
@@ -62,16 +65,19 @@ export function OrdersPanel({
   isLoadingOrderBook,
   orderBookError,
   onRefreshBook,
+  isRefreshingBook = false,
   userOrders,
   isLoadingUserOrders,
   ordersError,
   onRefreshOrders,
+  isRefreshingOrders = false,
   onCancelOrder,
   onEditOrder,
   swaps,
   isLoadingSwaps,
   swapsError,
   onRefreshSwaps,
+  isRefreshingSwaps = false,
   wallets,
   settlementOwner,
   onSignSwap,
@@ -82,7 +88,9 @@ export function OrdersPanel({
       {tokenSymbol && (
         <Section title={`Orders for ${tokenSymbol}`}>
           {orderBookError ? (
-            <LoadError retry={() => onRefreshBook?.()}>The order lists could not be loaded.</LoadError>
+            <LoadError retry={() => onRefreshBook?.()} busy={isRefreshingBook}>
+              The order lists could not be loaded.
+            </LoadError>
           ) : isLoadingOrderBook ? (
             <p role="status">Loading order lists…</p>
           ) : (
@@ -98,7 +106,9 @@ export function OrdersPanel({
           Your recorded orders remain here when a share class is no longer listed.
         </p>
         {ordersError ? (
-          <LoadError retry={() => onRefreshOrders?.()}>Your orders could not be loaded.</LoadError>
+          <LoadError retry={() => onRefreshOrders?.()} busy={isRefreshingOrders}>
+            Your orders could not be loaded.
+          </LoadError>
         ) : isLoadingUserOrders ? (
           <p role="status">Loading your orders…</p>
         ) : userOrders.length === 0 ? (
@@ -170,7 +180,9 @@ export function OrdersPanel({
       </Section>
       <Section title="Trades awaiting signatures">
         {swapsError ? (
-          <LoadError retry={() => onRefreshSwaps?.()}>Trades could not be loaded.</LoadError>
+          <LoadError retry={() => onRefreshSwaps?.()} busy={isRefreshingSwaps}>
+            Trades could not be loaded.
+          </LoadError>
         ) : isLoadingSwaps ? (
           <p role="status">Loading trades…</p>
         ) : !swaps?.length ? (

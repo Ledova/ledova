@@ -423,22 +423,28 @@ record's own page.
 
 A read that fails shows `LoadError` (`dashboard/src/components/Ledger.tsx`): one `role="alert"`
 block with a sentence in the primary text colour and a Try again action. The sentence names what
-failed, such as "Your wallets could not be loaded.", and adds a second sentence only for a
-consequence the page can't otherwise show, such as "Trading actions are unavailable." or "The list
-is incomplete." Try again is described by that sentence, so a screen reader says which read it
-retries, and it stays disabled while the read runs again. Shared copy that both clients show passes through unchanged,
-such as an unreadable chain on a register opening.
+failed, such as "Your wallets could not be loaded." or "The register or your appointments could
+not be loaded.", and adds a second sentence only for what the block can't otherwise say: a
+consequence, such as "Trading actions are unavailable." or "The list is incomplete.", or a likely
+cause, such as "It may be unavailable to this account." Try again is described by that sentence, so
+a screen reader says which read it retries, and it stays disabled while the read runs again. Shared
+copy that both clients show passes through unchanged, such as an unreadable chain on a register
+opening.
 
-A failed read shows this block, never an empty state. The notification bell, profile documents and
-classification claims, which used to show none, now show the failure. On the company team page and
-a class's employee awards, a section whose read failed hides its Refresh action until the read
-succeeds again.
+A failed read shows this block, not an empty state. The notification bell, profile documents,
+classification claims and a class's deployments, which used to show none, now show the failure. On
+the company team page and in a class's employee awards, non-paid issues and deployments, the block
+takes the place of the section's Refresh action while its first read has failed.
 
 Loading lines, refresh actions, a failed refresh and empty states are still to follow under
-[#1180](https://github.com/Ledova/ledova/issues/1180). Until then, pages that report a failed read
-beside their own Refresh action keep that sentence: company eligibility, member access, and Home's
-member records. Recoveries of an interrupted action, such as "Retry original member action", keep
-their own wording.
+[#1180](https://github.com/Ledova/ledova/issues/1180). Until then:
+
+- The company's eligibility queue, your company eligibility requests, member access and Home's
+  member records report a failed read in their own sentence beside their Refresh action, and may
+  show their empty line under it.
+- Recoveries of an interrupted action, such as "Retry original member action", keep their own
+  wording.
+- Signing flows in Trading keep their own phases and recovery actions.
 
 ## Forms
 
