@@ -2,12 +2,14 @@ import hashlib
 from unittest.mock import patch
 from uuid import uuid4
 
+import psycopg
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.db import connections
 from django.utils import timezone
 from rest_framework.test import APITransactionTestCase
 
 from companies.models import CompanyDocument, DocumentType
-from shared.db import use_migrate, use_operator
+from shared.db import current_alias, use_migrate, use_operator
 from shared.tests.core_fixtures import CoreFixtures, pdf_bytes, person
 from shareholders.models import PublicationKind, PublicationRead, PublicationRecipient
 from shareholders.services.publications import (
@@ -15,6 +17,7 @@ from shareholders.services.publications import (
     publish_to_members,
     verify_roll,
 )
+from shareholders.services.roll import frozen_rows
 from tokens.models import RegisterMemberWallet, ShareToken, ShareTokenStatus
 
 
@@ -63,13 +66,35 @@ class PublicationsTest(CoreFixtures, APITransactionTestCase):
             "instruction": "SYNTHETIC-PUBLICATION-AUTHORITY",
             "authority_document": document.pk,
         }
-        with patch("shareholders.services.publications.defer") as queued, use_operator():
+
+        def probe_company_lock():
+            parameters = connections[current_alias()].get_connection_params()
+            with psycopg.connect(**(parameters | {"autocommit": True, "connect_timeout": 5})) as competing:
+                with competing.cursor() as cursor:
+                    cursor.execute(
+                        "SELECT uuid FROM companies_company WHERE uuid = %s FOR UPDATE NOWAIT", [self.company.pk]
+                    )
+                    self.assertEqual(cursor.fetchone(), (self.company.pk,))
+
+        def capture_locked_roll(token, register, record_date):
+            with self.assertRaises(psycopg.errors.LockNotAvailable):
+                probe_company_lock()
+            return frozen_rows(token, register, record_date)
+
+        with (
+            patch("shareholders.services.publications.defer") as queued,
+            patch("shareholders.services.publications.frozen_rows", side_effect=capture_locked_roll) as captured,
+            use_operator(),
+        ):
+            probe_company_lock()
             publication = publish_to_members(
                 self.token,
                 publisher,
                 upload=SimpleUploadedFile("notice.pdf", raw, content_type="application/pdf"),
                 **values,
             )
+            probe_company_lock()
+            captured.assert_called_once()
             queued.assert_called_once()
             self.assertEqual(queued.call_args.kwargs["publication_id"], str(publication.pk))
             recipient = PublicationRecipient.objects.get(publication=publication)
