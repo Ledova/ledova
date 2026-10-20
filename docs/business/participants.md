@@ -374,8 +374,8 @@ On the web, Settings opens with Verification and activation: **Verify and activa
 for a company's personal administrators, marked To do or Done
 ([activation](companies.md#activation-and-the-registry-check)), and **Verify your identity**,
 which shows the identity check status and opens Profile. For anyone else the section is Identity,
-with the identity row only. Settings then holds Company settings (Company details,
-Company documents, Team and appointments, and Member access for people who can use the register;
+with the identity row only. Member access is on [Shareholders](register.md#the-register-page).
+Settings then holds Company settings (Company details, Company documents and Team and appointments;
 [company setup](companies.md)), Profile and security (Profile and **Change password**), Appearance
 (**Dark theme**, remembered in this browser or on this device; Paper is the default), Notifications
 (**Transaction alerts** for transaction status changes) and Data and privacy:

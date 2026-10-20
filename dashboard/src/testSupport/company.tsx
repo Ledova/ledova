@@ -81,15 +81,20 @@ export function companyRecord(overrides: Partial<Company> = {}): Company {
   };
 }
 
-export function renderCompanyPage(client: QueryClient, page: ReactNode, title: string) {
+export function renderCompanyPage(
+  client: QueryClient,
+  page: ReactNode,
+  title: string,
+  { entry = '/', path = '/' }: { entry?: string; path?: string } = {},
+) {
   if (!client.getQueryState(AUTH_QUERY_KEY)) prepareCompanyClient(client);
   return render(
     <QueryClientProvider client={client}>
       <ApiClientProvider client={apiClient}>
-        <MemoryRouter>
+        <MemoryRouter initialEntries={[entry]}>
           <PageTitle.Provider value={title}>
             <Routes>
-              <Route path="/" element={page} />
+              <Route path={path} element={page} />
               <Route path={DESTINATIONS.company.path} element={<p>Company page</p>} />
               <Route path={DESTINATIONS.companyRegister.path} element={<p>Register page</p>} />
             </Routes>

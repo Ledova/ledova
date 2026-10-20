@@ -34,6 +34,28 @@ export async function readNamedEntries(token: string, entry: string[], guard: ()
   return new Map(named.map((row) => [row.uuid, row]));
 }
 
+export async function readMemberEntries(tokens: string[], member: string, guard: () => void) {
+  const classes = await Promise.all(
+    tokens.map(async (token) => {
+      const rows = await readEveryPage((page) =>
+        guarded(guard, () => getRegisterEntries(apiClient, token, { member, page }, { ledovaSubmissionGuard: guard })),
+      );
+      if (rows.some((row) => !row.changes.some((change) => change.member === member)))
+        throw new Error('The register answered with entries for another member.');
+      if (rows.some((row) => row.changes.some((change) => !/^-?\d+$/.test(String(change.shares)))))
+        throw new Error('The register entries did not give whole share changes.');
+      return firstOfEach(rows, ({ uuid }) => uuid).map((entry) => ({ token, entry }));
+    }),
+  );
+  return classes
+    .flat()
+    .sort(
+      (left, right) =>
+        right.entry.effectiveOn.localeCompare(left.entry.effectiveOn) ||
+        Date.parse(right.entry.recordedAt) - Date.parse(left.entry.recordedAt),
+    );
+}
+
 export function useRegisterEntries(owner: OrderSubmissionOwner, token: string, guard: () => void) {
   const queryKey = entriesKey(owner, token);
   const query = useInfiniteQuery({

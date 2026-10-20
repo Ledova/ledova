@@ -303,12 +303,12 @@ The guard decides pages, not data: the API decides which rows a person sees, ans
 refused row.
 
 The sidebar (`dashboard/src/components/Sidebar.tsx`) names items by `DESTINATIONS` key, or
-`companyDashboard`, optionally with a hash (`/company/register#awards`, `#documents`,
-`/home#documents`). Its company group follows `useRegisterEntry`, its investing group the investing
+`companyDashboard`, optionally with a hash (`/company/register#shareholders`, `#awards`,
+`#documents`, `/home#documents`). Its company group follows `useRegisterEntry`, its investing group the investing
 role and Market `trading_enabled` ([the app at a
 glance](../business/README.md#the-app-at-a-glance)). Settings opens `/settings` and stays marked
-active on `/company`, `/company/listing` (Activation), `/company/team`, `/company/authority` and
-`/company/register#access`, which the Settings page's Member access row opens. The register hashes switch the visible view without
+active on `/company`, `/company/listing` (Activation), `/company/team` and `/company/authority`;
+Shareholders stays marked active on a shareholder's page. The register hashes switch the visible view without
 unmounting register forms or their recovery ([page mechanics](#page-mechanics)). The sidebar and
 phone drawer are 208 pixels wide (`lg:ml-52`), with page content beside them in a bounded grid.
 Native navigation is declared separately ([navigation](mobile.md#navigation)).
@@ -611,24 +611,25 @@ display text and Instrument Sans for everything else (`@fontsource-variable`).
 Each page links to its business section; the audience is the `DESTINATIONS` audience
 ([guards](#routes-audiences-and-guards)).
 
-| Page and business section                                                                                | Routes                                                                          | Audience  |
-| -------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- | --------- |
-| [Company dashboard](../business/README.md#the-app-at-a-glance)                                           | `/company/dashboard` (web only)                                                 | everyone  |
-| [Personal dashboard](../business/member-records.md#what-a-member-can-read)                               | `/home`, `/home#documents`, alias `/member-records`                             | everyone  |
-| [Register, Employee awards, Documents, Member access](../business/register.md#the-register-page)         | `/company/register` and `#awards`, `#documents`, `#access`; preparation routes  | everyone  |
-| [Share class](../business/register.md#the-share-class-page)                                              | `/company/register/:uuid`                                                       | everyone  |
-| [Company, Representative authority, Company team, Activation](../business/companies.md#the-company-page) | `/company`, `/company/authority` (company), `/company/team`, `/company/listing` | everyone  |
-| [Company eligibility](../business/participants.md#company-eligibility-decisions)                         | `/company/eligibility`                                                          | everyone  |
-| [Offerings](../business/issuing-shares.md#the-offerings-page)                                            | `/company/offering`                                                             | company   |
-| [Published to your members](../business/publications.md#the-published-page)                              | `/company/publications`                                                         | company   |
-| [Notices](../business/publications.md#the-notices-page)                                                  | `/publications`                                                                 | everyone  |
-| [Wallet shares](../business/member-records.md#the-wallet-shares-page)                                    | `/wallets/holdings`                                                             | everyone  |
-| [Verification, Your company eligibility](../business/participants.md#the-verification-page)              | `/investor-eligibility`, `/eligibility-requests`                                | investing |
-| [Directory, Applications](../business/participants.md#the-directory-page)                                | `/directory`, `/directory/:uuid`, `/subscriptions`, `/subscriptions/:uuid`      | investing |
-| [Market](../business/trading.md#the-market-page)                                                         | `/trading`                                                                      | investing |
-| [Wallets](../business/trading.md#the-wallets-page)                                                       | `/wallets`                                                                      | everyone  |
-| [Activity](../business/trading.md#the-activity-page)                                                     | `/transactions`                                                                 | everyone  |
-| [Profile, Settings](../business/participants.md#profile-and-settings)                                    | `/user-profile`, `/settings`                                                    | everyone  |
+| Page and business section                                                                                | Routes                                                                               | Audience  |
+| -------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ | --------- |
+| [Company dashboard](../business/README.md#the-app-at-a-glance)                                           | `/company/dashboard` (web only)                                                      | everyone  |
+| [Personal dashboard](../business/member-records.md#what-a-member-can-read)                               | `/home`, `/home#documents`, alias `/member-records`                                  | everyone  |
+| [Register, Shareholders, Employee awards, Documents](../business/register.md#the-register-page)          | `/company/register` and `#shareholders`, `#awards`, `#documents`; preparation routes | everyone  |
+| [A shareholder's page](../business/register.md#a-shareholders-page)                                      | `/company/register/members/:member?company=`                                         | everyone  |
+| [Share class](../business/register.md#the-share-class-page)                                              | `/company/register/:uuid`                                                            | everyone  |
+| [Company, Representative authority, Company team, Activation](../business/companies.md#the-company-page) | `/company`, `/company/authority` (company), `/company/team`, `/company/listing`      | everyone  |
+| [Company eligibility](../business/participants.md#company-eligibility-decisions)                         | `/company/eligibility`                                                               | everyone  |
+| [Offerings](../business/issuing-shares.md#the-offerings-page)                                            | `/company/offering`                                                                  | company   |
+| [Published to your members](../business/publications.md#the-published-page)                              | `/company/publications`                                                              | company   |
+| [Notices](../business/publications.md#the-notices-page)                                                  | `/publications`                                                                      | everyone  |
+| [Wallet shares](../business/member-records.md#the-wallet-shares-page)                                    | `/wallets/holdings`                                                                  | everyone  |
+| [Verification, Your company eligibility](../business/participants.md#the-verification-page)              | `/investor-eligibility`, `/eligibility-requests`                                     | investing |
+| [Directory, Applications](../business/participants.md#the-directory-page)                                | `/directory`, `/directory/:uuid`, `/subscriptions`, `/subscriptions/:uuid`           | investing |
+| [Market](../business/trading.md#the-market-page)                                                         | `/trading`                                                                           | investing |
+| [Wallets](../business/trading.md#the-wallets-page)                                                       | `/wallets`                                                                           | everyone  |
+| [Activity](../business/trading.md#the-activity-page)                                                     | `/transactions`                                                                      | everyone  |
+| [Profile, Settings](../business/participants.md#profile-and-settings)                                    | `/user-profile`, `/settings`                                                         | everyone  |
 
 ### Page mechanics
 
@@ -640,7 +641,7 @@ Each page links to its business section; the audience is the `DESTINATIONS` audi
 - Personal dashboard: reads the person's own member projection; the first own class's history loads
   when a member record opens, and choosing another class reads that class's own entries.
 - Register on the web (`dashboard/src/pages/company/register/index.tsx`): one page renders the
-  Register, Employee awards, Documents and Member access views by hash and keeps every class's
+  Register, Shareholders (with member access), Employee awards and Documents views by hash and keeps every class's
   controllers mounted, merely hidden, so changing view, task (`TASKS`) or class (the Task share
   class selector) keeps an unfinished request with its class, payload and retry key. Controllers
   report held work (an unfinished form, or a decision busy or awaiting recovery) under keys naming
@@ -648,12 +649,21 @@ Each page links to its business section; the audience is the `DESTINATIONS` audi
   member access separately). While anything is held, the page keeps its retained company and class
   scope, disables the company, task and class selectors and pins held task work to its task and
   class. A selection lasts one navigation (`location.key`); navigation state (`registerCompany`,
-  `registerToken`, `registerHistory`) picks the company, class and task and focuses that class.
+  `registerToken`, `registerHistory`) picks the company, class and task and focuses that class, and
+  `inviteMember` chooses the invitation's recipient on Shareholders.
   History records are disclosures with a one-line summary, their detail and certificate control
   rendered on demand; a section whose read succeeded empty is omitted, while a failed read keeps its
   retry and an uncertain decision its recovery. Private content renders only while its view is
   visible, its reads have settled and `hasCurrentRegisterReadAuthority` confirms a current
   register-read appointment.
+- A shareholder's page on the web (`dashboard/src/pages/company/register/member`): reads the named
+  company's classes and holders through the same queries as Register, the company's recorded
+  particulars (`register/members/` of its first class), every page of the member's entries in each
+  class (`register/entries/` with `member`) and their awards (`register-awards/` with `member`). It
+  renders the person only while the account, classes and holders are current; particulars, history
+  and awards also need `hasCurrentRegisterReadAuthority` on settled appointments and their own settled
+  read. **Change particulars** rechecks those reads and a current preparation appointment before it
+  opens. While register work is held, Shareholders' Details links are disabled.
 - Register on both clients: the web reads the person's appointments through Company team's
   account-bound cache; mobile reads them itself. Both reread them after a revocation on Company team
   or Representative authority, a refused decision, preview or acknowledgement, a waiting-wallets

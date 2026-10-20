@@ -129,8 +129,9 @@ labelled treasury address stays Treasury, named by its recorded particulars or e
 treasury address beside another identity is Ambiguous. Every register output, publication roll and
 former-member record reads a member this way.
 
-The shareholder table shows no residential address; addresses appear in the recorded downloads and
-outputs and in the import, particulars-change, grant, transfer, allotment and award records.
+The shareholder table shows no residential address; addresses appear on a shareholder's page for
+someone with a current register appointment, in the recorded downloads and outputs, and in the
+import, particulars-change, grant, transfer, allotment and award records.
 
 ### Amount paid and date entered
 
@@ -175,7 +176,8 @@ opened from the chain) and within the retention period, and
 are listed without a wallet address and purged on the same clock from the date they ceased.
 
 Only the company owner, current register appointees and the operator read former members, in the CSV
-(with residential addresses) and under Former-member history on each class card. Particulars are
+(with residential addresses), under Former shareholders on Shareholders, on the Share class page and
+on a former member's own page. Particulars are
 kept while a person is a member and for the retention period after they last held shares, at least
 seven years, then purged for good ([retention](../engineering/security.md#retention-clocks)).
 
@@ -307,7 +309,7 @@ The company keeps members' names and residential addresses current; members edit
 and ask for changes separately ([member profile](participants.md#member-profile),
 [member requests](member-records.md#member-requests)).
 
-1. Open the member's Details in the shareholder table and choose Change particulars.
+1. Open the shareholder's page from **Shareholders** (Details) and choose Change particulars.
 2. Upload one supporting document, such as a deed poll or the member's notice of a new address, and
    give the new name and residential address, the "as at" date the company's register records (today
    in UTC or earlier) and a reason.
@@ -493,20 +495,17 @@ reason, the person, their appointment and the time, and the
 On the web Register is open to every signed-in account and shows the registers of companies the
 person owns or where their appointment includes register access. With none, it offers **Set up your
 share register** to someone who can prepare one and otherwise says there are none. A company
-selector appears when several companies are readable. Register, Employee awards and Documents in the
-web sidebar, and Member access (reached from Settings), are views of one page, so switching between
-them keeps unfinished forms and their recovery
-([the app at a glance](README.md#the-app-at-a-glance)).
+selector appears when several companies are readable. Register, Shareholders, Employee awards and
+Documents in the web sidebar are views of one page, so switching between them keeps unfinished forms
+and their recovery ([the app at a glance](README.md#the-app-at-a-glance)). Register holds the share
+classes and their changes; who holds the shares is on Shareholders
+([decision](../decisions.md#share-classes-shareholders-and-employee-awards)).
 
 The Register view shows:
 
 - a card for each class: Issued shares, Current shareholders, Register opened or Register not
   opened, Authorised shares (or a Technical share limit for a class set up from existing records), a
-  note when completed issues or transfers wait or cannot be checked, and Former-member history;
-- Shareholders: one row per shareholder across classes, with a name search, a Share class filter and
-  ten rows per page, giving each class's shares and percentage and flagging an identity that needs
-  review. Details gives, per class, Shares held, % of class, Date added, Holder type and any wallet
-  links;
+  note when completed issues or transfers wait or cannot be checked;
 - three tasks sharing one share-class selector, only the selected one shown: Record investor share
   issue ([external investor allotments](issuing-shares.md#external-investor-allotments)), Transfer
   shares ([non-paid transfers](#non-paid-transfers-between-members)) and History. History holds,
@@ -522,12 +521,20 @@ Approved, Applied or Rejected (for an import, Reviewed and Confirmed), and evide
 provided by the company or, before the work became company-run, "Verified by Ledova staff". A
 section that read successfully with nothing to show is left out, but a class on chain without a
 reconciliation says so. An unfinished request keeps its class and exact request, and while one is
-held the company, task and class cannot be changed. A failed read withholds the table rather than
-implying holdings are zero.
+held the company, task and class cannot be changed. A failed read withholds the class cards and the
+shareholder list rather than implying holdings are zero.
+
+The Shareholders view lists Current shareholders: one row per shareholder across classes, with a
+name search, a Share class filter and ten rows per page, giving each class's shares and percentage
+and flagging an identity that needs review. Details opens the shareholder's page. Former shareholders
+follows, holding each class's Former-member history, with Details for a former member the register
+names. Member access and requests then holds invitations, current access and members' particulars and
+certificate requests ([member records](member-records.md)). While register work is unfinished,
+Details is unavailable, so the work and its recovery stay on the page.
 
 The Employee awards view holds each class's [awards](issuing-shares.md#employee-awards-and-vesting)
 and Non-paid share issues; Documents holds each class's CSV download and inspection copy and the
-company pack; Member access holds invitations and requests ([member records](member-records.md)).
+company pack.
 
 Each preparation has its own page and keeps an uploaded document if the response is interrupted.
 Steps follow [how a company decision works](README.md#how-a-company-decision-works); someone whose
@@ -535,6 +542,27 @@ appointments allow none sees the history with a read-only note. The mobile app k
 per-class ownership view and separate preparation and decision screens, holds member access under
 Company, and hides every register action while it cannot read the person's appointments
 ([page mechanics](../engineering/frontend.md#page-mechanics)).
+
+### A shareholder's page
+
+Each shareholder has a page, reached from Details on Shareholders, showing:
+
+- Particulars: the name and residential address the company has recorded, with **Change
+  particulars** for someone who can prepare the register;
+- Holdings: per class, Shares held, % of class, Date added, Holder type and any wallet links, then
+  any former holding with the shares held when it ended, its date, and whether they returned or the
+  cessation was corrected;
+- History: every register entry naming them across classes, newest first, with its date, class, kind
+  and their change in shares;
+- Employee awards, when they have any: per award, the shares promised, vested and issued, with a link
+  to Employee awards;
+- requests from them waiting for the company, with a link to Member access and requests;
+- for an administrator, whether they can see their own records, with **Invite to their records**
+  when they cannot.
+
+Details show only while the account, the classes and the holdings read are current; a refresh
+withholds them rather than showing stale ownership. Particulars, history and awards also need a
+current company register appointment and settled reads, as on Register.
 
 ### The Share class page
 
