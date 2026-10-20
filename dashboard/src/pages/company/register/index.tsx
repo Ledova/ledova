@@ -9,7 +9,6 @@ import {
   useUserPreferences,
   USER_PREFERENCES_QUERY_KEY,
   type OrderSubmissionOwner,
-  type OwnCompanyAppointment,
   type TokenHoldersResponse,
 } from '@ledova/shared';
 import { LinkRow } from '@components/Ledger';
@@ -27,7 +26,7 @@ import { ClassAwards } from './ClassAwards';
 import { ClassTransfers } from './ClassTransfers';
 import { ClassOpenings } from './ClassOpenings';
 import { ClassReconciliation } from './ClassReconciliation';
-import { ClassRegister } from '@pages/company/register/shared/ClassRegister';
+import { ClassRegister, FormerShareholders } from '@pages/company/register/shared/ClassRegister';
 import { CompanyShareholders } from '@pages/company/register/shared/CompanyShareholders';
 import { ClassInspectionCopy } from './ClassInspectionCopy';
 import { CompanyMemberAccess } from './CompanyMemberAccess';
@@ -36,14 +35,9 @@ import { RegisterLinks } from './RegisterLinks';
 import { RegisterParticulars } from './RegisterParticulars';
 import { RegisterSetup } from './RegisterSetup';
 import { Loading, Unavailable } from '@pages/company/shared/RegisterStatus';
-import {
-  registersQuery,
-  useCompanyRegister,
-  useRegisterDownload,
-  registerClassesKey,
-} from '@pages/company/shared/useCompanyRegister';
+import { useCompanyRegister, useRegisterDownload } from '@pages/company/shared/useCompanyRegister';
 import { ownerGuard } from '@pages/company/shared/ownerGuard';
-import { useOwnAppointments, ownAppointmentsKey } from '@hooks/useOwnAppointments';
+import { useOwnAppointments } from '@hooks/useOwnAppointments';
 
 const ON_CHAIN = ['deployed', 'paused'];
 const TASKS = [
@@ -70,8 +64,8 @@ function RegisterPage({
       ? 'Employee awards'
       : hash === '#documents'
         ? 'Documents'
-        : hash === '#access'
-          ? 'Member access'
+        : hash === '#shareholders'
+          ? 'Shareholders'
           : 'Register';
   return (
     <PageTitle.Provider value={title}>
@@ -81,9 +75,9 @@ function RegisterPage({
             ? 'Record employee entitlements and vesting. Shares are issued through a separate company decision.'
             : hash === '#documents'
               ? 'Prepare permitted register copies, certificates and company packs.'
-              : hash === '#access'
-                ? 'Invite named members and manage their access to company records.'
-                : 'Company-recorded ownership and share issue decisions.'
+              : hash === '#shareholders'
+                ? 'Who holds shares, what they hold in each class, and their access to their own records.'
+                : 'Share classes, share issues, transfers and the history of recorded changes.'
         }
       >
         {selection}
@@ -112,51 +106,6 @@ function RegisterDownload({ register }: { register: TokenHoldersResponse }) {
       )}
     </div>
   );
-}
-
-function RegisterShareholders({
-  owner,
-  guard,
-  registers,
-  company,
-}: {
-  owner: OrderSubmissionOwner;
-  guard: () => void;
-  registers: TokenHoldersResponse[];
-  company: string;
-}) {
-  const appointments = useOwnAppointments(owner, guard);
-  const client = useQueryClient();
-  const prepare =
-    appointments.isSuccess &&
-    !appointments.isFetching &&
-    !!appointmentForRegisterStep(appointments.data, company, 'prepare');
-  const guardPreparation = () => {
-    guard();
-    for (const key of [
-      USER_PREFERENCES_QUERY_KEY,
-      registerClassesKey(owner),
-      registersQuery(
-        owner,
-        registers.map(({ token }) => token.uuid),
-        guard,
-      ).queryKey,
-      ownAppointmentsKey(owner),
-    ]) {
-      const current = client.getQueryState(key);
-      if (current?.status !== 'success' || current.fetchStatus !== 'idle')
-        throw new Error('Refresh the register and your current preparation appointment.');
-    }
-    if (
-      !appointmentForRegisterStep(
-        client.getQueryData<OwnCompanyAppointment[]>(ownAppointmentsKey(owner)) ?? [],
-        company,
-        'prepare',
-      )
-    )
-      throw new Error('A current company preparation appointment is required.');
-  };
-  return <CompanyShareholders registers={registers} guardPreparation={prepare ? guardPreparation : undefined} />;
 }
 
 export default function CompanyRegisterPage() {
@@ -281,6 +230,7 @@ function OwnRegister({
     typeof location.state?.registerCompany === 'string' ? location.state.registerCompany : issueCompany;
   const registerToken = typeof location.state?.registerToken === 'string' ? location.state.registerToken : '';
   const contextToken = registerToken || issueToken;
+  const inviteMember = typeof location.state?.inviteMember === 'string' ? location.state.inviteMember : undefined;
   const enteredIssue = useRef('');
   useEffect(() => {
     if (enteredIssue.current === location.key || !classes.isSuccess || classes.isFetching || held) return;
@@ -302,7 +252,13 @@ function OwnRegister({
     selectCompany,
   ]);
   const view =
-    hash === '#awards' ? 'awards' : hash === '#documents' ? 'documents' : hash === '#access' ? 'access' : 'register';
+    hash === '#awards'
+      ? 'awards'
+      : hash === '#documents'
+        ? 'documents'
+        : hash === '#shareholders'
+          ? 'shareholders'
+          : 'register';
   const requestedToken =
     scope && scope.company.uuid === registerCompany && scope.registers.some(({ token }) => token.uuid === registerToken)
       ? registerToken
@@ -347,7 +303,7 @@ function OwnRegister({
       focusedContext.current === location.key ||
       held ||
       !sourceReady ||
-      view === 'access' ||
+      view === 'shareholders' ||
       !registerToken ||
       scope?.company.uuid !== registerCompany ||
       !scope.registers.some(({ token }) => token.uuid === registerToken)
@@ -387,7 +343,7 @@ function OwnRegister({
       sections={
         scope && (
           <>
-            <div hidden={view !== 'access'}>
+            <div hidden={view !== 'shareholders'}>
               <CompanyMemberAccess
                 key={`members/${scope.company.uuid}`}
                 owner={owner}
@@ -395,6 +351,7 @@ function OwnRegister({
                 company={scope.company.uuid}
                 registers={scope.registers}
                 sourceReady={sourceReady}
+                inviteMember={inviteMember}
                 onHeldChange={setMemberHeld}
               />
             </div>
@@ -444,40 +401,43 @@ function OwnRegister({
       ) : registers.isPending ? (
         <Loading />
       ) : null}
+      {scope && (view === 'register' || view === 'shareholders') && ownershipInvalid && (
+        <Unavailable
+          retry={() => {
+            void classes.refetch();
+            void registers.refetch();
+          }}
+          busy={classes.isFetching || registers.isFetching}
+        />
+      )}
+      {scope && view === 'shareholders' && ownershipReady && (
+        <>
+          <CompanyShareholders
+            key={scope.company.uuid}
+            registers={scope.registers}
+            company={scope.company.uuid}
+            blocked={held}
+          />
+          <FormerShareholders registers={scope.registers} company={scope.company.uuid} blocked={held} />
+        </>
+      )}
       {scope && view === 'register' && (
         <>
-          {ownershipInvalid ? (
-            <Unavailable
-              retry={() => {
-                void classes.refetch();
-                void registers.refetch();
-              }}
-              busy={classes.isFetching || registers.isFetching}
-            />
-          ) : ownershipReady ? (
-            <>
-              <div aria-label="Share class summaries" className="grid items-start gap-4 sm:grid-cols-2">
-                {scope.registers.map((register) => (
-                  <section
-                    key={register.token.uuid}
-                    className="min-w-0 space-y-4 rounded-xl border border-border bg-surface-raised p-4 sm:p-5"
-                  >
-                    <p className="break-words text-base font-medium text-text-primary">
-                      {register.token.name} · {register.token.symbol}
-                    </p>
-                    <ClassRegister register={register} />
-                  </section>
-                ))}
-              </div>
-              <RegisterShareholders
-                key={scope.company.uuid}
-                owner={owner}
-                guard={guard}
-                company={scope.company.uuid}
-                registers={scope.registers}
-              />
-            </>
-          ) : null}
+          {ownershipReady && (
+            <div aria-label="Share class summaries" className="grid items-start gap-4 sm:grid-cols-2">
+              {scope.registers.map((register) => (
+                <section
+                  key={register.token.uuid}
+                  className="min-w-0 space-y-4 rounded-xl border border-border bg-surface-raised p-4 sm:p-5"
+                >
+                  <p className="break-words text-base font-medium text-text-primary">
+                    {register.token.name} · {register.token.symbol}
+                  </p>
+                  <ClassRegister register={register} former={false} />
+                </section>
+              ))}
+            </div>
+          )}
           <section aria-label="Register tasks" className="space-y-4">
             <div className="flex flex-wrap gap-2">
               {TASKS.map(([task, label]) => (
@@ -527,7 +487,7 @@ function OwnRegister({
         </>
       )}
       {scope && (
-        <ul hidden={view === 'access'} className="space-y-6">
+        <ul hidden={view === 'shareholders'} className="space-y-6">
           {scope.registers.map((register) => (
             <li
               key={register.token.uuid}

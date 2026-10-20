@@ -10,46 +10,47 @@ the architecture guides own the mechanisms. Sections are grouped by topic; the
 index gives each decision's date and whether it still stands. Superseded choices
 stay here as history and are marked where they appear.
 
-| Decision                                                                                                        | Date                                           | Status                                                             |
-| --------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- | ------------------------------------------------------------------ |
-| [Company-managed registers and one product](#company-managed-registers-and-one-product)                         | 3 October 2026                                 | Current; replaces routine register work by platform staff          |
-| [Company-run register authority and evidence](#company-run-register-authority-and-evidence)                     | 5 October 2026                                 | Current                                                            |
-| [Company representative verification](#company-representative-verification)                                     | 4 October 2026                                 | Current; ABR lookup moved to activation by #1148                   |
-| [Combined company signup and initial authority](#combined-company-signup-and-initial-authority)                 | 14 October 2026                                | Current; amended by #1022; ABR lookup moved to activation by #1148 |
-| [Simple signup, documents and team after registration](#simple-signup-documents-and-team-after-registration)    | 14 October 2026                                | Current; #1022; ABR lookup moved to activation by #1148            |
-| [Identity verification after signup](#identity-verification-after-signup)                                       | 19 October 2026                                | Current; #1141                                                     |
-| [Verified email and email changes during signup](#verified-email-and-email-changes-during-signup)               | 19 October 2026                                | Current; #1146                                                     |
-| [ABR company lookup at activation](#abr-company-lookup-at-activation)                                           | 19 October 2026                                | Current; #1148                                                     |
-| [Existing register mirror and simple setup](#existing-register-mirror-and-simple-setup)                         | 14 October 2026                                | Current; setup amended by #1029                                    |
-| [Manual register setup: shares before shareholders](#manual-register-setup-shares-before-shareholders)          | 14 October 2026                                | Current; #1029, CSV entry removed under #1036                      |
-| [Eligibility and ownership records](#eligibility-and-ownership-records)                                         | September to 6 October 2026                    | Current                                                            |
-| [The stored register](#the-stored-register)                                                                     | September 2026; staff review retired 5 October | Current                                                            |
-| [Company-scoped approvals](#company-scoped-approvals)                                                           | 19 September 2026                              | Current                                                            |
-| [Shareholder publications](#shareholder-publications)                                                           | 23 September 2026                              | Current; expansion not planned (#870)                              |
-| [Splits and consolidations](#splits-and-consolidations)                                                         | 23 September 2026                              | Design only; deferred                                              |
-| [The company pack](#the-company-pack)                                                                           | 23 September 2026                              | Current                                                            |
-| [Essential registry and development workflow priority](#essential-registry-and-development-workflow-priority)   | 9 October 2026                                 | Register priority current; workflow part superseded 11 October     |
-| [Registry focus and cancelled expansion tickets](#registry-focus-and-cancelled-expansion-tickets)               | 18 October 2026                                | Current; #869, #870 and #872 not planned                           |
-| [First scopes for employee awards and external capital](#first-scopes-for-employee-awards-and-external-capital) | 10 October 2026                                | Delivered 11 October (#973, #974)                                  |
-| [Member invitations and account association](#member-invitations-and-account-association)                       | 11 October 2026                                | Current; #866 implements it                                        |
-| [Minimum tests and fresh migrations](#minimum-tests-and-fresh-migrations)                                       | 11 October 2026                                | Current                                                            |
-| [Dependency advisories in ordinary CI](#dependency-advisories-in-ordinary-ci)                                   | 11 October 2026                                | Current                                                            |
-| [GitHub runners and Mac retirement](#github-runners-and-mac-retirement)                                         | 11 October 2026                                | Current                                                            |
-| [Binding caps and backup authorisation](#binding-caps-and-backup-authorisation)                                 | 11 October 2026                                | Current                                                            |
-| [ledova.io rebuild and release authorisation](#ledovaio-rebuild-and-release-authorisation)                      | 11 October 2026                                | Completed under #979; signer and funds decisions remain separate   |
-| [Backend migration baseline](#backend-migration-baseline)                                                       | 10 October 2026                                | Superseded 11 October                                              |
-| [Registry priority, crypto on-ramp and AUD payments](#registry-priority-crypto-on-ramp-and-aud-payments)        | 5 October 2026                                 | Payment scope superseded 9 October; on-ramp restriction stands     |
-| [Payments and settlement](#payments-and-settlement)                                                             | 25 September to 2 October 2026                 | Current behaviour; new mechanics deferred                          |
-| [Assets and portfolio presentation](#assets-and-portfolio-presentation)                                         | 26 September 2026                              | Current                                                            |
-| [The signed-in app](#the-signed-in-app)                                                                         | 26 September to 2 October 2026                 | Navigation superseded 11 October; one look superseded 14 October   |
-| [Simpler signed-in journeys](#simpler-signed-in-journeys)                                                       | 11 October 2026                                | Web layout superseded 12 October; native journey remains delivered |
-| [Ownership dashboard and compact sidebar](#ownership-dashboard-and-compact-sidebar)                             | 12 October 2026                                | Current; increments #1012–#1014; classes moved to Register (#1155) |
-| [Dashboard, Settings and Register for a new company](#dashboard-settings-and-register-for-a-new-company)        | 19 October 2026                                | Current; #1155 (web), #1157 (mobile)                               |
-| [Paper and Dark themes](#paper-and-dark-themes)                                                                 | 14 October 2026                                | Current; #1040                                                     |
-| [The account-data export](#the-account-data-export)                                                             | 23 September 2026                              | Current                                                            |
-| [Tenancy, sessions and deployment](#tenancy-sessions-and-deployment)                                            | 3 October 2026                                 | Current                                                            |
-| [Contracts compiler and toolchain](#contracts-compiler-and-toolchain)                                           | Undated                                        | Current                                                            |
-| [Clients and API types](#clients-and-api-types)                                                                 | 14 September 2026                              | Current                                                            |
+| Decision                                                                                                        | Date                                           | Status                                                                                                          |
+| --------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| [Company-managed registers and one product](#company-managed-registers-and-one-product)                         | 3 October 2026                                 | Current; replaces routine register work by platform staff                                                       |
+| [Company-run register authority and evidence](#company-run-register-authority-and-evidence)                     | 5 October 2026                                 | Current                                                                                                         |
+| [Company representative verification](#company-representative-verification)                                     | 4 October 2026                                 | Current; ABR lookup moved to activation by #1148                                                                |
+| [Combined company signup and initial authority](#combined-company-signup-and-initial-authority)                 | 14 October 2026                                | Current; amended by #1022; ABR lookup moved to activation by #1148                                              |
+| [Simple signup, documents and team after registration](#simple-signup-documents-and-team-after-registration)    | 14 October 2026                                | Current; #1022; ABR lookup moved to activation by #1148                                                         |
+| [Identity verification after signup](#identity-verification-after-signup)                                       | 19 October 2026                                | Current; #1141                                                                                                  |
+| [Verified email and email changes during signup](#verified-email-and-email-changes-during-signup)               | 19 October 2026                                | Current; #1146                                                                                                  |
+| [ABR company lookup at activation](#abr-company-lookup-at-activation)                                           | 19 October 2026                                | Current; #1148                                                                                                  |
+| [Existing register mirror and simple setup](#existing-register-mirror-and-simple-setup)                         | 14 October 2026                                | Current; setup amended by #1029                                                                                 |
+| [Manual register setup: shares before shareholders](#manual-register-setup-shares-before-shareholders)          | 14 October 2026                                | Current; #1029, CSV entry removed under #1036                                                                   |
+| [Eligibility and ownership records](#eligibility-and-ownership-records)                                         | September to 6 October 2026                    | Current                                                                                                         |
+| [The stored register](#the-stored-register)                                                                     | September 2026; staff review retired 5 October | Current                                                                                                         |
+| [Company-scoped approvals](#company-scoped-approvals)                                                           | 19 September 2026                              | Current                                                                                                         |
+| [Shareholder publications](#shareholder-publications)                                                           | 23 September 2026                              | Current; expansion not planned (#870)                                                                           |
+| [Splits and consolidations](#splits-and-consolidations)                                                         | 23 September 2026                              | Design only; deferred                                                                                           |
+| [The company pack](#the-company-pack)                                                                           | 23 September 2026                              | Current                                                                                                         |
+| [Essential registry and development workflow priority](#essential-registry-and-development-workflow-priority)   | 9 October 2026                                 | Register priority current; workflow part superseded 11 October                                                  |
+| [Registry focus and cancelled expansion tickets](#registry-focus-and-cancelled-expansion-tickets)               | 18 October 2026                                | Current; #869, #870 and #872 not planned                                                                        |
+| [First scopes for employee awards and external capital](#first-scopes-for-employee-awards-and-external-capital) | 10 October 2026                                | Delivered 11 October (#973, #974)                                                                               |
+| [Member invitations and account association](#member-invitations-and-account-association)                       | 11 October 2026                                | Current; #866 implements it                                                                                     |
+| [Minimum tests and fresh migrations](#minimum-tests-and-fresh-migrations)                                       | 11 October 2026                                | Current                                                                                                         |
+| [Dependency advisories in ordinary CI](#dependency-advisories-in-ordinary-ci)                                   | 11 October 2026                                | Current                                                                                                         |
+| [GitHub runners and Mac retirement](#github-runners-and-mac-retirement)                                         | 11 October 2026                                | Current                                                                                                         |
+| [Binding caps and backup authorisation](#binding-caps-and-backup-authorisation)                                 | 11 October 2026                                | Current                                                                                                         |
+| [ledova.io rebuild and release authorisation](#ledovaio-rebuild-and-release-authorisation)                      | 11 October 2026                                | Completed under #979; signer and funds decisions remain separate                                                |
+| [Backend migration baseline](#backend-migration-baseline)                                                       | 10 October 2026                                | Superseded 11 October                                                                                           |
+| [Registry priority, crypto on-ramp and AUD payments](#registry-priority-crypto-on-ramp-and-aud-payments)        | 5 October 2026                                 | Payment scope superseded 9 October; on-ramp restriction stands                                                  |
+| [Payments and settlement](#payments-and-settlement)                                                             | 25 September to 2 October 2026                 | Current behaviour; new mechanics deferred                                                                       |
+| [Assets and portfolio presentation](#assets-and-portfolio-presentation)                                         | 26 September 2026                              | Current                                                                                                         |
+| [The signed-in app](#the-signed-in-app)                                                                         | 26 September to 2 October 2026                 | Navigation superseded 11 October; one look superseded 14 October                                                |
+| [Simpler signed-in journeys](#simpler-signed-in-journeys)                                                       | 11 October 2026                                | Web layout superseded 12 October; native journey remains delivered                                              |
+| [Ownership dashboard and compact sidebar](#ownership-dashboard-and-compact-sidebar)                             | 12 October 2026                                | Current; increments #1012–#1014; classes moved to Register (#1155); member access moved to Shareholders (#1166) |
+| [Dashboard, Settings and Register for a new company](#dashboard-settings-and-register-for-a-new-company)        | 19 October 2026                                | Current; #1155 (web), #1157 (mobile)                                                                            |
+| [Share classes, shareholders and employee awards](#share-classes-shareholders-and-employee-awards)              | 20 October 2026                                | Shareholders page delivered on the web (#1166); #1167–#1170 planned                                             |
+| [Paper and Dark themes](#paper-and-dark-themes)                                                                 | 14 October 2026                                | Current; #1040                                                                                                  |
+| [The account-data export](#the-account-data-export)                                                             | 23 September 2026                              | Current                                                                                                         |
+| [Tenancy, sessions and deployment](#tenancy-sessions-and-deployment)                                            | 3 October 2026                                 | Current                                                                                                         |
+| [Contracts compiler and toolchain](#contracts-compiler-and-toolchain)                                           | Undated                                        | Current                                                                                                         |
+| [Clients and API types](#clients-and-api-types)                                                                 | 14 September 2026                              | Current                                                                                                         |
 
 ## Company-managed registers and one product
 
@@ -1208,7 +1209,8 @@ Prepare independent work in parallel and merge focused reviewed increments in or
 Company users with readable register access land on Dashboard. Everyday work is
 Dashboard, Register, Employee awards and Documents; company details, classes
 (moved to Register on [19 October](#dashboard-settings-and-register-for-a-new-company)),
-appointments and named-member invitations belong in Settings. Personal views
+appointments and named-member invitations (moved to Shareholders on
+[20 October](#share-classes-shareholders-and-employee-awards)) belong in Settings. Personal views
 show own holdings and relevant awards/documents. Investor and employee relationships
 can overlap; account preference grants no company authority. Existing guarded
 task pages, retained evidence and original-request recovery remain in use.
@@ -1254,6 +1256,28 @@ When the independent review of
 [#1156](https://github.com/Ledova/ledova/pull/1156) raised it, the owner chose to
 keep it simple: share classes created on the web carry the internal quantity
 guard, with no custom technical share limit, and mobile follows the same rule.
+
+### Share classes, shareholders and employee awards
+
+On 20 October 2026 the owner decided ([#1165](https://github.com/Ledova/ledova/issues/1165)) to
+separate share-class management from shareholder management without duplicating functionality: a
+shareholder created while allocating shares and one created anywhere else use the same functionality
+and the same records. Register holds the share classes and their structure: class cards, Add share
+class with its shareholders step, issuing shares and the history of recorded changes. Shareholders
+shows who holds shares, with a page per person for their particulars, holdings, history, awards and
+access to their own records. Member access moves there from Settings, which changes the
+[12 October](#ownership-dashboard-and-compact-sidebar) placement of named-member invitations.
+Employee awards stays a distinct workflow, because an award is an entitlement, not a shareholding
+([10 October](#first-scopes-for-employee-awards-and-external-capital)); its recipients are to be
+chosen with the same person picker, and issuing vested shares is to use the same issue flow as
+Register. For award recipients the owner chose a person record from the award onwards, without a
+place on the register of members until shares are issued. The web comes first, in steps the owner
+checks one at a time: the Shareholders page
+([#1166](https://github.com/Ledova/ledova/issues/1166)), one person picker
+([#1167](https://github.com/Ledova/ledova/issues/1167)), issuing shares from Register
+([#1168](https://github.com/Ledova/ledova/issues/1168)), award recipients as person records
+([#1169](https://github.com/Ledova/ledova/issues/1169)) and the mobile app
+([#1170](https://github.com/Ledova/ledova/issues/1170)).
 
 ## Paper and Dark themes
 

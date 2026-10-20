@@ -11720,6 +11720,7 @@ export interface ApiOperations {
     parameters: {
       query?: {
         entry?: string[];
+        member?: string;
         page?: number;
       };
       header?: never;

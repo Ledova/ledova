@@ -246,7 +246,10 @@ class ShareTokenViewSet(
     @extend_schema(
         responses=ShareRegisterEntrySerializer(many=True),
         filters=False,
-        parameters=[OpenApiParameter("entry", OpenApiTypes.UUID, many=True)],
+        parameters=[
+            OpenApiParameter("entry", OpenApiTypes.UUID, many=True),
+            OpenApiParameter("member", OpenApiTypes.UUID),
+        ],
     )
     @action(detail=True, methods=["get"], url_path="register/entries")
     def register_entries(self, request, uuid=None):
@@ -254,7 +257,11 @@ class ShareTokenViewSet(
             wanted = [UUID(value) for value in request.query_params.getlist("entry")]
         except ValueError:
             raise ValidationError({"entry": "Name each entry by its UUID."}) from None
-        rows = stored_entries(self.get_object(), self.paginate_queryset, wanted)
+        try:
+            member = UUID(request.query_params["member"]) if "member" in request.query_params else None
+        except ValueError:
+            raise ValidationError({"member": "Name the member by their UUID."}) from None
+        rows = stored_entries(self.get_object(), self.paginate_queryset, wanted, member)
         return self.get_paginated_response(ShareRegisterEntrySerializer(rows, many=True).data)
 
     @extend_schema(responses=RegisterOpeningHoldersSerializer)

@@ -592,7 +592,7 @@ comparison.
 The reads under `/api/v1/tokens/` are `register/` (classes whose register the caller may read),
 `{uuid}/holders/` (the stored register with `waitingEffects` and former members, with their as-at
 time, block and staleness), `{uuid}/register/entries/` (newest first; repeat `entry` to read chosen
-entries), `{uuid}/register/waiting/`, `{uuid}/register/members/` and `{uuid}/register/export/` (the
+entries, or give `member` to read one member's entries), `{uuid}/register/waiting/`, `{uuid}/register/members/` and `{uuid}/register/export/` (the
 [register CSV](#register-csv)). They admit `ShareToken.objects.register_readable_by`: the company
 owner or a current appointment holding `admin`, `read_register`, `prepare`, `approve` or `apply`; no
 other capability, delegation-only scope, staff or superuser status admits ([who runs

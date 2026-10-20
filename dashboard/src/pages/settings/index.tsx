@@ -61,7 +61,6 @@ function PasswordInput({
 function SettingsPage() {
   const {
     preferences,
-    registerEntry,
     theme,
     transactionAlerts,
     alerts,
@@ -98,11 +97,6 @@ function SettingsPage() {
               Invite company users, accept an invitation and manage permitted appointments.
             </p>
           </LinkRow>
-          {registerEntry && (
-            <LinkRow to={`${DESTINATIONS.companyRegister.path}#access`} label="Member access">
-              <p className="text-text-muted">Invite named members and manage their access where authorised.</p>
-            </LinkRow>
-          )}
         </div>
       </Section>
       <Section title="Profile and security">

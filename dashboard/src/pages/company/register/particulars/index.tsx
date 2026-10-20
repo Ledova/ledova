@@ -18,6 +18,7 @@ import { Loading, Unavailable } from '@pages/company/shared/RegisterStatus';
 import { useRegisterClasses } from '@pages/company/shared/useCompanyRegister';
 import { ownerGuard } from '@pages/company/shared/ownerGuard';
 import { useOwnAppointments } from '@hooks/useOwnAppointments';
+import { shareholderPath } from '@pages/company/register/shared/shareholders';
 import { ParticularsForm } from './ParticularsForm';
 
 const COPY = REGISTER_PARTICULARS_COPY;
@@ -48,7 +49,12 @@ export default function CompanyRegisterParticularsPage() {
   const { member = '' } = useParams();
   const navigate = useNavigate();
   const { owner, boundary, preferences } = useRegisterPreparationOwner();
-  const back = <PreparationBack onClick={() => navigate(DESTINATIONS.companyRegister.path)} />;
+  const back = (
+    <PreparationBack
+      label="Back to Shareholders"
+      onClick={() => navigate(`${DESTINATIONS.companyRegister.path}#shareholders`)}
+    />
+  );
   if (owner && !preferences.isError)
     return (
       <OwnParticulars
@@ -66,13 +72,14 @@ function OwnParticulars({
   member,
   owner,
   currentOwner,
-  back,
+  back: list,
 }: {
   member: string;
   owner: OrderSubmissionOwner;
   currentOwner: () => OrderSubmissionOwner | null;
   back: ReactNode;
 }) {
+  const navigate = useNavigate();
   const guard = useMemo(() => ownerGuard(owner, currentOwner), [owner, currentOwner]);
   const classes = useRegisterClasses(owner, guard);
   const appointments = useOwnAppointments(owner, guard);
@@ -128,6 +135,14 @@ function OwnParticulars({
         </Section>
       </>
     );
+  const back = found ? (
+    <PreparationBack
+      label="Back to shareholder"
+      onClick={() => navigate(shareholderPath(member, found.company.uuid))}
+    />
+  ) : (
+    list
+  );
   return (
     <Page narrow lede={LEDE} actions={back}>
       {content}
