@@ -1,4 +1,5 @@
 import { CompanyPicker } from '@components/CompanyPicker';
+import { useRunningAction } from '@hooks/useRunningAction';
 import { DESTINATIONS } from '@ledova/shared';
 import { useEffect, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
@@ -59,6 +60,7 @@ function MemberRecords({
   const documentsOnly = useLocation().hash === '#documents';
   const held = read.busy || !!read.retry;
   const [withdrawing, setWithdrawing] = useState<{ uuid: string; createdAt: string } | null>(null);
+  const { running, track } = useRunningAction();
   useEffect(() => {
     if (read.record && read.record.uuid !== initialHistory.current && !held) {
       initialHistory.current = read.record.uuid;
@@ -112,8 +114,10 @@ function MemberRecords({
           {['ISSUE', 'TRANSFER'].includes(entry.kind.toUpperCase()) && BigInt(entry.delta) > 0n && (
             <PageAction
               label={`Request certificate for entry ${entry.sequence}`}
+              busy={running === `certificate:${entry.uuid}`}
+              busyLabel="Requesting…"
               disabled={held}
-              onClick={() => void read.requestCertificate(entry.uuid)}
+              onClick={() => track(`certificate:${entry.uuid}`, read.requestCertificate(entry.uuid))}
             />
           )}
         </div>
@@ -151,8 +155,10 @@ function MemberRecords({
       <PageAction
         label="Accept member invitation"
         primary
+        busy={running === 'accept'}
+        busyLabel="Accepting invitation…"
         disabled={held || !accepted || !/^[A-Za-z0-9_-]{43}$/.test(code)}
-        onClick={() => void read.accept(code)}
+        onClick={() => track('accept', read.accept(code))}
       />
     </div>
   );
@@ -409,8 +415,10 @@ function MemberRecords({
                         <PageAction
                           label="Send particulars request"
                           primary
+                          busy={running === 'particulars'}
+                          busyLabel="Sending request…"
                           disabled={held || !confirmed || !name.trim() || !address.trim()}
-                          onClick={() => void read.requestParticulars(name.trim(), address.trim())}
+                          onClick={() => track('particulars', read.requestParticulars(name.trim(), address.trim()))}
                         />
                       </div>
                     </details>
@@ -505,7 +513,9 @@ function MemberCertificateDownload({
       <PageAction
         label="Download unsigned certificate"
         context={request.createdAt}
-        disabled={busy || read.busy || !!read.retry}
+        busy={busy}
+        busyLabel="Downloading…"
+        disabled={read.busy || !!read.retry}
         onClick={() => void download()}
       />
       {error && (

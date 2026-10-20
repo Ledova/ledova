@@ -111,13 +111,15 @@ confirmation) or pressed, and comes in four forms:
   it at once: the open Register task, the shown eligibility request and Wallets' sort.
 
 `busy` and `busyLabel` disable an action and name its work, such as "Preparing allotment…" or
-"Saving…". Every page form's submit button uses them, as does every page action that already showed a
-busy label, and six more: the offering form, an application's Withdraw and Submit for review,
-creating a member invitation, preparing a non-paid grant or its wallet link, and attaching a payslip
-to a claim. Other page actions that start a request keep their label while it runs. Icon buttons,
-register setup's Import placeholder, the payslip upload area and Trading keep their own controls,
-and dialog footers use the same order as `FormActions`. Mobile's `Action` has no busy or pressed
-form yet.
+"Saving…". Every page form's submit button uses them, and so does every page action that starts a
+request: downloads ("Downloading…", on the one document being fetched), previews and preparations,
+offering and wallet nomination submissions, deployment, and member, particulars and certificate
+requests. Where a shared hook only reports that some command is running, `useRunningAction`
+(`dashboard/src/hooks`) names the action that was clicked. Refresh, retry and recovery actions keep
+their label while they run, and a register decision's rejection preview shows "Loading the
+preview…" instead. Icon buttons, register setup's Import placeholder, the payslip upload area and
+Trading keep their own controls, and dialog footers use the same order as `FormActions`. Mobile's
+`Action` has no busy or pressed form yet.
 
 An action that deletes, withdraws or revokes something saved asks first, in a dialog that names the
 consequence, with Cancel and a destructive action that repeats the verb, such as "Withdraw

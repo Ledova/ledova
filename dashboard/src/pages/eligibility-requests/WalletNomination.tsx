@@ -1,5 +1,6 @@
 import { SelectField } from '@components/SelectField';
 import { useState } from 'react';
+import { useRunningAction } from '@hooks/useRunningAction';
 import {
   useWalletNomination,
   formatDateTime,
@@ -27,6 +28,7 @@ function Facts({ preview }: { preview: WalletNominationPreview }) {
 
 export function WalletNomination({ requestUuid, guardRequest }: { requestUuid: string; guardRequest: () => void }) {
   const data = useWalletNomination({ requestUuid, newKey: () => crypto.randomUUID(), guardRequest });
+  const { running, track } = useRunningAction();
   const [consent, setConsent] = useState<{ preview: WalletNominationPreview | null; accepted: boolean }>({
     preview: null,
     accepted: false,
@@ -98,8 +100,10 @@ export function WalletNomination({ requestUuid, guardRequest }: { requestUuid: s
           )}
           <PageAction
             label="Review wallet nomination"
+            busy={running === 'review'}
+            busyLabel="Reviewing…"
             disabled={blocked || !wallet}
-            onClick={() => void data.review()}
+            onClick={() => track('review', data.review())}
           />
           {preview && (
             <div className="space-y-3">
@@ -120,9 +124,11 @@ export function WalletNomination({ requestUuid, guardRequest }: { requestUuid: s
               </label>
               <PageAction
                 label="Submit wallet nomination"
+                busy={running === 'submit'}
+                busyLabel="Submitting…"
                 primary
                 disabled={blocked || !accepted || !preview.canSubmit}
-                onClick={() => void data.confirm()}
+                onClick={() => track('submit', data.confirm())}
               />
             </div>
           )}

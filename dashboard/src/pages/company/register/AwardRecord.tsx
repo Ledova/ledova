@@ -167,6 +167,8 @@ export function AwardRecord({
             <p className="py-2 text-sm text-text-muted">{COPY.NOTE}</p>
             <PageAction
               label="Download agreement"
+              busy={download.isPending && !download.variables}
+              busyLabel="Downloading…"
               context={`award for ${award.name}`}
               disabled={blocked || download.isPending}
               onClick={() => download.mutate(undefined)}
@@ -211,6 +213,8 @@ export function AwardRecord({
                     </Rows>
                     <PageAction
                       label="Download vesting evidence"
+                      busy={download.isPending && download.variables?.uuid === event.uuid}
+                      busyLabel="Downloading…"
                       context={`${event.shares} shares dated ${event.vestedOn}`}
                       disabled={blocked || download.isPending || !eventReady}
                       onClick={() => download.mutate({ kind: 'vesting', uuid: event.uuid })}
@@ -277,6 +281,8 @@ export function AwardRecord({
                   </Rows>
                   <PageAction
                     label="Download entitlement evidence"
+                    busy={download.isPending && download.variables?.uuid === event.uuid}
+                    busyLabel="Downloading…"
                     context={event.companyEventOn}
                     disabled={blocked || download.isPending || !eventReady}
                     onClick={() => download.mutate({ kind: 'end', uuid: event.uuid })}
@@ -295,6 +301,8 @@ export function AwardRecord({
                   </Rows>
                   <PageAction
                     label="Download correction evidence"
+                    busy={download.isPending && download.variables?.uuid === event.uuid}
+                    busyLabel="Downloading…"
                     context={event.companyEventOn}
                     disabled={blocked || download.isPending || !eventReady}
                     onClick={() => download.mutate({ kind: 'reversal', uuid: event.uuid })}

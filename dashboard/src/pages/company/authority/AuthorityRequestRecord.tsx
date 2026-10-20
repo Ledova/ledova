@@ -26,6 +26,7 @@ export function AuthorityRequestRecord({
   request,
   blocked,
   opening,
+  downloading,
   action,
   onDownload,
   onWithdraw,
@@ -35,6 +36,7 @@ export function AuthorityRequestRecord({
   request: CompanyAuthorityRequest;
   blocked: boolean;
   opening: boolean;
+  downloading: boolean;
   action?: 'withdraw' | 'admit' | 'revoke';
   onDownload: () => void;
   onWithdraw: () => Promise<unknown>;
@@ -80,6 +82,8 @@ export function AuthorityRequestRecord({
         <PageAction
           label={`Download evidence ${request.originalFilename || request.companyIdentityRaw.name}`}
           disabled={opening || blocked}
+          busy={downloading}
+          busyLabel="Downloading…"
           onClick={onDownload}
         />
       )}

@@ -130,7 +130,8 @@ function PaidIssueRecord({ record, commands }: { record: RegisterPaidIssue; comm
           <PageAction
             label="Download paid issue authority"
             context={`paid issue ${record.uuid}`}
-            disabled={busy}
+            busy={busy}
+            busyLabel="Downloading…"
             onClick={() => void download()}
           />
           {error && <p role="alert">{error}</p>}

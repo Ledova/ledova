@@ -85,7 +85,8 @@ function CapitalRecord({ record, commands }: { record: RegisterCapitalIncrease; 
           <PageAction
             label="Download capital authority"
             context={`capital ${record.uuid}`}
-            disabled={busy}
+            busy={busy}
+            busyLabel="Downloading…"
             onClick={() => void download()}
           />
           {error && <p role="alert">{error}</p>}

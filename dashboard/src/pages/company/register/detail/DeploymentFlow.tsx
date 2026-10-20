@@ -83,7 +83,9 @@ export function DeploymentFlow({ uuid, data }: { uuid: string; data: ReturnType<
   return (
     <Section title={COPY.TITLE}>
       <p className="text-sm text-text-muted">{COPY.NOTE}</p>
-      {canPrepare && <PageAction label={COPY.PREPARE} disabled={busy} onClick={() => void prepare()} />}
+      {canPrepare && (
+        <PageAction label={COPY.PREPARE} busy={busy} busyLabel="Preparing…" onClick={() => void prepare()} />
+      )}
       {uncertain && (
         <>
           <p className="text-sm text-text-muted">{COPY.RECOVERY_NOTE}</p>
