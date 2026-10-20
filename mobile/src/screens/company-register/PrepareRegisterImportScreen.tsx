@@ -10,7 +10,6 @@ import {
   useSubmissionOwner,
   createUserFriendlyError,
   failureStatus,
-  formatDateToString,
   formatShareCount,
   getErrorMessage,
   isPreparedRegisterImport,
@@ -33,7 +32,7 @@ import { Page } from '../../components/Page';
 import type { CompanyStackParamList } from '../../navigation/CompanyStackNavigator';
 import { apiClient } from '../../services/apiClient';
 import { assertSessionEpoch, getSessionEpoch, subscribeSession } from '../../services/sessionScope';
-import { EvidencePicker, Field, isoDay } from '../../components/register/RegisterFields';
+import { EvidencePicker, Field, isoDay, utcToday } from '../../components/register/RegisterFields';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 import {
   importsKey,
@@ -169,7 +168,7 @@ function PrepareRegisterImport({ epoch }: { epoch: number }) {
   const identities = useRegisterImportMembers(epoch, companyUuid, tokenUuid);
   const shareRegister = useRegisterEvidence(companyUuid, 'share_register');
   const asicExtract = useRegisterEvidence(companyUuid, 'asic_extract');
-  const [asAt, setAsAt] = useState(() => formatDateToString(new Date()));
+  const [asAt, setAsAt] = useState(utcToday);
   const [sourceReference, setSourceReference] = useState('');
   const [sourceConfirmed, setSourceConfirmed] = useState(false);
   const [drafts, setDrafts] = useState<MemberDraft[]>([]);
@@ -270,8 +269,8 @@ function PrepareRegisterImport({ epoch }: { epoch: number }) {
   const mismatch = statedShares !== null && statedShares.toString() !== totals.total;
   const problem = drafts.some((row) => row.awardRecipient && !identities.matches(row))
     ? 'The selected award recipient changed. Refresh the company records before continuing.'
-    : !isoDay(date) || date > formatDateToString(new Date())
-      ? 'Enter the snapshot date as YYYY-MM-DD, no later than today.'
+    : !isoDay(date) || date > utcToday()
+      ? 'Enter the snapshot date as YYYY-MM-DD, no later than today (UTC).'
       : !sourceReference.trim()
         ? 'Name the existing company register or records this snapshot came from.'
         : members.length === 0 && !emptyOpening

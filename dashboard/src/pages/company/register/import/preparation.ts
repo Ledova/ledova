@@ -232,7 +232,7 @@ export function preparationProblems(draft: PreparationDraft, today: string, empt
     day <= draft.asAt;
   const incomplete = (row: { name: string; residentialAddress: string; shares: string }) =>
     !row.name.trim() || !row.residentialAddress.trim() || positiveShares(row.shares) === null;
-  if (!dated(draft.asAt) || draft.asAt > today) problems.push('Enter a record date that is not in the future.');
+  if (!dated(draft.asAt) || draft.asAt > today) problems.push('Enter a record date no later than today (UTC).');
   if (!draft.reference.trim()) problems.push('The record attribution is unavailable. Reload the setup and try again.');
   if (!draft.reason.trim()) problems.push('Give a reason for correcting the mirror.');
   if (draft.members.length === 0 && (!emptyOpeningAllowed || draft.former.length > 0))
