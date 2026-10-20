@@ -13,6 +13,7 @@ import {
   formatShareCount,
   getErrorMessage,
   isPreparedRegisterImport,
+  peopleFrom,
   prepareRegisterImport,
   REGISTER_IMPORT_COPY,
   registerImportMoney,
@@ -33,6 +34,7 @@ import type { CompanyStackParamList } from '../../navigation/CompanyStackNavigat
 import { apiClient } from '../../services/apiClient';
 import { assertSessionEpoch, getSessionEpoch, subscribeSession } from '../../services/sessionScope';
 import { EvidencePicker, Field, isoDay, utcToday } from '../../components/register/RegisterFields';
+import { PersonSelect } from '../../components/register/PersonPicker';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 import {
   importsKey,
@@ -536,7 +538,6 @@ function PrepareRegisterImport({ epoch }: { epoch: number }) {
       testID="prepare-import-screen"
       title={title}
       lede={`${register.data.token.name}. ${REGISTER_IMPORT_COPY.MIRROR_NOTE}`}
-      keyboardShouldPersistTaps="handled"
     >
       <Section title="Company records">
         <Field
@@ -646,45 +647,33 @@ function PrepareRegisterImport({ epoch }: { epoch: number }) {
         })}
         {(!opened || correctionOf) && (
           <>
-            {identities.query.data.members
-              .filter(
-                (member) =>
-                  member.walletless &&
-                  member.particularsRetained &&
-                  !!member.name &&
-                  !!member.residentialAddress &&
-                  !drafts.some((row) => row.member === member.member),
-              )
-              .map((member) => (
-                <Action
-                  key={member.member}
-                  label={`Use recorded member ${member.name}`}
-                  accessibilityLabel={`Use recorded member ${member.name} ${member.member}`}
-                  disabled={busy || identities.query.isFetching}
-                  onPress={() =>
-                    addRecordedMember({
-                      member: member.member,
-                      name: member.name ?? '',
-                      residentialAddress: member.residentialAddress ?? '',
-                    })
-                  }
-                />
-              ))}
-            {identities.query.data.awardRecipients
-              .filter((recipient) => !drafts.some((row) => row.member === recipient.member))
-              .map((recipient) => (
-                <Action
-                  key={recipient.member}
-                  label={`Use award recipient ${recipient.name}`}
-                  accessibilityLabel={`Use award recipient ${recipient.name} ${recipient.member}`}
-                  disabled={busy || identities.query.isFetching}
-                  onPress={() => addRecordedMember(recipient, true)}
-                />
-              ))}
-            <Action
+            <PersonSelect
               label="Add a shareholder"
-              disabled={busy}
-              onPress={() => setDrafts((rows) => [...rows, blankMember()])}
+              people={peopleFrom({
+                members: identities.query.data.members.filter(
+                  (member) =>
+                    member.walletless && member.particularsRetained && !!member.name && !!member.residentialAddress,
+                ),
+                awardRecipients: identities.query.data.awardRecipients,
+              })}
+              value=""
+              disabledMembers={drafts.map((row) => row.member)}
+              disabled={busy || identities.query.isFetching}
+              onChange={(value) => {
+                if (value === 'new') {
+                  setDrafts((rows) => [...rows, blankMember()]);
+                  return;
+                }
+                const recorded = identities.query.data?.members.find((member) => member.member === value);
+                const recipient = identities.query.data?.awardRecipients.find((row) => row.member === value);
+                if (recorded)
+                  addRecordedMember({
+                    member: recorded.member,
+                    name: recorded.name ?? '',
+                    residentialAddress: recorded.residentialAddress ?? '',
+                  });
+                else if (recipient) addRecordedMember(recipient, true);
+              }}
             />
           </>
         )}

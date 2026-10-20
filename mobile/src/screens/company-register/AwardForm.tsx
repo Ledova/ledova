@@ -11,14 +11,16 @@ import {
   getRegisterAward,
   getErrorMessage,
   isRecordedRegisterAward,
+  personRequest,
   recordRegisterAward,
   type OwnCompanyAppointment,
+  type Person,
   type RegisterAwardPreparation,
-  type RegisterTransferMember,
 } from '@ledova/shared';
 import { Action } from '../../components/Ledger';
 import { apiClient } from '../../services/apiClient';
 import { EvidencePicker, Field, isoDay, utcToday } from '../../components/register/RegisterFields';
+import { PersonFields, PersonSelect } from '../../components/register/PersonPicker';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 import { registerAppointmentsKey } from '../../hooks/useCompanyRegister';
 import { useRegisterEvidence } from '../../hooks/useRegisterEvidence';
@@ -27,7 +29,7 @@ export function AwardForm({
   company,
   token,
   epoch,
-  members,
+  people,
   appointment,
   guard,
   blocked,
@@ -38,7 +40,7 @@ export function AwardForm({
   company: string;
   token: string;
   epoch: number;
-  members: RegisterTransferMember[];
+  people: Person[];
   appointment: OwnCompanyAppointment;
   guard: () => void;
   blocked: boolean;
@@ -129,9 +131,7 @@ export function AwardForm({
         const body = {
           appointment: appointment.uuid,
           tokenId: token,
-          member: member === 'new' ? newMemberId : member,
-          newMember: member === 'new',
-          ...(member === 'new' ? { name: name.trim(), residentialAddress: address.trim() } : {}),
+          ...personRequest(member, people, newMemberId, name, address),
           shares: quantity,
           termsOn: date,
           terms: terms.trim(),
@@ -225,43 +225,21 @@ export function AwardForm({
   return (
     <View style={styles.group}>
       <Text style={styles.heading}>Person and award</Text>
-      <Text style={styles.text}>
-        {member === 'new' ? 'New recipient' : members.find((row) => row.member === member)?.name || member}
-      </Text>
-      <Action
-        label="Use a new recipient"
-        disabled={busy || blocked || held || member === 'new'}
-        onPress={() => setMember('new')}
+      <PersonSelect
+        label="Promised recipient"
+        people={people.filter((row) => row.walletless && row.particularsRetained)}
+        value={member}
+        onChange={setMember}
+        disabled={busy || blocked || held}
       />
-      {members
-        .filter((row) => row.walletless && row.particularsRetained)
-        .map((row) => (
-          <Action
-            key={row.member}
-            label={`Use ${row.name || row.member}`}
-            accessibilityLabel={`Use retained recipient ${row.name || row.member} ${row.member}`}
-            disabled={busy || blocked || held || member === row.member}
-            onPress={() => setMember(row.member)}
-          />
-        ))}
       {member === 'new' && (
-        <>
-          <Field
-            label="Recipient name"
-            value={name}
-            editable={!busy && !blocked && !held}
-            maxLength={255}
-            onChange={setName}
-          />
-          <Field
-            label="Residential address"
-            value={address}
-            editable={!busy && !blocked && !held}
-            multiline
-            maxLength={1000}
-            onChange={setAddress}
-          />
-        </>
+        <PersonFields
+          name={name}
+          residentialAddress={address}
+          onName={setName}
+          onResidentialAddress={setAddress}
+          editable={!busy && !blocked && !held}
+        />
       )}
       <Field
         label={COPY.SHARES}

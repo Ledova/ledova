@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Text, View } from 'react-native';
 import * as Crypto from 'expo-crypto';
 import {
@@ -6,6 +6,8 @@ import {
   formatDateTime,
   formatShareCount,
   getErrorMessage,
+  peopleFrom,
+  personChoices,
   requestShares,
   useCompanyIssueInstructions,
   registerIssueExecutionState,
@@ -25,9 +27,13 @@ import { orderSubmissionSession } from '../../services/orderSubmissions';
 import { RegisterCopy } from '../../components/register/RegisterCopy';
 import { RegisterDecision } from '../../components/register/RegisterDecision';
 import { EvidencePicker, Field, isoDay, utcToday } from '../../components/register/RegisterFields';
+import { SearchSelect } from '../../components/SearchSelect';
 import { useRegisterEvidence } from '../../hooks/useRegisterEvidence';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 import type { useTokenDetail } from './useTokenDetail';
+
+const NEW_MEMBER = [{ value: 'new', label: 'Create a new member through the documentary link' }];
+const MEMBERS = ['member', 'members'] as const;
 
 type Read = ReturnType<typeof useTokenDetail>;
 type Commands = ReturnType<typeof useCompanyIssueInstructions>;
@@ -287,6 +293,14 @@ function Preparation({ commands }: { commands: Commands }) {
   const [walletApproval, setWalletApproval] = useState('');
   const [member, setMember] = useState('');
   const [newMember, setNewMember] = useState(false);
+  const memberChoices = useMemo(
+    () =>
+      personChoices(
+        peopleFrom(commands.members.data).filter((person) => !person.awardOnly),
+        (person) => `${formatShareCount(person.currentShares)} shares`,
+      ),
+    [commands.members.data],
+  );
   const [shares, setShares] = useState('');
   const [termsOn, setTermsOn] = useState(utcToday());
   const [terms, setTerms] = useState('');
@@ -438,30 +452,21 @@ function Preparation({ commands }: { commands: Commands }) {
           <Row label="Eligibility expires">{formatDateTime(chosen.eligibilityExpiresAt)}</Row>
         </Rows>
       )}
-      <Text style={styles.heading}>Member</Text>
-      {(commands.members.data?.members ?? []).map((row) => (
-        <Action
-          key={row.member}
-          label={`Use member ${row.name || row.member}`}
-          accessibilityLabel={`Use member ${row.name || 'unnamed'} ${row.member}`}
-          disabled={busy || member === row.member}
-          onPress={() => {
-            setMember(row.member);
-            setNewMember(false);
-          }}
-        />
-      ))}
-      <Action
-        label="Use a new member"
-        disabled={busy || newMember}
-        onPress={() => {
-          setMember(Crypto.randomUUID());
-          setNewMember(true);
+      <SearchSelect
+        label="Member"
+        choices={memberChoices}
+        first={NEW_MEMBER}
+        value={newMember ? 'new' : member}
+        onChange={(value) => {
+          setMember(value === 'new' ? Crypto.randomUUID() : value);
+          setNewMember(value === 'new');
         }}
+        disabled={busy}
+        noun={MEMBERS}
       />
-      {!!member && (
+      {newMember && (
         <Text selectable style={styles.text}>
-          Selected {newMember ? 'new ' : ''}member: {member}
+          New stable member: {member}
         </Text>
       )}
       <Field label="Approving director" value={director} editable={!busy} maxLength={255} onChange={setDirector} />

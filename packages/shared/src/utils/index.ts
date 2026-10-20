@@ -154,3 +154,4 @@ export {
 export { invitationMembers } from './invitationMembers';
 export { applicationAmount } from './applicationAmount';
 export { NEW_PERSON, peopleFrom, personChoices, personRequest, type Person, type PersonChoice } from './people';
+export { searchEntries, searchMatches, type SearchChoice, type SearchEntry } from './search';

@@ -3,7 +3,8 @@ import { useQuery } from '@tanstack/react-query';
 import * as Crypto from 'expo-crypto';
 import { Text, View } from 'react-native';
 import { getRegisterAwards, readEveryPage, useCompanyMemberAccess, type TokenHoldersResponse } from '@ledova/shared';
-import { Action, Choice, Section } from '../../components/Ledger';
+import { Action, Section } from '../../components/Ledger';
+import { PersonSelect } from '../../components/register/PersonPicker';
 import { apiClient } from '../../services/apiClient';
 import { orderSubmissionSession } from '../../services/orderSubmissions';
 import { EvidencePicker, Field } from '../../components/register/RegisterFields';
@@ -63,6 +64,7 @@ export function CompanyMemberAccess({
     }
   }
   const recipientsReady = !!access.admin && sourceReady && awards.isSuccess && !awards.isFetching && !recipientsError;
+  const candidateOf = new Map(candidates.map((candidate) => [candidate.uuid, candidate]));
   const [invitation, setInvitation] = useState({ company, member: '', email: '' });
   const member = invitation.company === company ? candidates.find(({ uuid }) => uuid === invitation.member) : undefined;
   const email = invitation.company === company ? invitation.email : '';
@@ -122,17 +124,31 @@ export function CompanyMemberAccess({
       )}
       {access.admin && (
         <>
-          <Text style={styles.heading}>Member or award recipient</Text>
-          {candidates.map((candidate) => (
-            <Choice
-              key={candidate.uuid}
-              label={`${candidate.name} · ${candidate.classes.join(', ')} · ${candidate.sources.join(', ')}${candidates.some((other) => other.uuid !== candidate.uuid && other.name === candidate.name) ? ` · ${candidate.uuid.slice(0, 8)}` : ''}`}
-              accessibilityRole="radio"
-              selected={member?.uuid === candidate.uuid}
-              disabled={held || !recipientsReady}
-              onPress={() => setInvitation({ company, member: candidate.uuid, email })}
-            />
-          ))}
+          <PersonSelect
+            label="Member or award recipient"
+            people={candidates.map((candidate) => ({
+              member: candidate.uuid,
+              name: candidate.name,
+              residentialAddress: '',
+              walletless: true,
+              particularsRetained: true,
+              currentShares: '0',
+              lastCeasedOn: null,
+              awardOnly: candidate.sources.length === 1 && candidate.sources[0] === 'Award recipient',
+            }))}
+            value={member?.uuid ?? ''}
+            onChange={(value) => setInvitation({ company, member: value, email })}
+            allowNew={false}
+            disabled={held || !recipientsReady}
+            context={(person) => {
+              const candidate = candidateOf.get(person.member);
+              return candidate
+                ? [candidate.classes.join(', '), ...(person.awardOnly ? [] : [candidate.sources.join(', ')])].join(
+                    ' · ',
+                  )
+                : '';
+            }}
+          />
           {awards.isPending && <Text style={styles.muted}>Loading company recipients…</Text>}
           {(awards.isError || recipientsError) && (
             <Text accessibilityRole="alert" style={styles.error}>

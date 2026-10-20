@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
-import { Alert, Text, View } from 'react-native';
+import { Alert, Text } from 'react-native';
 import { StackActions, useNavigation, usePreventRemove, useRoute, type RouteProp } from '@react-navigation/native';
 import { useQueryClient } from '@tanstack/react-query';
 import * as Crypto from 'expo-crypto';
@@ -18,6 +18,8 @@ import {
   hasCurrentRegisterReadAuthority,
   prepareRegisterGrant,
   REGISTER_GRANT_COPY as COPY,
+  peopleFrom,
+  personRequest,
   type RegisterGrantPreparation,
   type OwnCompanyAppointment,
   type CompanyShareTokenListItem,
@@ -29,17 +31,17 @@ import { orderSubmissionSession } from '../../services/orderSubmissions';
 import { apiClient } from '../../services/apiClient';
 import { assertSessionEpoch, getSessionEpoch, subscribeSession } from '../../services/sessionScope';
 import { EvidencePicker, Field, isoDay, utcToday } from '../../components/register/RegisterFields';
+import { PersonFields, PersonSelect } from '../../components/register/PersonPicker';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 import {
   grantsKey,
   registerAppointmentsKey,
   useClassRegister,
-  useCompanyMembers,
   useRegisterAppointments,
   useTransferMembers,
   registerClassKey,
-  registerMembersKey,
   registerClassesKey,
+  transferMembersKey,
 } from '../../hooks/useCompanyRegister';
 import { useRegisterEvidence } from '../../hooks/useRegisterEvidence';
 import { useRegisterAward } from './useRegisterAwards';
@@ -67,7 +69,8 @@ function PrepareRegisterGrant({ epoch }: { epoch: number }) {
     awardUuid = '',
   } = useRoute<RouteProp<CompanyStackParamList, 'PrepareRegisterGrant'>>().params;
   const register = useClassRegister(epoch, tokenUuid);
-  const members = useCompanyMembers(epoch, companyUuid);
+  const members = useTransferMembers(epoch, tokenUuid);
+  const people = peopleFrom(members.data);
   const { appointments, steps } = useRegisterAppointments(epoch, companyUuid);
   const latestAppointments = useRef<OwnCompanyAppointment[]>([]);
   const readable = hasCurrentRegisterReadAuthority(appointments.isSuccess ? appointments.data : [], companyUuid);
@@ -85,9 +88,8 @@ function PrepareRegisterGrant({ epoch }: { epoch: number }) {
     [epoch, companyUuid],
   );
   const award = useRegisterAward(epoch, companyUuid, tokenUuid, awardUuid, awardGuard, readable);
-  const awardMembers = useTransferMembers(epoch, tokenUuid, !!awardUuid && readable && !!steps?.prepare);
   const fixed = awardUuid ? award.data : undefined;
-  const awardMember = awardMembers.data?.find((row) => row.member === fixed?.member) ?? null;
+  const awardMember = members.data?.members.find((row) => row.member === fixed?.member) ?? null;
   const authority = useRegisterEvidence(companyUuid, 'authority');
   const retainedTerms = useRegisterEvidence(companyUuid, 'supporting');
   const acceptance = useRegisterEvidence(companyUuid, 'supporting');
@@ -149,10 +151,7 @@ function PrepareRegisterGrant({ epoch }: { epoch: number }) {
                   : null;
   const busy = submitting || authority.busy || retainedTerms.busy || acceptance.busy;
   const fetching =
-    register.isFetching ||
-    members.isFetching ||
-    appointments.isFetching ||
-    (!!awardUuid && (award.isFetching || awardMembers.isFetching));
+    register.isFetching || members.isFetching || appointments.isFetching || (!!awardUuid && award.isFetching);
   const supported = register.data?.initialized && register.data.token.status === 'draft';
   const ready =
     (!problem || held) &&
@@ -162,7 +161,7 @@ function PrepareRegisterGrant({ epoch }: { epoch: number }) {
     register.isSuccess &&
     members.isSuccess &&
     appointments.isSuccess &&
-    (!awardUuid || (readable && award.isSuccess && awardMembers.isSuccess)) &&
+    (!awardUuid || (readable && award.isSuccess)) &&
     !fetching;
   const pick = async (document: ReturnType<typeof useRegisterEvidence>) => {
     setError(null);
@@ -179,7 +178,7 @@ function PrepareRegisterGrant({ epoch }: { epoch: number }) {
       register.refetch(),
       members.refetch(),
       appointments.refetch(),
-      ...(awardUuid && readable ? [award.refetch(), awardMembers.refetch()] : []),
+      ...(awardUuid && readable ? [award.refetch()] : []),
     ]);
   usePreventRemove(busy || held, () => {
     Alert.alert('Finish this share issue', 'Recover the original request before leaving this form.');
@@ -205,7 +204,7 @@ function PrepareRegisterGrant({ epoch }: { epoch: number }) {
       USER_PREFERENCES_QUERY_KEY,
       registerAppointmentsKey(epoch),
       registerClassKey(epoch, tokenUuid),
-      registerMembersKey(epoch, companyUuid),
+      transferMembersKey(epoch, tokenUuid),
     ].map((key) => queryClient.getQueryState(key));
     if (!currentRead.current || sources.some((state) => state?.status !== 'success' || state.fetchStatus !== 'idle'))
       throw new Error('Refresh the register and your current company authority.');
@@ -261,10 +260,14 @@ function PrepareRegisterGrant({ epoch }: { epoch: number }) {
           operationId: Crypto.randomUUID(),
           appointment: appointment.uuid,
           tokenId: tokenUuid,
-          member: fixed?.member ?? (newRecipient ? newMemberId : member),
-          newMember: newRecipient,
-          ...(newRecipient ? { name: recipientName, residentialAddress: recipientAddress } : {}),
-          ...(fixed ? { award: fixed.uuid } : {}),
+          ...(fixed
+            ? {
+                member: fixed.member,
+                newMember: newRecipient,
+                ...(newRecipient ? { name: recipientName, residentialAddress: recipientAddress } : {}),
+                award: fixed.uuid,
+              }
+            : personRequest(member, people, newMemberId, name, residentialAddress)),
           shares: shares.trim(),
           companyEventOn: companyEventOn.trim(),
           termsOn: date,
@@ -385,13 +388,13 @@ function PrepareRegisterGrant({ epoch }: { epoch: number }) {
         </Text>
       </Page>
     );
-  if (awardUuid && (!readable || award.isPending || awardMembers.isPending))
+  if (awardUuid && (!readable || award.isPending))
     return (
       <Page title="Register">
         <Text style={styles.muted}>Loading the award and your current company authority…</Text>
       </Page>
     );
-  if (awardUuid && (award.isError || awardMembers.isError))
+  if (awardUuid && award.isError)
     return (
       <Page title="Register">
         <Text accessibilityRole="alert" style={styles.error}>
@@ -413,58 +416,35 @@ function PrepareRegisterGrant({ epoch }: { epoch: number }) {
       </Page>
     );
   return (
-    <Page
-      testID="prepare-grant-screen"
-      title="Prepare share issue"
-      lede={COPY.NOTE}
-      keyboardShouldPersistTaps="handled"
-    >
+    <Page testID="prepare-grant-screen" title="Prepare share issue" lede={COPY.NOTE}>
       <Section title={register.data.token.name}>
-        <Text style={styles.heading}>Member</Text>
-        <Text style={styles.text}>
-          {fixed
-            ? recipientName
-            : member === 'new'
-              ? 'New member'
-              : members.data.holders.find((holder) => holder.member === member)?.name || member}
-        </Text>
-        {!fixed && (
+        {fixed ? (
           <>
-            <Action
-              label="Use a new member"
-              disabled={busy || held || member === 'new'}
-              onPress={() => setMember('new')}
-            />
-            <View style={styles.choices}>
-              {members.data.holders
-                .filter((holder) => holder.wallets.length === 0)
-                .map((holder) => (
-                  <Action
-                    key={holder.member}
-                    label={`Use ${holder.name || holder.member}`}
-                    accessibilityLabel={`Use existing member ${holder.name || holder.member} ${holder.member}`}
-                    disabled={busy || held || member === holder.member}
-                    onPress={() => setMember(holder.member)}
-                  />
-                ))}
-            </View>
+            <Text style={styles.heading}>Member</Text>
+            <Text style={styles.text}>{recipientName}</Text>
           </>
+        ) : (
+          <PersonSelect
+            label="Issue to"
+            people={people.filter((row) => row.walletless && row.particularsRetained)}
+            value={member}
+            onChange={setMember}
+            disabled={busy || held}
+          />
         )}
         {!fixed && member === 'new' ? (
-          <>
-            <Field label={COPY.NAME} value={name} editable={!busy && !held} maxLength={255} onChange={setName} />
-            <Field
-              label={COPY.RESIDENTIAL_ADDRESS}
-              value={residentialAddress}
-              editable={!busy && !held}
-              multiline
-              maxLength={1000}
-              onChange={setResidentialAddress}
-            />
-          </>
+          <PersonFields
+            name={name}
+            residentialAddress={residentialAddress}
+            onName={setName}
+            onResidentialAddress={setResidentialAddress}
+            editable={!busy && !held}
+          />
         ) : !fixed ? (
           <Text style={styles.muted}>
-            The grant retains the existing member’s current particulars. Preview them before approval.
+            {people.some((row) => row.member === member && row.awardOnly)
+              ? 'The issue uses the name and address on their award. Preview them before approval.'
+              : 'The grant retains the existing member’s current particulars. Preview them before approval.'}
           </Text>
         ) : (
           <Text style={styles.muted}>

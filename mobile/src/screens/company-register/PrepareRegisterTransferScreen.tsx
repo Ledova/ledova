@@ -1,5 +1,5 @@
 import { useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react';
-import { Text, View } from 'react-native';
+import { Text } from 'react-native';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import { useQueryClient } from '@tanstack/react-query';
 import * as Crypto from 'expo-crypto';
@@ -7,10 +7,13 @@ import {
   apiErrorSentence,
   createUserFriendlyError,
   failureStatus,
+  formatShareCount,
   getErrorMessage,
   isPreparedRegisterTransfer,
+  peopleFrom,
   prepareRegisterTransfer,
   REGISTER_TRANSFER_COPY as COPY,
+  type Person,
   type RegisterTransferPreparation,
 } from '@ledova/shared';
 import { Action, Section } from '../../components/Ledger';
@@ -19,6 +22,7 @@ import type { CompanyStackParamList } from '../../navigation/CompanyStackNavigat
 import { apiClient } from '../../services/apiClient';
 import { assertSessionEpoch, getSessionEpoch, subscribeSession } from '../../services/sessionScope';
 import { EvidencePicker, Field, isoDay, utcToday } from '../../components/register/RegisterFields';
+import { PersonFields, PersonSelect } from '../../components/register/PersonPicker';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 import {
   transfersKey,
@@ -27,6 +31,10 @@ import {
   useRegisterAppointments,
 } from '../../hooks/useCompanyRegister';
 import { useRegisterEvidence } from '../../hooks/useRegisterEvidence';
+
+function inClass(person: Person) {
+  return person.awardOnly ? '' : `${formatShareCount(person.currentShares)} shares in this class`;
+}
 
 type Draft = {
   fromMember: string;
@@ -90,12 +98,14 @@ function PrepareRegisterTransfer({ epoch }: { epoch: number }) {
     setError(null);
     setDraft((current) => ({ ...current, [key]: value }));
   };
-  const eligible = members.data?.filter((member) => member.walletless) ?? [];
+  const eligible = peopleFrom(members.data).filter((member) => member.walletless);
   const from = eligible.find(
     (member) => member.member === draft.fromMember && member.particularsRetained && BigInt(member.currentShares) > 0n,
   );
   const recipient = eligible.find((member) => member.member === draft.toMember);
-  const fresh = retry?.newParticulars ?? (draft.toMember === 'new' || (!!recipient && !recipient.particularsRetained));
+  const fresh =
+    retry?.newParticulars ??
+    (draft.toMember === 'new' || (!!recipient && (!recipient.particularsRetained || recipient.awardOnly)));
   const problem = !from
     ? 'Select an identified transferor holding shares in this class.'
     : draft.toMember !== 'new' && (!recipient || draft.toMember === draft.fromMember)
@@ -164,7 +174,7 @@ function PrepareRegisterTransfer({ epoch }: { epoch: number }) {
           tokenId: tokenUuid,
           fromMember: draft.fromMember,
           toMember: draft.toMember === 'new' ? newMemberId : draft.toMember,
-          newMember: draft.toMember === 'new',
+          newMember: draft.toMember === 'new' || !!recipient?.awardOnly,
           ...(fresh ? { name: draft.name.trim(), residentialAddress: draft.residentialAddress.trim() } : {}),
           shares: draft.shares.trim(),
           companyEventOn: draft.companyEventOn.trim(),
@@ -248,61 +258,41 @@ function PrepareRegisterTransfer({ epoch }: { epoch: number }) {
     ['reason', COPY.REASON, 1000],
   ];
   return (
-    <Page testID="prepare-transfer-screen" title="Register" lede={COPY.NOTE} keyboardShouldPersistTaps="handled">
+    <Page testID="prepare-transfer-screen" title="Register" lede={COPY.NOTE}>
       <Section title={register.data.token.name}>
-        <Text style={styles.heading}>{COPY.FROM}</Text>
-        <Text style={styles.text}>{from?.name || 'Choose the transferor'}</Text>
-        <View style={styles.choices}>
-          {eligible
-            .filter((member) => member.particularsRetained && BigInt(member.currentShares) > 0n)
-            .map((member) => (
-              <Action
-                key={member.member}
-                label={`${member.name} · ${member.currentShares} shares`}
-                accessibilityLabel={`Transferor ${member.name} ${member.member}`}
-                disabled={busy || draft.fromMember === member.member}
-                onPress={() => change('fromMember', member.member)}
-              />
-            ))}
-        </View>
-        <Text style={styles.heading}>{COPY.TO}</Text>
-        <Text style={styles.text}>{draft.toMember === 'new' ? 'New member' : recipient?.name || draft.toMember}</Text>
-        <Action
-          label="Use a new recipient"
-          disabled={busy || draft.toMember === 'new'}
-          onPress={() => change('toMember', 'new')}
+        <PersonSelect
+          label={COPY.FROM}
+          people={eligible.filter((member) => member.particularsRetained && BigInt(member.currentShares) > 0n)}
+          value={draft.fromMember}
+          onChange={(value) => change('fromMember', value)}
+          allowNew={false}
+          context={inClass}
+          disabled={busy}
         />
-        <View style={styles.choices}>
-          {eligible
-            .filter((member) => member.member !== draft.fromMember)
-            .map((member) => (
-              <Action
-                key={member.member}
-                label={`${member.name || 'Recorded member'} · ${member.currentShares} shares in this class`}
-                accessibilityLabel={`Recipient ${member.name || 'Recorded member'} ${member.member}`}
-                disabled={busy || draft.toMember === member.member}
-                onPress={() => change('toMember', member.member)}
-              />
-            ))}
-        </View>
+        <PersonSelect
+          label={COPY.TO}
+          people={eligible.filter((member) => member.member !== draft.fromMember)}
+          value={draft.toMember}
+          onChange={(value) => {
+            change('toMember', value);
+            const chosen = eligible.find((member) => member.member === value);
+            if (chosen?.awardOnly || recipient?.awardOnly) {
+              change('name', chosen?.awardOnly ? chosen.name : '');
+              change('residentialAddress', chosen?.awardOnly ? chosen.residentialAddress : '');
+            }
+          }}
+          context={inClass}
+          disabled={busy}
+        />
         {fresh ? (
-          <>
-            <Field
-              label={COPY.NAME}
-              value={draft.name}
-              editable={!busy}
-              maxLength={255}
-              onChange={(value) => change('name', value)}
-            />
-            <Field
-              label={COPY.ADDRESS}
-              value={draft.residentialAddress}
-              editable={!busy}
-              multiline
-              maxLength={1000}
-              onChange={(value) => change('residentialAddress', value)}
-            />
-          </>
+          <PersonFields
+            name={draft.name}
+            residentialAddress={draft.residentialAddress}
+            onName={(value) => change('name', value)}
+            onResidentialAddress={(value) => change('residentialAddress', value)}
+            editable={!busy}
+            readOnly={!!recipient?.awardOnly}
+          />
         ) : (
           <Text style={styles.muted}>
             The transfer retains the recipient’s recorded particulars. Check them in the preview.
@@ -313,7 +303,7 @@ function PrepareRegisterTransfer({ epoch }: { epoch: number }) {
             Last ceased in this class: {recipient.lastCeasedOn}. The same member ID is retained on return.
           </Text>
         )}
-        {fresh && draft.toMember !== 'new' && (
+        {fresh && draft.toMember !== 'new' && !recipient?.awardOnly && (
           <Text style={styles.muted}>
             This member’s particulars passed the retention period. Supply their current particulars from the signed
             instrument, keeping their existing member ID.

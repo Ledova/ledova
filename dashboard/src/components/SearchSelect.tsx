@@ -9,22 +9,13 @@ import {
   Label,
 } from '@headlessui/react';
 import { CaretDownIcon, CheckIcon } from '@phosphor-icons/react';
-import { formatShareCount } from '@ledova/shared';
+import { formatShareCount, searchEntries, searchMatches, type SearchChoice } from '@ledova/shared';
 import { FIELD_BASE, LABEL } from '@components/fieldClass';
 import { ICON_SM } from '@components/iconSizes';
-
-export interface SearchChoice {
-  value: string;
-  label: string;
-  detail?: string;
-  unavailable?: string;
-}
 
 const SHOWN = 50;
 const NONE: readonly SearchChoice[] = [];
 const MOVES = new Set(['ArrowDown', 'ArrowUp', 'Home', 'End', 'PageDown', 'PageUp']);
-
-const folded = (text: string) => text.normalize('NFD').replace(/\p{M}/gu, '').toLocaleLowerCase('en-AU');
 
 function Choice({ choice }: { choice: SearchChoice }) {
   const detail = [choice.detail, choice.unavailable].filter(Boolean).join(' · ');
@@ -69,15 +60,10 @@ export function SearchSelect({
     () => new Map([...first, ...choices].map((choice) => [choice.value, choice.label])),
     [first, choices],
   );
-  const searchable = useMemo(
-    () => choices.map((choice) => ({ choice, text: folded(`${choice.label} ${choice.detail ?? ''}`) })),
-    [choices],
-  );
-  const words = folded(query).split(/\s+/).filter(Boolean);
-  const typed = words.length > 0;
-  const found = typed
-    ? searchable.filter(({ text }) => words.every((word) => text.includes(word))).map(({ choice }) => choice)
-    : choices;
+  const searchable = useMemo(() => searchEntries(choices), [choices]);
+  const matches = searchMatches(searchable, query);
+  const typed = matches !== null;
+  const found = matches ?? choices;
   const matched = typed && found.some((choice) => !choice.unavailable);
   const counted = (count: number) => `${formatShareCount(String(count))} ${count === 1 ? noun[0] : noun[1]}`;
   const searched = query.trim();

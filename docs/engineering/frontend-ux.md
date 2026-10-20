@@ -28,7 +28,8 @@ where it adds to the titles. The first section follows at the same gap as betwee
 is one flex column with a single gap; add no margin under the title). On mobile `Page` is a scroll
 view on the page ground: the title (Newsreader, `theme.fontSize.xxxxl`), the lede, then the actions
 as one wrapping row, since a phone's large title leaves no room beside it; the stack header holds
-only the menu or back button and, on a top-level screen, the bell. Mobile screens framed
+only the menu or back button and, on a top-level screen, the bell. A tap on a control acts at once,
+even while the keyboard is up. Mobile screens framed
 differently: Help & Support keeps its stack title; Send, Transfer, Verify Wallet and Recovery Phrase
 are titled inside their `Panel` card (`mobile/src/components/panel`); Buy crypto is its dialog over
 the bare page ground, then the provider's web view.
@@ -140,12 +141,28 @@ How the list behaves:
 - **Unavailable people:** someone who cannot be chosen, such as a person already added to a register
   setup draft, stays listed, disabled, with the reason.
 - **Shared logic:** `peopleFrom`, `personChoices` and `personRequest` are in
-  `packages/shared/src/utils/people.ts`, so both clients can use the same list and rules.
+  `packages/shared/src/utils/people.ts`, and the matching is `searchEntries` and `searchMatches` in
+  `packages/shared/src/utils/search.ts`, so both clients use the same list, rules and search.
 
 These rules are checked in review. The dashboard suite drives the list in register setup (typing a
 name and pressing Enter), a transfer and member invitations.
 
-The mobile app still chooses people from buttons; #1177 brings it to the same standard.
+On mobile, every person choice uses the same list and rules through `PersonSelect`
+(`mobile/src/components/register/PersonPicker.tsx`). That covers investor and non-paid issues,
+employee awards, transfers, the share-class issue's member and member invitations. In register
+setup, **Add a shareholder** adds each person from the list. The people come from the same
+validated read of members and award recipients (`useTransferMembers`).
+
+- **The sheet:** `SearchSelect` (`mobile/src/components/SearchSelect.tsx`) shows the label above a
+  field with the current choice and its detail. Tapping the field opens a sheet with an empty search
+  box, a count of the matches and a list that renders only the rows on screen, so no cap is needed;
+  dragging the list hides the keyboard.
+- **Choosing:** each row is a radio button in a radio group, marked when chosen, and choosing closes
+  the sheet. **New person** comes first as on the web, and an unavailable person stays listed,
+  disabled, with the reason.
+
+The mobile suite drives the sheet in register setup and member invitations. Wallet links and
+register opening on mobile still list members row by row.
 
 ## Choosing a company
 

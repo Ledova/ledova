@@ -246,7 +246,7 @@ function PrepareRegisterOpening({ epoch }: { epoch: number }) {
     );
   const { block } = holders.data;
   return (
-    <Page testID="prepare-opening-screen" title={title} lede={lede} keyboardShouldPersistTaps="handled">
+    <Page testID="prepare-opening-screen" title={title} lede={lede}>
       <Section title={COPY.HOLDINGS}>
         <Rows>
           <Row label="Read at">{COPY.BOUNDARY_BLOCK(block.number, formatDate(block.date))}</Row>

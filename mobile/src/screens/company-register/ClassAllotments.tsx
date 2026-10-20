@@ -4,6 +4,7 @@ import {
   REGISTER_ALLOTMENT_COPY as COPY,
   hasCurrentRegisterReadAuthority,
   appointmentForRegisterStep,
+  peopleFrom,
   type OwnCompanyAppointment,
   type TokenHoldersResponse,
 } from '@ledova/shared';
@@ -171,7 +172,7 @@ export function ClassAllotments({
           company={company}
           token={register.token.uuid}
           epoch={epoch}
-          members={members.data ?? []}
+          people={peopleFrom(members.data)}
           appointment={editing}
           guard={financialGuard}
           newEffectGuard={() => {

@@ -241,7 +241,7 @@ function PrepareRegisterLink({ epoch }: { epoch: number }) {
       </Page>
     );
   return (
-    <Page testID="prepare-link-screen" title={title} lede={lede} keyboardShouldPersistTaps="handled">
+    <Page testID="prepare-link-screen" title={title} lede={lede}>
       <Section title={COPY.WALLETS}>
         <Text style={styles.muted}>{COPY.MAPPING_NOTE}</Text>
         <Text style={styles.muted}>{COPY.STATUS_NOTE}</Text>

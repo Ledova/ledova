@@ -453,7 +453,7 @@ it('recovers captured award, vesting and issue requests under read access and re
     await fireEvent.press(open);
     if (kind === 'award') {
       for (const [label, value] of [
-        ['Recipient name', AWARD_REQUEST.name!],
+        ['Name', AWARD_REQUEST.name!],
         ['Residential address', AWARD_REQUEST.residentialAddress!],
         [COPY.SHARES, AWARD_REQUEST.shares],
         [COPY.TERMS_ON, AWARD_REQUEST.termsOn],

@@ -4,6 +4,7 @@ import { Text, View } from 'react-native';
 import {
   REGISTER_AWARD_COPY as COPY,
   hasCurrentRegisterReadAuthority,
+  peopleFrom,
   type OwnCompanyAppointment,
   type TokenHoldersResponse,
 } from '@ledova/shared';
@@ -152,7 +153,7 @@ export function ClassAwards({
           company={company}
           token={register.token.uuid}
           epoch={epoch}
-          members={members.data ?? []}
+          people={peopleFrom(members.data)}
           appointment={editing}
           guard={recordGuard}
           blocked={blocked || members.isFetching}

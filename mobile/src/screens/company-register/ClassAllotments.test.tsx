@@ -143,7 +143,7 @@ it('recovers the fully paid company allotment once, separates approval from ISSU
         pendingFileRelease = releaseFile;
       });
     if (rows[0] && url === URLS.REGISTER_ALLOTMENT(rows[0].uuid)) return { data: rows[0] };
-    if (url === URLS.REGISTER_MEMBERS(REGISTER.token.uuid)) return { data: { members: [] } };
+    if (url === URLS.REGISTER_MEMBERS(REGISTER.token.uuid)) return { data: { members: [], awardRecipients: [] } };
     if (url === URLS.REGISTER_LINK_WAITING_WALLETS) return { data: { wallets: [] } };
     return { data: { results: [], next: null } };
   });
@@ -197,7 +197,7 @@ it('recovers the fully paid company allotment once, separates approval from ISSU
   await fireEvent.press(open);
   expect(await view.findByLabelText('Company issue date (YYYY-MM-DD)')).toHaveDisplayValue('');
   for (const [label, value] of [
-    ['Investor name', ALLOTMENT_REQUEST.name!],
+    ['Name', ALLOTMENT_REQUEST.name!],
     ['Residential address', ALLOTMENT_REQUEST.residentialAddress!],
     [COPY.SHARES, '100'],
     [COPY.CONSIDERATION, '250'],
