@@ -405,7 +405,7 @@ export function ImportForm({
                       {!currentTarget && !recovery && (
                         <PageAction
                           label="Load confirmation"
-                          busy={running === 'load'}
+                          busy={running === 'load' || (decision.busy && !decision.target && !autoApply)}
                           busyLabel="Loading confirmation…"
                           disabled={busy || deciding || autoApply || blocked || !steps[kind]}
                           onClick={() => track('load', loadPreview())}
