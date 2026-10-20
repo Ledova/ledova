@@ -1,7 +1,6 @@
 import {
   downloadRegisterCapitalIncreaseFile,
   failureStatus,
-  getErrorMessage,
   isRegisterEvidenceReceipt,
   raisedSupply,
   requestShares,
@@ -9,10 +8,12 @@ import {
   useCompanyCapitalIncreases,
   type RegisterCapitalIncrease,
   type RegisterEvidence,
+  failureSentence,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
 import { saveFile } from '@utils/saveFile';
 import { useEffect, useRef, useState } from 'react';
+
 export type Commands = ReturnType<typeof useCompanyCapitalIncreases>;
 export function useCapitalRecord({ record, commands }: { record: RegisterCapitalIncrease; commands: Commands }) {
   const [error, setError] = useState('');
@@ -31,10 +32,7 @@ export function useCapitalRecord({ record, commands }: { record: RegisterCapital
       commands.guard();
       saveFile(response.data, `capital-authority-${record.uuid}`);
     } catch (failure) {
-      setError(
-        getErrorMessage(failure, 'The retained authority copy could not be downloaded.') ??
-          'The request could not be confirmed.',
-      );
+      setError(failureSentence(failure, 'The retained authority copy could not be downloaded.'));
     } finally {
       setBusy(false);
     }
@@ -118,11 +116,7 @@ export function useCapitalPreparation({ commands }: { commands: Commands }) {
       if (failureStatus(failure) === 409) uploadRef.current = null;
       try {
         commands.guard();
-        if (mounted.current)
-          setError(
-            getErrorMessage(failure, 'The capital increase could not be prepared.') ??
-              'The request could not be confirmed.',
-          );
+        if (mounted.current) setError(failureSentence(failure, 'The capital increase could not be prepared.'));
       } catch {
         return;
       }

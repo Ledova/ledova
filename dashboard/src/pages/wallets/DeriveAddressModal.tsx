@@ -40,8 +40,8 @@ export function DeriveAddressModal({
         ),
         error: null,
       };
-    } catch (err) {
-      return { derivedAddress: null, error: err instanceof Error ? err.message : 'Failed to derive address' };
+    } catch {
+      return { derivedAddress: null, error: 'The next address could not be derived from this wallet.' };
     }
   }, [isOpen, wallet]);
 

@@ -17,6 +17,7 @@ and [mobile](mobile.md); what each page does is in the business section.
 - [Choosing from a bounded list](#choosing-from-a-bounded-list)
 - [How the choice rules are enforced](#how-the-choice-rules-are-enforced)
 - [Lists, search, filters and paging](#lists-search-filters-and-paging)
+- [Validation](#validation)
 
 ## Signed-in page conventions
 
@@ -111,13 +112,31 @@ confirmation) or pressed, and comes in four forms:
   it at once: the open Register task, the shown eligibility request and Wallets' sort.
 
 `busy` and `busyLabel` disable an action and name its work, such as "Preparing allotment…" or
-"Saving…". Every page form's submit button uses them, as does every page action that already showed a
-busy label, and six more: the offering form, an application's Withdraw and Submit for review,
-creating a member invitation, preparing a non-paid grant or its wallet link, and attaching a payslip
-to a claim. Other page actions that start a request keep their label while it runs. Icon buttons,
-register setup's Import placeholder, the payslip upload area and Trading keep their own controls,
-and dialog footers use the same order as `FormActions`. Mobile's `Action` has no busy or pressed
-form yet.
+"Saving…". Every page form's submit button uses them, and so does every action that starts a
+request, on pages and in dialogs, including:
+
+- downloads ("Downloading…", on the one document being fetched);
+- previews and preparations;
+- offering submissions and added offering documents;
+- deployment;
+- the wallet import and verification steps, and identity verification;
+- establishing an appointment;
+- member, particulars and certificate requests;
+- register setup's review step (editing the records, loading and confirming the decision).
+
+Where a shared hook only reports that some command is running, `useRunningAction`
+(`dashboard/src/hooks`) names the action that was clicked. A few actions show their work another
+way:
+
+- Activation's review hides its action and shows "Checking activation…".
+- A register decision's rejection preview shows "Loading the preview…".
+- Submitting a wallet nomination replaces the form with its saved request.
+- Signing flows, in Trading and wallet transfers, move to their own submitting step.
+
+Refresh, retry and recovery actions keep their label while they run; a form's submit button that
+also recovers an earlier attempt keeps its busy label. Icon buttons, register setup's Import
+placeholder, the payslip upload area and Trading keep their own controls, and dialog footers use the
+same order as `FormActions`. Mobile's `Action` has no busy or pressed form yet.
 
 An action that deletes, withdraws or revokes something saved asks first, in a dialog that names the
 consequence, with Cancel and a destructive action that repeats the verb, such as "Withdraw
@@ -363,13 +382,45 @@ server:
   "1–25 of 1,240 applications", and Previous, the page number and Next when there is more than one
   page. While new results load, the shown rows stay, dimmed and marked busy, and the pager says it
   is loading.
+- **Feeds:** `LoadMore` ends a feed with "Load more notices" (or applications, activity,
+  notifications and so on), which names its work while it runs. When a later page fails, the shown
+  rows stay, a sentence says the list is incomplete, and "Try more … again" retries.
 - **Page size:** 25 rows. The API accepts `page_size` up to 100 on every paged list.
 
 An offering's applications on Offerings are the first table: search by investor name, wallet
 address or payment reference, filter by status, with the chosen offering kept in the address too.
-Activity, an investor's Applications, Notices and a class's register entries load more on request.
-Other lists still read every page ([frontend](frontend.md#lists-figures-and-currency)), and the
-register, ownership and import tables keep their own markup until they move.
+The feeds are Activity, an investor's Applications, Notices, the notification bell, Published to
+your members and a class's register entries. A list bounded by one person, such as their own
+documents, classification claims or wallets, reads every page. Other lists still read every page
+([frontend](frontend.md#lists-figures-and-currency)), and the register, ownership and import tables
+keep their own markup until they move.
+
+## Validation
+
+This section covers what a page shows when a request fails. Checking forms before they are sent is
+still to come ([#1179](https://github.com/Ledova/ledova/issues/1179)).
+
+- **Request errors.** A failure reads as one `role="alert"` sentence from `failureSentence`
+  (`packages/shared/src/utils/errors.ts`), never the transport's "Request failed with status code
+  400". When the server answered, the sentence is its own words with each field error included
+  (`apiErrorSentence`), or else the caller's fallback, which names what failed ("The wallet could
+  not be saved. Try again."). A failure that never reached the server shows its own message, such as
+  "Unable to connect to our servers…" or "Your signed-in account changed. Reopen company team.", or
+  the fallback when it has none. Pages that still read with `apiErrorSentence`, such as the register
+  preparation forms, documents and sign-up, show their fallback for such a failure instead; those
+  that pass the fallback twice still show a message thrown with `createUserFriendlyError`.
+  Sign-in and sign-up place field errors on their fields with `readApiError`; other forms show them
+  in the one sentence.
+- **Refusal codes.** The server names unmet requirements and refusals as codes. Each family's copy
+  map in `packages/shared/src/constants/business/` turns them into sentences: `refusalSentences` for
+  a preview's or record's list, and `refusalSentence` for a refused request, before any other
+  reading. A code the map lacks reads as "Another requirement is not met. Refresh before
+  continuing.", or as the caller's fallback for a refused register decision. `readApiError` never
+  reads a code list as a sentence, so a code never reaches the screen.
+- **Enforcement.** ESLint refuses `getErrorMessage` in the dashboard (`no-restricted-imports`) and in
+  the shared package (`no-restricted-syntax`). Mobile still uses it, so a field error there can read
+  "Request failed with status code 400" until [#1201](https://github.com/Ledova/ledova/issues/1201)
+  moves it to these rules.
 
 Next: [frontend](frontend.md), [mobile](mobile.md) and
 [the register's person choice](../business/register.md#choosing-a-person).

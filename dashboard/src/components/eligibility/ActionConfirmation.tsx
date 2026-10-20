@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { EligibilityAction } from '@ledova/shared';
+import { COMPANY_ELIGIBILITY_UNMET_COPY, refusalSentences, type EligibilityAction } from '@ledova/shared';
 import { Row, Rows, Section } from '@components/Ledger';
 import { PageAction } from '@components/Page';
 import { EligibilitySummary } from './EligibilitySummary';
@@ -60,8 +60,8 @@ export function ActionConfirmation({
       )}
       {unmet.length > 0 && (
         <ul aria-label="Unmet requirements" className="list-disc pl-5 text-sm text-text-muted">
-          {unmet.map((reason) => (
-            <li key={reason}>{reason}</li>
+          {refusalSentences(unmet, COMPANY_ELIGIBILITY_UNMET_COPY).map((sentence) => (
+            <li key={sentence}>{sentence}</li>
           ))}
         </ul>
       )}

@@ -13,6 +13,8 @@ import {
   type RegisterEvidence,
   personRequest,
   type Person,
+  REGISTER_AWARD_UNMET_COPY,
+  refusalSentence,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
@@ -203,7 +205,10 @@ export function useAwardForm({
       } catch {
         return;
       }
-      setError(apiErrorSentence(cause, COPY.RECORDING_FAILED, COPY.RECORDING_FAILED));
+      setError(
+        refusalSentence(cause, REGISTER_AWARD_UNMET_COPY) ??
+          apiErrorSentence(cause, COPY.RECORDING_FAILED, COPY.RECORDING_FAILED),
+      );
     } finally {
       pending.current = false;
       if (live.current) {

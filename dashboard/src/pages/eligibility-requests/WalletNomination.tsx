@@ -1,10 +1,12 @@
 import { SelectField } from '@components/SelectField';
 import { useState } from 'react';
+import { useRunningAction } from '@hooks/useRunningAction';
 import {
   useWalletNomination,
   formatDateTime,
   COMPANY_WALLET_UNMET_COPY,
   type WalletNominationPreview,
+  refusalSentences,
 } from '@ledova/shared';
 import { PageAction } from '@components/Page';
 import { Row, Rows, Section } from '@components/Ledger';
@@ -27,6 +29,7 @@ function Facts({ preview }: { preview: WalletNominationPreview }) {
 
 export function WalletNomination({ requestUuid, guardRequest }: { requestUuid: string; guardRequest: () => void }) {
   const data = useWalletNomination({ requestUuid, newKey: () => crypto.randomUUID(), guardRequest });
+  const { running, track } = useRunningAction();
   const [consent, setConsent] = useState<{ preview: WalletNominationPreview | null; accepted: boolean }>({
     preview: null,
     accepted: false,
@@ -98,15 +101,17 @@ export function WalletNomination({ requestUuid, guardRequest }: { requestUuid: s
           )}
           <PageAction
             label="Review wallet nomination"
+            busy={running === 'review'}
+            busyLabel="Reviewing…"
             disabled={blocked || !wallet}
-            onClick={() => void data.review()}
+            onClick={() => track('review', data.review())}
           />
           {preview && (
             <div className="space-y-3">
               <Facts preview={preview} />
-              {preview.unmetRequirements.map((code) => (
-                <p key={code} className="text-sm text-text-muted">
-                  {COMPANY_WALLET_UNMET_COPY[code] ?? code}
+              {refusalSentences(preview.unmetRequirements, COMPANY_WALLET_UNMET_COPY).map((sentence) => (
+                <p key={sentence} className="text-sm text-text-muted">
+                  {sentence}
                 </p>
               ))}
               <label className="flex gap-2 text-sm">
@@ -155,9 +160,9 @@ export function WalletNomination({ requestUuid, guardRequest }: { requestUuid: s
             <Row label="Shared address">{record.address}</Row>
             <Row label="Chain">{record.chain}</Row>
             <Row label="Submitted">{formatDateTime(record.submittedAt)}</Row>
-            {record.unmetRequirements.map((code) => (
-              <Row key={code} label="Current readiness">
-                {COMPANY_WALLET_UNMET_COPY[code] ?? code}
+            {refusalSentences(record.unmetRequirements, COMPANY_WALLET_UNMET_COPY).map((sentence) => (
+              <Row key={sentence} label="Current readiness">
+                {sentence}
               </Row>
             ))}
           </Rows>

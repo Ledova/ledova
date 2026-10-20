@@ -1,5 +1,5 @@
 import { SelectField } from '@components/SelectField';
-import { DESTINATIONS, SUBSCRIPTION_COPY, formatMoney, getErrorMessage, applicationAmount } from '@ledova/shared';
+import { DESTINATIONS, SUBSCRIPTION_COPY, formatMoney, applicationAmount, failureSentence } from '@ledova/shared';
 import type { DirectoryOpenOffering, Wallet } from '@ledova/shared';
 import { LinkRow, Row, Rows, Section } from '@components/Ledger';
 import { PageAction } from '@components/Page';
@@ -28,7 +28,9 @@ export function SubscribeForm({
   const chosenWallet =
     wallet === null ? (wallets[0]?.uuid ?? '') : (wallets.find((item) => item.uuid === wallet)?.uuid ?? '');
   const amount = applicationAmount(quantity, offering.pricePerShare);
-  const message = getErrorMessage(error, 'The application could not be created. Check the details and try again.');
+  const message = error
+    ? failureSentence(error, 'The application could not be created. Check the details and try again.')
+    : null;
 
   if (wallets.length === 0) {
     return (
