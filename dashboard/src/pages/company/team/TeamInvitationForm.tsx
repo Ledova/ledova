@@ -1,5 +1,6 @@
 import { FIELD_CLASS, LABEL } from '@components/fieldClass';
 import { FormActions, PageAction } from '@components/Page';
+import { Outcome } from '@components/Ledger';
 import { COMPANY_AUTHORITY_CAPABILITIES, type CompanyCapability, type OwnCompanyAppointment } from '@ledova/shared';
 import { useTeamInvitationForm } from './useTeamInvitationForm';
 
@@ -45,8 +46,8 @@ export function TeamInvitationForm({
   });
   if (recorded)
     return (
-      <div role="status" className="space-y-3 text-sm text-text-primary">
-        <p>Invitation recorded: {recorded.uuid}.</p>
+      <div className="space-y-3 text-sm text-text-primary">
+        <Outcome>Invitation recorded.</Outcome>
         {recorded.code ? (
           <>
             <p>

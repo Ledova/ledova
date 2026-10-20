@@ -1,5 +1,6 @@
 import { FIELD_CLASS, LABEL } from '@components/fieldClass';
 import { FormActions, PageAction } from '@components/Page';
+import { Outcome } from '@components/Ledger';
 import { COMPANY_AUTHORITY_DECLARATION, COMPANY_AUTHORITY_DECLARATION_VERSION } from '@ledova/shared';
 import { useAcceptInvitationForm } from './useAcceptInvitationForm';
 
@@ -66,11 +67,7 @@ export function AcceptInvitationForm({
           {error}
         </p>
       )}
-      {receipt && (
-        <p role="status" className="text-sm text-text-primary">
-          {receipt}
-        </p>
-      )}
+      {receipt && <Outcome>{receipt}</Outcome>}
       <FormActions>
         <PageAction
           type="submit"

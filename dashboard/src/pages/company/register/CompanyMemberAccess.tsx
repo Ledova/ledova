@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { formatDateTime, type OrderSubmissionOwner, type TokenHoldersResponse } from '@ledova/shared';
-import { Section } from '@components/Ledger';
+import { Outcome, Section } from '@components/Ledger';
 import { PersonSelect } from '@pages/company/register/shared/PersonPicker';
 import { PageAction } from '@components/Page';
 import { Confirmation } from '@components/Modal';
@@ -70,11 +70,7 @@ export function CompanyMemberAccess({
           {access.error}
         </p>
       )}
-      {access.notice && (
-        <p role="status" className="text-sm">
-          {access.notice}
-        </p>
-      )}
+      {access.notice && <Outcome>{access.notice}</Outcome>}
       {access.retry && (
         <PageAction
           label="Retry original company member action"
