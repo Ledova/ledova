@@ -197,10 +197,10 @@ Ledova, and its holdings must match the stored register. On the web:
    created, on the web and on mobile.
 2. Share details: open an existing draft class from its link, or choose a common class (Ordinary
    ORD, Preference PRF or Redeemable RED) or Another class with the company's own name, code and
-   type. The company choices
-   come from current personal administrator or preparer appointments, without granting access to
-   private company Settings ([share classes](issuing-shares.md#share-classes)). A class set up here
-   carries a technical share limit instead of authorised capital. Repeat for each class.
+   type. The company choices come from current personal administrator or preparer appointments,
+   without granting access to private company Settings
+   ([share classes](issuing-shares.md#share-classes)). A class set up here carries a technical share
+   limit instead of authorised capital. Repeat for each class.
    With no classes yet, a preparer uses the company sidebar's Register and its setup action.
    Preparation access does not change their initial landing page or account role.
 3. Shareholders, one at a time: choose a recorded person or New person

@@ -334,7 +334,7 @@ function Preparation({ commands }: { commands: Commands }) {
           { value: '', label: 'Select the genuine successful ADD for this nomination' },
           ...approvals.map((row) => ({
             value: row.changeId!,
-            label: `Approved ${formatDateTime(row.reviewedAt)} · ${
+            label: `Admitted ${formatDateTime(row.reviewedAt)} · ${
               row.expiresAt ? `until ${formatDateTime(row.expiresAt)}` : 'without an expiry'
             }`,
             reference: row.changeId!.slice(0, 8),

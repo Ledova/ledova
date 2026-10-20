@@ -212,10 +212,10 @@ field and options named in words:
 - an evidence source reads as its kind, status and date, and a classification claim as its kind and
   date;
 - an offering reads as its class, status and date;
-- a company ADD for a nominated wallet reads as when it was approved and until when.
+- a company ADD for a nominated wallet reads as when it was admitted and until when.
 
-A short record reference is added only to options that would otherwise read the same, as with
-people who share a name and address.
+These five lists add a short record reference only to options that would otherwise read the same,
+as with people who share a name and address. Wallet options show the wallet's name or address.
 
 Register setup offers a class already started as links in a sentence, and the new class's kind as
 radio buttons, so choosing never moves the page by itself. Sign-up keeps its own presentation: its

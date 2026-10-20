@@ -167,6 +167,11 @@ function DocumentCard({ initialDoc, claims }: { initialDoc: Document; claims: In
   const doc = liveQuery.data ?? initialDoc;
   const extraction = doc.latestExtraction;
   const attached = claims.find((claim) => claim.uuid === doc.classification);
+  const attachedLabel = attached
+    ? claims.some((claim) => claim.uuid !== attached.uuid && claimLabel(claim) === claimLabel(attached))
+      ? `${claimLabel(attached)} · ${attached.uuid.slice(0, 8)}`
+      : claimLabel(attached)
+    : doc.classification?.slice(0, 8);
   const del = useDeleteDocument();
   const attach = useAttachDocument();
   const [classification, setClassification] = useState('');
@@ -202,7 +207,7 @@ function DocumentCard({ initialDoc, claims }: { initialDoc: Document; claims: In
 
       {doc.classification ? (
         <p className="mt-3 text-xs text-text-muted">
-          Attached to claim {attached ? claimLabel(attached) : doc.classification.slice(0, 8)}. Retained{' '}
+          Attached to claim {attachedLabel}. Retained{' '}
           {doc.retentionUntil ? `until ${formatDocumentDate(doc.retentionUntil)}` : 'with the claim'}.
         </p>
       ) : (
