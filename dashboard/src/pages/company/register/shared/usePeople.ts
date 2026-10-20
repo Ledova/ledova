@@ -4,7 +4,6 @@ import {
   isRegisterImportMembers,
   type OrderSubmissionOwner,
   type RegisterTransferMembers,
-  type TokenHoldersResponse,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
 import { READ_TIMING, registerKey } from '@hooks/useRegisterAccess';
@@ -48,18 +47,12 @@ export function usePeople(owner: OrderSubmissionOwner, token: string, guard: () 
   });
 }
 
-export function peopleFrom(data: RegisterTransferMembers | undefined, registers: TokenHoldersResponse[] = []) {
+export function peopleFrom(data: RegisterTransferMembers | undefined) {
   if (!data) return [];
-  const named = new Map(
-    registers
-      .flatMap((register) => register.holders)
-      .filter((holder) => holder.name)
-      .map((holder) => [holder.member, holder.name as string]),
-  );
   return [
     ...data.members.map((row) => ({
       member: row.member,
-      name: row.name || named.get(row.member) || '',
+      name: row.name || '',
       residentialAddress: row.residentialAddress ?? '',
       walletless: row.walletless,
       particularsRetained: row.particularsRetained,

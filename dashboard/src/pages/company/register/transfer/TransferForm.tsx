@@ -74,9 +74,9 @@ export function TransferForm({
           onChange={(value) => {
             change('toMember', value);
             const chosen = eligible.find((member) => member.member === value);
-            if (chosen?.awardOnly) {
-              change('name', chosen.name);
-              change('residentialAddress', chosen.residentialAddress);
+            if (chosen?.awardOnly || recipient?.awardOnly) {
+              change('name', chosen?.awardOnly ? chosen.name : '');
+              change('residentialAddress', chosen?.awardOnly ? chosen.residentialAddress : '');
             }
           }}
           context={inClass}
@@ -100,7 +100,7 @@ export function TransferForm({
             Last ceased in this class: {recipient.lastCeasedOn}. The same member ID is retained on return.
           </p>
         )}
-        {fresh && draft.toMember !== 'new' && (
+        {fresh && draft.toMember !== 'new' && !recipient?.awardOnly && (
           <p className="text-sm text-text-muted">
             This member’s particulars passed the retention period. Supply their current particulars from the signed
             instrument, keeping their existing member ID.

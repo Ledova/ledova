@@ -1268,8 +1268,8 @@ shows who holds shares, with a page per person for their particulars, holdings, 
 access to their own records. Member access moves there from Settings, which changes the
 [12 October](#ownership-dashboard-and-compact-sidebar) placement of named-member invitations.
 Employee awards stays a distinct workflow, because an award is an entitlement, not a shareholding
-([10 October](#first-scopes-for-employee-awards-and-external-capital)); its recipients are chosen
-with the same person picker as every other flow, and issuing vested shares is to use the same issue
+([10 October](#first-scopes-for-employee-awards-and-external-capital)); on the web its recipients
+are chosen with the same person picker as every other flow, and issuing vested shares is to use the same issue
 flow as Register. For award recipients the owner chose a person record from the award onwards, without a
 place on the register of members until shares are issued. The web comes first, in steps the owner
 checks one at a time: the Shareholders page

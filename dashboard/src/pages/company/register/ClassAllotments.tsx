@@ -107,10 +107,22 @@ export function ClassAllotments({
   }, [blocked, privateReady, visible]);
   const opened = useRef(false);
   useEffect(() => {
-    if (!issueMember || opened.current || editing || !appointment || blocked || !members.isSuccess) return;
+    if (editing) opened.current = true;
+  }, [editing]);
+  useEffect(() => {
+    if (
+      !issueMember ||
+      opened.current ||
+      editing ||
+      !appointment ||
+      blocked ||
+      !members.isSuccess ||
+      members.isFetching
+    )
+      return;
     opened.current = true;
     setEditing(appointment);
-  }, [issueMember, editing, appointment, blocked, members.isSuccess]);
+  }, [issueMember, editing, appointment, blocked, members.isSuccess, members.isFetching]);
   const recordHeld = useCallback((uuid: string, held: boolean) => {
     setDecisionHolds((current) => (current[uuid] === held ? current : { ...current, [uuid]: held }));
   }, []);

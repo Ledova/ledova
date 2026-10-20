@@ -1,4 +1,5 @@
 import { registerHoldersKey } from '@pages/company/shared/useCompanyRegister';
+import { allPeopleKey } from '@pages/company/register/shared/usePeople';
 import { useCallback } from 'react';
 import { generatePath } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
@@ -209,6 +210,7 @@ export function ClassCorrections({
     await Promise.all(
       [
         correctionsKey(owner, token),
+        allPeopleKey(owner),
         entriesKey(owner, token),
         registerHoldersKey(owner),
         ownAppointmentsKey(owner),

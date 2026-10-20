@@ -113,7 +113,9 @@ export function GrantForm({
           <PersonFields name={name} residentialAddress={address} onName={setName} onResidentialAddress={setAddress} />
         ) : !award ? (
           <p className="text-sm text-text-muted">
-            The grant retains the existing member’s current particulars. Preview them before approval.
+            {people.some((row) => row.member === member && row.awardOnly)
+              ? 'The issue uses the name and address on their award. Preview them before approval.'
+              : 'The grant retains the existing member’s current particulars. Preview them before approval.'}
           </p>
         ) : null}
         <label className={LABEL}>

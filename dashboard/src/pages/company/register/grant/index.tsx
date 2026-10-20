@@ -192,7 +192,7 @@ function OwnGrant({
               guard={awardUuid ? awardGuard : guard}
               company={company}
               token={uuid}
-              people={peopleFrom(people.data, registers.data)}
+              people={peopleFrom(people.data)}
               appointment={formAppointment}
               blocked={!ready || stale || busy}
               visible={visible}

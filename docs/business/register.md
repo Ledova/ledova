@@ -570,8 +570,8 @@ current company register appointment and settled reads, as on Register.
 
 On the web, every register flow chooses its person the same way: register setup, investor and
 non-paid issues, transfers, employee awards and member invitations. One list holds the company's
-members, named by their recorded particulars (or, for a wallet-linked member, by the register's
-holder name), and award recipients without shares, marked as such. Each option reads "Name ·
+members, named by their recorded particulars, and award recipients without shares, marked as
+such. Each option reads "Name ·
 address", with a short record reference only when two people share both. **New person** asks for a
 name and residential address. Each flow keeps its own rule for who can be chosen:
 
