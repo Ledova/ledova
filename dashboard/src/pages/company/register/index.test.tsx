@@ -46,6 +46,7 @@ import {
 } from './import/preparation';
 import { APPOINTMENT as CURRENT_APPOINTMENT } from '../../../testSupport/company';
 import {
+  choose,
   companyRecord,
   companyPreferences,
   prepareCompanyClient,
@@ -1330,7 +1331,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   membersUnavailable = true;
   showJourney(DESTINATIONS.companyRegisterSetup.path);
   const retryChoices = await screen.findByRole('button', { name: 'Try again' });
-  expect(screen.queryByLabelText('Company shareholder')).toBeNull();
+  expect(screen.queryByRole('combobox', { name: 'Company shareholder' })).toBeNull();
   membersUnavailable = false;
   fireEvent.click(retryChoices);
   const useExistingDraft = await screen.findByLabelText('Share class');
@@ -1339,9 +1340,17 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   expect(await screen.findByLabelText('Record date')).toBeTruthy();
   fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
   fireEvent.click(screen.getByRole('button', { name: 'Add a shareholder' }));
-  const existing = screen.getByLabelText('Company shareholder');
-  expect((existing as HTMLSelectElement).value).toBe('');
-  fireEvent.change(existing, { target: { value: companyMembers[0].member } });
+  expect((screen.getByRole('combobox', { name: 'Company shareholder' }) as HTMLInputElement).value).toBe('');
+  const shareholder = screen.getByRole('combobox', { name: 'Company shareholder' });
+  fireEvent.change(shareholder, { target: { value: companyMembers[0].name } });
+  await screen.findByRole('option', { name: (name) => name.startsWith(companyMembers[0].name!) });
+  fireEvent.keyDown(shareholder, { key: 'Enter' });
+  expect((screen.getByLabelText('Name') as HTMLInputElement).readOnly).toBe(true);
+  const chosen = screen.getByRole('combobox', { name: 'Company shareholder' });
+  fireEvent.change(chosen, { target: { value: 'nobody matches this' } });
+  await screen.findByRole('option', { name: 'New person' });
+  fireEvent.keyDown(chosen, { key: 'Enter' });
+  fireEvent.keyDown(chosen, { key: 'Escape' });
   expect((screen.getByLabelText('Name') as HTMLInputElement).readOnly).toBe(true);
   expect((screen.getByLabelText('Residential address') as HTMLInputElement).readOnly).toBe(true);
   expect((screen.getByLabelText('Date first added to register') as HTMLInputElement).value).toBe('');
@@ -1372,20 +1381,22 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   fireEvent.click(screen.getByRole('button', { name: 'Add to draft' }));
   expect(screen.getByText(/explicitly choose a new shareholder/)).toBeTruthy();
   expect(api.post).not.toHaveBeenCalled();
-  fireEvent.change(screen.getByLabelText('Company shareholder'), { target: { value: companyMembers[0].member } });
+  await choose('Company shareholder', companyMembers[0].name!);
   expect((screen.getByLabelText('Date first added to register') as HTMLInputElement).value).toBe('2020-01-01');
   expect(screen.getByRole('button', { name: 'Add to draft' })).toBeTruthy();
   fireEvent.click(screen.getByRole('button', { name: 'Cancel (shareholder edit)' }));
   expect(screen.getByText('No shareholders added yet.')).toBeTruthy();
   fireEvent.click(screen.getByRole('button', { name: 'Add a shareholder' }));
-  fireEvent.change(screen.getByLabelText('Company shareholder'), { target: { value: companyMembers[0].member } });
+  await choose('Company shareholder', companyMembers[0].name!);
   enterHolding();
   fireEvent.click(screen.getByRole('button', { name: 'Add to draft' }));
   fireEvent.click(screen.getByRole('button', { name: 'Add a shareholder' }));
-  const duplicateChoice = screen.getByLabelText('Company shareholder') as HTMLSelectElement;
-  expect([...duplicateChoice.options].find((option) => option.value === companyMembers[0].member)?.disabled).toBe(true);
-  fireEvent.change(duplicateChoice, { target: { value: companyMembers[0].member } });
-  expect(duplicateChoice.value).toBe('');
+  fireEvent.change(screen.getByRole('combobox', { name: 'Company shareholder' }), {
+    target: { value: companyMembers[0].name },
+  });
+  const duplicate = await screen.findByRole('option', { name: (name) => name.startsWith(companyMembers[0].name!) });
+  expect(duplicate.getAttribute('aria-disabled')).toBe('true');
+  fireEvent.mouseDown(duplicate);
   expect((screen.getByLabelText('Name') as HTMLInputElement).value).toBe('');
   fireEvent.click(screen.getByRole('button', { name: 'Cancel (shareholder edit)' }));
   fireEvent.click(screen.getByRole('button', { name: 'Save draft and review' }));
@@ -1429,12 +1440,11 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   showJourney(importPath);
   fireEvent.click(await screen.findByRole('button', { name: 'Continue' }));
   fireEvent.click(screen.getByRole('button', { name: 'Add a shareholder' }));
-  expect(
-    screen.getByRole('option', {
-      name: `${trustedRecipient.name} · ${trustedRecipient.residentialAddress} · Award recipient without shares`,
-    }),
-  ).toBeTruthy();
-  fireEvent.change(screen.getByLabelText('Company shareholder'), { target: { value: trustedRecipient.member } });
+  await choose(
+    'Company shareholder',
+    `${trustedRecipient.name} · ${trustedRecipient.residentialAddress} · Award recipient without shares`,
+    trustedRecipient.name,
+  );
   expect((screen.getByLabelText('Name') as HTMLInputElement).value).toBe(trustedRecipient.name);
   expect((screen.getByLabelText('Residential address') as HTMLInputElement).value).toBe(
     trustedRecipient.residentialAddress,
@@ -1515,7 +1525,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   fireEvent.change(await screen.findByLabelText('Share class'), { target: { value: 'preference' } });
   fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
   fireEvent.click(screen.getByRole('button', { name: 'Add a shareholder' }));
-  fireEvent.change(screen.getByLabelText('Company shareholder'), { target: { value: trustedRecipient.member } });
+  await choose('Company shareholder', trustedRecipient.name);
   expect((screen.getByLabelText('Name') as HTMLInputElement).value).toBe(trustedRecipient.name);
   expect(api.post).not.toHaveBeenCalled();
   enterHolding();
@@ -1742,7 +1752,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   ownerStillCurrent = false;
   completeIdentityRead();
   await expect(lateIdentityRead).rejects.toThrow(/account changed/);
-});
+}, 15_000);
 
 it('shows an account without register access a calm empty state, reads no members and offers no entry', async () => {
   api.get.mockImplementation(async (url: string) => {

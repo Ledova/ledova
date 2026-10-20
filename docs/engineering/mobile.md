@@ -5,7 +5,7 @@
 How the Expo React Native app consumes the shared package, navigates, themes itself, reaches the
 network and stores secrets, and how scanners, provider web views and temporary files respond to
 focus, app lock and session changes. Shared page conventions are in
-[signed-in page conventions](frontend.md#signed-in-page-conventions); builds, probes and device
+[signed-in page conventions](frontend-ux.md#signed-in-page-conventions); builds, probes and device
 checks in [mobile releases](mobile-releases.md). Use a Ledova native build; Expo Go lacks its
 networking overrides and scanner module.
 

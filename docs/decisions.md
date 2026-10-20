@@ -47,6 +47,7 @@ stay here as history and are marked where they appear.
 | [Dashboard, Settings and Register for a new company](#dashboard-settings-and-register-for-a-new-company)        | 19 October 2026                                | Current; #1155 (web), #1157 (mobile)                                                                            |
 | [Share classes, shareholders and employee awards](#share-classes-shareholders-and-employee-awards)              | 20 October 2026                                | Shareholders page (#1166) and one person picker (#1167) on the web; #1168–#1170 planned                         |
 | [Paper and Dark themes](#paper-and-dark-themes)                                                                 | 14 October 2026                                | Current; #1040                                                                                                  |
+| [Frontend UX standards](#frontend-ux-standards)                                                                 | 20 October 2026                                | Searchable person choice on the web (#1176); #1177–#1183 planned                                                |
 | [The account-data export](#the-account-data-export)                                                             | 23 September 2026                              | Current                                                                                                         |
 | [Tenancy, sessions and deployment](#tenancy-sessions-and-deployment)                                            | 3 October 2026                                 | Current                                                                                                         |
 | [Contracts compiler and toolchain](#contracts-compiler-and-toolchain)                                           | Undated                                        | Current                                                                                                         |
@@ -1296,6 +1297,33 @@ This supersedes the "One look" choice under
 preference. Dark is a second palette for the same semantic tokens. The web
 and mobile delivery is described in
 [frontend](engineering/frontend.md#design-tokens-and-themes).
+
+## Frontend UX standards
+
+On 20 October 2026 the owner asked for the promised-recipient choice to scale to thousands of
+shareholders, employees and recipients and, beyond it, for "a consistent, scalable, and
+maintainable UX approach across Ledova": "Keep simplicity as a core principle. We shouldn't
+introduce unnecessary abstractions, dependencies, or complexity. Prefer established patterns and
+reuse what already exists whenever appropriate." The research, the review of both clients and the
+proposal are in #1174, and the owner approved it as recommended:
+
+- **The control follows the data.** Short fixed lists are radio buttons, bounded lists a native
+  select, and anything that grows with a company a searchable list built on the Headless UI
+  `Combobox` the dashboard already uses. Browsing records is a table or list with search, filters
+  and paging, never a picker.
+- **People are searched in the browser for now**, over the one list each flow already reads; server
+  search follows when lists outgrow one read, behind the same control. After the first review the
+  owner kept two departures from the proposal ("Keep both"): a list shows at most 50 matches and
+  anyone further down is found by typing, with the full list on Shareholders, rather than scrolling
+  every person; and a choice can be replaced but not emptied, so there is no clear button.
+- **Forms are checked on submit**, with an error summary and a message on each field, rather than a
+  disabled button that cannot say why.
+- **Tables page by number and feeds load more.**
+- **One home for the standards,** [frontend UX standards](engineering/frontend-ux.md). Each rule
+  lands across the whole app with its reference implementation, so the document only describes
+  delivered behaviour.
+- **Order:** the standards document and searchable person choice first (#1176), then issuing shares
+  from Register (#1168), then the remaining steps (#1177–#1183) alternating with #1169 and #1170.
 
 ## The signed-in app
 

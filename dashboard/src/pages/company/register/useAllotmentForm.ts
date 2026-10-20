@@ -12,10 +12,11 @@ import {
   type OwnCompanyAppointment,
   type RegisterAllotmentPreparation,
   type RegisterEvidence,
+  personRequest,
+  type Person,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
 import { useEffect, useRef, useState } from 'react';
-import { personRequest, type Person } from '@pages/company/register/shared/usePeople';
 export type DocumentKind = 'authority' | 'agreement' | 'receipt';
 export function useAllotmentForm({
   company,

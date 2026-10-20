@@ -1,8 +1,12 @@
-import { registerImportMoney, type RegisterTransferMember, type RegisterAwardRecipient } from '@ledova/shared';
+import {
+  registerImportMoney,
+  type RegisterTransferMember,
+  type RegisterAwardRecipient,
+  peopleFrom,
+} from '@ledova/shared';
 import { FIELD_CLASS, LABEL } from '@components/fieldClass';
 import { PageAction } from '@components/Page';
 import { PersonFields, PersonSelect } from '@pages/company/register/shared/PersonPicker';
-import { peopleFrom } from '@pages/company/register/shared/usePeople';
 import { blankAllotment, type AllotmentDraft, type MemberDraft } from './preparation';
 
 export function MemberFields({
@@ -40,7 +44,6 @@ export function MemberFields({
           label="Company shareholder"
           people={people}
           value={retained?.member ?? (row.identityChoice === 'new' ? 'new' : '')}
-          placeholder="Choose a recorded person or a new person"
           disabledMembers={usedMembers}
           onChange={(value) => {
             if (value === 'new')

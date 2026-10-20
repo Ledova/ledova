@@ -3,8 +3,9 @@
 [Engineering](README.md) · [Documentation](../README.md)
 
 How the web dashboard, the public site and the shared TypeScript package are organised and built,
-the rules frontend code follows, and the conventions every signed-in page follows on web and mobile.
-The mobile app's own architecture is in [mobile](mobile.md); what each page does is in the business
+and the rules frontend code follows. The conventions every signed-in page follows on web and mobile,
+and the standard way to make each common choice, are in [frontend UX standards](frontend-ux.md). The
+mobile app's own architecture is in [mobile](mobile.md); what each page does is in the business
 section linked from [Pages](#pages).
 
 - [Clients and the shared package](#clients-and-the-shared-package)
@@ -18,7 +19,6 @@ section linked from [Pages](#pages).
 - [Lists, figures and currency](#lists-figures-and-currency)
 - [Recovering a submitted company request](#recovering-a-submitted-company-request)
 - [The shared register client layer](#the-shared-register-client-layer)
-- [Signed-in page conventions](#signed-in-page-conventions)
 - [Design tokens and themes](#design-tokens-and-themes)
 - [Pages](#pages)
 
@@ -246,7 +246,7 @@ test placement remain review checks. Moves remove the corresponding debt in the 
    gets its service and contract types in `packages/shared` first; add a shared hook when mobile
    needs the same logic.
 5. Build it from `Page`, the ledger blocks, `Modal` and `fieldClass`
-   ([signed-in page conventions](#signed-in-page-conventions)), one `PascalCase.tsx` per section or
+   ([signed-in page conventions](frontend-ux.md#signed-in-page-conventions)), one `PascalCase.tsx` per section or
    dialog, and link it from its parent with `LinkRow` or from the sidebar by its `DESTINATIONS` key.
 6. When a second page needs one of its files, move the file by the placement rule in the same
    change.
@@ -492,78 +492,6 @@ pages share `PreparationShell.tsx` for Back, preference fallback and read-only p
 `useRegisterPreparationOwner.ts` for the same account boundary and preferences reads. Page and form
 keys, held work, specialised refusal states and the import title remain with their pages.
 
-## Signed-in page conventions
-
-Every signed-in page renders in `Page` (`dashboard/src/components/Page.tsx`,
-`mobile/src/components/Page.tsx`) under the page's title. Web
-forms use `FIELD_CLASS` and `LABEL` (`dashboard/src/components/fieldClass.ts`). `Page narrow` bounds
-task forms, settings and detailed records, including compact tables; ownership dashboards and wide
-tables take the standard workspace width, and tables scroll within their card on small screens.
-Section spacing is scoped to the frame; sign-up keeps its own presentation.
-
-The title row holds the title and the page's actions, with a one-sentence muted lede under it only
-where it adds to the titles. The first section follows at the same gap as between sections (`Page`
-is one flex column with a single gap; add no margin under the title). On mobile `Page` is a scroll
-view on the page ground: the title (Newsreader, `theme.fontSize.xxxxl`), the lede, then the actions
-as one wrapping row, since a phone's large title leaves no room beside it; the stack header holds
-only the menu or back button and, on a top-level screen, the bell. Mobile screens framed
-differently: Help & Support keeps its stack title; Send, Transfer, Verify Wallet and Recovery Phrase
-are titled inside their `Panel` card (`mobile/src/components/panel`); Buy crypto is its dialog over
-the bare page ground, then the provider's web view.
-
-The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components/Ledger.tsx`) and
-`PageAction` (`dashboard/src/components/Page.tsx`) each enforce one rule:
-
-- `Section`: a raised card on the page ground (`bg-surface-raised`, a `border-border` hairline,
-  `rounded-2xl` in the frame, `rounded-xl` outside it) with its Newsreader title inside. Forms and
-  things to act on are cards too; a group inside a card gets a rule or a small heading, never a
-  nested card. An empty section keeps its real title, one muted sentence ("No activity yet.") and at
-  most one action; a state is never a title.
-- `Rows` and `Row`: ruled label and value pairs, figures right-aligned in tabular numerals.
-- `LinkRow`: the one way a page reaches each sub-page or neighbour; the whole row is the link, named
-  after its destination, with optional detail lines and an aside. A title row never repeats a
-  sidebar destination; an underlined link belongs to a sentence or opens an external resource.
-- `PageAction` (`Action` on mobile): a content-width button placed with what it acts on: the title
-  row for the page (including the way back to the parent), a section for that section, a row for
-  that row's record alone. Nothing is selected before acting, and no toolbar waits under a list.
-- `Disclosure`: a button with `aria-expanded` (expanded or collapsed on mobile) and a leading caret
-  that opens its detail in place under its row, held only while open; other open rows stay open
-  (`useOpenRows` from `@ledova/shared`). Activity's filter and Wallets' sort (once a chain holds two
-  wallets) are a `Disclosure` at the top of the card naming what it applies; applying or clearing
-  closes it and every open entry and returns focus to its button. Dialogs are for work that sets the
-  page aside: a form that creates or changes something, a signing step or a confirmation.
-- `SwitchRow`: a setting that takes effect at once (Transaction alerts; Dark theme; Show this
-  company to eligible investors), as an On/Off pill or native switch (`role="switch"`,
-  `aria-checked` the saved value), disabled while saving; a refusal keeps the saved value and shows
-  an alert in the card. A choice saved with a form stays a checkbox.
-- `Status` is words after a small mark, read as words only; `Timeline` (web) dates each event;
-  `Choice` (mobile) is an outlined choice marked selected. Each status family has its own
-  tone map; shared subscription and resolution-result tones live in
-  `dashboard/src/components/statusTones.ts`. Personal applications retain their moving fallback,
-  company applications their waiting fallback, and an open offering retains its override.
-
-A dialog (`Modal` in `dashboard/src/components/Modal.tsx`; `CustomModal` in
-`mobile/src/components/modal`) is the same card over the dimmed page, labelled by its Newsreader
-title (on mobile a header with `accessibilityViewIsModal`, since React Native cannot make it the
-accessible name). Its body scrolls inside, and `ModalActions` ends it with one right-aligned,
-wrapping row of content-width actions: a plain Cancel, Close or Back, then the one primary action.
-On mobile the backdrop closes it; a busy dialog holds the backdrop, Android Back and Cancel.
-
-Inside cards and dialogs nothing is boxed: fields share the card's surface with a hairline border
-(`rounded-lg border border-border bg-surface-raised`; `useDialogStyles` on mobile), steps are
-numbered lines, and warnings (beside an icon) and errors are coloured text, not tinted boxes. The
-exceptions are the tinted extraction-status pill beside a saved payslip on Profile, the dashed
-upload area, and sign-in and the sign-up steps, which keep tinted fields and boxed outcomes within
-the same cards and titles. Addresses, hashes and signing summaries
-use the monospaced face (`font-mono`; `theme.fontFamily.mono`).
-
-Show ownership, status and one primary next action directly, with labels beside their values and
-balanced field groups; keep full audit identifiers and optional detail behind detail controls; never
-repeat titles or general explanations or show read and edit views together. Action-specific
-authority, privacy, incomplete-data and recovery guidance stays visible where relevant, and a
-presentation change must not reset pending work, hide uncertainty or change what a confirmation
-authorises.
-
 ## Design tokens and themes
 
 `packages/shared/src/constants/ui/design-tokens.ts` is the single source of design tokens.
@@ -658,13 +586,24 @@ Each page links to its business section; the audience is the `DESTINATIONS` audi
   retry and an uncertain decision its recovery. Private content renders only while its view is
   visible, its reads have settled and `hasCurrentRegisterReadAuthority` confirms a current
   register-read appointment.
-- Choosing a person on the web: every register flow reads one people list
-  (`dashboard/src/pages/company/register/shared/usePeople.ts`, the `register/members/` read validated by
-  `isRegisterImportMembers`) and renders `PersonSelect` and `PersonFields`
-  (`shared/PersonPicker.tsx`). `personRequest` sends an award recipient without shares under their
+- Choosing a person on the web: register setup, investor and non-paid issues, transfers and employee
+  awards read one people list (`dashboard/src/pages/company/register/shared/usePeople.ts`, the
+  `register/members/` read validated by `isRegisterImportMembers`) and render `PersonSelect` and
+  `PersonFields` (`shared/PersonPicker.tsx`), the searchable list in
+  [choosing a person](frontend-ux.md#choosing-a-person).
+  - Member invitations give `PersonSelect` the company's holders and award recipients from
+    `invitationMembers`.
+  - The share-class issue's member choice reads `register/members/` through
+    `useCompanyIssueInstructions`.
+  - Wallet links label the holders of every class with `registerLinkMemberLabels`, and register
+    opening labels its linked members with `openingMemberLabels`.
+
+  `personRequest`
+  (`packages/shared/src/utils/people.ts`) sends an award recipient without shares under their
   reserved member ID with their award's particulars, as register setup does; each flow filters the
   list by its own rule. Navigation state `issueMember` opens Record investor share issue with that
   person chosen, and `fromMember` chooses a transfer's transferor.
+
 - A shareholder's page on the web (`dashboard/src/pages/company/register/member`): reads the named
   company's classes and holders through the same queries as Register, the company's recorded
   particulars (`register/members/` of its first class), every page of the member's entries in each
@@ -715,5 +654,5 @@ Each page links to its business section; the audience is the `DESTINATIONS` audi
   distinguishes an unavailable record from disabled alerts. Account deletion clears cached account
   data after the server confirms.
 
-Next: [mobile](mobile.md), [authentication](security.md#authentication-and-sessions),
+Next: [frontend UX standards](frontend-ux.md), [mobile](mobile.md), [authentication](security.md#authentication-and-sessions),
 [company workflow API](backend.md#company-workflow-api) and [testing](testing.md).
