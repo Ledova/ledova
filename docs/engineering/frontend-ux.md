@@ -416,8 +416,10 @@ a class's employee awards, a section whose read failed hides its Refresh action 
 succeeds again.
 
 Loading lines, refresh actions, a failed refresh and empty states are still to follow under
-[#1180](https://github.com/Ledova/ledova/issues/1180). So are the recoveries of an interrupted
-action, such as "Retry original member action", which keep their own wording until then.
+[#1180](https://github.com/Ledova/ledova/issues/1180). Until then, pages that report a failed read
+beside their own Refresh action keep that sentence: company eligibility, member access, and Home's
+member records. Recoveries of an interrupted action, such as "Retry original member action", keep
+their own wording.
 
 ## Validation
 
