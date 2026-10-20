@@ -32,7 +32,7 @@ export function useRecordFeed<Row extends { uuid: string }>(
       hasMore: query.hasNextPage,
       failed: pages.moreFailed,
       loading: query.isFetchingNextPage,
-      disabled: query.isFetching && !query.isFetchingNextPage,
+      disabled: query.isFetching,
       onLoad: () => void pages.loadMore(),
     },
     refetch: query.refetch,

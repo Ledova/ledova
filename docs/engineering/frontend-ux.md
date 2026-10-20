@@ -373,14 +373,26 @@ name, wallet address or payment reference, filter by status, with the chosen off
 address too. Shareholders searches and pages the register the page has already read in full, since
 its ownership totals need every holding: the same box and pager, matching every word ignoring case
 and accents (`searchRows` in `packages/shared/src/utils/search.ts`), with the share class as its
-filter. Each class's former shareholders show 25 at a time with Load more.
+filter.
+
 The feeds are Activity, an investor's Applications, Notices, the notification bell, Published to
-your members and a class's register entries. A list bounded by one person, such as their own
-documents, classification claims or wallets, reads every page. Other lists still read every page
-([frontend](frontend.md#lists-figures-and-currency)). Every table uses `Table`, apart from the
-company dashboard's largest-shareholder legend beside its chart, which keeps a compact layout with
-its own caption and header scopes. An import's member snapshot opens each member's allotments in a
-dialog named Allotments, so Details always opens a record's own page.
+your members, a class's register entries, a share class's issuance requests, authorised share
+requests and issuances (`useRecordFeed`), and each class's former shareholders, shown 25 at a time
+from the register already read. A list bounded by one person, such as their own documents,
+classification claims or wallets, reads every page. Other lists still read every page
+([frontend](frontend.md#lists-figures-and-currency)).
+
+**The register's records are the one stated exception.** Each share class's allotments, transfers,
+openings, imports, corrections, particulars changes, member links, deployments, awards and grants,
+and company member access, read every page. Each record keeps its own recovery for an uncertain
+reply, and a newer record shifting the pages would unmount the oldest loaded one and lose it; these
+lists grow only with one company's register decisions. The owner chose this on 21 October 2026,
+to revisit if registers grow large ([decision](../decisions.md#frontend-ux-standards)).
+
+Every table uses `Table`, apart from the company dashboard's largest-shareholder legend beside its
+chart, which keeps a compact layout with its own caption and header scopes. An import's member
+snapshot opens each member's allotments in a dialog named Allotments, so Details always opens a
+record's own page.
 
 Next: [frontend](frontend.md), [mobile](mobile.md) and
 [the register's person choice](../business/register.md#choosing-a-person).
