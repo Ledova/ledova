@@ -16,6 +16,7 @@ export const REGISTER_OPENING_UNMET_COPY: Record<string, string> = {
   boundary_changed:
     'The chain no longer confirms the boundary block this opening was prepared at, or its finality policy changed. ' +
     'Reject it and prepare a new opening from the current holdings.',
+  deployment_pending: 'A share-class deployment is pending. Wait for its outcome before deciding this opening.',
   register_initialized:
     "This share class's register already has an entry, so it cannot be opened again. Reject this opening.",
   completions_not_represented:

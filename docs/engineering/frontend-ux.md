@@ -17,6 +17,7 @@ and [mobile](mobile.md); what each page does is in the business section.
 - [Choosing from a bounded list](#choosing-from-a-bounded-list)
 - [How the choice rules are enforced](#how-the-choice-rules-are-enforced)
 - [Lists, search, filters and paging](#lists-search-filters-and-paging)
+- [Validation](#validation)
 
 ## Signed-in page conventions
 
@@ -393,6 +394,33 @@ your members and a class's register entries. A list bounded by one person, such 
 documents, classification claims or wallets, reads every page. Other lists still read every page
 ([frontend](frontend.md#lists-figures-and-currency)), and the register, ownership and import tables
 keep their own markup until they move.
+
+## Validation
+
+This section covers what a page shows when a request fails. Checking forms before they are sent is
+still to come ([#1179](https://github.com/Ledova/ledova/issues/1179)).
+
+- **Request errors.** A failure reads as one `role="alert"` sentence from `failureSentence`
+  (`packages/shared/src/utils/errors.ts`), never the transport's "Request failed with status code
+  400". When the server answered, the sentence is its own words with each field error included
+  (`apiErrorSentence`), or else the caller's fallback, which names what failed ("The wallet could
+  not be saved. Try again."). A failure that never reached the server shows its own message, such as
+  "Unable to connect to our servers…" or "Your signed-in account changed. Reopen company team.", or
+  the fallback when it has none. Pages that still read with `apiErrorSentence`, such as the register
+  preparation forms, documents and sign-up, show their fallback for such a failure instead; those
+  that pass the fallback twice still show a message thrown with `createUserFriendlyError`.
+  Sign-in and sign-up place field errors on their fields with `readApiError`; other forms show them
+  in the one sentence.
+- **Refusal codes.** The server names unmet requirements and refusals as codes. Each family's copy
+  map in `packages/shared/src/constants/business/` turns them into sentences: `refusalSentences` for
+  a preview's or record's list, and `refusalSentence` for a refused request, before any other
+  reading. A code the map lacks reads as "Another requirement is not met. Refresh before
+  continuing.", or as the caller's fallback for a refused register decision. `readApiError` never
+  reads a code list as a sentence, so a code never reaches the screen.
+- **Enforcement.** ESLint refuses `getErrorMessage` in the dashboard (`no-restricted-imports`) and in
+  the shared package (`no-restricted-syntax`). Mobile still uses it, so a field error there can read
+  "Request failed with status code 400" until [#1201](https://github.com/Ledova/ledova/issues/1201)
+  moves it to these rules.
 
 Next: [frontend](frontend.md), [mobile](mobile.md) and
 [the register's person choice](../business/register.md#choosing-a-person).

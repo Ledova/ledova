@@ -1,16 +1,17 @@
 import {
   downloadRegisterPauseChangeFile,
   failureStatus,
-  getErrorMessage,
   isRegisterEvidenceReceipt,
   uploadRegisterEvidence,
   useCompanyPauseChanges,
   type RegisterEvidence,
   type RegisterPauseChange,
+  failureSentence,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
 import { saveFile } from '@utils/saveFile';
 import { useEffect, useRef, useState } from 'react';
+
 export type Commands = ReturnType<typeof useCompanyPauseChanges>;
 export function usePauseRecord({ record, commands }: { record: RegisterPauseChange; commands: Commands }) {
   const [error, setError] = useState('');
@@ -25,10 +26,7 @@ export function usePauseRecord({ record, commands }: { record: RegisterPauseChan
       commands.guard();
       saveFile(response.data, `pause-authority-${record.uuid}`);
     } catch (failure) {
-      setError(
-        getErrorMessage(failure, 'The retained authority copy could not be downloaded.') ??
-          'The request could not be confirmed.',
-      );
+      setError(failureSentence(failure, 'The retained authority copy could not be downloaded.'));
     } finally {
       setBusy(false);
     }
@@ -105,11 +103,7 @@ export function usePausePreparation({ commands }: { commands: Commands }) {
       if (failureStatus(failure) === 409) uploadRef.current = null;
       try {
         commands.guard();
-        if (mounted.current)
-          setError(
-            getErrorMessage(failure, 'The pause change could not be prepared.') ??
-              'The request could not be confirmed.',
-          );
+        if (mounted.current) setError(failureSentence(failure, 'The pause change could not be prepared.'));
       } catch {
         return;
       }

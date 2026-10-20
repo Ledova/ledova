@@ -12,6 +12,8 @@ import {
   type RegisterAward,
   type RegisterAwardVestingPreparation,
   type RegisterEvidence,
+  REGISTER_AWARD_UNMET_COPY,
+  refusalSentence,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
@@ -191,7 +193,10 @@ export function useAwardVestingForm({
       } catch {
         return;
       }
-      setError(apiErrorSentence(cause, COPY.VESTING_FAILED, COPY.VESTING_FAILED));
+      setError(
+        refusalSentence(cause, REGISTER_AWARD_UNMET_COPY) ??
+          apiErrorSentence(cause, COPY.VESTING_FAILED, COPY.VESTING_FAILED),
+      );
     } finally {
       pending.current = false;
       if (live.current) {

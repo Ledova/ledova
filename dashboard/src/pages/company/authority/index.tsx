@@ -1,7 +1,7 @@
 import { CompanyPicker } from '@components/CompanyPicker';
 import { Outcome, Section } from '@components/Ledger';
 import { Page, PageAction } from '@components/Page';
-import { getErrorMessage, useSubmissionOwner, useUserPreferences, type OrderSubmissionOwner } from '@ledova/shared';
+import { useSubmissionOwner, useUserPreferences, type OrderSubmissionOwner, failureSentence } from '@ledova/shared';
 import { AuthorityRequestForm } from './AuthorityRequestForm';
 import { AuthorityRequestRecord } from './AuthorityRequestRecord';
 import { useAuthorityRequests } from './useAuthorityRequests';
@@ -144,12 +144,12 @@ function OwnAuthorityRequests({
         )}
         {opening.isError && (
           <p role="alert" className="text-sm text-error-light">
-            {getErrorMessage(opening.error, 'Your evidence could not be downloaded.')}
+            {failureSentence(opening.error, 'Your evidence could not be downloaded.')}
           </p>
         )}
         {lifecycle.isError && (
           <p role="alert" className="text-sm text-error-light">
-            {getErrorMessage(lifecycle.error, 'Your request outcome could not be confirmed. Refresh or retry.')}
+            {failureSentence(lifecycle.error, 'Your request outcome could not be confirmed. Refresh or retry.')}
           </p>
         )}
       </Section>

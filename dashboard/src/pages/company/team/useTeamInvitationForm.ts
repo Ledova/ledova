@@ -1,8 +1,8 @@
 import {
   createCompanyTeamInvitation,
-  getErrorMessage,
   type CompanyCapability,
   type OwnCompanyAppointment,
+  failureSentence,
 } from '@ledova/shared';
 import { sameScope } from '@pages/company/shared/appointments';
 import apiClient from '@services/apiClient';
@@ -100,10 +100,7 @@ export function useTeamInvitationForm({
       if (mounted.current) {
         try {
           guard();
-          setError(
-            getErrorMessage(failure, 'The invitation could not be recorded. Retry with the same details.') ??
-              'The invitation could not be recorded. Retry with the same details.',
-          );
+          setError(failureSentence(failure, 'The invitation could not be recorded. Retry with the same details.'));
         } catch {
           return;
         }

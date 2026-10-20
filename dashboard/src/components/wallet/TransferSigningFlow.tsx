@@ -7,6 +7,7 @@ import {
   getBlockExplorerTxUrl,
   getNativeAssetSymbol,
   readWei,
+  failureSentence,
 } from '@ledova/shared';
 import { ICON_XS, ICON_MD, ICON_XL } from '@components/iconSizes';
 import { useQRScanner, QRScannerView, QRCodeFrame } from '@components/qr';
@@ -194,7 +195,7 @@ export function TransferSigningFlow({
         setSigningStep('success');
         onSuccess?.(hash);
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to broadcast transaction');
+        setError(failureSentence(err, 'The transaction could not be broadcast. Try again.'));
         setSigningStep('error');
       }
     },

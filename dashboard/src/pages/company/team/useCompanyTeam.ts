@@ -2,13 +2,13 @@ import { useOwnAppointments, ownAppointmentsKey } from '@hooks/useOwnAppointment
 import {
   getCompanyTeam,
   getCompanyTeamInvitations,
-  getErrorMessage,
   readEveryPage,
   revokeCompanyAppointment,
   USER_PREFERENCES_QUERY_KEY,
   type CompanyTeamAppointment,
   type OrderSubmissionOwner,
   type OwnCompanyAppointment,
+  failureSentence,
 } from '@ledova/shared';
 import { appointmentReceipt, currentAppointment, sameScope } from '@pages/company/shared/appointments';
 import apiClient from '@services/apiClient';
@@ -175,10 +175,7 @@ export function useCompanyTeam({
     } catch (failure) {
       try {
         guard();
-        setError(
-          getErrorMessage(failure, 'The appointment could not be revoked. Refresh or retry.') ??
-            'The appointment could not be revoked. Refresh or retry.',
-        );
+        setError(failureSentence(failure, 'The appointment could not be revoked. Refresh or retry.'));
       } catch {
         return;
       }

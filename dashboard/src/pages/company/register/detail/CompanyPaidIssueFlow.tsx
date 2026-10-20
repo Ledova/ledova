@@ -9,16 +9,18 @@ import {
   formatDateTime,
   formatMoney,
   formatShareCount,
-  getErrorMessage,
   registerPaidIssueExecutionState,
   useCompanyPaidIssues,
   type RegisterPaidIssue,
   type RegisterPaidIssueSource,
+  refusalSentences,
+  failureSentence,
 } from '@ledova/shared';
 import { DecisionTrail } from '@pages/company/register/shared/DecisionTrail';
 import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
 import { usePaidIssuePreparation, usePaidIssueRecord, type Commands } from './useCompanyPaidIssueFlow';
 import type { useShareClass } from './useShareClass';
+
 const STAGES: Record<string, string> = COPY.STAGES;
 
 const SUBSCRIPTIONS = ['subscription', 'subscriptions'] as const;
@@ -122,9 +124,9 @@ function PaidIssueRecord({ record, commands }: { record: RegisterPaidIssue; comm
           <p className="text-sm text-text-muted">{COPY.PROVIDED_BY_COMPANY}</p>
           <DecisionTrail proposal={record} labels={COPY.DECISIONS} />
           <p className="text-sm text-text-muted">{COPY.ADMITTED_NOTE}</p>
-          {record.executionUnmetRequirements.map((code) => (
-            <p key={code} className="text-sm text-text-muted">
-              {REGISTER_PAID_ISSUE_UNMET_COPY[code] ?? code}
+          {refusalSentences(record.executionUnmetRequirements, REGISTER_PAID_ISSUE_UNMET_COPY).map((sentence) => (
+            <p key={sentence} className="text-sm text-text-muted">
+              {sentence}
             </p>
           ))}
           <PageAction
@@ -271,10 +273,7 @@ function Preparation({ commands }: { commands: Commands }) {
               check();
             } catch (failure) {
               event.preventDefault();
-              setError(
-                getErrorMessage(failure, 'The authority picker is unavailable.') ??
-                  'The source could not be confirmed.',
-              );
+              setError(failureSentence(failure, 'The authority picker is unavailable.'));
             }
           }}
           onChange={(event) => {
@@ -292,10 +291,7 @@ function Preparation({ commands }: { commands: Commands }) {
               setFile(chosen);
               setError('');
             } catch (failure) {
-              setError(
-                getErrorMessage(failure, 'The authority document could not be selected.') ??
-                  'The document could not be selected.',
-              );
+              setError(failureSentence(failure, 'The authority document could not be selected.'));
             }
           }}
         />

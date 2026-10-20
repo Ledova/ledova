@@ -12,7 +12,8 @@ import { readEveryPage } from '../utils/pagination';
 import { appointmentForRegisterStep, type RegisterStep } from '../utils/register-commands';
 import { isPreparedRegisterCapitalIncrease } from '../utils/register-capital-increases';
 import { requestShares, wholeShares } from '../utils/share-quantities';
-import { failureStatus, createUserFriendlyError, getErrorMessage } from '../utils/errors';
+import { failureStatus, createUserFriendlyError, refusalSentence, failureSentence } from '../utils/errors';
+import { REGISTER_CAPITAL_INCREASE_UNMET_COPY } from '../constants/business/register-capital-increases';
 import type {
   CompanyShareToken,
   OwnCompanyAppointment,
@@ -256,7 +257,7 @@ export function useCompanyCapitalIncreases(
       guard();
     } catch (failure) {
       if (mounted.current && boundary.get() === owner)
-        setError(getErrorMessage(failure, 'Current capital records could not be refreshed.'));
+        setError(failureSentence(failure, 'Current capital records could not be refreshed.'));
     }
   };
   const accept = async (record: RegisterCapitalIncrease) => {
@@ -318,7 +319,10 @@ export function useCompanyCapitalIncreases(
       const status = failureStatus(cause);
       if (!dispatched || status === 400 || status === 409) setOriginal(null);
       if (mounted.current && boundary.get() === owner)
-        setError(getErrorMessage(failure, 'The outcome is uncertain. Recover the identical original request.'));
+        setError(
+          refusalSentence(failure, REGISTER_CAPITAL_INCREASE_UNMET_COPY) ??
+            failureSentence(failure, 'The outcome is uncertain. Recover the identical original request.'),
+        );
     } finally {
       pending.current = false;
       if (mounted.current) setBusy(false);

@@ -15,7 +15,8 @@ import {
 import { readEveryPage } from '../utils/pagination';
 import { appointmentForRegisterStep, type RegisterStep } from '../utils/register-commands';
 import { isPreparedCompanyWalletInstruction } from '../utils/company-wallets';
-import { createUserFriendlyError, failureStatus, getErrorMessage } from '../utils/errors';
+import { createUserFriendlyError, failureStatus, refusalSentence, failureSentence } from '../utils/errors';
+import { COMPANY_WALLET_UNMET_COPY } from '../constants/business/company-wallets';
 import type {
   OwnCompanyAppointment,
   CompanyWalletInstruction,
@@ -24,6 +25,9 @@ import type {
   CompanyWalletTarget,
 } from '../types';
 import { useApiClient } from './useApiClient';
+
+const OUTCOME_UNCERTAIN =
+  'The preparation outcome is uncertain. Recover its identical original body and operation UUID.';
 
 export function useCompanyWalletInstructions(options: { newKey: () => string; session?: OrderSubmissionSession }) {
   const api = useApiClient();
@@ -250,7 +254,7 @@ export function useCompanyWalletInstructions(options: { newKey: () => string; se
     } catch (failure) {
       if (mounted.current && boundary.get() === owner)
         setError(
-          getErrorMessage(
+          failureSentence(
             failure,
             'Current private company wallet access could not be refreshed. Original requests are retained.',
           ),
@@ -358,12 +362,7 @@ export function useCompanyWalletInstructions(options: { newKey: () => string; se
       const status = failureStatus(cause);
       if (!dispatched || status === 400 || status === 409) setRetained(null);
       if (mounted.current && boundary.get() === owner)
-        setError(
-          getErrorMessage(
-            failure,
-            'The preparation outcome is uncertain. Recover its identical original body and operation UUID.',
-          ),
-        );
+        setError(refusalSentence(failure, COMPANY_WALLET_UNMET_COPY) ?? failureSentence(failure, OUTCOME_UNCERTAIN));
     } finally {
       pending.current = false;
       if (mounted.current) setBusy(false);

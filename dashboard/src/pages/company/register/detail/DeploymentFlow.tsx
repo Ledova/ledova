@@ -10,6 +10,7 @@ import {
   registerDeploymentExecutionState,
   type RegisterDeployment,
   type RegisterDeploymentSnapshot,
+  refusalSentences,
 } from '@ledova/shared';
 import { DecisionTrail } from '@pages/company/register/shared/DecisionTrail';
 import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
@@ -154,11 +155,13 @@ export function DeploymentFlow({ uuid, data }: { uuid: string; data: ReturnType<
                       <Row label="Swap approval">{proposal.execution.swapApprovalOutcome}</Row>
                     )}
                   </Rows>
-                  {proposal.executionUnmetRequirements.map((code) => (
-                    <p key={code} className="text-sm text-text-muted">
-                      {REGISTER_DEPLOYMENT_UNMET_COPY[code] ?? code}
-                    </p>
-                  ))}
+                  {refusalSentences(proposal.executionUnmetRequirements, REGISTER_DEPLOYMENT_UNMET_COPY).map(
+                    (sentence) => (
+                      <p key={sentence} className="text-sm text-text-muted">
+                        {sentence}
+                      </p>
+                    ),
+                  )}
                 </>
               )}
               <RegisterDecisions

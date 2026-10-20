@@ -1,4 +1,4 @@
-import { acceptCompanyTeamInvitation, getErrorMessage } from '@ledova/shared';
+import { acceptCompanyTeamInvitation, failureSentence } from '@ledova/shared';
 import { appointmentReceipt } from '@pages/company/shared/appointments';
 import apiClient from '@services/apiClient';
 import { useEffect, useRef, useState } from 'react';
@@ -53,10 +53,7 @@ export function useAcceptInvitationForm({
       if (mounted.current) {
         try {
           guard();
-          setError(
-            getErrorMessage(failure, 'The invitation could not be accepted. Retry the same code.') ??
-              'The invitation could not be accepted. Retry the same code.',
-          );
+          setError(failureSentence(failure, 'The invitation could not be accepted. Retry the same code.'));
         } catch {
           return;
         }

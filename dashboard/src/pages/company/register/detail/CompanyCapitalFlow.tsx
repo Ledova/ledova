@@ -11,6 +11,7 @@ import {
   useCompanyCapitalIncreases,
   type RegisterCapitalIncrease,
   type RegisterCapitalIncreaseSnapshot,
+  refusalSentences,
 } from '@ledova/shared';
 import { DecisionTrail } from '@pages/company/register/shared/DecisionTrail';
 import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
@@ -77,9 +78,9 @@ function CapitalRecord({ record, commands }: { record: RegisterCapitalIncrease; 
           <p className="text-sm text-text-muted">{COPY.PROVIDED_BY_COMPANY}</p>
           <DecisionTrail proposal={record} labels={COPY.DECISIONS} />
           <p className="text-sm text-text-muted">{COPY.ADMITTED_NOTE}</p>
-          {record.executionUnmetRequirements.map((code) => (
-            <p key={code} className="text-sm text-text-muted">
-              {REGISTER_CAPITAL_INCREASE_UNMET_COPY[code] ?? code}
+          {refusalSentences(record.executionUnmetRequirements, REGISTER_CAPITAL_INCREASE_UNMET_COPY).map((sentence) => (
+            <p key={sentence} className="text-sm text-text-muted">
+              {sentence}
             </p>
           ))}
           <PageAction
