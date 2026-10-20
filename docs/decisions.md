@@ -1280,6 +1280,10 @@ checks one at a time: the Shareholders page
 ([#1169](https://github.com/Ledova/ledova/issues/1169)) and the mobile app
 ([#1170](https://github.com/Ledova/ledova/issues/1170)).
 
+_Award recipients as person records were delivered under #1169: an award gives a new recipient a
+member ID with their name and address, replacing the earlier rule that an award creates no member
+([employee awards](business/issuing-shares.md#employee-awards-and-vesting))._
+
 On 20 October 2026 the owner approved the
 [design for issuing from Register](https://github.com/Ledova/ledova/issues/1168#issuecomment-6288493034):
 "I approve the #1168 design as drafted: Issue shares with Investor issue and Non-paid issue, two

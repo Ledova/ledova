@@ -13,7 +13,6 @@ import {
   type TokenCreate,
   type TokenType,
   type RegisterTransferMember,
-  type RegisterAwardRecipient,
 } from '@ledova/shared';
 
 import apiClient from '@services/apiClient';
@@ -31,7 +30,6 @@ export type FreshClassProps = {
   company: Pick<Company, 'uuid' | 'name'>;
   classes: { uuid: string; name: string; symbol: string; status: string }[];
   companyMembers: RegisterTransferMember[];
-  awardRecipients: RegisterAwardRecipient[];
   steps: ReturnType<typeof registerSteps>;
   ready: boolean;
   onHeldChange: (held: boolean) => void;
@@ -132,9 +130,9 @@ export function useNewShareClass({
       throw createUserFriendlyError('The share class receipt did not match the requested company and details.');
     const register = await readRegister(token.uuid, guard);
     check();
-    const members = await readPeople(token.uuid, check);
+    const people = await readPeople(token.uuid, check);
     check();
-    return { register, ...members, emptyOpeningAllowed: canOpenEmptyRegister(register, token) };
+    return { register, members: people.members, emptyOpeningAllowed: canOpenEmptyRegister(register, token) };
   };
   const problems: string[] = [];
   if (!name.trim() || name.length > 100) problems.push('Enter a class name of at most 100 characters.');

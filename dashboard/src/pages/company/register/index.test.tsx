@@ -19,7 +19,6 @@ import {
   type TokenHoldersResponse,
   type OwnCompanyAppointment,
   type RegisterTransferMember,
-  type RegisterAwardRecipient,
   type CompanyShareToken,
 } from '@ledova/shared';
 import SettingsPage from '@pages/settings';
@@ -644,7 +643,6 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   let interruptNextApply = false;
   let proposal: RegisterImport | undefined;
   let companyMembers: RegisterTransferMember[] = [];
-  let awardRecipients: RegisterAwardRecipient[] = [];
   let membersUnavailable = false;
   let classCreationGuard = () => {};
   const company = companyRecord({ isOwner: false, administrativeAccess: { capabilities: [], draftSetup: false } });
@@ -709,7 +707,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
     if (url === COMPANY_TOKEN_ENDPOINTS.HOLDERS(token.uuid)) return { data: holders() };
     if (url === COMPANY_TOKEN_ENDPOINTS.REGISTER_MEMBERS(token.uuid)) {
       if (membersUnavailable) throw new Error('Member choices unavailable');
-      return { data: { members: companyMembers, awardRecipients } };
+      return { data: { members: companyMembers, awardRecipients: [] } };
     }
     if (url === IMPORTS) return dataPage(proposal ? [proposal] : []);
     return dataPage([]);
@@ -1253,7 +1251,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
     if (url === COMPANY_TOKEN_ENDPOINTS.HOLDERS(token.uuid)) return { data: holders() };
     if (url === COMPANY_TOKEN_ENDPOINTS.REGISTER_MEMBERS(token.uuid)) {
       if (membersUnavailable) throw new Error('Member choices unavailable');
-      return { data: { members: companyMembers, awardRecipients } };
+      return { data: { members: companyMembers, awardRecipients: [] } };
     }
     if (url === IMPORTS) return dataPage(proposal ? [proposal] : []);
     return dataPage([]);
@@ -1411,12 +1409,21 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   opened = false;
   proposal = undefined;
   companyMembers = [];
-  const trustedRecipient: RegisterAwardRecipient = {
+  const awardOnly = {
     member: 'award-only-recipient',
     name: 'Award Recipient',
     residentialAddress: '2 Example Road, Sydney NSW 2000',
   };
-  awardRecipients = [trustedRecipient];
+  const trustedRecipient = {
+    ...awardOnly,
+    currentShares: '0',
+    enteredOn: null,
+    lastCeasedOn: null,
+    walletless: true,
+    particularsRetained: true,
+    onRegister: false,
+  };
+  companyMembers = [trustedRecipient];
   const prepareAwardOpening = async (url: string, request: RegisterImportPreparation) => {
     expect(url).toBe(IMPORTS);
     proposal = {
@@ -1469,17 +1476,17 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
     { userUuid: preferences.userProfile, ownerAccountUuid: preferences.userAccount!.uuid },
     token.uuid,
   );
-  awardRecipients = [{ ...trustedRecipient, name: 'Changed recipient name' }];
+  companyMembers = [{ ...trustedRecipient, name: 'Changed recipient name' }];
   await act(async () => client.invalidateQueries({ queryKey: recipientKey, exact: true }));
   fireEvent.click(await screen.findByRole('button', { name: 'Save draft and review' }));
   expect(await screen.findByText(/keep the award recipient’s recorded name and address/)).toBeTruthy();
   expect(api.post).not.toHaveBeenCalled();
-  awardRecipients = [];
+  companyMembers = [];
   await act(async () => client.invalidateQueries({ queryKey: recipientKey, exact: true }));
   fireEvent.click(await screen.findByRole('button', { name: 'Save draft and review' }));
   expect((await screen.findAllByText(/award recipient is no longer available/)).length).toBeGreaterThan(0);
   expect(api.post).not.toHaveBeenCalled();
-  awardRecipients = [trustedRecipient];
+  companyMembers = [trustedRecipient];
   await act(async () => client.invalidateQueries({ queryKey: recipientKey, exact: true }));
   fireEvent.click(await screen.findByRole('button', { name: 'Save draft and review' }));
   await waitFor(() => expect(api.post).toHaveBeenCalledOnce());
@@ -1492,7 +1499,6 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
     shares: '600',
   });
   expect(awardOpening.members[0].allotments[0].allottedOn).toBe('2015-01-01');
-  expect(companyMembers).toEqual([]);
   cleanup();
   client.clear();
   api.post.mockClear();
@@ -1512,14 +1518,14 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
     if (url === COMPANY_TOKEN_ENDPOINTS.HOLDERS(freshToken.uuid))
       return Promise.resolve({ data: { ...holders(), token: freshToken } });
     if (url === COMPANY_TOKEN_ENDPOINTS.REGISTER_MEMBERS(freshToken.uuid))
-      return Promise.resolve({ data: { members: companyMembers, awardRecipients } });
+      return Promise.resolve({ data: { members: companyMembers, awardRecipients: [] } });
     return oldReads(url, config);
   });
   api.post.mockImplementation(async (url, request, config) => {
     config.ledovaSubmissionGuard();
     if (url === COMPANY_TOKEN_ENDPOINTS.BASE) {
       freshClassCreated = true;
-      awardRecipients = [];
+      companyMembers = [];
       return { data: freshToken };
     }
     return prepareAwardOpening(url, request);
@@ -1540,7 +1546,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   await waitFor(() => expect(client.isFetching()).toBe(0));
   expect(api.post.mock.calls.filter(([url]) => url === COMPANY_TOKEN_ENDPOINTS.BASE)).toHaveLength(1);
   expect(api.post.mock.calls.filter(([url]) => url === IMPORTS)).toHaveLength(0);
-  awardRecipients = [trustedRecipient];
+  companyMembers = [trustedRecipient];
   await act(async () => client.invalidateQueries({ queryKey: recipientKey, exact: true }));
   fireEvent.click(await screen.findByRole('button', { name: 'Save draft and review' }));
   await waitFor(() => expect(api.post.mock.calls.filter(([url]) => url === IMPORTS)).toHaveLength(1));
@@ -1555,7 +1561,6 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   opened = false;
   proposal = undefined;
   companyMembers = [];
-  awardRecipients = [];
   api.get.mockImplementation(oldReads);
   appointment = { ...appointment, uuid: 'empty-register-appointee', capabilities: ['prepare', 'approve', 'apply'] };
   const previousReads = api.get.getMockImplementation()!;
@@ -1715,27 +1720,19 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   expect(api.post).toHaveBeenCalledTimes(2);
   expect(api.post.mock.calls.map(([, request]) => request.symbol)).toEqual(['ORD', 'EMP']);
   refusedClass.unmount();
-  const retainedIdentity = {
-    ...trustedRecipient,
-    currentShares: '0',
-    enteredOn: null,
-    lastCeasedOn: null,
-    walletless: true,
-    particularsRetained: true,
-  };
   for (const response of [
     null,
     { members: [] },
     { members: [null], awardRecipients: [] },
-    { members: [retainedIdentity], awardRecipients: [trustedRecipient] },
-    { members: [{ ...retainedIdentity, currentShares: '1.5' }], awardRecipients: [] },
-    { members: [], awardRecipients: [trustedRecipient, trustedRecipient] },
-    { members: [], awardRecipients: [{ ...trustedRecipient, name: '' }] },
+    { members: [trustedRecipient], awardRecipients: [awardOnly] },
+    { members: [{ ...trustedRecipient, currentShares: '1.5' }], awardRecipients: [] },
+    { members: [], awardRecipients: [awardOnly, awardOnly] },
+    { members: [], awardRecipients: [{ ...awardOnly, name: '' }] },
   ]) {
     api.get.mockResolvedValue({ data: response });
     await expect(readPeople(token.uuid, () => {})).rejects.toThrow(/choices could not be confirmed/);
   }
-  const nullableParticulars = { ...retainedIdentity, name: null, residentialAddress: null };
+  const nullableParticulars = { ...trustedRecipient, name: null, residentialAddress: null };
   api.get.mockResolvedValue({ data: { members: [nullableParticulars], awardRecipients: [] } });
   await expect(readPeople(token.uuid, () => {})).resolves.toEqual({
     members: [nullableParticulars],
@@ -1746,7 +1743,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   api.get.mockImplementation(
     () =>
       new Promise((resolve) => {
-        completeIdentityRead = () => resolve({ data: { members: [], awardRecipients: [trustedRecipient] } });
+        completeIdentityRead = () => resolve({ data: { members: [trustedRecipient], awardRecipients: [] } });
       }),
   );
   const lateIdentityRead = readPeople(token.uuid, () => {

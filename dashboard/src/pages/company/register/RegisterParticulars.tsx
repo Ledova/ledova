@@ -1,5 +1,7 @@
 import { registerEntriesKey } from '@pages/company/register/shared/useRegisterEntries';
-import { allPeopleKey } from '@pages/company/register/shared/usePeople';
+import { allPeopleKey, usePeople } from '@pages/company/register/shared/usePeople';
+import { awardsKey } from '@pages/company/register/shared/useRegisterAwards';
+import { registerKey } from '@hooks/useRegisterAccess';
 import { registerHoldersKey } from '@pages/company/shared/useCompanyRegister';
 import { useQueryClient } from '@tanstack/react-query';
 import {
@@ -45,6 +47,10 @@ export function RegisterParticulars({
     appointments.fetchStatus === 'idle' &&
     hasCurrentRegisterReadAuthority(appointments.data, company);
   const names = registerMembers(registers);
+  const firstClass = registers[0]?.token.uuid ?? '';
+  const people = usePeople(owner, firstClass, guard, visible && !!firstClass);
+  const nameOf = (member: string) =>
+    names.get(member) || people.data?.members.find((row) => row.member === member)?.name || COPY.UNNAMED_MEMBER;
   const refresh = async () => {
     try {
       guard();
@@ -58,6 +64,9 @@ export function RegisterParticulars({
         registerHoldersKey(owner),
         registerEntriesKey(owner),
         ownAppointmentsKey(owner),
+        ...registers.map(({ token }) => awardsKey(owner, token.uuid)),
+        [...registerKey(owner), 'member-awards', company],
+        [...registerKey(owner), 'invitation-awards', company],
       ].map((queryKey) => client.invalidateQueries({ queryKey })),
     );
   };
@@ -97,7 +106,7 @@ export function RegisterParticulars({
             change={change}
             visible={privateReady}
             onHeldChange={onHeldChange}
-            member={names.get(change.member) || COPY.UNNAMED_MEMBER}
+            member={nameOf(change.member)}
             steps={steps ?? {}}
             guard={guard}
             onDecided={refresh}

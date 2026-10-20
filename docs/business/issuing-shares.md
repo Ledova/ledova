@@ -209,7 +209,8 @@ remaining quantities. The web chart keeps the original promise as its total, inc
    schedule and the agreement document. An award creates no entry, holding, issued share or
    certificate entitlement. A new recipient gets a person record, a member ID with their name and
    residential address, which later awards, issues and transfers use. They are not on the register
-   of members, or on Shareholders, until shares are issued.
+   of members, or on Shareholders, until shares are issued. Each award shows the recipient's current
+   name and address, and Recipient details opens their page.
 2. Choose Record vesting on the award for a company-confirmed event with its shares, date and
    evidence. Dates are no later than today (UTC), an event cannot predate the agreement, and total
    vesting cannot exceed the remaining unvested entitlement.

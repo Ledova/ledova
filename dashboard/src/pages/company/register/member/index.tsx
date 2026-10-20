@@ -216,7 +216,7 @@ function OwnShareholder({
                 <Row label="Residential address">{recorded?.residentialAddress || 'Not recorded'}</Row>
               </Rows>
             ))}
-            {prepare && holdings.length > 0 && (
+            {prepare && (holdings.length > 0 || recorded?.onRegister === false) && (
               <PageLink
                 to={generatePath(DESTINATIONS.companyRegisterParticulars.path, { member })}
                 label={REGISTER_PARTICULARS_COPY.PREPARE}

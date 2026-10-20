@@ -13,6 +13,7 @@ import { PageAction } from '@components/Page';
 import { AwardForm } from './AwardForm';
 import { AwardRecord } from './AwardRecord';
 import { useOwnAppointments } from '@hooks/useOwnAppointments';
+import { registerKey } from '@hooks/useRegisterAccess';
 import { allPeopleKey, usePeople } from '@pages/company/register/shared/usePeople';
 import { awardsKey, useRegisterAwards } from '@pages/company/register/shared/useRegisterAwards';
 import { grantsKey, useRegisterGrants } from '@pages/company/register/shared/useRegisterGrants';
@@ -93,6 +94,7 @@ export function ClassAwards({
       }),
       awards.refetch({ throwOnError }),
       client.invalidateQueries({ queryKey: allPeopleKey(owner) }),
+      client.invalidateQueries({ queryKey: [...registerKey(owner), 'invitation-awards', company] }),
       client.invalidateQueries({ queryKey: grantsKey(owner, token) }),
     ]);
   };

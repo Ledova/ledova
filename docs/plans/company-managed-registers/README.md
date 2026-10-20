@@ -47,13 +47,14 @@ expansion tickets were [closed as not planned on 18 October](../../decisions.md#
 | [#1155](https://github.com/Ledova/ledova/issues/1155), [#1157](https://github.com/Ledova/ledova/issues/1157)                                                        | Dashboard overview and Getting started, register setup and share classes only in Register, verification and activation atop Settings (web, mobile) |
 | [#1167](https://github.com/Ledova/ledova/issues/1167)                                                                                                               | One person picker and people list for every register flow, issue and transfer from a person's page, one backend identity check (web)               |
 | [#1166](https://github.com/Ledova/ledova/issues/1166)                                                                                                               | Shareholders on its own page with member access, and a page per shareholder; Register keeps the share classes (web, first step of #1165)           |
+| [#1168](https://github.com/Ledova/ledova/issues/1168), [#1170](https://github.com/Ledova/ledova/issues/1170)                                                        | Issue shares from Register (web); Shareholders, one person picker and issue placement (mobile)                                                     |
+| [#1169](https://github.com/Ledova/ledova/issues/1169)                                                                                                               | Award recipients as person records from their first award, chosen and corrected like any member before shares are issued (web)                     |
 
 ## Remaining scope
 
-| Issue                                                 | Remaining                                                                                                                                                              | Current prerequisites                              |
-| ----------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
-| [#1165](https://github.com/Ledova/ledova/issues/1165) | Issuing shares from Register (#1168), award recipients as person records (#1169) and mobile (#1170), after the Shareholders page (#1166) and one person picker (#1167) | Each step shown to the owner before it merges      |
-| [#624](https://github.com/Ledova/ledova/issues/624)   | Physical-device and live human release acceptance                                                                                                                      | Genuine device/human and configured-chain evidence |
+| Issue                                               | Remaining                                         | Current prerequisites                              |
+| --------------------------------------------------- | ------------------------------------------------- | -------------------------------------------------- |
+| [#624](https://github.com/Ledova/ledova/issues/624) | Physical-device and live human release acceptance | Genuine device/human and configured-chain evidence |
 
 Programme [#860](https://github.com/Ledova/ledova/issues/860), now closed, tracked the transition to one registry
 product; closed [#645](https://github.com/Ledova/ledova/issues/645) delivered the earlier foundation and

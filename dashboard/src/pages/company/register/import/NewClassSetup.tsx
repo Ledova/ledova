@@ -159,7 +159,6 @@ export function NewClassSetup({
           checkCurrent={checkCurrent}
           classes={(classes.data ?? []).filter((token) => token.companyUuid === context.company.uuid)}
           companyMembers={(anchor ? (members.data ?? NO_MEMBERS) : NO_MEMBERS).members}
-          awardRecipients={(anchor ? (members.data ?? NO_MEMBERS) : NO_MEMBERS).awardRecipients}
           steps={steps ?? context.steps}
           ready={ready && company?.uuid === context.company.uuid}
           onHeldChange={setHeld}
@@ -177,7 +176,6 @@ function FreshClass({
   company,
   classes,
   companyMembers,
-  awardRecipients,
   steps,
   ready,
   onHeldChange,
@@ -208,7 +206,6 @@ function FreshClass({
       companyName={company.name}
       shareClass={{ name, symbol }}
       companyMembers={companyMembers}
-      awardRecipients={awardRecipients}
       appointment={steps.prepare!}
       steps={steps}
       blocked={!ready}

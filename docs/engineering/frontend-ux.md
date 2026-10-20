@@ -232,13 +232,13 @@ On mobile, the register flows choose a person from the same kind of list, in a s
 field. Most go through `PersonSelect` (`mobile/src/components/register/PersonPicker.tsx`), which
 labels each person with the shared `personChoices`:
 
-- investor and non-paid issues, employee awards and transfers read members and award recipients
-  through `useTransferMembers` and the shared `peopleFrom`. Issues and awards send the shared
-  `personRequest` (an award-linked grant sends its award's recipient), and a transfer applies the
-  same award-recipient rule in its own request;
-- register setup's **Add a shareholder** reads `useRegisterImportMembers` and offers award
-  recipients and the members without a linked wallet whose name and address are retained, where the
-  web offers every company member;
+- investor and non-paid issues, employee awards and transfers read members, award recipients among
+  them, through `useTransferMembers` and the shared `peopleFrom`. Issues and awards send the shared
+  `personRequest` (an award-linked grant sends its award's recipient), and a transfer sends its own
+  request;
+- register setup's **Add a shareholder** reads `useRegisterImportMembers` and offers the members
+  without a linked wallet whose name and address are retained, award recipients among them, where
+  the web offers every company member;
 - the share-class issue's member uses `SearchSelect` directly, with the members from
   `useCompanyIssueInstructions`;
 - member invitations offer the current and former holders and award recipients from

@@ -1,10 +1,5 @@
 import { Choices } from '@components/Choices';
-import {
-  registerImportMoney,
-  type RegisterTransferMember,
-  type RegisterAwardRecipient,
-  peopleFrom,
-} from '@ledova/shared';
+import { registerImportMoney, type RegisterTransferMember, peopleFrom } from '@ledova/shared';
 import { FIELD_CLASS, LABEL } from '@components/fieldClass';
 import { PageAction } from '@components/Page';
 import { PersonFields, PersonSelect } from '@pages/company/register/shared/PersonPicker';
@@ -21,7 +16,6 @@ export function MemberFields({
   asAt,
   update,
   companyMembers,
-  awardRecipients,
   preserveParticulars,
   usedMembers,
 }: {
@@ -30,14 +24,13 @@ export function MemberFields({
   asAt: string;
   update: (patch: Partial<MemberDraft>) => void;
   companyMembers: RegisterTransferMember[];
-  awardRecipients: RegisterAwardRecipient[];
   preserveParticulars: boolean;
   usedMembers: string[];
 }) {
-  const people = peopleFrom({ members: companyMembers, awardRecipients });
-  const known = companyMembers.find((member) => member.member === row.member);
-  const recipient = awardRecipients.find((candidate) => candidate.member === row.member);
-  const retained = known ?? recipient;
+  const people = peopleFrom({ members: companyMembers, awardRecipients: [] });
+  const retained = companyMembers.find((member) => member.member === row.member);
+  const recipient = retained?.onRegister === false ? retained : undefined;
+  const known = recipient ? undefined : retained;
   const setAllotment = (at: number, patch: Partial<AllotmentDraft>) =>
     update({
       allotments: row.allotments.map((allotment, current) => (current === at ? { ...allotment, ...patch } : allotment)),
@@ -63,7 +56,7 @@ export function MemberFields({
               if (selected && !usedMembers.includes(selected.member))
                 update({
                   member: selected.member,
-                  identityChoice: selected.awardOnly ? 'award' : 'existing',
+                  identityChoice: selected.onRegister === false ? 'award' : 'existing',
                   name: selected.name,
                   residentialAddress: selected.residentialAddress,
                 });

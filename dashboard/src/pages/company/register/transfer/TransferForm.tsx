@@ -7,7 +7,7 @@ import { formatShareCount } from '@ledova/shared';
 import { PersonFields, PersonSelect } from '@pages/company/register/shared/PersonPicker';
 
 function inClass(person: Person) {
-  return person.awardOnly ? '' : `${formatShareCount(person.currentShares)} shares in this class`;
+  return person.onRegister === false ? '' : `${formatShareCount(person.currentShares)} shares in this class`;
 }
 
 export function TransferForm({
@@ -69,14 +69,7 @@ export function TransferForm({
           label={COPY.TO}
           people={eligible.filter((member) => member.member !== draft.fromMember)}
           value={draft.toMember}
-          onChange={(value) => {
-            change('toMember', value);
-            const chosen = eligible.find((member) => member.member === value);
-            if (chosen?.awardOnly || recipient?.awardOnly) {
-              change('name', chosen?.awardOnly ? chosen.name : '');
-              change('residentialAddress', chosen?.awardOnly ? chosen.residentialAddress : '');
-            }
-          }}
+          onChange={(value) => change('toMember', value)}
           context={inClass}
         />
         {fresh ? (
@@ -85,8 +78,6 @@ export function TransferForm({
             residentialAddress={draft.residentialAddress}
             onName={(value) => change('name', value)}
             onResidentialAddress={(value) => change('residentialAddress', value)}
-            nameReadOnly={!!recipient?.awardOnly}
-            addressReadOnly={!!recipient?.awardOnly}
           />
         ) : (
           <p className="text-sm text-text-muted">
@@ -98,7 +89,7 @@ export function TransferForm({
             Last ceased in this class: {recipient.lastCeasedOn}. The same member ID is retained on return.
           </p>
         )}
-        {fresh && draft.toMember !== 'new' && !recipient?.awardOnly && (
+        {fresh && draft.toMember !== 'new' && (
           <p className="text-sm text-text-muted">
             This member’s particulars passed the retention period. Supply their current particulars from the signed
             instrument, keeping their existing member ID.
