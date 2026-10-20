@@ -147,11 +147,20 @@ How the list behaves:
 These rules are checked in review. The dashboard suite drives the list in register setup (typing a
 name and pressing Enter), a transfer and member invitations.
 
-On mobile, every person choice uses the same list and rules through `PersonSelect`
-(`mobile/src/components/register/PersonPicker.tsx`). That covers investor and non-paid issues,
-employee awards, transfers, the share-class issue's member and member invitations. In register
-setup, **Add a shareholder** adds each person from the list. The people come from the same
-validated read of members and award recipients (`useTransferMembers`).
+On mobile, the register flows choose a person from the same kind of list, in a sheet opened from the
+field. Most go through `PersonSelect` (`mobile/src/components/register/PersonPicker.tsx`) with the
+shared `peopleFrom`, `personChoices` and `personRequest`:
+
+- investor and non-paid issues, employee awards and transfers read members and award recipients
+  through `useTransferMembers`;
+- register setup's **Add a shareholder** reads `useRegisterImportMembers` and offers award
+  recipients and the members without a linked wallet whose name and address are retained, where the
+  web offers every company member;
+- the share-class issue's member uses `SearchSelect` directly, with the members from
+  `useCompanyIssueInstructions`;
+- member invitations offer the holders and award recipients from `invitationMembers`.
+
+The sheet works the same way in each:
 
 - **The sheet:** `SearchSelect` (`mobile/src/components/SearchSelect.tsx`) shows the label above a
   field with the current choice and its detail. Tapping the field opens a sheet with an empty search

@@ -107,7 +107,7 @@ export function SearchSelect({
       <Text style={dialog.text}>{label}</Text>
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={`${label}: ${current?.label ?? 'none chosen'}`}
+        accessibilityLabel={`${label}: ${current ? [current.label, current.detail].filter(Boolean).join(' · ') : 'none chosen'}`}
         accessibilityHint="Opens a list to search and choose"
         accessibilityState={{ disabled, expanded: open }}
         disabled={disabled}

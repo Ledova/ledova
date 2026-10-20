@@ -5,16 +5,12 @@ export interface SearchChoice {
   unavailable?: string;
 }
 
-export interface SearchEntry<T extends SearchChoice> {
+interface SearchEntry<T extends SearchChoice> {
   choice: T;
   text: string;
 }
 
-const folded = (text: string) =>
-  text
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLocaleLowerCase('en-AU');
+const folded = (text: string) => text.normalize('NFD').replace(/\p{M}/gu, '').toLocaleLowerCase('en-AU');
 
 export function searchEntries<T extends SearchChoice>(choices: readonly T[]): SearchEntry<T>[] {
   return choices.map((choice) => ({ choice, text: folded(`${choice.label} ${choice.detail ?? ''}`) }));
