@@ -19,7 +19,7 @@ import {
 
 import apiClient from '@services/apiClient';
 import { transfersKey } from '@pages/company/register/shared/useRegisterTransfers';
-import type { Person } from '@pages/company/register/shared/people';
+import type { Person } from '@pages/company/register/shared/usePeople';
 
 type Draft = {
   fromMember: string;

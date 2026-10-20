@@ -2,7 +2,7 @@ import { PageAction } from '@components/Page';
 import { FIELD_CLASS, LABEL } from '@components/fieldClass';
 import { REGISTER_ALLOTMENT_COPY as COPY, type OwnCompanyAppointment } from '@ledova/shared';
 import { PersonFields, PersonSelect } from '@pages/company/register/shared/PersonPicker';
-import type { Person } from '@pages/company/register/shared/people';
+import type { Person } from '@pages/company/register/shared/usePeople';
 import { useAllotmentForm, type DocumentKind } from './useAllotmentForm';
 
 export function AllotmentForm({

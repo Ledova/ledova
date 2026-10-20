@@ -5,7 +5,7 @@ import { PageAction } from '@components/Page';
 import { FIELD_CLASS, LABEL } from '@components/fieldClass';
 import { formatShareCount } from '@ledova/shared';
 import { PersonFields, PersonSelect } from '@pages/company/register/shared/PersonPicker';
-import type { Person } from '@pages/company/register/shared/people';
+import type { Person } from '@pages/company/register/shared/usePeople';
 
 function inClass(person: Person) {
   return person.awardOnly ? '' : `${formatShareCount(person.currentShares)} shares in this class`;

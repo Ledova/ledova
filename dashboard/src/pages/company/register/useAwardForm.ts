@@ -13,7 +13,7 @@ import {
   type RegisterEvidence,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
-import { personRequest, type Person } from '@pages/company/register/shared/people';
+import { personRequest, type Person } from '@pages/company/register/shared/usePeople';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 export function useAwardForm({

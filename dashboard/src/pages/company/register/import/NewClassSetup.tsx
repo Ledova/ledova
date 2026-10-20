@@ -22,7 +22,7 @@ import { registerSteps } from '@pages/company/shared/proposals';
 import { useRegisterClasses, registerClassesKey } from '@pages/company/shared/useCompanyRegister';
 import { ownerGuard } from '@pages/company/shared/ownerGuard';
 import { useOwnAppointments, ownAppointmentsKey } from '@hooks/useOwnAppointments';
-import { peopleKey, usePeople } from '@pages/company/register/shared/people';
+import { peopleKey, usePeople } from '@pages/company/register/shared/usePeople';
 import { ImportForm } from './ImportForm';
 
 const NO_MEMBERS: RegisterTransferMembers = { members: [], awardRecipients: [] };

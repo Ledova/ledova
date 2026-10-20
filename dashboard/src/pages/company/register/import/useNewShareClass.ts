@@ -21,7 +21,7 @@ import apiClient from '@services/apiClient';
 import { registerSteps } from '@pages/company/shared/proposals';
 import { readRegister } from '@pages/company/shared/useCompanyRegister';
 
-import { readPeople } from '@pages/company/register/shared/people';
+import { readPeople } from '@pages/company/register/shared/usePeople';
 import { canOpenEmptyRegister } from './preparation';
 
 const TECHNICAL_SHARE_LIMIT = (2n ** 256n - 1n).toString();

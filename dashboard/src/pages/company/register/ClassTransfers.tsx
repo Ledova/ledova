@@ -17,7 +17,7 @@ import { registerSteps } from '@pages/company/shared/proposals';
 import { entriesKey } from '@pages/company/register/shared/useRegisterEntries';
 import { useOwnAppointments, ownAppointmentsKey } from '@hooks/useOwnAppointments';
 import { transfersKey, useRegisterTransfers } from '@pages/company/register/shared/useRegisterTransfers';
-import { allPeopleKey } from '@pages/company/register/shared/people';
+import { allPeopleKey } from '@pages/company/register/shared/usePeople';
 
 export function ClassTransfers({
   owner,

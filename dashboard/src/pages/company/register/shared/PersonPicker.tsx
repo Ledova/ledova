@@ -1,5 +1,5 @@
 import { FIELD_CLASS, LABEL } from '@components/fieldClass';
-import { NEW_PERSON, personLabel, type Person } from './people';
+import { NEW_PERSON, personLabel, type Person } from './usePeople';
 
 const READ_ONLY = 'read-only:bg-surface-tertiary read-only:text-text-muted';
 

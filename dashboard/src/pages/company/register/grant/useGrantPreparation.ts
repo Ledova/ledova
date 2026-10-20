@@ -20,7 +20,7 @@ import {
   type RegisterAward,
   type RegisterTransferMember,
 } from '@ledova/shared';
-import { personRequest, type Person } from '@pages/company/register/shared/people';
+import { personRequest, type Person } from '@pages/company/register/shared/usePeople';
 
 import apiClient from '@services/apiClient';
 import { grantsKey } from '@pages/company/register/shared/useRegisterGrants';

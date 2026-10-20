@@ -9,7 +9,7 @@ import apiClient from '@services/apiClient';
 import { READ_TIMING, registerKey } from '@hooks/useRegisterAccess';
 import { registersQuery, useRegisterClasses } from '@pages/company/shared/useCompanyRegister';
 import { readMemberEntries, registerEntriesKey } from '@pages/company/register/shared/useRegisterEntries';
-import { usePeople } from '@pages/company/register/shared/people';
+import { usePeople } from '@pages/company/register/shared/usePeople';
 
 export function useShareholder(owner: OrderSubmissionOwner, guard: () => void, company: string, member: string) {
   const classes = useRegisterClasses(owner, guard);

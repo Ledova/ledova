@@ -35,7 +35,7 @@ import { ShareClass } from './detail/ShareClass';
 import CompanyRegisterImportPage from './import';
 import { ImportForm } from './import/ImportForm';
 import { useNewShareClass } from './import/useNewShareClass';
-import { peopleKey, readPeople } from './shared/people';
+import { peopleKey, readPeople } from './shared/usePeople';
 import {
   blankAllotment,
   blankMember,

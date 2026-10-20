@@ -21,7 +21,7 @@ import { entriesKey } from '@pages/company/register/shared/useRegisterEntries';
 import { useOwnAppointments, ownAppointmentsKey } from '@hooks/useOwnAppointments';
 import { grantsKey, useRegisterGrants } from '@pages/company/register/shared/useRegisterGrants';
 import { awardsKey } from '@pages/company/register/shared/useRegisterAwards';
-import { allPeopleKey } from '@pages/company/register/shared/people';
+import { allPeopleKey } from '@pages/company/register/shared/usePeople';
 
 export function ClassGrants({
   owner,

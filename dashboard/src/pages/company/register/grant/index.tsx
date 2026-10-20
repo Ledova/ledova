@@ -21,7 +21,7 @@ import { ownerGuard } from '@pages/company/shared/ownerGuard';
 import { useOwnAppointments } from '@hooks/useOwnAppointments';
 import { GrantForm } from './GrantForm';
 import { useRegisterAward } from '@pages/company/register/shared/useRegisterAwards';
-import { peopleFrom, usePeople } from '@pages/company/register/shared/people';
+import { peopleFrom, usePeople } from '@pages/company/register/shared/usePeople';
 
 const LEDE =
   'Prepare a non-paid share grant on an opened register with the company’s terms, authority and any required acceptance.';

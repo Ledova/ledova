@@ -18,7 +18,7 @@ import { LinkRow } from '@components/Ledger';
 import { AllotmentForm } from './AllotmentForm';
 import { AllotmentRecord } from './AllotmentRecord';
 import { useOwnAppointments, ownAppointmentsKey } from '@hooks/useOwnAppointments';
-import { allPeopleKey, peopleFrom, usePeople } from '@pages/company/register/shared/people';
+import { allPeopleKey, peopleFrom, usePeople } from '@pages/company/register/shared/usePeople';
 import { allotmentsKey, useRegisterAllotments } from './useRegisterAllotments';
 
 export function ClassAllotments({

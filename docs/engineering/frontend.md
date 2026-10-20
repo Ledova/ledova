@@ -657,7 +657,7 @@ Each page links to its business section; the audience is the `DESTINATIONS` audi
   visible, its reads have settled and `hasCurrentRegisterReadAuthority` confirms a current
   register-read appointment.
 - Choosing a person on the web: every register flow reads one people list
-  (`dashboard/src/pages/company/register/shared/people.ts`, the `register/members/` read validated by
+  (`dashboard/src/pages/company/register/shared/usePeople.ts`, the `register/members/` read validated by
   `isRegisterImportMembers`) and renders `PersonSelect` and `PersonFields`
   (`shared/PersonPicker.tsx`). `personRequest` sends an award recipient without shares under their
   reserved member ID with their award's particulars, as register setup does; each flow filters the

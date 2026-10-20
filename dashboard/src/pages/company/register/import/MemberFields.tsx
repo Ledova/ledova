@@ -2,7 +2,7 @@ import { registerImportMoney, type RegisterTransferMember, type RegisterAwardRec
 import { FIELD_CLASS, LABEL } from '@components/fieldClass';
 import { PageAction } from '@components/Page';
 import { PersonFields, PersonSelect } from '@pages/company/register/shared/PersonPicker';
-import { peopleFrom } from '@pages/company/register/shared/people';
+import { peopleFrom } from '@pages/company/register/shared/usePeople';
 import { blankAllotment, type AllotmentDraft, type MemberDraft } from './preparation';
 
 export function MemberFields({

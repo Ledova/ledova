@@ -24,7 +24,7 @@ import { importsKey, useRegisterImports } from '@pages/company/register/shared/u
 import { ownerGuard } from '@pages/company/shared/ownerGuard';
 import { useOwnAppointments, ownAppointmentsKey } from '@hooks/useOwnAppointments';
 
-import { peopleKey, usePeople } from '@pages/company/register/shared/people';
+import { peopleKey, usePeople } from '@pages/company/register/shared/usePeople';
 import { ImportForm } from './ImportForm';
 import { NewClassSetup } from './NewClassSetup';
 import { canOpenEmptyRegister } from './preparation';

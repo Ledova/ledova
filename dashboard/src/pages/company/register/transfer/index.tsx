@@ -16,7 +16,7 @@ import { Loading, Unavailable } from '@pages/company/shared/RegisterStatus';
 import { useRegisterClasses } from '@pages/company/shared/useCompanyRegister';
 import { ownerGuard } from '@pages/company/shared/ownerGuard';
 import { useOwnAppointments } from '@hooks/useOwnAppointments';
-import { peopleFrom, usePeople } from '@pages/company/register/shared/people';
+import { peopleFrom, usePeople } from '@pages/company/register/shared/usePeople';
 import { TransferForm } from './TransferForm';
 
 const LEDE =
