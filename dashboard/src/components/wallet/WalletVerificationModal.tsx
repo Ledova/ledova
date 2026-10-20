@@ -69,8 +69,10 @@ export function WalletVerificationModal({ isOpen, wallet, guard, onClose }: Wall
     }
   }, [verificationSuccess, handleClose]);
 
+  const [method, setMethod] = useState<'hardware' | 'software'>('hardware');
   const handleStartVerification = () => {
     if (wallet) {
+      setMethod('hardware');
       startVerification(wallet, 'hardware');
     }
   };
@@ -78,6 +80,7 @@ export function WalletVerificationModal({ isOpen, wallet, guard, onClose }: Wall
   const handleStartSeedPhraseVerification = () => {
     if (wallet) {
       setSeedPhrase('');
+      setMethod('software');
       startVerification(wallet, 'software');
     }
   };
@@ -119,13 +122,17 @@ export function WalletVerificationModal({ isOpen, wallet, guard, onClose }: Wall
                 <PageAction
                   label="Sign with a seed phrase"
                   onClick={handleStartSeedPhraseVerification}
+                  busy={isRequestingChallenge && method === 'software'}
+                  busyLabel="Generating challenge…"
                   disabled={isRequestingChallenge}
                 />
               )}
               <PageAction
-                label={isRequestingChallenge ? 'Generating challenge…' : 'Continue'}
+                label="Continue"
                 primary
                 onClick={handleStartVerification}
+                busy={isRequestingChallenge && method === 'hardware'}
+                busyLabel="Generating challenge…"
                 disabled={isRequestingChallenge}
               />
             </ModalActions>
@@ -215,10 +222,12 @@ export function WalletVerificationModal({ isOpen, wallet, guard, onClose }: Wall
             <ModalActions>
               <PageAction label="Back" onClick={handleBackFromSeedPhrase} />
               <PageAction
-                label={isSigningWithSeedPhrase || isVerifying ? 'Verifying…' : 'Sign and verify'}
+                label="Sign and verify"
                 primary
+                busy={isSigningWithSeedPhrase || isVerifying}
+                busyLabel="Verifying…"
                 onClick={handleSignWithSeedPhrase}
-                disabled={!seedPhrase.trim() || isSigningWithSeedPhrase || isVerifying}
+                disabled={!seedPhrase.trim()}
               />
             </ModalActions>
           </div>

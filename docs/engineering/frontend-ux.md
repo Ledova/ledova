@@ -112,13 +112,31 @@ confirmation) or pressed, and comes in four forms:
   it at once: the open Register task, the shown eligibility request and Wallets' sort.
 
 `busy` and `busyLabel` disable an action and name its work, such as "Preparing allotment…" or
-"Saving…". Every page form's submit button uses them, as does every page action that already showed a
-busy label, and six more: the offering form, an application's Withdraw and Submit for review,
-creating a member invitation, preparing a non-paid grant or its wallet link, and attaching a payslip
-to a claim. Other page actions that start a request keep their label while it runs. Icon buttons,
-register setup's Import placeholder, the payslip upload area and Trading keep their own controls,
-and dialog footers use the same order as `FormActions`. Mobile's `Action` has no busy or pressed
-form yet.
+"Saving…". Every page form's submit button uses them, and so does every action that starts a
+request, on pages and in dialogs, including:
+
+- downloads ("Downloading…", on the one document being fetched);
+- previews and preparations;
+- offering submissions and added offering documents;
+- deployment;
+- the wallet import and verification steps, and identity verification;
+- establishing an appointment;
+- member, particulars and certificate requests;
+- register setup's review step (editing the records, loading and confirming the decision).
+
+Where a shared hook only reports that some command is running, `useRunningAction`
+(`dashboard/src/hooks`) names the action that was clicked. A few actions show their work another
+way:
+
+- Activation's review hides its action and shows "Checking activation…".
+- A register decision's rejection preview shows "Loading the preview…".
+- Submitting a wallet nomination replaces the form with its saved request.
+- Signing flows, in Trading and wallet transfers, move to their own submitting step.
+
+Refresh, retry and recovery actions keep their label while they run; a form's submit button that
+also recovers an earlier attempt keeps its busy label. Icon buttons, register setup's Import
+placeholder, the payslip upload area and Trading keep their own controls, and dialog footers use the
+same order as `FormActions`. Mobile's `Action` has no busy or pressed form yet.
 
 An action that deletes, withdraws or revokes something saved asks first, in a dialog that names the
 consequence, with Cancel and a destructive action that repeats the verb, such as "Withdraw

@@ -1,4 +1,5 @@
 import { SelectField } from '@components/SelectField';
+import { useRunningAction } from '@hooks/useRunningAction';
 import { DESTINATIONS, ELIGIBILITY_RECORDS_NOTICE, formatDate, useParticipantEligibilityRecords } from '@ledova/shared';
 import { LinkRow, Section } from '@components/Ledger';
 import { Page, PageAction } from '@components/Page';
@@ -7,6 +8,7 @@ import { WalletNomination } from './WalletNomination';
 
 export default function ParticipantEligibilityPage() {
   const read = useParticipantEligibilityRecords(() => crypto.randomUUID());
+  const { running, track } = useRunningAction();
   const source = read.sources.find((item) => item.uuid === read.draft.source);
   return (
     <Page
@@ -78,8 +80,10 @@ export default function ParticipantEligibilityPage() {
             />
             <PageAction
               label="Preview company eligibility request"
+              busy={running === 'request'}
+              busyLabel="Previewing…"
               disabled={read.busy || read.refreshing}
-              onClick={() => void read.previewRequest()}
+              onClick={() => track('request', read.previewRequest())}
             />
           </Section>
           {read.action && (
@@ -94,8 +98,10 @@ export default function ParticipantEligibilityPage() {
               {['pending', 'accepted'].includes(read.selectedRecord.outcome) && (
                 <PageAction
                   label="Prepare request withdrawal"
+                  busy={running === 'withdrawal'}
+                  busyLabel="Preparing…"
                   disabled={read.busy || read.refreshing}
-                  onClick={() => void read.prepareWithdrawal(read.selectedRecord!)}
+                  onClick={() => track('withdrawal', read.prepareWithdrawal(read.selectedRecord!))}
                 />
               )}
             </>
