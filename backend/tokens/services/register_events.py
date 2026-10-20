@@ -111,6 +111,47 @@ def create_member(*, company_id, member_id):
     return member
 
 
+def issue_figures(proposal):
+    token = ShareToken.objects.get(pk=proposal.token_id, company_id=proposal.company_id)
+    register = ShareRegister.objects.filter(token=token, company_id=proposal.company_id).first()
+    held = RegisterPosition.objects.filter(register=register, member_id=proposal.member).first()
+    issued, shares = int(register.issued_supply) if register else 0, int(held.shares) if held else 0
+    return (
+        token,
+        register,
+        {
+            "register_sequence": register.sequence if register else 0,
+            "issued_supply": str(issued),
+            "authorised_supply": token.total_supply,
+            "after_issued_supply": str(issued + int(proposal.shares)),
+            "current_shares": str(shares),
+            "after_shares": str(shares + int(proposal.shares)),
+        },
+    )
+
+
+def apply_issue(proposal, actor, decision, **source):
+    if proposal.new_member:
+        create_member(company_id=proposal.company_id, member_id=proposal.member)
+        RegisterMemberParticulars.objects.create(
+            member_id=proposal.member,
+            name=proposal.name,
+            residential_address=proposal.residential_address,
+            as_at=timezone.now().date(),
+            **source,
+        )
+    proposal.register_entry = record_entry(
+        register_id=ShareRegister.objects.get(token_id=proposal.token_id).pk,
+        operation_id=proposal.pk,
+        kind=RegisterEntryKind.ISSUE,
+        changes=[{"member": str(proposal.member), "shares": str(proposal.shares)}],
+        effective_on=proposal.company_event_on,
+        recorded_by=actor,
+    )
+    proposal.status, proposal.reviewed_by, proposal.reviewed_at = "applied", actor, decision.decided_at
+    proposal.save(update_fields=["status", "register_entry", "reviewed_by", "reviewed_at", "updated_at"])
+
+
 def open_register(*, token_id, operation_id, changes, effective_on, recorded_by):
     _operator()
     with atomic():

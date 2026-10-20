@@ -13,7 +13,6 @@ from tokens.constants import REGISTER_IMPORT_ADDRESS_LENGTH
 from tokens.exceptions import RegisterChangeConflict
 from tokens.models import (
     RegisterAward,
-    RegisterEntryKind,
     RegisterEvidence,
     RegisterEvidenceKind,
     RegisterGrant,
@@ -22,7 +21,6 @@ from tokens.models import (
     RegisterMember,
     RegisterMemberParticulars,
     RegisterMemberWallet,
-    RegisterPosition,
     ShareRegister,
     ShareToken,
 )
@@ -30,9 +28,9 @@ from tokens.models.choices import ShareTokenStatus
 from tokens.services.register_authority import register_appointment, register_command
 from tokens.services.register_decisions import DecisionFamily, decide, preview
 from tokens.services.register_events import (
+    apply_issue,
     company_event_requirements,
-    create_member,
-    record_entry,
+    issue_figures,
     retained_particulars,
 )
 from tokens.services.register_evidence import (
@@ -321,10 +319,7 @@ def _effect_requirements(proposal):
 
 
 def _details(proposal):
-    token = ShareToken.objects.get(pk=proposal.token_id)
-    register = ShareRegister.objects.filter(token=token).first()
-    held = RegisterPosition.objects.filter(register=register, member_id=proposal.member).first()
-    issued, shares = int(register.issued_supply) if register else 0, int(held.shares) if held else 0
+    _, _, figures = issue_figures(proposal)
     details = {
         "member": proposal.member,
         "new_member": proposal.new_member,
@@ -337,12 +332,7 @@ def _details(proposal):
         "approving_director": proposal.approving_director,
         "terms": proposal.terms,
         "acceptance_required": proposal.acceptance_required,
-        "register_sequence": register.sequence if register else 0,
-        "issued_supply": str(issued),
-        "authorised_supply": token.total_supply,
-        "after_issued_supply": str(issued + int(proposal.shares)),
-        "current_shares": str(shares),
-        "after_shares": str(shares + int(proposal.shares)),
+        **figures,
     }
     if proposal.award_id is not None:
         from tokens.services.register_awards import award_quantities
@@ -371,28 +361,7 @@ def _lock(proposal):
 
 
 def _apply(proposal, actor, decision):
-    effective_on = proposal.company_event_on
-    if proposal.new_member:
-        create_member(company_id=proposal.company_id, member_id=proposal.member)
-        RegisterMemberParticulars.objects.create(
-            member_id=proposal.member,
-            name=proposal.name,
-            residential_address=proposal.residential_address,
-            as_at=timezone.now().date(),
-            source_grant=proposal,
-        )
-    proposal.register_entry = record_entry(
-        register_id=ShareRegister.objects.get(token_id=proposal.token_id).pk,
-        operation_id=proposal.pk,
-        kind=RegisterEntryKind.ISSUE,
-        changes=[{"member": str(proposal.member), "shares": str(proposal.shares)}],
-        effective_on=effective_on,
-        recorded_by=actor,
-    )
-    proposal.status = "applied"
-    proposal.reviewed_by = actor
-    proposal.reviewed_at = decision.decided_at
-    proposal.save(update_fields=["status", "register_entry", "reviewed_by", "reviewed_at", "updated_at"])
+    apply_issue(proposal, actor, decision, source_grant=proposal)
 
 
 GRANTS = DecisionFamily(
