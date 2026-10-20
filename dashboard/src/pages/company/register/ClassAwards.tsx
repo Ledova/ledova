@@ -14,7 +14,8 @@ import { AwardForm } from './AwardForm';
 import { AwardRecord } from './AwardRecord';
 import { useOwnAppointments } from '@hooks/useOwnAppointments';
 import { allPeopleKey, usePeople } from '@pages/company/register/shared/usePeople';
-import { useRegisterAwards } from '@pages/company/register/shared/useRegisterAwards';
+import { awardsKey, useRegisterAwards } from '@pages/company/register/shared/useRegisterAwards';
+import { grantsKey, useRegisterGrants } from '@pages/company/register/shared/useRegisterGrants';
 
 export function ClassAwards({
   owner,
@@ -64,6 +65,7 @@ export function ClassAwards({
   );
   const token = register.token.uuid;
   const awards = useRegisterAwards(owner, company, token, check, readable);
+  const grants = useRegisterGrants(owner, company, token, check, readable && sourceReady);
   const appointment =
     readable && appointments.isSuccess ? appointmentForRegisterStep(appointments.data, company, 'prepare') : undefined;
   const supported = register.initialized && register.token.status === 'draft';
@@ -84,9 +86,11 @@ export function ClassAwards({
   useLayoutEffect(() => () => heldCallback.current?.(token, false), [token]);
   const refresh = (throwOnError = false) =>
     Promise.all([
+      client.invalidateQueries({ queryKey: awardsKey(owner, token), refetchType: 'none' }),
       awards.refetch({ throwOnError }),
       appointments.refetch({ throwOnError }),
       client.invalidateQueries({ queryKey: allPeopleKey(owner) }),
+      client.invalidateQueries({ queryKey: grantsKey(owner, token) }),
     ]);
   return (
     <div className="mt-4 flex flex-col gap-3 border-t border-border-subtle pt-4">
@@ -192,6 +196,7 @@ export function ClassAwards({
             key={award.uuid}
             owner={owner}
             award={award}
+            grants={grants.data?.filter((grant) => grant.award === award.uuid) ?? []}
             appointment={supported ? appointment : undefined}
             guard={check}
             blocked={blocked}

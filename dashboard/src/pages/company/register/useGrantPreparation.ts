@@ -1,8 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
 import {
-  DESTINATIONS,
   REGISTER_GRANT_COPY as COPY,
   apiErrorSentence,
   createUserFriendlyError,
@@ -41,6 +39,7 @@ export type GrantFormProps = {
   appointment: OwnCompanyAppointment;
   blocked: boolean;
   onRefused: () => void;
+  onRecorded: () => void;
   award?: RegisterAward;
   awardMember?: RegisterTransferMember | null;
   visible?: boolean;
@@ -57,6 +56,7 @@ export function useGrantPreparation({
   appointment,
   blocked,
   onRefused,
+  onRecorded,
   award,
   awardMember,
   visible = true,
@@ -64,7 +64,6 @@ export function useGrantPreparation({
   canPrepare = true,
 }: GrantFormProps) {
   const client = useQueryClient();
-  const navigate = useNavigate();
   const today = new Date().toISOString().slice(0, 10);
   const [newMemberId] = useState(() => crypto.randomUUID());
   const [member, setMember] = useState('new');
@@ -262,10 +261,7 @@ export function useGrantPreparation({
       operation.current = null;
       setHeld(false);
       onHeldChange?.(false);
-      navigate(
-        `${DESTINATIONS.companyRegister.path}${award ? '#awards' : ''}`,
-        award ? { state: { awardIssueToken: token, awardIssueCompany: company } } : undefined,
-      );
+      onRecorded();
     } catch (failure) {
       const status = failureStatus(failure);
       if (operation.current && !operation.current.confirmed) {

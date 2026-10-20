@@ -20,7 +20,7 @@ import type {
 } from '@ledova/shared';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
-import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
+import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import {
   APPOINTMENT,
@@ -32,7 +32,7 @@ import {
   vestingReversalFrom,
 } from '../../../testSupport/company';
 import { ClassAwards } from './ClassAwards';
-import { GrantForm } from './grant/GrantForm';
+import { GrantForm } from './GrantForm';
 
 import apiClient from '@services/apiClient';
 import CompanyRegisterPage from '.';
@@ -213,8 +213,8 @@ it('retains original award, vesting and linked issue preparations through interr
   expect(awards[0]).toEqual(
     expect.objectContaining({ vestedShares: '100', issuedShares: '0', availableShares: '100' }),
   );
-  expect((await screen.findByRole('link', { name: 'Issue vested shares' })).getAttribute('href')).toContain(
-    `award=${encodeURIComponent(awards[0].uuid)}`,
+  expect((await screen.findByRole('link', { name: 'Issue vested shares' })).getAttribute('href')).toBe(
+    '/company/register',
   );
   expect(submissions(URLS.REGISTER_GRANTS)).toHaveLength(0);
   expect(screen.getByText('100 shares promised · 100 company-recorded vested')).toBeTruthy();
@@ -258,6 +258,8 @@ it('retains original award, vesting and linked issue preparations through interr
       };
     if (url === URLS.REGISTER_LINK_WAITING_WALLETS) return { data: { wallets: [] } };
     if (url === URLS.REGISTER_GRANTS) return { data: { results: retainedGrant ? [retainedGrant] : [], next: null } };
+    if (awards.some((award) => url === URLS.REGISTER_AWARD(award.uuid)))
+      return { data: awards.find((award) => url === URLS.REGISTER_AWARD(award.uuid)) };
     if (
       url === URLS.REGISTER_AWARDS ||
       url === URLS.REGISTER_AWARD_VESTINGS ||
@@ -358,48 +360,47 @@ it('retains original award, vesting and linked issue preparations through interr
     };
     return { data: { ...retainedGrant, termsFingerprint: 'c'.repeat(64) } };
   });
-  function Returned() {
-    const location = useLocation();
-    return (
-      <>
-        <output data-testid="return-context">{JSON.stringify({ hash: location.hash, ...location.state })}</output>
-        <CompanyRegisterPage />
-      </>
-    );
-  }
   prepareCompanyClient(client);
   let canPrepare = true;
   const preparation = () => (
     <QueryClientProvider client={client}>
       <ApiClientProvider client={apiClient}>
-        <MemoryRouter initialEntries={['/prepare']}>
-          <Routes>
-            <Route
-              path="/prepare"
-              element={
-                <GrantForm
-                  owner={OWNER}
-                  guard={() => {}}
-                  company={APPOINTMENT.company}
-                  token={REGISTER.token.uuid}
-                  people={[]}
-                  appointment={APPOINTMENT}
-                  blocked={false}
-                  canPrepare={canPrepare}
-                  onRefused={() => {}}
-                  award={awards[0]}
-                />
-              }
-            />
-            <Route path="/company/register" element={<Returned />} />
-          </Routes>
-        </MemoryRouter>
+        <GrantForm
+          owner={OWNER}
+          guard={() => {}}
+          company={APPOINTMENT.company}
+          token={REGISTER.token.uuid}
+          people={[]}
+          appointment={APPOINTMENT}
+          blocked={false}
+          canPrepare={canPrepare}
+          onRefused={() => {}}
+          onRecorded={() => {}}
+          award={awards[0]}
+        />
       </ApiClientProvider>
     </QueryClientProvider>
   );
-  const preparedView = render(preparation());
-  expect(screen.getByText(AWARD_REQUEST.name!)).toBeTruthy();
-  expect(screen.queryByRole('combobox')).toBeNull();
+  const preparedView = render(
+    <QueryClientProvider client={client}>
+      <ApiClientProvider client={apiClient}>
+        <MemoryRouter
+          initialEntries={[
+            { pathname: '/company/register', hash: '#awards', state: { registerCompany: APPOINTMENT.company } },
+          ]}
+        >
+          <CompanyRegisterPage />
+        </MemoryRouter>
+      </ApiClientProvider>
+    </QueryClientProvider>,
+  );
+  const issueVested = await screen.findByRole('link', { name: 'Issue vested shares' });
+  await waitFor(() => expect(screen.queryByText('Loading employee awards…')).toBeNull());
+  fireEvent.click(issueVested);
+  const issues = within((await screen.findByRole('group', { name: 'What kind of issue?' })).parentElement!);
+  expect((issues.getByRole('radio', { name: 'Non-paid issue' }) as HTMLInputElement).checked).toBe(true);
+  expect(await issues.findByText(AWARD_REQUEST.name!)).toBeTruthy();
+  expect(issues.queryByRole('combobox', { name: 'Issue to' })).toBeNull();
   const fillGrant = () => {
     for (const [label, value] of [
       [GRANT.SHARES, '10'],
@@ -437,28 +438,28 @@ it('retains original award, vesting and linked issue preparations through interr
   const retainedReceipt = retainedGrant!;
   awards = [{ ...retainedAward, agreementEvidence: 'changed-agreement', agreementFingerprint: 'd'.repeat(64) }];
   retainedGrant = { ...retainedReceipt, termsFingerprint: 'c'.repeat(64) };
-  canPrepare = false;
-  preparedView.rerender(preparation());
+  appointments = [{ ...APPOINTMENT, capabilities: ['read_register'] }];
+  await act(async () => client.refetchQueries({ queryKey: ownAppointmentsKey(OWNER) }));
+  await waitFor(() => expect((recover as HTMLButtonElement).disabled).toBe(false));
   fireEvent.click(recover);
-  await screen.findByRole('alert');
-  expect(screen.queryByTestId('return-context')).toBeNull();
+  await issues.findByRole('alert');
   expect(submissions(URLS.REGISTER_GRANTS)).toEqual([original]);
   retainedGrant = retainedReceipt;
   fireEvent.click(recover);
-  expect((await screen.findByTestId('return-context')).textContent).toBe(
-    JSON.stringify({
-      hash: '#awards',
-      awardIssueToken: REGISTER.token.uuid,
-      awardIssueCompany: APPOINTMENT.company,
-    }),
-  );
+  await issues.findByText('Next: review and approve the exact share issue.');
+  expect(issues.queryByRole('button', { name: 'Recover original grant preparation' })).toBeNull();
   expect(submissions(URLS.REGISTER_GRANTS)).toEqual([original]);
   expect(submissions(URLS.REGISTER_EVIDENCE)).toHaveLength(3);
   awards = [retainedAward];
+  appointments = [APPOINTMENT];
+  await act(async () => client.refetchQueries({ queryKey: ownAppointmentsKey(OWNER) }));
   expect(awards[0].issuedShares).toBe('0');
-  await screen.findByText('Next: review and approve the exact share issue.');
   expect((screen.getByRole('combobox', { name: 'Company' }) as HTMLInputElement).value).toBe(APPOINTMENT.companyName);
-  expect((screen.getByText('Non-paid share issues').parentElement as HTMLDetailsElement).open).toBe(true);
+  expect(screen.getByText('Non-paid issues from this award · 1')).toBeTruthy();
+  fireEvent.click(screen.getByRole('link', { name: /^10 shares, prepared/, hidden: true }));
+  await waitFor(() =>
+    expect(document.activeElement?.textContent).toContain('Next: review and approve the exact share issue.'),
+  );
   expect(screen.queryByRole('button', { name: /^Record issue [(]grant/ })).toBeNull();
   for (const label of ['Approve', 'Record issue']) {
     fireEvent.click(screen.getByRole('button', { name: new RegExp(`^${label} [(]grant`) }));
@@ -507,7 +508,7 @@ it('retains original award, vesting and linked issue preparations through interr
   const issueRecovery = await screen.findByRole('button', { name: /^Recover record issue receipt/ });
   await waitFor(() => expect((issueRecovery as HTMLButtonElement).disabled).toBe(false));
   fireEvent.click(issueRecovery);
-  await screen.findByText('Shares issued');
+  await issues.findByText('Shares issued');
   await waitFor(() => expect(screen.queryByRole('button', { name: /^Recover record issue receipt/ })).toBeNull());
   expect(submissions(URLS.REGISTER_GRANT_DECIDE(retainedGrant!.uuid)).filter((row) => row.kind === 'apply')).toEqual([
     originalIssue,

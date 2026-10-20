@@ -175,16 +175,16 @@ it('preserves original preparation and issue recovery through refresh, keeps app
     throw new Error(`Unexpected POST ${url}`);
   });
   renderCompanyPage(client, <CompanyRegisterPage />, 'Register');
-  const investorTask = await screen.findByRole('button', { name: 'Record investor share issue' });
+  const investorTask = await screen.findByRole('button', { name: 'Issue shares' });
   const transferTask = screen.getByRole('button', { name: 'Transfer shares' });
   const historyTask = screen.getByRole('button', { name: 'History' });
   fireEvent.click(investorTask);
   const taskClass = (await screen.findByLabelText('Task share class')) as HTMLSelectElement;
   fireEvent.change(taskClass, { target: { value: REGISTER.token.uuid } });
-  const allotments = within((await screen.findByRole('heading', { name: COPY.TITLE })).parentElement!);
-  const open = await allotments.findByRole('button', { name: COPY.PREPARE });
-  await waitFor(() => expect((open as HTMLButtonElement).disabled).toBe(false));
-  fireEvent.click(open);
+  const allotments = within((await screen.findByRole('group', { name: 'What kind of issue?' })).parentElement!);
+  const investorIssue = await allotments.findByRole('radio', { name: 'Investor issue' });
+  await waitFor(() => expect(investorIssue.matches(':disabled')).toBe(false));
+  fireEvent.click(investorIssue);
   expect(await allotments.findByRole('group', { name: '1. Person and shares' })).toBeTruthy();
   expect(allotments.getByRole('group', { name: '2. Agreement and company receipt' })).toBeTruthy();
   expect(allotments.getByRole('group', { name: '3. Company authority and review' })).toBeTruthy();
@@ -256,7 +256,7 @@ it('preserves original preparation and issue recovery through refresh, keeps app
   fireEvent.click(allotments.getByRole('button', { name: 'Retry allotments' }));
   await allotments.findByLabelText('Name');
   fireEvent.click(allotments.getByRole('button', { name: COPY.SUBMIT }));
-  await waitFor(() => expect(allotments.queryByRole('button', { name: 'Close allotment form' })).toBeNull());
+  await waitFor(() => expect(allotments.queryByRole('button', { name: 'Close issue form' })).toBeNull());
   expect(api.post.mock.calls.filter(([url]) => url === URLS.REGISTER_ALLOTMENTS)).toHaveLength(1);
   expect(api.post.mock.calls.filter(([url]) => url === URLS.REGISTER_EVIDENCE)).toHaveLength(3);
   expect(allotments.queryByRole('button', { name: /^Record issue [(]allotment/ })).toBeNull();
@@ -388,7 +388,7 @@ it('preserves original preparation and issue recovery through refresh, keeps app
   interruptedAbsentPreparation = true;
   appointments = [APPOINTMENT];
   await refreshAllotments();
-  fireEvent.click(await allotments.findByRole('button', { name: COPY.PREPARE }));
+  fireEvent.click(await allotments.findByRole('radio', { name: 'Investor issue' }));
   await allotments.findByLabelText('Name');
   fillForm('250');
   fireEvent.click(allotments.getByRole('button', { name: COPY.SUBMIT }));
@@ -409,7 +409,7 @@ it('preserves original preparation and issue recovery through refresh, keeps app
   expect(
     api.get.mock.calls.filter(([url]) => url === URLS.REGISTER_ALLOTMENT(String(absentPreparation?.operationId))),
   ).toHaveLength(2);
-  const close = allotments.getByRole('button', { name: 'Close allotment form' });
+  const close = allotments.getByRole('button', { name: 'Close issue form' });
   await waitFor(() => expect(close.matches(':disabled')).toBe(false));
   fireEvent.click(close);
   expect(rows[0].registerEntry).toBe('entry-a');

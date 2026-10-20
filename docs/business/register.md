@@ -192,9 +192,9 @@ Ledova, and its holdings must match the stored register. On the web:
 
 1. On Register, choose **Set up your share register** (shown while no share class is readable) or,
    once a register exists, **Add share class**; or choose History, the class, then Bring records
-   under Register mirror. Record investor share issue and Transfer shares also offer Set up share
-   register for a class not yet set up. Register is the only place where share classes are
-   created, on the web and on mobile.
+   under Register mirror. Issue shares and Transfer shares also offer Set up share register for a
+   class not yet set up. Register is the only place where share classes are created, on the web
+   and on mobile.
 2. Share details: open an existing draft class from its link, or choose a common class (Ordinary
    ORD, Preference PRF or Redeemable RED) or Another class with the company's own name, code and
    type. The company choices come from current personal administrator or preparer appointments,
@@ -514,9 +514,9 @@ The Register view shows:
 - a card for each class: Issued shares, Current shareholders, Register opened or Register not
   opened, Authorised shares (or a Technical share limit for a class set up from existing records), a
   note when completed issues or transfers wait or cannot be checked;
-- three tasks sharing one share-class selector, only the selected one shown: Record investor share
-  issue ([external investor allotments](issuing-shares.md#external-investor-allotments)), Transfer
-  shares ([non-paid transfers](#non-paid-transfers-between-members)) and History. History holds,
+- three tasks sharing one share-class selector, only the selected one shown: Issue shares
+  ([investor and non-paid issues](issuing-shares.md#ways-to-issue-shares)), Transfer shares
+  ([non-paid transfers](#non-paid-transfers-between-members)) and History. History holds,
   under Recorded changes, a link to the class's Share class page, Openings (for a class on chain),
   Register mirror, Register entries (newest first, with certificate controls), Corrections and
   Reconciliation with the chain, then the company's Particulars changes and Wallet links;
@@ -540,11 +540,12 @@ names. Member access and requests then holds invitations, current access and mem
 certificate requests ([member records](member-records.md)). While register work is unfinished,
 Details is unavailable, so the work and its recovery stay on the page.
 
-The Employee awards view holds each class's [awards](issuing-shares.md#employee-awards-and-vesting)
-and Non-paid share issues; Documents holds each class's CSV download and inspection copy and the
-company pack.
+The Employee awards view holds each class's [awards](issuing-shares.md#employee-awards-and-vesting),
+each listing the non-paid issues prepared from it; Documents holds each class's CSV download and
+inspection copy and the company pack.
 
-Each preparation has its own page and keeps an uploaded document if the response is interrupted.
+Issues are prepared in place under Issue shares, and each other preparation has its own page. Each
+keeps an uploaded document if the response is interrupted.
 Steps follow [how a company decision works](README.md#how-a-company-decision-works); someone whose
 appointments allow none sees the history with a read-only note. The mobile app keeps its own
 per-class ownership view and separate preparation and decision screens, holds member access under

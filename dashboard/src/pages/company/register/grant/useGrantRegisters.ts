@@ -1,8 +1,0 @@
-import { useQuery } from '@tanstack/react-query';
-import type { OrderSubmissionOwner } from '@ledova/shared';
-import { registersQuery } from '@pages/company/shared/useCompanyRegister';
-
-export function useGrantRegisters(owner: OrderSubmissionOwner, companyClasses: string[], guard: () => void) {
-  const registers = useQuery(registersQuery(owner, companyClasses, guard));
-  return registers;
-}

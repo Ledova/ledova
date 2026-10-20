@@ -195,8 +195,8 @@ The [principles](README.md#principles) apply; in particular, do not add:
   `parseFloat` display paths change output, so they await the owner decision listed on
   [#1065](https://github.com/Ledova/ledova/issues/1065)).
 - **Naming and exports.** A page folder takes the last fixed segment of its address and sits in the
-  folder of the nearest page whose fixed address begins its own: `/company/register/:uuid/grant` is
-  `pages/company/register/grant/`. An address that only adds a parameter to that page is `detail/`
+  folder of the nearest page whose fixed address begins its own: `/company/register/:uuid/transfer`
+  is `pages/company/register/transfer/`. An address that only adds a parameter to that page is `detail/`
   (`/directory/:uuid` is `pages/directory/detail/`), and a `detail/` folder never holds sub-pages;
   an address that renders another's page (`/member-records`, `/company/register/setup`) has no
   folder, and the not-found page is `pages/not-found/`. Page folders and `components/` groups are
@@ -600,8 +600,10 @@ Each page links to its business section; the audience is the `DESTINATIONS` audi
 
   `personRequest` (`packages/shared/src/utils/people.ts`) sends an award recipient without shares
   under their reserved member ID with their award's particulars, as register setup does; each flow
-  filters the list by its own rule. Navigation state `issueMember` opens Record investor share issue
-  with that person chosen, and `fromMember` chooses a transfer's transferor.
+  filters the list by its own rule. On Register, navigation state `issueMember` opens Issue shares
+  with Investor issue and that person chosen, `issueAward` opens it with Non-paid issue for that
+  award, and `registerRecord` focuses a listed non-paid issue. `fromMember` chooses a transfer's
+  transferor.
 
 - A shareholder's page on the web (`dashboard/src/pages/company/register/member`): reads the named
   company's classes and holders through the same queries as Register, the company's recorded

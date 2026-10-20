@@ -56,6 +56,7 @@ export function GrantRecord({
   visible = true,
   onHeldChange,
   newEffectGuard,
+  focusKey,
 }: {
   grant: RegisterGrant;
   steps: RegisterSteps;
@@ -64,6 +65,7 @@ export function GrantRecord({
   visible?: boolean;
   onHeldChange?: (uuid: string, held: boolean) => void;
   newEffectGuard?: (kind: RegisterDecisionKind) => void;
+  focusKey?: string;
 }) {
   const download = useGrantRecordDownload(grant, guard);
   const context = `grant for ${grant.name} prepared ${formatDateTime(grant.createdAt)}`;
@@ -71,7 +73,7 @@ export function GrantRecord({
     ? ['authority', 'terms', 'acceptance']
     : ['authority', 'terms'];
   return (
-    <RecordShell hidden={!visible}>
+    <RecordShell hidden={!visible} focusKey={focusKey}>
       {visible && (
         <>
           <div className="flex flex-wrap items-start justify-between gap-3">

@@ -26,7 +26,7 @@ Contents:
 The register services in `backend/tokens/services/` are
 [register.py](../../backend/tokens/services/register.py) (stored reads, CSV and outputs),
 [register_events.py](../../backend/tokens/services/register_events.py) (appending and verifying
-entries), [register_inclusions.py](../../backend/tokens/services/register_inclusions.py)
+entries, and the issue step investor allotments and non-paid grants share), [register_inclusions.py](../../backend/tokens/services/register_inclusions.py)
 (completions and the waiting list),
 [register_snapshot.py](../../backend/tokens/services/register_snapshot.py) (the canonical chain
 snapshot), [register_reconciliation.py](../../backend/tokens/services/register_reconciliation.py),

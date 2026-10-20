@@ -1,20 +1,21 @@
 import { RecordShell, RecordDownloadFailure } from './RecordShell';
 import { useLayoutEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { generatePath } from 'react-router-dom';
 import {
   DESTINATIONS,
   REGISTER_AWARD_COPY as COPY,
+  REGISTER_GRANT_COPY as GRANT_COPY,
   formatDateTime,
   remainingRegisterAwardVesting,
   type OrderSubmissionOwner,
   type OwnCompanyAppointment,
   type RegisterAward,
+  type RegisterGrant,
 } from '@ledova/shared';
-import { LinkRow, Row, Rows } from '@components/Ledger';
+import { LinkRow, Row, Rows, Status } from '@components/Ledger';
 import { PageAction } from '@components/Page';
 import { AwardStatus } from '@components/AwardStatus';
-import { shareCount } from '@pages/company/shared/proposals';
+import { STAGE_TONES, shareCount } from '@pages/company/shared/proposals';
 import {
   awardVestingsKey,
   awardEndsKey,
@@ -32,6 +33,7 @@ const SUMMARY = 'cursor-pointer py-2 text-sm font-medium text-text-primary';
 export function AwardRecord({
   owner,
   award,
+  grants,
   appointment,
   guard,
   blocked,
@@ -41,6 +43,7 @@ export function AwardRecord({
 }: {
   owner: OrderSubmissionOwner;
   award: RegisterAward;
+  grants: RegisterGrant[];
   appointment?: OwnCompanyAppointment;
   guard: () => void;
   blocked: boolean;
@@ -148,7 +151,8 @@ export function AwardRecord({
               BigInt(award.availableShares) > 0n && (
                 <LinkRow
                   label="Issue vested shares"
-                  to={`${generatePath(DESTINATIONS.companyRegisterGrant.path, { uuid: award.token })}?award=${encodeURIComponent(award.uuid)}`}
+                  to={DESTINATIONS.companyRegister.path}
+                  state={{ registerCompany: award.company, registerToken: award.token, issueAward: award.uuid }}
                 />
               )}
           </div>
@@ -296,6 +300,24 @@ export function AwardRecord({
                     onClick={() => download.mutate({ kind: 'reversal', uuid: event.uuid })}
                   />
                 </div>
+              ))}
+            </details>
+          )}
+          {grants.length > 0 && (
+            <details>
+              <summary className={SUMMARY}>Non-paid issues from this award · {grants.length}</summary>
+              {grants.map((grant) => (
+                <LinkRow
+                  key={grant.uuid}
+                  label={`${shareCount(grant.shares)}, prepared ${formatDateTime(grant.createdAt)}`}
+                  to={DESTINATIONS.companyRegister.path}
+                  state={{ registerCompany: award.company, registerToken: award.token, registerRecord: grant.uuid }}
+                  aside={
+                    <Status tone={STAGE_TONES[grant.stage] ?? 'waiting'}>
+                      {grant.stage === 'applied' ? 'Shares issued' : (GRANT_COPY.STAGES[grant.stage] ?? grant.stage)}
+                    </Status>
+                  }
+                />
               ))}
             </details>
           )}
