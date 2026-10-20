@@ -10,6 +10,7 @@ import {
   USER_PREFERENCES_QUERY_KEY,
   appointmentForRegisterStep,
   formatDate,
+  formatDateTime,
   formatShareCount,
   useCompanyMemberAccess,
   useSubmissionOwner,
@@ -309,7 +310,7 @@ function OwnShareholder({
                 {current
                   ? 'They can see their own holdings, history and certificates.'
                   : invited
-                    ? `Invited, waiting for them to accept until ${formatDate(invited.acceptanceDeadline)}.`
+                    ? `Invited, waiting for them to accept until ${formatDateTime(invited.acceptanceDeadline)}.`
                     : 'No access yet. An invitation lets them see their own holdings, history and certificates.'}
               </p>
               {!current && !invited && (

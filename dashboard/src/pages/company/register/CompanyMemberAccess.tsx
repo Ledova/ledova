@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { type OrderSubmissionOwner, type TokenHoldersResponse } from '@ledova/shared';
+import { formatDateTime, type OrderSubmissionOwner, type TokenHoldersResponse } from '@ledova/shared';
 import { Section } from '@components/Ledger';
 import { PageAction } from '@components/Page';
 import { FIELD_CLASS } from '@components/fieldClass';
@@ -148,7 +148,8 @@ export function CompanyMemberAccess({
           {access.access?.invitations.map((item) => (
             <div key={item.uuid} className="space-y-1 text-sm">
               <p>
-                {memberName(item.member)} · {item.intendedEmail} · {item.status} · Until {item.acceptanceDeadline}
+                {memberName(item.member)} · {item.intendedEmail} · {item.status} · Until{' '}
+                {formatDateTime(item.acceptanceDeadline)}
               </p>
               <details className="text-text-muted">
                 <summary>Invitation record</summary>
@@ -195,7 +196,7 @@ export function CompanyMemberAccess({
           <h3 className="text-base font-medium">Particulars requests</h3>
           <p className="text-sm text-text-muted">
             Member particulars requests are proposals. Prepare a separate company instruction with your supporting
-            evidence; approval and application use Register particulars changes below.
+            evidence, then approve and apply it under Register, History.
           </p>
           {access.requests.particulars.map((item) => (
             <div key={item.uuid} className="space-y-2 py-2">
