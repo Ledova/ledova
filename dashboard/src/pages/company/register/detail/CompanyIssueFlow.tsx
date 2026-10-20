@@ -34,6 +34,7 @@ const stages: Record<string, string> = COPY.STAGES;
 
 const NEW_MEMBER = [{ value: 'new', label: 'Create a new member through the documentary link' }];
 const MEMBERS = ['member', 'members'] as const;
+const WALLETS = ['wallet', 'wallets'] as const;
 
 function SnapshotRows({ snapshot }: { snapshot: RegisterIssueSnapshot }) {
   return (
@@ -266,24 +267,21 @@ function Preparation({ commands }: { commands: Commands }) {
       disabled={waiting}
       className="grid gap-4 rounded-xl border border-border-subtle bg-surface-tertiary p-4 sm:grid-cols-2 [&>p]:sm:col-span-2 [&>h3]:sm:col-span-2 [&>dl]:sm:col-span-2"
     >
-      <label className="block text-sm">
-        Nominated wallet
-        <select
-          className={FIELD_CLASS}
-          value={nomination}
-          onChange={(event) => {
-            setNomination(event.target.value);
-            setApproval('');
-          }}
-        >
-          <option value="">Select a wallet explicitly shared with this company</option>
-          {(commands.nominations.data ?? []).map((row) => (
-            <option key={row.uuid} value={row.uuid}>
-              {row.address}
-            </option>
-          ))}
-        </select>
-      </label>
+      <SearchSelect
+        label="Nominated wallet"
+        choices={(commands.nominations.data ?? []).map((row) => ({
+          value: row.uuid,
+          label: row.address,
+          detail: `Proof completed ${formatDateTime(row.proofCompletedAt)}`,
+        }))}
+        value={nomination}
+        onChange={(uuid) => {
+          setNomination(uuid);
+          setApproval('');
+        }}
+        placeholder="Type part of a wallet address"
+        noun={WALLETS}
+      />
       {chosen && (
         <Rows>
           <Row label="Nomination">{chosen.uuid}</Row>

@@ -232,7 +232,7 @@ it('reads every class page and groups exact holdings by member identity with sea
     params: { page: 2 },
     ledovaSubmissionGuard: expect.any(Function),
   });
-  expect(screen.queryByLabelText('Company')).toBeNull();
+  expect(screen.queryByRole('combobox', { name: 'Company' })).toBeNull();
   expect(screen.getByRole('heading', { level: 1, name: 'Shareholders' })).toBeTruthy();
   expect(screen.getByRole('heading', { name: 'Current shareholders' })).toBeTruthy();
   expect(screen.getByRole('heading', { name: 'Member access and requests' })).toBeTruthy();
@@ -1761,7 +1761,7 @@ it('shows an account without register access a calm empty state, reads no member
   });
   show('investor');
   expect(await screen.findByText(NO_REGISTER)).toBeTruthy();
-  expect(screen.queryByLabelText('Company')).toBeNull();
+  expect(screen.queryByRole('combobox', { name: 'Company' })).toBeNull();
   expect(screen.queryByRole('button', { name: /shares/ })).toBeNull();
   expect(screen.queryByRole('button', { name: 'Download CSV' })).toBeNull();
   cleanup();
@@ -1789,19 +1789,20 @@ it("retains a dashboard's validated company/class context and reads only the cho
       </Link>
     </>,
   );
-  const select = (await screen.findByLabelText('Company')) as HTMLSelectElement;
-  expect([...select.options].map((option) => option.textContent)).toEqual([
-    'Select a company',
+  const company = (await screen.findByRole('combobox', { name: 'Company' })) as HTMLInputElement;
+  expect(company.value).toBe('');
+  fireEvent.change(company, { target: { value: ' ' } });
+  expect((await screen.findAllByRole('option')).map((option) => option.textContent)).toEqual([
     'Harbour Example Pty Ltd',
     'Inland Example Pty Ltd',
   ]);
-  expect(select.value).toBe('');
+  fireEvent.keyDown(company, { key: 'Escape' });
   expect(screen.getByText('Select a company to show its register.')).toBeTruthy();
   expect(screen.queryByRole('button', { name: /shares/ })).toBeNull();
   expect(readUrls()).toEqual([REGISTER]);
 
   fireEvent.click(screen.getByRole('link', { name: 'Open mismatched dashboard class' }));
-  expect(select.value).toBe('');
+  expect(company.value).toBe('');
   expect(readUrls()).toEqual([REGISTER]);
   fireEvent.click(screen.getByRole('link', { name: 'Open dashboard class' }));
   const preference = await screen.findByRole('heading', { name: /^Preference shares ·/ });
@@ -1815,7 +1816,7 @@ it("retains a dashboard's validated company/class context and reads only the cho
   expect(readUrls()).not.toContain(COMPANY_TOKEN_ENDPOINTS.HOLDERS('ordinary'));
   expect(screen.queryByRole('table', { name: 'Company shareholders' })).toBeNull();
 
-  fireEvent.change(select, { target: { value: 'harbour' } });
+  await choose('Company', 'Harbour Example Pty Ltd', 'harbour');
   await screen.findByText('Harbour Example Pty Ltd', { selector: 'p' });
   fireEvent.click(screen.getByRole('button', { name: 'History' }));
   await screen.findByRole('heading', { name: /^Ordinary shares ·/ });
@@ -1841,7 +1842,7 @@ it("starts again for another signed-in account without showing the previous acco
     return noCommands(url) ?? { data: register(url.includes('preference') ? 'preference' : 'ordinary') };
   });
   show('investor', <CompanyRegisterPage />, 'Register', { entry: '/#shareholders' });
-  fireEvent.change(await screen.findByLabelText('Company'), { target: { value: 'inland' } });
+  await choose('Company', 'Inland Example Pty Ltd', 'inland');
   const table = await screen.findByRole('table', { name: 'Company shareholders' });
   expect(within(table).getByText('Example Member')).toBeTruthy();
 
@@ -1861,10 +1862,10 @@ it("starts again for another signed-in account without showing the previous acco
   );
   expect(screen.getByRole('status').textContent).toBe('Loading your register…');
   expect(screen.queryByRole('table', { name: 'Company shareholders' })).toBeNull();
-  expect(screen.queryByLabelText('Company')).toBeNull();
+  expect(screen.queryByRole('combobox', { name: 'Company' })).toBeNull();
   expect(screen.queryByText('Example Member')).toBeNull();
   await act(async () => finish(page([harbour('ordinary'), inland('preference')])));
-  expect(((await screen.findByLabelText('Company')) as HTMLSelectElement).value).toBe('');
+  expect(((await screen.findByRole('combobox', { name: 'Company' })) as HTMLInputElement).value).toBe('');
   expect(screen.queryByRole('table', { name: 'Company shareholders' })).toBeNull();
   expect(screen.getByText('Select a company to show its register.')).toBeTruthy();
   expect(readUrls().filter((url) => url === REGISTER)).toHaveLength(2);

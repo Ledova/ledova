@@ -1,6 +1,7 @@
 import { Row, Rows, Section } from '@components/Ledger';
 import { PageAction } from '@components/Page';
 import { FIELD_CLASS } from '@components/fieldClass';
+import { SearchSelect } from '@components/SearchSelect';
 import {
   REGISTER_PAID_ISSUE_COPY as COPY,
   REGISTER_PAID_ISSUE_DECISIONS,
@@ -20,6 +21,7 @@ import { usePaidIssuePreparation, usePaidIssueRecord, type Commands } from './us
 import type { useShareClass } from './useShareClass';
 const STAGES: Record<string, string> = COPY.STAGES;
 
+const SUBSCRIPTIONS = ['subscription', 'subscriptions'] as const;
 function SourceRows({ source }: { source: RegisterPaidIssueSource }) {
   return (
     <Rows>
@@ -201,24 +203,23 @@ function Preparation({ commands }: { commands: Commands }) {
             No available paid subscription for this class. Existing admitted sources retain their original outcomes.
           </p>
         )}
-      <label className="block text-sm">
-        Recorded paid subscription
-        <select
-          className={FIELD_CLASS}
-          value={captured?.source.subscription ?? ''}
-          onChange={(event) => select(event.target.value)}
-        >
-          <option value="">Choose an available recorded paid source</option>
-          {captured && !candidates.some((row) => row.subscription === captured.source.subscription) && (
-            <option value={captured.source.subscription}>Captured source {captured.source.subscription}</option>
-          )}
-          {candidates.map((row) => (
-            <option key={row.subscription} value={row.subscription}>
-              {row.subscription} · {formatShareCount(row.shares)} shares · {row.recipientAddress}
-            </option>
-          ))}
-        </select>
-      </label>
+      <SearchSelect
+        label="Recorded paid subscription"
+        choices={[
+          ...(captured && !candidates.some((row) => row.subscription === captured.source.subscription)
+            ? [captured.source]
+            : []),
+          ...candidates,
+        ].map((row) => ({
+          value: row.subscription,
+          label: row.recipientName || 'Name not recorded',
+          detail: `${formatShareCount(row.shares)} shares · ${row.recipientAddress}`,
+        }))}
+        value={captured?.source.subscription ?? ''}
+        onChange={select}
+        placeholder="Type an investor name or address"
+        noun={SUBSCRIPTIONS}
+      />
       {captured && <SourceRows source={captured.source} />}
       <PageAction
         label="Use current recorded source"
