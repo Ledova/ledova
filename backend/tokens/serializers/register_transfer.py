@@ -144,7 +144,7 @@ class RegisterMemberSelectionSerializer(serializers.Serializer):
     walletless = serializers.BooleanField()
     particulars_retained = serializers.BooleanField()
     on_register = serializers.BooleanField(
-        required=False, help_text="False only for an award recipient who holds no shares in the company."
+        required=False, help_text="False only for an award recipient who has never been on the company's register."
     )
 
 

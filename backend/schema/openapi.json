@@ -16884,7 +16884,7 @@
             "type": "string"
           },
           "onRegister": {
-            "description": "False only for an award recipient who holds no shares in the company.",
+            "description": "False only for an award recipient who has never been on the company's register.",
             "type": "boolean"
           },
           "particularsRetained": {
