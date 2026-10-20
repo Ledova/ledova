@@ -8,6 +8,7 @@ import {
   registerImportTotals,
 } from '@ledova/shared';
 import { Row, Rows } from '@components/Ledger';
+import { Table } from '@components/List';
 import { FormActions, PageAction } from '@components/Page';
 
 import { BringRecords } from './BringRecords';
@@ -349,37 +350,35 @@ export function ImportForm({
                       the legal register.
                     </p>
                     {proposal.correctionOf && preview && (
-                      <table className="w-full text-sm">
-                        <caption className="pb-2 text-left text-text-muted">
-                          Correction compared with the current mirror
-                        </caption>
-                        <thead>
-                          <tr>
-                            <th className="text-left">Shareholder</th>
-                            <th className="text-right">Before</th>
-                            <th className="text-right">After</th>
+                      <p className="text-sm text-text-muted">Correction compared with the current mirror</p>
+                    )}
+                    {proposal.correctionOf && preview && (
+                      <Table
+                        caption="Correction compared with the current mirror"
+                        columns={[
+                          { label: 'Shareholder' },
+                          { label: 'Before', align: 'right' },
+                          { label: 'After', align: 'right' },
+                        ]}
+                      >
+                        {preview.comparison.map((row) => (
+                          <tr key={row.member}>
+                            <th scope="row" className="px-4 py-3 text-left font-normal">
+                              {row.name ?? row.liveName ?? 'Earlier shareholder'}
+                            </th>
+                            <td className="px-4 py-3 text-right tabular-nums">
+                              {row.stored === null ? 'Not held' : formatShareCount(row.stored)}
+                              <p className="text-xs text-text-muted">{formatDate(row.enteredOn, 'Not recorded')}</p>
+                            </td>
+                            <td className="px-4 py-3 text-right tabular-nums">
+                              {row.imported === null ? 'Not held' : formatShareCount(row.imported)}
+                              <p className="text-xs text-text-muted">
+                                {formatDate(row.importedEnteredOn, 'Not recorded')}
+                              </p>
+                            </td>
                           </tr>
-                        </thead>
-                        <tbody>
-                          {preview.comparison.map((row) => (
-                            <tr key={row.member}>
-                              <th className="py-2 text-left font-normal">
-                                {row.name ?? row.liveName ?? 'Earlier shareholder'}
-                              </th>
-                              <td className="text-right">
-                                {row.stored === null ? 'Not held' : formatShareCount(row.stored)}
-                                <p className="text-xs text-text-muted">{formatDate(row.enteredOn, 'Not recorded')}</p>
-                              </td>
-                              <td className="text-right">
-                                {row.imported === null ? 'Not held' : formatShareCount(row.imported)}
-                                <p className="text-xs text-text-muted">
-                                  {formatDate(row.importedEnteredOn, 'Not recorded')}
-                                </p>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
+                        ))}
+                      </Table>
                     )}
                     {preview?.unmetRequirements.length ? (
                       <ul role="alert" className="space-y-1 text-sm text-error-light">

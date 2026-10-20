@@ -6,6 +6,7 @@ import {
   type RegisterTransferMember,
   type RegisterAwardRecipient,
 } from '@ledova/shared';
+import { Table } from '@components/List';
 import { FormActions, PageAction } from '@components/Page';
 import { FIELD_CLASS, LABEL } from '@components/fieldClass';
 import { MemberFields } from './MemberFields';
@@ -141,74 +142,57 @@ export function BringRecords({
               </div>
             )}
             {draft.members.some((row) => started(row) && row.member !== editor?.member) && (
-              <div className="relative max-w-full overflow-x-auto rounded-xl border border-border-subtle">
-                <table className="w-full text-left text-sm">
-                  <caption className="sr-only">Draft shareholders</caption>
-                  <thead className="bg-surface-tertiary text-xs text-text-muted">
-                    <tr>
-                      <th scope="col" className="px-4 py-3 font-medium">
-                        Shareholder
+              <Table
+                caption="Draft shareholders"
+                columns={[
+                  { label: 'Shareholder' },
+                  { label: 'Shares held', align: 'right' },
+                  { label: 'Date added' },
+                  { label: 'Actions', hidden: true },
+                ]}
+              >
+                {draft.members.map((row, index) =>
+                  started(row) && row.member !== editor?.member ? (
+                    <tr key={row.member}>
+                      <th scope="row" className="px-4 py-4 text-left font-normal">
+                        <p className="font-medium text-text-primary">{row.name || 'Shareholder details incomplete'}</p>
+                        <p className="mt-1 max-w-64 truncate text-xs text-text-muted">{row.residentialAddress}</p>
+                        {validateMember(index).length > 0 && (
+                          <p className="mt-1 text-xs text-error-light">Needs details</p>
+                        )}
                       </th>
-                      <th scope="col" className="px-4 py-3 text-right font-medium">
-                        Shares held
-                      </th>
-                      <th scope="col" className="px-4 py-3 font-medium">
-                        Date added
-                      </th>
-                      <th scope="col" className="px-4 py-3">
-                        <span className="sr-only">Actions</span>
-                      </th>
+                      <td className="px-4 py-4 text-right tabular-nums">
+                        {row.shares ? formatShareCount(row.shares) : '—'}
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-4 text-text-muted">{formatDate(row.enteredOn, '—')}</td>
+                      <td className="px-4 py-4">
+                        <div className="flex gap-2">
+                          <PageAction
+                            label="Edit"
+                            context={`shareholder ${index + 1}`}
+                            disabled={busy || editorOpen}
+                            onClick={() => {
+                              setMemberErrors([]);
+                              setEditor({ member: row.member, original: row });
+                            }}
+                          />
+                          <PageAction
+                            label="Remove"
+                            context={`shareholder ${index + 1}`}
+                            disabled={busy || editorOpen}
+                            onClick={() =>
+                              update((current) => ({
+                                ...current,
+                                members: current.members.filter((_, at) => at !== index),
+                              }))
+                            }
+                          />
+                        </div>
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border-subtle">
-                    {draft.members.map((row, index) =>
-                      started(row) && row.member !== editor?.member ? (
-                        <tr key={row.member}>
-                          <th scope="row" className="px-4 py-4 text-left font-normal">
-                            <p className="font-medium text-text-primary">
-                              {row.name || 'Shareholder details incomplete'}
-                            </p>
-                            <p className="mt-1 max-w-64 truncate text-xs text-text-muted">{row.residentialAddress}</p>
-                            {validateMember(index).length > 0 && (
-                              <p className="mt-1 text-xs text-error-light">Needs details</p>
-                            )}
-                          </th>
-                          <td className="px-4 py-4 text-right tabular-nums">
-                            {row.shares ? formatShareCount(row.shares) : '—'}
-                          </td>
-                          <td className="whitespace-nowrap px-4 py-4 text-text-muted">
-                            {formatDate(row.enteredOn, '—')}
-                          </td>
-                          <td className="px-4 py-4">
-                            <div className="flex gap-2">
-                              <PageAction
-                                label="Edit"
-                                context={`shareholder ${index + 1}`}
-                                disabled={busy || editorOpen}
-                                onClick={() => {
-                                  setMemberErrors([]);
-                                  setEditor({ member: row.member, original: row });
-                                }}
-                              />
-                              <PageAction
-                                label="Remove"
-                                context={`shareholder ${index + 1}`}
-                                disabled={busy || editorOpen}
-                                onClick={() =>
-                                  update((current) => ({
-                                    ...current,
-                                    members: current.members.filter((_, at) => at !== index),
-                                  }))
-                                }
-                              />
-                            </div>
-                          </td>
-                        </tr>
-                      ) : null,
-                    )}
-                  </tbody>
-                </table>
-              </div>
+                  ) : null,
+                )}
+              </Table>
             )}
             {editing && (
               <div className="space-y-5 rounded-xl bg-surface-tertiary p-4 sm:p-5">

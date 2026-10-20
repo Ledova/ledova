@@ -367,8 +367,10 @@ filter. Each class's former shareholders show 25 at a time with Load more.
 The feeds are Activity, an investor's Applications, Notices, the notification bell, Published to
 your members and a class's register entries. A list bounded by one person, such as their own
 documents, classification claims or wallets, reads every page. Other lists still read every page
-([frontend](frontend.md#lists-figures-and-currency)), and the register, ownership and import tables
-keep their own markup until they move.
+([frontend](frontend.md#lists-figures-and-currency)). Every table uses `Table`, apart from the
+company dashboard's largest-shareholder legend beside its chart, which keeps a compact layout with
+its own caption and header scopes. An import's member snapshot opens each member's allotments in a
+dialog named Allotments, so Details always opens a record's own page.
 
 Next: [frontend](frontend.md), [mobile](mobile.md) and
 [the register's person choice](../business/register.md#choosing-a-person).
