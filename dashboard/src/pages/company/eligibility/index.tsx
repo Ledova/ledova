@@ -15,7 +15,8 @@ import { LinkRow, Section } from '@components/Ledger';
 import { Pager } from '@components/List';
 import { PAGE_SIZE, useFirstPageWhenGone, useListParams } from '@hooks/useListParams';
 import { Page, PageAction } from '@components/Page';
-import { ActionConfirmation, EligibilityHistory, RecordsList, TextField } from '@components/eligibility';
+import { ActionConfirmation, EligibilityHistory, RecordsList } from '@components/eligibility';
+import { Field, TextInput } from '@components/Field';
 import { CompanyWalletInstructions } from './CompanyWalletInstructions';
 import { scopeLabels } from '@pages/company/shared/appointments';
 
@@ -161,19 +162,21 @@ export default function CompanyEligibilityPage() {
                     onChange={(outcome) => read.updateDraft({ outcome, reason: '', expiresAt: '' })}
                   />
                   {read.draft.outcome === 'accepted' ? (
-                    <TextField
-                      label="Acceptance expiry (local date and time)"
-                      type="datetime-local"
-                      value={read.draft.expiresAt}
-                      onChange={(expiresAt) => read.updateDraft({ expiresAt })}
-                    />
+                    <Field label="Acceptance expiry (local date and time)">
+                      <TextInput
+                        type="datetime-local"
+                        value={read.draft.expiresAt}
+                        onChange={(event) => read.updateDraft({ expiresAt: event.target.value })}
+                      />
+                    </Field>
                   ) : (
-                    <TextField
-                      label="Refusal reason"
-                      maxLength={FIELD_LIMITS.ELIGIBILITY_REASON}
-                      value={read.draft.reason}
-                      onChange={(reason) => read.updateDraft({ reason })}
-                    />
+                    <Field label="Refusal reason">
+                      <TextInput
+                        maxLength={FIELD_LIMITS.ELIGIBILITY_REASON}
+                        value={read.draft.reason}
+                        onChange={(event) => read.updateDraft({ reason: event.target.value })}
+                      />
+                    </Field>
                   )}
                   <PageAction
                     label="Preview company decision"
@@ -186,15 +189,16 @@ export default function CompanyEligibilityPage() {
               )}
               {read.selectedRecord.outcome === 'accepted' && (
                 <Section title="Revoke this acceptance">
-                  <TextField
-                    label="Revocation reason"
-                    maxLength={FIELD_LIMITS.ELIGIBILITY_REASON}
-                    value={revocationReason}
-                    onChange={(value) => {
-                      read.cancel();
-                      setRevocationReason(value);
-                    }}
-                  />
+                  <Field label="Revocation reason">
+                    <TextInput
+                      maxLength={FIELD_LIMITS.ELIGIBILITY_REASON}
+                      value={revocationReason}
+                      onChange={(event) => {
+                        read.cancel();
+                        setRevocationReason(event.target.value);
+                      }}
+                    />
+                  </Field>
                   <PageAction
                     label="Prepare acceptance revocation"
                     busy={running === 'revocation'}

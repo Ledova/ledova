@@ -1,3 +1,4 @@
+import { Field, TextInput } from '@components/Field';
 import { FormActions, PageAction } from '@components/Page';
 import { FIELD_CLASS, LABEL } from '@components/fieldClass';
 import {
@@ -83,17 +84,15 @@ export function AuthorityRequestForm({
           );
         })}
       </div>
-      <label className={LABEL}>
-        Requested expiry date (UTC, optional)
-        <input
+      <Field label="Requested expiry date (UTC, optional)">
+        <TextInput
           type="date"
           min={utcToday()}
           value={expiry}
           disabled={disabled || busy}
           onChange={(event) => change(() => setExpiry(event.target.value))}
-          className={FIELD_CLASS}
         />
-      </label>
+      </Field>
       <label className={LABEL}>
         Supporting document (optional)
         <input

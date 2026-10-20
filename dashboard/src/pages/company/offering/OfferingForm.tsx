@@ -1,3 +1,4 @@
+import { Field, TextArea, TextInput } from '@components/Field';
 import { SelectField } from '@components/SelectField';
 import { Choices } from '@components/Choices';
 import { useState } from 'react';
@@ -17,7 +18,6 @@ import type {
   OfferingInput,
   OperatorSettlementAsset,
 } from '@ledova/shared';
-import { FIELD_CLASS } from '@components/fieldClass';
 import { DocumentChoices } from './DocumentChoices';
 
 const EXEMPTIONS = Object.entries(OFFERING_EXEMPTION_LABELS) as [OfferingExemption, string][];
@@ -41,15 +41,6 @@ function localInput(iso: string | null | undefined): string {
   if (Number.isNaN(at.getTime())) return '';
   const pad = (value: number) => String(value).padStart(2, '0');
   return `${at.getFullYear()}-${pad(at.getMonth() + 1)}-${pad(at.getDate())}T${pad(at.getHours())}:${pad(at.getMinutes())}`;
-}
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <label className="block">
-      <span className="text-sm font-medium text-text-primary">{label}</span>
-      {children}
-    </label>
-  );
 }
 
 export function OfferingForm({
@@ -145,87 +136,71 @@ export function OfferingForm({
       <Choices legend="Exemption relied on" options={EXEMPTIONS} value={exemption} onChange={setExemption} />
 
       <Field label="Price per share (AUD)">
-        <input
+        <TextInput
           maxLength={FIELD_LIMITS.PRICE}
           value={pricePerShare}
           onChange={(e) => setPricePerShare(e.target.value)}
           inputMode="decimal"
           placeholder="2.50"
-          className={FIELD_CLASS}
         />
       </Field>
 
       <Field label="Minimum shares">
-        <input
+        <TextInput
           maxLength={FIELD_LIMITS.WHOLE_SHARES}
           value={minimumShares}
           onChange={(e) => setMinimumShares(e.target.value)}
           inputMode="numeric"
           placeholder="1000"
-          className={FIELD_CLASS}
         />
       </Field>
 
       <Field label="Target shares">
-        <input
+        <TextInput
           maxLength={FIELD_LIMITS.WHOLE_SHARES}
           value={targetShares}
           onChange={(e) => setTargetShares(e.target.value)}
           inputMode="numeric"
           placeholder="50000"
-          className={FIELD_CLASS}
         />
       </Field>
 
       <Field label="Cap shares">
-        <input
+        <TextInput
           maxLength={FIELD_LIMITS.WHOLE_SHARES}
           value={capShares}
           onChange={(e) => setCapShares(e.target.value)}
           inputMode="numeric"
           placeholder="100000"
-          className={FIELD_CLASS}
         />
       </Field>
 
       <Field label="Opens at (local date and time)">
-        <input
-          type="datetime-local"
-          value={opensAt}
-          onChange={(e) => setOpensAt(e.target.value)}
-          className={FIELD_CLASS}
-        />
+        <TextInput type="datetime-local" value={opensAt} onChange={(e) => setOpensAt(e.target.value)} />
       </Field>
 
       <Field label="Closes at (local date and time, optional)">
-        <input
-          type="datetime-local"
-          value={closesAt}
-          onChange={(e) => setClosesAt(e.target.value)}
-          className={FIELD_CLASS}
-        />
+        <TextInput type="datetime-local" value={closesAt} onChange={(e) => setClosesAt(e.target.value)} />
       </Field>
 
       <div className="sm:col-span-2">
         <Field label="Summary">
-          <textarea
+          <TextArea
             value={summary}
             onChange={(e) => setSummary(e.target.value)}
             rows={3}
             placeholder="What eligible investors are being offered"
-            className={FIELD_CLASS}
           />
         </Field>
       </div>
 
       <div className="sm:col-span-2">
         <Field label="Use of proceeds">
-          <textarea
+          <TextArea
             value={useOfProceeds}
             onChange={(e) => setUseOfProceeds(e.target.value)}
             rows={3}
             placeholder="What the money raised will be spent on"
-            className={FIELD_CLASS}
           />
         </Field>
       </div>

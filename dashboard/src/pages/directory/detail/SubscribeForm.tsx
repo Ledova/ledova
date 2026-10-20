@@ -1,3 +1,4 @@
+import { Field, TextInput } from '@components/Field';
 import { SelectField } from '@components/SelectField';
 import {
   DESTINATIONS,
@@ -10,7 +11,7 @@ import {
 import type { DirectoryOpenOffering, Wallet } from '@ledova/shared';
 import { LinkRow, Row, Rows, Section } from '@components/Ledger';
 import { PageAction } from '@components/Page';
-import { FIELD_CLASS } from '@components/fieldClass';
+import { LABEL } from '@components/fieldClass';
 
 interface SubscribeFormProps {
   offering: DirectoryOpenOffering;
@@ -57,20 +58,19 @@ export function SubscribeForm({
         the draft.
       </p>
       <div className="grid gap-4 py-2 sm:grid-cols-2">
-        <label className="block min-w-0">
-          <span className="text-sm text-text-primary">Shares</span>
-          <input
-            type="text"
+        <Field
+          label="Shares"
+          className={`${LABEL} min-w-0`}
+          error={quantity !== '' && amount === null ? 'Enter a positive whole number of shares.' : null}
+        >
+          <TextInput
             inputMode="numeric"
             maxLength={FIELD_LIMITS.WHOLE_SHARES}
             value={quantity}
             onChange={(event) => onDraftChange({ ...draft, quantity: event.target.value })}
-            className={FIELD_CLASS}
             placeholder="Whole shares"
-            aria-invalid={quantity !== '' && amount === null}
-            aria-describedby={quantity !== '' && amount === null ? 'share-quantity-error' : undefined}
           />
-        </label>
+        </Field>
         <div className="min-w-0">
           <SelectField
             label="Receiving wallet (Base)"
@@ -86,11 +86,6 @@ export function SubscribeForm({
           />
         </div>
       </div>
-      {quantity !== '' && amount === null && (
-        <p id="share-quantity-error" className="text-sm text-error-light">
-          Enter a positive whole number of shares.
-        </p>
-      )}
       <Rows>
         <Row label="Amount on acceptance">
           <span className="break-all">{amount === null ? '—' : formatMoney(amount, offering.priceCurrency)}</span>

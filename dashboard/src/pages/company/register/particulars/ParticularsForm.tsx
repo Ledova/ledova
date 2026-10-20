@@ -1,3 +1,4 @@
+import { Field, TextArea, TextInput } from '@components/Field';
 import { FIELD_LIMITS } from '@ledova/shared';
 import { useParticularsPreparation, type ParticularsFormProps, COPY } from './useParticularsPreparation';
 
@@ -51,46 +52,37 @@ export function ParticularsForm({
         </fieldset>
         <fieldset className="space-y-3">
           <legend className="text-sm font-medium text-text-primary">{COPY.PROPOSED_PARTICULARS}</legend>
-          <label className={LABEL}>
-            {COPY.NAME}
-            <input
+          <Field label={COPY.NAME}>
+            <TextInput
               value={draft.name}
               maxLength={FIELD_LIMITS.NAME}
-              className={FIELD_CLASS}
               onChange={(event) => update({ name: event.target.value })}
             />
-          </label>
-          <label className={LABEL}>
-            {COPY.RESIDENTIAL_ADDRESS}
-            <input
+          </Field>
+          <Field label={COPY.RESIDENTIAL_ADDRESS}>
+            <TextInput
               value={draft.address}
               maxLength={FIELD_LIMITS.RESIDENTIAL_ADDRESS}
-              className={FIELD_CLASS}
               onChange={(event) => update({ address: event.target.value })}
             />
-          </label>
-          <label className={LABEL}>
-            {COPY.AS_AT}
-            <input
+          </Field>
+          <Field label={COPY.AS_AT} hint={COPY.AS_AT_NOTE}>
+            <TextInput
               type="date"
               max={today}
               value={draft.asAt}
-              className={FIELD_CLASS}
               onChange={(event) => update({ asAt: event.target.value })}
             />
-          </label>
-          <p className="text-sm text-text-muted">{COPY.AS_AT_NOTE}</p>
+          </Field>
         </fieldset>
-        <label className={LABEL}>
-          {COPY.REASON}
-          <textarea
+        <Field label={COPY.REASON}>
+          <TextArea
             rows={3}
             value={draft.reason}
             maxLength={FIELD_LIMITS.REASON}
-            className={FIELD_CLASS}
             onChange={(event) => update({ reason: event.target.value })}
           />
-        </label>
+        </Field>
       </fieldset>
       {problems.length > 0 && (
         <ul className="flex flex-col gap-1 text-sm text-text-muted">

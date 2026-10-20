@@ -26,7 +26,8 @@ import type { Wallet, WhitelistStatus } from '@ledova/shared';
 import { Modal } from '@components/Modal';
 import { useQRScanner, QRScannerView } from '@components/qr';
 import type { UnifiedAsset } from './useTransferFlow';
-import { FIELD_BASE } from '@components/fieldClass';
+import { Field, TextInput } from '@components/Field';
+import { FIELD_CLASS } from '@components/fieldClass';
 
 interface SendFormModalProps {
   isOpen: boolean;
@@ -178,6 +179,16 @@ export function SendFormModal({
 
   const amountPlaceholder = isShareToken ? '0' : '0.00';
   const addressPlaceholder = getAddressPlaceholder(chainShortCode);
+  const scanToggle = (
+    <button
+      type="button"
+      onClick={() => setShowAddressScanner(!showAddressScanner)}
+      className="flex items-center gap-1 text-xs text-brand-light transition-colors"
+    >
+      <QrCodeIcon size={ICON_SM} />
+      <span>{showAddressScanner ? 'Hide' : 'Scan QR'}</span>
+    </button>
+  );
 
   return (
     <Modal
@@ -265,19 +276,12 @@ export function SendFormModal({
         )}
 
         <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <label className="text-sm font-medium text-text-primary">Destination address</label>
-            <button
-              type="button"
-              onClick={() => setShowAddressScanner(!showAddressScanner)}
-              className="flex items-center gap-1 text-xs text-brand-light transition-colors"
-            >
-              <QrCodeIcon size={ICON_SM} />
-              <span>{showAddressScanner ? 'Hide' : 'Scan QR'}</span>
-            </button>
-          </div>
           {showAddressScanner ? (
             <div className="space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-sm text-text-primary">Destination address</p>
+                {scanToggle}
+              </div>
               <QRScannerView
                 scannerId="send-form-address-scanner"
                 error={scannerError}
@@ -287,13 +291,14 @@ export function SendFormModal({
               <p className="text-xs text-text-muted text-center">Scan address QR code</p>
             </div>
           ) : (
-            <input
-              type="text"
-              value={toAddress}
-              onChange={(e) => handleAddressChange(e.target.value)}
-              placeholder={addressPlaceholder}
-              className={`${FIELD_BASE} font-mono`}
-            />
+            <Field label="Destination address" aside={scanToggle}>
+              <TextInput
+                value={toAddress}
+                onChange={(e) => handleAddressChange(e.target.value)}
+                placeholder={addressPlaceholder}
+                className={`${FIELD_CLASS} font-mono`}
+              />
+            </Field>
           )}
           {toAddress && !isValidAddress && (
             <p className="text-xs text-warning-light">
@@ -343,14 +348,14 @@ export function SendFormModal({
 
         {selectedAsset && (
           <div className="space-y-2">
-            <label className="text-sm font-medium text-text-primary">Amount ({selectedAsset.symbol})</label>
-            <input
-              type="text"
-              value={amount}
-              onChange={handleAmountChange}
-              placeholder={amountPlaceholder}
-              className={FIELD_BASE}
-            />
+            <Field label={`Amount (${selectedAsset.symbol})`}>
+              <TextInput
+                inputMode="decimal"
+                value={amount}
+                onChange={handleAmountChange}
+                placeholder={amountPlaceholder}
+              />
+            </Field>
             {parseFiatValue(selectedAsset.marketValue) === null && (
               <p className="text-xs text-text-muted">Unpriced: no fiat estimate available.</p>
             )}

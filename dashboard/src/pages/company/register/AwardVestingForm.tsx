@@ -1,3 +1,4 @@
+import { Field, TextInput } from '@components/Field';
 import { FormActions, PageAction } from '@components/Page';
 import { FIELD_CLASS, LABEL } from '@components/fieldClass';
 import {
@@ -45,26 +46,17 @@ export function AwardVestingForm({
         disabled={busy || blocked || held || !canPrepare}
         className="grid gap-4 sm:grid-cols-2 [&>p]:sm:col-span-2"
       >
-        <label className={LABEL}>
-          {COPY.VESTING_SHARES}
-          <input
-            className={FIELD_CLASS}
+        <Field label={COPY.VESTING_SHARES}>
+          <TextInput
             inputMode="numeric"
             maxLength={FIELD_LIMITS.REGISTER_SHARES}
             value={shares}
             onChange={(event) => setShares(event.target.value.trim())}
           />
-        </label>
-        <label className={LABEL}>
-          {COPY.VESTED_ON}
-          <input
-            className={FIELD_CLASS}
-            type="date"
-            max={today}
-            value={vestedOn}
-            onChange={(event) => setVestedOn(event.target.value)}
-          />
-        </label>
+        </Field>
+        <Field label={COPY.VESTED_ON}>
+          <TextInput type="date" max={today} value={vestedOn} onChange={(event) => setVestedOn(event.target.value)} />
+        </Field>
         <label className={LABEL}>
           {COPY.VESTING_DOCUMENT}
           <input

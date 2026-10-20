@@ -1,7 +1,7 @@
+import { Field, TextInput } from '@components/Field';
 import { FIELD_LIMITS, type TokenHoldersResponse } from '@ledova/shared';
 import { Outcome, Row, Rows } from '@components/Ledger';
 import { PageAction } from '@components/Page';
-import { FIELD_CLASS } from '@components/fieldClass';
 import { useClassInspectionCopy } from './useClassInspectionCopy';
 
 export function ClassInspectionCopy({
@@ -42,34 +42,28 @@ function InspectionForm({
         company&apos;s request and output provenance are retained.
       </p>
       <fieldset disabled={blocked || !!target} className="grid gap-4 sm:grid-cols-2">
-        <label className="block text-sm text-text-primary">
-          Written instruction reference
-          <input
-            className={FIELD_CLASS}
+        <Field label="Written instruction reference">
+          <TextInput
             maxLength={FIELD_LIMITS.REFERENCE}
             value={draft.instruction}
             onChange={(event) => setDraft({ ...draft, instruction: event.target.value })}
           />
-        </label>
-        <label className="block text-sm text-text-primary">
-          Recipient
-          <input
-            className={FIELD_CLASS}
+        </Field>
+        <Field label="Recipient">
+          <TextInput
             maxLength={FIELD_LIMITS.NAME}
             value={draft.recipient}
             onChange={(event) => setDraft({ ...draft, recipient: event.target.value })}
           />
-        </label>
-        <label className="block text-sm text-text-primary">
-          Date of request (Sydney)
-          <input
-            className={FIELD_CLASS}
+        </Field>
+        <Field label="Date of request (Sydney)">
+          <TextInput
             type="date"
             max={today}
             value={draft.requestedOn}
             onChange={(event) => setDraft({ ...draft, requestedOn: event.target.value })}
           />
-        </label>
+        </Field>
       </fieldset>
       {!target ? (
         <PageAction

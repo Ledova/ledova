@@ -1,3 +1,4 @@
+import { Field, TextArea, TextInput } from '@components/Field';
 import { useLayoutEffect, useState } from 'react';
 import {
   FIELD_LIMITS,
@@ -94,27 +95,23 @@ export function BringRecords({
       {step === 'details' && (
         <fieldset className="space-y-3">
           <legend className="sr-only">Record date</legend>
-          <label className={LABEL}>
-            Record date
-            <input
+          <Field label="Record date">
+            <TextInput
               type="date"
               max={today}
               value={draft.asAt}
-              className={FIELD_CLASS}
               onChange={(event) => update((current) => ({ ...current, asAt: event.target.value }))}
             />
-          </label>
+          </Field>
           {correction && (
-            <label className={LABEL}>
-              {correction ? 'Reason for correcting the mirror' : 'Reason'}
-              <textarea
+            <Field label={correction ? 'Reason for correcting the mirror' : 'Reason'}>
+              <TextArea
                 rows={2}
                 value={draft.reason}
                 maxLength={FIELD_LIMITS.REASON}
-                className={FIELD_CLASS}
                 onChange={(event) => update((current) => ({ ...current, reason: event.target.value }))}
               />
-            </label>
+            </Field>
           )}
           {correction && (
             <p className="text-sm text-text-muted">
@@ -305,44 +302,36 @@ export function BringRecords({
               {draft.former.map((row, index) => (
                 <fieldset key={row.id} className="space-y-2 border-t border-border-subtle pt-3">
                   <legend className="text-sm text-text-primary">Former member {index + 1}</legend>
-                  <label className={LABEL}>
-                    Name
-                    <input
+                  <Field label="Name">
+                    <TextInput
                       value={row.name}
                       maxLength={FIELD_LIMITS.NAME}
-                      className={FIELD_CLASS}
                       onChange={(event) => setFormer(index, { name: event.target.value })}
                     />
-                  </label>
-                  <label className={LABEL}>
-                    Residential address
-                    <input
+                  </Field>
+                  <Field label="Residential address">
+                    <TextInput
                       value={row.residentialAddress}
                       maxLength={FIELD_LIMITS.RESIDENTIAL_ADDRESS}
-                      className={FIELD_CLASS}
                       onChange={(event) => setFormer(index, { residentialAddress: event.target.value })}
                     />
-                  </label>
-                  <label className={LABEL}>
-                    Shares
-                    <input
+                  </Field>
+                  <Field label="Shares">
+                    <TextInput
                       maxLength={FIELD_LIMITS.REGISTER_SHARES}
                       inputMode="numeric"
                       value={row.shares}
-                      className={FIELD_CLASS}
                       onChange={(event) => setFormer(index, { shares: event.target.value })}
                     />
-                  </label>
-                  <label className={LABEL}>
-                    Date ceased
-                    <input
+                  </Field>
+                  <Field label="Date ceased">
+                    <TextInput
                       type="date"
                       max={draft.asAt}
                       value={row.ceasedOn}
-                      className={FIELD_CLASS}
                       onChange={(event) => setFormer(index, { ceasedOn: event.target.value })}
                     />
-                  </label>
+                  </Field>
                   <PageAction
                     label={`Remove former member ${index + 1}`}
                     disabled={busy}
@@ -364,31 +353,27 @@ export function BringRecords({
                 An ASIC extract may list only some shareholders. Its listed count is a cross-check, not the source for
                 the full ownership record.
               </p>
-              <label className={LABEL}>
-                Issued shares in the comparison source (optional)
-                <input
+              <Field label="Issued shares in the comparison source (optional)">
+                <TextInput
                   maxLength={FIELD_LIMITS.REGISTER_SHARES}
                   inputMode="numeric"
                   value={draft.statedTotal}
-                  className={FIELD_CLASS}
                   onChange={(event) => {
                     const statedTotal = event.target.value;
                     update((current) => ({ ...current, statedTotal }));
                   }}
                 />
-              </label>
-              <label className={LABEL}>
-                Shareholders listed in the comparison source (optional)
-                <input
+              </Field>
+              <Field label="Shareholders listed in the comparison source (optional)">
+                <TextInput
                   inputMode="numeric"
                   value={draft.statedCount}
-                  className={FIELD_CLASS}
                   onChange={(event) => {
                     const statedCount = event.target.value;
                     update((current) => ({ ...current, statedCount }));
                   }}
                 />
-              </label>
+              </Field>
               {(draft.statedTotal || draft.statedCount) && (
                 <PageAction
                   label="Leave out ASIC comparison"

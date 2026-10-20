@@ -4,8 +4,8 @@ import {
   ERROR_BANNER_CLASS,
   AuthCard,
   AuthInput,
-  authFieldBorder,
   AuthDivider,
+  authFieldClass,
 } from '@components/auth';
 import { Field, Label, Description } from '@headlessui/react';
 import { KeyIcon, WarningIcon, CheckCircleIcon } from '@phosphor-icons/react';
@@ -82,10 +82,7 @@ export function EmailConfirmationForm({
                 name="token"
                 value={verificationCode}
                 onChange={(e) => setVerificationCode(e.target.value)}
-                className={`w-full bg-surface-tertiary border ${authFieldBorder(
-                  errors.token,
-                  false,
-                )} rounded-lg pl-10 pr-3 py-3 text-text-primary placeholder-text-muted focus:outline-none focus:ring-2 focus:border-transparent transition-colors`}
+                className={authFieldClass(errors.token, 'pl-10 pr-3', false)}
                 placeholder="Enter verification code"
                 required
                 disabled={isLoading}
