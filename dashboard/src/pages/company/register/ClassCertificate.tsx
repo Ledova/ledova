@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Row, Rows } from '@components/Ledger';
+import { Outcome, Row, Rows } from '@components/Ledger';
 import { PageAction } from '@components/Page';
 import { FIELD_CLASS } from '@components/fieldClass';
 import { useClassCertificate, type Source } from './useClassCertificate';
@@ -92,11 +92,7 @@ function CertificateForm({ register, entry, guard, sourceReady, close }: Source 
           {error}
         </p>
       )}
-      {downloaded && (
-        <p role="status" className="text-sm text-text-muted">
-          The unsigned certificate was downloaded.
-        </p>
-      )}
+      {downloaded && <Outcome>The unsigned certificate was downloaded.</Outcome>}
     </div>
   );
 }

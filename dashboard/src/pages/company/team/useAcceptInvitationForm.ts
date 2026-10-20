@@ -47,7 +47,7 @@ export function useAcceptInvitationForm({
         throw new Error('The appointment outcome could not be confirmed. Retry the same code or refresh.');
       setCode('');
       setAccepted(false);
-      setReceipt(`Appointment recorded for ${data.companyName}: ${data.uuid}.`);
+      setReceipt(`Appointment recorded for ${data.companyName}.`);
       onRecorded();
     } catch (failure) {
       if (mounted.current) {
