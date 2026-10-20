@@ -541,30 +541,26 @@ the votes on that assumed poll. Within A's own donut, its sole holder has 100% o
 establishes value. Another 100 promised shares are outside issued holdings; a fully diluted figure
 would need explicit exercise, settlement and conversion assumptions.
 
-### Smallest proposed product increment
+### Possible later improvement
 
-Recommendation, awaiting owner agreement: one optional company-supplied **Class rights** summary
-and optional human-readable governing-document reference on the class's details, outside signup.
-Keep the existing class names/codes and quantity-based charts. Do not add a class catalogue,
-rights calculator, compulsory upload or another document interface.
+On 21 October 2026 the owner chose to finish
+[#1215](https://github.com/Ledova/ledova/issues/1215) with documentation only. The product proposal
+is deferred: an optional company-supplied **Class rights** summary and plain governing-document
+reference on the class details, outside signup. It would describe terms, without calculations,
+compulsory uploads, a class catalogue or changes to holdings and issuance.
 
-[Company documents](companies.md#company-information-and-documents) already holds constitutions
-and shareholder agreements, so leaving terms there is the no-schema-change alternative. Files are
-company-bound rather than class-bound, lack a revision chain, and some can be removed. Management
-uses company administration; [offering disclosures](#offer-documents) have separate investor access.
-A reference must not silently grant document access or be called retained proof. The smallest first scope would show the descriptive record to current company register
-readers, allow changes only under current personal company administration, and retain each revision
-with its actor and actual recording time. Existing classes start blank; no inferred rights or
-rewritten history. Member-facing disclosure and any source-file attachment need separately agreed
-access and retention rules; reuse existing evidence/upload controls if later justified.
+For now, [Company documents](companies.md#company-information-and-documents) can hold constitutions
+and shareholder agreements. These company-bound files have no class link or revision chain, and
+some can be removed. Management requires company administration; [offering disclosures](#offer-documents)
+have separate investor access. A future rights reference must grant no extra file access or claim
+retained proof; any implementation needs agreed access rules and revisions retaining actor and
+recording time, with existing classes starting blank.
 
-This descriptive step would require a small additive record/API change and the existing class
-page, with no change to holdings, issue approval, calculations or private-file permissions.
-Corporate/joint/trustee support is a separate priority decision, including who is the legal holder,
-who benefits and who may access records
+Corporate, joint and trustee holders remain a separate scope, distinguishing the legal holder,
+beneficial ownership and invited account
 ([ASIC on shareholders](https://www.asic.gov.au/for-business-and-companies/companies/company-building-blocks/company-shares-and-shareholders)).
-The [earlier lifecycle work](https://github.com/Ledova/ledova/issues/1060) is complete; these
-findings do not reopen advanced governance, trading, filings or the unsupported instrument workflows.
+The [earlier lifecycle work](https://github.com/Ledova/ledova/issues/1060) is complete. Neither this
+investigation nor its closure reopens advanced governance, trading, filings or unsupported instruments.
 
 ## Splits and consolidations
 
