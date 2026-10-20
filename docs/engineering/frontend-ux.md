@@ -140,19 +140,21 @@ confirm with native alerts.
 `Outcome` (`dashboard/src/components/Ledger.tsx`) says what just happened in one line: a
 `role="status"` sentence in the primary text colour, after the mark `Status` uses for done. It sits
 under the change or on the record you land on, and stays until the next action replaces it; there
-are no toasts. It names the record rather than its identifier, which stays in the record's own
-details. It reports:
+are no toasts. It names the record rather than its identifier; team invitations, appointments and
+authority requests show their identifier in their own details. It reports:
 
 - a changed password, saved personal details, and an offering submitted for review, withdrawn or
   deleted;
 - the downloaded unsigned certificate, inspection copy and company pack;
 - a recorded team invitation, an accepted invitation and a representative authority request;
 - member access's recorded invitation, certificate fulfilment and particulars instruction;
-- a placed or recovered order, above Trading's orders.
+- a placed or recovered order with its share class, above Trading's orders, until another order
+  action or a class change starts.
 
-Signing flows show their result in their own dialog, and sign-in and sign-up keep their boxed
-outcomes. Register forms and preparations don't use it. Mobile still reports success with native
-alerts and its success dialog.
+Other signing flows and identity verification show their result in their own dialog, sign-in and
+sign-up keep their boxed outcomes, and a copy button confirms with Copied beside it. Register forms
+and preparations don't use it. Mobile still reports success with native alerts and its success
+dialog.
 
 ## Choosing a person
 

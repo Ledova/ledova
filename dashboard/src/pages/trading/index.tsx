@@ -145,6 +145,7 @@ function TradingPage() {
   };
 
   const handleCancelOrder = (uuid: string) => {
+    setPlaced(null);
     signingGeneration.current++;
     closeSwapSigning();
     submissions.close();
@@ -152,6 +153,7 @@ function TradingPage() {
   };
 
   const handleEditOrder = (order: TransferOrder) => {
+    setPlaced(null);
     signingGeneration.current++;
     closeSwapSigning();
     submissions.close();
@@ -177,6 +179,7 @@ function TradingPage() {
   };
 
   const handleSignSwap = (swap: SwapOrder) => {
+    setPlaced(null);
     signingGeneration.current++;
     submissions.close();
     actions.close();
@@ -212,7 +215,10 @@ function TradingPage() {
       <MarketOverview
         tokens={tokens || []}
         selectedTokenUuid={selectedTokenUuid}
-        onSelectToken={setSelectedTokenUuid}
+        onSelectToken={(uuid) => {
+          setPlaced(null);
+          setSelectedTokenUuid(uuid);
+        }}
         isLoading={isLoading || eligibilityQuery.isLoading}
         isReady={isReady}
         error={tokensQuery.error || eligibilityQuery.error}
@@ -232,10 +238,9 @@ function TradingPage() {
       )}
       {placed && (
         <Outcome>
-          {placed.order.orderType === 'buy' ? 'Buy' : 'Sell'} order {placed.recovered ? 'recovered' : 'placed'}:{' '}
-          {marketQuantity(placed.order.quantity)} shares at {marketAmount(placed.order.pricePerShare)},{' '}
-          {marketAmount(placed.order.totalValue)} in total. Current status:{' '}
-          {placed.order.statusDisplay ?? placed.order.status.replace(/_/g, ' ')}.
+          {placed.order.orderType === 'buy' ? 'Buy' : 'Sell'} order {placed.recovered ? 'recovered' : 'placed'} for{' '}
+          {placed.order.tokenSymbol}: {marketQuantity(placed.order.quantity)} shares at{' '}
+          {marketAmount(placed.order.pricePerShare)}, {marketAmount(placed.order.totalValue)} in total.
         </Outcome>
       )}
       <OrdersPanel
@@ -284,6 +289,7 @@ function TradingPage() {
                         signingGeneration.current++;
                         closeSwapSigning();
                         actions.close();
+                        setPlaced(null);
                         submissions.recover(record);
                       }}
                     />
@@ -302,6 +308,7 @@ function TradingPage() {
                     signingGeneration.current++;
                     closeSwapSigning();
                     submissions.close();
+                    setPlaced(null);
                     actions.recover(record);
                   }}
                 />
@@ -323,6 +330,7 @@ function TradingPage() {
                       submissions.close();
                       actions.close();
                       closeSwapSigning();
+                      setPlaced(null);
                       settlements.recover(record, walletCurrent(record.walletUuid));
                     }}
                   />

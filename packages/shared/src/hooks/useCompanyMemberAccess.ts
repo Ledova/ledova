@@ -246,7 +246,7 @@ export function useCompanyMemberAccess(
         setCode(receivedCode);
         setNotice(
           receivedCode
-            ? 'Copy the one-time invitation code now and share it privately with the intended recipient.'
+            ? 'Invitation recorded. Copy the one-time code now and share it privately with the intended recipient.'
             : 'The invitation is recorded. Its code is unavailable on recovery; use the original code or issue a new invitation if it was lost.',
         );
       } else if (command.kind === 'revoke') {
