@@ -152,8 +152,8 @@ authority requests show their identifier in their own details. It reports:
   action or a class change starts.
 
 Other signing flows and identity verification show their result in their own dialog, sign-in and
-sign-up keep their boxed outcomes, and a copy button confirms with Copied beside it. Register forms
-and preparations don't use it. Mobile still reports success with native alerts and its success
+sign-up keep their boxed outcomes, and the payment instruction's copy buttons confirm with Copied
+beside them. Register forms and preparations don't use it. Mobile still reports success with native alerts and its success
 dialog.
 
 ## Choosing a person

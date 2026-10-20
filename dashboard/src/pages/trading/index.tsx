@@ -238,9 +238,12 @@ function TradingPage() {
       )}
       {placed && (
         <Outcome>
-          {placed.order.orderType === 'buy' ? 'Buy' : 'Sell'} order {placed.recovered ? 'recovered' : 'placed'} for{' '}
-          {placed.order.tokenSymbol}: {marketQuantity(placed.order.quantity)} shares at{' '}
-          {marketAmount(placed.order.pricePerShare)}, {marketAmount(placed.order.totalValue)} in total.
+          {placed.order.orderType === 'buy' ? 'Buy' : 'Sell'} order {placed.recovered ? 'recovered' : 'placed'}
+          {placed.order.tokenSymbol || placed.order.tokenName
+            ? ` for ${placed.order.tokenSymbol || placed.order.tokenName}`
+            : ''}
+          : {marketQuantity(placed.order.quantity)} shares at {marketAmount(placed.order.pricePerShare)},{' '}
+          {marketAmount(placed.order.totalValue)} in total.
         </Outcome>
       )}
       <OrdersPanel
