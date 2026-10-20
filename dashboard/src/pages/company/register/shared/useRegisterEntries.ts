@@ -42,6 +42,8 @@ export async function readMemberEntries(tokens: string[], member: string, guard:
       );
       if (rows.some((row) => !row.changes.some((change) => change.member === member)))
         throw new Error('The register answered with entries for another member.');
+      if (rows.some((row) => row.changes.some((change) => !/^-?\d+$/.test(String(change.shares)))))
+        throw new Error('The register entries did not give whole share changes.');
       return firstOfEach(rows, ({ uuid }) => uuid).map((entry) => ({ token, entry }));
     }),
   );

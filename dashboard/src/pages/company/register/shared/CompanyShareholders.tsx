@@ -13,7 +13,15 @@ function needsIdentityReview({ holder }: Pick<Holding, 'holder'>) {
   return holder.holderType === 'ambiguous' || holder.holderType === 'unidentified';
 }
 
-export function CompanyShareholders({ registers, company }: { registers: TokenHoldersResponse[]; company: string }) {
+export function CompanyShareholders({
+  registers,
+  company,
+  blocked = false,
+}: {
+  registers: TokenHoldersResponse[];
+  company: string;
+  blocked?: boolean;
+}) {
   const [search, setSearch] = useState('');
   const [classFilter, setClassFilter] = useState('all');
   const [page, setPage] = useState(0);
@@ -155,12 +163,16 @@ export function CompanyShareholders({ registers, company }: { registers: TokenHo
                   );
                 })}
                 <td className="px-1 py-3 sm:px-3">
-                  <Link
-                    to={shareholderPath(member.member, company)}
-                    className="relative inline-flex w-fit items-center gap-2 rounded-lg border border-border px-3.5 py-2 text-sm font-medium text-text-primary transition-colors hover:bg-surface-tertiary"
-                  >
-                    <span>Details</span> <span className="sr-only">({member.name})</span>
-                  </Link>
+                  {blocked ? (
+                    <PageAction label="Details" context={member.name} disabled onClick={() => undefined} />
+                  ) : (
+                    <Link
+                      to={shareholderPath(member.member, company)}
+                      className="relative inline-flex w-fit items-center gap-2 rounded-lg border border-border px-3.5 py-2 text-sm font-medium text-text-primary transition-colors hover:bg-surface-tertiary"
+                    >
+                      <span>Details</span> <span className="sr-only">({member.name})</span>
+                    </Link>
+                  )}
                 </td>
               </tr>
             ))}

@@ -660,8 +660,10 @@ Each page links to its business section; the audience is the `DESTINATIONS` audi
   company's classes and holders through the same queries as Register, the company's recorded
   particulars (`register/members/` of its first class), every page of the member's entries in each
   class (`register/entries/` with `member`) and their awards (`register-awards/` with `member`). It
-  renders the person only while the account, classes and holders are current; **Change particulars**
-  rechecks those reads and a current preparation appointment before it opens.
+  renders the person only while the account, classes and holders are current; particulars, history
+  and awards also need `hasCurrentRegisterReadAuthority` on settled appointments and their own settled
+  read. **Change particulars** rechecks those reads and a current preparation appointment before it
+  opens. While register work is held, Shareholders' Details links are disabled.
 - Register on both clients: the web reads the person's appointments through Company team's
   account-bound cache; mobile reads them itself. Both reread them after a revocation on Company team
   or Representative authority, a refused decision, preview or acknowledgement, a waiting-wallets

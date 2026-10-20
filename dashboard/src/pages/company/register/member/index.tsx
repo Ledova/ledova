@@ -12,6 +12,7 @@ import {
   formatDate,
   formatDateTime,
   formatShareCount,
+  hasCurrentRegisterReadAuthority,
   useCompanyMemberAccess,
   useSubmissionOwner,
   useUserPreferences,
@@ -31,6 +32,16 @@ import { useShareholder } from './useShareholder';
 const LINK_CLASS =
   'inline-flex w-fit rounded-lg border border-border px-3.5 py-2 text-sm font-medium text-text-primary hover:bg-surface-tertiary';
 const SHAREHOLDERS = `${DESTINATIONS.companyRegister.path}#shareholders`;
+const PRIVATE_NOTE =
+  'Particulars, history and awards show only to someone with a current company register appointment.';
+
+interface Read {
+  isError: boolean;
+  isSuccess: boolean;
+  isFetching: boolean;
+  fetchStatus: string;
+  refetch: () => unknown;
+}
 
 function signed(shares: bigint) {
   const size = formatShareCount((shares < 0n ? -shares : shares).toString());
@@ -126,6 +137,25 @@ function OwnShareholder({
     )
       throw new Error('A current company preparation appointment is required.');
   };
+  const authorised =
+    appointments.isSuccess &&
+    appointments.fetchStatus === 'idle' &&
+    hasCurrentRegisterReadAuthority(appointments.data, company);
+  const settled = (query: Read) => authorised && query.isSuccess && query.fetchStatus === 'idle';
+  const privately = (query: Read, render: () => ReactNode) =>
+    appointments.isError ? (
+      <Unavailable retry={() => void appointments.refetch()} busy={appointments.isFetching} />
+    ) : !appointments.isSuccess || appointments.fetchStatus !== 'idle' ? (
+      <Loading />
+    ) : !authorised ? (
+      <p className="text-sm text-text-muted">{PRIVATE_NOTE}</p>
+    ) : query.isError ? (
+      <Unavailable retry={() => void query.refetch()} busy={query.isFetching} />
+    ) : !settled(query) ? (
+      <Loading />
+    ) : (
+      render()
+    );
 
   let title: string = DESTINATIONS.companyShareholder.title;
   let content: ReactNode;
@@ -153,12 +183,22 @@ function OwnShareholder({
     const former = registers.flatMap((register) =>
       (register.formerMembers ?? []).filter((row) => row.member === member).map((row) => ({ register, row })),
     );
-    const recorded = data.particulars.data?.find((row) => row.member === member);
+    const recorded = settled(data.particulars)
+      ? data.particulars.data?.find((row) => row.member === member)
+      : undefined;
     title = holdings.length
       ? holdings[0].holder.name || HOLDER_TYPE_LABELS[holdings[0].holder.holderType]
       : recorded?.name || former[0]?.row.name || REGISTER_PARTICULARS_COPY.UNNAMED_MEMBER;
     const current = access.access?.associations.find((row) => row.member === member && row.current);
     const invited = access.access?.invitations.find((row) => row.member === member && row.status === 'pending');
+    const waiting = [
+      ...(access.requests?.particulars ?? [])
+        .filter((row) => row.member === member && row.status === 'submitted')
+        .map((row) => ({ uuid: row.uuid, text: 'They asked the company to update their particulars.' })),
+      ...(access.requests?.certificates ?? [])
+        .filter((row) => row.member === member && row.status === 'requested')
+        .map((row) => ({ uuid: row.uuid, text: 'They asked the company for a certificate.' })),
+    ];
     const className = (token: string) => {
       const register = registers.find((item) => item.token.uuid === token);
       return register ? `${register.token.name} · ${register.token.symbol}` : 'Share class';
@@ -169,16 +209,12 @@ function OwnShareholder({
       ) : (
         <>
           <Section title="Particulars">
-            {data.particulars.isPending ? (
-              <Loading />
-            ) : data.particulars.isError ? (
-              <Unavailable retry={() => void data.particulars.refetch()} busy={data.particulars.isFetching} />
-            ) : (
+            {privately(data.particulars, () => (
               <Rows>
                 <Row label="Name">{recorded?.name || title}</Row>
                 <Row label="Residential address">{recorded?.residentialAddress || 'Not recorded'}</Row>
               </Rows>
-            )}
+            ))}
             {prepare && holdings.length > 0 && (
               <Link
                 to={generatePath(DESTINATIONS.companyRegisterParticulars.path, { member })}
@@ -247,45 +283,50 @@ function OwnShareholder({
             ))}
             {former.map(({ register, row }) => (
               <p key={`${register.token.uuid}/${row.uuid}`} className="text-sm text-text-muted">
-                {register.token.name} · {formatShareCount(row.sharesAtCessation)} shares until{' '}
+                {register.token.name} · {formatShareCount(row.sharesAtCessation)} shares, ceased{' '}
                 {formatDate(row.ceasedOn, 'Not recorded')}
+                {row.returnedOn ? ` · returned ${formatDate(row.returnedOn)}` : ''}
+                {row.correctedBy ? ' · cessation corrected' : ''}
               </p>
             ))}
-          </Section>
-          <Section title="History">
-            {data.entries.isPending ? (
-              <Loading />
-            ) : data.entries.isError ? (
-              <Unavailable retry={() => void data.entries.refetch()} busy={data.entries.isFetching} />
-            ) : data.entries.data.length ? (
-              <ul className="divide-y divide-border-subtle">
-                {data.entries.data.map(({ token, entry }) => (
-                  <li key={entry.uuid} className="flex flex-wrap justify-between gap-x-4 gap-y-1 py-3 text-sm">
-                    <span className="text-text-primary">
-                      {formatDate(entry.effectiveOn)} · {className(token)} ·{' '}
-                      {REGISTER_CORRECTION_COPY.ENTRY_KINDS[entry.kind]}
-                    </span>
-                    <span className="tabular-nums text-text-primary">
-                      {signed(
-                        entry.changes
-                          .filter((change) => change.member === member)
-                          .reduce((sum, change) => sum + BigInt(change.shares), 0n),
-                      )}{' '}
-                      shares
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="text-sm text-text-muted">No recorded changes.</p>
+            {former.some(({ register }) => register.formerMembersStale) && (
+              <p role="status" className="text-sm text-text-muted">
+                The former-member history needs a refresh before relying on it.
+              </p>
             )}
           </Section>
-          {data.awards.isError && (
+          <Section title="History">
+            {privately(data.entries, () =>
+              data.entries.data?.length ? (
+                <ul className="divide-y divide-border-subtle">
+                  {data.entries.data.map(({ token, entry }) => (
+                    <li key={entry.uuid} className="flex flex-wrap justify-between gap-x-4 gap-y-1 py-3 text-sm">
+                      <span className="text-text-primary">
+                        {formatDate(entry.effectiveOn)} · {className(token)} ·{' '}
+                        {REGISTER_CORRECTION_COPY.ENTRY_KINDS[entry.kind]}
+                      </span>
+                      <span className="tabular-nums text-text-primary">
+                        {signed(
+                          entry.changes
+                            .filter((change) => change.member === member)
+                            .reduce((sum, change) => sum + BigInt(change.shares), 0n),
+                        )}{' '}
+                        shares
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-sm text-text-muted">No recorded changes.</p>
+              ),
+            )}
+          </Section>
+          {authorised && data.awards.isError && (
             <Section title="Employee awards">
               <Unavailable retry={() => void data.awards.refetch()} busy={data.awards.isFetching} />
             </Section>
           )}
-          {data.awards.isSuccess && data.awards.data.length > 0 && (
+          {settled(data.awards) && !!data.awards.data?.length && (
             <Section title="Employee awards">
               <Rows>
                 {data.awards.data.map((award) => (
@@ -301,6 +342,18 @@ function OwnShareholder({
                 className={LINK_CLASS}
               >
                 Open Employee awards
+              </Link>
+            </Section>
+          )}
+          {waiting.length > 0 && (
+            <Section title="Requests from them">
+              {waiting.map((row) => (
+                <p key={row.uuid} className="text-sm text-text-primary">
+                  {row.text}
+                </p>
+              ))}
+              <Link to={SHAREHOLDERS} state={{ registerCompany: company }} className={LINK_CLASS}>
+                Open member requests
               </Link>
             </Section>
           )}

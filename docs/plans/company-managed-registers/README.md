@@ -49,9 +49,10 @@ expansion tickets were [closed as not planned on 18 October](../../decisions.md#
 
 ## Remaining scope
 
-| Issue                                               | Remaining                                         | Current prerequisites                              |
-| --------------------------------------------------- | ------------------------------------------------- | -------------------------------------------------- |
-| [#624](https://github.com/Ledova/ledova/issues/624) | Physical-device and live human release acceptance | Genuine device/human and configured-chain evidence |
+| Issue                                                 | Remaining                                                                                                                                                           | Current prerequisites                              |
+| ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
+| [#1165](https://github.com/Ledova/ledova/issues/1165) | One person picker (#1167), issuing shares from Register (#1168), award recipients as person records (#1169) and mobile (#1170), after the Shareholders page (#1166) | Each step shown to the owner before it merges      |
+| [#624](https://github.com/Ledova/ledova/issues/624)   | Physical-device and live human release acceptance                                                                                                                   | Genuine device/human and configured-chain evidence |
 
 Programme [#860](https://github.com/Ledova/ledova/issues/860), now closed, tracked the transition to one registry
 product; closed [#645](https://github.com/Ledova/ledova/issues/645) delivered the earlier foundation and

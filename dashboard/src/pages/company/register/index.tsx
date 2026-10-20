@@ -26,7 +26,7 @@ import { ClassAwards } from './ClassAwards';
 import { ClassTransfers } from './ClassTransfers';
 import { ClassOpenings } from './ClassOpenings';
 import { ClassReconciliation } from './ClassReconciliation';
-import { ClassRegister } from '@pages/company/register/shared/ClassRegister';
+import { ClassRegister, FormerShareholders } from '@pages/company/register/shared/ClassRegister';
 import { CompanyShareholders } from '@pages/company/register/shared/CompanyShareholders';
 import { ClassInspectionCopy } from './ClassInspectionCopy';
 import { CompanyMemberAccess } from './CompanyMemberAccess';
@@ -411,7 +411,15 @@ function OwnRegister({
         />
       )}
       {scope && view === 'shareholders' && ownershipReady && (
-        <CompanyShareholders key={scope.company.uuid} registers={scope.registers} company={scope.company.uuid} />
+        <>
+          <CompanyShareholders
+            key={scope.company.uuid}
+            registers={scope.registers}
+            company={scope.company.uuid}
+            blocked={held}
+          />
+          <FormerShareholders registers={scope.registers} company={scope.company.uuid} />
+        </>
       )}
       {scope && view === 'register' && (
         <>
@@ -425,7 +433,7 @@ function OwnRegister({
                   <p className="break-words text-base font-medium text-text-primary">
                     {register.token.name} · {register.token.symbol}
                   </p>
-                  <ClassRegister register={register} />
+                  <ClassRegister register={register} former={false} />
                 </section>
               ))}
             </div>

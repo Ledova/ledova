@@ -236,8 +236,13 @@ it('reads every class page and groups exact holdings by member identity with sea
   expect(screen.getByRole('heading', { name: 'Member access and requests' })).toBeTruthy();
   for (const name of ['Record investor share issue', 'Transfer shares', 'History'])
     expect(screen.queryByRole('button', { name })).toBeNull();
-  expect(screen.queryByRole('heading', { name: /^Ordinary shares ·/ })).toBeNull();
-  expect(screen.queryByRole('heading', { name: /^Preference shares ·/ })).toBeNull();
+  const formerSection = screen.getByRole('heading', { name: 'Former shareholders' }).closest('section')!;
+  expect(within(formerSection).getByRole('heading', { name: /^Ordinary shares ·/ })).toBeTruthy();
+  expect(within(formerSection).queryByRole('heading', { name: /^Preference shares ·/ })).toBeNull();
+  expect(within(formerSection).getByText(`${REGISTER_COPY.FORMER_TITLE} · 1`)).toBeTruthy();
+  expect(within(formerSection).getByRole('link', { name: 'Details (Departed Shareholder)' }).getAttribute('href')).toBe(
+    '/company/register/members/former-member-private?company=harbour',
+  );
   expect(screen.queryByRole('button', { name: 'Download CSV' })).toBeNull();
   expect(within(table).getAllByRole('row')).toHaveLength(11);
   const namesakes = within(table).getAllByRole('row', { name: /Example Member/ });
@@ -435,7 +440,9 @@ it('reads every class page and groups exact holdings by member identity with sea
   client.clear();
   let pauseMemberHolders = false;
   let releaseMemberHolders!: () => void;
+  let revoked = false;
   const empty = { data: { results: [], count: 0, next: null, previous: null } };
+  const reader = { ...CURRENT_APPOINTMENT, company: 'harbour', capabilities: ['read_register'] };
   api.get.mockReset().mockImplementation(async (url: string, config?: { params?: Record<string, unknown> }) => {
     if (url === REGISTER)
       return config?.params?.page === 2
@@ -488,7 +495,14 @@ it('reads every class page and groups exact holdings by member identity with sea
           previous: null,
         },
       };
-    if ([APPOINTMENTS, COMPANY_TOKEN_ENDPOINTS.REGISTER_AWARDS].includes(url) || url.endsWith('/register/entries/'))
+    if (url === APPOINTMENTS)
+      return revoked ? empty : { data: { results: [reader], count: 1, next: null, previous: null } };
+    if (
+      url === COMPANY_TOKEN_ENDPOINTS.REGISTER_AWARDS ||
+      url.endsWith('/register/entries/') ||
+      url.includes('member-particulars-requests') ||
+      url.includes('member-certificate-requests')
+    )
       return empty;
     throw new Error(`Unexpected read ${url}`);
   });
@@ -530,6 +544,14 @@ it('reads every class page and groups exact holdings by member identity with sea
     await refreshingMember;
   });
   expect(await screen.findByText('1 Example Street, Sydney NSW 2000')).toBeTruthy();
+  revoked = true;
+  await act(async () => {
+    await client.refetchQueries({ queryKey: ['company-appointments'] });
+  });
+  await waitFor(() => expect(screen.queryByText('1 Example Street, Sydney NSW 2000')).toBeNull());
+  expect(screen.queryByText('+9,007,199,254,740,993 shares')).toBeNull();
+  expect(screen.getAllByText(/current company register appointment/)).toHaveLength(2);
+  expect(screen.getByRole('heading', { level: 1, name: 'Example Member' })).toBeTruthy();
   expect(api.post).not.toHaveBeenCalled();
 });
 
@@ -1727,7 +1749,6 @@ it('shows an account without register access a calm empty state, reads no member
   expect(await screen.findByRole('link', { name: 'Team and appointments' })).toBeTruthy();
   await waitFor(() => expect(client.isFetching()).toBe(0));
   expect(readUrls()).toEqual([REGISTER, APPOINTMENTS, PROFILES]);
-  await waitFor(() => expect(client.isFetching()).toBe(0));
   expect(screen.queryByRole('link', { name: 'Register' })).toBeNull();
 });
 
