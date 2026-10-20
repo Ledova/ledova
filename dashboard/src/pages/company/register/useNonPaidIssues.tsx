@@ -36,6 +36,7 @@ export function useNonPaidIssues({
   award: awardUuid = '',
   focusRecord,
   open,
+  kept,
   onClosed,
 }: {
   owner: OrderSubmissionOwner;
@@ -48,6 +49,7 @@ export function useNonPaidIssues({
   award?: string;
   focusRecord?: { key: string; uuid: string };
   open: boolean;
+  kept: boolean;
   onClosed: () => void;
 }) {
   const client = useQueryClient();
@@ -147,16 +149,18 @@ export function useNonPaidIssues({
     (!formAppointment || (!formHeld && formAppointment.uuid !== appointment.uuid))
   )
     setFormAppointment(appointment);
-  if (!open && formAppointment && !formHeld) setFormAppointment(null);
+  if (!kept && formAppointment && !formHeld) setFormAppointment(null);
   const retry = () => {
     void appointments.refetch();
+    void client.invalidateQueries({ queryKey: registerHoldersKey(owner) });
     if (reading) {
       void people.refetch();
       if (awardUuid) void award.refetch();
     }
   };
-  const form = (open || formHeld) && (
-    <>
+  const shown = open || formHeld;
+  const form = (shown || !!formAppointment) && (
+    <div hidden={!shown} className="flex flex-col gap-3">
       <p className="text-sm text-text-muted">{awardUuid ? AWARD_NOTE : COPY.NOTE}</p>
       {stale ? (
         <div role="alert" className="flex flex-col items-start gap-2">
@@ -208,7 +212,7 @@ export function useNonPaidIssues({
           />
         </div>
       )}
-    </>
+    </div>
   );
   const records = (
     <div className="mt-4 flex flex-col gap-3 border-t border-border-subtle pt-4">
