@@ -48,6 +48,29 @@ export const REASON_TEXT: Record<InvestorReadinessReason, string> = {
   principal_required: 'Sign in again to check your own account.',
 };
 
+export const COMPANY_ELIGIBILITY_UNMET_COPY: Record<string, string> = {
+  participant_account_inactive: 'The investor’s account must be active, with its email verified.',
+  participant_investor_account_required: 'The account must be an investor account.',
+  participant_identity_required: 'The investor’s identity must be verified first.',
+  company_inactive: 'The company must be active.',
+  source_not_current: 'The investor classification claim is no longer current.',
+  source_expired: 'The investor classification claim has expired.',
+  source_declaration_invalid: 'The classification claim’s declaration is missing or out of date.',
+  source_not_submitted: 'The classification claim has not been submitted.',
+  source_evidence_unavailable: 'The classification claim’s evidence is no longer available.',
+  associated_company_mismatch: 'The associated-person claim names a different company.',
+  certificate_not_current: 'The accountant’s certificate is not current or is missing the certifier’s details.',
+  requested_expiry_not_future: 'Choose an expiry in the future.',
+  product_context_invalid:
+    'The offering and quantity must be an approved offering of this company priced in AUD, worth at least A$500,000.',
+  personal_approve_required: 'Your appointment must include approving eligibility decisions.',
+  request_already_resolved: 'This request has already been withdrawn or decided.',
+  decision_expiry_invalid: 'Choose an expiry in the future, no later than the request and its claim allow.',
+  acceptance_reason_not_empty: 'An acceptance takes no reason.',
+  request_evidence_changed: 'The claim’s evidence changed after this request was submitted.',
+  product_context_changed: 'The offering changed after this request was submitted.',
+};
+
 export const WHOLESALE_ONLY_NOTICE =
   'Offerings on this platform are made to wholesale and sophisticated investors only. They are not made under ' +
   'a disclosure document, and retail investors cannot subscribe.';

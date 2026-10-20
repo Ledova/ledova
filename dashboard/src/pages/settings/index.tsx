@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { DESTINATIONS } from '@ledova/shared';
+import { DESTINATIONS, failureSentence } from '@ledova/shared';
 import { useSettings } from './useSettings';
 import { Modal } from '@components/Modal';
 import { Page, PageAction } from '@components/Page';
@@ -236,7 +236,7 @@ function SettingsPage() {
         </p>
         {exportMutation.isError && (
           <p role="alert" className="mt-3 text-sm text-error-light">
-            Your data could not be exported. Try again.
+            {failureSentence(exportMutation.error, 'Your data could not be exported. Try again.')}
           </p>
         )}
       </Modal>
@@ -258,7 +258,10 @@ function SettingsPage() {
         </p>
         {deleteMutation.isError && (
           <p role="alert" className="mt-3 text-sm text-error-light">
-            Your account could not be deleted. Try again or contact the deployment operator.
+            {failureSentence(
+              deleteMutation.error,
+              'Your account could not be deleted. Try again or contact the deployment operator.',
+            )}
           </p>
         )}
       </Modal>

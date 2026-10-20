@@ -16,6 +16,8 @@ import {
   type RegisterEvidence,
   type RegisterTransferPreparation,
   type Person,
+  REGISTER_TRANSFER_UNMET_COPY,
+  refusalSentence,
 } from '@ledova/shared';
 
 import apiClient from '@services/apiClient';
@@ -225,7 +227,7 @@ export function useTransferPreparation({
       } catch {
         return;
       }
-      setError(apiErrorSentence(failure, FAILED, FAILED));
+      setError(refusalSentence(failure, REGISTER_TRANSFER_UNMET_COPY) ?? apiErrorSentence(failure, FAILED, FAILED));
       if (status === 400 || status === 404 || status === 409) onRefused();
     } finally {
       pending.current = false;

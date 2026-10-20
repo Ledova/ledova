@@ -15,7 +15,7 @@ import {
 } from '../services/member-access';
 import { appointmentForRegisterStep, hasCurrentRegisterReadAuthority } from '../utils/register-commands';
 import { isCurrentEligibilityAppointment } from './useCompanyEligibilityRecords';
-import { failureStatus, getErrorMessage } from '../utils/errors';
+import { failureStatus, failureSentence } from '../utils/errors';
 import { readEveryPage } from '../utils/pagination';
 import { useSubmissionOwner } from './useSubmissionOwner';
 import { USER_PREFERENCES_QUERY_KEY } from './useUserPreferences';
@@ -312,7 +312,7 @@ export function useCompanyMemberAccess(
     } catch (failure) {
       if (failureStatus(failure) && failureStatus(failure)! < 500) setRetry(null);
       if (live.current && boundary.get() === owner)
-        setError(getErrorMessage(failure, 'The result could not be confirmed. Refresh or retry the original command.'));
+        setError(failureSentence(failure, 'The result could not be confirmed. Refresh or retry the original command.'));
     } finally {
       pending.current = false;
       if (live.current) setBusy(false);
@@ -365,7 +365,7 @@ export function useCompanyMemberAccess(
       });
     } catch (failure) {
       if (live.current && boundary.get() === owner)
-        setError(getErrorMessage(failure, 'The certificate preview could not be confirmed.'));
+        setError(failureSentence(failure, 'The certificate preview could not be confirmed.'));
     } finally {
       pending.current = false;
       if (live.current) setBusy(false);
@@ -397,7 +397,7 @@ export function useCompanyMemberAccess(
     refresh: () =>
       refresh().catch((failure) => {
         if (live.current && boundary.get() === owner)
-          setError(getErrorMessage(failure, 'The member access could not be refreshed.'));
+          setError(failureSentence(failure, 'The member access could not be refreshed.'));
       }),
     guardPrepare: () => {
       guardQueue();

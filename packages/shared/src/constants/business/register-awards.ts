@@ -44,3 +44,8 @@ export const REGISTER_AWARD_COPY = {
   RECORDING_FAILED: 'The award response could not be confirmed. Refresh the awards and retry the same request.',
   VESTING_FAILED: 'The vesting response could not be confirmed. Refresh the events and retry the same request.',
 };
+
+export const REGISTER_AWARD_UNMET_COPY: Record<string, string> = {
+  imported_non_tokenised_register_required:
+    'Employee awards need an opened, imported register for a draft share class without a deployed contract.',
+};

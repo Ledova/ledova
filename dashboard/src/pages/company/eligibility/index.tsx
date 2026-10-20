@@ -2,6 +2,7 @@ import { SelectField } from '@components/SelectField';
 import { Choices } from '@components/Choices';
 import { CompanyPicker } from '@components/CompanyPicker';
 import { useState } from 'react';
+import { useRunningAction } from '@hooks/useRunningAction';
 import {
   DESTINATIONS,
   ELIGIBILITY_RECORDS_NOTICE,
@@ -45,6 +46,7 @@ export default function CompanyEligibilityPage() {
   const gone = useFirstPageWhenGone(list, read.listError);
   const queue = read.queue;
   const [revocationReason, setRevocationReason] = useState('');
+  const { running, track } = useRunningAction();
   const appointment = read.appointments.find(
     (item) => item.uuid === read.appointmentUuid && item.company === read.companyUuid,
   );
@@ -173,8 +175,10 @@ export default function CompanyEligibilityPage() {
                   )}
                   <PageAction
                     label="Preview company decision"
+                    busy={running === 'decision'}
+                    busyLabel="Previewing…"
                     disabled={read.busy || read.refreshing || !appointment}
-                    onClick={() => void read.previewDecision()}
+                    onClick={() => track('decision', read.previewDecision())}
                   />
                 </Section>
               )}
@@ -190,8 +194,10 @@ export default function CompanyEligibilityPage() {
                   />
                   <PageAction
                     label="Prepare acceptance revocation"
+                    busy={running === 'revocation'}
+                    busyLabel="Preparing…"
                     disabled={read.busy || read.refreshing || !canApprove || !revocationReason.trim()}
-                    onClick={() => void read.prepareRevocation(read.selectedRecord!, revocationReason)}
+                    onClick={() => track('revocation', read.prepareRevocation(read.selectedRecord!, revocationReason))}
                   />
                 </Section>
               )}

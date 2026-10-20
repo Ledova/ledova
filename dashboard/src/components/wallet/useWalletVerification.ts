@@ -5,15 +5,17 @@ import {
   verifyWalletSignature,
   BLOCKCHAIN,
   getWalletVerificationEvmChainId,
-  getErrorMessage,
   useSubmissionOwner,
   USER_PREFERENCES_QUERY_KEY,
   WALLETS_QUERY_KEY,
+  failureSentence,
 } from '@ledova/shared';
 import type { Wallet } from '@ledova/shared';
 import apiClient from '@services/apiClient';
 import { encodeEthereumMessage, encodeBitcoinMessage } from '@utils/keystone/urEncoder';
 import { DEFAULT_EVM_DERIVATION_PATH, deriveAddress, signEthereumMessage } from '@utils/softwareWallet/localSigner';
+
+const VERIFICATION_FAILED = 'Signature verification failed.';
 
 type VerificationStep = 'instructions' | 'show-challenge-qr' | 'scan-signature' | 'sign-software' | 'success';
 type VerificationMode = 'hardware' | 'software';
@@ -150,7 +152,7 @@ export function useWalletVerification(wallet?: Wallet | null, externalGuard?: ()
       } else setVerificationError('Failed to generate QR code. Missing wallet derivation data.');
     },
     onError: (error, { context }) => {
-      if (current(context)) setVerificationError(getErrorMessage(error, 'Failed to request verification challenge.'));
+      if (current(context)) setVerificationError(failureSentence(error, 'Failed to request verification challenge.'));
     },
   });
   const verifyMutation = useMutation({
@@ -181,7 +183,7 @@ export function useWalletVerification(wallet?: Wallet | null, externalGuard?: ()
       setVerificationStep('success');
     },
     onError: (error, { context }) => {
-      if (current(context)) setVerificationError(getErrorMessage(error, 'Signature verification failed.'));
+      if (current(context)) setVerificationError(failureSentence(error, VERIFICATION_FAILED));
     },
   });
   const startVerification = async (source: Wallet, mode: VerificationMode = 'hardware') => {
@@ -198,7 +200,7 @@ export function useWalletVerification(wallet?: Wallet | null, externalGuard?: ()
       }
       await challengeMutation.mutateAsync({ context, mode });
     } catch (error) {
-      if (current(context)) setVerificationError(getErrorMessage(error, 'Wallet verification could not start.'));
+      if (current(context)) setVerificationError(failureSentence(error, 'Wallet verification could not start.'));
     }
   };
   const handleSignatureScanned = async (signature: string) => {
@@ -208,7 +210,7 @@ export function useWalletVerification(wallet?: Wallet | null, externalGuard?: ()
       guard(context);
       await verifyMutation.mutateAsync({ context, signature });
     } catch (error) {
-      if (current(context)) setVerificationError(getErrorMessage(error, 'Signature verification failed.'));
+      if (current(context)) setVerificationError(failureSentence(error, VERIFICATION_FAILED));
     }
   };
   const signWithSeedPhrase = async (seedPhrase: string) => {
@@ -230,7 +232,7 @@ export function useWalletVerification(wallet?: Wallet | null, externalGuard?: ()
       await verifyMutation.mutateAsync({ context, signature });
     } catch (error) {
       if (current(context))
-        setVerificationError(getErrorMessage(error, 'Could not sign with that seed phrase. Check the phrase.'));
+        setVerificationError(failureSentence(error, 'Could not sign with that seed phrase. Check the phrase.'));
     } finally {
       if (current(context)) setIsSigningWithSeedPhrase(false);
     }

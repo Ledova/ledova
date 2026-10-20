@@ -14,6 +14,8 @@ import {
   type RegisterEvidence,
   personRequest,
   type Person,
+  REGISTER_ALLOTMENT_UNMET_COPY,
+  refusalSentence,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
 import { useEffect, useRef, useState } from 'react';
@@ -255,7 +257,10 @@ export function useAllotmentForm({
       } catch {
         return;
       }
-      setError(apiErrorSentence(cause, COPY.PREPARATION_RECEIPT_FAILED, COPY.PREPARATION_RECEIPT_FAILED));
+      setError(
+        refusalSentence(cause, REGISTER_ALLOTMENT_UNMET_COPY) ??
+          apiErrorSentence(cause, COPY.PREPARATION_RECEIPT_FAILED, COPY.PREPARATION_RECEIPT_FAILED),
+      );
     } finally {
       pending.current = false;
       if (live.current) setBusy(false);

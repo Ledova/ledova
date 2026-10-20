@@ -116,6 +116,8 @@ export function AllotmentRecord({
                 <PageAction
                   key={kind}
                   label={`Download ${kind} document`}
+                  busy={download.isPending && download.variables === kind}
+                  busyLabel="Downloading…"
                   context={context}
                   disabled={download.isPending}
                   onClick={() => download.mutate(kind)}
