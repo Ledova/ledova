@@ -16,7 +16,6 @@ from tokens.models import (
     RegisterAllotment,
     RegisterAllotmentDecision,
     RegisterContribution,
-    RegisterEntryKind,
     RegisterEvidence,
     RegisterEvidenceKind,
     RegisterMemberParticulars,
@@ -32,8 +31,8 @@ from tokens.services.register_decisions import (
     preview,
 )
 from tokens.services.register_events import (
-    create_member,
-    record_entry,
+    apply_issue,
+    issue_figures,
     retained_particulars,
 )
 from tokens.services.register_evidence import (
@@ -254,10 +253,7 @@ def _effect_requirements(proposal):
 
 
 def _details(proposal):
-    token = ShareToken.objects.get(pk=proposal.token_id, company_id=proposal.company_id)
-    register = ShareRegister.objects.filter(token=token, company_id=proposal.company_id).first()
-    held = RegisterPosition.objects.filter(register=register, member_id=proposal.member).first()
-    issued, shares = int(register.issued_supply) if register else 0, int(held.shares) if held else 0
+    token, register, figures = issue_figures(proposal)
     return dict(
         class_name=token.name,
         class_code=token.symbol,
@@ -283,12 +279,7 @@ def _details(proposal):
         reason=proposal.reason,
         company_event_on=proposal.company_event_on,
         effective_on=proposal.company_event_on,
-        register_sequence=register.sequence if register else 0,
-        issued_supply=str(issued),
-        authorised_supply=token.total_supply,
-        after_issued_supply=str(issued + int(proposal.shares)),
-        current_shares=str(shares),
-        after_shares=str(shares + int(proposal.shares)),
+        **figures,
     )
 
 
@@ -306,26 +297,7 @@ def _lock(proposal):
 
 
 def _apply(proposal, actor, decision):
-    effective_on = proposal.company_event_on
-    if proposal.new_member:
-        create_member(company_id=proposal.company_id, member_id=proposal.member)
-        RegisterMemberParticulars.objects.create(
-            member_id=proposal.member,
-            name=proposal.name,
-            residential_address=proposal.residential_address,
-            as_at=timezone.now().date(),
-            source_allotment=proposal,
-        )
-    proposal.register_entry = record_entry(
-        register_id=ShareRegister.objects.get(token_id=proposal.token_id).pk,
-        operation_id=proposal.pk,
-        kind=RegisterEntryKind.ISSUE,
-        changes=[{"member": str(proposal.member), "shares": str(proposal.shares)}],
-        effective_on=effective_on,
-        recorded_by=actor,
-    )
-    proposal.status, proposal.reviewed_by, proposal.reviewed_at = "applied", actor, decision.decided_at
-    proposal.save(update_fields=["status", "register_entry", "reviewed_by", "reviewed_at", "updated_at"])
+    apply_issue(proposal, actor, decision, source_allotment=proposal)
 
 
 ALLOTMENTS = DecisionFamily(
