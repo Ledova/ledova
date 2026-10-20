@@ -1280,6 +1280,11 @@ checks one at a time: the Shareholders page
 ([#1169](https://github.com/Ledova/ledova/issues/1169)) and the mobile app
 ([#1170](https://github.com/Ledova/ledova/issues/1170)).
 
+On the same day the owner chose the destination's name
+([#1185](https://github.com/Ledova/ledova/issues/1185)): the short label ESS in the company menu, and Employee
+share scheme as the page title when it is opened. This replaces Employee awards as the destination's name; the
+award records and actions inside it keep their own names.
+
 _Award recipients as person records were delivered under #1169: an award gives a new recipient a
 member ID with their name and address, replacing the earlier rule that an award creates no member
 ([employee awards](business/issuing-shares.md#employee-awards-and-vesting))._

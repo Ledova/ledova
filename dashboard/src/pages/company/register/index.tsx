@@ -60,7 +60,7 @@ function RegisterPage({
   const { hash } = useLocation();
   const title =
     hash === '#awards'
-      ? 'Employee awards'
+      ? 'Employee share scheme'
       : hash === '#documents'
         ? 'Documents'
         : hash === '#shareholders'

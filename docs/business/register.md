@@ -504,8 +504,8 @@ reason, the person, their appointment and the time, and the
 On the web Register is open to every signed-in account and shows the registers of companies the
 person owns or where their appointment includes register access. With none, it offers **Set up your
 share register** to someone who can prepare one and otherwise says there are none. A company
-selector appears when several companies are readable. Register, Shareholders, Employee awards and
-Documents in the web sidebar are views of one page, so switching between them keeps unfinished forms
+selector appears when several companies are readable. Register, Shareholders, ESS and Documents in
+the web sidebar are views of one page, so switching between them keeps unfinished forms
 and their recovery ([the app at a glance](README.md#the-app-at-a-glance)). Register holds the share
 classes and their changes; who holds the shares is on Shareholders
 ([decision](../decisions.md#share-classes-shareholders-and-employee-awards)).
@@ -541,7 +541,8 @@ names. Member access and requests then holds invitations, current access and mem
 certificate requests ([member records](member-records.md)). While register work is unfinished,
 Details is unavailable, so the work and its recovery stay on the page.
 
-The Employee awards view holds each class's [awards](issuing-shares.md#employee-awards-and-vesting),
+The Employee share scheme view, ESS in the sidebar, holds each class's
+[awards](issuing-shares.md#employee-awards-and-vesting),
 each listing the non-paid issues prepared from it; Documents holds each class's CSV download and
 inspection copy and the company pack.
 
@@ -566,7 +567,7 @@ reached from Recipient details on their award. It shows:
 - History: every register entry naming them across classes, newest first, with its date, class, kind
   and their change in shares;
 - Employee awards, when they have any: per award, the shares promised, vested and issued, with a link
-  to Employee awards;
+  to Employee share scheme;
 - requests from them waiting for the company, with a link to Member access and requests;
 - for an administrator, whether they can see their own records, with **Invite to their records**
   when they cannot.

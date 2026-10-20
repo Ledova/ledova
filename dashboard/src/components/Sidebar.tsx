@@ -34,6 +34,7 @@ interface NavItem {
   icon: Icon;
   hash?: string;
   label?: string;
+  fullName?: string;
 }
 
 interface NavGroup {
@@ -46,7 +47,7 @@ const COMPANY: NavItem[] = [
   { destination: 'companyDashboard', icon: HouseIcon },
   { destination: 'companyRegister', icon: BookOpenIcon },
   { destination: 'companyRegister', hash: 'shareholders', label: 'Shareholders', icon: UsersThreeIcon },
-  { destination: 'companyRegister', hash: 'awards', label: 'Employee awards', icon: UsersIcon },
+  { destination: 'companyRegister', hash: 'awards', label: 'ESS', fullName: 'Employee share scheme', icon: UsersIcon },
   { destination: 'companyRegister', hash: 'documents', label: 'Documents', icon: FilesIcon },
 ];
 
@@ -91,6 +92,7 @@ function NavButton({ item, active, onSelect }: { item: NavItem; active: boolean;
   return (
     <button
       onClick={() => onSelect(itemPath(item))}
+      title={item.fullName}
       aria-current={active ? 'page' : undefined}
       className={`${ITEM_CLASS} ${active ? 'bg-brand-mid/10 text-brand-light dark:bg-brand-tint' : IDLE_CLASS}`}
     >
