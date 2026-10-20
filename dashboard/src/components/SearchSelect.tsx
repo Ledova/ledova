@@ -100,7 +100,7 @@ export function SearchSelect({
     <Field className={LABEL} disabled={disabled}>
       <Combobox
         value={value}
-        onChange={(next) => next && onChange(next)}
+        onChange={(next) => next && next !== value && onChange(next)}
         onClose={() => {
           setQuery('');
           moved.current = false;

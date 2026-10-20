@@ -3,11 +3,13 @@ import { SearchSelect } from '@components/SearchSelect';
 const COMPANIES = ['company', 'companies'] as const;
 
 export function CompanyPicker({
+  label = 'Company',
   companies,
   value,
   onChange,
   disabled = false,
 }: {
+  label?: string;
   companies: { uuid: string; name: string; detail?: string }[];
   value: string;
   onChange: (uuid: string) => void;
@@ -15,7 +17,7 @@ export function CompanyPicker({
 }) {
   return (
     <SearchSelect
-      label="Company"
+      label={label}
       choices={companies.map(({ uuid, name, detail }) => ({ value: uuid, label: name, detail }))}
       value={value}
       onChange={onChange}

@@ -111,8 +111,8 @@ How the list behaves:
   - The label sits above a text field, and the field, its toggle button and the list all carry it.
   - The list opens on focus, so a short list can be browsed.
   - Typing narrows it to the entries whose text contains every typed word, ignoring case and
-    accents. The text is everything the entry shows: a person's name, address, award marker and
-    record reference, and the flow's own detail.
+    accents. The text is what the entry shows, apart from why it can't be chosen: a person's name,
+    address, award marker and record reference, and the flow's own detail.
   - Focusing or clicking the field selects its text, so typing replaces it.
 - **What each person shows:** the name, then a muted line with the address, "Award recipient without
   shares" and the flow's own detail, such as the shares held. A short record reference appears only
@@ -150,22 +150,31 @@ Every web page that asks which company to work on uses `CompanyPicker`
 [choosing a person](#choosing-a-person), labelled **Company**, showing each company's name and, where
 it helps, a muted detail such as a draft company's ACN, never an internal identifier.
 
-- Register, Dashboard, Company, Activation, Offerings, Published to your members and register setup
-  follow the company chosen for the session through `CompanySelection`, which hides the list when
-  the account has one company and it is already chosen.
-- Your shares shows it when the person holds records in more than one company.
-- Company team, Representative authority (which lists only draft companies), Company eligibility and
-  its wallet approvals show it whenever they ask for a company.
+- **Pages that keep their own choice:** Register, Dashboard, Company, Activation, Offerings, Published to
+  your members and register setup each keep their own choice through `CompanySelection`. It hides the
+  list when the account has one company and it is already chosen.
+- **Your shares** shows it when the person holds records in more than one company.
+- **Pages that always show it:** Company team, Representative authority (which lists only draft
+  companies), Company eligibility and its wallet approvals show it whenever they ask for a company.
+  Wallet approvals label theirs **Wallet approval company**, since the page has two.
+- **Choosing again:** picking the company already chosen changes nothing, as with every searchable
+  list.
+
+These rules are checked in review. The dashboard suite drives the picker on Register and in the award
+recovery case.
 
 ## Choosing a wallet or a paid subscription
 
 Lists that grow with a company's shareholders use the same searchable list, named by what a person
 recognises rather than an internal identifier:
 
-- a share-class issue's nominated wallet, and the wallet nomination or retained approval in Company
-  eligibility's wallet approvals: the wallet address, with its proof date or whether its source is
-  ready;
-- a paid issue's recorded subscription: the investor's name, with the shares and receiving address.
+- a share-class issue's nominated wallet, and a wallet nomination in Company eligibility's wallet
+  approvals: the wallet address, with its proof date or whether its source is ready;
+- a retained approval in the same section: the wallet address, with when the approval ends;
+- a paid issue's recorded subscription: the investor's name, or "Name not recorded", with the shares
+  and receiving address.
+
+These lists are checked in review; no dashboard case drives them.
 
 Next: [frontend](frontend.md), [mobile](mobile.md) and
 [the register's person choice](../business/register.md#choosing-a-person).

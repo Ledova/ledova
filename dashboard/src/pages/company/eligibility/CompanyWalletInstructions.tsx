@@ -140,7 +140,6 @@ function Preparation({ data }: { data: Read }) {
       <label className="text-sm">
         Instruction action
         <select
-          aria-label="Wallet instruction action"
           className={FIELD_CLASS}
           disabled={blocked}
           value={action}
@@ -163,7 +162,13 @@ function Preparation({ data }: { data: Read }) {
                   ? 'Source not ready'
                   : `Proof completed ${formatDateTime(row.proofCompletedAt)}`,
               }))
-            : targets.map((row) => ({ value: row.uuid, label: row.address, detail: row.status }))
+            : targets.map((row) => ({
+                value: row.uuid,
+                label: row.address,
+                detail: row.expiresAt
+                  ? `Approved until ${formatDateTime(row.expiresAt)}`
+                  : 'Approved without an expiry',
+              }))
         }
         value={source}
         onChange={(uuid) => setDraft({ ...current, source: uuid })}
@@ -187,7 +192,6 @@ function Preparation({ data }: { data: Read }) {
         <label className="text-sm">
           Finite approval expiry (local date and time)
           <input
-            aria-label="Wallet approval expiry"
             type="datetime-local"
             className={FIELD_CLASS}
             disabled={blocked}
@@ -223,6 +227,7 @@ export function CompanyWalletInstructions() {
             sharing exposes no wallet directory.
           </p>
           <CompanyPicker
+            label="Wallet approval company"
             companies={data.companies}
             value={data.companyUuid}
             disabled={data.busy}

@@ -212,7 +212,7 @@ function Preparation({ commands }: { commands: Commands }) {
           ...candidates,
         ].map((row) => ({
           value: row.subscription,
-          label: row.recipientName,
+          label: row.recipientName || 'Name not recorded',
           detail: `${formatShareCount(row.shares)} shares · ${row.recipientAddress}`,
         }))}
         value={captured?.source.subscription ?? ''}
