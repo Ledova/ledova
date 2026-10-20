@@ -10,14 +10,16 @@ import {
   getRegisterAllotment,
   getErrorMessage,
   isPreparedRegisterAllotment,
+  personRequest,
   prepareRegisterAllotment,
   type OwnCompanyAppointment,
+  type Person,
   type RegisterAllotmentPreparation,
-  type RegisterTransferMember,
 } from '@ledova/shared';
 import { Action } from '../../components/Ledger';
 import { apiClient } from '../../services/apiClient';
 import { EvidencePicker, Field, isoDay, utcToday } from '../../components/register/RegisterFields';
+import { PersonSelect } from '../../components/register/PersonPicker';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 import { useRegisterEvidence } from '../../hooks/useRegisterEvidence';
 
@@ -27,7 +29,7 @@ export function AllotmentForm({
   company,
   token,
   epoch,
-  members,
+  people,
   appointment,
   guard,
   newEffectGuard,
@@ -39,7 +41,7 @@ export function AllotmentForm({
   company: string;
   token: string;
   epoch: number;
-  members: RegisterTransferMember[];
+  people: Person[];
   appointment: OwnCompanyAppointment;
   guard: () => void;
   newEffectGuard: () => void;
@@ -157,11 +159,7 @@ export function AllotmentForm({
             operationId: Crypto.randomUUID(),
             appointment: appointment.uuid,
             tokenId: token,
-            member: member === 'new' ? memberId : member,
-            newMember: member === 'new',
-            ...(member === 'new'
-              ? { name: fields.name.trim(), residentialAddress: fields.residentialAddress.trim() }
-              : {}),
+            ...personRequest(member, people, memberId, fields.name, fields.residentialAddress),
             shares: fields.shares,
             companyEventOn: fields.companyEventOn.trim(),
             consideration: consideration!,
@@ -267,25 +265,13 @@ export function AllotmentForm({
   return (
     <View style={styles.group}>
       <Text style={styles.heading}>Person and shares</Text>
-      <Text style={styles.text}>
-        {member === 'new' ? 'New investor/member' : members.find((row) => row.member === member)?.name || member}
-      </Text>
-      <Action
-        label="Use a new investor/member"
-        disabled={busy || blocked || held || member === 'new'}
-        onPress={() => setMember('new')}
+      <PersonSelect
+        label="Issue to"
+        people={people.filter((row) => row.walletless && row.particularsRetained)}
+        value={member}
+        onChange={setMember}
+        disabled={busy || blocked || held}
       />
-      {members
-        .filter((row) => row.walletless && row.particularsRetained)
-        .map((row) => (
-          <Action
-            key={row.member}
-            label={`Use ${row.name || row.member}`}
-            accessibilityLabel={`Use retained investor ${row.name || row.member} ${row.member}`}
-            disabled={busy || blocked || held || member === row.member}
-            onPress={() => setMember(row.member)}
-          />
-        ))}
       {(
         [
           ...(member === 'new' ? (['name', 'residentialAddress'] as const) : []),
@@ -303,7 +289,7 @@ export function AllotmentForm({
         ] as const
       ).map((key) => {
         const label = {
-          name: 'Investor name',
+          name: 'Name',
           residentialAddress: 'Residential address',
           shares: COPY.SHARES,
           companyEventOn: `${COPY.COMPANY_EVENT_ON} (YYYY-MM-DD)`,

@@ -69,7 +69,6 @@ export function CompanyEligibilityScreen() {
     <Page
       title="Company eligibility"
       lede={ELIGIBILITY_RECORDS_NOTICE}
-      keyboardShouldPersistTaps="handled"
       actions={<Action label="Refresh company eligibility" disabled={blocked} onPress={() => void records.refresh()} />}
       refreshControl={
         <RefreshControl refreshing={records.refreshing && !records.loading} onRefresh={() => void records.refresh()} />

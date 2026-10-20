@@ -92,7 +92,6 @@ function MemberRecords({
     <Page
       title={DESTINATIONS.home.title}
       lede="Your company-recorded shares and employee awards. No wallet is needed."
-      keyboardShouldPersistTaps="handled"
       actions={
         <Action
           label="Refresh member records"

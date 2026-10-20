@@ -20,7 +20,6 @@ export function ParticipantEligibilityScreen() {
     <Page
       title="Eligibility requests"
       lede={ELIGIBILITY_RECORDS_NOTICE}
-      keyboardShouldPersistTaps="handled"
       actions={<Action label="Refresh eligibility records" disabled={blocked} onPress={() => void records.refresh()} />}
       refreshControl={
         <RefreshControl refreshing={records.refreshing && !records.loading} onRefresh={() => void records.refresh()} />

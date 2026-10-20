@@ -23,6 +23,20 @@ import { cache, resetFiles } from '../../testSupport/documentFiles';
 import { MemberRecordsScreen } from './MemberRecordsScreen';
 import { CompanyMemberAccess } from '../company-register/CompanyMemberAccess';
 
+const escaped = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+async function choose(
+  view: Pick<Awaited<ReturnType<typeof render>>, 'findByRole' | 'findByLabelText'>,
+  label: string,
+  option: string,
+) {
+  const field = await view.findByRole('button', { name: new RegExp(`^${escaped(label)}:`) });
+  await waitFor(() => expect(field).toBeEnabled());
+  await fireEvent.press(field);
+  await fireEvent.changeText(await view.findByLabelText(/^Search /), option);
+  await fireEvent.press(await view.findByRole('radio', { name: new RegExp(`^${escaped(option)}`) }));
+}
+
 jest.mock('expo-crypto', () => ({
   randomUUID: jest.fn(),
   CryptoDigestAlgorithm: { SHA256: 'SHA-256' },
@@ -216,7 +230,7 @@ it('invites and associates a walletless member, recovers one exact request and r
       wrapper,
     },
   );
-  await fireEvent.press(await screen.findByRole('radio', { name: `${MEMBER_RECORD.name} · ORD · Award recipient` }));
+  await choose(screen, 'Member or award recipient', MEMBER_RECORD.name);
   await fireEvent.changeText(screen.getByLabelText('Intended recipient email'), 'member@example.test');
   await fireEvent.press(screen.getByRole('button', { name: 'Create member invitation' }));
   await screen.findByText(`One-time member invitation code: ${MEMBER_CODE}`);

@@ -27,7 +27,6 @@ export function UserProfileScreen() {
       <Page
         testID="profile-scroll"
         title="Profile"
-        keyboardShouldPersistTaps="handled"
         refreshControl={
           <RefreshControl
             refreshing={profile.isFetching && !profile.isLoading}

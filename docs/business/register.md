@@ -234,8 +234,7 @@ confirmation in setup ([uncertain outcomes](README.md#when-the-outcome-is-uncert
 appointee can resume review or confirmation without preparation access. Edit records retires a saved
 preparation for editing and needs preparation and rejection authority.
 
-On the web, award recipients without shares appear in the same list as members, marked as such;
-mobile lists them separately. Select the exact company recipient to retain their ID, recorded name and residential address and any accepted
+Award recipients without shares appear in the same list as members, marked as such. Select the exact company recipient to retain their ID, recorded name and residential address and any accepted
 member access; enter their source membership date, holdings and allotments yourself. Changed,
 unavailable, conflicting or foreign identities block preparation, review or application; names alone
 never join people. A first copied holding records an opening balance, not an award-linked issue.
@@ -575,9 +574,10 @@ current company register appointment and settled reads, as on Register.
 
 ### Choosing a person
 
-On the web, every register flow chooses its person the same way: register setup, investor and
-non-paid issues, transfers, employee awards and member invitations. One searchable list holds the
-company's members, named by their recorded particulars, and award recipients without shares, marked
+Every register flow chooses its person the same way: register setup, investor and non-paid issues,
+transfers, employee awards and member invitations. In the mobile app the list opens in a sheet from
+the field, and register setup adds each shareholder from it with **Add a shareholder**. One
+searchable list holds the company's members, named by their recorded particulars, and award recipients without shares, marked
 as such. Typing part of a name or address narrows it, so a large register stays quick to search.
 Each option shows the name above the address, with a short record reference only when two people
 share both. Where a flow can add someone, **New person** is offered first and asks for a name and
@@ -586,7 +586,8 @@ Each flow keeps its own rule for who can be chosen:
 
 - issues and awards: people without a linked wallet whose particulars are retained;
 - a transfer: a transferor holding shares in the class, and a recipient without a linked wallet;
-- register setup: everyone on the list;
+- register setup: everyone on the list on the web; in the mobile app, award recipients and the
+  members without a linked wallet whose name and address are retained;
 - invitations: current and former members and award recipients.
 
 An award recipient without shares keeps their reserved member ID and the particulars on their award

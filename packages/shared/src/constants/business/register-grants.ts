@@ -34,7 +34,6 @@ export const REGISTER_GRANT_COPY = {
   EMPTY: 'No non-paid grant has been prepared for this share class.',
   NOTE: 'Record a non-paid issue to a walletless member of an imported register for a draft share class, with the company’s terms and authority.',
   READ_ONLY_NOTE: 'Preparing, approving and applying a grant needs current company administration or that step.',
-  NAME: 'Name',
   RESIDENTIAL_ADDRESS: 'Residential address',
   SHARES: 'Shares to grant',
   TERMS_ON: 'Terms dated on',

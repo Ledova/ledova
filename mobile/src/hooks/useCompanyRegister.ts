@@ -13,6 +13,7 @@ import {
   getRegisterGrants,
   getRegisterTransfers,
   getRegisterTransferMembers,
+  isRegisterImportMembers,
   getNextPageParam,
   getRegisterLinks,
   getRegisterOpeningHolders,
@@ -294,12 +295,9 @@ export function useTransferMembers(epoch: number, token: string, enabled = true)
       const { data } = await sessionRead(epoch, () =>
         getRegisterTransferMembers(apiClient, token, { ledovaSessionEpoch: epoch, signal }),
       );
-      if (
-        data.members.some((member) => !/^\d+$/.test(member.currentShares)) ||
-        new Set(data.members.map((member) => member.member)).size !== data.members.length
-      )
-        throw new Error('The member selector did not return exact distinct holdings.');
-      return data.members;
+      if (!isRegisterImportMembers(data))
+        throw new Error('The company shareholder and award recipient choices could not be confirmed.');
+      return data;
     },
   });
 }

@@ -25,6 +25,20 @@ import { PrepareRegisterImportScreen } from './PrepareRegisterImportScreen';
 import { registerAppointmentsKey, useRegisterAccess } from '../../hooks/useCompanyRegister';
 import { registerImportMembersKey } from './useRegisterImportMembers';
 
+const escaped = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+async function choose(
+  view: Pick<Awaited<ReturnType<typeof render>>, 'findByRole' | 'findByLabelText'>,
+  label: string,
+  option: string,
+) {
+  const field = await view.findByRole('button', { name: new RegExp(`^${escaped(label)}:`) });
+  await waitFor(() => expect(field).toBeEnabled());
+  await fireEvent.press(field);
+  await fireEvent.changeText(await view.findByLabelText(/^Search /), option);
+  await fireEvent.press(await view.findByRole('radio', { name: new RegExp(`^${escaped(option)}`) }));
+}
+
 const mockNavigate = jest.fn();
 let mockSection = 'register';
 let mockRouteParams: { tokenUuid: string; companyUuid: string; correctionOf?: string } | undefined;
@@ -344,7 +358,7 @@ it('sets up an appointed company without issuing shares, recovers uncertain clas
   await fireEvent.changeText(await opening.findByLabelText('Existing register or source reference'), 'Company records');
   await fireEvent.press(opening.getByRole('button', { name: REGISTER_IMPORT_COPY.SOURCE_CONFIRMATION }));
   await waitFor(() => expect(opening.getByRole('button', { name: 'Prepare for review' })).not.toBeDisabled());
-  await fireEvent.press(opening.getByRole('button', { name: 'Add a shareholder' }));
+  await choose(opening, 'Add a shareholder', 'New person');
   expect(opening.getByRole('button', { name: 'Prepare for review' })).toBeDisabled();
   await fireEvent.press(opening.getByRole('button', { name: 'Remove shareholder 1' }));
   jest.mocked(apiClient.post).mockImplementationOnce(
@@ -414,15 +428,11 @@ it('sets up an appointed company without issuing shares, recovers uncertain clas
     await copied.findByLabelText('Existing register or source reference'),
     'Original register',
   );
-  await fireEvent.press(
-    copied.getByRole('button', { name: `Use recorded member ${recorded.name} ${recorded.member}` }),
-  );
+  await choose(copied, 'Add a shareholder', recorded.name);
   expect(copied.getByLabelText('Shareholder 1 Name')).toHaveDisplayValue(recorded.name);
   expect(copied.getByLabelText('Shareholder 1 Name')).toHaveProp('editable', true);
   await fireEvent.press(copied.getByRole('button', { name: 'Remove shareholder 1' }));
-  await fireEvent.press(
-    copied.getByRole('button', { name: `Use award recipient ${recipient.name} ${recipient.member}` }),
-  );
+  await choose(copied, 'Add a shareholder', recipient.name);
   expect(copied.getByLabelText('Shareholder 1 Name')).toHaveDisplayValue(recipient.name);
   expect(copied.getByLabelText('Shareholder 1 Name')).toHaveProp('editable', false);
   expect(copied.getByLabelText('Shareholder 1 Address')).toHaveDisplayValue(recipient.residentialAddress);

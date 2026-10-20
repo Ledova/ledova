@@ -168,7 +168,7 @@ function PrepareRegisterParticulars({ epoch }: { epoch: number }) {
       </Page>
     );
   return (
-    <Page testID="prepare-particulars-screen" title={title} lede={lede} keyboardShouldPersistTaps="handled">
+    <Page testID="prepare-particulars-screen" title={title} lede={lede}>
       <Section title={COPY.PROPOSED_PARTICULARS}>
         <Field label={COPY.NAME} value={name} editable={!busy} maxLength={255} onChange={setName} />
         <Field

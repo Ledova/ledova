@@ -2,10 +2,7 @@ import type { ReactNode } from 'react';
 import { ScrollView, Text, View, type ScrollViewProps } from 'react-native';
 import { useThemedStyles } from '../contexts';
 
-type PageProps = Pick<
-  ScrollViewProps,
-  'testID' | 'refreshControl' | 'keyboardShouldPersistTaps' | 'showsVerticalScrollIndicator'
-> & {
+type PageProps = Pick<ScrollViewProps, 'testID' | 'refreshControl' | 'showsVerticalScrollIndicator'> & {
   title: string;
   lede?: string;
   actions?: ReactNode;
@@ -27,7 +24,12 @@ export function Page({ title, lede, actions, children, ...scroll }: PageProps) {
     actions: { flexDirection: 'row' as const, flexWrap: 'wrap' as const, gap: theme.spacing.sm },
   }));
   return (
-    <ScrollView style={styles.page} contentContainerStyle={styles.content} {...scroll}>
+    <ScrollView
+      style={styles.page}
+      contentContainerStyle={styles.content}
+      keyboardShouldPersistTaps="handled"
+      {...scroll}
+    >
       <View style={styles.header}>
         <Text accessibilityRole="header" style={styles.title}>
           {title}

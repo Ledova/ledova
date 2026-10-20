@@ -453,7 +453,7 @@ it('recovers captured award, vesting and issue requests under read access and re
     await fireEvent.press(open);
     if (kind === 'award') {
       for (const [label, value] of [
-        ['Recipient name', AWARD_REQUEST.name!],
+        ['Name', AWARD_REQUEST.name!],
         ['Residential address', AWARD_REQUEST.residentialAddress!],
         [COPY.SHARES, AWARD_REQUEST.shares],
         [COPY.TERMS_ON, AWARD_REQUEST.termsOn],
@@ -526,7 +526,7 @@ it('recovers captured award, vesting and issue requests under read access and re
   await fireEvent.press(await view.findByRole('button', { name: `Issue vested shares for ${AWARD_REQUEST.name}` }));
   await view.findByTestId('prepare-grant-screen');
   await view.findByText(AWARD_REQUEST.name!);
-  expect(view.queryByLabelText(GRANT_COPY.NAME)).toBeNull();
+  expect(view.queryByLabelText('Name')).toBeNull();
   expect(view.getByLabelText('Company issue date (YYYY-MM-DD)')).toHaveDisplayValue('');
   for (const [label, value] of [
     [GRANT_COPY.SHARES, '100'],

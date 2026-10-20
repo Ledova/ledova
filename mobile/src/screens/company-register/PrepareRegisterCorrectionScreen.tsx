@@ -195,12 +195,7 @@ function PrepareRegisterCorrection({ epoch }: { epoch: number }) {
     );
   const inverse = entry.changes.map(({ member, shares }) => ({ member, shares: (-BigInt(shares)).toString() }));
   return (
-    <Page
-      testID="prepare-correction-screen"
-      title={title}
-      lede={`${lede} ${COPY.COMPENSATION_NOTE}`}
-      keyboardShouldPersistTaps="handled"
-    >
+    <Page testID="prepare-correction-screen" title={title} lede={`${lede} ${COPY.COMPENSATION_NOTE}`}>
       <Section title={COPY.ORIGINAL_CHANGES}>
         <Text style={styles.heading}>
           Entry {entry.sequence} · {COPY.ENTRY_KINDS[entry.kind]}
