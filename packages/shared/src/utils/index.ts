@@ -49,6 +49,7 @@ export {
   getErrorMessage,
   hasServiceErrorDetail,
   failureStatus,
+  retryServerFailures,
   describeFailure,
   readSignInError,
   readApiError,

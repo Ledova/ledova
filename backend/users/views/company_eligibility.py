@@ -4,6 +4,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from shared.views import AuthenticatedGenericViewSet
+from users.filters import CompanyEligibilityRequestFilter
 from users.models import CompanyEligibilityRequest
 from users.serializers.company_eligibility import (
     CompanyEligibilityDecisionCreateSerializer,
@@ -94,6 +95,7 @@ class CompanyEligibilityQueueViewSet(mixins.ListModelMixin, mixins.RetrieveModel
     scoped_model = CompanyEligibilityRequest
     lookup_field = "uuid"
     http_method_names = ["get", "post", "head", "options"]
+    filterset_class = CompanyEligibilityRequestFilter
     ordering_fields = ["submitted_at", "uuid"]
 
     def narrow(self, queryset):

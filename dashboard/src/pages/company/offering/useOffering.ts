@@ -17,9 +17,10 @@ import {
   type CompanyShareTokenListItem,
   type IssuerSubscriptionQueryParams,
   OPERATOR_QUERY_KEY,
+  retryServerFailures,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
-import { PAGE_SIZE, keepWithin, retryServerFailures } from '@hooks/useListParams';
+import { PAGE_SIZE, keepWithin } from '@hooks/useListParams';
 import type { CompanyActionRead } from '@pages/company/shared/CompanyState';
 import { useTokensList, companyTokensKey } from '@pages/company/shared/useTokensList';
 
