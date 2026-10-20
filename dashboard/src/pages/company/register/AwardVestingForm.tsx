@@ -1,6 +1,5 @@
-import { Field, TextInput } from '@components/Field';
+import { Field, TextInput, FileField } from '@components/Field';
 import { FormActions, PageAction } from '@components/Page';
-import { FIELD_CLASS, LABEL } from '@components/fieldClass';
 import {
   FIELD_LIMITS,
   REGISTER_AWARD_COPY as COPY,
@@ -57,15 +56,7 @@ export function AwardVestingForm({
         <Field label={COPY.VESTED_ON}>
           <TextInput type="date" max={today} value={vestedOn} onChange={(event) => setVestedOn(event.target.value)} />
         </Field>
-        <label className={LABEL}>
-          {COPY.VESTING_DOCUMENT}
-          <input
-            type="file"
-            accept="application/pdf,image/png,image/jpeg"
-            className={FIELD_CLASS}
-            onChange={(event) => setFile(event.target.files?.[0] ?? null)}
-          />
-        </label>
+        <FileField label={COPY.VESTING_DOCUMENT} onFile={setFile} />
         <p className="text-sm text-text-muted">{COPY.VESTING_NOTE}</p>
       </fieldset>
       {problem && <p className="text-sm text-text-muted">{problem}</p>}

@@ -1,6 +1,5 @@
-import { Field, TextInput } from '@components/Field';
+import { Field, TextInput, FileField } from '@components/Field';
 import { FormActions, PageAction } from '@components/Page';
-import { FIELD_CLASS, LABEL } from '@components/fieldClass';
 import {
   COMPANY_AUTHORITY_CAPABILITIES,
   type CompanyAuthorityRequest,
@@ -93,19 +92,13 @@ export function AuthorityRequestForm({
           onChange={(event) => change(() => setExpiry(event.target.value))}
         />
       </Field>
-      <label className={LABEL}>
-        Supporting document (optional)
-        <input
-          type="file"
-          accept="application/pdf,image/png,image/jpeg"
-          disabled={disabled || busy}
-          onChange={(event) => change(() => setFile(event.target.files?.[0] ?? null))}
-          className={FIELD_CLASS}
-        />
-      </label>
-      <p className="text-sm text-text-muted">
-        Optional PDF or image, max 10 MB. Supporting documents can also be uploaded later in Company settings.
-      </p>
+      <FileField
+        label="Supporting document"
+        optional
+        hint="Supporting documents can also be uploaded later in Company settings."
+        disabled={disabled || busy}
+        onFile={(file) => change(() => setFile(file))}
+      />
       {submission.isError && (
         <p role="alert" className="text-sm text-error-light">
           {failureSentence(submission.error, 'The request could not be recorded. Retry with the same details.')}

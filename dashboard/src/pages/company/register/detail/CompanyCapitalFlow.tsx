@@ -1,7 +1,6 @@
-import { Field, TextArea, TextInput } from '@components/Field';
+import { Field, TextArea, TextInput, FileField } from '@components/Field';
 import { Row, Rows, Section } from '@components/Ledger';
 import { PageAction } from '@components/Page';
-import { FIELD_CLASS } from '@components/fieldClass';
 import {
   FIELD_LIMITS,
   REGISTER_CAPITAL_INCREASE_COPY as COPY,
@@ -190,29 +189,14 @@ function Preparation({ commands }: { commands: Commands }) {
           onChange={(event) => setShareholder(event.target.value)}
         />
       </Field>
-      <label className="block text-sm">
-        Capital authority document
-        <input
-          className={FIELD_CLASS}
-          type="file"
-          accept=".pdf,.png,.jpg,.jpeg"
-          onChange={(event) => {
-            const chosen = event.target.files?.[0] ?? null;
-            if (
-              chosen &&
-              (!['application/pdf', 'image/png', 'image/jpeg'].includes(chosen.type) ||
-                chosen.size <= 0 ||
-                chosen.size > 10 * 1024 * 1024)
-            ) {
-              setError('Choose a PDF, PNG or JPEG of up to 10 MB.');
-              return;
-            }
-            uploadRef.current = null;
-            setFile(chosen);
-            setError('');
-          }}
-        />
-      </label>
+      <FileField
+        label="Capital authority document"
+        onFile={(chosen) => {
+          uploadRef.current = null;
+          setFile(chosen);
+          setError('');
+        }}
+      />
       {error && <p role="alert">{error}</p>}
       <PageAction
         label="Prepare capital increase"

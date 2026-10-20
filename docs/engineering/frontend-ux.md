@@ -459,15 +459,22 @@ Loading lines, refresh actions, a failed refresh and empty states are still to f
   or around Headless UI's `Select` in `SelectField`, so the label, the hint and any error are linked
   to the control and an error sets `aria-invalid`. The label sits above the control, an optional
   field ends with "(optional)", a sentence about one field is that field's hint, and an action
-  beside the label, such as Scan QR, is its `aside`. Choices, the searchable pickers, file inputs,
-  checkboxes, the list search and Trading's order form keep their own controls, and sign-in and
-  sign-up keep their own look on the same Headless parts.
+  beside the label, such as Scan QR, is its `aside`. Choices, the searchable pickers, checkboxes, the
+  list search and Trading's order form keep their own controls, and sign-in and sign-up keep their
+  own look on the same Headless parts.
 - **Limits.** A text field's `maxLength` comes from `FIELD_LIMITS`
   (`packages/shared/src/constants/business/field-limits.ts`): one constant per kind of backend field,
   equal to its serializer or model limit, such as `NAME` (255), `REASON` (1000), `REGISTER_SHARES`
   (78 digits) and `AMOUNT` (21 characters). A field the backend leaves unbounded, such as an
   offering's summary or a profile's residential address, has none. Numbers are text inputs with
   `inputMode`, including Trading's order fields.
+- **Files.** A web upload is `FileField`, a `Field` around a file input. It applies `UPLOAD_RULE`
+  (`field-limits.ts`), the server's rule: a PDF, PNG or JPEG whose type matches its extension, up to
+  10 MB. Its hint starts with the rule's sentence, "PDF, PNG or JPEG, up to 10 MB.", and `uploadRefusal`
+  turns away any other file as it is chosen, with "Choose a PDF, PNG or JPEG of up to 10 MB." on the
+  field. The payslip upload on Profile and the evidence in an eligibility claim keep their dashed
+  areas but apply the same rule. Mobile's pickers keep their own wording until
+  [#1201](https://github.com/Ledova/ledova/issues/1201).
 - **Date fields.** A date field is `type="date"`, bounded with `min` and `max` wherever the server
   has a rule, and its label or message names the time zone where it matters.
 - **UTC dates.** Register and company dates are UTC calendar dates: `utcToday`

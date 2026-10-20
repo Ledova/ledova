@@ -63,8 +63,8 @@ export const REGISTER_CORRECTION_COPY = {
   UNNAMED_MEMBER: (member: string) => `Member ${member}`,
   AUTHORITY_DOCUMENT: 'Authority document',
   AUTHORITY_DOCUMENT_NOTE:
-    'The director resolution or court order that authorises this correction, provided by the company. PDF or ' +
-    'image, max 10 MB. Ledova does not verify it.',
+    'The director resolution or court order that authorises this correction, provided by the company. Ledova ' +
+    'does not verify it.',
   EFFECTIVE_ON: 'Effective date',
   EFFECTIVE_ON_NOTE: 'Today (UTC) or earlier. A correction can be backdated, but cannot take effect later.',
   AUTHORITY: 'Authority',

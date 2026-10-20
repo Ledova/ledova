@@ -1,11 +1,8 @@
-import { Field, TextArea, TextInput } from '@components/Field';
+import { Field, TextArea, TextInput, FileField } from '@components/Field';
 import { FIELD_LIMITS } from '@ledova/shared';
 import { useParticularsPreparation, type ParticularsFormProps, COPY } from './useParticularsPreparation';
 
 import { FormActions, PageAction } from '@components/Page';
-import { FIELD_CLASS, LABEL } from '@components/fieldClass';
-
-const EVIDENCE = 'application/pdf,image/png,image/jpeg';
 
 export function ParticularsForm({
   owner,
@@ -39,16 +36,11 @@ export function ParticularsForm({
       <fieldset disabled={busy} className="space-y-5">
         <fieldset className="space-y-3">
           <legend className="text-sm font-medium text-text-primary">Evidence provided by the company</legend>
-          <label className={LABEL}>
-            {COPY.SUPPORTING_DOCUMENT}
-            <input
-              type="file"
-              accept={EVIDENCE}
-              className={FIELD_CLASS}
-              onChange={(event) => update({ file: event.target.files?.[0] ?? null })}
-            />
-          </label>
-          <p className="text-sm text-text-muted">{COPY.SUPPORTING_DOCUMENT_NOTE}</p>
+          <FileField
+            label={COPY.SUPPORTING_DOCUMENT}
+            hint={COPY.SUPPORTING_DOCUMENT_NOTE}
+            onFile={(file) => update({ file })}
+          />
         </fieldset>
         <fieldset className="space-y-3">
           <legend className="text-sm font-medium text-text-primary">{COPY.PROPOSED_PARTICULARS}</legend>

@@ -1,4 +1,4 @@
-import { Field, TextArea, TextInput } from '@components/Field';
+import { Field, TextArea, TextInput, FileField } from '@components/Field';
 import { useEffect, useRef, useState } from 'react';
 import { useRunningAction } from '@hooks/useRunningAction';
 import {
@@ -12,7 +12,6 @@ import { Outcome, Section } from '@components/Ledger';
 import { PersonSelect } from '@pages/company/register/shared/PersonPicker';
 import { PageAction } from '@components/Page';
 import { Confirmation } from '@components/Modal';
-import { FIELD_CLASS } from '@components/fieldClass';
 import { useCompanyMemberRequests } from './useCompanyMemberRequests';
 
 export function CompanyMemberAccess({
@@ -242,16 +241,7 @@ export function CompanyMemberAccess({
                   Prepare {access.requests.particulars.find((item) => item.uuid === request)?.name}&apos;s particulars
                   update
                 </p>
-                <label className="block space-y-1 text-sm">
-                  Company supporting document
-                  <input
-                    className={FIELD_CLASS}
-                    type="file"
-                    accept="application/pdf,image/png,image/jpeg"
-                    disabled={held}
-                    onChange={(event) => selectFile(event.target.files?.[0] ?? null)}
-                  />
-                </label>
+                <FileField label="Company supporting document" disabled={held} onFile={selectFile} />
                 <Field label="As-at date (UTC)">
                   <TextInput
                     type="date"

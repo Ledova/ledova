@@ -1,8 +1,7 @@
-import { Field, TextArea, TextInput } from '@components/Field';
+import { Field, TextArea, TextInput, FileField } from '@components/Field';
 import { Choices } from '@components/Choices';
 import { Row, Rows, Section } from '@components/Ledger';
 import { PageAction } from '@components/Page';
-import { FIELD_CLASS } from '@components/fieldClass';
 import {
   FIELD_LIMITS,
   REGISTER_PAUSE_CHANGE_COPY as COPY,
@@ -181,33 +180,20 @@ function Preparation({ commands }: { commands: Commands }) {
           onChange={(event) => setReference(event.target.value)}
         />
       </Field>
-      <label className="block text-sm">
-        Pause authority document
-        <input
-          className={FIELD_CLASS}
-          type="file"
-          accept=".pdf,.png,.jpg,.jpeg"
-          disabled={!commands.canPrepare || !termsValid}
-          onChange={(event) => {
-            try {
-              check();
-              const chosen = event.target.files?.[0] ?? null;
-              if (
-                chosen &&
-                (!['application/pdf', 'image/png', 'image/jpeg'].includes(chosen.type) ||
-                  chosen.size <= 0 ||
-                  chosen.size > 10 * 1024 * 1024)
-              )
-                throw new Error('Choose a PDF, PNG or JPEG of up to 10 MB.');
-              uploadRef.current = null;
-              setFile(chosen);
-              setError('');
-            } catch (failure) {
-              setError(failureSentence(failure, 'The authority document could not be selected.'));
-            }
-          }}
-        />
-      </label>
+      <FileField
+        label="Pause authority document"
+        disabled={!commands.canPrepare || !termsValid}
+        onFile={(chosen) => {
+          try {
+            check();
+            uploadRef.current = null;
+            setFile(chosen);
+            setError('');
+          } catch (failure) {
+            setError(failureSentence(failure, 'The authority document could not be selected.'));
+          }
+        }}
+      />
       {error && <p role="alert">{error}</p>}
       <PageAction
         label="Prepare pause change"
