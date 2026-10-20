@@ -63,9 +63,9 @@ export function OrderActionFlow({ action, wallets, onClose }: Props) {
   return (
     <Modal isOpen onClose={close} title={cancelling ? 'Cancel order' : 'Change order'} size="md">
       <div className="space-y-4 text-sm text-text-primary">
-        {state.phase === 'loading' && <p>Loading current order details...</p>}
-        {state.phase === 'preparing' && <p>Checking this {label} and preparing signing details...</p>}
-        {state.phase === 'signing' && <p>Signing this {label}...</p>}
+        {state.phase === 'loading' && <p>Loading current order details…</p>}
+        {state.phase === 'preparing' && <p>Checking this {label} and preparing signing details…</p>}
+        {state.phase === 'signing' && <p>Signing this {label}…</p>}
         {state.phase === 'submitting' && (
           <p>Submitting this {label}. You can close and check its saved status later.</p>
         )}

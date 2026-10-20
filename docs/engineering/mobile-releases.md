@@ -467,10 +467,10 @@ and a plain HTTP LAN address is not.
 3. Select the newly imported Keystone wallet. It must start unverified (the seed's preverified
    development wallet is not the device under test) and keep the imported derivation path and master
    fingerprint; a manually entered address does not establish the hardware import flow.
-4. Choose Verify → Continue and scan the displayed Scan Challenge QR with the Keystone. The owner
+4. Choose Verify → Continue and scan the QR under Scan challenge with the Keystone. The owner
    checks the ownership message and signs on the device; the challenge expires after five minutes,
    so generate a fresh one if needed.
-5. Choose I've Signed the Message, scan the device's response, and keep the actual Wallet Verified!
+5. Choose I've signed the message, scan the device's response, and keep the actual Wallet verified!
    result. Reload the wallet and confirm it stays verified through the normal authenticated
    readback.
 

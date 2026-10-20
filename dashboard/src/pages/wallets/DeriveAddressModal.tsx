@@ -59,9 +59,9 @@ export function DeriveAddressModal({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="Derive New Address"
+      title="Derive new address"
       showFooter
-      confirmLabel="Add Address"
+      confirmLabel="Add address"
       confirmDisabled={!derivedAddress || readBlocked}
       busy={isCreating}
       busyLabel="Adding address…"
@@ -86,19 +86,19 @@ export function DeriveAddressModal({
             </div>
 
             <div className="flex items-center justify-between py-2.5 border-b border-border-subtle">
-              <span className="text-sm text-text-muted">Address Index</span>
+              <span className="text-sm text-text-muted">Address index</span>
               <span className="text-sm font-medium text-text-primary">{derivedAddress.addressIndex}</span>
             </div>
 
             <div className="py-2.5 border-b border-border-subtle">
-              <span className="text-sm text-text-muted">New Address</span>
+              <span className="text-sm text-text-muted">New address</span>
               <p className="text-sm font-mono text-text-primary mt-1 break-all">{derivedAddress.address}</p>
             </div>
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center py-8 gap-2">
             <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-brand-mid"></div>
-            <p className="text-sm text-text-muted">Deriving address...</p>
+            <p className="text-sm text-text-muted">Deriving address…</p>
           </div>
         )}
       </div>

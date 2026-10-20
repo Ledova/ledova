@@ -34,7 +34,7 @@ export function WalletSelectionModal({ isOpen, onClose, onSelectWallet }: Wallet
       return (
         <div className="flex items-center justify-center py-8">
           <ArrowsClockwiseIcon size={ICON_LG} className="animate-spin text-text-muted" />
-          <span className="ml-2 text-sm text-text-muted">Loading wallets...</span>
+          <span className="ml-2 text-sm text-text-muted">Loading wallets…</span>
         </div>
       );
     }

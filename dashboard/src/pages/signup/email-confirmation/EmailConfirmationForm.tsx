@@ -71,7 +71,7 @@ export function EmailConfirmationForm({
           )}
 
           <Field className="space-y-2">
-            <Label className="block text-sm font-medium text-text-body">Verification Code</Label>
+            <Label className="block text-sm font-medium text-text-body">Verification code</Label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <KeyIcon size={ICON_MD} className="text-text-subtle" />
@@ -102,7 +102,7 @@ export function EmailConfirmationForm({
             {isLoading ? (
               <div className="flex items-center justify-center space-x-2">
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
-                <span>Verifying...</span>
+                <span>Verifying…</span>
               </div>
             ) : (
               'Verify'
@@ -122,7 +122,7 @@ export function EmailConfirmationForm({
             disabled={isResending || isLoading}
             className="font-semibold text-brand-light hover:text-brand-subtle transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isResending ? 'Sending...' : 'Resend'}
+            {isResending ? 'Sending…' : 'Resend'}
           </button>
         </p>
         <p className="text-sm text-text-subtle">
@@ -132,7 +132,7 @@ export function EmailConfirmationForm({
             disabled={isLoading || isResending}
             className="font-semibold text-brand-light hover:text-brand-subtle transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Go Back
+            Go back
           </button>
         </p>
       </div>

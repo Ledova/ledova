@@ -25,12 +25,12 @@ every company ([eligibility decision](../decisions.md#eligibility-and-ownership-
 
 ### Investor signup
 
-1. Create your account, verify your email and choose **Individual Investor** as the account type.
+1. Create your account, verify your email and choose **Individual investor** as the account type.
    Company representatives follow [company signup](companies.md#company-signup).
-2. At **Eligibility Check**, confirm that you are 18 or older, an Australian resident and opening an
+2. At **Eligibility check**, confirm that you are 18 or older, an Australian resident and opening an
    individual account.
 3. Complete your personal profile and financial profile, review them and choose **Complete
-   Signup**, which accepts the Terms of Service and Privacy Policy.
+   signup**, which accepts the Terms of Service and Privacy Policy.
 
 Signup does not include identity verification. Complete it afterwards from Profile with **Review
 identity check**; while the investor identity requirement is on, investing waits for it
@@ -38,8 +38,8 @@ identity check**; while the investor identity requirement is on, investing waits
 
 ### Going back and changing your email
 
-Once your email is verified, **Go Back** never returns to the code screen. From Choose Account
-Type it opens **Your Account**, which shows your verified email; **Continue** keeps everything you
+Once your email is verified, **Go back** never returns to the code screen. From Choose account
+type it opens **Your account**, which shows your verified email; **Continue** keeps everything you
 have saved.
 
 To use a different email, enter the new address twice there with your current password. This starts
