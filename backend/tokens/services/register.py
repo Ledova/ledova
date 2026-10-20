@@ -576,10 +576,12 @@ def stored_waiting_list(token):
         return waiting_list(token.pk)
 
 
-def stored_entries(token, paginate, wanted=()) -> list[dict]:
+def stored_entries(token, paginate, wanted=(), member=None) -> list[dict]:
     entries = with_company_event_dates(RegisterEntry.objects.filter(register__token=token))
     if wanted:
         entries = entries.filter(pk__in=wanted)
+    if member:
+        entries = entries.filter(changes__contains=[{"member": str(member)}])
     with _snapshot():
         entries = paginate(
             entries.annotate(

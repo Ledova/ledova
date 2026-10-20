@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { type OrderSubmissionOwner, type TokenHoldersResponse } from '@ledova/shared';
 import { Section } from '@components/Ledger';
 import { PageAction } from '@components/Page';
@@ -10,6 +11,7 @@ export function CompanyMemberAccess({
   guard,
   registers,
   sourceReady = true,
+  inviteMember,
   onHeldChange,
 }: {
   company: string;
@@ -17,6 +19,7 @@ export function CompanyMemberAccess({
   guard: () => void;
   registers: TokenHoldersResponse[];
   sourceReady?: boolean;
+  inviteMember?: string;
   onHeldChange?: (held: boolean) => void;
 }) {
   const {
@@ -44,7 +47,12 @@ export function CompanyMemberAccess({
     held,
     refresh,
     prepare,
-  } = useCompanyMemberRequests({ company, owner, guard, registers, sourceReady, onHeldChange });
+  } = useCompanyMemberRequests({ company, owner, guard, registers, sourceReady, inviteMember, onHeldChange });
+  const invite = useRef<HTMLHeadingElement>(null);
+  const shown = !!inviteMember && member?.uuid === inviteMember;
+  useEffect(() => {
+    if (shown) invite.current?.scrollIntoView?.({ block: 'start' });
+  }, [shown]);
   return (
     <Section title="Member access and requests">
       <p className="text-sm text-text-muted">
@@ -71,7 +79,9 @@ export function CompanyMemberAccess({
       )}
       {access.admin && (
         <div className="space-y-4 border-t border-border-subtle pt-4">
-          <h3 className="text-base font-medium">Invite a member</h3>
+          <h3 ref={invite} className="scroll-mt-6 text-base font-medium">
+            Invite a member
+          </h3>
           <label className="block space-y-1 text-sm">
             Member or award recipient
             <select

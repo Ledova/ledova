@@ -215,7 +215,9 @@ function ShareClassDetails({ data }: { data: ReturnType<typeof useShareClass> })
             {registerReady && data.register.data && <ClassRegister register={data.register.data} />}
           </ReadResult>
         </Section>
-        {registerReady && data.register.data && <CompanyShareholders registers={[data.register.data]} />}
+        {registerReady && data.register.data && (
+          <CompanyShareholders registers={[data.register.data]} company={token.companyUuid} />
+        )}
         {data.isOwner && (
           <Section title="Issuance requests">
             <ReadResult query={data.requests} label="issuance requests">

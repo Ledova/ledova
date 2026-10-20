@@ -9,7 +9,6 @@ import {
   useUserPreferences,
   USER_PREFERENCES_QUERY_KEY,
   type OrderSubmissionOwner,
-  type OwnCompanyAppointment,
   type TokenHoldersResponse,
 } from '@ledova/shared';
 import { LinkRow } from '@components/Ledger';
@@ -36,14 +35,9 @@ import { RegisterLinks } from './RegisterLinks';
 import { RegisterParticulars } from './RegisterParticulars';
 import { RegisterSetup } from './RegisterSetup';
 import { Loading, Unavailable } from '@pages/company/shared/RegisterStatus';
-import {
-  registersQuery,
-  useCompanyRegister,
-  useRegisterDownload,
-  registerClassesKey,
-} from '@pages/company/shared/useCompanyRegister';
+import { useCompanyRegister, useRegisterDownload } from '@pages/company/shared/useCompanyRegister';
 import { ownerGuard } from '@pages/company/shared/ownerGuard';
-import { useOwnAppointments, ownAppointmentsKey } from '@hooks/useOwnAppointments';
+import { useOwnAppointments } from '@hooks/useOwnAppointments';
 
 const ON_CHAIN = ['deployed', 'paused'];
 const TASKS = [
@@ -112,51 +106,6 @@ function RegisterDownload({ register }: { register: TokenHoldersResponse }) {
       )}
     </div>
   );
-}
-
-function RegisterShareholders({
-  owner,
-  guard,
-  registers,
-  company,
-}: {
-  owner: OrderSubmissionOwner;
-  guard: () => void;
-  registers: TokenHoldersResponse[];
-  company: string;
-}) {
-  const appointments = useOwnAppointments(owner, guard);
-  const client = useQueryClient();
-  const prepare =
-    appointments.isSuccess &&
-    !appointments.isFetching &&
-    !!appointmentForRegisterStep(appointments.data, company, 'prepare');
-  const guardPreparation = () => {
-    guard();
-    for (const key of [
-      USER_PREFERENCES_QUERY_KEY,
-      registerClassesKey(owner),
-      registersQuery(
-        owner,
-        registers.map(({ token }) => token.uuid),
-        guard,
-      ).queryKey,
-      ownAppointmentsKey(owner),
-    ]) {
-      const current = client.getQueryState(key);
-      if (current?.status !== 'success' || current.fetchStatus !== 'idle')
-        throw new Error('Refresh the register and your current preparation appointment.');
-    }
-    if (
-      !appointmentForRegisterStep(
-        client.getQueryData<OwnCompanyAppointment[]>(ownAppointmentsKey(owner)) ?? [],
-        company,
-        'prepare',
-      )
-    )
-      throw new Error('A current company preparation appointment is required.');
-  };
-  return <CompanyShareholders registers={registers} guardPreparation={prepare ? guardPreparation : undefined} />;
 }
 
 export default function CompanyRegisterPage() {
@@ -281,6 +230,7 @@ function OwnRegister({
     typeof location.state?.registerCompany === 'string' ? location.state.registerCompany : issueCompany;
   const registerToken = typeof location.state?.registerToken === 'string' ? location.state.registerToken : '';
   const contextToken = registerToken || issueToken;
+  const inviteMember = typeof location.state?.inviteMember === 'string' ? location.state.inviteMember : undefined;
   const enteredIssue = useRef('');
   useEffect(() => {
     if (enteredIssue.current === location.key || !classes.isSuccess || classes.isFetching || held) return;
@@ -401,6 +351,7 @@ function OwnRegister({
                 company={scope.company.uuid}
                 registers={scope.registers}
                 sourceReady={sourceReady}
+                inviteMember={inviteMember}
                 onHeldChange={setMemberHeld}
               />
             </div>
@@ -460,13 +411,7 @@ function OwnRegister({
         />
       )}
       {scope && view === 'shareholders' && ownershipReady && (
-        <RegisterShareholders
-          key={scope.company.uuid}
-          owner={owner}
-          guard={guard}
-          company={scope.company.uuid}
-          registers={scope.registers}
-        />
+        <CompanyShareholders key={scope.company.uuid} registers={scope.registers} company={scope.company.uuid} />
       )}
       {scope && view === 'register' && (
         <>

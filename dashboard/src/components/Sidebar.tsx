@@ -143,9 +143,11 @@ export function Sidebar({ onNavigate, withNotifications = false }: SidebarProps 
   ];
 
   const allItems = [...groups, ...secondaryGroups].flatMap((group) => group.items);
+  const shareholderPage = location.pathname.startsWith(`${DESTINATIONS.companyRegister.path}/members/`);
   const activePath = allItems
     .map(itemPath)
     .filter((path) => {
+      if (shareholderPage) return path === `${DESTINATIONS.companyRegister.path}#shareholders`;
       const [pathname, hash] = path.split('#');
       return (
         (location.pathname === pathname || location.pathname.startsWith(`${pathname}/`)) &&

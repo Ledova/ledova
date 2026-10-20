@@ -21,6 +21,7 @@ export function useCompanyMemberRequests({
   guard,
   registers,
   sourceReady = true,
+  inviteMember = '',
   onHeldChange,
 }: {
   company: string;
@@ -28,6 +29,7 @@ export function useCompanyMemberRequests({
   guard: () => void;
   registers: TokenHoldersResponse[];
   sourceReady?: boolean;
+  inviteMember?: string;
   onHeldChange?: (held: boolean) => void;
 }) {
   const access = useCompanyMemberAccess(
@@ -67,7 +69,7 @@ export function useCompanyMemberRequests({
     }
   }
   const recipientsReady = !!access.admin && sourceReady && awards.isSuccess && !awards.isFetching && !recipientsError;
-  const [invitation, setInvitation] = useState({ company, member: '', email: '' });
+  const [invitation, setInvitation] = useState({ company, member: inviteMember, email: '' });
   const member = invitation.company === company ? candidates.find(({ uuid }) => uuid === invitation.member) : undefined;
   const email = invitation.company === company ? invitation.email : '';
   const memberName = (uuid: string) =>
