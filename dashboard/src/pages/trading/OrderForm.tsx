@@ -1,3 +1,4 @@
+import { SelectField } from '@components/SelectField';
 import { useState, useEffect, useMemo, useImperativeHandle, forwardRef } from 'react';
 import { formatWalletAddressShort, marketAmount, priceCents } from '@ledova/shared';
 import type { ShareToken, CreateOrderRequest, Wallet, OrderType } from '@ledova/shared';
@@ -118,24 +119,18 @@ export const OrderForm = forwardRef<OrderFormRef, OrderFormProps>(function Order
       </Rows>
       <fieldset disabled={disabled} className="space-y-4">
         <div className="space-y-1">
-          <label htmlFor="order-wallet" className="block text-sm">
-            {isBuy ? 'Delivery wallet' : 'Source wallet'}
-          </label>
-          <select
-            id="order-wallet"
+          <SelectField
+            label={isBuy ? 'Delivery wallet' : 'Source wallet'}
+            options={[
+              { value: '', label: 'Select a wallet', disabled: true },
+              ...wallets.map((wallet) => ({
+                value: wallet.uuid,
+                label: wallet.name || formatWalletAddressShort(wallet.address),
+              })),
+            ]}
             value={selectedWalletUuid}
-            onChange={(event) => setSelectedWalletUuid(event.target.value)}
-            className={FIELD_BASE}
-          >
-            <option value="" disabled>
-              Select a wallet
-            </option>
-            {wallets.map((wallet) => (
-              <option key={wallet.uuid} value={wallet.uuid}>
-                {wallet.name || formatWalletAddressShort(wallet.address)}
-              </option>
-            ))}
-          </select>
+            onChange={setSelectedWalletUuid}
+          />
           {selectedWallet && <p className="break-all text-xs text-text-muted">{selectedWallet.address}</p>}
           {wallets.length === 0 && (
             <p className="text-sm text-text-muted">No available wallet{isBuy ? '.' : ' with these shares.'}</p>

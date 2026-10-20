@@ -1,3 +1,5 @@
+import { SelectField } from '@components/SelectField';
+import { Choices } from '@components/Choices';
 import { CompanyPicker } from '@components/CompanyPicker';
 import { useState } from 'react';
 import {
@@ -5,13 +7,18 @@ import {
   ELIGIBILITY_RECORDS_NOTICE,
   isCurrentEligibilityAppointment,
   useCompanyEligibilityRecords,
+  formatDate,
 } from '@ledova/shared';
-import { FIELD_CLASS } from '@components/fieldClass';
 import { LinkRow, Section } from '@components/Ledger';
 import { Page, PageAction } from '@components/Page';
-import { ActionConfirmation, EligibilityHistory, Field, RecordsList, TextField } from '@components/eligibility';
+import { ActionConfirmation, EligibilityHistory, RecordsList, TextField } from '@components/eligibility';
 import { CompanyWalletInstructions } from './CompanyWalletInstructions';
+import { scopeLabels } from '@pages/company/shared/appointments';
 
+const OUTCOMES = [
+  ['accepted', 'Accept'],
+  ['refused', 'Refuse'],
+] as const;
 export default function CompanyEligibilityPage() {
   const read = useCompanyEligibilityRecords(() => crypto.randomUUID());
   const [revocationReason, setRevocationReason] = useState('');
@@ -58,27 +65,27 @@ export default function CompanyEligibilityPage() {
             />
             {read.companies.length === 0 && <p>No current personal prepare or approve appointments are available.</p>}
             {read.companyUuid && (
-              <Field label="Your exact decision appointment">
-                <select
-                  className={FIELD_CLASS}
-                  value={read.appointmentUuid}
-                  onChange={(event) => read.setAppointment(event.target.value)}
-                >
-                  <option value="">Select your appointment</option>
-                  {read.appointments
+              <SelectField
+                label="Your exact decision appointment"
+                options={[
+                  { value: '', label: 'Select your appointment' },
+                  ...read.appointments
                     .filter(
                       (item) =>
                         item.company === read.companyUuid &&
                         item.capabilities.some((capability) => capability === 'prepare' || capability === 'approve'),
                     )
-                    .map((item) => (
-                      <option key={item.uuid} value={item.uuid}>
-                        {item.uuid} · {item.capabilities.join(', ') || 'No personal actions'}
-                        {!isCurrentEligibilityAppointment(item) ? ' · inactive' : ''}
-                      </option>
-                    ))}
-                </select>
-              </Field>
+                    .map((item) => ({
+                      value: item.uuid,
+                      label: `${scopeLabels(item.capabilities)} · appointed ${formatDate(item.createdAt)}${
+                        isCurrentEligibilityAppointment(item) ? '' : ' · inactive'
+                      }`,
+                      reference: item.uuid.slice(0, 8),
+                    })),
+                ]}
+                value={read.appointmentUuid}
+                onChange={read.setAppointment}
+              />
             )}
           </Section>
           {read.companyUuid && (
@@ -98,22 +105,12 @@ export default function CompanyEligibilityPage() {
               <EligibilityHistory record={read.selectedRecord} />
               {read.selectedRecord.outcome === 'pending' && (
                 <Section title="Prepare the exact company decision">
-                  <Field label="Decision outcome">
-                    <select
-                      className={FIELD_CLASS}
-                      value={read.draft.outcome}
-                      onChange={(event) =>
-                        read.updateDraft({
-                          outcome: event.target.value as 'accepted' | 'refused',
-                          reason: '',
-                          expiresAt: '',
-                        })
-                      }
-                    >
-                      <option value="accepted">Accept</option>
-                      <option value="refused">Refuse</option>
-                    </select>
-                  </Field>
+                  <Choices
+                    legend="Decision outcome"
+                    options={OUTCOMES}
+                    value={read.draft.outcome}
+                    onChange={(outcome) => read.updateDraft({ outcome, reason: '', expiresAt: '' })}
+                  />
                   {read.draft.outcome === 'accepted' ? (
                     <TextField
                       label="Acceptance expiry (local date and time)"

@@ -1,5 +1,4 @@
 import { useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import {
   createCompanyToken,
   createUserFriendlyError,
@@ -46,7 +45,6 @@ export function useNewShareClass({
   classes,
   ready,
 }: Pick<FreshClassProps, 'guard' | 'checkCurrent' | 'company' | 'classes' | 'ready'>) {
-  const navigate = useNavigate();
   const draftClasses = classes.filter((token) => token.status === 'draft');
   const [choice, setChoice] = useState('ordinary');
   const [name, setName] = useState('Ordinary shares');
@@ -149,7 +147,6 @@ export function useNewShareClass({
         : 'This class code already exists. Open its register or use the actual distinct code for a new class.',
     );
   return {
-    navigate,
     draftClasses,
     choice,
     setChoice,

@@ -1,3 +1,4 @@
+import { Choices } from '@components/Choices';
 import { useLinkPreparation, type LinkFormProps, COPY } from './useLinkPreparation';
 
 import { type RegisterCorrectionAuthority } from '@ledova/shared';
@@ -54,20 +55,12 @@ export function LinkForm({
         </fieldset>
         <fieldset className="space-y-3">
           <legend className="text-sm font-medium text-text-primary">Authority and reason</legend>
-          <label className={LABEL}>
-            {COPY.AUTHORITY}
-            <select
-              value={draft.authority}
-              className={FIELD_CLASS}
-              onChange={(event) => update({ authority: event.target.value as RegisterCorrectionAuthority })}
-            >
-              {AUTHORITIES.map(([value, label]) => (
-                <option key={value} value={value}>
-                  {label}
-                </option>
-              ))}
-            </select>
-          </label>
+          <Choices
+            legend={COPY.AUTHORITY}
+            options={AUTHORITIES}
+            value={draft.authority}
+            onChange={(authority) => update({ authority })}
+          />
           {draft.authority === 'director_resolution' && (
             <label className={LABEL}>
               {COPY.APPROVING_DIRECTOR}

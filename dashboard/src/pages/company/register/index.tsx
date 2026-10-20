@@ -1,3 +1,4 @@
+import { SelectField } from '@components/SelectField';
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { generatePath, Link, useLocation } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
@@ -14,7 +15,6 @@ import {
 import { LinkRow } from '@components/Ledger';
 import { PageTitle } from '@components/PageTitle';
 import { Page, PageAction } from '@components/Page';
-import { FIELD_CLASS, LABEL } from '@components/fieldClass';
 import { CompanySelection } from '@pages/company/shared/CompanySelection';
 
 import { ownershipSummary } from '@pages/company/shared/summary';
@@ -460,29 +460,26 @@ function OwnRegister({
               )}
             </div>
             {selectedTask && sourceReady && scope.registers.length > 1 && (
-              <label className={`${LABEL} max-w-sm`}>
-                Task share class
-                <select
-                  className={FIELD_CLASS}
+              <div className="max-w-sm">
+                <SelectField
+                  label="Task share class"
+                  options={scope.registers.map(({ token }) => ({
+                    value: token.uuid,
+                    label: `${token.name} · ${token.symbol}`,
+                  }))}
                   value={selectedToken}
                   disabled={held}
-                  onChange={(event) => {
+                  onChange={(token) => {
                     if (!held && sourceReady)
                       setTaskSelection({
                         company: scope.company.uuid,
-                        token: event.target.value,
+                        token,
                         task: selectedTask,
                         locationKey: location.key,
                       });
                   }}
-                >
-                  {scope.registers.map(({ token }) => (
-                    <option key={token.uuid} value={token.uuid}>
-                      {token.name} · {token.symbol}
-                    </option>
-                  ))}
-                </select>
-              </label>
+                />
+              </div>
             )}
           </section>
         </>

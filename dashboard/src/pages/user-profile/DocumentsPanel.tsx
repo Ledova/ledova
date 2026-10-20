@@ -1,3 +1,5 @@
+import { SelectField } from '@components/SelectField';
+import { Choices } from '@components/Choices';
 import { DESTINATIONS } from '@ledova/shared';
 import { useRef, useState } from 'react';
 import {
@@ -10,7 +12,7 @@ import {
   TrashIcon,
 } from '@phosphor-icons/react';
 
-import { apiErrorSentence, formatFileSize, type InvestorClassification } from '@ledova/shared';
+import { apiErrorSentence, formatDate, formatFileSize, type InvestorClassification } from '@ledova/shared';
 import { ICON_SM, ICON_MD } from '@components/iconSizes';
 
 import {
@@ -30,7 +32,15 @@ const DOCUMENT_TYPE_LABELS: Record<UserDocumentType, string> = {
   other: 'Other',
 };
 
+const DOCUMENT_TYPES = [
+  ['payslip', 'Payslip'],
+  ['bank_statement', 'Bank statement (coming soon)'],
+  ['tax_return', 'Tax return (coming soon)'],
+] as const;
+
 const MAX_FILE_MB = 10;
+
+const claimLabel = (claim: InvestorClassification) => `${claim.categoryDisplay} · ${formatDate(claim.createdAt)}`;
 
 function formatDocumentMoney(raw: string | null): string {
   if (!raw) return '—';
@@ -137,22 +147,18 @@ function ClaimSelector({
   disabled: boolean;
 }) {
   return (
-    <select
-      aria-label="Classification claim"
+    <SelectField
+      label="Classification claim"
+      options={[
+        { value: '', label: 'Keep unattached' },
+        ...claims
+          .filter((claim) => claim.status === 'submitted')
+          .map((claim) => ({ value: claim.uuid, label: claimLabel(claim), reference: claim.uuid.slice(0, 8) })),
+      ]}
       value={value}
-      onChange={(event) => onChange(event.target.value)}
       disabled={disabled}
-      className="w-full rounded-lg border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary"
-    >
-      <option value="">Keep unattached</option>
-      {claims
-        .filter((claim) => claim.status === 'submitted')
-        .map((claim) => (
-          <option key={claim.uuid} value={claim.uuid}>
-            {claim.categoryDisplay} · {claim.uuid.slice(0, 8)}
-          </option>
-        ))}
-    </select>
+      onChange={onChange}
+    />
   );
 }
 
@@ -160,6 +166,12 @@ function DocumentCard({ initialDoc, claims }: { initialDoc: Document; claims: In
   const liveQuery = useDocument(initialDoc.uuid);
   const doc = liveQuery.data ?? initialDoc;
   const extraction = doc.latestExtraction;
+  const attached = claims.find((claim) => claim.uuid === doc.classification);
+  const attachedLabel = attached
+    ? claims.some((claim) => claim.uuid !== attached.uuid && claimLabel(claim) === claimLabel(attached))
+      ? `${claimLabel(attached)} · ${attached.uuid.slice(0, 8)}`
+      : claimLabel(attached)
+    : doc.classification?.slice(0, 8);
   const del = useDeleteDocument();
   const attach = useAttachDocument();
   const [classification, setClassification] = useState('');
@@ -195,7 +207,7 @@ function DocumentCard({ initialDoc, claims }: { initialDoc: Document; claims: In
 
       {doc.classification ? (
         <p className="mt-3 text-xs text-text-muted">
-          Attached to claim {doc.classification.slice(0, 8)}. Retained{' '}
+          Attached to claim {attachedLabel}. Retained{' '}
           {doc.retentionUntil ? `until ${formatDocumentDate(doc.retentionUntil)}` : 'with the claim'}.
         </p>
       ) : (
@@ -301,29 +313,25 @@ function UploadCard({ claims }: { claims: InvestorClassification[] }) {
           </div>
 
           <div className="flex flex-wrap gap-2">
-            <select
+            <Choices<UserDocumentType>
+              legend="Document type"
+              options={DOCUMENT_TYPES}
               value={documentType}
-              onChange={(e) => setDocumentType(e.target.value as UserDocumentType)}
-              className="max-w-full rounded-lg border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary"
+              unavailable={['bank_statement', 'tax_return']}
               disabled={upload.isPending}
-            >
-              <option value="payslip">Payslip</option>
-              <option value="bank_statement" disabled>
-                Bank statement (coming soon)
-              </option>
-              <option value="tax_return" disabled>
-                Tax return (coming soon)
-              </option>
-            </select>
-            <input
-              type="text"
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-              placeholder="Note (optional)"
-              maxLength={255}
-              className="min-w-0 flex-1 basis-40 rounded-lg border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary placeholder:text-text-muted"
-              disabled={upload.isPending}
+              onChange={setDocumentType}
             />
+            <label className="flex min-w-0 flex-1 basis-40 flex-col gap-1 text-sm text-text-primary">
+              Note (optional)
+              <input
+                type="text"
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                maxLength={255}
+                className="w-full rounded-lg border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary placeholder:text-text-muted"
+                disabled={upload.isPending}
+              />
+            </label>
           </div>
 
           <ClaimSelector

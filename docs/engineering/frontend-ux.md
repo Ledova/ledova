@@ -10,6 +10,9 @@ and [mobile](mobile.md); what each page does is in the business section.
 - [Choosing a person](#choosing-a-person)
 - [Choosing a company](#choosing-a-company)
 - [Choosing a wallet or a paid subscription](#choosing-a-wallet-or-a-paid-subscription)
+- [Choosing from a short fixed list](#choosing-from-a-short-fixed-list)
+- [Choosing from a bounded list](#choosing-from-a-bounded-list)
+- [How the choice rules are enforced](#how-the-choice-rules-are-enforced)
 
 ## Signed-in page conventions
 
@@ -133,6 +136,7 @@ How the list behaves:
     clearing the text before leaving the field.
   - A choice can be replaced but not emptied, since every flow starts with **New person** or needs
     someone.
+- **Choosing again:** picking the entry already chosen changes nothing.
 - **Unavailable people:** someone who cannot be chosen, such as a person already added to a register
   setup draft, stays listed, disabled, with the reason.
 - **Shared logic:** `peopleFrom`, `personChoices` and `personRequest` are in
@@ -157,8 +161,6 @@ it helps, a muted detail such as a draft company's ACN, never an internal identi
 - **Pages that always show it:** Company team, Representative authority (which lists only draft
   companies), Company eligibility and its wallet approvals show it whenever they ask for a company.
   Wallet approvals label theirs **Wallet approval company**, since the page has two.
-- **Choosing again:** picking the company already chosen changes nothing, as with every searchable
-  list.
 
 These rules are checked in review. The dashboard suite drives the picker on Register and in the award
 recovery case.
@@ -175,6 +177,59 @@ recognises rather than an internal identifier:
   and receiving address.
 
 These lists are checked in review; no dashboard case drives them.
+
+## Choosing from a short fixed list
+
+A question with a few fixed answers shows them all as radio buttons, so nothing has to be opened to
+see the choices. `Choices` (`dashboard/src/components/Choices.tsx`) is a fieldset whose legend is the
+question, with one native radio button per answer on a wrapping row; the arrow keys move between
+answers. It asks for:
+
+- the authority for a correction, wallet link or register opening;
+- whether a mirrored allotment is held for someone else;
+- a new share class's type;
+- the requested state of a pause change;
+- the exemption an offering relies on;
+- a company eligibility decision's outcome and a wallet instruction's action;
+- the direction and network in Activity's filter, and the network for a new or imported wallet;
+- the professional body behind an accountant's certificate;
+- the type of a profile document, where answers not yet offered stay listed, disabled and marked
+  "coming soon".
+
+A question with no answer yet shows no button chosen. The answer takes effect with the form or
+filter it belongs to. Wallets' sort is the exception: each sort applies as soon as it is chosen, so
+its answers are a row of buttons marked pressed, since moving through radio buttons with the arrow
+keys would re-sort the list at every step.
+
+## Choosing from a bounded list
+
+A list too long for radio buttons that still cannot grow with the company, such as a person's own
+wallets, a company's share classes, its offerings or document types, or someone's appointments, is a
+native select in `SelectField` (`dashboard/src/components/SelectField.tsx`): the label above the
+field and options named in words:
+
+- an appointment reads as its actions and the date it was made;
+- an evidence source reads as its kind, status and date, and a classification claim as its kind and
+  date;
+- an offering reads as its class, status and date;
+- a company ADD for a nominated wallet reads as when it was admitted and until when.
+
+These five lists add a short record reference only to options that would otherwise read the same,
+as with people who share a name and address. Wallet options show the wallet's name or address.
+
+Register setup offers a class already started as links in a sentence, and the new class's kind as
+radio buttons, so choosing never moves the page by itself. Sign-up keeps its own presentation: its
+company type is Headless UI's `Select` inside the field so the label names it, and the phone number's
+country code is a native select named "Country code" beside the number. The select is transparent
+over the flag and dialling code, so the field keeps its width while the open list names each
+country.
+
+## How the choice rules are enforced
+
+An ESLint rule in `dashboard/eslint.config.js` refuses a `select` element written in the dashboard's
+source, apart from `SelectField` and the sign-up country code, and names the three controls. It
+does not see Headless UI's `Select`, which only sign-up's company type uses, or test files. Which
+control fits which list is checked in review against this page.
 
 Next: [frontend](frontend.md), [mobile](mobile.md) and
 [the register's person choice](../business/register.md#choosing-a-person).

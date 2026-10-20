@@ -59,6 +59,24 @@ export default tseslint.config(
     },
   },
   {
+    files: ['src/**/*.tsx'],
+    ignores: [
+      'src/**/*.test.tsx',
+      'src/components/SelectField.tsx',
+      'src/pages/signup/user-profile/CountrySelector.tsx',
+    ],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: "JSXOpeningElement[name.name='select']",
+          message:
+            'Choose the control by the data: Choices, SelectField or SearchSelect (docs/engineering/frontend-ux.md).',
+        },
+      ],
+    },
+  },
+  {
     files: ['src/testSupport/**/*.{ts,tsx}'],
     rules: {
       'react-refresh/only-export-components': 'off',

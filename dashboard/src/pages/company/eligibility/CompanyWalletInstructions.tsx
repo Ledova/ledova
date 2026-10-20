@@ -1,3 +1,4 @@
+import { Choices } from '@components/Choices';
 import { CompanyPicker } from '@components/CompanyPicker';
 import { useState } from 'react';
 import {
@@ -19,6 +20,11 @@ import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
 type Read = ReturnType<typeof useCompanyWalletInstructions>;
 
 const WALLETS = ['wallet', 'wallets'] as const;
+
+const ACTIONS = [
+  ['add', 'Approve nominated wallet'],
+  ['remove', 'Remove retained approval'],
+] as const;
 function Snapshot({ snapshot }: { snapshot: CompanyWalletInstruction['snapshot'] }) {
   return (
     <Rows>
@@ -137,20 +143,13 @@ function Preparation({ data }: { data: Read }) {
         ADD uses an explicitly shared nomination and finite expiry. REMOVE uses the exact retained successful ADD
         journal, including after wallet or eligibility loss.
       </p>
-      <label className="text-sm">
-        Instruction action
-        <select
-          className={FIELD_CLASS}
-          disabled={blocked}
-          value={action}
-          onChange={(event) =>
-            setDraft({ owner: data.owner, action: event.target.value as 'add' | 'remove', source: '', expires: '' })
-          }
-        >
-          <option value="add">Approve nominated wallet</option>
-          <option value="remove">Remove retained approval</option>
-        </select>
-      </label>
+      <Choices
+        legend="Instruction action"
+        options={ACTIONS}
+        value={action}
+        disabled={blocked}
+        onChange={(next) => setDraft({ owner: data.owner, action: next, source: '', expires: '' })}
+      />
       <SearchSelect
         label={action === 'add' ? 'Explicitly shared wallet nomination' : 'Retained successful ADD target'}
         choices={

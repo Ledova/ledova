@@ -6,7 +6,7 @@ import {
   AuthDivider,
   authFieldClass,
 } from '@components/auth';
-import { Field, Label, Description } from '@headlessui/react';
+import { Field, Label, Description, Select } from '@headlessui/react';
 import { BuildingsIcon, WarningIcon, CaretDownIcon } from '@phosphor-icons/react';
 import { ICON_MD } from '@components/iconSizes';
 import { COMPANY_TYPES } from '@pages/signup/shared/constants';
@@ -106,7 +106,7 @@ export function CompanyRegistrationForm({
           <Field className="space-y-1">
             <Label className="block text-sm font-medium text-text-body">Company Type *</Label>
             <div className="relative">
-              <select
+              <Select
                 name="companyType"
                 value={form.companyType}
                 onChange={(e) => setFieldValue('companyType', e.target.value)}
@@ -118,7 +118,7 @@ export function CompanyRegistrationForm({
                     {type.label}
                   </option>
                 ))}
-              </select>
+              </Select>
               <CaretDownIcon className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-muted pointer-events-none" />
             </div>
             {errors.companyType && (

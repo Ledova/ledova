@@ -1,3 +1,5 @@
+import { SelectField } from '@components/SelectField';
+import { Choices } from '@components/Choices';
 import { useState } from 'react';
 import { PageAction } from '@components/Page';
 import { OFFER_DOCUMENT_COPY, OFFERING_EXEMPTION_LABELS, attachableDocuments, requestShares } from '@ledova/shared';
@@ -126,34 +128,15 @@ export function OfferingForm({
 
   return (
     <fieldset disabled={busy} className="grid gap-4 sm:grid-cols-2">
-      <Field label="Share class">
-        <select
-          disabled={!!editing}
-          value={chosenToken}
-          onChange={(e) => setToken(e.target.value)}
-          className={FIELD_CLASS}
-        >
-          {tokens.map((item) => (
-            <option key={item.uuid} value={item.uuid}>
-              {item.name} ({item.symbol})
-            </option>
-          ))}
-        </select>
-      </Field>
+      <SelectField
+        label="Share class"
+        options={tokens.map((item) => ({ value: item.uuid, label: `${item.name} (${item.symbol})` }))}
+        value={chosenToken}
+        disabled={!!editing}
+        onChange={setToken}
+      />
 
-      <Field label="Exemption relied on">
-        <select
-          value={exemption}
-          onChange={(e) => setExemption(e.target.value as OfferingExemption)}
-          className={FIELD_CLASS}
-        >
-          {EXEMPTIONS.map(([value, label]) => (
-            <option key={value} value={value}>
-              {label}
-            </option>
-          ))}
-        </select>
-      </Field>
+      <Choices legend="Exemption relied on" options={EXEMPTIONS} value={exemption} onChange={setExemption} />
 
       <Field label="Price per share (AUD)">
         <input

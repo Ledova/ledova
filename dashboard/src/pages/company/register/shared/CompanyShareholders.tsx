@@ -1,3 +1,4 @@
+import { SelectField } from '@components/SelectField';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { HOLDER_TYPE_LABELS, formatShareCount, type TokenHoldersResponse } from '@ledova/shared';
@@ -72,24 +73,18 @@ export function CompanyShareholders({
             }}
           />
         </label>
-        <label className={LABEL}>
-          Share class
-          <select
-            value={classFilter}
-            className={FIELD_CLASS}
-            onChange={(event) => {
-              setClassFilter(event.target.value);
-              setPage(0);
-            }}
-          >
-            <option value="all">All classes</option>
-            {registers.map(({ token }) => (
-              <option key={token.uuid} value={token.uuid}>
-                {token.name} · {token.symbol}
-              </option>
-            ))}
-          </select>
-        </label>
+        <SelectField
+          label="Share class"
+          options={[
+            { value: 'all', label: 'All classes' },
+            ...registers.map(({ token }) => ({ value: token.uuid, label: `${token.name} · ${token.symbol}` })),
+          ]}
+          value={classFilter}
+          onChange={(value) => {
+            setClassFilter(value);
+            setPage(0);
+          }}
+        />
       </div>
       {registers.some(({ initialized }) => !initialized) && (
         <p role="status" className="text-sm text-text-muted">

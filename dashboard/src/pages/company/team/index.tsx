@@ -1,9 +1,15 @@
+import { SelectField } from '@components/SelectField';
 import { CompanyPicker } from '@components/CompanyPicker';
-import { FIELD_CLASS, LABEL } from '@components/fieldClass';
 import { LinkRow, Row, Rows, Section } from '@components/Ledger';
 import { Modal } from '@components/Modal';
 import { Page, PageAction } from '@components/Page';
-import { DESTINATIONS, useSubmissionOwner, useUserPreferences, type OrderSubmissionOwner } from '@ledova/shared';
+import {
+  DESTINATIONS,
+  formatDate,
+  useSubmissionOwner,
+  useUserPreferences,
+  type OrderSubmissionOwner,
+} from '@ledova/shared';
 import { scopeLabels } from '@pages/company/shared/appointments';
 import { AcceptInvitationForm } from './AcceptInvitationForm';
 import { AppointmentRecord } from './AppointmentRecord';
@@ -116,22 +122,20 @@ function OwnTeam({
         />
         {company && (
           <>
-            <label className={LABEL}>
-              Delegating appointment
-              <select
-                className={FIELD_CLASS}
-                value={sourceId}
-                disabled={disabled || own.isFetching}
-                onChange={(event) => setSourceId(event.target.value)}
-              >
-                <option value="">Select a current appointment</option>
-                {sources.map((item) => (
-                  <option key={item.uuid} value={item.uuid}>
-                    {item.uuid} · {scopeLabels(item.delegatableCapabilities)}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <SelectField
+              label="Delegating appointment"
+              options={[
+                { value: '', label: 'Select a current appointment' },
+                ...sources.map((item) => ({
+                  value: item.uuid,
+                  label: `${scopeLabels(item.delegatableCapabilities)} · appointed ${formatDate(item.createdAt)}`,
+                  reference: item.uuid.slice(0, 8),
+                })),
+              ]}
+              value={sourceId}
+              disabled={disabled || own.isFetching}
+              onChange={setSourceId}
+            />
             {sources.length === 0 && <p>No current appointment can delegate actions for this company.</p>}
             {source && (
               <TeamInvitationForm

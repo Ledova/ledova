@@ -1,3 +1,4 @@
+import { Choices } from '@components/Choices';
 import {
   registerImportMoney,
   type RegisterTransferMember,
@@ -8,6 +9,11 @@ import { FIELD_CLASS, LABEL } from '@components/fieldClass';
 import { PageAction } from '@components/Page';
 import { PersonFields, PersonSelect } from '@pages/company/register/shared/PersonPicker';
 import { blankAllotment, type AllotmentDraft, type MemberDraft } from './preparation';
+
+const HELD_FOR_SOMEONE_ELSE = [
+  ['yes', 'Yes'],
+  ['no', 'No'],
+] as const;
 
 export function MemberFields({
   row,
@@ -143,20 +149,12 @@ export function MemberFields({
                 }
               />
             </label>
-            <label className={LABEL}>
-              Held for someone else?
-              <select
-                value={allotment.beneficiallyHeld === null ? '' : allotment.beneficiallyHeld ? 'no' : 'yes'}
-                className={FIELD_CLASS}
-                onChange={(event) =>
-                  setAllotment(at, { beneficiallyHeld: event.target.value ? event.target.value === 'no' : null })
-                }
-              >
-                <option value="">Choose</option>
-                <option value="yes">Yes</option>
-                <option value="no">No</option>
-              </select>
-            </label>
+            <Choices
+              legend="Held for someone else?"
+              options={HELD_FOR_SOMEONE_ELSE}
+              value={allotment.beneficiallyHeld === null ? '' : allotment.beneficiallyHeld ? 'no' : 'yes'}
+              onChange={(held) => setAllotment(at, { beneficiallyHeld: held === 'no' })}
+            />
           </div>
           <details open={!!(allotment.shareReference || allotment.certificateReference)}>
             <summary className="cursor-pointer text-sm text-text-muted">References (optional)</summary>
