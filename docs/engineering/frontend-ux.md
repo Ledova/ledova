@@ -9,6 +9,7 @@ and [mobile](mobile.md); what each page does is in the business section.
 - [Signed-in page conventions](#signed-in-page-conventions)
 - [Choosing a person](#choosing-a-person)
 - [Choosing a company](#choosing-a-company)
+- [Choosing a wallet or a paid subscription](#choosing-a-wallet-or-a-paid-subscription)
 
 ## Signed-in page conventions
 
@@ -155,6 +156,16 @@ it helps, a muted detail such as a draft company's ACN, never an internal identi
 - Your shares shows it when the person holds records in more than one company.
 - Company team, Representative authority (offering draft companies only), Company eligibility and
   its wallet approvals show it whenever they ask for a company.
+
+## Choosing a wallet or a paid subscription
+
+Lists that grow with a company's shareholders use the same searchable list, named by what a person
+recognises rather than an internal identifier:
+
+- a share-class issue's nominated wallet, and the wallet nomination or retained approval in Company
+  eligibility's wallet approvals: the wallet address, with its proof date or whether its source is
+  ready;
+- a paid issue's recorded subscription: the investor's name, with the shares and receiving address.
 
 Next: [frontend](frontend.md), [mobile](mobile.md) and
 [the register's person choice](../business/register.md#choosing-a-person).
