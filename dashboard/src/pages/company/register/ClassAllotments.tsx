@@ -18,7 +18,7 @@ import { LinkRow } from '@components/Ledger';
 import { AllotmentForm } from './AllotmentForm';
 import { AllotmentRecord } from './AllotmentRecord';
 import { useOwnAppointments, ownAppointmentsKey } from '@hooks/useOwnAppointments';
-import { peopleFrom, peopleKey, usePeople } from '@pages/company/register/shared/people';
+import { allPeopleKey, peopleFrom, usePeople } from '@pages/company/register/shared/people';
 import { allotmentsKey, useRegisterAllotments } from './useRegisterAllotments';
 
 export function ClassAllotments({
@@ -128,7 +128,7 @@ export function ClassAllotments({
     await Promise.all([
       client.invalidateQueries({ queryKey: registerHoldersKey(owner) }),
       client.invalidateQueries({ queryKey: entriesKey(owner, token) }),
-      client.invalidateQueries({ queryKey: peopleKey(owner, token) }),
+      client.invalidateQueries({ queryKey: allPeopleKey(owner) }),
     ]);
   };
   return (

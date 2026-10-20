@@ -22,8 +22,12 @@ export interface Person {
 
 export const NEW_PERSON = 'New person';
 
+export function allPeopleKey(owner: OrderSubmissionOwner) {
+  return [...registerKey(owner), 'people'];
+}
+
 export function peopleKey(owner: OrderSubmissionOwner, token: string) {
-  return [...registerKey(owner), 'people', token];
+  return [...allPeopleKey(owner), token];
 }
 
 export async function readPeople(token: string, guard: () => void) {

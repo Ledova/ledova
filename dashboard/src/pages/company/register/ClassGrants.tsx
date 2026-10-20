@@ -21,7 +21,7 @@ import { entriesKey } from '@pages/company/register/shared/useRegisterEntries';
 import { useOwnAppointments, ownAppointmentsKey } from '@hooks/useOwnAppointments';
 import { grantsKey, useRegisterGrants } from '@pages/company/register/shared/useRegisterGrants';
 import { awardsKey } from '@pages/company/register/shared/useRegisterAwards';
-import { peopleKey } from '@pages/company/register/shared/people';
+import { allPeopleKey } from '@pages/company/register/shared/people';
 
 export function ClassGrants({
   owner,
@@ -90,7 +90,7 @@ export function ClassGrants({
     await grants.refetch({ throwOnError: true });
     check();
     await Promise.all(
-      [awardsKey(owner, token), registerHoldersKey(owner), entriesKey(owner, token), peopleKey(owner, token)].map(
+      [awardsKey(owner, token), registerHoldersKey(owner), entriesKey(owner, token), allPeopleKey(owner)].map(
         (queryKey) => client.invalidateQueries({ queryKey }),
       ),
     );

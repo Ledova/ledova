@@ -17,7 +17,7 @@ import { registerSteps } from '@pages/company/shared/proposals';
 import { entriesKey } from '@pages/company/register/shared/useRegisterEntries';
 import { useOwnAppointments, ownAppointmentsKey } from '@hooks/useOwnAppointments';
 import { transfersKey, useRegisterTransfers } from '@pages/company/register/shared/useRegisterTransfers';
-import { peopleKey } from '@pages/company/register/shared/people';
+import { allPeopleKey } from '@pages/company/register/shared/people';
 
 export function ClassTransfers({
   owner,
@@ -59,7 +59,7 @@ export function ClassTransfers({
     await Promise.all(
       [
         transfersKey(owner, token),
-        peopleKey(owner, token),
+        allPeopleKey(owner),
         registerHoldersKey(owner),
         entriesKey(owner, token),
         ownAppointmentsKey(owner),
