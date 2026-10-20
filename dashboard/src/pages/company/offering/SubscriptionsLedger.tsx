@@ -62,7 +62,7 @@ export function SubscriptionsLedger({
   if (!offering) return null;
   const narrowed = !!list.search || !!status;
   const data = read.isSuccess ? read.data : undefined;
-  const empty = data?.count === 0 && !narrowed;
+  const empty = data?.count === 0 && !narrowed && !read.isPlaceholderData;
   return (
     <Section title={REGISTER_COPY.APPLICATIONS_TITLE}>
       <p className="text-sm text-text-muted">{REGISTER_COPY.APPLICATIONS_NOTE(operatorName)}</p>
@@ -76,7 +76,7 @@ export function SubscriptionsLedger({
         value={offering.uuid}
         onChange={(value) => list.setFilter('offering', value)}
       />
-      {!empty && (
+      {((data && !empty) || narrowed || read.isError) && (
         <ListSearch
           label="Search applications"
           hint="Investor name, wallet address or payment reference"
@@ -101,7 +101,7 @@ export function SubscriptionsLedger({
           read={{ error: read.error, isRefreshing: read.isFetching, refetch: read.refetch }}
           label={REGISTER_COPY.APPLICATIONS_TITLE}
         />
-      ) : !data || gone ? (
+      ) : !data || gone || (read.isPlaceholderData && data.count === 0) ? (
         <p role="status" className="text-sm text-text-muted">
           Loading applications…
         </p>
