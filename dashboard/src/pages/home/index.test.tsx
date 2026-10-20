@@ -356,7 +356,7 @@ it('invites an exact award-only recipient, deduplicates members and clears unava
     { ...memberRegister, token: { ...memberRegister.token, uuid: otherClass, symbol: 'PREF' } },
   ];
   const view = render(companyView(company, registers));
-  await screen.findByRole('option', { name: 'Award Only Recipient · ORD · Award recipient' });
+  await screen.findByRole('option', { name: 'Award Only Recipient · Award recipient without shares · ORD' });
   expect(screen.getAllByRole('option', { name: /Company Recorded Member/ })).toHaveLength(1);
   expect(screen.queryByLabelText('Member UUID')).toBeNull();
   fireEvent.change(screen.getByLabelText('Member or award recipient'), { target: { value: awardMember } });

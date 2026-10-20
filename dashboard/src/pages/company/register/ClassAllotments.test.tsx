@@ -128,7 +128,7 @@ it('preserves original preparation and issue recovery through refresh, keeps app
     if (rows[0] && url === URLS.REGISTER_ALLOTMENT(rows[0].uuid)) return { data: rows[0] };
     if (absentPreparation && url === URLS.REGISTER_ALLOTMENT(String(absentPreparation.operationId)))
       throw Object.assign(new Error('Original preparation absent'), { response: { status: 404 } });
-    if (url === URLS.REGISTER_MEMBERS(REGISTER.token.uuid)) return { data: { members: [] } };
+    if (url === URLS.REGISTER_MEMBERS(REGISTER.token.uuid)) return { data: { members: [], awardRecipients: [] } };
     if (url.startsWith('/api/v1/tokens/')) return { data: { results: [], next: null } };
     throw new Error(`Unexpected GET ${url}`);
   });
@@ -191,7 +191,7 @@ it('preserves original preparation and issue recovery through refresh, keeps app
   const fillForm = (receivedAmount = '249') => {
     act(() => {
       for (const [label, value] of [
-        ['Investor name', ALLOTMENT_REQUEST.name!],
+        ['Name', ALLOTMENT_REQUEST.name!],
         ['Residential address', ALLOTMENT_REQUEST.residentialAddress!],
         [COPY.SHARES, '100'],
         [COPY.COMPANY_EVENT_ON, ALLOTMENT_REQUEST.companyEventOn],
@@ -251,10 +251,10 @@ it('preserves original preparation and issue recovery through refresh, keeps app
   failedRead = true;
   await refreshAllotments();
   await allotments.findByText(/External allotments could not be read/);
-  expect(allotments.queryByLabelText('Investor name')).toBeNull();
+  expect(allotments.queryByLabelText('Name')).toBeNull();
   failedRead = false;
   fireEvent.click(allotments.getByRole('button', { name: 'Retry allotments' }));
-  await allotments.findByLabelText('Investor name');
+  await allotments.findByLabelText('Name');
   fireEvent.click(allotments.getByRole('button', { name: COPY.SUBMIT }));
   await waitFor(() => expect(allotments.queryByRole('button', { name: 'Close allotment form' })).toBeNull());
   expect(api.post.mock.calls.filter(([url]) => url === URLS.REGISTER_ALLOTMENTS)).toHaveLength(1);
@@ -389,13 +389,13 @@ it('preserves original preparation and issue recovery through refresh, keeps app
   appointments = [APPOINTMENT];
   await refreshAllotments();
   fireEvent.click(await allotments.findByRole('button', { name: COPY.PREPARE }));
-  await allotments.findByLabelText('Investor name');
+  await allotments.findByLabelText('Name');
   fillForm('250');
   fireEvent.click(allotments.getByRole('button', { name: COPY.SUBMIT }));
   await allotments.findByText(COPY.PREPARATION_RECEIPT_FAILED);
   appointments = [{ ...APPOINTMENT, uuid: 'replacement-preparation-appointment' }];
   await refreshAllotments();
-  await allotments.findByLabelText('Investor name');
+  await allotments.findByLabelText('Name');
   fireEvent.click(allotments.getByRole('button', { name: COPY.SUBMIT }));
   await allotments.findByText(
     'The original allotment was not recorded and the request was refused. Close this form and start again with current company authority.',
@@ -441,16 +441,16 @@ it('preserves original preparation and issue recovery through refresh, keeps app
       guard={() => {}}
       company={APPOINTMENT.company}
       token={REGISTER.token.uuid}
-      members={[
+      people={[
         {
           member: 'transferor',
           name: 'Synthetic Transferor',
           residentialAddress: '1 Example Street',
           currentShares: '100',
-          enteredOn: '2020-01-01',
           lastCeasedOn: null,
           walletless: true,
           particularsRetained: true,
+          awardOnly: false,
         },
       ]}
       appointment={APPOINTMENT}
@@ -462,8 +462,8 @@ it('preserves original preparation and issue recovery through refresh, keeps app
   expect((screen.getByLabelText(TRANSFER_COPY.COMPANY_EVENT_ON) as HTMLInputElement).value).toBe('');
   for (const [label, value] of [
     [TRANSFER_COPY.FROM, 'transferor'],
-    [TRANSFER_COPY.NAME, 'Synthetic Recipient'],
-    [TRANSFER_COPY.ADDRESS, '2 Example Street'],
+    ['Name', 'Synthetic Recipient'],
+    ['Residential address', '2 Example Street'],
     [TRANSFER_COPY.SHARES, '10'],
     [TRANSFER_COPY.SIGNED_ON, '2026-10-01'],
     [TRANSFER_COPY.LODGED_ON, '2026-10-02'],

@@ -231,6 +231,7 @@ function OwnRegister({
   const registerToken = typeof location.state?.registerToken === 'string' ? location.state.registerToken : '';
   const contextToken = registerToken || issueToken;
   const inviteMember = typeof location.state?.inviteMember === 'string' ? location.state.inviteMember : undefined;
+  const issueMember = typeof location.state?.issueMember === 'string' ? location.state.issueMember : undefined;
   const enteredIssue = useRef('');
   useEffect(() => {
     if (enteredIssue.current === location.key || !classes.isSuccess || classes.isFetching || held) return;
@@ -519,6 +520,7 @@ function OwnRegister({
                         view === 'register' && selectedTask === 'investor' && selectedToken === register.token.uuid
                       }
                       onHeldChange={allotmentHeld}
+                      issueMember={register.token.uuid === requestedToken ? issueMember : undefined}
                     />
                   </div>
                   <div hidden={view !== 'register' || selectedTask !== 'transfer'}>

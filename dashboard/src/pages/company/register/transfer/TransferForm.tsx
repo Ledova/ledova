@@ -3,16 +3,24 @@ import { useTransferPreparation, type TransferFormProps } from './useTransferPre
 import { REGISTER_TRANSFER_COPY as COPY } from '@ledova/shared';
 import { PageAction } from '@components/Page';
 import { FIELD_CLASS, LABEL } from '@components/fieldClass';
+import { formatShareCount } from '@ledova/shared';
+import { PersonFields, PersonSelect } from '@pages/company/register/shared/PersonPicker';
+import type { Person } from '@pages/company/register/shared/people';
+
+function inClass(person: Person) {
+  return person.awardOnly ? '' : `${formatShareCount(person.currentShares)} shares in this class`;
+}
 
 export function TransferForm({
   owner,
   guard,
   company,
   token,
-  members,
+  people,
   appointment,
   blocked,
   onRefused,
+  initialFrom,
 }: TransferFormProps) {
   const {
     today,
@@ -29,7 +37,17 @@ export function TransferForm({
     problem,
     submit,
     fields,
-  } = useTransferPreparation({ owner, guard, company, token, members, appointment, blocked, onRefused });
+  } = useTransferPreparation({
+    owner,
+    guard,
+    company,
+    token,
+    people,
+    appointment,
+    blocked,
+    onRefused,
+    initialFrom,
+  });
 
   return (
     <form
@@ -40,61 +58,38 @@ export function TransferForm({
       }}
     >
       <fieldset disabled={busy || blocked} className="space-y-4">
-        <label className={LABEL}>
-          {COPY.FROM}
-          <select
-            className={FIELD_CLASS}
-            value={draft.fromMember}
-            onChange={(event) => change('fromMember', event.target.value)}
-          >
-            <option value="">Choose the transferor</option>
-            {eligible
-              .filter((member) => member.particularsRetained && BigInt(member.currentShares) > 0n)
-              .map((member) => (
-                <option key={member.member} value={member.member}>
-                  {member.name} · {member.currentShares} shares · {member.member}
-                </option>
-              ))}
-          </select>
-        </label>
-        <label className={LABEL}>
-          {COPY.TO}
-          <select
-            className={FIELD_CLASS}
-            value={draft.toMember}
-            onChange={(event) => change('toMember', event.target.value)}
-          >
-            <option value="new">New member</option>
-            {eligible
-              .filter((member) => member.member !== draft.fromMember)
-              .map((member) => (
-                <option key={member.member} value={member.member}>
-                  {member.name || 'Recorded member'} · {member.currentShares} shares in this class · {member.member}
-                </option>
-              ))}
-          </select>
-        </label>
+        <PersonSelect
+          label={COPY.FROM}
+          people={eligible.filter((member) => member.particularsRetained && BigInt(member.currentShares) > 0n)}
+          value={draft.fromMember}
+          onChange={(value) => change('fromMember', value)}
+          allowNew={false}
+          placeholder="Choose the transferor"
+          context={inClass}
+        />
+        <PersonSelect
+          label={COPY.TO}
+          people={eligible.filter((member) => member.member !== draft.fromMember)}
+          value={draft.toMember}
+          onChange={(value) => {
+            change('toMember', value);
+            const chosen = eligible.find((member) => member.member === value);
+            if (chosen?.awardOnly) {
+              change('name', chosen.name);
+              change('residentialAddress', chosen.residentialAddress);
+            }
+          }}
+          context={inClass}
+        />
         {fresh ? (
-          <>
-            <label className={LABEL}>
-              {COPY.NAME}
-              <input
-                className={FIELD_CLASS}
-                value={draft.name}
-                maxLength={255}
-                onChange={(event) => change('name', event.target.value)}
-              />
-            </label>
-            <label className={LABEL}>
-              {COPY.ADDRESS}
-              <input
-                className={FIELD_CLASS}
-                value={draft.residentialAddress}
-                maxLength={1000}
-                onChange={(event) => change('residentialAddress', event.target.value)}
-              />
-            </label>
-          </>
+          <PersonFields
+            name={draft.name}
+            residentialAddress={draft.residentialAddress}
+            onName={(value) => change('name', value)}
+            onResidentialAddress={(value) => change('residentialAddress', value)}
+            nameReadOnly={!!recipient?.awardOnly}
+            addressReadOnly={!!recipient?.awardOnly}
+          />
         ) : (
           <p className="text-sm text-text-muted">
             The transfer retains the recipient’s recorded particulars. Check them in the preview.

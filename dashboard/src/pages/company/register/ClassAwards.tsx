@@ -11,7 +11,7 @@ import { PageAction } from '@components/Page';
 import { AwardForm } from './AwardForm';
 import { AwardRecord } from './AwardRecord';
 import { useOwnAppointments } from '@hooks/useOwnAppointments';
-import { useTransferMembers } from '@pages/company/register/shared/useRegisterTransfers';
+import { peopleFrom, usePeople } from '@pages/company/register/shared/people';
 import { useRegisterAwards } from '@pages/company/register/shared/useRegisterAwards';
 
 export function ClassAwards({
@@ -64,7 +64,7 @@ export function ClassAwards({
   const appointment =
     readable && appointments.isSuccess ? appointmentForRegisterStep(appointments.data, company, 'prepare') : undefined;
   const supported = register.initialized && register.token.status === 'draft';
-  const members = useTransferMembers(owner, token, check, editing && !!appointment && supported);
+  const members = usePeople(owner, token, check, editing && !!appointment && supported);
   const blocked =
     !readable || !sourceReady || awards.isFetching || awards.isError || appointments.isFetching || appointments.isError;
   const visible =
@@ -135,7 +135,7 @@ export function ClassAwards({
           key={`${company}/${token}/${formAppointment.uuid}`}
           company={company}
           token={token}
-          members={members.data ?? []}
+          people={peopleFrom(members.data)}
           appointment={formAppointment}
           guard={check}
           blocked={blocked || (!formHeld && (members.isPending || members.isFetching || members.isError))}

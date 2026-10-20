@@ -35,7 +35,7 @@ import { ShareClass } from './detail/ShareClass';
 import CompanyRegisterImportPage from './import';
 import { ImportForm } from './import/ImportForm';
 import { useNewShareClass } from './import/useNewShareClass';
-import { importMembersKey, readImportMembers } from './import/useImportMembers';
+import { peopleKey, readPeople } from './shared/people';
 import {
   blankAllotment,
   blankMember,
@@ -876,7 +876,9 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   expect(api.post).not.toHaveBeenCalled();
   fireEvent.click(screen.getByRole('button', { name: 'Add a shareholder' }));
   fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Example Shareholder' } });
-  fireEvent.change(screen.getByLabelText('Address'), { target: { value: '1 Example Street, Sydney NSW 2000' } });
+  fireEvent.change(screen.getByLabelText('Residential address'), {
+    target: { value: '1 Example Street, Sydney NSW 2000' },
+  });
   fireEvent.change(screen.getByLabelText('Date first added to register'), { target: { value: '2020-01-01' } });
   fireEvent.change(screen.getByLabelText('Shares held'), { target: { value: '600' } });
   fireEvent.change(screen.getByLabelText('Allotment date'), { target: { value: '2015-01-01' } });
@@ -1340,7 +1342,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   expect((existing as HTMLSelectElement).value).toBe('');
   fireEvent.change(existing, { target: { value: companyMembers[0].member } });
   expect((screen.getByLabelText('Name') as HTMLInputElement).readOnly).toBe(true);
-  expect((screen.getByLabelText('Address') as HTMLInputElement).readOnly).toBe(true);
+  expect((screen.getByLabelText('Residential address') as HTMLInputElement).readOnly).toBe(true);
   expect((screen.getByLabelText('Date first added to register') as HTMLInputElement).value).toBe('');
   expect((screen.getByLabelText('Shares held') as HTMLInputElement).value).toBe('');
   expect(screen.getByRole('button', { name: 'Add to draft' })).toBeTruthy();
@@ -1362,7 +1364,9 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   };
   fireEvent.click(screen.getByRole('button', { name: 'Add a shareholder' }));
   fireEvent.change(screen.getByLabelText('Name'), { target: { value: companyMembers[0].name } });
-  fireEvent.change(screen.getByLabelText('Address'), { target: { value: companyMembers[0].residentialAddress } });
+  fireEvent.change(screen.getByLabelText('Residential address'), {
+    target: { value: companyMembers[0].residentialAddress },
+  });
   enterHolding();
   fireEvent.click(screen.getByRole('button', { name: 'Add to draft' }));
   expect(screen.getByText(/explicitly choose a new shareholder/)).toBeTruthy();
@@ -1424,12 +1428,18 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   showJourney(importPath);
   fireEvent.click(await screen.findByRole('button', { name: 'Continue' }));
   fireEvent.click(screen.getByRole('button', { name: 'Add a shareholder' }));
-  expect(screen.getByRole('group', { name: 'Award recipients without registered shares' })).toBeTruthy();
+  expect(
+    screen.getByRole('option', {
+      name: `${trustedRecipient.name} · ${trustedRecipient.residentialAddress} · Award recipient without shares`,
+    }),
+  ).toBeTruthy();
   fireEvent.change(screen.getByLabelText('Company shareholder'), { target: { value: trustedRecipient.member } });
   expect((screen.getByLabelText('Name') as HTMLInputElement).value).toBe(trustedRecipient.name);
-  expect((screen.getByLabelText('Address') as HTMLInputElement).value).toBe(trustedRecipient.residentialAddress);
+  expect((screen.getByLabelText('Residential address') as HTMLInputElement).value).toBe(
+    trustedRecipient.residentialAddress,
+  );
   expect((screen.getByLabelText('Name') as HTMLInputElement).readOnly).toBe(true);
-  expect((screen.getByLabelText('Address') as HTMLInputElement).readOnly).toBe(true);
+  expect((screen.getByLabelText('Residential address') as HTMLInputElement).readOnly).toBe(true);
   for (const label of [
     'Date first added to register',
     'Shares held',
@@ -1441,9 +1451,8 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   enterHolding();
   fireEvent.click(screen.getByRole('button', { name: 'Add to draft' }));
   const preferences = companyPreferences();
-  const recipientKey = importMembersKey(
+  const recipientKey = peopleKey(
     { userUuid: preferences.userProfile, ownerAccountUuid: preferences.userAccount!.uuid },
-    company.uuid,
     token.uuid,
   );
   awardRecipients = [{ ...trustedRecipient, name: 'Changed recipient name' }];
@@ -1710,11 +1719,11 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
     { members: [], awardRecipients: [{ ...trustedRecipient, name: '' }] },
   ]) {
     api.get.mockResolvedValue({ data: response });
-    await expect(readImportMembers(token.uuid, () => {})).rejects.toThrow(/choices could not be confirmed/);
+    await expect(readPeople(token.uuid, () => {})).rejects.toThrow(/choices could not be confirmed/);
   }
   const nullableParticulars = { ...retainedIdentity, name: null, residentialAddress: null };
   api.get.mockResolvedValue({ data: { members: [nullableParticulars], awardRecipients: [] } });
-  await expect(readImportMembers(token.uuid, () => {})).resolves.toEqual({
+  await expect(readPeople(token.uuid, () => {})).resolves.toEqual({
     members: [nullableParticulars],
     awardRecipients: [],
   });
@@ -1726,7 +1735,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
         completeIdentityRead = () => resolve({ data: { members: [], awardRecipients: [trustedRecipient] } });
       }),
   );
-  const lateIdentityRead = readImportMembers(token.uuid, () => {
+  const lateIdentityRead = readPeople(token.uuid, () => {
     if (!ownerStillCurrent) throw new Error('The account changed before recipient choices returned.');
   });
   ownerStillCurrent = false;

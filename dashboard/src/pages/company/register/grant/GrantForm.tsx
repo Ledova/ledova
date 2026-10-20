@@ -3,6 +3,7 @@ import { useGrantPreparation, type GrantFormProps, type DocumentKind } from './u
 import { REGISTER_GRANT_COPY as COPY, formatShareCount } from '@ledova/shared';
 import { PageAction } from '@components/Page';
 import { FIELD_CLASS, LABEL } from '@components/fieldClass';
+import { PersonFields, PersonSelect } from '@pages/company/register/shared/PersonPicker';
 
 const DOCUMENTS: Record<DocumentKind, string> = {
   authority: COPY.AUTHORITY_DOCUMENT,
@@ -15,7 +16,7 @@ export function GrantForm({
   guard,
   company,
   token,
-  members,
+  people,
   appointment,
   blocked,
   onRefused,
@@ -30,6 +31,7 @@ export function GrantForm({
     guard,
     company,
     token,
+    people,
     appointment,
     blocked,
     onRefused,
@@ -100,39 +102,15 @@ export function GrantForm({
             </details>
           </div>
         ) : (
-          <label className={LABEL}>
-            Member
-            <select className={FIELD_CLASS} value={member} onChange={(event) => setMember(event.target.value)}>
-              <option value="new">New member</option>
-              {members.map((holder) => (
-                <option key={holder.member} value={holder.member}>
-                  {holder.name || 'Unnamed member'} · {holder.member}
-                </option>
-              ))}
-            </select>
-          </label>
+          <PersonSelect
+            label="Issue to"
+            people={people.filter((row) => row.walletless && row.particularsRetained)}
+            value={member}
+            onChange={setMember}
+          />
         )}
         {!award && member === 'new' ? (
-          <>
-            <label className={LABEL}>
-              {COPY.NAME}
-              <input
-                className={FIELD_CLASS}
-                value={name}
-                maxLength={255}
-                onChange={(event) => setName(event.target.value)}
-              />
-            </label>
-            <label className={LABEL}>
-              {COPY.RESIDENTIAL_ADDRESS}
-              <input
-                className={FIELD_CLASS}
-                value={address}
-                maxLength={1000}
-                onChange={(event) => setAddress(event.target.value)}
-              />
-            </label>
-          </>
+          <PersonFields name={name} residentialAddress={address} onName={setName} onResidentialAddress={setAddress} />
         ) : !award ? (
           <p className="text-sm text-text-muted">
             The grant retains the existing member’s current particulars. Preview them before approval.

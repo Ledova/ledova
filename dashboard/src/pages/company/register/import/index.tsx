@@ -24,7 +24,7 @@ import { importsKey, useRegisterImports } from '@pages/company/register/shared/u
 import { ownerGuard } from '@pages/company/shared/ownerGuard';
 import { useOwnAppointments, ownAppointmentsKey } from '@hooks/useOwnAppointments';
 
-import { importMembersKey, useImportMembers } from './useImportMembers';
+import { peopleKey, usePeople } from '@pages/company/register/shared/people';
 import { ImportForm } from './ImportForm';
 import { NewClassSetup } from './NewClassSetup';
 import { canOpenEmptyRegister } from './preparation';
@@ -87,8 +87,7 @@ function OwnImport({
   const steps = listed && appointments.data ? registerSteps(appointments.data, listed.companyUuid) : null;
   const readable = !!(steps?.prepare || steps?.approve || steps?.apply);
   const imports = useRegisterImports(owner, uuid, guard, readable);
-  const membersCompany = listed?.companyUuid ?? retained?.listed.companyUuid ?? '';
-  const members = useImportMembers(owner, membersCompany, uuid, guard, readable);
+  const members = usePeople(owner, uuid, guard, readable);
   const register = useImportRegister(owner, uuid, readable, guard);
   const correction = imports.data?.find((proposal) => proposal.status === 'applied' && proposal.correctionAllowed);
   const record = search.get('record');
@@ -145,7 +144,7 @@ function OwnImport({
       ownAppointmentsKey(owner),
       importRegisterKey(owner, uuid),
       importsKey(owner, uuid),
-      importMembersKey(owner, membersCompany, uuid),
+      peopleKey(owner, uuid),
     ]) {
       const state = client.getQueryState(key);
       if (state?.status !== 'success' || state.fetchStatus !== 'idle')

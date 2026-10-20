@@ -22,7 +22,7 @@ import { registerSteps } from '@pages/company/shared/proposals';
 import { useRegisterClasses, registerClassesKey } from '@pages/company/shared/useCompanyRegister';
 import { ownerGuard } from '@pages/company/shared/ownerGuard';
 import { useOwnAppointments, ownAppointmentsKey } from '@hooks/useOwnAppointments';
-import { useImportMembers, importMembersKey } from './useImportMembers';
+import { peopleKey, usePeople } from '@pages/company/register/shared/people';
 import { ImportForm } from './ImportForm';
 
 const NO_MEMBERS: RegisterTransferMembers = { members: [], awardRecipients: [] };
@@ -72,7 +72,7 @@ export function NewClassSetup({
   const company = companies.find((item) => item.uuid === companyUuid);
   const steps = company && appointments.data ? registerSteps(appointments.data, company.uuid) : null;
   const anchor = classes.data?.find((token) => token.companyUuid === company?.uuid)?.uuid;
-  const members = useImportMembers(owner, companyUuid, anchor ?? '', guard, !!anchor && !!steps?.prepare);
+  const members = usePeople(owner, anchor ?? '', guard, !!anchor && !!steps?.prepare);
   const ready =
     classes.isSuccess &&
     !classes.isFetching &&
@@ -102,7 +102,7 @@ export function NewClassSetup({
       USER_PREFERENCES_QUERY_KEY,
       ownAppointmentsKey(owner),
       registerClassesKey(owner),
-      ...(anchor ? [importMembersKey(owner, companyUuid, anchor)] : []),
+      ...(anchor ? [peopleKey(owner, anchor)] : []),
     ]) {
       const state = client.getQueryState(key);
       if (state?.status !== 'success' || state.fetchStatus !== 'idle')
