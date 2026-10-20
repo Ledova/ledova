@@ -86,7 +86,10 @@ export function ClassAwards({
   useLayoutEffect(() => () => heldCallback.current?.(token, false), [token]);
   const refresh = (throwOnError = false) =>
     Promise.all([
-      client.invalidateQueries({ queryKey: awardsKey(owner, token), refetchType: 'none' }),
+      client.invalidateQueries({
+        queryKey: awardsKey(owner, token),
+        predicate: ({ queryKey }) => queryKey.length > awardsKey(owner, token).length,
+      }),
       awards.refetch({ throwOnError }),
       appointments.refetch({ throwOnError }),
       client.invalidateQueries({ queryKey: allPeopleKey(owner) }),

@@ -227,7 +227,8 @@ it('retains original award, vesting and linked issue preparations through interr
   view.unmount();
   const post = api.post.getMockImplementation()!;
   let retainedGrant: RegisterGrant | null = null;
-  let slowGrants = false;
+  let slowReads = false;
+  const delay = () => (slowReads ? new Promise((resolve) => setTimeout(resolve, 40)) : undefined);
   let preferencesFailed = false;
   let listed = true;
   let effectCount = 0;
@@ -249,7 +250,8 @@ it('retains original award, vesting and linked issue preparations through interr
           next: null,
         },
       };
-    if (url === URLS.HOLDERS(REGISTER.token.uuid))
+    if (url === URLS.HOLDERS(REGISTER.token.uuid)) {
+      await delay();
       return {
         data: {
           ...REGISTER,
@@ -257,9 +259,10 @@ it('retains original award, vesting and linked issue preparations through interr
           totalHolders: retainedGrant?.registerEntry ? 1 : 0,
         },
       };
+    }
     if (url === URLS.REGISTER_LINK_WAITING_WALLETS) return { data: { wallets: [] } };
     if (url === URLS.REGISTER_GRANTS) {
-      if (slowGrants) await new Promise((resolve) => setTimeout(resolve, 40));
+      await delay();
       return { data: { results: retainedGrant ? [retainedGrant] : [], next: null } };
     }
     if (awards.some((award) => url === URLS.REGISTER_AWARD(award.uuid)))
@@ -449,11 +452,11 @@ it('retains original award, vesting and linked issue preparations through interr
   await issues.findByRole('alert');
   expect(submissions(URLS.REGISTER_GRANTS)).toEqual([original]);
   retainedGrant = retainedReceipt;
-  slowGrants = true;
+  slowReads = true;
   fireEvent.click(recover);
   await issues.findByText('Next: review and approve the exact share issue.');
   await waitFor(() => expect(issues.queryByRole('button', { name: 'Recover original grant preparation' })).toBeNull());
-  slowGrants = false;
+  slowReads = false;
   expect(submissions(URLS.REGISTER_GRANTS)).toEqual([original]);
   expect(submissions(URLS.REGISTER_EVIDENCE)).toHaveLength(3);
   awards = [retainedAward];
@@ -513,11 +516,15 @@ it('retains original award, vesting and linked issue preparations through interr
     }),
   );
   fireEvent.click(await screen.findByRole('button', { name: 'Refresh grants' }));
-  const issueRecovery = await screen.findByRole('button', { name: /^Recover record issue receipt/ });
-  await waitFor(() => expect((issueRecovery as HTMLButtonElement).disabled).toBe(false));
-  fireEvent.click(issueRecovery);
+  await waitFor(() => expect(client.isFetching()).toBe(0));
+  slowReads = true;
+  fireEvent.click(await screen.findByRole('button', { name: /^Recover record issue receipt/ }));
   await issues.findByText('Shares issued');
   await waitFor(() => expect(screen.queryByRole('button', { name: /^Recover record issue receipt/ })).toBeNull());
+  await waitFor(() =>
+    expect((screen.getByRole('combobox', { name: 'Company' }) as HTMLInputElement).disabled).toBe(false),
+  );
+  slowReads = false;
   expect(submissions(URLS.REGISTER_GRANT_DECIDE(retainedGrant!.uuid)).filter((row) => row.kind === 'apply')).toEqual([
     originalIssue,
     originalIssue,

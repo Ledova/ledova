@@ -42,10 +42,12 @@ export function ClassIssues({
 }) {
   const [kind, setKind] = useState<IssueKind | ''>('');
   const [award, setAward] = useState<string | undefined>();
+  const [member, setMember] = useState<string | undefined>();
   const [answered, setAnswered] = useState('');
   const close = () => {
     setKind('');
     setAward(undefined);
+    setMember(undefined);
   };
   const investor = useInvestorIssues({
     owner,
@@ -55,8 +57,9 @@ export function ClassIssues({
     sourceReady,
     visible,
     onHeldChange: onAllotmentHeld,
-    issueMember: request?.member,
+    issueMember: member,
     open: kind === 'investor',
+    kept: !!kind,
     onClosed: close,
   });
   const nonPaid = useNonPaidIssues({
@@ -70,6 +73,7 @@ export function ClassIssues({
     award,
     focusRecord: request?.record ? { key: request.key, uuid: request.record } : undefined,
     open: kind === 'nonpaid',
+    kept: !!kind,
     onClosed: close,
   });
   const held = investor.held || nonPaid.held;
@@ -78,6 +82,7 @@ export function ClassIssues({
     if (request.award || request.member) {
       setKind(request.award ? 'nonpaid' : 'investor');
       setAward(request.award);
+      setMember(request.member);
     }
   }
   return (
@@ -85,23 +90,14 @@ export function ClassIssues({
       {investor.setup}
       {investor.prepare && (
         <>
-          <Choices
-            legend="What kind of issue?"
-            options={KINDS}
-            value={kind}
-            disabled={held}
-            onChange={(next) => {
-              setKind(next);
-              setAward(undefined);
-            }}
-          />
+          <Choices legend="What kind of issue?" options={KINDS} value={kind} disabled={held} onChange={setKind} />
           <p className="text-sm text-text-muted">
             An investor issue is paid in money, with the agreement and the company’s receipt. A non-paid issue has no
             payment and follows the company’s terms, such as vested award shares.
           </p>
         </>
       )}
-      {kind && <PageAction label="Close issue form" disabled={held} onClick={close} />}
+      {kind && investor.prepare && <PageAction label="Close issue form" disabled={held} onClick={close} />}
       {investor.form}
       {nonPaid.form}
       {investor.records}
