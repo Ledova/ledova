@@ -22,7 +22,7 @@ import apiClient from '@services/apiClient';
 import { registerSteps } from '@pages/company/shared/proposals';
 import { readRegister } from '@pages/company/shared/useCompanyRegister';
 
-import { readImportMembers } from './useImportMembers';
+import { readPeople } from '@pages/company/register/shared/usePeople';
 import { canOpenEmptyRegister } from './preparation';
 
 export type FreshClassProps = {
@@ -134,7 +134,7 @@ export function useNewShareClass({
       throw createUserFriendlyError('The share class receipt did not match the requested company and details.');
     const register = await readRegister(token.uuid, guard);
     check();
-    const members = await readImportMembers(token.uuid, check);
+    const members = await readPeople(token.uuid, check);
     check();
     return { register, ...members, emptyOpeningAllowed: canOpenEmptyRegister(register, token) };
   };

@@ -18,7 +18,7 @@ import { LinkRow } from '@components/Ledger';
 import { AllotmentForm } from './AllotmentForm';
 import { AllotmentRecord } from './AllotmentRecord';
 import { useOwnAppointments, ownAppointmentsKey } from '@hooks/useOwnAppointments';
-import { transferMembersKey, useTransferMembers } from '@pages/company/register/shared/useRegisterTransfers';
+import { allPeopleKey, peopleFrom, usePeople } from '@pages/company/register/shared/usePeople';
 import { allotmentsKey, useRegisterAllotments } from './useRegisterAllotments';
 
 export function ClassAllotments({
@@ -29,6 +29,7 @@ export function ClassAllotments({
   sourceReady = true,
   visible = true,
   onHeldChange,
+  issueMember,
 }: {
   owner: OrderSubmissionOwner;
   company: string;
@@ -37,6 +38,7 @@ export function ClassAllotments({
   sourceReady?: boolean;
   visible?: boolean;
   onHeldChange?: (token: string, held: boolean) => void;
+  issueMember?: string;
 }) {
   const client = useQueryClient();
   const [editing, setEditing] = useState<OwnCompanyAppointment | null>(null);
@@ -82,7 +84,12 @@ export function ClassAllotments({
   const appointment =
     readable && appointments.isSuccess ? appointmentForRegisterStep(appointments.data, company, 'prepare') : undefined;
   const supported = register.initialized && register.token.status === 'draft';
-  const members = useTransferMembers(owner, token, check, !!editing && !!appointment && supported && sourceReady);
+  const members = usePeople(
+    owner,
+    token,
+    check,
+    !!(editing || issueMember) && !!appointment && supported && sourceReady,
+  );
   const financialReady = allotments.isSuccess && allotments.fetchStatus === 'idle';
   const privateReady = readable && financialReady && sourceReady && !appointments.isError;
   const blocked =
@@ -98,6 +105,24 @@ export function ClassAllotments({
     writeReady.current = !blocked && visible;
     privateAvailable.current = privateReady && visible;
   }, [blocked, privateReady, visible]);
+  const opened = useRef(false);
+  useEffect(() => {
+    if (editing) opened.current = true;
+  }, [editing]);
+  useEffect(() => {
+    if (
+      !issueMember ||
+      opened.current ||
+      editing ||
+      !appointment ||
+      blocked ||
+      !members.isSuccess ||
+      members.isFetching
+    )
+      return;
+    opened.current = true;
+    setEditing(appointment);
+  }, [issueMember, editing, appointment, blocked, members.isSuccess, members.isFetching]);
   const recordHeld = useCallback((uuid: string, held: boolean) => {
     setDecisionHolds((current) => (current[uuid] === held ? current : { ...current, [uuid]: held }));
   }, []);
@@ -115,7 +140,7 @@ export function ClassAllotments({
     await Promise.all([
       client.invalidateQueries({ queryKey: registerHoldersKey(owner) }),
       client.invalidateQueries({ queryKey: entriesKey(owner, token) }),
-      client.invalidateQueries({ queryKey: transferMembersKey(owner, token) }),
+      client.invalidateQueries({ queryKey: allPeopleKey(owner) }),
     ]);
   };
   return (
@@ -180,7 +205,8 @@ export function ClassAllotments({
           key={`${company}/${token}/${editing.uuid}`}
           company={company}
           token={token}
-          members={members.data ?? []}
+          people={peopleFrom(members.data)}
+          initialMember={issueMember}
           appointment={editing}
           guard={financialGuard}
           newEffectGuard={() => {

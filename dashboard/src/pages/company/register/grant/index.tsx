@@ -21,7 +21,7 @@ import { ownerGuard } from '@pages/company/shared/ownerGuard';
 import { useOwnAppointments } from '@hooks/useOwnAppointments';
 import { GrantForm } from './GrantForm';
 import { useRegisterAward } from '@pages/company/register/shared/useRegisterAwards';
-import { useTransferMembers } from '@pages/company/register/shared/useRegisterTransfers';
+import { peopleFrom, usePeople } from '@pages/company/register/shared/usePeople';
 
 const LEDE =
   'Prepare a non-paid share grant on an opened register with the company’s terms, authority and any required acceptance.';
@@ -89,52 +89,46 @@ function OwnGrant({
     [guard, company],
   );
   const award = useRegisterAward(owner, company, uuid, awardUuid, awardGuard, readable);
-  const retainedMembers = useTransferMembers(owner, uuid, awardGuard, !!awardUuid && readable && !!appointment);
-  const awardMember = retainedMembers.data?.find((row) => row.member === award.data?.member) ?? null;
+  const people = usePeople(owner, uuid, awardGuard, readable && !!appointment);
+  const awardMember = people.data?.members.find((row) => row.member === award.data?.member) ?? null;
   const companyClasses =
     classes.data?.filter((item) => item.companyUuid === listed?.companyUuid).map((item) => item.uuid) ?? [];
   const registers = useGrantRegisters(owner, companyClasses, guard);
   const register = registers.data?.find((item) => item.token.uuid === uuid);
-  const holders = registers.data?.flatMap((item) => item.holders) ?? [];
-  const linked = new Set(holders.filter((holder) => holder.wallets.length > 0).map((holder) => holder.member));
-  const members = [
-    ...new Map(
-      holders.filter((holder) => !linked.has(holder.member)).map((holder) => [holder.member, holder]),
-    ).values(),
-  ];
   const busy =
     preferences.isFetching ||
     classes.isFetching ||
     appointments.isFetching ||
     registers.isFetching ||
-    (!!awardUuid && (award.isFetching || retainedMembers.isFetching));
+    people.isFetching ||
+    (!!awardUuid && award.isFetching);
   const stale =
     preferences.isError ||
     classes.isError ||
     appointments.isError ||
     registers.isError ||
-    (!!awardUuid && (award.isError || retainedMembers.isError));
+    people.isError ||
+    (!!awardUuid && award.isError);
   const retry = () => {
     void preferences.refetch();
     void classes.refetch();
     void appointments.refetch();
     void registers.refetch();
-    if (awardUuid && readable) {
-      void award.refetch();
-      void retainedMembers.refetch();
+    if (readable) {
+      void people.refetch();
+      if (awardUuid) void award.refetch();
     }
   };
   const recipientReady =
     !awardUuid ||
     (readable &&
       award.isSuccess &&
-      retainedMembers.isSuccess &&
+      people.isSuccess &&
       !(
         (awardMember && (!awardMember.walletless || !awardMember.particularsRetained)) ||
         (!awardMember && (!award.data.newMember || BigInt(award.data.issuedShares) > 0n))
       ));
-  const readReady =
-    !!listed && readable && !!register && (!awardUuid || (award.isSuccess && retainedMembers.isSuccess));
+  const readReady = !!listed && readable && !!register && people.isSuccess && (!awardUuid || award.isSuccess);
   const ready =
     readReady &&
     (!!formAppointment ||
@@ -154,7 +148,7 @@ function OwnGrant({
         This grant requires an opened register for a draft share class without a deployed contract.
       </p>
     );
-  else if (awardUuid && (!readable || !award.data || !retainedMembers.data)) content = <Loading />;
+  else if (!readable || !people.data || (!!awardUuid && !award.data)) content = <Loading />;
   else if (!recipientReady)
     content = (
       <p className="text-sm text-text-muted">
@@ -198,7 +192,7 @@ function OwnGrant({
               guard={awardUuid ? awardGuard : guard}
               company={company}
               token={uuid}
-              members={members}
+              people={peopleFrom(people.data)}
               appointment={formAppointment}
               blocked={!ready || stale || busy}
               visible={visible}

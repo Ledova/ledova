@@ -31,7 +31,11 @@ from tokens.services.register_decisions import (
     decide,
     preview,
 )
-from tokens.services.register_events import create_member, record_entry
+from tokens.services.register_events import (
+    create_member,
+    record_entry,
+    retained_particulars,
+)
 from tokens.services.register_evidence import (
     discard,
     evidence_snapshot,
@@ -188,18 +192,7 @@ def prepare_allotment(
                     raise RegisterChangeConflict()
                 return existing, False
             if not new_member:
-                held = (
-                    RegisterMemberParticulars.objects.select_for_update()
-                    .filter(member_id=member, member__company=company)
-                    .first()
-                )
-                if held is None:
-                    raise ValidationError("Choose an identified member of this company's register.")
-                if (name and name.strip() != held.name) or (
-                    residential_address and residential_address.strip() != held.residential_address
-                ):
-                    raise ValidationError("An existing member's identity must match the retained particulars.")
-                name, residential_address = held.name, held.residential_address
+                name, residential_address = retained_particulars(company, member, name, residential_address)
             proposal = RegisterAllotment(
                 uuid=operation_id,
                 company=company,

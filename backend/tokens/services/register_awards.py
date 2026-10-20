@@ -21,13 +21,13 @@ from tokens.models import (
     RegisterEvidenceKind,
     RegisterImport,
     RegisterMember,
-    RegisterMemberParticulars,
     RegisterMemberWallet,
     ShareRegister,
     ShareToken,
 )
 from tokens.models.choices import ShareTokenStatus
 from tokens.services.register_authority import register_appointment, register_command
+from tokens.services.register_events import retained_particulars
 from tokens.services.register_evidence import (
     discard,
     evidence_snapshot,
@@ -197,18 +197,7 @@ def record_award(
             if new_member and existing is not None:
                 raise ValidationError("The new recipient UUID already identifies a member.")
             if not new_member:
-                held = (
-                    RegisterMemberParticulars.objects.select_for_update()
-                    .filter(member_id=member, member__company=company)
-                    .first()
-                )
-                if held is None:
-                    raise ValidationError("Choose an identified member of this company's register.")
-                if (name and name.strip() != held.name) or (
-                    residential_address and residential_address.strip() != held.residential_address
-                ):
-                    raise ValidationError("The existing recipient must match current retained particulars.")
-                name, residential_address = held.name, held.residential_address
+                name, residential_address = retained_particulars(company, member, name, residential_address)
             if RegisterMemberWallet.objects.filter(member_id=member).exists():
                 raise ValidationError("This award path requires a walletless recipient.")
             evidence = RegisterEvidence.objects.select_for_update().filter(pk=agreement_evidence).first()

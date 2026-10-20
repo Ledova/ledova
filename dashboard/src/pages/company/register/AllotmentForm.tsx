@@ -1,16 +1,14 @@
 import { PageAction } from '@components/Page';
 import { FIELD_CLASS, LABEL } from '@components/fieldClass';
-import {
-  REGISTER_ALLOTMENT_COPY as COPY,
-  type OwnCompanyAppointment,
-  type RegisterTransferMember,
-} from '@ledova/shared';
+import { REGISTER_ALLOTMENT_COPY as COPY, type OwnCompanyAppointment } from '@ledova/shared';
+import { PersonFields, PersonSelect } from '@pages/company/register/shared/PersonPicker';
+import type { Person } from '@pages/company/register/shared/usePeople';
 import { useAllotmentForm, type DocumentKind } from './useAllotmentForm';
 
 export function AllotmentForm({
   company,
   token,
-  members,
+  people,
   appointment,
   guard,
   newEffectGuard,
@@ -18,10 +16,11 @@ export function AllotmentForm({
   onRecorded,
   onHeldChange,
   visible = true,
+  initialMember,
 }: {
   company: string;
   token: string;
-  members: RegisterTransferMember[];
+  people: Person[];
   appointment: OwnCompanyAppointment;
   guard: () => void;
   newEffectGuard: () => void;
@@ -29,12 +28,14 @@ export function AllotmentForm({
   onRecorded: () => Promise<unknown>;
   onHeldChange: (held: boolean) => void;
   visible?: boolean;
+  initialMember?: string;
 }) {
   const { today, member, setMember, fields, setFields, setFiles, busy, held, error, problem, submit } =
     useAllotmentForm({
       company,
       token,
-      members,
+      people,
+      initialMember,
       appointment,
       guard,
       newEffectGuard,
@@ -43,12 +44,10 @@ export function AllotmentForm({
       onHeldChange,
       visible,
     });
-  const field = (key: keyof typeof fields) => (
+  const field = (key: Exclude<keyof typeof fields, 'name' | 'residentialAddress'>) => (
     <label key={key} className={LABEL}>
       {
         {
-          name: 'Investor name',
-          residentialAddress: 'Residential address',
           shares: COPY.SHARES,
           companyEventOn: COPY.COMPANY_EVENT_ON,
           consideration: COPY.CONSIDERATION,
@@ -95,27 +94,21 @@ export function AllotmentForm({
       <fieldset disabled={busy || blocked || held} className="space-y-4">
         <fieldset className="grid gap-4 rounded-xl border border-border-subtle bg-surface-raised p-4 sm:grid-cols-2 [&>p]:sm:col-span-2">
           <legend className="px-1 text-sm font-medium">1. Person and shares</legend>
-          <label className={LABEL}>
-            Investor/member
-            <select className={FIELD_CLASS} value={member} onChange={(event) => setMember(event.target.value)}>
-              <option value="new">New investor/member</option>
-              {members
-                .filter((row) => row.walletless && row.particularsRetained)
-                .map((row) => (
-                  <option key={row.member} value={row.member}>
-                    {row.name}
-                    {members.some((other) => other.member !== row.member && other.name === row.name)
-                      ? ` · ${row.member.slice(0, 8)}`
-                      : ''}
-                  </option>
-                ))}
-            </select>
-          </label>
+          <PersonSelect
+            label="Issue to"
+            people={people.filter((row) => row.walletless && row.particularsRetained)}
+            value={member}
+            onChange={setMember}
+          />
           {member === 'new' && (
-            <>
-              {field('name')}
-              {field('residentialAddress')}
-            </>
+            <PersonFields
+              name={fields.name}
+              residentialAddress={fields.residentialAddress}
+              onName={(name) => setFields((current) => ({ ...current, name }))}
+              onResidentialAddress={(residentialAddress) =>
+                setFields((current) => ({ ...current, residentialAddress }))
+              }
+            />
           )}
           {field('shares')}
           {field('consideration')}

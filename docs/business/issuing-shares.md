@@ -158,8 +158,8 @@ wallet or chain transaction.
 
 1. Under Employee awards, open the class's Non-paid share issues and choose Prepare a non-paid
    grant, or choose Issue vested shares on an award.
-2. Choose an existing member, or give a new member's name and residential address; names never link
-   an account.
+2. Choose who receives the shares ([choosing a person](register.md#choosing-a-person)), or New person
+   with their name and residential address; names never link an account.
 3. Give the shares, the company issue date, the separate date of the terms, the non-paid terms, the
    approving director, the authority reference and the reason, and upload the authority document,
    the terms document and any acceptance the terms require.
@@ -193,8 +193,8 @@ remaining quantities. The web chart keeps the original promise as its total, inc
 | Unvested remaining        | Promise less net vesting and ended unvested rights                             |
 | Remaining unissued        | Promise less issued shares and both ended pools                                |
 
-1. Choose Employee awards, then Record an employee award on the class. Choose a new or existing
-   recipient and give the promised shares, the agreement date and terms, the recorded vesting
+1. Choose Employee awards, then Record an employee award on the class. Choose the recipient
+   ([choosing a person](register.md#choosing-a-person)) and give the promised shares, the agreement date and terms, the recorded vesting
    schedule and the agreement document. An award creates no member, entry, holding, issued share or
    certificate entitlement; a new recipient keeps the member ID their first grant will use.
 2. Choose Record vesting on the award for a company-confirmed event with its shares, date and
@@ -246,7 +246,8 @@ No deployment, application, payment or chain receipt is involved.
 
 1. On Register, choose Record investor share issue and the class, then Prepare an external
    allotment.
-2. Person and shares: choose a member or record a new investor's particulars, then give the shares
+2. Person and shares: choose who receives the shares, or New person with their particulars
+   ([choosing a person](register.md#choosing-a-person)), then give the shares
    and the full consideration in AUD.
 3. Agreement and company receipt: give the external agreement reference, date, terms and document,
    and separately the amount received, the date and the receipt evidence.

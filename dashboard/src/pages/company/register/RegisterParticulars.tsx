@@ -1,4 +1,5 @@
 import { registerEntriesKey } from '@pages/company/register/shared/useRegisterEntries';
+import { allPeopleKey } from '@pages/company/register/shared/usePeople';
 import { registerHoldersKey } from '@pages/company/shared/useCompanyRegister';
 import { useQueryClient } from '@tanstack/react-query';
 import {
@@ -53,6 +54,7 @@ export function RegisterParticulars({
     await Promise.all(
       [
         particularsKey(owner, company),
+        allPeopleKey(owner),
         registerHoldersKey(owner),
         registerEntriesKey(owner),
         ownAppointmentsKey(owner),

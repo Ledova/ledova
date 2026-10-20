@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { formatDateTime, type OrderSubmissionOwner, type TokenHoldersResponse } from '@ledova/shared';
 import { Section } from '@components/Ledger';
+import { PersonSelect } from '@pages/company/register/shared/PersonPicker';
 import { PageAction } from '@components/Page';
 import { FIELD_CLASS } from '@components/fieldClass';
 import { useCompanyMemberRequests } from './useCompanyMemberRequests';
@@ -82,25 +83,32 @@ export function CompanyMemberAccess({
           <h3 ref={invite} className="scroll-mt-6 text-base font-medium">
             Invite a member
           </h3>
-          <label className="block space-y-1 text-sm">
-            Member or award recipient
-            <select
-              className={FIELD_CLASS}
-              value={member?.uuid ?? ''}
-              disabled={held || !recipientsReady}
-              onChange={(event) => setInvitation({ company, member: event.target.value, email })}
-            >
-              <option value="">Select a member</option>
-              {candidates.map((candidate) => (
-                <option key={candidate.uuid} value={candidate.uuid}>
-                  {candidate.name} · {candidate.classes.join(', ')} · {candidate.sources.join(', ')}
-                  {candidates.some((other) => other.uuid !== candidate.uuid && other.name === candidate.name)
-                    ? ` · ${candidate.uuid.slice(0, 8)}`
-                    : ''}
-                </option>
-              ))}
-            </select>
-          </label>
+          <PersonSelect
+            label="Member or award recipient"
+            people={candidates.map((candidate) => ({
+              member: candidate.uuid,
+              name: candidate.name,
+              residentialAddress: '',
+              walletless: true,
+              particularsRetained: true,
+              currentShares: '0',
+              lastCeasedOn: null,
+              awardOnly: candidate.sources.length === 1 && candidate.sources[0] === 'Award recipient',
+            }))}
+            value={member?.uuid ?? ''}
+            onChange={(value) => setInvitation({ company, member: value, email })}
+            allowNew={false}
+            placeholder="Select a member"
+            disabled={held || !recipientsReady}
+            context={(person) => {
+              const candidate = candidates.find(({ uuid }) => uuid === person.member);
+              return candidate
+                ? [candidate.classes.join(', '), ...(person.awardOnly ? [] : [candidate.sources.join(', ')])].join(
+                    ' · ',
+                  )
+                : '';
+            }}
+          />
           {awards.isPending && (
             <p role="status" className="text-sm text-text-muted">
               Loading company recipients…
