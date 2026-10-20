@@ -16,6 +16,7 @@ import {
   type RegisterCorrectionAuthority,
   type RegisterEntry,
   type RegisterEvidence,
+  utcToday,
 } from '@ledova/shared';
 
 import apiClient from '@services/apiClient';
@@ -74,7 +75,7 @@ export function useCorrectionPreparation({
 }: CorrectionFormProps) {
   const client = useQueryClient();
   const navigate = useNavigate();
-  const today = new Date().toISOString().slice(0, 10);
+  const today = utcToday();
   const [draft, setDraft] = useState<Draft>(() => ({
     file: null,
     effectiveOn: today,

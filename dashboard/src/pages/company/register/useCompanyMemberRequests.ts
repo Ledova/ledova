@@ -10,6 +10,7 @@ import {
   type OrderSubmissionOwner,
   type TokenHoldersResponse,
   failureSentence,
+  utcToday,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
 import { invitationMembers } from '@ledova/shared';
@@ -82,7 +83,7 @@ export function useCompanyMemberRequests({
   const [reason, setReason] = useState('');
   const [request, setRequest] = useState('');
   const [certificateInstruction, setCertificateInstruction] = useState('');
-  const [asAt, setAsAt] = useState(new Date().toISOString().slice(0, 10));
+  const [asAt, setAsAt] = useState(utcToday());
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState('');

@@ -5,6 +5,7 @@ import {
   type CompanyAuthorityRequest,
   type CompanyListItem,
   failureSentence,
+  utcToday,
 } from '@ledova/shared';
 import { useAuthorityRequestForm } from './useAuthorityRequestForm';
 
@@ -86,6 +87,7 @@ export function AuthorityRequestForm({
         Requested expiry date (UTC, optional)
         <input
           type="date"
+          min={utcToday()}
           value={expiry}
           disabled={disabled || busy}
           onChange={(event) => change(() => setExpiry(event.target.value))}

@@ -21,6 +21,7 @@ import {
   type Person,
   REGISTER_GRANT_UNMET_COPY,
   refusalSentence,
+  utcToday,
 } from '@ledova/shared';
 
 import apiClient from '@services/apiClient';
@@ -66,7 +67,7 @@ export function useGrantPreparation({
   canPrepare = true,
 }: GrantFormProps) {
   const client = useQueryClient();
-  const today = new Date().toISOString().slice(0, 10);
+  const today = utcToday();
   const [newMemberId] = useState(() => crypto.randomUUID());
   const [member, setMember] = useState('new');
   const [name, setName] = useState('');

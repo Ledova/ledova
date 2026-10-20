@@ -20,6 +20,7 @@ import {
   type RegisterLink,
   refusalSentences,
   failureSentence,
+  utcToday,
 } from '@ledova/shared';
 import { DecisionTrail } from '@pages/company/register/shared/DecisionTrail';
 import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
@@ -367,9 +368,10 @@ function Preparation({ commands }: { commands: Commands }) {
       </label>
       <p className="text-xs text-text-muted">Enter whole shares from 1 to 2,147,483,647.</p>
       <label className="block text-sm">
-        Terms date
+        Terms date (UTC)
         <input
           type="date"
+          max={utcToday()}
           className={FIELD_CLASS}
           value={termsOn}
           onChange={(event) => setTermsOn(event.target.value)}

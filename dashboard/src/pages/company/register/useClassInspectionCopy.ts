@@ -1,6 +1,8 @@
 import { useLayoutEffect, useRef, useState } from 'react';
 import {
   createRegisterInspectionCopy,
+  isCalendarDate,
+  sydneyToday,
   getRegisterInspectionPreview,
   type RegisterInspectionPreview,
   type RegisterInspectionRequest,
@@ -22,12 +24,7 @@ export function useClassInspectionCopy({
   guard: () => void;
   sourceReady: boolean;
 }) {
-  const today = new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'Australia/Sydney',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).format(new Date());
+  const today = sydneyToday();
   const [draft, setDraft] = useState<Draft>({ instruction: '', recipient: '', requestedOn: today });
   const [target, setTarget] = useState<Target | null>(null);
   const [busy, setBusy] = useState<'preview' | 'download' | null>(null);
@@ -43,11 +40,7 @@ export function useClassInspectionCopy({
       transport.current?.abort();
     };
   }, []);
-  const validDate =
-    /^\d{4}-\d{2}-\d{2}$/.test(draft.requestedOn) &&
-    !Number.isNaN(Date.parse(`${draft.requestedOn}T00:00:00Z`)) &&
-    new Date(`${draft.requestedOn}T00:00:00Z`).toISOString().slice(0, 10) === draft.requestedOn &&
-    draft.requestedOn <= today;
+  const validDate = isCalendarDate(draft.requestedOn) && draft.requestedOn <= today;
   const valid =
     !!draft.instruction.trim() &&
     draft.instruction.trim().length <= 255 &&

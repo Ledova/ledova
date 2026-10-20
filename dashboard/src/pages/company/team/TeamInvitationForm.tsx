@@ -1,7 +1,13 @@
 import { FIELD_CLASS, LABEL } from '@components/fieldClass';
 import { FormActions, PageAction } from '@components/Page';
 import { Outcome } from '@components/Ledger';
-import { COMPANY_AUTHORITY_CAPABILITIES, type CompanyCapability, type OwnCompanyAppointment } from '@ledova/shared';
+import {
+  COMPANY_AUTHORITY_CAPABILITIES,
+  type CompanyCapability,
+  type OwnCompanyAppointment,
+  addCalendarDays,
+  utcToday,
+} from '@ledova/shared';
 import { useTeamInvitationForm } from './useTeamInvitationForm';
 
 export function TeamInvitationForm({
@@ -120,6 +126,8 @@ export function TeamInvitationForm({
           <input
             className={FIELD_CLASS}
             type="date"
+            min={utcToday()}
+            max={addCalendarDays(utcToday(), 29)}
             value={deadline}
             disabled={disabled || busy}
             onChange={(event) => change(() => setDeadline(event.target.value))}
@@ -130,6 +138,7 @@ export function TeamInvitationForm({
           <input
             className={FIELD_CLASS}
             type="date"
+            min={utcToday()}
             value={expiry}
             disabled={disabled || busy}
             onChange={(event) => change(() => setExpiry(event.target.value))}
