@@ -97,7 +97,9 @@ export function ClassIssues({
           </p>
         </>
       )}
-      {kind && investor.prepare && <PageAction label="Close issue form" disabled={held} onClick={close} />}
+      {kind && (investor.prepare || !!(kind === 'investor' ? investor.form : nonPaid.form)) && (
+        <PageAction label="Close issue form" disabled={held} onClick={close} />
+      )}
       {investor.form}
       {nonPaid.form}
       {investor.records}
