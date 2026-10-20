@@ -166,8 +166,8 @@ it('reads every class page and groups exact holdings by member identity with sea
   const shared = original.holders[0];
   const ordinary = register('ordinary', {
     token: { ...original.token, totalSupply: '9007199254741999' },
-    issuedSupply: '9007199254741003',
-    totalHolders: 11,
+    issuedSupply: '9007199254741018',
+    totalHolders: 26,
     formerMembers: [
       {
         uuid: 'former-record',
@@ -201,7 +201,7 @@ it('reads every class page and groups exact holdings by member identity with sea
         percentage: 0,
         wallets: [],
       },
-      ...Array.from({ length: 9 }, (_, index) => ({
+      ...Array.from({ length: 24 }, (_, index) => ({
         ...shared,
         member: `member-${index + 3}`,
         name: `Zed Member${String(index + 1).padStart(2, '0')}`,
@@ -246,7 +246,7 @@ it('reads every class page and groups exact holdings by member identity with sea
     '/company/register/members/former-member-private?company=harbour',
   );
   expect(screen.queryByRole('button', { name: 'Download CSV' })).toBeNull();
-  expect(within(table).getAllByRole('row')).toHaveLength(11);
+  expect(within(table).getAllByRole('row')).toHaveLength(26);
   const namesakes = within(table).getAllByRole('row', { name: /Example Member/ });
   expect(namesakes).toHaveLength(2);
   expect(within(namesakes[0]).getAllByText('9,007,199,254,740,993')).toHaveLength(2);
@@ -255,8 +255,8 @@ it('reads every class page and groups exact holdings by member identity with sea
   expect(within(namesakes[1]).getByLabelText('No PREFERENCE holding')).toBeTruthy();
   expect(within(namesakes[1]).getByText('Identity needs review')).toBeTruthy();
   expect(screen.getByText(/1 shareholder needs identity review/)).toBeTruthy();
-  expect(screen.getByText('1–10 of 11 shareholders')).toBeTruthy();
-  expect(within(table).queryByText('Zed Member09')).toBeNull();
+  expect(screen.getByText('1–25 of 26 shareholders')).toBeTruthy();
+  expect(within(table).queryByText('Zed Member24')).toBeNull();
   expect(screen.queryByText(`0x${'1'.repeat(40)} · Active`)).toBeNull();
 
   for (const [row, member] of [
@@ -268,39 +268,42 @@ it('reads every class page and groups exact holdings by member identity with sea
     );
 
   const pages = screen.getByRole('navigation', { name: 'Shareholder pages' });
-  expect(within(pages).getByRole('button', { name: 'Previous' }).matches(':disabled')).toBe(true);
-  fireEvent.click(within(pages).getByRole('button', { name: 'Next' }));
-  expect(within(table).getByText('Zed Member09')).toBeTruthy();
+  expect(within(pages).getByRole('button', { name: /^Previous/ }).matches(':disabled')).toBe(true);
+  fireEvent.click(within(pages).getByRole('button', { name: /^Next/ }));
+  expect(within(table).getByText('Zed Member24')).toBeTruthy();
   expect(within(table).queryByText('Example Member')).toBeNull();
-  expect(screen.getByText('11–11 of 11 shareholders')).toBeTruthy();
-  expect(within(pages).getByRole('button', { name: 'Next' }).matches(':disabled')).toBe(true);
+  expect(screen.getByText('26–26 of 26 shareholders')).toBeTruthy();
+  expect(within(pages).getByRole('button', { name: /^Next/ }).matches(':disabled')).toBe(true);
 
   const search = screen.getByLabelText('Search shareholders');
   const filter = screen.getByLabelText('Share class');
   fireEvent.change(search, { target: { value: ' eXaMpLe MeMbEr ' } });
+  expect(await screen.findByText('1–2 of 2 shareholders')).toBeTruthy();
+  expect(screen.getByText('2 shareholders match your search.')).toBeTruthy();
   expect(within(table).getAllByRole('row', { name: /Example Member/ })).toHaveLength(2);
-  expect(screen.getByText('1–2 of 2 shareholders')).toBeTruthy();
   fireEvent.change(filter, { target: { value: 'preference' } });
   expect(within(table).getAllByRole('row', { name: /Example Member/ })).toHaveLength(1);
   expect(within(table).getAllByText('9,007,199,254,740,993')).toHaveLength(1);
   expect(within(table).queryByText('<0.01%')).toBeNull();
-  expect(screen.getByText('1 shareholder')).toBeTruthy();
+  expect(screen.getByText('1–1 of 1 shareholder')).toBeTruthy();
   expect(screen.getByText(/1 shareholder needs identity review/)).toBeTruthy();
   fireEvent.change(filter, { target: { value: 'ordinary' } });
   expect(within(table).getAllByRole('row', { name: /Example Member/ })).toHaveLength(2);
-  fireEvent.change(filter, { target: { value: 'all' } });
+  fireEvent.change(filter, { target: { value: '' } });
   fireEvent.change(search, { target: { value: ' preference member NAME ' } });
+  expect(await screen.findByText('1–1 of 1 shareholder')).toBeTruthy();
   expect(within(table).getAllByRole('row', { name: /Example Member/ })).toHaveLength(1);
   expect(within(table).getAllByText('9,007,199,254,740,993')).toHaveLength(2);
   fireEvent.change(filter, { target: { value: 'preference' } });
   expect(within(table).getAllByRole('row', { name: /Example Member/ })).toHaveLength(1);
   expect(within(table).getAllByText('9,007,199,254,740,993')).toHaveLength(1);
   fireEvent.change(search, { target: { value: 'No such shareholder' } });
-  expect(within(table).getByText('No shareholders found.')).toBeTruthy();
-  fireEvent.change(filter, { target: { value: 'all' } });
-  fireEvent.change(search, { target: { value: '' } });
-  expect(screen.getByText('1–10 of 11 shareholders')).toBeTruthy();
-  expect(within(table).getAllByRole('row')).toHaveLength(11);
+  expect(await screen.findByText('No shareholders match your search.')).toBeTruthy();
+  expect(screen.queryByRole('table', { name: 'Company shareholders' })).toBeNull();
+  fireEvent.change(filter, { target: { value: '' } });
+  fireEvent.change(screen.getByLabelText('Search shareholders'), { target: { value: '' } });
+  expect(await screen.findByText('1–25 of 26 shareholders')).toBeTruthy();
+  expect(within(screen.getByRole('table', { name: 'Company shareholders' })).getAllByRole('row')).toHaveLength(26);
   expect(api.post).not.toHaveBeenCalled();
   expect(readUrls()).toContain(COMPANY_TOKEN_ENDPOINTS.HOLDERS('ordinary'));
   expect(readUrls()).toContain(COMPANY_TOKEN_ENDPOINTS.HOLDERS('preference'));

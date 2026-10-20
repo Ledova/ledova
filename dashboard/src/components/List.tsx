@@ -10,6 +10,7 @@ const counted = (count: number, [one, many]: Noun) => `${formatShareCount(String
 
 export interface Column {
   label: string;
+  detail?: string;
   align?: 'right';
   hidden?: boolean;
 }
@@ -28,6 +29,7 @@ export function Table({ caption, columns, children }: { caption: string; columns
                 className={`px-4 py-3 font-medium ${column.align === 'right' ? 'text-right' : ''}`}
               >
                 {column.hidden ? <span className="sr-only">{column.label}</span> : column.label}
+                {column.detail && <span className="sr-only"> {column.detail}</span>}
               </th>
             ))}
           </tr>
