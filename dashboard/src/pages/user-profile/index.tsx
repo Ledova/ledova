@@ -24,7 +24,7 @@ function UserProfilePage() {
   } = useUserProfile();
   const verification = getUserVerificationStatus(userProfile);
   const [editing, setEditing] = useState<{ source: string | null; owner: string | null } | null>(null);
-  const [saved, setSaved] = useState<{ source: string | null; owner: string | null } | null>(null);
+  const [savedFor, setSavedFor] = useState<string | null>(null);
   const [fullName, setFullName] = useState('');
   const [residentialAddress, setResidentialAddress] = useState('');
   const [phoneCode, setPhoneCode] = useState('');
@@ -37,7 +37,7 @@ function UserProfilePage() {
     setPhoneCode(userProfile?.phoneCountryCode || '');
     setPhoneNumber(userProfile?.phoneNumber || '');
     resetUpdate();
-    setSaved(null);
+    setSavedFor(null);
     setEditing({ source: sourceKey, owner: ownerKey });
   }
 
@@ -101,7 +101,7 @@ function UserProfilePage() {
                   },
                   () => {
                     setEditing(null);
-                    setSaved({ source: sourceKey, owner: ownerKey });
+                    setSavedFor(ownerKey);
                   },
                 );
             }}
@@ -174,9 +174,7 @@ function UserProfilePage() {
           </form>
         ) : (
           <>
-            {saved?.source === sourceKey && saved?.owner === ownerKey && (
-              <Outcome>Your personal details were saved.</Outcome>
-            )}
+            {savedFor !== null && savedFor === ownerKey && <Outcome>Your personal details were saved.</Outcome>}
             <PageAction label="Edit personal details" disabled={blocked} onClick={editDetails} />
           </>
         )}
