@@ -129,3 +129,36 @@ export function Pager({
     </nav>
   );
 }
+
+export function LoadMore({
+  noun,
+  hasMore,
+  failed,
+  loading,
+  disabled = false,
+  onLoad,
+}: {
+  noun: Noun;
+  hasMore: boolean;
+  failed: boolean;
+  loading: boolean;
+  disabled?: boolean;
+  onLoad: () => void;
+}) {
+  if (failed)
+    return (
+      <div role="alert" className="flex flex-col items-start gap-3">
+        <p className="text-sm text-text-primary">More {noun[1]} could not be loaded. The list is incomplete.</p>
+        <PageAction label={`Try more ${noun[1]} again`} onClick={onLoad} disabled={disabled} />
+      </div>
+    );
+  return hasMore ? (
+    <PageAction
+      label={`Load more ${noun[1]}`}
+      busy={loading}
+      busyLabel={`Loading ${noun[1]}…`}
+      onClick={onLoad}
+      disabled={disabled}
+    />
+  ) : null;
+}

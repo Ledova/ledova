@@ -14,17 +14,16 @@ import {
   TrashIcon,
 } from '@phosphor-icons/react';
 
-import { apiErrorSentence, formatDate, formatFileSize, type InvestorClassification } from '@ledova/shared';
+import {
+  apiErrorSentence,
+  formatDate,
+  formatFileSize,
+  useInvestorClassifications,
+  type InvestorClassification,
+} from '@ledova/shared';
 import { ICON_SM, ICON_MD } from '@components/iconSizes';
 
-import {
-  useAttachDocument,
-  useDeleteDocument,
-  useDocument,
-  useDocumentClaims,
-  useDocuments,
-  useUploadDocument,
-} from './useDocuments';
+import { useAttachDocument, useDeleteDocument, useDocument, useDocuments, useUploadDocument } from './useDocuments';
 import type { Document, UserDocumentType, ExtractionStatus } from '@ledova/shared';
 
 const DOCUMENT_TYPE_LABELS: Record<UserDocumentType, string> = {
@@ -392,9 +391,9 @@ function UploadCard({ claims }: { claims: InvestorClassification[] }) {
 
 export function DocumentsPanel() {
   const docs = useDocuments();
-  const claimsQuery = useDocumentClaims();
-  const claims = claimsQuery.data?.data?.results ?? [];
-  const list = docs.data?.results ?? [];
+  const claimsQuery = useInvestorClassifications();
+  const claims = claimsQuery.data ?? [];
+  const list = docs.data ?? [];
 
   return (
     <div className="space-y-3">

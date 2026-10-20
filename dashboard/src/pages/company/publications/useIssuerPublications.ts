@@ -1,14 +1,17 @@
 import { useEffect, useRef } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useInfiniteQuery, useMutation, useQueryClient, type InfiniteData } from '@tanstack/react-query';
 import {
   CACHE_TIMING,
   failureStatus,
   createUserFriendlyError,
   PUBLICATION_COPY,
+  assertNextPageAdvances,
+  getNextPageParam,
   getPublications,
   openPublication,
   publicationFilename,
-  readEveryPage,
+  useLaterPages,
+  type PaginatedResponse,
   type UserFriendlyError,
   type Publication,
   PUBLICATIONS_QUERY_KEY,
@@ -37,27 +40,30 @@ export function useIssuerPublications(companyUuid: string | undefined, read: Com
     if (!mounted.current) throw createUserFriendlyError('This company document action is closed.');
     read.assertCurrent(companyUuid!, 'owner');
   };
-  const listing = useQuery({
+  const listing = useInfiniteQuery({
     queryKey: key,
     enabled: !!companyUuid,
     staleTime: CACHE_TIMING.SHORT_STALE_TIME,
-    queryFn: () =>
-      readEveryPage(async (page) => {
-        guard();
-        const result = await getPublications(apiClient, page, { issuer: companyUuid! });
-        guard();
-        return result;
-      }),
+    queryFn: async ({ pageParam }) => {
+      guard();
+      const { data } = await getPublications(apiClient, pageParam, { issuer: companyUuid! });
+      guard();
+      assertNextPageAdvances(pageParam, data);
+      return data;
+    },
+    getNextPageParam,
+    initialPageParam: 1,
   });
+  const pages = useLaterPages(key, listing);
   const opening = useMutation({
     mutationFn: async (uuid: string) => {
       const current = () => {
         guard();
-        const state = client.getQueryState<Publication[]>(key);
+        const state = client.getQueryState<InfiniteData<PaginatedResponse<Publication>>>(key);
         if (
           state?.status !== 'success' ||
           state.fetchStatus !== 'idle' ||
-          !state.data?.some((item) => item.uuid === uuid)
+          !state.data?.pages.some((page) => page.results.some((item) => item.uuid === uuid))
         )
           throw createUserFriendlyError('Refresh company publications before continuing.');
       };
@@ -73,6 +79,13 @@ export function useIssuerPublications(companyUuid: string | undefined, read: Com
   });
   return {
     listing,
+    publications: listing.data
+      ? [...new Map(listing.data.pages.flatMap((page) => page.results).map((item) => [item.uuid, item])).values()]
+      : undefined,
+    count: listing.data?.pages[0].count,
+    hasError: pages.hasError,
+    moreFailed: pages.moreFailed,
+    loadMore: () => void pages.loadMore(),
     open: (uuid: string) => {
       if (!pending.current) {
         pending.current = true;
