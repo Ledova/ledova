@@ -89,7 +89,7 @@ function CompanyPublications({ companyRead }: { companyRead: ReturnType<typeof u
                       hasMore={listing.hasNextPage}
                       failed={moreFailed}
                       loading={listing.isFetchingNextPage}
-                      disabled={listing.isFetching && !listing.isFetchingNextPage}
+                      disabled={listing.isFetching}
                       onLoad={loadMore}
                     />
                     <p className="text-xs text-text-muted">

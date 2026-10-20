@@ -143,7 +143,7 @@ function NotificationList({
       ))}
       {(more.hasMore || more.failed) && (
         <div className="px-4 py-3">
-          <LoadMore noun={['notification', 'notifications']} disabled={isLoading && !more.loading} {...more} />
+          <LoadMore noun={['notification', 'notifications']} disabled={isLoading} {...more} />
         </div>
       )}
     </>

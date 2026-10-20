@@ -376,7 +376,8 @@ server:
 - **The address:** `useListParams` (`dashboard/src/hooks/useListParams.ts`) keeps the search
   (`q`), the filters and the page in the URL, so Back, a refresh or a shared link keep them. Typing
   replaces the history entry, while a filter or page change adds one. Any change but the page
-  returns to the first page, and a page that no longer exists is replaced by the first.
+  returns to the first page. On a list paged by the server, a page that no longer exists is replaced
+  by the first; a list searched in the browser shows its last page instead.
 - **Tables:** `Table` is the markup for lists on these controls: a framed table that scrolls
   sideways within its card, with a screen-reader caption, a header row of `scope="col"` cells and
   each row named by its first cell as a row header. `Pager` under it gives the rows shown, such as
@@ -388,17 +389,34 @@ server:
   rows stay and a [load error](#loading-empty-and-error-states) says the list is incomplete.
 - **Page size:** 25 rows. The API accepts `page_size` up to 100 on every paged list.
 
-An offering's applications on Offerings are the first table: search by investor name, wallet
-address or payment reference, filter by status, with the chosen offering kept in the address too.
-Company eligibility's request queue pages the same way, with no search box: its one filter is the
-outcome, as radio buttons, which the server derives from each request's decision, withdrawal,
-revocation and expiry. While another page or outcome loads, its rows stay dimmed and their View
-buttons wait; mobile still reads every page of the queue.
+An offering's applications on Offerings are searched and paged by the server: search by investor
+name, wallet address or payment reference, filter by status, with the chosen offering kept in the
+address too. Company eligibility's request queue pages the same way, with no search box: its one
+filter is the outcome, as radio buttons, which the server derives from each request's decision,
+withdrawal, revocation and expiry. While another page or outcome loads, its rows stay dimmed and
+their View buttons wait; mobile still reads every page of the queue. Shareholders searches and pages
+the register the page has already read in full, since its ownership totals need every holding: the
+same box and pager, matching every word ignoring case and accents (`searchRows` in
+`packages/shared/src/utils/search.ts`), with the share class as its filter.
+
 The feeds are Activity, an investor's Applications, Notices, the notification bell, Published to
-your members and a class's register entries. A list bounded by one person, such as their own
-documents, classification claims or wallets, reads every page. Other lists still read every page
-([frontend](frontend.md#lists-figures-and-currency)), and the register, ownership and import tables
-keep their own markup until they move.
+your members, a class's register entries, a share class's issuance requests, authorised share
+requests and issuances (`useRecordFeed`), and each class's former shareholders, shown 25 at a time
+from the register already read. A list bounded by one person, such as their own documents,
+classification claims or wallets, reads every page. Other lists still read every page
+([frontend](frontend.md#lists-figures-and-currency)).
+
+**The register's records are the one stated exception.** Each share class's allotments, transfers,
+openings, imports, corrections, particulars changes, member links, deployments, awards and grants,
+and company member access, read every page. Each record keeps its own recovery for an uncertain
+reply, and a newer record shifting the pages would unmount the oldest loaded one and lose it; these
+lists grow only with one company's register decisions. The owner chose this on 21 October 2026,
+to revisit if registers grow large ([decision](../decisions.md#frontend-ux-standards)).
+
+Every table uses `Table`, apart from the company dashboard's largest-shareholder legend beside its
+chart, which keeps a compact layout with its own caption and header scopes. An import's member
+snapshot opens each member's allotments in a dialog named Allotments, so Details always opens a
+record's own page.
 
 ## Loading, empty and error states
 

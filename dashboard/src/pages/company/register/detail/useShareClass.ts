@@ -8,7 +8,6 @@ import {
   getCompanyTokenIssuances,
   getCapitalIncreases,
   getShareIssuanceRequests,
-  readEveryPage,
   wholeShares,
   useSubmissionOwner,
   createUserFriendlyError,
@@ -16,6 +15,8 @@ import {
 import apiClient from '@services/apiClient';
 import { useRegisterDownload } from '@pages/company/shared/useCompanyRegister';
 import { ownershipSummary } from '@pages/company/shared/summary';
+import { guarded } from '@pages/company/register/shared/registerReads';
+import { useRecordFeed } from '@pages/company/register/shared/useRecordFeed';
 
 export function shareClassKey(uuid: string) {
   return ['token', uuid];
@@ -72,39 +73,21 @@ export function useShareClass(uuid: string) {
       return data;
     },
   });
-  const issuances = useQuery({
-    queryKey: [...tokenKey, 'issuances'],
-    enabled: isOwner,
-    queryFn: () =>
-      readEveryPage(async (page) => {
-        guard();
-        const result = await getCompanyTokenIssuances(apiClient, uuid, { page }, config);
-        guard();
-        return result;
-      }),
-  });
-  const capital = useQuery({
-    queryKey: [...tokenKey, 'capital-increases'],
-    enabled: isOwner,
-    queryFn: () =>
-      readEveryPage(async (page) => {
-        guard();
-        const result = await getCapitalIncreases(apiClient, { token: uuid, page }, config);
-        guard();
-        return result;
-      }),
-  });
-  const requests = useQuery({
-    queryKey: [...tokenKey, 'issuance-requests'],
-    enabled: isOwner,
-    queryFn: () =>
-      readEveryPage(async (page) => {
-        guard();
-        const result = await getShareIssuanceRequests(apiClient, { token: uuid, page }, config);
-        guard();
-        return result;
-      }),
-  });
+  const issuances = useRecordFeed(
+    [...tokenKey, 'issuances'],
+    (page) => guarded(guard, () => getCompanyTokenIssuances(apiClient, uuid, { page }, config)),
+    isOwner,
+  );
+  const capital = useRecordFeed(
+    [...tokenKey, 'capital-increases'],
+    (page) => guarded(guard, () => getCapitalIncreases(apiClient, { token: uuid, page }, config)),
+    isOwner,
+  );
+  const requests = useRecordFeed(
+    [...tokenKey, 'issuance-requests'],
+    (page) => guarded(guard, () => getShareIssuanceRequests(apiClient, { token: uuid, page }, config)),
+    isOwner,
+  );
   const refresh = () =>
     Promise.all([
       queryClient.invalidateQueries({ queryKey: shareClassKey(uuid) }),
