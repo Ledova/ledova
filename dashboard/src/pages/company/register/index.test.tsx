@@ -268,7 +268,11 @@ it('reads every class page and groups exact holdings by member identity with sea
     );
 
   const pages = screen.getByRole('navigation', { name: 'Shareholder pages' });
-  expect(within(pages).getByRole('button', { name: /^Previous/ }).matches(':disabled')).toBe(true);
+  expect(
+    within(pages)
+      .getByRole('button', { name: /^Previous/ })
+      .matches(':disabled'),
+  ).toBe(true);
   fireEvent.click(within(pages).getByRole('button', { name: /^Next/ }));
   expect(within(table).getByText('Zed Member24')).toBeTruthy();
   expect(within(table).queryByText('Example Member')).toBeNull();
