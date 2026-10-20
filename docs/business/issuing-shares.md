@@ -25,7 +25,7 @@ Contents:
 
 ## Share classes
 
-A share class is a company's equity instrument, with a name, a class code, a type (Ordinary,
+In Ledova, a share class has a company-supplied name, a class code, a broad type (Ordinary,
 Preference or Redeemable) and a configured share limit; shares are whole units in the register and on
 chain. A class starts as a draft with no contract; once deployed it has one and can be paused. A
 class opened by an import can be deployed only while empty and never takes a chain opening or chain
@@ -495,21 +495,78 @@ which the company owner submits and platform staff review.
 ## What these flows do not cover
 
 The company and its advisers decide valuation, class rights, offers, consents, employee terms,
-approvals, the actual issue and transfer dates and filings; Ledova records the facts supplied and the
-exact effects authorised
-([what stays with the company](README.md#what-ledova-does-and-what-stays-with-the-company)). A
-class's code or type is a label and does not define the rights attached to its shares.
+approvals, event dates and filings. Ledova records the facts supplied and the exact effects authorised;
+it does not replace the company's legal register or determine legal rights
+([company responsibilities](README.md#what-ledova-does-and-what-stays-with-the-company)).
 
-Not built: options and their exercise, shares issued upfront with restrictions or forfeiture, partly
-paid allotments and calls, convertible instruments, buy-backs, redemptions and capital reductions,
-[splits and consolidations](#splits-and-consolidations), class conversions or variations of class
-rights, and transmission.
+### Class names, rights and equity arrangements
 
-Current limits, each with follow-up work proposed under the share lifecycle review
-([#1060](https://github.com/Ledova/ledova/issues/1060)):
+[ASIC's share-class guidance](https://www.asic.gov.au/for-business-and-companies/companies/company-share-and-shareholder-rules-and-changes/company-share-issues)
+allows company-defined names and lists combined rights, such as redeemable preference shares.
+The company's name/code identifies a class or series; its constitution and issue terms determine
+its rights. Ledova's three type labels do not describe or enforce voting, dividend, payout,
+redemption or conversion terms. Employee and founder describe a relationship, not automatic rights.
 
-- Joint, corporate and trust holdings have no separate structure: a member is one name and
-  residential address, with the beneficial status the company records.
+Keep the instrument (share, option or other entitlement), class/series, rights, issued status and
+holder structure distinct.
+An option or [SAFE](https://business.gov.au/grants-and-programs/venture-capital/safe-notes) is not
+an issued share class. An employee scheme can contain already-issued restricted shares or rights
+to future shares; vesting alone does not tell which
+([Moneysmart](https://moneysmart.gov.au/shares/employee-share-schemes)). Ledova's awards support the
+latter promise-and-separate-issue workflow only.
+
+Capability review, 21 October 2026, at main
+[`d15867be`](https://github.com/Ledova/ledova/commit/d15867be557425b60a18630de313163feb9fb1d7),
+under [#1215](https://github.com/Ledova/ledova/issues/1215):
+
+| Arrangement | What Ledova records now | Limit |
+| ----------- | ----------------------- | ----- |
+| Ordinary or custom-named classes/series | Name, code, broad type, holdings and history | A label does not establish rights; code length and uniqueness rules still apply |
+| Different voting, preference, redemption or conversion terms | A custom name can describe the class; company documents can retain terms | No class-rights summary or structured rights model; no weighted voting, preference waterfall, conversion or redemption workflow |
+| Partly-paid existing shares | Paid/unpaid and beneficial-status facts in copied opening allotments | New external allotments are fully paid in AUD; no calls on unpaid capital |
+| Employee promises | Agreement, company-recorded vesting, unissued-right endings/reversals and a separate approved issue | No options/exercise, employee purchases, RSU settlement engine or upfront-issued restricted-share lifecycle |
+| Convertible notes, SAFEs and other future-equity instruments | No dedicated workflow | Do not count them as issued holdings or disguise them as a class |
+| Buy-backs, cancellations, capital reductions, class conversions/rights variations and transmission | No current workflow | A cessation entry kind or ending an award is not a delivered share-cancellation process; splits/consolidations are also deferred |
+| Corporate, joint and trustee holdings | One recorded name/address and beneficial status; account access is separately invited | No explicit entity, joint-holder or trustee representation model |
+
+The audited implementation is in [class fields](../../backend/tokens/models/share_token.py),
+[opening facts](../../backend/tokens/services/register_imports.py),
+[external allotments](../../backend/tokens/services/register_allotments.py) and
+[award records](../../backend/tokens/models/register_award.py). Retained staff-run
+[publications, ballots and dividend records](publications.md) still exist; their one-vote-per-share
+ballot and shares-times-rate distributions do not implement arbitrary class rights.
+
+Ownership donuts and **% of class** mean a fraction of that class's issued share count, not voting
+power, value or payout entitlement. For a fictional company with 100 A shares carrying ten votes
+each and 900 ORD shares carrying one, A has 10% of the shares across the two classes but 52.63% of
+the votes on that assumed poll. Within A's own donut, its sole holder has 100% of A. Neither figure
+establishes value. Another 100 promised shares are outside issued holdings; a fully diluted figure
+would need explicit exercise, settlement and conversion assumptions.
+
+### Smallest proposed product increment
+
+Recommendation, awaiting owner agreement: one optional company-supplied **Class rights** summary
+and optional human-readable governing-document reference on the class's details, outside signup.
+Keep the existing class names/codes and quantity-based charts. Do not add a class catalogue,
+rights calculator, compulsory upload or another document interface.
+
+[Company documents](companies.md#company-information-and-documents) already holds constitutions
+and shareholder agreements, so leaving terms there is the no-schema-change alternative. Files are
+company-bound rather than class-bound, lack a revision chain, and some can be removed. Management
+uses company administration; [offering disclosures](#offer-documents) have separate investor access.
+A reference must not silently grant document access or be called retained proof. The smallest first scope would show the descriptive record to current company register
+readers, allow changes only under current personal company administration, and retain each revision
+with its actor and actual recording time. Existing classes start blank; no inferred rights or
+rewritten history. Member-facing disclosure and any source-file attachment need separately agreed
+access and retention rules; reuse existing evidence/upload controls if later justified.
+
+This descriptive step would require a small additive record/API change and the existing class
+page, with no change to holdings, issue approval, calculations or private-file permissions.
+Corporate/joint/trustee support is a separate priority decision, including who is the legal holder,
+who benefits and who may access records
+([ASIC on shareholders](https://www.asic.gov.au/for-business-and-companies/companies/company-building-blocks/company-shares-and-shareholders)).
+The [earlier lifecycle work](https://github.com/Ledova/ledova/issues/1060) is complete; these
+findings do not reopen advanced governance, trading, filings or the unsupported instrument workflows.
 
 ## Splits and consolidations
 
