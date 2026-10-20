@@ -1,3 +1,4 @@
+import { Choices } from '@components/Choices';
 import type { Ref } from 'react';
 import { BLOCKCHAIN, formatDate } from '@ledova/shared';
 import type { TransactionFilters, Wallet } from '@ledova/shared';
@@ -101,20 +102,12 @@ export function TransactionFilter({
                 ))}
               </div>
             </fieldset>
-            <label className="block text-sm text-text-muted">
-              Network
-              <select
-                className={FIELD_CLASS}
-                value={filters.chain ?? ''}
-                onChange={(event) => onFilterChange('chain', event.target.value)}
-              >
-                {networks.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <Choices
+              legend="Network"
+              options={networks.map((option) => [option.value, option.label] as const)}
+              value={filters.chain ?? ''}
+              onChange={(chain) => onFilterChange('chain', chain)}
+            />
             <div className="flex flex-col gap-2">
               <label className="block text-sm text-text-muted">
                 Wallet

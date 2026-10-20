@@ -1,3 +1,4 @@
+import { Choices } from '@components/Choices';
 import { useNewShareClass, type FreshClassProps } from './useNewShareClass';
 import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
@@ -32,6 +33,11 @@ const COMMON_CLASSES: { type: TokenType; name: string; symbol: string; label: st
   { type: 'redeemable', name: 'Redeemable shares', symbol: 'RED', label: 'Redeemable (RED)' },
 ];
 
+const CLASS_TYPES: readonly (readonly [TokenType, string])[] = [
+  ['ordinary', 'Ordinary'],
+  ['preference', 'Preference'],
+  ['redeemable', 'Redeemable'],
+];
 export function NewClassSetup({
   owner,
   currentOwner,
@@ -290,19 +296,13 @@ function FreshClass({
                   onChange={(event) => setSymbol(event.target.value.toUpperCase())}
                 />
               </label>
-              <label className={LABEL}>
-                Class type
-                <select
-                  className={FIELD_CLASS}
-                  value={tokenType}
-                  disabled={classLocked}
-                  onChange={(event) => setTokenType(event.target.value as TokenType)}
-                >
-                  <option value="ordinary">Ordinary</option>
-                  <option value="preference">Preference</option>
-                  <option value="redeemable">Redeemable</option>
-                </select>
-              </label>
+              <Choices
+                legend="Class type"
+                options={CLASS_TYPES}
+                value={tokenType}
+                disabled={classLocked}
+                onChange={setTokenType}
+              />
             </div>
           )}
           {choice === 'custom' && (

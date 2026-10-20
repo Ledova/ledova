@@ -887,10 +887,11 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   fireEvent.change(screen.getByLabelText('Shares in allotment'), { target: { value: '400' } });
   fireEvent.change(screen.getByLabelText('Amount paid'), { target: { value: '400' } });
   fireEvent.change(screen.getByLabelText('Amount unpaid'), { target: { value: '0' } });
-  expect((screen.getByLabelText('Held for someone else?') as HTMLSelectElement).value).toBe('');
+  const held = screen.getByRole('group', { name: 'Held for someone else?' });
+  expect(within(held).queryByRole('radio', { checked: true })).toBeNull();
   expect(screen.queryByText('Payment status')).toBeNull();
-  fireEvent.change(screen.getByLabelText('Held for someone else?'), { target: { value: 'no' } });
-  expect((screen.getByLabelText('Held for someone else?') as HTMLSelectElement).value).toBe('no');
+  fireEvent.click(within(held).getByRole('radio', { name: 'No' }));
+  expect(within(held).getByRole('radio', { checked: true }).getAttribute('value')).toBe('no');
   const references = screen.getByText('References (optional)').closest('details')!;
   expect(references.open).toBe(false);
   fireEvent.click(screen.getByText('References (optional)'));
@@ -902,7 +903,9 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   fireEvent.change(screen.getAllByLabelText('Shares in allotment')[1], { target: { value: '200' } });
   fireEvent.change(screen.getAllByLabelText('Amount paid')[1], { target: { value: '200' } });
   fireEvent.change(screen.getAllByLabelText('Amount unpaid')[1], { target: { value: '0' } });
-  fireEvent.change(screen.getAllByLabelText('Held for someone else?')[1], { target: { value: 'yes' } });
+  fireEvent.click(
+    within(screen.getAllByRole('group', { name: 'Held for someone else?' })[1]).getByRole('radio', { name: 'Yes' }),
+  );
   fireEvent.submit(screen.getByRole('button', { name: 'Add to draft' }).closest('form')!);
   expect(api.post).not.toHaveBeenCalled();
   fireEvent.click(screen.getByRole('button', { name: 'Add to draft' }));
@@ -1367,9 +1370,11 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
         ['Shares in allotment', '600'],
         ['Amount paid', '600'],
         ['Amount unpaid', '0'],
-        ['Held for someone else?', 'no'],
       ])
         fireEvent.change(screen.getByLabelText(label), { target: { value } });
+      fireEvent.click(
+        within(screen.getByRole('group', { name: 'Held for someone else?' })).getByRole('radio', { name: 'No' }),
+      );
     });
   };
   fireEvent.click(screen.getByRole('button', { name: 'Add a shareholder' }));

@@ -1,3 +1,4 @@
+import { Choices } from '@components/Choices';
 import { useState } from 'react';
 import { PageAction } from '@components/Page';
 import { OFFER_DOCUMENT_COPY, OFFERING_EXEMPTION_LABELS, attachableDocuments, requestShares } from '@ledova/shared';
@@ -141,19 +142,7 @@ export function OfferingForm({
         </select>
       </Field>
 
-      <Field label="Exemption relied on">
-        <select
-          value={exemption}
-          onChange={(e) => setExemption(e.target.value as OfferingExemption)}
-          className={FIELD_CLASS}
-        >
-          {EXEMPTIONS.map(([value, label]) => (
-            <option key={value} value={value}>
-              {label}
-            </option>
-          ))}
-        </select>
-      </Field>
+      <Choices legend="Exemption relied on" options={EXEMPTIONS} value={exemption} onChange={setExemption} />
 
       <Field label="Price per share (AUD)">
         <input

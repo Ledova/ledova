@@ -1,3 +1,4 @@
+import { Choices } from '@components/Choices';
 import { CompanyPicker } from '@components/CompanyPicker';
 import { useState } from 'react';
 import {
@@ -12,6 +13,10 @@ import { Page, PageAction } from '@components/Page';
 import { ActionConfirmation, EligibilityHistory, Field, RecordsList, TextField } from '@components/eligibility';
 import { CompanyWalletInstructions } from './CompanyWalletInstructions';
 
+const OUTCOMES = [
+  ['accepted', 'Accept'],
+  ['refused', 'Refuse'],
+] as const;
 export default function CompanyEligibilityPage() {
   const read = useCompanyEligibilityRecords(() => crypto.randomUUID());
   const [revocationReason, setRevocationReason] = useState('');
@@ -98,22 +103,12 @@ export default function CompanyEligibilityPage() {
               <EligibilityHistory record={read.selectedRecord} />
               {read.selectedRecord.outcome === 'pending' && (
                 <Section title="Prepare the exact company decision">
-                  <Field label="Decision outcome">
-                    <select
-                      className={FIELD_CLASS}
-                      value={read.draft.outcome}
-                      onChange={(event) =>
-                        read.updateDraft({
-                          outcome: event.target.value as 'accepted' | 'refused',
-                          reason: '',
-                          expiresAt: '',
-                        })
-                      }
-                    >
-                      <option value="accepted">Accept</option>
-                      <option value="refused">Refuse</option>
-                    </select>
-                  </Field>
+                  <Choices
+                    legend="Decision outcome"
+                    options={OUTCOMES}
+                    value={read.draft.outcome}
+                    onChange={(outcome) => read.updateDraft({ outcome, reason: '', expiresAt: '' })}
+                  />
                   {read.draft.outcome === 'accepted' ? (
                     <TextField
                       label="Acceptance expiry (local date and time)"

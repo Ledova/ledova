@@ -10,6 +10,7 @@ and [mobile](mobile.md); what each page does is in the business section.
 - [Choosing a person](#choosing-a-person)
 - [Choosing a company](#choosing-a-company)
 - [Choosing a wallet or a paid subscription](#choosing-a-wallet-or-a-paid-subscription)
+- [Choosing from a short fixed list](#choosing-from-a-short-fixed-list)
 
 ## Signed-in page conventions
 
@@ -175,6 +176,24 @@ recognises rather than an internal identifier:
   and receiving address.
 
 These lists are checked in review; no dashboard case drives them.
+
+## Choosing from a short fixed list
+
+A question with a few fixed answers shows them all as radio buttons, so nothing has to be opened to
+see the choices. `Choices` (`dashboard/src/components/Choices.tsx`) is a fieldset whose legend is the
+question, with one native radio button per answer on a wrapping row; the arrow keys move between
+answers. It asks for:
+
+- the authority for a correction, wallet link or register opening;
+- whether a mirrored allotment is held for someone else;
+- a new share class's type;
+- the requested state of a pause change;
+- the exemption an offering relies on;
+- a company eligibility decision's outcome and a wallet instruction's action;
+- the network in Activity's filter and for a new or imported wallet;
+- the professional body behind an accountant's certificate.
+
+A question with no answer yet shows no button chosen.
 
 Next: [frontend](frontend.md), [mobile](mobile.md) and
 [the register's person choice](../business/register.md#choosing-a-person).

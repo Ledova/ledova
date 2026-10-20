@@ -1,3 +1,4 @@
+import { Choices } from '@components/Choices';
 import { FileIcon, UploadSimpleIcon, XIcon } from '@phosphor-icons/react';
 import { Modal } from '@components/Modal';
 import { PageAction } from '@components/Page';
@@ -121,17 +122,12 @@ export function ClaimModal({
                 className={FIELD_CLASS}
               />
             </label>
-            <label className="block">
-              <span className="text-sm font-medium text-text-primary">Professional body</span>
-              <select value={certifierBody} onChange={(e) => setCertifierBody(e.target.value)} className={FIELD_CLASS}>
-                <option value="">Select a body</option>
-                {CERTIFIER_BODIES.map((body) => (
-                  <option key={body.value} value={body.value}>
-                    {body.label}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <Choices
+              legend="Professional body"
+              options={CERTIFIER_BODIES.map((body) => [body.value, body.label] as const)}
+              value={certifierBody}
+              onChange={setCertifierBody}
+            />
             <label className="block">
               <span className="text-sm font-medium text-text-primary">Accountant name</span>
               <input

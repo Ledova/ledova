@@ -1,3 +1,4 @@
+import { Choices } from '@components/Choices';
 import { Row, Rows, Section } from '@components/Ledger';
 import { PageAction } from '@components/Page';
 import { FIELD_CLASS } from '@components/fieldClass';
@@ -17,6 +18,10 @@ import { usePausePreparation, usePauseRecord, type Commands } from './useCompany
 import type { useShareClass } from './useShareClass';
 const STAGES: Record<string, string> = COPY.STAGES;
 
+const STATES = [
+  ['paused', 'Paused'],
+  ['unpaused', 'Unpaused'],
+] as const;
 function SnapshotRows({
   record,
 }: {
@@ -155,18 +160,12 @@ function Preparation({ commands }: { commands: Commands }) {
           setCaptured(commands.source ? { ...commands.source } : undefined);
         }}
       />
-      <label className="block text-sm">
-        Requested state
-        <select
-          className={FIELD_CLASS}
-          value={paused === null ? '' : paused ? 'paused' : 'unpaused'}
-          onChange={(event) => setPaused(event.target.value === '' ? null : event.target.value === 'paused')}
-        >
-          <option value="">Choose the requested state</option>
-          <option value="paused">Paused</option>
-          <option value="unpaused">Unpaused</option>
-        </select>
-      </label>
+      <Choices
+        legend="Requested state"
+        options={STATES}
+        value={paused === null ? '' : paused ? 'paused' : 'unpaused'}
+        onChange={(state) => setPaused(state === 'paused')}
+      />
       <label className="block text-sm">
         Pause reason
         <textarea

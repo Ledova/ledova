@@ -1,3 +1,4 @@
+import { Choices } from '@components/Choices';
 import type { ReactNode } from 'react';
 import { useEffect, useMemo, useState } from 'react';
 import { QrCodeIcon, CheckIcon } from '@phosphor-icons/react';
@@ -31,6 +32,10 @@ interface AddWalletModalProps {
   onBatchSubmit: (addresses: DerivedAddress[], importData: HardwareWalletImport) => void;
 }
 
+const EVM_NETWORKS = [
+  ['ETH', 'Ethereum'],
+  ['BASE', 'Base'],
+] as const;
 export function AddWalletModal({
   isOpen,
   isLoading,
@@ -152,22 +157,13 @@ export function AddWalletModal({
         </div>
 
         {!form.showScanner && (
-          <label className="block space-y-1 text-sm text-text-muted">
-            <span>Wallet network</span>
-            <select
-              aria-label="Wallet network"
-              disabled={isLoading}
-              value={form.selectedChain ?? ''}
-              onChange={(event) => form.setSelectedChain(event.target.value)}
-              className={`${FIELD_CLASS} border-border`}
-            >
-              {getActiveChains().map((chain) => (
-                <option key={chain.code} value={chain.code}>
-                  {chain.name}
-                </option>
-              ))}
-            </select>
-          </label>
+          <Choices
+            legend="Wallet network"
+            options={getActiveChains().map((chain) => [chain.code, chain.name] as const)}
+            value={form.selectedChain ?? ''}
+            disabled={isLoading}
+            onChange={form.setSelectedChain}
+          />
         )}
         {!form.showScanner && (
           <div className="space-y-1">
@@ -215,19 +211,13 @@ function AccountSelector({ urString, onSelectAccounts, onCancel, isLoading }: Ac
       <p className="text-sm text-text-muted">Review the accounts to import</p>
 
       {importData?.addresses.some((item) => item.networkType !== 'BTC') && (
-        <label className="block space-y-1 text-sm text-text-muted">
-          <span>EVM network</span>
-          <select
-            aria-label="Import EVM network"
-            disabled={isLoading}
-            value={evmNetwork}
-            onChange={(event) => setEvmNetwork(event.target.value as 'ETH' | 'BASE')}
-            className={`${FIELD_CLASS} border-border`}
-          >
-            <option value="ETH">Ethereum</option>
-            <option value="BASE">Base</option>
-          </select>
-        </label>
+        <Choices
+          legend="EVM network"
+          options={EVM_NETWORKS}
+          value={evmNetwork}
+          disabled={isLoading}
+          onChange={setEvmNetwork}
+        />
       )}
       <ImportAccounts
         key={`${evmNetwork}/${urString}`}

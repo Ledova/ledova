@@ -1,3 +1,4 @@
+import { Choices } from '@components/Choices';
 import { useCorrectionPreparation, type CorrectionFormProps, COPY } from './useCorrectionPreparation';
 
 import { type RegisterCorrectionAuthority } from '@ledova/shared';
@@ -64,20 +65,12 @@ export function CorrectionForm({
             />
           </label>
           <p className="text-sm text-text-muted">{COPY.EFFECTIVE_ON_NOTE}</p>
-          <label className={LABEL}>
-            {COPY.AUTHORITY}
-            <select
-              value={draft.authority}
-              className={FIELD_CLASS}
-              onChange={(event) => update({ authority: event.target.value as RegisterCorrectionAuthority })}
-            >
-              {AUTHORITIES.map(([value, label]) => (
-                <option key={value} value={value}>
-                  {label}
-                </option>
-              ))}
-            </select>
-          </label>
+          <Choices
+            legend={COPY.AUTHORITY}
+            options={AUTHORITIES}
+            value={draft.authority}
+            onChange={(authority) => update({ authority })}
+          />
           {draft.authority === 'director_resolution' && (
             <label className={LABEL}>
               {COPY.APPROVING_DIRECTOR}
