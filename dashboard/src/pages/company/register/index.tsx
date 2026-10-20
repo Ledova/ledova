@@ -418,7 +418,7 @@ function OwnRegister({
             company={scope.company.uuid}
             blocked={held}
           />
-          <FormerShareholders registers={scope.registers} company={scope.company.uuid} />
+          <FormerShareholders registers={scope.registers} company={scope.company.uuid} blocked={held} />
         </>
       )}
       {scope && view === 'register' && (

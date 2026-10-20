@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { REGISTER_COPY, formatShareCount, type TokenHoldersResponse } from '@ledova/shared';
 import { Rows, Row, Section, Status, type Tone } from '@components/Ledger';
+import { PageAction } from '@components/Page';
 import { shareholderPath } from './shareholders';
 
 const REGISTER_INITIALIZATION_TONES = new Map<boolean, Tone>([
@@ -68,7 +69,15 @@ export function ClassRegister({ register, former = true }: { register: TokenHold
   );
 }
 
-export function FormerMembers({ register, company }: { register: TokenHoldersResponse; company?: string }) {
+export function FormerMembers({
+  register,
+  company,
+  blocked = false,
+}: {
+  register: TokenHoldersResponse;
+  company?: string;
+  blocked?: boolean;
+}) {
   if (!register.formerMembers?.length) return null;
   return (
     <details className="space-y-3 border-t border-border-subtle pt-4">
@@ -85,7 +94,15 @@ export function FormerMembers({ register, company }: { register: TokenHoldersRes
         {register.formerMembers.map((former) => (
           <li key={former.uuid} className="flex flex-col gap-2 py-4">
             <p className="text-base text-text-primary">{former.name || 'Name not recorded'}</p>
-            {company && former.member && (
+            {company && former.member && blocked && (
+              <PageAction
+                label="Details"
+                context={former.name || 'Name not recorded'}
+                disabled
+                onClick={() => undefined}
+              />
+            )}
+            {company && former.member && !blocked && (
               <Link
                 to={shareholderPath(former.member, company)}
                 className="inline-flex w-fit items-center gap-2 rounded-lg border border-border px-3.5 py-2 text-sm font-medium text-text-primary transition-colors hover:bg-surface-tertiary"
@@ -118,7 +135,15 @@ export function FormerMembers({ register, company }: { register: TokenHoldersRes
   );
 }
 
-export function FormerShareholders({ registers, company }: { registers: TokenHoldersResponse[]; company: string }) {
+export function FormerShareholders({
+  registers,
+  company,
+  blocked = false,
+}: {
+  registers: TokenHoldersResponse[];
+  company: string;
+  blocked?: boolean;
+}) {
   const classes = registers.filter((register) => register.initialized && register.formerMembers?.length);
   if (!classes.length) return null;
   return (
@@ -128,7 +153,7 @@ export function FormerShareholders({ registers, company }: { registers: TokenHol
           <h3 className="break-words text-base font-medium text-text-primary">
             {register.token.name} · {register.token.symbol}
           </h3>
-          <FormerMembers register={register} company={company} />
+          <FormerMembers register={register} company={company} blocked={blocked} />
         </div>
       ))}
     </Section>

@@ -176,7 +176,8 @@ opened from the chain) and within the retention period, and
 are listed without a wallet address and purged on the same clock from the date they ceased.
 
 Only the company owner, current register appointees and the operator read former members, in the CSV
-(with residential addresses) and under Former-member history on each class card. Particulars are
+(with residential addresses), under Former shareholders on Shareholders, on the Share class page and
+on a former member's own page. Particulars are
 kept while a person is a member and for the retention period after they last held shares, at least
 seven years, then purged for good ([retention](../engineering/security.md#retention-clocks)).
 
@@ -520,8 +521,8 @@ Approved, Applied or Rejected (for an import, Reviewed and Confirmed), and evide
 provided by the company or, before the work became company-run, "Verified by Ledova staff". A
 section that read successfully with nothing to show is left out, but a class on chain without a
 reconciliation says so. An unfinished request keeps its class and exact request, and while one is
-held the company, task and class cannot be changed. A failed read withholds the table rather than
-implying holdings are zero, here and on Shareholders.
+held the company, task and class cannot be changed. A failed read withholds the class cards and the
+shareholder list rather than implying holdings are zero.
 
 The Shareholders view lists Current shareholders: one row per shareholder across classes, with a
 name search, a Share class filter and ten rows per page, giving each class's shares and percentage
