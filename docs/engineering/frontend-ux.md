@@ -432,9 +432,10 @@ copy that both clients show passes through unchanged, such as an unreadable chai
 opening.
 
 A failed read shows this block, not an empty state. The notification bell, profile documents,
-classification claims and a class's deployments, which used to show none, now show the failure. On
-the company team page and in a class's employee awards, non-paid issues and deployments, the block
-takes the place of the section's Refresh action while its first read has failed.
+classification claims and a class's deployments, which used to show an empty state, now show the
+failure. On the company team page and in a class's employee awards and non-paid issues, the block
+takes the place of the section's Refresh action while its read has failed; deployments do the same
+while no records show.
 
 Loading lines, refresh actions, a failed refresh and empty states are still to follow under
 [#1180](https://github.com/Ledova/ledova/issues/1180). Until then:
@@ -442,6 +443,11 @@ Loading lines, refresh actions, a failed refresh and empty states are still to f
 - The company's eligibility queue, your company eligibility requests, member access and Home's
   member records report a failed read in their own sentence beside their Refresh action, and may
   show their empty line under it.
+- A share class's capital, pause, paid issue and grant records, and the company's wallet
+  instructions, report any failed read, the first included, in their own "could not be refreshed"
+  sentence beside their Refresh action.
+- The route guard's checks, an unreadable profile or role, keep their own message and Try again
+  ([routes, audiences and guards](frontend.md#routes-audiences-and-guards)).
 - Recoveries of an interrupted action, such as "Retry original member action", keep their own
   wording.
 - Signing flows in Trading keep their own phases and recovery actions.
