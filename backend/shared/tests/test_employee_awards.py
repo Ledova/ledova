@@ -47,12 +47,14 @@ class EmployeeAwardTest(CoreFixtures, APITransactionTestCase):
                 (self.company.pk, award["operation_id"], award["name"], award["residential_address"]),
             )
             self.assertFalse(RegisterPosition.objects.filter(member_id=award["member"]).exists())
+            awaiting = RegisterMember.objects.create(company=self.company)
         people = self.client.get(f"/api/v1/tokens/{self.token.pk}/register/members/").json()
         self.assertEqual(people["awardRecipients"], [])
         recipient = next(row for row in people["members"] if row["member"] == award["member"])
         self.assertEqual(
             (recipient["name"], recipient["currentShares"], recipient["onRegister"]), (award["name"], "0", False)
         )
+        self.assertIn((str(awaiting.pk), True), [(row["member"], row["onRegister"]) for row in people["members"]])
         evidence = self.grant_payload()
         renamed = {"name": "Synthetic Other Employee", "residential_address": "9 Other Street, Sydney NSW 2000"}
         transfer = {

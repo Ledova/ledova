@@ -239,7 +239,11 @@ class MemberAccessTest(CoreFixtures, APITransactionTestCase):
         self.assertEqual(
             self.client.post(f"{endpoint}{prepared.json()['uuid']}/decide/", applied, format="json").status_code, 200
         )
-        self.assertEqual(self.client.get(f"/api/v1/tokens/{token.pk}/register/members/").json()["awardRecipients"], [])
+        members = self.client.get(f"/api/v1/tokens/{token.pk}/register/members/").json()["members"]
+        self.assertIn(
+            (copied_award["member"], "100", True),
+            [(row["member"], row["currentShares"], row["onRegister"]) for row in members],
+        )
         self.client.force_authenticate(copied_user)
         own = self.client.get(copied_endpoint).json()
         self.assertEqual((own["member"], own["name"]), (copied_award["member"], copied_award["name"]))
