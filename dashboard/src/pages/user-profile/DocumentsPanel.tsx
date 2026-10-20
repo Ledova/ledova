@@ -2,7 +2,7 @@ import { SelectField } from '@components/SelectField';
 import { PageAction } from '@components/Page';
 import { Confirmation } from '@components/Modal';
 import { Choices } from '@components/Choices';
-import { DESTINATIONS } from '@ledova/shared';
+import { FIELD_LIMITS, DESTINATIONS } from '@ledova/shared';
 import { useRef, useState } from 'react';
 import {
   CloudArrowUpIcon,
@@ -343,7 +343,7 @@ function UploadCard({ claims }: { claims: InvestorClassification[] }) {
                 type="text"
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
-                maxLength={255}
+                maxLength={FIELD_LIMITS.NOTE}
                 className="w-full rounded-lg border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary placeholder:text-text-muted"
                 disabled={upload.isPending}
               />

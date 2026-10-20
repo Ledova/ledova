@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { useEffect, useMemo, useState } from 'react';
 import { QrCodeIcon, CheckIcon } from '@phosphor-icons/react';
 import {
+  FIELD_LIMITS,
   getBlockchainDisplayName,
   getActiveChains,
   importAddressKey,
@@ -146,6 +147,7 @@ export function AddWalletModal({
               <input
                 type="text"
                 aria-label="Wallet address"
+                maxLength={FIELD_LIMITS.WALLET_ADDRESS}
                 value={form.address}
                 onChange={(e) => form.handleAddressChange(e.target.value)}
                 className={`${FIELD_CLASS} font-mono ${form.errors.address ? 'border-error-light' : 'border-border'}`}
@@ -177,7 +179,7 @@ export function AddWalletModal({
               className={`${FIELD_CLASS} border-border`}
               placeholder="e.g., Savings, Trading, Cold Storage"
               disabled={isLoading}
-              maxLength={100}
+              maxLength={FIELD_LIMITS.WALLET_NAME}
             />
           </div>
         )}

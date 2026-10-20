@@ -1,6 +1,6 @@
 import { FormActions, PageAction } from '@components/Page';
 import { FIELD_CLASS, LABEL } from '@components/fieldClass';
-import { REGISTER_AWARD_COPY as COPY } from '@ledova/shared';
+import { FIELD_LIMITS, REGISTER_AWARD_COPY as COPY } from '@ledova/shared';
 import { useAwardAdjustmentForm } from './useAwardAdjustmentForm';
 
 export function AwardAdjustmentForm(props: Parameters<typeof useAwardAdjustmentForm>[0]) {
@@ -26,7 +26,7 @@ export function AwardAdjustmentForm(props: Parameters<typeof useAwardAdjustmentF
             <input
               className={FIELD_CLASS}
               inputMode="numeric"
-              maxLength={78}
+              maxLength={FIELD_LIMITS.REGISTER_SHARES}
               value={form.reversedShares}
               onChange={(event) => form.setReversedShares(event.target.value.trim())}
             />
@@ -38,7 +38,7 @@ export function AwardAdjustmentForm(props: Parameters<typeof useAwardAdjustmentF
               <input
                 className={FIELD_CLASS}
                 inputMode="numeric"
-                maxLength={78}
+                maxLength={FIELD_LIMITS.REGISTER_SHARES}
                 value={form.unvestedShares}
                 onChange={(event) => form.setUnvestedShares(event.target.value.trim())}
               />
@@ -48,7 +48,7 @@ export function AwardAdjustmentForm(props: Parameters<typeof useAwardAdjustmentF
               <input
                 className={FIELD_CLASS}
                 inputMode="numeric"
-                maxLength={78}
+                maxLength={FIELD_LIMITS.REGISTER_SHARES}
                 value={form.vestedShares}
                 onChange={(event) => form.setVestedShares(event.target.value.trim())}
               />
@@ -69,7 +69,7 @@ export function AwardAdjustmentForm(props: Parameters<typeof useAwardAdjustmentF
           {COPY.REASON}
           <textarea
             className={FIELD_CLASS}
-            maxLength={1000}
+            maxLength={FIELD_LIMITS.REASON}
             value={form.reason}
             onChange={(event) => form.setReason(event.target.value)}
           />

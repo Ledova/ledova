@@ -2,6 +2,7 @@ import { Row, Rows, Section } from '@components/Ledger';
 import { PageAction } from '@components/Page';
 import { FIELD_CLASS } from '@components/fieldClass';
 import {
+  FIELD_LIMITS,
   REGISTER_CAPITAL_INCREASE_COPY as COPY,
   REGISTER_CAPITAL_INCREASE_DECISIONS,
   REGISTER_CAPITAL_INCREASE_UNMET_COPY,
@@ -162,6 +163,7 @@ function Preparation({ commands }: { commands: Commands }) {
       <label className="block text-sm">
         Additional authorised shares
         <input
+          maxLength={FIELD_LIMITS.WHOLE_SHARES}
           className={FIELD_CLASS}
           inputMode="numeric"
           value={additional}
@@ -180,7 +182,7 @@ function Preparation({ commands }: { commands: Commands }) {
         Board resolution reference
         <input
           className={FIELD_CLASS}
-          maxLength={255}
+          maxLength={FIELD_LIMITS.REFERENCE}
           value={board}
           onChange={(event) => setBoard(event.target.value)}
         />
@@ -189,7 +191,7 @@ function Preparation({ commands }: { commands: Commands }) {
         Shareholder approval reference (optional)
         <input
           className={FIELD_CLASS}
-          maxLength={255}
+          maxLength={FIELD_LIMITS.REFERENCE}
           value={shareholder}
           onChange={(event) => setShareholder(event.target.value)}
         />

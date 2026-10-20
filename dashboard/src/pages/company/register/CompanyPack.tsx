@@ -1,4 +1,4 @@
-import { type OrderSubmissionOwner } from '@ledova/shared';
+import { FIELD_LIMITS, type OrderSubmissionOwner } from '@ledova/shared';
 import { Outcome, Section } from '@components/Ledger';
 import { PageAction } from '@components/Page';
 import { FIELD_CLASS } from '@components/fieldClass';
@@ -69,7 +69,7 @@ function PackForm({
           Pack instruction reference
           <input
             className={FIELD_CLASS}
-            maxLength={255}
+            maxLength={FIELD_LIMITS.REFERENCE}
             value={instruction}
             onChange={(event) => setInstruction(event.target.value)}
           />
@@ -78,7 +78,7 @@ function PackForm({
           Pack recipient
           <input
             className={FIELD_CLASS}
-            maxLength={255}
+            maxLength={FIELD_LIMITS.NAME}
             value={recipient}
             onChange={(event) => setRecipient(event.target.value)}
           />

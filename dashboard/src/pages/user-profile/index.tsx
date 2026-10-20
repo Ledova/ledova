@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { formatDate, formatDateTime, getUserVerificationStatus, failureSentence } from '@ledova/shared';
+import { FIELD_LIMITS, formatDate, formatDateTime, getUserVerificationStatus, failureSentence } from '@ledova/shared';
 import { FormActions, Page, PageAction } from '@components/Page';
 import { Outcome, Row, Rows, Section, Status, LoadError } from '@components/Ledger';
 import { VERIFICATION_TONES } from '@components/statusTones';
@@ -114,7 +114,7 @@ function UserProfilePage() {
                 type="text"
                 autoComplete="name"
                 value={fullName}
-                maxLength={100}
+                maxLength={FIELD_LIMITS.PROFILE_NAME}
                 disabled={blocked}
                 onChange={(event) => setFullName(event.target.value)}
                 className={FIELD_CLASS}
@@ -134,6 +134,7 @@ function UserProfilePage() {
               <label className="flex w-28 flex-col gap-1 text-sm text-text-muted">
                 Country code
                 <input
+                  maxLength={FIELD_LIMITS.PHONE_COUNTRY_CODE}
                   type="tel"
                   autoComplete="tel-country-code"
                   value={phoneCode}
@@ -145,6 +146,7 @@ function UserProfilePage() {
               <label className="flex min-w-0 flex-1 flex-col gap-1 text-sm text-text-muted">
                 Phone number
                 <input
+                  maxLength={FIELD_LIMITS.PHONE}
                   type="tel"
                   autoComplete="tel-national"
                   value={phoneNumber}

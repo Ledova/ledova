@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { DESTINATIONS, failureSentence } from '@ledova/shared';
+import { FIELD_LIMITS, DESTINATIONS, failureSentence } from '@ledova/shared';
 import { useSettings } from './useSettings';
 import { Modal } from '@components/Modal';
 import { Page, PageAction } from '@components/Page';
@@ -37,6 +37,7 @@ function PasswordInput({
         {label}
         <input
           type={visible ? 'text' : 'password'}
+          maxLength={FIELD_LIMITS.PASSWORD}
           value={value}
           onChange={(event) => onChange(event.target.value)}
           autoComplete={autoComplete}

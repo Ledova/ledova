@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useQueryClient, type QueryKey } from '@tanstack/react-query';
 import {
+  FIELD_LIMITS,
   ACKNOWLEDGEABLE_DISCREPANCIES,
   ATTRIBUTION_DISCREPANCIES,
   REGISTER_RECONCILIATION_COPY,
@@ -240,7 +241,7 @@ export function ClassReconciliation({
                 <textarea
                   className={FIELD_CLASS}
                   rows={3}
-                  maxLength={1000}
+                  maxLength={FIELD_LIMITS.REASON}
                   value={reason}
                   disabled={acknowledgement.busy}
                   onChange={(event) => {

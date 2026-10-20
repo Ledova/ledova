@@ -1,6 +1,12 @@
 import { SelectField } from '@components/SelectField';
 import { useRunningAction } from '@hooks/useRunningAction';
-import { DESTINATIONS, ELIGIBILITY_RECORDS_NOTICE, formatDate, useParticipantEligibilityRecords } from '@ledova/shared';
+import {
+  FIELD_LIMITS,
+  DESTINATIONS,
+  ELIGIBILITY_RECORDS_NOTICE,
+  formatDate,
+  useParticipantEligibilityRecords,
+} from '@ledova/shared';
 import { LinkRow, Section } from '@components/Ledger';
 import { Page, PageAction } from '@components/Page';
 import { ActionConfirmation, EligibilityHistory, RecordsList, TextField } from '@components/eligibility';
@@ -61,6 +67,7 @@ export default function ParticipantEligibilityPage() {
                 />
                 <TextField
                   label="Whole-share quantity"
+                  maxLength={FIELD_LIMITS.WHOLE_SHARES}
                   value={read.draft.quantity}
                   onChange={(quantity) => read.updateDraft({ quantity })}
                 />

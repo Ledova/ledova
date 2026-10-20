@@ -1,3 +1,4 @@
+import { FIELD_LIMITS } from '@ledova/shared';
 import {
   AUTH_BUTTON_CLASS,
   ERROR_BANNER_CLASS,
@@ -70,6 +71,7 @@ export function CompanyRegistrationForm({
               <AuthInput
                 type="text"
                 name="name"
+                maxLength={FIELD_LIMITS.COMPANY_NAME}
                 value={form.name}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFieldValue('name', e.target.value)}
                 className={`${authFieldClass(!!errors.name)} pl-10`}
@@ -90,6 +92,7 @@ export function CompanyRegistrationForm({
             <AuthInput
               type="text"
               name="tradingName"
+              maxLength={FIELD_LIMITS.COMPANY_NAME}
               value={form.tradingName}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFieldValue('tradingName', e.target.value)}
               className={authFieldClass(!!errors.tradingName)}
@@ -140,7 +143,7 @@ export function CompanyRegistrationForm({
                 placeholder="123 456 789"
                 required
                 disabled={isSubmitting}
-                maxLength={11}
+                maxLength={FIELD_LIMITS.ACN}
               />
               {errors.acn && (
                 <Description className="text-error-light text-xs mt-1" role="alert">
@@ -159,7 +162,7 @@ export function CompanyRegistrationForm({
                 className={authFieldClass(!!errors.abn)}
                 placeholder="12 345 678 901"
                 disabled={isSubmitting}
-                maxLength={14}
+                maxLength={FIELD_LIMITS.ABN}
               />
               {errors.abn && (
                 <Description className="text-error-light text-xs mt-1" role="alert">

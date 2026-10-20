@@ -1,6 +1,6 @@
 import { FormActions, PageAction } from '@components/Page';
 import { FIELD_CLASS, LABEL } from '@components/fieldClass';
-import { REGISTER_AWARD_COPY as COPY, type OwnCompanyAppointment, type Person } from '@ledova/shared';
+import { FIELD_LIMITS, REGISTER_AWARD_COPY as COPY, type OwnCompanyAppointment, type Person } from '@ledova/shared';
 import { PersonFields, PersonSelect } from '@pages/company/register/shared/PersonPicker';
 import { useAwardForm } from './useAwardForm';
 
@@ -87,7 +87,7 @@ export function AwardForm({
             <input
               className={FIELD_CLASS}
               inputMode="numeric"
-              maxLength={78}
+              maxLength={FIELD_LIMITS.REGISTER_SHARES}
               value={shares}
               onChange={(event) => setShares(event.target.value.trim())}
             />
@@ -109,7 +109,7 @@ export function AwardForm({
             {COPY.TERMS}
             <textarea
               className={FIELD_CLASS}
-              maxLength={1000}
+              maxLength={FIELD_LIMITS.TERMS}
               value={terms}
               onChange={(event) => setTerms(event.target.value)}
             />
@@ -131,7 +131,7 @@ export function AwardForm({
             {COPY.SCHEDULE}
             <textarea
               className={FIELD_CLASS}
-              maxLength={1000}
+              maxLength={FIELD_LIMITS.TERMS}
               value={schedule}
               onChange={(event) => setSchedule(event.target.value)}
             />

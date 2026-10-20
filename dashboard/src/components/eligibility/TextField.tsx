@@ -6,12 +6,14 @@ export function TextField({
   value,
   onChange,
   type = 'text',
+  maxLength,
   disabled = false,
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
   type?: string;
+  maxLength?: number;
   disabled?: boolean;
 }) {
   return (
@@ -19,6 +21,7 @@ export function TextField({
       <input
         className={FIELD_CLASS}
         type={type}
+        maxLength={maxLength}
         value={value}
         onChange={(event) => onChange(event.target.value)}
         disabled={disabled}

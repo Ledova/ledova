@@ -1,6 +1,6 @@
 import { CompanyPicker } from '@components/CompanyPicker';
 import { useRunningAction } from '@hooks/useRunningAction';
-import { DESTINATIONS } from '@ledova/shared';
+import { FIELD_LIMITS, DESTINATIONS } from '@ledova/shared';
 import { useEffect, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import {
@@ -133,6 +133,7 @@ function MemberRecords({
       <label className="block space-y-1 text-sm">
         Member invitation code
         <input
+          maxLength={FIELD_LIMITS.INVITATION_CODE}
           className={FIELD_CLASS}
           autoComplete="off"
           value={code}
@@ -382,6 +383,7 @@ function MemberRecords({
                         <label className="block space-y-1 text-sm">
                           Requested name
                           <input
+                            maxLength={FIELD_LIMITS.NAME}
                             className={FIELD_CLASS}
                             value={name}
                             disabled={held}
@@ -394,6 +396,7 @@ function MemberRecords({
                         <label className="block space-y-1 text-sm">
                           Requested residential address
                           <textarea
+                            maxLength={FIELD_LIMITS.RESIDENTIAL_ADDRESS}
                             className={FIELD_CLASS}
                             value={address}
                             disabled={held}

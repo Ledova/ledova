@@ -3,6 +3,7 @@ import { PageAction } from '@components/Page';
 import { FIELD_CLASS } from '@components/fieldClass';
 import { SearchSelect } from '@components/SearchSelect';
 import {
+  FIELD_LIMITS,
   REGISTER_PAID_ISSUE_COPY as COPY,
   REGISTER_PAID_ISSUE_DECISIONS,
   REGISTER_PAID_ISSUE_UNMET_COPY,
@@ -235,7 +236,7 @@ function Preparation({ commands }: { commands: Commands }) {
         Approving director
         <input
           className={FIELD_CLASS}
-          maxLength={255}
+          maxLength={FIELD_LIMITS.DIRECTOR}
           value={director}
           onChange={(event) => setDirector(event.target.value)}
         />
@@ -247,7 +248,7 @@ function Preparation({ commands }: { commands: Commands }) {
         Authority reference
         <input
           className={FIELD_CLASS}
-          maxLength={255}
+          maxLength={FIELD_LIMITS.REFERENCE}
           value={reference}
           onChange={(event) => setReference(event.target.value)}
         />
@@ -256,7 +257,7 @@ function Preparation({ commands }: { commands: Commands }) {
         Paid issue reason
         <textarea
           className={FIELD_CLASS}
-          maxLength={1000}
+          maxLength={FIELD_LIMITS.REASON}
           value={reason}
           onChange={(event) => setReason(event.target.value)}
         />

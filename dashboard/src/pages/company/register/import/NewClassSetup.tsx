@@ -4,6 +4,7 @@ import { Fragment, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { generatePath, Link, useSearchParams } from 'react-router-dom';
 import {
+  FIELD_LIMITS,
   DESTINATIONS,
   REGISTER_IMPORT_COPY,
   AUTH_QUERY_KEY,
@@ -273,7 +274,7 @@ function FreshClass({
               <label className={LABEL}>
                 Class name
                 <input
-                  maxLength={100}
+                  maxLength={FIELD_LIMITS.CLASS_NAME}
                   disabled={classLocked}
                   className={FIELD_CLASS}
                   value={name}
@@ -283,7 +284,7 @@ function FreshClass({
               <label className={LABEL}>
                 Class code
                 <input
-                  maxLength={5}
+                  maxLength={FIELD_LIMITS.CLASS_CODE}
                   disabled={classLocked}
                   className={FIELD_CLASS}
                   value={symbol}

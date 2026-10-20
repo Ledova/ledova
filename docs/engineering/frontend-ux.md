@@ -454,10 +454,14 @@ Loading lines, refresh actions, a failed refresh and empty states are still to f
 
 ## Forms
 
-Dates on web forms:
-
-- **Fields.** A date field is `type="date"`, bounded with `min` and `max` wherever the server has a
-  rule, and its label or message names the time zone where it matters.
+- **Limits.** A text field's `maxLength` comes from `FIELD_LIMITS`
+  (`packages/shared/src/constants/business/field-limits.ts`): one constant per kind of backend field,
+  equal to its serializer or model limit, such as `NAME` (255), `REASON` (1000), `REGISTER_SHARES`
+  (78 digits) and `AMOUNT` (21 characters). A field the backend leaves unbounded, such as an
+  offering's summary or a profile's residential address, has none. Numbers are text inputs with
+  `inputMode`, including Trading's order fields.
+- **Date fields.** A date field is `type="date"`, bounded with `min` and `max` wherever the server
+  has a rule, and its label or message names the time zone where it matters.
 - **UTC dates.** Register and company dates are UTC calendar dates: `utcToday`
   (`packages/shared/src/utils/date.ts`) is their default and their `max`, so a date the server
   would refuse as in the future can't be picked. A team invitation's deadline and appointment

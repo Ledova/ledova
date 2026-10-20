@@ -1,5 +1,12 @@
 import { SelectField } from '@components/SelectField';
-import { DESTINATIONS, SUBSCRIPTION_COPY, formatMoney, applicationAmount, failureSentence } from '@ledova/shared';
+import {
+  DESTINATIONS,
+  FIELD_LIMITS,
+  SUBSCRIPTION_COPY,
+  formatMoney,
+  applicationAmount,
+  failureSentence,
+} from '@ledova/shared';
 import type { DirectoryOpenOffering, Wallet } from '@ledova/shared';
 import { LinkRow, Row, Rows, Section } from '@components/Ledger';
 import { PageAction } from '@components/Page';
@@ -55,6 +62,7 @@ export function SubscribeForm({
           <input
             type="text"
             inputMode="numeric"
+            maxLength={FIELD_LIMITS.WHOLE_SHARES}
             value={quantity}
             onChange={(event) => onDraftChange({ ...draft, quantity: event.target.value })}
             className={FIELD_CLASS}

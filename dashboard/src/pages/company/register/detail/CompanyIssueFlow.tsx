@@ -4,6 +4,7 @@ import { PageAction } from '@components/Page';
 import { FIELD_CLASS } from '@components/fieldClass';
 import { SearchSelect } from '@components/SearchSelect';
 import {
+  FIELD_LIMITS,
   REGISTER_ISSUE_COPY as COPY,
   REGISTER_ISSUE_DECISIONS,
   REGISTER_ISSUE_UNMET_COPY,
@@ -313,15 +314,30 @@ function Preparation({ commands }: { commands: Commands }) {
       {member === 'new' && <p className="text-sm text-text-muted">New stable member: {newMember}</p>}
       <label className="block text-sm">
         Approving director
-        <input className={FIELD_CLASS} value={director} onChange={(event) => setDirector(event.target.value)} />
+        <input
+          className={FIELD_CLASS}
+          maxLength={FIELD_LIMITS.DIRECTOR}
+          value={director}
+          onChange={(event) => setDirector(event.target.value)}
+        />
       </label>
       <label className="block text-sm">
         Authority reference
-        <input className={FIELD_CLASS} value={reference} onChange={(event) => setReference(event.target.value)} />
+        <input
+          className={FIELD_CLASS}
+          maxLength={FIELD_LIMITS.REFERENCE}
+          value={reference}
+          onChange={(event) => setReference(event.target.value)}
+        />
       </label>
       <label className="block text-sm">
         Reason
-        <input className={FIELD_CLASS} value={reason} onChange={(event) => setReason(event.target.value)} />
+        <input
+          className={FIELD_CLASS}
+          maxLength={FIELD_LIMITS.REASON}
+          value={reason}
+          onChange={(event) => setReason(event.target.value)}
+        />
       </label>
       <label className="block text-sm">
         Authority document
@@ -360,6 +376,7 @@ function Preparation({ commands }: { commands: Commands }) {
       <label className="block text-sm">
         Shares to grant
         <input
+          maxLength={FIELD_LIMITS.WHOLE_SHARES}
           inputMode="numeric"
           className={FIELD_CLASS}
           value={shares}
@@ -379,7 +396,12 @@ function Preparation({ commands }: { commands: Commands }) {
       </label>
       <label className="block text-sm">
         Non-paid terms
-        <textarea className={FIELD_CLASS} value={terms} onChange={(event) => setTerms(event.target.value)} />
+        <textarea
+          className={FIELD_CLASS}
+          maxLength={FIELD_LIMITS.TERMS}
+          value={terms}
+          onChange={(event) => setTerms(event.target.value)}
+        />
       </label>
       <label className="block text-sm">
         Terms document

@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { Field, Label, Description } from '@headlessui/react';
 import { EnvelopeIcon, LockIcon, UserIcon, WarningIcon } from '@phosphor-icons/react';
-import { useSignupRestart } from '@ledova/shared';
+import { FIELD_LIMITS, useSignupRestart } from '@ledova/shared';
 import { useUserProfile } from '@hooks/useUserProfile';
 import { ICON_MD } from '@components/iconSizes';
 
@@ -70,6 +70,7 @@ export function YourAccount() {
               <AuthInput
                 type="email"
                 name="email"
+                maxLength={FIELD_LIMITS.EMAIL}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="your@email.com"
@@ -106,6 +107,7 @@ export function YourAccount() {
                   <AuthInput
                     type="email"
                     name="confirmEmail"
+                    maxLength={FIELD_LIMITS.EMAIL}
                     value={confirmEmail}
                     onChange={(e) => setConfirmEmail(e.target.value)}
                     placeholder="your@email.com"
@@ -128,6 +130,7 @@ export function YourAccount() {
                   <AuthInput
                     type="password"
                     name="currentPassword"
+                    maxLength={FIELD_LIMITS.PASSWORD}
                     value={currentPassword}
                     onChange={(e) => setCurrentPassword(e.target.value)}
                     placeholder="••••••••"

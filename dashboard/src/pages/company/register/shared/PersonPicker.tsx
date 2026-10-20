@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { NEW_PERSON, personChoices, type Person } from '@ledova/shared';
+import { FIELD_LIMITS, NEW_PERSON, personChoices, type Person } from '@ledova/shared';
 import { FIELD_CLASS, LABEL } from '@components/fieldClass';
 import { SearchSelect } from '@components/SearchSelect';
 
@@ -69,7 +69,7 @@ export function PersonFields({
         <input
           className={`${FIELD_CLASS} ${READ_ONLY}`}
           value={name}
-          maxLength={255}
+          maxLength={FIELD_LIMITS.NAME}
           readOnly={nameReadOnly}
           onChange={(event) => onName(event.target.value)}
         />
@@ -79,7 +79,7 @@ export function PersonFields({
         <textarea
           className={`${FIELD_CLASS} ${READ_ONLY}`}
           value={residentialAddress}
-          maxLength={1000}
+          maxLength={FIELD_LIMITS.RESIDENTIAL_ADDRESS}
           rows={2}
           readOnly={addressReadOnly}
           onChange={(event) => onResidentialAddress(event.target.value)}

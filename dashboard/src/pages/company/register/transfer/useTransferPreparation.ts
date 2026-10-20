@@ -3,6 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import {
   DESTINATIONS,
+  FIELD_LIMITS,
   REGISTER_TRANSFER_COPY as COPY,
   apiErrorSentence,
   createUserFriendlyError,
@@ -235,15 +236,15 @@ export function useTransferPreparation({
       if (mounted.current) setBusy(false);
     }
   };
-  const fields: [keyof Draft, string, number][] = [
-    ['shares', COPY.SHARES, 78],
-    ['companyEventOn', COPY.COMPANY_EVENT_ON, 10],
-    ['signedOn', COPY.SIGNED_ON, 10],
-    ['lodgedOn', COPY.LODGED_ON, 10],
-    ['terms', COPY.TERMS, 1000],
-    ['approvingDirector', COPY.DIRECTOR, 255],
-    ['authorityReference', COPY.AUTHORITY_REFERENCE, 255],
-    ['reason', COPY.REASON, 1000],
+  const fields: [keyof Draft, string, number | undefined][] = [
+    ['shares', COPY.SHARES, FIELD_LIMITS.REGISTER_SHARES],
+    ['companyEventOn', COPY.COMPANY_EVENT_ON, undefined],
+    ['signedOn', COPY.SIGNED_ON, undefined],
+    ['lodgedOn', COPY.LODGED_ON, undefined],
+    ['terms', COPY.TERMS, FIELD_LIMITS.TERMS],
+    ['approvingDirector', COPY.DIRECTOR, FIELD_LIMITS.DIRECTOR],
+    ['authorityReference', COPY.AUTHORITY_REFERENCE, FIELD_LIMITS.REFERENCE],
+    ['reason', COPY.REASON, FIELD_LIMITS.REASON],
   ];
   return {
     today,
