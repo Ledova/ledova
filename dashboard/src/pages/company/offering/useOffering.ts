@@ -19,7 +19,7 @@ import {
   OPERATOR_QUERY_KEY,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
-import { PAGE_SIZE, keepWithin, retryUnlessGone, type ListParams } from '@hooks/useListParams';
+import { PAGE_SIZE, keepWithin, retryServerFailures } from '@hooks/useListParams';
 import type { CompanyActionRead } from '@pages/company/shared/CompanyState';
 import { useTokensList, companyTokensKey } from '@pages/company/shared/useTokensList';
 
@@ -135,21 +135,21 @@ export function useCompanyOfferingSubscriptions(
   uuid: string | undefined,
   companyUuid: string,
   read: CompanyActionRead,
-  list: ListParams<'status'>,
+  query: { search: string; status: IssuerSubscriptionQueryParams['status'] | undefined; page: number },
 ) {
   const key = companyOfferingSubscriptionsDetailKey(companyUuid, read.scopeKey, uuid);
   return useQuery({
-    queryKey: [...key, list.search, list.filters.status, list.page],
+    queryKey: [...key, query.search, query.status, query.page],
     enabled: !!uuid && !read.error && !read.isRefreshing,
     staleTime: CACHE_TIMING.SHORT_STALE_TIME,
     placeholderData: keepWithin(key),
-    retry: retryUnlessGone,
+    retry: retryServerFailures,
     queryFn: async () => {
       read.assertCurrent(companyUuid, 'owner');
-      const { data } = await getOfferingSubscriptions(apiClient, uuid!, list.page, {
+      const { data } = await getOfferingSubscriptions(apiClient, uuid!, query.page, {
         page_size: PAGE_SIZE,
-        search: list.search || undefined,
-        status: (list.filters.status || undefined) as IssuerSubscriptionQueryParams['status'],
+        search: query.search || undefined,
+        status: query.status,
       });
       read.assertCurrent(companyUuid, 'owner');
       return data;

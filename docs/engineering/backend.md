@@ -105,9 +105,10 @@ awkwardly: do not add one.
 - Test helpers never override reserved `TestCase` methods
   ([the test shadowing gate](gates.md#the-test-shadowing-gate)).
 - Keep `TextChoices` beside their model and numeric thresholds in app constants.
-- Lists page 25 rows at a time, and `page_size` asks for up to 100 (`shared/api/pagination.py`).
-  A list's `search` matches every word, ignoring case, in the fields it names (`every_word` in
-  `shared/api/search.py`).
+- Paged lists return 25 rows at a time, and `page_size` asks for up to 100
+  (`shared/api/pagination.py`). A search built with `every_word` (`shared/api/search.py`), so far an
+  offering's applications, matches every word, ignoring case; the older `search` filters on
+  companies, share classes, transfer orders, capital increases and assets match the whole text.
 - JSON is camel-case on the wire: `djangorestframework_camel_case` renders responses in camelCase
   and parses requests in either spelling. This document uses the serializers' snake_case names.
 

@@ -32,7 +32,7 @@ const STATUSES: Record<SubscriptionStatus, string> = {
 const COLUMNS = [
   { label: 'Investor' },
   { label: 'Status' },
-  { label: 'Shares', align: 'right' as const },
+  { label: 'Requested shares', align: 'right' as const },
   { label: 'Amount', align: 'right' as const },
   { label: 'Allotment' },
 ];
@@ -50,10 +50,19 @@ export function SubscriptionsLedger({
 }) {
   const list = useListParams(['offering', 'status']);
   const offering = offerings.find((row) => row.uuid === list.filters.offering) ?? offerings[0];
-  const read = useCompanyOfferingSubscriptions(offering?.uuid, companyUuid, companyRead, list);
-  useFirstPageWhenGone(list, read.error);
+  const status = Object.prototype.hasOwnProperty.call(STATUSES, list.filters.status)
+    ? (list.filters.status as SubscriptionStatus)
+    : undefined;
+  const read = useCompanyOfferingSubscriptions(offering?.uuid, companyUuid, companyRead, {
+    search: list.search,
+    status,
+    page: list.page,
+  });
+  const gone = useFirstPageWhenGone(list, read.error);
   if (!offering) return null;
-  const narrowed = !!list.search || !!list.filters.status;
+  const narrowed = !!list.search || !!status;
+  const data = read.isSuccess ? read.data : undefined;
+  const empty = data?.count === 0 && !narrowed;
   return (
     <Section title={REGISTER_COPY.APPLICATIONS_TITLE}>
       <p className="text-sm text-text-muted">{REGISTER_COPY.APPLICATIONS_NOTE(operatorName)}</p>
@@ -67,41 +76,43 @@ export function SubscriptionsLedger({
         value={offering.uuid}
         onChange={(value) => list.setFilter('offering', value)}
       />
-      {read.isError ? (
+      {!empty && (
+        <ListSearch
+          label="Search applications"
+          hint="Investor name, wallet address or payment reference"
+          list={list}
+          noun={NOUN}
+          count={data && !read.isPlaceholderData ? data.count : undefined}
+          filtered={!!status}
+        >
+          <SelectField
+            label="Status"
+            options={[
+              { value: '', label: 'All statuses' },
+              ...Object.entries(STATUSES).map(([value, label]) => ({ value, label })),
+            ]}
+            value={status ?? ''}
+            onChange={(value) => list.setFilter('status', value)}
+          />
+        </ListSearch>
+      )}
+      {read.isError && !gone ? (
         <CompanyReadNotice
           read={{ error: read.error, isRefreshing: read.isFetching, refetch: read.refetch }}
           label={REGISTER_COPY.APPLICATIONS_TITLE}
         />
-      ) : read.isPending ? (
+      ) : !data || gone ? (
         <p role="status" className="text-sm text-text-muted">
           Loading applications…
         </p>
-      ) : read.data.count === 0 && !narrowed ? (
+      ) : empty ? (
         <p className="text-sm text-text-muted">{REGISTER_COPY.APPLICATIONS_EMPTY}</p>
       ) : (
         <>
-          <ListSearch
-            label="Search applications"
-            hint="Investor name, wallet address or payment reference"
-            list={list}
-            noun={NOUN}
-            count={read.isPlaceholderData ? undefined : read.data.count}
-            filtered={!!list.filters.status}
-          >
-            <SelectField
-              label="Status"
-              options={[
-                { value: '', label: 'All statuses' },
-                ...Object.entries(STATUSES).map(([value, label]) => ({ value, label })),
-              ]}
-              value={list.filters.status}
-              onChange={(value) => list.setFilter('status', value)}
-            />
-          </ListSearch>
-          {read.data.results.length > 0 && (
+          {data.results.length > 0 && (
             <div aria-busy={read.isPlaceholderData} className={read.isPlaceholderData ? 'opacity-60' : undefined}>
               <Table caption={`Applications to the ${offering.tokenName} offering`} columns={COLUMNS}>
-                {read.data.results.map((row) => (
+                {data.results.map((row) => (
                   <tr key={row.uuid} className="align-top">
                     <th scope="row" className="px-4 py-3 text-left font-normal">
                       <p className="break-words font-medium text-text-primary">
@@ -115,7 +126,9 @@ export function SubscriptionsLedger({
                       )}
                     </th>
                     <td className="px-4 py-3">
-                      <Status tone={companySubscriptionTone(row.status)}>{row.statusDisplay}</Status>
+                      <Status tone={companySubscriptionTone(row.status)}>
+                        {STATUSES[row.status] ?? row.statusDisplay}
+                      </Status>
                       <p className="mt-1 text-xs text-text-muted">
                         {row.settlementRailDisplay}
                         {row.paymentConfirmedAt
@@ -147,7 +160,7 @@ export function SubscriptionsLedger({
               </Table>
             </div>
           )}
-          <Pager label="Application pages" list={list} noun={NOUN} count={read.data.count} />
+          <Pager label="Application pages" list={list} noun={NOUN} count={data.count} busy={read.isPlaceholderData} />
         </>
       )}
     </Section>
