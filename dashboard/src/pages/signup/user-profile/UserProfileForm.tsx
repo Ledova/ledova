@@ -9,6 +9,7 @@ import {
 import { Field, Label, Textarea, Description } from '@headlessui/react';
 import { UserIcon, HouseIcon, PhoneIcon, WarningIcon, CalendarIcon } from '@phosphor-icons/react';
 import { CountrySelector } from './CountrySelector';
+import { utcToday } from '@ledova/shared';
 import type { FormErrors, UserProfileFormValidation, CountryData, UserProfileFormData } from '@ledova/shared';
 import { ICON_MD } from '@components/iconSizes';
 
@@ -92,6 +93,7 @@ export function UserProfileForm({
               </div>
               <AuthInput
                 type="date"
+                max={utcToday()}
                 name="dateOfBirth"
                 value={form.dateOfBirth || ''}
                 onChange={(e) => setFieldValue('dateOfBirth', e.target.value)}

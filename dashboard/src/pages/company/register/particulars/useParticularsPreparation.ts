@@ -14,6 +14,7 @@ import {
   type OrderSubmissionOwner,
   type OwnCompanyAppointment,
   type RegisterEvidence,
+  utcToday,
 } from '@ledova/shared';
 
 import apiClient from '@services/apiClient';
@@ -63,7 +64,7 @@ export function useParticularsPreparation({
 }: ParticularsFormProps) {
   const client = useQueryClient();
   const navigate = useNavigate();
-  const today = new Date().toISOString().slice(0, 10);
+  const today = utcToday();
   const [draft, setDraft] = useState<Draft>(() => ({ file: null, name: '', address: '', asAt: today, reason: '' }));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');

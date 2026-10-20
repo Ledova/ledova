@@ -14,6 +14,7 @@ import {
   type RegisterEvidence,
   REGISTER_AWARD_UNMET_COPY,
   refusalSentence,
+  utcToday,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
@@ -38,7 +39,7 @@ export function useAwardVestingForm({
   canPrepare?: boolean;
 }) {
   const [shares, setShares] = useState('');
-  const [vestedOn, setVestedOn] = useState(() => new Date().toISOString().slice(0, 10));
+  const [vestedOn, setVestedOn] = useState(utcToday);
   const [file, setFile] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
   const [held, setHeld] = useState(false);
@@ -65,7 +66,7 @@ export function useAwardVestingForm({
       throw createUserFriendlyError('Refresh company access and vesting records before continuing.');
     if (!live.current) throw createUserFriendlyError('This vesting form is closed. Reopen it before continuing.');
   };
-  const today = new Date().toISOString().slice(0, 10);
+  const today = utcToday();
   const problem =
     !/^[1-9]\d*$/.test(shares) || BigInt(shares) > BigInt(award.unvestedRemainingShares)
       ? 'Enter a positive whole quantity within the award’s unvested shares.'

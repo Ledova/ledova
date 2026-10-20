@@ -18,6 +18,7 @@ import {
   type Person,
   REGISTER_TRANSFER_UNMET_COPY,
   refusalSentence,
+  utcToday,
 } from '@ledova/shared';
 
 import apiClient from '@services/apiClient';
@@ -69,7 +70,7 @@ export function useTransferPreparation({
 }: TransferFormProps) {
   const client = useQueryClient();
   const navigate = useNavigate();
-  const today = new Date().toISOString().slice(0, 10);
+  const today = utcToday();
   const [newMemberId] = useState(() => crypto.randomUUID());
   const [draft, setDraft] = useState<Draft>({
     fromMember: people.some(

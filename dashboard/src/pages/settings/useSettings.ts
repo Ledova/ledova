@@ -9,6 +9,7 @@ import {
   exportAccountData,
   upsertCurrentUserPreferences,
   useUserPreferences,
+  utcToday,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
 import { SIGNIN_PATH } from '@utils/paths';
@@ -61,7 +62,7 @@ export function useSettings() {
     mutationFn: () => exportAccountData(apiClient),
     onSuccess: (response) => {
       const blob = new Blob([JSON.stringify(response.data, null, 2)], { type: 'application/json' });
-      saveFile(blob, `ledova-data-export-${new Date().toISOString().split('T')[0]}.json`);
+      saveFile(blob, `ledova-data-export-${utcToday()}.json`);
       setModal(null);
     },
   });
