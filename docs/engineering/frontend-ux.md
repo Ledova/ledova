@@ -142,30 +142,34 @@ How the list behaves:
   setup draft, stays listed, disabled, with the reason.
 - **Shared logic:** `peopleFrom`, `personChoices` and `personRequest` are in
   `packages/shared/src/utils/people.ts`, and the matching is `searchEntries` and `searchMatches` in
-  `packages/shared/src/utils/search.ts`, so both clients use the same list, rules and search.
+  `packages/shared/src/utils/search.ts`, so both clients build, label and search the list the same
+  way.
 
 These rules are checked in review. The dashboard suite drives the list in register setup (typing a
 name and pressing Enter), a transfer and member invitations.
 
 On mobile, the register flows choose a person from the same kind of list, in a sheet opened from the
-field. Most go through `PersonSelect` (`mobile/src/components/register/PersonPicker.tsx`) with the
-shared `peopleFrom`, `personChoices` and `personRequest`:
+field. Most go through `PersonSelect` (`mobile/src/components/register/PersonPicker.tsx`), which
+labels each person with the shared `personChoices`:
 
 - investor and non-paid issues, employee awards and transfers read members and award recipients
-  through `useTransferMembers`;
+  through `useTransferMembers` and the shared `peopleFrom`. Issues and awards send the shared
+  `personRequest` (an award-linked grant sends its award's recipient), and a transfer applies the
+  same award-recipient rule in its own request;
 - register setup's **Add a shareholder** reads `useRegisterImportMembers` and offers award
   recipients and the members without a linked wallet whose name and address are retained, where the
   web offers every company member;
 - the share-class issue's member uses `SearchSelect` directly, with the members from
   `useCompanyIssueInstructions`;
-- member invitations offer the holders and award recipients from `invitationMembers`.
+- member invitations offer the current and former holders and award recipients from
+  `invitationMembers`.
 
 The sheet works the same way in each:
 
 - **The sheet:** `SearchSelect` (`mobile/src/components/SearchSelect.tsx`) shows the label above a
   field with the current choice and its detail. Tapping the field opens a sheet with an empty search
-  box, a count of the matches and a list that renders only the rows on screen, so no cap is needed;
-  dragging the list hides the keyboard.
+  box, a count of the matches once you type, and a list that renders only the rows on screen, so no
+  cap is needed; dragging the list hides the keyboard.
 - **Choosing:** each row is a radio button in a radio group, marked when chosen, and choosing closes
   the sheet. **New person** comes first as on the web, and an unavailable person stays listed,
   disabled, with the reason.
