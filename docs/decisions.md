@@ -1255,6 +1255,28 @@ When the independent review of
 keep it simple: share classes created on the web carry the internal quantity
 guard, with no custom technical share limit, and mobile follows the same rule.
 
+### Share classes, shareholders and employee awards
+
+On 20 October 2026 the owner decided ([#1165](https://github.com/Ledova/ledova/issues/1165)) to
+separate share-class management from shareholder management without duplicating functionality: a
+shareholder created while allocating shares and one created anywhere else use the same functionality
+and the same records. Register holds the share classes and their structure: class cards, Add share
+class with its shareholders step, issuing shares and the history of recorded changes. Shareholders
+shows who holds shares, with a page per person for their particulars, holdings, history, awards and
+access to their own records. Member access moves there from Settings, which changes the
+[12 October](#ownership-dashboard-and-compact-sidebar) placement of named-member invitations.
+Employee awards stays a distinct workflow, because an award is an entitlement, not a shareholding
+([10 October](#first-scopes-for-employee-awards-and-external-capital)); its recipients are to be
+chosen with the same person picker, and issuing vested shares is to use the same issue flow as
+Register. For award recipients the owner chose a person record from the award onwards, without a
+place on the register of members until shares are issued. The web comes first, in steps the owner
+checks one at a time: the Shareholders page
+([#1166](https://github.com/Ledova/ledova/issues/1166)), one person picker
+([#1167](https://github.com/Ledova/ledova/issues/1167)), issuing shares from Register
+([#1168](https://github.com/Ledova/ledova/issues/1168)), award recipients as person records
+([#1169](https://github.com/Ledova/ledova/issues/1169)) and the mobile app
+([#1170](https://github.com/Ledova/ledova/issues/1170)).
+
 ## Paper and Dark themes
 
 On 14 October 2026 the owner directed under

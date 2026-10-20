@@ -45,12 +45,13 @@ expansion tickets were [closed as not planned on 18 October](../../decisions.md#
 | [#1025](https://github.com/Ledova/ledova/issues/1025), [#1029](https://github.com/Ledova/ledova/issues/1029), [#1036](https://github.com/Ledova/ledova/issues/1036) | The existing-register mirror: copied particulars and bounded corrections, web setup from share details to shareholders to review, and manual entry |
 | [#1031](https://github.com/Ledova/ledova/issues/1031)                                                                                                               | Consistent signed-in web presentation                                                                                                              |
 | [#1155](https://github.com/Ledova/ledova/issues/1155)                                                                                                               | Dashboard overview and Getting started, register setup and share classes only in Register, verification and activation atop Settings (web)         |
+| [#1166](https://github.com/Ledova/ledova/issues/1166)                                                                                                               | Shareholders on its own page with member access, and a page per shareholder; Register keeps the share classes (web, first step of #1165)           |
 
 ## Remaining scope
 
-| Issue                                               | Remaining                                                                                                                                                                                                        | Current prerequisites                                         |
-| --------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
-| [#624](https://github.com/Ledova/ledova/issues/624) | Physical-device and live human release acceptance                                                                                                                                                                | Genuine device/human and configured-chain evidence            |
+| Issue                                               | Remaining                                         | Current prerequisites                              |
+| --------------------------------------------------- | ------------------------------------------------- | -------------------------------------------------- |
+| [#624](https://github.com/Ledova/ledova/issues/624) | Physical-device and live human release acceptance | Genuine device/human and configured-chain evidence |
 
 Programme [#860](https://github.com/Ledova/ledova/issues/860), now closed, tracked the transition to one registry
 product; closed [#645](https://github.com/Ledova/ledova/issues/645) delivered the earlier foundation and
