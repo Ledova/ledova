@@ -95,6 +95,7 @@ export function ClassAwards({
       awards.refetch({ throwOnError }),
       client.invalidateQueries({ queryKey: allPeopleKey(owner) }),
       client.invalidateQueries({ queryKey: [...registerKey(owner), 'invitation-awards', company] }),
+      client.invalidateQueries({ queryKey: [...registerKey(owner), 'member-awards', company] }),
       client.invalidateQueries({ queryKey: grantsKey(owner, token) }),
     ]);
   };

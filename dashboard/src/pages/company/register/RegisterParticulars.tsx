@@ -48,7 +48,12 @@ export function RegisterParticulars({
     hasCurrentRegisterReadAuthority(appointments.data, company);
   const names = registerMembers(registers);
   const firstClass = registers[0]?.token.uuid ?? '';
-  const people = usePeople(owner, firstClass, guard, visible && !!firstClass);
+  const people = usePeople(
+    owner,
+    firstClass,
+    guard,
+    visible && !!firstClass && (changes.data ?? []).some((change) => !names.get(change.member)),
+  );
   const nameOf = (member: string) =>
     names.get(member) || people.data?.members.find((row) => row.member === member)?.name || COPY.UNNAMED_MEMBER;
   const refresh = async () => {

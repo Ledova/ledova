@@ -115,11 +115,13 @@ export function AwardRecord({
           <h4 className="text-base font-medium text-text-primary">{award.recipientName}</h4>
           <AwardStatus {...award} />
           <div className="flex flex-wrap gap-2">
-            <PageLink
-              to={shareholderPath(award.member, award.company)}
-              label="Recipient details"
-              context={award.recipientName}
-            />
+            {!formHeld && !adjusting && !editing && (
+              <PageLink
+                to={shareholderPath(award.member, award.company)}
+                label="Recipient details"
+                context={award.recipientName}
+              />
+            )}
             {((appointment && BigInt(award.unvestedRemainingShares) > 0n) || (editing && formAppointment)) && (
               <PageAction
                 label={editing ? 'Close vesting form' : 'Record vesting'}

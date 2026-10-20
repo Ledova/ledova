@@ -171,7 +171,7 @@ export function memberIdentityProblems(
       problems.push(
         `Shareholder ${index + 1}: the existing company member is no longer available. Refresh before continuing.`,
       );
-    if (row.identityChoice === 'award' && !recipient)
+    if (row.identityChoice === 'award' && !member)
       problems.push(`Shareholder ${index + 1}: the award recipient is no longer available. Refresh before continuing.`);
     if (known.length && !member && row.identityChoice !== 'new')
       problems.push(

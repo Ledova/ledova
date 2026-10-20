@@ -204,9 +204,16 @@ function OwnShareholder({
       const register = registers.find((item) => item.token.uuid === token);
       return register ? `${register.token.name} · ${register.token.symbol}` : 'Share class';
     };
+    const absent = (
+      <p className="py-3 text-sm text-text-muted">This shareholder is not on the register of {data.company.name}.</p>
+    );
     content =
       !holdings.length && !former.length && !recorded ? (
-        <p className="py-3 text-sm text-text-muted">This shareholder is not on the register of {data.company.name}.</p>
+        appointments.isSuccess && !authorised ? (
+          absent
+        ) : (
+          privately(data.particulars, () => absent)
+        )
       ) : (
         <>
           <Section title="Particulars">
