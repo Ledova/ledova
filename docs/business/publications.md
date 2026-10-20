@@ -71,7 +71,12 @@ fingerprint are recorded, so a roll that no longer matches can be reported rathe
 Identity is resolved once, by the register's own rules
 ([membership and identity](register.md#members-holder-types-and-identity)), and never from a wallet
 address alone: two accounts can record the same address, and matching by address could hand one
-member's statement to another. A member the register cannot name (ambiguous, treasury or
+member's statement to another. A named member without a linked wallet can receive the publication
+through their current [member-access association](member-records.md#member-access) in that company.
+The account is frozen when the publication is made; revocation affects future publications rather
+than changing earlier recipients. Existing wallet identity and ambiguity rules still apply.
+
+A member the register cannot name (ambiguous, treasury or
 unidentified) stays on the roll for the company's records, with no account and nothing online; the
 company reaches them another way, and staff can
 [enter their ballots](#entering-a-ballot-for-a-member).

@@ -3,8 +3,11 @@ import json
 from collections import defaultdict
 from uuid import UUID
 
-from tokens.models import RegisterEntry
+from django.db.models import BooleanField, Exists, F, Func, OuterRef
+
+from tokens.models import MemberAssociation, RegisterEntry, RegisterMemberWallet
 from tokens.services.register import member_identities
+from whitelist.models import HolderType
 
 
 def holdings_at(register, record_date) -> dict:
@@ -23,10 +26,23 @@ def holdings_at(register, record_date) -> dict:
 def frozen_rows(token, register, record_date) -> list[dict]:
     held = holdings_at(register, record_date)
     identities = member_identities(token, sorted(held))
+    wallets = RegisterMemberWallet.objects.filter(company_id=token.company_id, member_id=OuterRef("member"))
+    accounts = dict(
+        MemberAssociation.objects.filter(company_id=token.company_id, member__in=held, current=True)
+        .alias(
+            has_wallet=Exists(wallets),
+            access_current=Func(
+                F("uuid"), F("user_id"), function="tokens_member_association_current", output_field=BooleanField()
+            ),
+        )
+        .filter(has_wallet=False, access_current=True)
+        .values_list("member", "user_id")
+    )
     rows = [
         {
             "member_id": member,
-            "user_id": identities[member].user_id,
+            "user_id": identities[member].user_id
+            or (accounts.get(member) if identities[member].holder_type == HolderType.MEMBER else None),
             "name": identities[member].name,
             "holder_type": identities[member].holder_type,
             "identity_source": identities[member].source,
