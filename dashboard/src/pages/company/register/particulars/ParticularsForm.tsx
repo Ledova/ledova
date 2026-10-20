@@ -1,3 +1,4 @@
+import { FIELD_LIMITS } from '@ledova/shared';
 import { useParticularsPreparation, type ParticularsFormProps, COPY } from './useParticularsPreparation';
 
 import { FormActions, PageAction } from '@components/Page';
@@ -54,7 +55,7 @@ export function ParticularsForm({
             {COPY.NAME}
             <input
               value={draft.name}
-              maxLength={255}
+              maxLength={FIELD_LIMITS.NAME}
               className={FIELD_CLASS}
               onChange={(event) => update({ name: event.target.value })}
             />
@@ -63,7 +64,7 @@ export function ParticularsForm({
             {COPY.RESIDENTIAL_ADDRESS}
             <input
               value={draft.address}
-              maxLength={1000}
+              maxLength={FIELD_LIMITS.RESIDENTIAL_ADDRESS}
               className={FIELD_CLASS}
               onChange={(event) => update({ address: event.target.value })}
             />
@@ -85,7 +86,7 @@ export function ParticularsForm({
           <textarea
             rows={3}
             value={draft.reason}
-            maxLength={1000}
+            maxLength={FIELD_LIMITS.REASON}
             className={FIELD_CLASS}
             onChange={(event) => update({ reason: event.target.value })}
           />

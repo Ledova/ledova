@@ -7,7 +7,13 @@ import {
   AuthDivider,
 } from '@components/auth';
 import React from 'react';
-import { FormErrors, FinancialProfileFormState, SOURCE_OF_FUNDS_OPTIONS, INTENDED_USE_OPTIONS } from '@ledova/shared';
+import {
+  FIELD_LIMITS,
+  FormErrors,
+  FinancialProfileFormState,
+  SOURCE_OF_FUNDS_OPTIONS,
+  INTENDED_USE_OPTIONS,
+} from '@ledova/shared';
 import { ICON_MD } from '@components/iconSizes';
 import { Field, Label, Description } from '@headlessui/react';
 import { WarningIcon } from '@phosphor-icons/react';
@@ -73,6 +79,7 @@ export function FinancialProfileForm({
               <AuthInput
                 type="text"
                 name="sourceOfFundsOtherText"
+                maxLength={FIELD_LIMITS.FINANCIAL_DETAIL}
                 value={form.sourceOfFundsOtherText || ''}
                 onChange={(e) => setFieldValue('sourceOfFundsOtherText', e.target.value)}
                 className={authFieldClass(errors.sourceOfFundsOtherText)}
@@ -101,6 +108,7 @@ export function FinancialProfileForm({
               <AuthInput
                 type="text"
                 name="intendedUseOtherText"
+                maxLength={FIELD_LIMITS.FINANCIAL_DETAIL}
                 value={form.intendedUseOtherText || ''}
                 onChange={(e) => setFieldValue('intendedUseOtherText', e.target.value)}
                 className={authFieldClass(errors.intendedUseOtherText)}
@@ -120,6 +128,7 @@ export function FinancialProfileForm({
             <AuthInput
               type="text"
               name="occupation"
+              maxLength={FIELD_LIMITS.FINANCIAL_DETAIL}
               value={form.occupation || ''}
               onChange={(e) => setFieldValue('occupation', e.target.value)}
               className={authFieldClass(errors.occupation)}

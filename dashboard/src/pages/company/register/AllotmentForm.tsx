@@ -1,8 +1,19 @@
 import { FormActions, PageAction } from '@components/Page';
 import { FIELD_CLASS, LABEL } from '@components/fieldClass';
-import { REGISTER_ALLOTMENT_COPY as COPY, type OwnCompanyAppointment, type Person } from '@ledova/shared';
+import { FIELD_LIMITS, REGISTER_ALLOTMENT_COPY as COPY, type OwnCompanyAppointment, type Person } from '@ledova/shared';
 import { PersonFields, PersonSelect } from '@pages/company/register/shared/PersonPicker';
 import { useAllotmentForm, type DocumentKind } from './useAllotmentForm';
+
+const LIMITS: Partial<Record<string, number>> = {
+  shares: FIELD_LIMITS.REGISTER_SHARES,
+  consideration: FIELD_LIMITS.AMOUNT,
+  receivedAmount: FIELD_LIMITS.AMOUNT,
+  agreementReference: FIELD_LIMITS.REFERENCE,
+  terms: FIELD_LIMITS.TERMS,
+  approvingDirector: FIELD_LIMITS.DIRECTOR,
+  authorityReference: FIELD_LIMITS.REFERENCE,
+  reason: FIELD_LIMITS.REASON,
+};
 
 export function AllotmentForm({
   company,
@@ -65,7 +76,7 @@ export function AllotmentForm({
         type={key.endsWith('On') ? 'date' : 'text'}
         max={key.endsWith('On') ? today : undefined}
         value={fields[key]}
-        maxLength={key === 'shares' ? 78 : ['terms', 'reason', 'residentialAddress'].includes(key) ? 1000 : 255}
+        maxLength={LIMITS[key]}
         onChange={(event) => setFields((current) => ({ ...current, [key]: event.target.value }))}
       />
     </label>

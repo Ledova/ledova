@@ -13,7 +13,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Field, Label, Description } from '@headlessui/react';
 import { EyeIcon, EyeSlashIcon, EnvelopeIcon, LockIcon, UserIcon, WarningIcon } from '@phosphor-icons/react';
 
-import { useAuth, useSignupUser } from '@ledova/shared';
+import { FIELD_LIMITS, useAuth, useSignupUser } from '@ledova/shared';
 import { YourAccount } from './YourAccount';
 import { ICON_MD } from '@components/iconSizes';
 
@@ -86,6 +86,7 @@ export default function SignupUser() {
               <AuthInput
                 type="email"
                 name="email"
+                maxLength={FIELD_LIMITS.EMAIL}
                 value={form.email}
                 onChange={(e) => setFieldValue('email', e.target.value)}
                 placeholder="your@email.com"
@@ -114,6 +115,7 @@ export default function SignupUser() {
               <AuthInput
                 type={showPassword ? 'text' : 'password'}
                 name="password"
+                maxLength={FIELD_LIMITS.PASSWORD}
                 value={form.password}
                 onChange={(e) => setFieldValue('password', e.target.value)}
                 className={`w-full bg-surface-tertiary border ${authFieldBorder(

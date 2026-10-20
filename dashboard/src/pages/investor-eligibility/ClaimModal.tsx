@@ -2,7 +2,7 @@ import { Choices } from '@components/Choices';
 import { FileIcon, UploadSimpleIcon, XIcon } from '@phosphor-icons/react';
 import { Modal } from '@components/Modal';
 import { PageAction } from '@components/Page';
-import { addCalendarDays, addCalendarYears, formatFileSize, utcToday } from '@ledova/shared';
+import { FIELD_LIMITS, addCalendarDays, addCalendarYears, formatFileSize, utcToday } from '@ledova/shared';
 import type { InvestorCategory } from '@ledova/shared';
 import { useInvestorClaim } from './useInvestorClaim';
 import { CERTIFIER_BODIES, WHOLESALE_ONLY_NOTICE } from './constants';
@@ -135,6 +135,7 @@ export function ClaimModal({
               <input
                 type="text"
                 value={certifierName}
+                maxLength={FIELD_LIMITS.CERTIFIER_NAME}
                 onChange={(e) => setCertifierName(e.target.value)}
                 className={FIELD_CLASS}
               />
@@ -144,6 +145,7 @@ export function ClaimModal({
               <input
                 type="text"
                 value={certifierMembershipNumber}
+                maxLength={FIELD_LIMITS.MEMBERSHIP_NUMBER}
                 onChange={(e) => setCertifierMembershipNumber(e.target.value)}
                 className={FIELD_CLASS}
               />

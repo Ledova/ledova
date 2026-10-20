@@ -1,7 +1,7 @@
 import { FIELD_CLASS, LABEL } from '@components/fieldClass';
 import { FormActions, PageAction } from '@components/Page';
 import { Outcome } from '@components/Ledger';
-import { COMPANY_AUTHORITY_DECLARATION, COMPANY_AUTHORITY_DECLARATION_VERSION } from '@ledova/shared';
+import { FIELD_LIMITS, COMPANY_AUTHORITY_DECLARATION, COMPANY_AUTHORITY_DECLARATION_VERSION } from '@ledova/shared';
 import { useAcceptInvitationForm } from './useAcceptInvitationForm';
 
 export function AcceptInvitationForm({
@@ -37,6 +37,7 @@ export function AcceptInvitationForm({
       <label className={LABEL}>
         Invitation code
         <input
+          maxLength={FIELD_LIMITS.INVITATION_CODE}
           className={FIELD_CLASS}
           value={code}
           autoComplete="off"

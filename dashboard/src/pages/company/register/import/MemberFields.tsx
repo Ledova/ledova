@@ -1,5 +1,6 @@
 import { Choices } from '@components/Choices';
 import {
+  FIELD_LIMITS,
   registerImportMoney,
   type RegisterTransferMember,
   type RegisterAwardRecipient,
@@ -93,6 +94,7 @@ export function MemberFields({
         <label className={LABEL}>
           Shares held
           <input
+            maxLength={FIELD_LIMITS.REGISTER_SHARES}
             inputMode="numeric"
             value={row.shares}
             className={FIELD_CLASS}
@@ -118,6 +120,7 @@ export function MemberFields({
             <label className={LABEL}>
               Shares in allotment
               <input
+                maxLength={FIELD_LIMITS.REGISTER_SHARES}
                 inputMode="numeric"
                 value={allotment.shares}
                 className={FIELD_CLASS}
@@ -127,6 +130,7 @@ export function MemberFields({
             <label className={LABEL}>
               Amount paid
               <input
+                maxLength={FIELD_LIMITS.AMOUNT}
                 inputMode="decimal"
                 placeholder="0.00"
                 value={allotment.amountPaid}
@@ -137,6 +141,7 @@ export function MemberFields({
             <label className={LABEL}>
               Amount unpaid
               <input
+                maxLength={FIELD_LIMITS.AMOUNT}
                 inputMode="decimal"
                 placeholder="0.00"
                 value={allotment.amountUnpaid}
@@ -162,7 +167,7 @@ export function MemberFields({
               <label className={LABEL}>
                 Share numbers or reference
                 <input
-                  maxLength={255}
+                  maxLength={FIELD_LIMITS.REFERENCE}
                   value={allotment.shareReference}
                   className={FIELD_CLASS}
                   onChange={(event) => setAllotment(at, { shareReference: event.target.value })}
@@ -171,7 +176,7 @@ export function MemberFields({
               <label className={LABEL}>
                 Certificate reference
                 <input
-                  maxLength={255}
+                  maxLength={FIELD_LIMITS.REFERENCE}
                   value={allotment.certificateReference}
                   className={FIELD_CLASS}
                   onChange={(event) => setAllotment(at, { certificateReference: event.target.value })}

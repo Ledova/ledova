@@ -3,6 +3,7 @@ import { Row, Rows, Section } from '@components/Ledger';
 import { PageAction } from '@components/Page';
 import { FIELD_CLASS } from '@components/fieldClass';
 import {
+  FIELD_LIMITS,
   REGISTER_PAUSE_CHANGE_COPY as COPY,
   REGISTER_PAUSE_CHANGE_DECISIONS,
   REGISTER_PAUSE_CHANGE_UNMET_COPY,
@@ -173,7 +174,7 @@ function Preparation({ commands }: { commands: Commands }) {
         Pause reason
         <textarea
           className={FIELD_CLASS}
-          maxLength={1000}
+          maxLength={FIELD_LIMITS.REASON}
           value={reason}
           onChange={(event) => setReason(event.target.value)}
         />
@@ -182,7 +183,7 @@ function Preparation({ commands }: { commands: Commands }) {
         Authority reference
         <input
           className={FIELD_CLASS}
-          maxLength={255}
+          maxLength={FIELD_LIMITS.REFERENCE}
           value={reference}
           onChange={(event) => setReference(event.target.value)}
         />

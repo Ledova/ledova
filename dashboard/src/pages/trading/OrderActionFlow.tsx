@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { AnimatedQRCode } from '@keystonehq/animated-qr';
-import { marketAmount, useOrderActionSigning, type OrderAction, type Wallet } from '@ledova/shared';
+import { FIELD_LIMITS, marketAmount, useOrderActionSigning, type OrderAction, type Wallet } from '@ledova/shared';
 import { Confirmation, Modal, ModalActions } from '@components/Modal';
 import { PageAction } from '@components/Page';
 import { SeedPhraseInput } from '@components/SeedPhraseInput';
@@ -90,6 +90,7 @@ export function OrderActionFlow({ action, wallets, onClose }: Props) {
                 <label className="block">
                   New quantity
                   <input
+                    maxLength={FIELD_LIMITS.ORDER_SHARES}
                     className={FIELD_CLASS}
                     inputMode="numeric"
                     value={state.values?.quantity ?? ''}
@@ -99,6 +100,7 @@ export function OrderActionFlow({ action, wallets, onClose }: Props) {
                 <label className="block">
                   New minimum fill
                   <input
+                    maxLength={FIELD_LIMITS.ORDER_SHARES}
                     className={FIELD_CLASS}
                     inputMode="numeric"
                     value={state.values?.minQuantity ?? ''}
@@ -108,6 +110,7 @@ export function OrderActionFlow({ action, wallets, onClose }: Props) {
                 <label className="block">
                   New price per share
                   <input
+                    maxLength={FIELD_LIMITS.PRICE}
                     className={FIELD_CLASS}
                     inputMode="decimal"
                     value={state.values?.pricePerShare ?? ''}

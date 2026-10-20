@@ -1,5 +1,6 @@
 import { useLayoutEffect, useState } from 'react';
 import {
+  FIELD_LIMITS,
   REGISTER_IMPORT_COPY,
   formatDate,
   formatShareCount,
@@ -109,7 +110,7 @@ export function BringRecords({
               <textarea
                 rows={2}
                 value={draft.reason}
-                maxLength={1000}
+                maxLength={FIELD_LIMITS.REASON}
                 className={FIELD_CLASS}
                 onChange={(event) => update((current) => ({ ...current, reason: event.target.value }))}
               />
@@ -308,7 +309,7 @@ export function BringRecords({
                     Name
                     <input
                       value={row.name}
-                      maxLength={255}
+                      maxLength={FIELD_LIMITS.NAME}
                       className={FIELD_CLASS}
                       onChange={(event) => setFormer(index, { name: event.target.value })}
                     />
@@ -317,7 +318,7 @@ export function BringRecords({
                     Residential address
                     <input
                       value={row.residentialAddress}
-                      maxLength={1000}
+                      maxLength={FIELD_LIMITS.RESIDENTIAL_ADDRESS}
                       className={FIELD_CLASS}
                       onChange={(event) => setFormer(index, { residentialAddress: event.target.value })}
                     />
@@ -325,6 +326,7 @@ export function BringRecords({
                   <label className={LABEL}>
                     Shares
                     <input
+                      maxLength={FIELD_LIMITS.REGISTER_SHARES}
                       inputMode="numeric"
                       value={row.shares}
                       className={FIELD_CLASS}
@@ -365,6 +367,7 @@ export function BringRecords({
               <label className={LABEL}>
                 Issued shares in the comparison source (optional)
                 <input
+                  maxLength={FIELD_LIMITS.REGISTER_SHARES}
                   inputMode="numeric"
                   value={draft.statedTotal}
                   className={FIELD_CLASS}

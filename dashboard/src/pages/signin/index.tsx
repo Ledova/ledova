@@ -1,3 +1,4 @@
+import { FIELD_LIMITS } from '@ledova/shared';
 import {
   AuthLayout,
   AUTH_BUTTON_CLASS,
@@ -54,6 +55,7 @@ function SignInPage() {
               <AuthInput
                 type="email"
                 name="email"
+                maxLength={FIELD_LIMITS.EMAIL}
                 value={form.email}
                 onChange={(e) => setFieldValue('email', e.target.value)}
                 placeholder="your@email.com"
@@ -77,6 +79,7 @@ function SignInPage() {
               <AuthInput
                 type={showPassword ? 'text' : 'password'}
                 name="password"
+                maxLength={FIELD_LIMITS.PASSWORD}
                 value={form.password}
                 onChange={(e) => setFieldValue('password', e.target.value)}
                 className="w-full bg-surface-tertiary border border-border rounded-lg pl-10 pr-12 py-3 text-text-primary placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-brand-mid focus:border-transparent transition-colors"

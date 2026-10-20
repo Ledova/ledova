@@ -2,7 +2,13 @@ import { SelectField } from '@components/SelectField';
 import { Choices } from '@components/Choices';
 import { useState } from 'react';
 import { PageAction } from '@components/Page';
-import { OFFER_DOCUMENT_COPY, OFFERING_EXEMPTION_LABELS, attachableDocuments, requestShares } from '@ledova/shared';
+import {
+  FIELD_LIMITS,
+  OFFER_DOCUMENT_COPY,
+  OFFERING_EXEMPTION_LABELS,
+  attachableDocuments,
+  requestShares,
+} from '@ledova/shared';
 import type {
   CompanyDocument,
   CompanyShareTokenListItem,
@@ -140,6 +146,7 @@ export function OfferingForm({
 
       <Field label="Price per share (AUD)">
         <input
+          maxLength={FIELD_LIMITS.PRICE}
           value={pricePerShare}
           onChange={(e) => setPricePerShare(e.target.value)}
           inputMode="decimal"
@@ -150,6 +157,7 @@ export function OfferingForm({
 
       <Field label="Minimum shares">
         <input
+          maxLength={FIELD_LIMITS.WHOLE_SHARES}
           value={minimumShares}
           onChange={(e) => setMinimumShares(e.target.value)}
           inputMode="numeric"
@@ -160,6 +168,7 @@ export function OfferingForm({
 
       <Field label="Target shares">
         <input
+          maxLength={FIELD_LIMITS.WHOLE_SHARES}
           value={targetShares}
           onChange={(e) => setTargetShares(e.target.value)}
           inputMode="numeric"
@@ -170,6 +179,7 @@ export function OfferingForm({
 
       <Field label="Cap shares">
         <input
+          maxLength={FIELD_LIMITS.WHOLE_SHARES}
           value={capShares}
           onChange={(e) => setCapShares(e.target.value)}
           inputMode="numeric"
