@@ -367,6 +367,9 @@ server:
 
 An offering's applications on Offerings are the first table: search by investor name, wallet
 address or payment reference, filter by status, with the chosen offering kept in the address too.
+Company eligibility's request queue pages the same way, filtered by outcome as radio buttons (the
+server filters on the outcome a request's decision, withdrawal, revocation and expiry give it);
+mobile still reads every page of the queue.
 Activity, an investor's Applications, Notices and a class's register entries load more on request.
 Other lists still read every page ([frontend](frontend.md#lists-figures-and-currency)), and the
 register, ownership and import tables keep their own markup until they move.

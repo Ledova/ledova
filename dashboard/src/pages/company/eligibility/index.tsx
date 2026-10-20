@@ -10,6 +10,8 @@ import {
   formatDate,
 } from '@ledova/shared';
 import { LinkRow, Section } from '@components/Ledger';
+import { Pager } from '@components/List';
+import { PAGE_SIZE, useFirstPageWhenGone, useListParams } from '@hooks/useListParams';
 import { Page, PageAction } from '@components/Page';
 import { ActionConfirmation, EligibilityHistory, RecordsList, TextField } from '@components/eligibility';
 import { CompanyWalletInstructions } from './CompanyWalletInstructions';
@@ -19,8 +21,28 @@ const OUTCOMES = [
   ['accepted', 'Accept'],
   ['refused', 'Refuse'],
 ] as const;
+const QUEUE_OUTCOMES = [
+  ['', 'All'],
+  ['pending', 'Pending'],
+  ['accepted', 'Accepted'],
+  ['refused', 'Refused'],
+  ['withdrawn', 'Withdrawn'],
+  ['revoked', 'Revoked'],
+  ['expired', 'Expired'],
+] as const;
+
+type QueueOutcome = Exclude<(typeof QUEUE_OUTCOMES)[number][0], ''>;
+
 export default function CompanyEligibilityPage() {
-  const read = useCompanyEligibilityRecords(() => crypto.randomUUID());
+  const list = useListParams(['outcome']);
+  const outcome = QUEUE_OUTCOMES.find(([value]) => value && value === list.filters.outcome)?.[0] as
+    QueueOutcome | undefined;
+  const read = useCompanyEligibilityRecords(() => crypto.randomUUID(), undefined, {
+    page: list.page,
+    pageSize: PAGE_SIZE,
+    outcome,
+  });
+  useFirstPageWhenGone(list, read.listError);
   const [revocationReason, setRevocationReason] = useState('');
   const appointment = read.appointments.find(
     (item) => item.uuid === read.appointmentUuid && item.company === read.companyUuid,
@@ -90,14 +112,25 @@ export default function CompanyEligibilityPage() {
           </Section>
           {read.companyUuid && (
             <Section title="Company request queue">
-              <RecordsList
-                records={read.records}
-                select={(uuid) => {
-                  read.selectRecord(uuid);
-                  setRevocationReason('');
-                }}
-                selected={read.selectedRecord?.uuid}
+              <Choices
+                legend="Outcome"
+                options={QUEUE_OUTCOMES}
+                value={outcome ?? ''}
+                onChange={(value) => list.setFilter('outcome', value)}
               />
+              {outcome && read.records.length === 0 ? (
+                <p className="text-sm text-text-muted">No requests match.</p>
+              ) : (
+                <RecordsList
+                  records={read.records}
+                  select={(uuid) => {
+                    read.selectRecord(uuid);
+                    setRevocationReason('');
+                  }}
+                  selected={read.selectedRecord?.uuid}
+                />
+              )}
+              <Pager label="Request pages" list={list} noun={['request', 'requests']} count={read.recordCount} />
             </Section>
           )}
           {read.selectedRecord && (
