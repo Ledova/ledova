@@ -28,10 +28,10 @@ Signup does not look the company up in the ABR; that happens at
 [activation](#activation-and-the-registry-check)
 ([decision](../decisions.md#abr-company-lookup-at-activation)).
 
-1. Create your account, verify your email and choose **Company Representative** as the account
+1. Create your account, verify your email and choose **Company representative** as the account
    type.
 2. Complete your personal profile.
-3. Enter the company at **Company Details** and continue. Saving creates the company as Draft.
+3. Enter the company at **Company details** and continue. Saving creates the company as Draft.
 4. Review the saved information. A short statement beside **Complete company setup** says that
    choosing the button confirms you are authorised to administer this company, including managing
    its users, and accepts the Terms of Service (version 2026-10-14, which state the company's
@@ -64,11 +64,11 @@ Activation and to register setup ([the Dashboard](README.md#the-app-at-a-glance)
 Resuming an unfinished signup:
 
 - An unfinished account can sign in again. On the web, a company account with saved personal
-  details returns to Company Details with its saved company; other accounts resume at the account
+  details returns to Company details with its saved company; other accounts resume at the account
   type step.
-- Before choosing **Complete company setup**, you can change your email from **Your Account**
+- Before choosing **Complete company setup**, you can change your email from **Your account**
   ([changing your email](participants.md#going-back-and-changing-your-email)). Signup starts
-  again, and your draft company stays with your account and reappears at Company Details.
+  again, and your draft company stays with your account and reappears at Company details.
 - A retry must settle the retained authority request and the Terms outcome before completion. It
   cannot infer success from a submitted request or a lost response.
 - If the pending request's personal scope is not exactly Manage company information and team, its

@@ -116,7 +116,7 @@ export function PlaceOrderPanel({
         title={`${isBuy ? 'Buy' : 'Sell'} ${token.symbol}`}
         size="md"
         showFooter
-        confirmLabel={`Place ${isBuy ? 'Buy' : 'Sell'} Order`}
+        confirmLabel={`Place ${isBuy ? 'buy' : 'sell'} order`}
         confirmDisabled={isConfirmDisabled}
         busy={isSubmitting}
         busyLabel="Placing order…"

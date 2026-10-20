@@ -150,7 +150,7 @@ export function WalletVerificationModal({ isOpen, wallet, guard, onClose }: Wall
 
             <ModalActions>
               <PageAction label="Back" onClick={goBack} />
-              <PageAction label="I've Signed the message" primary onClick={proceedToScanSignature} />
+              <PageAction label="I've signed the message" primary onClick={proceedToScanSignature} />
             </ModalActions>
           </div>
         );

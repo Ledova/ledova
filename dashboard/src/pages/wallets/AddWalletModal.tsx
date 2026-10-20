@@ -305,7 +305,7 @@ function ImportAccounts({
           label={
             isImporting
               ? 'Importing…'
-              : `Import ${selectedAddresses.size} Wallet${selectedAddresses.size !== 1 ? 's' : ''}`
+              : `Import ${selectedAddresses.size} wallet${selectedAddresses.size !== 1 ? 's' : ''}`
           }
           primary
           onClick={handleImport}

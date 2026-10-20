@@ -78,7 +78,7 @@ export default function SignupReview() {
   return (
     <AuthLayout>
       <AuthHeader
-        title={isCompany ? 'Complete company setup' : 'Review & Confirm'}
+        title={isCompany ? 'Complete company setup' : 'Review & confirm'}
         icon={<ClipboardTextIcon size={ICON_LG} className="text-text-muted" />}
         review
       >

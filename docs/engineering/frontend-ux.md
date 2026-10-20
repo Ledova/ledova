@@ -162,8 +162,9 @@ dialog.
 Text uses sentence case: titles, labels, buttons and options capitalise only their first word and
 names, such as page names (Back to Shareholders), document names (Terms of Service) and
 organisations. An ellipsis is one character, "…"; ESLint refuses three dots in the text of the
-dashboard's and the shared package's source. Company and document types keep the title case names
-the backend supplies. Mobile doesn't follow this yet.
+dashboard's and the shared package's source. Labels the backend supplies, such as company and
+document types and some statuses ("Under Review", "Awaiting Payment"), keep its title case. Mobile's
+own copy doesn't follow this yet (#1201); the shared strings it shows do.
 
 ## Choosing a person
 

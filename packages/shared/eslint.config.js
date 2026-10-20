@@ -38,7 +38,7 @@ export default tseslint.config(
   },
   {
     files: ['src/**/*.{ts,tsx}'],
-    ignores: ['src/**/*.test.{ts,tsx}', 'src/generated/**'],
+    ignores: ['src/generated/**'],
     rules: {
       'no-restricted-syntax': ['error', ...NO_THREE_DOTS],
     },

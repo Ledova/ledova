@@ -324,7 +324,7 @@ export function TransferSigningFlow({
             <ModalActions>
               {cancel}
               <PageAction label="Back" onClick={goBack} />
-              <PageAction label="I've Signed it" primary onClick={() => setSigningStep('scan-signature')} />
+              <PageAction label="I've signed it" primary onClick={() => setSigningStep('scan-signature')} />
             </ModalActions>
           </div>
         );
