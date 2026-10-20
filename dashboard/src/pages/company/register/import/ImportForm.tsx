@@ -405,10 +405,10 @@ export function ImportForm({
                       {!currentTarget && !recovery && (
                         <PageAction
                           label="Load confirmation"
-                          busy={running === 'load' || (decision.busy && !decision.target && !autoApply)}
+                          busy={running !== 'confirm' && decision.busy && !autoApply}
                           busyLabel="Loading confirmation…"
                           disabled={busy || deciding || autoApply || blocked || !steps[kind]}
-                          onClick={() => track('load', loadPreview())}
+                          onClick={() => void loadPreview()}
                         />
                       )}
                       {!recovery && (
