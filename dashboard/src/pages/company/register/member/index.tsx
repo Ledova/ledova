@@ -1,5 +1,5 @@
 import { useMemo, useState, type ReactNode } from 'react';
-import { generatePath, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { generatePath, useParams, useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   DESTINATIONS,
@@ -20,7 +20,7 @@ import {
   type OwnCompanyAppointment,
 } from '@ledova/shared';
 import { Row, Rows, Section } from '@components/Ledger';
-import { Page, PageAction, PageLink } from '@components/Page';
+import { Page, PageLink } from '@components/Page';
 import { PageTitle } from '@components/PageTitle';
 import { Loading, Unavailable } from '@pages/company/shared/RegisterStatus';
 import { ownerGuard } from '@pages/company/shared/ownerGuard';
@@ -50,13 +50,13 @@ export default function CompanyShareholderPage() {
   const { member = '' } = useParams();
   const [params] = useSearchParams();
   const company = params.get('company') ?? '';
-  const navigate = useNavigate();
   const { owner, boundary } = useSubmissionOwner();
   const preferences = useUserPreferences();
   const back = (
-    <PageAction
+    <PageLink
+      to={SHAREHOLDERS}
+      state={company ? { registerCompany: company } : undefined}
       label="Back to Shareholders"
-      onClick={() => navigate(SHAREHOLDERS, company ? { state: { registerCompany: company } } : undefined)}
     />
   );
   if (owner)

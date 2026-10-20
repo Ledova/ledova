@@ -1,7 +1,7 @@
 import { requestTone, SHARE_CLASS_STATUS_TONES } from '@pages/company/shared/statusTones';
 import { CompanyPaidIssueFlow } from './CompanyPaidIssueFlow';
 import { useState, type ReactNode } from 'react';
-import { useNavigate } from 'react-router-dom';
+
 import { useQueryClient } from '@tanstack/react-query';
 import {
   DESTINATIONS,
@@ -14,7 +14,7 @@ import {
   getBlockExplorerTxUrl,
   useUserPreferences,
 } from '@ledova/shared';
-import { Page, PageAction } from '@components/Page';
+import { Page, PageAction, PageLink } from '@components/Page';
 import { Row, Rows, Section, Status } from '@components/Ledger';
 import { ClassRegister } from '@pages/company/register/shared/ClassRegister';
 import { CompanyShareholders } from '@pages/company/register/shared/CompanyShareholders';
@@ -49,13 +49,9 @@ function ReadResult({ query, label, children }: { query: ReadState; label: strin
 }
 
 export function ShareClass({ uuid }: { uuid: string }) {
-  const navigate = useNavigate();
   const data = useShareClass(uuid);
   return (
-    <Page
-      narrow
-      actions={<PageAction label="Back to Register" onClick={() => navigate(DESTINATIONS.companyRegister.path)} />}
-    >
+    <Page narrow actions={<PageLink to={DESTINATIONS.companyRegister.path} label="Back to Register" />}>
       <ShareClassDetails
         key={`${data.tokenKey.join('/')}/${data.token.data?.companyUuid}/${data.token.data?.isOwner === true}`}
         data={data}

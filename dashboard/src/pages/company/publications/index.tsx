@@ -1,7 +1,7 @@
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { DESTINATIONS, useCompanySelection } from '@ledova/shared';
 import { Section } from '@components/Ledger';
-import { Page, PageAction } from '@components/Page';
+import { Page, PageAction, PageLink } from '@components/Page';
 import { CompanyReadNotice } from '@pages/company/shared/CompanyState';
 import { CompanySelection } from '@pages/company/shared/CompanySelection';
 import { PublicationRecord } from './PublicationRecord';
@@ -15,7 +15,6 @@ export default function IssuerPublicationsPage() {
 }
 
 function CompanyPublications({ companyRead }: { companyRead: ReturnType<typeof useCompanySelection> }) {
-  const navigate = useNavigate();
   const { company } = companyRead;
   const { listing, open, openingUuid, openError } = useIssuerPublications(company?.uuid, companyRead);
   const blocked = !!companyRead.error || companyRead.isRefreshing || listing.isError || listing.isFetching;
@@ -27,7 +26,7 @@ function CompanyPublications({ companyRead }: { companyRead: ReturnType<typeof u
       loading={companyRead.isLoading || listing.isLoading}
       actions={
         <>
-          <PageAction label="Back to Company" onClick={() => navigate(DESTINATIONS.company.path)} />
+          <PageLink to={DESTINATIONS.company.path} label="Back to Company" />
           <PageAction
             label="Refresh"
             onClick={() => {

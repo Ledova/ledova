@@ -7,6 +7,7 @@ one standard way to make each common choice. How the clients are built is in [fr
 and [mobile](mobile.md); what each page does is in the business section.
 
 - [Signed-in page conventions](#signed-in-page-conventions)
+- [Actions](#actions)
 - [Choosing a person](#choosing-a-person)
 - [Choosing a company](#choosing-a-company)
 - [Choosing a wallet or a paid subscription](#choosing-a-wallet-or-a-paid-subscription)
@@ -89,21 +90,25 @@ authorises.
 
 ## Actions
 
-`PageAction` (`dashboard/src/components/Page.tsx`) is the one button on a signed-in page. It looks
-plain, primary (the one main action of its card or form) or pressed, and comes in four forms:
+`PageAction` (`dashboard/src/components/Page.tsx`) is the standard action on a signed-in page. It
+looks plain, primary (the one main action of its card or form) or pressed, and comes in four forms:
 
 - **A button** runs its action on click.
 - **A submit button** (`type="submit"`) ends every page form, inside `FormActions`: a rule, then one
   right-aligned row with any plain actions first and the primary submit last. The form's own submit
   handler does the work, so Enter in a field submits the form unless the submit button is disabled.
 - **A link** (`PageLink`, same looks, optional router state) is an action that only goes somewhere:
-  Add share class, a shareholder's Details, Issue shares to them.
+  the title row's way back, Add share class, a shareholder's Details, Issue shares to them.
 - **A toggle** (`pressed`, which sets `aria-pressed`) marks the chosen option where pressing applies
   it at once: the open Register task, the shown eligibility request and Wallets' sort.
 
-While its request runs, an action is disabled and names its work with its own label (`busy` and
-`busyLabel`), such as "Preparing allotment…" or "Saving…"; every page form's submit button has one.
-Dialogs end with `ModalActions` in the same order. Mobile's `Action` has no busy or pressed form yet.
+`busy` and `busyLabel` disable an action and name its work, such as "Preparing allotment…" or
+"Saving…". Every page form's submit button uses them, as do every page action that already showed a
+busy label and five more: the offering form, an application's Withdraw and Submit for review,
+creating a member invitation, and preparing a non-paid grant or its wallet link. Other page actions
+that start a request keep their label while it runs. Icon buttons, the password visibility toggle and
+Trading's lists keep their own controls, and dialogs end with `ModalActions` in the same order as
+`FormActions`. Mobile's `Action` has no busy or pressed form yet.
 
 ## Choosing a person
 

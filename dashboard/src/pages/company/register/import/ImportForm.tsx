@@ -206,14 +206,6 @@ export function ImportForm({
                         }}
                       />
                     )}
-                    <PageAction
-                      type="submit"
-                      label={phase === 'details' ? 'Continue' : 'Save draft and review'}
-                      primary
-                      busy={phase === 'shareholders' && busy}
-                      busyLabel="Saving draft…"
-                      disabled={busy || blocked || holderEditor}
-                    />
                     {phase === 'details' && (
                       <>
                         <button
@@ -230,6 +222,14 @@ export function ImportForm({
                         </span>
                       </>
                     )}
+                    <PageAction
+                      type="submit"
+                      label={phase === 'details' ? 'Continue' : 'Save draft and review'}
+                      primary
+                      busy={phase === 'shareholders' && busy}
+                      busyLabel="Saving draft…"
+                      disabled={busy || blocked || holderEditor}
+                    />
                   </FormActions>
                 )}
               </form>

@@ -14,7 +14,7 @@ import {
   type DirectoryDocument,
 } from '@ledova/shared';
 import { Row, Rows, Section, Status } from '@components/Ledger';
-import { Page, PageAction } from '@components/Page';
+import { Page, PageAction, PageLink } from '@components/Page';
 import { SubscribeForm } from './SubscribeForm';
 import { useCreateSubscription } from './useCreateSubscription';
 
@@ -87,7 +87,7 @@ export default function DirectoryTokenPage() {
     navigate(generatePath(DESTINATIONS.subscriptionDetail.path, { uuid: created })),
   );
 
-  const back = <PageAction label="Directory" onClick={() => navigate(DESTINATIONS.directory.path)} />;
+  const back = <PageLink to={DESTINATIONS.directory.path} label="Directory" />;
 
   if (isLoading) return <Page narrow loading actions={back} />;
 

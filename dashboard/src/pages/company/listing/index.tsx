@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+
 import { DESTINATIONS, companyActivationOutcome, useCompanyActivation, useCompanySelection } from '@ledova/shared';
-import { Page, PageAction } from '@components/Page';
+import { Page, PageAction, PageLink } from '@components/Page';
 import { LinkRow, Row, Rows, Section, Timeline, type TimelineEvent } from '@components/Ledger';
 import { Modal } from '@components/Modal';
 import { CompanyReadNotice, CompanyStatusMark } from '@pages/company/shared/CompanyState';
@@ -13,7 +13,6 @@ export default function ListingPage() {
 }
 
 function CompanyActivation({ read }: { read: ReturnType<typeof useCompanySelection> }) {
-  const navigate = useNavigate();
   const action = useCompanyActivation(read, () => crypto.randomUUID());
   const { company } = read;
   const events: TimelineEvent[] = company
@@ -34,7 +33,7 @@ function CompanyActivation({ read }: { read: ReturnType<typeof useCompanySelecti
       <Page
         narrow
         loading={read.isLoading}
-        actions={<PageAction label="Back to Settings" onClick={() => navigate(DESTINATIONS.settings.path)} />}
+        actions={<PageLink to={DESTINATIONS.settings.path} label="Back to Settings" />}
       >
         <CompanySelection read={read} />
         {action.busy && (

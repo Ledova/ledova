@@ -1,5 +1,5 @@
 import { marketQuantity } from '@ledova/shared';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import {
   DESTINATIONS,
   SUBSCRIPTION_COPY,
@@ -10,7 +10,7 @@ import {
 } from '@ledova/shared';
 import type { SubscriptionDetail } from '@ledova/shared';
 import { Row, Rows, Section, Status, Timeline, type TimelineEvent } from '@components/Ledger';
-import { Page, PageAction } from '@components/Page';
+import { Page, PageAction, PageLink } from '@components/Page';
 import { PaymentInstructionCard } from './PaymentInstructionCard';
 import { useSubscription } from './useSubscription';
 import { applicationState } from '@pages/subscriptions/shared/presentation';
@@ -81,7 +81,6 @@ function Summary({ subscription }: { subscription: SubscriptionDetail }) {
 
 export default function SubscriptionDetailPage() {
   const { uuid } = useParams<{ uuid: string }>();
-  const navigate = useNavigate();
   const { subscription, isLoading, notFound, hasError, isRefreshing, retry, submit, withdraw } = useSubscription(uuid);
 
   if (isLoading) {
@@ -103,10 +102,7 @@ export default function SubscriptionDetailPage() {
 
   if (!subscription || notFound) {
     return (
-      <Page
-        narrow
-        actions={<PageAction label="Back to Applications" onClick={() => navigate(DESTINATIONS.subscriptions.path)} />}
-      >
+      <Page narrow actions={<PageLink to={DESTINATIONS.subscriptions.path} label="Back to Applications" />}>
         <Section title="Not available">
           <p className="text-sm text-text-muted">This application is not one of yours, or it no longer exists.</p>
         </Section>

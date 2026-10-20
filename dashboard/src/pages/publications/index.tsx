@@ -37,9 +37,10 @@ function PublicationRow({
           </div>
           <PageAction
             icon={<ArrowSquareOutIcon size={16} />}
-            label={isOpening ? PUBLICATION_COPY.OPENING : PUBLICATION_COPY.OPEN}
+            label={PUBLICATION_COPY.OPEN}
+            busy={isOpening}
+            busyLabel={PUBLICATION_COPY.OPENING}
             onClick={() => onOpen(publication.uuid)}
-            disabled={isOpening}
           />
         </div>
         <Rows>
@@ -127,7 +128,9 @@ export default function PublicationsPage() {
             hasMore && (
               <div className="flex justify-start py-3">
                 <PageAction
-                  label={isLoadingMore ? PUBLICATION_COPY.LOADING_MORE : PUBLICATION_COPY.LOAD_MORE}
+                  label={PUBLICATION_COPY.LOAD_MORE}
+                  busy={isLoadingMore}
+                  busyLabel={PUBLICATION_COPY.LOADING_MORE}
                   onClick={loadMore}
                   disabled={isRefreshing}
                 />

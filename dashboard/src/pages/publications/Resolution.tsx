@@ -99,9 +99,10 @@ export function Resolution({
           <div className="mt-3 flex flex-wrap gap-2">
             <PageAction
               onClick={() => onCast(publication.uuid, choosing)}
-              disabled={isCasting}
               primary
-              label={isCasting ? PUBLICATION_COPY.CASTING : PUBLICATION_COPY.CONFIRM}
+              label={PUBLICATION_COPY.CONFIRM}
+              busy={isCasting}
+              busyLabel={PUBLICATION_COPY.CASTING}
             />
             <PageAction onClick={() => setChoosing(null)} disabled={isCasting} label={PUBLICATION_COPY.CANCEL} />
           </div>
