@@ -1,5 +1,6 @@
 import json
 from datetime import timedelta
+from unittest.mock import patch
 from uuid import uuid4
 
 from django.db import IntegrityError, connections
@@ -29,6 +30,13 @@ from tokens.services.register_evidence import retain_register_evidence
 
 class EmployeeAwardTest(CoreFixtures, APITransactionTestCase):
     def test_an_award_records_one_person_whose_particulars_every_later_flow_keeps(self):
+        unrecorded = self.award_payload()
+        with patch("tokens.services.register_awards.RegisterMemberParticulars.objects.create"):
+            refused = self.client.post("/api/v1/tokens/register-awards/", unrecorded, format="json")
+        self.assertEqual(refused.status_code, 503, refused.content)
+        with use_operator():
+            self.assertFalse(RegisterAward.objects.filter(pk=unrecorded["operation_id"]).exists())
+            self.assertFalse(RegisterMember.objects.filter(pk=unrecorded["member"]).exists())
         award = self.award_payload()
         response = self.client.post("/api/v1/tokens/register-awards/", award, format="json")
         self.assertEqual(response.status_code, 201, response.content)
