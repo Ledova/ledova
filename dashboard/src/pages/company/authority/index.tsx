@@ -1,6 +1,6 @@
+import { CompanyPicker } from '@pages/company/shared/CompanySelection';
 import { Section } from '@components/Ledger';
 import { Page, PageAction } from '@components/Page';
-import { FIELD_CLASS, LABEL } from '@components/fieldClass';
 import { getErrorMessage, useSubmissionOwner, useUserPreferences, type OrderSubmissionOwner } from '@ledova/shared';
 import { AuthorityRequestForm } from './AuthorityRequestForm';
 import { AuthorityRequestRecord } from './AuthorityRequestRecord';
@@ -73,25 +73,15 @@ function OwnAuthorityRequests({
         ) : drafts.length === 0 ? (
           <p className="text-sm text-text-muted">No draft company is available for an authority request.</p>
         ) : (
-          <label className={LABEL}>
-            Draft company
-            <select
-              value={selected}
-              disabled={companies.isFetching}
-              onChange={(event) => {
-                setSelected(event.target.value);
-                setRecorded(null);
-              }}
-              className={FIELD_CLASS}
-            >
-              <option value="">Select your draft company</option>
-              {drafts.map((item) => (
-                <option key={item.uuid} value={item.uuid}>
-                  {item.name} · {item.acn}
-                </option>
-              ))}
-            </select>
-          </label>
+          <CompanyPicker
+            companies={drafts.map((item) => ({ uuid: item.uuid, name: item.name, detail: `Draft · ACN ${item.acn}` }))}
+            value={selected}
+            disabled={companies.isFetching}
+            onChange={(uuid) => {
+              setSelected(uuid);
+              setRecorded(null);
+            }}
+          />
         )}
         {recorded ? (
           <div role="status" className="space-y-2 text-sm text-text-primary">

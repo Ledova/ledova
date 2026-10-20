@@ -8,6 +8,7 @@ and [mobile](mobile.md); what each page does is in the business section.
 
 - [Signed-in page conventions](#signed-in-page-conventions)
 - [Choosing a person](#choosing-a-person)
+- [Choosing a company](#choosing-a-company)
 
 ## Signed-in page conventions
 
@@ -140,6 +141,20 @@ These rules are checked in review. The dashboard suite drives the list in regist
 name and pressing Enter), a transfer and member invitations.
 
 The mobile app still chooses people from buttons; #1177 brings it to the same standard.
+
+## Choosing a company
+
+Every web page that asks which company to work on uses `CompanyPicker`
+(`dashboard/src/pages/company/shared/CompanySelection.tsx`): the same searchable list as
+[choosing a person](#choosing-a-person), labelled **Company**, showing each company's name and, where
+it helps, a muted detail such as a draft company's ACN, never an internal identifier.
+
+- Register, Dashboard, Company, Activation, Offerings, Published to your members and register setup
+  follow the company chosen for the session through `CompanySelection`, which hides the list when
+  the account has one company and it is already chosen.
+- Your shares shows it when the person holds records in more than one company.
+- Company team, Representative authority (offering draft companies only), Company eligibility and
+  its wallet approvals show it whenever they ask for a company.
 
 Next: [frontend](frontend.md), [mobile](mobile.md) and
 [the register's person choice](../business/register.md#choosing-a-person).

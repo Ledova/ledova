@@ -1,3 +1,4 @@
+import { CompanyPicker } from '@pages/company/shared/CompanySelection';
 import { FIELD_CLASS, LABEL } from '@components/fieldClass';
 import { LinkRow, Row, Rows, Section } from '@components/Ledger';
 import { Modal } from '@components/Modal';
@@ -103,26 +104,16 @@ function OwnTeam({
         )}
       </Section>
       <Section title="Invite and manage a company team">
-        <label className={LABEL}>
-          Company
-          <select
-            className={FIELD_CLASS}
-            value={company}
-            disabled={disabled || own.isFetching || own.isError}
-            onChange={(event) => {
-              close();
-              setCompany(event.target.value);
-              setSourceId('');
-            }}
-          >
-            <option value="">Select a company from your appointments</option>
-            {companies.map(([uuid, name]) => (
-              <option key={uuid} value={uuid}>
-                {name}
-              </option>
-            ))}
-          </select>
-        </label>
+        <CompanyPicker
+          companies={companies.map(([uuid, name]) => ({ uuid, name }))}
+          value={company}
+          disabled={disabled || own.isFetching || own.isError}
+          onChange={(uuid) => {
+            close();
+            setCompany(uuid);
+            setSourceId('');
+          }}
+        />
         {company && (
           <>
             <label className={LABEL}>

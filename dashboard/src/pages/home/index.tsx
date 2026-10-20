@@ -1,3 +1,4 @@
+import { CompanyPicker } from '@pages/company/shared/CompanySelection';
 import { DESTINATIONS } from '@ledova/shared';
 import { useEffect, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
@@ -188,22 +189,14 @@ function MemberRecords({
         ) : (
           <>
             {read.records.length > 1 && (
-              <label className="block max-w-md space-y-1 text-sm">
-                Company member record
-                <select
-                  className={FIELD_CLASS}
+              <div className="max-w-md">
+                <CompanyPicker
+                  companies={read.records.map((record) => ({ uuid: record.uuid, name: record.company.name }))}
                   value={read.record?.uuid ?? ''}
                   disabled={held}
-                  onChange={(event) => choose(event.target.value)}
-                >
-                  <option value="">Choose a company</option>
-                  {read.records.map((record) => (
-                    <option key={record.uuid} value={record.uuid}>
-                      {record.company.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
+                  onChange={choose}
+                />
+              </div>
             )}
             {records.map((record) => (
               <div key={record.uuid} className="space-y-4">

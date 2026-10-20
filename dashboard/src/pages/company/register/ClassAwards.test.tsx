@@ -457,7 +457,7 @@ it('retains original award, vesting and linked issue preparations through interr
   awards = [retainedAward];
   expect(awards[0].issuedShares).toBe('0');
   await screen.findByText('Next: review and approve the exact share issue.');
-  expect((screen.getByLabelText('Company') as HTMLSelectElement).value).toBe(APPOINTMENT.company);
+  expect((screen.getByLabelText('Company') as HTMLInputElement).value).toBe(APPOINTMENT.companyName);
   expect((screen.getByText('Non-paid share issues').parentElement as HTMLDetailsElement).open).toBe(true);
   expect(screen.queryByRole('button', { name: /^Record issue [(]grant/ })).toBeNull();
   for (const label of ['Approve', 'Record issue']) {
@@ -476,7 +476,7 @@ it('retains original award, vesting and linked issue preparations through interr
   const originalIssue = submissions(URLS.REGISTER_GRANT_DECIDE(retainedGrant!.uuid)).filter(
     (row) => row.kind === 'apply',
   )[0];
-  expect((screen.getByLabelText('Company') as HTMLSelectElement).disabled).toBe(true);
+  expect((screen.getByLabelText('Company') as HTMLInputElement).disabled).toBe(true);
   preferencesFailed = true;
   await act(async () => client.refetchQueries({ queryKey: USER_PREFERENCES_QUERY_KEY, exact: true }));
   expect(client.getQueryState(USER_PREFERENCES_QUERY_KEY)?.status).toBe('error');

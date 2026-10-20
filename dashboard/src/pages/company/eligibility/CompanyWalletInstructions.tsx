@@ -1,3 +1,4 @@
+import { CompanyPicker } from '@pages/company/shared/CompanySelection';
 import { useState } from 'react';
 import {
   useCompanyWalletInstructions,
@@ -223,23 +224,12 @@ export function CompanyWalletInstructions() {
             Current personal company administration or a register step grants this section. Earlier eligibility evidence
             sharing exposes no wallet directory.
           </p>
-          <label className="text-sm">
-            Wallet approval company
-            <select
-              aria-label="Wallet approval company"
-              className={FIELD_CLASS}
-              value={data.companyUuid}
-              disabled={data.busy}
-              onChange={(event) => data.setCompany(event.target.value)}
-            >
-              <option value="">Select company</option>
-              {data.companies.map((row) => (
-                <option key={row.uuid} value={row.uuid}>
-                  {row.name} · {row.uuid}
-                </option>
-              ))}
-            </select>
-          </label>
+          <CompanyPicker
+            companies={data.companies}
+            value={data.companyUuid}
+            disabled={data.busy}
+            onChange={data.setCompany}
+          />
           {data.companyUuid && (
             <PageAction
               label="Refresh company wallet instructions"
