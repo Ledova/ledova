@@ -1,4 +1,7 @@
+import { useState } from 'react';
 import { REGISTER_COPY, TECHNICAL_SHARE_LIMIT, formatShareCount, type TokenHoldersResponse } from '@ledova/shared';
+import { LoadMore } from '@components/List';
+import { PAGE_SIZE } from '@hooks/useListParams';
 import { Rows, Row, Section, Status, type Tone } from '@components/Ledger';
 import { PageAction, PageLink } from '@components/Page';
 import { shareholderPath } from './shareholders';
@@ -77,6 +80,7 @@ export function FormerMembers({
   company?: string;
   blocked?: boolean;
 }) {
+  const [shown, setShown] = useState(PAGE_SIZE);
   if (!register.formerMembers?.length) return null;
   return (
     <details className="space-y-3 border-t border-border-subtle pt-4">
@@ -90,7 +94,7 @@ export function FormerMembers({
         </p>
       )}
       <ul className="divide-y divide-border-subtle">
-        {register.formerMembers.map((former) => (
+        {register.formerMembers.slice(0, shown).map((former) => (
           <li key={former.uuid} className="flex flex-col gap-2 py-4">
             <p className="text-base text-text-primary">{former.name || 'Name not recorded'}</p>
             {company && former.member && blocked && (
@@ -129,6 +133,13 @@ export function FormerMembers({
           </li>
         ))}
       </ul>
+      <LoadMore
+        noun={['former shareholder', 'former shareholders']}
+        hasMore={register.formerMembers.length > shown}
+        failed={false}
+        loading={false}
+        onLoad={() => setShown(shown + PAGE_SIZE)}
+      />
     </details>
   );
 }
