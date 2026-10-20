@@ -17,13 +17,13 @@ interface AccountTypeOption {
 const ACCOUNT_TYPES: AccountTypeOption[] = [
   {
     role: 'investor',
-    title: 'Individual Investor',
+    title: 'Individual investor',
     description: 'Invest in private-company shares and track your holdings.',
     icon: UserIcon,
   },
   {
     role: 'company',
-    title: 'Company Representative',
+    title: 'Company representative',
     description: 'Register your company and manage its share register.',
     icon: BuildingsIcon,
   },
@@ -48,7 +48,7 @@ export default function SignupAccountType() {
 
   return (
     <AuthLayout>
-      <AuthHeader title="Choose Account Type">
+      <AuthHeader title="Choose account type">
         <p className="text-sm text-text-muted mt-1 px-4">How will you be using Ledova?</p>
       </AuthHeader>
 
@@ -101,7 +101,7 @@ export default function SignupAccountType() {
             disabled={isSubmitting}
             className="font-semibold text-brand-light hover:text-brand-subtle transition-colors disabled:opacity-50"
           >
-            Go Back
+            Go back
           </button>
         </p>
       </div>

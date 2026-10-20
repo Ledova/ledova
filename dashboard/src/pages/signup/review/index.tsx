@@ -51,7 +51,7 @@ export default function SignupReview() {
       <AuthLayout>
         <div className="flex flex-col items-center justify-center py-8">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand mb-4"></div>
-          <p className="text-text-muted">Loading review data...</p>
+          <p className="text-text-muted">Loading review data…</p>
         </div>
       </AuthLayout>
     );
@@ -62,10 +62,10 @@ export default function SignupReview() {
       <AuthLayout>
         <div className="flex flex-col items-center justify-center py-8">
           <div className="text-center">
-            <h3 className="text-lg font-medium text-error-light mb-2">Error Loading Data</h3>
+            <h3 className="text-lg font-medium text-error-light mb-2">Error loading data</h3>
             <p className="text-error-light">{error}</p>
             <button type="button" onClick={retryLoad} className="mt-4 font-semibold text-brand-light underline">
-              Try Again
+              Try again
             </button>
           </div>
         </div>
@@ -78,7 +78,7 @@ export default function SignupReview() {
   return (
     <AuthLayout>
       <AuthHeader
-        title={isCompany ? 'Complete company setup' : 'Review & Confirm'}
+        title={isCompany ? 'Complete company setup' : 'Review & confirm'}
         icon={<ClipboardTextIcon size={ICON_LG} className="text-text-muted" />}
         review
       >
@@ -90,11 +90,11 @@ export default function SignupReview() {
       </AuthHeader>
 
       <div className="space-y-4">
-        <Section title="Personal Information">
+        <Section title="Personal information">
           {userProfile ? (
             <div className="space-y-4">
               <div className="flex justify-between items-center">
-                <span className="text-sm text-text-muted">Full Name:</span>
+                <span className="text-sm text-text-muted">Full name:</span>
                 <span className="text-sm text-text-primary font-medium">{userProfile.fullName}</span>
               </div>
               <div className="flex justify-between items-center">
@@ -116,11 +116,11 @@ export default function SignupReview() {
         </Section>
 
         {isCompany ? (
-          <Section title="Company Information">
+          <Section title="Company information">
             {company ? (
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-text-muted">Company Name:</span>
+                  <span className="text-sm text-text-muted">Company name:</span>
                   <span className="text-sm text-text-primary font-medium">{company.name}</span>
                 </div>
                 <div className="flex justify-between items-center">
@@ -145,11 +145,11 @@ export default function SignupReview() {
             )}
           </Section>
         ) : (
-          <Section title="Financial Profile">
+          <Section title="Financial profile">
             {financialProfile ? (
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-text-muted">Source of Funds:</span>
+                  <span className="text-sm text-text-muted">Source of funds:</span>
                   <span className="text-sm text-text-primary font-medium">
                     {formatSourceOfFunds(financialProfile.sourceOfFunds)}
                   </span>
@@ -164,7 +164,7 @@ export default function SignupReview() {
                 )}
                 {financialProfile.intendedUse && (
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-text-muted">Intended Use:</span>
+                    <span className="text-sm text-text-muted">Intended use:</span>
                     <span className="text-sm text-text-primary font-medium">
                       {formatIntendedUse(financialProfile.intendedUse)}
                     </span>
@@ -172,7 +172,7 @@ export default function SignupReview() {
                 )}
                 {financialProfile.intendedUseOtherText && (
                   <div className="flex justify-between items-start">
-                    <span className="text-sm text-text-muted">Intended Use (Other):</span>
+                    <span className="text-sm text-text-muted">Intended use (Other):</span>
                     <span className="text-sm text-text-primary font-medium text-right max-w-[200px]">
                       {financialProfile.intendedUseOtherText}
                     </span>
@@ -281,12 +281,12 @@ export default function SignupReview() {
             {isSubmitting ? (
               <div className="flex items-center justify-center space-x-2">
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
-                <span>Completing...</span>
+                <span>Completing…</span>
               </div>
             ) : isCompany ? (
               'Complete company setup'
             ) : (
-              'Complete Signup'
+              'Complete signup'
             )}
           </button>
         </div>
@@ -302,7 +302,7 @@ export default function SignupReview() {
             disabled={isSubmitting || isResettingAuthority}
             className="font-semibold text-brand-light hover:text-brand-subtle transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Go Back
+            Go back
           </button>
         </p>
       </div>

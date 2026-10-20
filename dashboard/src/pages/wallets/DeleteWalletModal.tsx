@@ -32,7 +32,7 @@ export function DeleteWalletModal({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="Delete Wallet"
+      title="Delete wallet"
       showFooter
       confirmLabel="Delete wallet"
       destructive

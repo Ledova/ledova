@@ -77,8 +77,8 @@ export function CreateOrderSigningFlow({ submission, wallet, tokens, onClose, on
   return (
     <Modal isOpen onClose={close} title={state.recovered ? 'Check saved order' : 'Review order'} size="md">
       <div className="space-y-4 text-sm text-text-primary">
-        {state.phase === 'preparing' && <p>Checking order and preparing signing details...</p>}
-        {state.phase === 'signing' && <p>Signing this order...</p>}
+        {state.phase === 'preparing' && <p>Checking order and preparing signing details…</p>}
+        {state.phase === 'signing' && <p>Signing this order…</p>}
         {state.phase === 'submitting' && (
           <p>Submitting this order. You can close this window and check its status from saved orders.</p>
         )}
