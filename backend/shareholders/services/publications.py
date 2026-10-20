@@ -165,6 +165,7 @@ def publish_to_members(
     raw, mime_type = _bytes(upload)
 
     with atomic():
+        Company.objects.select_for_update().get(pk=token.company_id)
         register = ShareRegister.objects.select_for_update().filter(token=token).first()
         if register is None or register.sequence == 0:
             raise ValidationError(REGISTER_NOT_OPENED)
