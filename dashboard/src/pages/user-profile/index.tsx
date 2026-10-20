@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { formatDate, formatDateTime, getUserVerificationStatus } from '@ledova/shared';
+import { formatDate, formatDateTime, getUserVerificationStatus, failureSentence } from '@ledova/shared';
 import { FormActions, Page, PageAction } from '@components/Page';
 import { Outcome, Row, Rows, Section, Status } from '@components/Ledger';
 import { VERIFICATION_TONES } from '@components/statusTones';
@@ -157,7 +157,7 @@ function UserProfilePage() {
             </div>
             {updateError && (
               <p role="alert" className="text-sm text-error-light">
-                Your personal details could not be saved. Try again.
+                {failureSentence(updateError, 'Your personal details could not be saved. Try again.')}
               </p>
             )}
             <FormActions>

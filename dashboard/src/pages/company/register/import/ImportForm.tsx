@@ -1,4 +1,5 @@
 import { useImportPreparation, type ImportFormProps } from './useImportPreparation';
+import { useRunningAction } from '@hooks/useRunningAction';
 
 import {
   REGISTER_IMPORT_COPY,
@@ -6,6 +7,7 @@ import {
   formatDate,
   formatShareCount,
   registerImportTotals,
+  refusalSentences,
 } from '@ledova/shared';
 import { Row, Rows } from '@components/Ledger';
 import { FormActions, PageAction } from '@components/Page';
@@ -38,6 +40,7 @@ export function ImportForm({
   visible = true,
   onHeldChange,
 }: ImportFormProps) {
+  const { running, track } = useRunningAction();
   const {
     importDescription,
     today,
@@ -54,6 +57,7 @@ export function ImportForm({
     attempted,
     setAttempted,
     autoApply,
+    editing,
     setEditing,
     canPrepare,
     finish,
@@ -379,14 +383,18 @@ export function ImportForm({
                     )}
                     {preview?.unmetRequirements.length ? (
                       <ul role="alert" className="space-y-1 text-sm text-error-light">
-                        {preview.unmetRequirements.map((code) => (
-                          <li key={code}>{REGISTER_IMPORT_DECISIONS.unmet[code] ?? code}</li>
-                        ))}
+                        {refusalSentences(preview.unmetRequirements, REGISTER_IMPORT_DECISIONS.unmet).map(
+                          (sentence) => (
+                            <li key={sentence}>{sentence}</li>
+                          ),
+                        )}
                       </ul>
                     ) : null}
                     <FormActions>
                       <PageAction
                         label="Edit records"
+                        busy={editing}
+                        busyLabel="Reopening records…"
                         disabled={deciding || !!recovery || autoApply || !canPrepare || !steps.reject || blocked}
                         onClick={() => {
                           setEditing(true);
@@ -396,20 +404,20 @@ export function ImportForm({
                       {!currentTarget && !recovery && (
                         <PageAction
                           label="Load confirmation"
-                          busy={deciding}
+                          busy={running !== 'confirm' && decision.busy && !autoApply}
                           busyLabel="Loading confirmation…"
-                          disabled={busy || autoApply || blocked || !steps[kind]}
+                          disabled={busy || deciding || autoApply || blocked || !steps[kind]}
                           onClick={() => void loadPreview()}
                         />
                       )}
                       {!recovery && (
                         <PageAction
                           label={kind === 'approve' && !steps.apply ? 'Record review' : 'Confirm'}
-                          busy={deciding}
+                          busy={running === 'confirm' || (autoApply && deciding)}
                           busyLabel="Confirming…"
                           primary
-                          disabled={!ready || autoApply}
-                          onClick={() => void decision.confirm()}
+                          disabled={!ready || deciding || autoApply}
+                          onClick={() => track('confirm', decision.confirm())}
                         />
                       )}
                     </FormActions>
@@ -417,7 +425,13 @@ export function ImportForm({
                 )}
                 {proposal.status === 'applied' && (
                   <FormActions>
-                    <PageAction label="View company ownership" primary onClick={() => void finish()} />
+                    <PageAction
+                      label="View company ownership"
+                      primary
+                      busy={running === 'finish'}
+                      busyLabel="Opening company ownership…"
+                      onClick={() => track('finish', finish())}
+                    />
                   </FormActions>
                 )}
               </section>

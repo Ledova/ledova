@@ -23,6 +23,8 @@ import {
   type RegisterImportPreparation,
   type TokenHoldersResponse,
   type RegisterTransferMember,
+  REGISTER_IMPORT_UNMET_COPY,
+  refusalSentence,
 } from '@ledova/shared';
 
 import apiClient from '@services/apiClient';
@@ -244,7 +246,11 @@ export function useImportPreparation({
     onRefused: onConflict,
   });
   useEffect(() => {
-    if (!editing || !reject.target || reject.busy) return;
+    if (!editing || reject.busy) return;
+    if (!reject.target) {
+      if (reject.error) void Promise.resolve().then(() => setEditing(false));
+      return;
+    }
     if (reject.target.preview.canDecide) void reject.confirm().finally(() => setEditing(false));
     else void Promise.resolve().then(() => setEditing(false));
   }, [editing, reject]);
@@ -424,11 +430,12 @@ export function useImportPreparation({
       } else setUncertain(true);
       if (mounted.current)
         setError(
-          apiErrorSentence(
-            failure,
-            'The records could not be saved. Retry the same request.',
-            'The records could not be confirmed. Recover the original request.',
-          ),
+          refusalSentence(failure, REGISTER_IMPORT_UNMET_COPY) ??
+            apiErrorSentence(
+              failure,
+              'The records could not be saved. Retry the same request.',
+              'The records could not be confirmed. Recover the original request.',
+            ),
         );
     } finally {
       pending.current = false;
@@ -489,6 +496,7 @@ export function useImportPreparation({
     attempted,
     setAttempted,
     autoApply,
+    editing,
     setEditing,
     canPrepare,
     finish,

@@ -2,8 +2,8 @@ import type { AxiosInstance } from 'axios';
 import { USER_DOCUMENT_ENDPOINTS } from '../constants';
 import type { ApiRequest, ApiResponse, Document } from '../types';
 
-export const listDocuments = (apiClient: AxiosInstance) =>
-  apiClient.get<ApiResponse<'api_v1_documents_list'>>(USER_DOCUMENT_ENDPOINTS.BASE);
+export const listDocuments = (apiClient: AxiosInstance, page = 1) =>
+  apiClient.get<ApiResponse<'api_v1_documents_list'>>(USER_DOCUMENT_ENDPOINTS.BASE, { params: { page } });
 
 export const getDocument = (apiClient: AxiosInstance, uuid: string) =>
   apiClient.get<Document>(USER_DOCUMENT_ENDPOINTS.DETAIL(uuid));

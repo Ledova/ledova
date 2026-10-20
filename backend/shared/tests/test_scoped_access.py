@@ -357,8 +357,8 @@ class ScopedAccessTest(CoreFixtures, APITransactionTestCase):
         self.assertEqual(duplicated.status_code, 400, duplicated.content)
         self.assertNotIn(award["name"], str(duplicated.json()))
         self.sign_in(self.owner)
-        self.assertEqual(
-            self.client.get(f"/api/v1/tokens/{self.token.pk}/register/members/").json()["awardRecipients"], []
+        self.assertNotIn(
+            foreign_award["name"], str(self.client.get(f"/api/v1/tokens/{self.token.pk}/register/members/").json())
         )
         set_principal(self.owner.pk, APP_ALIAS)
         self.assertEqual(

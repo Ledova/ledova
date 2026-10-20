@@ -481,7 +481,8 @@ What an award is: [employee awards](../business/issuing-shares.md#employee-award
 or supply. For a new recipient it creates their person record in the same transaction: a member and
 particulars whose source is the award (`source_award`). A deferred trigger refuses an award that
 commits without it. Later awards, issues and transfers then name that member with the retained
-particulars, and a new-member request under its ID is refused (`member_reference_conflict`). Awards
+particulars. A new-member request under its ID is refused: by an award as an ID that already
+identifies a member, and by an allotment, grant or transfer as `member_reference_conflict`. Awards
 show the person's current particulars beside the award's own copy. Awards and vesting events are
 append-only and keep their actor, appointment, operation id and creation time; identity triggers
 require exact current company authority, recipient, class and agreement, or exact award, quantity,

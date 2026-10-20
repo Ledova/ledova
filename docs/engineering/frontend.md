@@ -183,11 +183,10 @@ The [principles](README.md#principles) apply; in particular, do not add:
   sign-in, sign-up and `SIGNUP_STEPS`); source writes no literal path. Titles come from
   `signedInRoutes` ([routes, audiences and guards](#routes-audiences-and-guards)); a page sets
   `PageTitle` only for a hash view.
-- **Errors and waiting.** A failed request reads as a `role="alert"` sentence from
-  `apiErrorSentence`, or `readApiError` where a form marks fields
-  (`packages/shared/src/utils/errors.ts`). Read a status with `failureStatus`, never an inline cast,
-  and keep `getErrorMessage` for errors that are not API responses. A page's first read renders
-  `<Page loading>`; a failed read offers Try again ([lists](#lists-figures-and-currency)).
+- **Errors and waiting.** A failed request reads as a `role="alert"` sentence
+  ([validation](frontend-ux.md#validation)). Read a status with `failureStatus`, never an inline
+  cast. A page's first read renders `<Page loading>`; a failed read offers Try again
+  ([lists](#lists-figures-and-currency)).
 - **Formatting.** Figures, amounts and dates use the shared formatters (`formatMoney`,
   `formatShareCount`, `marketQuantity`, `formatCryptoBalance`, `formatDate`;
   [lists, figures and currency](#lists-figures-and-currency)). Never define a local formatter or
@@ -627,8 +626,9 @@ Each page links to its business section; the audience is the `DESTINATIONS` audi
   is named for screen readers after its visible label and its entry, proposal or discrepancy. Native
   section parameters switch the visible section, keeping the register mounted.
 - Company: reads the selected company's complete detail; an edit sends only changed fields.
-- Published to your members: reads every page of the selected company's publications with `issuer`
-  set, so the card title carries the complete count.
+- Published to your members: reads the selected company's publications with `issuer` set, newest
+  first, a page at a time with Load more; the card title carries the server's complete count. A
+  document opens only while every loaded page is current.
 - Wallet shares: reads every page of the person's wallets, names each asset from the API's current
   class and company names, adds whole share counts without floating-point conversion, and reads the
   applicant-filtered application list only for a known investing role.

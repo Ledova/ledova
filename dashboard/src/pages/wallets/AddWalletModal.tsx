@@ -302,14 +302,12 @@ function ImportAccounts({
       <ModalActions>
         <PageAction label="Cancel" onClick={onCancel} disabled={isImporting} />
         <PageAction
-          label={
-            isImporting
-              ? 'Importing…'
-              : `Import ${selectedAddresses.size} wallet${selectedAddresses.size !== 1 ? 's' : ''}`
-          }
+          label={`Import ${selectedAddresses.size} wallet${selectedAddresses.size !== 1 ? 's' : ''}`}
           primary
+          busy={isImporting}
+          busyLabel="Importing…"
           onClick={handleImport}
-          disabled={selectedAddresses.size === 0 || isImporting}
+          disabled={selectedAddresses.size === 0}
         />
       </ModalActions>
     </>

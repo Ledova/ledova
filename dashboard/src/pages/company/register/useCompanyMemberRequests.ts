@@ -9,6 +9,7 @@ import {
   type RegisterEvidence,
   type OrderSubmissionOwner,
   type TokenHoldersResponse,
+  failureSentence,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
 import { invitationMembers } from '@ledova/shared';
@@ -130,7 +131,7 @@ export function useCompanyMemberRequests({
       }
       await access.prepareRequest(request, current.receipt.uuid, asAt, reason.trim());
     } catch (failure) {
-      setUploadError(failure instanceof Error ? failure.message : 'The supporting document could not be uploaded.');
+      setUploadError(failureSentence(failure, 'The supporting document could not be uploaded.'));
     } finally {
       setUploading(false);
     }

@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from 'react';
-import { getErrorMessage, isUuid, submitInvestorClassification, type InvestorCategory } from '@ledova/shared';
+import { isUuid, submitInvestorClassification, type InvestorCategory, failureSentence } from '@ledova/shared';
 import apiClient from '@services/apiClient';
 import { CATEGORIES } from './constants';
 
@@ -83,7 +83,7 @@ export function useInvestorClaim({
       reset();
       onSuccess();
     } catch (caught) {
-      setError(getErrorMessage(caught, 'The claim was refused. Please check the details and try again.'));
+      setError(failureSentence(caught, 'The claim was refused. Please check the details and try again.'));
     } finally {
       setIsSubmitting(false);
     }

@@ -80,6 +80,7 @@ def register_members(token, actor):
         registered = set(
             RegisterPosition.objects.filter(register__company_id=token.company_id).values_list("member_id", flat=True)
         )
+        awarded = set(RegisterAward.objects.filter(company_id=token.company_id).values_list("member", flat=True))
         recipients = set(
             RegisterAward.objects.readable_by(actor)
             .filter(company_id=token.company_id)
@@ -101,10 +102,10 @@ def register_members(token, actor):
                     "last_ceased_on": cessations.get(member.pk),
                     "walletless": member.pk not in linked,
                     "particulars_retained": member.pk in held,
-                    "on_register": member.pk in registered,
+                    "on_register": member.pk in registered or member.pk not in awarded,
                 }
                 for member in members
-                if member.pk in registered or member.pk in recipients
+                if member.pk in registered or member.pk not in awarded or member.pk in recipients
             ],
         }
 

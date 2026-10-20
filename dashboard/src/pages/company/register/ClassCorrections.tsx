@@ -16,6 +16,7 @@ import {
 } from '@ledova/shared';
 import { LinkRow } from '@components/Ledger';
 import { PageAction } from '@components/Page';
+import { LoadMore } from '@components/List';
 
 import { CorrectionRecord } from './CorrectionRecord';
 import { ClassCertificate } from './ClassCertificate';
@@ -131,26 +132,14 @@ function EntryHistory({
           );
         })}
       </ul>
-      {history.moreFailed ? (
-        <div role="alert" className="flex flex-col items-start gap-2 text-sm text-text-muted">
-          <p>More register entries could not be loaded. The list is incomplete.</p>
-          <PageAction
-            label="Try more register entries again"
-            onClick={history.loadMore}
-            disabled={history.isFetching}
-          />
-        </div>
-      ) : (
-        history.hasMore && (
-          <PageAction
-            label="Load more register entries"
-            busy={history.isLoadingMore}
-            busyLabel="Loading register entries…"
-            onClick={history.loadMore}
-            disabled={history.isFetching}
-          />
-        )
-      )}
+      <LoadMore
+        noun={['register entry', 'register entries']}
+        hasMore={history.hasMore}
+        failed={history.moreFailed}
+        loading={history.isLoadingMore}
+        disabled={history.isFetching}
+        onLoad={history.loadMore}
+      />
     </div>
   );
 }

@@ -8,6 +8,9 @@ export const REGISTER_PARTICULARS_UNMET_COPY: Record<string, string> = {
   approval_lapsed: "The approver's appointment has ended. Approve this change again before applying it.",
   evidence_unavailable:
     'The retained copy of the supporting document no longer matches its record. Prepare a new change.',
+  member_request_no_longer_current:
+    "The member's request behind this change is no longer current: their access ended or their particulars " +
+    'changed. Reject this change.',
   member_left_retention:
     'This member has held no shares since the retention cutoff, so the register no longer keeps their particulars. ' +
     'Reject this change.',

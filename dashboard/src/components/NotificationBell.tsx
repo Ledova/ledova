@@ -4,6 +4,7 @@ import { BellIcon, XIcon } from '@phosphor-icons/react';
 import { Popover, PopoverButton, PopoverPanel } from '@headlessui/react';
 import { formatDateTime, DESTINATIONS, PUBLICATION_NOTICE, useNotifications } from '@ledova/shared';
 import { ICON_SM, ICON_MD } from './iconSizes';
+import { LoadMore } from './List';
 import type { DestinationKey, Notification } from '@ledova/shared';
 
 const NOTICE_PAGES: Record<string, DestinationKey> = {
@@ -72,6 +73,7 @@ function NotificationList({
   load,
   notifications,
   isLoading,
+  more,
   heading,
   onRead,
   onArchive,
@@ -80,6 +82,7 @@ function NotificationList({
   load: () => unknown;
   notifications: Notification[];
   isLoading: boolean;
+  more: { hasMore: boolean; failed: boolean; loading: boolean; onLoad: () => void };
   heading: RefObject<HTMLHeadingElement | null>;
   onRead: (uuid: string) => void;
   onArchive: (uuid: string) => void;
@@ -126,6 +129,11 @@ function NotificationList({
           onFollow={onFollow}
         />
       ))}
+      {(more.hasMore || more.failed) && (
+        <div className="px-4 py-3">
+          <LoadMore noun={['notification', 'notifications']} disabled={isLoading && !more.loading} {...more} />
+        </div>
+      )}
     </>
   );
 }
@@ -142,6 +150,10 @@ export function NotificationBell({ align }: NotificationBellProps) {
     archive,
     markAllAsRead,
     isMarkingAllRead,
+    hasMoreNotifications,
+    isLoadingMoreNotifications,
+    moreNotificationsFailed,
+    loadMoreNotifications,
   } = useNotifications();
 
   const badgeText = unreadCount > 99 ? '99+' : String(unreadCount);
@@ -197,6 +209,12 @@ export function NotificationBell({ align }: NotificationBellProps) {
                 load={fetchNotifications}
                 notifications={notifications}
                 isLoading={isLoadingNotifications}
+                more={{
+                  hasMore: hasMoreNotifications,
+                  failed: moreNotificationsFailed,
+                  loading: isLoadingMoreNotifications,
+                  onLoad: () => void loadMoreNotifications(),
+                }}
                 heading={heading}
                 onRead={markAsRead}
                 onArchive={archive}

@@ -3,8 +3,7 @@ import type { AxiosRequestConfig } from 'axios';
 import { REGISTER_RECONCILIATION_COPY } from '../constants/business/register-reconciliations';
 import { acknowledgeRegisterDiscrepancy } from '../services/register-reconciliations';
 import type { RegisterReconciliation } from '../types';
-import { apiErrorSentence, createUserFriendlyError, getErrorMessage } from '../utils/errors';
-import { failureStatus } from '../utils/errors';
+import { createUserFriendlyError, failureStatus, failureSentence } from '../utils/errors';
 import { isDiscrepancyAcknowledgementReceipt } from '../utils/register-reconciliations';
 import { useApiClient } from './useApiClient';
 
@@ -58,7 +57,7 @@ export function useDiscrepancyAcknowledgement(
       const status = failureStatus(failure);
       if (status && status < 500) retry.current = null;
       const fallback = REGISTER_RECONCILIATION_COPY.ACKNOWLEDGE_FAILED;
-      if (mounted.current) setError(status ? apiErrorSentence(failure, fallback) : getErrorMessage(failure, fallback));
+      if (mounted.current) setError(failureSentence(failure, fallback));
       if (status === 400 || status === 404 || status === 409) await options.onRefused?.();
     } finally {
       pending.current = false;

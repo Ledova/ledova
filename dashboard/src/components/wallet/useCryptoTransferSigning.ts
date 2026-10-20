@@ -8,6 +8,7 @@ import {
   canonicalDecimal,
   validatePreparedTransfer,
   WALLETS_QUERY_KEY,
+  failureSentence,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
 import type { Wallet, PreparedWalletTransfer } from '@ledova/shared';
@@ -60,8 +61,7 @@ export function useCryptoTransferSigning({
       setPrepareError(null);
     },
     onError: (err) => {
-      const message = getErrorMessage(err);
-      setPrepareError(message);
+      setPrepareError(failureSentence(err, 'The transfer could not be prepared. Check the details and try again.'));
       setPreparedTransaction(null);
     },
   });
@@ -86,8 +86,7 @@ export function useCryptoTransferSigning({
       queryClient.invalidateQueries({ queryKey: WALLETS_QUERY_KEY });
     },
     onError: (err) => {
-      const message = getErrorMessage(err);
-      setBroadcastError(message);
+      setBroadcastError(failureSentence(err, 'The transaction could not be broadcast. Try again.'));
     },
   });
 
@@ -120,20 +119,4 @@ export function useCryptoTransferSigning({
     broadcast,
     reset,
   };
-}
-
-function getErrorMessage(error: unknown): string {
-  if (!error) return 'An unknown error occurred';
-  if (typeof error === 'string') return error;
-
-  const axiosError = error as {
-    response?: { data?: { detail?: string; message?: string }; status?: number };
-    message?: string;
-  };
-
-  if (axiosError.response?.data?.detail) return axiosError.response.data.detail;
-  if (axiosError.response?.data?.message) return axiosError.response.data.message;
-  if (axiosError.message) return axiosError.message;
-
-  return 'An error occurred while processing your request';
 }
