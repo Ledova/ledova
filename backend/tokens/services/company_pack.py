@@ -22,6 +22,7 @@ from shared.utils.typed_data import DOMAIN_NAME, DOMAIN_VERSION
 from tokens.constants import COMPANY_PACK_SPOOL_BYTES
 from tokens.exceptions import RegisterIntegrityError, SettlementContextChanged
 from tokens.models import (
+    ClassRightsRevision,
     RegisterAgreement,
     RegisterAllotment,
     RegisterAward,
@@ -232,6 +233,23 @@ def _share_class(company, token, outputs) -> dict:
                 "cap_increases": cap_increases,
                 "pauses": pauses,
             }
+        ),
+        f"{folder}/class_rights.json": _json(
+            list(
+                ClassRightsRevision.objects.filter(token=token)
+                .order_by("revision")
+                .values(
+                    "uuid",
+                    "revision",
+                    "summary",
+                    "document_reference",
+                    "recorded_by_id",
+                    "recorded_by_name",
+                    "appointment_id",
+                    "idempotency_key",
+                    "created_at",
+                )
+            )
         ),
         f"{folder}/entries.json": _json(entries),
         f"{folder}/chain.json": _json({"deployment": deployment, "operations": chain.operations(company, token)}),

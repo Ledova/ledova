@@ -235,7 +235,7 @@ def request_particulars(*, actor, operation_id, association, name, residential_a
         if confirmation is not True:
             raise ValidationError("Confirm the proposed company-recorded particulars.")
         if not RegisterMemberParticulars.objects.filter(member_id=subject.member, member__company=company).exists():
-            raise ValidationError("A particulars request needs a retained issued member; an award is an entitlement.")
+            raise ValidationError("The company no longer retains particulars for this member.")
         snapshot = _query("tokens_register_particulars_snapshot", subject.member)
         if snapshot["name"] == values["name"] and snapshot["residential_address"] == values["residential_address"]:
             raise ValidationError("These particulars already match the company record.")

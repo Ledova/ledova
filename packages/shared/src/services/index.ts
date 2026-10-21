@@ -97,6 +97,7 @@ export {
   getShareIssuanceRequests,
 } from './company-tokens';
 export { uploadRegisterEvidence } from './register-commands';
+export { getClassRights, recordClassRights } from './class-rights';
 export * from './register-grants';
 export * from './register-awards';
 export * from './register-deployments';

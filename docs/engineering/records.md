@@ -472,16 +472,37 @@ Company and member history and the pack retain the nullable company date beside 
 actual recording timestamps. Chain, opening and compensating-correction dates retain their existing
 conventions, and the register hash format is unchanged.
 
+### Class-rights descriptions
+
+`tokens.ClassRightsRevision` retains company-supplied text separately from holdings and legal rights.
+The class's `class-rights/` GET is paginated newest first, with the latest `current` record and the
+viewer's current personal administration appointment, if any. `idempotency_key` filters the records
+for exact-request recovery without changing `current`. Reads require current company register access.
+
+POST supplies `appointment`, `idempotency_key`, `previous_revision` (zero initially), `summary` (up
+to 4,000 characters) and `document_reference` (up to 255). Both strings may be blank. Current personal
+administration and the company lock are required, including for an exact retry. A new request appends
+one revision; the same actor/key and exact payload recover the prior result. Changed retries or a
+stale revision conflict. PostgreSQL retains the actor, name snapshot, appointment and actual time,
+refuses edits/deletion, rechecks administration at commit and prevents moving a recorded class to
+another company. The app role has no table grant; member/public projections do not include these records.
+The company pack includes the full revision history as `classes/<class id>/class_rights.json`.
+
 ### Employee awards API
 
 What an award is: [employee awards](../business/issuing-shares.md#employee-awards-and-vesting).
 `register-awards/`, `register-award-vestings/`, `register-award-ends/` and
 `register-award-vesting-reversals/` record under a retry key with no decision;
-`register-grants/` with an `award` is an award's only issue path, and an award records no member,
-entry, position or supply. Awards and vesting events are append-only and keep their actor,
-appointment, operation id and creation time; identity triggers require exact current company
-authority, recipient, class and agreement, or exact award, quantity, date and evidence, and
-constraint triggers recheck the recording authority at commit. Concurrent events and linked grant
+`register-grants/` with an `award` is an award's only issue path. An award records no entry, position
+or supply. For a new recipient it creates their person record in the same transaction: a member and
+particulars whose source is the award (`source_award`). A deferred trigger refuses an award that
+commits without it. Later awards, issues and transfers then name that member with the retained
+particulars. A new-member request under its ID is refused: by an award as an ID that already
+identifies a member, and by an allotment, grant or transfer as `member_reference_conflict`. Awards
+show the person's current particulars beside the award's own copy. Awards and vesting events are
+append-only and keep their actor, appointment, operation id and creation time; identity triggers
+require exact current company authority, recipient, class and agreement, or exact award, quantity,
+date and evidence, and constraint triggers recheck the recording authority at commit. Concurrent events and linked grant
 applications serialise the allocation check, and a failed effect rolls back whole. The tables are
 operator-only.
 

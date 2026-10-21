@@ -25,6 +25,27 @@ from tokens.services.former_holders import purge_register_exports
 
 class RegisterOutputsTest(CoreFixtures, APITransactionTestCase):
     def test_unsigned_company_own_transfer_certificate_and_complete_core_pack_retain_real_sources(self):
+        rights_endpoint = f"/api/v1/tokens/{self.token.pk}/class-rights/"
+        rights = {
+            "appointment": str(self.appointment.pk),
+            "idempotency_key": str(uuid4()),
+            "previous_revision": 0,
+            "summary": "Company-supplied ordinary share rights.",
+            "document_reference": "Synthetic constitution, clause 4",
+        }
+        first_rights = self.client.post(rights_endpoint, rights, format="json")
+        self.assertEqual(first_rights.status_code, 201, first_rights.content)
+        latest_rights = self.client.post(
+            rights_endpoint,
+            {
+                **rights,
+                "idempotency_key": str(uuid4()),
+                "previous_revision": 1,
+                "summary": "Clarified company summary.",
+            },
+            format="json",
+        )
+        self.assertEqual(latest_rights.status_code, 201, latest_rights.content)
         award = self.award_payload()
         promised = self.client.post("/api/v1/tokens/register-awards/", award, format="json")
         self.assertEqual(promised.status_code, 201, promised.content)
@@ -206,6 +227,15 @@ class RegisterOutputsTest(CoreFixtures, APITransactionTestCase):
             for file in manifest["files"]:
                 data = bundle.read(file["path"])
                 self.assertEqual((len(data), hashlib.sha256(data).hexdigest()), (file["size"], file["sha256"]))
+            exported_rights = json.loads(bundle.read(f"classes/{self.token.pk}/class_rights.json"))
+            self.assertEqual([record["revision"] for record in exported_rights], [1, 2])
+            self.assertEqual(exported_rights[0]["summary"], rights["summary"])
+            self.assertEqual(exported_rights[1]["summary"], "Clarified company summary.")
+            self.assertEqual(exported_rights[0]["document_reference"], rights["document_reference"])
+            self.assertEqual(exported_rights[0]["recorded_by_id"], self.owner.pk)
+            self.assertEqual(exported_rights[0]["appointment_id"], str(self.appointment.pk))
+            self.assertEqual(exported_rights[0]["idempotency_key"], rights["idempotency_key"])
+            self.assertTrue(exported_rights[0]["created_at"])
             sources = json.loads(bundle.read("company_mandates.json"))
             self.assertEqual(sources["awards"][0]["data"]["is_entitlement"], True)
             self.assertEqual(sources["vestings"][0]["data"]["shares"], "25")

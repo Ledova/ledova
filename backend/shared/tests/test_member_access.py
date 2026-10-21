@@ -91,30 +91,6 @@ class MemberAccessTest(CoreFixtures, APITransactionTestCase):
             self.client.get(f"/api/v1/tokens/register-award-ends/{end_payload['operation_id']}/file/").status_code, 404
         )
         self.assertNotIn("evidence", str(own.json()).lower())
-        with use_operator():
-            self.assertFalse(RegisterMember.objects.filter(pk=award["member"]).exists())
-        self.client.force_authenticate(self.owner)
-        selections = self.client.get(f"/api/v1/tokens/{self.token.pk}/register/members/")
-        self.assertEqual(selections.status_code, 200, selections.content)
-        self.assertEqual(
-            selections.json()["awardRecipients"],
-            [{"member": award["member"], "name": award["name"], "residentialAddress": award["residential_address"]}],
-        )
-        self.assertNotIn(award["member"], [row["member"] for row in selections.json()["members"]])
-        proposal = self.client.post("/api/v1/tokens/register-grants/", self.linked_grant_payload(award), format="json")
-        self.assertEqual(proposal.status_code, 201, proposal.content)
-        self.decision("/api/v1/tokens/register-grants/", proposal.json()["uuid"], "approve")
-        applied, _ = self.decision("/api/v1/tokens/register-grants/", proposal.json()["uuid"], "apply")
-        issue_entry = applied.json()["registerEntry"]
-        supporting = retained_evidence(self.owner, self.appointment, RegisterEvidenceKind.SUPPORTING)
-        self.client.force_authenticate(self.foreign)
-        own = self.client.get(record_endpoint).json()
-        self.assertEqual((own["classes"][0]["shares"], own["awards"][0]["issuedShares"]), ("25", "25"))
-        self.assertIsNone(own["classes"][0]["amountPaid"])
-        entries = self.client.get(f"{record_endpoint}entries/?token={self.token.pk}").json()["entries"]
-        self.assertEqual([(item["uuid"], item["delta"]) for item in entries], [(issue_entry, "25")])
-        self.assertNotIn(str(self.member.pk), str(entries))
-        self.assertNotIn("changes", str(entries))
         request_payload = {
             "operation_id": str(uuid4()),
             "association": association,
@@ -134,6 +110,26 @@ class MemberAccessTest(CoreFixtures, APITransactionTestCase):
             self.assertEqual(
                 RegisterMemberParticulars.objects.get(member_id=award["member"]).name, "Synthetic Employee"
             )
+        self.client.force_authenticate(self.owner)
+        selections = self.client.get(f"/api/v1/tokens/{self.token.pk}/register/members/")
+        self.assertEqual(selections.status_code, 200, selections.content)
+        self.assertEqual(selections.json()["awardRecipients"], [])
+        recipient = next(row for row in selections.json()["members"] if row["member"] == award["member"])
+        self.assertEqual((recipient["name"], recipient["onRegister"]), (award["name"], False))
+        proposal = self.client.post("/api/v1/tokens/register-grants/", self.linked_grant_payload(award), format="json")
+        self.assertEqual(proposal.status_code, 201, proposal.content)
+        self.decision("/api/v1/tokens/register-grants/", proposal.json()["uuid"], "approve")
+        applied, _ = self.decision("/api/v1/tokens/register-grants/", proposal.json()["uuid"], "apply")
+        issue_entry = applied.json()["registerEntry"]
+        supporting = retained_evidence(self.owner, self.appointment, RegisterEvidenceKind.SUPPORTING)
+        self.client.force_authenticate(self.foreign)
+        own = self.client.get(record_endpoint).json()
+        self.assertEqual((own["classes"][0]["shares"], own["awards"][0]["issuedShares"]), ("25", "25"))
+        self.assertIsNone(own["classes"][0]["amountPaid"])
+        entries = self.client.get(f"{record_endpoint}entries/?token={self.token.pk}").json()["entries"]
+        self.assertEqual([(item["uuid"], item["delta"]) for item in entries], [(issue_entry, "25")])
+        self.assertNotIn(str(self.member.pk), str(entries))
+        self.assertNotIn("changes", str(entries))
         self.client.force_authenticate(self.owner)
         change = self.client.post(
             f"/api/v1/tokens/member-particulars-requests/{request_id}/prepare/",
@@ -243,7 +239,11 @@ class MemberAccessTest(CoreFixtures, APITransactionTestCase):
         self.assertEqual(
             self.client.post(f"{endpoint}{prepared.json()['uuid']}/decide/", applied, format="json").status_code, 200
         )
-        self.assertEqual(self.client.get(f"/api/v1/tokens/{token.pk}/register/members/").json()["awardRecipients"], [])
+        members = self.client.get(f"/api/v1/tokens/{token.pk}/register/members/").json()["members"]
+        self.assertIn(
+            (copied_award["member"], "100", True),
+            [(row["member"], row["currentShares"], row["onRegister"]) for row in members],
+        )
         self.client.force_authenticate(copied_user)
         own = self.client.get(copied_endpoint).json()
         self.assertEqual((own["member"], own["name"]), (copied_award["member"], copied_award["name"]))

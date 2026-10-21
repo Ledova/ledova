@@ -3,7 +3,12 @@ from uuid import UUID
 
 from django.http import HttpResponse
 from drf_spectacular.types import OpenApiTypes
-from drf_spectacular.utils import OpenApiParameter, extend_schema, inline_serializer
+from drf_spectacular.utils import (
+    OpenApiParameter,
+    OpenApiResponse,
+    extend_schema,
+    inline_serializer,
+)
 from rest_framework import mixins, serializers, status
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
@@ -22,6 +27,12 @@ from tokens.serializers import (
     ShareTokenDetailSerializer,
     ShareTokenListSerializer,
 )
+from tokens.serializers.class_rights import (
+    ClassRightsPageSerializer,
+    ClassRightsQuerySerializer,
+    ClassRightsRevisionSerializer,
+    ClassRightsWriteSerializer,
+)
 from tokens.serializers.register_certificate import (
     RegisterCertificatePreviewSerializer,
     RegisterCertificateRequestSerializer,
@@ -33,6 +44,7 @@ from tokens.serializers.register_inspection_copy import (
 )
 from tokens.serializers.register_opening import RegisterOpeningHoldersSerializer
 from tokens.serializers.register_transfer import RegisterMembersSerializer
+from tokens.services.class_rights import class_rights_read, record_class_rights
 from tokens.services.former_holders import fold_is_stale, former_members_of
 from tokens.services.register import (
     REGISTER_HEADERS,
@@ -78,6 +90,7 @@ class ShareTokenViewSet(
             "register_opening_holders",
             "register_waiting",
             "register_members",
+            "class_rights",
         }
     )
     operator_actions_because = (
@@ -98,7 +111,9 @@ class ShareTokenViewSet(
         "The opening holders read reads the chain for a class whose register is not opened, so it admits only a "
         "current appointment holding administration or prepare, and names linked members from the same sources. "
         "Inspection copies and unsigned certificates separately require a current personal register appointment "
-        "inside the locked company operation; ownership and platform staff permission grant no output authority."
+        "inside the locked company operation; ownership and platform staff permission grant no output authority. "
+        "Private class-rights descriptions are read by exact-company register readers; their durable append-only "
+        "producer requires current personal company administration and retains attributable revisions."
     )
 
     register_reads = frozenset(
@@ -111,6 +126,7 @@ class ShareTokenViewSet(
             "register_members",
             "register_inspection_copy",
             "register_certificate",
+            "class_rights",
         }
     )
 
@@ -171,6 +187,46 @@ class ShareTokenViewSet(
         queryset = self.filter_queryset(self.get_queryset())
         page = self.paginate_queryset(queryset)
         return self.get_paginated_response(self.get_serializer(page, many=True).data)
+
+    @extend_schema(
+        methods=["GET"],
+        parameters=[
+            OpenApiParameter("page", OpenApiTypes.INT),
+            OpenApiParameter("page_size", OpenApiTypes.INT),
+            OpenApiParameter("idempotency_key", OpenApiTypes.UUID),
+        ],
+        responses=ClassRightsPageSerializer,
+    )
+    @extend_schema(
+        methods=["POST"],
+        request=ClassRightsWriteSerializer,
+        responses={
+            200: ClassRightsRevisionSerializer,
+            201: ClassRightsRevisionSerializer,
+            409: OpenApiResponse(response=OpenApiTypes.OBJECT, description="The request or loaded revision conflicts."),
+        },
+    )
+    @action(detail=True, methods=["get", "post"], url_path="class-rights")
+    def class_rights(self, request, uuid=None):
+        token = self.get_object()
+        if request.method == "GET":
+            query = ClassRightsQuerySerializer(data=request.query_params)
+            query.is_valid(raise_exception=True)
+            with class_rights_read(actor=request.user, token=token) as (revisions, administration):
+                current = revisions.first()
+                if key := query.validated_data.get("idempotency_key"):
+                    revisions = revisions.filter(idempotency_key=key)
+                page = self.paginate_queryset(revisions)
+                response = self.get_paginated_response(ClassRightsRevisionSerializer(page, many=True).data)
+                response.data.update(
+                    current=ClassRightsRevisionSerializer(current).data if current else None,
+                    administration_appointment=str(administration.pk) if administration else None,
+                )
+                return response
+        serializer = ClassRightsWriteSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        revision, created = record_class_rights(actor=request.user, token=token, **serializer.validated_data)
+        return Response(ClassRightsRevisionSerializer(revision).data, status=201 if created else 200)
 
     @extend_schema(
         responses=inline_serializer(

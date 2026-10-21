@@ -71,8 +71,9 @@ AS $function$
                 AND entry.operation_id IS DISTINCT FROM proposal_uuid
                 AND EXISTS (SELECT 1 FROM jsonb_array_elements(entry.changes) change
                     WHERE change->>'member' = item->>'member'))
-            AND (award.company_id IS DISTINCT FROM issuer OR award.name IS DISTINCT FROM item->>'name'
-                OR award.residential_address IS DISTINCT FROM item->>'residential_address'));
+            AND (award.company_id IS DISTINCT FROM issuer OR NOT EXISTS (SELECT 1 FROM tokens_registermemberparticulars held
+                WHERE held.member_id = award.member AND held.name = item->>'name'
+                    AND held.residential_address = item->>'residential_address')));
 $function$;
 
 CREATE OR REPLACE FUNCTION public.tokens_mirror_changes(proposal_uuid uuid)

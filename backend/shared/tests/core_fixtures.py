@@ -266,14 +266,17 @@ class CoreFixtures:
 
     def linked_grant_payload(self, award, **changes):
         return self.grant_payload(
-            award=award["operation_id"],
-            member=award["member"],
-            name=award["name"],
-            residential_address=award["residential_address"],
-            terms_on=award["terms_on"],
-            terms=award["terms"],
-            terms_evidence=award["agreement_evidence"],
-            **changes,
+            **{
+                "award": award["operation_id"],
+                "member": award["member"],
+                "new_member": False,
+                "name": award["name"],
+                "residential_address": award["residential_address"],
+                "terms_on": award["terms_on"],
+                "terms": award["terms"],
+                "terms_evidence": award["agreement_evidence"],
+                **changes,
+            }
         )
 
     def allotment_payload(self, **changes):

@@ -105,8 +105,8 @@ failed refresh hides cached private records, and an uncertain reply is recovered
 
 ### Particulars requests
 
-A member with issued shares (not an award-only recipient) asks the company to change their
-recorded name and residential address: **Request a particulars update** on **Dashboard**
+A member, including an award recipient before any shares are issued, asks the company to change
+their recorded name and residential address: **Request a particulars update** on **Dashboard**
 (**Request a particulars change** on **My shares**), then **Send particulars request**. Sending
 changes nothing on the register.
 
@@ -316,6 +316,8 @@ stated limits, not proof of a bank payment, current contract ownership or a lodg
   and wallet nominations and instructions have none.
 - Issues, and subscriptions with a payment recorded by staff (not proved) still to be allotted or
   refunded, an obligation the company inherits.
+- Each class's company-supplied rights descriptions and document references, with every revision,
+  actor, appointment and recording time. References are text, not retained source-file proof.
 - Wallet approvals, the transactions Ledova sent for the company and the settlements it executed.
 - What the company published to its members, with each resolution's result, each dividend's payment
   records and read counts.
