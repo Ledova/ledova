@@ -15,6 +15,8 @@ import {
 import { Confirmation, Modal, ModalActions } from '@components/Modal';
 import { PageAction } from '@components/Page';
 import { SeedPhraseInput } from '@components/SeedPhraseInput';
+import { ErrorSummary } from '@components/ErrorSummary';
+import { useErrorSummary } from '@hooks/useErrorSummary';
 import { QRCodeFrame, QRScannerView, useQRScanner } from '@components/qr';
 import { encodeEthereumTypedData } from '@utils/keystone/urEncoder';
 import { decodeKeystoneMessageSignature } from '@utils/keystone/urDecoder';
@@ -31,6 +33,7 @@ interface Props {
 
 export function OrderActionFlow({ action, wallets, onClose }: Props) {
   const [seedPhrase, setSeedPhrase] = useState('');
+  const phraseCheck = useErrorSummary({ seedPhrase: !seedPhrase.trim() && 'Enter the seed phrase for this wallet.' });
   const [removal, setRemoval] = useState<'confirming' | 'removing' | null>(null);
   const signing = useOrderActionSigning(action, wallets, (message, wallet) => {
     const encoded = encodeEthereumTypedData(
@@ -153,7 +156,12 @@ export function OrderActionFlow({ action, wallets, onClose }: Props) {
                 {view.error}
               </p>
             )}
-            {view.step === 'software' && <SeedPhraseInput value={seedPhrase} onChange={setSeedPhrase} />}
+            {view.step === 'software' && (
+              <>
+                <ErrorSummary {...phraseCheck.summary} />
+                <SeedPhraseInput {...phraseCheck.field('seedPhrase')} value={seedPhrase} onChange={setSeedPhrase} />
+              </>
+            )}
             {view.step === 'show-qr' && view.qrData && (
               <QRCodeFrame>
                 <AnimatedQRCode cbor={view.qrData.cborHex} type={view.qrData.type} />
@@ -222,6 +230,7 @@ export function OrderActionFlow({ action, wallets, onClose }: Props) {
               onClick={() => {
                 stopScanner();
                 setSeedPhrase('');
+                phraseCheck.reset();
                 signing.back();
               }}
             />
@@ -251,8 +260,10 @@ export function OrderActionFlow({ action, wallets, onClose }: Props) {
             <PageAction
               label={`Sign ${label}`}
               primary
-              disabled={!seedPhrase.trim() || !wallet?.derivationPath}
-              onClick={sign}
+              disabled={!wallet?.derivationPath}
+              onClick={() => {
+                if (phraseCheck.check()) sign();
+              }}
             />
           )}
           {state.phase === 'ready' && view.step === 'show-qr' && view.qrData && (

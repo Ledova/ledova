@@ -11,6 +11,8 @@ import { Field, Label, Description } from '@headlessui/react';
 import { KeyIcon, WarningIcon, CheckCircleIcon } from '@phosphor-icons/react';
 import type { FormErrors } from '@ledova/shared';
 import { ICON_MD } from '@components/iconSizes';
+import { ErrorSummary } from '@components/ErrorSummary';
+import { useFieldErrorSummary } from '@hooks/useErrorSummary';
 
 interface EmailConfirmationFormProps {
   verificationCode: string;
@@ -20,7 +22,7 @@ interface EmailConfirmationFormProps {
   isLoading: boolean;
   isResending: boolean;
   setVerificationCode: (code: string) => void;
-  onSubmit: (e: React.FormEvent) => void;
+  onSubmit: (e: React.FormEvent) => Promise<void>;
   onResendCode: () => void;
   onBack: () => void;
 }
@@ -37,10 +39,13 @@ export function EmailConfirmationForm({
   onResendCode,
   onBack,
 }: EmailConfirmationFormProps) {
+  const reported = useFieldErrorSummary(generalError ? {} : errors, ['token']);
+  const token = reported.field('token');
   return (
     <>
       <AuthCard>
-        <form onSubmit={onSubmit} className="space-y-6">
+        <form noValidate onSubmit={(event) => void onSubmit(event).then(reported.reported)} className="space-y-6">
+          <ErrorSummary {...reported.summary} />
           {generalError && (
             <div className={ERROR_BANNER_CLASS}>
               <div className="flex items-start">
@@ -71,7 +76,7 @@ export function EmailConfirmationForm({
             </div>
           )}
 
-          <Field className="space-y-2">
+          <Field id={token.id} className="space-y-2">
             <Label className="block text-sm font-medium text-text-body">Verification code</Label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -85,15 +90,12 @@ export function EmailConfirmationForm({
                 className={authFieldClass(errors.token, 'pl-10 pr-3', false)}
                 placeholder="Enter verification code"
                 required
+                invalid={!!token.error}
                 disabled={isLoading}
                 maxLength={FIELD_LIMITS.VERIFICATION_CODE}
               />
             </div>
-            {errors.token && !generalError && (
-              <Description className="text-error-light text-sm mt-1" role="alert">
-                {errors.token.join(' ')}
-              </Description>
-            )}
+            {token.error && <Description className="text-error-light text-sm mt-1">{token.error}</Description>}
           </Field>
 
           <button type="submit" disabled={isLoading} className={AUTH_BUTTON_CLASS}>

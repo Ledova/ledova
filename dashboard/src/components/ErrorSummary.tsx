@@ -11,7 +11,7 @@ function focusField(id: string) {
     labelled && !(labelled as HTMLInputElement).disabled
       ? labelled
       : field?.querySelector<HTMLElement>(
-          'input:not([type="hidden"]):not(:disabled), textarea:not(:disabled), select:not(:disabled), button:not(:disabled)',
+          'input:not([type="hidden"]):not(:disabled), textarea:not(:disabled), select:not(:disabled), button:not(:disabled), [role="checkbox"][tabindex="0"], [role="radio"][tabindex="0"]',
         );
   control?.focus({ preventScroll: true });
 }

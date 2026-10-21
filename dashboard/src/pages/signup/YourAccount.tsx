@@ -8,6 +8,8 @@ import { EnvelopeIcon, LockIcon, UserIcon, WarningIcon } from '@phosphor-icons/r
 import { FIELD_LIMITS, useSignupRestart } from '@ledova/shared';
 import { useUserProfile } from '@hooks/useUserProfile';
 import { ICON_MD } from '@components/iconSizes';
+import { ErrorSummary } from '@components/ErrorSummary';
+import { useFieldErrorSummary } from '@hooks/useErrorSummary';
 
 export function YourAccount() {
   const navigate = useNavigate();
@@ -27,6 +29,10 @@ export function YourAccount() {
     handleSubmit,
   } = useSignupRestart(userProfile?.email ?? '', (address) => localStorage.setItem('signup_email', address));
 
+  const reported = useFieldErrorSummary(errors, ['email', 'confirmEmail', 'currentPassword']);
+  const emailField = reported.field('email');
+  const confirmField = reported.field('confirmEmail');
+  const passwordField = reported.field('currentPassword');
   const handleContinue = async (e: React.FormEvent) => {
     e.preventDefault();
     await handleSubmit(
@@ -36,6 +42,7 @@ export function YourAccount() {
         navigate(SIGNUP_PATHS.emailConfirmation);
       },
     );
+    reported.reported();
   };
 
   return (
@@ -45,7 +52,8 @@ export function YourAccount() {
       </AuthHeader>
 
       <AuthCard>
-        <form onSubmit={handleContinue} className="space-y-6">
+        <form noValidate onSubmit={handleContinue} className="space-y-6">
+          <ErrorSummary {...reported.summary} />
           {generalError && (
             <div className={ERROR_BANNER_CLASS}>
               <div className="flex items-start">
@@ -61,7 +69,7 @@ export function YourAccount() {
             </div>
           )}
 
-          <Field className="space-y-2">
+          <Field id={emailField.id} className="space-y-2">
             <Label className="block text-sm font-medium text-text-body">Email</Label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -75,13 +83,12 @@ export function YourAccount() {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="your@email.com"
                 required
+                invalid={!!emailField.error}
                 disabled={isSubmitting}
               />
             </div>
-            {errors.email && errors.email.length > 0 ? (
-              <Description className="text-error-light text-sm mt-1" role="alert">
-                {errors.email.join(' ')}
-              </Description>
+            {emailField.error ? (
+              <Description className="text-error-light text-sm mt-1">{emailField.error}</Description>
             ) : (
               !changed && (
                 <Description className="text-text-muted text-sm mt-1">
@@ -98,7 +105,7 @@ export function YourAccount() {
                 type, eligibility answers, and personal and financial details. A company you have already saved stays
                 with your account.
               </p>
-              <Field className="space-y-2">
+              <Field id={confirmField.id} className="space-y-2">
                 <Label className="block text-sm font-medium text-text-body">Confirm new email</Label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -112,16 +119,15 @@ export function YourAccount() {
                     onChange={(e) => setConfirmEmail(e.target.value)}
                     placeholder="your@email.com"
                     required
+                    invalid={!!confirmField.error}
                     disabled={isSubmitting}
                   />
                 </div>
-                {errors.confirmEmail && errors.confirmEmail.length > 0 && (
-                  <Description className="text-error-light text-sm mt-1" role="alert">
-                    {errors.confirmEmail.join(' ')}
-                  </Description>
+                {confirmField.error && (
+                  <Description className="text-error-light text-sm mt-1">{confirmField.error}</Description>
                 )}
               </Field>
-              <Field className="space-y-2">
+              <Field id={passwordField.id} className="space-y-2">
                 <Label className="block text-sm font-medium text-text-body">Current password</Label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -135,13 +141,12 @@ export function YourAccount() {
                     onChange={(e) => setCurrentPassword(e.target.value)}
                     placeholder="••••••••"
                     required
+                    invalid={!!passwordField.error}
                     disabled={isSubmitting}
                   />
                 </div>
-                {errors.currentPassword && errors.currentPassword.length > 0 && (
-                  <Description className="text-error-light text-sm mt-1" role="alert">
-                    {errors.currentPassword.join(' ')}
-                  </Description>
+                {passwordField.error && (
+                  <Description className="text-error-light text-sm mt-1">{passwordField.error}</Description>
                 )}
               </Field>
             </>
