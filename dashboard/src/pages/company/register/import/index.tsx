@@ -207,7 +207,6 @@ function OwnImport({
       shareClass={{ name: retained.listed.name, symbol: retained.listed.symbol }}
       register={retained.register}
       companyMembers={(members.data ?? retained.members).members}
-      awardRecipients={(members.data ?? retained.members).awardRecipients}
       emptyOpeningAllowed={
         !!listed &&
         !!register.data &&

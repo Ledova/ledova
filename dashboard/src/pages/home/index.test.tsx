@@ -300,6 +300,7 @@ it('invites an exact award-only recipient, deduplicates members and clears unava
     token: memberRegister.token.uuid,
     member: awardMember,
     name: 'Award Only Recipient',
+    recipientName: 'Award Only Recipient',
   };
   let awards = [award];
   let invitation: unknown;

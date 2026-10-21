@@ -127,13 +127,7 @@ export function useNonPaidIssues({
   const award = useRegisterAward(owner, company, token, awardUuid, check, reading);
   const awardMember = people.data?.members.find((row) => row.member === award.data?.member) ?? null;
   const recipientReady =
-    !awardUuid ||
-    (award.isSuccess &&
-      people.isSuccess &&
-      !(
-        (awardMember && (!awardMember.walletless || !awardMember.particularsRetained)) ||
-        (!awardMember && (!award.data.newMember || BigInt(award.data.issuedShares) > 0n))
-      ));
+    !awardUuid || (award.isSuccess && people.isSuccess && !!awardMember?.walletless && awardMember.particularsRetained);
   const busy = appointments.isFetching || people.isFetching || (!!awardUuid && award.isFetching);
   const stale = appointments.isError || people.isError || (!!awardUuid && award.isError);
   const ready =
@@ -151,8 +145,8 @@ export function useNonPaidIssues({
   )
     setFormAppointment(appointment);
   if (!kept && formAppointment && !formHeld) setFormAppointment(null);
-  const retry = () => {
-    void appointments.refetch();
+  const retry = async () => {
+    await appointments.refetch();
     void client.invalidateQueries({ queryKey: registerHoldersKey(owner) });
     if (reading) {
       void people.refetch();

@@ -9,7 +9,6 @@ import {
   type RegisterImportFormerRow,
   type TokenHoldersResponse,
   type RegisterTransferMember,
-  type RegisterAwardRecipient,
   type CompanyShareTokenListItem,
 } from '@ledova/shared';
 
@@ -160,21 +159,20 @@ export function memberIdentityProblems(
   members: MemberDraft[],
   known: RegisterTransferMember[],
   preserveParticulars: boolean,
-  awardRecipients: RegisterAwardRecipient[] = [],
 ) {
   const problems: string[] = [];
   if (new Set(members.map((row) => row.member)).size !== members.length)
     problems.push('Each company shareholder can appear only once in this class. Combine their allotments in one row.');
   members.forEach((row, index) => {
     const member = known.find((candidate) => candidate.member === row.member);
-    const recipient = awardRecipients.find((candidate) => candidate.member === row.member);
+    const recipient = member?.onRegister === false ? member : undefined;
     if (row.identityChoice === 'existing' && !member)
       problems.push(
         `Shareholder ${index + 1}: the existing company member is no longer available. Refresh before continuing.`,
       );
-    if (row.identityChoice === 'award' && !recipient && !member)
+    if (row.identityChoice === 'award' && !member)
       problems.push(`Shareholder ${index + 1}: the award recipient is no longer available. Refresh before continuing.`);
-    if ((known.length || awardRecipients.length) && !member && !recipient && row.identityChoice !== 'new')
+    if (known.length && !member && row.identityChoice !== 'new')
       problems.push(
         `Shareholder ${index + 1}: choose an existing company shareholder or explicitly choose a new shareholder.`,
       );
@@ -185,6 +183,7 @@ export function memberIdentityProblems(
     if (
       preserveParticulars &&
       member &&
+      !recipient &&
       ((member.name && row.name !== member.name) ||
         (member.residentialAddress && row.residentialAddress !== member.residentialAddress))
     )

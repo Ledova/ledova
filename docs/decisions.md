@@ -45,7 +45,7 @@ stay here as history and are marked where they appear.
 | [Simpler signed-in journeys](#simpler-signed-in-journeys)                                                       | 11 October 2026                                | Web layout superseded 12 October; native journey remains delivered                                              |
 | [Ownership dashboard and compact sidebar](#ownership-dashboard-and-compact-sidebar)                             | 12 October 2026                                | Current; increments #1012–#1014; classes moved to Register (#1155); member access moved to Shareholders (#1166) |
 | [Dashboard, Settings and Register for a new company](#dashboard-settings-and-register-for-a-new-company)        | 19 October 2026                                | Current; #1155 (web), #1157 (mobile)                                                                            |
-| [Share classes, shareholders and employee awards](#share-classes-shareholders-and-employee-awards)              | 20 October 2026                                | Shareholders (#1166), person picker (#1167) and issuing from Register (#1168) on the web; #1169–#1170 planned   |
+| [Share classes, shareholders and employee awards](#share-classes-shareholders-and-employee-awards)              | 20 October 2026                                | Current; #1166–#1168 and award recipients (#1169) on the web; mobile (#1170)                                    |
 | [Paper and Dark themes](#paper-and-dark-themes)                                                                 | 14 October 2026                                | Current; #1040                                                                                                  |
 | [Frontend UX standards](#frontend-ux-standards)                                                                 | 20 to 21 October 2026                          | Web delivered (#1176, #1178–#1183), picker server search deferred; mobile people (#1196), rest in #1201         |
 | [The account-data export](#the-account-data-export)                                                             | 23 September 2026                              | Current                                                                                                         |
@@ -1279,6 +1279,10 @@ checks one at a time: the Shareholders page
 ([#1168](https://github.com/Ledova/ledova/issues/1168)), award recipients as person records
 ([#1169](https://github.com/Ledova/ledova/issues/1169)) and the mobile app
 ([#1170](https://github.com/Ledova/ledova/issues/1170)).
+
+_Award recipients as person records were delivered under #1169: an award gives a new recipient a
+member ID with their name and address, replacing the earlier rule that an award creates no member
+([employee awards](business/issuing-shares.md#employee-awards-and-vesting))._
 
 On 20 October 2026 the owner approved the
 [design for issuing from Register](https://github.com/Ledova/ledova/issues/1168#issuecomment-6288493034):

@@ -16,9 +16,10 @@ import {
   shortReference,
 } from '@ledova/shared';
 import { LinkRow, Row, Rows, Status, LoadError, Loading, Disclosure } from '@components/Ledger';
-import { PageAction } from '@components/Page';
+import { PageAction, PageLink } from '@components/Page';
 import { AwardStatus } from '@components/AwardStatus';
 import { STAGE_TONES } from '@pages/company/shared/proposals';
+import { shareholderPath } from '@pages/company/register/shared/shareholders';
 import {
   awardVestingsKey,
   awardEndsKey,
@@ -110,9 +111,16 @@ export function AwardRecord({
     <RecordShell className={`flex flex-col gap-4 ${visible ? 'border-t border-border-subtle pt-4' : ''}`}>
       {visible && (
         <>
-          <h4 className="text-base font-medium text-text-primary">{award.name}</h4>
+          <h4 className="text-base font-medium text-text-primary">{award.recipientName}</h4>
           <AwardStatus {...award} />
           <div className="flex flex-wrap gap-2">
+            {!formHeld && !adjusting && !editing && (
+              <PageLink
+                to={shareholderPath(award.member, award.company)}
+                label="Recipient details"
+                context={award.recipientName}
+              />
+            )}
             {((appointment && BigInt(award.unvestedRemainingShares) > 0n) || (editing && formAppointment)) && (
               <PageAction
                 label={editing ? 'Close vesting form' : 'Record vesting'}
@@ -160,14 +168,14 @@ export function AwardRecord({
               <Row label={COPY.TERMS_ON}>{formatDate(award.termsOn)}</Row>
               <Row label={COPY.TERMS}>{award.terms}</Row>
               <Row label={COPY.SCHEDULE}>{award.schedule}</Row>
-              <Row label="Residential address">{award.residentialAddress}</Row>
+              <Row label="Residential address">{award.recipientResidentialAddress}</Row>
             </Rows>
             <p className="py-2 text-sm text-text-muted">{COPY.NOTE}</p>
             <PageAction
               label="Download agreement"
               busy={download.isPending && !download.variables}
               busyLabel="Downloading…"
-              context={`award for ${award.name}`}
+              context={`award for ${award.recipientName}`}
               disabled={blocked || download.isPending}
               onClick={() => download.mutate(undefined)}
             />
@@ -307,7 +315,7 @@ export function AwardRecord({
                 <LinkRow
                   key={grant.uuid}
                   label={`${shareCount(grant.shares)}, prepared ${formatDateTime(grant.createdAt)}`}
-                  context={`issue from the award for ${award.name}`}
+                  context={`issue from the award for ${award.recipientName}`}
                   to={DESTINATIONS.companyRegister.path}
                   state={{ registerCompany: award.company, registerToken: award.token, registerRecord: grant.uuid }}
                   aside={

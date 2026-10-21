@@ -44,7 +44,7 @@ export function AwardVestingForm({
     >
       <ErrorSummary {...checks.summary} />
       <p className="text-sm text-text-muted">
-        Record the company-confirmed event for {award.name}; this creates no issued shares.
+        Record the company-confirmed event for {award.recipientName}; this creates no issued shares.
       </p>
       <fieldset
         disabled={busy || blocked || held || !canPrepare}
