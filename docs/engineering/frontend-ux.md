@@ -455,14 +455,15 @@ keep a reason of their own. While a read fails they show the block, with any suc
 such as "Your award records could not be confirmed. Refresh before continuing.", and no empty line.
 
 An empty list says it has none yet in one muted sentence, such as "No applications yet." or "No
-deployments yet.", and an empty section keeps at most one action
-([signed-in page conventions](#signed-in-page-conventions)). A list narrowed by a search or filter
-says what matched instead, such as "No applications match your search." or "No requests match."
-Where both clients show the same empty state, the sentence is shared copy in
-`packages/shared/src/constants/business/`. Mobile's own empty sentences move to these words under
+deployments yet.", sometimes followed by where to add or find them, and an empty section keeps at
+most one action ([signed-in page conventions](#signed-in-page-conventions)). A list narrowed by a
+search or filter says what matched instead, such as "No applications match your search." or "No
+requests match." The register's records, notices, offer documents and an offering's applications
+take their empty sentence from shared copy in `packages/shared/src/constants/business/`, which both
+clients show. Other empty sentences are each client's own, and mobile's move to these words under
 [#1201](https://github.com/Ledova/ledova/issues/1201). A sentence that reports a state rather than
-an empty list keeps its own words, such as "No votes need your attention." or "No draft company is
-available for an authority request."
+an empty list keeps its own words, such as "No votes need your attention." or "No orders listed."
+for a market's live order book.
 
 Some messages keep their own form:
 

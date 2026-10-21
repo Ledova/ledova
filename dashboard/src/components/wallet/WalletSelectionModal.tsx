@@ -31,7 +31,7 @@ export function WalletSelectionModal({ isOpen, onClose, onSelectWallet }: Wallet
       return (
         <div className="space-y-1">
           <p className="text-sm text-text-muted">No verified wallets yet.</p>
-          <p className="text-xs text-text-subtle">Create and verify a wallet to send crypto</p>
+          <p className="text-xs text-text-subtle">Create and verify a wallet to send crypto.</p>
         </div>
       );
     }
