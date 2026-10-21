@@ -4,6 +4,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { DESTINATIONS, type Company, useCompanySelection } from '@ledova/shared';
 import { Page, PageAction } from '@components/Page';
 import { LinkRow, Row, Rows, Section } from '@components/Ledger';
+import { CopyButton } from '@components/CopyButton';
 import { TOKENS_QUERY_KEY } from '@pages/company/shared/useTokensList';
 import { CompanyReadNotice, CompanyStatusMark } from '@pages/company/shared/CompanyState';
 import { EditCompanyForm } from './CompanyForms';
@@ -70,6 +71,13 @@ function CompanyDetails({ data }: { data: ReturnType<typeof useCompanySelection>
                 <Row label="Type">{company.companyTypeDisplay}</Row>
                 <Row label="ACN">{company.acn}</Row>
                 {company.abn && <Row label="ABN">{company.abn}</Row>}
+                <Row label="Company UUID">
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <span className="min-w-0 break-all">{company.uuid}</span>
+                    <CopyButton key={company.uuid} value={company.uuid} label="Copy company UUID" />
+                  </div>
+                  <p className="mt-1 text-xs text-text-muted">Give this to investors for their eligibility requests.</p>
+                </Row>
                 {data.canAdmin && company.email && (
                   <Row label="Email">
                     <span className="break-all">{company.email}</span>

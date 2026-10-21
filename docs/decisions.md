@@ -1361,6 +1361,12 @@ proposal are in #1174, and the owner approved it as recommended:
   "Defer the person picker's server search (#1181 option a): keep the browser search and record the
   switch at about 2,000 people." So server search, behind the same control with a typing delay and
   a page limit, follows when a company reaches about 2,000 people.
+- **A company hands out its own identifiers (21 October 2026).** An investor's eligibility request
+  takes a company's exact UUID, or an approved offering's, but since short references (#1240) no
+  screen showed a company its own (#1246). The owner chose: "show the company its own ID (and each
+  approved offering's) on its own pages with a Copy button; investors paste it into the request as
+  today." So Company shows the company's UUID in full with Copy, and Offerings each approved
+  offering's: the one exception to short references.
 
 ## The signed-in app
 

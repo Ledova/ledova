@@ -388,7 +388,9 @@ offering past draft; only the company changes them, by editing after a rejection
 not fixed.
 
 An offering is open while it is approved and the time is within its window. Nothing opens or closes
-it automatically: reaching the cap does not close it, and closing is a deliberate staff act.
+it automatically: reaching the cap does not close it, and closing is a deliberate staff act. While
+an offering is approved, Offerings shows its UUID in full, with **Copy offering UUID**, to give
+investors for their large-investment eligibility requests.
 Investors see only open offerings in the directory; approval publishes the terms of an offering
 invisible to them while submitted or under review.
 

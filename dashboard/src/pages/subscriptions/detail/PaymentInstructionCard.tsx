@@ -1,36 +1,7 @@
-import { useState } from 'react';
 import { SUBSCRIPTION_COPY, formatDate, formatMoney } from '@ledova/shared';
 import type { PaymentInstruction } from '@ledova/shared';
 import { Row, Rows, Section } from '@components/Ledger';
-import { PageAction } from '@components/Page';
-
-function CopyButton({ value, label }: { value: string; label: string }) {
-  const [result, setResult] = useState<'idle' | 'copied' | 'failed'>('idle');
-  const copy = async () => {
-    try {
-      await navigator.clipboard.writeText(value);
-      setResult('copied');
-    } catch {
-      setResult('failed');
-    }
-  };
-
-  return (
-    <div className="flex flex-col items-end gap-1">
-      <PageAction label={`Copy ${label.toLowerCase()}`} onClick={() => void copy()} />
-      {result === 'copied' && (
-        <span role="status" className="text-xs text-text-muted">
-          Copied
-        </span>
-      )}
-      {result === 'failed' && (
-        <span role="alert" className="text-xs text-error-light">
-          Could not copy. Select and copy the value above.
-        </span>
-      )}
-    </div>
-  );
-}
+import { CopyButton } from '@components/CopyButton';
 
 function InstructionRow({
   label,
@@ -47,7 +18,7 @@ function InstructionRow({
     <Row label={label}>
       <div className="flex min-w-0 flex-col items-end gap-2">
         <span className="break-all">{display ?? value ?? 'Unavailable'}</span>
-        {copyable && value && <CopyButton key={value} value={value} label={label} />}
+        {copyable && value && <CopyButton key={value} value={value} label={`Copy ${label.toLowerCase()}`} />}
       </div>
     </Row>
   );
