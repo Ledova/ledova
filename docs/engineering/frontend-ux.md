@@ -469,8 +469,9 @@ show only on mobile. Other empty sentences are each client's own, and mobile's m
 under [#1201](https://github.com/Ledova/ledova/issues/1201). A sentence that reports a state rather
 than an empty list keeps its own words, such as "No votes need your attention." or "No orders
 listed." for a market's live order book. A class's awards, grants, allotments, non-paid transfers
-and deployments can't be made on every class, so theirs says none has been recorded or prepared
-for it, such as "No employee award has been recorded for this share class."
+and deployments, and an award's vesting and entitlement changes, can't be made on every class or
+award, so theirs says none has been recorded or prepared for it, such as "No employee award has
+been recorded for this share class."
 
 Some messages keep their own form:
 

@@ -191,7 +191,9 @@ export function AwardRecord({
               <summary className={SUMMARY}>
                 Recorded vesting history{events.data.length > 0 ? ` · ${events.data.length}` : ''}
               </summary>
-              {events.data.length === 0 && <p className="text-sm text-text-muted">No vesting events yet.</p>}
+              {events.data.length === 0 && (
+                <p className="text-sm text-text-muted">No company-recorded vesting event.</p>
+              )}
               {!events.isFetching &&
                 events.data.map((event) => (
                   <div key={event.uuid} className="space-y-2 border-t border-border-subtle pt-3">
@@ -256,7 +258,7 @@ export function AwardRecord({
             <details>
               <summary className={SUMMARY}>Entitlement changes</summary>
               {ends.data.length === 0 && reversals.data.length === 0 && (
-                <p className="text-sm text-text-muted">No entitlement changes yet.</p>
+                <p className="text-sm text-text-muted">No entitlement changes recorded.</p>
               )}
               {ends.data.map((event) => (
                 <div key={event.uuid} className="space-y-2 border-t border-border-subtle pt-3">
