@@ -6,6 +6,7 @@ import { formatDateTime, DESTINATIONS, PUBLICATION_NOTICE, useNotifications } fr
 import { ICON_SM, ICON_MD } from './iconSizes';
 import { LoadMore } from './List';
 import type { DestinationKey, Notification } from '@ledova/shared';
+import { LoadError } from './Ledger';
 
 const NOTICE_PAGES: Record<string, DestinationKey> = {
   company: 'companyListing',
@@ -73,6 +74,7 @@ function NotificationList({
   load,
   notifications,
   isLoading,
+  failed,
   more,
   heading,
   onRead,
@@ -82,6 +84,7 @@ function NotificationList({
   load: () => unknown;
   notifications: Notification[];
   isLoading: boolean;
+  failed: boolean;
   more: { hasMore: boolean; failed: boolean; loading: boolean; onLoad: () => void };
   heading: RefObject<HTMLHeadingElement | null>;
   onRead: (uuid: string) => void;
@@ -110,6 +113,15 @@ function NotificationList({
 
   if (isLoading && notifications.length === 0) {
     return <p className="px-4 py-8 text-center text-sm text-text-muted">Loading…</p>;
+  }
+  if (failed && notifications.length === 0) {
+    return (
+      <div className="px-4 py-5">
+        <LoadError retry={load} busy={isLoading}>
+          Your notifications could not be loaded.
+        </LoadError>
+      </div>
+    );
   }
   if (notifications.length === 0) {
     return <p className="px-4 py-8 text-center text-sm text-text-muted">No notifications yet</p>;
@@ -145,6 +157,7 @@ export function NotificationBell({ align }: NotificationBellProps) {
     unreadCount,
     notifications,
     isLoadingNotifications,
+    notificationsFailed,
     fetchNotifications,
     markAsRead,
     archive,
@@ -209,6 +222,7 @@ export function NotificationBell({ align }: NotificationBellProps) {
                 load={fetchNotifications}
                 notifications={notifications}
                 isLoading={isLoadingNotifications}
+                failed={notificationsFailed}
                 more={{
                   hasMore: hasMoreNotifications,
                   failed: moreNotificationsFailed,

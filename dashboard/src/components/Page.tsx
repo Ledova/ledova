@@ -55,6 +55,7 @@ interface ActionContent {
 }
 
 type PageActionProps = ActionContent & {
+  describedBy?: string;
   destructive?: boolean;
   pressed?: boolean;
   busy?: boolean;
@@ -91,6 +92,7 @@ export function PageAction({
   icon,
   label,
   context,
+  describedBy,
   primary = false,
   destructive = false,
   pressed,
@@ -115,6 +117,7 @@ export function PageAction({
       onClick={onClick}
       disabled={disabled || busy}
       aria-pressed={pressed}
+      aria-describedby={describedBy}
       className={actionClass(look)}
     >
       <ActionText icon={icon} label={busy && busyLabel ? busyLabel : label} context={context} />

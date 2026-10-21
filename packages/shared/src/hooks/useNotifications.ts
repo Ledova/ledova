@@ -66,6 +66,7 @@ export function useNotifications() {
       ).values(),
     ],
     isLoadingNotifications: notificationsQuery.isLoading || notificationsQuery.isFetching,
+    notificationsFailed: pages.hasError,
     fetchNotifications: notificationsQuery.refetch,
     hasMoreNotifications: notificationsQuery.hasNextPage,
     isLoadingMoreNotifications: notificationsQuery.isFetchingNextPage,

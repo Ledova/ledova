@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { DESTINATIONS, useCompanySelection } from '@ledova/shared';
-import { Section } from '@components/Ledger';
+import { Section, LoadError } from '@components/Ledger';
 import { LoadMore } from '@components/List';
 import { Page, PageAction, PageLink } from '@components/Page';
 import { CompanyReadNotice } from '@pages/company/shared/CompanyState';
@@ -47,14 +47,9 @@ function CompanyPublications({ companyRead }: { companyRead: ReturnType<typeof u
       ) : (
         <>
           {hasError ? (
-            <div role="alert" className="space-y-2 text-sm text-text-muted">
-              <p>Your company&apos;s publications could not be loaded. Try again before continuing.</p>
-              <PageAction
-                label="Retry publications"
-                onClick={() => void listing.refetch()}
-                disabled={listing.isFetching}
-              />
-            </div>
+            <LoadError retry={() => listing.refetch()} busy={listing.isFetching}>
+              Your company&apos;s publications could not be loaded.
+            </LoadError>
           ) : (
             <>
               <CompanyReadNotice read={companyRead} />

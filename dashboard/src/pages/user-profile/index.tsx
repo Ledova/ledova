@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { FIELD_LIMITS, formatDate, formatDateTime, getUserVerificationStatus, failureSentence } from '@ledova/shared';
 import { FormActions, Page, PageAction } from '@components/Page';
-import { Outcome, Row, Rows, Section, Status } from '@components/Ledger';
+import { Outcome, Row, Rows, Section, Status, LoadError } from '@components/Ledger';
 import { VERIFICATION_TONES } from '@components/statusTones';
 import { DocumentsPanel } from './DocumentsPanel';
 import { FIELD_CLASS } from '@components/fieldClass';
@@ -45,10 +45,9 @@ function UserProfilePage() {
   if (isError) {
     return (
       <Page narrow>
-        <p role="alert" className="text-sm text-error-light">
+        <LoadError retry={refreshProfile} busy={isFetching}>
           Your profile could not be loaded.
-        </p>
-        <PageAction label="Try again" onClick={refreshProfile} />
+        </LoadError>
       </Page>
     );
   }

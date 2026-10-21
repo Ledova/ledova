@@ -183,22 +183,22 @@ it('retains original award, vesting and linked issue preparations through interr
     const action = kind === 'award' ? COPY.SUBMIT : COPY.VEST;
     const close = kind === 'award' ? 'Close award form' : 'Close vesting form';
     const url = kind === 'award' ? URLS.REGISTER_AWARDS : URLS.REGISTER_AWARD_VESTINGS;
-    const retry = kind === 'award' ? 'Retry awards' : 'Retry vesting events';
+    const failure = kind === 'award' ? /Employee awards could not be loaded/ : /Vesting events could not be loaded/;
     fireEvent.click(screen.getByRole('button', { name: action }));
-    await screen.findByText(
-      kind === 'award' ? /Employee awards could not be read/ : /vesting events could not be loaded/,
-    );
+    await screen.findByText(failure);
     const retained = submissions(url)[0];
     expect((screen.getByRole('button', { name: close }) as HTMLButtonElement).disabled).toBe(true);
     expect(screen.queryByRole('button', { name: action })).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: retry }));
+    fireEvent.click(screen.getByRole('button', { name: 'Try again', description: failure }));
     await waitFor(() =>
-      expect((screen.getByRole('button', { name: retry }) as HTMLButtonElement).disabled).toBe(false),
+      expect(
+        (screen.getByRole('button', { name: 'Try again', description: failure }) as HTMLButtonElement).disabled,
+      ).toBe(false),
     );
     expect(submissions(url)).toEqual([retained]);
     appointments = [{ ...APPOINTMENT, capabilities: ['read_register'] }];
     failedRead = null;
-    fireEvent.click(screen.getByRole('button', { name: retry }));
+    fireEvent.click(screen.getByRole('button', { name: 'Try again', description: failure }));
     await waitFor(() =>
       expect((screen.getByRole('button', { name: action }) as HTMLButtonElement).disabled).toBe(false),
     );
@@ -493,7 +493,7 @@ it('retains original award, vesting and linked issue preparations through interr
   await act(async () => client.refetchQueries({ queryKey: USER_PREFERENCES_QUERY_KEY, exact: true }));
   expect(client.getQueryState(USER_PREFERENCES_QUERY_KEY)?.status).toBe('error');
   await waitFor(() => {
-    expect(screen.getByText("We couldn't load the complete register.")).toBeTruthy();
+    expect(screen.getByText('Your account could not be loaded.')).toBeTruthy();
     expect(screen.queryByRole('button', { name: /^Recover record issue receipt/ })).toBeNull();
     expect(document.body.textContent).not.toContain(AWARD_REQUEST.name);
   });
@@ -699,12 +699,14 @@ it('hides cached private award rows and document actions when current company au
   );
   failedRead = 'award';
   fireEvent.click(screen.getByRole('button', { name: 'Refresh awards' }));
-  await screen.findByText(/Employee awards could not be read/);
+  await screen.findByText(/Employee awards could not be loaded/);
   expect(screen.queryByRole('heading', { name: AWARD_REQUEST.name! })).toBeNull();
   await act(async () => receiveFile({ data: new Blob(['private agreement'], { type: 'application/pdf' }) }));
   expect(api.save).not.toHaveBeenCalled();
   failedRead = null;
-  fireEvent.click(screen.getByRole('button', { name: 'Retry awards' }));
+  fireEvent.click(
+    screen.getByRole('button', { name: 'Try again', description: /Employee awards could not be loaded/ }),
+  );
   await screen.findByRole('heading', { name: AWARD_REQUEST.name! });
   appointments = [{ ...APPOINTMENT, capabilities: ['finance'] }];
   fireEvent.click(screen.getByRole('button', { name: 'Refresh awards' }));

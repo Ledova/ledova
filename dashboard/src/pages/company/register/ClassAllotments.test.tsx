@@ -255,10 +255,10 @@ it('preserves original preparation and issue recovery through refresh, keeps app
   expect(allotments.getByLabelText(COPY.CONSIDERATION)).toBeTruthy();
   failedRead = true;
   await refreshAllotments();
-  await allotments.findByText(/External allotments could not be read/);
+  await allotments.findByText(/External allotments could not be loaded/);
   expect(allotments.queryByLabelText('Name')).toBeNull();
   failedRead = false;
-  fireEvent.click(allotments.getByRole('button', { name: 'Retry allotments' }));
+  fireEvent.click(allotments.getByRole('button', { name: 'Try again' }));
   await allotments.findByLabelText('Name');
   slowRegister = true;
   fireEvent.click(allotments.getByRole('button', { name: COPY.SUBMIT }));
@@ -341,12 +341,12 @@ it('preserves original preparation and issue recovery through refresh, keeps app
   expect(allotments.queryByRole('button', { name: /^Recover record issue receipt/ })).toBeNull();
   await act(async () => releaseRead!());
   pendingReadRelease = undefined;
-  await allotments.findByText(/External allotments could not be read/);
+  await allotments.findByText(/External allotments could not be loaded/);
   expect(allotments.queryByText('entry-a')).toBeNull();
   pauseRead = false;
   failedRead = false;
   appointments = [{ ...APPOINTMENT, capabilities: ['read_register'] }];
-  fireEvent.click(allotments.getByRole('button', { name: 'Retry allotments' }));
+  fireEvent.click(allotments.getByRole('button', { name: 'Try again' }));
   const recover = await allotments.findByRole('button', { name: /^Recover record issue receipt/ });
   const shareSummary = await screen.findByRole('region', { name: `${REGISTER.token.name} share summary` });
   expect(within(shareSummary).getByText('100')).toBeTruthy();
@@ -375,7 +375,7 @@ it('preserves original preparation and issue recovery through refresh, keeps app
   await waitFor(() => expect(releaseFile).toBeTypeOf('function'));
   failedRead = true;
   await refreshAllotments();
-  await allotments.findByText(/External allotments could not be read/);
+  await allotments.findByText(/External allotments could not be loaded/);
   expect(allotments.queryByText('entry-a')).toBeNull();
   expect(allotments.queryByText(ALLOTMENT_REQUEST.agreementReference)).toBeNull();
   expect(allotments.queryByRole('button', { name: /^Download receipt/ })).toBeNull();
@@ -383,7 +383,7 @@ it('preserves original preparation and issue recovery through refresh, keeps app
   pendingFileRelease = undefined;
   expect(save).not.toHaveBeenCalled();
   failedRead = false;
-  fireEvent.click(allotments.getByRole('button', { name: 'Retry allotments' }));
+  fireEvent.click(allotments.getByRole('button', { name: 'Try again' }));
   await allotments.findByText('Shares issued');
   expect(allotments.getByText('entry-a')).toBeTruthy();
   expect(allotments.getByText(ALLOTMENT_REQUEST.agreementReference)).toBeTruthy();

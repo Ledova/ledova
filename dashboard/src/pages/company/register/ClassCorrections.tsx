@@ -14,8 +14,7 @@ import {
   type OrderSubmissionOwner,
   type OwnCompanyAppointment,
 } from '@ledova/shared';
-import { LinkRow } from '@components/Ledger';
-import { PageAction } from '@components/Page';
+import { LinkRow, LoadError } from '@components/Ledger';
 import { LoadMore } from '@components/List';
 
 import { CorrectionRecord } from './CorrectionRecord';
@@ -69,10 +68,9 @@ function EntryHistory({
           Loading register entries…
         </p>
       ) : history.hasError ? (
-        <div role="alert" className="flex flex-col items-start gap-2 text-sm text-text-muted">
-          <p>We couldn&apos;t load the register entries for this share class.</p>
-          <PageAction label="Retry register entries" onClick={history.retry} disabled={history.isFetching} />
-        </div>
+        <LoadError retry={history.retry} busy={history.isFetching}>
+          Register entries could not be loaded.
+        </LoadError>
       ) : null}
       <ul className="divide-y divide-border-subtle">
         {history.entries.map((entry) => {
@@ -232,14 +230,9 @@ export function ClassCorrections({
       >
         <h3 className="text-sm font-medium text-text-primary">{COPY.TITLE}</h3>
         {appointments.isError ? (
-          <div role="alert" className="flex flex-col items-start gap-2 text-sm text-text-muted">
-            <p>Your appointments could not be loaded. Retry before preparing or deciding a correction.</p>
-            <PageAction
-              label="Retry appointments"
-              onClick={() => void appointments.refetch()}
-              disabled={appointments.isFetching}
-            />
-          </div>
+          <LoadError retry={() => appointments.refetch()} busy={appointments.isFetching}>
+            Your appointments could not be loaded.
+          </LoadError>
         ) : (
           steps &&
           !Object.values(steps).some(Boolean) && <p className="text-sm text-text-muted">{COPY.READ_ONLY_NOTE}</p>
@@ -249,14 +242,9 @@ export function ClassCorrections({
             Loading corrections…
           </p>
         ) : corrections.isError ? (
-          <div role="alert" className="flex flex-col items-start gap-2 text-sm text-text-muted">
-            <p>We couldn&apos;t load the corrections for this share class.</p>
-            <PageAction
-              label="Retry corrections"
-              onClick={() => void corrections.refetch()}
-              disabled={corrections.isFetching}
-            />
-          </div>
+          <LoadError retry={() => corrections.refetch()} busy={corrections.isFetching}>
+            Corrections could not be loaded.
+          </LoadError>
         ) : null}
         <ul className="divide-y divide-border-subtle">
           {(corrections.data ?? []).map((correction) => (

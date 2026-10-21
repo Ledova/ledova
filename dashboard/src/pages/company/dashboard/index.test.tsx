@@ -163,7 +163,7 @@ it('shows exact complete company ownership, refuses incomplete totals and discar
 
   mode = 'failed';
   await refresh();
-  expect(await screen.findByText(/couldn't load the complete register/)).toBeTruthy();
+  expect(await screen.findByText(/The register could not be loaded/)).toBeTruthy();
   expect(screen.queryByRole('region', { name: 'Company ownership summary' })).toBeNull();
   expect(screen.queryByText('Example Shareholder')).toBeNull();
   expect(screen.queryByRole('img', { name: /share ownership/ })).toBeNull();

@@ -10,8 +10,7 @@ import {
   type OrderSubmissionOwner,
   type TokenHoldersResponse,
 } from '@ledova/shared';
-import { LinkRow, Section } from '@components/Ledger';
-import { PageAction } from '@components/Page';
+import { LinkRow, Section, LoadError } from '@components/Ledger';
 
 import { LinkRecord } from './LinkRecord';
 import { registerSteps } from '@pages/company/shared/proposals';
@@ -82,14 +81,9 @@ export function RegisterLinks({
   return (
     <Section title={COPY.TITLE}>
       {appointments.isError ? (
-        <div role="alert" className="flex flex-col items-start gap-2 text-sm text-text-muted">
-          <p>Your appointments could not be loaded. Retry before preparing or deciding a wallet link.</p>
-          <PageAction
-            label="Retry appointments"
-            onClick={() => void appointments.refetch()}
-            disabled={appointments.isFetching}
-          />
-        </div>
+        <LoadError retry={() => appointments.refetch()} busy={appointments.isFetching}>
+          Your appointments could not be loaded.
+        </LoadError>
       ) : (
         steps && !Object.values(steps).some(Boolean) && <p className="text-sm text-text-muted">{COPY.READ_ONLY_NOTE}</p>
       )}
@@ -97,14 +91,9 @@ export function RegisterLinks({
         appointments.fetchStatus === 'idle' &&
         steps?.prepare &&
         (waiting.isError ? (
-          <div role="alert" className="flex flex-col items-start gap-2 text-sm text-text-muted">
-            <p>We couldn&apos;t load the wallets waiting for a link.</p>
-            <PageAction
-              label="Retry waiting wallets"
-              onClick={() => void waiting.refetch()}
-              disabled={waiting.isFetching}
-            />
-          </div>
+          <LoadError retry={() => waiting.refetch()} busy={waiting.isFetching}>
+            Wallets waiting for a link could not be loaded.
+          </LoadError>
         ) : (
           waiting.isSuccess &&
           (waiting.data.length > 0 ? (
@@ -121,10 +110,9 @@ export function RegisterLinks({
           Loading wallet links…
         </p>
       ) : links.isError ? (
-        <div role="alert" className="flex flex-col items-start gap-2 text-sm text-text-muted">
-          <p>We couldn&apos;t load the wallet links for this company.</p>
-          <PageAction label="Retry wallet links" onClick={() => void links.refetch()} disabled={links.isFetching} />
-        </div>
+        <LoadError retry={() => links.refetch()} busy={links.isFetching}>
+          Wallet links could not be loaded.
+        </LoadError>
       ) : null}
       <ul className="divide-y divide-border-subtle">
         {(links.data ?? []).map((link) => (
