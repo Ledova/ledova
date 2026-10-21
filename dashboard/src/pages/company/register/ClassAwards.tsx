@@ -174,7 +174,7 @@ export function ClassAwards({
           The non-paid issues prepared from these awards could not be loaded.
         </LoadError>
       )}
-      {!awards.isError && (
+      {!awards.isError && !appointments.isError && (
         <PageAction
           label="Refresh awards"
           busy={awards.isFetching || appointments.isFetching}
