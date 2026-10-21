@@ -129,7 +129,7 @@ function SettingsPage() {
             }}
           />
         </div>
-        {passwordChanged && <Outcome>Your password was changed.</Outcome>}
+        <Outcome>{passwordChanged && 'Your password was changed.'}</Outcome>
       </Section>
       <Section title="Appearance">
         <SwitchRow

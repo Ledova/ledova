@@ -165,8 +165,10 @@ confirm with native alerts.
 `Outcome` (`dashboard/src/components/Ledger.tsx`) says what just happened in one line: a
 `role="status"` sentence in the primary text colour, after the mark `Status` uses for done. It sits
 under the change or on the record you land on, and stays until the next action replaces it; there
-are no toasts. It names the record rather than its identifier; team invitations, appointments and
-authority requests show their identifier in their own details. It reports:
+are no toasts. Its status region stays in place, empty and visually hidden, before there is anything
+to report, so a screen reader announces the sentence when it arrives. It names the record rather
+than its identifier; team invitations, appointments and authority requests show their identifier in
+their own details. It reports:
 
 - a changed password, saved personal details, and an offering submitted for review, withdrawn or
   deleted;

@@ -159,7 +159,7 @@ function CompanyOfferings({ companyRead }: { companyRead: ReturnType<typeof useC
             {!data.error && (
               <>
                 <Section title={`Your offerings (${data.offerings.length})`}>
-                  {notice && <Outcome>{notice}</Outcome>}
+                  <Outcome>{notice}</Outcome>
                   {data.offerings.length === 0 ? (
                     <p className="text-sm text-text-muted">
                       You have no offerings yet. Create one and submit it for review.

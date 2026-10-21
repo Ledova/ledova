@@ -81,11 +81,9 @@ function OwnAuthorityRequests({
             }}
           />
         )}
+        <Outcome>{recorded && `Request recorded. ${recorded.verificationMessage}`}</Outcome>
         {recorded ? (
-          <div className="space-y-2">
-            <Outcome>Request recorded. {recorded.verificationMessage}</Outcome>
-            <PageAction label="Start another request" onClick={() => setRecorded(null)} />
-          </div>
+          <PageAction label="Start another request" onClick={() => setRecorded(null)} />
         ) : (
           company && (
             <AuthorityRequestForm

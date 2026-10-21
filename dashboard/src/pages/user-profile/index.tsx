@@ -167,7 +167,7 @@ function UserProfilePage() {
           </form>
         ) : (
           <>
-            {savedFor !== null && savedFor === ownerKey && <Outcome>Your personal details were saved.</Outcome>}
+            <Outcome>{savedFor !== null && savedFor === ownerKey && 'Your personal details were saved.'}</Outcome>
             <PageAction label="Edit personal details" disabled={blocked} onClick={editDetails} />
           </>
         )}
