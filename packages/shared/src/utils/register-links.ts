@@ -1,4 +1,4 @@
-import { formatShareCount } from '../constants/business/publications';
+import { formatShareCount } from './formatting';
 import { REGISTER_LINK_COPY } from '../constants/business/register-links';
 import { REGISTER_OPENING_COPY } from '../constants/business/register-openings';
 import type {

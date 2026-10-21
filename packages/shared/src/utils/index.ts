@@ -17,6 +17,9 @@ export {
   formatCryptoBalance,
   formatFileSize,
   formatPlainDecimal,
+  formatShareCount,
+  shareCount,
+  sharePercentage,
 } from './formatting';
 export { attachableDocuments, describeOfferDocument } from './offer-documents';
 export {

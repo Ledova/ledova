@@ -90,7 +90,7 @@ it('shows exact complete company ownership, refuses incomplete totals and discar
     name: 'Others',
     shares: '3',
     holders: 3,
-    percentage: 0,
+    percentage: '<0.01%',
   });
   expect(ownershipSegments(ordinary).reduce((total, segment) => total + BigInt(segment.shares), 0n)).toBe(
     9007199254740993n,

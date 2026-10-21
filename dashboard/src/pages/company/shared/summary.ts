@@ -1,4 +1,4 @@
-import { HOLDER_TYPE_LABELS, type TokenHoldersResponse } from '@ledova/shared';
+import { HOLDER_TYPE_LABELS, sharePercentage, type TokenHoldersResponse } from '@ledova/shared';
 
 export function ownershipSummary(registers: TokenHoldersResponse[]) {
   const classes = new Set<string>();
@@ -73,9 +73,8 @@ export function ownershipSegments(register: TokenHoldersResponse) {
       holders: remaining.length,
     });
   }
-  const total = BigInt(register.issuedSupply);
   return segments.map((segment) => ({
     ...segment,
-    percentage: Number((BigInt(segment.shares) * 10000n + total / 2n) / total) / 100,
+    percentage: sharePercentage(segment.shares, register.issuedSupply),
   }));
 }

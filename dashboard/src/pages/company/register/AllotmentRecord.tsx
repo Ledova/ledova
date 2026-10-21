@@ -6,12 +6,13 @@ import {
   type RegisterDecisionKind,
   type RegisterAllotment,
   type RegisterAllotmentDecisionPreview,
+  shareCount,
 } from '@ledova/shared';
 import { Row, Rows, Status } from '@components/Ledger';
 import { PageAction } from '@components/Page';
 import { DecisionTrail } from '@pages/company/register/shared/DecisionTrail';
 import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
-import { STAGE_TONES, shareCount, type RegisterSteps } from '@pages/company/shared/proposals';
+import { STAGE_TONES, type RegisterSteps } from '@pages/company/shared/proposals';
 import { useAllotmentRecordDownload } from './useRegisterRecordDownload';
 import { AllotmentOwnership } from './AllotmentOwnership';
 

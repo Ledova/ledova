@@ -2,13 +2,11 @@ import { Field, TextArea, TextInput, FileField } from '@components/Field';
 import { Choices } from '@components/Choices';
 import { useOpeningPreparation, type OpeningFormProps, COPY } from './useOpeningPreparation';
 
-import { FIELD_LIMITS, type RegisterCorrectionAuthority } from '@ledova/shared';
+import { FIELD_LIMITS, type RegisterCorrectionAuthority, shareCount } from '@ledova/shared';
 import { FormActions, PageAction } from '@components/Page';
 import { ErrorSummary } from '@components/ErrorSummary';
 import { useErrorSummary } from '@hooks/useErrorSummary';
 import { SearchSelect } from '@components/SearchSelect';
-
-import { shareCount } from '@pages/company/shared/proposals';
 
 const AUTHORITIES = Object.entries(COPY.AUTHORITIES) as [RegisterCorrectionAuthority, string][];
 

@@ -6,12 +6,13 @@ import {
   formatDateTime,
   type RegisterTransfer,
   type RegisterTransferDecisionPreview,
+  shareCount,
 } from '@ledova/shared';
 import { Row, Rows } from '@components/Ledger';
 import { PageAction } from '@components/Page';
 import { DecisionTrail } from '@pages/company/register/shared/DecisionTrail';
 import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
-import { shareCount, type RegisterSteps } from '@pages/company/shared/proposals';
+import { type RegisterSteps } from '@pages/company/shared/proposals';
 import { useTransferRecordDownload } from './useRegisterRecordDownload';
 
 function TransferRows({ transfer }: { transfer: RegisterTransfer | RegisterTransferDecisionPreview }) {

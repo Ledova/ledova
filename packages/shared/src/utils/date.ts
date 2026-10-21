@@ -67,6 +67,7 @@ export function formatDateTime(
   locale: string = 'en-AU',
 ): string {
   if (!dateString) return fallback;
+  if (CALENDAR_DATE.test(dateString)) return formatDate(dateString, fallback, locale);
   try {
     return new Date(dateString).toLocaleDateString(locale, {
       year: 'numeric',

@@ -3,7 +3,7 @@ import { SelectField } from '@components/SelectField';
 import { PageAction } from '@components/Page';
 import { Confirmation } from '@components/Modal';
 import { Choices } from '@components/Choices';
-import { FIELD_LIMITS, DESTINATIONS, UPLOAD_RULE, uploadRefusal } from '@ledova/shared';
+import { FIELD_LIMITS, DESTINATIONS, UPLOAD_RULE, uploadRefusal, formatMoney } from '@ledova/shared';
 import { useRef, useState } from 'react';
 import {
   CloudArrowUpIcon,
@@ -43,17 +43,8 @@ const DOCUMENT_TYPES = [
 
 const claimLabel = (claim: InvestorClassification) => `${claim.categoryDisplay} · ${formatDate(claim.createdAt)}`;
 
-function formatDocumentMoney(raw: string | null): string {
-  if (!raw) return '—';
-  const n = Number(raw);
-  if (Number.isNaN(n)) return raw;
-  return n.toLocaleString(undefined, { style: 'currency', currency: 'AUD', maximumFractionDigits: 2 });
-}
-
-function formatDocumentDate(iso: string | null): string {
-  if (!iso) return '—';
-  return new Date(iso).toLocaleDateString('en-AU', { day: '2-digit', month: 'short', year: 'numeric' });
-}
+const documentMoney = (raw: string | null) =>
+  raw && /^\d+(\.\d+)?$/.test(raw) ? formatMoney(raw, 'AUD') : (raw ?? '—');
 
 function StatusPill({ status }: { status: ExtractionStatus | undefined }) {
   if (!status || status === 'pending') {
@@ -100,14 +91,14 @@ function PayslipResult({ data, durationMs }: { data: object; durationMs: number 
     { label: 'ABN', value: text('abn') ?? '—' },
     {
       label: 'Pay period',
-      value: `${formatDocumentDate(text('periodStart'))} → ${formatDocumentDate(text('periodEnd'))}`,
+      value: `${formatDate(text('periodStart'), '—')} → ${formatDate(text('periodEnd'), '—')}`,
     },
-    { label: 'Gross pay', value: formatDocumentMoney(text('grossPay')) },
-    { label: 'Net pay', value: formatDocumentMoney(text('netPay')) },
-    { label: 'Tax withheld', value: formatDocumentMoney(text('taxWithheld')) },
-    { label: 'Superannuation', value: formatDocumentMoney(text('superannuation')) },
-    { label: 'YTD gross', value: formatDocumentMoney(text('ytdGross')) },
-    { label: 'YTD tax', value: formatDocumentMoney(text('ytdTax')) },
+    { label: 'Gross pay', value: documentMoney(text('grossPay')) },
+    { label: 'Net pay', value: documentMoney(text('netPay')) },
+    { label: 'Tax withheld', value: documentMoney(text('taxWithheld')) },
+    { label: 'Superannuation', value: documentMoney(text('superannuation')) },
+    { label: 'YTD gross', value: documentMoney(text('ytdGross')) },
+    { label: 'YTD tax', value: documentMoney(text('ytdTax')) },
   ];
 
   return (
@@ -186,7 +177,7 @@ function DocumentCard({ initialDoc, claims }: { initialDoc: Document; claims: In
         <div className="min-w-0 flex-1">
           <p className="text-sm text-text-primary truncate">{doc.originalFilename}</p>
           <p className="text-xs text-text-muted">
-            {DOCUMENT_TYPE_LABELS[doc.documentType]} · {formatDocumentDate(doc.createdAt)}
+            {DOCUMENT_TYPE_LABELS[doc.documentType]} · {formatDate(doc.createdAt, '—')}
           </p>
         </div>
         <StatusPill status={extraction?.status} />
@@ -206,7 +197,7 @@ function DocumentCard({ initialDoc, claims }: { initialDoc: Document; claims: In
       {doc.classification ? (
         <p className="mt-3 text-xs text-text-muted">
           Attached to claim {attachedLabel}. Retained{' '}
-          {doc.retentionUntil ? `until ${formatDocumentDate(doc.retentionUntil)}` : 'with the claim'}.
+          {doc.retentionUntil ? `until ${formatDate(doc.retentionUntil, '—')}` : 'with the claim'}.
         </p>
       ) : (
         <div className="mt-3 space-y-2">
@@ -226,7 +217,7 @@ function DocumentCard({ initialDoc, claims }: { initialDoc: Document; claims: In
           />
           <p className="text-xs text-text-muted">
             Unattached payslips are removed{' '}
-            {doc.retentionUntil ? `on ${formatDocumentDate(doc.retentionUntil)}` : 'according to the retention policy'}.
+            {doc.retentionUntil ? `on ${formatDate(doc.retentionUntil, '—')}` : 'according to the retention policy'}.
           </p>
         </div>
       )}

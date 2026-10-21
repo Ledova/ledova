@@ -188,11 +188,11 @@ The [principles](README.md#principles) apply; in particular, do not add:
   cast. A page's first read renders `<Page loading>`; a failed read shows `LoadError` with Try again
   ([loading, empty and error states](frontend-ux.md#loading-empty-and-error-states)).
 - **Formatting.** Figures, amounts and dates use the shared formatters (`formatMoney`,
-  `formatShareCount`, `marketQuantity`, `formatCryptoBalance`, `formatDate`;
-  [lists, figures and currency](#lists-figures-and-currency)). Never define a local formatter or
-  pass a displayed amount through `Number` or `parseFloat` (the existing local formatters and
-  `parseFloat` display paths change output, so they await the owner decision listed on
-  [#1065](https://github.com/Ledova/ledova/issues/1065)).
+  `formatShareCount`, `shareCount`, `sharePercentage`, `marketQuantity`, `formatCryptoBalance`,
+  `formatDate`, `formatDateTime`; [dates, numbers and identifiers](frontend-ux.md#dates-numbers-and-identifiers)).
+  Never define a local formatter or pass a displayed amount through `Number` or `parseFloat`; the
+  wallet balance displays that still do move to the shared formatters under
+  [#1183](https://github.com/Ledova/ledova/issues/1183).
 - **Naming and exports.** A page folder takes the last fixed segment of its address and sits in the
   folder of the nearest page whose fixed address begins its own: `/company/register/:uuid/transfer`
   is `pages/company/register/transfer/`. An address that only adds a parameter to that page is `detail/`
