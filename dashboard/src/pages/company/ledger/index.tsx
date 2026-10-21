@@ -12,7 +12,7 @@ import {
   type OrderSubmissionOwner,
   type TokenHoldersResponse,
 } from '@ledova/shared';
-import { LinkRow, LoadError, Loading } from '@components/Ledger';
+import { LinkRow, LoadError, Loading, Section } from '@components/Ledger';
 import { PageTitle } from '@components/PageTitle';
 import { pageTitle } from '@utils/destinations';
 import { isRegisterTask, type Landed, type RegisterTask } from '@pages/company/ledger/shared/registerPlace';
@@ -460,35 +460,21 @@ function OwnRegister({
       )}
       {scope && view === 'register' && (
         <>
-          {ownershipReady && (
-            <div className="grid items-start gap-4 sm:grid-cols-2">
-              {scope.registers.map((register) => (
-                <section
-                  key={register.token.uuid}
-                  className="min-w-0 space-y-4 rounded-xl border border-border bg-surface-raised p-4 sm:p-5"
-                >
-                  <h2 className="break-words text-base font-medium text-text-primary">
-                    {register.token.name} · {register.token.symbol}
-                  </h2>
-                  <ClassRegister register={register} former={false} />
-                  {held ? (
-                    <PageAction
-                      label="Class details"
-                      context={register.token.name}
-                      disabled
-                      onClick={() => undefined}
-                    />
-                  ) : (
-                    <PageLink
-                      to={generatePath(DESTINATIONS.companyClass.path, { uuid: register.token.uuid })}
-                      label="Class details"
-                      context={register.token.name}
-                    />
-                  )}
-                </section>
-              ))}
-            </div>
-          )}
+          {ownershipReady &&
+            scope.registers.map((register) => (
+              <Section key={register.token.uuid} title={`${register.token.name} · ${register.token.symbol}`}>
+                <ClassRegister register={register} former={false} />
+                {held ? (
+                  <PageAction label="Class details" context={register.token.name} disabled onClick={() => undefined} />
+                ) : (
+                  <PageLink
+                    to={generatePath(DESTINATIONS.companyClass.path, { uuid: register.token.uuid })}
+                    label="Class details"
+                    context={register.token.name}
+                  />
+                )}
+              </Section>
+            ))}
           <section aria-label="Ledger tasks" className="space-y-4">
             {selectedTask && sourceReady && scope.registers.length > 1 && (
               <div className="max-w-sm">

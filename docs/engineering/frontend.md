@@ -592,7 +592,9 @@ Each page links to its business section; the audience is the `DESTINATIONS` audi
 - Personal dashboard: reads the person's own member projection; the first own class's history loads
   when a member record opens, and choosing another class reads that class's own entries.
 - Ledger on the web (`dashboard/src/pages/company/ledger/index.tsx`): one page renders the
-  Ledger, Shareholders (with member access), Employee share scheme (ESS) and Documents views by hash and keeps every class's
+  Ledger, Shareholders (with member access), Employee share scheme (ESS) and Documents views by hash.
+  Ledger stacks its share-class summaries as full-workspace-width `Section` cards, with the shared
+  card heading, padding and page spacing. It keeps every class's
   controllers mounted, merely hidden, so changing view, task (`TASKS`) or class (the Task share
   class selector) keeps an unfinished request with its class, payload and retry key. Controllers
   report held work (an unfinished form, or a decision busy or awaiting recovery) under keys naming

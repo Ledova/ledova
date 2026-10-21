@@ -30,7 +30,9 @@ Every signed-in page renders in `Page` (`dashboard/src/components/Page.tsx`,
 ([forms](#forms)). `Page narrow` bounds
 task forms, settings and detailed records, including compact tables; ownership dashboards and wide
 tables take the standard workspace width, and tables scroll within their card on small screens.
-Section spacing is scoped to the frame; sign-up keeps its own presentation.
+Ledger's share-class summaries stack as full-width `Section` cards, using the workspace's spacing
+and the shared card heading and padding. Section spacing is scoped to the frame; sign-up keeps its
+own presentation.
 
 The title row holds the title and the page's actions, with a one-sentence muted lede under it only
 where it adds to the titles. The first section follows at the same gap as between sections (`Page`
