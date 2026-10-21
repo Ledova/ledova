@@ -3,7 +3,14 @@ import { SelectField } from '@components/SelectField';
 import { PageAction } from '@components/Page';
 import { Confirmation } from '@components/Modal';
 import { Choices } from '@components/Choices';
-import { FIELD_LIMITS, DESTINATIONS, UPLOAD_RULE, uploadRefusal, formatMoney } from '@ledova/shared';
+import {
+  FIELD_LIMITS,
+  DESTINATIONS,
+  UPLOAD_RULE,
+  uploadRefusal,
+  formatCryptoBalance,
+  formatMoney,
+} from '@ledova/shared';
 import { useRef, useState } from 'react';
 import {
   CloudArrowUpIcon,
@@ -44,7 +51,7 @@ const DOCUMENT_TYPES = [
 const claimLabel = (claim: InvestorClassification) => `${claim.categoryDisplay} · ${formatDate(claim.createdAt)}`;
 
 const documentMoney = (raw: string | null) =>
-  raw && /^\d+(\.\d+)?$/.test(raw) ? formatMoney(raw, 'AUD') : (raw ?? '—');
+  raw && /^-?\d+(\.\d+)?$/.test(raw) ? formatMoney(formatCryptoBalance(raw, '', 2).trimEnd(), 'AUD') : raw || '—';
 
 function StatusPill({ status }: { status: ExtractionStatus | undefined }) {
   if (!status || status === 'pending') {

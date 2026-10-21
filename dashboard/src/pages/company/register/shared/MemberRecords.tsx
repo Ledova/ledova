@@ -1,9 +1,14 @@
 import { useState } from 'react';
-import { formatDate, formatShareCount, registerImportTotals, type RegisterImportMemberRow } from '@ledova/shared';
+import {
+  formatDate,
+  formatShareCount,
+  registerImportTotals,
+  sharePercentage,
+  type RegisterImportMemberRow,
+} from '@ledova/shared';
 import { Table } from '@components/List';
 import { Modal } from '@components/Modal';
 import { PageAction } from '@components/Page';
-import { countBarWidth } from '@pages/company/shared/summary';
 
 export function MemberRecords({ members }: { members: RegisterImportMemberRow[] }) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -22,7 +27,6 @@ export function MemberRecords({ members }: { members: RegisterImportMemberRow[] 
         ]}
       >
         {members.map((member) => {
-          const percent = total !== '0' && /^\d+$/.test(member.shares) ? countBarWidth(member.shares, total) : null;
           return (
             <tr key={member.member}>
               <th scope="row" className="px-4 py-4 text-left font-normal">
@@ -31,11 +35,7 @@ export function MemberRecords({ members }: { members: RegisterImportMemberRow[] 
               </th>
               <td className="px-4 py-4 text-right font-medium tabular-nums">{formatShareCount(member.shares)}</td>
               <td className="whitespace-nowrap px-4 py-4 text-right tabular-nums text-text-muted">
-                {percent === null
-                  ? 'Not recorded'
-                  : percent === 0 && BigInt(member.shares) > 0n
-                    ? '<0.01%'
-                    : `${percent.toFixed(2)}%`}
+                {/^\d+$/.test(member.shares) ? sharePercentage(member.shares, total) : 'Not recorded'}
               </td>
               <td className="whitespace-nowrap px-4 py-4 text-text-muted">{formatDate(member.enteredOn, '—')}</td>
               <td className="px-4 py-4">
