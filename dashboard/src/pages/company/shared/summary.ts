@@ -46,11 +46,6 @@ export function ownershipSummary(registers: TokenHoldersResponse[]) {
   };
 }
 
-export function countBarWidth(shares: string, maximum: string) {
-  const total = BigInt(maximum);
-  return total === 0n ? 0 : Number((BigInt(shares) * 10000n) / total) / 100;
-}
-
 export function ownershipSegments(register: TokenHoldersResponse) {
   if (!register.initialized || register.issuedSupply === null || register.issuedSupply === '0') return [];
   const holders = [...register.holders].sort((left, right) => {
