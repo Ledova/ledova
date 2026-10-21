@@ -249,7 +249,7 @@ function ShareClassDetails({ data }: { data: ReturnType<typeof useShareClass> })
                       <p className="break-words text-text-primary">{request.purpose}</p>
                       <p className="text-text-muted">
                         +{formatShareCount(String(request.additionalShares))} →{' '}
-                        {formatShareCount(String(request.newAuthorizedTotal))} authorised shares
+                        {shareCount(request.newAuthorizedTotal, 'authorised')}
                       </p>
                       <p>
                         <Status tone={requestTone(request.status)}>{request.statusDisplay}</Status>

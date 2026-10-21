@@ -1,5 +1,5 @@
 import { useId } from 'react';
-import { REGISTER_COPY, formatShareCount, type TokenHoldersResponse } from '@ledova/shared';
+import { REGISTER_COPY, formatShareCount, type TokenHoldersResponse, shareCount } from '@ledova/shared';
 import { Section } from '@components/Ledger';
 import { ownershipSegments, ownershipSummary } from '@pages/company/shared/summary';
 
@@ -67,7 +67,7 @@ function OwnershipDonut({
     >
       <title id={`${id}-title`}>{register.token.name} share ownership</title>
       <desc id={`${id}-description`}>
-        {formatShareCount(register.issuedSupply!)} issued shares held by {register.totalHolders}{' '}
+        {shareCount(register.issuedSupply!, 'issued')} held by {register.totalHolders}{' '}
         {register.totalHolders === 1 ? 'shareholder' : 'shareholders'}. Percentages are of this class&apos;s issued
         shares. The legend lists the five largest shareholders and any others.
       </desc>
@@ -121,7 +121,7 @@ export function ShareholderPanels({ registers }: { registers: TokenHoldersRespon
             ) : (
               <>
                 <p className="break-words text-sm tabular-nums text-text-muted">
-                  {formatShareCount(register.issuedSupply!)} issued shares
+                  {shareCount(register.issuedSupply!, 'issued')}
                 </p>
                 <div className="grid min-w-0 items-center gap-4 sm:grid-cols-[10rem_minmax(0,1fr)] md:grid-cols-1 xl:grid-cols-[10rem_minmax(0,1fr)]">
                   <OwnershipDonut register={register} segments={segments} colors={colors} />

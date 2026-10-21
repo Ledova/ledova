@@ -10,6 +10,7 @@ import {
   MEMBER_PARTICULARS_STATUS_LABELS,
   MEMBER_CERTIFICATE_STATUS_LABELS,
   type RegisterEntryKind,
+  shareCount,
 } from '@ledova/shared';
 import { useEffect, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
@@ -265,7 +266,7 @@ function MemberRecords({
                               <div className="space-y-1">
                                 <p className="break-words text-sm text-text-muted">{item.name}</p>
                                 <p className="break-words text-2xl font-medium tabular-nums">
-                                  {formatShareCount(item.shares)} issued shares
+                                  {shareCount(item.shares, 'issued')}
                                 </p>
                               </div>
                               {read.record?.uuid === record.uuid && (

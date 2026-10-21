@@ -28,9 +28,9 @@ export const formatShareCount = (shares: string) => shares.replace(/\B(?=(\d{3})
 export const shareChange = (shares: string) =>
   shares.startsWith('-') ? formatShareCount(shares) : `+${formatShareCount(shares)}`;
 
-export function shareCount(shares: string | number) {
+export function shareCount(shares: string | number, kind?: string) {
   const count = String(shares);
-  return `${formatShareCount(count)} ${count === '1' ? 'share' : 'shares'}`;
+  return `${formatShareCount(count)} ${kind ? `${kind} ` : ''}${count === '1' ? 'share' : 'shares'}`;
 }
 
 export function sharePercentage(shares: string, total: string | null) {
