@@ -134,6 +134,7 @@ class EmployeeAwardTest(CoreFixtures, APITransactionTestCase):
             self.profile.save(update_fields=["is_id_verified"])
         unawarded = self.client.get(f"/api/v1/tokens/{self.token.pk}/register/members/").json()
         self.assertNotIn(award["member"], json.dumps(unawarded))
+        self.assertIn(str(self.member.pk), [row["member"] for row in unawarded["members"]])
         self.assertTrue(all(row["onRegister"] for row in unawarded["members"]))
 
     def test_vesting_cannot_exceed_the_promise_and_transfers_do_not_recycle_issued_entitlement(self):
