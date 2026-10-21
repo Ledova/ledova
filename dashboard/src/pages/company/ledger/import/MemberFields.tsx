@@ -1,15 +1,8 @@
 import { Field, TextInput } from '@components/Field';
-import { Choices } from '@components/Choices';
 import { FIELD_LIMITS, registerImportMoney, type RegisterTransferMember, peopleFrom } from '@ledova/shared';
 import { PageAction } from '@components/Page';
 import { PersonFields, PersonSelect } from '@pages/company/ledger/shared/PersonPicker';
 import { blankAllotment, type AllotmentDraft, type MemberDraft } from './preparation';
-import { Disclosure } from '@components/Ledger';
-
-const HELD_FOR_SOMEONE_ELSE = [
-  ['yes', 'Yes'],
-  ['no', 'No'],
-] as const;
 
 export function MemberFields({
   row,
@@ -135,34 +128,7 @@ export function MemberFields({
                 }
               />
             </Field>
-            <Choices
-              legend="Held for someone else?"
-              options={HELD_FOR_SOMEONE_ELSE}
-              value={allotment.beneficiallyHeld === null ? '' : allotment.beneficiallyHeld ? 'no' : 'yes'}
-              onChange={(held) => setAllotment(at, { beneficiallyHeld: held === 'no' })}
-            />
           </div>
-          <Disclosure
-            summary="References (optional)"
-            defaultOpen={!!(allotment.shareReference || allotment.certificateReference)}
-          >
-            <div className="grid gap-3 pt-3 sm:grid-cols-2">
-              <Field label="Share numbers or reference">
-                <TextInput
-                  maxLength={FIELD_LIMITS.REFERENCE}
-                  value={allotment.shareReference}
-                  onChange={(event) => setAllotment(at, { shareReference: event.target.value })}
-                />
-              </Field>
-              <Field label="Certificate reference">
-                <TextInput
-                  maxLength={FIELD_LIMITS.REFERENCE}
-                  value={allotment.certificateReference}
-                  onChange={(event) => setAllotment(at, { certificateReference: event.target.value })}
-                />
-              </Field>
-            </div>
-          </Disclosure>
           {row.allotments.length > 1 && (
             <PageAction
               label={`Remove allotment ${at + 1} for shareholder ${index + 1}`}

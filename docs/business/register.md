@@ -208,8 +208,10 @@ Ledova, and its holdings must match the stored register. On the web:
    ([choosing a person](#choosing-a-person); names never link records, and existing names and
    addresses are kept), then enter from this
    class's records the name, residential address, original date entered, whole-share holding and
-   each allotment (date, quantity, paid and unpaid amounts, and Held for someone else?, where Yes
-   means held non-beneficially), with optional share and certificate references. Allotments must add
+   each allotment (date, quantity, paid and unpaid amounts). New web records leave beneficial
+   ownership **Not recorded**, with no ownership question or reference inputs; existing answers and
+   references stay with saved records and corrections. Use **Add documents (optional)** for attachments.
+   Allotments must add
    up to the holding, a fully paid allotment has nothing unpaid, and a blank amount stays unknown
    rather than zero. For a genuinely unopened non-tokenised class
    with no issued shares or earlier members, leave the draft empty to record its empty opening.

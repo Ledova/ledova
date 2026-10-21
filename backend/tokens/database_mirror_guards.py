@@ -20,6 +20,13 @@ def _function(source, name):
     return matches[-1].group().replace("CREATE FUNCTION", "CREATE OR REPLACE FUNCTION", 1)
 
 
+def install_member_validation(apps, schema_editor):
+    if schema_editor.connection.vendor != "postgresql":
+        return
+    with schema_editor.connection.cursor() as cursor:
+        cursor.execute(_function(SQL, "tokens_mirror_members_valid"))
+
+
 def install(apps, schema_editor):
     if schema_editor.connection.vendor != "postgresql":
         return

@@ -809,7 +809,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
       },
       '2026-10-14',
     ),
-  ).toEqual(expect.arrayContaining([expect.stringMatching(/record date/), expect.stringMatching(/beneficially/)]));
+  ).toEqual(expect.arrayContaining([expect.stringMatching(/record date/)]));
   const emptyDraft = {
     registerFile: null,
     asicFile: null,
@@ -1094,25 +1094,15 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   fireEvent.change(screen.getByLabelText('Shares in allotment'), { target: { value: '400' } });
   fireEvent.change(screen.getByLabelText('Amount paid'), { target: { value: '400' } });
   fireEvent.change(screen.getByLabelText('Amount unpaid'), { target: { value: '0' } });
-  const held = screen.getByRole('group', { name: 'Held for someone else?' });
-  expect(within(held).queryByRole('radio', { checked: true })).toBeNull();
-  expect(screen.queryByText('Payment status')).toBeNull();
-  fireEvent.click(within(held).getByRole('radio', { name: 'No' }));
-  expect(within(held).getByRole('radio', { checked: true }).getAttribute('value')).toBe('no');
-  const references = screen.getByRole('button', { name: 'References (optional)' });
-  expect(references.getAttribute('aria-expanded')).toBe('false');
-  fireEvent.click(references);
-  fireEvent.change(screen.getByLabelText('Share numbers or reference'), { target: { value: '1–400' } });
-  fireEvent.change(screen.getByLabelText('Certificate reference'), { target: { value: 'CERT-001' } });
-  expect(references.getAttribute('aria-expanded')).toBe('true');
+  expect(screen.queryByRole('group', { name: 'Held for someone else?' })).toBeNull();
+  expect(screen.queryByRole('button', { name: 'References (optional)' })).toBeNull();
+  expect(screen.queryByLabelText('Share numbers or reference')).toBeNull();
+  expect(screen.queryByLabelText('Certificate reference')).toBeNull();
   fireEvent.click(screen.getByRole('button', { name: 'Add allotment (shareholder 1)' }));
   fireEvent.change(screen.getAllByLabelText('Allotment date')[1], { target: { value: '2016-01-01' } });
   fireEvent.change(screen.getAllByLabelText('Shares in allotment')[1], { target: { value: '200' } });
   fireEvent.change(screen.getAllByLabelText('Amount paid')[1], { target: { value: '200' } });
   fireEvent.change(screen.getAllByLabelText('Amount unpaid')[1], { target: { value: '0' } });
-  fireEvent.click(
-    within(screen.getAllByRole('group', { name: 'Held for someone else?' })[1]).getByRole('radio', { name: 'Yes' }),
-  );
   fireEvent.submit(screen.getByRole('button', { name: 'Add to draft' }).closest('form')!);
   expect(api.post).not.toHaveBeenCalled();
   fireEvent.click(screen.getByRole('button', { name: 'Add to draft' }));
@@ -1120,10 +1110,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   expect(screen.queryByLabelText('Name')).toBeNull();
   expect(api.post).not.toHaveBeenCalled();
   fireEvent.click(screen.getByRole('button', { name: 'Edit (shareholder 1)' }));
-  expect((screen.getAllByLabelText('Share numbers or reference')[0] as HTMLInputElement).value).toBe('1–400');
-  expect(screen.getAllByRole('button', { name: 'References (optional)' })[0].getAttribute('aria-expanded')).toBe(
-    'true',
-  );
+  expect(screen.queryByLabelText('Share numbers or reference')).toBeNull();
   fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Discarded edit' } });
   fireEvent.click(screen.getByRole('button', { name: 'Cancel (shareholder edit)' }));
   expect(screen.getByText('Example Shareholder')).toBeTruthy();
@@ -1168,7 +1155,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   expect(within(shareholderTable).getByText('100.00%')).toBeTruthy();
   fireEvent.click(within(shareholderTable).getByRole('button', { name: 'Allotments (Example Shareholder)' }));
   const shareholderDetails = await screen.findByRole('dialog', { name: 'Example Shareholder' });
-  expect(within(shareholderDetails).getByText('CERT-001')).toBeTruthy();
+  expect(within(shareholderDetails).getAllByText('Not recorded')).toHaveLength(2);
   expect(within(shareholderDetails).getByText('1 Example Street, Sydney NSW 2000')).toBeTruthy();
   fireEvent.click(within(shareholderDetails).getByRole('button', { name: 'Close' }));
   await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
@@ -1183,9 +1170,9 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   expect(proposal!.sourceReference).toBe('Company-provided share records');
   expect(proposal!.members[0].enteredOn).toBe('2020-01-01');
   expect(proposal!.members[0].allotments?.[0].allottedOn).toBe('2015-01-01');
-  expect(proposal!.members[0].allotments?.map((allotment) => allotment.beneficiallyHeld)).toEqual([true, false]);
-  expect(proposal!.members[0].allotments?.[0].shareReference).toBe('1–400');
-  expect(proposal!.members[0].allotments?.[0].certificateReference).toBe('CERT-001');
+  expect(proposal!.members[0].allotments?.map((allotment) => allotment.beneficiallyHeld)).toEqual([null, null]);
+  expect(proposal!.members[0].allotments?.[0].shareReference).toBeNull();
+  expect(proposal!.members[0].allotments?.[0].certificateReference).toBeNull();
   expect((screen.getByRole('button', { name: 'Record review' }) as HTMLButtonElement).disabled).toBe(true);
   expect((screen.getByRole('button', { name: 'Edit records' }) as HTMLButtonElement).disabled).toBe(true);
   const importPath = DESTINATIONS.companyRegisterImport.path.replace(':uuid', token.uuid);
@@ -1257,6 +1244,18 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   expect(proposal!.decisions.map((decision) => decision.appointment)).toEqual(['approve-only', 'apply-only']);
   expect(api.post.mock.calls.filter(([url]) => url === IMPORTS)).toHaveLength(2);
   expect(api.post.mock.calls.filter(([url]) => url === COMPANY_TOKEN_ENDPOINTS.BASE)).toHaveLength(1);
+  proposal = {
+    ...proposal!,
+    members: proposal!.members.map((member) => ({
+      ...member,
+      allotments: member.allotments?.map((allotment, index) => ({
+        ...allotment,
+        beneficiallyHeld: index === 0,
+        shareReference: index === 0 ? '1–400' : null,
+        certificateReference: index === 0 ? 'CERT-001' : null,
+      })),
+    })),
+  };
   cleanup();
   client.clear();
   show();
@@ -1399,6 +1398,9 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   expect(screen.queryByRole('group', { name: 'Earlier ASIC comparison' })).toBeNull();
   api.post.mockImplementation(async (url: string, request: RegisterImportPreparation) => {
     expect(url).toBe(IMPORTS);
+    expect(request.members[0].allotments?.map((allotment) => allotment.beneficiallyHeld)).toEqual([true, false]);
+    expect(request.members[0].allotments?.[0].shareReference).toBe('1–400');
+    expect(request.members[0].allotments?.[0].certificateReference).toBe('CERT-001');
     return {
       data: {
         ...rejected,
@@ -1587,9 +1589,6 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
         ['Amount unpaid', '0'],
       ])
         fireEvent.change(screen.getByLabelText(label), { target: { value } });
-      fireEvent.click(
-        within(screen.getByRole('group', { name: 'Held for someone else?' })).getByRole('radio', { name: 'No' }),
-      );
     });
   };
   fireEvent.click(screen.getByRole('button', { name: 'Add a shareholder' }));

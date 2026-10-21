@@ -159,7 +159,11 @@ export function ImportRecord({
                     <Row label="Total unpaid">{allotment.amountUnpaid}</Row>
                     <Row label="Payment status">{allotment.fullyPaid ? 'Fully paid' : 'Partly paid'}</Row>
                     <Row label="Held for">
-                      {allotment.beneficiallyHeld ? 'Holder’s own benefit' : 'Someone else (trustee or nominee)'}
+                      {allotment.beneficiallyHeld === null
+                        ? 'Not recorded'
+                        : allotment.beneficiallyHeld
+                          ? 'Holder’s own benefit'
+                          : 'Someone else (trustee or nominee)'}
                     </Row>
                   </Rows>
                 </View>

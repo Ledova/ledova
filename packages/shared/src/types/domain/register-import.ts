@@ -13,7 +13,7 @@ export type RegisterImportAllotment = {
   amountPaid: string;
   amountUnpaid: string;
   fullyPaid: boolean;
-  beneficiallyHeld: boolean;
+  beneficiallyHeld: boolean | null;
 };
 
 export type RegisterImportMemberRow = {

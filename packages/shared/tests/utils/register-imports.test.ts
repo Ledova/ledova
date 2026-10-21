@@ -96,12 +96,42 @@ it('matches the complete company mirror and retained correction source without i
     { certificateReference: 'different' },
     { shareReference: 'different' },
     { beneficiallyHeld: false },
+    { beneficiallyHeld: null },
     { allottedOn: '2020-02-01' },
     { amountUnpaid: '1.00', fullyPaid: false },
   ]) {
     const member = proposal.members[0]!;
     const altered = { ...proposal, members: [{ ...member, allotments: [{ ...member.allotments![0]!, ...change }] }] };
     expect(isPreparedRegisterImport(altered, request)).toBe(false);
+  }
+  const unknownRequest: RegisterImportPreparation = {
+    ...request,
+    members: request.members.map((member) => ({
+      ...member,
+      allotments: member.allotments.map((allotment) => ({ ...allotment, beneficiallyHeld: null })),
+    })),
+  };
+  const unknownRecord: RegisterImportRecord = {
+    ...record,
+    members: proposal.members.map((member) => ({
+      ...member,
+      allotments: member.allotments!.map((allotment) => ({ ...allotment, beneficiallyHeld: null })),
+    })),
+  };
+  const unknown = registerImportOf(unknownRecord);
+  expect(unknown.members[0]!.allotments![0]!.beneficiallyHeld).toBeNull();
+  expect(isPreparedRegisterImport(unknown, unknownRequest)).toBe(true);
+  expect(isPreparedRegisterImport(proposal, unknownRequest)).toBe(false);
+  for (const status of [undefined, '', 0, 'false']) {
+    expect(() =>
+      registerImportOf({
+        ...unknownRecord,
+        members: unknown.members.map((member) => ({
+          ...member,
+          allotments: member.allotments!.map((allotment) => ({ ...allotment, beneficiallyHeld: status })),
+        })),
+      }),
+    ).toThrow('The register import rows could not be read.');
   }
   const oldMember = { ...proposal.members[0]! };
   delete oldMember.allotments;

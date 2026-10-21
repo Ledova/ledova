@@ -79,6 +79,9 @@ class RegisterMirrorTest(CoreFixtures, APITransactionTestCase):
         token = ShareToken.objects.get(pk=created.json()["uuid"])
         endpoint = "/api/v1/tokens/register-imports/"
         payload = self.mirror_payload(token)
+        allotments = payload["members"][0]["allotments"]
+        allotments[1].update(shares="30", amount_paid="15", amount_unpaid="15")
+        allotments.append({**allotments[1], "beneficially_held": None})
         payload["former_members"] = [
             {
                 "name": "Synthetic former member",
@@ -90,6 +93,13 @@ class RegisterMirrorTest(CoreFixtures, APITransactionTestCase):
         prepared = self.client.post(endpoint, payload, format="json")
         self.assertEqual(prepared.status_code, 201, prepared.content)
         identifier = prepared.json()["uuid"]
+        self.assertIsNone(RegisterImport.objects.get(pk=identifier).members[0]["allotments"][2]["beneficially_held"])
+        retried = self.client.post(endpoint, payload, format="json")
+        self.assertEqual(retried.status_code, 200, retried.content)
+        changed_status = deepcopy(payload)
+        changed_status["members"][0]["allotments"][2]["beneficially_held"] = False
+        refused = self.client.post(endpoint, changed_status, format="json")
+        self.assertEqual(refused.status_code, 409, refused.content)
         self.decision(endpoint, identifier, "approve")
         self.decision(endpoint, identifier, "apply")
         opening = RegisterEntry.objects.get(register__token=token, kind="opening")
@@ -101,7 +111,9 @@ class RegisterMirrorTest(CoreFixtures, APITransactionTestCase):
         self.assertEqual(confirmed["members"][0]["amountPaid"], "70.00")
         self.assertEqual(confirmed["members"][0]["enteredOn"], "2020-01-01")
         self.assertEqual(confirmed["members"][0]["allotments"][0]["allottedOn"], "2019-01-01")
-        self.assertFalse(confirmed["members"][0]["allotments"][1]["beneficiallyHeld"])
+        self.assertIs(confirmed["members"][0]["allotments"][0]["beneficiallyHeld"], True)
+        self.assertIs(confirmed["members"][0]["allotments"][1]["beneficiallyHeld"], False)
+        self.assertIsNone(confirmed["members"][0]["allotments"][2]["beneficiallyHeld"])
         award = self.award_payload(
             token_id=str(token.pk),
             member=payload["members"][0]["member"],
@@ -114,7 +126,7 @@ class RegisterMirrorTest(CoreFixtures, APITransactionTestCase):
         correction = deepcopy(payload)
         correction.update(operation_id=str(uuid4()), correction_of=identifier, reason="Correct a copied quantity")
         correction["members"][0]["shares"] = "90"
-        correction["members"][0]["allotments"][1]["shares"] = "50"
+        correction["members"][0]["allotments"][1]["shares"] = "20"
         prepared = self.client.post(endpoint, correction, format="json")
         self.assertEqual(prepared.status_code, 201, prepared.content)
         corrected_id = prepared.json()["uuid"]
@@ -126,6 +138,8 @@ class RegisterMirrorTest(CoreFixtures, APITransactionTestCase):
         self.assertEqual(refused.status_code, 409, refused.content)
         self.decision(endpoint, corrected_id, "approve")
         applied, decision = self.decision(endpoint, corrected_id, "apply")
+        corrected = self.client.get(f"{endpoint}{corrected_id}/").json()["members"][0]["allotments"]
+        self.assertEqual([row["beneficiallyHeld"] for row in corrected], [True, False, None])
         retried = self.client.post(f"{endpoint}{corrected_id}/decide/", decision, format="json")
         self.assertEqual(retried.status_code, 200, retried.content)
         self.assertEqual(applied.json()["correctionOf"], identifier)
@@ -346,29 +360,44 @@ class RegisterMirrorTest(CoreFixtures, APITransactionTestCase):
         payload["members"] = [
             {key: value for key, value in row.items() if key != "amount_paid"} for row in original.members
         ]
-        raw_members = deepcopy(original.members)
-        raw_members[0]["allotments"][0]["amount_unpaid"] = None
-        with self.assertRaises(DatabaseError), register_command(self.owner, self.company.pk, "register_import_prepare"):
-            RegisterImport.objects.create(
-                company=self.company,
-                token=self.token,
-                as_at=timezone.now().date(),
-                members=raw_members,
-                former_members=[],
-                source_reference="SYNTHETIC-RAW-MIRROR",
-                source_confirmed=True,
-                authority="company_records",
-                authority_reference="SYNTHETIC-RAW-MIRROR",
-                reason="Malformed copied records",
-                preparing_appointment=self.appointment,
-                correction_of=original,
-                base_sequence=self.token.stored_register.sequence,
-                base_hash=self.token.stored_register.head_hash,
-                submitted_by=self.owner,
-                evidence_fingerprint="",
-                asic_fingerprint="",
-                evidence_snapshot=None,
-            )
+        invalid_members = []
+        for field, value in (("amount_unpaid", None), ("beneficially_held", "false")):
+            raw_members = deepcopy(original.members)
+            raw_members[0]["allotments"][0][field] = value
+            invalid_members.append(raw_members)
+        missing_status = deepcopy(original.members)
+        del missing_status[0]["allotments"][0]["beneficially_held"]
+        invalid_members.append(missing_status)
+        for raw_members in invalid_members:
+            with self.assertRaises(DatabaseError), register_command(
+                self.owner, self.company.pk, "register_import_prepare"
+            ):
+                RegisterImport.objects.create(
+                    company=self.company,
+                    token=self.token,
+                    as_at=timezone.now().date(),
+                    members=raw_members,
+                    former_members=[],
+                    source_reference="SYNTHETIC-RAW-MIRROR",
+                    source_confirmed=True,
+                    authority="company_records",
+                    authority_reference="SYNTHETIC-RAW-MIRROR",
+                    reason="Malformed copied records",
+                    preparing_appointment=self.appointment,
+                    correction_of=original,
+                    base_sequence=self.token.stored_register.sequence,
+                    base_hash=self.token.stored_register.head_hash,
+                    submitted_by=self.owner,
+                    evidence_fingerprint="",
+                    asic_fingerprint="",
+                    evidence_snapshot=None,
+                )
+            invalid = deepcopy(payload)
+            invalid["members"] = [
+                {key: value for key, value in row.items() if key != "amount_paid"} for row in raw_members
+            ]
+            refused = self.client.post(endpoint, invalid, format="json")
+            self.assertEqual(refused.status_code, 400, refused.content)
         with self.assertRaises(DatabaseError), register_command(self.owner, self.company.pk, "register_import_prepare"):
             RegisterImport.objects.create(
                 company=self.company,
@@ -393,10 +422,6 @@ class RegisterMirrorTest(CoreFixtures, APITransactionTestCase):
         too_many = deepcopy(payload)
         too_many["members"][0]["shares"] = str(MAX_UINT256 + 1)
         refused = self.client.post(endpoint, too_many, format="json")
-        self.assertEqual(refused.status_code, 400, refused.content)
-        incomplete = deepcopy(payload)
-        incomplete["members"][0]["allotments"][0]["amount_unpaid"] = None
-        refused = self.client.post(endpoint, incomplete, format="json")
         self.assertEqual(refused.status_code, 400, refused.content)
         bad_total = deepcopy(payload)
         bad_total["members"][0]["shares"] = "99"

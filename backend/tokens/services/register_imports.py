@@ -121,7 +121,9 @@ def _allotments(rows, shares, as_at):
             raise ValueError
         allotted_on = _day(row["allotted_on"], as_at)
         unpaid = _money(row["amount_unpaid"])
-        if type(row["fully_paid"]) is not bool or type(row["beneficially_held"]) is not bool:
+        if type(row["fully_paid"]) is not bool or (
+            row["beneficially_held"] is not None and type(row["beneficially_held"]) is not bool
+        ):
             raise ValueError
         if row["fully_paid"] != (Decimal(unpaid) == 0):
             raise ValidationError("Fully-paid status must match the recorded unpaid amount.")

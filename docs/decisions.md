@@ -1323,6 +1323,13 @@ ASIC comparison figures. Saved and historical records keep their existing values
 ASIC comparison is read-only and may be explicitly left out when revising. The company's legal
 historical records and responsibilities remain unchanged.
 
+The owner also removed the web shareholder form's ownership question and reference inputs.
+New mirror allotments record beneficial ownership as **Not recorded**, never an assumed Yes or No.
+Existing answers and references remain with retained records and corrections. Optional documents
+use the same attachment control. The company continues to keep its complete legal register;
+Ledova's mirror does not replace it. Mobile workflow changes remain deferred, with a read-only
+compatibility label for unknown values.
+
 ## Paper and Dark themes
 
 On 14 October 2026 the owner directed under

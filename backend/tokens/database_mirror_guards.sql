@@ -35,7 +35,8 @@ BEGIN
                 OR jsonb_typeof(allotment->'amount_unpaid') IS DISTINCT FROM 'string'
                 OR allotment->>'amount_unpaid' !~ '^(0|[1-9][0-9]{0,17})[.][0-9]{2}$'
                 OR jsonb_typeof(allotment->'fully_paid') IS DISTINCT FROM 'boolean'
-                OR jsonb_typeof(allotment->'beneficially_held') IS DISTINCT FROM 'boolean'
+                OR (jsonb_typeof(allotment->'beneficially_held') IS DISTINCT FROM 'boolean'
+                    AND jsonb_typeof(allotment->'beneficially_held') IS DISTINCT FROM 'null')
                 OR (jsonb_typeof(allotment->'share_reference') IS DISTINCT FROM 'null'
                     AND (jsonb_typeof(allotment->'share_reference') IS DISTINCT FROM 'string'
                         OR length(btrim(allotment->>'share_reference')) NOT BETWEEN 1 AND 255))

@@ -79,7 +79,14 @@ export function MemberRecords({ members }: { members: RegisterImportMemberRow[] 
                         ['Amount paid', allotment.amountPaid],
                         ['Amount unpaid', allotment.amountUnpaid],
                         ['Payment status', allotment.fullyPaid ? 'Fully paid' : 'Not fully paid'],
-                        ['Held for someone else?', allotment.beneficiallyHeld ? 'No' : 'Yes'],
+                        [
+                          'Held for someone else?',
+                          allotment.beneficiallyHeld === null
+                            ? 'Not recorded'
+                            : allotment.beneficiallyHeld
+                              ? 'No'
+                              : 'Yes',
+                        ],
                         ...(allotment.shareReference ? [['Share reference', allotment.shareReference]] : []),
                         ...(allotment.certificateReference
                           ? [['Certificate reference', allotment.certificateReference]]

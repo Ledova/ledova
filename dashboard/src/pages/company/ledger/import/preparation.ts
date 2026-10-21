@@ -115,8 +115,6 @@ export function memberRows(members: MemberDraft[]): RegisterImportCurrentMemberR
     shares: positiveShares(row.shares) ?? row.shares.trim(),
     enteredOn: row.enteredOn,
     allotments: row.allotments.map((allotment) => {
-      if (allotment.beneficiallyHeld === null)
-        throw new Error('Choose whether these shares are held beneficially from the source records.');
       return {
         allottedOn: allotment.allottedOn,
         fullyPaid: allotment.fullyPaid,
@@ -238,8 +236,6 @@ export function preparationProblems(draft: PreparationDraft, today: string, empt
     row.allotments.forEach((allotment, at) => {
       const prefix = `${label}, allotment ${at + 1}`;
       const shares = positiveShares(allotment.shares);
-      if (allotment.beneficiallyHeld === null)
-        problems.push(`${prefix}: choose whether the shares are held beneficially from the source records.`);
       if (!dated(allotment.allottedOn) || shares === null)
         problems.push(`${prefix}: enter shares and an allotment date no later than the record date.`);
       if (shares !== null) total += BigInt(shares);

@@ -60,7 +60,7 @@ function allotmentsOf(value: unknown): value is RegisterImportAllotment[] {
     value.every(
       (row) =>
         typeof row.fullyPaid === 'boolean' &&
-        typeof row.beneficiallyHeld === 'boolean' &&
+        (row.beneficiallyHeld === null || typeof row.beneficiallyHeld === 'boolean') &&
         /^[1-9]\d*$/.test(row.shares) &&
         registerImportMoney(row.amountPaid) !== null &&
         registerImportMoney(row.amountUnpaid) !== null &&

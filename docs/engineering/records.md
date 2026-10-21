@@ -399,7 +399,9 @@ The schema leaves `members` and `former_members` free-form. A member row has exa
 `fully_paid` and `beneficially_held`; a former row exactly `name`, `residential_address`, `shares`
 and `ceased_on`. Shares are positive whole numbers, dates no later than `as_at`, money at most two
 decimal places and names up to 255 characters; a member's 1 to 10,000 allotments sum to its holding,
-and `fully_paid` agrees with a zero `amount_unpaid`. The stored row adds `amount_paid`, the sum of
+and `fully_paid` agrees with a zero `amount_unpaid`. `beneficially_held` is a boolean or explicit
+JSON null for **Not recorded**; its key is required, and strings are refused. New web entries leave
+it unknown, while existing answers and references remain intact. The stored row adds `amount_paid`, the sum of
 its allotments, and `tokens_mirror_members_valid` rechecks the stored shape in PostgreSQL. Earlier
 snapshots keep their missing fields unknown.
 
