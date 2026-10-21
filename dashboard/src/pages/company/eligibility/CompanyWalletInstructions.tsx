@@ -221,6 +221,7 @@ function Preparation({ data }: { data: Read }) {
 }
 export function CompanyWalletInstructions() {
   const data = useCompanyWalletInstructions({ newKey: () => crypto.randomUUID() });
+  const { running, track } = useRunningAction();
   return (
     <Section title="Company wallet approvals">
       {!data.owner ? (
@@ -241,8 +242,10 @@ export function CompanyWalletInstructions() {
           {data.companyUuid && (
             <PageAction
               label="Refresh company wallet instructions"
+              busy={running === 'refresh'}
+              busyLabel="Refreshing…"
               disabled={data.busy}
-              onClick={() => void data.refresh()}
+              onClick={() => track('refresh', data.refresh())}
             />
           )}
           {data.error && (

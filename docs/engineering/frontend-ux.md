@@ -124,7 +124,8 @@ request, on pages and in dialogs, including:
 - the wallet import and verification steps, and identity verification;
 - establishing an appointment;
 - member, particulars and certificate requests;
-- register setup's review step (editing the records, loading and confirming the decision).
+- register setup's review step (editing the records, loading and confirming the decision);
+- every action that refreshes a read, which says "Refreshing…" while it runs.
 
 Where a shared hook only reports that some command is running, `useRunningAction`
 (`dashboard/src/hooks`) names the action that was clicked. A few actions show their work another
@@ -135,8 +136,8 @@ way:
 - Submitting a wallet nomination replaces the form with its saved request.
 - Signing flows, in Trading and wallet transfers, move to their own submitting step.
 
-Refresh, retry and recovery actions keep their label while they run; a form's submit button that
-also recovers an earlier attempt keeps its busy label. Icon buttons, register setup's Import
+Try again and recovery actions keep their label while they run; a form's submit button that also
+recovers an earlier attempt keeps its busy label. Icon buttons, register setup's Import
 placeholder, the payslip upload area and Trading keep their own controls, and dialog footers use the
 same order as `FormActions`. Mobile's `Action` has no busy or pressed form yet.
 
@@ -443,7 +444,7 @@ failure. On the company team page and in a class's employee awards and non-paid 
 takes the place of the section's Refresh action while its read has failed; deployments do the same
 while no records show.
 
-Refresh actions, a failed refresh and empty states are still to follow under
+A failed refresh and empty states are still to follow under
 [#1180](https://github.com/Ledova/ledova/issues/1180). Until then:
 
 - The company's eligibility queue, your company eligibility requests, member access and Home's

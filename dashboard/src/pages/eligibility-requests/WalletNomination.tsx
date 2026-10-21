@@ -48,7 +48,13 @@ export function WalletNomination({ requestUuid, guardRequest }: { requestUuid: s
         Select one own wallet for this company and review its current GENERAL eligibility and possession proof. Earlier
         evidence sharing does not share your wallets.
       </p>
-      <PageAction label="Refresh wallet nomination" disabled={data.busy} onClick={() => void data.refresh()} />
+      <PageAction
+        label="Refresh wallet nomination"
+        busy={running === 'refresh'}
+        busyLabel="Refreshing…"
+        disabled={data.busy}
+        onClick={() => track('refresh', data.refresh())}
+      />
       {data.original && (
         <div className="space-y-3">
           <p role="status">This original nomination is unconfirmed. Recover its receipt with the same body and key.</p>

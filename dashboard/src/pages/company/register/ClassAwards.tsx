@@ -177,7 +177,8 @@ export function ClassAwards({
       {!awards.isError && (
         <PageAction
           label="Refresh awards"
-          disabled={awards.isFetching || appointments.isFetching}
+          busy={awards.isFetching || appointments.isFetching}
+          busyLabel="Refreshing…"
           onClick={() => void refresh()}
         />
       )}

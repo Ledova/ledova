@@ -173,7 +173,9 @@ function MemberRecords({
         actions={
           <PageAction
             label="Refresh member records"
-            disabled={read.busy || refreshing}
+            busy={refreshing}
+            busyLabel="Refreshing…"
+            disabled={read.busy}
             onClick={() => {
               setRefreshing(true);
               void read.refresh().finally(() => setRefreshing(false));

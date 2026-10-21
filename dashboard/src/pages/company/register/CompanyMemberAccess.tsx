@@ -72,7 +72,13 @@ export function CompanyMemberAccess({
         A current company administrator invites one exact member to their own records. This creates no company
         appointment, holding or wallet link. Share the code privately; Ledova does not email it.
       </p>
-      <PageAction label="Refresh member access" disabled={access.busy || uploading} onClick={() => void refresh()} />
+      <PageAction
+        label="Refresh member access"
+        busy={running === 'refresh'}
+        busyLabel="Refreshing…"
+        disabled={access.busy || uploading}
+        onClick={() => track('refresh', refresh())}
+      />
       {access.error && (
         <p role="alert" className="text-sm text-error-light">
           {access.error}

@@ -237,6 +237,8 @@ export function CompanyCapitalFlow({ uuid, data }: { uuid: string; data: ReturnT
       <p className="text-sm text-text-muted">{COPY.NOTE}</p>
       <PageAction
         label="Refresh company capital records"
+        busy={commands.instructions.isFetching || commands.appointments.isFetching}
+        busyLabel="Refreshing…"
         disabled={commands.busy}
         onClick={() => void commands.refresh()}
       />

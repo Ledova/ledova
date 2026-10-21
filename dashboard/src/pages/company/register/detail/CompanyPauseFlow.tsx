@@ -232,6 +232,8 @@ export function CompanyPauseFlow({ uuid, data }: { uuid: string; data: ReturnTyp
       <p className="text-sm text-text-muted">{COPY.NOTE}</p>
       <PageAction
         label="Refresh company pause records"
+        busy={commands.instructions.isFetching || commands.appointments.isFetching}
+        busyLabel="Refreshing…"
         disabled={commands.busy}
         onClick={() => void commands.refresh()}
       />

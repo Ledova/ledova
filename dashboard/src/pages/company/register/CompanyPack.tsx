@@ -42,7 +42,9 @@ export function CompanyPack({
       )}
       <PageAction
         label="Refresh pack appointment"
-        disabled={appointments.isFetching || !sourceReady}
+        busy={appointments.isFetching}
+        busyLabel="Refreshing…"
+        disabled={!sourceReady}
         onClick={() => void appointments.refetch()}
       />
     </Section>

@@ -25,7 +25,9 @@ export default function ParticipantEligibilityPage() {
       actions={
         <PageAction
           label="Refresh records"
-          disabled={read.busy || read.refreshing}
+          busy={read.refreshing}
+          busyLabel="Refreshing…"
+          disabled={read.busy}
           onClick={() => void read.refresh()}
         />
       }

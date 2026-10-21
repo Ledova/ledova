@@ -120,7 +120,8 @@ export function DeploymentFlow({ uuid, data }: { uuid: string; data: ReturnType<
         <PageAction
           label="Refresh deployments"
           onClick={() => void refresh().catch(() => undefined)}
-          disabled={deployments.isFetching || appointments.isFetching}
+          busy={deployments.isFetching || appointments.isFetching}
+          busyLabel="Refreshing…"
         />
       )}
       {!records.length ? (

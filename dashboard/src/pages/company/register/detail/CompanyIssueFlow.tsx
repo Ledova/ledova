@@ -435,7 +435,13 @@ export function CompanyIssueFlow({ uuid, data }: { uuid: string; data: ReturnTyp
   return (
     <Section title={COPY.TITLE}>
       <p className="text-sm text-text-muted">{COPY.NOTE}</p>
-      <PageAction label="Refresh company grant records" disabled={commands.busy} onClick={() => void refresh()} />
+      <PageAction
+        label="Refresh company grant records"
+        busy={commands.instructions.isFetching || commands.appointments.isFetching}
+        busyLabel="Refreshing…"
+        disabled={commands.busy}
+        onClick={() => void refresh()}
+      />
       {refreshError && <p role="alert">{refreshError}</p>}
       {!commands.visible && (
         <p className="text-sm text-text-muted">Current personal register read access is required.</p>
