@@ -432,8 +432,9 @@ What a recipient should know (the builder's own limits are in
 
 ## The Wallet shares page
 
-**Wallet shares** (from **Wallets** on both clients) lists the share-class tokens in the person's own wallets, one row per company and class
-across networks, expanding into each network's and wallet's balance. A holding whose class details
+**Wallet shares** (from **Wallets** on both clients) lists the share-class tokens in the person's
+own wallets, one row per company and class across networks, expanding into each network's and
+wallet's balance. A holding whose class details
 cannot be read is listed under the asset's name. Company-recorded shares, wallet or not, are on
 **Dashboard** or **My shares**.
 

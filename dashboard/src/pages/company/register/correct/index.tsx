@@ -20,6 +20,7 @@ import { useRegisterClasses } from '@pages/company/shared/useCompanyRegister';
 import { ownerGuard } from '@pages/company/shared/ownerGuard';
 import { useOwnAppointments } from '@hooks/useOwnAppointments';
 import { CorrectionForm } from './CorrectionForm';
+import { registerPlace } from '@pages/company/register/shared/registerPlace';
 
 const COPY = REGISTER_CORRECTION_COPY;
 const LEDE =
@@ -145,7 +146,7 @@ function OwnCorrection({
       </>
     );
   return (
-    <Page narrow lede={LEDE}>
+    <Page narrow lede={LEDE} back={registerPlace({ token: uuid, task: 'history' })}>
       {content}
     </Page>
   );

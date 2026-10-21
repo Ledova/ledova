@@ -12,6 +12,7 @@ import { ownerGuard } from '@pages/company/shared/ownerGuard';
 import { useOwnAppointments } from '@hooks/useOwnAppointments';
 import { useWaitingWallets } from '@pages/company/register/shared/useRegisterLinks';
 import { LinkForm } from './LinkForm';
+import { registerPlace } from '@pages/company/register/shared/registerPlace';
 
 const COPY = REGISTER_LINK_COPY;
 const LEDE =
@@ -121,7 +122,7 @@ function OwnLinks({
       </>
     );
   return (
-    <Page narrow lede={LEDE}>
+    <Page narrow lede={LEDE} back={registerPlace({ company, task: 'history' })}>
       {content}
     </Page>
   );

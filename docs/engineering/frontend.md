@@ -578,9 +578,11 @@ Each page links to its business section; the audience is the `DESTINATIONS` audi
   their task, class and any record (`allotments/`, `transfer/`, `history/`, `awards/`, `grants/`;
   member access separately). While anything is held, the page keeps its retained company and class
   scope, disables the company, task and class selectors and pins held task work to its task and
-  class. A selection lasts one navigation (`location.key`); navigation state (`registerCompany`,
-  `registerToken`, `registerHistory`) picks the company, class and task and focuses that class, and
-  `inviteMember` chooses the invitation's recipient on Shareholders.
+  class. A selection lasts one navigation (`location.key`). Navigation state built by
+  `registerPlace` (`dashboard/src/pages/company/register/shared/registerPlace.ts`) picks the company
+  (or the class's company), class and task and focuses that class; with a record it focuses that
+  record instead and shows its outcome line. `inviteMember` chooses the invitation's recipient on
+  Shareholders.
   History records are disclosures with a one-line summary, their detail and certificate control
   rendered on demand; a section whose read succeeded empty is omitted, while a failed read keeps its
   retry and an uncertain decision its recovery. Private content renders only while its view is
