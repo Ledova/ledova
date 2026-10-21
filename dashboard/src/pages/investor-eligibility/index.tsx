@@ -144,7 +144,7 @@ export default function InvestorEligibilityPage() {
                 After adding evidence, request eligibility for the exact company or offering and consent to sharing it.
                 The company records its own decision; new investment actions recheck that decision and its scope.
               </p>
-              <LinkRow to={DESTINATIONS.eligibilityRequests.path} label="Request company eligibility" />
+              <LinkRow to={DESTINATIONS.eligibilityRequests.path} label={DESTINATIONS.eligibilityRequests.title} />
             </Section>
           </>
         )}

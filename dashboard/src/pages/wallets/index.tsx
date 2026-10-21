@@ -156,7 +156,7 @@ function WalletsPage() {
         </>
       }
     >
-      <LinkRow to={DESTINATIONS.walletHoldings.path} label="View shares in your wallets" />
+      <LinkRow to={DESTINATIONS.walletHoldings.path} label={DESTINATIONS.walletHoldings.title} />
       {hasError ? (
         <LoadError retry={retry} busy={isRefreshing}>
           Your wallets could not be loaded.

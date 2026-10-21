@@ -1,4 +1,4 @@
-import { PreparationBack, PreparationNotice, PreparationShell } from '@pages/company/register/shared/PreparationShell';
+import { PreparationNotice, PreparationShell } from '@pages/company/register/shared/PreparationShell';
 import { useRegisterPreparationOwner } from '@pages/company/register/shared/useRegisterPreparationOwner';
 import { useTransferRegister } from './useTransferRegister';
 import { useMemo, type ReactNode } from 'react';
@@ -24,7 +24,6 @@ const LEDE =
 export default function CompanyRegisterTransferPage() {
   const { uuid = '' } = useParams();
   const { owner, boundary, preferences } = useRegisterPreparationOwner();
-  const back = <PreparationBack />;
   if (owner && !preferences.isError)
     return (
       <OwnTransfer
@@ -32,22 +31,19 @@ export default function CompanyRegisterTransferPage() {
         uuid={uuid}
         owner={owner}
         currentOwner={boundary.get}
-        back={back}
       />
     );
-  return <PreparationShell lede={LEDE} actions={back} preferences={preferences} />;
+  return <PreparationShell lede={LEDE} preferences={preferences} />;
 }
 
 function OwnTransfer({
   uuid,
   owner,
   currentOwner,
-  back,
 }: {
   uuid: string;
   owner: OrderSubmissionOwner;
   currentOwner: () => OrderSubmissionOwner | null;
-  back: ReactNode;
 }) {
   const { state } = useLocation();
   const guard = useMemo(() => ownerGuard(owner, currentOwner), [owner, currentOwner]);
@@ -124,7 +120,7 @@ function OwnTransfer({
       </>
     );
   return (
-    <Page narrow lede={LEDE} actions={back}>
+    <Page narrow lede={LEDE}>
       {content}
     </Page>
   );

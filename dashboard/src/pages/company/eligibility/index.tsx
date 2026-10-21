@@ -100,7 +100,7 @@ export default function CompanyEligibilityPage() {
             </p>
           )}
           <Section title="Your personal company authority">
-            <LinkRow to={DESTINATIONS.companyTeam.path} label="Your appointments and company team" />
+            <LinkRow to={DESTINATIONS.companyTeam.path} label={DESTINATIONS.companyTeam.title} />
             <p className="text-sm text-text-muted">
               Current personal prepare or approve authority permits reading this company&apos;s queue and preparing a
               decision. Recording a decision or revocation requires your own approve appointment.

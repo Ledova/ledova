@@ -102,13 +102,13 @@ function SettingsPage() {
       <Verification />
       <Section title="Company settings">
         <div className="divide-y divide-border-subtle">
-          <LinkRow to={DESTINATIONS.company.path} label="Company details">
+          <LinkRow to={DESTINATIONS.company.path} label={DESTINATIONS.company.title}>
             <p className="text-text-muted">Company information and administration.</p>
           </LinkRow>
           <LinkRow to={`${DESTINATIONS.company.path}#documents`} label="Company documents">
             <p className="text-text-muted">Upload optional supporting documents after company setup.</p>
           </LinkRow>
-          <LinkRow to={DESTINATIONS.companyTeam.path} label="Team and appointments">
+          <LinkRow to={DESTINATIONS.companyTeam.path} label={DESTINATIONS.companyTeam.title}>
             <p className="text-text-muted">
               Invite company users, accept an invitation and manage permitted appointments.
             </p>

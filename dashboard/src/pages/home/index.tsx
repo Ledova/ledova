@@ -26,6 +26,7 @@ import { LinkRow, Row, Rows, Section, Loading, LoadError } from '@components/Led
 import { Confirmation } from '@components/Modal';
 import { Page, PageAction } from '@components/Page';
 import { PageTitle } from '@components/PageTitle';
+import { pageTitle } from '@utils/destinations';
 import { ErrorSummary } from '@components/ErrorSummary';
 import { useErrorSummary } from '@hooks/useErrorSummary';
 import { AwardStatus } from '@components/AwardStatus';
@@ -195,7 +196,7 @@ function MemberRecords({
     </div>
   );
   return (
-    <PageTitle.Provider value={documentsOnly ? 'Documents' : 'Dashboard'}>
+    <PageTitle.Provider value={pageTitle('home', documentsOnly ? 'documents' : undefined)}>
       <Page
         narrow={documentsOnly}
         lede={
@@ -372,10 +373,7 @@ function MemberRecords({
                     ) && <p className="text-sm text-text-muted">No issued certificates yet.</p>}
                   {!read.requests && <Loading>Loading your documents and requests…</Loading>}
                   {!documentsOnly && (
-                    <LinkRow
-                      to={`${DESTINATIONS.home.path}#documents`}
-                      label="View documents and certificate requests"
-                    />
+                    <LinkRow to={`${DESTINATIONS.home.path}#documents`} label={pageTitle('home', 'documents')} />
                   )}
                 </Section>
                 <Section title={documentsOnly ? 'Share history' : 'Your member record'}>
