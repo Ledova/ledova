@@ -80,8 +80,7 @@ function EntryHistory({
                 {privateReady && (
                   <>
                     <summary className="cursor-pointer text-sm font-medium">
-                      {COPY.ENTRY_KINDS[entry.kind] ?? entry.kind} · Entry {entry.sequence} ·{' '}
-                      {formatDate(entry.effectiveOn)}
+                      {COPY.ENTRY_KINDS[entry.kind]} · Entry {entry.sequence} · {formatDate(entry.effectiveOn)}
                     </summary>
                     <p className="text-xs text-text-muted">
                       Ledger date {formatDate(entry.effectiveOn)} · Recorded {formatDateTime(entry.recordedAt)}

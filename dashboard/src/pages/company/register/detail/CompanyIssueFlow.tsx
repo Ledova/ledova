@@ -492,8 +492,8 @@ export function CompanyIssueFlow({ uuid, data }: { uuid: string; data: ReturnTyp
       {commands.visible && commands.recovery && (
         <>
           <p className="text-sm text-text-muted">
-            The original {commands.recovery.kind} preparation is uncertain. Recover its identical body and operation
-            UUID: {commands.recovery.body.operationId}
+            The original {commands.recovery.kind === 'link' ? 'wallet link' : 'share issue'} preparation is uncertain.
+            Recover its identical body and operation UUID: {commands.recovery.body.operationId}
           </p>
           <PageAction
             label="Recover original preparation receipt"

@@ -1,7 +1,13 @@
 import { useEffect, useMemo, useReducer, useRef, useSyncExternalStore } from 'react';
 import { AnimatedQRCode } from '@keystonehq/animated-qr';
 import { getNumber } from 'ethers';
-import { WALLET_VERIFICATION_STATUS, type SwapSettlement, type Wallet, formatDateTime } from '@ledova/shared';
+import {
+  WALLET_VERIFICATION_STATUS,
+  type SwapSettlement,
+  type Wallet,
+  formatDateTime,
+  SWAP_APPROVAL_OUTCOME_LABELS,
+} from '@ledova/shared';
 import { Modal, ModalActions } from '@components/Modal';
 import { PageAction } from '@components/Page';
 import { SeedPhraseInput } from '@components/SeedPhraseInput';
@@ -275,7 +281,7 @@ export function SwapSettlementFlow({ settlement, wallets, onClose }: Props) {
         )}
         {state.approvalOutcomes.map((approvalOutcome) => (
           <div role="status" className="space-y-1" key={approvalOutcome.txHash}>
-            <p>Original approval {approvalOutcome.outcome}.</p>
+            <p>Original approval: {SWAP_APPROVAL_OUTCOME_LABELS[approvalOutcome.outcome]}.</p>
             <p className="break-all">Approval transaction: {approvalOutcome.txHash}</p>
             {approvalOutcome.outcome !== 'confirmed' && (
               <p>This approval took no effect. Review a fresh approval if needed.</p>
@@ -283,7 +289,7 @@ export function SwapSettlementFlow({ settlement, wallets, onClose }: Props) {
           </div>
         ))}
         {response?.hasSigned && (
-          <p role="status">Your signature is recorded. Trade status: {response.swapOrder.status}.</p>
+          <p role="status">Your signature is recorded. Trade status: {response.swapOrder.statusDisplay}.</p>
         )}
         {response && !response.hasSigned && !response.canSign && (
           <p>This trade is unavailable for a new signature. Its saved details remain available to check.</p>

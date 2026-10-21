@@ -120,9 +120,7 @@ export function CreateOrderSigningFlow({ submission, wallet, tokens, onClose, on
         {state.phase === 'created' && state.snapshot?.order && (
           <div role="status" className="space-y-1">
             <h3 className="font-medium">{state.recovered ? 'Order recovered' : 'Order created'}</h3>
-            <p>
-              Current status: {state.snapshot.order.statusDisplay ?? state.snapshot.order.status.replace(/_/g, ' ')}
-            </p>
+            <p>Current status: {state.snapshot.order.statusDisplay}</p>
             <p>
               {marketShares(state.snapshot.order.quantity)} of {state.snapshot.order.tokenSymbol} at{' '}
               {marketAmount(state.snapshot.order.pricePerShare)}

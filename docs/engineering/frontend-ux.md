@@ -606,6 +606,12 @@ by a local helper or a browser `toLocale…` call:
   use the share and crypto formatters. Signing screens and technical transaction rows (hashes, data
   and transaction values) keep their exact values. Mobile still shows some raw dates until
   [#1201](https://github.com/Ledova/ledova/issues/1201).
+- **Status codes** read as words, never as the code or a code with its underscores replaced: the
+  server's `statusDisplay` where a record carries one (orders, swaps, companies, offerings), else a
+  shared label map (`packages/shared/src/constants/business/labels.ts` for eligibility outcomes,
+  member invitations and requests, appointments, company wallet actions, company states, order
+  states and changed order fields, and swap approval outcomes; investor categories, certifier
+  bodies and register entry kinds keep their existing maps).
 - **Enforcement.** An ESLint rule in `dashboard/eslint.config.js` refuses `toLocaleString`,
   `toLocaleDateString` and `toLocaleTimeString` in the dashboard's source, beside the rule that
   refuses inline ISO date slicing ([forms](#forms)). Mobile follows in

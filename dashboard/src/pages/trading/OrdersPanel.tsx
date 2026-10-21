@@ -124,9 +124,7 @@ export function OrdersPanel({
                   <span>{order.orderType === 'buy' ? 'Wanted' : 'For sale'}</span>
                 </Row>
                 <Row label="Status">
-                  <Status tone={ORDER_STATUS_TONES.get(order.status) ?? 'waiting'}>
-                    {order.statusDisplay ?? order.status.replace(/_/g, ' ')}
-                  </Status>
+                  <Status tone={ORDER_STATUS_TONES.get(order.status) ?? 'waiting'}>{order.statusDisplay}</Status>
                 </Row>
                 <Row label="Shares remaining">
                   <span className="break-all">{marketQuantity(order.remainingQuantity ?? order.quantity)}</span>
@@ -212,7 +210,7 @@ export function OrdersPanel({
                 </h3>
                 <Rows>
                   <Row label="Your role">{role}</Row>
-                  <Row label="Status">{swap.status.replace(/_/g, ' ')}</Row>
+                  <Row label="Status">{swap.statusDisplay}</Row>
                   {legacy ? (
                     <Row label="Recorded shares">{marketQuantity(swap.shareAmount)}</Row>
                   ) : (

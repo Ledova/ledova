@@ -1,7 +1,16 @@
 import { CheckboxField, Field, TextArea, TextInput } from '@components/Field';
 import { CompanyPicker } from '@components/CompanyPicker';
 import { useRunningAction } from '@hooks/useRunningAction';
-import { FIELD_LIMITS, DESTINATIONS, INVITATION_CODE_PROBLEM, isInvitationCode } from '@ledova/shared';
+import {
+  FIELD_LIMITS,
+  DESTINATIONS,
+  INVITATION_CODE_PROBLEM,
+  isInvitationCode,
+  REGISTER_CORRECTION_COPY,
+  MEMBER_PARTICULARS_STATUS_LABELS,
+  MEMBER_CERTIFICATE_STATUS_LABELS,
+  type RegisterEntryKind,
+} from '@ledova/shared';
 import { useEffect, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import {
@@ -43,6 +52,9 @@ export default function MemberRecordsPage() {
     />
   );
 }
+
+const entryKind = (kind: string) =>
+  REGISTER_CORRECTION_COPY.ENTRY_KINDS[kind.toLowerCase() as RegisterEntryKind] ?? 'Register change';
 
 function MemberRecords({
   read,
@@ -117,7 +129,7 @@ function MemberRecords({
       {read.entries.map((entry) => (
         <div key={entry.uuid} className="space-y-2 py-3">
           <p className="text-sm">
-            Entry {entry.sequence} · {entry.kind} · Ledger {formatDate(entry.effectiveOn)} · Own change{' '}
+            Entry {entry.sequence} · {entryKind(entry.kind)} · Ledger {formatDate(entry.effectiveOn)} · Own change{' '}
             {shareChange(entry.delta)}
           </p>
           <p className="text-sm text-text-muted">
@@ -374,7 +386,7 @@ function MemberRecords({
                         .slice(0, 3)
                         .map((entry) => (
                           <p key={entry.uuid} className="text-text-muted">
-                            Ledger {formatDate(entry.effectiveOn)} · {entry.kind} · Own change{' '}
+                            Ledger {formatDate(entry.effectiveOn)} · {entryKind(entry.kind)} · Own change{' '}
                             {shareChange(entry.delta)}
                             {['ISSUE', 'TRANSFER'].includes(entry.kind.toUpperCase()) &&
                               ` · Company date ${entry.companyEventOn ? formatDate(entry.companyEventOn) : 'Not recorded'}`}
@@ -466,7 +478,7 @@ function MemberRecords({
                     <div className="space-y-3 pt-2 text-sm">
                       {read.requests.particulars.map((request) => (
                         <div key={request.uuid}>
-                          <p>Particulars update · {request.status}</p>
+                          <p>Particulars update · {MEMBER_PARTICULARS_STATUS_LABELS[request.status]}</p>
                           <details>
                             <summary className={SUMMARY}>Record details</summary>
                             <p className="break-all">
@@ -479,7 +491,8 @@ function MemberRecords({
                       {read.requests.certificates.map((request, index) => (
                         <div key={request.uuid} className="space-y-2">
                           <p>
-                            Certificate requested {formatDate(request.createdAt)} · {request.status}
+                            Certificate requested {formatDate(request.createdAt)} ·{' '}
+                            {MEMBER_CERTIFICATE_STATUS_LABELS[request.status]}
                           </p>
                           {request.status === 'requested' && (
                             <PageAction

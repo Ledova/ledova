@@ -253,7 +253,7 @@ it('invites and associates a walletless member, recovers one exact request and r
   await screen.findByRole('button', { name: 'Read own entries for Ordinary' });
   await screen.findByText(MEMBER_RECORD.name);
   expect(await screen.findByText('Company date Not recorded')).toBeTruthy();
-  expect(screen.getByText(/Ledger .*ISSUE.*Own change \+10/)).toBeTruthy();
+  expect(screen.getByText(/Ledger .*Issue.*Own change \+10/)).toBeTruthy();
   expect(screen.getByRole('img', { name: /3 unvested, 2 vested, awaiting issue, 0 issued from award/ })).toBeTruthy();
   fireEvent.click(await screen.findByRole('button', { name: /Download unsigned certificate/ }));
   await waitFor(() => expect(createObjectURL).toHaveBeenCalledWith(pdf));

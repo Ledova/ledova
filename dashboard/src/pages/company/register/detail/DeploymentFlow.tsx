@@ -11,6 +11,8 @@ import {
   type RegisterDeployment,
   type RegisterDeploymentSnapshot,
   refusalSentences,
+  COMPANY_STATUS_LABELS,
+  type CompanyStatus,
 } from '@ledova/shared';
 import { DecisionTrail } from '@pages/company/register/shared/DecisionTrail';
 import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
@@ -25,7 +27,7 @@ function SnapshotRows({ snapshot }: { snapshot: RegisterDeploymentSnapshot }) {
       <Row label="Company">
         {snapshot.company.name} · ACN {snapshot.company.acn}
       </Row>
-      <Row label="Company state">{snapshot.company.status}</Row>
+      <Row label="Company state">{COMPANY_STATUS_LABELS[snapshot.company.status as CompanyStatus]}</Row>
       <Row label="Share class">
         {snapshot.token.name} · {snapshot.token.symbol} · {snapshot.token.identifier}
       </Row>

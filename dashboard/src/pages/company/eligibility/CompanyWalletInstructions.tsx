@@ -15,6 +15,7 @@ import {
   type CompanyWalletInstruction,
   type CompanyWalletDecisionPreview,
   refusalSentences,
+  COMPANY_WALLET_ACTION_LABELS,
 } from '@ledova/shared';
 import { Row, Rows, Section, LoadError } from '@components/Ledger';
 import { PageAction } from '@components/Page';
@@ -26,8 +27,8 @@ type Read = ReturnType<typeof useCompanyWalletInstructions>;
 const WALLETS = ['wallet', 'wallets'] as const;
 
 const ACTIONS = [
-  ['add', 'Approve nominated wallet'],
-  ['remove', 'Remove retained approval'],
+  ['add', COMPANY_WALLET_ACTION_LABELS.add],
+  ['remove', COMPANY_WALLET_ACTION_LABELS.remove],
 ] as const;
 function Snapshot({ snapshot }: { snapshot: CompanyWalletInstruction['snapshot'] }) {
   return (
@@ -61,7 +62,7 @@ function Record({ record, data }: { record: CompanyWalletInstruction; data: Read
       {data.canRead && (
         <>
           <p>
-            {record.action} · {COPY.STAGES[record.stage] ?? record.stage}
+            {COMPANY_WALLET_ACTION_LABELS[record.action]} · {COPY.STAGES[record.stage] ?? record.stage}
           </p>
           <Snapshot snapshot={record.snapshot} />
           <Rows>
@@ -282,7 +283,7 @@ export function CompanyWalletInstructions() {
               <Rows>
                 <Row label="Original instruction key">{data.original.body.operationId}</Row>
                 <Row label="Company">{data.original.body.company}</Row>
-                <Row label="Action">{data.original.body.action}</Row>
+                <Row label="Action">{COMPANY_WALLET_ACTION_LABELS[data.original.body.action]}</Row>
                 <Row label="Nomination or retained ADD">
                   {data.original.body.nomination ?? data.original.body.targetChange}
                 </Row>
