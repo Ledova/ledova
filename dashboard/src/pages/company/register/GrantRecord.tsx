@@ -23,7 +23,7 @@ const DECISION_COPY = { ...COPY, DECISIONS: { ...COPY.DECISIONS, apply: 'Record 
 function GrantRows({ grant }: { grant: RegisterGrant | RegisterGrantDecisionPreview }) {
   return (
     <Rows>
-      {grant.award && <Row label="Employee award">{grant.award}</Row>}
+      {grant.award && <Row label="Employee award">{shortReference(grant.award)}</Row>}
       {'awardPromisedShares' in grant && grant.award && (
         <>
           <Row label={AWARD_COPY.PROMISED}>{shareCount(grant.awardPromisedShares!)}</Row>

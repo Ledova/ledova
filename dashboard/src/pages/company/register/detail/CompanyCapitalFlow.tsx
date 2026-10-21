@@ -65,8 +65,8 @@ function CapitalRecord({ record, commands }: { record: RegisterCapitalIncrease; 
             <Row label="Execution">{registerCapitalIncreaseExecutionState(record)}</Row>
             {execution && (
               <>
-                <Row label="Original execution">{execution.execution}</Row>
-                <Row label="Dispatch">{execution.dispatchId}</Row>
+                <Row label="Original execution">{shortReference(execution.execution)}</Row>
+                <Row label="Dispatch">{shortReference(execution.dispatchId)}</Row>
                 {execution.operationId && <Row label="Original operation">{shortReference(execution.operationId)}</Row>}
                 {execution.claimId && <Row label="Original claim">{shortReference(execution.claimId)}</Row>}
                 {execution.txHash && <Row label="Transaction hash">{execution.txHash}</Row>}

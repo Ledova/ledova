@@ -70,7 +70,7 @@ function PauseRecord({ record, commands }: { record: RegisterPauseChange; comman
             <Row label="Execution">{registerPauseChangeExecutionState(record)}</Row>
             {execution && (
               <>
-                <Row label="Original submission">{execution.submissionId}</Row>
+                <Row label="Original submission">{shortReference(execution.submissionId)}</Row>
                 {execution.operationId && <Row label="Original operation">{shortReference(execution.operationId)}</Row>}
                 {execution.claimId && <Row label="Original claim">{shortReference(execution.claimId)}</Row>}
                 {execution.txHash && <Row label="Transaction hash">{execution.txHash}</Row>}

@@ -100,8 +100,8 @@ function IssueRecord({ record, commands }: { record: RegisterIssue; commands: Co
             <Row label="Execution">{registerIssueExecutionState(record)}</Row>
             {record.execution && (
               <>
-                <Row label="Original execution">{record.execution.execution}</Row>
-                <Row label="Dispatch">{record.execution.dispatchId}</Row>
+                <Row label="Original execution">{shortReference(record.execution.execution)}</Row>
+                <Row label="Dispatch">{shortReference(record.execution.dispatchId)}</Row>
                 {record.execution.operationId && (
                   <Row label="Execution operation">{shortReference(record.execution.operationId)}</Row>
                 )}

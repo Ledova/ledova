@@ -111,8 +111,8 @@ function PaidIssueRecord({ record, commands }: { record: RegisterPaidIssue; comm
             <Row label="Original issuance request">{record.request || 'No issuance request admitted'}</Row>
             {execution && (
               <>
-                <Row label="Original execution">{execution.execution}</Row>
-                <Row label="Original dispatch">{execution.dispatchId}</Row>
+                <Row label="Original execution">{shortReference(execution.execution)}</Row>
+                <Row label="Original dispatch">{shortReference(execution.dispatchId)}</Row>
                 {execution.operationId && <Row label="Original operation">{shortReference(execution.operationId)}</Row>}
                 {execution.claimId && <Row label="Original claim">{shortReference(execution.claimId)}</Row>}
                 {execution.txHash && <Row label="Transaction hash">{execution.txHash}</Row>}
