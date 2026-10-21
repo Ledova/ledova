@@ -168,7 +168,9 @@ export function useInvestorIssues({
   );
   const form = editing && (
     <div hidden={!open} className="flex flex-col gap-3">
-      <p className="text-sm text-text-muted">{COPY.NOTE}</p>
+      <p className="text-sm text-text-muted">
+        Record the investment agreement and company receipt, then prepare the share issue for approval.
+      </p>
       {members.isPending ? (
         <Loading>Loading retained recipients…</Loading>
       ) : members.isError ? (
@@ -180,6 +182,7 @@ export function useInvestorIssues({
         key={`${company}/${token}/${editing.uuid}/${issueMember ?? ''}`}
         company={company}
         token={token}
+        classLabel={`${register.token.name} (${register.token.symbol})`}
         people={peopleFrom(members.data)}
         initialMember={issueMember}
         appointment={editing}
@@ -198,6 +201,7 @@ export function useInvestorIssues({
         blocked={blocked || members.isFetching}
         visible={visible && privateReady && members.isSuccess && !members.isFetching}
         onHeldChange={setFormHeld}
+        onCancel={onClosed}
         onRecorded={async () => {
           check();
           await refresh(true);
@@ -261,7 +265,7 @@ export function useInvestorIssues({
   return {
     setup,
     form,
-    records,
+    records: kept && privateReady && allotments.data?.length === 0 ? null : records,
     held,
     prepare: !!appointment && supported,
     refreshRecords: () => allotments.refetch({ cancelRefetch: false, throwOnError: true }),

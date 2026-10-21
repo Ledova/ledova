@@ -173,9 +173,6 @@ issue is prepared. The class's Investor issues and Non-paid issues are listed un
 with its stage and next action. For a deployed class the task links to Share class, where chain
 grants and paid issues stay.
 
-A dedicated web issue workflow is planned under [#1165](https://github.com/Ledova/ledova/issues/1165);
-the issue task above remains the current entry point until that increment lands.
-
 ### What each record changes
 
 | Record                                                               | Effect on issued shares and holdings                                                                                                |
@@ -314,11 +311,16 @@ No deployment, application, payment or chain receipt is involved.
    and the full consideration in AUD.
 3. Agreement and company receipt: give the external agreement reference, date, terms and document,
    and separately the amount received, the date and the receipt evidence.
-4. Company authority and review: give the company issue date, name the approving director and give
-   the authority reference, the reason and the authority document.
+4. Company authority and review: check the recipient, class, quantity and AUD total, then give the
+   company issue date, approving director, authority reference, reason and authority document.
+   Choose Prepare allotment.
 5. Review the class, agreed shares and AUD total, the derived price per share, and each shareholder's
    shares and class percentage before and after the proposed issue. Approve the exact allotment,
    then choose Record issue.
+
+The web form shows one step at a time using the same step indicator and fields as Ledger setup.
+Back preserves entries and selected files; Continue validates that step without uploading or saving.
+Preparation is the final form action and still leaves approval and recording the issue separate.
 
 On web and mobile, this forecast comes from one current class snapshot in the decision preview.
 The recipient is visible first, with other shareholders available on demand for a longer list.
@@ -569,15 +571,15 @@ Capability map under [#1215](https://github.com/Ledova/ledova/issues/1215), refi
 [#1165](https://github.com/Ledova/ledova/issues/1165) on 22 October 2026
 (the original dated source audit is retained on the issue):
 
-| Arrangement | What Ledova records now | Limit |
-| ----------- | ----------------------- | ----- |
-| Ordinary or custom-named classes/series | Name, code, broad type, holdings and history | A label does not establish rights; code length and uniqueness rules still apply |
-| Different voting, preference, redemption or conversion terms | Structured Class rights, additional terms, a known effective date and class-linked supporting documents | Descriptive records only; no weighted voting, preference waterfall, conversion or redemption workflow |
-| Partly-paid existing shares | Paid/unpaid and beneficial-status facts in copied opening allotments | New external allotments are fully paid in AUD; no calls on unpaid capital |
-| Employee promises | Agreement, company-recorded vesting, unissued-right endings/reversals and a separate approved issue | No options/exercise, employee purchases, RSU settlement engine or upfront-issued restricted-share lifecycle |
-| Convertible notes, SAFEs and other future-equity instruments | No dedicated workflow | Do not count them as issued holdings or disguise them as a class |
-| Buy-backs, cancellations, capital reductions, class conversions/rights variations and transmission | No current workflow | A cessation entry kind or ending an award is not a delivered share-cancellation process; splits/consolidations are also deferred |
-| Corporate, joint and trustee holdings | One recorded name/address and beneficial status; account access is separately invited | No explicit entity, joint-holder or trustee representation model |
+| Arrangement                                                                                        | What Ledova records now                                                                                 | Limit                                                                                                                            |
+| -------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| Ordinary or custom-named classes/series                                                            | Name, code, broad type, holdings and history                                                            | A label does not establish rights; code length and uniqueness rules still apply                                                  |
+| Different voting, preference, redemption or conversion terms                                       | Structured Class rights, additional terms, a known effective date and class-linked supporting documents | Descriptive records only; no weighted voting, preference waterfall, conversion or redemption workflow                            |
+| Partly-paid existing shares                                                                        | Paid/unpaid and beneficial-status facts in copied opening allotments                                    | New external allotments are fully paid in AUD; no calls on unpaid capital                                                        |
+| Employee promises                                                                                  | Agreement, company-recorded vesting, unissued-right endings/reversals and a separate approved issue     | No options/exercise, employee purchases, RSU settlement engine or upfront-issued restricted-share lifecycle                      |
+| Convertible notes, SAFEs and other future-equity instruments                                       | No dedicated workflow                                                                                   | Do not count them as issued holdings or disguise them as a class                                                                 |
+| Buy-backs, cancellations, capital reductions, class conversions/rights variations and transmission | No current workflow                                                                                     | A cessation entry kind or ending an award is not a delivered share-cancellation process; splits/consolidations are also deferred |
+| Corporate, joint and trustee holdings                                                              | One recorded name/address and beneficial status; account access is separately invited                   | No explicit entity, joint-holder or trustee representation model                                                                 |
 
 The audited implementation is in [class fields](../../backend/tokens/models/share_token.py),
 [opening facts](../../backend/tokens/services/register_imports.py),

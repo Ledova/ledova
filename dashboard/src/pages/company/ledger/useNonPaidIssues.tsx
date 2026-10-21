@@ -244,5 +244,10 @@ export function useNonPaidIssues({
       </ul>
     </div>
   );
-  return { form, records, held, refreshRecords: () => grants.refetch({ cancelRefetch: false, throwOnError: true }) };
+  return {
+    form,
+    records: kept && privateReady && grants.data?.length === 0 ? null : records,
+    held,
+    refreshRecords: () => grants.refetch({ cancelRefetch: false, throwOnError: true }),
+  };
 }

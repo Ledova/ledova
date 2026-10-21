@@ -613,6 +613,14 @@ Some messages keep their own form:
   [#1201](https://github.com/Ledova/ledova/issues/1201).
 - **Date fields.** A date field is `type="date"`, bounded with `min` and `max` wherever the server
   has a rule, and its label or message names the time zone where it matters.
+- **Stepped forms.** Long workflows use the existing Ledger setup step indicator through
+  `FormSteps` (`dashboard/src/components/FormSteps.tsx`), with one step visible at a time.
+  Keep the same fields, card, typography and `FormActions`: Back and Continue for local
+  navigation, with the actual save or preparation action on the final step. Continue checks only
+  the current step and performs no upload or write. Keep inactive fields mounted so values and
+  selected files survive Back; final validation opens the first step needing attention. A short
+  review uses the existing `Rows` and `Row`, not another card style. A submitted request stays
+  held for its original recovery rather than allowing edits or backward navigation.
 - **Repeated allocations.** Web ledger setup separates **Current shares held** from **Allocation
   history**, which starts empty. **Add allocation** beside the section heading opens its first entry. It keeps
   one editor expanded. Adding another

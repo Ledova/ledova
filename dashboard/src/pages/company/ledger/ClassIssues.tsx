@@ -101,13 +101,15 @@ export function ClassIssues({
       {investor.prepare && (
         <>
           <Choices legend="What kind of issue?" options={KINDS} value={kind} disabled={held} onChange={setKind} />
-          <p className="text-sm text-text-muted">
-            An investor issue is paid in money, with the agreement and the company’s receipt. A non-paid issue has no
-            payment and follows the company’s terms, such as vested award shares.
-          </p>
+          {!kind && (
+            <p className="text-sm text-text-muted">
+              An investor issue is paid in money, with the agreement and the company’s receipt. A non-paid issue has no
+              payment and follows the company’s terms, such as vested award shares.
+            </p>
+          )}
         </>
       )}
-      {kind && (investor.prepare || !!(kind === 'investor' ? investor.form : nonPaid.form)) && (
+      {kind === 'nonpaid' && (investor.prepare || !!nonPaid.form) && (
         <PageAction label="Close issue form" disabled={held} onClick={close} />
       )}
       {investor.form}

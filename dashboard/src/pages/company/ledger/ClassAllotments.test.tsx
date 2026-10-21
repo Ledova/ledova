@@ -206,42 +206,77 @@ it('preserves original preparation and issue recovery through refresh, keeps app
   const investorIssue = await allotments.findByRole('radio', { name: 'Investor issue' });
   await waitFor(() => expect(investorIssue.matches(':disabled')).toBe(false));
   fireEvent.click(investorIssue);
-  expect(await allotments.findByRole('group', { name: '1. Person and shares' })).toBeTruthy();
-  expect(allotments.getByRole('group', { name: '2. Agreement and company receipt' })).toBeTruthy();
-  expect(allotments.getByRole('group', { name: '3. Company authority and review' })).toBeTruthy();
+  expect(await allotments.findByRole('group', { name: 'Person and shares' })).toBeTruthy();
+  expect(allotments.queryByRole('group', { name: 'Agreement and receipt' })).toBeNull();
+  expect(allotments.queryByRole('group', { name: 'Company authority and review' })).toBeNull();
+  fireEvent.click(allotments.getByRole('button', { name: 'Continue' }));
+  expect(allotments.getByLabelText('Name').getAttribute('aria-invalid')).toBe('true');
+  expect(api.post).not.toHaveBeenCalled();
+  const fillAuthority = () => {
+    for (const [label, value] of [
+      [COPY.COMPANY_EVENT_ON, ALLOTMENT_REQUEST.companyEventOn],
+      [COPY.DIRECTOR, ALLOTMENT_REQUEST.approvingDirector],
+      [COPY.AUTHORITY_REFERENCE, ALLOTMENT_REQUEST.authorityReference],
+      [COPY.REASON, ALLOTMENT_REQUEST.reason],
+    ])
+      fireEvent.change(allotments.getByLabelText(label), { target: { value } });
+    fireEvent.change(allotments.getByLabelText(COPY.DOCUMENTS.authority), {
+      target: { files: [new File(['synthetic'], 'authority.pdf', { type: 'application/pdf' })] },
+    });
+  };
   const fillForm = (receivedAmount = '249') => {
     act(() => {
       for (const [label, value] of [
         ['Name', ALLOTMENT_REQUEST.name!],
         ['Residential address', ALLOTMENT_REQUEST.residentialAddress!],
         [COPY.SHARES, '100'],
-        [COPY.COMPANY_EVENT_ON, ALLOTMENT_REQUEST.companyEventOn],
         [COPY.CONSIDERATION, '250'],
+      ])
+        fireEvent.change(allotments.getByLabelText(label), { target: { value } });
+    });
+    fireEvent.click(allotments.getByRole('button', { name: 'Continue' }));
+    act(() => {
+      for (const [label, value] of [
         [COPY.RECEIVED_AMOUNT, receivedAmount],
         [COPY.AGREEMENT_REFERENCE, ALLOTMENT_REQUEST.agreementReference],
         [COPY.AGREEMENT_ON, ALLOTMENT_REQUEST.agreementOn],
         [COPY.RECEIVED_ON, ALLOTMENT_REQUEST.receivedOn],
         [COPY.TERMS, ALLOTMENT_REQUEST.terms],
-        [COPY.DIRECTOR, ALLOTMENT_REQUEST.approvingDirector],
-        [COPY.AUTHORITY_REFERENCE, ALLOTMENT_REQUEST.authorityReference],
-        [COPY.REASON, ALLOTMENT_REQUEST.reason],
       ])
         fireEvent.change(allotments.getByLabelText(label), { target: { value } });
-      for (const label of Object.values(COPY.DOCUMENTS))
+      for (const label of [COPY.DOCUMENTS.agreement, COPY.DOCUMENTS.receipt])
         fireEvent.change(allotments.getByLabelText(label), {
           target: { files: [new File(['synthetic'], 'evidence.pdf', { type: 'application/pdf' })] },
         });
     });
+    if (receivedAmount === '250') {
+      fireEvent.click(allotments.getByRole('button', { name: 'Continue' }));
+      fillAuthority();
+    }
   };
   expect((allotments.getByLabelText(COPY.COMPANY_EVENT_ON) as HTMLInputElement).value).toBe('');
   const refused = (label: string) => {
-    fireEvent.click(allotments.getByRole('button', { name: COPY.SUBMIT }));
+    fireEvent.click(
+      allotments.getByRole('button', { name: label === COPY.RECEIVED_AMOUNT ? 'Continue' : COPY.SUBMIT }),
+    );
     expect(document.activeElement).toBe(allotments.getByText('Before continuing:').parentElement);
     expect(allotments.getByLabelText(label).getAttribute('aria-invalid')).toBe('true');
   };
   fillForm();
+  fireEvent.click(allotments.getByRole('button', { name: 'Back' }));
+  expect((allotments.getByLabelText(COPY.SHARES) as HTMLInputElement).value).toBe('100');
+  expect((allotments.getByLabelText('Name') as HTMLInputElement).value).toBe(ALLOTMENT_REQUEST.name);
+  fireEvent.click(allotments.getByRole('button', { name: 'Continue' }));
+  expect((allotments.getByLabelText(COPY.DOCUMENTS.agreement) as HTMLInputElement).files).toHaveLength(1);
+  expect((allotments.getByLabelText(COPY.TERMS) as HTMLInputElement).value).toBe(ALLOTMENT_REQUEST.terms);
+  expect(api.post).not.toHaveBeenCalled();
   refused(COPY.RECEIVED_AMOUNT);
   fireEvent.change(allotments.getByLabelText(COPY.RECEIVED_AMOUNT), { target: { value: '250' } });
+  fireEvent.click(allotments.getByRole('button', { name: 'Continue' }));
+  fillAuthority();
+  expect(allotments.getByText(ALLOTMENT_REQUEST.name!)).toBeTruthy();
+  expect(allotments.getByText(/AUD\s250\.00/)).toBeTruthy();
+  expect(api.post).not.toHaveBeenCalled();
   fireEvent.change(allotments.getByLabelText(COPY.COMPANY_EVENT_ON), { target: { value: '' } });
   refused(COPY.COMPANY_EVENT_ON);
   fireEvent.change(allotments.getByLabelText(COPY.COMPANY_EVENT_ON), { target: { value: '2099-01-01' } });
@@ -254,6 +289,8 @@ it('preserves original preparation and issue recovery through refresh, keeps app
   expect(rows[0].registerEntry).toBeNull();
   expect(rows[0].companyEventOn).toBe(ALLOTMENT_REQUEST.companyEventOn);
   expect(allotments.getByLabelText(COPY.CONSIDERATION).matches(':disabled')).toBe(true);
+  expect(allotments.getByRole('button', { name: 'Back' }).matches(':disabled')).toBe(true);
+  expect(allotments.getByRole('button', { name: 'Cancel' }).matches(':disabled')).toBe(true);
   expect(taskClass().disabled).toBe(true);
   expect(investorTask.getAttribute('aria-disabled')).toBe('true');
   expect(transferTask.getAttribute('aria-disabled')).toBe('true');
@@ -283,7 +320,9 @@ it('preserves original preparation and issue recovery through refresh, keeps app
   await allotments.findByLabelText('Name');
   slowRegister = true;
   fireEvent.click(allotments.getByRole('button', { name: COPY.SUBMIT }));
-  await waitFor(() => expect(allotments.queryByRole('button', { name: 'Close issue form' })).toBeNull());
+  await allotments.findByRole('button', { name: /^Approve [(]allotment/ });
+  await waitFor(() => expect(taskClass().disabled).toBe(false));
+  await waitFor(() => expect(client.isFetching()).toBe(0));
   slowRegister = false;
   expect(api.post.mock.calls.filter(([url]) => url === URLS.REGISTER_ALLOTMENTS)).toHaveLength(1);
   expect(api.post.mock.calls.filter(([url]) => url === URLS.REGISTER_EVIDENCE)).toHaveLength(3);
@@ -443,7 +482,7 @@ it('preserves original preparation and issue recovery through refresh, keeps app
   expect(
     api.get.mock.calls.filter(([url]) => url === URLS.REGISTER_ALLOTMENT(String(absentPreparation?.operationId))),
   ).toHaveLength(2);
-  const close = allotments.getByRole('button', { name: 'Close issue form' });
+  const close = allotments.getByRole('button', { name: 'Cancel' });
   await waitFor(() => expect(close.matches(':disabled')).toBe(false));
   fireEvent.click(close);
   expect(rows[0].registerEntry).toBe('entry-a');

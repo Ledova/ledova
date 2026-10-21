@@ -12,6 +12,7 @@ import {
 import { Row, Rows, Disclosure } from '@components/Ledger';
 import { Table } from '@components/List';
 import { FormActions, PageAction } from '@components/Page';
+import { FormSteps } from '@components/FormSteps';
 import { ErrorSummary } from '@components/ErrorSummary';
 import { useRef, useState } from 'react';
 
@@ -20,6 +21,12 @@ import { MemberRecords } from '@pages/company/ledger/shared/MemberRecords';
 
 const IMPORT_NOTE =
   'Coming soon. Import will read a document into these same editable forms. Review and correct the records before saving.';
+
+const SETUP_STEPS = [
+  { id: 'details', label: 'Share details' },
+  { id: 'shareholders', label: 'Shareholders' },
+  { id: 'review', label: 'Review' },
+];
 
 export function ImportForm({
   owner,
@@ -114,26 +121,7 @@ export function ImportForm({
         </p>
       )}
       {(!visible || proposal?.status !== 'applied') && (
-        <ol aria-label="Ledger setup steps" className="grid grid-cols-3 gap-3">
-          {(['details', 'shareholders', 'review'] as const).map((step, index) => (
-            <li
-              key={step}
-              aria-current={phase === step ? 'step' : undefined}
-              className={`flex min-w-0 flex-col gap-2 border-b-2 pb-3 sm:flex-row sm:items-center ${phase === step ? 'border-brand-mid text-text-primary' : 'border-border-subtle text-text-muted'}`}
-            >
-              <span
-                aria-hidden="true"
-                className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-medium ${phase === step ? 'bg-brand-mid text-white' : 'bg-surface-tertiary text-text-muted'}`}
-              >
-                {index + 1}
-              </span>
-              <span className="text-xs font-medium [overflow-wrap:anywhere] sm:text-sm">
-                <span className="sr-only">{index + 1}. </span>
-                {step === 'details' ? 'Share details' : step === 'shareholders' ? 'Shareholders' : 'Review'}
-              </span>
-            </li>
-          ))}
-        </ol>
+        <FormSteps label="Ledger setup steps" steps={SETUP_STEPS} current={phase} />
       )}
       {visible && (
         <>
