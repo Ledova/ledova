@@ -117,7 +117,11 @@ function OwnDashboard({
           retry={refresh}
           busy={preferences.isFetching || classes.isFetching || registers.isFetching || appointments.isFetching}
         >
-          The register could not be loaded.
+          {preferences.isError
+            ? 'Your account could not be loaded.'
+            : appointments.isError && !classes.isError && !registers.isError && !invalid
+              ? 'Your appointments could not be loaded.'
+              : 'The register could not be loaded.'}
         </LoadError>
       ) : preferences.isFetching ||
         classes.isPending ||

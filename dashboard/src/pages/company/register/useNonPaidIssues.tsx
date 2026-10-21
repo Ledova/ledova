@@ -221,9 +221,9 @@ export function useNonPaidIssues({
       {readable && !Object.values(steps).some(Boolean) && (
         <p className="text-sm text-text-muted">{COPY.READ_ONLY_NOTE}</p>
       )}
-      {!sourceReady || grants.isPending ? (
+      {appointments.isError ? null : !appointments.isSuccess || !sourceReady || (readable && grants.isPending) ? (
         <Loading>Loading non-paid issues…</Loading>
-      ) : appointments.isError ? null : !readable ? (
+      ) : !readable ? (
         <p className="text-sm text-text-muted">
           A current company register appointment is required to read non-paid issues.
         </p>
