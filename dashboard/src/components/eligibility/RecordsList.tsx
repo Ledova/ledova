@@ -1,3 +1,4 @@
+import { ELIGIBILITY_OUTCOME_LABELS, INVESTOR_CATEGORY_LABELS } from '@ledova/shared';
 import type { CompanyEligibilityRequest } from '@ledova/shared';
 import { PageAction } from '@components/Page';
 
@@ -21,7 +22,7 @@ export function RecordsList({
           <div className="min-w-0 text-sm">
             <p className="break-all">{record.uuid}</p>
             <p>
-              {record.category} · {record.outcome}
+              {INVESTOR_CATEGORY_LABELS[record.category]} · {ELIGIBILITY_OUTCOME_LABELS[record.outcome]}
             </p>
             <p className="break-all">Company {record.company}</p>
           </div>

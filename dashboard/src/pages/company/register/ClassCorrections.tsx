@@ -80,7 +80,7 @@ function EntryHistory({
               <Disclosure
                 summary={
                   privateReady
-                    ? `${COPY.ENTRY_KINDS[entry.kind] ?? entry.kind} · Entry ${entry.sequence} · ${formatDate(entry.effectiveOn)}`
+                    ? `${COPY.ENTRY_KINDS[entry.kind]} · Entry ${entry.sequence} · ${formatDate(entry.effectiveOn)}`
                     : ''
                 }
               >

@@ -6,8 +6,11 @@ import {
   marketAmount,
   useOrderActionSigning,
   type OrderAction,
+  type OrderActionChange,
   type Wallet,
   shareCount,
+  ORDER_STATUS_LABELS,
+  ORDER_CHANGE_FIELD_LABELS,
 } from '@ledova/shared';
 import { Confirmation, Modal, ModalActions } from '@components/Modal';
 import { PageAction } from '@components/Page';
@@ -18,6 +21,9 @@ import { QRCodeFrame, QRScannerView, useQRScanner } from '@components/qr';
 import { encodeEthereumTypedData } from '@utils/keystone/urEncoder';
 import { decodeKeystoneMessageSignature } from '@utils/keystone/urDecoder';
 import { deriveAddress, signEthereumTypedData } from '@utils/softwareWallet/localSigner';
+
+const changeValue = (field: OrderActionChange['field'], value: string) =>
+  field === 'price_per_share' ? marketAmount(value) : shareCount(value);
 
 interface Props {
   action: OrderAction;
@@ -170,7 +176,10 @@ export function OrderActionFlow({ action, wallets, onClose }: Props) {
           <div role="status" className="space-y-1">
             <h3 className="font-medium">{state.recovered ? 'Original action recovered' : 'Action recorded'}</h3>
             {state.snapshot?.result?.kind === 'cancel' && (
-              <p>This cancellation changed the order from {state.snapshot.result.fromStatus} to cancelled.</p>
+              <p>
+                This cancellation changed the order status from {ORDER_STATUS_LABELS[state.snapshot.result.fromStatus]}{' '}
+                to Cancelled.
+              </p>
             )}
             {state.snapshot?.result?.kind === 'modify' && (
               <>
@@ -178,15 +187,13 @@ export function OrderActionFlow({ action, wallets, onClose }: Props) {
                 {state.snapshot.result.changes.length === 0 && <p>The values were already the requested values.</p>}
                 {state.snapshot.result.changes.map((change) => (
                   <p key={change.field}>
-                    {change.field.replace(/_/g, ' ')}: {change.old} → {change.new}
+                    {ORDER_CHANGE_FIELD_LABELS[change.field]}: {changeValue(change.field, change.old)} →{' '}
+                    {changeValue(change.field, change.new)}
                   </p>
                 ))}
               </>
             )}
-            <p>
-              Current order status:{' '}
-              {state.snapshot?.order.statusDisplay ?? state.snapshot?.order.status.replace(/_/g, ' ')}
-            </p>
+            <p>Current order status: {state.snapshot?.order.statusDisplay}</p>
           </div>
         )}
         {state.phase === 'refused' && (

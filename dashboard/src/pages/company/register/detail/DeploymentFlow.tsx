@@ -11,6 +11,9 @@ import {
   type RegisterDeployment,
   type RegisterDeploymentSnapshot,
   refusalSentences,
+  COMPANY_STATUS_LABELS,
+  DEPLOYMENT_SWAP_APPROVAL_LABELS,
+  type CompanyStatus,
 } from '@ledova/shared';
 import { DecisionTrail } from '@pages/company/register/shared/DecisionTrail';
 import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
@@ -25,7 +28,7 @@ function SnapshotRows({ snapshot }: { snapshot: RegisterDeploymentSnapshot }) {
       <Row label="Company">
         {snapshot.company.name} · ACN {snapshot.company.acn}
       </Row>
-      <Row label="Company state">{snapshot.company.status}</Row>
+      <Row label="Company state">{COMPANY_STATUS_LABELS[snapshot.company.status as CompanyStatus]}</Row>
       <Row label="Share class">
         {snapshot.token.name} · {snapshot.token.symbol} · {snapshot.token.identifier}
       </Row>
@@ -165,7 +168,9 @@ export function DeploymentFlow({ uuid, data }: { uuid: string; data: ReturnType<
                       <Row label="Contract">{proposal.execution.contractAddress}</Row>
                     )}
                     {proposal.execution?.swapApprovalOutcome && (
-                      <Row label="Swap approval">{proposal.execution.swapApprovalOutcome}</Row>
+                      <Row label="Swap approval">
+                        {DEPLOYMENT_SWAP_APPROVAL_LABELS[proposal.execution.swapApprovalOutcome]}
+                      </Row>
                     )}
                   </Rows>
                   {refusalSentences(proposal.executionUnmetRequirements, REGISTER_DEPLOYMENT_UNMET_COPY).map(

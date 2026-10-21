@@ -2,6 +2,7 @@ import { SelectField } from '@components/SelectField';
 import { companySubscriptionTone } from '@components/statusTones';
 import { CompanyReadNotice } from '@pages/company/shared/CompanyState';
 import {
+  COMPANY_SUBSCRIPTION_STATUS_LABELS as STATUSES,
   formatDate,
   formatMoney,
   formatShareCount,
@@ -16,18 +17,6 @@ import { useCompanyOfferingSubscriptions } from './useOffering';
 import type { CompanyActionRead } from '@pages/company/shared/CompanyState';
 
 const NOUN: Noun = ['application', 'applications'];
-
-const STATUSES: Record<SubscriptionStatus, string> = {
-  draft: 'Draft',
-  submitted: 'Submitted',
-  accepted: 'Accepted',
-  awaiting_payment: 'Awaiting payment',
-  paid: 'Paid',
-  allotted: 'Allotted',
-  rejected: 'Rejected',
-  withdrawn: 'Withdrawn',
-  refunded: 'Refunded',
-};
 
 const COLUMNS = [
   { label: 'Investor' },

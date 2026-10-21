@@ -45,6 +45,6 @@ export function retainedName(snapshot: unknown, fallback: string) {
 }
 
 export function describeEntry(entry: Pick<RegisterEntry, 'kind' | 'sequence' | 'effectiveOn'>) {
-  const kind = REGISTER_CORRECTION_COPY.ENTRY_KINDS[entry.kind] ?? entry.kind;
+  const kind = REGISTER_CORRECTION_COPY.ENTRY_KINDS[entry.kind];
   return `${kind} · Entry ${entry.sequence} · Effective ${formatDate(entry.effectiveOn)}`;
 }
