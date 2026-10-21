@@ -11,7 +11,7 @@ import {
   useMemberRecords,
   type MemberCertificateRequest,
 } from '@ledova/shared';
-import { LinkRow, Row, Rows, Section, Loading } from '@components/Ledger';
+import { LinkRow, Row, Rows, Section, Loading, LoadError } from '@components/Ledger';
 import { Confirmation } from '@components/Modal';
 import { Page, PageAction } from '@components/Page';
 import { PageTitle } from '@components/PageTitle';
@@ -191,7 +191,9 @@ function MemberRecords({
         actions={
           <PageAction
             label="Refresh member records"
-            disabled={read.busy || refreshing}
+            busy={refreshing}
+            busyLabel="Refreshing…"
+            disabled={read.busy}
             onClick={() => {
               setRefreshing(true);
               void read.refresh().finally(() => setRefreshing(false));
@@ -199,9 +201,20 @@ function MemberRecords({
           />
         }
       >
-        {read.error && (
+        {read.readFailed && (
+          <LoadError
+            retry={() => {
+              setRefreshing(true);
+              return read.refresh().finally(() => setRefreshing(false));
+            }}
+            busy={refreshing || read.busy}
+          >
+            Your member records could not be loaded.
+          </LoadError>
+        )}
+        {(read.readFailed ? read.failure : read.error) && (
           <p role="alert" className="text-sm text-error-light">
-            {read.error}
+            {read.readFailed ? read.failure : read.error}
           </p>
         )}
         {read.retry && (

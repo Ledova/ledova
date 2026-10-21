@@ -7,7 +7,7 @@ import { COMPANY_DASHBOARD_PATH, SIGNIN_PATH, SIGNUP_PATHS } from '@utils/paths'
 import { useUserProfile } from '@hooks/useUserProfile';
 import { AccountUnavailable } from './AccountUnavailable';
 import { SIGNUP_RESUMES_AT } from '@utils/paths';
-import { LoadError } from '@components/Ledger';
+import { LoadError, Loading } from '@components/Ledger';
 
 export function RootRedirect() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -48,9 +48,9 @@ export function RootRedirect() {
     );
   if (preferences.isLoading || preferences.isFetching || access.isPending || access.isFetching)
     return (
-      <p role="status" className="p-6 text-sm text-text-muted">
-        Checking your dashboard access…
-      </p>
+      <div className="p-6">
+        <Loading>Checking your dashboard access…</Loading>
+      </div>
     );
   return <Navigate to={access.data ? COMPANY_DASHBOARD_PATH : DESTINATIONS.home.path} replace />;
 }

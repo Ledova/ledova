@@ -287,7 +287,7 @@ it('puts own register shares and awards first without wallet reads, preserves se
   await waitFor(() => expect(screen.queryByText('10 issued shares')).toBeNull());
   expect(screen.queryByRole('img')).toBeNull();
   expect(screen.queryByRole('button', { name: 'Request certificate for entry 1' })).toBeNull();
-  expect(screen.getByRole('alert').textContent).toMatch(/could not be read/);
+  expect(screen.getByRole('alert').textContent).toMatch(/Your member records could not be loaded/);
   expect(screen.queryByRole('heading', { name: 'Get access to your shares' })).toBeNull();
   expect(screen.queryByText('No issued shares recorded.')).toBeNull();
 });
