@@ -1,6 +1,7 @@
 import { useEffect, useRef, type ReactNode } from 'react';
 import { apiErrorSentence } from '@ledova/shared';
-import { Row, Status } from '@components/Ledger';
+import { Outcome, Row, Status } from '@components/Ledger';
+import type { Landed } from '@pages/company/register/shared/registerPlace';
 import { DOWNLOAD_FAILED, STAGE_TONES } from '@pages/company/shared/proposals';
 
 export function RecordShell({
@@ -8,22 +9,26 @@ export function RecordShell({
   hidden,
   className = 'flex flex-col gap-3 py-4',
   focusKey,
+  landed,
 }: {
   children: ReactNode;
   hidden?: boolean;
   className?: string;
   focusKey?: string;
+  landed?: Landed;
 }) {
+  const key = focusKey ?? landed?.key;
   const item = useRef<HTMLLIElement>(null);
   const focused = useRef('');
   useEffect(() => {
-    if (!focusKey || hidden || focused.current === focusKey) return;
-    focused.current = focusKey;
+    if (!key || hidden || focused.current === key) return;
+    focused.current = key;
     item.current?.focus({ preventScroll: true });
     item.current?.scrollIntoView?.({ block: 'start' });
-  }, [focusKey, hidden]);
+  }, [key, hidden]);
   return (
-    <li ref={item} hidden={hidden} tabIndex={focusKey ? -1 : undefined} className={className}>
+    <li ref={item} hidden={hidden} tabIndex={key ? -1 : undefined} className={className}>
+      {landed?.outcome && <Outcome>{landed.outcome}</Outcome>}
       {children}
     </li>
   );

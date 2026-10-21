@@ -116,12 +116,21 @@ content", which moves focus to the page's heading.
 `DESTINATIONS` (`packages/shared/src/constants/ui/destinations.ts`) names the signed-in pages,
 Register's views (Shareholders, Employee awards, Documents) and tasks, and Home's Documents view, and
 the sidebar and page titles read their names from it. On the web the company dashboard and Home are
-both titled Dashboard, so the company workspace lists Home as Your shares. `DESTINATION_PARENTS` beside it gives each page below a sidebar
-destination its parent, and `Page` puts one link back to it in the title row, "Back to <parent's
-title>": Back to Settings on Company team, Back to Company on Representative authority, Back to
-Shareholders on a shareholder's page. Once a particulars change has found its member, its link goes
-back to that member by name. Register setup has none, on purpose
+both titled Dashboard, so the company workspace lists Home as Your shares. `DESTINATION_PARENTS`
+beside it gives each page below a sidebar destination its parent, and `Page` puts one link back to it
+in the title row, "Back to <parent's title>": Back to Settings on Company team, Back to Company on
+Representative authority, Back to Shareholders on a shareholder's page. Once a particulars change has
+found its member, its link goes back to that member by name. Register setup has none, on purpose
 ([decisions](../decisions.md#manual-register-setup-shares-before-shareholders)).
+
+A way back to Register carries the place it means, built by `registerPlace`
+(`dashboard/src/pages/company/register/shared/registerPlace.ts`): a correction, an opening and a
+class's own page return to that class's History, a non-paid transfer to that class's Transfer shares,
+and wallet links to the company's History. A transfer started from a shareholder's page links back
+to them by name. Preparing a correction, opening, non-paid transfer, wallet link or particulars change
+lands on the new record in Register, at its class and task, focused and with one line naming what was
+prepared ([feedback](#feedback)). A preparation started from a shareholder's page lands there too,
+since a shareholder's page doesn't list prepared records.
 
 Each page's title is also the browser tab's title, "<page title> · Ledova", set by `Page`; a
 shareholder's page says "Shareholder" there, so their name stays out of the browser's history. After
@@ -211,12 +220,14 @@ their own details. It reports:
 - a recorded team invitation, an accepted invitation and a representative authority request;
 - member access's recorded invitation, certificate fulfilment and particulars instruction;
 - a placed or recovered order with its share class, above Trading's orders, until another order
-  action or a class change starts.
+  action or a class change starts;
+- a prepared correction, register opening, non-paid transfer, wallet link or particulars change, on
+  the record you land on in Register.
 
 Other signing flows and identity verification show their result in their own dialog, sign-in and
 sign-up keep their boxed outcomes, and the payment instruction's copy buttons confirm with Copied
-beside them. Register forms and preparations don't use it. Mobile still reports success with native alerts and its success
-dialog.
+beside them. Register's other forms don't use it. Mobile still reports success with native alerts
+and its success dialog.
 
 ## Copy
 

@@ -15,6 +15,7 @@ import { DecisionTrail } from '@pages/company/register/shared/DecisionTrail';
 import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
 import { type RegisterSteps } from '@pages/company/shared/proposals';
 import { useTransferRecordDownload } from './useRegisterRecordDownload';
+import type { Landed } from '@pages/company/register/shared/registerPlace';
 
 function TransferRows({ transfer }: { transfer: RegisterTransfer | RegisterTransferDecisionPreview }) {
   return (
@@ -47,6 +48,7 @@ function TransferRows({ transfer }: { transfer: RegisterTransfer | RegisterTrans
 }
 
 export function TransferRecord({
+  landed,
   transfer,
   steps,
   guard,
@@ -54,6 +56,7 @@ export function TransferRecord({
   visible = true,
   onHeldChange,
 }: {
+  landed?: Landed;
   transfer: RegisterTransfer;
   steps: RegisterSteps;
   guard: () => void;
@@ -65,7 +68,7 @@ export function TransferRecord({
   const download = useTransferRecordDownload(transfer, check);
   const context = `transfer from ${transfer.fromName} to ${transfer.name} prepared ${formatDateTime(transfer.createdAt)}`;
   return (
-    <RecordShell hidden={!visible}>
+    <RecordShell hidden={!visible} landed={landed}>
       {visible && (
         <details open={transfer.status === 'submitted'} className="space-y-3">
           <summary className="cursor-pointer text-sm font-medium text-text-primary">{`Transfer · ${formatDateTime(transfer.createdAt)} · ${COPY.STAGES[transfer.stage] ?? transfer.stage}`}</summary>
