@@ -126,7 +126,7 @@ export function GrantRecord({
             {download.isError && <RecordDownloadFailure error={download.error} />}
             <Rows>
               <Row label="Issue record">{shortReference(grant.uuid)}</Row>
-              <Row label="Member record">{shortReference(grant.member)}</Row>
+              <Row label="Member reference">{shortReference(grant.member)}</Row>
             </Rows>
           </details>
         </>

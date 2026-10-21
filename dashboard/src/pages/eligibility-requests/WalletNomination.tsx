@@ -19,7 +19,7 @@ import { WalletVerificationModal } from '@components/wallet/WalletVerificationMo
 function Facts({ preview }: { preview: WalletNominationPreview }) {
   return (
     <Rows>
-      <Row label="Exact company">{shortReference(preview.company)}</Row>
+      <Row label="Company">{shortReference(preview.company)}</Row>
       <Row label="Eligibility request">{shortReference(preview.request)}</Row>
       <Row label="Accepted GENERAL decision">{preview.decision ? shortReference(preview.decision) : 'Not ready'}</Row>
       <Row label="Selected address">{preview.address}</Row>

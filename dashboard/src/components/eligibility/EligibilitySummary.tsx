@@ -14,7 +14,7 @@ const summaryLabels = {
   category: 'Category',
   source: 'Evidence source',
   userAccount: 'Participant account',
-  company: 'Exact company',
+  company: 'Company',
   submittedAt: 'Source submitted',
   requestedExpiresAt: 'Requested expiry',
   certificateIssuedAt: 'Certificate issued',

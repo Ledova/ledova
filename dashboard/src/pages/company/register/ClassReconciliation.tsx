@@ -10,6 +10,7 @@ import {
   formatDateTime,
   hasCurrentRegisterReadAuthority,
   formatShareCount,
+  shortReference,
   useDiscrepancyAcknowledgement,
   type OrderSubmissionOwner,
   type RegisterDiscrepancy,
@@ -35,7 +36,8 @@ const CHANGED = 'The reconciliation or your appointment changed or could not be 
 
 function fieldValue(row: RegisterDiscrepancy, field: Field, holders: Holders) {
   const value = String(row[field]);
-  if (field === 'member') return holders.find((holder) => holder.member === value)?.name || value;
+  if (field === 'member') return holders.find((holder) => holder.member === value)?.name || shortReference(value);
+  if (field === 'source') return shortReference(value);
   return field === 'chain' || field === 'expected' ? formatShareCount(value) : value;
 }
 

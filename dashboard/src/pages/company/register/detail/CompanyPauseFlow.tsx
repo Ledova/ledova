@@ -280,7 +280,7 @@ export function CompanyPauseFlow({ uuid, data }: { uuid: string; data: ReturnTyp
       {commands.visible && commands.recovery && (
         <div className="space-y-2">
           <p className="text-sm text-text-muted">
-            The original pause preparation response is unresolved. Recover its identical body and operation UUID.
+            The original pause preparation response is unresolved. Recover its identical body and operation reference.
           </p>
           <p>Operation reference {shortReference(commands.recovery.body.operationId)}</p>
           <PageAction

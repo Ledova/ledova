@@ -26,7 +26,7 @@ export function RecordsList({
             <p>
               {INVESTOR_CATEGORY_LABELS[record.category]} · {ELIGIBILITY_OUTCOME_LABELS[record.outcome]}
             </p>
-            <p>{companyName?.(record.company) ?? `Company ${shortReference(record.company)}`}</p>
+            {companyName && <p>{companyName(record.company) ?? `Company ${shortReference(record.company)}`}</p>}
           </div>
           <PageAction
             label={`View request ${shortReference(record.uuid)}`}

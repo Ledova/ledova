@@ -104,7 +104,7 @@ export function AllotmentRecord({
               <DecisionTrail proposal={allotment} labels={DECISION_COPY.DECISIONS} />
               {!!allotment.registerEntry && <Row label="Register entry">{shortReference(allotment.registerEntry)}</Row>}
               <Row label="Allotment record">{shortReference(allotment.uuid)}</Row>
-              <Row label="Member record">{shortReference(allotment.member)}</Row>
+              <Row label="Member reference">{shortReference(allotment.member)}</Row>
               <Row label="External agreement record">{shortReference(allotment.agreement.uuid)}</Row>
               <Row label="Company contribution record">{shortReference(allotment.contribution.uuid)}</Row>
               <Row label="Authority evidence SHA-256">{allotment.evidenceFingerprint}</Row>

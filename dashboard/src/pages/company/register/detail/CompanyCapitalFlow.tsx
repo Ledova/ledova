@@ -277,7 +277,7 @@ export function CompanyCapitalFlow({ uuid, data }: { uuid: string; data: ReturnT
       {commands.visible && commands.recovery && (
         <div className="space-y-2">
           <p className="text-sm text-text-muted">
-            The original capital preparation response is unresolved. Recover its identical body and operation UUID.
+            The original capital preparation response is unresolved. Recover its identical body and operation reference.
           </p>
           <p>Operation reference {shortReference(commands.recovery.body.operationId)}</p>
           <PageAction

@@ -63,8 +63,8 @@ function Confirmation({ action, busy, confirm, cancel }: ConfirmationProps) {
       {action.request && <EligibilitySummary summary={action.request.sharedSummary} />}
       {action.record && (
         <Rows>
-          <Row label="Exact request">{shortReference(action.record.uuid)}</Row>
-          <Row label="Exact company">{shortReference(action.record.company)}</Row>
+          <Row label="Request">{shortReference(action.record.uuid)}</Row>
+          <Row label="Company">{shortReference(action.record.company)}</Row>
           <Row label="Request digest">{action.record.digest}</Row>
         </Rows>
       )}

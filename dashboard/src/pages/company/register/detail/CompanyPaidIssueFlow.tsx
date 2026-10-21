@@ -384,7 +384,8 @@ export function CompanyPaidIssueFlow({ uuid, data }: { uuid: string; data: Retur
       {commands.visible && commands.recovery && (
         <div className="space-y-2">
           <p className="text-sm text-text-muted">
-            The original paid issue preparation response is unresolved. Recover its identical body and operation UUID.
+            The original paid issue preparation response is unresolved. Recover its identical body and operation
+            reference.
           </p>
           <p>Operation reference {shortReference(commands.recovery.body.operationId)}</p>
           <PageAction

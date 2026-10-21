@@ -4,7 +4,7 @@ import apiClient from '@services/apiClient';
 
 export function useDirectoryNames(enabled = true) {
   const tokens = useQuery({
-    queryKey: [...DIRECTORY_QUERY_KEY, 'names'],
+    queryKey: [...DIRECTORY_QUERY_KEY, 'tokens', 'complete'],
     queryFn: () => readEveryPage((page) => getDirectoryTokens(apiClient, page)),
     staleTime: CACHE_TIMING.DEFAULT_STALE_TIME,
     retry: false,
@@ -16,10 +16,16 @@ export function useDirectoryNames(enabled = true) {
     rows.flatMap((row) => (row.openOffering ? [[row.openOffering.uuid, `${row.name} · ${row.companyName}`]] : [])),
   );
   const lookup = (names: Map<string, string>, uuid: string, unlisted: string) =>
-    isUuid(uuid) ? (names.get(uuid) ?? (tokens.isSuccess ? unlisted : undefined)) : undefined;
+    isUuid(uuid) ? (names.get(uuid.toLowerCase()) ?? (tokens.isSuccess ? unlisted : undefined)) : undefined;
   return {
     companies,
-    company: (uuid: string) => lookup(companies, uuid, 'Not listed in the directory. The server checks it.'),
-    offering: (uuid: string) => lookup(offerings, uuid, 'Not an open offering in the directory. The server checks it.'),
+    company: (uuid: string) =>
+      lookup(
+        companies,
+        uuid,
+        'Not in your directory: a company appears there once it accepts you. The server checks the identifier.',
+      ),
+    offering: (uuid: string) =>
+      lookup(offerings, uuid, 'Not an open offering in your directory. The server checks the identifier.'),
   };
 }
