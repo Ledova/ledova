@@ -1,6 +1,6 @@
 import { Field, TextArea, TextInput, FileField } from '@components/Field';
 import { SelectField } from '@components/SelectField';
-import { Row, Rows, Section, LoadError } from '@components/Ledger';
+import { Row, Rows, Section, LoadError, Loading } from '@components/Ledger';
 import { PageAction } from '@components/Page';
 import { SearchSelect } from '@components/SearchSelect';
 import {
@@ -431,7 +431,7 @@ export function CompanyIssueFlow({ uuid, data }: { uuid: string; data: ReturnTyp
   return (
     <Section title={COPY.TITLE}>
       <p className="text-sm text-text-muted">{COPY.NOTE}</p>
-      {!readFailed && (
+      {!readFailed && !commands.appointments.isError && (
         <PageAction
           label="Refresh company grant records"
           busy={reading}
@@ -441,8 +441,16 @@ export function CompanyIssueFlow({ uuid, data }: { uuid: string; data: ReturnTyp
         />
       )}
       {refreshError && <p role="alert">{refreshError}</p>}
-      {!commands.visible && (
-        <p className="text-sm text-text-muted">Current personal register read access is required.</p>
+      {commands.appointments.isError ? (
+        <LoadError retry={refresh} busy={reading}>
+          Your appointments could not be loaded.
+        </LoadError>
+      ) : !commands.appointments.isSuccess || commands.appointments.isFetching ? (
+        <Loading>Loading your appointments…</Loading>
+      ) : (
+        !commands.visible && (
+          <p className="text-sm text-text-muted">Current personal register read access is required.</p>
+        )
       )}
       <Preparation key={commands.scopeKey} commands={commands} />
       {commands.visible && commands.recovery && (

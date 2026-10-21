@@ -453,8 +453,10 @@ such as "Your award records could not be confirmed. Refresh before continuing.",
 
 Empty states are still to follow under [#1180](https://github.com/Ledova/ledova/issues/1180).
 
-Three kinds of message keep their own form:
+Some messages keep their own form:
 
+- Sign-up keeps its own presentation, including its error blocks with Try again and its actions'
+  labels; these standards cover signed-in pages.
 - The route guard's checks, an unreadable profile or role, keep their own message and Try again
   ([routes, audiences and guards](frontend.md#routes-audiences-and-guards)).
 - Recoveries of an interrupted action, such as "Retry original member action", keep their own

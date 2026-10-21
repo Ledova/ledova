@@ -219,7 +219,7 @@ export function CompanyCapitalFlow({ uuid, data }: { uuid: string; data: ReturnT
   return (
     <Section title={COPY.TITLE}>
       <p className="text-sm text-text-muted">{COPY.NOTE}</p>
-      {!(commands.visible && commands.instructions.isError) && (
+      {!(commands.appointments.isError || (commands.visible && commands.instructions.isError)) && (
         <PageAction
           label="Refresh company capital records"
           busy={commands.instructions.isFetching || commands.appointments.isFetching}
@@ -228,11 +228,19 @@ export function CompanyCapitalFlow({ uuid, data }: { uuid: string; data: ReturnT
           onClick={() => void commands.refresh()}
         />
       )}
-      {!commands.visible && (
-        <p className="text-sm text-text-muted">
-          Current personal register access for this company is required. Retained requests stay private until it is
-          refreshed.
-        </p>
+      {commands.appointments.isError ? (
+        <LoadError retry={() => commands.refresh()} busy={commands.appointments.isFetching}>
+          Your appointments could not be loaded.
+        </LoadError>
+      ) : !commands.appointments.isSuccess || commands.appointments.isFetching ? (
+        <Loading>Loading your appointments…</Loading>
+      ) : (
+        !commands.visible && (
+          <p className="text-sm text-text-muted">
+            Current personal register access for this company is required. Retained requests stay private until it is
+            refreshed.
+          </p>
+        )
       )}
       {commands.visible && !commands.steps.prepare && (
         <p className="text-sm text-text-muted">

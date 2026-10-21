@@ -233,6 +233,11 @@ export function CompanyWalletInstructions() {
             Current personal company administration or a register step grants this section. Earlier eligibility evidence
             sharing exposes no wallet directory.
           </p>
+          {data.appointments.isError && (
+            <LoadError retry={() => track('refresh', data.refresh())} busy={running === 'refresh' || data.busy}>
+              Your appointments could not be loaded.
+            </LoadError>
+          )}
           <CompanyPicker
             label="Wallet approval company"
             companies={data.companies}
@@ -240,7 +245,7 @@ export function CompanyWalletInstructions() {
             disabled={data.busy}
             onChange={data.setCompany}
           />
-          {data.companyUuid && !readFailed && (
+          {data.companyUuid && !readFailed && !data.appointments.isError && (
             <PageAction
               label="Refresh company wallet instructions"
               busy={running === 'refresh'}

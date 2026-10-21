@@ -30,7 +30,8 @@ function Facts({ preview }: { preview: WalletNominationPreview }) {
 export function WalletNomination({ requestUuid, guardRequest }: { requestUuid: string; guardRequest: () => void }) {
   const data = useWalletNomination({ requestUuid, newKey: () => crypto.randomUUID(), guardRequest });
   const { running, track } = useRunningAction();
-  const readFailed = data.request.isError || data.wallets.isError;
+  const reads = [data.request, data.nominations, data.wallets];
+  const readFailed = reads.some((read) => read.isError);
   const [consent, setConsent] = useState<{ preview: WalletNominationPreview | null; accepted: boolean }>({
     preview: null,
     accepted: false,
@@ -75,8 +76,9 @@ export function WalletNomination({ requestUuid, guardRequest }: { requestUuid: s
       )}
       {readFailed && (
         <LoadError retry={() => track('refresh', data.refresh())} busy={running === 'refresh' || data.busy}>
-          Your request or own wallets could not be {data.request.data || data.wallets.data ? 'refreshed' : 'loaded'}.
-          Your original request remains available for recovery.
+          Your request, nominations or own wallets could not be{' '}
+          {reads.every((read) => !read.isError || read.data) ? 'refreshed' : 'loaded'}. Your original request remains
+          available for recovery.
         </LoadError>
       )}
       {!data.original && (
