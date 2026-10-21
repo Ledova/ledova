@@ -2,10 +2,11 @@ import { USER_PROFILES_QUERY_KEY } from './useSignupReview';
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 
-import { SIGNUP_NETWORK_ERROR } from '../constants/business/signup';
+import { DATE_OF_BIRTH_IN_FUTURE, SIGNUP_NETWORK_ERROR } from '../constants/business/signup';
 import { COUNTRIES, type CountryData } from '../constants/countries';
 import { getUserProfiles, updateUserProfile } from '../services/users';
 import type { FormErrors, UserProfileFormData, UserProfileFormValidation } from '../types';
+import { isCalendarDate, utcToday } from '../utils/date';
 import { describeFailure, readApiError } from '../utils/errors';
 import { cleanPhoneNumber, formatPhoneForDisplay } from '../utils/phoneFormatting';
 import { validateUserProfileField } from '../utils/user-validation';
@@ -167,8 +168,11 @@ export function useSignupUserProfile() {
       newErrors.fullName = ['Full name is required'];
     }
 
-    if (!form.dateOfBirth.trim()) {
+    const dateOfBirth = form.dateOfBirth.trim();
+    if (!dateOfBirth) {
       newErrors.dateOfBirth = ['Date of birth is required'];
+    } else if (!isCalendarDate(dateOfBirth) || dateOfBirth > utcToday()) {
+      newErrors.dateOfBirth = [DATE_OF_BIRTH_IN_FUTURE];
     }
 
     if (!form.residentialAddress.trim()) {
