@@ -99,7 +99,7 @@ async function checkTheCutEdge(aside: ReturnType<Page['locator']>) {
   const help = aside.getByRole('link', { name: 'Help & Support' });
 
   expect(await list.evaluate((node) => node.scrollHeight - node.clientHeight)).toBeGreaterThan(0);
-  expect(await list.evaluate((node) => node.nextElementSibling === node.parentElement.lastElementChild)).toBe(true);
+  expect(await list.evaluate((node) => node.nextElementSibling === node.parentElement?.lastElementChild)).toBe(true);
   await expect(foot).toContainText('Sign out');
   await expect(foot).toHaveCSS('border-top-style', 'solid');
   await expect(foot).toHaveCSS('border-top-width', '1px');

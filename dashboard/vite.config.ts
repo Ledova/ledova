@@ -1,3 +1,4 @@
+/// <reference types="vitest/config" />
 import { defineConfig, loadEnv, normalizePath, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 import { createRequire } from 'node:module';
@@ -77,6 +78,9 @@ export default defineConfig(({ mode }) => {
         'ethereum-cryptography/keccak',
         'bech32',
       ],
+    },
+    test: {
+      testTimeout: 15_000,
     },
   };
 });

@@ -566,7 +566,7 @@ it('reads every class page and groups exact holdings by member identity with sea
   expect(screen.getAllByText(/current company register appointment/)).toHaveLength(2);
   expect(screen.getByRole('heading', { level: 1, name: 'Example Member' })).toBeTruthy();
   expect(api.post).not.toHaveBeenCalled();
-}, 15_000);
+});
 
 it('brings complete mirror records, recovers uncertain requests and confirms one snapshot with separate company appointments', async () => {
   const manual: MemberDraft[] = [
@@ -1769,7 +1769,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   ownerStillCurrent = false;
   completeIdentityRead();
   await expect(lateIdentityRead).rejects.toThrow(/account changed/);
-}, 15_000);
+});
 
 it('shows an account without register access a calm empty state, reads no members and offers no entry', async () => {
   api.get.mockImplementation(async (url: string) => {
