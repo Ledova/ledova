@@ -107,7 +107,7 @@ export function ParticularsRecord({
         note={(kind) => kind !== 'reject' && <p className="text-sm text-text-muted">{COPY.PRECEDENCE_NOTE}</p>}
       >
         {(preview) => (
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid gap-4">
             <Particulars title={COPY.CURRENT_PARTICULARS} held={preview.current} />
             <Particulars title={COPY.PROPOSED_PARTICULARS} held={preview} />
           </div>
