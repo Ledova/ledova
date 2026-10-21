@@ -57,8 +57,8 @@ def _operator():
 
 def _attribution(kind, source):
     return ValidationError(
-        f"The completed {kind} {source} has no verified final chain inclusion. It requires operator attribution "
-        "before a register boundary can represent or exclude it."
+        f"The completed {kind} {str(source)[:8]} has no verified final chain inclusion. "
+        "It requires operator attribution before a register boundary can represent or exclude it."
     )
 
 
@@ -205,7 +205,7 @@ def assert_boundary_represents_completions(token_id, boundary):
             else f"is not in the captured boundary's canonical history at block {first['block_number']}"
         )
         raise ValidationError(
-            f"The completed {first['kind']} {first['source']} {detail}, so this boundary does not represent it. "
+            f"The completed {first['kind']} {first['source'][:8]} {detail}, so this boundary does not represent it. "
             "Prepare a fresh opening."
         )
 
