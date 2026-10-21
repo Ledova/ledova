@@ -3,7 +3,7 @@ import { Choices } from '@components/Choices';
 import { FileIcon, UploadSimpleIcon, XIcon } from '@phosphor-icons/react';
 import { Modal } from '@components/Modal';
 import { PageAction } from '@components/Page';
-import { FIELD_LIMITS, addCalendarDays, addCalendarYears, formatFileSize, utcToday } from '@ledova/shared';
+import { FIELD_LIMITS, UPLOAD_RULE, addCalendarDays, addCalendarYears, formatFileSize, utcToday } from '@ledova/shared';
 import type { InvestorCategory } from '@ledova/shared';
 import { useInvestorClaim } from './useInvestorClaim';
 import { CERTIFIER_BODIES, WHOLESALE_ONLY_NOTICE } from './constants';
@@ -32,7 +32,8 @@ export function ClaimModal({
 }: ClaimModalProps) {
   const {
     file,
-    setFile,
+    chooseFile,
+    fileRefusal,
     declaredBasis,
     setDeclaredBasis,
     company,
@@ -172,14 +173,17 @@ export function ClaimModal({
             <div className="text-center">
               <p className="mb-3 text-sm text-text-primary">Drag and drop your evidence or choose a file.</p>
               <PageAction label="Choose evidence file" onClick={() => fileInputRef.current?.click()} />
-              <p className="text-xs text-text-muted mt-1">PDF or images, max 10 MB</p>
+              <p className="text-xs text-text-muted mt-1">{UPLOAD_RULE.HINT}</p>
             </div>
             <input
               ref={fileInputRef}
               type="file"
               aria-label="Evidence file"
-              accept="application/pdf,image/png,image/jpeg"
-              onChange={(e) => setFile(e.target.files?.[0] || null)}
+              accept={UPLOAD_RULE.ACCEPT}
+              onChange={(e) => {
+                chooseFile(e.target.files?.[0] ?? null);
+                e.target.value = '';
+              }}
               className="hidden"
             />
           </div>
@@ -193,12 +197,17 @@ export function ClaimModal({
             <button
               type="button"
               aria-label="Remove evidence file"
-              onClick={() => setFile(null)}
+              onClick={() => chooseFile(null)}
               className="text-text-muted hover:text-text-primary p-1"
             >
               <XIcon size={16} />
             </button>
           </div>
+        )}
+        {fileRefusal && (
+          <p role="alert" className="text-sm text-error-light">
+            {fileRefusal}
+          </p>
         )}
 
         <label className="flex items-start gap-3 cursor-pointer">

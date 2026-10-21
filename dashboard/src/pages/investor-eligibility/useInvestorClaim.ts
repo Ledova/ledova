@@ -1,5 +1,11 @@
 import { useCallback, useRef, useState } from 'react';
-import { isUuid, submitInvestorClassification, type InvestorCategory, failureSentence } from '@ledova/shared';
+import {
+  isUuid,
+  submitInvestorClassification,
+  type InvestorCategory,
+  failureSentence,
+  uploadRefusal,
+} from '@ledova/shared';
 import apiClient from '@services/apiClient';
 import { CATEGORIES } from './constants';
 
@@ -15,6 +21,7 @@ export function useInvestorClaim({
   submissionBlockedReason: string | null;
 }) {
   const [file, setFile] = useState<File | null>(null);
+  const [fileRefusal, setFileRefusal] = useState<string | null>(null);
   const [declaredBasis, setDeclaredBasis] = useState('');
   const [company, setCompany] = useState('');
   const [certificateIssuedAt, setCertificateIssuedAt] = useState('');
@@ -32,8 +39,14 @@ export function useInvestorClaim({
 
   const spec = CATEGORIES.find((item) => item.category === category);
 
+  const chooseFile = useCallback((candidate: File | null) => {
+    const refusal = candidate && uploadRefusal(candidate);
+    setFileRefusal(refusal);
+    setFile(refusal ? null : candidate);
+  }, []);
+
   const reset = () => {
-    setFile(null);
+    chooseFile(null);
     setDeclaredBasis('');
     setCompany('');
     setCertificateIssuedAt('');
@@ -44,12 +57,15 @@ export function useInvestorClaim({
     setError(null);
   };
 
-  const handleDrop = useCallback((event: React.DragEvent) => {
-    event.preventDefault();
-    setIsDragging(false);
-    const dropped = event.dataTransfer.files?.[0];
-    if (dropped) setFile(dropped);
-  }, []);
+  const handleDrop = useCallback(
+    (event: React.DragEvent) => {
+      event.preventDefault();
+      setIsDragging(false);
+      const dropped = event.dataTransfer.files?.[0];
+      if (dropped) chooseFile(dropped);
+    },
+    [chooseFile],
+  );
 
   const isComplete =
     !submissionBlockedReason &&
@@ -91,7 +107,8 @@ export function useInvestorClaim({
 
   return {
     file,
-    setFile,
+    chooseFile,
+    fileRefusal,
     declaredBasis,
     setDeclaredBasis,
     company,

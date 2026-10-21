@@ -1,6 +1,5 @@
-import { Field, TextArea, TextInput } from '@components/Field';
+import { Field, TextArea, TextInput, FileField } from '@components/Field';
 import { FormActions, PageAction } from '@components/Page';
-import { FIELD_CLASS, LABEL } from '@components/fieldClass';
 import { FIELD_LIMITS, REGISTER_AWARD_COPY as COPY, type OwnCompanyAppointment, type Person } from '@ledova/shared';
 import { PersonFields, PersonSelect } from '@pages/company/register/shared/PersonPicker';
 import { useAwardForm } from './useAwardForm';
@@ -100,16 +99,8 @@ export function AwardForm({
           <Field label={COPY.TERMS}>
             <TextArea maxLength={FIELD_LIMITS.TERMS} value={terms} onChange={(event) => setTerms(event.target.value)} />
           </Field>
-          <label className={LABEL}>
-            {COPY.AGREEMENT_DOCUMENT}
-            <input
-              type="file"
-              accept="application/pdf,image/png,image/jpeg"
-              className={FIELD_CLASS}
-              onChange={(event) => setFile(event.target.files?.[0] ?? null)}
-            />
-          </label>
-          <p className="text-sm text-text-muted">PDF or image, max 10 MB. {COPY.NOTE}</p>
+          <FileField label={COPY.AGREEMENT_DOCUMENT} onFile={setFile} />
+          <p className="text-sm text-text-muted">{COPY.NOTE}</p>
         </fieldset>
         <fieldset className="grid gap-4 border-t border-border-subtle pt-4 sm:grid-cols-2 [&>p]:sm:col-span-2 [&>div:has(textarea)]:sm:col-span-2">
           <legend className="pb-2 text-base font-medium">Vesting schedule</legend>

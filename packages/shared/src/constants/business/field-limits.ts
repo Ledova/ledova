@@ -35,3 +35,28 @@ export const FIELD_LIMITS = {
   ABN: 14,
   VERIFICATION_CODE: 6,
 } as const;
+
+const UPLOAD_TYPES: Readonly<Record<string, string>> = {
+  '.pdf': 'application/pdf',
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+};
+
+export const UPLOAD_RULE = {
+  ACCEPT: 'application/pdf,image/png,image/jpeg,.pdf,.png,.jpg,.jpeg',
+  MAX_BYTES: 10 * 1024 * 1024,
+  HINT: 'PDF, PNG or JPEG, up to 10 MB.',
+  REFUSAL: 'Choose a PDF, PNG or JPEG of up to 10 MB.',
+} as const;
+
+export function uploadRefusal(file: { name: string; type: string; size: number }): string | null {
+  const dot = file.name.lastIndexOf('.');
+  const extension = /[^.]/.test(file.name.slice(0, dot)) ? file.name.slice(dot).toLowerCase() : '';
+  const fits =
+    Object.prototype.hasOwnProperty.call(UPLOAD_TYPES, extension) &&
+    UPLOAD_TYPES[extension] === file.type &&
+    file.size > 0 &&
+    file.size <= UPLOAD_RULE.MAX_BYTES;
+  return fits ? null : UPLOAD_RULE.REFUSAL;
+}

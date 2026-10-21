@@ -68,8 +68,8 @@ export const REGISTER_LINK_COPY = {
   NO_STATUS: "This wallet is not on the company's whitelist, so no proof or holder is shown for it.",
   AUTHORITY_DOCUMENT: 'Authority document',
   AUTHORITY_DOCUMENT_NOTE:
-    'The director resolution or court order that authorises this wallet link, provided by the company. PDF or ' +
-    'image, max 10 MB. Ledova does not verify it.',
+    'The director resolution or court order that authorises this wallet link, provided by the company. Ledova ' +
+    'does not verify it.',
   AUTHORITY: 'Authority',
   AUTHORITIES: {
     director_resolution: 'Director resolution',

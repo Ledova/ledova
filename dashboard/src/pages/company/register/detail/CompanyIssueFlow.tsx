@@ -1,4 +1,4 @@
-import { Field, TextArea, TextInput } from '@components/Field';
+import { Field, TextArea, TextInput, FileField } from '@components/Field';
 import { SelectField } from '@components/SelectField';
 import { Row, Rows, Section } from '@components/Ledger';
 import { PageAction } from '@components/Page';
@@ -329,14 +329,7 @@ function Preparation({ commands }: { commands: Commands }) {
       <Field label="Reason">
         <TextInput maxLength={FIELD_LIMITS.REASON} value={reason} onChange={(event) => setReason(event.target.value)} />
       </Field>
-      <label className="block text-sm">
-        Authority document
-        <input
-          type="file"
-          accept="application/pdf,image/*"
-          onChange={(event) => setFiles({ ...files, authority: event.target.files?.[0] })}
-        />
-      </label>
+      <FileField label="Authority document" onFile={(file) => setFiles({ ...files, authority: file ?? undefined })} />
       <p className="text-sm text-text-muted">
         Apply the company documentary link before preparing the grant. It records this nominated address against the
         chosen stable member.
@@ -377,14 +370,7 @@ function Preparation({ commands }: { commands: Commands }) {
       <Field label="Non-paid terms">
         <TextArea maxLength={FIELD_LIMITS.TERMS} value={terms} onChange={(event) => setTerms(event.target.value)} />
       </Field>
-      <label className="block text-sm">
-        Terms document
-        <input
-          type="file"
-          accept="application/pdf,image/*"
-          onChange={(event) => setFiles({ ...files, terms: event.target.files?.[0] })}
-        />
-      </label>
+      <FileField label="Terms document" onFile={(file) => setFiles({ ...files, terms: file ?? undefined })} />
       <label className="flex gap-2 text-sm">
         <input
           type="checkbox"
@@ -394,14 +380,10 @@ function Preparation({ commands }: { commands: Commands }) {
         Recipient acceptance required by these terms
       </label>
       {acceptanceRequired && (
-        <label className="block text-sm">
-          Acceptance document
-          <input
-            type="file"
-            accept="application/pdf,image/*"
-            onChange={(event) => setFiles({ ...files, acceptance: event.target.files?.[0] })}
-          />
-        </label>
+        <FileField
+          label="Acceptance document"
+          onFile={(file) => setFiles({ ...files, acceptance: file ?? undefined })}
+        />
       )}
       <PageAction
         primary

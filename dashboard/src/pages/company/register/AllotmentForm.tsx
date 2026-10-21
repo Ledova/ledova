@@ -1,6 +1,5 @@
-import { Field, TextInput } from '@components/Field';
+import { Field, TextInput, FileField } from '@components/Field';
 import { FormActions, PageAction } from '@components/Page';
-import { FIELD_CLASS, LABEL } from '@components/fieldClass';
 import { FIELD_LIMITS, REGISTER_ALLOTMENT_COPY as COPY, type OwnCompanyAppointment, type Person } from '@ledova/shared';
 import { PersonFields, PersonSelect } from '@pages/company/register/shared/PersonPicker';
 import { useAllotmentForm, type DocumentKind } from './useAllotmentForm';
@@ -14,6 +13,12 @@ const LIMITS: Partial<Record<string, number>> = {
   approvingDirector: FIELD_LIMITS.DIRECTOR,
   authorityReference: FIELD_LIMITS.REFERENCE,
   reason: FIELD_LIMITS.REASON,
+};
+
+const INPUT_MODES: Partial<Record<string, 'numeric' | 'decimal'>> = {
+  shares: 'numeric',
+  consideration: 'decimal',
+  receivedAmount: 'decimal',
 };
 
 export function AllotmentForm({
@@ -79,20 +84,16 @@ export function AllotmentForm({
         max={key.endsWith('On') ? today : undefined}
         value={fields[key]}
         maxLength={LIMITS[key]}
+        inputMode={INPUT_MODES[key]}
         onChange={(event) => setFields((current) => ({ ...current, [key]: event.target.value }))}
       />
     </Field>
   );
   const document = (kind: DocumentKind) => (
-    <label className={LABEL}>
-      {COPY.DOCUMENTS[kind]}
-      <input
-        className={FIELD_CLASS}
-        type="file"
-        accept="application/pdf,image/png,image/jpeg"
-        onChange={(event) => setFiles((current) => ({ ...current, [kind]: event.target.files?.[0] }))}
-      />
-    </label>
+    <FileField
+      label={COPY.DOCUMENTS[kind]}
+      onFile={(file) => setFiles((current) => ({ ...current, [kind]: file ?? undefined }))}
+    />
   );
   if (!visible) return null;
   return (

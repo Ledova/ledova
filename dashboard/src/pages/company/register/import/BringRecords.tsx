@@ -1,4 +1,4 @@
-import { Field, TextArea, TextInput } from '@components/Field';
+import { Field, TextArea, TextInput, FileField } from '@components/Field';
 import { useLayoutEffect, useState } from 'react';
 import {
   FIELD_LIMITS,
@@ -10,11 +10,8 @@ import {
 } from '@ledova/shared';
 import { Table } from '@components/List';
 import { FormActions, PageAction } from '@components/Page';
-import { FIELD_CLASS, LABEL } from '@components/fieldClass';
 import { MemberFields } from './MemberFields';
 import { blankMember, blankFormer, type PreparationDraft, type MemberDraft, type FormerDraft } from './preparation';
-
-const EVIDENCE = 'application/pdf,image/png,image/jpeg';
 
 export function BringRecords({
   draft,
@@ -255,43 +252,21 @@ export function BringRecords({
             </summary>
             <fieldset className="space-y-3">
               <legend className="text-sm font-medium text-text-primary">Supporting copies (optional)</legend>
-              <label className={LABEL}>
-                Current share register (optional)
-                {draft.registerEvidence && (
-                  <span className="block text-xs text-text-muted">
-                    The retained source copy will be reused unless you choose another file.
-                  </span>
-                )}
-                <input
-                  type="file"
-                  accept={EVIDENCE}
-                  className={FIELD_CLASS}
-                  onChange={(event) => {
-                    const file = event.target.files?.[0] ?? null;
-                    update((current) => ({ ...current, registerFile: file }));
-                  }}
-                />
-              </label>
-              <label className={LABEL}>
-                ASIC extract (optional)
-                {draft.asicEvidence && (
-                  <span className="block text-xs text-text-muted">
-                    The retained ASIC copy and figures will be reused unless you change them.
-                  </span>
-                )}
-                <input
-                  type="file"
-                  accept={EVIDENCE}
-                  className={FIELD_CLASS}
-                  onChange={(event) => {
-                    const file = event.target.files?.[0] ?? null;
-                    update((current) => ({ ...current, asicFile: file }));
-                  }}
-                />
-              </label>
-              <p className="text-sm text-text-muted">
-                PDF or image, max 10 MB. Ledova does not verify either document.
-              </p>
+              <FileField
+                label="Current share register"
+                optional
+                hint={
+                  draft.registerEvidence && 'The retained source copy will be reused unless you choose another file.'
+                }
+                onFile={(file) => update((current) => ({ ...current, registerFile: file }))}
+              />
+              <FileField
+                label="ASIC extract"
+                optional
+                hint={draft.asicEvidence && 'The retained ASIC copy and figures will be reused unless you change them.'}
+                onFile={(file) => update((current) => ({ ...current, asicFile: file }))}
+              />
+              <p className="text-sm text-text-muted">Ledova does not verify either document.</p>
             </fieldset>
             <fieldset className="space-y-3">
               <legend className="text-sm font-medium text-text-primary">Former members</legend>
@@ -366,6 +341,7 @@ export function BringRecords({
               </Field>
               <Field label="Shareholders listed in the comparison source (optional)">
                 <TextInput
+                  maxLength={FIELD_LIMITS.WHOLE_SHARES}
                   inputMode="numeric"
                   value={draft.statedCount}
                   onChange={(event) => {

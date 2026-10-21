@@ -20,7 +20,6 @@ export function useCompanyDocumentUpload({
   onSuccess: () => Promise<unknown>;
 }) {
   const [file, setFile] = useState<File | null>(null);
-  const input = useRef<HTMLInputElement>(null);
   const pendingRef = useRef(false);
   const mounted = useRef(true);
   useEffect(() => {
@@ -69,9 +68,7 @@ export function useCompanyDocumentUpload({
     },
   });
   return {
-    file,
     setFile,
-    input,
     pendingRef,
     upload,
     valid,

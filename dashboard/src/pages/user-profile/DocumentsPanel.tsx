@@ -3,7 +3,7 @@ import { SelectField } from '@components/SelectField';
 import { PageAction } from '@components/Page';
 import { Confirmation } from '@components/Modal';
 import { Choices } from '@components/Choices';
-import { FIELD_LIMITS, DESTINATIONS } from '@ledova/shared';
+import { FIELD_LIMITS, DESTINATIONS, UPLOAD_RULE, uploadRefusal } from '@ledova/shared';
 import { useRef, useState } from 'react';
 import {
   CloudArrowUpIcon,
@@ -40,8 +40,6 @@ const DOCUMENT_TYPES = [
   ['bank_statement', 'Bank statement (coming soon)'],
   ['tax_return', 'Tax return (coming soon)'],
 ] as const;
-
-const MAX_FILE_MB = 10;
 
 const claimLabel = (claim: InvestorClassification) => `${claim.categoryDisplay} · ${formatDate(claim.createdAt)}`;
 
@@ -276,12 +274,9 @@ function UploadCard({ claims }: { claims: InvestorClassification[] }) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const upload = useUploadDocument();
 
-  const [tooLarge, setTooLarge] = useState(false);
+  const [refusal, setRefusal] = useState<string | null>(null);
   const handleSubmit = async () => {
     if (!file) return;
-    const oversized = file.size > MAX_FILE_MB * 1024 * 1024;
-    setTooLarge(oversized);
-    if (oversized) return;
     upload.mutate(
       { file, documentType, note, classification: classification || undefined },
       {
@@ -305,7 +300,7 @@ function UploadCard({ claims }: { claims: InvestorClassification[] }) {
         >
           <CloudArrowUpIcon size={32} className="mb-2" />
           <p className="text-sm">Click to upload a payslip</p>
-          <p className="text-xs mt-1">PDF or image, max {MAX_FILE_MB} MB</p>
+          <p className="text-xs mt-1">{UPLOAD_RULE.HINT}</p>
         </button>
       ) : (
         <div className="space-y-3">
@@ -319,7 +314,7 @@ function UploadCard({ claims }: { claims: InvestorClassification[] }) {
               type="button"
               onClick={() => {
                 setFile(null);
-                setTooLarge(false);
+                if (fileInputRef.current) fileInputRef.current.value = '';
               }}
               className="text-text-muted hover:text-text-primary p-1 flex-shrink-0"
               disabled={upload.isPending}
@@ -368,16 +363,19 @@ function UploadCard({ claims }: { claims: InvestorClassification[] }) {
       <input
         ref={fileInputRef}
         type="file"
-        accept="application/pdf,image/png,image/jpeg,image/jpg"
+        accept={UPLOAD_RULE.ACCEPT}
         onChange={(e) => {
-          setTooLarge(false);
-          setFile(e.target.files?.[0] ?? null);
+          const chosen = e.target.files?.[0] ?? null;
+          const problem = chosen && uploadRefusal(chosen);
+          setRefusal(problem);
+          setFile(problem ? null : chosen);
+          if (problem) e.target.value = '';
         }}
         className="hidden"
       />
-      {tooLarge && (
+      {refusal && (
         <p role="alert" className="text-sm text-error-light">
-          The file is larger than {MAX_FILE_MB} MB. Choose a smaller file.
+          {refusal}
         </p>
       )}
       {upload.error && (

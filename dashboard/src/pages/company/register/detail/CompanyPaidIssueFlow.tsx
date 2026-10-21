@@ -1,7 +1,6 @@
-import { Field, TextArea, TextInput } from '@components/Field';
+import { Field, TextArea, TextInput, FileField } from '@components/Field';
 import { Row, Rows, Section, Loading } from '@components/Ledger';
 import { PageAction } from '@components/Page';
-import { FIELD_CLASS } from '@components/fieldClass';
 import { SearchSelect } from '@components/SearchSelect';
 import {
   FIELD_LIMITS,
@@ -253,41 +252,28 @@ function Preparation({ commands }: { commands: Commands }) {
       <Field label="Paid issue reason">
         <TextArea maxLength={FIELD_LIMITS.REASON} value={reason} onChange={(event) => setReason(event.target.value)} />
       </Field>
-      <label className="block text-sm">
-        Paid issue authority document
-        <input
-          className={FIELD_CLASS}
-          type="file"
-          accept=".pdf,.png,.jpg,.jpeg"
-          disabled={!commands.canPrepare || !termsValid}
-          onClick={(event) => {
-            try {
-              check();
-            } catch (failure) {
-              event.preventDefault();
-              setError(failureSentence(failure, 'The authority picker is unavailable.'));
-            }
-          }}
-          onChange={(event) => {
-            try {
-              check();
-              const chosen = event.target.files?.[0] ?? null;
-              if (
-                chosen &&
-                (!['application/pdf', 'image/png', 'image/jpeg'].includes(chosen.type) ||
-                  chosen.size <= 0 ||
-                  chosen.size > 10 * 1024 * 1024)
-              )
-                throw new Error('Choose a PDF, PNG or JPEG of up to 10 MB.');
-              uploadRef.current = null;
-              setFile(chosen);
-              setError('');
-            } catch (failure) {
-              setError(failureSentence(failure, 'The authority document could not be selected.'));
-            }
-          }}
-        />
-      </label>
+      <FileField
+        label="Paid issue authority document"
+        disabled={!commands.canPrepare || !termsValid}
+        onClick={(event) => {
+          try {
+            check();
+          } catch (failure) {
+            event.preventDefault();
+            setError(failureSentence(failure, 'The authority picker is unavailable.'));
+          }
+        }}
+        onFile={(chosen) => {
+          try {
+            check();
+            uploadRef.current = null;
+            setFile(chosen);
+            setError('');
+          } catch (failure) {
+            setError(failureSentence(failure, 'The authority document could not be selected.'));
+          }
+        }}
+      />
       {error && <p role="alert">{error}</p>}
       <PageAction
         label="Prepare paid issue"
