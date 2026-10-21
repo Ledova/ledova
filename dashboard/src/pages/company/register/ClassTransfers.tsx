@@ -103,6 +103,8 @@ export function ClassTransfers({
         >
           Transfers could not be loaded.
         </LoadError>
+      ) : privateReady && transfers.data.length === 0 ? (
+        <p className="text-sm text-text-muted">{COPY.EMPTY}</p>
       ) : null}
       <ul className="divide-y divide-border-subtle">
         {(transfers.data ?? []).map((transfer) => (

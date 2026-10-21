@@ -85,6 +85,7 @@ function UserProfilePage() {
           )}
           <Row label="Citizenship">{userProfile.citizenshipCountryName || 'Not provided'}</Row>
         </Rows>
+        <Outcome>{savedFor !== null && savedFor === ownerKey && 'Your personal details were saved.'}</Outcome>
         {isEditing ? (
           <form
             className="space-y-4 border-t border-border-subtle pt-4"
@@ -166,10 +167,7 @@ function UserProfilePage() {
             </FormActions>
           </form>
         ) : (
-          <>
-            {savedFor !== null && savedFor === ownerKey && <Outcome>Your personal details were saved.</Outcome>}
-            <PageAction label="Edit personal details" disabled={blocked} onClick={editDetails} />
-          </>
+          <PageAction label="Edit personal details" disabled={blocked} onClick={editDetails} />
         )}
       </Section>
       <Section title="Account status">

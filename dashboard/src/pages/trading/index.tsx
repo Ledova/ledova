@@ -236,16 +236,18 @@ function TradingPage() {
           Wallets could not be loaded. Trading actions are unavailable.
         </LoadError>
       )}
-      {placed && (
-        <Outcome>
-          {placed.order.orderType === 'buy' ? 'Buy' : 'Sell'} order {placed.recovered ? 'recovered' : 'placed'}
-          {placed.order.tokenSymbol || placed.order.tokenName
-            ? ` for ${placed.order.tokenSymbol || placed.order.tokenName}`
-            : ''}
-          : {shareCount(placed.order.quantity)} at {marketAmount(placed.order.pricePerShare)},{' '}
-          {marketAmount(placed.order.totalValue)} in total.
-        </Outcome>
-      )}
+      <Outcome>
+        {placed && (
+          <>
+            {placed.order.orderType === 'buy' ? 'Buy' : 'Sell'} order {placed.recovered ? 'recovered' : 'placed'}
+            {placed.order.tokenSymbol || placed.order.tokenName
+              ? ` for ${placed.order.tokenSymbol || placed.order.tokenName}`
+              : ''}
+            : {shareCount(placed.order.quantity)} at {marketAmount(placed.order.pricePerShare)},{' '}
+            {marketAmount(placed.order.totalValue)} in total.
+          </>
+        )}
+      </Outcome>
       <OrdersPanel
         tokenSymbol={!tokensQuery.isError ? (selectedToken?.symbol ?? null) : null}
         orderBook={orderBookData || null}

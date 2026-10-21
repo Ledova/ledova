@@ -245,7 +245,7 @@ function MemberRecords({
                   <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
                     <Section title="Your issued shares">
                       {record.classes.length === 0 ? (
-                        <p className="text-sm text-text-muted">No issued shares recorded.</p>
+                        <p className="text-sm text-text-muted">No issued shares yet.</p>
                       ) : (
                         <div className="divide-y divide-border-subtle">
                           {record.classes.map((item) => (
@@ -356,7 +356,7 @@ function MemberRecords({
                   {read.requests &&
                     !read.requests.certificates.some(
                       (request) => request.status === 'fulfilled' && request.fulfilment,
-                    ) && <p className="text-sm text-text-muted">No issued certificates available.</p>}
+                    ) && <p className="text-sm text-text-muted">No issued certificates yet.</p>}
                   {!read.requests && <Loading>Loading your documents and requests…</Loading>}
                   {!documentsOnly && (
                     <LinkRow

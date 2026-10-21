@@ -41,7 +41,7 @@ export const RESOLUTION_KIND_LABELS: Record<ResolutionKind, string> = {
 export const BALLOT_CHOICES: readonly BallotChoice[] = ['for', 'against', 'abstain'];
 
 export const PUBLICATION_COPY = {
-  EMPTY: 'Nothing has been published to you yet.',
+  EMPTY: 'No notices yet.',
   HOLDING_LABEL: 'Your holding on the record date',
   RECORD_DATE_LABEL: 'Record date',
   OPEN: 'Open the document',

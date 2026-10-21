@@ -96,7 +96,9 @@ export function WalletNomination({ requestUuid, guardRequest }: { requestUuid: s
             disabled={blocked}
             onChange={data.setWallet}
           />
-          {data.wallets.isSuccess && wallets.length === 0 && <p>No own Base wallets are available.</p>}
+          {data.wallets.isSuccess && wallets.length === 0 && (
+            <p className="text-sm text-text-muted">No own Base wallets yet.</p>
+          )}
           {wallet && (
             <PageAction
               label="Refresh selected wallet possession proof"

@@ -105,7 +105,7 @@ function OwnTeam({
             Your appointments could not be loaded.
           </LoadError>
         ) : appointments.length === 0 ? (
-          <p>No company appointments recorded.</p>
+          <p className="text-sm text-text-muted">No company appointments yet.</p>
         ) : (
           <ul className="divide-y divide-border-subtle">
             {appointments.map((item) => (
@@ -218,7 +218,7 @@ function OwnTeam({
             Your invitations could not be loaded.
           </LoadError>
         ) : (invitations.data ?? []).length === 0 ? (
-          <p>No invitations recorded.</p>
+          <p className="text-sm text-text-muted">No invitations yet.</p>
         ) : (
           <ul className="divide-y divide-border-subtle">
             {(invitations.data ?? []).map((item) => (

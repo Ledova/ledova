@@ -108,7 +108,7 @@ function InspectionForm({
           {error}
         </p>
       )}
-      {downloaded && <Outcome>The inspection copy was downloaded.</Outcome>}
+      <Outcome>{downloaded && 'The inspection copy was downloaded.'}</Outcome>
     </div>
   );
 }

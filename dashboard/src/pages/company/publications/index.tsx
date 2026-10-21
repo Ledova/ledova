@@ -67,9 +67,7 @@ function CompanyPublications({ companyRead }: { companyRead: ReturnType<typeof u
                   </p>
                 )}
                 {!publications ? null : publications.length === 0 ? (
-                  <p className="text-sm text-text-muted">
-                    Nothing has been published to this company&apos;s members yet.
-                  </p>
+                  <p className="text-sm text-text-muted">No publications yet.</p>
                 ) : (
                   <>
                     <ul className="divide-y divide-border-subtle">

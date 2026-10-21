@@ -67,9 +67,7 @@ export function ClassRegister({ register, former = true }: { register: TokenHold
               {REGISTER_COPY.WAITING_NOTE(register.waitingEffects)}
             </p>
           ) : null}
-          {register.holders.length === 0 ? (
-            <p className="text-sm text-text-muted">No current members are recorded for this class.</p>
-          ) : null}
+          {register.holders.length === 0 ? <p className="text-sm text-text-muted">No current members yet.</p> : null}
           {former && <FormerMembers register={register} />}
         </>
       )}

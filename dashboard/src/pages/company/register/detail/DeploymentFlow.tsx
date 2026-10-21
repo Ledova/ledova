@@ -98,7 +98,9 @@ export function DeploymentFlow({ uuid, data }: { uuid: string; data: ReturnType<
           {error}
         </p>
       )}
-      {!Object.values(steps).some(Boolean) && <p className="text-sm text-text-muted">{COPY.READ_ONLY_NOTE}</p>}
+      {appointments.isSuccess && !appointments.isFetching && !Object.values(steps).some(Boolean) && (
+        <p className="text-sm text-text-muted">{COPY.READ_ONLY_NOTE}</p>
+      )}
       {appointments.isError && (
         <LoadError retry={() => appointments.refetch()} busy={appointments.isFetching}>
           Your appointments could not be loaded.
@@ -114,12 +116,14 @@ export function DeploymentFlow({ uuid, data }: { uuid: string; data: ReturnType<
             : 'Deployment history could not be loaded.'}
         </LoadError>
       ) : (
-        <PageAction
-          label="Refresh deployments"
-          onClick={() => void refresh().catch(() => undefined)}
-          busy={deployments.isFetching || appointments.isFetching}
-          busyLabel="Refreshing…"
-        />
+        !appointments.isError && (
+          <PageAction
+            label="Refresh deployments"
+            onClick={() => void refresh().catch(() => undefined)}
+            busy={deployments.isFetching || appointments.isFetching}
+            busyLabel="Refreshing…"
+          />
+        )
       )}
       {!records.length ? (
         !deployments.isError &&
