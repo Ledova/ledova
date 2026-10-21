@@ -2,6 +2,7 @@ import { useId } from 'react';
 import { Checkbox, Field, Label } from '@headlessui/react';
 
 interface CheckboxGroupFieldProps {
+  id?: string;
   label: string;
   value: string[];
   options: Array<{ value: string; label: string }>;
@@ -9,7 +10,7 @@ interface CheckboxGroupFieldProps {
   onChange: (values: string[]) => void;
 }
 
-const CheckboxGroupField = ({ label, value, options, error, onChange }: CheckboxGroupFieldProps) => {
+const CheckboxGroupField = ({ id, label, value, options, error, onChange }: CheckboxGroupFieldProps) => {
   const labelId = useId();
   const errorId = useId();
 
@@ -22,7 +23,13 @@ const CheckboxGroupField = ({ label, value, options, error, onChange }: Checkbox
   };
 
   return (
-    <div role="group" aria-labelledby={labelId} aria-describedby={error ? errorId : undefined} className="space-y-3">
+    <div
+      id={id}
+      role="group"
+      aria-labelledby={labelId}
+      aria-describedby={error ? errorId : undefined}
+      className="space-y-3"
+    >
       <p id={labelId} className="block text-sm font-medium text-text-body">
         {label} <span className="text-text-subtle">(select all that apply)</span>
       </p>
@@ -31,6 +38,7 @@ const CheckboxGroupField = ({ label, value, options, error, onChange }: Checkbox
           <Field key={option.value} className="flex items-center gap-2 text-sm text-text-body">
             <Checkbox
               checked={value.includes(option.value)}
+              aria-invalid={error ? true : undefined}
               onChange={(checked) => handleCheckboxChange(option.value, checked)}
               className="group flex h-4 w-4 shrink-0 cursor-pointer items-center justify-center rounded border border-border bg-surface-tertiary focus:outline-none data-[checked]:border-brand data-[checked]:bg-brand data-[focus]:ring-2 data-[focus]:ring-border-focus data-[focus]:ring-offset-1 data-[focus]:ring-offset-surface-raised"
             >
@@ -51,7 +59,7 @@ const CheckboxGroupField = ({ label, value, options, error, onChange }: Checkbox
         ))}
       </div>
       {error && (
-        <p id={errorId} className="text-error-light text-sm mt-1" role="alert">
+        <p id={errorId} className="text-error-light text-sm mt-1">
           {error.join(' ')}
         </p>
       )}
