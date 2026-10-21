@@ -621,6 +621,9 @@ Some messages keep their own form:
   selected files survive Back; final validation opens the first step needing attention. A short
   review uses the existing `Rows` and `Row`, not another card style. A submitted request stays
   held for its original recovery rather than allowing edits or backward navigation.
+  Related groups within a step use named fieldsets and the existing responsive grid, side by side
+  when there is room and stacked in reading order otherwise. Use short contextual labels instead
+  of repeating each group's name; keep their validation messages specific to the affected record.
 - **Repeated allocations.** Web ledger setup separates **Current shares held** from **Allocation
   history**, which starts empty. **Add allocation** beside the section heading opens its first entry. It keeps
   one editor expanded. Adding another

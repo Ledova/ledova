@@ -107,11 +107,12 @@ export function AllotmentForm({
   const [step, setStep] = useState<(typeof STEPS)[number]['id']>('person');
   const stepIndex = STEPS.findIndex((item) => item.id === step);
   const recipient = people.find((person) => person.member === member);
-  const field = (key: Exclude<keyof typeof fields, 'name' | 'residentialAddress'>) => (
+  const field = (key: Exclude<keyof typeof fields, 'name' | 'residentialAddress'>, label?: string) => (
     <Field
       key={key}
       {...checks.field(key)}
       label={
+        label ??
         {
           shares: COPY.SHARES,
           companyEventOn: COPY.COMPANY_EVENT_ON,
@@ -146,10 +147,10 @@ export function AllotmentForm({
       )}
     </Field>
   );
-  const document = (kind: DocumentKind) => (
+  const document = (kind: DocumentKind, label?: string) => (
     <FileField
       {...checks.field(`${kind}Document`)}
-      label={COPY.DOCUMENTS[kind]}
+      label={label ?? COPY.DOCUMENTS[kind]}
       onFile={(file) => setFiles((current) => ({ ...current, [kind]: file ?? undefined }))}
     />
   );
@@ -209,20 +210,28 @@ export function AllotmentForm({
           </fieldset>
         </div>
         <div hidden={step !== 'agreement'}>
-          <fieldset className="space-y-4">
-            <legend className="pb-4 text-base font-medium">Agreement and receipt</legend>
-            <div className="grid gap-4 sm:grid-cols-2">
-              {field('agreementReference')}
-              {field('agreementOn')}
+          <fieldset className="min-w-0">
+            <legend className="sr-only">Agreement and receipt</legend>
+            <div className="grid items-start gap-6 lg:grid-cols-2">
+              <fieldset className="min-w-0 space-y-4">
+                <legend className="pb-4 text-base font-medium">Agreement</legend>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {field('agreementReference', 'Reference')}
+                  {field('agreementOn', 'Date')}
+                </div>
+                {field('terms', 'Terms')}
+                {document('agreement', 'Document')}
+              </fieldset>
+              <fieldset className="min-w-0 space-y-4 border-t border-border-subtle pt-4 lg:border-l lg:border-t-0 lg:pl-6 lg:pt-0">
+                <legend className="pb-4 text-base font-medium">Receipt</legend>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {field('receivedAmount', 'Amount received (AUD)')}
+                  {field('receivedOn', 'Date')}
+                </div>
+                {document('receipt', 'Document')}
+                <p className="text-sm text-text-muted">{COPY.RECEIPT_NOTE}</p>
+              </fieldset>
             </div>
-            {field('terms')}
-            {document('agreement')}
-            <div className="grid gap-4 border-t border-border-subtle pt-4 sm:grid-cols-2">
-              {field('receivedAmount')}
-              {field('receivedOn')}
-            </div>
-            {document('receipt')}
-            <p className="text-sm text-text-muted">{COPY.RECEIPT_NOTE}</p>
           </fieldset>
         </div>
         <div hidden={step !== 'review'}>

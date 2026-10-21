@@ -212,6 +212,8 @@ it('preserves original preparation and issue recovery through refresh, keeps app
   fireEvent.click(allotments.getByRole('button', { name: 'Continue' }));
   expect(allotments.getByLabelText('Name').getAttribute('aria-invalid')).toBe('true');
   expect(api.post).not.toHaveBeenCalled();
+  const agreement = () => within(allotments.getByRole('group', { name: 'Agreement' }));
+  const receipt = () => within(allotments.getByRole('group', { name: 'Receipt' }));
   const fillAuthority = () => {
     for (const [label, value] of [
       [COPY.COMPANY_EVENT_ON, ALLOTMENT_REQUEST.companyEventOn],
@@ -237,15 +239,18 @@ it('preserves original preparation and issue recovery through refresh, keeps app
     fireEvent.click(allotments.getByRole('button', { name: 'Continue' }));
     act(() => {
       for (const [label, value] of [
-        [COPY.RECEIVED_AMOUNT, receivedAmount],
-        [COPY.AGREEMENT_REFERENCE, ALLOTMENT_REQUEST.agreementReference],
-        [COPY.AGREEMENT_ON, ALLOTMENT_REQUEST.agreementOn],
-        [COPY.RECEIVED_ON, ALLOTMENT_REQUEST.receivedOn],
-        [COPY.TERMS, ALLOTMENT_REQUEST.terms],
+        ['Reference', ALLOTMENT_REQUEST.agreementReference],
+        ['Date', ALLOTMENT_REQUEST.agreementOn],
+        ['Terms', ALLOTMENT_REQUEST.terms],
       ])
-        fireEvent.change(allotments.getByLabelText(label), { target: { value } });
-      for (const label of [COPY.DOCUMENTS.agreement, COPY.DOCUMENTS.receipt])
-        fireEvent.change(allotments.getByLabelText(label), {
+        fireEvent.change(agreement().getByLabelText(label), { target: { value } });
+      for (const [label, value] of [
+        ['Amount received (AUD)', receivedAmount],
+        ['Date', ALLOTMENT_REQUEST.receivedOn],
+      ])
+        fireEvent.change(receipt().getByLabelText(label), { target: { value } });
+      for (const group of [agreement(), receipt()])
+        fireEvent.change(group.getByLabelText('Document'), {
           target: { files: [new File(['synthetic'], 'evidence.pdf', { type: 'application/pdf' })] },
         });
     });
@@ -255,32 +260,31 @@ it('preserves original preparation and issue recovery through refresh, keeps app
     }
   };
   expect((allotments.getByLabelText(COPY.COMPANY_EVENT_ON) as HTMLInputElement).value).toBe('');
-  const refused = (label: string) => {
-    fireEvent.click(
-      allotments.getByRole('button', { name: label === COPY.RECEIVED_AMOUNT ? 'Continue' : COPY.SUBMIT }),
-    );
+  const refused = (control: HTMLElement, action = COPY.SUBMIT) => {
+    fireEvent.click(allotments.getByRole('button', { name: action }));
     expect(document.activeElement).toBe(allotments.getByText('Before continuing:').parentElement);
-    expect(allotments.getByLabelText(label).getAttribute('aria-invalid')).toBe('true');
+    expect(control.getAttribute('aria-invalid')).toBe('true');
   };
   fillForm();
   fireEvent.click(allotments.getByRole('button', { name: 'Back' }));
   expect((allotments.getByLabelText(COPY.SHARES) as HTMLInputElement).value).toBe('100');
   expect((allotments.getByLabelText('Name') as HTMLInputElement).value).toBe(ALLOTMENT_REQUEST.name);
   fireEvent.click(allotments.getByRole('button', { name: 'Continue' }));
-  expect((allotments.getByLabelText(COPY.DOCUMENTS.agreement) as HTMLInputElement).files).toHaveLength(1);
-  expect((allotments.getByLabelText(COPY.TERMS) as HTMLInputElement).value).toBe(ALLOTMENT_REQUEST.terms);
+  expect((agreement().getByLabelText('Document') as HTMLInputElement).files).toHaveLength(1);
+  expect((receipt().getByLabelText('Document') as HTMLInputElement).files).toHaveLength(1);
+  expect((agreement().getByLabelText('Terms') as HTMLInputElement).value).toBe(ALLOTMENT_REQUEST.terms);
   expect(api.post).not.toHaveBeenCalled();
-  refused(COPY.RECEIVED_AMOUNT);
-  fireEvent.change(allotments.getByLabelText(COPY.RECEIVED_AMOUNT), { target: { value: '250' } });
+  refused(receipt().getByLabelText('Amount received (AUD)'), 'Continue');
+  fireEvent.change(receipt().getByLabelText('Amount received (AUD)'), { target: { value: '250' } });
   fireEvent.click(allotments.getByRole('button', { name: 'Continue' }));
   fillAuthority();
   expect(allotments.getByText(ALLOTMENT_REQUEST.name!)).toBeTruthy();
   expect(allotments.getByText(/AUD\s250\.00/)).toBeTruthy();
   expect(api.post).not.toHaveBeenCalled();
   fireEvent.change(allotments.getByLabelText(COPY.COMPANY_EVENT_ON), { target: { value: '' } });
-  refused(COPY.COMPANY_EVENT_ON);
+  refused(allotments.getByLabelText(COPY.COMPANY_EVENT_ON));
   fireEvent.change(allotments.getByLabelText(COPY.COMPANY_EVENT_ON), { target: { value: '2099-01-01' } });
-  refused(COPY.COMPANY_EVENT_ON);
+  refused(allotments.getByLabelText(COPY.COMPANY_EVENT_ON));
   fireEvent.change(allotments.getByLabelText(COPY.COMPANY_EVENT_ON), {
     target: { value: ALLOTMENT_REQUEST.companyEventOn },
   });
