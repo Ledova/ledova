@@ -176,8 +176,8 @@ it('puts own register shares and awards first without wallet reads, preserves se
   await screen.findByRole('button', { name: 'Read own entries for Ordinary' });
   expect(api.get.mock.calls.some(([url]) => url === WALLET_ENDPOINTS.BASE)).toBe(false);
   expect(screen.queryByRole('heading', { name: 'Shares in your wallets' })).toBeNull();
-  const invitation = screen.getByText('Accept another member invitation').closest('details');
-  expect(invitation?.open).toBe(false);
+  const invitation = screen.getByRole('button', { name: 'Accept another member invitation' });
+  expect(invitation.getAttribute('aria-expanded')).toBe('false');
   await screen.findByText('Recent changes · Ordinary');
   expect(screen.queryByRole('button', { name: `Open ${MEMBER_RECORD.company.name} member record` })).toBeNull();
   expect(screen.getByText('Recent changes · Ordinary')).toBeTruthy();
@@ -246,7 +246,7 @@ it('puts own register shares and awards first without wallet reads, preserves se
   expect(screen.queryByRole('button', { name: /Download.*(entitlement|correction)/ })).toBeNull();
   record = { ...MEMBER_RECORD, classes: [] };
   fireEvent.click(screen.getByRole('button', { name: 'Refresh member records' }));
-  expect(await screen.findByText('No issued shares recorded.')).toBeTruthy();
+  expect(await screen.findByText('No issued shares yet.')).toBeTruthy();
   fireEvent.click(screen.getByRole('button', { name: `Open ${MEMBER_RECORD.company.name} member record` }));
   await waitFor(() => expect(screen.queryByRole('alert')).toBeNull());
   expect(screen.getByRole('img', { name: /3 unvested, 2 vested, awaiting issue, 0 issued from award/ })).toBeTruthy();
@@ -257,7 +257,7 @@ it('puts own register shares and awards first without wallet reads, preserves se
   fireEvent.click(screen.getByRole('button', { name: 'Refresh member records' }));
   await screen.findByText('Your award records could not be confirmed. Refresh before continuing.');
   expect(screen.queryByRole('img')).toBeNull();
-  expect(screen.queryByText('No issued shares recorded.')).toBeNull();
+  expect(screen.queryByText('No issued shares yet.')).toBeNull();
   record = {
     ...record,
     awards: [{ ...MEMBER_RECORD.awards[0], shares: '0', vestedShares: '0', availableShares: '0' }],
@@ -275,7 +275,7 @@ it('puts own register shares and awards first without wallet reads, preserves se
     await client.refetchQueries({ queryKey: ['member-records', 'profile-one', 'account-one', 0], exact: true });
   });
   expect(await screen.findByRole('button', { name: 'Request certificate for entry 1' })).toBeTruthy();
-  fireEvent.click(screen.getByRole('link', { name: 'View documents and certificate requests' }));
+  fireEvent.click(screen.getByRole('link', { name: 'Documents' }));
   expect(await screen.findByRole('heading', { name: 'Documents', level: 1 })).toBeTruthy();
   expect(screen.queryByText('10 issued shares')).toBeNull();
   expect(screen.queryByRole('img')).toBeNull();
@@ -287,7 +287,7 @@ it('puts own register shares and awards first without wallet reads, preserves se
   await waitFor(() => expect(screen.queryByText('10 issued shares')).toBeNull());
   expect(screen.queryByRole('img')).toBeNull();
   expect(screen.queryByRole('button', { name: 'Request certificate for entry 1' })).toBeNull();
-  expect(screen.getByRole('alert').textContent).toMatch(/could not be read/);
+  expect(screen.getByRole('alert').textContent).toMatch(/Your member records could not be loaded/);
   expect(screen.queryByRole('heading', { name: 'Get access to your shares' })).toBeNull();
-  expect(screen.queryByText('No issued shares recorded.')).toBeNull();
+  expect(screen.queryByText('No issued shares yet.')).toBeNull();
 });

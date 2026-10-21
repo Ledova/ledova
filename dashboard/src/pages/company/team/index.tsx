@@ -1,6 +1,6 @@
 import { SelectField } from '@components/SelectField';
 import { CompanyPicker } from '@components/CompanyPicker';
-import { LinkRow, Row, Rows, Section } from '@components/Ledger';
+import { LinkRow, Row, Rows, Section, LoadError, Loading, Disclosure } from '@components/Ledger';
 import { Modal } from '@components/Modal';
 import { Page, PageAction } from '@components/Page';
 import {
@@ -9,6 +9,8 @@ import {
   useSubmissionOwner,
   useUserPreferences,
   type OrderSubmissionOwner,
+  formatDateTime,
+  shortReference,
 } from '@ledova/shared';
 import { scopeLabels } from '@pages/company/shared/appointments';
 import { AcceptInvitationForm } from './AcceptInvitationForm';
@@ -22,8 +24,13 @@ export default function CompanyTeamPage() {
   if (!owner || preferences.isError)
     return (
       <Page narrow>
-        <p className="text-sm text-text-muted">Your signed-in account must be checked before opening company team.</p>
-        <PageAction label="Retry your account" onClick={() => void preferences.refetch()} />
+        {preferences.isError ? (
+          <LoadError retry={() => preferences.refetch()} busy={preferences.isFetching}>
+            Your account could not be loaded.
+          </LoadError>
+        ) : (
+          <p className="text-sm text-text-muted">Your signed-in account must be checked before opening company team.</p>
+        )}
       </Page>
     );
   return <OwnTeam key={`${owner.userUuid}/${owner.ownerAccountUuid}`} owner={owner} currentOwner={boundary.get} />;
@@ -83,19 +90,23 @@ function OwnTeam({
         />
       </Section>
       <Section title="Your appointments">
-        <PageAction
-          label="Refresh appointments"
-          disabled={disabled || own.isFetching}
-          onClick={() => void own.refetch()}
-        />
+        {!own.isError && (
+          <PageAction
+            label="Refresh appointments"
+            busy={own.isFetching}
+            busyLabel="Refreshing…"
+            disabled={disabled}
+            onClick={() => void own.refetch()}
+          />
+        )}
         {own.isPending ? (
-          <p role="status">Loading your appointments…</p>
+          <Loading>Loading your appointments…</Loading>
         ) : own.isError ? (
-          <p role="alert" className="text-sm text-error-light">
-            Your appointments could not be loaded. Refresh before using company authority.
-          </p>
+          <LoadError retry={() => own.refetch()} busy={own.isFetching}>
+            Your appointments could not be loaded.
+          </LoadError>
         ) : appointments.length === 0 ? (
-          <p>No company appointments recorded.</p>
+          <p className="text-sm text-text-muted">No company appointments yet.</p>
         ) : (
           <ul className="divide-y divide-border-subtle">
             {appointments.map((item) => (
@@ -130,7 +141,7 @@ function OwnTeam({
                 ...sources.map((item) => ({
                   value: item.uuid,
                   label: `${scopeLabels(item.delegatableCapabilities)} · appointed ${formatDate(item.createdAt)}`,
-                  reference: item.uuid.slice(0, 8),
+                  reference: shortReference(item.uuid),
                 })),
               ]}
               value={sourceId}
@@ -152,17 +163,21 @@ function OwnTeam({
             {canAdmin ? (
               <>
                 <h3 className="text-sm font-medium">Company team</h3>
-                <PageAction
-                  label="Refresh company team"
-                  disabled={disabled || team.isFetching}
-                  onClick={() => void team.refetch()}
-                />
+                {!team.isError && (
+                  <PageAction
+                    label="Refresh company team"
+                    busy={team.isFetching}
+                    busyLabel="Refreshing…"
+                    disabled={disabled}
+                    onClick={() => void team.refetch()}
+                  />
+                )}
                 {team.isPending ? (
-                  <p role="status">Loading company team…</p>
+                  <Loading>Loading company team…</Loading>
                 ) : team.isError ? (
-                  <p role="alert" className="text-sm text-error-light">
-                    Company team could not be loaded. Refresh before managing it.
-                  </p>
+                  <LoadError retry={() => team.refetch()} busy={team.isFetching}>
+                    Company team could not be loaded.
+                  </LoadError>
                 ) : (
                   <ul className="divide-y divide-border-subtle">
                     {(team.data ?? []).map((item) => (
@@ -188,19 +203,23 @@ function OwnTeam({
         )}
       </Section>
       <Section title="Invitations you issued">
-        <PageAction
-          label="Refresh invitations"
-          disabled={disabled || invitations.isFetching}
-          onClick={() => void invitations.refetch()}
-        />
+        {!invitations.isError && (
+          <PageAction
+            label="Refresh invitations"
+            busy={invitations.isFetching}
+            busyLabel="Refreshing…"
+            disabled={disabled}
+            onClick={() => void invitations.refetch()}
+          />
+        )}
         {invitations.isPending ? (
-          <p role="status">Loading your invitations…</p>
+          <Loading>Loading your invitations…</Loading>
         ) : invitations.isError ? (
-          <p role="alert" className="text-sm text-error-light">
+          <LoadError retry={() => invitations.refetch()} busy={invitations.isFetching}>
             Your invitations could not be loaded.
-          </p>
+          </LoadError>
         ) : (invitations.data ?? []).length === 0 ? (
-          <p>No invitations recorded.</p>
+          <p className="text-sm text-text-muted">No invitations yet.</p>
         ) : (
           <ul className="divide-y divide-border-subtle">
             {(invitations.data ?? []).map((item) => (
@@ -209,21 +228,22 @@ function OwnTeam({
                   <Row label="Company (provided by the company)">{item.companyName}</Row>
                   <Row label="Personal actions">{scopeLabels(item.capabilities)}</Row>
                   <Row label="May delegate">{scopeLabels(item.delegatableCapabilities)}</Row>
-                  <Row label="Acceptance deadline">{item.acceptanceDeadline}</Row>
-                  <Row label="Accepted">{item.acceptedAt || 'Not yet accepted'}</Row>
-                  <Row label="Appointment expiry">{item.appointmentExpiresAt || 'No expiry'}</Row>
+                  <Row label="Acceptance deadline">{formatDateTime(item.acceptanceDeadline)}</Row>
+                  <Row label="Accepted">{formatDateTime(item.acceptedAt, 'Not yet accepted')}</Row>
+                  <Row label="Appointment expiry">{formatDateTime(item.appointmentExpiresAt, 'No expiry')}</Row>
                 </Rows>
-                <details className="pt-2 text-sm">
-                  <summary className="cursor-pointer text-text-muted">Invitation record</summary>
-                  <p className="break-all pt-2">{item.uuid}</p>
-                </details>
+                <Disclosure summary="Invitation record">
+                  <div className="text-sm">
+                    <p className="pt-2">Invitation reference {shortReference(item.uuid)}</p>
+                  </div>
+                </Disclosure>
               </li>
             ))}
           </ul>
         )}
       </Section>
       <Section title="Company eligibility">
-        <LinkRow to={DESTINATIONS.companyEligibility.path} label="Read your company eligibility queue" />
+        <LinkRow to={DESTINATIONS.companyEligibility.path} label={DESTINATIONS.companyEligibility.title} />
       </Section>
       {error && (
         <p role="alert" className="text-sm text-error-light">
@@ -252,8 +272,8 @@ function OwnTeam({
         }}
       >
         <p className="text-sm text-text-primary">
-          Permanently remove appointment {confirmation?.appointment.uuid} for {confirmation?.companyName}? This
-          appointment loses its company authority. Its history remains retained.
+          Permanently remove appointment {confirmation ? shortReference(confirmation.appointment.uuid) : ''} for{' '}
+          {confirmation?.companyName}? This appointment loses its company authority. Its history remains retained.
           {confirmation?.appointment.source !== 'invitation' &&
             ' Another initial self-declaration cannot restore it; revoking an initial or legacy-owner appointment does not reopen admission.'}
         </p>

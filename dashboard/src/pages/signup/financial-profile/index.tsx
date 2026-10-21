@@ -27,7 +27,7 @@ export default function SignupFinancialProfile() {
   };
 
   if (isLoading) {
-    return <LoadingState message="Loading financial profile…" />;
+    return <LoadingState message="Loading your financial profile…" />;
   }
 
   if (generalError && !userProfileId) {

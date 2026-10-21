@@ -3,8 +3,11 @@ import {
   formatShareCount,
   REGISTER_ALLOTMENT_COPY as COPY,
   type RegisterAllotmentDecisionPreview,
+  shareCount,
+  shortReference,
 } from '@ledova/shared';
-import { Row, Rows } from '@components/Ledger';
+import { Row, Rows, Disclosure } from '@components/Ledger';
+import { Table } from '@components/List';
 
 export function AllotmentOwnership({ preview }: { preview: RegisterAllotmentDecisionPreview }) {
   const impact = allotmentOwnershipImpact(preview);
@@ -15,44 +18,32 @@ export function AllotmentOwnership({ preview }: { preview: RegisterAllotmentDeci
       </p>
     );
   const table = (rows: typeof impact.rows, label: string) => (
-    <div className="overflow-x-auto">
-      <table aria-label={label} className="w-full text-left text-sm">
-        <thead className="border-b border-border-subtle text-text-muted">
-          <tr>
-            <th scope="col" className="px-2 py-2 font-medium">
-              Shareholder
-            </th>
-            <th scope="col" className="px-2 py-2 text-right font-medium">
-              Before
-            </th>
-            <th scope="col" className="px-2 py-2 text-right font-medium">
-              After
-            </th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-border-subtle">
-          {rows.map((row) => (
-            <tr key={row.member}>
-              <th scope="row" className="px-2 py-3 font-medium">
-                {row.name || 'Name not recorded'}
-                {row.recipient && ' · Investor'}
-                {impact.rows.some((other) => other.member !== row.member && other.name === row.name) && (
-                  <span className="block text-xs text-text-muted">Record {row.member.slice(-8)}</span>
-                )}
-              </th>
-              <td className="px-2 py-3 text-right tabular-nums">
-                <span className="block whitespace-nowrap">{formatShareCount(row.beforeShares)} shares</span>
-                <span className="text-text-muted">{row.beforePercentage}</span>
-              </td>
-              <td className="px-2 py-3 text-right tabular-nums">
-                <span className="block whitespace-nowrap">{formatShareCount(row.afterShares)} shares</span>
-                <span className="text-text-muted">{row.afterPercentage}</span>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <Table
+      caption={label}
+      columns={[{ label: 'Shareholder' }, { label: 'Before', align: 'right' }, { label: 'After', align: 'right' }]}
+    >
+      {rows.map((row) => (
+        <tr key={row.member}>
+          <th scope="row" className="px-4 py-3 text-left font-medium">
+            {row.name || 'Name not recorded'}
+            {row.recipient && ' · Investor'}
+            {impact.rows.some((other) => other.member !== row.member && other.name === row.name) && (
+              <span className="block text-xs font-normal text-text-muted">
+                Member reference {shortReference(row.member)}
+              </span>
+            )}
+          </th>
+          <td className="px-4 py-3 text-right tabular-nums">
+            <span className="block whitespace-nowrap">{shareCount(row.beforeShares)}</span>
+            <span className="text-text-muted">{row.beforePercentage}</span>
+          </td>
+          <td className="px-4 py-3 text-right tabular-nums">
+            <span className="block whitespace-nowrap">{shareCount(row.afterShares)}</span>
+            <span className="text-text-muted">{row.afterPercentage}</span>
+          </td>
+        </tr>
+      ))}
+    </Table>
   );
   return (
     <section className="space-y-3" aria-label={COPY.OWNERSHIP_TITLE}>
@@ -68,12 +59,9 @@ export function AllotmentOwnership({ preview }: { preview: RegisterAllotmentDeci
       </Rows>
       {table(impact.rows.length > 5 ? impact.rows.slice(0, 1) : impact.rows, 'Share class ownership forecast')}
       {impact.rows.length > 5 && (
-        <details className="space-y-3">
-          <summary className="cursor-pointer py-2 text-sm font-medium">
-            Other shareholders ({impact.rows.length - 1})
-          </summary>
+        <Disclosure summary={`Other shareholders (${impact.rows.length - 1})`}>
           {table(impact.rows.slice(1), 'Other shareholder ownership forecast')}
-        </details>
+        </Disclosure>
       )}
       <p className="text-sm text-text-muted">{COPY.OWNERSHIP_NOTE}</p>
     </section>

@@ -1,9 +1,11 @@
+import { Field, TextInput } from '@components/Field';
 import { Choices } from '@components/Choices';
 import { useNewShareClass, type FreshClassProps } from './useNewShareClass';
 import { Fragment, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { generatePath, Link, useSearchParams } from 'react-router-dom';
 import {
+  FIELD_LIMITS,
   DESTINATIONS,
   REGISTER_IMPORT_COPY,
   AUTH_QUERY_KEY,
@@ -15,16 +17,15 @@ import {
   type TokenType,
   type RegisterTransferMembers,
 } from '@ledova/shared';
-import { FIELD_CLASS, LABEL } from '@components/fieldClass';
 
 import { CompanySelection } from '@pages/company/shared/CompanySelection';
-import { Loading, Unavailable } from '@pages/company/shared/RegisterStatus';
 import { registerSteps } from '@pages/company/shared/proposals';
 import { useRegisterClasses, registerClassesKey } from '@pages/company/shared/useCompanyRegister';
 import { ownerGuard } from '@pages/company/shared/ownerGuard';
 import { useOwnAppointments, ownAppointmentsKey } from '@hooks/useOwnAppointments';
 import { peopleKey, usePeople } from '@pages/company/register/shared/usePeople';
 import { ImportForm } from './ImportForm';
+import { LoadError, Loading } from '@components/Ledger';
 
 const NO_MEMBERS: RegisterTransferMembers = { members: [], awardRecipients: [] };
 const COMMON_CLASSES: { type: TokenType; name: string; symbol: string; label: string }[] = [
@@ -134,8 +135,12 @@ export function NewClassSetup({
       throw createUserFriendlyError('Your company or authority changed. Reopen this action.');
   };
   if ((!held || !context) && (classes.isError || appointments.isError || members.isError))
-    return <Unavailable retry={retry} busy={classes.isFetching || appointments.isFetching || members.isFetching} />;
-  if (!context && (!classes.data || !appointments.data)) return <Loading />;
+    return (
+      <LoadError retry={retry} busy={classes.isFetching || appointments.isFetching || members.isFetching}>
+        The register or your appointments could not be loaded.
+      </LoadError>
+    );
+  if (!context && (!classes.data || !appointments.data)) return <Loading>Loading the register…</Loading>;
   return (
     <div className="space-y-5">
       <CompanySelection
@@ -262,26 +267,22 @@ function FreshClass({
           )}
           {choice === 'custom' && (
             <div className="grid gap-3 sm:grid-cols-2">
-              <label className={LABEL}>
-                Class name
-                <input
-                  maxLength={100}
+              <Field label="Class name">
+                <TextInput
+                  maxLength={FIELD_LIMITS.CLASS_NAME}
                   disabled={classLocked}
-                  className={FIELD_CLASS}
                   value={name}
                   onChange={(event) => setName(event.target.value)}
                 />
-              </label>
-              <label className={LABEL}>
-                Class code
-                <input
-                  maxLength={5}
+              </Field>
+              <Field label="Class code">
+                <TextInput
+                  maxLength={FIELD_LIMITS.CLASS_CODE}
                   disabled={classLocked}
-                  className={FIELD_CLASS}
                   value={symbol}
                   onChange={(event) => setSymbol(event.target.value.toUpperCase())}
                 />
-              </label>
+              </Field>
               <Choices
                 legend="Class type"
                 options={CLASS_TYPES}

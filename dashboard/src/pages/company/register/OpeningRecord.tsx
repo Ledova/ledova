@@ -7,18 +7,22 @@ import {
   largestHoldingsFirst,
   openingMemberLabels,
   type RegisterOpening,
+  shareCount,
+  formatDate,
 } from '@ledova/shared';
-import { Row, Rows } from '@components/Ledger';
+import { Row, Rows, Disclosure } from '@components/Ledger';
 import { PageAction } from '@components/Page';
 import { DecisionTrail } from '@pages/company/register/shared/DecisionTrail';
 import { RegisterChanges } from '@pages/company/register/shared/RegisterChanges';
 import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
-import { shareCount, type RegisterSteps } from '@pages/company/shared/proposals';
+import { type RegisterSteps } from '@pages/company/shared/proposals';
 import { useOpeningRecordDownload } from './useRegisterRecordDownload';
+import type { Landed } from '@pages/company/register/shared/registerPlace';
 
 const COPY = REGISTER_OPENING_COPY;
 
 export function OpeningRecord({
+  landed,
   proposal,
   steps,
   guard,
@@ -27,6 +31,7 @@ export function OpeningRecord({
   visible = true,
   onHeldChange,
 }: {
+  landed?: Landed;
   proposal: RegisterOpening;
   steps: RegisterSteps;
   guard: () => void;
@@ -42,10 +47,12 @@ export function OpeningRecord({
   const labels = openingMemberLabels(holdings);
   const context = `opening prepared ${formatDateTime(proposal.createdAt)}`;
   return (
-    <RecordShell hidden={!visible}>
+    <RecordShell hidden={!visible} landed={landed}>
       {visible && (
-        <details open={proposal.status === 'submitted'} className="space-y-3">
-          <summary className="cursor-pointer text-sm font-medium text-text-primary">{`Chain opening · ${formatDateTime(proposal.createdAt)} · ${COPY.STAGES[proposal.stage] ?? proposal.stage}`}</summary>
+        <Disclosure
+          summary={`Chain opening · ${formatDateTime(proposal.createdAt)} · ${COPY.STAGES[proposal.stage] ?? proposal.stage}`}
+          defaultOpen={proposal.status === 'submitted'}
+        >
           <Rows>
             <RecordStage stage={proposal.stage}>{COPY.STAGES[proposal.stage] ?? proposal.stage}</RecordStage>
             {proposal.preparedByName !== null && (
@@ -53,7 +60,7 @@ export function OpeningRecord({
             )}
             <Row label="Prepared on">{formatDateTime(proposal.createdAt)}</Row>
             <Row label={COPY.BOUNDARY}>
-              {summary ? COPY.BOUNDARY_BLOCK(summary.blockNumber, summary.date) : 'Not captured'}
+              {summary ? COPY.BOUNDARY_BLOCK(summary.blockNumber, formatDate(summary.date)) : 'Not captured'}
             </Row>
           </Rows>
           {summary && (
@@ -100,7 +107,7 @@ export function OpeningRecord({
             />
           </div>
           {download.isError && <RecordDownloadFailure error={download.error} />}
-        </details>
+        </Disclosure>
       )}
       <RegisterDecisions
         family={REGISTER_OPENING_DECISIONS}
@@ -120,7 +127,7 @@ export function OpeningRecord({
         {(preview) =>
           preview.effectiveOn !== null && (
             <Rows>
-              <Row label="Effective on">{preview.effectiveOn}</Row>
+              <Row label="Effective on">{formatDate(preview.effectiveOn)}</Row>
               <Row label="Opening entry">
                 {preview.changes.length === 0 ? (
                   COPY.NO_HOLDINGS

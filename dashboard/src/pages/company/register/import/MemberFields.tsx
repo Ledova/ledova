@@ -1,9 +1,10 @@
+import { Field, TextInput } from '@components/Field';
 import { Choices } from '@components/Choices';
-import { registerImportMoney, type RegisterTransferMember, peopleFrom } from '@ledova/shared';
-import { FIELD_CLASS, LABEL } from '@components/fieldClass';
+import { FIELD_LIMITS, registerImportMoney, type RegisterTransferMember, peopleFrom } from '@ledova/shared';
 import { PageAction } from '@components/Page';
 import { PersonFields, PersonSelect } from '@pages/company/register/shared/PersonPicker';
 import { blankAllotment, type AllotmentDraft, type MemberDraft } from './preparation';
+import { Disclosure } from '@components/Ledger';
 
 const HELD_FOR_SOMEONE_ELSE = [
   ['yes', 'Yes'],
@@ -73,67 +74,59 @@ export function MemberFields({
           nameReadOnly={!!recipient || (preserveParticulars && !!known?.name)}
           addressReadOnly={!!recipient || (preserveParticulars && !!known?.residentialAddress)}
         />
-        <label className={LABEL}>
-          Date first added to register
-          <input
+        <Field label="Date first added to register">
+          <TextInput
             type="date"
             max={asAt}
             value={row.enteredOn}
-            className={FIELD_CLASS}
             onChange={(event) => update({ enteredOn: event.target.value })}
           />
-        </label>
-        <label className={LABEL}>
-          Shares held
-          <input
+        </Field>
+        <Field label="Shares held">
+          <TextInput
+            maxLength={FIELD_LIMITS.REGISTER_SHARES}
             inputMode="numeric"
             value={row.shares}
-            className={FIELD_CLASS}
             onChange={(event) => update({ shares: event.target.value })}
           />
-        </label>
+        </Field>
       </div>
       {row.allotments.map((allotment, at) => (
-        <fieldset key={allotment.id} className="space-y-4 rounded-xl border border-border-subtle bg-surface-raised p-4">
+        <fieldset key={allotment.id} className="space-y-4 border-t border-border-subtle pt-4">
           <legend className="sr-only">Allotment {at + 1}</legend>
           {row.allotments.length > 1 && <h4 className="text-sm font-medium text-text-primary">Allotment {at + 1}</h4>}
           <div className="grid gap-3 sm:grid-cols-2">
-            <label className={LABEL}>
-              Allotment date
-              <input
+            <Field label="Allotment date">
+              <TextInput
                 type="date"
                 max={asAt}
                 value={allotment.allottedOn}
-                className={FIELD_CLASS}
                 onChange={(event) => setAllotment(at, { allottedOn: event.target.value })}
               />
-            </label>
-            <label className={LABEL}>
-              Shares in allotment
-              <input
+            </Field>
+            <Field label="Shares in allotment">
+              <TextInput
+                maxLength={FIELD_LIMITS.REGISTER_SHARES}
                 inputMode="numeric"
                 value={allotment.shares}
-                className={FIELD_CLASS}
                 onChange={(event) => setAllotment(at, { shares: event.target.value })}
               />
-            </label>
-            <label className={LABEL}>
-              Amount paid
-              <input
+            </Field>
+            <Field label="Amount paid">
+              <TextInput
+                maxLength={FIELD_LIMITS.AMOUNT}
                 inputMode="decimal"
                 placeholder="0.00"
                 value={allotment.amountPaid}
-                className={FIELD_CLASS}
                 onChange={(event) => setAllotment(at, { amountPaid: event.target.value })}
               />
-            </label>
-            <label className={LABEL}>
-              Amount unpaid
-              <input
+            </Field>
+            <Field label="Amount unpaid">
+              <TextInput
+                maxLength={FIELD_LIMITS.AMOUNT}
                 inputMode="decimal"
                 placeholder="0.00"
                 value={allotment.amountUnpaid}
-                className={FIELD_CLASS}
                 onChange={(event) =>
                   setAllotment(at, {
                     amountUnpaid: event.target.value,
@@ -141,7 +134,7 @@ export function MemberFields({
                   })
                 }
               />
-            </label>
+            </Field>
             <Choices
               legend="Held for someone else?"
               options={HELD_FOR_SOMEONE_ELSE}
@@ -149,29 +142,27 @@ export function MemberFields({
               onChange={(held) => setAllotment(at, { beneficiallyHeld: held === 'no' })}
             />
           </div>
-          <details open={!!(allotment.shareReference || allotment.certificateReference)}>
-            <summary className="cursor-pointer text-sm text-text-muted">References (optional)</summary>
+          <Disclosure
+            summary="References (optional)"
+            defaultOpen={!!(allotment.shareReference || allotment.certificateReference)}
+          >
             <div className="grid gap-3 pt-3 sm:grid-cols-2">
-              <label className={LABEL}>
-                Share numbers or reference
-                <input
-                  maxLength={255}
+              <Field label="Share numbers or reference">
+                <TextInput
+                  maxLength={FIELD_LIMITS.REFERENCE}
                   value={allotment.shareReference}
-                  className={FIELD_CLASS}
                   onChange={(event) => setAllotment(at, { shareReference: event.target.value })}
                 />
-              </label>
-              <label className={LABEL}>
-                Certificate reference
-                <input
-                  maxLength={255}
+              </Field>
+              <Field label="Certificate reference">
+                <TextInput
+                  maxLength={FIELD_LIMITS.REFERENCE}
                   value={allotment.certificateReference}
-                  className={FIELD_CLASS}
                   onChange={(event) => setAllotment(at, { certificateReference: event.target.value })}
                 />
-              </label>
+              </Field>
             </div>
-          </details>
+          </Disclosure>
           {row.allotments.length > 1 && (
             <PageAction
               label={`Remove allotment ${at + 1} for shareholder ${index + 1}`}

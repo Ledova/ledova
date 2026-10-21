@@ -1,4 +1,4 @@
-import { acceptCompanyTeamInvitation, failureSentence } from '@ledova/shared';
+import { acceptCompanyTeamInvitation, failureSentence, isInvitationCode } from '@ledova/shared';
 import { appointmentReceipt } from '@pages/company/shared/appointments';
 import apiClient from '@services/apiClient';
 import { useEffect, useRef, useState } from 'react';
@@ -31,7 +31,7 @@ export function useAcceptInvitationForm({
     guard();
     if (!mounted.current) throw new Error('Your signed-in account changed. Reopen company team.');
   };
-  const ready = accepted && /^[A-Za-z0-9_-]{43}$/.test(code);
+  const ready = accepted && isInvitationCode(code);
   const send = async () => {
     if (disabled || pending.current || !ready) return;
     pending.current = true;
@@ -64,5 +64,5 @@ export function useAcceptInvitationForm({
       if (mounted.current) setBusy(false);
     }
   };
-  return { code, setCode, accepted, setAccepted, busy, error, setError, receipt, setReceipt, ready, send };
+  return { code, setCode, accepted, setAccepted, busy, error, setError, receipt, setReceipt, send };
 }

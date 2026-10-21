@@ -1,9 +1,12 @@
+import { Field, TextArea, TextInput, FileField } from '@components/Field';
 import { useGrantPreparation, type GrantFormProps, type DocumentKind } from './useGrantPreparation';
 
-import { REGISTER_GRANT_COPY as COPY, formatShareCount } from '@ledova/shared';
+import { FIELD_LIMITS, REGISTER_GRANT_COPY as COPY, shareCount, shortReference } from '@ledova/shared';
 import { FormActions, PageAction } from '@components/Page';
-import { FIELD_CLASS, LABEL } from '@components/fieldClass';
+import { ErrorSummary } from '@components/ErrorSummary';
+import { useErrorSummary } from '@hooks/useErrorSummary';
 import { PersonFields, PersonSelect } from '@pages/company/register/shared/PersonPicker';
+import { Disclosure } from '@components/Ledger';
 
 const DOCUMENTS: Record<DocumentKind, string> = {
   authority: COPY.AUTHORITY_DOCUMENT,
@@ -43,6 +46,7 @@ export function GrantForm({
     onHeldChange,
     canPrepare,
   });
+  const checks = useErrorSummary(model?.problems ?? {});
   if (model === null) return null;
   const {
     today,
@@ -75,33 +79,33 @@ export function GrantForm({
     recipientAddress,
     retainedDate,
     retainedSummary,
-    problem,
     submit,
   } = model;
 
   return (
     <form
       className="space-y-5"
+      noValidate
       onSubmit={(event) => {
         event.preventDefault();
-        void submit();
+        if (held || checks.check()) void submit();
       }}
     >
+      <ErrorSummary {...checks.summary} />
       <fieldset disabled={busy || blocked || held || !canPrepare} className="space-y-4">
         {award ? (
           <div className="space-y-2">
             <p className="text-base font-medium text-text-primary">{recipientName}</p>
             <p className="text-sm text-text-muted">{recipientAddress}</p>
             <p className="text-sm text-text-muted">
-              {formatShareCount(award.availableShares)} vested shares available to issue. The recipient and agreement
-              are fixed; company approval and recording the issue remain separate.
+              {shareCount(award.availableShares, 'vested')} available to issue. The recipient and agreement are fixed;
+              company approval and recording the issue remain separate.
             </p>
-            <details>
-              <summary className="cursor-pointer py-2 text-sm">Award record details</summary>
+            <Disclosure summary="Award record details">
               <p className="text-sm text-text-muted">
-                Award {award.uuid} · Member {award.member}
+                Award {shortReference(award.uuid)} · Member {shortReference(award.member)}
               </p>
-            </details>
+            </Disclosure>
           </div>
         ) : (
           <PersonSelect
@@ -112,84 +116,78 @@ export function GrantForm({
           />
         )}
         {!award && member === 'new' ? (
-          <PersonFields name={name} residentialAddress={address} onName={setName} onResidentialAddress={setAddress} />
+          <PersonFields
+            name={name}
+            residentialAddress={address}
+            onName={setName}
+            onResidentialAddress={setAddress}
+            nameCheck={checks.field('name')}
+            addressCheck={checks.field('address')}
+          />
         ) : !award ? (
           <p className="text-sm text-text-muted">
             The grant retains the existing member’s current particulars. Preview them before approval.
           </p>
         ) : null}
-        <label className={LABEL}>
-          {COPY.SHARES}
-          <input
-            className={FIELD_CLASS}
+        <Field {...checks.field('shares')} label={COPY.SHARES}>
+          <TextInput
+            maxLength={FIELD_LIMITS.REGISTER_SHARES}
             inputMode="numeric"
             value={shares}
             onChange={(event) => setShares(event.target.value.trim())}
           />
-        </label>
-        <label className={LABEL}>
-          {COPY.COMPANY_EVENT_ON}
-          <input
+        </Field>
+        <Field {...checks.field('companyEventOn')} label={COPY.COMPANY_EVENT_ON}>
+          <TextInput
             type="date"
             max={today}
-            className={FIELD_CLASS}
             value={companyEventOn}
             onChange={(event) => setCompanyEventOn(event.target.value)}
           />
-        </label>
-        <label className={LABEL}>
-          {COPY.TERMS_ON}
-          <input
+        </Field>
+        <Field {...checks.field('termsOn')} label={COPY.TERMS_ON}>
+          <TextInput
             type="date"
             max={today}
-            className={FIELD_CLASS}
             value={retainedDate}
             disabled={!!award}
             onChange={(event) => setTermsOn(event.target.value)}
           />
-        </label>
-        <label className={LABEL}>
-          {COPY.TERMS}
-          <textarea
-            className={FIELD_CLASS}
-            maxLength={1000}
+        </Field>
+        <Field {...checks.field('terms')} label={COPY.TERMS}>
+          <TextArea
+            maxLength={FIELD_LIMITS.TERMS}
             rows={3}
             value={retainedSummary}
             disabled={!!award}
             onChange={(event) => setTerms(event.target.value)}
           />
-        </label>
-        <label className={LABEL}>
-          {COPY.DIRECTOR}
-          <input
-            className={FIELD_CLASS}
-            maxLength={255}
+        </Field>
+        <Field {...checks.field('director')} label={COPY.DIRECTOR}>
+          <TextInput
+            maxLength={FIELD_LIMITS.DIRECTOR}
             value={approvingDirector}
             onChange={(event) => setApprovingDirector(event.target.value)}
           />
-        </label>
+        </Field>
         <p className="text-sm text-text-muted">
           {COPY.DIRECTOR_NOTE} {COPY.EFFECTIVE_NOTE}
         </p>
-        <label className={LABEL}>
-          {COPY.AUTHORITY_REFERENCE}
-          <input
-            className={FIELD_CLASS}
-            maxLength={255}
+        <Field {...checks.field('reference')} label={COPY.AUTHORITY_REFERENCE}>
+          <TextInput
+            maxLength={FIELD_LIMITS.REFERENCE}
             value={authorityReference}
             onChange={(event) => setAuthorityReference(event.target.value)}
           />
-        </label>
-        <label className={LABEL}>
-          {COPY.REASON}
-          <textarea
-            className={FIELD_CLASS}
-            maxLength={1000}
+        </Field>
+        <Field {...checks.field('reason')} label={COPY.REASON}>
+          <TextArea
+            maxLength={FIELD_LIMITS.REASON}
             rows={3}
             value={reason}
             onChange={(event) => setReason(event.target.value)}
           />
-        </label>
+        </Field>
         <label className="flex gap-2 text-sm text-text-primary">
           <input
             type="checkbox"
@@ -199,20 +197,16 @@ export function GrantForm({
           {COPY.ACCEPTANCE_REQUIRED}
         </label>
         {documentKinds.map((kind) => (
-          <label key={kind} className={LABEL}>
-            {DOCUMENTS[kind]}
-            <input
-              type="file"
-              accept="application/pdf,image/png,image/jpeg"
-              className={FIELD_CLASS}
-              onChange={(event) => setFiles((current) => ({ ...current, [kind]: event.target.files?.[0] }))}
-            />
-          </label>
+          <FileField
+            key={kind}
+            {...checks.field(`${kind}Document`)}
+            label={DOCUMENTS[kind]}
+            onFile={(file) => setFiles((current) => ({ ...current, [kind]: file ?? undefined }))}
+          />
         ))}
-        <p className="text-sm text-text-muted">PDF or image, max 10 MB each. {COPY.PROVIDED_BY_COMPANY}</p>
+        <p className="text-sm text-text-muted">{COPY.PROVIDED_BY_COMPANY}</p>
         {award && <p className="text-sm text-text-muted">The retained award agreement will be used for this issue.</p>}
       </fieldset>
-      {problem && <p className="text-sm text-text-muted">{problem}</p>}
       {error && (
         <p role="alert" className="text-sm text-error-light">
           {error}
@@ -229,7 +223,7 @@ export function GrantForm({
           label={held ? 'Recover original grant preparation' : award ? 'Prepare vested share issue' : COPY.SUBMIT}
           busy={busy}
           busyLabel="Preparing grant…"
-          disabled={blocked || (!held && (!canPrepare || !!problem))}
+          disabled={blocked || (!held && !canPrepare)}
         />
       </FormActions>
     </form>

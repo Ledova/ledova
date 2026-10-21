@@ -7,6 +7,7 @@ one standard way to make each common choice. How the clients are built is in [fr
 and [mobile](mobile.md); what each page does is in the business section.
 
 - [Signed-in page conventions](#signed-in-page-conventions)
+- [Navigation](#navigation)
 - [Actions](#actions)
 - [Feedback](#feedback)
 - [Copy](#copy)
@@ -17,13 +18,16 @@ and [mobile](mobile.md); what each page does is in the business section.
 - [Choosing from a bounded list](#choosing-from-a-bounded-list)
 - [How the choice rules are enforced](#how-the-choice-rules-are-enforced)
 - [Lists, search, filters and paging](#lists-search-filters-and-paging)
+- [Loading, empty and error states](#loading-empty-and-error-states)
+- [Forms](#forms)
 - [Validation](#validation)
+- [Dates, numbers and identifiers](#dates-numbers-and-identifiers)
 
 ## Signed-in page conventions
 
 Every signed-in page renders in `Page` (`dashboard/src/components/Page.tsx`,
-`mobile/src/components/Page.tsx`) under the page's title. Web
-forms use `FIELD_CLASS` and `LABEL` (`dashboard/src/components/fieldClass.ts`). `Page narrow` bounds
+`mobile/src/components/Page.tsx`) under the page's title. Web form fields use `Field`
+([forms](#forms)). `Page narrow` bounds
 task forms, settings and detailed records, including compact tables; ownership dashboards and wide
 tables take the standard workspace width, and tables scroll within their card on small screens.
 Section spacing is scoped to the frame; sign-up keeps its own presentation.
@@ -44,22 +48,36 @@ The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components
 
 - `Section`: a raised card on the page ground (`bg-surface-raised`, a `border-border` hairline,
   `rounded-2xl` in the frame, `rounded-xl` outside it) with its Newsreader title inside. Forms and
-  things to act on are cards too; a group inside a card gets a rule or a small heading, never a
-  nested card. An empty section keeps its real title, one muted sentence ("No activity yet.") and at
-  most one action; a state is never a title.
-- `Rows` and `Row`: ruled label and value pairs, figures right-aligned in tabular numerals.
+  things to act on are cards too; a group inside a card, such as a form or a record, gets a hairline
+  rule above it or a small heading, never a nested card. An empty section keeps its real title, one
+  muted sentence ("No activity yet.") and at most one action besides Refresh; a state is never a
+  title. A card's title is a heading, such as each class's summary on Register.
+- `Rows` and `Row`: ruled label and value pairs for a record's labelled facts, such as a
+  shareholder's holding or an import's supporting records. The web sets values in tabular numerals;
+  mobile right-aligns them. Breakdowns of figures (company ownership, a class's totals, register
+  setup's summary, a holding's wallets) and an award's chart legend keep their own layout, without
+  tinted tiles.
 - `LinkRow`: how a list of sub-pages or neighbours links to each; the whole row is the link, named
-  after its destination, with optional detail lines and an aside. A title row never repeats a
-  sidebar destination; an underlined link belongs to a sentence or opens an external resource.
+  with its destination's title, with optional detail lines and an aside. A step in a checklist, such
+  as "Verify and activate your company", and a row that starts a task, such as "Prepare a non-paid
+  transfer", are named for the step or the task; a record's row, such as a share class in Directory,
+  for the record; and a row that opens a section of a page, such as "Company documents", for that
+  section. A title row never repeats a sidebar destination; an underlined link belongs to a sentence
+  or opens an external resource.
 - `PageAction` and `PageLink` (`Action` on mobile): a content-width action placed with what it acts
   on: the title row for the page (including the way back to the parent), a section for that section,
   a row for that row's record alone. Nothing is selected before acting, and no toolbar waits under a list.
-- `Disclosure`: a button with `aria-expanded` (expanded or collapsed on mobile) and a leading caret
-  that opens its detail in place under its row, held only while open; other open rows stay open
-  (`useOpenRows` from `@ledova/shared`). Activity's filter and Wallets' sort (once a chain holds two
-  wallets) are a `Disclosure` at the top of the card naming what it applies; applying or clearing
-  closes it and every open entry and returns focus to its button. Dialogs are for work that sets the
-  page aside: a form that creates or changes something, a signing step or a confirmation.
+- `Disclosure`: every expandable section on a web page, a button with `aria-expanded` (expanded or
+  collapsed on mobile) and a leading caret that opens its detail in place under its row; a summary
+  given as text takes the one summary style. Activity's entries and Wallet shares' rows (opened
+  independently through `useOpenRows` from `@ledova/shared`), Activity's filter and Wallets' sort
+  hold their detail only while open; every other `Disclosure` keeps its detail mounted while closed,
+  so unfinished input survives, and may start open, as a prepared register record does. The
+  sidebar's More group is the one native toggle, styled as a navigation item. Activity's
+  filter and Wallets' sort (once a chain holds two wallets) are a `Disclosure` at the top of the card
+  naming what it applies; applying or clearing closes it and every open entry and returns focus to
+  its button. Dialogs are for work that sets the page aside: a form that creates or changes
+  something, a signing step or a confirmation.
 - `SwitchRow`: a setting that takes effect at once (Transaction alerts; Dark theme; Show this
   company to eligible investors), as an On/Off pill or native switch (`role="switch"`,
   `aria-checked` the saved value), disabled while saving; a refusal keeps the saved value and shows
@@ -85,16 +103,56 @@ Inside cards and dialogs nothing is boxed: fields share the card's surface with 
 (`rounded-lg border border-border bg-surface-raised`; `useDialogStyles` on mobile), steps are
 numbered lines, and warnings (beside an icon) and errors are coloured text, not tinted boxes. The
 exceptions are the tinted extraction-status pill beside a saved payslip on Profile, the dashed
-upload area, and sign-in and the sign-up steps, which keep tinted fields and boxed outcomes within
-the same cards and titles. Addresses, hashes and signing summaries
+upload areas for a payslip and for a claim's evidence, and sign-in and the sign-up steps, which keep
+tinted fields and boxed outcomes within the same cards and titles. Addresses, hashes and signing summaries
 use the monospaced face (`font-mono`; `theme.fontFamily.mono`).
 
 Show ownership, status and one primary next action directly, with labels beside their values and
-balanced field groups; keep full audit identifiers and optional detail behind detail controls; never
+balanced field groups; keep audit references and optional detail behind detail controls; never
 repeat titles or general explanations or show read and edit views together. Action-specific
 authority, privacy, incomplete-data and recovery guidance stays visible where relevant, and a
 presentation change must not reset pending work, hide uncertainty or change what a confirmation
 authorises.
+
+## Navigation
+
+The web sidebar (`dashboard/src/components/Sidebar.tsx`) is a `<nav>` labelled "Main" whose items
+are links, and the current page's item carries `aria-current="page"`; a page that isn't an item
+marks its nearest parent that is. Below 1024 pixels the header's menu button opens the same sidebar
+as a Headless UI `Dialog`: the button reports `aria-expanded`, focus stays inside the drawer while it
+is open, and Escape or a choice closes it. The first Tab on a signed-in page reaches "Skip to main
+content", which moves focus to the page's heading.
+
+`DESTINATIONS` (`packages/shared/src/constants/ui/destinations.ts`) names the signed-in pages,
+Register's views (Shareholders, Employee awards, Documents) and tasks, and Home's Documents view, and
+the sidebar and page titles read their names from it. On the web the company dashboard and Home are
+both titled Dashboard, so the company workspace lists Home as Your shares. `DESTINATION_PARENTS`
+beside it gives each page below a sidebar destination its parent, and `Page` puts one link back to it
+in the title row, "Back to <parent's title>": Back to Settings on Company team, Back to Company on
+Representative authority, Back to Shareholders on a shareholder's page. Once a particulars change has
+found its member, its link goes back to that member by name. Register setup has none, on purpose
+([decisions](../decisions.md#manual-register-setup-shares-before-shareholders)).
+
+A way back to a Register class or task carries the place it means, built by `registerPlace`
+(`dashboard/src/pages/company/register/shared/registerPlace.ts`): a correction, an opening and a
+class's own page return to that class's History, a non-paid transfer to that class's Transfer shares,
+and wallet links to the company's History. A shareholder's page links back to Shareholders with its
+company through `Page`'s parent link, and a transfer started there links back to them by name. Preparing a
+correction, opening, non-paid transfer, wallet link or particulars change lands on the new record in
+Register, at its class and task, focused and with one line naming what was prepared
+([feedback](#feedback)). A preparation started from a shareholder's page also lands on its record in
+Register, since a shareholder's page doesn't list prepared records.
+
+Each page's title is also the browser tab's title, "<page title> · Ledova", set by `Page`; a
+shareholder's page says "Shareholder" there, so their name stays out of the browser's history. After
+a route change, including a Register view, focus moves to the page's heading once any closing dialog
+has handed focus back, unless the page has already focused something of its own, such as the
+register class it opens at. Focus stays where it is when a dialog stays open, after a redirect such
+as from `/` to your dashboard, and after a change to the search, filter or page in the address.
+
+Focus outlines come in one style: two pixels in the focus colour (`--color-border-focus`), set once
+for `:focus-visible` in `dashboard/src/styles/index.css`. Text fields, and the sign-in and sign-up
+fields and action buttons, keep their own focus rings.
 
 ## Actions
 
@@ -122,7 +180,8 @@ request, on pages and in dialogs, including:
 - the wallet import and verification steps, and identity verification;
 - establishing an appointment;
 - member, particulars and certificate requests;
-- register setup's review step (editing the records, loading and confirming the decision).
+- register setup's review step (editing the records, loading and confirming the decision);
+- every action that refreshes a read, which says "Refreshing…" while it runs.
 
 Where a shared hook only reports that some command is running, `useRunningAction`
 (`dashboard/src/hooks`) names the action that was clicked. A few actions show their work another
@@ -133,8 +192,8 @@ way:
 - Submitting a wallet nomination replaces the form with its saved request.
 - Signing flows, in Trading and wallet transfers, move to their own submitting step.
 
-Refresh, retry and recovery actions keep their label while they run; a form's submit button that
-also recovers an earlier attempt keeps its busy label. Icon buttons, register setup's Import
+A load error's Try again and recovery actions keep their label while they run; a form's submit
+button that also recovers an earlier attempt keeps its busy label. Icon buttons, register setup's Import
 placeholder, the payslip upload area and Trading keep their own controls, and dialog footers use the
 same order as `FormActions`. Mobile's `Action` has no busy or pressed form yet.
 
@@ -161,8 +220,11 @@ confirm with native alerts.
 `Outcome` (`dashboard/src/components/Ledger.tsx`) says what just happened in one line: a
 `role="status"` sentence in the primary text colour, after the mark `Status` uses for done. It sits
 under the change or on the record you land on, and stays until the next action replaces it; there
-are no toasts. It names the record rather than its identifier; team invitations, appointments and
-authority requests show their identifier in their own details. It reports:
+are no toasts. Its status region stays in place, empty and visually hidden, before there is anything
+to report, so a screen reader announces the sentence when it arrives; a preparation's line arrives
+with the record it lands on and is read because focus moves to that record. It names the record
+rather than its identifier; team invitations, appointments and authority requests show their
+identifier in their own details. It reports:
 
 - a changed password, saved personal details, and an offering submitted for review, withdrawn or
   deleted;
@@ -170,12 +232,14 @@ authority requests show their identifier in their own details. It reports:
 - a recorded team invitation, an accepted invitation and a representative authority request;
 - member access's recorded invitation, certificate fulfilment and particulars instruction;
 - a placed or recovered order with its share class, above Trading's orders, until another order
-  action or a class change starts.
+  action or a class change starts;
+- a prepared correction, register opening, non-paid transfer, wallet link or particulars change, on
+  the record you land on in Register.
 
 Other signing flows and identity verification show their result in their own dialog, sign-in and
 sign-up keep their boxed outcomes, and the payment instruction's copy buttons confirm with Copied
-beside them. Register forms and preparations don't use it. Mobile still reports success with native alerts and its success
-dialog.
+beside them. Register's other forms don't use it. Mobile still reports success with native alerts
+and its success dialog.
 
 ## Copy
 
@@ -185,6 +249,11 @@ organisations. An ellipsis is one character, "…"; ESLint refuses three dots in
 dashboard's and the shared package's source. Labels the backend supplies, such as company and
 document types and some statuses ("Under Review", "Awaiting Payment"), keep its title case. Mobile's
 own copy doesn't follow this yet (#1201); the shared strings it shows do.
+
+Copy and tone maps meant for both clients live in `packages/shared`, such as the identity
+verification outcomes (`IDENTITY_OUTCOME_COPY`), their tones (`VERIFICATION_TONES`) and an
+application's history (`applicationHistory`). The web reads them there; mobile still keeps its own
+copies until #1201.
 
 ## Choosing a person
 
@@ -375,7 +444,8 @@ server:
 - **The address:** `useListParams` (`dashboard/src/hooks/useListParams.ts`) keeps the search
   (`q`), the filters and the page in the URL, so Back, a refresh or a shared link keep them. Typing
   replaces the history entry, while a filter or page change adds one. Any change but the page
-  returns to the first page, and a page that no longer exists is replaced by the first.
+  returns to the first page. On a list paged by the server, a page that no longer exists is replaced
+  by the first; a list searched in the browser shows its last page instead.
 - **Tables:** `Table` is the markup for lists on these controls: a framed table that scrolls
   sideways within its card, with a screen-reader caption, a header row of `scope="col"` cells and
   each row named by its first cell as a row header. `Pager` under it gives the rows shown, such as
@@ -384,21 +454,182 @@ server:
   is loading.
 - **Feeds:** `LoadMore` ends a feed with "Load more notices" (or applications, activity,
   notifications and so on), which names its work while it runs. When a later page fails, the shown
-  rows stay, a sentence says the list is incomplete, and "Try more … again" retries.
+  rows stay and a [load error](#loading-empty-and-error-states) says the list is incomplete.
 - **Page size:** 25 rows. The API accepts `page_size` up to 100 on every paged list.
 
-An offering's applications on Offerings are the first table: search by investor name, wallet
-address or payment reference, filter by status, with the chosen offering kept in the address too.
+An offering's applications on Offerings are searched and paged by the server: search by investor
+name, wallet address or payment reference, filter by status, with the chosen offering kept in the
+address too. Company eligibility's request queue pages the same way, with no search box: its one
+filter is the outcome, as radio buttons, which the server derives from each request's decision,
+withdrawal, revocation and expiry. While another page or outcome loads, its rows stay dimmed and
+their View buttons wait; mobile still reads every page of the queue. Shareholders searches and pages
+the register the page has already read in full, since its ownership totals need every holding: the
+same box and pager, matching every word ignoring case and accents (`searchRows` in
+`packages/shared/src/utils/search.ts`), with the share class as its filter.
+
 The feeds are Activity, an investor's Applications, Notices, the notification bell, Published to
-your members and a class's register entries. A list bounded by one person, such as their own
-documents, classification claims or wallets, reads every page. Other lists still read every page
-([frontend](frontend.md#lists-figures-and-currency)), and the register, ownership and import tables
-keep their own markup until they move.
+your members, a class's register entries, a share class's issuance requests, authorised share
+requests and issuances (`useRecordFeed`), and each class's former shareholders, shown 25 at a time
+from the register already read. A list bounded by one person, such as their own documents,
+classification claims or wallets, reads every page. Other lists still read every page
+([frontend](frontend.md#lists-figures-and-currency)).
+
+**The register's records are the one stated exception.** Each share class's allotments, transfers,
+openings, imports, corrections, particulars changes, member links, deployments, awards and grants,
+and company member access, read every page. Each record keeps its own recovery for an uncertain
+reply, and a newer record shifting the pages would unmount the oldest loaded one and lose it; these
+lists grow only with one company's register decisions. The owner chose this on 21 October 2026,
+to revisit if registers grow large ([decision](../decisions.md#frontend-ux-standards)).
+
+Every table uses `Table`, apart from the company dashboard's largest-shareholder legend beside its
+chart, which keeps a compact layout with its own caption and header scopes. An import's member
+snapshot opens each member's allotments in a dialog named Allotments, so Details always opens a
+record's own page.
+
+## Loading, empty and error states
+
+A page that shows nothing until its first read renders `<Page loading>`. A section that is still
+loading shows `Loading` (`dashboard/src/components/Ledger.tsx`): one muted `role="status"` line
+that names what it loads, such as "Loading your wallets…" or "Loading the register…". A spinner
+that stands for a whole step carries a status role with its words, such as the session check,
+sign-up's steps and the transfer flow.
+
+A read that fails shows `LoadError` (`dashboard/src/components/Ledger.tsx`): one `role="alert"`
+block with a sentence in the primary text colour and a Try again action. The sentence names what
+failed, such as "Your wallets could not be loaded." or "The register or your appointments could
+not be loaded.", and adds a second sentence only for what the block can't otherwise say: a
+consequence, such as "Trading actions are unavailable." or "The list is incomplete.", or a likely
+cause, such as "It may be unavailable to this account." Try again is described by that sentence, so
+a screen reader says which read it retries, and it stays disabled while the read runs again. Shared
+copy that both clients show passes through unchanged, such as an unreadable chain on a register
+opening.
+
+A failed read shows this block, not an empty state. The notification bell, profile documents,
+classification claims and a class's deployments, which used to show an empty state, now show the
+failure. A failed refresh shows the same block. Its sentence says what could not be loaded or
+refreshed, and several also say what remains, such as "Retained original receipts remain
+available." The block takes the place of the section's Refresh action while its read has failed: on
+the company team page, in a class's employee awards, non-paid issues, deployments and capital,
+pause, paid issue and grant records, and in the company's wallet instructions, the company pack and
+the wallet nomination.
+
+Both eligibility pages, member access and Home's member records read through shared hooks that also
+keep a reason of their own. While a read fails they show the block, with any such reason under it,
+such as "Your award records could not be confirmed. Refresh before continuing.", and no empty line.
+
+An empty list says it has none yet in one muted sentence, such as "No applications yet." or "No
+notices yet.", sometimes followed by where to add or find them, and an empty section keeps at
+most one action besides Refresh ([signed-in page conventions](#signed-in-page-conventions)). An
+empty class import instead invites bringing in the company's existing records. A list narrowed by
+a search or filter says what matched instead, such as "No applications match your search." or "No
+requests match."
+
+A class's awards, grants, allotments, openings, imports, non-paid transfers, deployments and
+reconciliation, notices, offer documents and an offering's applications take their empty sentence
+from shared copy in `packages/shared/src/constants/business/`, which both clients show; mobile
+Home's recent notices keep their own words until #1201. On the web, a section with no corrections,
+register entries or particulars changes is hidden instead, and so is one with no wallet links
+unless wallets are waiting for a link you can prepare, so those shared sentences show only on
+mobile. Other empty sentences are each client's own, and mobile's move to these words
+under [#1201](https://github.com/Ledova/ledova/issues/1201). A sentence that reports a state rather
+than an empty list keeps its own words, such as "No votes need your attention." or "No orders
+listed." for a market's live order book. A class's awards, grants, allotments, non-paid transfers
+and deployments, and an award's vesting and entitlement changes, can't be made on every class or
+award, so theirs says none has been recorded or prepared for it, such as "No employee award has
+been recorded for this share class."
+
+Some messages keep their own form:
+
+- Sign-up keeps its own presentation, including its error blocks with Try again and its actions'
+  labels; these standards cover signed-in pages.
+- The route guard's checks, an unreadable profile or role, keep their own message and Try again
+  ([routes, audiences and guards](frontend.md#routes-audiences-and-guards)).
+- Recoveries of an interrupted action, such as "Retry original member action", keep their own
+  wording.
+- Signing flows in Trading keep their own phases and recovery actions.
+
+## Forms
+
+- **Fields.** A web form field is `Field` (`dashboard/src/components/Field.tsx`): Headless UI's
+  `Field`, `Label` and `Description` around a `TextInput` or `TextArea` with the `FIELD_CLASS` look,
+  or around Headless UI's `Select` in `SelectField`, so the label, the hint and any error are linked
+  to the control and an error sets `aria-invalid`. The label sits above the control, an optional
+  field ends with "(optional)", a sentence about one field is that field's hint, and an action
+  beside the label, such as Scan QR, is its `aside`. Choices, the searchable pickers, the list search
+  and checkboxes that need no check keep their own controls, and sign-in and sign-up keep their own
+  look on the same Headless parts.
+- **Limits.** A text field's `maxLength` comes from `FIELD_LIMITS`
+  (`packages/shared/src/constants/business/field-limits.ts`): one constant per kind of backend field,
+  equal to its serializer or model limit, such as `NAME` (255), `REASON` (1000), `REGISTER_SHARES`
+  (78 digits) and `AMOUNT` (21 characters). A field the backend leaves unbounded, such as an
+  offering's summary or a profile's residential address, has none. Numbers are text inputs with
+  `inputMode`, including Trading's order fields.
+- **Files.** A web upload is `FileField`, a `Field` around a file input. It applies `UPLOAD_RULE`
+  (`field-limits.ts`), the server's rule: a PDF, PNG or JPEG whose type matches its extension, up to
+  10 MB. Its hint starts with the rule's sentence, "PDF, PNG or JPEG, up to 10 MB.", and `uploadRefusal`
+  turns away any other file as it is chosen, with "Choose a PDF, PNG or JPEG of up to 10 MB." on the
+  field. The payslip upload on Profile and the evidence in an eligibility claim keep their dashed
+  areas but apply the same rule. Mobile's pickers keep their own wording until
+  [#1201](https://github.com/Ledova/ledova/issues/1201).
+- **Date fields.** A date field is `type="date"`, bounded with `min` and `max` wherever the server
+  has a rule, and its label or message names the time zone where it matters.
+- **UTC dates.** Register and company dates are UTC calendar dates: `utcToday`
+  (`packages/shared/src/utils/date.ts`) is their default and their `max`, so a date the server
+  would refuse as in the future can't be picked. A team invitation's deadline and appointment
+  expiry, and a representative authority request's expiry, are the end of the chosen UTC day; the
+  deadline is bounded to the next 30 days. A certificate date is bounded to the two years an
+  accountant's certificate stays current.
+- **Other bases.** An inspection copy's request date is a Sydney date (`sydneyToday`). Offerings and
+  company eligibility expiries are a local date and time (`datetime-local`), labelled so.
+- **Helpers.** `isCalendarDate` checks a typed date, and `addCalendarDays` and `addCalendarYears`
+  move a valid one. An ESLint rule in `dashboard/eslint.config.js` refuses `toISOString()` sliced or
+  split into a date in the dashboard's source. Mobile keeps its own `utcToday`, and its deadlines are
+  a local date and time, until [#1201](https://github.com/Ledova/ledova/issues/1201).
 
 ## Validation
 
-This section covers what a page shows when a request fails. Checking forms before they are sent is
-still to come ([#1179](https://github.com/Ledova/ledova/issues/1179)).
+This section covers how a form reports a problem: when it is submitted, and when its request fails.
+
+- **Checking on submit.** Web forms check their fields when submitted. Filters that only narrow a
+  list, such as Activity's dates, keep their own rules, and Trading's order change, deferred with
+  trading, shows the one sentence its shared hook reports; mobile follows in
+  [#1201](https://github.com/Ledova/ledova/issues/1201).
+  - **Summary and fields.** A problem shows twice. `ErrorSummary` (`dashboard/src/components/`)
+    lists each problem at the top of the form as `role="alert"` and takes focus, each item linking
+    to its field. The field shows the same sentence as its error and turns `aria-invalid`; on
+    sign-up, a registered email's error there also links to sign-in.
+    `useErrorSummary` (`dashboard/src/hooks/useErrorSummary.ts`) reads the form's problems, keyed
+    by field, and a form with two actions, such as the share-class issue's wallet link and grant,
+    checks only the fields its action needs. A box that must be ticked is a `CheckboxField`,
+    except the eligibility claim's long declaration and sign-up pre-screening's four declarations,
+    which keep their own layout with the same checks. Register import names each shareholder and allotment in its summary instead of linking
+    to a field, and lists the problems current at the time. Its shareholder editor lists the problems
+    with the shareholder being edited. A summary link focuses the control the field's label points
+    to, or else the field's first control, including Headless UI checkboxes and radios.
+  - **Sign-in and sign-up** keep the rules in their hooks: sign-up's in `packages/shared`, which
+    mobile shares, and sign-in's in the dashboard's own `useSignIn`
+    (`dashboard/src/pages/signin/useSignIn.ts`). The hook reports its field errors when the form
+    is submitted, and the server's come back the same way.
+    `useFieldErrorSummary` lists them in the same summary, which takes focus after each submit.
+    Pre-screening's four declarations are checked by the page, since its hook reports only one
+    sentence.
+  - **In these forms submit stays enabled** unless the form is busy or the action is unavailable,
+    such as without company authority or with nothing changed, and the page says why. An unchanged
+    retry of an interrupted request is not checked again.
+  - **Shared wording.** A rule both clients apply has one sentence in `packages/shared`, which the
+    web uses now and mobile adopts in #1201: a new person's name and address
+    (`NEW_PERSON_PROBLEMS`), a new password (`PASSWORD_PROBLEMS`, which sign-up's shared hook
+    already gives both) and an invitation code
+    (`INVITATION_CODE_PROBLEM`). A pasted invitation code is trimmed before its length limit applies.
+  - **The summary keeps the last press.** It lists the problems found when submit was last pressed
+    that still fail, so it shrinks as they are fixed, and it clears when a check passes or the form
+    is reset. It takes focus only on a new press.
+  - **Incomplete dates.** Without browser validation, a date or date-time typed only in part reads
+    as empty, so an optional one would be dropped silently. `useIncompleteDates`
+    (`dashboard/src/hooks/useIncompleteDates.ts`) notes the browser's `badInput` on each keystroke,
+    input and blur, and the form treats it as a problem: the team invitation's deadline and
+    appointment expiry, a representative authority request's expiry, and an offering's closing
+    time.
 
 - **Request errors.** A failure reads as one `role="alert"` sentence from `failureSentence`
   (`packages/shared/src/utils/errors.ts`), never the transport's "Request failed with status code
@@ -409,8 +640,8 @@ still to come ([#1179](https://github.com/Ledova/ledova/issues/1179)).
   the fallback when it has none. Pages that still read with `apiErrorSentence`, such as the register
   preparation forms, documents and sign-up, show their fallback for such a failure instead; those
   that pass the fallback twice still show a message thrown with `createUserFriendlyError`.
-  Sign-in and sign-up place field errors on their fields with `readApiError`; other forms show them
-  in the one sentence.
+  Sign-in, sign-up, company details and change password place the server's field errors on their
+  fields with `readApiError`; other forms show them in the one sentence.
 - **Refusal codes.** The server names unmet requirements and refusals as codes. Each family's copy
   map in `packages/shared/src/constants/business/` turns them into sentences: `refusalSentences` for
   a preview's or record's list, and `refusalSentence` for a refused request, before any other
@@ -421,6 +652,51 @@ still to come ([#1179](https://github.com/Ledova/ledova/issues/1179)).
   the shared package (`no-restricted-syntax`). Mobile still uses it, so a field error there can read
   "Request failed with status code 400" until [#1201](https://github.com/Ledova/ledova/issues/1201)
   moves it to these rules.
+
+## Dates, numbers and identifiers
+
+Figures, amounts and dates are formatted only by the shared formatters in `packages/shared`, never
+by a local helper or a browser `toLocale…` call:
+
+- **Dates** use `formatDate`: "20 October 2026". A calendar date is read in UTC, so it shows the day
+  the server recorded.
+- **Date-times** use `formatDateTime`: "20 Oct 2026, 02:30 pm", in the viewer's local time. A
+  calendar date passed to it shows as a date, never with an invented time.
+- **Share counts** use `formatShareCount`, a count with its noun uses `shareCount` ("1 share",
+  "1,315 shares", or with a qualifier, "1 issued share") and a signed change uses `shareChange`
+  ("+1,000"). Gathered in `packages/shared/src/utils/formatting.ts` with `sharePercentage`.
+  Trading's order quantities that arrive as numbers use `marketQuantity` and `marketShares`, which
+  read "Unavailable" for a quantity too large to show exactly.
+- **Percentages of a class** use `sharePercentage`, rounded half-up to two places, "<0.01%" for a
+  holding too small to show and "Not recorded" without issued shares.
+- **Amounts** use `formatMoney`, which names its currency: "AUD 1,234.50".
+- **On screen** the dashboard's records format their dates, share counts and amounts: register
+  records, eligibility history and shared summaries, team invitations and confirmations. An
+  offering's opening and closing show their time, and Trading's quantities and wallet token balances
+  use the share and crypto formatters. Signing screens, technical transaction rows (hashes, data and
+  transaction values) and the exact offering terms an eligibility request shares keep their exact
+  values. A register's amounts paid and unpaid arrive without a currency, so they show as recorded.
+  Mobile still shows some raw dates until
+  [#1201](https://github.com/Ledova/ledova/issues/1201).
+- **Status codes** read as words, never as the code or a code with its underscores replaced: the
+  server's `statusDisplay` where a record carries one (orders, swaps, companies, offerings), else a
+  shared label map (`packages/shared/src/constants/business/labels.ts` for eligibility outcomes,
+  member invitations and requests, appointments, company wallet actions and chain failures, company
+  states, a deployment's swap approval, an application's status on company records, order states
+  and changed order fields, swap approval outcomes and identity sources; `investor-eligibility.ts`
+  for investor categories and certifier bodies; and `REGISTER_CORRECTION_COPY.ENTRY_KINDS` for
+  register entry kinds). Mobile follows in [#1201](https://github.com/Ledova/ledova/issues/1201).
+- **Identifiers.** Records show names. Where only an identifier tells records apart, the screen
+  shows `shortReference` (`packages/shared/src/utils/formatting.ts`, the first eight characters),
+  never the full UUID, including in choices and screen-reader context. Internal user numbers are
+  not shown. Fingerprints, transaction hashes and wallet addresses stay exact. The eligibility
+  request and the claim's issuer still take the exact UUID a company supplies, and
+  `useDirectoryNames` (`dashboard/src/hooks/`) names a directory-listed company or open offering
+  under the field, or says it is not listed.
+- **Enforcement.** An ESLint rule in `dashboard/eslint.config.js` refuses `toLocaleString`,
+  `toLocaleDateString` and `toLocaleTimeString` in the dashboard's source, beside the rule that
+  refuses inline ISO date slicing ([forms](#forms)). Mobile follows in
+  [#1201](https://github.com/Ledova/ledova/issues/1201).
 
 Next: [frontend](frontend.md), [mobile](mobile.md) and
 [the register's person choice](../business/register.md#choosing-a-person).

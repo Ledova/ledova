@@ -10249,6 +10249,7 @@ export interface ApiOperations {
     parameters: {
       query?: {
         ordering?: string;
+        outcome?: 'accepted' | 'expired' | 'pending' | 'refused' | 'revoked' | 'withdrawn';
         page?: number;
         page_size?: number;
       };

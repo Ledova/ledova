@@ -5,12 +5,11 @@ import {
   PUBLICATION_KIND_LABELS,
   formatDate,
   formatDateTime,
-  formatShareCount,
   useResolutionStatus,
   type Publication,
+  shareCount,
 } from '@ledova/shared';
-import { Section, Status } from '@components/Ledger';
-import { PageAction } from '@components/Page';
+import { Section, Status, LoadError, Loading } from '@components/Ledger';
 import { useHoldingWork } from './useHoldingWork';
 import type { ApplicationWork } from './applicationWork';
 
@@ -24,9 +23,7 @@ function Applications({ rows }: { rows: ApplicationWork[] }) {
           <div className="min-w-0 flex-1 basis-48 break-words">
             <p className="text-sm text-text-muted">{application.companyName}</p>
             <p className="text-base text-text-primary">{application.tokenName}</p>
-            <p className="text-sm tabular-nums text-text-muted">
-              {formatShareCount(String(application.quantity))} {application.quantity === 1 ? 'share' : 'shares'}
-            </p>
+            <p className="text-sm tabular-nums text-text-muted">{shareCount(application.quantity)}</p>
           </div>
           <Link
             to={`${DESTINATIONS.subscriptions.path}/${application.uuid}`}
@@ -62,15 +59,6 @@ function RecentNotice({ publication }: { publication: Publication }) {
   );
 }
 
-function ReadError({ children, retry, busy }: { children: string; retry: () => void; busy: boolean }) {
-  return (
-    <div role="alert" className="flex flex-wrap items-center gap-3 text-sm text-text-muted">
-      <p>{children}</p>
-      <PageAction label="Try again" onClick={retry} disabled={busy} />
-    </div>
-  );
-}
-
 export function HoldingWork() {
   const { role, applications, notices, recent } = useHoldingWork();
   const applicationsReady = role.isKnown && (!role.isInvestor || applications.isSuccess);
@@ -89,26 +77,22 @@ export function HoldingWork() {
       {showReadState && (
         <div className="flex flex-col gap-3">
           {role.isUnavailable ? (
-            <ReadError retry={() => void role.retry()} busy={role.isLoading}>
-              We couldn&apos;t check your account type or applications.
-            </ReadError>
+            <LoadError retry={() => role.retry()} busy={role.isLoading}>
+              Your account type and applications could not be loaded.
+            </LoadError>
           ) : !role.isKnown || (role.isInvestor && applications.isPending) ? (
-            <p role="status" className="text-sm text-text-muted">
-              Checking your applications…
-            </p>
+            <Loading>Loading your applications…</Loading>
           ) : role.isInvestor && applications.isError ? (
-            <ReadError retry={() => void applications.refetch()} busy={applications.isFetching}>
-              We couldn&apos;t load all your applications.
-            </ReadError>
+            <LoadError retry={() => applications.refetch()} busy={applications.isFetching}>
+              Your applications could not be loaded.
+            </LoadError>
           ) : null}
           {notices.isPending ? (
-            <p role="status" className="text-sm text-text-muted">
-              Checking your notices…
-            </p>
+            <Loading>Loading your notices…</Loading>
           ) : notices.isError ? (
-            <ReadError retry={() => void notices.retry()} busy={notices.isFetching}>
-              We couldn&apos;t check your notices.
-            </ReadError>
+            <LoadError retry={() => notices.retry()} busy={notices.isFetching}>
+              Your notices could not be loaded.
+            </LoadError>
           ) : null}
         </div>
       )}
@@ -164,15 +148,13 @@ export function HoldingWork() {
 
       <Section title="Recently published to you">
         {recent.isPending ? (
-          <p role="status" className="py-3 text-sm text-text-muted">
-            Checking what was published to you…
-          </p>
+          <Loading>Loading what has been published to you…</Loading>
         ) : recent.isError ? (
-          <ReadError retry={() => void recent.refetch()} busy={recent.isFetching}>
-            We couldn&apos;t load what was published to you.
-          </ReadError>
+          <LoadError retry={() => recent.refetch()} busy={recent.isFetching}>
+            What has been published to you could not be loaded.
+          </LoadError>
         ) : recent.data.length === 0 ? (
-          <p className="py-3 text-sm text-text-muted">Nothing has been published to you yet.</p>
+          <p className="py-3 text-sm text-text-muted">{PUBLICATION_COPY.EMPTY}</p>
         ) : (
           <ul className="divide-y divide-border-subtle">
             {recent.data.map((publication) => (

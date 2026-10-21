@@ -1,8 +1,11 @@
+import { Field, TextArea, TextInput, FileField } from '@components/Field';
 import { Choices } from '@components/Choices';
-import { Row, Rows, Section } from '@components/Ledger';
+import { Row, Rows, Section, Loading, LoadError } from '@components/Ledger';
 import { PageAction } from '@components/Page';
-import { FIELD_CLASS } from '@components/fieldClass';
+import { ErrorSummary } from '@components/ErrorSummary';
+import { useErrorSummary } from '@hooks/useErrorSummary';
 import {
+  FIELD_LIMITS,
   REGISTER_PAUSE_CHANGE_COPY as COPY,
   REGISTER_PAUSE_CHANGE_DECISIONS,
   REGISTER_PAUSE_CHANGE_UNMET_COPY,
@@ -12,6 +15,7 @@ import {
   type RegisterPauseChange,
   refusalSentences,
   failureSentence,
+  shortReference,
 } from '@ledova/shared';
 import { DecisionTrail } from '@pages/company/register/shared/DecisionTrail';
 import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
@@ -57,18 +61,18 @@ function PauseRecord({ record, commands }: { record: RegisterPauseChange; comman
           <h3 className="font-medium">{STAGES[record.stage] ?? record.stage} pause change</h3>
           <SnapshotRows record={record} />
           <Rows>
-            <Row label="Preparation ID">{record.uuid}</Row>
+            <Row label="Preparation reference">{shortReference(record.uuid)}</Row>
             <Row label="Prepared by">{record.preparedByName || 'Name not recorded'}</Row>
             <Row label="Prepared on">{formatDateTime(record.createdAt)}</Row>
 
             <Row label="Intent fingerprint">{record.intentDigest}</Row>
-            {record.approvalDecision && <Row label="Consumed approval">{record.approvalDecision}</Row>}
+            {record.approvalDecision && <Row label="Consumed approval">{shortReference(record.approvalDecision)}</Row>}
             <Row label="Execution">{registerPauseChangeExecutionState(record)}</Row>
             {execution && (
               <>
-                <Row label="Original submission">{execution.submissionId}</Row>
-                {execution.operationId && <Row label="Original operation">{execution.operationId}</Row>}
-                {execution.claimId && <Row label="Original claim">{execution.claimId}</Row>}
+                <Row label="Original submission">{shortReference(execution.submissionId)}</Row>
+                {execution.operationId && <Row label="Original operation">{shortReference(execution.operationId)}</Row>}
+                {execution.claimId && <Row label="Original claim">{shortReference(execution.claimId)}</Row>}
                 {execution.txHash && <Row label="Transaction hash">{execution.txHash}</Row>}
                 {execution.blockNumber !== null && <Row label="Original receipt block">{execution.blockNumber}</Row>}
                 {execution.blockHash && <Row label="Original receipt block hash">{execution.blockHash}</Row>}
@@ -96,12 +100,16 @@ function PauseRecord({ record, commands }: { record: RegisterPauseChange; comman
           ))}
           <PageAction
             label="Download pause authority"
-            context={`pause ${record.uuid}`}
+            context={`pause ${shortReference(record.uuid)}`}
             busy={busy}
             busyLabel="Downloading…"
             onClick={() => void download()}
           />
-          {error && <p role="alert">{error}</p>}
+          {error && (
+            <p role="alert" className="text-sm text-error-light">
+              {error}
+            </p>
+          )}
         </>
       )}
       <RegisterDecisions
@@ -115,7 +123,7 @@ function PauseRecord({ record, commands }: { record: RegisterPauseChange; comman
         onDecided={commands.accept}
         onRefused={commands.refresh}
         visible={commands.visible}
-        context={`pause ${record.uuid}`}
+        context={`pause ${shortReference(record.uuid)}`}
       >
         {(preview) => (
           <>
@@ -137,23 +145,25 @@ function Preparation({ commands }: { commands: Commands }) {
     setReason,
     reference,
     setReference,
-    file,
     setFile,
     uploadRef,
     busy,
     error,
     setError,
     termsValid,
+    problems,
     waiting,
     check,
     submit,
   } = usePausePreparation({ commands });
+  const checks = useErrorSummary(problems);
   return (
     <fieldset
       disabled={waiting}
-      className="grid gap-4 rounded-xl border border-border-subtle bg-surface-tertiary p-4 sm:grid-cols-2 [&>p]:sm:col-span-2 [&>h3]:sm:col-span-2 [&>dl]:sm:col-span-2"
+      className="grid gap-4 border-t border-border-subtle pt-4 sm:grid-cols-2 [&>p]:sm:col-span-2 [&>h3]:sm:col-span-2 [&>dl]:sm:col-span-2"
     >
       <h3 className="font-medium">Prepare a company pause change</h3>
+      <ErrorSummary {...checks.summary} className="sm:col-span-2" />
       <p className="text-sm text-text-muted">{COPY.NOTE}</p>
       <PageAction
         label="Use current class details"
@@ -164,63 +174,51 @@ function Preparation({ commands }: { commands: Commands }) {
         }}
       />
       <Choices
+        {...checks.field('paused')}
         legend="Requested state"
         options={STATES}
         value={paused === null ? '' : paused ? 'paused' : 'unpaused'}
         onChange={(state) => setPaused(state === 'paused')}
       />
-      <label className="block text-sm">
-        Pause reason
-        <textarea
-          className={FIELD_CLASS}
-          maxLength={1000}
-          value={reason}
-          onChange={(event) => setReason(event.target.value)}
-        />
-      </label>
-      <label className="block text-sm">
-        Authority reference
-        <input
-          className={FIELD_CLASS}
-          maxLength={255}
+      <Field {...checks.field('reason')} label="Pause reason">
+        <TextArea maxLength={FIELD_LIMITS.REASON} value={reason} onChange={(event) => setReason(event.target.value)} />
+      </Field>
+      <Field {...checks.field('reference')} label="Authority reference">
+        <TextInput
+          maxLength={FIELD_LIMITS.REFERENCE}
           value={reference}
           onChange={(event) => setReference(event.target.value)}
         />
-      </label>
-      <label className="block text-sm">
-        Pause authority document
-        <input
-          className={FIELD_CLASS}
-          type="file"
-          accept=".pdf,.png,.jpg,.jpeg"
-          disabled={!commands.canPrepare || !termsValid}
-          onChange={(event) => {
-            try {
-              check();
-              const chosen = event.target.files?.[0] ?? null;
-              if (
-                chosen &&
-                (!['application/pdf', 'image/png', 'image/jpeg'].includes(chosen.type) ||
-                  chosen.size <= 0 ||
-                  chosen.size > 10 * 1024 * 1024)
-              )
-                throw new Error('Choose a PDF, PNG or JPEG of up to 10 MB.');
-              uploadRef.current = null;
-              setFile(chosen);
-              setError('');
-            } catch (failure) {
-              setError(failureSentence(failure, 'The authority document could not be selected.'));
-            }
-          }}
-        />
-      </label>
-      {error && <p role="alert">{error}</p>}
+      </Field>
+      <FileField
+        {...checks.field('file')}
+        label="Pause authority document"
+        hint={termsValid ? undefined : 'Available once the requested state, reason and authority reference are given.'}
+        disabled={!commands.canPrepare || !termsValid}
+        onFile={(chosen) => {
+          try {
+            check();
+            uploadRef.current = null;
+            setFile(chosen);
+            setError('');
+          } catch (failure) {
+            setError(failureSentence(failure, 'The authority document could not be selected.'));
+          }
+        }}
+      />
+      {error && (
+        <p role="alert" className="text-sm text-error-light">
+          {error}
+        </p>
+      )}
       <PageAction
         label="Prepare pause change"
         busy={busy}
         busyLabel="Preparing…"
-        disabled={waiting || !commands.canPrepare || !!commands.recovery || !termsValid || !file}
-        onClick={() => void submit()}
+        disabled={waiting || !commands.canPrepare || !!commands.recovery}
+        onClick={() => {
+          if (checks.check()) void submit();
+        }}
       />
     </fieldset>
   );
@@ -236,25 +234,43 @@ export function CompanyPauseFlow({ uuid, data }: { uuid: string; data: ReturnTyp
   return (
     <Section title={COPY.TITLE}>
       <p className="text-sm text-text-muted">{COPY.NOTE}</p>
-      <PageAction
-        label="Refresh company pause records"
-        disabled={commands.busy}
-        onClick={() => void commands.refresh()}
-      />
-      {!commands.visible && (
-        <p className="text-sm text-text-muted">
-          Current personal register access for this company is required. Retained requests stay private until it is
-          refreshed.
-        </p>
+      {!(commands.appointments.isError || (commands.visible && commands.instructions.isError)) && (
+        <PageAction
+          label="Refresh company pause records"
+          busy={commands.instructions.isFetching || commands.appointments.isFetching}
+          busyLabel="Refreshing…"
+          disabled={commands.busy}
+          onClick={() => void commands.refresh()}
+        />
+      )}
+      {commands.appointments.isError ? (
+        <LoadError retry={() => commands.refresh()} busy={commands.appointments.isFetching}>
+          Your appointments could not be loaded.
+        </LoadError>
+      ) : !commands.appointments.isSuccess || commands.appointments.isFetching ? (
+        <Loading>Loading your appointments…</Loading>
+      ) : (
+        !commands.visible && (
+          <p className="text-sm text-text-muted">
+            Current personal register access for this company is required. Retained requests stay private until it is
+            refreshed.
+          </p>
+        )
       )}
       {commands.visible && !commands.steps.prepare && (
         <p className="text-sm text-text-muted">
           You can read company pause history. Preparation requires current company administration or prepare capability.
         </p>
       )}
-      {commands.visible && commands.instructions.isPending && <p role="status">Loading company pause records…</p>}
+      {commands.visible && commands.instructions.isPending && <Loading>Loading company pause records…</Loading>}
       {commands.visible && commands.instructions.isError && (
-        <p role="alert">The pause records could not be refreshed. Retained original receipts remain available.</p>
+        <LoadError
+          retry={() => commands.refresh()}
+          busy={commands.instructions.isFetching || commands.appointments.isFetching}
+        >
+          The pause records could not be {commands.instructions.data ? 'refreshed' : 'loaded'}. Retained original
+          receipts remain available.
+        </LoadError>
       )}
       {!!commands.company && (
         <div hidden={!commands.visible || !commands.steps.prepare}>
@@ -264,9 +280,9 @@ export function CompanyPauseFlow({ uuid, data }: { uuid: string; data: ReturnTyp
       {commands.visible && commands.recovery && (
         <div className="space-y-2">
           <p className="text-sm text-text-muted">
-            The original pause preparation response is unresolved. Recover its identical body and operation UUID.
+            The original pause preparation response is unresolved. Recover its identical body and operation reference.
           </p>
-          <p>{commands.recovery.body.operationId}</p>
+          <p>Operation reference {shortReference(commands.recovery.body.operationId)}</p>
           <PageAction
             label="Recover original pause preparation receipt"
             disabled={commands.busy}

@@ -14,8 +14,7 @@ import {
 import { useQueryClient } from '@tanstack/react-query';
 import { registerSteps } from '@pages/company/shared/proposals';
 import { entriesKey } from '@pages/company/register/shared/useRegisterEntries';
-import { PageAction } from '@components/Page';
-import { LinkRow } from '@components/Ledger';
+import { LinkRow, LoadError, Loading } from '@components/Ledger';
 import { AllotmentForm } from './AllotmentForm';
 import { AllotmentRecord } from './AllotmentRecord';
 import { useOwnAppointments, ownAppointmentsKey } from '@hooks/useOwnAppointments';
@@ -152,7 +151,7 @@ export function useInvestorIssues({
         <p className="text-sm text-text-muted">
           {register.token.status === 'draft'
             ? 'Set up this share register before issuing shares.'
-            : 'Tokenised share issue controls remain in Share class settings.'}
+            : 'Tokenised share issue controls remain on the Share class page.'}
         </p>
       )}
       {appointment && privateReady && (
@@ -161,7 +160,9 @@ export function useInvestorIssues({
             (register.token.status === 'draft' ? DESTINATIONS.companyRegisterImport : DESTINATIONS.companyClass).path,
             { uuid: token },
           )}
-          label={register.token.status === 'draft' ? 'Set up share register' : 'Share class settings'}
+          label={
+            (register.token.status === 'draft' ? DESTINATIONS.companyRegisterImport : DESTINATIONS.companyClass).title
+          }
         />
       )}
     </>
@@ -170,20 +171,11 @@ export function useInvestorIssues({
     <div hidden={!open} className="flex flex-col gap-3">
       <p className="text-sm text-text-muted">{COPY.NOTE}</p>
       {members.isPending ? (
-        <p role="status" className="text-sm text-text-muted">
-          Loading retained recipients…
-        </p>
+        <Loading>Loading retained recipients…</Loading>
       ) : members.isError ? (
-        <>
-          <p role="alert" className="text-sm text-error-light">
-            The retained recipients could not be read.
-          </p>
-          <PageAction
-            label="Retry allotment recipients"
-            disabled={members.isFetching}
-            onClick={() => void members.refetch()}
-          />
-        </>
+        <LoadError retry={() => members.refetch()} busy={members.isFetching}>
+          The retained recipients could not be loaded.
+        </LoadError>
       ) : null}
       <AllotmentForm
         key={`${company}/${token}/${editing.uuid}/${issueMember ?? ''}`}
@@ -221,42 +213,24 @@ export function useInvestorIssues({
     <div className="mt-4 flex flex-col gap-3 border-t border-border-subtle pt-4">
       <h3 className="text-sm font-medium text-text-primary">Investor issues</h3>
       {appointments.isError && (
-        <>
-          <p role="alert" className="text-sm text-error-light">
-            Your appointments could not be read. Retry before recording an allotment.
-          </p>
-          <PageAction
-            label="Retry allotment appointments"
-            disabled={appointments.isFetching}
-            onClick={() => void appointments.refetch()}
-          />
-        </>
+        <LoadError retry={() => appointments.refetch()} busy={appointments.isFetching}>
+          Your appointments could not be loaded.
+        </LoadError>
       )}
       {appointments.isSuccess && !appointment && <p className="text-sm text-text-muted">{COPY.READ_ONLY_NOTE}</p>}
-      {!readable ? (
+      {appointments.isError ? null : !appointments.isSuccess || appointments.isFetching ? (
+        <Loading>Loading external allotments…</Loading>
+      ) : !readable ? (
         <p className="text-sm text-text-muted">
           A current company register appointment is required to read external allotments.
         </p>
       ) : allotments.isPending || allotments.isFetching || !sourceReady ? (
-        <p role="status" className="text-sm text-text-muted">
-          Loading external allotments…
-        </p>
-      ) : (
-        <>
-          {allotments.isError && (
-            <p role="alert" className="text-sm text-error-light">
-              External allotments could not be read. A current company register appointment is required.
-            </p>
-          )}
-        </>
-      )}
-      {allotments.isError && (
-        <PageAction
-          label="Retry allotments"
-          disabled={allotments.isFetching || appointments.isFetching}
-          onClick={() => void refresh().catch(() => {})}
-        />
-      )}
+        <Loading>Loading external allotments…</Loading>
+      ) : allotments.isError ? (
+        <LoadError retry={() => refresh().catch(() => {})} busy={allotments.isFetching || appointments.isFetching}>
+          External allotments could not be loaded.
+        </LoadError>
+      ) : null}
       {privateReady && allotments.data?.length === 0 && <p className="text-sm text-text-muted">{COPY.EMPTY}</p>}
       <ul className="divide-y divide-border-subtle">
         {allotments.data?.map((allotment) => (

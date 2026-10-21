@@ -1,9 +1,12 @@
+import { Field, TextArea, TextInput, FileField } from '@components/Field';
 import { SelectField } from '@components/SelectField';
-import { Row, Rows, Section } from '@components/Ledger';
+import { Row, Rows, Section, LoadError, Loading } from '@components/Ledger';
 import { PageAction } from '@components/Page';
-import { FIELD_CLASS } from '@components/fieldClass';
+import { ErrorSummary } from '@components/ErrorSummary';
+import { useErrorSummary } from '@hooks/useErrorSummary';
 import { SearchSelect } from '@components/SearchSelect';
 import {
+  FIELD_LIMITS,
   REGISTER_ISSUE_COPY as COPY,
   REGISTER_ISSUE_DECISIONS,
   REGISTER_ISSUE_UNMET_COPY,
@@ -20,11 +23,17 @@ import {
   type RegisterLink,
   refusalSentences,
   failureSentence,
+  utcToday,
+  formatDate,
+  shareCount,
+  shortReference,
+  IDENTITY_SOURCE_LABELS,
 } from '@ledova/shared';
 import { DecisionTrail } from '@pages/company/register/shared/DecisionTrail';
 import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
 import { useMemo, useState } from 'react';
 import {
+  LINK_FIELDS,
   useIssueLinkRecord,
   useIssuePreparation,
   useIssueRecord,
@@ -48,18 +57,16 @@ function SnapshotRows({ snapshot }: { snapshot: RegisterIssueSnapshot }) {
       <Row label="Share class">
         {snapshot.token.name} · {snapshot.token.symbol}
       </Row>
-      <Row label="Member">
-        {snapshot.member.name} · {snapshot.member.uuid}
-      </Row>
+      <Row label="Member">{snapshot.member.name}</Row>
       <Row label="Residential address">{snapshot.member.residentialAddress}</Row>
-      <Row label="Identity source">{snapshot.member.identitySource}</Row>
+      <Row label="Identity source">{IDENTITY_SOURCE_LABELS[snapshot.member.identitySource] ?? 'Not identified'}</Row>
       <Row label="Nominated wallet">{snapshot.wallet.address}</Row>
-      <Row label="Nomination">{snapshot.wallet.nomination}</Row>
-      <Row label="Company ADD">{snapshot.wallet.approval}</Row>
+      <Row label="Nomination">{shortReference(snapshot.wallet.nomination)}</Row>
+      <Row label="Company ADD">{shortReference(snapshot.wallet.approval)}</Row>
       <Row label="Approval expiry">{formatDateTime(snapshot.wallet.expiresAt)}</Row>
       <Row label="Proof completed">{formatDateTime(snapshot.wallet.proofCompletedAt)}</Row>
       <Row label="Eligibility expiry">{formatDateTime(snapshot.wallet.eligibilityExpiresAt)}</Row>
-      <Row label="Register opening">{snapshot.register.opening}</Row>
+      <Row label="Register opening">{shortReference(snapshot.register.opening)}</Row>
       <Row label="Register sequence">{snapshot.register.sequence}</Row>
       <Row label="Register head">{snapshot.register.headHash}</Row>
       <Row label="Contract">{snapshot.token.contractAddress}</Row>
@@ -78,7 +85,7 @@ function IssueRecord({ record, commands }: { record: RegisterIssue; commands: Co
           <SnapshotRows snapshot={record.snapshot} />
           <Rows>
             <Row label="Shares">{formatShareCount(record.shares)}</Row>
-            <Row label="Terms date">{record.termsOn}</Row>
+            <Row label="Terms date">{formatDate(record.termsOn, 'Not recorded')}</Row>
             <Row label="Non-paid terms">{record.terms}</Row>
             <Row label="Approving director">{record.approvingDirector}</Row>
             <Row label="Authority reference">{record.authorityReference}</Row>
@@ -86,19 +93,25 @@ function IssueRecord({ record, commands }: { record: RegisterIssue; commands: Co
             <Row label="Recipient acceptance">
               {record.acceptanceRequired ? 'Required; evidence retained' : 'Not required by these terms'}
             </Row>
-            <Row label="Preparation ID">{record.uuid}</Row>
-            <Row label="Original request">{record.request}</Row>
+            <Row label="Preparation reference">{shortReference(record.uuid)}</Row>
+            <Row label="Original request">{record.request ? shortReference(record.request) : 'Not recorded'}</Row>
             <Row label="Intent fingerprint">{record.intentDigest}</Row>
-            {record.approvalDecision && <Row label="Consumed approval">{record.approvalDecision}</Row>}
+            {record.approvalDecision && <Row label="Consumed approval">{shortReference(record.approvalDecision)}</Row>}
             <Row label="Execution">{registerIssueExecutionState(record)}</Row>
             {record.execution && (
               <>
-                <Row label="Original execution">{record.execution.execution}</Row>
-                <Row label="Dispatch">{record.execution.dispatchId}</Row>
-                {record.execution.operationId && <Row label="Execution operation">{record.execution.operationId}</Row>}
+                <Row label="Original execution">{shortReference(record.execution.execution)}</Row>
+                <Row label="Dispatch">{shortReference(record.execution.dispatchId)}</Row>
+                {record.execution.operationId && (
+                  <Row label="Execution operation">{shortReference(record.execution.operationId)}</Row>
+                )}
                 {record.execution.txHash && <Row label="Transaction hash">{record.execution.txHash}</Row>}
-                {record.execution.registerEntry && <Row label="Register entry">{record.execution.registerEntry}</Row>}
-                {record.execution.effectiveOn && <Row label="Register entry date">{record.execution.effectiveOn}</Row>}
+                {record.execution.registerEntry && (
+                  <Row label="Register entry">{shortReference(record.execution.registerEntry)}</Row>
+                )}
+                {record.execution.effectiveOn && (
+                  <Row label="Register entry date">{formatDate(record.execution.effectiveOn)}</Row>
+                )}
               </>
             )}
           </Rows>
@@ -116,7 +129,7 @@ function IssueRecord({ record, commands }: { record: RegisterIssue; commands: Co
                 <PageAction
                   key={kind}
                   label={`Download ${kind} document`}
-                  context={`grant ${record.uuid}`}
+                  context={`grant ${shortReference(record.uuid)}`}
                   disabled={!!downloading}
                   busy={downloading === kind}
                   busyLabel="Downloading…"
@@ -125,7 +138,11 @@ function IssueRecord({ record, commands }: { record: RegisterIssue; commands: Co
               ),
             )}
           </div>
-          {error && <p role="alert">{error}</p>}
+          {error && (
+            <p role="alert" className="text-sm text-error-light">
+              {error}
+            </p>
+          )}
         </>
       )}
       <RegisterDecisions
@@ -139,14 +156,14 @@ function IssueRecord({ record, commands }: { record: RegisterIssue; commands: Co
         onDecided={commands.accept}
         onRefused={commands.refresh}
         visible={commands.visible}
-        context={`grant ${record.uuid}`}
+        context={`grant ${shortReference(record.uuid)}`}
       >
         {(preview) => (
           <>
             <SnapshotRows snapshot={preview.snapshot} />
             <Rows>
               <Row label="Shares">{formatShareCount(preview.shares)}</Row>
-              <Row label="Terms date">{preview.termsOn}</Row>
+              <Row label="Terms date">{formatDate(preview.termsOn)}</Row>
               <Row label="Non-paid terms">{preview.terms}</Row>
               <Row label="Approving director">{preview.approvingDirector}</Row>
               <Row label="Authority reference">{preview.authorityReference}</Row>
@@ -181,23 +198,27 @@ function LinkRecord({ record, commands }: { record: RegisterLink; commands: Comm
           <Rows>
             {record.mapping.map((row) => (
               <Row key={row.address} label="Documented link">
-                {row.address} → {row.member}
+                {row.address} → member {shortReference(row.member)}
               </Row>
             ))}
             <Row label="Authority reference">{record.authorityReference}</Row>
             <Row label="Approving director">{record.approvingDirector}</Row>
             <Row label="Reason">{record.reason}</Row>
-            <Row label="Link preparation">{record.uuid}</Row>
+            <Row label="Link preparation">{shortReference(record.uuid)}</Row>
           </Rows>
           <DecisionTrail proposal={record} labels={REGISTER_LINK_COPY.DECISIONS} />
           <PageAction
             label="Download link authority"
-            context={`link ${record.uuid}`}
+            context={`link ${shortReference(record.uuid)}`}
             busy={busy}
             busyLabel="Downloading…"
             onClick={() => void download()}
           />
-          {error && <p role="alert">{error}</p>}
+          {error && (
+            <p role="alert" className="text-sm text-error-light">
+              {error}
+            </p>
+          )}
         </>
       )}
       <RegisterDecisions
@@ -211,14 +232,14 @@ function LinkRecord({ record, commands }: { record: RegisterLink; commands: Comm
         onDecided={commands.acceptLink}
         onRefused={commands.refresh}
         visible={commands.visible}
-        context={`link ${record.uuid}`}
+        context={`link ${shortReference(record.uuid)}`}
       >
         {(preview) => (
           <>
             <Rows>
               {preview.links.map((row) => (
                 <Row key={row.address} label="Documented link">
-                  {row.address} → {row.member} · {row.holderName ?? 'Identity unavailable'}
+                  {row.address} → {row.holderName ?? `member ${shortReference(row.member)}`}
                 </Row>
               ))}
             </Rows>
@@ -261,15 +282,15 @@ function Preparation({ commands }: { commands: Commands }) {
     displayedMember,
     waiting,
     preparing,
-    commonProblem,
-    issueProblem,
+    problems,
     submit,
   } = useIssuePreparation({ commands });
+  const checks = useErrorSummary(problems);
   const memberChoices = useMemo(
     () =>
       personChoices(
         peopleFrom(commands.members.data).filter((person) => !person.awardOnly),
-        (person) => `${formatShareCount(person.currentShares)} shares`,
+        (person) => shareCount(person.currentShares),
       ),
     [commands.members.data],
   );
@@ -277,9 +298,11 @@ function Preparation({ commands }: { commands: Commands }) {
   return (
     <fieldset
       disabled={waiting}
-      className="grid gap-4 rounded-xl border border-border-subtle bg-surface-tertiary p-4 sm:grid-cols-2 [&>p]:sm:col-span-2 [&>h3]:sm:col-span-2 [&>dl]:sm:col-span-2"
+      className="grid gap-4 border-t border-border-subtle pt-4 sm:grid-cols-2 [&>p]:sm:col-span-2 [&>h3]:sm:col-span-2 [&>dl]:sm:col-span-2"
     >
+      <ErrorSummary {...checks.summary} className="sm:col-span-2" />
       <SearchSelect
+        {...checks.field('nomination')}
         label="Nominated wallet"
         choices={(commands.nominations.data ?? []).map((row) => ({
           value: row.uuid,
@@ -296,12 +319,13 @@ function Preparation({ commands }: { commands: Commands }) {
       />
       {chosen && (
         <Rows>
-          <Row label="Nomination">{chosen.uuid}</Row>
+          <Row label="Nomination">{shortReference(chosen.uuid)}</Row>
           <Row label="Proof completed">{formatDateTime(chosen.proofCompletedAt)}</Row>
           <Row label="Eligibility expiry">{formatDateTime(chosen.eligibilityExpiresAt)}</Row>
         </Rows>
       )}
       <SearchSelect
+        {...checks.field('member')}
         label="Member"
         choices={memberChoices}
         first={NEW_MEMBER}
@@ -309,27 +333,29 @@ function Preparation({ commands }: { commands: Commands }) {
         onChange={setMember}
         noun={MEMBERS}
       />
-      {member === 'new' && <p className="text-sm text-text-muted">New stable member: {newMember}</p>}
-      <label className="block text-sm">
-        Approving director
-        <input className={FIELD_CLASS} value={director} onChange={(event) => setDirector(event.target.value)} />
-      </label>
-      <label className="block text-sm">
-        Authority reference
-        <input className={FIELD_CLASS} value={reference} onChange={(event) => setReference(event.target.value)} />
-      </label>
-      <label className="block text-sm">
-        Reason
-        <input className={FIELD_CLASS} value={reason} onChange={(event) => setReason(event.target.value)} />
-      </label>
-      <label className="block text-sm">
-        Authority document
-        <input
-          type="file"
-          accept="application/pdf,image/*"
-          onChange={(event) => setFiles({ ...files, authority: event.target.files?.[0] })}
+      {member === 'new' && <p className="text-sm text-text-muted">New stable member: {shortReference(newMember)}</p>}
+      <Field {...checks.field('director')} label="Approving director">
+        <TextInput
+          maxLength={FIELD_LIMITS.DIRECTOR}
+          value={director}
+          onChange={(event) => setDirector(event.target.value)}
         />
-      </label>
+      </Field>
+      <Field {...checks.field('reference')} label="Authority reference">
+        <TextInput
+          maxLength={FIELD_LIMITS.REFERENCE}
+          value={reference}
+          onChange={(event) => setReference(event.target.value)}
+        />
+      </Field>
+      <Field {...checks.field('reason')} label="Reason">
+        <TextInput maxLength={FIELD_LIMITS.REASON} value={reason} onChange={(event) => setReason(event.target.value)} />
+      </Field>
+      <FileField
+        {...checks.field('authorityDocument')}
+        label="Authority document"
+        onFile={(file) => setFiles({ ...files, authority: file ?? undefined })}
+      />
       <p className="text-sm text-text-muted">
         Apply the company documentary link before preparing the grant. It records this nominated address against the
         chosen stable member.
@@ -338,10 +364,13 @@ function Preparation({ commands }: { commands: Commands }) {
         label="Prepare nominated wallet link"
         busy={preparing === 'link'}
         busyLabel="Preparing wallet link…"
-        disabled={waiting || !commands.canPrepare || !!commonProblem || !!commands.recovery}
-        onClick={() => void submit('link')}
+        disabled={waiting || !commands.canPrepare || !!commands.recovery}
+        onClick={() => {
+          if (checks.check(LINK_FIELDS)) void submit('link');
+        }}
       />
       <SelectField
+        {...checks.field('approval')}
         label="Company ADD"
         options={[
           { value: '', label: 'Select the genuine successful ADD for this nomination' },
@@ -350,43 +379,31 @@ function Preparation({ commands }: { commands: Commands }) {
             label: `Admitted ${formatDateTime(row.reviewedAt)} · ${
               row.expiresAt ? `until ${formatDateTime(row.expiresAt)}` : 'without an expiry'
             }`,
-            reference: row.changeId!.slice(0, 8),
+            reference: shortReference(row.changeId!),
           })),
         ]}
         value={approval}
         onChange={setApproval}
       />
-      <label className="block text-sm">
-        Shares to grant
-        <input
+      <Field {...checks.field('shares')} label="Shares to grant" hint="Enter whole shares from 1 to 2,147,483,647.">
+        <TextInput
+          maxLength={FIELD_LIMITS.WHOLE_SHARES}
           inputMode="numeric"
-          className={FIELD_CLASS}
           value={shares}
           onChange={(event) => setShares(event.target.value)}
         />
-      </label>
-      <p className="text-xs text-text-muted">Enter whole shares from 1 to 2,147,483,647.</p>
-      <label className="block text-sm">
-        Terms date
-        <input
-          type="date"
-          className={FIELD_CLASS}
-          value={termsOn}
-          onChange={(event) => setTermsOn(event.target.value)}
-        />
-      </label>
-      <label className="block text-sm">
-        Non-paid terms
-        <textarea className={FIELD_CLASS} value={terms} onChange={(event) => setTerms(event.target.value)} />
-      </label>
-      <label className="block text-sm">
-        Terms document
-        <input
-          type="file"
-          accept="application/pdf,image/*"
-          onChange={(event) => setFiles({ ...files, terms: event.target.files?.[0] })}
-        />
-      </label>
+      </Field>
+      <Field {...checks.field('termsOn')} label="Terms date (UTC)">
+        <TextInput type="date" max={utcToday()} value={termsOn} onChange={(event) => setTermsOn(event.target.value)} />
+      </Field>
+      <Field {...checks.field('terms')} label="Non-paid terms">
+        <TextArea maxLength={FIELD_LIMITS.TERMS} value={terms} onChange={(event) => setTerms(event.target.value)} />
+      </Field>
+      <FileField
+        {...checks.field('termsDocument')}
+        label="Terms document"
+        onFile={(file) => setFiles({ ...files, terms: file ?? undefined })}
+      />
       <label className="flex gap-2 text-sm">
         <input
           type="checkbox"
@@ -396,24 +413,27 @@ function Preparation({ commands }: { commands: Commands }) {
         Recipient acceptance required by these terms
       </label>
       {acceptanceRequired && (
-        <label className="block text-sm">
-          Acceptance document
-          <input
-            type="file"
-            accept="application/pdf,image/*"
-            onChange={(event) => setFiles({ ...files, acceptance: event.target.files?.[0] })}
-          />
-        </label>
+        <FileField
+          {...checks.field('acceptanceDocument')}
+          label="Acceptance document"
+          onFile={(file) => setFiles({ ...files, acceptance: file ?? undefined })}
+        />
       )}
       <PageAction
         primary
         label={COPY.PREPARE}
         busy={preparing === 'issue'}
         busyLabel="Preparing non-paid grant…"
-        disabled={waiting || !commands.canPrepare || !!issueProblem || !!commands.recovery}
-        onClick={() => void submit('issue')}
+        disabled={waiting || !commands.canPrepare || !!commands.recovery}
+        onClick={() => {
+          if (checks.check()) void submit('issue');
+        }}
       />
-      {error && <p role="alert">{error}</p>}
+      {error && (
+        <p role="alert" className="text-sm text-error-light">
+          {error}
+        </p>
+      )}
     </fieldset>
   );
 }
@@ -434,20 +454,50 @@ export function CompanyIssueFlow({ uuid, data }: { uuid: string; data: ReturnTyp
     }
   };
   if (!commands.owner) return null;
+  const readFailed =
+    commands.visible &&
+    (commands.instructions.isError ||
+      commands.members.isError ||
+      commands.nominations.isError ||
+      commands.walletApprovals.isError ||
+      commands.links.isError);
+  const reading =
+    commands.instructions.isFetching ||
+    commands.appointments.isFetching ||
+    commands.members.isFetching ||
+    commands.nominations.isFetching ||
+    commands.walletApprovals.isFetching ||
+    commands.links.isFetching;
   return (
     <Section title={COPY.TITLE}>
       <p className="text-sm text-text-muted">{COPY.NOTE}</p>
-      <PageAction label="Refresh company grant records" disabled={commands.busy} onClick={() => void refresh()} />
+      {!readFailed && !commands.appointments.isError && (
+        <PageAction
+          label="Refresh company grant records"
+          busy={reading}
+          busyLabel="Refreshing…"
+          disabled={commands.busy}
+          onClick={() => void refresh()}
+        />
+      )}
       {refreshError && <p role="alert">{refreshError}</p>}
-      {!commands.visible && (
-        <p className="text-sm text-text-muted">Current personal register read access is required.</p>
+      {commands.appointments.isError ? (
+        <LoadError retry={refresh} busy={reading}>
+          Your appointments could not be loaded.
+        </LoadError>
+      ) : !commands.appointments.isSuccess || commands.appointments.isFetching ? (
+        <Loading>Loading your appointments…</Loading>
+      ) : (
+        !commands.visible && (
+          <p className="text-sm text-text-muted">Current personal register read access is required.</p>
+        )
       )}
       <Preparation key={commands.scopeKey} commands={commands} />
       {commands.visible && commands.recovery && (
         <>
           <p className="text-sm text-text-muted">
-            The original {commands.recovery.kind} preparation is uncertain. Recover its identical body and operation
-            UUID: {commands.recovery.body.operationId}
+            The original {commands.recovery.kind === 'link' ? 'wallet link' : 'share issue'} preparation is uncertain.
+            Recover its identical body and operation (reference {shortReference(commands.recovery.body.operationId)}).
           </p>
           <PageAction
             label="Recover original preparation receipt"
@@ -463,16 +513,12 @@ export function CompanyIssueFlow({ uuid, data }: { uuid: string; data: ReturnTyp
       {commands.records.map((record) => (
         <IssueRecord key={record.uuid} record={record} commands={commands} />
       ))}
-      {commands.visible &&
-        (commands.instructions.isError ||
-          commands.members.isError ||
-          commands.nominations.isError ||
-          commands.walletApprovals.isError ||
-          commands.links.isError) && (
-          <p role="alert">
-            Current grant sources or history could not be refreshed. Retained original receipts are kept.
-          </p>
-        )}
+      {readFailed && (
+        <LoadError retry={refresh} busy={reading}>
+          Current grant sources or history could not be {commands.instructions.data ? 'refreshed' : 'loaded'}. Retained
+          original receipts are kept.
+        </LoadError>
+      )}
     </Section>
   );
 }

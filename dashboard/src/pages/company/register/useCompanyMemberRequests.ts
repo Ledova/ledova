@@ -10,11 +10,19 @@ import {
   type OrderSubmissionOwner,
   type TokenHoldersResponse,
   failureSentence,
+  isCalendarDate,
+  utcToday,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
+import { type Problems } from '@hooks/useErrorSummary';
 import { invitationMembers } from '@ledova/shared';
 import { READ_TIMING, registerKey } from '@hooks/useRegisterAccess';
 import { particularsKey } from '@pages/company/register/shared/useRegisterParticulars';
+
+type MemberField = 'member' | 'email' | 'reason' | 'file' | 'asAt' | 'instruction';
+
+export const INVITATION_FIELDS: readonly MemberField[] = ['member', 'email'];
+export const PARTICULARS_FIELDS: readonly MemberField[] = ['file', 'asAt', 'reason'];
 
 export function useCompanyMemberRequests({
   company,
@@ -82,7 +90,7 @@ export function useCompanyMemberRequests({
   const [reason, setReason] = useState('');
   const [request, setRequest] = useState('');
   const [certificateInstruction, setCertificateInstruction] = useState('');
-  const [asAt, setAsAt] = useState(new Date().toISOString().slice(0, 10));
+  const [asAt, setAsAt] = useState(utcToday());
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState('');
@@ -94,6 +102,17 @@ export function useCompanyMemberRequests({
     uploaded.current = null;
   };
   const held = access.busy || uploading || !!access.retry;
+  const preparing =
+    !!access.prepare &&
+    !!access.requests?.particulars.some((item) => item.uuid === request && item.status === 'submitted');
+  const problems: Problems<MemberField> = {
+    member: !member && 'Choose the member or award recipient.',
+    email: !email.trim() && 'Give the intended recipient’s email.',
+    reason: (!!access.admin || preparing) && !reason.trim() && 'Give the company action reason.',
+    file: preparing && !file && 'Choose the company supporting document.',
+    asAt: preparing && (!isCalendarDate(asAt) || asAt > utcToday()) && 'Enter an as-at date no later than today (UTC).',
+    instruction: !certificateInstruction.trim() && 'Give the certificate instruction reference.',
+  };
   useEffect(() => {
     onHeldChange?.(held);
     return () => onHeldChange?.(false);
@@ -103,7 +122,7 @@ export function useCompanyMemberRequests({
     await awards.refetch();
   };
   const prepare = async () => {
-    if (!file || !access.prepare || uploading) return;
+    if (!file || !access.prepare || !preparing || uploading || PARTICULARS_FIELDS.some((key) => problems[key])) return;
     setUploading(true);
     setUploadError('');
     try {
@@ -154,11 +173,11 @@ export function useCompanyMemberRequests({
     setCertificateInstruction,
     asAt,
     setAsAt,
-    file,
     selectFile,
     uploading,
     uploadError,
     held,
+    problems,
     refresh,
     prepare,
   };

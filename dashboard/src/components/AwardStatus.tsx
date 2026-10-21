@@ -1,4 +1,4 @@
-import { formatShareCount, hasValidRegisterAwardTotals, REGISTER_AWARD_COPY as COPY } from '@ledova/shared';
+import { formatShareCount, hasValidRegisterAwardTotals, REGISTER_AWARD_COPY as COPY, shareCount } from '@ledova/shared';
 
 export function AwardStatus({
   shares,
@@ -43,11 +43,11 @@ export function AwardStatus({
   return (
     <div className="space-y-3">
       <p className="text-sm text-text-muted">
-        {formatShareCount(shares)} shares promised · {formatShareCount(vestedShares)} company-recorded vested
+        {shareCount(shares)} promised · {formatShareCount(vestedShares)} company-recorded vested
       </p>
       <div
         role="img"
-        aria-label={`Award status: ${parts.map((part) => `${formatShareCount(String(part.quantity))} ${part.label.toLowerCase()}`).join(', ')}. ${formatShareCount(shares)} shares promised.`}
+        aria-label={`Award status: ${parts.map((part) => `${formatShareCount(String(part.quantity))} ${part.label.toLowerCase()}`).join(', ')}. ${shareCount(shares)} promised.`}
         className="flex h-3 overflow-hidden rounded-full bg-surface-tertiary"
       >
         {parts.map((part) => (
@@ -63,13 +63,13 @@ export function AwardStatus({
         {parts.map((part) => (
           <div key={part.label} className="min-w-0">
             <dt className="text-text-muted">{part.label}</dt>
-            <dd className="break-words font-medium tabular-nums">{formatShareCount(String(part.quantity))} shares</dd>
+            <dd className="break-words font-medium tabular-nums">{shareCount(String(part.quantity))}</dd>
           </div>
         ))}
       </dl>
       <p className="text-xs text-text-muted">
-        {formatShareCount(remainingUnissuedShares)} shares remain unissued. Issued award shares are already included in
-        the holding.
+        {shareCount(remainingUnissuedShares)} {remainingUnissuedShares === '1' ? 'remains' : 'remain'} unissued. Issued
+        award shares are already included in the holding.
       </p>
     </div>
   );

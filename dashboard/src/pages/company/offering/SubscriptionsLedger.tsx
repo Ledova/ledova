@@ -2,32 +2,22 @@ import { SelectField } from '@components/SelectField';
 import { companySubscriptionTone } from '@components/statusTones';
 import { CompanyReadNotice } from '@pages/company/shared/CompanyState';
 import {
+  COMPANY_SUBSCRIPTION_STATUS_LABELS as STATUSES,
   formatDate,
   formatMoney,
   formatShareCount,
   REGISTER_COPY,
   type OfferingListItem,
   type SubscriptionStatus,
+  shortReference,
 } from '@ledova/shared';
-import { Section, Status } from '@components/Ledger';
+import { Section, Status, Loading } from '@components/Ledger';
 import { ListSearch, Pager, Table, type Noun } from '@components/List';
 import { useFirstPageWhenGone, useListParams } from '@hooks/useListParams';
 import { useCompanyOfferingSubscriptions } from './useOffering';
 import type { CompanyActionRead } from '@pages/company/shared/CompanyState';
 
 const NOUN: Noun = ['application', 'applications'];
-
-const STATUSES: Record<SubscriptionStatus, string> = {
-  draft: 'Draft',
-  submitted: 'Submitted',
-  accepted: 'Accepted',
-  awaiting_payment: 'Awaiting payment',
-  paid: 'Paid',
-  allotted: 'Allotted',
-  rejected: 'Rejected',
-  withdrawn: 'Withdrawn',
-  refunded: 'Refunded',
-};
 
 const COLUMNS = [
   { label: 'Investor' },
@@ -71,7 +61,7 @@ export function SubscriptionsLedger({
         options={offerings.map((row) => ({
           value: row.uuid,
           label: `${row.tokenName} · ${row.statusDisplay} · ${formatDate(row.createdAt)}`,
-          reference: row.uuid.slice(0, 8),
+          reference: shortReference(row.uuid),
         }))}
         value={offering.uuid}
         onChange={(value) => list.setFilter('offering', value)}
@@ -102,9 +92,7 @@ export function SubscriptionsLedger({
           label={REGISTER_COPY.APPLICATIONS_TITLE}
         />
       ) : !data || gone || (read.isPlaceholderData && data.count === 0) ? (
-        <p role="status" className="text-sm text-text-muted">
-          Loading applications…
-        </p>
+        <Loading>Loading applications…</Loading>
       ) : empty ? (
         <p className="text-sm text-text-muted">{REGISTER_COPY.APPLICATIONS_EMPTY}</p>
       ) : (

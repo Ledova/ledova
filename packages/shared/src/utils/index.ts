@@ -1,15 +1,34 @@
-export { formatDate, formatTime, formatDateTime, formatSyncAge, parseDateString, formatDateToString } from './date';
+export {
+  addCalendarDays,
+  addCalendarYears,
+  formatDate,
+  formatTime,
+  formatDateTime,
+  formatSyncAge,
+  isCalendarDate,
+  parseDateString,
+  formatDateToString,
+  sydneyToday,
+  utcToday,
+} from './date';
 export {
   formatCurrency,
   type FormatCurrencyOptions,
   formatCryptoBalance,
   formatFileSize,
   formatPlainDecimal,
+  formatShareCount,
+  shareChange,
+  shareCount,
+  shortReference,
+  sharePercentage,
 } from './formatting';
 export { attachableDocuments, describeOfferDocument } from './offer-documents';
 export {
   isNumericOnly,
   validatePassword,
+  PASSWORD_PROBLEMS,
+  newPasswordProblem,
   formatVerificationToken,
   validateEmailConfirmation,
   isValidFullName,
@@ -37,6 +56,7 @@ export {
   getErrorMessage,
   hasServiceErrorDetail,
   failureStatus,
+  retryServerFailures,
   describeFailure,
   readSignInError,
   readApiError,
@@ -137,8 +157,8 @@ export { isPreparedRegisterDeployment } from './register-deployments';
 export { isWalletNominationReceipt, isPreparedCompanyWalletInstruction } from './company-wallets';
 export { isPreparedRegisterTransfer } from './register-transfers';
 export { appointmentForAcknowledgement, isDiscrepancyAcknowledgementReceipt } from './register-reconciliations';
-export { MAX_REQUEST_SHARES, raisedSupply, requestShares, wholeShares } from './share-quantities';
-export { marketAmount, marketQuantity, priceCents } from './market-data';
+export { MAX_ORDER_SHARES, MAX_REQUEST_SHARES, raisedSupply, requestShares, wholeShares } from './share-quantities';
+export { marketAmount, marketQuantity, marketShares, priceCents } from './market-data';
 export { activityAmount, activityDirection, activityStatus, feeUnit } from './activity';
 export { shownSymbol } from './asset-symbol';
 export { parseTheme } from './theme';
@@ -156,5 +176,14 @@ export {
 
 export { invitationMembers } from './invitationMembers';
 export { applicationAmount } from './applicationAmount';
-export { NEW_PERSON, peopleFrom, personChoices, personRequest, type Person, type PersonChoice } from './people';
-export { searchEntries, searchMatches, type SearchChoice } from './search';
+export { applicationHistory } from './applicationHistory';
+export {
+  NEW_PERSON,
+  NEW_PERSON_PROBLEMS,
+  peopleFrom,
+  personChoices,
+  personRequest,
+  type Person,
+  type PersonChoice,
+} from './people';
+export { searchEntries, searchMatches, searchRows, type SearchChoice } from './search';

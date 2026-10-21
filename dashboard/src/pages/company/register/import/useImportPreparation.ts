@@ -25,6 +25,7 @@ import {
   type RegisterTransferMember,
   REGISTER_IMPORT_UNMET_COPY,
   refusalSentence,
+  utcToday,
 } from '@ledova/shared';
 
 import apiClient from '@services/apiClient';
@@ -98,7 +99,7 @@ export function useImportPreparation({
   const client = useQueryClient();
   const navigate = useNavigate();
   const importDescription = useId();
-  const today = new Date().toISOString().slice(0, 10);
+  const today = utcToday();
   const [resolvedMembers, setResolvedMembers] = useState<{
     source: RegisterTransferMember[];
     members: RegisterTransferMember[];

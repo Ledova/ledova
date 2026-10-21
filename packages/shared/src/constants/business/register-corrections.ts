@@ -24,9 +24,9 @@ export const REGISTER_CORRECTION_UNMET_COPY: Record<string, string> = {
 
 export const REGISTER_CORRECTION_COPY = {
   TITLE: 'Corrections',
-  EMPTY: 'No correction has been prepared for this share class.',
+  EMPTY: 'No corrections yet.',
   ENTRIES_TITLE: 'Register entries',
-  ENTRIES_EMPTY: 'The register of this share class has no entries yet.',
+  ENTRIES_EMPTY: 'No register entries yet.',
   PREPARE: 'Correct this entry',
   PROVIDED_BY_COMPANY: 'Provided by the company',
   STAFF_VERIFIED: 'Verified by Ledova staff before corrections were company-run',
@@ -57,14 +57,14 @@ export const REGISTER_CORRECTION_COPY = {
     transfer: 'Transfer',
     cessation: 'Cessation',
     correction: 'Compensating correction',
-  } as Record<RegisterEntryKind, string>,
+  } satisfies Record<RegisterEntryKind, string>,
   ORIGINAL_CHANGES: 'Entry being corrected',
   COMPENSATING_CHANGES: 'Compensating changes',
   UNNAMED_MEMBER: (member: string) => `Member ${member}`,
   AUTHORITY_DOCUMENT: 'Authority document',
   AUTHORITY_DOCUMENT_NOTE:
-    'The director resolution or court order that authorises this correction, provided by the company. PDF or ' +
-    'image, max 10 MB. Ledova does not verify it.',
+    'The director resolution or court order that authorises this correction, provided by the company. Ledova ' +
+    'does not verify it.',
   EFFECTIVE_ON: 'Effective date',
   EFFECTIVE_ON_NOTE: 'Today (UTC) or earlier. A correction can be backdated, but cannot take effect later.',
   AUTHORITY: 'Authority',

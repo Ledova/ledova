@@ -13,11 +13,14 @@ import {
   type RegisterAllotmentPreparation,
   type RegisterEvidence,
   personRequest,
+  NEW_PERSON_PROBLEMS,
   type Person,
   REGISTER_ALLOTMENT_UNMET_COPY,
   refusalSentence,
+  utcToday,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
+import { hasProblems, type Problems } from '@hooks/useErrorSummary';
 import { useEffect, useRef, useState } from 'react';
 export type DocumentKind = 'authority' | 'agreement' | 'receipt';
 export function useAllotmentForm({
@@ -44,7 +47,7 @@ export function useAllotmentForm({
   onHeldChange: (held: boolean) => void;
   visible?: boolean;
 }) {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = utcToday();
   const [memberId] = useState(() => crypto.randomUUID());
   const [member, setMember] = useState(() =>
     people.some((person) => person.member === initialMember && person.walletless && person.particularsRetained)
@@ -98,26 +101,30 @@ export function useAllotmentForm({
   };
   const consideration = allotmentAud(fields.consideration);
   const received = allotmentAud(fields.receivedAmount);
-  const problem =
-    member === 'new' && (!fields.name.trim() || !fields.residentialAddress.trim())
-      ? 'Give the new person’s name and residential address.'
-      : !/^[1-9]\d*$/.test(fields.shares) || BigInt(fields.shares) >= 2n ** 256n
-        ? 'Enter a positive whole number of shares.'
-        : !consideration || received !== consideration
-          ? 'The company-reported receipt must equal the full positive AUD consideration, with at most two decimal places.'
-          : !/^\d{4}-\d{2}-\d{2}$/.test(fields.companyEventOn) || fields.companyEventOn > today
-            ? 'Enter the company issue date no later than today (UTC).'
-            : [fields.agreementOn, fields.receivedOn].some((date) => !/^\d{4}-\d{2}-\d{2}$/.test(date) || date > today)
-              ? 'Agreement and receipt dates must be today (UTC) or earlier.'
-              : !fields.agreementReference.trim() ||
-                  !fields.terms.trim() ||
-                  !fields.approvingDirector.trim() ||
-                  !fields.authorityReference.trim() ||
-                  !fields.reason.trim()
-                ? 'Give the external agreement, approving director, company authority and reason.'
-                : (['authority', 'agreement', 'receipt'] as const).some((kind) => !files[kind])
-                  ? 'Choose the authority, agreement and receipt evidence.'
-                  : null;
+  const past = (date: string) => !/^\d{4}-\d{2}-\d{2}$/.test(date) || date > today;
+  const problems: Problems<keyof typeof fields | `${DocumentKind}Document`> = {
+    name: member === 'new' && !fields.name.trim() && NEW_PERSON_PROBLEMS.NAME,
+    residentialAddress: member === 'new' && !fields.residentialAddress.trim() && NEW_PERSON_PROBLEMS.ADDRESS,
+    shares:
+      (!/^[1-9]\d*$/.test(fields.shares) || BigInt(fields.shares) >= 2n ** 256n) &&
+      'Enter a positive whole number of shares.',
+    consideration: !consideration && 'Enter the positive AUD consideration, with at most two decimal places.',
+    agreementReference: !fields.agreementReference.trim() && 'Give the agreement reference.',
+    agreementOn: past(fields.agreementOn) && 'Enter an agreement date no later than today (UTC).',
+    terms: !fields.terms.trim() && 'Give the agreement terms.',
+    agreementDocument: !files.agreement && 'Choose the agreement evidence.',
+    receivedAmount:
+      !!consideration &&
+      received !== consideration &&
+      'The company-reported receipt must equal the full consideration.',
+    receivedOn: past(fields.receivedOn) && 'Enter a receipt date no later than today (UTC).',
+    receiptDocument: !files.receipt && 'Choose the receipt evidence.',
+    companyEventOn: past(fields.companyEventOn) && 'Enter the company issue date no later than today (UTC).',
+    approvingDirector: !fields.approvingDirector.trim() && 'Name the approving director.',
+    authorityReference: !fields.authorityReference.trim() && 'Give the authority reference.',
+    reason: !fields.reason.trim() && 'Give the reason.',
+    authorityDocument: !files.authority && 'Choose the authority evidence.',
+  };
   const upload = async (kind: DocumentKind) => {
     const file = files[kind]!;
     if (uploads.current[kind]?.file !== file) uploads.current[kind] = { file, key: crypto.randomUUID(), receipt: null };
@@ -145,7 +152,7 @@ export function useAllotmentForm({
     return saved.receipt;
   };
   const submit = async () => {
-    if (pending.current || busy || blocked || (!operation.current && problem)) return;
+    if (pending.current || busy || blocked || (!operation.current && hasProblems(problems))) return;
     pending.current = true;
     setBusy(true);
     setError('');
@@ -276,7 +283,7 @@ export function useAllotmentForm({
     busy,
     held,
     error,
-    problem,
+    problems,
     submit,
   };
 }

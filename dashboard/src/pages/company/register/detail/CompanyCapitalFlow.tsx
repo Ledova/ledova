@@ -1,7 +1,10 @@
-import { Row, Rows, Section } from '@components/Ledger';
+import { Field, TextArea, TextInput, FileField } from '@components/Field';
+import { Row, Rows, Section, Loading, LoadError } from '@components/Ledger';
 import { PageAction } from '@components/Page';
-import { FIELD_CLASS } from '@components/fieldClass';
+import { ErrorSummary } from '@components/ErrorSummary';
+import { useErrorSummary } from '@hooks/useErrorSummary';
 import {
+  FIELD_LIMITS,
   REGISTER_CAPITAL_INCREASE_COPY as COPY,
   REGISTER_CAPITAL_INCREASE_DECISIONS,
   REGISTER_CAPITAL_INCREASE_UNMET_COPY,
@@ -12,6 +15,7 @@ import {
   type RegisterCapitalIncrease,
   type RegisterCapitalIncreaseSnapshot,
   refusalSentences,
+  shortReference,
 } from '@ledova/shared';
 import { DecisionTrail } from '@pages/company/register/shared/DecisionTrail';
 import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
@@ -52,19 +56,19 @@ function CapitalRecord({ record, commands }: { record: RegisterCapitalIncrease; 
           <h3 className="font-medium">{STAGES[record.stage] ?? record.stage} capital increase</h3>
           <SnapshotRows snapshot={record.snapshot} />
           <Rows>
-            <Row label="Preparation ID">{record.uuid}</Row>
+            <Row label="Preparation reference">{shortReference(record.uuid)}</Row>
             <Row label="Prepared by">{record.preparedByName || 'Name not recorded'}</Row>
             <Row label="Prepared on">{formatDateTime(record.createdAt)}</Row>
-            <Row label="Original request">{record.request}</Row>
+            <Row label="Original request">{shortReference(record.request)}</Row>
             <Row label="Intent fingerprint">{record.intentDigest}</Row>
-            {record.approvalDecision && <Row label="Consumed approval">{record.approvalDecision}</Row>}
+            {record.approvalDecision && <Row label="Consumed approval">{shortReference(record.approvalDecision)}</Row>}
             <Row label="Execution">{registerCapitalIncreaseExecutionState(record)}</Row>
             {execution && (
               <>
-                <Row label="Original execution">{execution.execution}</Row>
-                <Row label="Dispatch">{execution.dispatchId}</Row>
-                {execution.operationId && <Row label="Original operation">{execution.operationId}</Row>}
-                {execution.claimId && <Row label="Original claim">{execution.claimId}</Row>}
+                <Row label="Original execution">{shortReference(execution.execution)}</Row>
+                <Row label="Dispatch">{shortReference(execution.dispatchId)}</Row>
+                {execution.operationId && <Row label="Original operation">{shortReference(execution.operationId)}</Row>}
+                {execution.claimId && <Row label="Original claim">{shortReference(execution.claimId)}</Row>}
                 {execution.txHash && <Row label="Transaction hash">{execution.txHash}</Row>}
                 {execution.blockNumber !== null && <Row label="Original receipt block">{execution.blockNumber}</Row>}
                 {execution.blockHash && <Row label="Original receipt block hash">{execution.blockHash}</Row>}
@@ -85,12 +89,16 @@ function CapitalRecord({ record, commands }: { record: RegisterCapitalIncrease; 
           ))}
           <PageAction
             label="Download capital authority"
-            context={`capital ${record.uuid}`}
+            context={`capital ${shortReference(record.uuid)}`}
             busy={busy}
             busyLabel="Downloading…"
             onClick={() => void download()}
           />
-          {error && <p role="alert">{error}</p>}
+          {error && (
+            <p role="alert" className="text-sm text-error-light">
+              {error}
+            </p>
+          )}
         </>
       )}
       <RegisterDecisions
@@ -104,7 +112,7 @@ function CapitalRecord({ record, commands }: { record: RegisterCapitalIncrease; 
         onDecided={commands.accept}
         onRefused={commands.refresh}
         visible={commands.visible}
-        context={`capital ${record.uuid}`}
+        context={`capital ${shortReference(record.uuid)}`}
       >
         {(preview) => (
           <>
@@ -134,19 +142,19 @@ function Preparation({ commands }: { commands: Commands }) {
     busy,
     error,
     setError,
-    additionalShares,
     total,
-    newAuthorizedTotal,
-    valid,
+    problems,
     waiting,
     submit,
   } = useCapitalPreparation({ commands });
+  const checks = useErrorSummary(problems);
   return (
     <fieldset
       disabled={waiting}
-      className="grid gap-4 rounded-xl border border-border-subtle bg-surface-tertiary p-4 sm:grid-cols-2 [&>p]:sm:col-span-2 [&>h3]:sm:col-span-2 [&>dl]:sm:col-span-2"
+      className="grid gap-4 border-t border-border-subtle pt-4 sm:grid-cols-2 [&>p]:sm:col-span-2 [&>h3]:sm:col-span-2 [&>dl]:sm:col-span-2"
     >
       <h3 className="font-medium">Prepare a company capital increase</h3>
+      <ErrorSummary {...checks.summary} className="sm:col-span-2" />
       <p className="text-sm text-text-muted">{COPY.NOTE}</p>
       <p className="text-sm">Captured authorised cap: {formatShareCount(before)}</p>
       {commands.source?.totalSupply !== before && (
@@ -159,71 +167,54 @@ function Preparation({ commands }: { commands: Commands }) {
           }}
         />
       )}
-      <label className="block text-sm">
-        Additional authorised shares
-        <input
-          className={FIELD_CLASS}
+      <Field {...checks.field('additional')} label="Additional authorised shares">
+        <TextInput
+          maxLength={FIELD_LIMITS.WHOLE_SHARES}
           inputMode="numeric"
           value={additional}
           onChange={(event) => setAdditional(event.target.value)}
         />
-      </label>
+      </Field>
       {total !== null && <p className="text-sm">New authorised cap: {formatShareCount(total)}</p>}
-      {additional !== '' && (additionalShares === null || newAuthorizedTotal === null) && (
-        <p role="alert">Enter positive whole shares with an exact new cap no greater than 2,147,483,647.</p>
-      )}
-      <label className="block text-sm">
-        Purpose
-        <textarea className={FIELD_CLASS} value={purpose} onChange={(event) => setPurpose(event.target.value)} />
-      </label>
-      <label className="block text-sm">
-        Board resolution reference
-        <input
-          className={FIELD_CLASS}
-          maxLength={255}
+      <Field {...checks.field('purpose')} label="Purpose">
+        <TextArea value={purpose} onChange={(event) => setPurpose(event.target.value)} />
+      </Field>
+      <Field {...checks.field('board')} label="Board resolution reference">
+        <TextInput
+          maxLength={FIELD_LIMITS.REFERENCE}
           value={board}
           onChange={(event) => setBoard(event.target.value)}
         />
-      </label>
-      <label className="block text-sm">
-        Shareholder approval reference (optional)
-        <input
-          className={FIELD_CLASS}
-          maxLength={255}
+      </Field>
+      <Field label="Shareholder approval reference (optional)">
+        <TextInput
+          maxLength={FIELD_LIMITS.REFERENCE}
           value={shareholder}
           onChange={(event) => setShareholder(event.target.value)}
         />
-      </label>
-      <label className="block text-sm">
-        Capital authority document
-        <input
-          className={FIELD_CLASS}
-          type="file"
-          accept=".pdf,.png,.jpg,.jpeg"
-          onChange={(event) => {
-            const chosen = event.target.files?.[0] ?? null;
-            if (
-              chosen &&
-              (!['application/pdf', 'image/png', 'image/jpeg'].includes(chosen.type) ||
-                chosen.size <= 0 ||
-                chosen.size > 10 * 1024 * 1024)
-            ) {
-              setError('Choose a PDF, PNG or JPEG of up to 10 MB.');
-              return;
-            }
-            uploadRef.current = null;
-            setFile(chosen);
-            setError('');
-          }}
-        />
-      </label>
-      {error && <p role="alert">{error}</p>}
+      </Field>
+      <FileField
+        {...checks.field('file')}
+        label="Capital authority document"
+        onFile={(chosen) => {
+          uploadRef.current = null;
+          setFile(chosen);
+          setError('');
+        }}
+      />
+      {error && (
+        <p role="alert" className="text-sm text-error-light">
+          {error}
+        </p>
+      )}
       <PageAction
         label="Prepare capital increase"
         busy={busy}
         busyLabel="Preparing…"
-        disabled={waiting || !commands.canPrepare || !!commands.recovery || !valid}
-        onClick={() => void submit()}
+        disabled={waiting || !commands.canPrepare || !!commands.recovery}
+        onClick={() => {
+          if (checks.check()) void submit();
+        }}
       />
     </fieldset>
   );
@@ -239,16 +230,28 @@ export function CompanyCapitalFlow({ uuid, data }: { uuid: string; data: ReturnT
   return (
     <Section title={COPY.TITLE}>
       <p className="text-sm text-text-muted">{COPY.NOTE}</p>
-      <PageAction
-        label="Refresh company capital records"
-        disabled={commands.busy}
-        onClick={() => void commands.refresh()}
-      />
-      {!commands.visible && (
-        <p className="text-sm text-text-muted">
-          Current personal register access for this company is required. Retained requests stay private until it is
-          refreshed.
-        </p>
+      {!(commands.appointments.isError || (commands.visible && commands.instructions.isError)) && (
+        <PageAction
+          label="Refresh company capital records"
+          busy={commands.instructions.isFetching || commands.appointments.isFetching}
+          busyLabel="Refreshing…"
+          disabled={commands.busy}
+          onClick={() => void commands.refresh()}
+        />
+      )}
+      {commands.appointments.isError ? (
+        <LoadError retry={() => commands.refresh()} busy={commands.appointments.isFetching}>
+          Your appointments could not be loaded.
+        </LoadError>
+      ) : !commands.appointments.isSuccess || commands.appointments.isFetching ? (
+        <Loading>Loading your appointments…</Loading>
+      ) : (
+        !commands.visible && (
+          <p className="text-sm text-text-muted">
+            Current personal register access for this company is required. Retained requests stay private until it is
+            refreshed.
+          </p>
+        )
       )}
       {commands.visible && !commands.steps.prepare && (
         <p className="text-sm text-text-muted">
@@ -256,9 +259,15 @@ export function CompanyCapitalFlow({ uuid, data }: { uuid: string; data: ReturnT
           capability.
         </p>
       )}
-      {commands.visible && commands.instructions.isPending && <p role="status">Loading company capital records…</p>}
+      {commands.visible && commands.instructions.isPending && <Loading>Loading company capital records…</Loading>}
       {commands.visible && commands.instructions.isError && (
-        <p role="alert">The capital records could not be refreshed. Retained original receipts remain available.</p>
+        <LoadError
+          retry={() => commands.refresh()}
+          busy={commands.instructions.isFetching || commands.appointments.isFetching}
+        >
+          The capital records could not be {commands.instructions.data ? 'refreshed' : 'loaded'}. Retained original
+          receipts remain available.
+        </LoadError>
       )}
       {!!commands.company && (
         <div hidden={!commands.visible || !commands.steps.prepare}>
@@ -268,9 +277,9 @@ export function CompanyCapitalFlow({ uuid, data }: { uuid: string; data: ReturnT
       {commands.visible && commands.recovery && (
         <div className="space-y-2">
           <p className="text-sm text-text-muted">
-            The original capital preparation response is unresolved. Recover its identical body and operation UUID.
+            The original capital preparation response is unresolved. Recover its identical body and operation reference.
           </p>
-          <p>{commands.recovery.body.operationId}</p>
+          <p>Operation reference {shortReference(commands.recovery.body.operationId)}</p>
           <PageAction
             label="Recover original capital preparation receipt"
             disabled={commands.busy}

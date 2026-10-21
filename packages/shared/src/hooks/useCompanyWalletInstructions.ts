@@ -242,9 +242,10 @@ export function useCompanyWalletInstructions(options: { newKey: () => string; se
     }
   };
   const refresh = async () => {
+    setError(null);
     try {
       ownerGuard();
-      await appointments.refetch();
+      if ((await appointments.refetch()).isError) return;
       ownerGuard();
       if (companyUuid) {
         guard();

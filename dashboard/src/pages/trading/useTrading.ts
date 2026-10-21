@@ -58,6 +58,7 @@ function useAllWalletTokenBalances(walletAddresses: string[]) {
   const queries = useTradingBalanceQueries(walletAddresses);
 
   const isLoading = queries.some((q) => q.isLoading);
+  const isFetching = queries.some((q) => q.isFetching);
   const error = queries.find((q) => q.error)?.error;
 
   const tokenWallets = new Map<string, { walletAddress: string; balance: string }[]>();
@@ -84,6 +85,7 @@ function useAllWalletTokenBalances(walletAddresses: string[]) {
   return {
     getWalletsWithHoldings,
     isLoading,
+    isFetching,
     error,
     refetch: () => queries.forEach((q) => q.refetch()),
   };
@@ -95,10 +97,12 @@ export function useTrading({ walletAddresses = [] }: { walletAddresses?: string[
   return {
     userOrders: orders.isError ? [] : (orders.data ?? []),
     isLoadingUserOrders: orders.isLoading,
+    isFetchingOrders: orders.isFetching,
     ordersError: orders.error,
     refreshOrders: orders.refetch,
     balancesError: tokenBalances.error,
     isLoadingBalances: tokenBalances.isLoading,
+    isFetchingBalances: tokenBalances.isFetching,
     refreshBalances: tokenBalances.refetch,
     getWalletsWithHoldings: tokenBalances.getWalletsWithHoldings,
   };

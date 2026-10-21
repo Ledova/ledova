@@ -1,12 +1,17 @@
+import { Field, TextArea, TextInput } from '@components/Field';
 import { Choices } from '@components/Choices';
 import { FileIcon, UploadSimpleIcon, XIcon } from '@phosphor-icons/react';
 import { Modal } from '@components/Modal';
 import { PageAction } from '@components/Page';
-import { formatFileSize } from '@ledova/shared';
+import { useId } from 'react';
+import { FIELD_LIMITS, UPLOAD_RULE, formatFileSize } from '@ledova/shared';
 import type { InvestorCategory } from '@ledova/shared';
 import { useInvestorClaim } from './useInvestorClaim';
 import { CERTIFIER_BODIES, WHOLESALE_ONLY_NOTICE } from './constants';
-import { FIELD_CLASS } from '@components/fieldClass';
+import { LoadError } from '@components/Ledger';
+import { ErrorSummary } from '@components/ErrorSummary';
+import { useErrorSummary } from '@hooks/useErrorSummary';
+import { useDirectoryNames } from '@hooks/useDirectoryNames';
 
 interface ClaimModalProps {
   isOpen: boolean;
@@ -31,7 +36,8 @@ export function ClaimModal({
 }: ClaimModalProps) {
   const {
     file,
-    setFile,
+    chooseFile,
+    fileRefusal,
     declaredBasis,
     setDeclaredBasis,
     company,
@@ -56,33 +62,51 @@ export function ClaimModal({
     spec,
     reset,
     handleDrop,
-    isComplete,
+    today,
+    earliestCertificate,
+    available,
+    problems,
     handleSubmit,
   } = useInvestorClaim({ category, userAccount, onSuccess, submissionBlockedReason });
+  const checks = useErrorSummary(problems);
+  const directory = useDirectoryNames(isOpen && needsCompany);
+  const evidence = checks.field('file');
+  const evidenceError = fileRefusal ?? evidence.error;
+  const evidenceErrorId = useId();
+  const declaration = checks.field('declaration');
+  const declarationErrorId = useId();
 
   return (
     <Modal
       isOpen={isOpen}
       onClose={() => {
         reset();
+        checks.reset();
         onClose();
       }}
       title={spec ? `Claim: ${spec.label}` : 'Claim'}
       size="lg"
       showFooter
       confirmLabel="Save private evidence"
-      onConfirm={handleSubmit}
-      confirmDisabled={!isComplete}
+      onConfirm={() => {
+        if (checks.check()) void handleSubmit();
+      }}
+      confirmDisabled={!available}
       busy={isSubmitting}
       busyLabel="Saving…"
     >
       <div className="space-y-4">
-        {submissionBlockedReason && (
-          <div role="alert" className="flex flex-col items-start gap-2 text-sm text-text-primary">
-            <p>{submissionBlockedReason}</p>
-            {onRetry && <PageAction label="Try again" onClick={onRetry} disabled={isRetrying} />}
-          </div>
-        )}
+        <ErrorSummary {...checks.summary} />
+        {submissionBlockedReason &&
+          (onRetry ? (
+            <LoadError retry={onRetry} busy={isRetrying}>
+              {submissionBlockedReason}
+            </LoadError>
+          ) : (
+            <p role="status" className="text-sm text-text-primary">
+              {submissionBlockedReason}
+            </p>
+          ))}
         {error && (
           <p role="alert" className="text-sm text-error-light">
             {error}
@@ -92,133 +116,150 @@ export function ClaimModal({
         <p className="text-sm text-text-secondary">{spec?.evidence}</p>
 
         {needsCompany && (
-          <div>
-            <label className="block">
-              <span className="text-sm font-medium text-text-primary">Issuer company UUID</span>
-              <input
-                type="text"
-                value={company}
-                onChange={(e) => {
-                  if (!isSubmitting) setCompany(e.target.value);
-                }}
-                className={FIELD_CLASS}
-                disabled={isSubmitting}
-              />
-            </label>
-            <p className="mt-1 text-sm text-text-muted">
-              Enter the exact company UUID provided by the issuer. The server checks that it is active.
-            </p>
-          </div>
+          <Field
+            {...checks.field('company')}
+            label="Issuer company UUID"
+            hint={
+              directory.company(company.trim()) ??
+              'Enter the exact company UUID provided by the issuer. The server checks that it is active.'
+            }
+          >
+            <TextInput
+              value={company}
+              onChange={(e) => {
+                if (!isSubmitting) setCompany(e.target.value);
+              }}
+              disabled={isSubmitting}
+            />
+          </Field>
         )}
 
         {needsCertifier && (
           <div className="grid gap-4 sm:grid-cols-2">
-            <label className="block">
-              <span className="text-sm font-medium text-text-primary">Certificate date</span>
-              <input
+            <Field {...checks.field('certificateIssuedAt')} label="Certificate date (UTC)">
+              <TextInput
                 type="date"
+                min={earliestCertificate}
+                max={today}
                 value={certificateIssuedAt}
                 onChange={(e) => setCertificateIssuedAt(e.target.value)}
-                className={FIELD_CLASS}
               />
-            </label>
+            </Field>
             <Choices
+              {...checks.field('certifierBody')}
               legend="Professional body"
               options={CERTIFIER_BODIES.map((body) => [body.value, body.label] as const)}
               value={certifierBody}
               onChange={setCertifierBody}
             />
-            <label className="block">
-              <span className="text-sm font-medium text-text-primary">Accountant name</span>
-              <input
-                type="text"
+            <Field {...checks.field('certifierName')} label="Accountant name">
+              <TextInput
                 value={certifierName}
+                maxLength={FIELD_LIMITS.CERTIFIER_NAME}
                 onChange={(e) => setCertifierName(e.target.value)}
-                className={FIELD_CLASS}
               />
-            </label>
-            <label className="block">
-              <span className="text-sm font-medium text-text-primary">Membership number</span>
-              <input
-                type="text"
+            </Field>
+            <Field {...checks.field('certifierMembershipNumber')} label="Membership number">
+              <TextInput
                 value={certifierMembershipNumber}
+                maxLength={FIELD_LIMITS.MEMBERSHIP_NUMBER}
                 onChange={(e) => setCertifierMembershipNumber(e.target.value)}
-                className={FIELD_CLASS}
               />
-            </label>
+            </Field>
           </div>
         )}
 
-        <label className="block">
-          <span className="text-sm font-medium text-text-primary">Basis for the claim</span>
-          <textarea
+        <Field {...checks.field('declaredBasis')} label="Basis for the claim">
+          <TextArea
             value={declaredBasis}
             onChange={(e) => setDeclaredBasis(e.target.value)}
             rows={3}
-            className={FIELD_CLASS}
             placeholder="Describe, in your own words, why this category applies to you"
           />
-        </label>
+        </Field>
 
-        {!file ? (
-          <div
-            onDrop={handleDrop}
-            onDragOver={(e) => {
-              e.preventDefault();
-              setIsDragging(true);
-            }}
-            onDragLeave={() => setIsDragging(false)}
-            className={`flex flex-col items-center justify-center gap-3 py-10 px-6 rounded-lg border-2 border-dashed cursor-pointer transition-colors ${
-              isDragging
-                ? 'border-brand-light bg-brand-mid/10'
-                : 'border-border hover:border-brand-subtle hover:bg-surface-tertiary'
-            }`}
-          >
-            <UploadSimpleIcon size={32} className="text-text-muted" weight="light" />
-            <div className="text-center">
-              <p className="mb-3 text-sm text-text-primary">Drag and drop your evidence or choose a file.</p>
-              <PageAction label="Choose evidence file" onClick={() => fileInputRef.current?.click()} />
-              <p className="text-xs text-text-muted mt-1">PDF or images, max 10 MB</p>
-            </div>
-            <input
-              ref={fileInputRef}
-              type="file"
-              aria-label="Evidence file"
-              accept="application/pdf,image/png,image/jpeg"
-              onChange={(e) => setFile(e.target.files?.[0] || null)}
-              className="hidden"
-            />
-          </div>
-        ) : (
-          <div className="flex items-center gap-3">
-            <FileIcon size={24} className="text-brand-light flex-shrink-0" weight="regular" />
-            <div className="min-w-0 flex-1">
-              <p className="text-sm text-text-primary truncate">{file.name}</p>
-              <p className="text-xs text-text-muted">{formatFileSize(file.size)}</p>
-            </div>
-            <button
-              type="button"
-              aria-label="Remove evidence file"
-              onClick={() => setFile(null)}
-              className="text-text-muted hover:text-text-primary p-1"
+        <div id={evidence.id}>
+          {!file ? (
+            <div
+              onDrop={handleDrop}
+              onDragOver={(e) => {
+                e.preventDefault();
+                setIsDragging(true);
+              }}
+              onDragLeave={() => setIsDragging(false)}
+              className={`flex flex-col items-center justify-center gap-3 py-10 px-6 rounded-lg border-2 border-dashed cursor-pointer transition-colors ${
+                isDragging
+                  ? 'border-brand-light bg-brand-mid/10'
+                  : 'border-border hover:border-brand-subtle hover:bg-surface-tertiary'
+              }`}
             >
-              <XIcon size={16} />
-            </button>
-          </div>
-        )}
+              <UploadSimpleIcon size={32} className="text-text-muted" weight="light" />
+              <div className="text-center">
+                <p className="mb-3 text-sm text-text-primary">Drag and drop your evidence or choose a file.</p>
+                <PageAction
+                  label="Choose evidence file"
+                  describedBy={evidenceError ? evidenceErrorId : undefined}
+                  onClick={() => fileInputRef.current?.click()}
+                />
+                <p className="text-xs text-text-muted mt-1">{UPLOAD_RULE.HINT}</p>
+              </div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                aria-label="Evidence file"
+                accept={UPLOAD_RULE.ACCEPT}
+                onChange={(e) => {
+                  chooseFile(e.target.files?.[0] ?? null);
+                  e.target.value = '';
+                }}
+                className="hidden"
+              />
+            </div>
+          ) : (
+            <div className="flex items-center gap-3">
+              <FileIcon size={24} className="text-brand-light flex-shrink-0" weight="regular" />
+              <div className="min-w-0 flex-1">
+                <p className="text-sm text-text-primary truncate">{file.name}</p>
+                <p className="text-xs text-text-muted">{formatFileSize(file.size)}</p>
+              </div>
+              <button
+                type="button"
+                aria-label="Remove evidence file"
+                onClick={() => chooseFile(null)}
+                className="text-text-muted hover:text-text-primary p-1"
+              >
+                <XIcon size={16} />
+              </button>
+            </div>
+          )}
+          {evidenceError && (
+            <p id={evidenceErrorId} role={fileRefusal ? 'alert' : undefined} className="mt-1 text-sm text-error-light">
+              {evidenceError}
+            </p>
+          )}
+        </div>
 
-        <label className="flex items-start gap-3 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={declarationAccepted}
-            onChange={(e) => setDeclarationAccepted(e.target.checked)}
-            className="mt-1"
-          />
-          <span className="text-sm text-text-secondary">
-            I declare that this category applies to me and that the evidence attached is genuine.{' '}
-            {WHOLESALE_ONLY_NOTICE}
-          </span>
-        </label>
+        <div id={declaration.id}>
+          <label className="flex items-start gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={declarationAccepted}
+              aria-invalid={declaration.error ? true : undefined}
+              aria-describedby={declaration.error ? declarationErrorId : undefined}
+              onChange={(e) => setDeclarationAccepted(e.target.checked)}
+              className="mt-1"
+            />
+            <span className="text-sm text-text-secondary">
+              I declare that this category applies to me and that the evidence attached is genuine.{' '}
+              {WHOLESALE_ONLY_NOTICE}
+            </span>
+          </label>
+          {declaration.error && (
+            <p id={declarationErrorId} className="mt-1 text-sm text-error-light">
+              {declaration.error}
+            </p>
+          )}
+        </div>
       </div>
     </Modal>
   );

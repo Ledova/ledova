@@ -18,12 +18,15 @@ import {
   type RegisterAward,
   type RegisterTransferMember,
   personRequest,
+  NEW_PERSON_PROBLEMS,
   type Person,
   REGISTER_GRANT_UNMET_COPY,
   refusalSentence,
+  utcToday,
 } from '@ledova/shared';
 
 import apiClient from '@services/apiClient';
+import { hasProblems, type Problems } from '@hooks/useErrorSummary';
 import { grantsKey } from '@pages/company/register/shared/useRegisterGrants';
 
 export type DocumentKind = 'authority' | 'terms' | 'acceptance';
@@ -66,7 +69,7 @@ export function useGrantPreparation({
   canPrepare = true,
 }: GrantFormProps) {
   const client = useQueryClient();
-  const today = new Date().toISOString().slice(0, 10);
+  const today = utcToday();
   const [newMemberId] = useState(() => crypto.randomUUID());
   const [member, setMember] = useState('new');
   const [name, setName] = useState('');
@@ -120,24 +123,36 @@ export function useGrantPreparation({
     : address.trim();
   const retainedDate = award?.termsOn ?? termsOn;
   const retainedSummary = award?.terms ?? terms.trim();
-  const problem =
-    newRecipient && (!recipientName || !recipientAddress)
-      ? 'Give the new person’s name and residential address.'
-      : !/^[1-9]\d*$/.test(shares)
-        ? 'Enter a positive whole number of shares.'
-        : award && BigInt(shares) > BigInt(award.availableShares)
-          ? 'The grant quantity must fit the award’s vested and not yet issued shares.'
-          : !/^\d{4}-\d{2}-\d{2}$/.test(companyEventOn) || companyEventOn > today
-            ? 'Enter the company issue date no later than today (UTC).'
-            : !/^\d{4}-\d{2}-\d{2}$/.test(retainedDate) || retainedDate > today
-              ? 'Enter a terms date no later than today (UTC).'
-              : !retainedSummary || !approvingDirector.trim() || !authorityReference.trim() || !reason.trim()
-                ? 'Give the non-paid terms, approving director, authority reference and reason.'
-                : documentKinds.some((kind) => !files[kind])
-                  ? award
-                    ? 'Choose the authority and any required acceptance documents.'
-                    : 'Choose the authority, terms and any required acceptance documents.'
-                  : null;
+  const past = (date: string) => !/^\d{4}-\d{2}-\d{2}$/.test(date) || date > today;
+  const problems: Problems<
+    | 'name'
+    | 'address'
+    | 'shares'
+    | 'companyEventOn'
+    | 'termsOn'
+    | 'terms'
+    | 'director'
+    | 'reference'
+    | 'reason'
+    | `${DocumentKind}Document`
+  > = {
+    name: newRecipient && !recipientName && NEW_PERSON_PROBLEMS.NAME,
+    address: newRecipient && !recipientAddress && NEW_PERSON_PROBLEMS.ADDRESS,
+    shares: !/^[1-9]\d*$/.test(shares)
+      ? 'Enter a positive whole number of shares.'
+      : !!award &&
+        BigInt(shares) > BigInt(award.availableShares) &&
+        'The grant quantity must fit the award’s vested and not yet issued shares.',
+    companyEventOn: past(companyEventOn) && 'Enter the company issue date no later than today (UTC).',
+    termsOn: past(retainedDate) && 'Enter a terms date no later than today (UTC).',
+    terms: !retainedSummary && 'Give the non-paid terms.',
+    director: !approvingDirector.trim() && 'Name the approving director.',
+    reference: !authorityReference.trim() && 'Give the authority reference.',
+    reason: !reason.trim() && 'Give the reason.',
+    authorityDocument: documentKinds.includes('authority') && !files.authority && 'Choose the authority document.',
+    termsDocument: documentKinds.includes('terms') && !files.terms && 'Choose the terms document.',
+    acceptanceDocument: documentKinds.includes('acceptance') && !files.acceptance && 'Choose the acceptance document.',
+  };
   const upload = async (kind: DocumentKind) => {
     const file = files[kind]!;
     const previous = uploads.current[kind];
@@ -183,7 +198,7 @@ export function useGrantPreparation({
     return original;
   };
   const submit = async () => {
-    if (pending.current || busy || blocked || (!operation.current && problem)) return;
+    if (pending.current || busy || blocked || (!operation.current && hasProblems(problems))) return;
     pending.current = true;
     setBusy(true);
     onHeldChange?.(true);
@@ -318,7 +333,7 @@ export function useGrantPreparation({
     recipientAddress,
     retainedDate,
     retainedSummary,
-    problem,
+    problems,
     submit,
   } as const;
 }

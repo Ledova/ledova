@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import type { ShareToken } from '@ledova/shared';
 import { formatShareCount, DIRECTORY_COPY, DESTINATIONS, marketAmount } from '@ledova/shared';
-import { Section, Rows, Row } from '@components/Ledger';
+import { Section, Rows, Row, LoadError, Loading } from '@components/Ledger';
 
 interface MarketOverviewProps {
   tokens: ShareToken[];
@@ -10,6 +10,7 @@ interface MarketOverviewProps {
   isLoading: boolean;
   isReady: boolean;
   error?: unknown;
+  isRetrying?: boolean;
   onRetry?: () => void;
 }
 
@@ -20,6 +21,7 @@ export function MarketOverview({
   isLoading,
   isReady,
   error,
+  isRetrying = false,
   onRetry,
 }: MarketOverviewProps) {
   return (
@@ -29,14 +31,11 @@ export function MarketOverview({
         before placing an offer.
       </p>
       {error ? (
-        <div role="alert">
-          Share classes could not be loaded.{' '}
-          <button className="underline" onClick={onRetry}>
-            Retry share classes
-          </button>
-        </div>
+        <LoadError retry={() => onRetry?.()} busy={isRetrying}>
+          Share classes could not be loaded.
+        </LoadError>
       ) : isLoading ? (
-        <p role="status">Loading share classes…</p>
+        <Loading>Loading share classes…</Loading>
       ) : tokens.length === 0 ? (
         <div className="space-y-2 text-sm">
           <p>{isReady ? DIRECTORY_COPY.MARKET_EMPTY_TITLE : DIRECTORY_COPY.INELIGIBLE_TITLE}</p>

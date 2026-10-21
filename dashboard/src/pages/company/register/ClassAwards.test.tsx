@@ -9,6 +9,7 @@ import {
   REGISTER_GRANT_COPY as GRANT,
   ApiClientProvider,
   USER_PREFERENCES_QUERY_KEY,
+  formatDate,
 } from '@ledova/shared';
 import type {
   OwnCompanyAppointment,
@@ -199,22 +200,22 @@ it('retains original award, vesting and linked issue preparations through interr
     const action = kind === 'award' ? COPY.SUBMIT : COPY.VEST;
     const close = kind === 'award' ? 'Close award form' : 'Close vesting form';
     const url = kind === 'award' ? URLS.REGISTER_AWARDS : URLS.REGISTER_AWARD_VESTINGS;
-    const retry = kind === 'award' ? 'Retry awards' : 'Retry vesting events';
+    const failure = kind === 'award' ? /Employee awards could not be loaded/ : /Vesting events could not be loaded/;
     fireEvent.click(screen.getByRole('button', { name: action }));
-    await screen.findByText(
-      kind === 'award' ? /Employee awards could not be read/ : /vesting events could not be loaded/,
-    );
+    await screen.findByText(failure);
     const retained = submissions(url)[0];
     expect((screen.getByRole('button', { name: close }) as HTMLButtonElement).disabled).toBe(true);
     expect(screen.queryByRole('button', { name: action })).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: retry }));
+    fireEvent.click(screen.getByRole('button', { name: 'Try again', description: failure }));
     await waitFor(() =>
-      expect((screen.getByRole('button', { name: retry }) as HTMLButtonElement).disabled).toBe(false),
+      expect(
+        (screen.getByRole('button', { name: 'Try again', description: failure }) as HTMLButtonElement).disabled,
+      ).toBe(false),
     );
     expect(submissions(url)).toEqual([retained]);
     appointments = [{ ...APPOINTMENT, capabilities: ['read_register'] }];
     failedRead = null;
-    fireEvent.click(screen.getByRole('button', { name: retry }));
+    fireEvent.click(screen.getByRole('button', { name: 'Try again', description: failure }));
     await waitFor(() =>
       expect((screen.getByRole('button', { name: action }) as HTMLButtonElement).disabled).toBe(false),
     );
@@ -442,7 +443,9 @@ it('retains original award, vesting and linked issue preparations through interr
   expect((screen.getByLabelText(GRANT.COMPANY_EVENT_ON) as HTMLInputElement).value).toBe('');
   fillGrant();
   fireEvent.change(screen.getByLabelText(GRANT.COMPANY_EVENT_ON), { target: { value: '' } });
-  expect((screen.getByRole('button', { name: 'Prepare vested share issue' }) as HTMLButtonElement).disabled).toBe(true);
+  fireEvent.click(screen.getByRole('button', { name: 'Prepare vested share issue' }));
+  expect(document.activeElement).toBe(screen.getByText('Before continuing:').parentElement);
+  expect(screen.getByLabelText(GRANT.COMPANY_EVENT_ON).getAttribute('aria-invalid')).toBe('true');
   fireEvent.change(screen.getByLabelText(GRANT.COMPANY_EVENT_ON), { target: { value: '2026-10-06' } });
   fireEvent.click(screen.getByRole('button', { name: 'Prepare vested share issue' }));
   const recover = await screen.findByRole('button', { name: 'Recover original grant preparation' });
@@ -493,7 +496,7 @@ it('retains original award, vesting and linked issue preparations through interr
   for (const label of ['Approve', 'Record issue']) {
     fireEvent.click(screen.getByRole('button', { name: new RegExp(`^${label} [(]grant`) }));
     const confirm = await screen.findByRole('button', { name: `${label} non-paid grant` });
-    expect(within(screen.getByRole('dialog')).getByText('2026-10-06')).toBeTruthy();
+    expect(within(screen.getByRole('dialog')).getByText(formatDate('2026-10-06'))).toBeTruthy();
     await waitFor(() => expect((confirm as HTMLButtonElement).disabled).toBe(false));
     fireEvent.click(confirm);
     if (label === 'Approve') {
@@ -511,7 +514,7 @@ it('retains original award, vesting and linked issue preparations through interr
   await act(async () => client.refetchQueries({ queryKey: USER_PREFERENCES_QUERY_KEY, exact: true }));
   expect(client.getQueryState(USER_PREFERENCES_QUERY_KEY)?.status).toBe('error');
   await waitFor(() => {
-    expect(screen.getByText("We couldn't load the complete register.")).toBeTruthy();
+    expect(screen.getByText('Your account could not be loaded.')).toBeTruthy();
     expect(screen.queryByRole('button', { name: /^Recover record issue receipt/ })).toBeNull();
     expect(document.body.textContent).not.toContain(AWARD_REQUEST.name);
   });
@@ -559,7 +562,7 @@ it('retains original award, vesting and linked issue preparations through interr
   await waitFor(() =>
     expect(within(screen.getByText(GRANT.COMPANY_EVENT_ON).parentElement!).getByText('Not recorded')).toBeTruthy(),
   );
-  expect(within(screen.getByText('Ledger date').parentElement!).getByText('2026-10-06')).toBeTruthy();
+  expect(within(screen.getByText('Ledger date').parentElement!).getByText(formatDate('2026-10-06'))).toBeTruthy();
   preparedView.unmount();
   api.post.mockClear();
   retainedGrant = null;
@@ -614,7 +617,9 @@ it('retains original award, vesting and linked issue preparations through interr
     target: { value: 'Company ends part of unissued vested rights' },
   });
   fireEvent.change(screen.getByLabelText(COPY.ADJUSTMENT_DOCUMENT), { target: { files: [FILE] } });
-  expect((screen.getByRole('button', { name: COPY.END }) as HTMLButtonElement).disabled).toBe(true);
+  fireEvent.click(screen.getByRole('button', { name: COPY.END }));
+  expect(document.activeElement).toBe(screen.getByText('Before continuing:').parentElement);
+  expect(screen.getByLabelText(COPY.END_VESTED).getAttribute('aria-invalid')).toBe('true');
   fireEvent.change(screen.getByLabelText(COPY.END_VESTED), { target: { value: '20' } });
   fireEvent.click(screen.getByRole('button', { name: COPY.END }));
   await screen.findByRole('alert');
@@ -717,12 +722,14 @@ it('hides cached private award rows and document actions when current company au
   );
   failedRead = 'award';
   fireEvent.click(screen.getByRole('button', { name: 'Refresh awards' }));
-  await screen.findByText(/Employee awards could not be read/);
+  await screen.findByText(/Employee awards could not be loaded/);
   expect(screen.queryByRole('heading', { name: AWARD_REQUEST.name! })).toBeNull();
   await act(async () => receiveFile({ data: new Blob(['private agreement'], { type: 'application/pdf' }) }));
   expect(api.save).not.toHaveBeenCalled();
   failedRead = null;
-  fireEvent.click(screen.getByRole('button', { name: 'Retry awards' }));
+  fireEvent.click(
+    screen.getByRole('button', { name: 'Try again', description: /Employee awards could not be loaded/ }),
+  );
   await screen.findByRole('heading', { name: AWARD_REQUEST.name! });
   appointments = [{ ...APPOINTMENT, capabilities: ['finance'] }];
   fireEvent.click(screen.getByRole('button', { name: 'Refresh awards' }));

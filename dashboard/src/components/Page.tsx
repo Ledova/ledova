@@ -1,20 +1,32 @@
-import { useContext, useId, type MouseEvent, type ReactNode } from 'react';
+import { useContext, useEffect, useId, type MouseEvent, type ReactNode } from 'react';
 import { Link, type To } from 'react-router-dom';
-import { PageTitle } from './PageTitle';
+import { PageBack, PageTitle, type PageBackLink } from './PageTitle';
 import { InSignedInFrame } from './InSignedInFrame';
 
 interface PageProps {
   actions?: ReactNode;
+  back?: Partial<PageBackLink>;
+  documentTitle?: string;
   lede?: string;
   loading?: boolean;
   narrow?: boolean;
   children?: ReactNode;
 }
 
-export function Page({ actions, lede, loading = false, narrow = false, children }: PageProps) {
+export function Page({ actions, back, documentTitle, lede, loading = false, narrow = false, children }: PageProps) {
   const title = useContext(PageTitle);
+  const parent = useContext(PageBack);
+  const link = { ...parent, ...back };
   const inFrame = useContext(InSignedInFrame);
   const ledeId = useId();
+  const tabTitle = documentTitle ?? title;
+  useEffect(() => {
+    if (!tabTitle) return;
+    document.title = `${tabTitle} · Ledova`;
+    return () => {
+      document.title = 'Ledova';
+    };
+  }, [tabTitle]);
 
   return (
     <div
@@ -23,12 +35,18 @@ export function Page({ actions, lede, loading = false, narrow = false, children 
       <header>
         <div className="flex min-h-16 flex-wrap items-center justify-between gap-x-4 gap-y-2 py-2">
           <h1
+            tabIndex={-1}
             aria-describedby={lede ? ledeId : undefined}
-            className="font-display text-3xl tracking-[-0.01em] text-text-primary"
+            className="font-display text-3xl tracking-[-0.01em] text-text-primary focus:outline-none"
           >
             {title}
           </h1>
-          {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
+          {(link.to || actions) && (
+            <div className="flex flex-wrap items-center gap-2">
+              {link.to && link.label && <PageLink to={link.to} state={link.state} label={link.label} />}
+              {actions}
+            </div>
+          )}
         </div>
         {lede && (
           <p id={ledeId} className="break-words text-sm text-text-muted">
@@ -55,6 +73,7 @@ interface ActionContent {
 }
 
 type PageActionProps = ActionContent & {
+  describedBy?: string;
   destructive?: boolean;
   pressed?: boolean;
   busy?: boolean;
@@ -91,6 +110,7 @@ export function PageAction({
   icon,
   label,
   context,
+  describedBy,
   primary = false,
   destructive = false,
   pressed,
@@ -115,6 +135,7 @@ export function PageAction({
       onClick={onClick}
       disabled={disabled || busy}
       aria-pressed={pressed}
+      aria-describedby={describedBy}
       className={actionClass(look)}
     >
       <ActionText icon={icon} label={busy && busyLabel ? busyLabel : label} context={context} />

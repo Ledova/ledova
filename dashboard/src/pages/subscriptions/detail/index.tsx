@@ -1,8 +1,7 @@
 import { useState } from 'react';
-import { marketQuantity } from '@ledova/shared';
+import { marketQuantity, applicationHistory } from '@ledova/shared';
 import { useParams } from 'react-router-dom';
 import {
-  DESTINATIONS,
   SUBSCRIPTION_COPY,
   SUBSCRIPTION_SUBMITTABLE_STATUSES,
   SUBSCRIPTION_WITHDRAWABLE_STATUSES,
@@ -10,8 +9,8 @@ import {
   formatMoney,
 } from '@ledova/shared';
 import type { SubscriptionDetail } from '@ledova/shared';
-import { Row, Rows, Section, Status, Timeline, type TimelineEvent } from '@components/Ledger';
-import { Page, PageAction, PageLink } from '@components/Page';
+import { Row, Rows, Section, Status, Timeline, LoadError } from '@components/Ledger';
+import { Page, PageAction } from '@components/Page';
 import { Confirmation } from '@components/Modal';
 import { PaymentInstructionCard } from './PaymentInstructionCard';
 import { useSubscription } from './useSubscription';
@@ -26,21 +25,6 @@ const NEXT: Record<string, string> = {
   accepted: 'The payment instruction is being issued.',
   paid: SUBSCRIPTION_COPY.PAID_HELP,
 };
-
-function history(subscription: SubscriptionDetail): TimelineEvent[] {
-  const closed = subscription.status === 'withdrawn' ? 'Withdrawn' : 'Rejected';
-  const events: [string, string | null | undefined][] = [
-    ['Drafted', subscription.createdAt],
-    ['Submitted for review', subscription.submittedAt],
-    ['Accepted by the operator', subscription.acceptedAt],
-    ['Payment instruction issued', subscription.paymentInstructionIssuedAt],
-    ['Payment received', subscription.paymentReceivedOn],
-    ['Shares allotted', subscription.allottedAt],
-    ['Refunded', subscription.refundedAt],
-    [closed, subscription.closedAt],
-  ];
-  return events.filter((event): event is [string, string] => Boolean(event[1])).map(([label, at]) => ({ label, at }));
-}
 
 function Summary({ subscription }: { subscription: SubscriptionDetail }) {
   const status = applicationState(subscription);
@@ -93,19 +77,16 @@ export default function SubscriptionDetailPage() {
   if (hasError) {
     return (
       <Page narrow>
-        <div role="alert" className="flex flex-col items-start gap-3 py-6">
-          <p className="text-sm text-text-primary">
-            This application could not be loaded. Try again before continuing.
-          </p>
-          <PageAction label="Try again" onClick={() => void retry()} disabled={isRefreshing} />
-        </div>
+        <LoadError retry={retry} busy={isRefreshing}>
+          This application could not be loaded.
+        </LoadError>
       </Page>
     );
   }
 
   if (!subscription || notFound) {
     return (
-      <Page narrow actions={<PageLink to={DESTINATIONS.subscriptions.path} label="Back to Applications" />}>
+      <Page narrow>
         <Section title="Not available">
           <p className="text-sm text-text-muted">This application is not one of yours, or it no longer exists.</p>
         </Section>
@@ -170,7 +151,7 @@ export default function SubscriptionDetailPage() {
       )}
 
       <Section title="History">
-        <Timeline events={history(subscription)} />
+        <Timeline events={applicationHistory(subscription)} />
         {next && <p className="pt-1 text-sm text-text-secondary">Next: {next}</p>}
         {MONEY_HELD.includes(subscription.status) && hasPayment && (
           <p className="text-sm text-text-muted">{SUBSCRIPTION_COPY.MONEY_IN_HELP}</p>

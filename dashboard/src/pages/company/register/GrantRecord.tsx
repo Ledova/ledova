@@ -7,12 +7,15 @@ import {
   type RegisterDecisionKind,
   type RegisterGrant,
   type RegisterGrantDecisionPreview,
+  shareCount,
+  formatDate,
+  shortReference,
 } from '@ledova/shared';
-import { Row, Rows, Status } from '@components/Ledger';
+import { Row, Rows, Status, Disclosure } from '@components/Ledger';
 import { PageAction } from '@components/Page';
 import { DecisionTrail } from '@pages/company/register/shared/DecisionTrail';
 import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
-import { STAGE_TONES, shareCount, type RegisterSteps } from '@pages/company/shared/proposals';
+import { STAGE_TONES, type RegisterSteps } from '@pages/company/shared/proposals';
 import { useGrantRecordDownload } from './useRegisterRecordDownload';
 
 const DECISION_COPY = { ...COPY, DECISIONS: { ...COPY.DECISIONS, apply: 'Record issue' } };
@@ -20,7 +23,7 @@ const DECISION_COPY = { ...COPY, DECISIONS: { ...COPY.DECISIONS, apply: 'Record 
 function GrantRows({ grant }: { grant: RegisterGrant | RegisterGrantDecisionPreview }) {
   return (
     <Rows>
-      {grant.award && <Row label="Employee award">{grant.award}</Row>}
+      {grant.award && <Row label="Employee award">{shortReference(grant.award)}</Row>}
       {'awardPromisedShares' in grant && grant.award && (
         <>
           <Row label={AWARD_COPY.PROMISED}>{shareCount(grant.awardPromisedShares!)}</Row>
@@ -33,12 +36,12 @@ function GrantRows({ grant }: { grant: RegisterGrant | RegisterGrantDecisionPrev
       <Row label={COPY.RESIDENTIAL_ADDRESS}>{grant.residentialAddress}</Row>
       <Row label="Member record">{grant.newMember ? 'New member' : 'Existing member'}</Row>
       <Row label={COPY.SHARES}>{shareCount(grant.shares)}</Row>
-      <Row label={COPY.TERMS_ON}>{grant.termsOn}</Row>
-      <Row label={COPY.COMPANY_EVENT_ON}>{grant.companyEventOn || 'Not recorded'}</Row>
+      <Row label={COPY.TERMS_ON}>{formatDate(grant.termsOn)}</Row>
+      <Row label={COPY.COMPANY_EVENT_ON}>{formatDate(grant.companyEventOn, 'Not recorded')}</Row>
       {'registerEntry' in grant &&
         grant.registerEntry &&
         grant.effectiveOn &&
-        grant.effectiveOn !== grant.companyEventOn && <Row label="Ledger date">{grant.effectiveOn}</Row>}
+        grant.effectiveOn !== grant.companyEventOn && <Row label="Ledger date">{formatDate(grant.effectiveOn)}</Row>}
       <Row label={COPY.DIRECTOR}>{grant.approvingDirector}</Row>
       <Row label={COPY.TERMS}>{grant.terms}</Row>
       <Row label="Recipient acceptance">
@@ -94,8 +97,7 @@ export function GrantRecord({
                   ? 'This rejected instruction issued no shares.'
                   : 'Next: review and approve the exact share issue.'}
           </p>
-          <details className="space-y-3">
-            <summary className="cursor-pointer text-sm font-medium">Issue details and documents</summary>
+          <Disclosure summary="Issue details and documents">
             <Rows>
               <RecordStage stage={grant.stage}>{COPY.STAGES[grant.stage] ?? grant.stage}</RecordStage>
               <Row label="Prepared by">{grant.preparedByName || 'Name not recorded'}</Row>
@@ -103,7 +105,7 @@ export function GrantRecord({
               <Row label={COPY.AUTHORITY_REFERENCE}>{grant.authorityReference}</Row>
               <Row label={COPY.REASON}>{grant.reason}</Row>
               <DecisionTrail proposal={grant} labels={DECISION_COPY.DECISIONS} />
-              {!!grant.registerEntry && <Row label="Register entry">{grant.registerEntry}</Row>}
+              {!!grant.registerEntry && <Row label="Register entry">{shortReference(grant.registerEntry)}</Row>}
             </Rows>
             <GrantRows grant={grant} />
             <p className="text-sm text-text-muted">{COPY.PROVIDED_BY_COMPANY}</p>
@@ -122,10 +124,10 @@ export function GrantRecord({
             </div>
             {download.isError && <RecordDownloadFailure error={download.error} />}
             <Rows>
-              <Row label="Issue record">{grant.uuid}</Row>
-              <Row label="Member record ID">{grant.member}</Row>
+              <Row label="Issue record">{shortReference(grant.uuid)}</Row>
+              <Row label="Member reference">{shortReference(grant.member)}</Row>
             </Rows>
-          </details>
+          </Disclosure>
         </>
       )}
       <RegisterDecisions

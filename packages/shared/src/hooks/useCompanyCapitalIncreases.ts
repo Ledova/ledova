@@ -249,9 +249,10 @@ export function useCompanyCapitalIncreases(
       );
   };
   const refresh = async () => {
+    setError(null);
     try {
       ownerGuard();
-      await appointments.refetch();
+      if ((await appointments.refetch()).isError) return;
       guard();
       await instructions.refetch();
       guard();
