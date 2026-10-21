@@ -554,6 +554,10 @@ by a local helper or a browser `toLocale…` call:
 - **Percentages of a class** use `sharePercentage`, rounded half-up to two places, "<0.01%" for a
   holding too small to show and "Not recorded" without issued shares.
 - **Amounts** use `formatMoney`, which names its currency: "AUD 1,234.50".
+- **On screen** no record shows a raw ISO date or an unformatted figure: register records, eligibility
+  history, team invitations and confirmations format their dates, an offering's opening and closing
+  show their time, and Trading's quantities and wallet token balances use the share and crypto
+  formatters.
 - **Enforcement.** An ESLint rule in `dashboard/eslint.config.js` refuses `toLocaleString`,
   `toLocaleDateString` and `toLocaleTimeString` in the dashboard's source, beside the rule that
   refuses inline ISO date slicing ([forms](#forms)). Mobile follows in

@@ -9,11 +9,11 @@ import {
   OFFERING_WITHDRAWABLE_STATUSES,
   OFFER_DOCUMENT_COPY,
   createUserFriendlyError,
-  formatDate,
   formatMoney,
   formatShareCount,
   useCompanySelection,
   type OfferingListItem,
+  formatDateTime,
 } from '@ledova/shared';
 import { CompanySelection } from '@pages/company/shared/CompanySelection';
 import { CompanyReadNotice } from '@pages/company/shared/CompanyState';
@@ -59,8 +59,8 @@ function OfferingRecord({
         {row.maximumShares !== null && (
           <Row label="Maximum per investor">{formatShareCount(String(row.maximumShares))}</Row>
         )}
-        <Row label="Opens">{formatDate(row.opensAt)}</Row>
-        <Row label="Closes">{row.closesAt ? formatDate(row.closesAt) : 'No closing date'}</Row>
+        <Row label="Opens">{formatDateTime(row.opensAt)}</Row>
+        <Row label="Closes">{row.closesAt ? formatDateTime(row.closesAt) : 'No closing date'}</Row>
         <Row label="Exemption">{OFFERING_EXEMPTION_LABELS[row.exemption] ?? row.exemptionDisplay}</Row>
       </Rows>
       {row.status === 'rejected' && row.rejectionReason && (

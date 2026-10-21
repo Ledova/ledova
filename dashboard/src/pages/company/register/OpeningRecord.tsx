@@ -8,6 +8,7 @@ import {
   openingMemberLabels,
   type RegisterOpening,
   shareCount,
+  formatDate,
 } from '@ledova/shared';
 import { Row, Rows } from '@components/Ledger';
 import { PageAction } from '@components/Page';
@@ -121,7 +122,7 @@ export function OpeningRecord({
         {(preview) =>
           preview.effectiveOn !== null && (
             <Rows>
-              <Row label="Effective on">{preview.effectiveOn}</Row>
+              <Row label="Effective on">{formatDate(preview.effectiveOn)}</Row>
               <Row label="Opening entry">
                 {preview.changes.length === 0 ? (
                   COPY.NO_HOLDINGS

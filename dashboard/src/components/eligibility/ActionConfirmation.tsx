@@ -1,5 +1,10 @@
 import { useState } from 'react';
-import { COMPANY_ELIGIBILITY_UNMET_COPY, refusalSentences, type EligibilityAction } from '@ledova/shared';
+import {
+  COMPANY_ELIGIBILITY_UNMET_COPY,
+  refusalSentences,
+  type EligibilityAction,
+  formatDateTime,
+} from '@ledova/shared';
 import { Row, Rows, Section } from '@components/Ledger';
 import { PageAction } from '@components/Page';
 import { EligibilitySummary } from './EligibilitySummary';
@@ -48,7 +53,7 @@ export function ActionConfirmation({
       {action.outcome && (
         <Rows>
           <Row label="Exact decision outcome">{action.outcome}</Row>
-          <Row label="Exact decision expiry">{action.expiresAt ?? 'No acceptance expiry'}</Row>
+          <Row label="Exact decision expiry">{formatDateTime(action.expiresAt, 'No acceptance expiry')}</Row>
         </Rows>
       )}
       {action.reason && <p className="whitespace-pre-wrap text-sm">Reason: {action.reason}</p>}

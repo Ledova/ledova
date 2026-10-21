@@ -115,7 +115,7 @@ export const OrderForm = forwardRef<OrderFormRef, OrderFormProps>(function Order
         )}
         {!isBuy && balance !== undefined && (
           <Row label="Available shares">
-            <span className="break-all">{balance}</span>
+            <span className="break-all">{/^\d+$/.test(balance) ? formatShareCount(balance) : balance}</span>
           </Row>
         )}
         <Row label="Total value">

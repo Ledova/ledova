@@ -9,6 +9,7 @@ import {
   REGISTER_GRANT_COPY as GRANT,
   ApiClientProvider,
   USER_PREFERENCES_QUERY_KEY,
+  formatDate,
 } from '@ledova/shared';
 import type {
   OwnCompanyAppointment,
@@ -477,7 +478,7 @@ it('retains original award, vesting and linked issue preparations through interr
   for (const label of ['Approve', 'Record issue']) {
     fireEvent.click(screen.getByRole('button', { name: new RegExp(`^${label} [(]grant`) }));
     const confirm = await screen.findByRole('button', { name: `${label} non-paid grant` });
-    expect(within(screen.getByRole('dialog')).getByText('2026-10-06')).toBeTruthy();
+    expect(within(screen.getByRole('dialog')).getByText(formatDate('2026-10-06'))).toBeTruthy();
     await waitFor(() => expect((confirm as HTMLButtonElement).disabled).toBe(false));
     fireEvent.click(confirm);
     if (label === 'Approve') {
@@ -543,7 +544,7 @@ it('retains original award, vesting and linked issue preparations through interr
   await waitFor(() =>
     expect(within(screen.getByText(GRANT.COMPANY_EVENT_ON).parentElement!).getByText('Not recorded')).toBeTruthy(),
   );
-  expect(within(screen.getByText('Ledger date').parentElement!).getByText('2026-10-06')).toBeTruthy();
+  expect(within(screen.getByText('Ledger date').parentElement!).getByText(formatDate('2026-10-06'))).toBeTruthy();
   preparedView.unmount();
   api.post.mockClear();
   retainedGrant = null;

@@ -7,6 +7,7 @@ import {
   type RegisterTransfer,
   type RegisterTransferDecisionPreview,
   shareCount,
+  formatDate,
 } from '@ledova/shared';
 import { Row, Rows } from '@components/Ledger';
 import { PageAction } from '@components/Page';
@@ -30,13 +31,15 @@ function TransferRows({ transfer }: { transfer: RegisterTransfer | RegisterTrans
         {transfer.newParticulars ? 'Retained from the signed instrument' : 'Existing retained particulars'}
       </Row>
       <Row label={COPY.SHARES}>{shareCount(transfer.shares)}</Row>
-      <Row label={COPY.SIGNED_ON}>{transfer.signedOn}</Row>
-      <Row label={COPY.LODGED_ON}>{transfer.lodgedOn}</Row>
-      <Row label={COPY.COMPANY_EVENT_ON}>{transfer.companyEventOn || 'Not recorded'}</Row>
+      <Row label={COPY.SIGNED_ON}>{formatDate(transfer.signedOn)}</Row>
+      <Row label={COPY.LODGED_ON}>{formatDate(transfer.lodgedOn)}</Row>
+      <Row label={COPY.COMPANY_EVENT_ON}>{formatDate(transfer.companyEventOn, 'Not recorded')}</Row>
       {'registerEntry' in transfer &&
         transfer.registerEntry &&
         transfer.effectiveOn &&
-        transfer.effectiveOn !== transfer.companyEventOn && <Row label="Ledger date">{transfer.effectiveOn}</Row>}
+        transfer.effectiveOn !== transfer.companyEventOn && (
+          <Row label="Ledger date">{formatDate(transfer.effectiveOn)}</Row>
+        )}
       <Row label={COPY.TERMS}>{transfer.terms}</Row>
       <Row label={COPY.DIRECTOR}>{transfer.approvingDirector}</Row>
     </Rows>

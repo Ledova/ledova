@@ -11,6 +11,7 @@ import {
   formatCryptoBalance,
   getHoldingTokenDeployment,
   shownSymbol,
+  formatShareCount,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
 import type { Wallet } from '@ledova/shared';
@@ -112,7 +113,10 @@ export function useTransferFlow(selectedWallet: Wallet | null) {
             name: holding.assetName,
             company: holding.shareClass?.companyName,
             balance: holding.quantity,
-            displayBalance: parseFloat(holding.quantity).toFixed(displayDecimals),
+            displayBalance:
+              type === 'share_token'
+                ? formatShareCount(holding.quantity)
+                : formatCryptoBalance(holding.quantity, '', displayDecimals).trimEnd(),
             marketValue: holding.marketValue,
             decimals,
             tokenAddress: deployment.contractAddress,

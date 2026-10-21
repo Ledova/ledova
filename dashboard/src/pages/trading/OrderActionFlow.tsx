@@ -1,7 +1,14 @@
 import { Field, TextInput } from '@components/Field';
 import { useState } from 'react';
 import { AnimatedQRCode } from '@keystonehq/animated-qr';
-import { FIELD_LIMITS, marketAmount, useOrderActionSigning, type OrderAction, type Wallet } from '@ledova/shared';
+import {
+  FIELD_LIMITS,
+  marketAmount,
+  useOrderActionSigning,
+  type OrderAction,
+  type Wallet,
+  shareCount,
+} from '@ledova/shared';
 import { Confirmation, Modal, ModalActions } from '@components/Modal';
 import { PageAction } from '@components/Page';
 import { SeedPhraseInput } from '@components/SeedPhraseInput';
@@ -75,10 +82,10 @@ export function OrderActionFlow({ action, wallets, onClose }: Props) {
               Token: {review.token.symbol} — {review.token.name}
             </p>
             <p className="break-all">Wallet: {state.snapshot?.walletAddress ?? state.context?.walletAddress}</p>
-            <p>Reviewed quantity: {review.currentValues.quantity} shares</p>
-            <p>Reviewed minimum: {review.currentValues.minQuantity} shares</p>
+            <p>Reviewed quantity: {shareCount(review.currentValues.quantity)}</p>
+            <p>Reviewed minimum: {shareCount(review.currentValues.minQuantity)}</p>
             <p>Reviewed price per share: {marketAmount(review.currentValues.pricePerShare)}</p>
-            <p>Filled: {review.currentValues.filledQuantity} shares</p>
+            <p>Filled: {shareCount(review.currentValues.filledQuantity)}</p>
           </div>
         )}
         {state.phase === 'editing' && (
@@ -122,8 +129,8 @@ export function OrderActionFlow({ action, wallets, onClose }: Props) {
         )}
         {replacements && (
           <div className="space-y-1 border-t border-border-subtle pt-3">
-            <p>New quantity: {replacements.quantity} shares</p>
-            <p>New minimum fill: {replacements.minQuantity} shares</p>
+            <p>New quantity: {shareCount(replacements.quantity)}</p>
+            <p>New minimum fill: {shareCount(replacements.minQuantity)}</p>
             <p>New price per share: {marketAmount(replacements.pricePerShare)}</p>
           </div>
         )}

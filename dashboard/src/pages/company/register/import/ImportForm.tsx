@@ -328,7 +328,7 @@ export function ImportForm({
                           <Row label="Former shareholder">{member.name}</Row>
                           <Row label="Address">{member.residentialAddress}</Row>
                           <Row label="Shares at cessation">{formatShareCount(member.shares)}</Row>
-                          <Row label="Ceased on">{member.ceasedOn}</Row>
+                          <Row label="Ceased on">{formatDate(member.ceasedOn)}</Row>
                         </Rows>
                       </li>
                     ))}

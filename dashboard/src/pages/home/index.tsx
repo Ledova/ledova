@@ -444,7 +444,7 @@ function MemberRecords({
                           {request.status === 'requested' && (
                             <PageAction
                               label="Withdraw certificate request"
-                              context={request.createdAt}
+                              context={formatDateTime(request.createdAt)}
                               disabled={held}
                               onClick={() => setWithdrawing({ uuid: request.uuid, createdAt: request.createdAt })}
                             />
@@ -509,7 +509,7 @@ function MemberCertificateDownload({
     <>
       <PageAction
         label="Download unsigned certificate"
-        context={request.createdAt}
+        context={formatDateTime(request.createdAt)}
         busy={busy}
         busyLabel="Downloading…"
         disabled={read.busy || !!read.retry}
