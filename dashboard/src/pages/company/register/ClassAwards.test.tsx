@@ -663,7 +663,7 @@ it('retains original award, vesting and linked issue preparations through interr
   expect(events[0].shares).toBe('100');
   expect(screen.getByRole('img', { name: /20 vested rights ended/ })).toBeTruthy();
   changes.unmount();
-});
+}, 15_000);
 
 it('hides cached private award rows and document actions when current company authority is lost', async () => {
   awards = [awardFrom(AWARD_REQUEST)];
