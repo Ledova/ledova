@@ -40,6 +40,7 @@ export function RegisterDecisions<Shown extends Proposal, Previewed extends Prev
   children,
   visible = true,
   onHeldChange,
+  formatError = (message) => message,
 }: {
   family: RegisterDecisionFamily<Shown, Previewed>;
   copy: DecisionCopy;
@@ -55,6 +56,7 @@ export function RegisterDecisions<Shown extends Proposal, Previewed extends Prev
   children: (preview: Previewed) => ReactNode;
   visible?: boolean;
   onHeldChange?: (uuid: string, held: boolean) => void;
+  formatError?: (message: string) => string;
 }) {
   const [active, setActive] = useState<RegisterDecisionKind | null>(null);
   const [reason, setReason] = useState('');
@@ -137,7 +139,7 @@ export function RegisterDecisions<Shown extends Proposal, Previewed extends Prev
               />
               {active !== kind && decisions[kind].error && (
                 <p role="alert" className="text-sm text-error-light">
-                  {decisions[kind].error}
+                  {formatError(decisions[kind].error)}
                 </p>
               )}
             </div>
@@ -195,7 +197,7 @@ export function RegisterDecisions<Shown extends Proposal, Previewed extends Prev
             )}
             {decision.error && (
               <p role="alert" className="text-sm text-error-light">
-                {decision.error}
+                {formatError(decision.error)}
               </p>
             )}
             {preview && !current && !decision.recovery && (

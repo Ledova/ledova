@@ -24,6 +24,7 @@ import { useErrorSummary } from '@hooks/useErrorSummary';
 
 import { reconciliationKey, useLatestReconciliation } from './useLatestReconciliation';
 import { useOwnAppointments, ownAppointmentsKey } from '@hooks/useOwnAppointments';
+import { registerInclusionMessage } from './shared/inclusionMessage';
 
 type Holders = TokenHoldersResponse['holders'];
 type Field = keyof typeof REGISTER_RECONCILIATION_COPY.FIELDS;
@@ -34,30 +35,11 @@ const FIELDS = Object.keys(COPY.FIELDS) as Field[];
 const TITLE = `${COPY.ACKNOWLEDGE} discrepancy`;
 const CHANGED = 'The reconciliation or your appointment changed or could not be checked. Cancel and start again.';
 
-function inclusionDetail(value: string) {
-  const message = value.match(
-    /^(The completed (?:issue|transfer) )([0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12})( .+)$/i,
-  );
-  if (!message) return value;
-  const [, prefix, source, detail] = message;
-  const known =
-    detail ===
-      ' has no verified final chain inclusion. It requires operator attribution ' +
-        'before a register boundary can represent or exclude it.' ||
-    /^ was finally included in block \d+, after the captured boundary block \d+, so this boundary does not represent it\. Prepare a fresh opening\.$/.test(
-      detail,
-    ) ||
-    /^ is not in the captured boundary's canonical history at block \d+, so this boundary does not represent it\. Prepare a fresh opening\.$/.test(
-      detail,
-    );
-  return known ? `${prefix}${shortReference(source)}${detail}` : value;
-}
-
 function fieldValue(row: RegisterDiscrepancy, field: Field, holders: Holders) {
   const value = String(row[field]);
   if (field === 'member') return holders.find((holder) => holder.member === value)?.name || shortReference(value);
   if (field === 'source') return shortReference(value);
-  if (field === 'detail') return inclusionDetail(value);
+  if (field === 'detail') return registerInclusionMessage(value);
   return field === 'chain' || field === 'expected' ? formatShareCount(value) : value;
 }
 

@@ -18,6 +18,7 @@ import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
 import { type RegisterSteps } from '@pages/company/shared/proposals';
 import { useOpeningRecordDownload } from './useRegisterRecordDownload';
 import type { Landed } from '@pages/company/register/shared/registerPlace';
+import { registerInclusionMessage } from './shared/inclusionMessage';
 
 const COPY = REGISTER_OPENING_COPY;
 
@@ -122,6 +123,7 @@ export function OpeningRecord({
         context={context}
         onDecided={onDecided}
         onRefused={onRefused}
+        formatError={registerInclusionMessage}
         note={(kind) => kind === 'apply' && <p className="text-sm text-text-muted">{COPY.HOLDINGS_NOTE}</p>}
       >
         {(preview) =>

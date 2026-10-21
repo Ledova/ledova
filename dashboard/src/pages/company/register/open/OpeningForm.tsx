@@ -7,6 +7,7 @@ import { FormActions, PageAction } from '@components/Page';
 import { ErrorSummary } from '@components/ErrorSummary';
 import { useErrorSummary } from '@hooks/useErrorSummary';
 import { SearchSelect } from '@components/SearchSelect';
+import { registerInclusionMessage } from '@pages/company/register/shared/inclusionMessage';
 
 const AUTHORITIES = Object.entries(COPY.AUTHORITIES) as [RegisterCorrectionAuthority, string][];
 
@@ -134,7 +135,7 @@ export function OpeningForm({
       </fieldset>
       {error && (
         <p role="alert" className="text-sm text-error-light">
-          {error}
+          {registerInclusionMessage(error)}
         </p>
       )}
       {moved && (
