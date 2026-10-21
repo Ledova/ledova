@@ -544,6 +544,10 @@ FRAMEWORK = {
 }
 
 OPERATOR_ONLY = {
+    "tokens_classrightsrevision": "Append-only company-supplied class-rights descriptions. Current exact-company "
+    "register readers read them through the class-rights action and permitted company-pack exports; the bounded "
+    "producer requires a current personal ADMIN appointment and retains actor, time and exact revision history. "
+    "They are not included in market, directory or member projections.",
     "auth_group": "Django's own permission grouping.",
     "auth_permission": "Django's own permission rows, one per model and action.",
     "django_admin_log": "The admin's audit trail, written and read on the operator connection only.",

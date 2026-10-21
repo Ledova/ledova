@@ -10,6 +10,7 @@ from .choices import (
     TransferOrderStatus,
     TransferOrderType,
 )
+from .class_rights import ClassRightsRevision
 from .former_holder import FormerHolder
 from .issuance_execution import IssuanceExecutionStatus, ShareIssuanceExecution
 from .member_access import (
@@ -104,6 +105,7 @@ from .transfer_order import TransferOrder
 from .yield_token import YieldToken
 
 __all__ = [
+    "ClassRightsRevision",
     "MemberCertificateFulfilment",
     "MemberInvitation",
     "MemberAssociation",

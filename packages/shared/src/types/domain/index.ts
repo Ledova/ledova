@@ -20,6 +20,7 @@ export * from './company-authority';
 export * from './company-eligibility';
 export * from './company-wallet';
 export * from './company-token';
+export * from './class-rights';
 export * from './register-command';
 export * from './register-grant';
 export * from './register-award';
