@@ -216,7 +216,9 @@ export function useInvestorIssues({
         </LoadError>
       )}
       {appointments.isSuccess && !appointment && <p className="text-sm text-text-muted">{COPY.READ_ONLY_NOTE}</p>}
-      {!readable ? (
+      {appointments.isError ? null : !appointments.isSuccess || appointments.isFetching ? (
+        <Loading>Loading external allotments…</Loading>
+      ) : !readable ? (
         <p className="text-sm text-text-muted">
           A current company register appointment is required to read external allotments.
         </p>

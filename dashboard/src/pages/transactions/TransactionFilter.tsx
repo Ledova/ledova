@@ -116,7 +116,7 @@ export function TransactionFilter({
                 disabled={walletsLoading || walletsFailed}
                 onChange={(wallet) => onFilterChange('wallet', wallet)}
               />
-              {walletsLoading && <Loading>Loading wallets…</Loading>}
+              {walletsLoading && <Loading>Loading your wallets…</Loading>}
               {walletsFailed && (
                 <LoadError retry={onRetryWallets} busy={walletsRefreshing}>
                   Wallet filters could not be loaded. Your activity can still be viewed.

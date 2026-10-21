@@ -422,11 +422,11 @@ record's own page.
 
 ## Loading, empty and error states
 
-A page's first read renders `<Page loading>`. A section that is still loading shows `Loading`
-(`dashboard/src/components/Ledger.tsx`): one muted `role="status"` line that names what it loads,
-such as "Loading your wallets…" or "Loading the register…". A spinner that stands for a whole step
-carries a status role with its words, such as the session check, sign-up's steps and the transfer
-flow.
+A page that shows nothing until its first read renders `<Page loading>`. A section that is still
+loading shows `Loading` (`dashboard/src/components/Ledger.tsx`): one muted `role="status"` line
+that names what it loads, such as "Loading your wallets…" or "Loading the register…". A spinner
+that stands for a whole step carries a status role with its words, such as the session check,
+sign-up's steps and the transfer flow.
 
 A read that fails shows `LoadError` (`dashboard/src/components/Ledger.tsx`): one `role="alert"`
 block with a sentence in the primary text colour and a Try again action. The sentence names what

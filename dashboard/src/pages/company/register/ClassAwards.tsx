@@ -157,12 +157,12 @@ export function ClassAwards({
           }}
         />
       )}
-      {!readable ? (
+      {appointments.isError ? null : !appointments.isSuccess || (readable && awards.isPending) ? (
+        <Loading>Loading employee awards…</Loading>
+      ) : !readable ? (
         <p className="text-sm text-text-muted">
           A current company register appointment is required to read employee awards.
         </p>
-      ) : awards.isPending ? (
-        <Loading>Loading employee awards…</Loading>
       ) : null}
       {awards.isError && (
         <LoadError retry={refresh} busy={awards.isFetching || appointments.isFetching}>
