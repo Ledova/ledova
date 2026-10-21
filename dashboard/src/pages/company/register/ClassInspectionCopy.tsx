@@ -1,5 +1,5 @@
 import { Field, TextInput } from '@components/Field';
-import { FIELD_LIMITS, type TokenHoldersResponse } from '@ledova/shared';
+import { FIELD_LIMITS, type TokenHoldersResponse, formatDate } from '@ledova/shared';
 import { Outcome, Row, Rows } from '@components/Ledger';
 import { PageAction } from '@components/Page';
 import { useClassInspectionCopy } from './useClassInspectionCopy';
@@ -81,7 +81,7 @@ function InspectionForm({
             <Row label="Register sequence">{target.preview.registerSequence}</Row>
             <Row label="Instruction">{target.request.instruction}</Row>
             <Row label="Recipient">{target.request.recipient}</Row>
-            <Row label="Request date">{target.request.requestedOn}</Row>
+            <Row label="Request date">{formatDate(target.request.requestedOn)}</Row>
           </Rows>
           <div className="flex flex-wrap gap-2">
             <PageAction

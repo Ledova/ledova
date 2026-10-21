@@ -18,6 +18,7 @@ export {
   formatFileSize,
   formatPlainDecimal,
   formatShareCount,
+  shareChange,
   shareCount,
   sharePercentage,
 } from './formatting';
@@ -156,7 +157,7 @@ export { isWalletNominationReceipt, isPreparedCompanyWalletInstruction } from '.
 export { isPreparedRegisterTransfer } from './register-transfers';
 export { appointmentForAcknowledgement, isDiscrepancyAcknowledgementReceipt } from './register-reconciliations';
 export { MAX_ORDER_SHARES, MAX_REQUEST_SHARES, raisedSupply, requestShares, wholeShares } from './share-quantities';
-export { marketAmount, marketQuantity, priceCents } from './market-data';
+export { marketAmount, marketQuantity, marketShares, priceCents } from './market-data';
 export { activityAmount, activityDirection, activityStatus, feeUnit } from './activity';
 export { shownSymbol } from './asset-symbol';
 export { parseTheme } from './theme';

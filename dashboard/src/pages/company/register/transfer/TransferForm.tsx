@@ -1,15 +1,14 @@
 import { Field, TextInput, FileField } from '@components/Field';
 import { useTransferPreparation, type TransferFormProps } from './useTransferPreparation';
 
-import { REGISTER_TRANSFER_COPY as COPY, type Person } from '@ledova/shared';
+import { REGISTER_TRANSFER_COPY as COPY, type Person, formatDate, shareCount } from '@ledova/shared';
 import { FormActions, PageAction } from '@components/Page';
 import { ErrorSummary } from '@components/ErrorSummary';
 import { useErrorSummary } from '@hooks/useErrorSummary';
-import { formatShareCount } from '@ledova/shared';
 import { PersonFields, PersonSelect } from '@pages/company/register/shared/PersonPicker';
 
 function inClass(person: Person) {
-  return person.awardOnly ? '' : `${formatShareCount(person.currentShares)} shares in this class`;
+  return person.awardOnly ? '' : `${shareCount(person.currentShares)} in this class`;
 }
 
 export function TransferForm({
@@ -104,7 +103,7 @@ export function TransferForm({
         )}
         {recipient?.lastCeasedOn && (
           <p className="text-sm text-text-muted">
-            Last ceased in this class: {recipient.lastCeasedOn}. The same member ID is retained on return.
+            Last ceased in this class: {formatDate(recipient.lastCeasedOn)}. The same member ID is retained on return.
           </p>
         )}
         {fresh && draft.toMember !== 'new' && !recipient?.awardOnly && (

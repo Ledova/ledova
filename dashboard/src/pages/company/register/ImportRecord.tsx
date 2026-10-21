@@ -98,7 +98,7 @@ export function ImportRecord({
               <Row label="Prepared by">{proposal.preparedByName || 'Not provided'}</Row>
             )}
             <Row label="Prepared on">{formatDateTime(proposal.createdAt)}</Row>
-            <Row label="Record date">{proposal.asAt}</Row>
+            <Row label="Record date">{formatDate(proposal.asAt)}</Row>
             {proposal.sourceReference && <Row label="Source record">{proposal.sourceReference}</Row>}
             {proposal.correctionOf && <Row label="Corrects copied opening">{proposal.correctionOf}</Row>}
             <Row label="Reason">{proposal.reason}</Row>

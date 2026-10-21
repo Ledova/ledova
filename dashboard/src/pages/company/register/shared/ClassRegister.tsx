@@ -1,5 +1,11 @@
 import { useState } from 'react';
-import { REGISTER_COPY, TECHNICAL_SHARE_LIMIT, formatShareCount, type TokenHoldersResponse } from '@ledova/shared';
+import {
+  REGISTER_COPY,
+  TECHNICAL_SHARE_LIMIT,
+  formatShareCount,
+  type TokenHoldersResponse,
+  formatDate,
+} from '@ledova/shared';
 import { LoadMore } from '@components/List';
 import { PAGE_SIZE } from '@hooks/useListParams';
 import { Rows, Row, Section, Status, type Tone } from '@components/Ledger';
@@ -113,17 +119,19 @@ export function FormerMembers({
             <Rows>
               {former.member && <Row label="Member ID">{former.member}</Row>}
               <Row label="Shares at cessation">{formatShareCount(former.sharesAtCessation)}</Row>
-              <Row label="Ceased on">{former.ceasedOn}</Row>
+              <Row label="Ceased on">{formatDate(former.ceasedOn)}</Row>
               <Row label="Identity source">{former.identitySourceDisplay}</Row>
               {former.sourceEntry && <Row label="Cessation entry">{former.sourceEntry}</Row>}
               {former.sourceEntrySequence !== null && (
                 <Row label="Cessation entry sequence">{former.sourceEntrySequence}</Row>
               )}
               {former.sourceEntryKind && <Row label="Cessation entry kind">{former.sourceEntryKind}</Row>}
-              {former.sourceEffectiveOn && <Row label="Source effective date">{former.sourceEffectiveOn}</Row>}
+              {former.sourceEffectiveOn && (
+                <Row label="Source effective date">{formatDate(former.sourceEffectiveOn)}</Row>
+              )}
               {former.corrects && <Row label="Corrects entry">{former.corrects}</Row>}
               {former.correctedBy && <Row label="Corrected by entry">{former.correctedBy}</Row>}
-              {former.returnedOn && <Row label="Returned on">{former.returnedOn}</Row>}
+              {former.returnedOn && <Row label="Returned on">{formatDate(former.returnedOn)}</Row>}
               {former.returnedEntry && <Row label="Return entry">{former.returnedEntry}</Row>}
               {former.walletAddress && <Row label="Recorded wallet">{former.walletAddress}</Row>}
               {former.ceasedAtBlock !== null && <Row label="Recorded cessation block">{former.ceasedAtBlock}</Row>}

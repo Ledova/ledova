@@ -3,7 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import type { TransferOrder, CreateOrderRequest, Wallet, SwapOrder } from '@ledova/shared';
 import {
   marketAmount,
-  marketQuantity,
+  marketShares,
   selectSwapSettlement,
   useInvestorReadinessQuery,
   useOrderBook,
@@ -243,7 +243,7 @@ function TradingPage() {
             {placed.order.tokenSymbol || placed.order.tokenName
               ? ` for ${placed.order.tokenSymbol || placed.order.tokenName}`
               : ''}
-            : {marketQuantity(placed.order.quantity)} shares at {marketAmount(placed.order.pricePerShare)},{' '}
+            : {marketShares(placed.order.quantity)} at {marketAmount(placed.order.pricePerShare)},{' '}
             {marketAmount(placed.order.totalValue)} in total.
           </>
         )}

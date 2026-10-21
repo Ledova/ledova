@@ -7,6 +7,7 @@ import {
   WALLET_SIGNING_PREFERENCE,
   getWalletSigningPreferenceLabel,
   useCurrency,
+  formatDateTime,
 } from '@ledova/shared';
 import { ICON_XS } from '@components/iconSizes';
 import type { Wallet } from '@ledova/shared';
@@ -46,7 +47,10 @@ export function WalletSummary({ wallet, compact = false }: WalletSummaryProps) {
                 </span>
               )}
               {syncAge && (
-                <span className="inline-flex items-center gap-0.5" title={`Last synced: ${wallet.lastSyncedAt}`}>
+                <span
+                  className="inline-flex items-center gap-0.5"
+                  title={`Last synced: ${formatDateTime(wallet.lastSyncedAt)}`}
+                >
                   <ClockIcon aria-hidden size={ICON_XS} />
                   {syncAge}
                 </span>
