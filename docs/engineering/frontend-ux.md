@@ -106,17 +106,18 @@ The web sidebar (`dashboard/src/components/Sidebar.tsx`) is a `<nav>` labelled "
 are links, and the current page's item carries `aria-current="page"`. Below 1024 pixels the header's
 menu button opens the same sidebar as a Headless UI `Dialog`: the button reports `aria-expanded`,
 focus stays inside the drawer while it is open, and Escape or a choice closes it. The first Tab on a
-signed-in page reaches "Skip to main content", which moves focus to the page content.
+signed-in page reaches "Skip to main content", which moves focus to the page's heading.
 
-Each page's title is also the browser tab's title, "<page title> · Ledova", set by `Page`. After a
-route change, including a Register view, focus moves to the page's heading once any closing dialog
+Each page's title is also the browser tab's title, "<page title> · Ledova", set by `Page`; a
+shareholder's page says "Shareholder" there, so their name stays out of the browser's history. After
+a route change, including a Register view, focus moves to the page's heading once any closing dialog
 has handed focus back, unless the page has already focused something of its own, such as the
-register class it opens at. A change to the search, filter or page in the address leaves focus where
-it is.
+register class it opens at. Focus stays where it is when a dialog stays open, after a redirect such
+as from `/` to your dashboard, and after a change to the search, filter or page in the address.
 
 Focus outlines come in one style: two pixels in the focus colour (`--color-border-focus`), set once
-for `:focus-visible` in `dashboard/src/styles/index.css`. Text fields keep their own focus border,
-and sign-in and sign-up keep their own look.
+for `:focus-visible` in `dashboard/src/styles/index.css`. Text fields, and the sign-in and sign-up
+fields and buttons, keep their own focus rings.
 
 ## Actions
 

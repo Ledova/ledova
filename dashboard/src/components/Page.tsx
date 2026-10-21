@@ -5,23 +5,25 @@ import { InSignedInFrame } from './InSignedInFrame';
 
 interface PageProps {
   actions?: ReactNode;
+  documentTitle?: string;
   lede?: string;
   loading?: boolean;
   narrow?: boolean;
   children?: ReactNode;
 }
 
-export function Page({ actions, lede, loading = false, narrow = false, children }: PageProps) {
+export function Page({ actions, documentTitle, lede, loading = false, narrow = false, children }: PageProps) {
   const title = useContext(PageTitle);
   const inFrame = useContext(InSignedInFrame);
   const ledeId = useId();
+  const tabTitle = documentTitle ?? title;
   useEffect(() => {
-    if (!title) return;
-    document.title = `${title} · Ledova`;
+    if (!tabTitle) return;
+    document.title = `${tabTitle} · Ledova`;
     return () => {
       document.title = 'Ledova';
     };
-  }, [title]);
+  }, [tabTitle]);
 
   return (
     <div

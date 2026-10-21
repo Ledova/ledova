@@ -1,5 +1,5 @@
 import { useEffect, useRef, type ReactNode } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigationType } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { MobileHeader } from './MobileHeader';
 import Footer from './Footer';
@@ -17,26 +17,27 @@ interface LayoutProps {
 
 function useHeadingFocus() {
   const { pathname, hash } = useLocation();
+  const navigation = useNavigationType();
   const place = `${pathname}${hash}`;
   const shown = useRef(place);
   useEffect(() => {
     if (shown.current === place) return;
     shown.current = place;
+    if (navigation === 'REPLACE') return;
     let frame = 0;
     let frames = 0;
     const focusHeading = () => {
-      if (document.querySelector('[role="dialog"]') && frames++ < 60) {
-        frame = requestAnimationFrame(focusHeading);
+      if (document.querySelector('[aria-modal="true"]')) {
+        if (frames++ < 60) frame = requestAnimationFrame(focusHeading);
         return;
       }
       const main = document.getElementById('main');
-      const active = document.activeElement;
-      if (!main || (active !== main && main.contains(active))) return;
+      if (!main || main.contains(document.activeElement)) return;
       main.querySelector<HTMLElement>('h1')?.focus();
     };
     frame = requestAnimationFrame(focusHeading);
     return () => cancelAnimationFrame(frame);
-  }, [place]);
+  }, [place, navigation]);
 }
 
 export default function Layout({ children }: LayoutProps) {
@@ -64,7 +65,7 @@ export default function Layout({ children }: LayoutProps) {
               href="#main"
               onClick={(event) => {
                 event.preventDefault();
-                document.getElementById('main')?.focus();
+                document.querySelector<HTMLElement>('#main h1')?.focus();
               }}
               className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-surface-raised focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-text-primary"
             >
@@ -78,7 +79,7 @@ export default function Layout({ children }: LayoutProps) {
               <MobileHeader />
             </div>
 
-            <main id="main" tabIndex={-1} className="pt-14 focus:outline-none lg:ml-52 lg:pt-0">
+            <main id="main" className="pt-14 lg:ml-52 lg:pt-0">
               {children}
             </main>
           </div>
