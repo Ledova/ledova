@@ -1,12 +1,17 @@
 import { useCallback, useRef, useState } from 'react';
 import {
+  addCalendarDays,
+  addCalendarYears,
+  isCalendarDate,
   isUuid,
   submitInvestorClassification,
   type InvestorCategory,
   failureSentence,
   uploadRefusal,
+  utcToday,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
+import { hasProblems, type Problems } from '@hooks/useErrorSummary';
 import { CATEGORIES } from './constants';
 
 export function useInvestorClaim({
@@ -67,22 +72,36 @@ export function useInvestorClaim({
     [chooseFile],
   );
 
-  const isComplete =
-    !submissionBlockedReason &&
-    !!file &&
-    !!category &&
-    !!userAccount &&
-    declarationAccepted &&
-    declaredBasis.trim() !== '' &&
-    (!needsCompany || isUuid(company.trim())) &&
-    (!needsCertifier ||
-      (certificateIssuedAt !== '' &&
-        certifierName.trim() !== '' &&
-        certifierBody !== '' &&
-        certifierMembershipNumber.trim() !== ''));
+  const today = utcToday();
+  const earliestCertificate = addCalendarYears(addCalendarDays(today, 1), -2);
+  const available = !submissionBlockedReason && !!category && !!userAccount;
+  const problems: Problems<
+    | 'company'
+    | 'certificateIssuedAt'
+    | 'certifierBody'
+    | 'certifierName'
+    | 'certifierMembershipNumber'
+    | 'declaredBasis'
+    | 'file'
+    | 'declaration'
+  > = {
+    company: needsCompany && !isUuid(company.trim()) && 'Enter the exact company UUID provided by the issuer.',
+    certificateIssuedAt:
+      needsCertifier &&
+      (!isCalendarDate(certificateIssuedAt) ||
+        certificateIssuedAt < earliestCertificate ||
+        certificateIssuedAt > today) &&
+      'Enter a certificate date within the last two years, no later than today (UTC).',
+    certifierBody: needsCertifier && !certifierBody && 'Choose the professional body.',
+    certifierName: needsCertifier && !certifierName.trim() && 'Give the accountant’s name.',
+    certifierMembershipNumber: needsCertifier && !certifierMembershipNumber.trim() && 'Give the membership number.',
+    declaredBasis: !declaredBasis.trim() && 'Give the basis for the claim.',
+    file: !file && 'Choose the evidence file.',
+    declaration: !declarationAccepted && 'Accept the declaration.',
+  };
 
   const handleSubmit = async () => {
-    if (!isComplete || !file || !category || !userAccount) return;
+    if (!available || hasProblems(problems) || !file || !category || !userAccount) return;
     setIsSubmitting(true);
     setError(null);
     try {
@@ -133,7 +152,10 @@ export function useInvestorClaim({
     spec,
     reset,
     handleDrop,
-    isComplete,
+    today,
+    earliestCertificate,
+    available,
+    problems,
     handleSubmit,
   };
 }

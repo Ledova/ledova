@@ -10,6 +10,9 @@ import {
   type CompanyCapability,
 } from '@ledova/shared';
 import { PageAction } from '@components/Page';
+import { CheckboxField } from '@components/Field';
+import { ErrorSummary } from '@components/ErrorSummary';
+import { useErrorSummary } from '@hooks/useErrorSummary';
 import { Row, Rows, Status } from '@components/Ledger';
 import { Confirmation, Modal } from '@components/Modal';
 import { SITE_URL } from '@utils/siteUrl';
@@ -44,6 +47,7 @@ export function AuthorityRequestRecord({
   onRevoke: () => Promise<unknown>;
 }) {
   const [accepted, setAccepted] = useState(false);
+  const acceptance = useErrorSummary({ accepted: !accepted && 'Accept the authority declaration and Terms.' });
   const [confirmingWithdrawal, setConfirmingWithdrawal] = useState(false);
   const [confirmingRevocation, setConfirmingRevocation] = useState<symbol | null>(null);
   const revocationConfirmation = useRef<symbol | null>(null);
@@ -91,6 +95,7 @@ export function AuthorityRequestRecord({
         <>
           {request.requestedCapabilities.includes('admin') ? (
             <div className="space-y-2">
+              <ErrorSummary {...acceptance.summary} />
               <p className="text-sm text-text-primary">{COMPANY_SIGNUP_DECLARATION}</p>
               <p className="text-sm text-text-muted">
                 Declaration version {COMPANY_SIGNUP_DECLARATION_VERSION}. Your appointment uses the exact permissions,
@@ -104,22 +109,22 @@ export function AuthorityRequestRecord({
               >
                 Terms of Service
               </a>
-              <label className="flex items-center gap-2 text-sm text-text-primary">
-                <input
-                  type="checkbox"
-                  checked={accepted}
-                  disabled={blocked}
-                  onChange={(event) => setAccepted(event.target.checked)}
-                />
-                Accept authority declaration and Terms for {request.companyIdentityRaw.name}
-              </label>
+              <CheckboxField
+                {...acceptance.field('accepted')}
+                label={`Accept authority declaration and Terms for ${request.companyIdentityRaw.name}`}
+                checked={accepted}
+                disabled={blocked}
+                onChange={(event) => setAccepted(event.target.checked)}
+              />
               <PageAction
                 label={`Establish appointment ${request.originalFilename || request.companyIdentityRaw.name}`}
                 busy={action === 'admit'}
                 busyLabel="Establishing appointment…"
                 primary
-                disabled={blocked || !accepted}
-                onClick={onAdmit}
+                disabled={blocked}
+                onClick={() => {
+                  if (acceptance.check()) onAdmit();
+                }}
               />
             </div>
           ) : (

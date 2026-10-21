@@ -10,6 +10,7 @@ import {
   describeFailure,
 } from '@ledova/shared';
 import type { CreateWallet, DerivedAddress, HardwareWalletImport } from '@ledova/shared';
+import { hasProblems, type Problems } from '@hooks/useErrorSummary';
 
 type FormStep = 'input' | 'selectAddresses';
 
@@ -31,7 +32,6 @@ export function useWalletForm({ onSubmit, onBatchSubmit, preselectedChain }: Use
     const activeChains = getActiveChains();
     return activeChains[0]?.code || null;
   });
-  const [errors, setErrors] = useState<{ address?: string; network?: string }>({});
   const [showScanner, setShowScanner] = useState(false);
   const [scannedURString, setScannedURString] = useState<string | null>(null);
   const [scanProgress, setScanProgress] = useState<{ received: number; total: number } | null>(null);
@@ -45,7 +45,6 @@ export function useWalletForm({ onSubmit, onBatchSubmit, preselectedChain }: Use
     setStep('input');
     setName('');
     setAddress('');
-    setErrors({});
     setShowScanner(false);
     setScannedURString(null);
     setScanProgress(null);
@@ -56,38 +55,13 @@ export function useWalletForm({ onSubmit, onBatchSubmit, preselectedChain }: Use
     setSelectedChain(activeChains[0]?.code || null);
   }, []);
 
-  const validate = useCallback((): boolean => {
-    const newErrors: { address?: string; network?: string } = {};
-
-    if (!address.trim()) {
-      newErrors.address = 'Wallet address is required';
-    } else {
-      let networkToValidate = selectedChain;
-
-      if (!networkToValidate) {
-        const detectedShortName = detectChainFromAddress(address);
-        if (detectedShortName) {
-          const detectedChain = getChainByShortName(detectedShortName);
-          if (detectedChain) {
-            networkToValidate = detectedChain.code;
-            setSelectedChain(networkToValidate);
-          }
-        }
-      }
-
-      if (!networkToValidate) {
-        newErrors.address = 'Could not detect network from address. Please check the address format.';
-      } else {
-        const chain = getChainConfig(networkToValidate);
-        if (chain && !validateWalletAddress(address, chain.shortName)) {
-          newErrors.address = `Invalid ${chain.name} address format`;
-        }
-      }
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  }, [address, selectedChain]);
+  const chain = selectedChain ? getChainConfig(selectedChain) : undefined;
+  const problems: Problems<'address' | 'network'> = {
+    address: !address.trim()
+      ? 'Enter the wallet address.'
+      : !!chain && !validateWalletAddress(address.trim(), chain.shortName) && `Enter a valid ${chain.name} address.`,
+    network: !chain?.isActive && 'Choose the wallet network.',
+  };
 
   const handleAddressChange = useCallback(
     (text: string) => {
@@ -102,12 +76,8 @@ export function useWalletForm({ onSubmit, onBatchSubmit, preselectedChain }: Use
           }
         }
       }
-
-      if (errors.address) {
-        setErrors((prev) => ({ ...prev, address: undefined }));
-      }
     },
-    [selectedChain, errors.address],
+    [selectedChain],
   );
 
   const stopCamera = useCallback(() => {
@@ -177,12 +147,8 @@ export function useWalletForm({ onSubmit, onBatchSubmit, preselectedChain }: Use
           setSelectedChain(chain.code);
         }
       }
-
-      if (errors.address) {
-        setErrors((prev) => ({ ...prev, address: undefined }));
-      }
     },
-    [errors.address, selectedChain],
+    [selectedChain],
   );
 
   const startScanner = useCallback(() => {
@@ -239,20 +205,14 @@ export function useWalletForm({ onSubmit, onBatchSubmit, preselectedChain }: Use
     setScanProgress(null);
   }, []);
 
-  const handleSubmit = useCallback(() => {
-    if (!validate() || !selectedChain) {
-      return;
-    }
-
-    const chain = getChainConfig(selectedChain);
-    if (!chain?.isActive) return;
-
+  const handleSubmit = () => {
+    if (hasProblems(problems) || !chain?.isActive) return;
     onSubmit({
       name: name.trim() || undefined,
       address: address.trim(),
       chain: chain.code,
     });
-  }, [validate, selectedChain, name, address, onSubmit]);
+  };
 
   const toggleScanner = useCallback(() => {
     setShowScanner((prev) => !prev);
@@ -267,7 +227,7 @@ export function useWalletForm({ onSubmit, onBatchSubmit, preselectedChain }: Use
     name,
     address,
     selectedChain,
-    errors,
+    problems,
     showScanner,
     scannedURString,
     scanProgress,

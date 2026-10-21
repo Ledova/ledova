@@ -7,14 +7,12 @@ import {
 } from '@ledova/shared';
 import { Row, Rows, Section } from '@components/Ledger';
 import { PageAction } from '@components/Page';
+import { CheckboxField } from '@components/Field';
+import { ErrorSummary } from '@components/ErrorSummary';
+import { useErrorSummary } from '@hooks/useErrorSummary';
 import { EligibilitySummary } from './EligibilitySummary';
 
-export function ActionConfirmation({
-  action,
-  busy,
-  confirm,
-  cancel,
-}: {
+type ConfirmationProps = {
   action: EligibilityAction;
   busy: boolean;
   confirm: (
@@ -22,15 +20,33 @@ export function ActionConfirmation({
     checks: { sharingAccepted?: boolean; declarationAccepted?: boolean; confirmation?: boolean },
   ) => Promise<void>;
   cancel: () => void;
-}) {
+};
+
+export function ActionConfirmation(props: ConfirmationProps) {
+  return <Confirmation key={props.action.key} {...props} />;
+}
+
+function Confirmation({ action, busy, confirm, cancel }: ConfirmationProps) {
   const [consent, setConsent] = useState({ action, sharing: false, declaration: false, confirmed: false });
   const checks = consent.action === action ? consent : { action, sharing: false, declaration: false, confirmed: false };
   const { sharing, declaration, confirmed } = checks;
   const unmet = action.request?.unmetRequirements ?? action.decision?.unmetRequirements ?? [];
   const can =
     action.kind === 'request'
-      ? action.request?.canSubmit && sharing && declaration
-      : (action.kind !== 'decision' || action.decision?.canDecide) && confirmed;
+      ? !!action.request?.canSubmit
+      : action.kind !== 'decision' || !!action.decision?.canDecide;
+  const subject =
+    action.kind === 'decision'
+      ? 'company decision'
+      : action.kind === 'withdrawal'
+        ? 'request withdrawal'
+        : 'acceptance revocation';
+  const requesting = action.kind === 'request';
+  const review = useErrorSummary<'sharing' | 'declaration' | 'confirmed'>({
+    sharing: requesting && !sharing && 'Agree to share this exact summary with this company.',
+    declaration: requesting && !declaration && 'Accept the declaration shown above.',
+    confirmed: !requesting && !confirmed && `Confirm this exact ${subject}.`,
+  });
   const label =
     action.kind === 'request'
       ? 'Submit company eligibility request'
@@ -41,6 +57,7 @@ export function ActionConfirmation({
           : 'Revoke this acceptance';
   return (
     <Section title="Review exact action">
+      <ErrorSummary {...review.summary} />
       {action.request && <EligibilitySummary summary={action.request.sharedSummary} />}
       {action.record && (
         <Rows>
@@ -75,43 +92,31 @@ export function ActionConfirmation({
           The previous outcome is uncertain. Retry this identical action and key to recover the retained result.
         </p>
       )}
-      {action.kind === 'request' ? (
+      {requesting ? (
         <>
-          <label className="flex items-start gap-2 text-sm">
-            <input
-              type="checkbox"
-              checked={sharing}
-              disabled={busy}
-              onChange={(event) => setConsent({ ...checks, sharing: event.target.checked })}
-            />
-            I agree to share this exact summary with this company.
-          </label>
-          <label className="flex items-start gap-2 text-sm">
-            <input
-              type="checkbox"
-              checked={declaration}
-              disabled={busy}
-              onChange={(event) => setConsent({ ...checks, declaration: event.target.checked })}
-            />
-            I accept the declaration shown above.
-          </label>
+          <CheckboxField
+            {...review.field('sharing')}
+            label="I agree to share this exact summary with this company."
+            checked={sharing}
+            disabled={busy}
+            onChange={(event) => setConsent({ ...checks, sharing: event.target.checked })}
+          />
+          <CheckboxField
+            {...review.field('declaration')}
+            label="I accept the declaration shown above."
+            checked={declaration}
+            disabled={busy}
+            onChange={(event) => setConsent({ ...checks, declaration: event.target.checked })}
+          />
         </>
       ) : (
-        <label className="flex items-start gap-2 text-sm">
-          <input
-            type="checkbox"
-            checked={confirmed}
-            disabled={busy}
-            onChange={(event) => setConsent({ ...checks, confirmed: event.target.checked })}
-          />
-          I confirm this exact{' '}
-          {action.kind === 'decision'
-            ? 'company decision'
-            : action.kind === 'withdrawal'
-              ? 'request withdrawal'
-              : 'acceptance revocation'}
-          .
-        </label>
+        <CheckboxField
+          {...review.field('confirmed')}
+          label={`I confirm this exact ${subject}.`}
+          checked={confirmed}
+          disabled={busy}
+          onChange={(event) => setConsent({ ...checks, confirmed: event.target.checked })}
+        />
       )}
       <div className="flex flex-wrap gap-2">
         <PageAction
@@ -121,13 +126,14 @@ export function ActionConfirmation({
           primary={action.kind === 'request' || action.kind === 'decision'}
           destructive={action.kind === 'withdrawal' || action.kind === 'revocation'}
           disabled={!can}
-          onClick={() =>
-            void confirm(action, {
-              sharingAccepted: sharing,
-              declarationAccepted: declaration,
-              confirmation: confirmed,
-            })
-          }
+          onClick={() => {
+            if (review.check())
+              void confirm(action, {
+                sharingAccepted: sharing,
+                declarationAccepted: declaration,
+                confirmation: confirmed,
+              });
+          }}
         />
         <PageAction label="Close confirmation" onClick={cancel} />
       </div>

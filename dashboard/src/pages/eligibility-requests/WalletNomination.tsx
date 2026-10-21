@@ -1,4 +1,7 @@
 import { SelectField } from '@components/SelectField';
+import { CheckboxField } from '@components/Field';
+import { ErrorSummary } from '@components/ErrorSummary';
+import { useErrorSummary } from '@hooks/useErrorSummary';
 import { useState } from 'react';
 import { useRunningAction } from '@hooks/useRunningAction';
 import {
@@ -43,6 +46,10 @@ export function WalletNomination({ requestUuid, guardRequest }: { requestUuid: s
   const preview = data.preview;
   const accepted = consent.preview === preview && consent.accepted;
   const proofOpen = verifying?.owner === data.owner && verifying.wallet === wallet?.uuid;
+  const checks = useErrorSummary({
+    wallet: !wallet && 'Choose one of your own Base wallets.',
+    consent: !accepted && 'Agree to share the selected address with this company.',
+  });
   if (!data.owner) return null;
   return (
     <Section title="Nominate one own Base wallet">
@@ -50,6 +57,7 @@ export function WalletNomination({ requestUuid, guardRequest }: { requestUuid: s
         Select one own wallet for this company and review its current GENERAL eligibility and possession proof. Earlier
         evidence sharing does not share your wallets.
       </p>
+      <ErrorSummary {...checks.summary} />
       {!readFailed && (
         <PageAction
           label="Refresh wallet nomination"
@@ -84,6 +92,7 @@ export function WalletNomination({ requestUuid, guardRequest }: { requestUuid: s
       {!data.original && (
         <>
           <SelectField
+            {...checks.field('wallet')}
             label="Your own Base wallet"
             options={[
               { value: '', label: 'Select one own wallet' },
@@ -94,7 +103,10 @@ export function WalletNomination({ requestUuid, guardRequest }: { requestUuid: s
             ]}
             value={data.walletUuid}
             disabled={blocked}
-            onChange={data.setWallet}
+            onChange={(uuid) => {
+              checks.reset();
+              data.setWallet(uuid);
+            }}
           />
           {data.wallets.isSuccess && wallets.length === 0 && (
             <p className="text-sm text-text-muted">No own Base wallets yet.</p>
@@ -117,8 +129,10 @@ export function WalletNomination({ requestUuid, guardRequest }: { requestUuid: s
             label="Review wallet nomination"
             busy={running === 'review'}
             busyLabel="Reviewing…"
-            disabled={blocked || !wallet}
-            onClick={() => track('review', data.review())}
+            disabled={blocked}
+            onClick={() => {
+              if (checks.check(['wallet'])) track('review', data.review());
+            }}
           />
           {preview && (
             <div className="space-y-3">
@@ -128,20 +142,20 @@ export function WalletNomination({ requestUuid, guardRequest }: { requestUuid: s
                   {sentence}
                 </p>
               ))}
-              <label className="flex gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  checked={accepted}
-                  disabled={blocked}
-                  onChange={(event) => setConsent({ preview, accepted: event.target.checked })}
-                />
-                Share this selected address with this exact company.
-              </label>
+              <CheckboxField
+                {...checks.field('consent')}
+                label="Share this selected address with this exact company."
+                checked={accepted}
+                disabled={blocked}
+                onChange={(event) => setConsent({ preview, accepted: event.target.checked })}
+              />
               <PageAction
                 label="Submit wallet nomination"
                 primary
-                disabled={blocked || !accepted || !preview.canSubmit}
-                onClick={() => void data.confirm()}
+                disabled={blocked || !preview.canSubmit}
+                onClick={() => {
+                  if (checks.check(['consent'])) void data.confirm();
+                }}
               />
             </div>
           )}
