@@ -192,7 +192,7 @@ Ledova, and its holdings must match the stored register. On the web:
 
 1. On Register, choose **Set up your share register** (shown while no share class is readable) or,
    once a register exists, **Add share class**; or choose History, the class, then Bring records
-   under Register mirror. Issue shares and Transfer shares also offer Set up share register for a
+   under Register mirror. Issue shares and Transfer shares also offer Set up your share register for a
    class not yet set up. Register is the only place where share classes are created, on the web
    and on mobile.
 2. Share details: open an existing draft class from its link, or choose a common class (Ordinary
@@ -598,7 +598,7 @@ person chosen.
 
 ### The Share class page
 
-Share class, reached from History or, for a tokenised class, from Share class settings in Record
+Share class, reached from History or, for a tokenised class, from the Share class link in Record
 investor share issue and Transfer shares, shows the class's state, issued shares and register
 members, and the history and actions of its company-authorised deployment, chain grants, paid
 issues, capital increases and pause changes ([share classes](issuing-shares.md#share-classes)).

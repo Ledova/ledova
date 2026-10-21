@@ -5,6 +5,7 @@ import { useMemo, type ReactNode } from 'react';
 import { useParams } from 'react-router-dom';
 
 import {
+  HOLDER_TYPE_LABELS,
   REGISTER_PARTICULARS_COPY,
   appointmentForRegisterStep,
   type CompanyShareTokenListItem,
@@ -142,7 +143,7 @@ function OwnParticulars({
       back={
         found && {
           to: shareholderPath(member, found.company.uuid),
-          label: `Back to ${found.holder.name || COPY.UNNAMED_MEMBER}`,
+          label: `Back to ${found.holder.name || HOLDER_TYPE_LABELS[found.holder.holderType]}`,
         }
       }
     >

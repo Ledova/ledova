@@ -55,8 +55,10 @@ The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components
 - `LinkRow`: how a list of sub-pages or neighbours links to each; the whole row is the link, named
   with its destination's title, with optional detail lines and an aside. A step in a checklist, such
   as "Verify and activate your company", and a row that starts a task, such as "Prepare a non-paid
-  transfer", are named for the step or the task. A title row never repeats a sidebar destination;
-  an underlined link belongs to a sentence or opens an external resource.
+  transfer", are named for the step or the task; a record's row, such as a share class in Directory,
+  for the record; and a row that opens a section of a page, such as "Company documents", for that
+  section. A title row never repeats a sidebar destination; an underlined link belongs to a sentence
+  or opens an external resource.
 - `PageAction` and `PageLink` (`Action` on mobile): a content-width action placed with what it acts
   on: the title row for the page (including the way back to the parent), a section for that section,
   a row for that row's record alone. Nothing is selected before acting, and no toolbar waits under a list.
@@ -111,9 +113,10 @@ menu button opens the same sidebar as a Headless UI `Dialog`: the button reports
 focus stays inside the drawer while it is open, and Escape or a choice closes it. The first Tab on a
 signed-in page reaches "Skip to main content", which moves focus to the page's heading.
 
-`DESTINATIONS` (`packages/shared/src/constants/ui/destinations.ts`) names every page, Register's
-views (Shareholders, Employee awards, Documents) and tasks, and Home's Documents view, so the sidebar
-and the page titles read one list. `DESTINATION_PARENTS` beside it gives each page below a sidebar
+`DESTINATIONS` (`packages/shared/src/constants/ui/destinations.ts`) names the signed-in pages,
+Register's views (Shareholders, Employee awards, Documents) and tasks, and Home's Documents view, and
+the sidebar and page titles read their names from it. On the web the company dashboard and Home are
+both titled Dashboard, so the company workspace lists Home as Your shares. `DESTINATION_PARENTS` beside it gives each page below a sidebar
 destination its parent, and `Page` puts one link back to it in the title row, "Back to <parent's
 title>": Back to Settings on Company team, Back to Company on Representative authority, Back to
 Shareholders on a shareholder's page. Once a particulars change has found its member, its link goes

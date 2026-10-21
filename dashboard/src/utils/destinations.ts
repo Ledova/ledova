@@ -6,13 +6,14 @@ export interface Place {
   view?: string;
 }
 
-function viewsOf(key: DestinationKey): Record<string, string> | undefined {
+function viewName(key: DestinationKey, view: string): string | undefined {
   const destination: Destination = DESTINATIONS[key];
-  return destination.views;
+  const views = destination.views;
+  return views && Object.prototype.hasOwnProperty.call(views, view) ? views[view] : undefined;
 }
 
 export function pageTitle(key: DestinationKey, view?: string): string {
-  const named = view ? viewsOf(key)?.[view] : undefined;
+  const named = view ? viewName(key, view) : undefined;
   if (named) return named;
   return key === 'home' ? 'Dashboard' : DESTINATIONS[key].title;
 }
@@ -46,9 +47,7 @@ export function placesAt(pathname: string, hash: string): Place[] {
   const places: Place[] = [];
   let key = destinationAt(pathname);
   const view = hash.slice(1);
-  let current: Place | undefined = key
-    ? { destination: key, view: viewsOf(key)?.[view] ? view : undefined }
-    : undefined;
+  let current: Place | undefined = key ? { destination: key, view: viewName(key, view) ? view : undefined } : undefined;
   while (current && places.length < 8) {
     places.push(current);
     key = current.destination;

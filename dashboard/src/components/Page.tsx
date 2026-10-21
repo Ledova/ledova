@@ -5,7 +5,7 @@ import { InSignedInFrame } from './InSignedInFrame';
 
 interface PageProps {
   actions?: ReactNode;
-  back?: Partial<PageBackLink> | null;
+  back?: Partial<PageBackLink>;
   documentTitle?: string;
   lede?: string;
   loading?: boolean;
@@ -16,7 +16,7 @@ interface PageProps {
 export function Page({ actions, back, documentTitle, lede, loading = false, narrow = false, children }: PageProps) {
   const title = useContext(PageTitle);
   const parent = useContext(PageBack);
-  const link = back === null ? undefined : { ...parent, ...back };
+  const link = { ...parent, ...back };
   const inFrame = useContext(InSignedInFrame);
   const ledeId = useId();
   const tabTitle = documentTitle ?? title;
@@ -41,9 +41,9 @@ export function Page({ actions, back, documentTitle, lede, loading = false, narr
           >
             {title}
           </h1>
-          {(link?.to || actions) && (
+          {(link.to || actions) && (
             <div className="flex flex-wrap items-center gap-2">
-              {link?.to && link.label && <PageLink to={link.to} state={link.state} label={link.label} />}
+              {link.to && link.label && <PageLink to={link.to} state={link.state} label={link.label} />}
               {actions}
             </div>
           )}

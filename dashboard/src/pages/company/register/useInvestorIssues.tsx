@@ -151,7 +151,7 @@ export function useInvestorIssues({
         <p className="text-sm text-text-muted">
           {register.token.status === 'draft'
             ? 'Set up this share register before issuing shares.'
-            : 'Tokenised share issue controls remain in Share class settings.'}
+            : 'Tokenised share issue controls remain on the Share class page.'}
         </p>
       )}
       {appointment && privateReady && (
