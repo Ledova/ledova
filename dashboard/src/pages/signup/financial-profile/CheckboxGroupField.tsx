@@ -2,6 +2,7 @@ import { useId } from 'react';
 import { Checkbox, Field, Label } from '@headlessui/react';
 
 interface CheckboxGroupFieldProps {
+  id?: string;
   label: string;
   value: string[];
   options: Array<{ value: string; label: string }>;
@@ -9,7 +10,7 @@ interface CheckboxGroupFieldProps {
   onChange: (values: string[]) => void;
 }
 
-const CheckboxGroupField = ({ label, value, options, error, onChange }: CheckboxGroupFieldProps) => {
+const CheckboxGroupField = ({ id, label, value, options, error, onChange }: CheckboxGroupFieldProps) => {
   const labelId = useId();
   const errorId = useId();
 
@@ -22,7 +23,13 @@ const CheckboxGroupField = ({ label, value, options, error, onChange }: Checkbox
   };
 
   return (
-    <div role="group" aria-labelledby={labelId} aria-describedby={error ? errorId : undefined} className="space-y-3">
+    <div
+      id={id}
+      role="group"
+      aria-labelledby={labelId}
+      aria-describedby={error ? errorId : undefined}
+      className="space-y-3"
+    >
       <p id={labelId} className="block text-sm font-medium text-text-body">
         {label} <span className="text-text-subtle">(select all that apply)</span>
       </p>
@@ -51,7 +58,7 @@ const CheckboxGroupField = ({ label, value, options, error, onChange }: Checkbox
         ))}
       </div>
       {error && (
-        <p id={errorId} className="text-error-light text-sm mt-1" role="alert">
+        <p id={errorId} className="text-error-light text-sm mt-1">
           {error.join(' ')}
         </p>
       )}

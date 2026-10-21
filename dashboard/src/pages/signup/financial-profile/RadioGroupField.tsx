@@ -1,6 +1,7 @@
 import { Description, Field, Label, Radio, RadioGroup } from '@headlessui/react';
 
 interface RadioGroupFieldProps<Value extends string = string> {
+  id?: string;
   label: string;
   value: Value;
   options: Array<{ value: Value; label: string }>;
@@ -9,13 +10,14 @@ interface RadioGroupFieldProps<Value extends string = string> {
 }
 
 const RadioGroupField = <Value extends string>({
+  id,
   label,
   value,
   options,
   error,
   onChange,
 }: RadioGroupFieldProps<Value>) => (
-  <div className="space-y-3">
+  <div id={id} className="space-y-3">
     <RadioGroup value={value} onChange={onChange} className="space-y-2">
       <Label className="mb-3 block text-sm font-medium text-text-body">{label}</Label>
       {options.map((option) => (
@@ -30,7 +32,7 @@ const RadioGroupField = <Value extends string>({
         </Field>
       ))}
       {error && (
-        <Description as="p" className="text-error-light text-sm mt-1" role="alert">
+        <Description as="p" className="text-error-light text-sm mt-1">
           {error.join(' ')}
         </Description>
       )}

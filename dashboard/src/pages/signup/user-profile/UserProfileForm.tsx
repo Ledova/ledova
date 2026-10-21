@@ -13,6 +13,8 @@ import { CountrySelector } from './CountrySelector';
 import { FIELD_LIMITS, utcToday } from '@ledova/shared';
 import type { FormErrors, UserProfileFormValidation, CountryData, UserProfileFormData } from '@ledova/shared';
 import { ICON_MD } from '@components/iconSizes';
+import { ErrorSummary } from '@components/ErrorSummary';
+import { useFieldErrorSummary } from '@hooks/useErrorSummary';
 
 interface UserProfileFormProps {
   form: UserProfileFormData;
@@ -24,7 +26,7 @@ interface UserProfileFormProps {
   countries: CountryData[];
   setFieldValue: (field: keyof UserProfileFormData, value: string) => void;
   onCountryChange: (country: CountryData) => void;
-  onSubmit: (e: React.FormEvent) => void;
+  onSubmit: (e: React.FormEvent) => Promise<void>;
   onBack: () => void;
 }
 
@@ -41,10 +43,22 @@ export function UserProfileForm({
   onBack,
   onCountryChange,
 }: UserProfileFormProps) {
+  const reported = useFieldErrorSummary(generalError ? {} : errors, [
+    'fullName',
+    'dateOfBirth',
+    'phoneNumber',
+    'residentialAddress',
+  ]);
+  const fullName = reported.field('fullName');
+  const dateOfBirth = reported.field('dateOfBirth');
+  const phoneNumber = reported.field('phoneNumber');
+  const residentialAddress = reported.field('residentialAddress');
+  const submit = (event: React.FormEvent) => void onSubmit(event).then(reported.reported);
   return (
     <>
       <AuthCard>
-        <form onSubmit={onSubmit} className="space-y-6">
+        <form noValidate onSubmit={submit} className="space-y-6">
+          <ErrorSummary {...reported.summary} />
           {generalError && (
             <div className={ERROR_BANNER_CLASS}>
               <div className="flex items-start">
@@ -60,7 +74,7 @@ export function UserProfileForm({
             </div>
           )}
 
-          <Field className="space-y-1">
+          <Field id={fullName.id} className="space-y-1">
             <Label className="block text-sm font-medium text-text-body">Full name</Label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -78,17 +92,14 @@ export function UserProfileForm({
                 )}
                 placeholder="John Doe"
                 required
+                invalid={!!fullName.error}
                 disabled={isSubmitting}
               />
             </div>
-            {errors.fullName && !generalError && (
-              <Description className="text-error-light text-xs mt-1" role="alert">
-                {errors.fullName.join(' ')}
-              </Description>
-            )}
+            {fullName.error && <Description className="text-error-light text-xs mt-1">{fullName.error}</Description>}
           </Field>
 
-          <Field className="space-y-1">
+          <Field id={dateOfBirth.id} className="space-y-1">
             <Label className="block text-sm font-medium text-text-body">Date of birth</Label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -102,17 +113,16 @@ export function UserProfileForm({
                 onChange={(e) => setFieldValue('dateOfBirth', e.target.value)}
                 className={authFieldClass(errors.dateOfBirth, 'pl-10 pr-3')}
                 required
+                invalid={!!dateOfBirth.error}
                 disabled={isSubmitting}
               />
             </div>
-            {errors.dateOfBirth && !generalError && (
-              <Description className="text-error-light text-xs mt-1" role="alert">
-                {errors.dateOfBirth.join(' ')}
-              </Description>
+            {dateOfBirth.error && (
+              <Description className="text-error-light text-xs mt-1">{dateOfBirth.error}</Description>
             )}
           </Field>
 
-          <Field className="space-y-1">
+          <Field id={phoneNumber.id} className="space-y-1">
             <Label className="block text-sm font-medium text-text-body">Phone number</Label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none z-10">
@@ -141,19 +151,18 @@ export function UserProfileForm({
                     } pr-3 py-3 text-text-primary placeholder-text-muted focus:outline-none transition-colors h-12`}
                     placeholder="416 123 456"
                     required
+                    invalid={!!phoneNumber.error}
                     disabled={isSubmitting}
                   />
                 </div>
               </div>
             </div>
-            {errors.phoneNumber && !generalError && (
-              <Description className="text-error-light text-xs mt-1" role="alert">
-                {errors.phoneNumber.join(' ')}
-              </Description>
+            {phoneNumber.error && (
+              <Description className="text-error-light text-xs mt-1">{phoneNumber.error}</Description>
             )}
           </Field>
 
-          <Field className="space-y-1">
+          <Field id={residentialAddress.id} className="space-y-1">
             <Label className="block text-sm font-medium text-text-body">Residential address</Label>
             <Description className="text-text-subtle text-xs">
               Include street number, city, state and postcode
@@ -174,17 +183,16 @@ export function UserProfileForm({
                 )} resize-none`}
                 placeholder="123 Main Street&#10;Sydney NSW 2000"
                 required
+                invalid={!!residentialAddress.error}
                 disabled={isSubmitting}
               />
             </div>
-            {errors.residentialAddress && !generalError && (
-              <Description className="text-error-light text-xs mt-1" role="alert">
-                {errors.residentialAddress.join(' ')}
-              </Description>
+            {residentialAddress.error && (
+              <Description className="text-error-light text-xs mt-1">{residentialAddress.error}</Description>
             )}
           </Field>
 
-          <button type="submit" disabled={isSubmitting} onClick={onSubmit} className={AUTH_BUTTON_CLASS}>
+          <button type="submit" disabled={isSubmitting} onClick={submit} className={AUTH_BUTTON_CLASS}>
             {isSubmitting ? (
               <div className="flex items-center justify-center space-x-2">
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
