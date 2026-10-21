@@ -15,10 +15,31 @@ import {
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
 import { saveFile } from '@utils/saveFile';
+import { hasProblems, type Problems } from '@hooks/useErrorSummary';
 import { useEffect, useRef, useState } from 'react';
 
 export type Commands = ReturnType<typeof useCompanyIssueInstructions>;
 export type EvidenceKind = 'authority' | 'terms' | 'acceptance';
+type IssueField =
+  | 'nomination'
+  | 'member'
+  | 'director'
+  | 'reference'
+  | 'reason'
+  | 'authorityDocument'
+  | 'approval'
+  | 'shares'
+  | 'termsOn'
+  | 'terms'
+  | 'termsDocument'
+  | 'acceptanceDocument';
+export const LINK_FIELDS: readonly IssueField[] = [
+  'nomination',
+  'director',
+  'reference',
+  'reason',
+  'authorityDocument',
+];
 export function useIssueRecord({ record, commands }: { record: RegisterIssue; commands: Commands }) {
   const [error, setError] = useState('');
   const [downloading, setDownloading] = useState<EvidenceKind | null>(null);
@@ -104,17 +125,22 @@ export function useIssuePreparation({ commands }: { commands: Commands }) {
     );
   const displayedMember = member === 'new' && appliedNewLink ? newMember : member;
   const waiting = !!busy || commands.busy;
-  const commonProblem = !chosen || !director.trim() || !reference.trim() || !reason.trim() || !files.authority;
-  const issueProblem =
-    commonProblem ||
-    displayedMember === 'new' ||
-    !approval ||
-    requestShares(shares) === null ||
-    !isCalendarDate(termsOn) ||
-    termsOn > utcToday() ||
-    !terms.trim() ||
-    !files.terms ||
-    (acceptanceRequired && !files.acceptance);
+  const problems: Problems<IssueField> = {
+    nomination: !chosen && 'Choose the nominated wallet.',
+    member: displayedMember === 'new' && 'Apply the wallet link to the new member before preparing the grant.',
+    director: !director.trim() && 'Name the approving director.',
+    reference: !reference.trim() && 'Give the authority reference.',
+    reason: !reason.trim() && 'Give the reason.',
+    authorityDocument: !files.authority && 'Choose the authority document.',
+    approval: !approval && 'Choose the company ADD.',
+    shares: requestShares(shares) === null && 'Enter whole shares from 1 to 2,147,483,647.',
+    termsOn: (!isCalendarDate(termsOn) || termsOn > utcToday()) && 'Enter a terms date no later than today (UTC).',
+    terms: !terms.trim() && 'Give the non-paid terms.',
+    termsDocument: !files.terms && 'Choose the terms document.',
+    acceptanceDocument: acceptanceRequired && !files.acceptance && 'Choose the acceptance document.',
+  };
+  const commonProblem = LINK_FIELDS.some((key) => problems[key]);
+  const issueProblem = hasProblems(problems);
   const submit = async (kind: 'link' | 'issue') => {
     if (waiting || !commands.canPrepare || commands.recovery || (kind === 'link' ? commonProblem : issueProblem))
       return;
@@ -218,8 +244,7 @@ export function useIssuePreparation({ commands }: { commands: Commands }) {
     displayedMember,
     waiting,
     preparing: busy,
-    commonProblem,
-    issueProblem,
+    problems,
     submit,
   };
 }

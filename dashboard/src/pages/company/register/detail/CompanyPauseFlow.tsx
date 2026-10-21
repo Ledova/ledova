@@ -2,6 +2,8 @@ import { Field, TextArea, TextInput, FileField } from '@components/Field';
 import { Choices } from '@components/Choices';
 import { Row, Rows, Section, Loading, LoadError } from '@components/Ledger';
 import { PageAction } from '@components/Page';
+import { ErrorSummary } from '@components/ErrorSummary';
+import { useErrorSummary } from '@hooks/useErrorSummary';
 import {
   FIELD_LIMITS,
   REGISTER_PAUSE_CHANGE_COPY as COPY,
@@ -102,7 +104,11 @@ function PauseRecord({ record, commands }: { record: RegisterPauseChange; comman
             busyLabel="Downloading…"
             onClick={() => void download()}
           />
-          {error && <p role="alert">{error}</p>}
+          {error && (
+            <p role="alert" className="text-sm text-error-light">
+              {error}
+            </p>
+          )}
         </>
       )}
       <RegisterDecisions
@@ -138,23 +144,25 @@ function Preparation({ commands }: { commands: Commands }) {
     setReason,
     reference,
     setReference,
-    file,
     setFile,
     uploadRef,
     busy,
     error,
     setError,
     termsValid,
+    problems,
     waiting,
     check,
     submit,
   } = usePausePreparation({ commands });
+  const checks = useErrorSummary(problems);
   return (
     <fieldset
       disabled={waiting}
       className="grid gap-4 rounded-xl border border-border-subtle bg-surface-tertiary p-4 sm:grid-cols-2 [&>p]:sm:col-span-2 [&>h3]:sm:col-span-2 [&>dl]:sm:col-span-2"
     >
       <h3 className="font-medium">Prepare a company pause change</h3>
+      <ErrorSummary {...checks.summary} className="sm:col-span-2" />
       <p className="text-sm text-text-muted">{COPY.NOTE}</p>
       <PageAction
         label="Use current class details"
@@ -165,15 +173,16 @@ function Preparation({ commands }: { commands: Commands }) {
         }}
       />
       <Choices
+        {...checks.field('paused')}
         legend="Requested state"
         options={STATES}
         value={paused === null ? '' : paused ? 'paused' : 'unpaused'}
         onChange={(state) => setPaused(state === 'paused')}
       />
-      <Field label="Pause reason">
+      <Field {...checks.field('reason')} label="Pause reason">
         <TextArea maxLength={FIELD_LIMITS.REASON} value={reason} onChange={(event) => setReason(event.target.value)} />
       </Field>
-      <Field label="Authority reference">
+      <Field {...checks.field('reference')} label="Authority reference">
         <TextInput
           maxLength={FIELD_LIMITS.REFERENCE}
           value={reference}
@@ -181,7 +190,9 @@ function Preparation({ commands }: { commands: Commands }) {
         />
       </Field>
       <FileField
+        {...checks.field('file')}
         label="Pause authority document"
+        hint={termsValid ? undefined : 'Available once the requested state, reason and authority reference are given.'}
         disabled={!commands.canPrepare || !termsValid}
         onFile={(chosen) => {
           try {
@@ -194,13 +205,19 @@ function Preparation({ commands }: { commands: Commands }) {
           }
         }}
       />
-      {error && <p role="alert">{error}</p>}
+      {error && (
+        <p role="alert" className="text-sm text-error-light">
+          {error}
+        </p>
+      )}
       <PageAction
         label="Prepare pause change"
         busy={busy}
         busyLabel="Preparing…"
-        disabled={waiting || !commands.canPrepare || !!commands.recovery || !termsValid || !file}
-        onClick={() => void submit()}
+        disabled={waiting || !commands.canPrepare || !!commands.recovery}
+        onClick={() => {
+          if (checks.check()) void submit();
+        }}
       />
     </fieldset>
   );

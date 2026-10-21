@@ -37,6 +37,7 @@ export function Choices<T extends string>({
               value={option}
               checked={value === option}
               disabled={unavailable.includes(option)}
+              aria-invalid={error ? true : undefined}
               onChange={() => onChange(option)}
               className="h-4 w-4"
             />

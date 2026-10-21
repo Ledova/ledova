@@ -10,12 +10,16 @@ export interface SelectOption {
 }
 
 export function SelectField({
+  id,
+  error,
   label,
   options,
   value,
   onChange,
   disabled = false,
 }: {
+  id?: string;
+  error?: string | null;
   label: string;
   options: readonly SelectOption[];
   value: string;
@@ -24,9 +28,10 @@ export function SelectField({
 }) {
   const shared = (label: string) => options.filter((option) => option.label === label).length > 1;
   return (
-    <Field label={label}>
+    <Field id={id} error={error} label={label}>
       <Select
         className={FIELD_CLASS}
+        invalid={!!error}
         value={value}
         disabled={disabled}
         onChange={(event) => onChange(event.target.value)}

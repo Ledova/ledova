@@ -470,9 +470,9 @@ Some messages keep their own form:
   or around Headless UI's `Select` in `SelectField`, so the label, the hint and any error are linked
   to the control and an error sets `aria-invalid`. The label sits above the control, an optional
   field ends with "(optional)", a sentence about one field is that field's hint, and an action
-  beside the label, such as Scan QR, is its `aside`. Choices, the searchable pickers, checkboxes, the
-  list search and Trading's quantity, minimum fill and price inputs keep their own controls, and
-  sign-in and sign-up keep their own look on the same Headless parts.
+  beside the label, such as Scan QR, is its `aside`. Choices, the searchable pickers, the list search
+  and checkboxes that need no check keep their own controls, and sign-in and sign-up keep their own
+  look on the same Headless parts.
 - **Limits.** A text field's `maxLength` comes from `FIELD_LIMITS`
   (`packages/shared/src/constants/business/field-limits.ts`): one constant per kind of backend field,
   equal to its serializer or model limit, such as `NAME` (255), `REASON` (1000), `REGISTER_SHARES`
@@ -505,20 +505,34 @@ Some messages keep their own form:
 
 This section covers how a form reports a problem: when it is submitted, and when its request fails.
 
-- **Checking on submit.** The register preparation forms check their fields when submitted: the
-  correction, opening, wallet link, particulars, award, vesting, award adjustment, allotment, grant
-  and transfer forms.
+- **Checking on submit.** Web forms check their fields when submitted: the register preparation
+  forms, the share-class issue, capital, pause and paid issue flows, register import, company
+  details, the offering form, Trading's order form, change password, and the member and team
+  invitations and particulars request.
   - **Summary and fields.** A problem shows twice. `ErrorSummary` (`dashboard/src/components/`)
     lists each problem at the top of the form as `role="alert"` and takes focus, each item linking
     to its field. The field shows the same sentence as its error and turns `aria-invalid`.
     `useErrorSummary` (`dashboard/src/hooks/useErrorSummary.ts`) reads the form's problems, keyed
-    by field.
-  - **Submit stays enabled** unless the form is busy or the action is unavailable, such as without
-    company authority, and the page says why. An unchanged retry of an interrupted request is not
-    checked again.
-  - **Shared wording.** A rule both clients apply has one sentence in `packages/shared`, such as a
-    new person's name and address (`NEW_PERSON_PROBLEMS`).
-  - **Not yet:** other web forms still disable their submit or explain inline until the next
+    by field, and a form with two actions, such as the share-class issue's wallet link and grant,
+    checks only the fields its action needs. A box that must be ticked is a `CheckboxField`.
+    Register import names each shareholder and allotment in its summary instead of linking to a
+    field, and lists the problems current at the time.
+  - **In these forms submit stays enabled** unless the form is busy or the action is unavailable,
+    such as without company authority or with nothing changed, and the page says why. An unchanged
+    retry of an interrupted request is not checked again.
+  - **Shared wording.** A rule both clients apply has one sentence in `packages/shared`, which the
+    web uses now and mobile adopts in #1201: a new person's name and address
+    (`NEW_PERSON_PROBLEMS`), a new password (`PASSWORD_PROBLEMS`) and an invitation code
+    (`INVITATION_CODE_PROBLEM`). A pasted invitation code is trimmed before its length limit applies.
+  - **The summary keeps the last press.** It lists the problems found when submit was last pressed
+    that still fail, so it shrinks as they are fixed, and it clears when a check passes or the form
+    is reset. It takes focus only on a new press.
+  - **Not yet:** import's shareholder editor and sign-in and sign-up still show their own alerts.
+    Several smaller forms still disable submit until they are valid: member access requests,
+    certificates, the company pack, inspection copies, the document upload dialog, the eligibility
+    claim, representative authority requests, team invitations, subscriptions, adding a wallet,
+    company wallet instructions, company eligibility decisions, wallet nominations, pre-screening
+    and company registration. They move in the next
     [#1179](https://github.com/Ledova/ledova/issues/1179) change, and mobile follows in
     [#1201](https://github.com/Ledova/ledova/issues/1201).
 
@@ -531,8 +545,8 @@ This section covers how a form reports a problem: when it is submitted, and when
   the fallback when it has none. Pages that still read with `apiErrorSentence`, such as the register
   preparation forms, documents and sign-up, show their fallback for such a failure instead; those
   that pass the fallback twice still show a message thrown with `createUserFriendlyError`.
-  Sign-in and sign-up place field errors on their fields with `readApiError`; other forms show them
-  in the one sentence.
+  Sign-in, sign-up, company details and change password place the server's field errors on their
+  fields with `readApiError`; other forms show them in the one sentence.
 - **Refusal codes.** The server names unmet requirements and refusals as codes. Each family's copy
   map in `packages/shared/src/constants/business/` turns them into sentences: `refusalSentences` for
   a preview's or record's list, and `refusalSentence` for a refused request, before any other

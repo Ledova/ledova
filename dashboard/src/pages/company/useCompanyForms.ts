@@ -3,6 +3,7 @@ import { type CompanyActionRead } from '@pages/company/shared/CompanyState';
 import apiClient from '@services/apiClient';
 import { useMutation } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
+import type { Problems } from '@hooks/useErrorSummary';
 export const EDIT_FIELDS = [
   ['name', 'Company name', FIELD_LIMITS.COMPANY_NAME],
   ['tradingName', 'Trading name', FIELD_LIMITS.COMPANY_NAME],
@@ -46,13 +47,9 @@ export function useEditCompanyForm(props: FormProps) {
     Object.entries(draft).filter(([key, value]) => value !== initial[key as keyof Draft]),
   ) as CompanyUpdate;
   const canChangeName = company?.status === 'draft' || company?.status === 'info_required';
-  const valid =
-    targetAvailable(props) &&
-    !!company &&
-    read.canAdmin &&
-    Object.keys(changes).length > 0 &&
-    (!changes.name || canChangeName) &&
-    draft.name.trim() !== '';
+  const changed = Object.keys(changes).length > 0;
+  const available = targetAvailable(props) && !!company && read.canAdmin && changed && (!changes.name || canChangeName);
+  const problems: Problems<keyof Draft> = { name: !draft.name.trim() && 'Give the company name.' };
   const save = useMutation({
     mutationFn: async () => {
       guard(target.uuid);
@@ -79,5 +76,18 @@ export function useEditCompanyForm(props: FormProps) {
       pendingRef.current = false;
     },
   });
-  return { company, target, read, onClose, draft, setDraft, pendingRef, canChangeName, valid, save };
+  return {
+    company,
+    target,
+    read,
+    onClose,
+    draft,
+    setDraft,
+    pendingRef,
+    canChangeName,
+    changed,
+    available,
+    problems,
+    save,
+  };
 }
