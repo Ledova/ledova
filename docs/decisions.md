@@ -47,7 +47,7 @@ stay here as history and are marked where they appear.
 | [Dashboard, Settings and Register for a new company](#dashboard-settings-and-register-for-a-new-company)        | 19 October 2026                                | Current; #1155 (web), #1157 (mobile)                                                                            |
 | [Share classes, shareholders and employee awards](#share-classes-shareholders-and-employee-awards)              | 20 October 2026                                | Shareholders (#1166), person picker (#1167) and issuing from Register (#1168) on the web; #1169–#1170 planned   |
 | [Paper and Dark themes](#paper-and-dark-themes)                                                                 | 14 October 2026                                | Current; #1040                                                                                                  |
-| [Frontend UX standards](#frontend-ux-standards)                                                                 | 20 to 21 October 2026                          | Web delivered (#1176, #1178–#1183); mobile people (#1196), rest in #1201                                        |
+| [Frontend UX standards](#frontend-ux-standards)                                                                 | 20 to 21 October 2026                          | Web delivered (#1176, #1178–#1183), picker server search deferred; mobile people (#1196), rest in #1201         |
 | [The account-data export](#the-account-data-export)                                                             | 23 September 2026                              | Current                                                                                                         |
 | [Tenancy, sessions and deployment](#tenancy-sessions-and-deployment)                                            | 3 October 2026                                 | Current                                                                                                         |
 | [Contracts compiler and toolchain](#contracts-compiler-and-toolchain)                                           | Undated                                        | Current                                                                                                         |
@@ -1356,7 +1356,7 @@ proposal are in #1174, and the owner approved it as recommended:
   shareholder page and mobile also read all of it. Asked whether to build it then, the owner chose
   "Defer the person picker's server search (#1181 option a): keep the browser search and record the
   switch at about 2,000 people." So server search, behind the same control with a typing delay and
-  a page limit, follows when a company nears about 2,000 people.
+  a page limit, follows when a company reaches about 2,000 people.
 
 ## The signed-in app
 
