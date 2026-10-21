@@ -37,7 +37,7 @@ export default function ParticipantEligibilityPage() {
       ) : (
         <>
           {read.readFailed && (
-            <LoadError retry={() => read.refresh()} busy={read.refreshing}>
+            <LoadError retry={() => read.refresh()} busy={read.refreshing || read.busy}>
               Your company eligibility requests could not be loaded.
             </LoadError>
           )}

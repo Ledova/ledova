@@ -136,8 +136,8 @@ way:
 - Submitting a wallet nomination replaces the form with its saved request.
 - Signing flows, in Trading and wallet transfers, move to their own submitting step.
 
-Try again and recovery actions keep their label while they run; a form's submit button that also
-recovers an earlier attempt keeps its busy label. Icon buttons, register setup's Import
+A load error's Try again and recovery actions keep their label while they run; a form's submit
+button that also recovers an earlier attempt keeps its busy label. Icon buttons, register setup's Import
 placeholder, the payslip upload area and Trading keep their own controls, and dialog footers use the
 same order as `FormActions`. Mobile's `Action` has no busy or pressed form yet.
 
@@ -440,19 +440,20 @@ opening.
 
 A failed read shows this block, not an empty state. The notification bell, profile documents,
 classification claims and a class's deployments, which used to show an empty state, now show the
-failure. A failed refresh shows the same block. A section that keeps what it showed before says
-what could not be refreshed and what remains, such as "Retained original receipts remain
-available."; one that hides its rows says they could not be loaded. The block takes the place of the
-section's Refresh action while its read has failed, on the company team page and in a class's
-employee awards, non-paid issues, deployments and capital, pause, paid issue and grant records, and
-the company's wallet instructions.
+failure. A failed refresh shows the same block. Its sentence says what could not be loaded or
+refreshed, and several also say what remains, such as "Retained original receipts remain
+available." The block takes the place of the section's Refresh action while its read has failed: on
+the company team page, in a class's employee awards, non-paid issues, deployments and capital,
+pause, paid issue and grant records, and in the company's wallet instructions, the company pack and
+the wallet nomination.
 
 Both eligibility pages, member access and Home's member records read through shared hooks that also
 keep a reason of their own. While a read fails they show the block, with any such reason under it,
 such as "Your award records could not be confirmed. Refresh before continuing.", and no empty line.
 
 Empty states are still to follow under [#1180](https://github.com/Ledova/ledova/issues/1180).
-Until then:
+
+Three kinds of message keep their own form:
 
 - The route guard's checks, an unreadable profile or role, keep their own message and Try again
   ([routes, audiences and guards](frontend.md#routes-audiences-and-guards)).

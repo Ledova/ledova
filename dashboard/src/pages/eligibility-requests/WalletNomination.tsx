@@ -9,7 +9,7 @@ import {
   refusalSentences,
 } from '@ledova/shared';
 import { PageAction } from '@components/Page';
-import { Row, Rows, Section } from '@components/Ledger';
+import { Row, Rows, Section, LoadError } from '@components/Ledger';
 import { WalletVerificationModal } from '@components/wallet/WalletVerificationModal';
 
 function Facts({ preview }: { preview: WalletNominationPreview }) {
@@ -30,6 +30,7 @@ function Facts({ preview }: { preview: WalletNominationPreview }) {
 export function WalletNomination({ requestUuid, guardRequest }: { requestUuid: string; guardRequest: () => void }) {
   const data = useWalletNomination({ requestUuid, newKey: () => crypto.randomUUID(), guardRequest });
   const { running, track } = useRunningAction();
+  const readFailed = data.request.isError || data.wallets.isError;
   const [consent, setConsent] = useState<{ preview: WalletNominationPreview | null; accepted: boolean }>({
     preview: null,
     accepted: false,
@@ -48,13 +49,15 @@ export function WalletNomination({ requestUuid, guardRequest }: { requestUuid: s
         Select one own wallet for this company and review its current GENERAL eligibility and possession proof. Earlier
         evidence sharing does not share your wallets.
       </p>
-      <PageAction
-        label="Refresh wallet nomination"
-        busy={running === 'refresh'}
-        busyLabel="Refreshing…"
-        disabled={data.busy}
-        onClick={() => track('refresh', data.refresh())}
-      />
+      {!readFailed && (
+        <PageAction
+          label="Refresh wallet nomination"
+          busy={running === 'refresh'}
+          busyLabel="Refreshing…"
+          disabled={data.busy}
+          onClick={() => track('refresh', data.refresh())}
+        />
+      )}
       {data.original && (
         <div className="space-y-3">
           <p role="status">This original nomination is unconfirmed. Recover its receipt with the same body and key.</p>
@@ -70,10 +73,11 @@ export function WalletNomination({ requestUuid, guardRequest }: { requestUuid: s
           {data.error}
         </p>
       )}
-      {(data.request.isError || data.wallets.isError) && (
-        <p role="alert">
-          The current own request or wallets could not be checked. Your original request remains available for recovery.
-        </p>
+      {readFailed && (
+        <LoadError retry={() => track('refresh', data.refresh())} busy={running === 'refresh' || data.busy}>
+          Your request or own wallets could not be {data.request.data || data.wallets.data ? 'refreshed' : 'loaded'}.
+          Your original request remains available for recovery.
+        </LoadError>
       )}
       {!data.original && (
         <>

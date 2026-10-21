@@ -320,6 +320,7 @@ export function useMemberRecords(newKey: () => string, session?: OrderSubmission
     list.data.some((row) => row.uuid === selected) &&
     !requests.isError &&
     !entries.isError;
+  const readFailed = [list, detail, requests, entries].some((read) => read.isError);
   return {
     owner: available ? owner : null,
     records: listReady ? list.data : [],
@@ -346,13 +347,9 @@ export function useMemberRecords(newKey: () => string, session?: OrderSubmission
     busy,
     retry,
     loading: list.isPending,
-    readFailed: [list, detail, requests, entries].some((read) => read.isError),
+    readFailed,
     failure: error,
-    error:
-      error ??
-      ([list, detail, requests, entries].some((read) => read.isError)
-        ? 'Your current member records could not be read. Refresh before continuing.'
-        : null),
+    error: error ?? (readFailed ? 'Your current member records could not be read. Refresh before continuing.' : null),
     refresh: () => {
       if (live.current && boundary.get() === owner) setError(null);
       return refresh().catch((failure) => {

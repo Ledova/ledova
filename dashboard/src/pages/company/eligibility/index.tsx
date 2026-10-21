@@ -74,7 +74,7 @@ export default function CompanyEligibilityPage() {
       ) : (
         <>
           {read.readFailed && !gone && (
-            <LoadError retry={() => read.refresh()} busy={read.refreshing}>
+            <LoadError retry={() => read.refresh()} busy={read.refreshing || read.busy}>
               The company&apos;s eligibility records could not be loaded.
             </LoadError>
           )}

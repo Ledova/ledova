@@ -80,7 +80,7 @@ export function CompanyMemberAccess({
         onClick={() => track('refresh', refresh())}
       />
       {access.readFailed && (
-        <LoadError retry={() => track('refresh', refresh())} busy={running === 'refresh' || access.busy}>
+        <LoadError retry={() => track('refresh', refresh())} busy={running === 'refresh' || access.busy || uploading}>
           Member access or members&apos; requests could not be loaded.
         </LoadError>
       )}
