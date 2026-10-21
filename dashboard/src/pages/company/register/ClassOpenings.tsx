@@ -83,6 +83,8 @@ export function ClassOpenings({
         <LoadError retry={() => openings.refetch()} busy={openings.isFetching}>
           Openings could not be loaded.
         </LoadError>
+      ) : privateReady && openings.data.length === 0 ? (
+        <p className="text-sm text-text-muted">{COPY.EMPTY}</p>
       ) : null}
       <ul className="divide-y divide-border-subtle">
         {(openings.data ?? []).map((proposal) => (

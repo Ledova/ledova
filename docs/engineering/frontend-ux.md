@@ -456,14 +456,19 @@ such as "Your award records could not be confirmed. Refresh before continuing.",
 
 An empty list says it has none yet in one muted sentence, such as "No applications yet." or "No
 deployments yet.", sometimes followed by where to add or find them, and an empty section keeps at
-most one action ([signed-in page conventions](#signed-in-page-conventions)). A list narrowed by a
-search or filter says what matched instead, such as "No applications match your search." or "No
-requests match." The register's records, notices, offer documents and an offering's applications
-take their empty sentence from shared copy in `packages/shared/src/constants/business/`, which both
-clients show. Other empty sentences are each client's own, and mobile's move to these words under
-[#1201](https://github.com/Ledova/ledova/issues/1201). A sentence that reports a state rather than
-an empty list keeps its own words, such as "No votes need your attention." or "No orders listed."
-for a market's live order book.
+most one action ([signed-in page conventions](#signed-in-page-conventions)). An empty class import
+instead invites bringing in the company's existing records. A list narrowed by a search or filter
+says what matched instead, such as "No applications match your search." or "No requests match."
+
+A class's awards, grants, allotments, openings, imports, non-paid transfers, deployments and
+reconciliation, notices, offer documents and an offering's applications take their empty sentence
+from shared copy in `packages/shared/src/constants/business/`, which both clients show; mobile
+Home's recent notices keep their own words until #1201. On the web, a section with no corrections,
+register entries, wallet links or particulars changes is hidden instead, so those shared sentences
+show only on mobile. Other empty sentences are each client's own, and mobile's move to these words
+under [#1201](https://github.com/Ledova/ledova/issues/1201). A sentence that reports a state rather
+than an empty list keeps its own words, such as "No votes need your attention." or "No orders
+listed." for a market's live order book.
 
 Some messages keep their own form:
 
