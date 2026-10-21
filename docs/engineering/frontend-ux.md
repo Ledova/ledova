@@ -535,9 +535,10 @@ This section covers how a form reports a problem: when it is submitted, and when
     to its field. The field shows the same sentence as its error and turns `aria-invalid`.
     `useErrorSummary` (`dashboard/src/hooks/useErrorSummary.ts`) reads the form's problems, keyed
     by field, and a form with two actions, such as the share-class issue's wallet link and grant,
-    checks only the fields its action needs. A box that must be ticked is a `CheckboxField`.
-    Register import names each shareholder and allotment in its summary instead of linking to a
-    field, and lists the problems current at the time. Its shareholder editor lists the problems
+    checks only the fields its action needs. A box that must be ticked is a `CheckboxField`,
+    except the eligibility claim's long declaration, which keeps its own layout with the same
+    checks. Register import names each shareholder and allotment in its summary instead of linking
+    to a field, and lists the problems current at the time. Its shareholder editor lists the problems
     with the shareholder being edited. A summary link focuses the control the field's label points
     to, or else the field's first control, including Headless UI checkboxes and radios.
   - **Sign-in and sign-up** keep the rules in their hooks, which mobile shares: the hook reports
