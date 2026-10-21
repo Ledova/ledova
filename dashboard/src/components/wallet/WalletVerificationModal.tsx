@@ -83,6 +83,7 @@ export function WalletVerificationModal({ isOpen, wallet, guard, onClose }: Wall
   const handleStartSeedPhraseVerification = () => {
     if (wallet) {
       setSeedPhrase('');
+      phraseCheck.reset();
       setMethod('software');
       startVerification(wallet, 'software');
     }

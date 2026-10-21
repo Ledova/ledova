@@ -90,6 +90,7 @@ export function SwapSettlementFlow({ settlement, wallets, onClose }: Props) {
     view.error = null;
     view.seedPhrase = '';
     view.kind = kind;
+    phraseCheck.reset();
     if (software) {
       view.step = 'software';
       render();
@@ -202,6 +203,7 @@ export function SwapSettlementFlow({ settlement, wallets, onClose }: Props) {
     view.qr = null;
     view.error = null;
     view.step = 'review';
+    phraseCheck.reset();
     render();
   };
   const close = () => {

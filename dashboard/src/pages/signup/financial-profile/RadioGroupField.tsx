@@ -18,7 +18,7 @@ const RadioGroupField = <Value extends string>({
   onChange,
 }: RadioGroupFieldProps<Value>) => (
   <div id={id} className="space-y-3">
-    <RadioGroup value={value} onChange={onChange} className="space-y-2">
+    <RadioGroup value={value} onChange={onChange} aria-invalid={error ? true : undefined} className="space-y-2">
       <Label className="mb-3 block text-sm font-medium text-text-body">{label}</Label>
       {options.map((option) => (
         <Field key={option.value} className="flex items-center gap-3 text-sm text-text-body">

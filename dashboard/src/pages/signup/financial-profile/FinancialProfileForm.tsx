@@ -47,7 +47,7 @@ export function FinancialProfileForm({
   const handleSourceOfFundsChange = (values: string[]) => {
     setFieldValue('sourceOfFunds', values);
   };
-  const reported = useFieldErrorSummary(generalError ? {} : errors, [
+  const reported = useFieldErrorSummary(errors, [
     'sourceOfFunds',
     'sourceOfFundsOtherText',
     'intendedUse',

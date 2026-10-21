@@ -38,6 +38,7 @@ const CheckboxGroupField = ({ id, label, value, options, error, onChange }: Chec
           <Field key={option.value} className="flex items-center gap-2 text-sm text-text-body">
             <Checkbox
               checked={value.includes(option.value)}
+              aria-invalid={error ? true : undefined}
               onChange={(checked) => handleCheckboxChange(option.value, checked)}
               className="group flex h-4 w-4 shrink-0 cursor-pointer items-center justify-center rounded border border-border bg-surface-tertiary focus:outline-none data-[checked]:border-brand data-[checked]:bg-brand data-[focus]:ring-2 data-[focus]:ring-border-focus data-[focus]:ring-offset-1 data-[focus]:ring-offset-surface-raised"
             >

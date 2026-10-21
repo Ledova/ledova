@@ -162,6 +162,7 @@ export function CreateOrderSigningFlow({ submission, wallet, tokens, onClose, on
               label="Back"
               onClick={() => {
                 setSeedPhrase('');
+                phraseCheck.reset();
                 signing.back();
               }}
             />

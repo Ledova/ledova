@@ -223,6 +223,7 @@ export function OrderActionFlow({ action, wallets, onClose }: Props) {
               onClick={() => {
                 stopScanner();
                 setSeedPhrase('');
+                phraseCheck.reset();
                 signing.back();
               }}
             />
