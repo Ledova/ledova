@@ -9,6 +9,7 @@ import {
   REGISTER_PAID_ISSUE_COPY as COPY,
   REGISTER_PAID_ISSUE_DECISIONS,
   REGISTER_PAID_ISSUE_UNMET_COPY,
+  formatDate,
   formatDateTime,
   formatMoney,
   formatShareCount,
@@ -18,6 +19,7 @@ import {
   type RegisterPaidIssueSource,
   refusalSentences,
   failureSentence,
+  shareCount,
 } from '@ledova/shared';
 import { DecisionTrail } from '@pages/company/register/shared/DecisionTrail';
 import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
@@ -49,7 +51,7 @@ function SourceRows({ source }: { source: RegisterPaidIssueSource }) {
       <Row label="Refund recorded in captured source">
         {source.refundedAt ? formatDateTime(source.refundedAt) : 'No refund recorded'}
       </Row>
-      <Row label="Payment received date">{source.paymentReceivedOn || 'Not recorded'}</Row>
+      <Row label="Payment received date">{formatDate(source.paymentReceivedOn, 'Not recorded')}</Row>
       <Row label="Recorded payment reference">{source.paymentReferenceSeen || 'Not recorded'}</Row>
       <Row label="Recorded payment hash">{source.paymentTxHash || 'Not recorded'}</Row>
       <Row label="Payment recorded on">
@@ -120,7 +122,7 @@ function PaidIssueRecord({ record, commands }: { record: RegisterPaidIssue; comm
                 </Row>
                 <Row label="Original issuance">{execution.issuance || 'Not recorded'}</Row>
                 <Row label="Register entry">{execution.registerEntry || 'Not recorded'}</Row>
-                <Row label="Entry effective date">{execution.effectiveOn || 'Not recorded'}</Row>
+                <Row label="Entry effective date">{formatDate(execution.effectiveOn, 'Not recorded')}</Row>
               </>
             )}
           </Rows>
@@ -231,7 +233,7 @@ function Preparation({ commands }: { commands: Commands }) {
         ].map((row) => ({
           value: row.subscription,
           label: row.recipientName || 'Name not recorded',
-          detail: `${formatShareCount(row.shares)} shares · ${row.recipientAddress}`,
+          detail: `${shareCount(row.shares)} · ${row.recipientAddress}`,
         }))}
         value={captured?.source.subscription ?? ''}
         onChange={select}

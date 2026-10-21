@@ -5,6 +5,7 @@ import {
   REGISTER_PARTICULARS_DECISIONS,
   formatDateTime,
   type RegisterParticularsChange,
+  formatDate,
 } from '@ledova/shared';
 import { Row, Rows } from '@components/Ledger';
 import { PageAction } from '@components/Page';
@@ -25,7 +26,7 @@ function Particulars({ title, held }: { title: string; held: Held | null }) {
         <Rows>
           <Row label={COPY.NAME}>{held.name}</Row>
           <Row label={COPY.RESIDENTIAL_ADDRESS}>{held.residentialAddress}</Row>
-          <Row label={COPY.AS_AT}>{held.asAt}</Row>
+          <Row label={COPY.AS_AT}>{formatDate(held.asAt)}</Row>
         </Rows>
       ) : (
         <p className="text-sm text-text-primary">{COPY.NO_CURRENT_PARTICULARS}</p>

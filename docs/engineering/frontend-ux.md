@@ -548,10 +548,17 @@ This section covers how a form reports a problem: when it is submitted, and when
   - **The summary keeps the last press.** It lists the problems found when submit was last pressed
     that still fail, so it shrinks as they are fixed, and it clears when a check passes or the form
     is reset. It takes focus only on a new press.
-  - **Not yet:** sign-in and sign-up still show their own alerts, and sign-up's pre-screening and
-    company registration still disable submit until they are valid. They move in the next
-    [#1179](https://github.com/Ledova/ledova/issues/1179) change, and mobile follows in
-    [#1201](https://github.com/Ledova/ledova/issues/1201).
+  - **Incomplete dates.** Without browser validation, a date or date-time typed only in part reads
+    as empty, so an optional one would be dropped silently. `useIncompleteDates`
+    (`dashboard/src/hooks/useIncompleteDates.ts`) notes the browser's `badInput` on each keystroke,
+    input and blur, and the form treats it as a problem: the team invitation's deadline and
+    appointment expiry, and an offering's closing time.
+  - **Not yet:** sign-in and sign-up still show their own alerts. These still disable their action
+    until it is valid: the representative authority acceptance that establishes the appointment,
+    the wallet's Send form, eligibility action confirmations, company activation's declaration, the
+    recovery phrase and Bitcoin signed transaction in signing steps, pre-screening and company
+    registration. They move in the next [#1179](https://github.com/Ledova/ledova/issues/1179)
+    changes, and mobile follows in [#1201](https://github.com/Ledova/ledova/issues/1201).
 
 - **Request errors.** A failure reads as one `role="alert"` sentence from `failureSentence`
   (`packages/shared/src/utils/errors.ts`), never the transport's "Request failed with status code
@@ -584,11 +591,20 @@ by a local helper or a browser `toLocale…` call:
   the server recorded.
 - **Date-times** use `formatDateTime`: "20 Oct 2026, 02:30 pm", in the viewer's local time. A
   calendar date passed to it shows as a date, never with an invented time.
-- **Share counts** use `formatShareCount`, and a count with its noun uses `shareCount`: "1 share",
-  "1,315 shares". Gathered in `packages/shared/src/utils/formatting.ts` with `sharePercentage`.
+- **Share counts** use `formatShareCount`, a count with its noun uses `shareCount` ("1 share",
+  "1,315 shares") and a signed change uses `shareChange` ("+1,000"). Gathered in
+  `packages/shared/src/utils/formatting.ts` with `sharePercentage`. Trading's order quantities use
+  `marketQuantity` and `marketShares`, which read "Unavailable" for a quantity too large to show
+  exactly.
 - **Percentages of a class** use `sharePercentage`, rounded half-up to two places, "<0.01%" for a
   holding too small to show and "Not recorded" without issued shares.
 - **Amounts** use `formatMoney`, which names its currency: "AUD 1,234.50".
+- **On screen** the dashboard's records format their dates, share counts and amounts: register
+  records, eligibility history and shared summaries, team invitations and confirmations. An
+  offering's opening and closing show their time, and Trading's quantities and wallet token balances
+  use the share and crypto formatters. Signing screens and technical transaction rows (hashes, data
+  and transaction values) keep their exact values. Mobile still shows some raw dates until
+  [#1201](https://github.com/Ledova/ledova/issues/1201).
 - **Enforcement.** An ESLint rule in `dashboard/eslint.config.js` refuses `toLocaleString`,
   `toLocaleDateString` and `toLocaleTimeString` in the dashboard's source, beside the rule that
   refuses inline ISO date slicing ([forms](#forms)). Mobile follows in

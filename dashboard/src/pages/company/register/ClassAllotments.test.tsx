@@ -6,6 +6,7 @@ import {
   COMPANY_TOKEN_ENDPOINTS as URLS,
   REGISTER_ALLOTMENT_COPY as COPY,
   REGISTER_TRANSFER_COPY as TRANSFER_COPY,
+  formatDate,
   type RegisterAllotment,
   type OwnCompanyAppointment,
 } from '@ledova/shared';
@@ -310,7 +311,7 @@ it('preserves original preparation and issue recovery through refresh, keeps app
     const dialog = await screen.findByRole('dialog', { name: `${label} external allotment` });
     expect(
       within(within(dialog).getByText(COPY.COMPANY_EVENT_ON).parentElement!).getByText(
-        ALLOTMENT_REQUEST.companyEventOn,
+        formatDate(ALLOTMENT_REQUEST.companyEventOn),
       ),
     ).toBeTruthy();
     const confirm = within(dialog).getByRole('button', { name: `${label} external allotment` });

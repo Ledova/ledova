@@ -12,6 +12,7 @@ import {
   type RegisterAward,
   type RegisterGrant,
   shareCount,
+  formatDate,
 } from '@ledova/shared';
 import { LinkRow, Row, Rows, Status, LoadError, Loading } from '@components/Ledger';
 import { PageAction } from '@components/Page';
@@ -160,7 +161,7 @@ export function AwardRecord({
           <details>
             <summary className={SUMMARY}>Agreement and vesting schedule</summary>
             <Rows>
-              <Row label={COPY.TERMS_ON}>{award.termsOn}</Row>
+              <Row label={COPY.TERMS_ON}>{formatDate(award.termsOn)}</Row>
               <Row label={COPY.TERMS}>{award.terms}</Row>
               <Row label={COPY.SCHEDULE}>{award.schedule}</Row>
               <Row label="Residential address">{award.residentialAddress}</Row>
@@ -199,7 +200,7 @@ export function AwardRecord({
                   <div key={event.uuid} className="space-y-2 border-t border-border-subtle pt-3">
                     <Rows>
                       <Row label={COPY.VESTING_SHARES}>{shareCount(event.shares)}</Row>
-                      <Row label={COPY.VESTED_ON}>{event.vestedOn}</Row>
+                      <Row label={COPY.VESTED_ON}>{formatDate(event.vestedOn)}</Row>
                       <Row label="Recorded on">{formatDateTime(event.createdAt)}</Row>
                       <Row label="Recorded by">{event.preparedByName || 'Name not recorded'}</Row>
                     </Rows>
@@ -211,14 +212,14 @@ export function AwardRecord({
                         download.variables.uuid === event.uuid
                       }
                       busyLabel="Downloading…"
-                      context={`${event.shares} shares dated ${event.vestedOn}`}
+                      context={`${shareCount(event.shares)} dated ${formatDate(event.vestedOn)}`}
                       disabled={blocked || download.isPending || !eventReady}
                       onClick={() => download.mutate({ kind: 'vesting', uuid: event.uuid })}
                     />
                     {appointment && (
                       <PageAction
                         label={COPY.REVERSE}
-                        context={`${event.shares} shares dated ${event.vestedOn}`}
+                        context={`${shareCount(event.shares)} dated ${formatDate(event.vestedOn)}`}
                         disabled={
                           blocked ||
                           !eventReady ||
@@ -236,7 +237,7 @@ export function AwardRecord({
                             setAdjusting({
                               appointment,
                               vesting: event.uuid,
-                              vestingLabel: `${event.shares} shares · ${event.vestedOn}`,
+                              vestingLabel: `${shareCount(event.shares)} · ${formatDate(event.vestedOn)}`,
                             });
                         }}
                       />
@@ -265,7 +266,7 @@ export function AwardRecord({
                   <Rows>
                     <Row label={COPY.ENDED_UNVESTED}>{shareCount(event.unvestedShares)}</Row>
                     <Row label={COPY.ENDED_VESTED}>{shareCount(event.vestedShares)}</Row>
-                    <Row label={COPY.COMPANY_EVENT_ON}>{event.companyEventOn}</Row>
+                    <Row label={COPY.COMPANY_EVENT_ON}>{formatDate(event.companyEventOn)}</Row>
                     <Row label={COPY.REASON}>{event.reason}</Row>
                     <Row label="Recorded on">{formatDateTime(event.createdAt)}</Row>
                     <Row label="Recorded by">{event.preparedByName || 'Name not recorded'}</Row>
@@ -276,7 +277,7 @@ export function AwardRecord({
                       download.isPending && download.variables?.kind === 'end' && download.variables.uuid === event.uuid
                     }
                     busyLabel="Downloading…"
-                    context={event.companyEventOn}
+                    context={formatDate(event.companyEventOn)}
                     disabled={blocked || download.isPending || !eventReady}
                     onClick={() => download.mutate({ kind: 'end', uuid: event.uuid })}
                   />
@@ -287,7 +288,7 @@ export function AwardRecord({
                   <Rows>
                     <Row label={COPY.REVERSED_SHARES}>{shareCount(event.reversedShares)}</Row>
                     <Row label="Original vesting">{event.vesting}</Row>
-                    <Row label={COPY.COMPANY_EVENT_ON}>{event.companyEventOn}</Row>
+                    <Row label={COPY.COMPANY_EVENT_ON}>{formatDate(event.companyEventOn)}</Row>
                     <Row label={COPY.REASON}>{event.reason}</Row>
                     <Row label="Recorded on">{formatDateTime(event.createdAt)}</Row>
                     <Row label="Recorded by">{event.preparedByName || 'Name not recorded'}</Row>
@@ -300,7 +301,7 @@ export function AwardRecord({
                       download.variables.uuid === event.uuid
                     }
                     busyLabel="Downloading…"
-                    context={event.companyEventOn}
+                    context={formatDate(event.companyEventOn)}
                     disabled={blocked || download.isPending || !eventReady}
                     onClick={() => download.mutate({ kind: 'reversal', uuid: event.uuid })}
                   />

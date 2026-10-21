@@ -24,6 +24,8 @@ import {
   refusalSentences,
   failureSentence,
   utcToday,
+  formatDate,
+  shareCount,
 } from '@ledova/shared';
 import { DecisionTrail } from '@pages/company/register/shared/DecisionTrail';
 import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
@@ -83,7 +85,7 @@ function IssueRecord({ record, commands }: { record: RegisterIssue; commands: Co
           <SnapshotRows snapshot={record.snapshot} />
           <Rows>
             <Row label="Shares">{formatShareCount(record.shares)}</Row>
-            <Row label="Terms date">{record.termsOn}</Row>
+            <Row label="Terms date">{formatDate(record.termsOn, 'Not recorded')}</Row>
             <Row label="Non-paid terms">{record.terms}</Row>
             <Row label="Approving director">{record.approvingDirector}</Row>
             <Row label="Authority reference">{record.authorityReference}</Row>
@@ -103,7 +105,9 @@ function IssueRecord({ record, commands }: { record: RegisterIssue; commands: Co
                 {record.execution.operationId && <Row label="Execution operation">{record.execution.operationId}</Row>}
                 {record.execution.txHash && <Row label="Transaction hash">{record.execution.txHash}</Row>}
                 {record.execution.registerEntry && <Row label="Register entry">{record.execution.registerEntry}</Row>}
-                {record.execution.effectiveOn && <Row label="Register entry date">{record.execution.effectiveOn}</Row>}
+                {record.execution.effectiveOn && (
+                  <Row label="Register entry date">{formatDate(record.execution.effectiveOn)}</Row>
+                )}
               </>
             )}
           </Rows>
@@ -155,7 +159,7 @@ function IssueRecord({ record, commands }: { record: RegisterIssue; commands: Co
             <SnapshotRows snapshot={preview.snapshot} />
             <Rows>
               <Row label="Shares">{formatShareCount(preview.shares)}</Row>
-              <Row label="Terms date">{preview.termsOn}</Row>
+              <Row label="Terms date">{formatDate(preview.termsOn)}</Row>
               <Row label="Non-paid terms">{preview.terms}</Row>
               <Row label="Approving director">{preview.approvingDirector}</Row>
               <Row label="Authority reference">{preview.authorityReference}</Row>
@@ -282,7 +286,7 @@ function Preparation({ commands }: { commands: Commands }) {
     () =>
       personChoices(
         peopleFrom(commands.members.data).filter((person) => !person.awardOnly),
-        (person) => `${formatShareCount(person.currentShares)} shares`,
+        (person) => shareCount(person.currentShares),
       ),
     [commands.members.data],
   );
