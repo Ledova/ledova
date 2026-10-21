@@ -16,6 +16,7 @@ section linked from [Pages](#pages).
 - [Routes, audiences and guards](#routes-audiences-and-guards)
 - [The signed-in frame](#the-signed-in-frame)
 - [Client sessions and caches](#client-sessions-and-caches)
+- [Automatic data freshness](#automatic-data-freshness)
 - [Lists, figures and currency](#lists-figures-and-currency)
 - [Recovering a submitted company request](#recovering-a-submitted-company-request)
 - [The shared register client layer](#the-shared-register-client-layer)
@@ -389,6 +390,35 @@ account. Mobile adds a session epoch to every read and write ([session scope](mo
 
 The shared `useUserPreferences` and `useCurrency` queries start only after authentication, and
 cached preferences are hidden again when authentication is lost.
+
+## Automatic data freshness
+
+Reading current data is the application's job. Pages have no routine Refresh or Sync button for
+their lists. Use the existing TanStack Query hooks, exported keys and cache timings: read on entry,
+revalidate stale data on focus and reconnect, and invalidate the narrowest related keys after a
+successful change. Do not clear the whole cache, refetch unrelated resources or introduce a second
+store or event system for this. Session resets remain the exception described above.
+
+Where another person's changes must appear while a page stays open, use a bounded read interval
+only for that active view. Recheck its authority before its dependent records; prevent overlapping
+cycles and stop periodic work while the view is hidden or the browser is offline. Ordinary reads
+need no polling. Issue shares rechecks the selected class's appointments and issue records every
+60 seconds while visible, as well as on entry, focus and reconnect; hidden Ledger tasks do not poll.
+This gives bounded freshness, not an instantaneous update guarantee.
+
+Every read retains the account, company and appointment guards. A failed or inconsistent read
+withholds private records, decision controls and ownership totals as
+[lists, figures and currency](#lists-figures-and-currency) requires; cached client authority never
+replaces the server's check. Preserve drafts and original submitted commands during revalidation,
+following [request recovery](#recovering-a-submitted-company-request). Automatic reading must never
+repeat a write, upload or share issue.
+
+An unsuccessful read still offers an explicit Try again through `LoadError`; this is error recovery,
+not routine freshness work. Automatic recovery uses bounded retries with backoff or the view's
+read interval, never a tight retry loop. Apply this standard when building or refining a page;
+existing manual refresh controls elsewhere, including the deferred mobile work, are not evidence
+of a different convention. Commands that actually synchronise external systems remain distinct
+from refreshing a displayed list.
 
 ## Lists, figures and currency
 

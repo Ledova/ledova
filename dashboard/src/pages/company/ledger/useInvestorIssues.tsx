@@ -258,5 +258,12 @@ export function useInvestorIssues({
       </ul>
     </div>
   );
-  return { setup, form, records, held, prepare: !!appointment && supported };
+  return {
+    setup,
+    form,
+    records,
+    held,
+    prepare: !!appointment && supported,
+    refreshRecords: () => allotments.refetch({ cancelRefetch: false, throwOnError: true }),
+  };
 }

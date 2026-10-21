@@ -55,7 +55,7 @@ The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components
   `rounded-2xl` in the frame, `rounded-xl` outside it) with its Newsreader title inside. Forms and
   things to act on are cards too; a group inside a card, such as a form or a record, gets a hairline
   rule above it or a small heading, never a nested card. An empty section keeps its real title, one
-  muted sentence ("No activity yet.") and at most one action besides Refresh; a state is never a
+  muted sentence ("No activity yet.") and at most one action; a state is never a
   title. A card's title is a heading, such as each class's summary on Ledger on the web.
 - `Rows` and `Row`: ruled label and value pairs for a record's labelled facts, such as a
   shareholder's holding or an import's supporting records. The web sets values in tabular numerals;
@@ -213,8 +213,10 @@ request, on pages and in dialogs, including:
 - the wallet import and verification steps, and identity verification;
 - establishing an appointment;
 - member, particulars and certificate requests;
-- register setup's review step (editing the records, loading and confirming the decision);
-- every action that refreshes a read, which says "Refreshing…" while it runs.
+- register setup's review step (editing the records, loading and confirming the decision).
+
+Data stays current automatically under the [freshness standard](frontend.md#automatic-data-freshness).
+Do not add a routine Refresh action; Try again belongs to a failed read.
 
 Where a shared hook only reports that some command is running, `useRunningAction`
 (`dashboard/src/hooks`) names the action that was clicked. A few actions show their work another
@@ -542,10 +544,9 @@ A failed read shows this block, not an empty state. The notification bell, profi
 classification claims and a class's deployments, which used to show an empty state, now show the
 failure. A failed refresh shows the same block. Its sentence says what could not be loaded or
 refreshed, and several also say what remains, such as "Retained original receipts remain
-available." The block takes the place of the section's Refresh action while its read has failed: on
-the company team page, in a class's employee awards, non-paid issues, deployments and capital,
-pause, paid issue and grant records, and in the company's wallet instructions, the company pack and
-the wallet nomination.
+available." The block provides the retry where the affected records would appear; a separate
+Refresh action is unnecessary. Automatic reads and their recovery follow the
+[freshness standard](frontend.md#automatic-data-freshness).
 
 Both eligibility pages, member access and Home's member records read through shared hooks that also
 keep a reason of their own. While a read fails they show the block, with any such reason under it,
@@ -553,7 +554,7 @@ such as "Your award records could not be confirmed. Refresh before continuing.",
 
 An empty list says it has none yet in one muted sentence, such as "No applications yet." or "No
 notices yet.", sometimes followed by where to add or find them, and an empty section keeps at
-most one action besides Refresh ([signed-in page conventions](#signed-in-page-conventions)). An
+most one action ([signed-in page conventions](#signed-in-page-conventions)). An
 empty class import instead invites bringing in the company's existing records. A list narrowed by
 a search or filter says what matched instead, such as "No applications match your search." or "No
 requests match."

@@ -174,6 +174,7 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   client.clear();
+  vi.useRealTimers();
   vi.restoreAllMocks();
 });
 
@@ -245,6 +246,7 @@ it('retains original award, vesting and linked issue preparations through interr
   const post = api.post.getMockImplementation()!;
   let retainedGrant: RegisterGrant | null = null;
   let slowReads = false;
+  let grantsFailed = false;
   const delay = () => (slowReads ? new Promise((resolve) => setTimeout(resolve, 40)) : undefined);
   let preferencesFailed = false;
   let listed = true;
@@ -280,6 +282,7 @@ it('retains original award, vesting and linked issue preparations through interr
     if (url === URLS.REGISTER_LINK_WAITING_WALLETS) return { data: { wallets: [] } };
     if (url === URLS.REGISTER_GRANTS) {
       await delay();
+      if (grantsFailed) throw new Error('Issues unavailable');
       return { data: { results: retainedGrant ? [retainedGrant] : [], next: null } };
     }
     if (awards.some((award) => url === URLS.REGISTER_AWARD(award.uuid)))
@@ -407,6 +410,7 @@ it('retains original award, vesting and linked issue preparations through interr
       </ApiClientProvider>
     </QueryClientProvider>
   );
+  vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] });
   const preparedView = render(
     <QueryClientProvider client={client}>
       <ApiClientProvider client={apiClient}>
@@ -422,8 +426,13 @@ it('retains original award, vesting and linked issue preparations through interr
   );
   const issueVested = await screen.findByRole('link', { name: 'Issue vested shares' });
   await waitFor(() => expect(screen.queryByText('Loading employee awards…')).toBeNull());
+  await waitFor(() => expect(client.isFetching()).toBe(0));
+  const beforeHiddenTaskPoll = api.get.mock.calls.filter(([url]) => url === URLS.REGISTER_GRANTS).length;
+  await act(async () => vi.advanceTimersByTimeAsync(60_000));
+  expect(api.get.mock.calls.filter(([url]) => url === URLS.REGISTER_GRANTS)).toHaveLength(beforeHiddenTaskPoll);
   fireEvent.click(issueVested);
   const issues = within((await screen.findByRole('group', { name: 'What kind of issue?' })).parentElement!);
+  expect(screen.queryByRole('button', { name: 'Refresh grants' })).toBeNull();
   expect((issues.getByRole('radio', { name: 'Non-paid issue' }) as HTMLInputElement).checked).toBe(true);
   expect(await issues.findByText(AWARD_REQUEST.name!)).toBeTruthy();
   expect(issues.queryByRole('combobox', { name: 'Issue to' })).toBeNull();
@@ -442,6 +451,14 @@ it('retains original award, vesting and linked issue preparations through interr
   expect(screen.getByText('The retained award agreement will be used for this issue.')).toBeTruthy();
   expect((screen.getByLabelText(GRANT.COMPANY_EVENT_ON) as HTMLInputElement).value).toBe('');
   fillGrant();
+  const beforeDraftPoll = api.get.mock.calls.filter(([url]) => url === URLS.REGISTER_GRANTS).length;
+  await act(async () => vi.advanceTimersByTimeAsync(60_000));
+  await waitFor(() =>
+    expect(api.get.mock.calls.filter(([url]) => url === URLS.REGISTER_GRANTS).length).toBeGreaterThan(beforeDraftPoll),
+  );
+  expect(((await screen.findByLabelText(GRANT.SHARES)) as HTMLInputElement).value).toBe('10');
+  expect((screen.getByLabelText(GRANT.COMPANY_EVENT_ON) as HTMLInputElement).value).toBe('2026-10-06');
+  expect(submissions(URLS.REGISTER_GRANTS)).toHaveLength(0);
   fireEvent.change(screen.getByLabelText(GRANT.COMPANY_EVENT_ON), { target: { value: '' } });
   fireEvent.click(screen.getByRole('button', { name: 'Prepare vested share issue' }));
   expect(document.activeElement).toBe(screen.getByText('Before continuing:').parentElement);
@@ -536,7 +553,11 @@ it('retains original award, vesting and linked issue preparations through interr
       exact: true,
     }),
   );
-  fireEvent.click(await screen.findByRole('button', { name: 'Refresh grants' }));
+  const beforeFocusRead = api.get.mock.calls.filter(([url]) => url === URLS.REGISTER_GRANTS).length;
+  fireEvent(window, new Event('focus'));
+  await waitFor(() =>
+    expect(api.get.mock.calls.filter(([url]) => url === URLS.REGISTER_GRANTS).length).toBeGreaterThan(beforeFocusRead),
+  );
   await waitFor(() => expect(client.isFetching()).toBe(0));
   slowReads = true;
   fireEvent.click(await screen.findByRole('button', { name: /^Recover record issue receipt/ }));
@@ -558,12 +579,45 @@ it('retains original award, vesting and linked issue preparations through interr
   );
   expect(within(screen.getByText('Vested, awaiting issue').parentElement!).getByText('90 shares')).toBeTruthy();
   retainedGrant = { ...retainedGrant!, companyEventOn: null };
-  fireEvent.click(screen.getByRole('button', { name: 'Refresh grants' }));
+  await waitFor(() => expect(client.isFetching()).toBe(0));
+  const beforeAutomaticRead = api.get.mock.calls.filter(([url]) => url === URLS.REGISTER_GRANTS).length;
+  const visibility = vi.spyOn(document, 'hidden', 'get').mockReturnValue(true);
+  fireEvent(document, new Event('visibilitychange'));
+  await act(async () => vi.advanceTimersByTimeAsync(60_000));
+  expect(api.get.mock.calls.filter(([url]) => url === URLS.REGISTER_GRANTS)).toHaveLength(beforeAutomaticRead);
+  visibility.mockReturnValue(false);
+  fireEvent(document, new Event('visibilitychange'));
   await waitFor(() =>
     expect(within(screen.getByText(GRANT.COMPANY_EVENT_ON).parentElement!).getByText('Not recorded')).toBeTruthy(),
   );
+  const beforeVisiblePoll = api.get.mock.calls.filter(([url]) => url === URLS.REGISTER_GRANTS).length;
+  await act(async () => vi.advanceTimersByTimeAsync(60_000));
+  await waitFor(() =>
+    expect(api.get.mock.calls.filter(([url]) => url === URLS.REGISTER_GRANTS).length).toBeGreaterThan(
+      beforeVisiblePoll,
+    ),
+  );
+  await waitFor(() => expect(client.isFetching()).toBe(0));
+  const online = vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false);
+  const beforeOfflinePoll = api.get.mock.calls.filter(([url]) => url === URLS.REGISTER_GRANTS).length;
+  await act(async () => vi.advanceTimersByTimeAsync(60_000));
+  expect(api.get.mock.calls.filter(([url]) => url === URLS.REGISTER_GRANTS)).toHaveLength(beforeOfflinePoll);
+  grantsFailed = true;
+  online.mockReturnValue(true);
+  fireEvent(window, new Event('online'));
+  await issues.findByText('Non-paid issues could not be loaded.');
+  expect(issues.queryByText('Shares issued')).toBeNull();
+  grantsFailed = false;
+  fireEvent.click(
+    issues.getByRole('button', { name: 'Try again', description: 'Non-paid issues could not be loaded.' }),
+  );
+  await issues.findByText('Shares issued');
+  expect(effectCount).toBe(1);
   expect(within(screen.getByText('Ledger date').parentElement!).getByText(formatDate('2026-10-06'))).toBeTruthy();
   preparedView.unmount();
+  const beforeClosedPoll = api.get.mock.calls.filter(([url]) => url === URLS.REGISTER_GRANTS).length;
+  await act(async () => vi.advanceTimersByTimeAsync(60_000));
+  expect(api.get.mock.calls.filter(([url]) => url === URLS.REGISTER_GRANTS)).toHaveLength(beforeClosedPoll);
   api.post.mockClear();
   retainedGrant = null;
   canPrepare = true;

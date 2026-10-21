@@ -11,7 +11,6 @@ import {
   type OrderSubmissionOwner,
   type TokenHoldersResponse,
 } from '@ledova/shared';
-import { PageAction } from '@components/Page';
 
 import { GrantForm } from './GrantForm';
 import { GrantRecord } from './GrantRecord';
@@ -228,14 +227,6 @@ export function useNonPaidIssues({
       ) : privateReady && grants.data.length === 0 ? (
         <p className="text-sm text-text-muted">{COPY.EMPTY}</p>
       ) : null}
-      {!grants.isError && !appointments.isError && (
-        <PageAction
-          label="Refresh grants"
-          busy={grants.isFetching || appointments.isFetching}
-          busyLabel="Refreshing…"
-          onClick={() => void refresh().catch(() => {})}
-        />
-      )}
       <ul className="divide-y divide-border-subtle">
         {grants.data?.map((grant) => (
           <GrantRecord
@@ -253,5 +244,5 @@ export function useNonPaidIssues({
       </ul>
     </div>
   );
-  return { form, records, held };
+  return { form, records, held, refreshRecords: () => grants.refetch({ cancelRefetch: false, throwOnError: true }) };
 }
