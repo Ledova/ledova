@@ -10,7 +10,7 @@ import {
   shareCount,
   formatDate,
 } from '@ledova/shared';
-import { Row, Rows } from '@components/Ledger';
+import { Row, Rows, Disclosure } from '@components/Ledger';
 import { PageAction } from '@components/Page';
 import { DecisionTrail } from '@pages/company/register/shared/DecisionTrail';
 import { RegisterChanges } from '@pages/company/register/shared/RegisterChanges';
@@ -49,8 +49,10 @@ export function OpeningRecord({
   return (
     <RecordShell hidden={!visible} landed={landed}>
       {visible && (
-        <details open={proposal.status === 'submitted'} className="space-y-3">
-          <summary className="cursor-pointer text-sm font-medium text-text-primary">{`Chain opening · ${formatDateTime(proposal.createdAt)} · ${COPY.STAGES[proposal.stage] ?? proposal.stage}`}</summary>
+        <Disclosure
+          summary={`Chain opening · ${formatDateTime(proposal.createdAt)} · ${COPY.STAGES[proposal.stage] ?? proposal.stage}`}
+          defaultOpen={proposal.status === 'submitted'}
+        >
           <Rows>
             <RecordStage stage={proposal.stage}>{COPY.STAGES[proposal.stage] ?? proposal.stage}</RecordStage>
             {proposal.preparedByName !== null && (
@@ -105,7 +107,7 @@ export function OpeningRecord({
             />
           </div>
           {download.isError && <RecordDownloadFailure error={download.error} />}
-        </details>
+        </Disclosure>
       )}
       <RegisterDecisions
         family={REGISTER_OPENING_DECISIONS}

@@ -584,7 +584,7 @@ Each page links to its business section; the audience is the `DESTINATIONS` audi
   record instead and shows its outcome line. `inviteMember` chooses the invitation's recipient on
   Shareholders.
   History records are disclosures with a one-line summary, their detail and certificate control
-  rendered on demand; a section whose read succeeded empty is omitted, while a failed read keeps its
+  shown on demand; a section whose read succeeded empty is omitted, while a failed read keeps its
   retry and an uncertain decision its recovery. Private content renders only while its view is
   visible, its reads have settled and `hasCurrentRegisterReadAuthority` confirms a current
   register-read appointment.

@@ -22,7 +22,7 @@ import {
   useMemberRecords,
   type MemberCertificateRequest,
 } from '@ledova/shared';
-import { LinkRow, Row, Rows, Section, Loading, LoadError } from '@components/Ledger';
+import { LinkRow, Row, Rows, Section, Loading, LoadError, Disclosure } from '@components/Ledger';
 import { Confirmation } from '@components/Modal';
 import { Page, PageAction } from '@components/Page';
 import { PageTitle } from '@components/PageTitle';
@@ -31,8 +31,6 @@ import { ErrorSummary } from '@components/ErrorSummary';
 import { useErrorSummary } from '@hooks/useErrorSummary';
 import { AwardStatus } from '@components/AwardStatus';
 import { useMemberCertificateDownload } from './useMemberCertificateDownload';
-
-const SUMMARY = 'cursor-pointer py-2 text-sm font-medium text-text-primary';
 
 export default function MemberRecordsPage() {
   const read = useMemberRecords(() => crypto.randomUUID());
@@ -72,7 +70,7 @@ function MemberRecords({
   const [confirmed, setConfirmed] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [historyToken, setHistoryToken] = useState('');
-  const history = useRef<HTMLDetailsElement>(null);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const initialHistory = useRef('');
   const documentsOnly = useLocation().hash === '#documents';
   const held = read.busy || !!read.retry;
@@ -277,7 +275,7 @@ function MemberRecords({
                                   onClick={() => {
                                     setHistoryToken(item.uuid);
                                     read.selectToken(item.uuid);
-                                    if (history.current) history.current.open = true;
+                                    setHistoryOpen(true);
                                   }}
                                 />
                               )}
@@ -305,8 +303,7 @@ function MemberRecords({
                                 </h3>
                               )}
                               <AwardStatus {...award} />
-                              <details>
-                                <summary className={SUMMARY}>Award terms and recorded vesting</summary>
+                              <Disclosure summary="Award terms and recorded vesting">
                                 <div className="space-y-2 text-sm text-text-muted">
                                   <p>
                                     {formatDate(award.termsOn)} · {award.terms}
@@ -333,7 +330,7 @@ function MemberRecords({
                                     </p>
                                   ))}
                                 </div>
-                              </details>
+                              </Disclosure>
                             </div>
                           ))}
                         </div>
@@ -394,8 +391,7 @@ function MemberRecords({
                     </div>
                   )}
                   {!documentsOnly && (
-                    <details open>
-                      <summary className={SUMMARY}>Company-recorded particulars</summary>
+                    <Disclosure summary="Company-recorded particulars" defaultOpen>
                       <p className="text-sm text-text-muted">
                         Provided by the company, not verified by Ledova. Profile edits do not change this register.
                       </p>
@@ -410,19 +406,22 @@ function MemberRecords({
                           {item.amountPaid ?? 'not recorded'}
                         </p>
                       ))}
-                    </details>
+                    </Disclosure>
                   )}
                   {documentsOnly ? (
                     shareHistory
                   ) : (
-                    <details ref={history}>
-                      <summary className={SUMMARY}>Your share history and certificate requests</summary>
+                    <Disclosure
+                      summary="Your share history and certificate requests"
+                      open={historyOpen}
+                      onToggle={() => setHistoryOpen((open) => !open)}
+                      keepMounted
+                    >
                       {shareHistory}
-                    </details>
+                    </Disclosure>
                   )}
                   {!documentsOnly && (
-                    <details>
-                      <summary className={SUMMARY}>Request a particulars update</summary>
+                    <Disclosure summary="Request a particulars update">
                       <div className="space-y-3 pt-2">
                         <p className="text-sm text-text-muted">
                           The company reviews your request. Sending it changes no holding or register particulars.
@@ -469,7 +468,7 @@ function MemberRecords({
                           }}
                         />
                       </div>
-                    </details>
+                    </Disclosure>
                   )}
                 </Section>
                 {read.requests && (read.requests.particulars.length > 0 || read.requests.certificates.length > 0) && (
@@ -478,13 +477,12 @@ function MemberRecords({
                       {read.requests.particulars.map((request) => (
                         <div key={request.uuid}>
                           <p>Particulars update · {MEMBER_PARTICULARS_STATUS_LABELS[request.status]}</p>
-                          <details>
-                            <summary className={SUMMARY}>Record details</summary>
+                          <Disclosure summary="Record details">
                             <p className="break-all">
                               Request {request.uuid}
                               {request.change ? ` · Company instruction ${request.change}` : ''}
                             </p>
-                          </details>
+                          </Disclosure>
                         </div>
                       ))}
                       {read.requests.certificates.map((request, index) => (
@@ -501,12 +499,11 @@ function MemberRecords({
                               onClick={() => setWithdrawing({ uuid: request.uuid, createdAt: request.createdAt })}
                             />
                           )}
-                          <details>
-                            <summary className={SUMMARY}>Record details</summary>
+                          <Disclosure summary="Record details">
                             <p className="break-all">
                               Request {request.uuid} · Entry {request.entry}
                             </p>
-                          </details>
+                          </Disclosure>
                         </div>
                       ))}
                     </div>
@@ -522,10 +519,9 @@ function MemberRecords({
                 {invitation}
               </Section>
             ) : (
-              <details className="rounded-xl border border-border p-4">
-                <summary className={SUMMARY}>Accept another member invitation</summary>
-                {invitation}
-              </details>
+              <div className="rounded-xl border border-border p-4">
+                <Disclosure summary="Accept another member invitation">{invitation}</Disclosure>
+              </div>
             )}
           </>
         )}

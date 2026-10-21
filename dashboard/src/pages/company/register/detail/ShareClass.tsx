@@ -14,7 +14,7 @@ import {
   shareCount,
 } from '@ledova/shared';
 import { Page, PageAction } from '@components/Page';
-import { Row, Rows, Section, Status, LoadError, Loading } from '@components/Ledger';
+import { Row, Rows, Section, Status, LoadError, Loading, Disclosure } from '@components/Ledger';
 import { LoadMore } from '@components/List';
 import { ClassRegister } from '@pages/company/register/shared/ClassRegister';
 import { CompanyShareholders } from '@pages/company/register/shared/CompanyShareholders';
@@ -118,10 +118,9 @@ function ShareClassDetails({ data }: { data: ReturnType<typeof useShareClass> })
               {token.totalSupply !== TECHNICAL_SHARE_LIMIT ? (
                 <span className="break-all">{formatShareCount(token.totalSupply)}</span>
               ) : (
-                <details>
-                  <summary className="cursor-pointer">{REGISTER_COPY.QUANTITY_GUARD}</summary>
+                <Disclosure summary={REGISTER_COPY.QUANTITY_GUARD}>
                   <span className="break-all">{formatShareCount(token.totalSupply)}</span>
-                </details>
+                </Disclosure>
               )}
             </Row>
             <Row label="Issued shares">
@@ -221,10 +220,11 @@ function ShareClassDetails({ data }: { data: ReturnType<typeof useShareClass> })
                       <p className="text-xs text-text-muted">{formatDate(request.createdAt)}</p>
                       {request.rejectionReason && <p className="text-text-muted">{request.rejectionReason}</p>}
                       {request.executionNotes && (
-                        <details className="text-text-muted">
-                          <summary className="cursor-pointer">Execution history</summary>
-                          <p className="whitespace-pre-wrap">{request.executionNotes}</p>
-                        </details>
+                        <Disclosure summary="Execution history">
+                          <div className="text-text-muted">
+                            <p className="whitespace-pre-wrap">{request.executionNotes}</p>
+                          </div>
+                        </Disclosure>
                       )}
                     </li>
                   ))}

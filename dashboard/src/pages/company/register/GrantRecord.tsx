@@ -10,7 +10,7 @@ import {
   shareCount,
   formatDate,
 } from '@ledova/shared';
-import { Row, Rows, Status } from '@components/Ledger';
+import { Row, Rows, Status, Disclosure } from '@components/Ledger';
 import { PageAction } from '@components/Page';
 import { DecisionTrail } from '@pages/company/register/shared/DecisionTrail';
 import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
@@ -96,8 +96,7 @@ export function GrantRecord({
                   ? 'This rejected instruction issued no shares.'
                   : 'Next: review and approve the exact share issue.'}
           </p>
-          <details className="space-y-3">
-            <summary className="cursor-pointer text-sm font-medium">Issue details and documents</summary>
+          <Disclosure summary="Issue details and documents">
             <Rows>
               <RecordStage stage={grant.stage}>{COPY.STAGES[grant.stage] ?? grant.stage}</RecordStage>
               <Row label="Prepared by">{grant.preparedByName || 'Name not recorded'}</Row>
@@ -127,7 +126,7 @@ export function GrantRecord({
               <Row label="Issue record">{grant.uuid}</Row>
               <Row label="Member record ID">{grant.member}</Row>
             </Rows>
-          </details>
+          </Disclosure>
         </>
       )}
       <RegisterDecisions

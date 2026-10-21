@@ -1,6 +1,6 @@
 import { Field, TextInput } from '@components/Field';
 import { FIELD_LIMITS, type OrderSubmissionOwner } from '@ledova/shared';
-import { Outcome, Section, LoadError, Loading } from '@components/Ledger';
+import { Outcome, Section, LoadError, Loading, Disclosure } from '@components/Ledger';
 import { PageAction } from '@components/Page';
 import { ErrorSummary } from '@components/ErrorSummary';
 import { useErrorSummary } from '@hooks/useErrorSummary';
@@ -24,13 +24,15 @@ export function CompanyPack({
         This company ZIP includes residential addresses and private records. Current company administration, a written
         instruction and a named recipient are required; the captured records and generation time are retained.
       </p>
-      <details className="text-sm text-text-muted">
-        <summary className="cursor-pointer">Included records and limitations</summary>
-        <p className="mt-2">
-          Packs include non-tokenised registers, employee awards and fully paid external allotments. Unsupported records
-          make the whole archive unavailable; use supported inspection copies or unsigned certificates instead.
-        </p>
-      </details>
+      <Disclosure summary="Included records and limitations">
+        <div className="text-sm text-text-muted">
+          <p className="mt-2">
+            Packs include non-tokenised registers, employee awards and fully paid external allotments. Unsupported
+            records make the whole archive unavailable; use supported inspection copies or unsigned certificates
+            instead.
+          </p>
+        </div>
+      </Disclosure>
       {appointments.isError ? (
         <LoadError retry={() => appointments.refetch()} busy={appointments.isFetching}>
           Your appointments could not be loaded.

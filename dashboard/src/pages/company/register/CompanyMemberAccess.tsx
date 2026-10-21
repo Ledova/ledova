@@ -11,7 +11,7 @@ import {
   MEMBER_PARTICULARS_STATUS_LABELS,
   MEMBER_CERTIFICATE_STATUS_LABELS,
 } from '@ledova/shared';
-import { Outcome, Section, Loading, LoadError } from '@components/Ledger';
+import { Outcome, Section, Loading, LoadError, Disclosure } from '@components/Ledger';
 import { PersonSelect } from '@pages/company/register/shared/PersonPicker';
 import { PageAction } from '@components/Page';
 import { Confirmation } from '@components/Modal';
@@ -150,10 +150,11 @@ export function CompanyMemberAccess({
             <p className="text-sm text-text-muted">Record a member or employee award before inviting its recipient.</p>
           )}
           {member && (
-            <details className="text-sm text-text-muted">
-              <summary>Selected member record</summary>
-              <p className="break-all">{member.uuid}</p>
-            </details>
+            <Disclosure summary="Selected member record">
+              <div className="text-sm text-text-muted">
+                <p className="break-all">{member.uuid}</p>
+              </div>
+            </Disclosure>
           )}
           <p className="text-sm text-text-muted">
             An award recipient can view their own award before any shares are issued.
@@ -188,12 +189,13 @@ export function CompanyMemberAccess({
                 {memberName(item.member)} · {item.intendedEmail} · {MEMBER_INVITATION_STATUS_LABELS[item.status]} ·
                 Until {formatDateTime(item.acceptanceDeadline)}
               </p>
-              <details className="text-text-muted">
-                <summary>Invitation record</summary>
-                <p className="break-all">
-                  Invitation {item.uuid} · Member {item.member}
-                </p>
-              </details>
+              <Disclosure summary="Invitation record">
+                <div className="text-text-muted">
+                  <p className="break-all">
+                    Invitation {item.uuid} · Member {item.member}
+                  </p>
+                </div>
+              </Disclosure>
             </div>
           ))}
           <h3 className="border-t border-border-subtle pt-4 text-base font-medium">Current member access</h3>
@@ -210,12 +212,13 @@ export function CompanyMemberAccess({
               <p className="text-sm">
                 {memberName(association.member)} · {association.current ? 'Current access' : 'Revoked access'}
               </p>
-              <details className="text-sm text-text-muted">
-                <summary>Access record</summary>
-                <p className="break-all">
-                  Member {association.member} · Account {association.userAccount} · Access {association.uuid}
-                </p>
-              </details>
+              <Disclosure summary="Access record">
+                <div className="text-sm text-text-muted">
+                  <p className="break-all">
+                    Member {association.member} · Account {association.userAccount} · Access {association.uuid}
+                  </p>
+                </div>
+              </Disclosure>
               {association.current && (
                 <PageAction
                   label={`Revoke access for ${memberName(association.member)}`}
@@ -242,13 +245,14 @@ export function CompanyMemberAccess({
               <p className="text-sm">
                 {item.name} · {item.residentialAddress} · {MEMBER_PARTICULARS_STATUS_LABELS[item.status]}
               </p>
-              <details className="text-sm text-text-muted">
-                <summary>Particulars request record</summary>
-                <p className="break-all">
-                  Request {item.uuid} · Member {item.member}
-                  {item.change ? ` · Company instruction ${item.change}` : ''}
-                </p>
-              </details>
+              <Disclosure summary="Particulars request record">
+                <div className="text-sm text-text-muted">
+                  <p className="break-all">
+                    Request {item.uuid} · Member {item.member}
+                    {item.change ? ` · Company instruction ${item.change}` : ''}
+                  </p>
+                </div>
+              </Disclosure>
               {item.status === 'submitted' && access.prepare && (
                 <PageAction
                   label={`Prepare particulars update for ${item.name}`}
@@ -343,18 +347,19 @@ export function CompanyMemberAccess({
               <p className="text-sm">
                 {memberName(item.member)} · Certificate {MEMBER_CERTIFICATE_STATUS_LABELS[item.status].toLowerCase()}
               </p>
-              <details className="text-sm text-text-muted">
-                <summary>Certificate request record</summary>
-                <p className="break-all">
-                  Request {item.uuid} · Member {item.member} · Entry {item.entry}
-                </p>
-                {item.fulfilment && (
+              <Disclosure summary="Certificate request record">
+                <div className="text-sm text-text-muted">
                   <p className="break-all">
-                    Unsigned PDF {item.fulfilment.uuid} · SHA-256 {item.fulfilment.digest} · {item.fulfilment.fileSize}{' '}
-                    bytes
+                    Request {item.uuid} · Member {item.member} · Entry {item.entry}
                   </p>
-                )}
-              </details>
+                  {item.fulfilment && (
+                    <p className="break-all">
+                      Unsigned PDF {item.fulfilment.uuid} · SHA-256 {item.fulfilment.digest} ·{' '}
+                      {item.fulfilment.fileSize} bytes
+                    </p>
+                  )}
+                </div>
+              </Disclosure>
               {item.status === 'requested' && (
                 <PageAction
                   label={`Preview certificate for ${memberName(item.member)}`}
