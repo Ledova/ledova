@@ -1,9 +1,15 @@
 import { Field, TextArea, TextInput } from '@components/Field';
 import { useState } from 'react';
-import { FIELD_LIMITS, formatDate, formatDateTime, getUserVerificationStatus, failureSentence } from '@ledova/shared';
+import {
+  FIELD_LIMITS,
+  formatDate,
+  formatDateTime,
+  getUserVerificationStatus,
+  failureSentence,
+  VERIFICATION_TONES,
+} from '@ledova/shared';
 import { FormActions, Page, PageAction } from '@components/Page';
 import { Outcome, Row, Rows, Section, Status, LoadError } from '@components/Ledger';
-import { VERIFICATION_TONES } from '@components/statusTones';
 import { DocumentsPanel } from './DocumentsPanel';
 import { useUserProfile } from '@hooks/useUserProfile';
 import { IdentityVerificationModal } from '@components/IdentityVerificationModal';

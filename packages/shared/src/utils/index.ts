@@ -175,6 +175,7 @@ export {
 
 export { invitationMembers } from './invitationMembers';
 export { applicationAmount } from './applicationAmount';
+export { applicationHistory } from './applicationHistory';
 export {
   NEW_PERSON,
   NEW_PERSON_PROBLEMS,

@@ -1,4 +1,4 @@
-import { USER_PROFILES_QUERY_KEY } from '@ledova/shared';
+import { USER_PROFILES_QUERY_KEY, IDENTITY_OUTCOME_COPY } from '@ledova/shared';
 import { useEffect, type ReactNode } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { WarningIcon, CheckCircleIcon, ClockCountdownIcon, ArrowCounterClockwiseIcon } from '@phosphor-icons/react';
@@ -102,48 +102,40 @@ export function IdentityVerificationModal({ isOpen, onClose }: IdentityVerificat
         {isVerified && (
           <VerificationResult
             icon={<CheckCircleIcon size={ICON_MD} weight="fill" />}
-            title="Already verified"
+            title={IDENTITY_OUTCOME_COPY.verified.title}
             tone="text-success-light"
           >
-            <p className="text-sm text-text-secondary">Your identity has been verified successfully.</p>
+            <p className="text-sm text-text-secondary">{IDENTITY_OUTCOME_COPY.verified.body}</p>
           </VerificationResult>
         )}
 
         {showPendingBanner && (
           <VerificationResult
             icon={<CheckCircleIcon size={ICON_MD} weight="fill" />}
-            title="Verification submitted"
+            title={IDENTITY_OUTCOME_COPY.pending.title}
             tone="text-brand-light"
           >
-            <p className="text-sm text-text-secondary">
-              Your documents have been submitted. We&apos;ll review them shortly and notify you of the result.
-            </p>
+            <p className="text-sm text-text-secondary">{IDENTITY_OUTCOME_COPY.pending.body}</p>
           </VerificationResult>
         )}
 
         {showOnHoldBanner && (
           <VerificationResult
             icon={<ClockCountdownIcon size={ICON_MD} />}
-            title="Verification on hold"
+            title={IDENTITY_OUTCOME_COPY.onHold.title}
             tone="text-warning-light"
           >
-            <p className="text-sm text-text-secondary">
-              Your verification is currently on hold. We may need additional information. Please check back later or
-              contact support.
-            </p>
+            <p className="text-sm text-text-secondary">{IDENTITY_OUTCOME_COPY.onHold.body}</p>
           </VerificationResult>
         )}
 
         {showRejectedBanner && (
           <VerificationResult
             icon={<WarningIcon size={ICON_MD} />}
-            title="Verification rejected"
+            title={IDENTITY_OUTCOME_COPY.rejected.title}
             tone="text-error-light"
           >
-            <p className="text-sm text-text-secondary">
-              Unfortunately, your verification was not approved. You may retry with different documents or contact
-              support for assistance.
-            </p>
+            <p className="text-sm text-text-secondary">{IDENTITY_OUTCOME_COPY.rejected.body}</p>
             <Reasons labels={status?.rejectionLabels} />
           </VerificationResult>
         )}
@@ -151,12 +143,10 @@ export function IdentityVerificationModal({ isOpen, onClose }: IdentityVerificat
         {showRetryBanner && (
           <VerificationResult
             icon={<ArrowCounterClockwiseIcon size={ICON_MD} />}
-            title="Retry needed"
+            title={IDENTITY_OUTCOME_COPY.retry.title}
             tone="text-warning-light"
           >
-            <p className="text-sm text-text-secondary">
-              Your previous verification attempt needs to be retried. Please try again with clearer documents.
-            </p>
+            <p className="text-sm text-text-secondary">{IDENTITY_OUTCOME_COPY.retry.body}</p>
             <Reasons labels={status?.rejectionLabels} />
           </VerificationResult>
         )}

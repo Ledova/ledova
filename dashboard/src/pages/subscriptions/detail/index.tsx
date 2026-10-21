@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { marketQuantity } from '@ledova/shared';
+import { marketQuantity, applicationHistory } from '@ledova/shared';
 import { useParams } from 'react-router-dom';
 import {
   SUBSCRIPTION_COPY,
@@ -9,7 +9,7 @@ import {
   formatMoney,
 } from '@ledova/shared';
 import type { SubscriptionDetail } from '@ledova/shared';
-import { Row, Rows, Section, Status, Timeline, type TimelineEvent, LoadError } from '@components/Ledger';
+import { Row, Rows, Section, Status, Timeline, LoadError } from '@components/Ledger';
 import { Page, PageAction } from '@components/Page';
 import { Confirmation } from '@components/Modal';
 import { PaymentInstructionCard } from './PaymentInstructionCard';
@@ -25,21 +25,6 @@ const NEXT: Record<string, string> = {
   accepted: 'The payment instruction is being issued.',
   paid: SUBSCRIPTION_COPY.PAID_HELP,
 };
-
-function history(subscription: SubscriptionDetail): TimelineEvent[] {
-  const closed = subscription.status === 'withdrawn' ? 'Withdrawn' : 'Rejected';
-  const events: [string, string | null | undefined][] = [
-    ['Drafted', subscription.createdAt],
-    ['Submitted for review', subscription.submittedAt],
-    ['Accepted by the operator', subscription.acceptedAt],
-    ['Payment instruction issued', subscription.paymentInstructionIssuedAt],
-    ['Payment received', subscription.paymentReceivedOn],
-    ['Shares allotted', subscription.allottedAt],
-    ['Refunded', subscription.refundedAt],
-    [closed, subscription.closedAt],
-  ];
-  return events.filter((event): event is [string, string] => Boolean(event[1])).map(([label, at]) => ({ label, at }));
-}
 
 function Summary({ subscription }: { subscription: SubscriptionDetail }) {
   const status = applicationState(subscription);
@@ -166,7 +151,7 @@ export default function SubscriptionDetailPage() {
       )}
 
       <Section title="History">
-        <Timeline events={history(subscription)} />
+        <Timeline events={applicationHistory(subscription)} />
         {next && <p className="pt-1 text-sm text-text-secondary">Next: {next}</p>}
         {MONEY_HELD.includes(subscription.status) && hasPayment && (
           <p className="text-sm text-text-muted">{SUBSCRIPTION_COPY.MONEY_IN_HELP}</p>

@@ -250,6 +250,11 @@ dashboard's and the shared package's source. Labels the backend supplies, such a
 document types and some statuses ("Under Review", "Awaiting Payment"), keep its title case. Mobile's
 own copy doesn't follow this yet (#1201); the shared strings it shows do.
 
+Copy and tone maps meant for both clients live in `packages/shared`, such as the identity
+verification outcomes (`IDENTITY_OUTCOME_COPY`), their tones (`VERIFICATION_TONES`) and an
+application's history (`applicationHistory`). The web reads them there; mobile still keeps its own
+copies until #1201.
+
 ## Choosing a person
 
 No web flow lists people in a native select, because a dropdown of every person does not scale to a
