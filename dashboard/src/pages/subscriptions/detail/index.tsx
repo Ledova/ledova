@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { marketQuantity } from '@ledova/shared';
 import { useParams } from 'react-router-dom';
 import {
-  DESTINATIONS,
   SUBSCRIPTION_COPY,
   SUBSCRIPTION_SUBMITTABLE_STATUSES,
   SUBSCRIPTION_WITHDRAWABLE_STATUSES,
@@ -11,7 +10,7 @@ import {
 } from '@ledova/shared';
 import type { SubscriptionDetail } from '@ledova/shared';
 import { Row, Rows, Section, Status, Timeline, type TimelineEvent, LoadError } from '@components/Ledger';
-import { Page, PageAction, PageLink } from '@components/Page';
+import { Page, PageAction } from '@components/Page';
 import { Confirmation } from '@components/Modal';
 import { PaymentInstructionCard } from './PaymentInstructionCard';
 import { useSubscription } from './useSubscription';
@@ -102,7 +101,7 @@ export default function SubscriptionDetailPage() {
 
   if (!subscription || notFound) {
     return (
-      <Page narrow actions={<PageLink to={DESTINATIONS.subscriptions.path} label="Back to Applications" />}>
+      <Page narrow>
         <Section title="Not available">
           <p className="text-sm text-text-muted">This application is not one of yours, or it no longer exists.</p>
         </Section>

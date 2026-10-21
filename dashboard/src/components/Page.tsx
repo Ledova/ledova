@@ -1,10 +1,11 @@
 import { useContext, useEffect, useId, type MouseEvent, type ReactNode } from 'react';
 import { Link, type To } from 'react-router-dom';
-import { PageTitle } from './PageTitle';
+import { PageBack, PageTitle, type PageBackLink } from './PageTitle';
 import { InSignedInFrame } from './InSignedInFrame';
 
 interface PageProps {
   actions?: ReactNode;
+  back?: Partial<PageBackLink> | null;
   documentTitle?: string;
   lede?: string;
   loading?: boolean;
@@ -12,8 +13,10 @@ interface PageProps {
   children?: ReactNode;
 }
 
-export function Page({ actions, documentTitle, lede, loading = false, narrow = false, children }: PageProps) {
+export function Page({ actions, back, documentTitle, lede, loading = false, narrow = false, children }: PageProps) {
   const title = useContext(PageTitle);
+  const parent = useContext(PageBack);
+  const link = back === null ? undefined : { ...parent, ...back };
   const inFrame = useContext(InSignedInFrame);
   const ledeId = useId();
   const tabTitle = documentTitle ?? title;
@@ -38,7 +41,12 @@ export function Page({ actions, documentTitle, lede, loading = false, narrow = f
           >
             {title}
           </h1>
-          {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
+          {(link?.to || actions) && (
+            <div className="flex flex-wrap items-center gap-2">
+              {link?.to && link.label && <PageLink to={link.to} state={link.state} label={link.label} />}
+              {actions}
+            </div>
+          )}
         </div>
         {lede && (
           <p id={ledeId} className="break-words text-sm text-text-muted">

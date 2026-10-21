@@ -160,7 +160,9 @@ export function useInvestorIssues({
             (register.token.status === 'draft' ? DESTINATIONS.companyRegisterImport : DESTINATIONS.companyClass).path,
             { uuid: token },
           )}
-          label={register.token.status === 'draft' ? 'Set up share register' : 'Share class settings'}
+          label={
+            (register.token.status === 'draft' ? DESTINATIONS.companyRegisterImport : DESTINATIONS.companyClass).title
+          }
         />
       )}
     </>
