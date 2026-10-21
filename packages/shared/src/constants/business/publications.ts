@@ -1,5 +1,6 @@
 import type { ApiComponents } from '../../generated/api';
 import type { Publication, PublicationCount, PublicationResult, ResolutionStatus } from '../../types';
+import { formatShareCount } from '../../utils/formatting';
 
 export type PublicationKind = ApiComponents['schemas']['PublicationKindEnum'];
 
@@ -120,8 +121,6 @@ export function nextResolutionBoundary(
   const closes = new Date(publication.closesAt).getTime();
   return now.getTime() < closes ? closes : null;
 }
-
-export const formatShareCount = (shares: string) => shares.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 
 const memberCount = (members: number) => `${members.toLocaleString('en-AU')} ${members === 1 ? 'member' : 'members'}`;
 

@@ -1,4 +1,5 @@
-import { REGISTER_CORRECTION_COPY, formatShareCount } from '../constants';
+import { REGISTER_CORRECTION_COPY } from '../constants';
+import { formatShareCount } from './formatting';
 import type {
   RegisterCorrection,
   RegisterCorrectionChange,

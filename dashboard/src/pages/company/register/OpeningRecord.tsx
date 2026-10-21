@@ -7,13 +7,14 @@ import {
   largestHoldingsFirst,
   openingMemberLabels,
   type RegisterOpening,
+  shareCount,
 } from '@ledova/shared';
 import { Row, Rows } from '@components/Ledger';
 import { PageAction } from '@components/Page';
 import { DecisionTrail } from '@pages/company/register/shared/DecisionTrail';
 import { RegisterChanges } from '@pages/company/register/shared/RegisterChanges';
 import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
-import { shareCount, type RegisterSteps } from '@pages/company/shared/proposals';
+import { type RegisterSteps } from '@pages/company/shared/proposals';
 import { useOpeningRecordDownload } from './useRegisterRecordDownload';
 
 const COPY = REGISTER_OPENING_COPY;

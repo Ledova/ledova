@@ -18,13 +18,13 @@ import {
   useUserPreferences,
   type OrderSubmissionOwner,
   type OwnCompanyAppointment,
+  sharePercentage,
 } from '@ledova/shared';
 import { Row, Rows, Section, LoadError, Loading } from '@components/Ledger';
 import { Page, PageLink } from '@components/Page';
 import { PageTitle } from '@components/PageTitle';
 import { ownerGuard } from '@pages/company/shared/ownerGuard';
 import { registerClassesKey, registersQuery } from '@pages/company/shared/useCompanyRegister';
-import { percentage } from '@pages/company/register/shared/shareholders';
 import { ownAppointmentsKey, useOwnAppointments } from '@hooks/useOwnAppointments';
 import { useShareholder } from './useShareholder';
 
@@ -258,7 +258,7 @@ function OwnShareholder({
                 <dl className="grid gap-4 sm:grid-cols-2">
                   {[
                     ['Shares held', formatShareCount(holder.balance)],
-                    ['% of class', percentage(holder.balance, register.issuedSupply)],
+                    ['% of class', sharePercentage(holder.balance, register.issuedSupply)],
                     ['Date added', formatDate(holder.enteredOn, 'Not recorded')],
                     ['Holder type', HOLDER_TYPE_LABELS[holder.holderType]],
                     ...(holder.name && holder.name !== title ? [['Name for this class', holder.name]] : []),

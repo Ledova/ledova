@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useReducer, useRef, useSyncExternalStore } from 'react';
 import { AnimatedQRCode } from '@keystonehq/animated-qr';
 import { getNumber } from 'ethers';
-import { WALLET_VERIFICATION_STATUS, type SwapSettlement, type Wallet } from '@ledova/shared';
+import { WALLET_VERIFICATION_STATUS, type SwapSettlement, type Wallet, formatDateTime } from '@ledova/shared';
 import { Modal, ModalActions } from '@components/Modal';
 import { PageAction } from '@components/Page';
 import { SeedPhraseInput } from '@components/SeedPhraseInput';
@@ -228,7 +228,7 @@ export function SwapSettlementFlow({ settlement, wallets, onClose }: Props) {
               Network: {context.shareToken.chain} ({response.typedData.domain.chainId})
             </p>
             <p className="break-all">Wallet: {party?.address}</p>
-            <p>Signing deadline: {new Date(response.swapOrder.expiresAt).toLocaleString()}</p>
+            <p>Signing deadline: {formatDateTime(response.swapOrder.expiresAt)}</p>
           </div>
         )}
         {!ready && state.phase !== 'error' && (

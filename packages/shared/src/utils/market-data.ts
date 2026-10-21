@@ -1,4 +1,4 @@
-import { formatShareCount } from '../constants';
+import { formatShareCount } from './formatting';
 import { formatMoney } from './distributions';
 
 export function marketQuantity(value: number): string {
