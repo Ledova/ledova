@@ -1,5 +1,5 @@
 import { formatDateTime, type CompanyTeamAppointment, type OwnCompanyAppointment } from '@ledova/shared';
-import { Row, Rows } from '@components/Ledger';
+import { Row, Rows, Disclosure } from '@components/Ledger';
 import { PageAction } from '@components/Page';
 import { currentAppointment, scopeLabels } from '@pages/company/shared/appointments';
 
@@ -32,26 +32,27 @@ export function AppointmentRecord({
         <Row label="May delegate">{scopeLabels(appointment.delegatableCapabilities)}</Row>
         <Row label="Expiry">{appointment.expiresAt ? formatDateTime(appointment.expiresAt) : 'No expiry'}</Row>
       </Rows>
-      <details className="text-sm">
-        <summary className="cursor-pointer text-text-muted">Appointment record</summary>
-        <div className="space-y-3 pt-3">
-          <Rows>
-            <Row label="Appointment">{appointment.uuid}</Row>
-            <Row label="Source">
-              {appointment.source === 'initial'
-                ? 'Initial self-declaration'
-                : appointment.source === 'legacy_owner'
-                  ? 'Legacy company owner'
-                  : 'Company invitation'}
-            </Row>
-            <Row label="Created">{formatDateTime(appointment.createdAt)}</Row>
-            {appointment.revokedAt && <Row label="Revoked">{formatDateTime(appointment.revokedAt)}</Row>}
-          </Rows>
-          {!teamRecord && appointment.source !== 'legacy_owner' && 'declarationText' in appointment && (
-            <p className="text-text-muted">{appointment.declarationText}</p>
-          )}
+      <Disclosure summary="Appointment record">
+        <div className="text-sm">
+          <div className="space-y-3 pt-3">
+            <Rows>
+              <Row label="Appointment">{appointment.uuid}</Row>
+              <Row label="Source">
+                {appointment.source === 'initial'
+                  ? 'Initial self-declaration'
+                  : appointment.source === 'legacy_owner'
+                    ? 'Legacy company owner'
+                    : 'Company invitation'}
+              </Row>
+              <Row label="Created">{formatDateTime(appointment.createdAt)}</Row>
+              {appointment.revokedAt && <Row label="Revoked">{formatDateTime(appointment.revokedAt)}</Row>}
+            </Rows>
+            {!teamRecord && appointment.source !== 'legacy_owner' && 'declarationText' in appointment && (
+              <p className="text-text-muted">{appointment.declarationText}</p>
+            )}
+          </div>
         </div>
-      </details>
+      </Disclosure>
       {appointment.status !== 'revoked' && (
         <PageAction label="Revoke appointment" context={appointment.uuid} disabled={disabled} onClick={onRevoke} />
       )}

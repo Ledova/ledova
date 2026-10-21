@@ -13,6 +13,7 @@ import { FormActions, PageAction } from '@components/Page';
 import { ErrorSummary } from '@components/ErrorSummary';
 import { MemberFields } from './MemberFields';
 import { blankMember, blankFormer, type PreparationDraft, type MemberDraft, type FormerDraft } from './preparation';
+import { Disclosure } from '@components/Ledger';
 
 export function BringRecords({
   draft,
@@ -247,10 +248,7 @@ export function BringRecords({
               </div>
             )}
           </fieldset>
-          <details className="space-y-4 rounded-lg border border-border-subtle p-4">
-            <summary className="cursor-pointer text-sm font-medium text-text-primary">
-              Keep source copies and former records (optional)
-            </summary>
+          <Disclosure summary="Keep source copies and former records (optional)">
             <fieldset className="space-y-3">
               <legend className="text-sm font-medium text-text-primary">Supporting copies (optional)</legend>
               <FileField
@@ -367,7 +365,7 @@ export function BringRecords({
                 </p>
               )}
             </fieldset>
-          </details>
+          </Disclosure>
         </>
       )}
     </>

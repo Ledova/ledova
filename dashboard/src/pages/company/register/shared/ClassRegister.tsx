@@ -8,7 +8,7 @@ import {
 } from '@ledova/shared';
 import { LoadMore } from '@components/List';
 import { PAGE_SIZE } from '@hooks/useListParams';
-import { Rows, Row, Section, Status, type Tone } from '@components/Ledger';
+import { Rows, Row, Section, Status, type Tone, Disclosure } from '@components/Ledger';
 import { PageAction, PageLink } from '@components/Page';
 import { shareholderPath } from './shareholders';
 
@@ -49,10 +49,11 @@ export function ClassRegister({ register, former = true }: { register: TokenHold
           </span>
         </p>
       ) : (
-        <details className="text-xs text-text-muted">
-          <summary className="cursor-pointer">Technical share limit</summary>
-          <p className="mt-2 break-all">{formatShareCount(register.token.totalSupply)}</p>
-        </details>
+        <Disclosure summary="Technical share limit">
+          <div className="text-xs text-text-muted">
+            <p className="mt-2 break-all">{formatShareCount(register.token.totalSupply)}</p>
+          </div>
+        </Disclosure>
       )}
       {!register.initialized ? (
         <p className="text-sm text-text-muted">{REGISTER_COPY.NOT_OPENED_NOTE}</p>
@@ -87,66 +88,65 @@ export function FormerMembers({
   const [shown, setShown] = useState(PAGE_SIZE);
   if (!register.formerMembers?.length) return null;
   return (
-    <details className="space-y-3 border-t border-border-subtle pt-4">
-      <summary className="cursor-pointer text-sm font-medium text-text-primary">
-        {REGISTER_COPY.FORMER_TITLE} · {register.formerMembers.length}
-      </summary>
-      <p className="text-sm text-text-muted">{REGISTER_COPY.FORMER_NOTE}</p>
-      {register.formerMembersStale && (
-        <p role="status" className="text-sm text-text-muted">
-          The former-member history needs a refresh before relying on it.
-        </p>
-      )}
-      <ul className="divide-y divide-border-subtle">
-        {register.formerMembers.slice(0, shown).map((former) => (
-          <li key={former.uuid} className="flex flex-col gap-2 py-4">
-            <p className="text-base text-text-primary">{former.name || 'Name not recorded'}</p>
-            {company && former.member && blocked && (
-              <PageAction
-                label="Details"
-                context={former.name || 'Name not recorded'}
-                disabled
-                onClick={() => undefined}
-              />
-            )}
-            {company && former.member && !blocked && (
-              <PageLink
-                to={shareholderPath(former.member, company)}
-                label="Details"
-                context={former.name || 'Name not recorded'}
-              />
-            )}
-            <Rows>
-              {former.member && <Row label="Member ID">{former.member}</Row>}
-              <Row label="Shares at cessation">{formatShareCount(former.sharesAtCessation)}</Row>
-              <Row label="Ceased on">{formatDate(former.ceasedOn)}</Row>
-              <Row label="Identity source">{former.identitySourceDisplay}</Row>
-              {former.sourceEntry && <Row label="Cessation entry">{former.sourceEntry}</Row>}
-              {former.sourceEntrySequence !== null && (
-                <Row label="Cessation entry sequence">{former.sourceEntrySequence}</Row>
+    <div className="border-t border-border-subtle">
+      <Disclosure summary={`${REGISTER_COPY.FORMER_TITLE} · ${register.formerMembers.length}`}>
+        <p className="text-sm text-text-muted">{REGISTER_COPY.FORMER_NOTE}</p>
+        {register.formerMembersStale && (
+          <p role="status" className="text-sm text-text-muted">
+            The former-member history needs a refresh before relying on it.
+          </p>
+        )}
+        <ul className="divide-y divide-border-subtle">
+          {register.formerMembers.slice(0, shown).map((former) => (
+            <li key={former.uuid} className="flex flex-col gap-2 py-4">
+              <p className="text-base text-text-primary">{former.name || 'Name not recorded'}</p>
+              {company && former.member && blocked && (
+                <PageAction
+                  label="Details"
+                  context={former.name || 'Name not recorded'}
+                  disabled
+                  onClick={() => undefined}
+                />
               )}
-              {former.sourceEntryKind && <Row label="Cessation entry kind">{former.sourceEntryKind}</Row>}
-              {former.sourceEffectiveOn && (
-                <Row label="Source effective date">{formatDate(former.sourceEffectiveOn)}</Row>
+              {company && former.member && !blocked && (
+                <PageLink
+                  to={shareholderPath(former.member, company)}
+                  label="Details"
+                  context={former.name || 'Name not recorded'}
+                />
               )}
-              {former.corrects && <Row label="Corrects entry">{former.corrects}</Row>}
-              {former.correctedBy && <Row label="Corrected by entry">{former.correctedBy}</Row>}
-              {former.returnedOn && <Row label="Returned on">{formatDate(former.returnedOn)}</Row>}
-              {former.returnedEntry && <Row label="Return entry">{former.returnedEntry}</Row>}
-              {former.walletAddress && <Row label="Recorded wallet">{former.walletAddress}</Row>}
-              {former.ceasedAtBlock !== null && <Row label="Recorded cessation block">{former.ceasedAtBlock}</Row>}
-            </Rows>
-          </li>
-        ))}
-      </ul>
-      <LoadMore
-        noun={['former shareholder', 'former shareholders']}
-        hasMore={register.formerMembers.length > shown}
-        failed={false}
-        loading={false}
-        onLoad={() => setShown(shown + PAGE_SIZE)}
-      />
-    </details>
+              <Rows>
+                {former.member && <Row label="Member ID">{former.member}</Row>}
+                <Row label="Shares at cessation">{formatShareCount(former.sharesAtCessation)}</Row>
+                <Row label="Ceased on">{formatDate(former.ceasedOn)}</Row>
+                <Row label="Identity source">{former.identitySourceDisplay}</Row>
+                {former.sourceEntry && <Row label="Cessation entry">{former.sourceEntry}</Row>}
+                {former.sourceEntrySequence !== null && (
+                  <Row label="Cessation entry sequence">{former.sourceEntrySequence}</Row>
+                )}
+                {former.sourceEntryKind && <Row label="Cessation entry kind">{former.sourceEntryKind}</Row>}
+                {former.sourceEffectiveOn && (
+                  <Row label="Source effective date">{formatDate(former.sourceEffectiveOn)}</Row>
+                )}
+                {former.corrects && <Row label="Corrects entry">{former.corrects}</Row>}
+                {former.correctedBy && <Row label="Corrected by entry">{former.correctedBy}</Row>}
+                {former.returnedOn && <Row label="Returned on">{formatDate(former.returnedOn)}</Row>}
+                {former.returnedEntry && <Row label="Return entry">{former.returnedEntry}</Row>}
+                {former.walletAddress && <Row label="Recorded wallet">{former.walletAddress}</Row>}
+                {former.ceasedAtBlock !== null && <Row label="Recorded cessation block">{former.ceasedAtBlock}</Row>}
+              </Rows>
+            </li>
+          ))}
+        </ul>
+        <LoadMore
+          noun={['former shareholder', 'former shareholders']}
+          hasMore={register.formerMembers.length > shown}
+          failed={false}
+          loading={false}
+          onLoad={() => setShown(shown + PAGE_SIZE)}
+        />
+      </Disclosure>
+    </div>
   );
 }
 

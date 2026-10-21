@@ -6,6 +6,7 @@ import { FormActions, PageAction } from '@components/Page';
 import { ErrorSummary } from '@components/ErrorSummary';
 import { useErrorSummary } from '@hooks/useErrorSummary';
 import { PersonFields, PersonSelect } from '@pages/company/register/shared/PersonPicker';
+import { Disclosure } from '@components/Ledger';
 
 const DOCUMENTS: Record<DocumentKind, string> = {
   authority: COPY.AUTHORITY_DOCUMENT,
@@ -100,12 +101,11 @@ export function GrantForm({
               {formatShareCount(award.availableShares)} vested shares available to issue. The recipient and agreement
               are fixed; company approval and recording the issue remain separate.
             </p>
-            <details>
-              <summary className="cursor-pointer py-2 text-sm">Award record details</summary>
+            <Disclosure summary="Award record details">
               <p className="text-sm text-text-muted">
                 Award {award.uuid} · Member {award.member}
               </p>
-            </details>
+            </Disclosure>
           </div>
         ) : (
           <PersonSelect

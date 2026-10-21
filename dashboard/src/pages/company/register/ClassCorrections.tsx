@@ -14,7 +14,7 @@ import {
   type OrderSubmissionOwner,
   type OwnCompanyAppointment,
 } from '@ledova/shared';
-import { LinkRow, LoadError, Loading } from '@components/Ledger';
+import { LinkRow, LoadError, Loading, Disclosure } from '@components/Ledger';
 import { LoadMore } from '@components/List';
 
 import { CorrectionRecord } from './CorrectionRecord';
@@ -77,13 +77,11 @@ function EntryHistory({
           const reversal = entry.correctedBy ? sequences.get(entry.correctedBy) : undefined;
           return (
             <li key={entry.uuid} hidden={!privateReady} className="flex flex-col gap-2 py-4">
-              <details className="space-y-3">
+              <Disclosure
+                summary={`${COPY.ENTRY_KINDS[entry.kind] ?? entry.kind} · Entry ${entry.sequence} · ${formatDate(entry.effectiveOn)}`}
+              >
                 {privateReady && (
                   <>
-                    <summary className="cursor-pointer text-sm font-medium">
-                      {COPY.ENTRY_KINDS[entry.kind] ?? entry.kind} · Entry {entry.sequence} ·{' '}
-                      {formatDate(entry.effectiveOn)}
-                    </summary>
                     <p className="text-xs text-text-muted">
                       Ledger date {formatDate(entry.effectiveOn)} · Recorded {formatDateTime(entry.recordedAt)}
                     </p>
@@ -124,7 +122,7 @@ function EntryHistory({
                   guard={certificateGuard}
                   sourceReady={visible && sourceReady && !history.isFetching && !history.moreFailed}
                 />
-              </details>
+              </Disclosure>
             </li>
           );
         })}

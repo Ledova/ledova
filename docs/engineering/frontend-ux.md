@@ -62,12 +62,16 @@ The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components
 - `PageAction` and `PageLink` (`Action` on mobile): a content-width action placed with what it acts
   on: the title row for the page (including the way back to the parent), a section for that section,
   a row for that row's record alone. Nothing is selected before acting, and no toolbar waits under a list.
-- `Disclosure`: a button with `aria-expanded` (expanded or collapsed on mobile) and a leading caret
-  that opens its detail in place under its row, held only while open; other open rows stay open
-  (`useOpenRows` from `@ledova/shared`). Activity's filter and Wallets' sort (once a chain holds two
-  wallets) are a `Disclosure` at the top of the card naming what it applies; applying or clearing
-  closes it and every open entry and returns focus to its button. Dialogs are for work that sets the
-  page aside: a form that creates or changes something, a signing step or a confirmation.
+- `Disclosure`: every expandable section on a web page, a button with `aria-expanded` (expanded or
+  collapsed on mobile) and a leading caret that opens its detail in place under its row; a summary
+  given as text takes the one summary style. A list's rows open independently (`useOpenRows` from
+  `@ledova/shared`) and hold their detail only while open. Any other section keeps its detail mounted
+  while closed, so unfinished input survives, and may start open, as a prepared register record
+  does. The sidebar's More group is the one native toggle, styled as a navigation item. Activity's
+  filter and Wallets' sort (once a chain holds two wallets) are a `Disclosure` at the top of the card
+  naming what it applies; applying or clearing closes it and every open entry and returns focus to
+  its button. Dialogs are for work that sets the page aside: a form that creates or changes
+  something, a signing step or a confirmation.
 - `SwitchRow`: a setting that takes effect at once (Transaction alerts; Dark theme; Show this
   company to eligible investors), as an On/Off pill or native switch (`role="switch"`,
   `aria-checked` the saved value), disabled while saving; a refusal keeps the saved value and shows
@@ -123,14 +127,15 @@ Representative authority, Back to Shareholders on a shareholder's page. Once a p
 found its member, its link goes back to that member by name. Register setup has none, on purpose
 ([decisions](../decisions.md#manual-register-setup-shares-before-shareholders)).
 
-A way back to Register carries the place it means, built by `registerPlace`
+A way back to a Register class or task carries the place it means, built by `registerPlace`
 (`dashboard/src/pages/company/register/shared/registerPlace.ts`): a correction, an opening and a
 class's own page return to that class's History, a non-paid transfer to that class's Transfer shares,
-and wallet links to the company's History. A transfer started from a shareholder's page links back
-to them by name. Preparing a correction, opening, non-paid transfer, wallet link or particulars change
-lands on the new record in Register, at its class and task, focused and with one line naming what was
-prepared ([feedback](#feedback)). A preparation started from a shareholder's page lands there too,
-since a shareholder's page doesn't list prepared records.
+and wallet links to the company's History; a shareholder's page links back to Shareholders with its
+company. A transfer started from a shareholder's page links back to them by name. Preparing a
+correction, opening, non-paid transfer, wallet link or particulars change lands on the new record in
+Register, at its class and task, focused and with one line naming what was prepared
+([feedback](#feedback)). A preparation started from a shareholder's page also lands on its record in
+Register, since a shareholder's page doesn't list prepared records.
 
 Each page's title is also the browser tab's title, "<page title> · Ledova", set by `Page`; a
 shareholder's page says "Shareholder" there, so their name stays out of the browser's history. After
@@ -210,9 +215,10 @@ confirm with native alerts.
 `role="status"` sentence in the primary text colour, after the mark `Status` uses for done. It sits
 under the change or on the record you land on, and stays until the next action replaces it; there
 are no toasts. Its status region stays in place, empty and visually hidden, before there is anything
-to report, so a screen reader announces the sentence when it arrives. It names the record rather
-than its identifier; team invitations, appointments and authority requests show their identifier in
-their own details. It reports:
+to report, so a screen reader announces the sentence when it arrives; a preparation's line arrives
+with the record it lands on and is read because focus moves to that record. It names the record
+rather than its identifier; team invitations, appointments and authority requests show their
+identifier in their own details. It reports:
 
 - a changed password, saved personal details, and an offering submitted for review, withdrawn or
   deleted;

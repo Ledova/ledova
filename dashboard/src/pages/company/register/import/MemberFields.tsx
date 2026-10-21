@@ -10,6 +10,7 @@ import {
 import { PageAction } from '@components/Page';
 import { PersonFields, PersonSelect } from '@pages/company/register/shared/PersonPicker';
 import { blankAllotment, type AllotmentDraft, type MemberDraft } from './preparation';
+import { Disclosure } from '@components/Ledger';
 
 const HELD_FOR_SOMEONE_ELSE = [
   ['yes', 'Yes'],
@@ -149,8 +150,10 @@ export function MemberFields({
               onChange={(held) => setAllotment(at, { beneficiallyHeld: held === 'no' })}
             />
           </div>
-          <details open={!!(allotment.shareReference || allotment.certificateReference)}>
-            <summary className="cursor-pointer text-sm text-text-muted">References (optional)</summary>
+          <Disclosure
+            summary="References (optional)"
+            defaultOpen={!!(allotment.shareReference || allotment.certificateReference)}
+          >
             <div className="grid gap-3 pt-3 sm:grid-cols-2">
               <Field label="Share numbers or reference">
                 <TextInput
@@ -167,7 +170,7 @@ export function MemberFields({
                 />
               </Field>
             </div>
-          </details>
+          </Disclosure>
           {row.allotments.length > 1 && (
             <PageAction
               label={`Remove allotment ${at + 1} for shareholder ${index + 1}`}

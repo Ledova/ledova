@@ -15,7 +15,7 @@ import {
 import { LinkRow, LoadError, Loading } from '@components/Ledger';
 import { PageTitle } from '@components/PageTitle';
 import { pageTitle } from '@utils/destinations';
-import { isRegisterTask, type Landed } from '@pages/company/register/shared/registerPlace';
+import { isRegisterTask, type Landed, type RegisterTask } from '@pages/company/register/shared/registerPlace';
 import { Page, PageAction, PageLink } from '@components/Page';
 import { CompanySelection } from '@pages/company/shared/CompanySelection';
 
@@ -40,7 +40,6 @@ import { ownerGuard } from '@pages/company/shared/ownerGuard';
 import { useOwnAppointments } from '@hooks/useOwnAppointments';
 
 const ON_CHAIN = ['deployed', 'paused'];
-type RegisterTask = keyof typeof DESTINATIONS.companyRegister.tasks;
 const TASKS = Object.entries(DESTINATIONS.companyRegister.tasks) as [RegisterTask, string][];
 
 function RegisterPage({
@@ -317,16 +316,12 @@ function OwnRegister({
       return;
     const section = classSections.current.get(registerToken);
     if (!section) return;
-    if (registerTask === 'history' && view === 'register') {
-      const history = section.querySelector<HTMLDetailsElement>('details[data-register-history]');
-      if (history) history.open = true;
-    }
     if (!registerRecord) {
       section.focus({ preventScroll: true });
       section.scrollIntoView?.({ block: 'start' });
     }
     focusedContext.current = location.key;
-  }, [location.key, held, sourceReady, view, registerTask, registerToken, registerRecord, registerCompany, scope]);
+  }, [location.key, held, sourceReady, view, registerToken, registerRecord, registerCompany, scope]);
 
   return (
     <RegisterPage
@@ -553,12 +548,8 @@ function OwnRegister({
                     />
                   </div>
                   <div hidden={view !== 'register' || selectedTask !== 'history'}>
-                    <details
-                      data-register-history
-                      open={view === 'register' && selectedTask === 'history'}
-                      className="space-y-4"
-                    >
-                      <summary className="cursor-pointer text-sm font-medium">Recorded changes</summary>
+                    <div className="space-y-4">
+                      <h4 className="text-sm font-medium">Recorded changes</h4>
                       {sourceReady && (
                         <LinkRow
                           to={generatePath(DESTINATIONS.companyClass.path, { uuid: register.token.uuid })}
@@ -625,7 +616,7 @@ function OwnRegister({
                         }
                         onHeldChange={historyHeld}
                       />
-                    </details>
+                    </div>
                   </div>
                   <div hidden={view !== 'awards'} className="space-y-5">
                     <ClassAwards
