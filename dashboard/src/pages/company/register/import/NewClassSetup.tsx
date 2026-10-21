@@ -1,3 +1,4 @@
+import { Field, TextInput } from '@components/Field';
 import { Choices } from '@components/Choices';
 import { useNewShareClass, type FreshClassProps } from './useNewShareClass';
 import { Fragment, useLayoutEffect, useMemo, useRef, useState } from 'react';
@@ -16,7 +17,6 @@ import {
   type TokenType,
   type RegisterTransferMembers,
 } from '@ledova/shared';
-import { FIELD_CLASS, LABEL } from '@components/fieldClass';
 
 import { CompanySelection } from '@pages/company/shared/CompanySelection';
 import { registerSteps } from '@pages/company/shared/proposals';
@@ -270,26 +270,22 @@ function FreshClass({
           )}
           {choice === 'custom' && (
             <div className="grid gap-3 sm:grid-cols-2">
-              <label className={LABEL}>
-                Class name
-                <input
+              <Field label="Class name">
+                <TextInput
                   maxLength={FIELD_LIMITS.CLASS_NAME}
                   disabled={classLocked}
-                  className={FIELD_CLASS}
                   value={name}
                   onChange={(event) => setName(event.target.value)}
                 />
-              </label>
-              <label className={LABEL}>
-                Class code
-                <input
+              </Field>
+              <Field label="Class code">
+                <TextInput
                   maxLength={FIELD_LIMITS.CLASS_CODE}
                   disabled={classLocked}
-                  className={FIELD_CLASS}
                   value={symbol}
                   onChange={(event) => setSymbol(event.target.value.toUpperCase())}
                 />
-              </label>
+              </Field>
               <Choices
                 legend="Class type"
                 options={CLASS_TYPES}

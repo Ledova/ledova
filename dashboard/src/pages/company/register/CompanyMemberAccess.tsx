@@ -1,3 +1,4 @@
+import { Field, TextArea, TextInput } from '@components/Field';
 import { useEffect, useRef, useState } from 'react';
 import { useRunningAction } from '@hooks/useRunningAction';
 import {
@@ -133,17 +134,15 @@ export function CompanyMemberAccess({
           <p className="text-sm text-text-muted">
             An award recipient can view their own award before any shares are issued.
           </p>
-          <label className="block space-y-1 text-sm">
-            Intended recipient email
-            <input
+          <Field label="Intended recipient email">
+            <TextInput
               maxLength={FIELD_LIMITS.EMAIL}
-              className={FIELD_CLASS}
               type="email"
               value={email}
               disabled={held}
               onChange={(event) => setInvitation({ company, member: member?.uuid ?? '', email: event.target.value })}
             />
-          </label>
+          </Field>
           <PageAction
             label="Create member invitation"
             primary
@@ -155,10 +154,9 @@ export function CompanyMemberAccess({
             }}
           />
           {access.code && (
-            <label className="block space-y-1 text-sm">
-              One-time member invitation code
-              <input className={FIELD_CLASS} readOnly autoComplete="off" value={access.code} />
-            </label>
+            <Field label="One-time member invitation code">
+              <TextInput readOnly autoComplete="off" value={access.code} />
+            </Field>
           )}
           {access.access?.invitations.map((item) => (
             <div key={item.uuid} className="space-y-1 text-sm">
@@ -175,16 +173,14 @@ export function CompanyMemberAccess({
             </div>
           ))}
           <h3 className="border-t border-border-subtle pt-4 text-base font-medium">Current member access</h3>
-          <label className="block space-y-1 text-sm">
-            Company action reason
-            <textarea
+          <Field label="Company action reason">
+            <TextArea
               maxLength={FIELD_LIMITS.REASON}
-              className={FIELD_CLASS}
               value={reason}
               disabled={held}
               onChange={(event) => setReason(event.target.value)}
             />
-          </label>
+          </Field>
           {access.access?.associations.map((association) => (
             <div key={association.uuid} className="space-y-2 py-2">
               <p className="text-sm">
@@ -252,28 +248,24 @@ export function CompanyMemberAccess({
                     onChange={(event) => selectFile(event.target.files?.[0] ?? null)}
                   />
                 </label>
-                <label className="block space-y-1 text-sm">
-                  As-at date (UTC)
-                  <input
-                    className={FIELD_CLASS}
+                <Field label="As-at date (UTC)">
+                  <TextInput
                     type="date"
                     max={utcToday()}
                     value={asAt}
                     disabled={held}
                     onChange={(event) => setAsAt(event.target.value)}
                   />
-                </label>
+                </Field>
                 {!access.admin && (
-                  <label className="block space-y-1 text-sm">
-                    Company action reason
-                    <textarea
+                  <Field label="Company action reason">
+                    <TextArea
                       maxLength={FIELD_LIMITS.REASON}
-                      className={FIELD_CLASS}
                       value={reason}
                       disabled={held}
                       onChange={(event) => setReason(event.target.value)}
                     />
-                  </label>
+                  </Field>
                 )}
                 {uploadError && (
                   <p role="alert" className="text-sm text-error-light">
@@ -295,16 +287,14 @@ export function CompanyMemberAccess({
             Fulfil a genuine receiving issue or transfer with an unsigned recipient-only PDF. The company remains
             responsible for execution and permitted use.
           </p>
-          <label className="block space-y-1 text-sm">
-            Certificate instruction reference
-            <input
-              className={FIELD_CLASS}
+          <Field label="Certificate instruction reference">
+            <TextInput
               value={certificateInstruction}
               maxLength={FIELD_LIMITS.REFERENCE}
               disabled={held || !!access.certificateTarget}
               onChange={(event) => setCertificateInstruction(event.target.value)}
             />
-          </label>
+          </Field>
           {access.certificateTarget && (
             <div className="space-y-2">
               <p>

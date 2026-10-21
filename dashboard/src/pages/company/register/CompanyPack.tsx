@@ -1,7 +1,7 @@
+import { Field, TextInput } from '@components/Field';
 import { FIELD_LIMITS, type OrderSubmissionOwner } from '@ledova/shared';
 import { Outcome, Section } from '@components/Ledger';
 import { PageAction } from '@components/Page';
-import { FIELD_CLASS } from '@components/fieldClass';
 import { useCompanyPackAuthority, useCompanyPack } from './useCompanyPack';
 
 export function CompanyPack({
@@ -65,24 +65,20 @@ function PackForm({
   return (
     <div className="flex flex-col gap-3 pt-3">
       <fieldset disabled={busy || !sourceReady} className="grid gap-4 sm:grid-cols-2">
-        <label className="block text-sm text-text-primary">
-          Pack instruction reference
-          <input
-            className={FIELD_CLASS}
+        <Field label="Pack instruction reference">
+          <TextInput
             maxLength={FIELD_LIMITS.REFERENCE}
             value={instruction}
             onChange={(event) => setInstruction(event.target.value)}
           />
-        </label>
-        <label className="block text-sm text-text-primary">
-          Pack recipient
-          <input
-            className={FIELD_CLASS}
+        </Field>
+        <Field label="Pack recipient">
+          <TextInput
             maxLength={FIELD_LIMITS.NAME}
             value={recipient}
             onChange={(event) => setRecipient(event.target.value)}
           />
-        </label>
+        </Field>
       </fieldset>
       <PageAction
         primary

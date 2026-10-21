@@ -63,7 +63,7 @@ export function CompanyRegistrationForm({
           )}
 
           <Field className="space-y-1">
-            <Label className="block text-sm font-medium text-text-body">Registered company name *</Label>
+            <Label className="block text-sm font-medium text-text-body">Registered company name</Label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <BuildingsIcon size={ICON_MD} className="text-text-subtle" />
@@ -107,7 +107,7 @@ export function CompanyRegistrationForm({
           </Field>
 
           <Field className="space-y-1">
-            <Label className="block text-sm font-medium text-text-body">Company type *</Label>
+            <Label className="block text-sm font-medium text-text-body">Company type</Label>
             <div className="relative">
               <Select
                 name="companyType"
@@ -133,7 +133,7 @@ export function CompanyRegistrationForm({
 
           <div className="grid grid-cols-2 gap-4">
             <Field className="space-y-1">
-              <Label className="block text-sm font-medium text-text-body">ACN *</Label>
+              <Label className="block text-sm font-medium text-text-body">ACN</Label>
               <AuthInput
                 type="text"
                 name="acn"

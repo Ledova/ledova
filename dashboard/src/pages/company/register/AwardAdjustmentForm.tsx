@@ -1,3 +1,4 @@
+import { Field, TextArea, TextInput } from '@components/Field';
 import { FormActions, PageAction } from '@components/Page';
 import { FIELD_CLASS, LABEL } from '@components/fieldClass';
 import { FIELD_LIMITS, REGISTER_AWARD_COPY as COPY } from '@ledova/shared';
@@ -21,59 +22,49 @@ export function AwardAdjustmentForm(props: Parameters<typeof useAwardAdjustmentF
         className="grid gap-4 sm:grid-cols-2"
       >
         {props.vesting ? (
-          <label className={LABEL}>
-            {COPY.REVERSED_SHARES}
-            <input
-              className={FIELD_CLASS}
+          <Field label={COPY.REVERSED_SHARES}>
+            <TextInput
               inputMode="numeric"
               maxLength={FIELD_LIMITS.REGISTER_SHARES}
               value={form.reversedShares}
               onChange={(event) => form.setReversedShares(event.target.value.trim())}
             />
-          </label>
+          </Field>
         ) : (
           <>
-            <label className={LABEL}>
-              {COPY.END_UNVESTED}
-              <input
-                className={FIELD_CLASS}
+            <Field label={COPY.END_UNVESTED}>
+              <TextInput
                 inputMode="numeric"
                 maxLength={FIELD_LIMITS.REGISTER_SHARES}
                 value={form.unvestedShares}
                 onChange={(event) => form.setUnvestedShares(event.target.value.trim())}
               />
-            </label>
-            <label className={LABEL}>
-              {COPY.END_VESTED}
-              <input
-                className={FIELD_CLASS}
+            </Field>
+            <Field label={COPY.END_VESTED}>
+              <TextInput
                 inputMode="numeric"
                 maxLength={FIELD_LIMITS.REGISTER_SHARES}
                 value={form.vestedShares}
                 onChange={(event) => form.setVestedShares(event.target.value.trim())}
               />
-            </label>
+            </Field>
           </>
         )}
-        <label className={LABEL}>
-          {COPY.COMPANY_EVENT_ON}
-          <input
-            className={FIELD_CLASS}
+        <Field label={COPY.COMPANY_EVENT_ON}>
+          <TextInput
             type="date"
             max={form.today}
             value={form.companyEventOn}
             onChange={(event) => form.setCompanyEventOn(event.target.value)}
           />
-        </label>
-        <label className={LABEL}>
-          {COPY.REASON}
-          <textarea
-            className={FIELD_CLASS}
+        </Field>
+        <Field label={COPY.REASON}>
+          <TextArea
             maxLength={FIELD_LIMITS.REASON}
             value={form.reason}
             onChange={(event) => form.setReason(event.target.value)}
           />
-        </label>
+        </Field>
         <label className={LABEL}>
           {COPY.ADJUSTMENT_DOCUMENT}
           <input

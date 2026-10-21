@@ -1,7 +1,7 @@
+import { Field, TextArea, TextInput } from '@components/Field';
 import { SelectField } from '@components/SelectField';
 import { Row, Rows, Section } from '@components/Ledger';
 import { PageAction } from '@components/Page';
-import { FIELD_CLASS } from '@components/fieldClass';
 import { SearchSelect } from '@components/SearchSelect';
 import {
   FIELD_LIMITS,
@@ -312,33 +312,23 @@ function Preparation({ commands }: { commands: Commands }) {
         noun={MEMBERS}
       />
       {member === 'new' && <p className="text-sm text-text-muted">New stable member: {newMember}</p>}
-      <label className="block text-sm">
-        Approving director
-        <input
-          className={FIELD_CLASS}
+      <Field label="Approving director">
+        <TextInput
           maxLength={FIELD_LIMITS.DIRECTOR}
           value={director}
           onChange={(event) => setDirector(event.target.value)}
         />
-      </label>
-      <label className="block text-sm">
-        Authority reference
-        <input
-          className={FIELD_CLASS}
+      </Field>
+      <Field label="Authority reference">
+        <TextInput
           maxLength={FIELD_LIMITS.REFERENCE}
           value={reference}
           onChange={(event) => setReference(event.target.value)}
         />
-      </label>
-      <label className="block text-sm">
-        Reason
-        <input
-          className={FIELD_CLASS}
-          maxLength={FIELD_LIMITS.REASON}
-          value={reason}
-          onChange={(event) => setReason(event.target.value)}
-        />
-      </label>
+      </Field>
+      <Field label="Reason">
+        <TextInput maxLength={FIELD_LIMITS.REASON} value={reason} onChange={(event) => setReason(event.target.value)} />
+      </Field>
       <label className="block text-sm">
         Authority document
         <input
@@ -373,36 +363,20 @@ function Preparation({ commands }: { commands: Commands }) {
         value={approval}
         onChange={setApproval}
       />
-      <label className="block text-sm">
-        Shares to grant
-        <input
+      <Field label="Shares to grant" hint="Enter whole shares from 1 to 2,147,483,647.">
+        <TextInput
           maxLength={FIELD_LIMITS.WHOLE_SHARES}
           inputMode="numeric"
-          className={FIELD_CLASS}
           value={shares}
           onChange={(event) => setShares(event.target.value)}
         />
-      </label>
-      <p className="text-xs text-text-muted">Enter whole shares from 1 to 2,147,483,647.</p>
-      <label className="block text-sm">
-        Terms date (UTC)
-        <input
-          type="date"
-          max={utcToday()}
-          className={FIELD_CLASS}
-          value={termsOn}
-          onChange={(event) => setTermsOn(event.target.value)}
-        />
-      </label>
-      <label className="block text-sm">
-        Non-paid terms
-        <textarea
-          className={FIELD_CLASS}
-          maxLength={FIELD_LIMITS.TERMS}
-          value={terms}
-          onChange={(event) => setTerms(event.target.value)}
-        />
-      </label>
+      </Field>
+      <Field label="Terms date (UTC)">
+        <TextInput type="date" max={utcToday()} value={termsOn} onChange={(event) => setTermsOn(event.target.value)} />
+      </Field>
+      <Field label="Non-paid terms">
+        <TextArea maxLength={FIELD_LIMITS.TERMS} value={terms} onChange={(event) => setTerms(event.target.value)} />
+      </Field>
       <label className="block text-sm">
         Terms document
         <input

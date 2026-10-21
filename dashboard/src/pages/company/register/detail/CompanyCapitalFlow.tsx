@@ -1,3 +1,4 @@
+import { Field, TextArea, TextInput } from '@components/Field';
 import { Row, Rows, Section, Loading } from '@components/Ledger';
 import { PageAction } from '@components/Page';
 import { FIELD_CLASS } from '@components/fieldClass';
@@ -160,42 +161,35 @@ function Preparation({ commands }: { commands: Commands }) {
           }}
         />
       )}
-      <label className="block text-sm">
-        Additional authorised shares
-        <input
+      <Field label="Additional authorised shares">
+        <TextInput
           maxLength={FIELD_LIMITS.WHOLE_SHARES}
-          className={FIELD_CLASS}
           inputMode="numeric"
           value={additional}
           onChange={(event) => setAdditional(event.target.value)}
         />
-      </label>
+      </Field>
       {total !== null && <p className="text-sm">New authorised cap: {formatShareCount(total)}</p>}
       {additional !== '' && (additionalShares === null || newAuthorizedTotal === null) && (
         <p role="alert">Enter positive whole shares with an exact new cap no greater than 2,147,483,647.</p>
       )}
-      <label className="block text-sm">
-        Purpose
-        <textarea className={FIELD_CLASS} value={purpose} onChange={(event) => setPurpose(event.target.value)} />
-      </label>
-      <label className="block text-sm">
-        Board resolution reference
-        <input
-          className={FIELD_CLASS}
+      <Field label="Purpose">
+        <TextArea value={purpose} onChange={(event) => setPurpose(event.target.value)} />
+      </Field>
+      <Field label="Board resolution reference">
+        <TextInput
           maxLength={FIELD_LIMITS.REFERENCE}
           value={board}
           onChange={(event) => setBoard(event.target.value)}
         />
-      </label>
-      <label className="block text-sm">
-        Shareholder approval reference (optional)
-        <input
-          className={FIELD_CLASS}
+      </Field>
+      <Field label="Shareholder approval reference (optional)">
+        <TextInput
           maxLength={FIELD_LIMITS.REFERENCE}
           value={shareholder}
           onChange={(event) => setShareholder(event.target.value)}
         />
-      </label>
+      </Field>
       <label className="block text-sm">
         Capital authority document
         <input

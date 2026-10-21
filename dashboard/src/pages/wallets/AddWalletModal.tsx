@@ -1,3 +1,4 @@
+import { Field, TextInput } from '@components/Field';
 import { Choices } from '@components/Choices';
 import type { ReactNode } from 'react';
 import { useEffect, useMemo, useState } from 'react';
@@ -65,6 +66,18 @@ export function AddWalletModal({
     onClose();
   };
 
+  const scanToggle = (
+    <button
+      type="button"
+      onClick={form.toggleScanner}
+      disabled={isLoading}
+      className="flex items-center gap-1 text-sm text-brand-light transition-colors"
+    >
+      <QrCodeIcon size={ICON_SM} />
+      <span>{form.showScanner ? 'Hide scanner' : 'Scan QR'}</span>
+    </button>
+  );
+
   if (form.isSelectingAddresses && form.scannedURString) {
     return (
       <Modal isOpen={isOpen} onClose={handleClose} title="Add wallet">
@@ -111,22 +124,9 @@ export function AddWalletModal({
           {form.showScanner ? 'Scan your wallet QR code' : 'Enter wallet details or scan a QR code'}
         </p>
 
-        <div className="space-y-1">
-          <div className="flex items-center justify-between">
-            <label className="text-sm text-text-muted">Wallet address</label>
-            <button
-              type="button"
-              onClick={form.toggleScanner}
-              disabled={isLoading}
-              className="flex items-center gap-1 text-sm text-brand-light transition-colors"
-            >
-              <QrCodeIcon size={ICON_SM} />
-              <span>{form.showScanner ? 'Hide scanner' : 'Scan QR'}</span>
-            </button>
-          </div>
-
+        <Field label="Wallet address" aside={scanToggle} error={form.showScanner ? null : form.errors.address}>
           {form.showScanner ? (
-            <div className="space-y-3">
+            <div className="mt-1 space-y-3">
               <div className="relative overflow-hidden rounded-lg bg-black mx-auto" style={{ width: 280, height: 280 }}>
                 <div id="wallet-qr-scanner" className="w-full h-full" />
               </div>
@@ -143,21 +143,16 @@ export function AddWalletModal({
               {form.scannerError && <p className="text-center text-sm text-error-light">{form.scannerError}</p>}
             </div>
           ) : (
-            <>
-              <input
-                type="text"
-                aria-label="Wallet address"
-                maxLength={FIELD_LIMITS.WALLET_ADDRESS}
-                value={form.address}
-                onChange={(e) => form.handleAddressChange(e.target.value)}
-                className={`${FIELD_CLASS} font-mono ${form.errors.address ? 'border-error-light' : 'border-border'}`}
-                placeholder="0x… or tb1…"
-                disabled={isLoading}
-              />
-              {form.errors.address && <p className="text-xs text-error-light">{form.errors.address}</p>}
-            </>
+            <TextInput
+              maxLength={FIELD_LIMITS.WALLET_ADDRESS}
+              value={form.address}
+              onChange={(e) => form.handleAddressChange(e.target.value)}
+              className={`${FIELD_CLASS} font-mono ${form.errors.address ? 'border-error-light' : 'border-border'}`}
+              placeholder="0x… or tb1…"
+              disabled={isLoading}
+            />
           )}
-        </div>
+        </Field>
 
         {!form.showScanner && (
           <Choices
@@ -169,19 +164,15 @@ export function AddWalletModal({
           />
         )}
         {!form.showScanner && (
-          <div className="space-y-1">
-            <label className="text-sm text-text-muted">Wallet name (optional)</label>
-            <input
-              type="text"
-              aria-label="Wallet name"
+          <Field label="Wallet name" optional>
+            <TextInput
               value={form.name}
               onChange={(e) => form.setName(e.target.value)}
-              className={`${FIELD_CLASS} border-border`}
               placeholder="e.g., Savings, Trading, Cold Storage"
               disabled={isLoading}
               maxLength={FIELD_LIMITS.WALLET_NAME}
             />
-          </div>
+          </Field>
         )}
       </div>
     </Modal>

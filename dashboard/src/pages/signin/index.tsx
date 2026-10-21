@@ -7,6 +7,7 @@ import {
   AuthCard,
   AuthInput,
   AuthDivider,
+  authFieldClass,
 } from '@components/auth';
 import { ROOT_PATH, SIGNUP_PATH } from '@utils/paths';
 import { Link, useNavigate } from 'react-router-dom';
@@ -82,7 +83,7 @@ function SignInPage() {
                 maxLength={FIELD_LIMITS.PASSWORD}
                 value={form.password}
                 onChange={(e) => setFieldValue('password', e.target.value)}
-                className="w-full bg-surface-tertiary border border-border rounded-lg pl-10 pr-12 py-3 text-text-primary placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-brand-mid focus:border-transparent transition-colors"
+                className={authFieldClass(false, 'pl-10 pr-12', true, 'focus:ring-brand-mid')}
                 placeholder="••••••••"
                 required
                 disabled={isLoading}

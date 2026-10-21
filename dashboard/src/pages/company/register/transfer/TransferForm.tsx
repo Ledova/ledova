@@ -1,3 +1,4 @@
+import { Field, TextInput } from '@components/Field';
 import { useTransferPreparation, type TransferFormProps } from './useTransferPreparation';
 
 import { REGISTER_TRANSFER_COPY as COPY, type Person } from '@ledova/shared';
@@ -105,10 +106,8 @@ export function TransferForm({
           </p>
         )}
         {fields.map(([key, label, maxLength]) => (
-          <label key={key} className={LABEL}>
-            {label}
-            <input
-              className={FIELD_CLASS}
+          <Field key={key} label={label}>
+            <TextInput
               type={key.endsWith('On') ? 'date' : 'text'}
               max={key.endsWith('On') ? today : undefined}
               inputMode={key === 'shares' ? 'numeric' : undefined}
@@ -116,7 +115,7 @@ export function TransferForm({
               maxLength={maxLength}
               onChange={(event) => change(key, event.target.value)}
             />
-          </label>
+          </Field>
         ))}
         <p className="text-sm text-text-muted">
           {COPY.DIRECTOR_NOTE} {COPY.EFFECTIVE_NOTE}

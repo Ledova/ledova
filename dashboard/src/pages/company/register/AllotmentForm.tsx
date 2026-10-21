@@ -1,3 +1,4 @@
+import { Field, TextInput } from '@components/Field';
 import { FormActions, PageAction } from '@components/Page';
 import { FIELD_CLASS, LABEL } from '@components/fieldClass';
 import { FIELD_LIMITS, REGISTER_ALLOTMENT_COPY as COPY, type OwnCompanyAppointment, type Person } from '@ledova/shared';
@@ -55,8 +56,9 @@ export function AllotmentForm({
       visible,
     });
   const field = (key: Exclude<keyof typeof fields, 'name' | 'residentialAddress'>) => (
-    <label key={key} className={LABEL}>
-      {
+    <Field
+      key={key}
+      label={
         {
           shares: COPY.SHARES,
           companyEventOn: COPY.COMPANY_EVENT_ON,
@@ -71,15 +73,15 @@ export function AllotmentForm({
           reason: COPY.REASON,
         }[key]
       }
-      <input
-        className={FIELD_CLASS}
+    >
+      <TextInput
         type={key.endsWith('On') ? 'date' : 'text'}
         max={key.endsWith('On') ? today : undefined}
         value={fields[key]}
         maxLength={LIMITS[key]}
         onChange={(event) => setFields((current) => ({ ...current, [key]: event.target.value }))}
       />
-    </label>
+    </Field>
   );
   const document = (kind: DocumentKind) => (
     <label className={LABEL}>

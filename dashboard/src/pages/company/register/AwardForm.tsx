@@ -1,3 +1,4 @@
+import { Field, TextArea, TextInput } from '@components/Field';
 import { FormActions, PageAction } from '@components/Page';
 import { FIELD_CLASS, LABEL } from '@components/fieldClass';
 import { FIELD_LIMITS, REGISTER_AWARD_COPY as COPY, type OwnCompanyAppointment, type Person } from '@ledova/shared';
@@ -82,38 +83,23 @@ export function AwardForm({
           {member === 'new' && (
             <PersonFields name={name} residentialAddress={address} onName={setName} onResidentialAddress={setAddress} />
           )}
-          <label className={LABEL}>
-            {COPY.SHARES}
-            <input
-              className={FIELD_CLASS}
+          <Field label={COPY.SHARES}>
+            <TextInput
               inputMode="numeric"
               maxLength={FIELD_LIMITS.REGISTER_SHARES}
               value={shares}
               onChange={(event) => setShares(event.target.value.trim())}
             />
-          </label>
+          </Field>
         </fieldset>
-        <fieldset className="grid gap-4 border-t border-border-subtle pt-4 sm:grid-cols-2 [&>p]:sm:col-span-2 [&>label:has(textarea)]:sm:col-span-2">
+        <fieldset className="grid gap-4 border-t border-border-subtle pt-4 sm:grid-cols-2 [&>p]:sm:col-span-2 [&>div:has(textarea)]:sm:col-span-2">
           <legend className="pb-2 text-base font-medium">Agreement</legend>
-          <label className={LABEL}>
-            {COPY.TERMS_ON}
-            <input
-              className={FIELD_CLASS}
-              type="date"
-              max={today}
-              value={termsOn}
-              onChange={(event) => setTermsOn(event.target.value)}
-            />
-          </label>
-          <label className={LABEL}>
-            {COPY.TERMS}
-            <textarea
-              className={FIELD_CLASS}
-              maxLength={FIELD_LIMITS.TERMS}
-              value={terms}
-              onChange={(event) => setTerms(event.target.value)}
-            />
-          </label>
+          <Field label={COPY.TERMS_ON}>
+            <TextInput type="date" max={today} value={termsOn} onChange={(event) => setTermsOn(event.target.value)} />
+          </Field>
+          <Field label={COPY.TERMS}>
+            <TextArea maxLength={FIELD_LIMITS.TERMS} value={terms} onChange={(event) => setTerms(event.target.value)} />
+          </Field>
           <label className={LABEL}>
             {COPY.AGREEMENT_DOCUMENT}
             <input
@@ -125,21 +111,18 @@ export function AwardForm({
           </label>
           <p className="text-sm text-text-muted">PDF or image, max 10 MB. {COPY.NOTE}</p>
         </fieldset>
-        <fieldset className="grid gap-4 border-t border-border-subtle pt-4 sm:grid-cols-2 [&>p]:sm:col-span-2 [&>label:has(textarea)]:sm:col-span-2">
+        <fieldset className="grid gap-4 border-t border-border-subtle pt-4 sm:grid-cols-2 [&>p]:sm:col-span-2 [&>div:has(textarea)]:sm:col-span-2">
           <legend className="pb-2 text-base font-medium">Vesting schedule</legend>
-          <label className={LABEL}>
-            {COPY.SCHEDULE}
-            <textarea
-              className={FIELD_CLASS}
+          <Field
+            label={COPY.SCHEDULE}
+            hint="Retain the company's schedule. Each vesting event is recorded separately; dates create no vesting or issued shares."
+          >
+            <TextArea
               maxLength={FIELD_LIMITS.TERMS}
               value={schedule}
               onChange={(event) => setSchedule(event.target.value)}
             />
-          </label>
-          <p className="text-sm text-text-muted">
-            Retain the company&apos;s schedule. Each vesting event is recorded separately; dates create no vesting or
-            issued shares.
-          </p>
+          </Field>
         </fieldset>
       </fieldset>
       {problem && <p className="text-sm text-text-muted">{problem}</p>}

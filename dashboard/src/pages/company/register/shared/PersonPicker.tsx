@@ -1,6 +1,7 @@
+import { Field, TextArea, TextInput } from '@components/Field';
 import { useMemo } from 'react';
 import { FIELD_LIMITS, NEW_PERSON, personChoices, type Person } from '@ledova/shared';
-import { FIELD_CLASS, LABEL } from '@components/fieldClass';
+import { FIELD_CLASS } from '@components/fieldClass';
 import { SearchSelect } from '@components/SearchSelect';
 
 const READ_ONLY = 'read-only:bg-surface-tertiary read-only:text-text-muted';
@@ -64,19 +65,17 @@ export function PersonFields({
 }) {
   return (
     <>
-      <label className={LABEL}>
-        Name
-        <input
+      <Field label="Name">
+        <TextInput
           className={`${FIELD_CLASS} ${READ_ONLY}`}
           value={name}
           maxLength={FIELD_LIMITS.NAME}
           readOnly={nameReadOnly}
           onChange={(event) => onName(event.target.value)}
         />
-      </label>
-      <label className={LABEL}>
-        Residential address
-        <textarea
+      </Field>
+      <Field label="Residential address">
+        <TextArea
           className={`${FIELD_CLASS} ${READ_ONLY}`}
           value={residentialAddress}
           maxLength={FIELD_LIMITS.RESIDENTIAL_ADDRESS}
@@ -84,7 +83,7 @@ export function PersonFields({
           readOnly={addressReadOnly}
           onChange={(event) => onResidentialAddress(event.target.value)}
         />
-      </label>
+      </Field>
     </>
   );
 }

@@ -5,8 +5,8 @@ import {
   AuthHeader,
   AuthCard,
   AuthInput,
-  authFieldBorder,
   AuthDivider,
+  authFieldClass,
 } from '@components/auth';
 import { SIGNIN_PATH, SIGNUP_PATHS } from '@utils/paths';
 import { Link, useNavigate } from 'react-router-dom';
@@ -118,11 +118,12 @@ export default function SignupUser() {
                 maxLength={FIELD_LIMITS.PASSWORD}
                 value={form.password}
                 onChange={(e) => setFieldValue('password', e.target.value)}
-                className={`w-full bg-surface-tertiary border ${authFieldBorder(
+                className={authFieldClass(
                   (!passwordValidation.lengthValid || !passwordValidation.notNumeric) && form.password,
+                  'pl-10 pr-12',
                   false,
                   'focus:ring-brand-mid',
-                )} rounded-lg pl-10 pr-12 py-3 text-text-primary placeholder-text-muted focus:outline-none focus:ring-2 focus:border-transparent transition-colors`}
+                )}
                 placeholder="••••••••"
                 minLength={8}
                 required

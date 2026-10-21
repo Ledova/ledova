@@ -1,3 +1,4 @@
+import { Field, TextArea, TextInput } from '@components/Field';
 import { Choices } from '@components/Choices';
 import { FileIcon, UploadSimpleIcon, XIcon } from '@phosphor-icons/react';
 import { Modal } from '@components/Modal';
@@ -6,7 +7,6 @@ import { FIELD_LIMITS, addCalendarDays, addCalendarYears, formatFileSize, utcTod
 import type { InvestorCategory } from '@ledova/shared';
 import { useInvestorClaim } from './useInvestorClaim';
 import { CERTIFIER_BODIES, WHOLESALE_ONLY_NOTICE } from './constants';
-import { FIELD_CLASS } from '@components/fieldClass';
 import { LoadError } from '@components/Ledger';
 
 interface ClaimModalProps {
@@ -97,77 +97,62 @@ export function ClaimModal({
         <p className="text-sm text-text-secondary">{spec?.evidence}</p>
 
         {needsCompany && (
-          <div>
-            <label className="block">
-              <span className="text-sm font-medium text-text-primary">Issuer company UUID</span>
-              <input
-                type="text"
-                value={company}
-                onChange={(e) => {
-                  if (!isSubmitting) setCompany(e.target.value);
-                }}
-                className={FIELD_CLASS}
-                disabled={isSubmitting}
-              />
-            </label>
-            <p className="mt-1 text-sm text-text-muted">
-              Enter the exact company UUID provided by the issuer. The server checks that it is active.
-            </p>
-          </div>
+          <Field
+            label="Issuer company UUID"
+            hint="Enter the exact company UUID provided by the issuer. The server checks that it is active."
+          >
+            <TextInput
+              value={company}
+              onChange={(e) => {
+                if (!isSubmitting) setCompany(e.target.value);
+              }}
+              disabled={isSubmitting}
+            />
+          </Field>
         )}
 
         {needsCertifier && (
           <div className="grid gap-4 sm:grid-cols-2">
-            <label className="block">
-              <span className="text-sm font-medium text-text-primary">Certificate date (UTC)</span>
-              <input
+            <Field label="Certificate date (UTC)">
+              <TextInput
                 type="date"
                 min={addCalendarYears(addCalendarDays(utcToday(), 1), -2)}
                 max={utcToday()}
                 value={certificateIssuedAt}
                 onChange={(e) => setCertificateIssuedAt(e.target.value)}
-                className={FIELD_CLASS}
               />
-            </label>
+            </Field>
             <Choices
               legend="Professional body"
               options={CERTIFIER_BODIES.map((body) => [body.value, body.label] as const)}
               value={certifierBody}
               onChange={setCertifierBody}
             />
-            <label className="block">
-              <span className="text-sm font-medium text-text-primary">Accountant name</span>
-              <input
-                type="text"
+            <Field label="Accountant name">
+              <TextInput
                 value={certifierName}
                 maxLength={FIELD_LIMITS.CERTIFIER_NAME}
                 onChange={(e) => setCertifierName(e.target.value)}
-                className={FIELD_CLASS}
               />
-            </label>
-            <label className="block">
-              <span className="text-sm font-medium text-text-primary">Membership number</span>
-              <input
-                type="text"
+            </Field>
+            <Field label="Membership number">
+              <TextInput
                 value={certifierMembershipNumber}
                 maxLength={FIELD_LIMITS.MEMBERSHIP_NUMBER}
                 onChange={(e) => setCertifierMembershipNumber(e.target.value)}
-                className={FIELD_CLASS}
               />
-            </label>
+            </Field>
           </div>
         )}
 
-        <label className="block">
-          <span className="text-sm font-medium text-text-primary">Basis for the claim</span>
-          <textarea
+        <Field label="Basis for the claim">
+          <TextArea
             value={declaredBasis}
             onChange={(e) => setDeclaredBasis(e.target.value)}
             rows={3}
-            className={FIELD_CLASS}
             placeholder="Describe, in your own words, why this category applies to you"
           />
-        </label>
+        </Field>
 
         {!file ? (
           <div

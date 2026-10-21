@@ -1,3 +1,4 @@
+import { Field, TextInput } from '@components/Field';
 import { useState } from 'react';
 import { AnimatedQRCode } from '@keystonehq/animated-qr';
 import { FIELD_LIMITS, marketAmount, useOrderActionSigning, type OrderAction, type Wallet } from '@ledova/shared';
@@ -8,7 +9,6 @@ import { QRCodeFrame, QRScannerView, useQRScanner } from '@components/qr';
 import { encodeEthereumTypedData } from '@utils/keystone/urEncoder';
 import { decodeKeystoneMessageSignature } from '@utils/keystone/urDecoder';
 import { deriveAddress, signEthereumTypedData } from '@utils/softwareWallet/localSigner';
-import { FIELD_CLASS } from '@components/fieldClass';
 
 interface Props {
   action: OrderAction;
@@ -87,36 +87,30 @@ export function OrderActionFlow({ action, wallets, onClose }: Props) {
               <p>Cancel the available remainder of this order.</p>
             ) : (
               <>
-                <label className="block">
-                  New quantity
-                  <input
+                <Field label="New quantity">
+                  <TextInput
                     maxLength={FIELD_LIMITS.ORDER_SHARES}
-                    className={FIELD_CLASS}
                     inputMode="numeric"
                     value={state.values?.quantity ?? ''}
                     onChange={(event) => action.edit('quantity', event.target.value)}
                   />
-                </label>
-                <label className="block">
-                  New minimum fill
-                  <input
+                </Field>
+                <Field label="New minimum fill">
+                  <TextInput
                     maxLength={FIELD_LIMITS.ORDER_SHARES}
-                    className={FIELD_CLASS}
                     inputMode="numeric"
                     value={state.values?.minQuantity ?? ''}
                     onChange={(event) => action.edit('minQuantity', event.target.value)}
                   />
-                </label>
-                <label className="block">
-                  New price per share
-                  <input
+                </Field>
+                <Field label="New price per share">
+                  <TextInput
                     maxLength={FIELD_LIMITS.PRICE}
-                    className={FIELD_CLASS}
                     inputMode="decimal"
                     value={state.values?.pricePerShare ?? ''}
                     onChange={(event) => action.edit('pricePerShare', event.target.value)}
                   />
-                </label>
+                </Field>
               </>
             )}
             {state.error && (

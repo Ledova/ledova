@@ -9,7 +9,8 @@ import {
 } from '@ledova/shared';
 import { LinkRow, Section } from '@components/Ledger';
 import { Page, PageAction } from '@components/Page';
-import { ActionConfirmation, EligibilityHistory, RecordsList, TextField } from '@components/eligibility';
+import { ActionConfirmation, EligibilityHistory, RecordsList } from '@components/eligibility';
+import { Field, TextInput } from '@components/Field';
 import { WalletNomination } from './WalletNomination';
 
 export default function ParticipantEligibilityPage() {
@@ -60,31 +61,36 @@ export default function ParticipantEligibilityPage() {
             />
             {source?.category === 'product_value' ? (
               <>
-                <TextField
-                  label="Approved offering UUID"
-                  value={read.draft.offering}
-                  onChange={(offering) => read.updateDraft({ offering })}
-                />
-                <TextField
-                  label="Whole-share quantity"
-                  maxLength={FIELD_LIMITS.WHOLE_SHARES}
-                  value={read.draft.quantity}
-                  onChange={(quantity) => read.updateDraft({ quantity })}
-                />
+                <Field label="Approved offering UUID">
+                  <TextInput
+                    value={read.draft.offering}
+                    onChange={(event) => read.updateDraft({ offering: event.target.value })}
+                  />
+                </Field>
+                <Field label="Whole-share quantity">
+                  <TextInput
+                    inputMode="numeric"
+                    maxLength={FIELD_LIMITS.WHOLE_SHARES}
+                    value={read.draft.quantity}
+                    onChange={(event) => read.updateDraft({ quantity: event.target.value })}
+                  />
+                </Field>
               </>
             ) : (
-              <TextField
-                label="Exact company UUID"
-                value={read.draft.company}
-                onChange={(company) => read.updateDraft({ company })}
-              />
+              <Field label="Exact company UUID">
+                <TextInput
+                  value={read.draft.company}
+                  onChange={(event) => read.updateDraft({ company: event.target.value })}
+                />
+              </Field>
             )}
-            <TextField
-              label="Requested expiry (local date and time)"
-              type="datetime-local"
-              value={read.draft.requestedExpiresAt}
-              onChange={(requestedExpiresAt) => read.updateDraft({ requestedExpiresAt })}
-            />
+            <Field label="Requested expiry (local date and time)">
+              <TextInput
+                type="datetime-local"
+                value={read.draft.requestedExpiresAt}
+                onChange={(event) => read.updateDraft({ requestedExpiresAt: event.target.value })}
+              />
+            </Field>
             <PageAction
               label="Preview company eligibility request"
               busy={running === 'request'}

@@ -1,3 +1,4 @@
+import { Field, TextInput } from '@components/Field';
 import { SelectField } from '@components/SelectField';
 import { PageAction } from '@components/Page';
 import { Confirmation } from '@components/Modal';
@@ -337,17 +338,15 @@ function UploadCard({ claims }: { claims: InvestorClassification[] }) {
               disabled={upload.isPending}
               onChange={setDocumentType}
             />
-            <label className="flex min-w-0 flex-1 basis-40 flex-col gap-1 text-sm text-text-primary">
-              Note (optional)
-              <input
+            <Field label="Note" optional className="min-w-0 flex-1 basis-40">
+              <TextInput
                 type="text"
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
                 maxLength={FIELD_LIMITS.NOTE}
-                className="w-full rounded-lg border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary placeholder:text-text-muted"
                 disabled={upload.isPending}
               />
-            </label>
+            </Field>
           </div>
 
           <ClaimSelector

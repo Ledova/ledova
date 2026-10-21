@@ -1,4 +1,4 @@
-import { FIELD_CLASS, LABEL } from '@components/fieldClass';
+import { Field, TextInput } from '@components/Field';
 import { FormActions, PageAction } from '@components/Page';
 import { Outcome } from '@components/Ledger';
 import {
@@ -60,10 +60,9 @@ export function TeamInvitationForm({
               Copy this one-time code now and share it directly with the person you appoint. It will not be shown in
               history.
             </p>
-            <label className="block space-y-1">
-              One-time invitation code
-              <input className={FIELD_CLASS} value={recorded.code} readOnly autoComplete="off" />
-            </label>
+            <Field label="One-time invitation code">
+              <TextInput value={recorded.code} readOnly autoComplete="off" />
+            </Field>
           </>
         ) : (
           <p>No code is available on this retry. Use the original code, or create a new invitation if it was lost.</p>
@@ -121,10 +120,8 @@ export function TeamInvitationForm({
         })}
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
-        <label className={LABEL}>
-          Invitation deadline (UTC, optional)
-          <input
-            className={FIELD_CLASS}
+        <Field label="Invitation deadline (UTC, optional)">
+          <TextInput
             type="date"
             min={utcToday()}
             max={addCalendarDays(utcToday(), 29)}
@@ -132,18 +129,16 @@ export function TeamInvitationForm({
             disabled={disabled || busy}
             onChange={(event) => change(() => setDeadline(event.target.value))}
           />
-        </label>
-        <label className={LABEL}>
-          Appointment expiry (UTC, optional)
-          <input
-            className={FIELD_CLASS}
+        </Field>
+        <Field label="Appointment expiry (UTC, optional)">
+          <TextInput
             type="date"
             min={utcToday()}
             value={expiry}
             disabled={disabled || busy}
             onChange={(event) => change(() => setExpiry(event.target.value))}
           />
-        </label>
+        </Field>
       </div>
       <p className="text-sm text-text-muted">
         The default acceptance deadline is seven days. A chosen deadline must be within 30 days.

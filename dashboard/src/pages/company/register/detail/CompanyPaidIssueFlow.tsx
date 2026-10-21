@@ -1,3 +1,4 @@
+import { Field, TextArea, TextInput } from '@components/Field';
 import { Row, Rows, Section, Loading } from '@components/Ledger';
 import { PageAction } from '@components/Page';
 import { FIELD_CLASS } from '@components/fieldClass';
@@ -232,36 +233,26 @@ function Preparation({ commands }: { commands: Commands }) {
           if (captured) select(captured.source.subscription);
         }}
       />
-      <label className="block text-sm">
-        Approving director
-        <input
-          className={FIELD_CLASS}
+      <Field
+        label="Approving director"
+        hint="The company names a director other than the recipient. No director account is required."
+      >
+        <TextInput
           maxLength={FIELD_LIMITS.DIRECTOR}
           value={director}
           onChange={(event) => setDirector(event.target.value)}
         />
-      </label>
-      <p className="text-sm text-text-muted">
-        The company names a director other than the recipient. No director account is required.
-      </p>
-      <label className="block text-sm">
-        Authority reference
-        <input
-          className={FIELD_CLASS}
+      </Field>
+      <Field label="Authority reference">
+        <TextInput
           maxLength={FIELD_LIMITS.REFERENCE}
           value={reference}
           onChange={(event) => setReference(event.target.value)}
         />
-      </label>
-      <label className="block text-sm">
-        Paid issue reason
-        <textarea
-          className={FIELD_CLASS}
-          maxLength={FIELD_LIMITS.REASON}
-          value={reason}
-          onChange={(event) => setReason(event.target.value)}
-        />
-      </label>
+      </Field>
+      <Field label="Paid issue reason">
+        <TextArea maxLength={FIELD_LIMITS.REASON} value={reason} onChange={(event) => setReason(event.target.value)} />
+      </Field>
       <label className="block text-sm">
         Paid issue authority document
         <input

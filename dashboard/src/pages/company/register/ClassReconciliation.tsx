@@ -1,3 +1,4 @@
+import { Field, TextArea } from '@components/Field';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useQueryClient, type QueryKey } from '@tanstack/react-query';
 import {
@@ -17,7 +18,6 @@ import {
 import { Row, Rows, Status, type Tone, LoadError, Loading } from '@components/Ledger';
 import { Modal } from '@components/Modal';
 import { PageAction } from '@components/Page';
-import { FIELD_CLASS, LABEL } from '@components/fieldClass';
 
 import { reconciliationKey, useLatestReconciliation } from './useLatestReconciliation';
 import { useOwnAppointments, ownAppointmentsKey } from '@hooks/useOwnAppointments';
@@ -234,10 +234,8 @@ export function ClassReconciliation({
             <div className="flex flex-col gap-3">
               {row && <Discrepancy row={row} holders={holders} />}
               <p className="text-sm text-text-muted">{COPY.ACKNOWLEDGEMENT_NOTE}</p>
-              <label className={LABEL}>
-                {COPY.ACKNOWLEDGE_REASON}
-                <textarea
-                  className={FIELD_CLASS}
+              <Field label={COPY.ACKNOWLEDGE_REASON}>
+                <TextArea
                   rows={3}
                   maxLength={FIELD_LIMITS.REASON}
                   value={reason}
@@ -247,7 +245,7 @@ export function ClassReconciliation({
                     setReason(event.target.value);
                   }}
                 />
-              </label>
+              </Field>
               {attempted && acknowledgement.error && (
                 <p role="alert" className="text-sm text-error-light">
                   {acknowledgement.error}

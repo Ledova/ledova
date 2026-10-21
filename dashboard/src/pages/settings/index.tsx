@@ -1,10 +1,10 @@
+import { Field, TextInput } from '@components/Field';
 import { useState } from 'react';
 import { FIELD_LIMITS, DESTINATIONS, failureSentence } from '@ledova/shared';
 import { useSettings } from './useSettings';
 import { Modal } from '@components/Modal';
 import { Page, PageAction } from '@components/Page';
 import { LinkRow, Outcome, Section, SwitchRow, LoadError, Loading } from '@components/Ledger';
-import { FIELD_CLASS } from '@components/fieldClass';
 import { setTheme } from '@hooks/useTheme';
 import { Verification } from './Verification';
 
@@ -33,18 +33,16 @@ function PasswordInput({
   const [visible, setVisible] = useState(false);
   return (
     <div className="space-y-1">
-      <label className="flex flex-col gap-1 text-sm text-text-muted">
-        {label}
-        <input
+      <Field label={label}>
+        <TextInput
           type={visible ? 'text' : 'password'}
           maxLength={FIELD_LIMITS.PASSWORD}
           value={value}
           onChange={(event) => onChange(event.target.value)}
           autoComplete={autoComplete}
           disabled={disabled}
-          className={FIELD_CLASS}
         />
-      </label>
+      </Field>
       <button
         type="button"
         aria-label={`${visible ? 'Hide' : 'Show'} ${label.toLowerCase()}`}
