@@ -17,6 +17,7 @@ import {
   utcToday,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
+import { hasProblems, type Problems } from '@hooks/useErrorSummary';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 export function useAwardVestingForm({
@@ -67,16 +68,16 @@ export function useAwardVestingForm({
     if (!live.current) throw createUserFriendlyError('This vesting form is closed. Reopen it before continuing.');
   };
   const today = utcToday();
-  const problem =
-    !/^[1-9]\d*$/.test(shares) || BigInt(shares) > BigInt(award.unvestedRemainingShares)
-      ? 'Enter a positive whole quantity within the award’s unvested shares.'
-      : !/^\d{4}-\d{2}-\d{2}$/.test(vestedOn) || vestedOn > today
-        ? 'Enter a vesting date no later than today (UTC).'
-        : !file
-          ? 'Choose the company’s evidence for this vesting event.'
-          : null;
+  const problems: Problems<'shares' | 'vestedOn' | 'file'> = {
+    shares:
+      (!/^[1-9]\d*$/.test(shares) || BigInt(shares) > BigInt(award.unvestedRemainingShares)) &&
+      'Enter a positive whole quantity within the award’s unvested shares.',
+    vestedOn:
+      (!/^\d{4}-\d{2}-\d{2}$/.test(vestedOn) || vestedOn > today) && 'Enter a vesting date no later than today (UTC).',
+    file: !file && 'Choose the company’s evidence for this vesting event.',
+  };
   const submit = async () => {
-    if (pending.current || busy || blocked || (!operation.current && (problem || !file))) return;
+    if (pending.current || busy || blocked || (!operation.current && (hasProblems(problems) || !file))) return;
     pending.current = true;
     setBusy(true);
     onHeldChange?.(true);
@@ -206,5 +207,5 @@ export function useAwardVestingForm({
       }
     }
   };
-  return { shares, setShares, vestedOn, setVestedOn, setFile, busy, held, error, today, problem, submit };
+  return { shares, setShares, vestedOn, setVestedOn, setFile, busy, held, error, today, problems, submit };
 }

@@ -23,6 +23,7 @@ import {
 } from '@ledova/shared';
 
 import apiClient from '@services/apiClient';
+import { hasProblems, type Problems } from '@hooks/useErrorSummary';
 import { transfersKey } from '@pages/company/register/shared/useRegisterTransfers';
 
 type Draft = {
@@ -127,27 +128,35 @@ export function useTransferPreparation({
   const fresh =
     operation?.newParticulars ??
     (draft.toMember === 'new' || (!!recipient && (!recipient.particularsRetained || recipient.awardOnly)));
-  const problem = !from
-    ? 'Select an identified transferor holding shares in this class.'
-    : draft.toMember !== 'new' && (!recipient || draft.toMember === draft.fromMember)
-      ? 'Select a different recipient.'
-      : fresh && (!draft.name.trim() || !draft.residentialAddress.trim())
-        ? 'Give the recipient’s name and residential address from the signed instrument.'
-        : !/^[1-9]\d*$/.test(draft.shares) || BigInt(draft.shares) > BigInt(from.currentShares)
-          ? 'Enter a positive whole share quantity within the transferor’s holding.'
-          : !/^\d{4}-\d{2}-\d{2}$/.test(draft.companyEventOn) || draft.companyEventOn > today
-            ? 'Enter the company transfer date no later than today (UTC).'
-            : ![draft.signedOn, draft.lodgedOn].every((date) => /^\d{4}-\d{2}-\d{2}$/.test(date) && date <= today) ||
-                draft.signedOn > draft.lodgedOn
-              ? 'Enter signing no later than lodgement, and lodgement no later than today (UTC).'
-              : !draft.terms.trim() ||
-                  !draft.approvingDirector.trim() ||
-                  !draft.authorityReference.trim() ||
-                  !draft.reason.trim()
-                ? 'Give the non-paid terms, approving director, authority reference and reason.'
-                : !files.authority || !files.instrument
-                  ? 'Choose the director authority and signed transfer instrument.'
-                  : null;
+  const past = (date: string) => !/^\d{4}-\d{2}-\d{2}$/.test(date) || date > today;
+  const problems: Problems<keyof Draft | 'authorityDocument' | 'instrumentDocument'> = {
+    fromMember: !from && 'Select an identified transferor holding shares in this class.',
+    toMember:
+      draft.toMember !== 'new' &&
+      (!recipient || draft.toMember === draft.fromMember) &&
+      'Select a different recipient.',
+    name: fresh && !draft.name.trim() && 'Give the recipient’s name from the signed instrument.',
+    residentialAddress:
+      fresh &&
+      !draft.residentialAddress.trim() &&
+      'Give the recipient’s residential address from the signed instrument.',
+    shares:
+      (!/^[1-9]\d*$/.test(draft.shares) || (!!from && BigInt(draft.shares) > BigInt(from.currentShares))) &&
+      'Enter a positive whole share quantity within the transferor’s holding.',
+    companyEventOn: past(draft.companyEventOn) && 'Enter the company transfer date no later than today (UTC).',
+    signedOn: past(draft.signedOn) && 'Enter a signing date no later than today (UTC).',
+    lodgedOn: past(draft.lodgedOn)
+      ? 'Enter a lodgement date no later than today (UTC).'
+      : !past(draft.signedOn) &&
+        draft.signedOn > draft.lodgedOn &&
+        'Enter a lodgement date on or after the signing date.',
+    terms: !draft.terms.trim() && 'Give the non-paid terms.',
+    approvingDirector: !draft.approvingDirector.trim() && 'Name the approving director.',
+    authorityReference: !draft.authorityReference.trim() && 'Give the authority reference.',
+    reason: !draft.reason.trim() && 'Give the reason.',
+    authorityDocument: !files.authority && 'Choose the director authority.',
+    instrumentDocument: !files.instrument && 'Choose the signed transfer instrument.',
+  };
   const upload = async (kind: DocumentKind) => {
     const file = files[kind]!;
     const previous = uploads.current[kind];
@@ -179,7 +188,7 @@ export function useTransferPreparation({
     return data;
   };
   const submit = async () => {
-    if (pending.current || busy || blocked || (!operation && problem)) return;
+    if (pending.current || busy || blocked || (!operation && hasProblems(problems))) return;
     pending.current = true;
     setBusy(true);
     setError('');
@@ -258,7 +267,7 @@ export function useTransferPreparation({
     eligible,
     recipient,
     fresh,
-    problem,
+    problems,
     submit,
     fields,
   } as const;

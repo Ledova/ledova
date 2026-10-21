@@ -21,6 +21,7 @@ import {
   utcToday,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
+import { hasProblems, type Problems } from '@hooks/useErrorSummary';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 type Command = (
@@ -87,31 +88,36 @@ export function useAwardAdjustmentForm({
     if (!preparable.current) throw createUserFriendlyError('Current preparation authority is required.');
   };
   const today = utcToday();
-  const problem = vesting
-    ? !/^[1-9]\d*$/.test(reversedShares) ||
-      !reversibleShares ||
-      BigInt(reversedShares) > BigInt(reversibleShares) ||
-      BigInt(reversedShares) > BigInt(award.availableShares)
-      ? 'Enter a positive whole quantity within this vesting’s unreversed shares and the available unissued rights.'
-      : null
-    : !/^\d+$/.test(unvestedShares) ||
-        !/^\d+$/.test(vestedShares) ||
-        BigInt(unvestedShares) > BigInt(award.unvestedRemainingShares) ||
-        BigInt(vestedShares) > BigInt(award.availableShares) ||
-        BigInt(unvestedShares) + BigInt(vestedShares) === 0n
-      ? 'Choose unvested or vested unissued quantities within the remaining entitlement.'
-      : null;
-  const validation =
-    problem ||
-    (!/^\d{4}-\d{2}-\d{2}$/.test(companyEventOn) || companyEventOn > today
-      ? 'Enter a company event date no later than today (UTC).'
-      : !reason.trim()
-        ? 'Enter the company’s reason.'
-        : !file
-          ? 'Choose the company’s supporting evidence.'
-          : null);
+  const whole = (value: string) => /^\d+$/.test(value);
+  const problems: Problems<
+    'reversedShares' | 'unvestedShares' | 'vestedShares' | 'companyEventOn' | 'reason' | 'file'
+  > = {
+    reversedShares:
+      vesting &&
+      (!/^[1-9]\d*$/.test(reversedShares) ||
+        !reversibleShares ||
+        BigInt(reversedShares) > BigInt(reversibleShares) ||
+        BigInt(reversedShares) > BigInt(award.availableShares)) &&
+      'Enter a positive whole quantity within this vesting’s unreversed shares and the available unissued rights.',
+    unvestedShares:
+      !vesting &&
+      (!whole(unvestedShares) || BigInt(unvestedShares) > BigInt(award.unvestedRemainingShares)
+        ? 'Enter a whole quantity within the award’s unvested shares.'
+        : whole(vestedShares) &&
+          BigInt(unvestedShares) + BigInt(vestedShares) === 0n &&
+          'Choose unvested or vested unissued quantities within the remaining entitlement.'),
+    vestedShares:
+      !vesting &&
+      (!whole(vestedShares) || BigInt(vestedShares) > BigInt(award.availableShares)) &&
+      'Enter a whole quantity within the award’s vested unissued shares.',
+    companyEventOn:
+      (!/^\d{4}-\d{2}-\d{2}$/.test(companyEventOn) || companyEventOn > today) &&
+      'Enter a company event date no later than today (UTC).',
+    reason: !reason.trim() && 'Enter the company’s reason.',
+    file: !file && 'Choose the company’s supporting evidence.',
+  };
   const submit = async () => {
-    if (pending.current || busy || blocked || (!operation.current && validation)) return;
+    if (pending.current || busy || blocked || (!operation.current && hasProblems(problems))) return;
     pending.current = true;
     setBusy(true);
     onHeldChange(true);
@@ -306,7 +312,7 @@ export function useAwardAdjustmentForm({
     held,
     error,
     today,
-    problem: validation,
+    problems,
     submit,
   };
 }

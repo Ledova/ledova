@@ -16,6 +16,7 @@ const Invalid = createContext(false);
 const FIELD = 'block text-sm text-text-primary';
 
 export function Field({
+  id,
   label,
   hint,
   error,
@@ -25,6 +26,7 @@ export function Field({
   alert = false,
   children,
 }: {
+  id?: string;
   label: ReactNode;
   hint?: ReactNode;
   error?: string | null;
@@ -41,7 +43,7 @@ export function Field({
     </Label>
   );
   return (
-    <HeadlessField className={className ? `${FIELD} ${className}` : FIELD}>
+    <HeadlessField id={id} className={className ? `${FIELD} ${className}` : FIELD}>
       {aside ? (
         <div className="flex items-center justify-between gap-2">
           {name}
@@ -70,23 +72,28 @@ export function TextArea({ className = FIELD_CLASS, ...props }: TextareaProps & 
 }
 
 export function FileField({
+  id,
   label,
   hint,
+  error,
   optional,
   onFile,
   ...props
-}: Omit<InputProps, 'type' | 'accept' | 'onChange' | 'className'> & {
+}: Omit<InputProps, 'id' | 'type' | 'accept' | 'onChange' | 'className'> & {
+  id?: string;
   label: ReactNode;
   hint?: string;
+  error?: string | null;
   optional?: boolean;
   onFile: (file: File | null) => void;
 }) {
   const [refusal, setRefusal] = useState<string | null>(null);
   return (
     <Field
+      id={id}
       label={label}
       hint={hint ? `${UPLOAD_RULE.HINT} ${hint}` : UPLOAD_RULE.HINT}
-      error={refusal}
+      error={refusal ?? error}
       alert={!!refusal}
       optional={optional}
     >

@@ -20,6 +20,7 @@ import {
 } from '@ledova/shared';
 
 import apiClient from '@services/apiClient';
+import { hasProblems, type Problems } from '@hooks/useErrorSummary';
 import { correctionsKey } from '@pages/company/register/shared/useClassCorrections';
 
 type Draft = {
@@ -41,15 +42,22 @@ const CLOSED = 'This correction form is closed. Reopen it before continuing.';
 
 const DAY = /^\d{4}-\d{2}-\d{2}$/;
 
-function problemsOf(draft: Draft, today: string) {
-  const problems: string[] = [];
-  if (!draft.file) problems.push('Choose the authority document.');
-  if (!DAY.test(draft.effectiveOn) || draft.effectiveOn > today)
-    problems.push('Enter an effective date no later than today (UTC).');
-  if (draft.authority === 'director_resolution' && !draft.director.trim())
-    problems.push('Name the approving director for a resolution.');
-  if (!draft.reference.trim() || !draft.reason.trim()) problems.push('Give the authority reference and the reason.');
-  return problems;
+function problemsOf(
+  draft: Draft,
+  today: string,
+): Problems<'file' | 'effectiveOn' | 'director' | 'reference' | 'reason'> {
+  return {
+    file: !draft.file && 'Choose the authority document.',
+    effectiveOn:
+      (!DAY.test(draft.effectiveOn) || draft.effectiveOn > today) &&
+      'Enter an effective date no later than today (UTC).',
+    director:
+      draft.authority === 'director_resolution' &&
+      !draft.director.trim() &&
+      'Name the approving director for a resolution.',
+    reference: !draft.reference.trim() && 'Give the authority reference.',
+    reason: !draft.reason.trim() && 'Give the reason.',
+  };
 }
 
 export type CorrectionFormProps = {
@@ -135,7 +143,7 @@ export function useCorrectionPreparation({
   };
 
   const submit = async () => {
-    if (pending.current || busy || blocked || problems.length > 0 || !draft.file) return;
+    if (pending.current || busy || blocked || hasProblems(problems) || !draft.file) return;
     pending.current = true;
     setBusy(true);
     setError('');
