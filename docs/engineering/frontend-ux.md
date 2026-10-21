@@ -103,7 +103,7 @@ tinted fields and boxed outcomes within the same cards and titles. Addresses, ha
 use the monospaced face (`font-mono`; `theme.fontFamily.mono`).
 
 Show ownership, status and one primary next action directly, with labels beside their values and
-balanced field groups; keep full audit identifiers and optional detail behind detail controls; never
+balanced field groups; keep audit references and optional detail behind detail controls; never
 repeat titles or general explanations or show read and edit views together. Action-specific
 authority, privacy, incomplete-data and recovery guidance stays visible where relevant, and a
 presentation change must not reset pending work, hide uncertainty or change what a confirmation
