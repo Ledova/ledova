@@ -498,8 +498,24 @@ Refresh actions, a failed refresh and empty states are still to follow under
 
 ## Validation
 
-This section covers what a page shows when a request fails. Checking forms before they are sent is
-still to come ([#1179](https://github.com/Ledova/ledova/issues/1179)).
+This section covers how a form reports a problem: when it is submitted, and when its request fails.
+
+- **Checking on submit.** The register preparation forms check their fields when submitted: the
+  correction, opening, wallet link, particulars, award, vesting, award adjustment, allotment, grant
+  and transfer forms.
+  - **Summary and fields.** A problem shows twice. `ErrorSummary` (`dashboard/src/components/`)
+    lists each problem at the top of the form as `role="alert"` and takes focus, each item linking
+    to its field. The field shows the same sentence as its error and turns `aria-invalid`.
+    `useErrorSummary` (`dashboard/src/hooks/useErrorSummary.ts`) reads the form's problems, keyed
+    by field.
+  - **Submit stays enabled** unless the form is busy or the action is unavailable, such as without
+    company authority, and the page says why. An unchanged retry of an interrupted request is not
+    checked again.
+  - **Shared wording.** A rule both clients apply has one sentence in `packages/shared`, such as a
+    new person's name and address (`NEW_PERSON_PROBLEMS`).
+  - **Not yet:** other web forms still disable their submit or explain inline until the next
+    [#1179](https://github.com/Ledova/ledova/issues/1179) change, and mobile follows in
+    [#1201](https://github.com/Ledova/ledova/issues/1201).
 
 - **Request errors.** A failure reads as one `role="alert"` sentence from `failureSentence`
   (`packages/shared/src/utils/errors.ts`), never the transport's "Request failed with status code

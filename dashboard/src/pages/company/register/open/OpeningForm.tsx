@@ -4,6 +4,8 @@ import { useOpeningPreparation, type OpeningFormProps, COPY } from './useOpening
 
 import { FIELD_LIMITS, type RegisterCorrectionAuthority } from '@ledova/shared';
 import { FormActions, PageAction } from '@components/Page';
+import { ErrorSummary } from '@components/ErrorSummary';
+import { useErrorSummary } from '@hooks/useErrorSummary';
 import { SearchSelect } from '@components/SearchSelect';
 
 import { shareCount } from '@pages/company/shared/proposals';
@@ -41,19 +43,23 @@ export function OpeningForm({
     submit,
   } = useOpeningPreparation({ owner, guard, company, token, holders, appointment, blocked, onConflict, onMissing });
   const memberChoices = [...labels].map(([value, label]) => ({ value, label }));
+  const checks = useErrorSummary(problems);
 
   return (
     <form
       className="space-y-5"
+      noValidate
       onSubmit={(event) => {
         event.preventDefault();
-        void submit();
+        if (checks.check()) void submit();
       }}
     >
+      <ErrorSummary {...checks.summary} />
       <fieldset disabled={busy} className="space-y-5">
         <fieldset className="space-y-3">
           <legend className="text-sm font-medium text-text-primary">Evidence provided by the company</legend>
           <FileField
+            {...checks.field('file')}
             label={COPY.AUTHORITY_DOCUMENT}
             hint={COPY.AUTHORITY_DOCUMENT_NOTE}
             onFile={(file) => update({ file })}
@@ -68,7 +74,7 @@ export function OpeningForm({
             onChange={(authority) => update({ authority })}
           />
           {draft.authority === 'director_resolution' && (
-            <Field label={COPY.APPROVING_DIRECTOR}>
+            <Field {...checks.field('director')} label={COPY.APPROVING_DIRECTOR}>
               <TextInput
                 value={draft.director}
                 maxLength={FIELD_LIMITS.DIRECTOR}
@@ -76,14 +82,14 @@ export function OpeningForm({
               />
             </Field>
           )}
-          <Field label={COPY.AUTHORITY_REFERENCE}>
+          <Field {...checks.field('reference')} label={COPY.AUTHORITY_REFERENCE}>
             <TextInput
               value={draft.reference}
               maxLength={FIELD_LIMITS.REFERENCE}
               onChange={(event) => update({ reference: event.target.value })}
             />
           </Field>
-          <Field label={COPY.REASON}>
+          <Field {...checks.field('reason')} label={COPY.REASON}>
             <TextArea
               rows={3}
               value={draft.reason}
@@ -128,13 +134,6 @@ export function OpeningForm({
           ))}
         </fieldset>
       </fieldset>
-      {problems.length > 0 && (
-        <ul className="flex flex-col gap-1 text-sm text-text-muted">
-          {problems.map((problem) => (
-            <li key={problem}>{problem}</li>
-          ))}
-        </ul>
-      )}
       {error && (
         <p role="alert" className="text-sm text-error-light">
           {error}
@@ -159,7 +158,7 @@ export function OpeningForm({
           label={COPY.SUBMIT}
           busy={busy}
           busyLabel="Preparing opening…"
-          disabled={blocked || problems.length > 0}
+          disabled={blocked}
         />
       </FormActions>
     </form>

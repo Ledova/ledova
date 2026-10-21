@@ -3,6 +3,8 @@ import { useGrantPreparation, type GrantFormProps, type DocumentKind } from './u
 
 import { FIELD_LIMITS, REGISTER_GRANT_COPY as COPY, formatShareCount } from '@ledova/shared';
 import { FormActions, PageAction } from '@components/Page';
+import { ErrorSummary } from '@components/ErrorSummary';
+import { useErrorSummary } from '@hooks/useErrorSummary';
 import { PersonFields, PersonSelect } from '@pages/company/register/shared/PersonPicker';
 
 const DOCUMENTS: Record<DocumentKind, string> = {
@@ -43,6 +45,7 @@ export function GrantForm({
     onHeldChange,
     canPrepare,
   });
+  const checks = useErrorSummary(model?.problems ?? {});
   if (model === null) return null;
   const {
     today,
@@ -75,18 +78,19 @@ export function GrantForm({
     recipientAddress,
     retainedDate,
     retainedSummary,
-    problem,
     submit,
   } = model;
 
   return (
     <form
       className="space-y-5"
+      noValidate
       onSubmit={(event) => {
         event.preventDefault();
-        void submit();
+        if (held || checks.check()) void submit();
       }}
     >
+      <ErrorSummary {...checks.summary} />
       <fieldset disabled={busy || blocked || held || !canPrepare} className="space-y-4">
         {award ? (
           <div className="space-y-2">
@@ -112,7 +116,14 @@ export function GrantForm({
           />
         )}
         {!award && member === 'new' ? (
-          <PersonFields name={name} residentialAddress={address} onName={setName} onResidentialAddress={setAddress} />
+          <PersonFields
+            name={name}
+            residentialAddress={address}
+            onName={setName}
+            onResidentialAddress={setAddress}
+            nameCheck={checks.field('name')}
+            addressCheck={checks.field('address')}
+          />
         ) : !award ? (
           <p className="text-sm text-text-muted">
             {people.some((row) => row.member === member && row.awardOnly)
@@ -120,7 +131,7 @@ export function GrantForm({
               : 'The grant retains the existing member’s current particulars. Preview them before approval.'}
           </p>
         ) : null}
-        <Field label={COPY.SHARES}>
+        <Field {...checks.field('shares')} label={COPY.SHARES}>
           <TextInput
             maxLength={FIELD_LIMITS.REGISTER_SHARES}
             inputMode="numeric"
@@ -128,7 +139,7 @@ export function GrantForm({
             onChange={(event) => setShares(event.target.value.trim())}
           />
         </Field>
-        <Field label={COPY.COMPANY_EVENT_ON}>
+        <Field {...checks.field('companyEventOn')} label={COPY.COMPANY_EVENT_ON}>
           <TextInput
             type="date"
             max={today}
@@ -136,7 +147,7 @@ export function GrantForm({
             onChange={(event) => setCompanyEventOn(event.target.value)}
           />
         </Field>
-        <Field label={COPY.TERMS_ON}>
+        <Field {...checks.field('termsOn')} label={COPY.TERMS_ON}>
           <TextInput
             type="date"
             max={today}
@@ -145,7 +156,7 @@ export function GrantForm({
             onChange={(event) => setTermsOn(event.target.value)}
           />
         </Field>
-        <Field label={COPY.TERMS}>
+        <Field {...checks.field('terms')} label={COPY.TERMS}>
           <TextArea
             maxLength={FIELD_LIMITS.TERMS}
             rows={3}
@@ -154,7 +165,7 @@ export function GrantForm({
             onChange={(event) => setTerms(event.target.value)}
           />
         </Field>
-        <Field label={COPY.DIRECTOR}>
+        <Field {...checks.field('director')} label={COPY.DIRECTOR}>
           <TextInput
             maxLength={FIELD_LIMITS.DIRECTOR}
             value={approvingDirector}
@@ -164,14 +175,14 @@ export function GrantForm({
         <p className="text-sm text-text-muted">
           {COPY.DIRECTOR_NOTE} {COPY.EFFECTIVE_NOTE}
         </p>
-        <Field label={COPY.AUTHORITY_REFERENCE}>
+        <Field {...checks.field('reference')} label={COPY.AUTHORITY_REFERENCE}>
           <TextInput
             maxLength={FIELD_LIMITS.REFERENCE}
             value={authorityReference}
             onChange={(event) => setAuthorityReference(event.target.value)}
           />
         </Field>
-        <Field label={COPY.REASON}>
+        <Field {...checks.field('reason')} label={COPY.REASON}>
           <TextArea
             maxLength={FIELD_LIMITS.REASON}
             rows={3}
@@ -190,6 +201,7 @@ export function GrantForm({
         {documentKinds.map((kind) => (
           <FileField
             key={kind}
+            {...checks.field(`${kind}Document`)}
             label={DOCUMENTS[kind]}
             onFile={(file) => setFiles((current) => ({ ...current, [kind]: file ?? undefined }))}
           />
@@ -197,7 +209,6 @@ export function GrantForm({
         <p className="text-sm text-text-muted">{COPY.PROVIDED_BY_COMPANY}</p>
         {award && <p className="text-sm text-text-muted">The retained award agreement will be used for this issue.</p>}
       </fieldset>
-      {problem && <p className="text-sm text-text-muted">{problem}</p>}
       {error && (
         <p role="alert" className="text-sm text-error-light">
           {error}
@@ -214,7 +225,7 @@ export function GrantForm({
           label={held ? 'Recover original grant preparation' : award ? 'Prepare vested share issue' : COPY.SUBMIT}
           busy={busy}
           busyLabel="Preparing grant…"
-          disabled={blocked || (!held && (!canPrepare || !!problem))}
+          disabled={blocked || (!held && !canPrepare)}
         />
       </FormActions>
     </form>

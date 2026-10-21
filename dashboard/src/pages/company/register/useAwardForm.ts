@@ -12,12 +12,14 @@ import {
   type RegisterAwardPreparation,
   type RegisterEvidence,
   personRequest,
+  NEW_PERSON_PROBLEMS,
   type Person,
   REGISTER_AWARD_UNMET_COPY,
   refusalSentence,
   utcToday,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
+import { hasProblems, type Problems } from '@hooks/useErrorSummary';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 export function useAwardForm({
@@ -76,18 +78,20 @@ export function useAwardForm({
     if (!live.current) throw createUserFriendlyError('This award form is closed. Reopen it before continuing.');
   };
   const today = utcToday();
-  const problem =
-    member === 'new' && (!name.trim() || !address.trim())
-      ? 'Give the new person’s name and residential address.'
-      : !/^[1-9]\d*$/.test(shares) || BigInt(shares) >= 2n ** 256n
-        ? 'Enter a positive whole number of promised shares.'
-        : !/^\d{4}-\d{2}-\d{2}$/.test(termsOn) || termsOn > today
-          ? 'Enter an agreement date no later than today (UTC).'
-          : !terms.trim() || !schedule.trim() || !file
-            ? 'Give the agreement terms, recorded schedule and agreement document.'
-            : null;
+  const problems: Problems<'name' | 'address' | 'shares' | 'termsOn' | 'terms' | 'file' | 'schedule'> = {
+    name: member === 'new' && !name.trim() && NEW_PERSON_PROBLEMS.NAME,
+    address: member === 'new' && !address.trim() && NEW_PERSON_PROBLEMS.ADDRESS,
+    shares:
+      (!/^[1-9]\d*$/.test(shares) || BigInt(shares) >= 2n ** 256n) &&
+      'Enter a positive whole number of promised shares.',
+    termsOn:
+      (!/^\d{4}-\d{2}-\d{2}$/.test(termsOn) || termsOn > today) && 'Enter an agreement date no later than today (UTC).',
+    terms: !terms.trim() && 'Give the agreement terms.',
+    file: !file && 'Choose the agreement document.',
+    schedule: !schedule.trim() && 'Give the recorded schedule.',
+  };
   const submit = async () => {
-    if (pending.current || busy || blocked || (!operation.current && (problem || !file))) return;
+    if (pending.current || busy || blocked || (!operation.current && (hasProblems(problems) || !file))) return;
     pending.current = true;
     setBusy(true);
     onHeldChange?.(true);
@@ -238,7 +242,7 @@ export function useAwardForm({
     held,
     error,
     today,
-    problem,
+    problems,
     submit,
   };
 }
