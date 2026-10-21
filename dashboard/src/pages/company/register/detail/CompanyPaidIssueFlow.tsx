@@ -5,6 +5,7 @@ import { ErrorSummary } from '@components/ErrorSummary';
 import { useErrorSummary } from '@hooks/useErrorSummary';
 import { SearchSelect } from '@components/SearchSelect';
 import {
+  COMPANY_SUBSCRIPTION_STATUS_LABELS,
   FIELD_LIMITS,
   REGISTER_PAID_ISSUE_COPY as COPY,
   REGISTER_PAID_ISSUE_DECISIONS,
@@ -17,6 +18,7 @@ import {
   useCompanyPaidIssues,
   type RegisterPaidIssue,
   type RegisterPaidIssueSource,
+  type SubscriptionStatus,
   refusalSentences,
   failureSentence,
   shareCount,
@@ -103,7 +105,9 @@ function PaidIssueRecord({ record, commands }: { record: RegisterPaidIssue; comm
             <Row label="Intent fingerprint">{record.intentDigest}</Row>
             {record.approvalDecision && <Row label="Consumed approval">{record.approvalDecision}</Row>}
             <Row label="Execution">{registerPaidIssueExecutionState(record)}</Row>
-            <Row label="Original subscription status">{record.subscriptionStatus}</Row>
+            <Row label="Original subscription status">
+              {COMPANY_SUBSCRIPTION_STATUS_LABELS[record.subscriptionStatus as SubscriptionStatus]}
+            </Row>
             <Row label="Actual allotment recorded">
               {record.allottedAt ? formatDateTime(record.allottedAt) : 'Not recorded'}
             </Row>

@@ -490,8 +490,8 @@ function MemberRecords({
                       {read.requests.certificates.map((request, index) => (
                         <div key={request.uuid} className="space-y-2">
                           <p>
-                            Certificate requested {formatDate(request.createdAt)} ·{' '}
-                            {MEMBER_CERTIFICATE_STATUS_LABELS[request.status]}
+                            Certificate requested {formatDate(request.createdAt)}
+                            {request.status !== 'requested' && ` · ${MEMBER_CERTIFICATE_STATUS_LABELS[request.status]}`}
                           </p>
                           {request.status === 'requested' && (
                             <PageAction

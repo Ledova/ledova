@@ -12,6 +12,7 @@ import {
   type RegisterDeploymentSnapshot,
   refusalSentences,
   COMPANY_STATUS_LABELS,
+  DEPLOYMENT_SWAP_APPROVAL_LABELS,
   type CompanyStatus,
 } from '@ledova/shared';
 import { DecisionTrail } from '@pages/company/register/shared/DecisionTrail';
@@ -168,7 +169,9 @@ export function DeploymentFlow({ uuid, data }: { uuid: string; data: ReturnType<
                       <Row label="Contract">{proposal.execution.contractAddress}</Row>
                     )}
                     {proposal.execution?.swapApprovalOutcome && (
-                      <Row label="Swap approval">{proposal.execution.swapApprovalOutcome}</Row>
+                      <Row label="Swap approval">
+                        {DEPLOYMENT_SWAP_APPROVAL_LABELS[proposal.execution.swapApprovalOutcome]}
+                      </Row>
                     )}
                   </Rows>
                   {refusalSentences(proposal.executionUnmetRequirements, REGISTER_DEPLOYMENT_UNMET_COPY).map(

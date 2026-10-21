@@ -645,9 +645,11 @@ by a local helper or a browser `toLocale…` call:
 - **Status codes** read as words, never as the code or a code with its underscores replaced: the
   server's `statusDisplay` where a record carries one (orders, swaps, companies, offerings), else a
   shared label map (`packages/shared/src/constants/business/labels.ts` for eligibility outcomes,
-  member invitations and requests, appointments, company wallet actions, company states, order
-  states and changed order fields, and swap approval outcomes; investor categories, certifier
-  bodies and register entry kinds keep their existing maps).
+  member invitations and requests, appointments, company wallet actions and chain failures, company
+  states, a deployment's swap approval, an application's status on company records, order states
+  and changed order fields, swap approval outcomes and identity sources; `investor-eligibility.ts`
+  for investor categories and certifier bodies; and `REGISTER_CORRECTION_COPY.ENTRY_KINDS` for
+  register entry kinds). Mobile follows in [#1201](https://github.com/Ledova/ledova/issues/1201).
 - **Enforcement.** An ESLint rule in `dashboard/eslint.config.js` refuses `toLocaleString`,
   `toLocaleDateString` and `toLocaleTimeString` in the dashboard's source, beside the rule that
   refuses inline ISO date slicing ([forms](#forms)). Mobile follows in
