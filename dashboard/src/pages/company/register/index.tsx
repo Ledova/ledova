@@ -14,6 +14,7 @@ import {
 } from '@ledova/shared';
 import { LinkRow, LoadError, Loading } from '@components/Ledger';
 import { PageTitle } from '@components/PageTitle';
+import { pageTitle } from '@utils/destinations';
 import { Page, PageAction, PageLink } from '@components/Page';
 import { CompanySelection } from '@pages/company/shared/CompanySelection';
 
@@ -38,12 +39,8 @@ import { ownerGuard } from '@pages/company/shared/ownerGuard';
 import { useOwnAppointments } from '@hooks/useOwnAppointments';
 
 const ON_CHAIN = ['deployed', 'paused'];
-const TASKS = [
-  ['issue', 'Issue shares'],
-  ['transfer', 'Transfer shares'],
-  ['history', 'History'],
-] as const;
-type RegisterTask = (typeof TASKS)[number][0];
+type RegisterTask = keyof typeof DESTINATIONS.companyRegister.tasks;
+const TASKS = Object.entries(DESTINATIONS.companyRegister.tasks) as [RegisterTask, string][];
 
 function RegisterPage({
   selection,
@@ -57,14 +54,7 @@ function RegisterPage({
   children: ReactNode;
 }) {
   const { hash } = useLocation();
-  const title =
-    hash === '#awards'
-      ? 'Employee awards'
-      : hash === '#documents'
-        ? 'Documents'
-        : hash === '#shareholders'
-          ? 'Shareholders'
-          : 'Register';
+  const title = pageTitle('companyRegister', hash.slice(1));
   return (
     <PageTitle.Provider value={title}>
       <Page

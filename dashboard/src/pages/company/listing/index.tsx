@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { DESTINATIONS, companyActivationOutcome, useCompanyActivation, useCompanySelection } from '@ledova/shared';
-import { Page, PageAction, PageLink } from '@components/Page';
+import { Page, PageAction } from '@components/Page';
 import { LinkRow, Row, Rows, Section, Timeline, type TimelineEvent } from '@components/Ledger';
 import { Modal } from '@components/Modal';
 import { CheckboxField } from '@components/Field';
@@ -32,11 +32,7 @@ function CompanyActivation({ read }: { read: ReturnType<typeof useCompanySelecti
     : [];
   return (
     <>
-      <Page
-        narrow
-        loading={read.isLoading}
-        actions={<PageLink to={DESTINATIONS.settings.path} label="Back to Settings" />}
-      >
+      <Page narrow loading={read.isLoading}>
         <CompanySelection read={read} />
         {action.busy && (
           <p role="status" className="text-sm text-text-muted">
@@ -97,7 +93,7 @@ function CompanyActivation({ read }: { read: ReturnType<typeof useCompanySelecti
                 )}
               </Section>
             )}
-            <LinkRow to={DESTINATIONS.company.path} label="Company information and retained documents" />
+            <LinkRow to={DESTINATIONS.company.path} label={DESTINATIONS.company.title} />
           </>
         )}
         {action.error && (
@@ -109,7 +105,7 @@ function CompanyActivation({ read }: { read: ReturnType<typeof useCompanySelecti
           <p className="text-sm text-text-muted">
             Use your own profile to complete the configured identity verification before activation.
           </p>
-          <LinkRow to={DESTINATIONS.userProfile.path} label="Open your profile" />
+          <LinkRow to={DESTINATIONS.userProfile.path} label={DESTINATIONS.userProfile.title} />
         </Section>
       </Page>
       {action.preview && <ActivationConfirmation action={action} />}

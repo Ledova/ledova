@@ -376,8 +376,8 @@ company's personal administrators, marked To do or Done
 ([activation](companies.md#activation-and-the-registry-check)), and **Verify your identity**,
 which shows the identity check status and opens Profile. For anyone else the section is Identity,
 with the identity row only. On the web, member access is on
-[Shareholders](register.md#the-register-page), and Settings then holds Company settings (Company
-details, Company documents and Team and appointments;
+[Shareholders](register.md#the-register-page), and Settings then holds Company settings (Company,
+Company documents and Company team;
 [company setup](companies.md)), Profile and security (Profile and **Change password**), Appearance
 (**Dark theme**, remembered in this browser or on this device; Paper is the default), Notifications
 (**Transaction alerts** for transaction status changes) and Data and privacy:

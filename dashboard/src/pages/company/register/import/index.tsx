@@ -18,7 +18,6 @@ import {
   type RegisterTransferMembers,
 } from '@ledova/shared';
 import { Page } from '@components/Page';
-import { PageTitle } from '@components/PageTitle';
 import { registerSteps, type RegisterSteps } from '@pages/company/shared/proposals';
 import { useRegisterClasses, registerClassesKey } from '@pages/company/shared/useCompanyRegister';
 import { importsKey, useRegisterImports } from '@pages/company/register/shared/useRegisterImports';
@@ -35,28 +34,26 @@ export default function CompanyRegisterImportPage() {
   const { uuid = '' } = useParams();
   const { owner, boundary, preferences } = useRegisterPreparationOwner();
   return (
-    <PageTitle.Provider value={REGISTER_IMPORT_COPY.SETUP}>
-      <Page narrow>
-        {owner && !preferences.isError ? (
-          uuid ? (
-            <OwnImport
-              key={`${owner.userUuid}/${owner.ownerAccountUuid}/${uuid}`}
-              uuid={uuid}
-              owner={owner}
-              currentOwner={boundary.get}
-            />
-          ) : (
-            <NewClassSetup
-              key={`${owner.userUuid}/${owner.ownerAccountUuid}`}
-              owner={owner}
-              currentOwner={boundary.get}
-            />
-          )
+    <Page narrow>
+      {owner && !preferences.isError ? (
+        uuid ? (
+          <OwnImport
+            key={`${owner.userUuid}/${owner.ownerAccountUuid}/${uuid}`}
+            uuid={uuid}
+            owner={owner}
+            currentOwner={boundary.get}
+          />
         ) : (
-          <PreparationPreferences preferences={preferences} />
-        )}
-      </Page>
-    </PageTitle.Provider>
+          <NewClassSetup
+            key={`${owner.userUuid}/${owner.ownerAccountUuid}`}
+            owner={owner}
+            currentOwner={boundary.get}
+          />
+        )
+      ) : (
+        <PreparationPreferences preferences={preferences} />
+      )}
+    </Page>
   );
 }
 

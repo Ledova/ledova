@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import { DESTINATIONS, useCompanySelection } from '@ledova/shared';
 import { Section, LoadError } from '@components/Ledger';
 import { LoadMore } from '@components/List';
-import { Page, PageAction, PageLink } from '@components/Page';
+import { Page, PageAction } from '@components/Page';
 import { CompanyReadNotice } from '@pages/company/shared/CompanyState';
 import { CompanySelection } from '@pages/company/shared/CompanySelection';
 import { PublicationRecord } from './PublicationRecord';
@@ -27,7 +27,6 @@ function CompanyPublications({ companyRead }: { companyRead: ReturnType<typeof u
       loading={companyRead.isLoading || listing.isLoading}
       actions={
         <>
-          <PageLink to={DESTINATIONS.company.path} label="Back to Company" />
           <PageAction
             label="Refresh publications"
             onClick={() => {
