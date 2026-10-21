@@ -47,7 +47,7 @@ stay here as history and are marked where they appear.
 | [Dashboard, Settings and Register for a new company](#dashboard-settings-and-register-for-a-new-company)        | 19 October 2026                                | Current; #1155 (web), #1157 (mobile)                                                                            |
 | [Share classes, shareholders and employee awards](#share-classes-shareholders-and-employee-awards)              | 20 October 2026                                | Current; #1166–#1168 and award recipients (#1169) on the web; mobile (#1170)                                    |
 | [Paper and Dark themes](#paper-and-dark-themes)                                                                 | 14 October 2026                                | Current; #1040                                                                                                  |
-| [Frontend UX standards](#frontend-ux-standards)                                                                 | 20 to 21 October 2026                          | Web selection (#1176); #1178 in progress; mobile people (#1196), rest in #1201; #1179–#1183 planned             |
+| [Frontend UX standards](#frontend-ux-standards)                                                                 | 20 to 21 October 2026                          | Web delivered (#1176, #1178–#1183), picker server search deferred; mobile people (#1196), rest in #1201         |
 | [The account-data export](#the-account-data-export)                                                             | 23 September 2026                              | Current                                                                                                         |
 | [Tenancy, sessions and deployment](#tenancy-sessions-and-deployment)                                            | 3 October 2026                                 | Current                                                                                                         |
 | [Contracts compiler and toolchain](#contracts-compiler-and-toolchain)                                           | Undated                                        | Current                                                                                                         |
@@ -1355,6 +1355,12 @@ proposal are in #1174, and the owner approved it as recommended:
   one company's register decisions. Recorded in the standards as the one stated exception to 'never
   read a growing list in full', to revisit if registers grow large. Shareholders, applications,
   notices, the eligibility queue and request histories still page or load more."
+- **People stay searched in the browser (21 October 2026).** #1174 put the picker's server search
+  in #1181. Most forms, though, filter the full people list for eligibility, and import, the
+  shareholder page and mobile also read all of it. Asked whether to build it then, the owner chose
+  "Defer the person picker's server search (#1181 option a): keep the browser search and record the
+  switch at about 2,000 people." So server search, behind the same control with a typing delay and
+  a page limit, follows when a company reaches about 2,000 people.
 
 ## The signed-in app
 

@@ -1000,6 +1000,149 @@
         ],
         "type": "object"
       },
+      "ClassRightsPage": {
+        "properties": {
+          "administrationAppointment": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "count": {
+            "type": "integer"
+          },
+          "current": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ClassRightsRevision"
+              }
+            ],
+            "nullable": true
+          },
+          "next": {
+            "format": "uri",
+            "nullable": true,
+            "type": "string"
+          },
+          "previous": {
+            "format": "uri",
+            "nullable": true,
+            "type": "string"
+          },
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/ClassRightsRevision"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "administrationAppointment",
+          "count",
+          "current",
+          "next",
+          "previous",
+          "results"
+        ],
+        "type": "object"
+      },
+      "ClassRightsRevision": {
+        "properties": {
+          "appointment": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "readOnly": true,
+            "type": "string"
+          },
+          "documentReference": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "idempotencyKey": {
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "recordedBy": {
+            "readOnly": true,
+            "type": "integer"
+          },
+          "recordedByName": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "revision": {
+            "readOnly": true,
+            "type": "integer"
+          },
+          "summary": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "token": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "uuid": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "appointment",
+          "createdAt",
+          "documentReference",
+          "idempotencyKey",
+          "recordedBy",
+          "recordedByName",
+          "revision",
+          "summary",
+          "token",
+          "uuid"
+        ],
+        "type": "object"
+      },
+      "ClassRightsWriteRequest": {
+        "properties": {
+          "appointment": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "documentReference": {
+            "maxLength": 255,
+            "type": "string"
+          },
+          "idempotencyKey": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "previousRevision": {
+            "maximum": 2147483646,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "summary": {
+            "maxLength": 4000,
+            "type": "string"
+          }
+        },
+        "required": [
+          "appointment",
+          "documentReference",
+          "idempotencyKey",
+          "previousRevision",
+          "summary"
+        ],
+        "type": "object"
+      },
       "CompanyActivateRequest": {
         "properties": {
           "acceptDeclaration": {
@@ -38134,6 +38277,149 @@
           },
           {
             "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/tokens/{uuid}/class-rights/": {
+      "get": {
+        "operationId": "api_v1_tokens_class_rights_retrieve",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "idempotency_key",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page_size",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClassRightsPage"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      },
+      "post": {
+        "operationId": "api_v1_tokens_class_rights_create",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClassRightsWriteRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/ClassRightsWriteRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/ClassRightsWriteRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClassRightsRevision"
+                }
+              }
+            },
+            "description": ""
+          },
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClassRightsRevision"
+                }
+              }
+            },
+            "description": ""
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {},
+                  "type": "object"
+                }
+              }
+            },
+            "description": "The request or loaded revision conflicts."
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": [],
+            "csrfCookie": [],
+            "csrfHeader": []
           }
         ],
         "tags": [

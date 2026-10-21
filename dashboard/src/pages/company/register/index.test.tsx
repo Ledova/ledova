@@ -20,6 +20,8 @@ import {
   type OwnCompanyAppointment,
   type RegisterTransferMember,
   type CompanyShareToken,
+  type ClassRightsRevision,
+  type ClassRightsRequest,
   shortReference,
 } from '@ledova/shared';
 import SettingsPage from '@pages/settings';
@@ -317,7 +319,30 @@ it('reads every class page and groups exact holdings by member identity with sea
   client.clear();
   let pauseHolders = false;
   let releaseHolders!: () => void;
-  api.get.mockReset().mockImplementation(async (url: string) => {
+  let rights: ClassRightsRevision[] = [];
+  let rightsAppointment: string | null = 'rights-administrator';
+  let pauseRights = false;
+  let failRights = false;
+  let releaseRights!: () => void;
+  const rightsResponse = (key?: unknown) => ({
+    data: {
+      results: key ? rights.filter((revision) => revision.idempotencyKey === key) : rights,
+      count: key ? rights.filter((revision) => revision.idempotencyKey === key).length : rights.length,
+      next: null,
+      previous: null,
+      current: rights[0] ?? null,
+      administrationAppointment: rightsAppointment,
+    },
+  });
+  api.get.mockReset().mockImplementation(async (url: string, config?: { params?: Record<string, unknown> }) => {
+    if (url === COMPANY_TOKEN_ENDPOINTS.CLASS_RIGHTS('ordinary')) {
+      if (failRights) throw new Error('Synthetic class rights read refused');
+      return pauseRights
+        ? new Promise((resolve) => {
+            releaseRights = () => resolve(rightsResponse(config?.params?.idempotency_key));
+          })
+        : rightsResponse(config?.params?.idempotency_key);
+    }
     if (url === COMPANY_TOKEN_ENDPOINTS.DETAIL('ordinary'))
       return {
         data: {
@@ -342,6 +367,97 @@ it('reads every class page and groups exact holdings by member identity with sea
     return { data: { results: [], count: 0, next: null, previous: null } };
   });
   show('investor', <ShareClass uuid="ordinary" />, 'Share class');
+  await screen.findByText('No summary recorded.');
+  fireEvent.click(screen.getByRole('button', { name: 'Edit (Class rights)' }));
+  let rightsDialog = within(await screen.findByRole('dialog', { name: 'Edit class rights' }));
+  expect(rightsDialog.queryByLabelText(/upload/i)).toBeNull();
+  fireEvent.change(rightsDialog.getByLabelText('Summary (optional)'), {
+    target: { value: '  Each share has one vote.  ' },
+  });
+  fireEvent.change(rightsDialog.getByLabelText('Document reference (optional)'), {
+    target: { value: '  Company constitution, 1 October 2026  ' },
+  });
+  api.post.mockImplementation(async (url: string, request: ClassRightsRequest) => {
+    if (url !== COMPANY_TOKEN_ENDPOINTS.CLASS_RIGHTS('ordinary')) throw new Error(`Unexpected POST ${url}`);
+    const revision: ClassRightsRevision = {
+      uuid: `rights-${request.previousRevision + 1}`,
+      token: 'ordinary',
+      revision: request.previousRevision + 1,
+      summary: request.summary,
+      documentReference: request.documentReference,
+      idempotencyKey: request.idempotencyKey,
+      appointment: request.appointment,
+      recordedBy: 1,
+      recordedByName: 'Example Director',
+      createdAt: '2026-10-21T00:00:00Z',
+    };
+    rights = [revision, ...rights];
+    if (rights.length === 1) throw new Error('Synthetic interrupted class rights response');
+    return { data: revision };
+  });
+  fireEvent.click(rightsDialog.getByRole('button', { name: 'Save' }));
+  await rightsDialog.findByRole('button', { name: 'Retry original save' });
+  expect((rightsDialog.getByLabelText('Summary (optional)') as HTMLTextAreaElement).disabled).toBe(true);
+  expect((rightsDialog.getByRole('button', { name: 'Cancel' }) as HTMLButtonElement).disabled).toBe(true);
+  pauseRights = true;
+  let refreshingRights!: Promise<void>;
+  act(() => {
+    refreshingRights = client.refetchQueries({ queryKey: ['class-rights'] });
+  });
+  await waitFor(() => expect(releaseRights).toBeTypeOf('function'));
+  expect(screen.queryByRole('dialog', { name: 'Edit class rights' })).toBeNull();
+  expect(document.body.textContent).not.toContain('Each share has one vote.');
+  pauseRights = false;
+  await act(async () => {
+    releaseRights();
+    await refreshingRights;
+  });
+  rightsDialog = within(await screen.findByRole('dialog', { name: 'Edit class rights' }));
+  rightsAppointment = null;
+  fireEvent.click(rightsDialog.getByRole('button', { name: 'Retry original save' }));
+  await screen.findByText('Class rights saved.');
+  await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+  expect(api.post).toHaveBeenCalledTimes(1);
+  expect(rights[0].summary).toBe('Each share has one vote.');
+  expect(rights[0].documentReference).toBe('Company constitution, 1 October 2026');
+  expect(screen.queryByRole('button', { name: 'Edit (Class rights)' })).toBeNull();
+  rightsAppointment = 'rights-administrator';
+  await act(async () => {
+    await client.refetchQueries({ queryKey: ['class-rights'] });
+  });
+  fireEvent.click(await screen.findByRole('button', { name: 'Edit (Class rights)' }));
+  rights = [
+    { ...rights[0], uuid: 'rights-2', revision: 2, idempotencyKey: 'another-edit', summary: 'Updated rights.' },
+    ...rights,
+  ];
+  await act(async () => {
+    await client.refetchQueries({ queryKey: ['class-rights'] });
+  });
+  rightsDialog = within(await screen.findByRole('dialog', { name: 'Edit class rights' }));
+  expect((rightsDialog.getByRole('button', { name: 'Save' }) as HTMLButtonElement).disabled).toBe(true);
+  await rightsDialog.findByText(/The class rights or your administrator access changed/);
+  fireEvent.click(rightsDialog.getByRole('button', { name: 'Cancel' }));
+  await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+  fireEvent.click(screen.getByRole('button', { name: 'Edit (Class rights)' }));
+  rightsDialog = within(await screen.findByRole('dialog', { name: 'Edit class rights' }));
+  for (const label of ['Summary (optional)', 'Document reference (optional)'])
+    fireEvent.change(rightsDialog.getByLabelText(label), { target: { value: '' } });
+  fireEvent.click(rightsDialog.getByRole('button', { name: 'Save' }));
+  await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+  expect(rights[0].summary).toBe('');
+  expect(rights[0].documentReference).toBe('');
+  fireEvent.click(screen.getByRole('button', { name: 'Previous versions' }));
+  expect(screen.getByText('Each share has one vote.')).toBeTruthy();
+  failRights = true;
+  await act(async () => {
+    await client.refetchQueries({ queryKey: ['class-rights'] });
+  });
+  await screen.findByText('The class rights could not be loaded. They may be unavailable to this account.');
+  expect(screen.queryByText('Each share has one vote.')).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Edit (Class rights)' })).toBeNull();
+  failRights = false;
+  fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+  await screen.findByText('No summary recorded.');
   const classTable = await screen.findByRole('table', { name: 'Company shareholders' });
   const classNamesakes = within(classTable).getAllByRole('row', { name: /Example Member/ });
   expect(classNamesakes).toHaveLength(2);
@@ -447,6 +563,32 @@ it('reads every class page and groups exact holdings by member identity with sea
   } finally {
     act(() => onlineManager.setOnline(true));
   }
+
+  pauseRights = true;
+  let lateRights!: Promise<void>;
+  act(() => {
+    lateRights = client.refetchQueries({ queryKey: ['class-rights'] });
+  });
+  await waitFor(() => expect(releaseRights).toBeTypeOf('function'));
+  const releasePreviousRights = releaseRights;
+  failRights = true;
+  const nextPreferences = companyPreferences('investor');
+  act(() =>
+    client.setQueryData(USER_PREFERENCES_QUERY_KEY, {
+      data: {
+        ...nextPreferences,
+        userProfile: 'profile-two',
+        userAccount: { ...nextPreferences.userAccount!, uuid: 'account-two' },
+      },
+    }),
+  );
+  await act(async () => {
+    releasePreviousRights();
+    await lateRights;
+  });
+  expect(screen.queryByText('Each share has one vote.')).toBeNull();
+  expect(screen.queryByText('Company constitution, 1 October 2026')).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Edit (Class rights)' })).toBeNull();
 
   cleanup();
   client.clear();
@@ -564,7 +706,8 @@ it('reads every class page and groups exact holdings by member identity with sea
   expect(screen.queryByText('+9,007,199,254,740,993 shares')).toBeNull();
   expect(screen.getAllByText(/current company register appointment/)).toHaveLength(2);
   expect(screen.getByRole('heading', { level: 1, name: 'Example Member' })).toBeTruthy();
-  expect(api.post).not.toHaveBeenCalled();
+  expect(api.post).toHaveBeenCalledTimes(2);
+  expect(api.post.mock.calls.every(([url]) => url === COMPANY_TOKEN_ENDPOINTS.CLASS_RIGHTS('ordinary'))).toBe(true);
 });
 
 it('brings complete mirror records, recovers uncertain requests and confirms one snapshot with separate company appointments', async () => {
