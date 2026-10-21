@@ -1,4 +1,4 @@
-import { FIELD_CLASS, LABEL } from '@components/fieldClass';
+import { Field, TextInput } from '@components/Field';
 import { FormActions, PageAction } from '@components/Page';
 import { Outcome } from '@components/Ledger';
 import { FIELD_LIMITS, COMPANY_AUTHORITY_DECLARATION, COMPANY_AUTHORITY_DECLARATION_VERSION } from '@ledova/shared';
@@ -34,11 +34,9 @@ export function AcceptInvitationForm({
         Enter the code the company gave you. Acceptance uses your signed-in account and the existing account, email and
         configured identity checks.
       </p>
-      <label className={LABEL}>
-        Invitation code
-        <input
+      <Field label="Invitation code">
+        <TextInput
           maxLength={FIELD_LIMITS.INVITATION_CODE}
-          className={FIELD_CLASS}
           value={code}
           autoComplete="off"
           disabled={disabled || busy}
@@ -49,7 +47,7 @@ export function AcceptInvitationForm({
             setReceipt('');
           }}
         />
-      </label>
+      </Field>
       <p className="text-sm text-text-primary">{COMPANY_AUTHORITY_DECLARATION}</p>
       <p className="text-sm text-text-muted">
         Declaration version {COMPANY_AUTHORITY_DECLARATION_VERSION}. Company information is provided by the company.

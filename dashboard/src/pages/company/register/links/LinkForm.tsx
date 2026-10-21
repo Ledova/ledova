@@ -1,3 +1,4 @@
+import { Field, TextArea, TextInput } from '@components/Field';
 import { Choices } from '@components/Choices';
 import { useLinkPreparation, type LinkFormProps, COPY } from './useLinkPreparation';
 
@@ -62,35 +63,29 @@ export function LinkForm({
             onChange={(authority) => update({ authority })}
           />
           {draft.authority === 'director_resolution' && (
-            <label className={LABEL}>
-              {COPY.APPROVING_DIRECTOR}
-              <input
+            <Field label={COPY.APPROVING_DIRECTOR}>
+              <TextInput
                 value={draft.director}
                 maxLength={FIELD_LIMITS.DIRECTOR}
-                className={FIELD_CLASS}
                 onChange={(event) => update({ director: event.target.value })}
               />
-            </label>
+            </Field>
           )}
-          <label className={LABEL}>
-            {COPY.AUTHORITY_REFERENCE}
-            <input
+          <Field label={COPY.AUTHORITY_REFERENCE}>
+            <TextInput
               value={draft.reference}
               maxLength={FIELD_LIMITS.REFERENCE}
-              className={FIELD_CLASS}
               onChange={(event) => update({ reference: event.target.value })}
             />
-          </label>
-          <label className={LABEL}>
-            {COPY.REASON}
-            <textarea
+          </Field>
+          <Field label={COPY.REASON}>
+            <TextArea
               rows={3}
               value={draft.reason}
               maxLength={FIELD_LIMITS.REASON}
-              className={FIELD_CLASS}
               onChange={(event) => update({ reason: event.target.value })}
             />
-          </label>
+          </Field>
         </fieldset>
         <fieldset className="space-y-3">
           <legend className="text-sm font-medium text-text-primary">{COPY.WALLETS}</legend>

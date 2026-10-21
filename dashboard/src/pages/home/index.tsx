@@ -1,3 +1,4 @@
+import { Field, TextArea, TextInput } from '@components/Field';
 import { CompanyPicker } from '@components/CompanyPicker';
 import { useRunningAction } from '@hooks/useRunningAction';
 import { FIELD_LIMITS, DESTINATIONS } from '@ledova/shared';
@@ -14,7 +15,6 @@ import { LinkRow, Row, Rows, Section } from '@components/Ledger';
 import { Confirmation } from '@components/Modal';
 import { Page, PageAction } from '@components/Page';
 import { PageTitle } from '@components/PageTitle';
-import { FIELD_CLASS } from '@components/fieldClass';
 import { AwardStatus } from '@components/AwardStatus';
 import { useMemberCertificateDownload } from './useMemberCertificateDownload';
 
@@ -130,11 +130,9 @@ function MemberRecords({
         Use the one-time code privately supplied by the company for your confirmed email. It grants access to your
         member record, not company administration.
       </p>
-      <label className="block space-y-1 text-sm">
-        Member invitation code
-        <input
+      <Field label="Member invitation code">
+        <TextInput
           maxLength={FIELD_LIMITS.INVITATION_CODE}
-          className={FIELD_CLASS}
           autoComplete="off"
           value={code}
           disabled={held}
@@ -143,7 +141,7 @@ function MemberRecords({
             setAccepted(false);
           }}
         />
-      </label>
+      </Field>
       <label className="flex items-center gap-2 text-sm">
         <input
           type="checkbox"
@@ -380,11 +378,9 @@ function MemberRecords({
                         <p className="text-sm text-text-muted">
                           The company reviews your request. Sending it changes no holding or register particulars.
                         </p>
-                        <label className="block space-y-1 text-sm">
-                          Requested name
-                          <input
+                        <Field label="Requested name">
+                          <TextInput
                             maxLength={FIELD_LIMITS.NAME}
-                            className={FIELD_CLASS}
                             value={name}
                             disabled={held}
                             onChange={(event) => {
@@ -392,12 +388,10 @@ function MemberRecords({
                               setConfirmed(false);
                             }}
                           />
-                        </label>
-                        <label className="block space-y-1 text-sm">
-                          Requested residential address
-                          <textarea
+                        </Field>
+                        <Field label="Requested residential address">
+                          <TextArea
                             maxLength={FIELD_LIMITS.RESIDENTIAL_ADDRESS}
-                            className={FIELD_CLASS}
                             value={address}
                             disabled={held}
                             onChange={(event) => {
@@ -405,7 +399,7 @@ function MemberRecords({
                               setConfirmed(false);
                             }}
                           />
-                        </label>
+                        </Field>
                         <label className="flex items-center gap-2 text-sm">
                           <input
                             type="checkbox"

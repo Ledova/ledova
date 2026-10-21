@@ -1,8 +1,8 @@
+import { Field, TextInput } from '@components/Field';
 import { FIELD_LIMITS } from '@ledova/shared';
 import { useState } from 'react';
 import { Outcome, Row, Rows } from '@components/Ledger';
 import { PageAction } from '@components/Page';
-import { FIELD_CLASS } from '@components/fieldClass';
 import { useClassCertificate, type Source } from './useClassCertificate';
 
 export function ClassCertificate({ sourceKey, ...source }: Source & { sourceKey: string }) {
@@ -45,16 +45,14 @@ function CertificateForm({ register, entry, guard, sourceReady, close }: Source 
         The PDF includes recorded names and residential addresses. A transfer can include more than one member&apos;s
         page. The company must arrange any required execution and signing.
       </p>
-      <label className="block text-sm text-text-primary">
-        Certificate instruction reference
-        <input
-          className={FIELD_CLASS}
+      <Field label="Certificate instruction reference">
+        <TextInput
           maxLength={FIELD_LIMITS.REFERENCE}
           value={instruction}
           disabled={blocked || !!target}
           onChange={(event) => setInstruction(event.target.value)}
         />
-      </label>
+      </Field>
       {!target ? (
         <PageAction
           primary

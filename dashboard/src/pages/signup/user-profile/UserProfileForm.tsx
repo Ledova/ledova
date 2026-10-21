@@ -5,6 +5,7 @@ import {
   AuthInput,
   authFieldBorder,
   AuthDivider,
+  authFieldClass,
 } from '@components/auth';
 import { Field, Label, Textarea, Description } from '@headlessui/react';
 import { UserIcon, HouseIcon, PhoneIcon, WarningIcon, CalendarIcon } from '@phosphor-icons/react';
@@ -71,9 +72,10 @@ export function UserProfileForm({
                 maxLength={FIELD_LIMITS.PROFILE_NAME}
                 value={form.fullName}
                 onChange={(e) => setFieldValue('fullName', e.target.value)}
-                className={`w-full bg-surface-tertiary border ${authFieldBorder(
+                className={authFieldClass(
                   (formValidation && !formValidation.fullName.isValid && form.fullName) || errors.fullName,
-                )} rounded-lg pl-10 pr-3 py-3 text-text-primary placeholder-text-muted focus:outline-none focus:ring-2 focus:border-transparent transition-colors`}
+                  'pl-10 pr-3',
+                )}
                 placeholder="John Doe"
                 required
                 disabled={isSubmitting}
@@ -98,9 +100,7 @@ export function UserProfileForm({
                 name="dateOfBirth"
                 value={form.dateOfBirth || ''}
                 onChange={(e) => setFieldValue('dateOfBirth', e.target.value)}
-                className={`w-full bg-surface-tertiary border ${authFieldBorder(
-                  errors.dateOfBirth,
-                )} rounded-lg pl-10 pr-3 py-3 text-text-primary placeholder-text-muted focus:outline-none focus:ring-2 focus:border-transparent transition-colors`}
+                className={authFieldClass(errors.dateOfBirth, 'pl-10 pr-3')}
                 required
                 disabled={isSubmitting}
               />
@@ -167,10 +167,11 @@ export function UserProfileForm({
                 value={form.residentialAddress}
                 onChange={(e) => setFieldValue('residentialAddress', e.target.value)}
                 rows={3}
-                className={`w-full bg-surface-tertiary border ${authFieldBorder(
+                className={`${authFieldClass(
                   (formValidation && !formValidation.residentialAddress.isValid && form.residentialAddress) ||
                     errors.residentialAddress,
-                )} rounded-lg pl-10 pr-3 py-3 text-text-primary placeholder-text-muted focus:outline-none focus:ring-2 focus:border-transparent transition-colors resize-none`}
+                  'pl-10 pr-3',
+                )} resize-none`}
                 placeholder="123 Main Street&#10;Sydney NSW 2000"
                 required
                 disabled={isSubmitting}

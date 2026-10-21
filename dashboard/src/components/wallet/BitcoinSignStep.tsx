@@ -1,3 +1,4 @@
+import { Field, TextArea } from '@components/Field';
 import { useState } from 'react';
 import { formatWalletAddressMedium, normalizeBitcoinRawTransactionHex } from '@ledova/shared';
 import type { PrepareBitcoinTransferResponse } from '@ledova/shared';
@@ -67,21 +68,16 @@ export function BitcoinSignStep({
         ))}
       </ol>
 
-      <div className="space-y-1">
-        <label htmlFor="bitcoin-signed-transaction" className="text-sm font-medium text-text-primary">
-          Signed transaction (hex)
-        </label>
-        <textarea
-          id="bitcoin-signed-transaction"
+      <Field label="Signed transaction (hex)" error={validationError}>
+        <TextArea
           value={signedTransaction}
           onChange={(event) => onSignedTransactionChange(event.target.value)}
           placeholder="02000000…"
           rows={4}
           spellCheck={false}
-          className="block w-full resize-none rounded-lg border border-border bg-surface-raised px-3 py-2 font-mono text-xs text-text-primary placeholder:text-text-muted focus:border-brand-mid focus:outline-none focus:ring-1 focus:ring-brand-mid"
+          className="mt-1 block w-full resize-none rounded-lg border border-border bg-surface-raised px-3 py-2 font-mono text-xs text-text-primary placeholder:text-text-muted focus:border-brand-mid focus:outline-none focus:ring-1 focus:ring-brand-mid"
         />
-        {validationError && <p className="text-xs text-error-light">{validationError}</p>}
-      </div>
+      </Field>
 
       <ModalActions>
         <PageAction label="Cancel" onClick={onCancel} />

@@ -1,3 +1,4 @@
+import { Field, TextArea, TextInput } from '@components/Field';
 import { useGrantPreparation, type GrantFormProps, type DocumentKind } from './useGrantPreparation';
 
 import { FIELD_LIMITS, REGISTER_GRANT_COPY as COPY, formatShareCount } from '@ledova/shared';
@@ -120,79 +121,65 @@ export function GrantForm({
               : 'The grant retains the existing member’s current particulars. Preview them before approval.'}
           </p>
         ) : null}
-        <label className={LABEL}>
-          {COPY.SHARES}
-          <input
+        <Field label={COPY.SHARES}>
+          <TextInput
             maxLength={FIELD_LIMITS.REGISTER_SHARES}
-            className={FIELD_CLASS}
             inputMode="numeric"
             value={shares}
             onChange={(event) => setShares(event.target.value.trim())}
           />
-        </label>
-        <label className={LABEL}>
-          {COPY.COMPANY_EVENT_ON}
-          <input
+        </Field>
+        <Field label={COPY.COMPANY_EVENT_ON}>
+          <TextInput
             type="date"
             max={today}
-            className={FIELD_CLASS}
             value={companyEventOn}
             onChange={(event) => setCompanyEventOn(event.target.value)}
           />
-        </label>
-        <label className={LABEL}>
-          {COPY.TERMS_ON}
-          <input
+        </Field>
+        <Field label={COPY.TERMS_ON}>
+          <TextInput
             type="date"
             max={today}
-            className={FIELD_CLASS}
             value={retainedDate}
             disabled={!!award}
             onChange={(event) => setTermsOn(event.target.value)}
           />
-        </label>
-        <label className={LABEL}>
-          {COPY.TERMS}
-          <textarea
-            className={FIELD_CLASS}
+        </Field>
+        <Field label={COPY.TERMS}>
+          <TextArea
             maxLength={FIELD_LIMITS.TERMS}
             rows={3}
             value={retainedSummary}
             disabled={!!award}
             onChange={(event) => setTerms(event.target.value)}
           />
-        </label>
-        <label className={LABEL}>
-          {COPY.DIRECTOR}
-          <input
-            className={FIELD_CLASS}
+        </Field>
+        <Field label={COPY.DIRECTOR}>
+          <TextInput
             maxLength={FIELD_LIMITS.DIRECTOR}
             value={approvingDirector}
             onChange={(event) => setApprovingDirector(event.target.value)}
           />
-        </label>
+        </Field>
         <p className="text-sm text-text-muted">
           {COPY.DIRECTOR_NOTE} {COPY.EFFECTIVE_NOTE}
         </p>
-        <label className={LABEL}>
-          {COPY.AUTHORITY_REFERENCE}
-          <input
-            className={FIELD_CLASS}
+        <Field label={COPY.AUTHORITY_REFERENCE}>
+          <TextInput
             maxLength={FIELD_LIMITS.REFERENCE}
             value={authorityReference}
             onChange={(event) => setAuthorityReference(event.target.value)}
           />
-        </label>
-        <label className={LABEL}>
-          {COPY.REASON}
-          <textarea
-            className={FIELD_CLASS}
+        </Field>
+        <Field label={COPY.REASON}>
+          <TextArea
             maxLength={FIELD_LIMITS.REASON}
             rows={3}
             value={reason}
             onChange={(event) => setReason(event.target.value)}
           />
-        </label>
+        </Field>
         <label className="flex gap-2 text-sm text-text-primary">
           <input
             type="checkbox"

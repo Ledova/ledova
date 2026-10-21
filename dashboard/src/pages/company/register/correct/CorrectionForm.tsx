@@ -1,3 +1,4 @@
+import { Field, TextArea, TextInput } from '@components/Field';
 import { Choices } from '@components/Choices';
 import { useCorrectionPreparation, type CorrectionFormProps, COPY } from './useCorrectionPreparation';
 
@@ -54,17 +55,14 @@ export function CorrectionForm({
         </fieldset>
         <fieldset className="space-y-3">
           <legend className="text-sm font-medium text-text-primary">Effective date and authority</legend>
-          <label className={LABEL}>
-            {COPY.EFFECTIVE_ON}
-            <input
+          <Field label={COPY.EFFECTIVE_ON} hint={COPY.EFFECTIVE_ON_NOTE}>
+            <TextInput
               type="date"
               max={today}
               value={draft.effectiveOn}
-              className={FIELD_CLASS}
               onChange={(event) => update({ effectiveOn: event.target.value })}
             />
-          </label>
-          <p className="text-sm text-text-muted">{COPY.EFFECTIVE_ON_NOTE}</p>
+          </Field>
           <Choices
             legend={COPY.AUTHORITY}
             options={AUTHORITIES}
@@ -72,35 +70,29 @@ export function CorrectionForm({
             onChange={(authority) => update({ authority })}
           />
           {draft.authority === 'director_resolution' && (
-            <label className={LABEL}>
-              {COPY.APPROVING_DIRECTOR}
-              <input
+            <Field label={COPY.APPROVING_DIRECTOR}>
+              <TextInput
                 value={draft.director}
                 maxLength={FIELD_LIMITS.DIRECTOR}
-                className={FIELD_CLASS}
                 onChange={(event) => update({ director: event.target.value })}
               />
-            </label>
+            </Field>
           )}
-          <label className={LABEL}>
-            {COPY.AUTHORITY_REFERENCE}
-            <input
+          <Field label={COPY.AUTHORITY_REFERENCE}>
+            <TextInput
               value={draft.reference}
               maxLength={FIELD_LIMITS.REFERENCE}
-              className={FIELD_CLASS}
               onChange={(event) => update({ reference: event.target.value })}
             />
-          </label>
-          <label className={LABEL}>
-            {COPY.REASON}
-            <textarea
+          </Field>
+          <Field label={COPY.REASON}>
+            <TextArea
               rows={3}
               value={draft.reason}
               maxLength={FIELD_LIMITS.REASON}
-              className={FIELD_CLASS}
               onChange={(event) => update({ reason: event.target.value })}
             />
-          </label>
+          </Field>
         </fieldset>
       </fieldset>
       {problems.length > 0 && (

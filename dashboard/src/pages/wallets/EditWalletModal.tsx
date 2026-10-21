@@ -1,3 +1,4 @@
+import { Field, TextInput } from '@components/Field';
 import type { ReactNode } from 'react';
 import { useState } from 'react';
 import {
@@ -24,7 +25,6 @@ import { ICON_SM } from '@components/iconSizes';
 import type { Wallet as WalletType } from '@ledova/shared';
 import { Modal } from '@components/Modal';
 import { Row, Rows } from '@components/Ledger';
-import { FIELD_BASE } from '@components/fieldClass';
 
 interface EditWalletModalProps {
   readBlocked?: boolean;
@@ -113,20 +113,15 @@ export function EditWalletModal({
           </Row>
         </Rows>
 
-        <div className="space-y-1">
-          <label className="text-sm font-medium text-text-primary">Wallet name</label>
-          <input
-            type="text"
-            aria-label="Wallet name"
+        <Field label="Wallet name" optional hint="Give your wallet a memorable name.">
+          <TextInput
             disabled={isUpdating}
             maxLength={FIELD_LIMITS.WALLET_NAME}
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className={FIELD_BASE}
-            placeholder="Enter wallet name (optional)"
+            placeholder="Enter a wallet name"
           />
-          <p className="text-xs text-text-muted">Give your wallet a memorable name</p>
-        </div>
+        </Field>
       </div>
     </Modal>
   );

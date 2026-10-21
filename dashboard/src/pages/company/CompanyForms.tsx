@@ -1,4 +1,4 @@
-import { FIELD_CLASS } from '@components/fieldClass';
+import { Field, TextInput } from '@components/Field';
 import { Modal } from '@components/Modal';
 import { apiErrorSentence } from '@ledova/shared';
 import { CompanyReadNotice } from '@pages/company/shared/CompanyState';
@@ -48,19 +48,18 @@ export function EditCompanyForm(props: FormProps) {
         )}
         <div className="grid gap-4 sm:grid-cols-2">
           {EDIT_FIELDS.map(([key, label, maxLength]) => (
-            <label
+            <Field
               key={key}
-              className={`block text-sm ${['name', 'addressLine1', 'addressLine2'].includes(key) ? 'sm:col-span-2' : ''}`}
+              label={label}
+              className={['name', 'addressLine1', 'addressLine2'].includes(key) ? 'sm:col-span-2' : undefined}
             >
-              {label}
-              <input
-                className={FIELD_CLASS}
+              <TextInput
                 maxLength={maxLength}
                 value={draft[key]}
                 disabled={key === 'name' && !canChangeName}
                 onChange={(event) => setDraft({ ...draft, [key]: event.target.value })}
               />
-            </label>
+            </Field>
           ))}
         </div>
       </fieldset>

@@ -1,3 +1,4 @@
+import { Field, TextArea } from '@components/Field';
 import { useEffect, useState, type ReactNode } from 'react';
 import {
   FIELD_LIMITS,
@@ -8,7 +9,6 @@ import {
 } from '@ledova/shared';
 import { Modal } from '@components/Modal';
 import { PageAction } from '@components/Page';
-import { FIELD_CLASS, LABEL } from '@components/fieldClass';
 import { STEP_CHANGED, type RegisterSteps } from './proposals';
 
 type Proposal = { uuid: string; providedBy: string; status: string };
@@ -169,17 +169,15 @@ export function RegisterDecisions<Shown extends Proposal, Previewed extends Prev
             )}
             {active === 'reject' && (
               <>
-                <label className={LABEL}>
-                  {copy.REJECTION_REASON}
-                  <textarea
-                    className={FIELD_CLASS}
+                <Field label={copy.REJECTION_REASON}>
+                  <TextArea
                     rows={3}
                     maxLength={FIELD_LIMITS.REASON}
                     value={reason}
                     disabled={decision.busy || !!decision.recovery}
                     onChange={(event) => setReason(event.target.value)}
                   />
-                </label>
+                </Field>
                 <PageAction
                   label="Preview the rejection"
                   disabled={

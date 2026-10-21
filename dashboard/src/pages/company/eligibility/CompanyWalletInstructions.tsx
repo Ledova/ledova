@@ -1,3 +1,4 @@
+import { Field, TextInput } from '@components/Field';
 import { Choices } from '@components/Choices';
 import { CompanyPicker } from '@components/CompanyPicker';
 import { useState } from 'react';
@@ -15,7 +16,6 @@ import {
 } from '@ledova/shared';
 import { Row, Rows, Section } from '@components/Ledger';
 import { PageAction } from '@components/Page';
-import { FIELD_CLASS } from '@components/fieldClass';
 import { SearchSelect } from '@components/SearchSelect';
 import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
 
@@ -191,16 +191,14 @@ function Preparation({ data }: { data: Read }) {
         </Rows>
       )}
       {action === 'add' && (
-        <label className="text-sm">
-          Finite approval expiry (local date and time)
-          <input
+        <Field label="Finite approval expiry (local date and time)">
+          <TextInput
             type="datetime-local"
-            className={FIELD_CLASS}
             disabled={blocked}
             value={expires}
             onChange={(event) => setDraft({ ...current, expires: event.target.value })}
           />
-        </label>
+        </Field>
       )}
       <PageAction
         label="Prepare wallet instruction"

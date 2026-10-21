@@ -1,10 +1,10 @@
+import { Field, TextArea, TextInput } from '@components/Field';
 import { useState } from 'react';
 import { FIELD_LIMITS, formatDate, formatDateTime, getUserVerificationStatus, failureSentence } from '@ledova/shared';
 import { FormActions, Page, PageAction } from '@components/Page';
 import { Outcome, Row, Rows, Section, Status, LoadError } from '@components/Ledger';
 import { VERIFICATION_TONES } from '@components/statusTones';
 import { DocumentsPanel } from './DocumentsPanel';
-import { FIELD_CLASS } from '@components/fieldClass';
 import { useUserProfile } from '@hooks/useUserProfile';
 import { IdentityVerificationModal } from '@components/IdentityVerificationModal';
 
@@ -108,53 +108,45 @@ function UserProfilePage() {
             <p className="text-sm text-text-muted">
               These details are provided by you. Editing them does not verify your identity.
             </p>
-            <label className="flex flex-col gap-1 text-sm text-text-muted">
-              Full name
-              <input
+            <Field label="Full name">
+              <TextInput
                 type="text"
                 autoComplete="name"
                 value={fullName}
                 maxLength={FIELD_LIMITS.PROFILE_NAME}
                 disabled={blocked}
                 onChange={(event) => setFullName(event.target.value)}
-                className={FIELD_CLASS}
               />
-            </label>
-            <label className="flex flex-col gap-1 text-sm text-text-muted">
-              Residential address
-              <textarea
+            </Field>
+            <Field label="Residential address">
+              <TextArea
                 autoComplete="street-address"
                 value={residentialAddress}
                 disabled={blocked}
                 onChange={(event) => setResidentialAddress(event.target.value)}
-                className={FIELD_CLASS}
               />
-            </label>
+            </Field>
             <div className="flex flex-wrap gap-3">
-              <label className="flex w-28 flex-col gap-1 text-sm text-text-muted">
-                Country code
-                <input
+              <Field label="Country code" className="w-28">
+                <TextInput
                   maxLength={FIELD_LIMITS.PHONE_COUNTRY_CODE}
                   type="tel"
                   autoComplete="tel-country-code"
                   value={phoneCode}
                   disabled={blocked}
                   onChange={(event) => setPhoneCode(event.target.value)}
-                  className={FIELD_CLASS}
                 />
-              </label>
-              <label className="flex min-w-0 flex-1 flex-col gap-1 text-sm text-text-muted">
-                Phone number
-                <input
+              </Field>
+              <Field label="Phone number" className="min-w-0 flex-1">
+                <TextInput
                   maxLength={FIELD_LIMITS.PHONE}
                   type="tel"
                   autoComplete="tel-national"
                   value={phoneNumber}
                   disabled={blocked}
                   onChange={(event) => setPhoneNumber(event.target.value)}
-                  className={FIELD_CLASS}
                 />
-              </label>
+              </Field>
             </div>
             {updateError && (
               <p role="alert" className="text-sm text-error-light">

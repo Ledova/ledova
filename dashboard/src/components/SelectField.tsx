@@ -1,4 +1,6 @@
-import { FIELD_CLASS, LABEL } from '@components/fieldClass';
+import { Select } from '@headlessui/react';
+import { Field } from '@components/Field';
+import { FIELD_CLASS } from '@components/fieldClass';
 
 export interface SelectOption {
   value: string;
@@ -22,9 +24,8 @@ export function SelectField({
 }) {
   const shared = (label: string) => options.filter((option) => option.label === label).length > 1;
   return (
-    <label className={LABEL}>
-      {label}
-      <select
+    <Field label={label}>
+      <Select
         className={FIELD_CLASS}
         value={value}
         disabled={disabled}
@@ -35,7 +36,7 @@ export function SelectField({
             {option.reference && shared(option.label) ? `${option.label} · ${option.reference}` : option.label}
           </option>
         ))}
-      </select>
-    </label>
+      </Select>
+    </Field>
   );
 }

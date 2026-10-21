@@ -24,8 +24,8 @@ and [mobile](mobile.md); what each page does is in the business section.
 ## Signed-in page conventions
 
 Every signed-in page renders in `Page` (`dashboard/src/components/Page.tsx`,
-`mobile/src/components/Page.tsx`) under the page's title. Web
-forms use `FIELD_CLASS` and `LABEL` (`dashboard/src/components/fieldClass.ts`). `Page narrow` bounds
+`mobile/src/components/Page.tsx`) under the page's title. Web form fields use `Field`
+([forms](#forms)). `Page narrow` bounds
 task forms, settings and detailed records, including compact tables; ownership dashboards and wide
 tables take the standard workspace width, and tables scroll within their card on small screens.
 Section spacing is scoped to the frame; sign-up keeps its own presentation.
@@ -454,6 +454,14 @@ Loading lines, refresh actions, a failed refresh and empty states are still to f
 
 ## Forms
 
+- **Fields.** A web form field is `Field` (`dashboard/src/components/Field.tsx`): Headless UI's
+  `Field`, `Label` and `Description` around a `TextInput` or `TextArea` with the `FIELD_CLASS` look,
+  or around Headless UI's `Select` in `SelectField`, so the label, the hint and any error are linked
+  to the control and an error sets `aria-invalid`. The label sits above the control, an optional
+  field ends with "(optional)", a sentence about one field is that field's hint, and an action
+  beside the label, such as Scan QR, is its `aside`. Choices, the searchable pickers, file inputs,
+  checkboxes, the list search and Trading's order form keep their own controls, and sign-in and
+  sign-up keep their own look on the same Headless parts.
 - **Limits.** A text field's `maxLength` comes from `FIELD_LIMITS`
   (`packages/shared/src/constants/business/field-limits.ts`): one constant per kind of backend field,
   equal to its serializer or model limit, such as `NAME` (255), `REASON` (1000), `REGISTER_SHARES`
