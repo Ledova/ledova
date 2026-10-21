@@ -11,6 +11,7 @@ import {
   type RegisterTransferMember,
   type CompanyShareTokenListItem,
 } from '@ledova/shared';
+import type { DocumentDraft } from '@pages/company/ledger/shared/documentAttachmentDraft';
 
 export type AllotmentDraft = Omit<
   RegisterImportAllotment,
@@ -29,6 +30,7 @@ export type MemberDraft = {
   shares: string;
   enteredOn: string;
   allotments: AllotmentDraft[];
+  documents: DocumentDraft[];
   identityChoice?: 'existing' | 'award' | 'new';
 };
 
@@ -76,6 +78,7 @@ export function blankMember(): MemberDraft {
     shares: '',
     enteredOn: '',
     allotments: [blankAllotment()],
+    documents: [],
   };
 }
 
@@ -87,6 +90,7 @@ export function initialMembers(register: TokenHoldersResponse, correction?: Regi
       residentialAddress: row.residentialAddress,
       shares: row.shares,
       enteredOn: row.enteredOn,
+      documents: (row.documents ?? []).map((document) => ({ ...document, id: crypto.randomUUID(), file: null })),
       allotments: row.allotments?.length
         ? row.allotments.map((allotment) => ({
             ...allotment,
@@ -101,6 +105,7 @@ export function initialMembers(register: TokenHoldersResponse, correction?: Regi
     member: holder.member,
     name: holder.name ?? '',
     residentialAddress: '',
+    documents: [],
     shares: holder.balance,
     enteredOn: holder.enteredOn,
     allotments: [blankAllotment()],
@@ -114,6 +119,13 @@ export function memberRows(members: MemberDraft[]): RegisterImportCurrentMemberR
     residentialAddress: row.residentialAddress.trim(),
     shares: positiveShares(row.shares) ?? row.shares.trim(),
     enteredOn: row.enteredOn,
+    ...(row.documents.some((document) => document.evidence)
+      ? {
+          documents: row.documents
+            .filter((document) => document.evidence)
+            .map(({ evidence, category }) => ({ evidence: evidence!, category })),
+        }
+      : {}),
     allotments: row.allotments.map((allotment) => {
       return {
         allottedOn: allotment.allottedOn,

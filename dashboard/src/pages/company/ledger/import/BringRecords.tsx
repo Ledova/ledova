@@ -53,6 +53,7 @@ export function BringRecords({
       row.enteredOn ||
       row.shares ||
       row.identityChoice ||
+      row.documents.some((document) => document.file || document.evidence) ||
       row.allotments.some(
         (allotment) =>
           allotment.allottedOn ||
@@ -227,7 +228,7 @@ export function BringRecords({
               </div>
             )}
           </fieldset>
-          <Disclosure summary="Add documents (optional)">
+          <Disclosure summary="Company source copies (optional)">
             {draft.earlierCopiesNotReused && (
               <p className="text-sm text-text-muted">
                 Earlier source documents remain with their original record. Add replacement documents if needed.

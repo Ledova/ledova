@@ -1,7 +1,9 @@
+import { useState } from 'react';
 import { Field, TextInput } from '@components/Field';
 import { FIELD_LIMITS, registerImportMoney, type RegisterTransferMember, peopleFrom } from '@ledova/shared';
 import { PageAction } from '@components/Page';
 import { PersonFields, PersonSelect } from '@pages/company/ledger/shared/PersonPicker';
+import { DocumentAttachments } from '@pages/company/ledger/shared/DocumentAttachments';
 import { blankAllotment, type AllotmentDraft, type MemberDraft } from './preparation';
 
 export function MemberFields({
@@ -21,6 +23,7 @@ export function MemberFields({
   preserveParticulars: boolean;
   usedMembers: string[];
 }) {
+  const [personError, setPersonError] = useState('');
   const people = peopleFrom({ members: companyMembers, awardRecipients: [] });
   const retained = companyMembers.find((member) => member.member === row.member);
   const recipient = retained?.onRegister === false ? retained : undefined;
@@ -35,10 +38,17 @@ export function MemberFields({
       {people.length > 0 && (
         <PersonSelect
           label="Company shareholder"
+          error={personError}
           people={people}
           value={retained?.member ?? (row.identityChoice === 'new' ? 'new' : '')}
           disabledMembers={usedMembers}
           onChange={(value) => {
+            const selected = retained?.member ?? (row.identityChoice === 'new' ? 'new' : '');
+            if (value !== selected && row.documents.some((document) => document.file || document.evidence)) {
+              setPersonError('Remove the attached documents before choosing another shareholder.');
+              return;
+            }
+            setPersonError('');
             if (value === 'new')
               update({
                 member: retained ? crypto.randomUUID() : row.member,
@@ -144,6 +154,7 @@ export function MemberFields({
           onClick={() => update({ allotments: [...row.allotments, blankAllotment()] })}
         />
       </div>
+      <DocumentAttachments documents={row.documents} update={(documents) => update({ documents })} />
     </fieldset>
   );
 }

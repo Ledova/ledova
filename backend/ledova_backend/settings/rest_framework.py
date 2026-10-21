@@ -75,6 +75,8 @@ SPECTACULAR_SETTINGS = {
         "RegisterCorrectionAuthorityEnum": "tokens.models.register_correction.RegisterCorrectionAuthority",
         "RegisterInstructionKindEnum": "tokens.models.register_instruction.RegisterInstructionKind",
         "RegisterEvidenceKindEnum": "tokens.models.register_evidence.RegisterEvidenceKind",
+        "CategoryEnum": "users.models.investor_classification.InvestorCategory",
+        "RegisterMemberDocumentCategoryEnum": "tokens.models.register_member_document.RegisterMemberDocumentCategory",
         "RegisterDecisionKindEnum": "tokens.models.register_decision.RegisterDecisionKind",
         "ShareRegisterWaitingReasonEnum": "tokens.services.register_inclusions.WAITING_REASONS",
     },

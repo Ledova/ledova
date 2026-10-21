@@ -78,6 +78,10 @@ from .register_instruction import (
     RegisterInstructionDecision,
     RegisterInstructionKind,
 )
+from .register_member_document import (
+    RegisterMemberDocument,
+    RegisterMemberDocumentCategory,
+)
 from .register_opening import (
     RegisterMemberWallet,
     RegisterOpening,
@@ -171,6 +175,8 @@ __all__ = [
     "RegisterInstructionDecision",
     "RegisterInstructionKind",
     "RegisterMemberParticulars",
+    "RegisterMemberDocument",
+    "RegisterMemberDocumentCategory",
     "RegisterExport",
     "RegisterExportKind",
     "RegisterMember",

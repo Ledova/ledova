@@ -1,4 +1,5 @@
 import type { ApiQuery, ApiRequest, ApiSchema } from '../contracts';
+import type { RegisterImportMemberDocument } from './register-member-document';
 
 export type RegisterImportDecisionPreview = ApiSchema<'RegisterImportDecisionPreview'>;
 export type RegisterImportDecisionRequest = ApiRequest<'api_v1_tokens_register_imports_decision_preview_create'>;
@@ -24,6 +25,7 @@ export type RegisterImportMemberRow = {
   enteredOn: string;
   amountPaid: string | null;
   allotments?: RegisterImportAllotment[];
+  documents?: RegisterImportMemberDocument[];
 };
 
 export type RegisterImportCurrentMemberRow = Omit<RegisterImportMemberRow, 'amountPaid' | 'allotments'> & {

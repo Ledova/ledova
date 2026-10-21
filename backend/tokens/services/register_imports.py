@@ -48,6 +48,12 @@ from tokens.services.register_evidence import (
     own_evidence_bytes,
 )
 from tokens.services.register_instructions import APPROVED
+from tokens.services.register_member_documents import (
+    check_import_documents,
+    document_rows,
+    link_import_documents,
+    retain_import_documents,
+)
 from tokens.services.register_openings import (
     _check_uninitialized,
     _members_of,
@@ -152,13 +158,14 @@ def _rows(members, former_members, as_at):
             raise ValueError
         current = []
         for row in members:
-            if not isinstance(row, dict) or set(row) != MEMBER_FIELDS:
+            if not isinstance(row, dict) or set(row) - {"documents"} != MEMBER_FIELDS:
                 raise ValueError
             shares = _whole(row["shares"])
             entered_on = _day(row["entered_on"], as_at)
             allotments = _allotments(row["allotments"], shares, as_at)
             current.append(
                 {
+                    **({"documents": document_rows(row["documents"])} if "documents" in row else {}),
                     "member": str(UUID(str(row["member"]))),
                     "name": _text(row["name"], "name"),
                     "residential_address": _text(row["residential_address"], "residential address"),
@@ -411,6 +418,7 @@ def prepare_import(
                 raise ValidationError(
                     "An award recipient must retain their exact company, name and residential address."
                 )
+            retain_import_documents(current, company, token, current_actor)
             expected = {
                 **values,
                 "company_id": company.pk,
@@ -590,6 +598,7 @@ def _effect_requirements(proposal):
     if pending_deployment(proposal.token):
         unmet.append("deployment_pending")
     try:
+        check_import_documents(proposal)
         if proposal.register_evidence_id is not None:
             matching_bytes(proposal.file, proposal.evidence_snapshot["file_size"], proposal.evidence_fingerprint)
         if proposal.asic_evidence_id is not None:
@@ -704,6 +713,7 @@ def _apply(proposal, actor, decision):
         )
         for row in proposal.former_members
     )
+    link_import_documents(proposal, actor, decision.appointment)
     proposal.status = "applied"
     proposal.register_sequence = ShareRegister.objects.get(token=token).sequence
     proposal.reviewed_by = actor

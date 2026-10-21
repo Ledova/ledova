@@ -28,6 +28,7 @@ import { ownerGuard } from '@pages/company/shared/ownerGuard';
 import { registerClassesKey, registersQuery } from '@pages/company/shared/useCompanyRegister';
 import { ownAppointmentsKey, useOwnAppointments } from '@hooks/useOwnAppointments';
 import { useShareholder } from './useShareholder';
+import { MemberDocuments } from '@pages/company/ledger/shared/MemberDocuments';
 
 const SHAREHOLDERS = `${DESTINATIONS.companyRegister.path}#shareholders`;
 const PRIVATE_NOTE =
@@ -409,6 +410,24 @@ function OwnShareholder({
         back={{ state: company ? { registerCompany: company } : undefined }}
       >
         {content}
+        {data.company && (
+          <MemberDocuments
+            owner={owner}
+            guard={guard}
+            company={company}
+            member={member}
+            sourceReady={sourceReady}
+            holdings={(data.registers.data ?? []).flatMap((register) =>
+              register.holders
+                .filter((holder) => holder.member === member)
+                .map(() => ({
+                  member,
+                  token: register.token.uuid,
+                  label: `${register.token.name} · ${register.token.symbol}`,
+                })),
+            )}
+          />
+        )}
       </Page>
     </PageTitle.Provider>
   );

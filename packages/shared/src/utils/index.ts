@@ -176,6 +176,7 @@ export {
 
 export { invitationMembers } from './invitationMembers';
 export { applicationAmount } from './applicationAmount';
+export { isRegisterMemberDocument, isRegisterMemberDocumentReceipt } from './register-member-documents';
 export { applicationHistory } from './applicationHistory';
 export {
   NEW_PERSON,

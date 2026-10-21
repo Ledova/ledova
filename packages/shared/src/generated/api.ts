@@ -2943,6 +2943,54 @@ export interface ApiPaths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/tokens/register-member-documents/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: ApiOperations['api_v1_tokens_register_member_documents_list'];
+    put?: never;
+    post: ApiOperations['api_v1_tokens_register_member_documents_create'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/tokens/register-member-documents/{uuid}/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: ApiOperations['api_v1_tokens_register_member_documents_retrieve'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/tokens/register-member-documents/{uuid}/file/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: ApiOperations['api_v1_tokens_register_member_documents_file_retrieve'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/tokens/register-openings/': {
     parameters: {
       query?: never;
@@ -6100,6 +6148,12 @@ export interface ApiComponents {
       previous?: string | null;
       results: ApiComponents['schemas']['RegisterIssue'][];
     };
+    PaginatedRegisterMemberDocumentList: {
+      count: number;
+      next?: string | null;
+      previous?: string | null;
+      results: ApiComponents['schemas']['RegisterMemberDocument'][];
+    };
     PaginatedRegisterOpeningList: {
       count: number;
       next?: string | null;
@@ -7521,6 +7575,30 @@ export interface ApiComponents {
       nomination: string;
       proofCompletedAt: string;
       registryAddress: string;
+    };
+    RegisterMemberDocument: {
+      appointment: string;
+      category: ApiComponents['schemas']['RegisterMemberDocumentCategoryEnum'];
+      company: string;
+      createdAt: string;
+      evidence: string;
+      idempotencyKey: string;
+      member: string;
+      snapshot: unknown;
+      sourceImport: string | null;
+      token: string;
+      uuid: string;
+    };
+    RegisterMemberDocumentCategoryEnum:
+      'share_certificate' | 'shareholder_agreement' | 'subscription_agreement' | 'other';
+    RegisterMemberDocumentCreateRequest: {
+      appointment: string;
+      category: ApiComponents['schemas']['RegisterMemberDocumentCategoryEnum'];
+      companyId: string;
+      evidence: string;
+      idempotencyKey: string;
+      member: string;
+      token: string;
     };
     RegisterMembers: {
       awardRecipients: ApiComponents['schemas']['RegisterAwardRecipient'][];
@@ -14498,6 +14576,108 @@ export interface ApiOperations {
         };
         content: {
           'application/json': ApiComponents['schemas']['RegisterWaitingWallets'];
+        };
+      };
+    };
+  };
+  api_v1_tokens_register_member_documents_list: {
+    parameters: {
+      query?: {
+        company?: string;
+        idempotency_key?: string;
+        member?: string;
+        ordering?: string;
+        page?: number;
+        page_size?: number;
+        token?: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['PaginatedRegisterMemberDocumentList'];
+        };
+      };
+    };
+  };
+  api_v1_tokens_register_member_documents_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': ApiComponents['schemas']['RegisterMemberDocumentCreateRequest'];
+        'application/x-www-form-urlencoded': ApiComponents['schemas']['RegisterMemberDocumentCreateRequest'];
+        'multipart/form-data': ApiComponents['schemas']['RegisterMemberDocumentCreateRequest'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['RegisterMemberDocument'];
+        };
+      };
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['RegisterMemberDocument'];
+        };
+      };
+    };
+  };
+  api_v1_tokens_register_member_documents_retrieve: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['RegisterMemberDocument'];
+        };
+      };
+    };
+  };
+  api_v1_tokens_register_member_documents_file_retrieve: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': Blob;
         };
       };
     };

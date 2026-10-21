@@ -210,7 +210,9 @@ Ledova, and its holdings must match the stored register. On the web:
    class's records the name, residential address, original date entered, whole-share holding and
    each allotment (date, quantity, paid and unpaid amounts). New web records leave beneficial
    ownership **Not recorded**, with no ownership question or reference inputs; existing answers and
-   references stay with saved records and corrections. Use **Add documents (optional)** for attachments.
+   references stay with saved records and corrections. **Documents (optional)** attaches one or more
+   files to this shareholder and share class, each with its own category
+   ([supporting documents](#shareholder-documents)).
    Allotments must add
    up to the holding, a fully paid allotment has nothing unpaid, and a blank amount stays unknown
    rather than zero. For a genuinely unopened non-tokenised class
@@ -246,7 +248,7 @@ copied holding records an opening balance, not an award-linked issue.
 Web imports are attributed to "Company-provided share records", with a snapshot naming the company,
 record date and preparer; the mobile app asks for a source reference and keeps separate Review and
 Confirm mirror screens. Confirming is the company's confirmation that the records are its own, not a
-new director resolution. On the web, **Add documents (optional)** holds a register copy and ASIC
+new director resolution. On the web, **Company source copies (optional)** holds a register copy and ASIC
 extract, kept without being read. Fresh setup asks for neither former shareholders nor ASIC
 comparison figures. Earlier former-member records remain in saved snapshots, review and history;
 an inherited **Earlier ASIC comparison** is read-only, with **Leave out ASIC comparison** available
@@ -260,6 +262,22 @@ instruction applied for the class (open it from the chain, then import particula
 holdings differ from the stored register of a class opened from the chain; when a former member
 ceased after the register date, on or after an existing opening, or before the retention period; and while a deployment of the class
 is pending.
+
+### Shareholder documents
+
+On the web, each shareholder can have optional Share certificate, Shareholder agreement,
+Subscription agreement or Other supporting document attachments. Add them in the shareholder form
+during setup, or afterwards from the shareholder's page or the relevant class's details. Each
+attachment belongs to the company, person and share class; a setup attachment also keeps its source
+opening record. Recording existing holdings creates no historical share issue. Company source
+copies belong to the whole opening and remain separate.
+
+Files and their record links are retained, with the uploader, appointment, category and file
+fingerprint. One stored file can support several linked people without duplicating its bytes.
+Current company register readers can download them; they are not shared automatically with members
+or published. A category describes the company's attachment: uploading a Share certificate neither
+generates nor verifies one, and an attachment does not replace an issue's required approval,
+agreement or receipt evidence. Mobile attachment entry is deferred.
 
 ### Correcting the copied opening
 
@@ -580,6 +598,8 @@ reached from Recipient details on their award. It shows:
   and their change in shares;
 - Employee awards, when they have any: per award, the shares promised, vested and issued, with a link
   to Employee share scheme;
+- Documents: the shareholder's retained supporting files, with their category and share class;
+  someone who can prepare the register can add more for a recorded holding;
 - requests from them waiting for the company, with a link to Member access and requests;
 - for an administrator, whether they can see their own records, with **Invite to their records**
   when they cannot.
@@ -616,7 +636,8 @@ person chosen.
 
 Each class opens directly from **Class details** on its Ledger card. Its details show the class's
 name, code, type, state and current register summary, followed by the company's optional
-[Class rights](issuing-shares.md#class-rights). Shareholder management stays on Shareholders and
+[Class rights](issuing-shares.md#class-rights) and the class's
+[shareholder documents](#shareholder-documents). Shareholder management stays on Shareholders and
 register downloads on Documents. **Technical details and chain workflows** opens the retained
 technical metadata, request history and company-authorised deployment, chain issue, capital and
 pause workflows ([share classes](issuing-shares.md#share-classes)).

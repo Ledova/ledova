@@ -470,6 +470,14 @@ changes at `/company/ledger/members/:member/particulars`; and wallet links at
 `/company/ledger/companies/:company/links`. Setup is the import page without a class in its
 address: it chooses or creates a share class, then prepares the mirror import.
 
+On the web, setup's shareholder editor and later shareholder/class pages share
+`dashboard/src/pages/company/ledger/shared/DocumentAttachments.tsx` for optional categorised
+files. Setup uploads supporting evidence before preparation and includes it in that member's
+proposal; company source copies stay at opening scope. The shared register-member-documents service
+validates each returned company, member and class against the query. Later attachment lists and
+downloads use these retained links, not a public storage URL
+([attachment rules](../business/register.md#shareholder-documents)). Mobile keeps its existing setup.
+
 The helpers order an opening's holdings largest first by exact share count, check that every count
 is whole, label each mapped member once (by name, or numbered as an unnamed or new member;
 `registerLinkMemberLabels` for links) so the page, the record and the preview agree, and recognise a
@@ -542,25 +550,25 @@ display text and Instrument Sans for everything else (`@fontsource-variable`).
 Each page links to its business section; the audience is the `DESTINATIONS` audience
 ([guards](#routes-audiences-and-guards)).
 
-| Page and business section                                                                                | Routes                                                                               | Audience  |
-| -------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ | --------- |
-| [Company dashboard](../business/README.md#the-app-at-a-glance)                                           | `/company/dashboard` (web only)                                                      | everyone  |
-| [Personal dashboard](../business/member-records.md#what-a-member-can-read)                               | `/home`, `/home#documents`, alias `/member-records`                                  | everyone  |
+| Page and business section                                                                                | Routes                                                                             | Audience  |
+| -------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- | --------- |
+| [Company dashboard](../business/README.md#the-app-at-a-glance)                                           | `/company/dashboard` (web only)                                                    | everyone  |
+| [Personal dashboard](../business/member-records.md#what-a-member-can-read)                               | `/home`, `/home#documents`, alias `/member-records`                                | everyone  |
 | [Ledger, Shareholders, Employee share scheme, Documents](../business/register.md#the-register-page)      | `/company/ledger` and `#shareholders`, `#awards`, `#documents`; preparation routes | everyone  |
 | [A shareholder's page](../business/register.md#a-shareholders-page)                                      | `/company/ledger/members/:member?company=`                                         | everyone  |
 | [Share class](../business/register.md#the-share-class-page)                                              | `/company/ledger/:uuid`                                                            | everyone  |
-| [Company, Representative authority, Company team, Activation](../business/companies.md#the-company-page) | `/company`, `/company/authority` (company), `/company/team`, `/company/listing`      | everyone  |
-| [Company eligibility](../business/participants.md#company-eligibility-decisions)                         | `/company/eligibility`                                                               | everyone  |
-| [Offerings](../business/issuing-shares.md#the-offerings-page)                                            | `/company/offering`                                                                  | company   |
-| [Published to your members](../business/publications.md#the-published-page)                              | `/company/publications`                                                              | company   |
-| [Notices](../business/publications.md#the-notices-page)                                                  | `/publications`                                                                      | everyone  |
-| [Wallet shares](../business/member-records.md#the-wallet-shares-page)                                    | `/wallets/holdings`                                                                  | everyone  |
-| [Verification, Your company eligibility](../business/participants.md#the-verification-page)              | `/investor-eligibility`, `/eligibility-requests`                                     | investing |
-| [Directory, Applications](../business/participants.md#the-directory-page)                                | `/directory`, `/directory/:uuid`, `/subscriptions`, `/subscriptions/:uuid`           | investing |
-| [Market](../business/trading.md#the-market-page)                                                         | `/trading`                                                                           | investing |
-| [Wallets](../business/trading.md#the-wallets-page)                                                       | `/wallets`                                                                           | everyone  |
-| [Activity](../business/trading.md#the-activity-page)                                                     | `/transactions`                                                                      | everyone  |
-| [Profile, Settings](../business/participants.md#profile-and-settings)                                    | `/user-profile`, `/settings`                                                         | everyone  |
+| [Company, Representative authority, Company team, Activation](../business/companies.md#the-company-page) | `/company`, `/company/authority` (company), `/company/team`, `/company/listing`    | everyone  |
+| [Company eligibility](../business/participants.md#company-eligibility-decisions)                         | `/company/eligibility`                                                             | everyone  |
+| [Offerings](../business/issuing-shares.md#the-offerings-page)                                            | `/company/offering`                                                                | company   |
+| [Published to your members](../business/publications.md#the-published-page)                              | `/company/publications`                                                            | company   |
+| [Notices](../business/publications.md#the-notices-page)                                                  | `/publications`                                                                    | everyone  |
+| [Wallet shares](../business/member-records.md#the-wallet-shares-page)                                    | `/wallets/holdings`                                                                | everyone  |
+| [Verification, Your company eligibility](../business/participants.md#the-verification-page)              | `/investor-eligibility`, `/eligibility-requests`                                   | investing |
+| [Directory, Applications](../business/participants.md#the-directory-page)                                | `/directory`, `/directory/:uuid`, `/subscriptions`, `/subscriptions/:uuid`         | investing |
+| [Market](../business/trading.md#the-market-page)                                                         | `/trading`                                                                         | investing |
+| [Wallets](../business/trading.md#the-wallets-page)                                                       | `/wallets`                                                                         | everyone  |
+| [Activity](../business/trading.md#the-activity-page)                                                     | `/transactions`                                                                    | everyone  |
+| [Profile, Settings](../business/participants.md#profile-and-settings)                                    | `/user-profile`, `/settings`                                                       | everyone  |
 
 ### Page mechanics
 
@@ -619,8 +627,10 @@ Each page links to its business section; the audience is the `DESTINATIONS` audi
   class (`register/entries/` with `member`) and their awards (`register-awards/` with `member`). It
   renders the person only while the account, classes and holders are current; particulars, history
   and awards also need `hasCurrentRegisterReadAuthority` on settled appointments and their own settled
-  read. **Change particulars** rechecks those reads and a current preparation appointment before it
-  opens. While register work is held, Shareholders' Details links are disabled.
+  read. Documents reads the person's retained attachments across classes; class details reads the
+  same links for its class. **Change particulars** and adding documents recheck current preparation
+  authority, and attachment downloads require current register-read authority. While register work
+  is held, Shareholders' Details links are disabled.
 - Register reads on both clients (Ledger on the web): the web reads the person's appointments through Company team's
   account-bound cache; mobile reads them itself. Both reread them after a revocation on Company team
   or Representative authority, a refused decision, preview or acknowledgement, a waiting-wallets

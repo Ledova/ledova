@@ -7,6 +7,7 @@ import { registerPlace } from '@pages/company/ledger/shared/registerPlace';
 import { useShareClass } from './useShareClass';
 import { ClassRights } from './ClassRights';
 import { useClassRights } from './useClassRights';
+import { MemberDocuments } from '@pages/company/ledger/shared/MemberDocuments';
 import { ShareClassTechnical } from './ShareClassTechnical';
 
 export function ShareClass({ uuid }: { uuid: string }) {
@@ -120,6 +121,20 @@ function ShareClassDetails({ data, rights }: { data: ReturnType<typeof useShareC
         )}
       </Section>
       {rights}
+      {data.owner && (
+        <MemberDocuments
+          owner={data.owner}
+          guard={data.guard}
+          company={token.companyUuid}
+          token={token.uuid}
+          sourceReady={registerReady}
+          holdings={(data.register.data?.holders ?? []).map((holder) => ({
+            member: holder.member,
+            token: token.uuid,
+            label: holder.name || 'Unnamed shareholder',
+          }))}
+        />
+      )}
     </>
   );
 }

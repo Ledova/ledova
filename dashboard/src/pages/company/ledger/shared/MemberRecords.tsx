@@ -10,6 +10,7 @@ import { Table } from '@components/List';
 import { Modal } from '@components/Modal';
 import { PageAction } from '@components/Page';
 import { Row, Rows } from '@components/Ledger';
+import { DOCUMENT_CATEGORIES } from './documentAttachmentDraft';
 
 export function MemberRecords({ members }: { members: RegisterImportMemberRow[] }) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -104,6 +105,19 @@ export function MemberRecords({ members }: { members: RegisterImportMemberRow[] 
               <p className="text-sm text-text-muted">
                 Allotment particulars were not captured in this earlier snapshot.
               </p>
+            )}
+            {!!selected.documents?.length && (
+              <section className="space-y-3 border-t border-border-subtle pt-4">
+                <h3 className="text-sm font-medium text-text-primary">Documents</h3>
+                <ul className="space-y-2 text-sm text-text-primary">
+                  {selected.documents.map((document) => (
+                    <li key={document.evidence}>
+                      {document.snapshot?.name || 'Retained supporting document'}
+                      <p className="mt-1 text-xs text-text-muted">{DOCUMENT_CATEGORIES[document.category]}</p>
+                    </li>
+                  ))}
+                </ul>
+              </section>
             )}
           </div>
         )}

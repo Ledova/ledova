@@ -4,8 +4,11 @@ from uuid import uuid4
 
 from django.db import DatabaseError
 from django.utils import timezone
+from rest_framework.exceptions import ValidationError
 from rest_framework.test import APITransactionTestCase
 
+from companies.services.team import revoke_company_appointment
+from operators.models import Operator
 from shared.db import atomic, use_operator
 from shared.tests.core_fixtures import CoreFixtures, retained_evidence
 from tokens.constants import MAX_UINT256
@@ -15,10 +18,12 @@ from tokens.models import (
     RegisterEvidenceKind,
     RegisterImport,
     RegisterMember,
+    RegisterMemberDocument,
     RegisterMemberParticulars,
     RegisterPosition,
     ShareToken,
 )
+from tokens.services.company_pack_documents import member_documents
 from tokens.services.register_authority import register_command
 from tokens.services.register_events import verify_register
 
@@ -79,6 +84,8 @@ class RegisterMirrorTest(CoreFixtures, APITransactionTestCase):
         token = ShareToken.objects.get(pk=created.json()["uuid"])
         endpoint = "/api/v1/tokens/register-imports/"
         payload = self.mirror_payload(token)
+        supporting = retained_evidence(self.owner, self.appointment, RegisterEvidenceKind.SUPPORTING)
+        payload["members"][0]["documents"] = [{"evidence": str(supporting.pk), "category": "share_certificate"}]
         allotments = payload["members"][0]["allotments"]
         allotments[1].update(shares="30", amount_paid="15", amount_unpaid="15")
         allotments.append({**allotments[1], "beneficially_held": None})
@@ -94,14 +101,98 @@ class RegisterMirrorTest(CoreFixtures, APITransactionTestCase):
         self.assertEqual(prepared.status_code, 201, prepared.content)
         identifier = prepared.json()["uuid"]
         self.assertIsNone(RegisterImport.objects.get(pk=identifier).members[0]["allotments"][2]["beneficially_held"])
+        with use_operator():
+            retained_documents, retained_files = member_documents(self.company)
+        self.assertEqual(retained_documents["links"], [])
+        self.assertEqual(retained_documents["openings"][0]["status"], "submitted")
+        self.assertEqual(str(retained_documents["openings"][0]["source_import"]), identifier)
+        self.assertEqual(len(retained_files), 1)
+        self.assertEqual(next(iter(retained_files.values()))["recorded"]["sha256"], supporting.sha256)
         retried = self.client.post(endpoint, payload, format="json")
         self.assertEqual(retried.status_code, 200, retried.content)
         changed_status = deepcopy(payload)
         changed_status["members"][0]["allotments"][2]["beneficially_held"] = False
         refused = self.client.post(endpoint, changed_status, format="json")
         self.assertEqual(refused.status_code, 409, refused.content)
+        with patch(
+            "tokens.services.register_member_documents.matching_bytes", side_effect=ValidationError("Unavailable file")
+        ):
+            unavailable = self.client.post(
+                f"{endpoint}{identifier}/decision-preview/",
+                {"appointment": str(self.appointment.pk), "kind": "approve"},
+                format="json",
+            )
+            self.assertFalse(unavailable.json()["canDecide"])
+            self.assertIn("evidence_unavailable", unavailable.json()["unmetRequirements"])
         self.decision(endpoint, identifier, "approve")
         self.decision(endpoint, identifier, "apply")
+        documents_endpoint = "/api/v1/tokens/register-member-documents/"
+        documents = self.client.get(
+            documents_endpoint, {"member": payload["members"][0]["member"], "token": str(token.pk)}
+        )
+        self.assertEqual(documents.status_code, 200, documents.content)
+        document = documents.json()["results"][0]
+        self.assertEqual(
+            (document["evidence"], document["sourceImport"], document["category"]),
+            (str(supporting.pk), identifier, "share_certificate"),
+        )
+        downloaded = self.client.get(f"{documents_endpoint}{document['uuid']}/file/")
+        self.assertEqual(downloaded.status_code, 200)
+        self.assertEqual(b"".join(downloaded.streaming_content), supporting.file.open("rb").read())
+        self.client.force_authenticate(self.foreign)
+        self.assertEqual(self.client.get(documents_endpoint).json()["results"], [])
+        self.assertEqual(self.client.get(f"{documents_endpoint}{document['uuid']}/file/").status_code, 404)
+        self.client.force_authenticate(self.owner)
+        later = {
+            "company_id": str(self.company.pk),
+            "member": str(self.member.pk),
+            "token": str(self.token.pk),
+            "evidence": str(supporting.pk),
+            "category": "shareholder_agreement",
+            "appointment": str(self.appointment.pk),
+            "idempotency_key": str(uuid4()),
+        }
+        added = self.client.post(documents_endpoint, later, format="json")
+        self.assertEqual(added.status_code, 201, added.content)
+        self.assertIsNone(added.json()["sourceImport"])
+        self.assertEqual(self.client.post(documents_endpoint, later, format="json").status_code, 200)
+        changed_document = {**later, "category": "subscription_agreement"}
+        self.assertEqual(self.client.post(documents_endpoint, changed_document, format="json").status_code, 409)
+        duplicate_document = {**later, "idempotency_key": str(uuid4())}
+        self.assertEqual(self.client.post(documents_endpoint, duplicate_document, format="json").status_code, 409)
+        foreign_document = retained_evidence(self.foreign, self.foreign_appointment, RegisterEvidenceKind.SUPPORTING)
+        self.assertEqual(
+            self.client.post(
+                documents_endpoint,
+                {**later, "evidence": str(foreign_document.pk), "idempotency_key": str(uuid4())},
+                format="json",
+            ).status_code,
+            400,
+        )
+        self.assertEqual(
+            self.client.post(
+                documents_endpoint, {**later, "member": str(uuid4()), "idempotency_key": str(uuid4())}, format="json"
+            ).status_code,
+            404,
+        )
+        with use_operator():
+            self.assertEqual(RegisterMemberDocument.objects.filter(evidence=supporting).count(), 2)
+            with self.assertRaises(DatabaseError), atomic():
+                RegisterMemberDocument.objects.filter(pk=document["uuid"]).update(category="other")
+            with self.assertRaises(DatabaseError), register_command(
+                self.owner, self.company.pk, "register_member_document"
+            ):
+                RegisterMemberDocument.objects.create(
+                    company=self.company,
+                    member=self.member,
+                    token=self.token,
+                    evidence=foreign_document,
+                    category="other",
+                    snapshot=document["snapshot"],
+                    recorded_by=self.owner,
+                    appointment=self.appointment,
+                    idempotency_key=uuid4(),
+                )
         opening = RegisterEntry.objects.get(register__token=token, kind="opening")
         original_changes, original_hash = deepcopy(opening.changes), opening.entry_hash
         confirmed = self.client.get(f"{endpoint}{identifier}/").json()
@@ -244,6 +335,8 @@ class RegisterMirrorTest(CoreFixtures, APITransactionTestCase):
         self.assertEqual(accepted.status_code, 200, accepted.content)
         member_record = self.client.get(f"/api/v1/tokens/member-records/{accepted.json()['uuid']}/")
         self.assertEqual(member_record.status_code, 200, member_record.content)
+        self.assertEqual(self.client.get(documents_endpoint).json()["results"], [])
+        self.assertEqual(self.client.get(f"{documents_endpoint}{document['uuid']}/file/").status_code, 404)
         self.assertEqual(member_record.json()["classes"][0]["enteredOn"], "2018-01-01")
         self.client.force_authenticate(self.owner)
         self.assertEqual(
@@ -318,6 +411,20 @@ class RegisterMirrorTest(CoreFixtures, APITransactionTestCase):
         self.assertEqual((opening.register.sequence, int(opening.register.issued_supply)), (2, 25))
         self.assertEqual(RegisterPosition.objects.get(register=opening.register).shares, 25)
         self.assertEqual(RegisterEntry.objects.filter(register=opening.register, kind="issue").count(), 1)
+        configuration = Operator.get()
+        with use_operator():
+            Operator.objects.filter(pk=configuration.pk).update(issuer_kyc_required=True)
+            self.profile.is_id_verified = False
+            self.profile.save(update_fields=["is_id_verified"])
+        self.assertEqual(self.client.get(documents_endpoint).json()["results"], [])
+        self.assertEqual(self.client.get(f"{documents_endpoint}{document['uuid']}/file/").status_code, 404)
+        with use_operator():
+            self.profile.is_id_verified = True
+            self.profile.save(update_fields=["is_id_verified"])
+        self.assertTrue(self.client.get(documents_endpoint).json()["results"])
+        revoke_company_appointment(requester=self.owner, appointment_id=self.appointment.pk)
+        self.assertEqual(self.client.get(documents_endpoint).json()["results"], [])
+        self.assertEqual(self.client.get(f"{documents_endpoint}{document['uuid']}/file/").status_code, 404)
 
     def test_mirror_refuses_incomplete_records_stale_heads_and_later_member_or_share_activity(self):
         endpoint = "/api/v1/tokens/register-imports/"

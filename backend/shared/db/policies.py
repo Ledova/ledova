@@ -544,6 +544,10 @@ FRAMEWORK = {
 }
 
 OPERATOR_ONLY = {
+    "tokens_registermemberdocument": "Append-only company-private shareholder and share-class document links. "
+    "Current exact-company register readers list and download them through register_member_document views on the "
+    "operator connection. Bounded prepare commands add links, and exact applied opening records retain their links; "
+    "neither public nor member projections expose the files.",
     "tokens_classrightsrevision": "Append-only company-supplied class-rights descriptions. Current exact-company "
     "register readers read them through the class-rights action and permitted company-pack exports; the bounded "
     "producer requires a current personal ADMIN appointment and retains actor, time and exact revision history. "
@@ -642,10 +646,12 @@ OPERATOR_ONLY = {
     "company appointments and exact immutable commands, read through their company-scoped grant.",
     "tokens_registerevidence": "Immutable company-provided register evidence uploads, written only by "
     "tokens/services/register_evidence.py retain_register_evidence in the bounded register command on the operator "
-    "connection. No API lists or retrieves them; the upload route returns only the uploader's own row. The "
+    "connection. The upload route returns only the uploader's own row; company-private shareholder attachments list "
+    "their retained metadata and download through their exact record links. The "
     "uploader's own prepare commands accept them through own_evidence_bytes, and grant preparation also accepts an "
-    "award's retained agreement evidence. Every proposal, agreement, receipt, award, vesting, ending and reversal "
-    "built from them keeps its own copy of the bytes. The pause and capital _state checks, run for their proposals "
+    "award's retained agreement evidence. Action-specific proposals, agreements, receipts, awards, vestings, endings "
+    "and reversals keep their own copies; shareholder attachments retain immutable links to the original file. "
+    "The pause and capital _state checks, run for their proposals "
     "and execution workers, re-read the original, and the company pack and staff admin pages read the rows through "
     "the records that cite them, all on the operator connection.",
     "tokens_registerimportdecision": "Append-only company approvals, applications and rejections of register "

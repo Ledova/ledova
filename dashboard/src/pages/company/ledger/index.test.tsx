@@ -22,6 +22,8 @@ import {
   type CompanyShareToken,
   type ClassRightsRevision,
   type ClassRightsRequest,
+  type RegisterMemberDocument,
+  type RegisterMemberDocumentRequest,
   shortReference,
 } from '@ledova/shared';
 import SettingsPage from '@pages/settings';
@@ -35,6 +37,7 @@ import CompanyRegisterPage from '.';
 import CompanyShareholderPage from './member';
 import CompanyDashboardPage from '../dashboard';
 import { ShareClass } from './detail/ShareClass';
+import { MemberDocuments } from './shared/MemberDocuments';
 import { ClassReconciliation } from './ClassReconciliation';
 import CompanyRegisterImportPage from './import';
 import { ImportForm } from './import/ImportForm';
@@ -763,6 +766,160 @@ it('reads every class page and groups exact holdings by member identity with sea
   expect(screen.getAllByText(address)).toHaveLength(5);
   expect(JSON.stringify(retainedReconciliation)).toBe(retainedSnapshot);
   expect(api.post).toHaveBeenCalledTimes(2);
+  cleanup();
+  client.clear();
+  api.post.mockReset();
+  const documentCompany = crypto.randomUUID();
+  const documentMember = crypto.randomUUID();
+  const documentToken = crypto.randomUUID();
+  let documentAppointment: OwnCompanyAppointment = {
+    ...CURRENT_APPOINTMENT,
+    company: documentCompany,
+    uuid: crypto.randomUUID(),
+    capabilities: ['prepare'],
+  };
+  const documentRows: RegisterMemberDocument[] = [];
+  let fileGuard = () => {};
+  let readDocuments = true;
+  const pdf = new File(['%PDF-1.4 agreement'], 'subscription.pdf', { type: 'application/pdf' });
+  const uploadedEvidence = crypto.randomUUID();
+  api.get.mockImplementation(async (url: string, config) => {
+    if (url === APPOINTMENTS)
+      return {
+        data: {
+          results: readDocuments ? [documentAppointment] : [],
+          count: readDocuments ? 1 : 0,
+          next: null,
+          previous: null,
+        },
+      };
+    if (url === COMPANY_TOKEN_ENDPOINTS.REGISTER_MEMBER_DOCUMENTS) {
+      const rows = config.params.idempotency_key
+        ? documentRows.filter((row) => row.idempotencyKey === config.params.idempotency_key)
+        : documentRows;
+      return { data: { results: [...rows], count: rows.length, next: null, previous: null } };
+    }
+    if (url === COMPANY_TOKEN_ENDPOINTS.REGISTER_MEMBER_DOCUMENT_FILE(documentRows[0]?.uuid ?? '')) {
+      fileGuard = config.ledovaSubmissionGuard;
+      fileGuard();
+      return { data: new Blob(['%PDF-1.4 agreement'], { type: 'application/pdf' }) };
+    }
+    throw new Error(`Unexpected document read ${url}`);
+  });
+  api.post.mockImplementation(async (url: string, body) => {
+    if (url === COMPANY_TOKEN_ENDPOINTS.REGISTER_EVIDENCE) {
+      return {
+        data: {
+          uuid: uploadedEvidence,
+          company: documentCompany,
+          appointment: documentAppointment.uuid,
+          idempotencyKey: body.get('idempotency_key'),
+          kind: 'supporting',
+          fileSize: pdf.size,
+          mimeType: pdf.type,
+          originalFilename: pdf.name,
+          providedBy: 'company',
+          sha256: 'a'.repeat(64),
+          createdAt: '2026-10-21T00:00:00Z',
+        },
+      };
+    }
+    if (url === COMPANY_TOKEN_ENDPOINTS.REGISTER_MEMBER_DOCUMENTS) {
+      const request = body as RegisterMemberDocumentRequest;
+      documentRows.push({
+        uuid: crypto.randomUUID(),
+        company: request.companyId,
+        member: request.member,
+        token: request.token,
+        sourceImport: null,
+        evidence: request.evidence,
+        category: request.category,
+        snapshot: {
+          providedBy: 'company',
+          evidence: request.evidence,
+          company: request.companyId,
+          documentType: 'supporting',
+          name: pdf.name,
+          fileSize: pdf.size,
+          mimeType: pdf.type,
+          sha256: 'a'.repeat(64),
+        },
+        appointment: request.appointment,
+        idempotencyKey: request.idempotencyKey,
+        createdAt: '2026-10-21T00:00:00Z',
+      });
+      throw new Error('Interrupted document receipt');
+    }
+    throw new Error(`Unexpected document write ${url}`);
+  });
+  renderCompanyPage(
+    client,
+    <MemberDocuments
+      owner={{ userUuid: 'profile-one', ownerAccountUuid: 'account-one' }}
+      guard={() => {}}
+      company={documentCompany}
+      member={documentMember}
+      sourceReady
+      holdings={[{ member: documentMember, token: documentToken, label: 'Ordinary shares · ORD' }]}
+    />,
+    'Shareholder',
+  );
+  fireEvent.click(await screen.findByRole('button', { name: 'Add documents' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Add document' }));
+  fireEvent.change(screen.getByLabelText('Document 1 category'), { target: { value: 'subscription_agreement' } });
+  fireEvent.change(screen.getByLabelText('Document 1 file (optional)'), { target: { files: [pdf] } });
+  fireEvent.click(screen.getByRole('button', { name: 'Save documents' }));
+  const recoverDocument = await screen.findByRole('button', { name: 'Recover original save' });
+  expect((screen.getByRole('button', { name: 'Cancel' }) as HTMLButtonElement).disabled).toBe(true);
+  documentAppointment = { ...documentAppointment, capabilities: ['read_register'] };
+  await act(async () => client.invalidateQueries({ queryKey: ['company-appointments'] }));
+  fireEvent.click(recoverDocument);
+  await waitFor(() => expect(screen.queryByRole('button', { name: 'Recover original save' })).toBeNull());
+  expect(screen.getByText('subscription.pdf')).toBeTruthy();
+  expect(screen.getByText(/Subscription agreement/)).toBeTruthy();
+  expect(api.post.mock.calls.filter(([url]) => url === COMPANY_TOKEN_ENDPOINTS.REGISTER_EVIDENCE)).toHaveLength(1);
+  expect(api.post.mock.calls.filter(([url]) => url === COMPANY_TOKEN_ENDPOINTS.REGISTER_MEMBER_DOCUMENTS)).toHaveLength(
+    1,
+  );
+  expect(api.get).toHaveBeenCalledWith(
+    COMPANY_TOKEN_ENDPOINTS.REGISTER_MEMBER_DOCUMENTS,
+    expect.objectContaining({
+      params: expect.objectContaining({
+        company: documentCompany,
+        member: documentMember,
+        token: documentToken,
+        idempotency_key: documentRows[0].idempotencyKey,
+      }),
+    }),
+  );
+  vi.stubGlobal('URL', { createObjectURL: vi.fn(() => 'blob:synthetic-document'), revokeObjectURL: vi.fn() });
+  vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+  fireEvent.click(screen.getByRole('button', { name: 'Download (subscription.pdf)' }));
+  await waitFor(() => expect(URL.createObjectURL).toHaveBeenCalledOnce());
+  readDocuments = false;
+  await act(async () => client.invalidateQueries({ queryKey: ['company-appointments'] }));
+  await waitFor(() => expect(screen.queryByText('subscription.pdf')).toBeNull());
+  expect(() => fileGuard()).toThrow(/Current company register access/);
+  readDocuments = true;
+  documentAppointment = { ...documentAppointment, capabilities: ['prepare'] };
+  await act(async () => client.invalidateQueries({ queryKey: ['company-appointments'] }));
+  const previousPost = api.post.getMockImplementation()!;
+  api.post.mockImplementation((url: string, body, config) => {
+    if (url === COMPANY_TOKEN_ENDPOINTS.REGISTER_MEMBER_DOCUMENTS)
+      return Promise.reject({ response: { status: 400, data: { detail: 'Choose another document.' } } });
+    return previousPost(url, body, config);
+  });
+  fireEvent.click(await screen.findByRole('button', { name: 'Add documents' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Add document' }));
+  fireEvent.change(screen.getByLabelText('Document 1 file (optional)'), { target: { files: [pdf] } });
+  fireEvent.click(screen.getByRole('button', { name: 'Save documents' }));
+  await screen.findByText('Choose another document.');
+  await waitFor(() =>
+    expect((screen.getByRole('button', { name: 'Cancel' }) as HTMLButtonElement).disabled).toBe(false),
+  );
+  expect(screen.queryByRole('button', { name: 'Recover original save' })).toBeNull();
+  fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+  expect(documentRows).toHaveLength(1);
 });
 
 it('brings complete mirror records, recovers uncertain requests and confirms one snapshot with separate company appointments', async () => {
@@ -851,6 +1008,11 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   let failNextPreview = false;
   let interruptNextApply = false;
   let proposal: RegisterImport | undefined;
+  const attachment = new File(['%PDF-1.4 synthetic certificate'], 'share-certificate.pdf', { type: 'application/pdf' });
+  const agreement = new File(['%PDF-1.4 synthetic agreement'], 'shareholder-agreement.pdf', {
+    type: 'application/pdf',
+  });
+  const uploaded = new Map<string, { uuid: string; name: string; fileSize: number }>();
   let companyMembers: RegisterTransferMember[] = [];
   let membersUnavailable = false;
   let classCreationGuard = () => {};
@@ -922,6 +1084,28 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
     return dataPage([]);
   });
   api.post.mockImplementation(async (url: string, body: RegisterImportPreparation | RegisterDecideRequest, config) => {
+    if (url === COMPANY_TOKEN_ENDPOINTS.REGISTER_EVIDENCE) {
+      const form = body as unknown as FormData;
+      const file = form.get('file') as File;
+      const key = String(form.get('idempotency_key'));
+      const saved = uploaded.get(key) ?? { uuid: crypto.randomUUID(), name: file.name, fileSize: file.size };
+      uploaded.set(key, saved);
+      return {
+        data: {
+          uuid: saved.uuid,
+          company: company.uuid,
+          appointment: String(form.get('appointment')),
+          idempotencyKey: key,
+          kind: 'supporting',
+          fileSize: saved.fileSize,
+          mimeType: file.type,
+          originalFilename: file.name,
+          providedBy: 'company',
+          sha256: 'a'.repeat(64),
+          createdAt: '2026-10-21T00:00:00Z',
+        },
+      };
+    }
     if (url === COMPANY_TOKEN_ENDPOINTS.BASE) {
       classCreationGuard = config.ledovaSubmissionGuard;
       classCreationGuard();
@@ -955,7 +1139,30 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
         correctionOf: null,
         correctionAllowed: false,
         reason: request.reason,
-        members: request.members.map((member) => ({ ...member, amountPaid: '600.00' })),
+        members: request.members.map((member) => ({
+          ...member,
+          amountPaid: '600.00',
+          ...(member.documents
+            ? {
+                documents: member.documents.map((document) => {
+                  const file = [...uploaded.values()].find((value) => value.uuid === document.evidence)!;
+                  return {
+                    ...document,
+                    snapshot: {
+                      providedBy: 'company',
+                      evidence: file.uuid,
+                      company: company.uuid,
+                      documentType: 'supporting',
+                      name: file.name,
+                      fileSize: file.fileSize,
+                      mimeType: 'application/pdf',
+                      sha256: 'a'.repeat(64),
+                    },
+                  };
+                }),
+              }
+            : {}),
+        })),
         formerMembers: [],
         preparingAppointment: request.appointment,
         preparedByName: 'Example Director',
@@ -1103,6 +1310,12 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   fireEvent.change(screen.getAllByLabelText('Shares in allotment')[1], { target: { value: '200' } });
   fireEvent.change(screen.getAllByLabelText('Amount paid')[1], { target: { value: '200' } });
   fireEvent.change(screen.getAllByLabelText('Amount unpaid')[1], { target: { value: '0' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Add document' }));
+  fireEvent.change(screen.getByLabelText('Document 1 category'), { target: { value: 'share_certificate' } });
+  fireEvent.change(screen.getByLabelText('Document 1 file (optional)'), { target: { files: [attachment] } });
+  fireEvent.click(screen.getByRole('button', { name: 'Add another document' }));
+  fireEvent.change(screen.getByLabelText('Document 2 category'), { target: { value: 'shareholder_agreement' } });
+  fireEvent.change(screen.getByLabelText('Document 2 file (optional)'), { target: { files: [agreement] } });
   fireEvent.submit(screen.getByRole('button', { name: 'Add to draft' }).closest('form')!);
   expect(api.post).not.toHaveBeenCalled();
   fireEvent.click(screen.getByRole('button', { name: 'Add to draft' }));
@@ -1111,6 +1324,9 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   expect(api.post).not.toHaveBeenCalled();
   fireEvent.click(screen.getByRole('button', { name: 'Edit (shareholder 1)' }));
   expect(screen.queryByLabelText('Share numbers or reference')).toBeNull();
+  expect(screen.getByText('share-certificate.pdf')).toBeTruthy();
+  expect(screen.getByText('shareholder-agreement.pdf')).toBeTruthy();
+  fireEvent.click(screen.getByRole('button', { name: 'Remove (document 1)' }));
   fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Discarded edit' } });
   fireEvent.click(screen.getByRole('button', { name: 'Cancel (shareholder edit)' }));
   expect(screen.getByText('Example Shareholder')).toBeTruthy();
@@ -1139,6 +1355,15 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   visibleClass = true;
   fireEvent.click(screen.getByRole('button', { name: 'Recover saved records' }));
   await waitFor(() => expect(api.post.mock.calls.filter(([url]) => url === IMPORTS)).toHaveLength(1));
+  expect(api.post.mock.calls.filter(([url]) => url === COMPANY_TOKEN_ENDPOINTS.REGISTER_EVIDENCE)).toHaveLength(2);
+  expect(proposal!.members[0].documents?.map(({ category }) => category)).toEqual([
+    'share_certificate',
+    'shareholder_agreement',
+  ]);
+  expect(proposal!.members[0].documents?.map(({ snapshot }) => snapshot?.name)).toEqual([
+    'share-certificate.pdf',
+    'shareholder-agreement.pdf',
+  ]);
   await waitFor(() =>
     expect((screen.getByRole('button', { name: 'Recover saved records' }) as HTMLButtonElement).disabled).toBe(false),
   );
@@ -1369,7 +1594,9 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   rejected.asicIssuedTotal = '601';
   showReplacement('original-preparer');
   fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-  expect(screen.getByRole('button', { name: 'Add documents (optional)' }).getAttribute('aria-expanded')).toBe('false');
+  expect(screen.getByRole('button', { name: 'Company source copies (optional)' }).getAttribute('aria-expanded')).toBe(
+    'false',
+  );
   api.post.mockClear();
   fireEvent.click(screen.getByRole('button', { name: 'Save draft and review' }));
   expect(
@@ -1385,7 +1612,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   expect(screen.getByText(/retained ASIC copy and figures will be reused/)).toBeTruthy();
   showReplacement('another-preparer');
   fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-  fireEvent.click(screen.getByRole('button', { name: 'Add documents (optional)' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Company source copies (optional)' }));
   expect(screen.getByText(/Earlier source documents remain with their original record/)).toBeTruthy();
   expect(screen.queryByText(/will be reused/)).toBeNull();
   expect(screen.getByRole('group', { name: 'Earlier ASIC comparison' }).textContent).toContain('600 issued shares');

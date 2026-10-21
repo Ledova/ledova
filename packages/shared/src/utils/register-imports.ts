@@ -11,6 +11,7 @@ import type {
   RegisterAwardRecipient,
 } from '../types';
 import { rowsOf } from './register-commands';
+import { isRegisterImportMemberDocuments } from './register-member-documents';
 
 const MEMBER_TEXT = ['member', 'name', 'residentialAddress', 'shares', 'enteredOn'];
 const FORMER_TEXT = ['name', 'residentialAddress', 'shares', 'ceasedOn'];
@@ -89,6 +90,7 @@ export function registerImportOf(record: RegisterImportRecord): RegisterImport {
     members.some(
       (row) =>
         (row.allotments !== undefined && !currentRowOf(row)) ||
+        (row.documents !== undefined && !isRegisterImportMemberDocuments(row.documents, record.company)) ||
         (record.sourceConfirmed === true && row.allotments === undefined),
     )
   )
@@ -129,6 +131,7 @@ function memberRows(rows: (RegisterImportMemberRow | RegisterImportCurrentMember
         row.shares,
         row.enteredOn,
         allotmentRows(row.allotments),
+        row.documents?.map((document) => JSON.stringify([document.evidence, document.category])).sort(),
       ]),
   );
 }
@@ -159,6 +162,9 @@ export function isPreparedRegisterImport(proposal: RegisterImport, request: Regi
     proposal.asAt === request.asAt &&
     proposal.providedBy === 'company' &&
     proposal.members.every(currentRowOf) &&
+    proposal.members.every(
+      (row) => row.documents === undefined || isRegisterImportMemberDocuments(row.documents, proposal.company),
+    ) &&
     memberRows(proposal.members) === memberRows(request.members) &&
     formerRows(proposal.formerMembers) === formerRows(request.formerMembers)
   );

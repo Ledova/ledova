@@ -23,6 +23,7 @@ from tokens.views.register_grant import RegisterGrantViewSet
 from tokens.views.register_import import RegisterImportViewSet
 from tokens.views.register_instruction import RegisterInstructionViewSet
 from tokens.views.register_issue import RegisterIssueViewSet
+from tokens.views.register_member_document import RegisterMemberDocumentViewSet
 from tokens.views.register_opening import (
     RegisterOpeningViewSet,
     RegisterWalletLinkViewSet,
@@ -62,6 +63,7 @@ router.register(r"register-award-vestings", RegisterAwardVestingViewSet, basenam
 router.register(r"register-transfers", RegisterTransferViewSet, basename="register-transfers")
 router.register(r"register-imports", RegisterImportViewSet, basename="register-imports")
 router.register(r"register-evidence", RegisterEvidenceViewSet, basename="register-evidence")
+router.register(r"register-member-documents", RegisterMemberDocumentViewSet, basename="register-member-documents")
 router.register(
     r"register-particulars-changes", RegisterParticularsChangeViewSet, basename="register-particulars-changes"
 )

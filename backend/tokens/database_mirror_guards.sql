@@ -6,7 +6,7 @@ BEGIN
     IF jsonb_typeof(members) IS DISTINCT FROM 'array' OR jsonb_array_length(members) > 10000 THEN RETURN false; END IF;
     FOR member IN SELECT value FROM jsonb_array_elements(members) LOOP
         IF jsonb_typeof(member) IS DISTINCT FROM 'object'
-            OR (SELECT array_agg(key ORDER BY key COLLATE "C") FROM jsonb_object_keys(member) key)
+            OR (SELECT array_agg(key ORDER BY key COLLATE "C") FROM jsonb_object_keys(member - 'documents') key)
                 IS DISTINCT FROM ARRAY['allotments','amount_paid','entered_on','member','name','residential_address','shares']
             OR jsonb_typeof(member->'member') IS DISTINCT FROM 'string'
             OR member->>'member' !~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'

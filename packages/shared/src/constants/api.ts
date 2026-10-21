@@ -118,6 +118,8 @@ export const COMPANY_TOKEN_ENDPOINTS = {
   REGISTER_ENTRIES: (uuid: string) => `/api/v1/tokens/${uuid}/register/entries/` as const,
   REGISTER_OPENING_HOLDERS: (uuid: string) => `/api/v1/tokens/${uuid}/register/opening-holders/` as const,
   REGISTER_EVIDENCE: '/api/v1/tokens/register-evidence/',
+  REGISTER_MEMBER_DOCUMENTS: '/api/v1/tokens/register-member-documents/',
+  REGISTER_MEMBER_DOCUMENT_FILE: (uuid: string) => `/api/v1/tokens/register-member-documents/${uuid}/file/` as const,
   REGISTER_DEPLOYMENTS: '/api/v1/tokens/register-deployments/',
   REGISTER_DEPLOYMENT_DETAIL: (uuid: string) => `/api/v1/tokens/register-deployments/${uuid}/` as const,
   REGISTER_DEPLOYMENT_PREVIEW: (uuid: string) =>

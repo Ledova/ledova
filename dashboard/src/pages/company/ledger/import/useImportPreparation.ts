@@ -146,7 +146,7 @@ export function useImportPreparation({
   const previewAttempt = useRef('');
   const preparation = useRef<RegisterImportPreparation | null>(null);
   const activeRegister = useRef(register);
-  const uploads = useRef<Partial<Record<RegisterEvidenceKind, Upload>>>({});
+  const uploads = useRef<Record<string, Upload>>({});
   const pending = useRef(false);
   const mounted = useRef(true);
   const currentSteps = useRef(steps);
@@ -314,13 +314,13 @@ export function useImportPreparation({
         problem.startsWith(`Shareholder ${index + 1},`) ||
         problem.startsWith('Each company'),
     );
-  const upload = async (kind: RegisterEvidenceKind, file: File) => {
+  const upload = async (kind: RegisterEvidenceKind, file: File, cacheKey = kind as string) => {
     const preparingAppointment = checkPreparation();
-    const previous = uploads.current[kind];
+    const previous = uploads.current[cacheKey];
     const same = previous?.file === file && previous.appointment === preparingAppointment.uuid;
     if (same && previous.receipt) return previous.receipt;
     const key = same ? previous.key : crypto.randomUUID();
-    uploads.current[kind] = { file, appointment: preparingAppointment.uuid, key, receipt: null };
+    uploads.current[cacheKey] = { file, appointment: preparingAppointment.uuid, key, receipt: null };
     const request = { companyId: company, appointment: preparingAppointment.uuid, kind, idempotencyKey: key };
     const { data } = await uploadRegisterEvidence(
       apiClient,
@@ -330,7 +330,7 @@ export function useImportPreparation({
     checkPreparation();
     if (!isRegisterEvidenceReceipt(data, request, file.size))
       throw createUserFriendlyError(REGISTER_IMPORT_COPY.UPLOAD_RECEIPT_FAILED);
-    uploads.current[kind] = { file, appointment: preparingAppointment.uuid, key, receipt: data };
+    uploads.current[cacheKey] = { file, appointment: preparingAppointment.uuid, key, receipt: data };
     return data;
   };
   const prepare = async (recovering = false) => {
@@ -368,6 +368,18 @@ export function useImportPreparation({
         }
         const registerEvidence = draft.registerFile ? await upload('share_register', draft.registerFile) : null;
         const asicEvidence = draft.asicFile ? await upload('asic_extract', draft.asicFile) : null;
+        const preparedMembers: MemberDraft[] = [];
+        for (const member of draft.members) {
+          const documents: MemberDraft['documents'] = [];
+          for (const document of member.documents) {
+            const receipt = document.file
+              ? await upload('supporting', document.file, `${member.member}/${document.id}`)
+              : null;
+            if (receipt || document.evidence)
+              documents.push({ ...document, evidence: receipt?.uuid ?? document.evidence });
+          }
+          preparedMembers.push({ ...member, documents });
+        }
         checkPreparation();
         if (draft.members.length === 0 && !currentContext.current.emptyOpeningAllowed)
           throw createUserFriendlyError('An empty opening requires an unopened share class with no chain activity.');
@@ -394,7 +406,7 @@ export function useImportPreparation({
           asicIssuedTotal: stated?.total,
           asicMemberCount: stated?.count,
           asAt: draft.asAt,
-          members: memberRows(draft.members),
+          members: memberRows(preparedMembers),
           formerMembers: formerRows(draft.former),
           sourceReference: draft.reference.trim(),
           sourceConfirmed: true,
