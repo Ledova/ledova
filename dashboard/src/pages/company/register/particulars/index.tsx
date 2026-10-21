@@ -12,9 +12,8 @@ import {
   type OrderSubmissionOwner,
   type OwnCompanyAppointment,
 } from '@ledova/shared';
-import { Section, LoadError } from '@components/Ledger';
+import { Section, LoadError, Loading } from '@components/Ledger';
 import { Page } from '@components/Page';
-import { Loading } from '@pages/company/shared/RegisterStatus';
 import { useRegisterClasses } from '@pages/company/shared/useCompanyRegister';
 import { ownerGuard } from '@pages/company/shared/ownerGuard';
 import { useOwnAppointments } from '@hooks/useOwnAppointments';
@@ -100,13 +99,13 @@ function OwnParticulars({
           {classes.isError ? 'The register could not be loaded.' : 'Your appointments could not be loaded.'}
         </LoadError>
       ) : (
-        <Loading />
+        <Loading>Loading the register…</Loading>
       );
   else if (preparing.length === 0)
     content = <PreparationNotice className="py-3 text-sm text-text-muted">{COPY.READ_ONLY_NOTE}</PreparationNotice>;
   else if (!found)
     content = registers.some((read) => read.isPending) ? (
-      <Loading />
+      <Loading>Loading the register…</Loading>
     ) : stale ? (
       <LoadError retry={retry} busy={fetching}>
         The register or your appointments could not be loaded.

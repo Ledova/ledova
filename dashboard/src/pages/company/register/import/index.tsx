@@ -19,7 +19,6 @@ import {
 } from '@ledova/shared';
 import { Page } from '@components/Page';
 import { PageTitle } from '@components/PageTitle';
-import { Loading } from '@pages/company/shared/RegisterStatus';
 import { registerSteps, type RegisterSteps } from '@pages/company/shared/proposals';
 import { useRegisterClasses, registerClassesKey } from '@pages/company/shared/useCompanyRegister';
 import { importsKey, useRegisterImports } from '@pages/company/register/shared/useRegisterImports';
@@ -30,7 +29,7 @@ import { peopleKey, usePeople } from '@pages/company/register/shared/usePeople';
 import { ImportForm } from './ImportForm';
 import { NewClassSetup } from './NewClassSetup';
 import { canOpenEmptyRegister } from './preparation';
-import { LoadError } from '@components/Ledger';
+import { LoadError, Loading } from '@components/Ledger';
 
 export default function CompanyRegisterImportPage() {
   const { uuid = '' } = useParams();
@@ -171,7 +170,7 @@ function OwnImport({
       fetching ||
       (readable && (!imports.data || !register.data || !members.data))
     )
-      return <Loading />;
+      return <Loading>Loading the register…</Loading>;
     if (!listed) return <PreparationNotice />;
     if (!readable) return <PreparationNotice>{REGISTER_IMPORT_COPY.READ_ONLY_NOTE}</PreparationNotice>;
     if (record && imports.data && !saved)
@@ -198,7 +197,7 @@ function OwnImport({
         </p>
       );
     if (!canOpen) return <PreparationNotice>{REGISTER_IMPORT_COPY.READ_ONLY_NOTE}</PreparationNotice>;
-    return <Loading />;
+    return <Loading>Loading the register…</Loading>;
   }
   return (
     <ImportForm

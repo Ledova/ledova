@@ -16,7 +16,7 @@ import { useOwnAppointments } from '@hooks/useOwnAppointments';
 import { allPeopleKey, usePeople } from '@pages/company/register/shared/usePeople';
 import { awardsKey, useRegisterAwards } from '@pages/company/register/shared/useRegisterAwards';
 import { grantsKey, useRegisterGrants } from '@pages/company/register/shared/useRegisterGrants';
-import { LoadError } from '@components/Ledger';
+import { LoadError, Loading } from '@components/Ledger';
 
 export function ClassAwards({
   owner,
@@ -122,11 +122,7 @@ export function ClassAwards({
           }}
         />
       )}
-      {editing && members.isPending && (
-        <p role="status" className="text-sm text-text-muted">
-          Loading retained recipients…
-        </p>
-      )}
+      {editing && members.isPending && <Loading>Loading retained recipients…</Loading>}
       {editing && members.isError && (
         <LoadError retry={() => members.refetch()} busy={members.isFetching}>
           The retained recipients could not be loaded.
@@ -166,9 +162,7 @@ export function ClassAwards({
           A current company register appointment is required to read employee awards.
         </p>
       ) : awards.isPending ? (
-        <p role="status" className="text-sm text-text-muted">
-          Loading employee awards…
-        </p>
+        <Loading>Loading employee awards…</Loading>
       ) : null}
       {awards.isError && (
         <LoadError retry={refresh} busy={awards.isFetching || appointments.isFetching}>

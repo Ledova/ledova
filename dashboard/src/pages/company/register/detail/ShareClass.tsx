@@ -14,7 +14,7 @@ import {
   useUserPreferences,
 } from '@ledova/shared';
 import { Page, PageAction, PageLink } from '@components/Page';
-import { Row, Rows, Section, Status, LoadError } from '@components/Ledger';
+import { Row, Rows, Section, Status, LoadError, Loading } from '@components/Ledger';
 import { LoadMore } from '@components/List';
 import { ClassRegister } from '@pages/company/register/shared/ClassRegister';
 import { CompanyShareholders } from '@pages/company/register/shared/CompanyShareholders';
@@ -32,12 +32,7 @@ interface ReadState {
 }
 
 function ReadResult({ query, label, children }: { query: ReadState; label: string; children: ReactNode }) {
-  if (query.isPending)
-    return (
-      <p role="status" className="py-3 text-sm text-text-muted">
-        Loading {label}…
-      </p>
-    );
+  if (query.isPending) return <Loading>Loading {label}…</Loading>;
   if (query.isError)
     return (
       <LoadError retry={query.refetch} busy={query.isFetching}>
@@ -94,7 +89,7 @@ function ShareClassDetails({ data }: { data: ReturnType<typeof useShareClass> })
     data.register.fetchStatus === 'idle';
   const token = data.token.data;
   const content = () => {
-    if (data.token.isPending) return <p role="status">Loading share class…</p>;
+    if (data.token.isPending) return <Loading>Loading the share class…</Loading>;
     if (data.token.isError || !token)
       return (
         <LoadError retry={data.token.refetch} busy={data.token.isFetching}>

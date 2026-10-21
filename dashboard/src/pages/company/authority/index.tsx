@@ -1,5 +1,5 @@
 import { CompanyPicker } from '@components/CompanyPicker';
-import { Outcome, Section, LoadError } from '@components/Ledger';
+import { Outcome, Section, LoadError, Loading } from '@components/Ledger';
 import { Page, PageAction } from '@components/Page';
 import { useSubmissionOwner, useUserPreferences, type OrderSubmissionOwner, failureSentence } from '@ledova/shared';
 import { AuthorityRequestForm } from './AuthorityRequestForm';
@@ -63,9 +63,7 @@ function OwnAuthorityRequests({
       </p>
       <Section title="New authority request">
         {companies.isLoading ? (
-          <p role="status" className="text-sm text-text-muted">
-            Loading your companies…
-          </p>
+          <Loading>Loading your companies…</Loading>
         ) : companies.isError ? (
           <LoadError retry={() => companies.refetch()} busy={companies.isFetching}>
             Your companies could not be loaded.
@@ -106,9 +104,7 @@ function OwnAuthorityRequests({
       </Section>
       <Section title="Your request history">
         {history.isLoading ? (
-          <p role="status" className="text-sm text-text-muted">
-            Loading your requests…
-          </p>
+          <Loading>Loading your requests…</Loading>
         ) : history.isError ? (
           <LoadError retry={() => history.refetch()} busy={history.isFetching}>
             Your authority requests could not be loaded.

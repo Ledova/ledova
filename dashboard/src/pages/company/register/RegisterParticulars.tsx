@@ -8,7 +8,7 @@ import {
   type OrderSubmissionOwner,
   type TokenHoldersResponse,
 } from '@ledova/shared';
-import { Section, LoadError } from '@components/Ledger';
+import { Section, LoadError, Loading } from '@components/Ledger';
 
 import { ParticularsRecord } from './ParticularsRecord';
 import { registerMembers, registerSteps } from '@pages/company/shared/proposals';
@@ -71,9 +71,7 @@ export function RegisterParticulars({
         steps && !Object.values(steps).some(Boolean) && <p className="text-sm text-text-muted">{COPY.READ_ONLY_NOTE}</p>
       )}
       {changes.isPending ? (
-        <p role="status" className="text-sm text-text-muted">
-          Loading particulars changes…
-        </p>
+        <Loading>Loading particulars changes…</Loading>
       ) : changes.isError ? (
         <LoadError retry={() => changes.refetch()} busy={changes.isFetching}>
           Particulars changes could not be loaded.

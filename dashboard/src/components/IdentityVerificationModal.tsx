@@ -91,7 +91,7 @@ export function IdentityVerificationModal({ isOpen, onClose }: IdentityVerificat
     <Modal isOpen={isOpen} onClose={onClose} title="Identity verification" size="lg" fullHeight={!!formUrl}>
       <div className="space-y-4">
         {(isLoadingStatus || isLaunching) && (
-          <div className="flex flex-col items-center py-8">
+          <div role="status" className="flex flex-col items-center py-8">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-light"></div>
             <p className="text-sm text-text-muted mt-4">
               {isLaunching ? 'Preparing verification…' : 'Loading status…'}

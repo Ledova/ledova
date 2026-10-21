@@ -1,6 +1,6 @@
 import { SelectField } from '@components/SelectField';
 import { CompanyPicker } from '@components/CompanyPicker';
-import { LinkRow, Row, Rows, Section, LoadError } from '@components/Ledger';
+import { LinkRow, Row, Rows, Section, LoadError, Loading } from '@components/Ledger';
 import { Modal } from '@components/Modal';
 import { Page, PageAction } from '@components/Page';
 import {
@@ -96,7 +96,7 @@ function OwnTeam({
           />
         )}
         {own.isPending ? (
-          <p role="status">Loading your appointments…</p>
+          <Loading>Loading your appointments…</Loading>
         ) : own.isError ? (
           <LoadError retry={() => own.refetch()} busy={own.isFetching}>
             Your appointments could not be loaded.
@@ -167,7 +167,7 @@ function OwnTeam({
                   />
                 )}
                 {team.isPending ? (
-                  <p role="status">Loading company team…</p>
+                  <Loading>Loading company team…</Loading>
                 ) : team.isError ? (
                   <LoadError retry={() => team.refetch()} busy={team.isFetching}>
                     Company team could not be loaded.
@@ -205,7 +205,7 @@ function OwnTeam({
           />
         )}
         {invitations.isPending ? (
-          <p role="status">Loading your invitations…</p>
+          <Loading>Loading your invitations…</Loading>
         ) : invitations.isError ? (
           <LoadError retry={() => invitations.refetch()} busy={invitations.isFetching}>
             Your invitations could not be loaded.

@@ -19,14 +19,13 @@ import {
 } from '@ledova/shared';
 
 import { CompanySelection } from '@pages/company/shared/CompanySelection';
-import { Loading } from '@pages/company/shared/RegisterStatus';
 import { registerSteps } from '@pages/company/shared/proposals';
 import { useRegisterClasses, registerClassesKey } from '@pages/company/shared/useCompanyRegister';
 import { ownerGuard } from '@pages/company/shared/ownerGuard';
 import { useOwnAppointments, ownAppointmentsKey } from '@hooks/useOwnAppointments';
 import { peopleKey, usePeople } from '@pages/company/register/shared/usePeople';
 import { ImportForm } from './ImportForm';
-import { LoadError } from '@components/Ledger';
+import { LoadError, Loading } from '@components/Ledger';
 
 const NO_MEMBERS: RegisterTransferMembers = { members: [], awardRecipients: [] };
 const COMMON_CLASSES: { type: TokenType; name: string; symbol: string; label: string }[] = [
@@ -141,7 +140,7 @@ export function NewClassSetup({
         The register or your appointments could not be loaded.
       </LoadError>
     );
-  if (!context && (!classes.data || !appointments.data)) return <Loading />;
+  if (!context && (!classes.data || !appointments.data)) return <Loading>Loading the register…</Loading>;
   return (
     <div className="space-y-5">
       <CompanySelection

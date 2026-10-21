@@ -10,6 +10,7 @@ import {
 import { Modal } from '@components/Modal';
 import { PageAction } from '@components/Page';
 import { STEP_CHANGED, type RegisterSteps } from './proposals';
+import { Loading } from '@components/Ledger';
 
 type Proposal = { uuid: string; providedBy: string; status: string };
 type Preview = { previewDigest: string; canDecide: boolean; unmetRequirements: string[] };
@@ -197,11 +198,7 @@ export function RegisterDecisions<Shown extends Proposal, Previewed extends Prev
                 {STEP_CHANGED}
               </p>
             )}
-            {decision.busy && !preview && (
-              <p role="status" className="text-sm text-text-muted">
-                Loading the preview…
-              </p>
-            )}
+            {decision.busy && !preview && <Loading>Loading the preview…</Loading>}
             {preview && (
               <>
                 {note?.(active, preview)}

@@ -12,7 +12,7 @@ import {
   type RegisterAward,
   type RegisterGrant,
 } from '@ledova/shared';
-import { LinkRow, Row, Rows, Status, LoadError } from '@components/Ledger';
+import { LinkRow, Row, Rows, Status, LoadError, Loading } from '@components/Ledger';
 import { PageAction } from '@components/Page';
 import { AwardStatus } from '@components/AwardStatus';
 import { STAGE_TONES, shareCount } from '@pages/company/shared/proposals';
@@ -180,9 +180,7 @@ export function AwardRecord({
             </RecordDownloadFailure>
           )}
           {events.isPending ? (
-            <p role="status" className="text-sm text-text-muted">
-              Loading vesting events…
-            </p>
+            <Loading>Loading vesting events…</Loading>
           ) : events.isError ? (
             <LoadError retry={() => events.refetch()} busy={events.isFetching}>
               Vesting events could not be loaded.
@@ -247,9 +245,7 @@ export function AwardRecord({
             </details>
           )}
           {ends.isPending || reversals.isPending || ends.isFetching || reversals.isFetching ? (
-            <p role="status" className="text-sm text-text-muted">
-              Loading entitlement changes…
-            </p>
+            <Loading>Loading entitlement changes…</Loading>
           ) : ends.isError || reversals.isError ? (
             <LoadError
               retry={() => Promise.all([ends.refetch(), reversals.refetch()])}

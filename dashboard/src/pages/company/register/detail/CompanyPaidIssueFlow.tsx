@@ -1,5 +1,5 @@
 import { Field, TextArea, TextInput } from '@components/Field';
-import { Row, Rows, Section } from '@components/Ledger';
+import { Row, Rows, Section, Loading } from '@components/Ledger';
 import { PageAction } from '@components/Page';
 import { FIELD_CLASS } from '@components/fieldClass';
 import { SearchSelect } from '@components/SearchSelect';
@@ -194,7 +194,7 @@ function Preparation({ commands }: { commands: Commands }) {
     >
       <h3 className="font-medium">Prepare a company paid issue</h3>
       <p className="text-sm text-text-muted">{COPY.PAYMENT_NOTE}</p>
-      {commands.availableSubscriptions.isPending && <p role="status">Loading recorded paid sources…</p>}
+      {commands.availableSubscriptions.isPending && <Loading>Loading recorded paid sources…</Loading>}
       {commands.availableSubscriptions.isError && (
         <p role="alert">
           Available paid subscription sources could not be refreshed. The captured draft remains, and fresh evidence is
@@ -327,7 +327,7 @@ export function CompanyPaidIssueFlow({ uuid, data }: { uuid: string; data: Retur
           capability.
         </p>
       )}
-      {commands.visible && commands.instructions.isPending && <p role="status">Loading company paid issue records…</p>}
+      {commands.visible && commands.instructions.isPending && <Loading>Loading company paid issue records…</Loading>}
       {commands.visible && commands.instructions.isError && (
         <p role="alert">The paid issue records could not be refreshed. Retained original receipts remain available.</p>
       )}

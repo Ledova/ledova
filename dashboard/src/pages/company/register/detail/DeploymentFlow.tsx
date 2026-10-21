@@ -1,4 +1,4 @@
-import { Row, Rows, Section, Status, LoadError } from '@components/Ledger';
+import { Row, Rows, Section, Status, LoadError, Loading } from '@components/Ledger';
 import { PageAction } from '@components/Page';
 import {
   REGISTER_DEPLOYMENT_COPY as COPY,
@@ -124,9 +124,12 @@ export function DeploymentFlow({ uuid, data }: { uuid: string; data: ReturnType<
         />
       )}
       {!records.length ? (
-        !deployments.isError && (
-          <p className="text-sm text-text-muted">{deployments.isPending ? 'Loading deployments…' : COPY.EMPTY}</p>
-        )
+        !deployments.isError &&
+        (deployments.isPending ? (
+          <Loading>Loading deployments…</Loading>
+        ) : (
+          <p className="text-sm text-text-muted">{COPY.EMPTY}</p>
+        ))
       ) : (
         <ul className="divide-y divide-border-subtle">
           {records.map((proposal) => (

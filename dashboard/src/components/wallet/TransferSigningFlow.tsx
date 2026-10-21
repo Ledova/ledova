@@ -251,7 +251,7 @@ export function TransferSigningFlow({
     if (signingStep === 'loading' || isPreparing) {
       return (
         <div className="space-y-4">
-          <div className="flex flex-col items-center justify-center py-8 gap-3">
+          <div role="status" className="flex flex-col items-center justify-center py-8 gap-3">
             <SpinnerGapIcon size={ICON_XL} className="text-brand-light animate-spin" />
             <p className="text-sm text-text-muted">Preparing transaction…</p>
           </div>
@@ -361,7 +361,7 @@ export function TransferSigningFlow({
       case 'submitting':
         return (
           <div className="space-y-4">
-            <div className="flex flex-col items-center justify-center py-8 gap-3">
+            <div role="status" className="flex flex-col items-center justify-center py-8 gap-3">
               <SpinnerGapIcon size={ICON_XL} className="text-brand-light animate-spin" />
               <p className="text-sm text-text-muted">Broadcasting transaction…</p>
               <p className="text-xs text-text-subtle">This may take a moment</p>

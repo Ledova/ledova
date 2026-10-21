@@ -12,7 +12,7 @@ import {
   type OrderSubmissionOwner,
   type TokenHoldersResponse,
 } from '@ledova/shared';
-import { LinkRow, LoadError } from '@components/Ledger';
+import { LinkRow, LoadError, Loading } from '@components/Ledger';
 import { PageTitle } from '@components/PageTitle';
 import { Page, PageAction, PageLink } from '@components/Page';
 import { CompanySelection } from '@pages/company/shared/CompanySelection';
@@ -33,7 +33,6 @@ import { CompanyPack } from './CompanyPack';
 import { RegisterLinks } from './RegisterLinks';
 import { RegisterParticulars } from './RegisterParticulars';
 import { RegisterSetup } from './RegisterSetup';
-import { Loading } from '@pages/company/shared/RegisterStatus';
 import { useCompanyRegister, useRegisterDownload } from '@pages/company/shared/useCompanyRegister';
 import { ownerGuard } from '@pages/company/shared/ownerGuard';
 import { useOwnAppointments } from '@hooks/useOwnAppointments';
@@ -119,7 +118,7 @@ export default function CompanyRegisterPage() {
   return (
     <RegisterPage>
       {preferences.isLoading ? (
-        <Loading />
+        <Loading>Loading your account…</Loading>
       ) : (
         <LoadError retry={() => preferences.refetch()} busy={preferences.isFetching}>
           Your account could not be loaded.
@@ -394,7 +393,7 @@ function OwnRegister({
           Your account could not be loaded.
         </LoadError>
       ) : preferenceRead.isFetching || classes.isPending ? (
-        <Loading />
+        <Loading>Loading the register…</Loading>
       ) : classes.isError || registers.isError || (held && !sourceReady) ? (
         <LoadError
           retry={() => {
@@ -410,7 +409,7 @@ function OwnRegister({
       ) : !company ? (
         <p className="py-3 text-sm text-text-muted">Select a company to show its register.</p>
       ) : registers.isPending ? (
-        <Loading />
+        <Loading>Loading the register…</Loading>
       ) : null}
       {scope && (view === 'register' || view === 'shareholders') && ownershipInvalid && (
         <LoadError

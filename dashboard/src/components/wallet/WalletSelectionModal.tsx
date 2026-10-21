@@ -1,11 +1,9 @@
-import { ArrowsClockwiseIcon } from '@phosphor-icons/react';
 import { getActiveChains } from '@ledova/shared';
-import { ICON_LG } from '@components/iconSizes';
 import type { Wallet } from '@ledova/shared';
 import { Modal } from '@components/Modal';
 import { WalletChoice } from '@components/wallet';
 import { useWalletSelection } from './useWalletSelection';
-import { LoadError } from '@components/Ledger';
+import { LoadError, Loading } from '@components/Ledger';
 
 interface WalletSelectionModalProps {
   isOpen: boolean;
@@ -26,12 +24,7 @@ export function WalletSelectionModal({ isOpen, onClose, onSelectWallet }: Wallet
     }
 
     if (walletsQuery.isPending) {
-      return (
-        <div className="flex items-center justify-center py-8">
-          <ArrowsClockwiseIcon size={ICON_LG} className="animate-spin text-text-muted" />
-          <span className="ml-2 text-sm text-text-muted">Loading wallets…</span>
-        </div>
-      );
+      return <Loading>Loading your wallets…</Loading>;
     }
 
     if (wallets.length === 0) {

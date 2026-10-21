@@ -8,7 +8,7 @@ import {
   type TokenHoldersResponse,
   utcToday,
 } from '@ledova/shared';
-import { Outcome, Section } from '@components/Ledger';
+import { Outcome, Section, Loading } from '@components/Ledger';
 import { PersonSelect } from '@pages/company/register/shared/PersonPicker';
 import { PageAction } from '@components/Page';
 import { Confirmation } from '@components/Modal';
@@ -116,11 +116,7 @@ export function CompanyMemberAccess({
                 : '';
             }}
           />
-          {awards.isPending && (
-            <p role="status" className="text-sm text-text-muted">
-              Loading company recipients…
-            </p>
-          )}
+          {awards.isPending && <Loading>Loading company recipients…</Loading>}
           {(awards.isError || recipientsError) && (
             <p role="alert" className="text-sm text-error-light">
               {recipientsError || 'The company recipients could not be loaded. Refresh before inviting a member.'}

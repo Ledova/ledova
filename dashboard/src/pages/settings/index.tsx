@@ -4,7 +4,7 @@ import { FIELD_LIMITS, DESTINATIONS, failureSentence } from '@ledova/shared';
 import { useSettings } from './useSettings';
 import { Modal } from '@components/Modal';
 import { Page, PageAction } from '@components/Page';
-import { LinkRow, Outcome, Section, SwitchRow, LoadError } from '@components/Ledger';
+import { LinkRow, Outcome, Section, SwitchRow, LoadError, Loading } from '@components/Ledger';
 import { setTheme } from '@hooks/useTheme';
 import { Verification } from './Verification';
 
@@ -128,9 +128,7 @@ function SettingsPage() {
             Notification preferences could not be loaded.
           </LoadError>
         ) : preferences.isLoading ? (
-          <p role="status" className="text-sm text-text-muted">
-            Loading notification preferences…
-          </p>
+          <Loading>Loading notification preferences…</Loading>
         ) : transactionAlerts === undefined ? (
           <p className="text-sm text-text-muted">Notification preferences are unavailable.</p>
         ) : (

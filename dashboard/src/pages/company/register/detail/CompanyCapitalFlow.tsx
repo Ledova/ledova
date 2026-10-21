@@ -1,5 +1,5 @@
 import { Field, TextArea, TextInput } from '@components/Field';
-import { Row, Rows, Section } from '@components/Ledger';
+import { Row, Rows, Section, Loading } from '@components/Ledger';
 import { PageAction } from '@components/Page';
 import { FIELD_CLASS } from '@components/fieldClass';
 import {
@@ -252,7 +252,7 @@ export function CompanyCapitalFlow({ uuid, data }: { uuid: string; data: ReturnT
           capability.
         </p>
       )}
-      {commands.visible && commands.instructions.isPending && <p role="status">Loading company capital records…</p>}
+      {commands.visible && commands.instructions.isPending && <Loading>Loading company capital records…</Loading>}
       {commands.visible && commands.instructions.isError && (
         <p role="alert">The capital records could not be refreshed. Retained original receipts remain available.</p>
       )}

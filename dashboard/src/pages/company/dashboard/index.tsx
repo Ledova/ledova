@@ -10,14 +10,13 @@ import {
 } from '@ledova/shared';
 import { Page } from '@components/Page';
 import { CompanySelection } from '@pages/company/shared/CompanySelection';
-import { Loading } from '@pages/company/shared/RegisterStatus';
 import { useCompanyRegister } from '@pages/company/shared/useCompanyRegister';
 import { ownerGuard } from '@pages/company/shared/ownerGuard';
 import { useOwnAppointments } from '@hooks/useOwnAppointments';
 import { GettingStarted } from './GettingStarted';
 import { OwnershipMetrics, ShareholderPanels } from './OwnershipPanels';
 import { ownershipSummary } from '@pages/company/shared/summary';
-import { LoadError } from '@components/Ledger';
+import { LoadError, Loading } from '@components/Ledger';
 
 export default function CompanyDashboardPage() {
   const { owner, boundary } = useSubmissionOwner();
@@ -27,7 +26,7 @@ export default function CompanyDashboardPage() {
   ) : (
     <Page lede="Your company's recorded share ownership.">
       {preferences.isLoading ? (
-        <Loading />
+        <Loading>Loading your account…</Loading>
       ) : (
         <LoadError retry={() => preferences.refetch()} busy={preferences.isFetching}>
           Your account could not be loaded.
@@ -118,14 +117,18 @@ function OwnDashboard({
           retry={refresh}
           busy={preferences.isFetching || classes.isFetching || registers.isFetching || appointments.isFetching}
         >
-          The register could not be loaded.
+          {preferences.isError
+            ? 'Your account could not be loaded.'
+            : appointments.isError && !classes.isError && !registers.isError && !invalid
+              ? 'Your appointments could not be loaded.'
+              : 'The register could not be loaded.'}
         </LoadError>
       ) : preferences.isFetching ||
         classes.isPending ||
         appointments.isPending ||
         (company && registers.isPending) ||
         (company && !fresh) ? (
-        <Loading />
+        <Loading>Loading the register…</Loading>
       ) : companies.length === 0 ? (
         !gettingStarted && (
           <p className="py-3 text-sm text-text-muted">

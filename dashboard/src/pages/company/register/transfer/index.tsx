@@ -10,9 +10,8 @@ import {
   type OrderSubmissionOwner,
   peopleFrom,
 } from '@ledova/shared';
-import { Section, LoadError } from '@components/Ledger';
+import { Section, LoadError, Loading } from '@components/Ledger';
 import { Page } from '@components/Page';
-import { Loading } from '@pages/company/shared/RegisterStatus';
 import { useRegisterClasses } from '@pages/company/shared/useCompanyRegister';
 import { ownerGuard } from '@pages/company/shared/ownerGuard';
 import { useOwnAppointments } from '@hooks/useOwnAppointments';
@@ -77,7 +76,7 @@ function OwnTransfer({
         The register or your appointments could not be loaded.
       </LoadError>
     ) : (
-      <Loading />
+      <Loading>Loading the register…</Loading>
     );
   else if (!listed) content = <PreparationNotice />;
   else if (!appointment) content = <PreparationNotice>{COPY.READ_ONLY_NOTE}</PreparationNotice>;
@@ -87,7 +86,7 @@ function OwnTransfer({
         The register or your appointments could not be loaded.
       </LoadError>
     ) : (
-      <Loading />
+      <Loading>Loading the register…</Loading>
     );
   else if (!register.initialized || register.token.status !== 'draft')
     content = (

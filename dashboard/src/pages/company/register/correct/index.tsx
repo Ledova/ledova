@@ -10,10 +10,9 @@ import {
   type OrderSubmissionOwner,
   type RegisterEntry,
 } from '@ledova/shared';
-import { Row, Rows, Section, LoadError } from '@components/Ledger';
+import { Row, Rows, Section, LoadError, Loading } from '@components/Ledger';
 import { Page } from '@components/Page';
 import { RegisterChanges } from '@pages/company/register/shared/RegisterChanges';
-import { Loading } from '@pages/company/shared/RegisterStatus';
 import { describeEntry } from '@pages/company/shared/proposals';
 
 import { useRegisterClasses } from '@pages/company/shared/useCompanyRegister';
@@ -86,7 +85,7 @@ function OwnCorrection({
           {classes.isError ? 'The register could not be loaded.' : 'Your appointments could not be loaded.'}
         </LoadError>
       ) : (
-        <Loading />
+        <Loading>Loading the register…</Loading>
       );
   else if (!listed) content = <PreparationNotice className="py-3 text-sm text-text-muted" />;
   else if (!appointment)
@@ -97,7 +96,7 @@ function OwnCorrection({
         The register could not be loaded.
       </LoadError>
     ) : (
-      <Loading />
+      <Loading>Loading the register…</Loading>
     );
   else if (corrected.data === null)
     content = <p className="py-3 text-sm text-text-muted">This entry is not in the register of this share class.</p>;
