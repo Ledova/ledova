@@ -152,7 +152,9 @@ export function DeploymentFlow({ uuid, data }: { uuid: string; data: ReturnType<
                 <Row label="Original preparation">{shortReference(proposal.operationId)}</Row>
                 <Row label="Intent digest">{proposal.intentDigest}</Row>
                 <DecisionTrail proposal={proposal} labels={COPY.DECISIONS} />
-                {proposal.deploymentId && <Row label="Admitted deployment">{proposal.deploymentId}</Row>}
+                {proposal.deploymentId && (
+                  <Row label="Admitted deployment">{shortReference(proposal.deploymentId)}</Row>
+                )}
                 {proposal.approvalDecision && (
                   <Row label="Consumed approval">{shortReference(proposal.approvalDecision)}</Row>
                 )}

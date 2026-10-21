@@ -330,7 +330,7 @@ function MemberRecords({
                                   {award.vestingReversals.map((event) => (
                                     <p key={event.uuid}>
                                       {formatDate(event.companyEventOn)} · {formatShareCount(event.reversedShares)}{' '}
-                                      vesting reversed · original {event.vesting} · {event.reason}
+                                      vesting reversed · original {shortReference(event.vesting)} · {event.reason}
                                     </p>
                                   ))}
                                 </div>

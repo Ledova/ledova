@@ -124,7 +124,7 @@ export function FormerMembers({
               <Row label="Shares at cessation">{formatShareCount(former.sharesAtCessation)}</Row>
               <Row label="Ceased on">{formatDate(former.ceasedOn)}</Row>
               <Row label="Identity source">{former.identitySourceDisplay}</Row>
-              {former.sourceEntry && <Row label="Cessation entry">{former.sourceEntry}</Row>}
+              {former.sourceEntry && <Row label="Cessation entry">{shortReference(former.sourceEntry)}</Row>}
               {former.sourceEntrySequence !== null && (
                 <Row label="Cessation entry sequence">{former.sourceEntrySequence}</Row>
               )}
@@ -136,10 +136,10 @@ export function FormerMembers({
               {former.sourceEffectiveOn && (
                 <Row label="Source effective date">{formatDate(former.sourceEffectiveOn)}</Row>
               )}
-              {former.corrects && <Row label="Corrects entry">{former.corrects}</Row>}
-              {former.correctedBy && <Row label="Corrected by entry">{former.correctedBy}</Row>}
+              {former.corrects && <Row label="Corrects entry">{shortReference(former.corrects)}</Row>}
+              {former.correctedBy && <Row label="Corrected by entry">{shortReference(former.correctedBy)}</Row>}
               {former.returnedOn && <Row label="Returned on">{formatDate(former.returnedOn)}</Row>}
-              {former.returnedEntry && <Row label="Return entry">{former.returnedEntry}</Row>}
+              {former.returnedEntry && <Row label="Return entry">{shortReference(former.returnedEntry)}</Row>}
               {former.walletAddress && <Row label="Recorded wallet">{former.walletAddress}</Row>}
               {former.ceasedAtBlock !== null && <Row label="Recorded cessation block">{former.ceasedAtBlock}</Row>}
             </Rows>

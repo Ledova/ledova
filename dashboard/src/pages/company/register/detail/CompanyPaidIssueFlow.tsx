@@ -35,7 +35,7 @@ const SUBSCRIPTIONS = ['subscription', 'subscriptions'] as const;
 function SourceRows({ source }: { source: RegisterPaidIssueSource }) {
   return (
     <Rows>
-      <Row label="Subscription">{source.subscription}</Row>
+      <Row label="Subscription">{shortReference(source.subscription)}</Row>
       <Row label="Offering">{shortReference(source.offering)}</Row>
       <Row label="Recipient">
         {source.recipientName || 'Name not recorded'} · {source.recipientAddress}

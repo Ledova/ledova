@@ -21,13 +21,9 @@ import type { Landed } from '@pages/company/register/shared/registerPlace';
 function TransferRows({ transfer }: { transfer: RegisterTransfer | RegisterTransferDecisionPreview }) {
   return (
     <Rows>
-      <Row label={COPY.FROM}>
-        {transfer.fromName} · {transfer.fromMember}
-      </Row>
+      <Row label={COPY.FROM}>{transfer.fromName || shortReference(transfer.fromMember)}</Row>
       <Row label="Transferor residential address">{transfer.fromResidentialAddress}</Row>
-      <Row label={COPY.TO}>
-        {transfer.name} · {transfer.toMember}
-      </Row>
+      <Row label={COPY.TO}>{transfer.name || shortReference(transfer.toMember)}</Row>
       <Row label={COPY.ADDRESS}>{transfer.residentialAddress}</Row>
       <Row label="Recipient particulars">
         {transfer.newParticulars ? 'Retained from the signed instrument' : 'Existing retained particulars'}

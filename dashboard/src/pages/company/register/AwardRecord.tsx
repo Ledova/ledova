@@ -288,7 +288,7 @@ export function AwardRecord({
                 <div key={event.uuid} className="space-y-2 border-t border-border-subtle pt-3">
                   <Rows>
                     <Row label={COPY.REVERSED_SHARES}>{shareCount(event.reversedShares)}</Row>
-                    <Row label="Original vesting">{event.vesting}</Row>
+                    <Row label="Original vesting">{shortReference(event.vesting)}</Row>
                     <Row label={COPY.COMPANY_EVENT_ON}>{formatDate(event.companyEventOn)}</Row>
                     <Row label={COPY.REASON}>{event.reason}</Row>
                     <Row label="Recorded on">{formatDateTime(event.createdAt)}</Row>
