@@ -20,6 +20,7 @@ export {
   formatShareCount,
   shareChange,
   shareCount,
+  shortReference,
   sharePercentage,
 } from './formatting';
 export { attachableDocuments, describeOfferDocument } from './offer-documents';

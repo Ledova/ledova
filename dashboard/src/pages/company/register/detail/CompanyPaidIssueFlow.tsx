@@ -22,6 +22,7 @@ import {
   refusalSentences,
   failureSentence,
   shareCount,
+  shortReference,
 } from '@ledova/shared';
 import { DecisionTrail } from '@pages/company/register/shared/DecisionTrail';
 import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
@@ -34,8 +35,8 @@ const SUBSCRIPTIONS = ['subscription', 'subscriptions'] as const;
 function SourceRows({ source }: { source: RegisterPaidIssueSource }) {
   return (
     <Rows>
-      <Row label="Subscription">{source.subscription}</Row>
-      <Row label="Offering">{source.offering}</Row>
+      <Row label="Subscription">{shortReference(source.subscription)}</Row>
+      <Row label="Offering">{shortReference(source.offering)}</Row>
       <Row label="Recipient">
         {source.recipientName || 'Name not recorded'} · {source.recipientAddress}
       </Row>
@@ -98,12 +99,12 @@ function PaidIssueRecord({ record, commands }: { record: RegisterPaidIssue; comm
           <h3 className="font-medium">{STAGES[record.stage] ?? record.stage} paid issue</h3>
           <SnapshotRows record={record} />
           <Rows>
-            <Row label="Preparation ID">{record.uuid}</Row>
+            <Row label="Preparation reference">{shortReference(record.uuid)}</Row>
             <Row label="Prepared by">{record.preparedByName || 'Name not recorded'}</Row>
             <Row label="Prepared on">{formatDateTime(record.createdAt)}</Row>
 
             <Row label="Intent fingerprint">{record.intentDigest}</Row>
-            {record.approvalDecision && <Row label="Consumed approval">{record.approvalDecision}</Row>}
+            {record.approvalDecision && <Row label="Consumed approval">{shortReference(record.approvalDecision)}</Row>}
             <Row label="Execution">{registerPaidIssueExecutionState(record)}</Row>
             <Row label="Original subscription status">
               {COMPANY_SUBSCRIPTION_STATUS_LABELS[record.subscriptionStatus as SubscriptionStatus]}
@@ -111,21 +112,27 @@ function PaidIssueRecord({ record, commands }: { record: RegisterPaidIssue; comm
             <Row label="Actual allotment recorded">
               {record.allottedAt ? formatDateTime(record.allottedAt) : 'Not recorded'}
             </Row>
-            <Row label="Original issuance request">{record.request || 'No issuance request admitted'}</Row>
+            <Row label="Original issuance request">
+              {record.request ? shortReference(record.request) : 'No issuance request admitted'}
+            </Row>
             {execution && (
               <>
-                <Row label="Original execution">{execution.execution}</Row>
-                <Row label="Original dispatch">{execution.dispatchId}</Row>
-                {execution.operationId && <Row label="Original operation">{execution.operationId}</Row>}
-                {execution.claimId && <Row label="Original claim">{execution.claimId}</Row>}
+                <Row label="Original execution">{shortReference(execution.execution)}</Row>
+                <Row label="Original dispatch">{shortReference(execution.dispatchId)}</Row>
+                {execution.operationId && <Row label="Original operation">{shortReference(execution.operationId)}</Row>}
+                {execution.claimId && <Row label="Original claim">{shortReference(execution.claimId)}</Row>}
                 {execution.txHash && <Row label="Transaction hash">{execution.txHash}</Row>}
                 {execution.blockNumber !== null && <Row label="Original receipt block">{execution.blockNumber}</Row>}
                 {execution.blockHash && <Row label="Original receipt block hash">{execution.blockHash}</Row>}
                 <Row label="Original completion date">
                   {execution.completedAt ? formatDateTime(execution.completedAt) : 'Not recorded'}
                 </Row>
-                <Row label="Original issuance">{execution.issuance || 'Not recorded'}</Row>
-                <Row label="Register entry">{execution.registerEntry || 'Not recorded'}</Row>
+                <Row label="Original issuance">
+                  {execution.issuance ? shortReference(execution.issuance) : 'Not recorded'}
+                </Row>
+                <Row label="Register entry">
+                  {execution.registerEntry ? shortReference(execution.registerEntry) : 'Not recorded'}
+                </Row>
                 <Row label="Entry effective date">{formatDate(execution.effectiveOn, 'Not recorded')}</Row>
               </>
             )}
@@ -140,7 +147,7 @@ function PaidIssueRecord({ record, commands }: { record: RegisterPaidIssue; comm
           ))}
           <PageAction
             label="Download paid issue authority"
-            context={`paid issue ${record.uuid}`}
+            context={`paid issue ${shortReference(record.uuid)}`}
             busy={busy}
             busyLabel="Downloading…"
             onClick={() => void download()}
@@ -163,7 +170,7 @@ function PaidIssueRecord({ record, commands }: { record: RegisterPaidIssue; comm
         onDecided={commands.accept}
         onRefused={commands.refresh}
         visible={commands.visible}
-        context={`paid issue ${record.uuid}`}
+        context={`paid issue ${shortReference(record.uuid)}`}
       >
         {(preview) => (
           <>
@@ -377,9 +384,10 @@ export function CompanyPaidIssueFlow({ uuid, data }: { uuid: string; data: Retur
       {commands.visible && commands.recovery && (
         <div className="space-y-2">
           <p className="text-sm text-text-muted">
-            The original paid issue preparation response is unresolved. Recover its identical body and operation UUID.
+            The original paid issue preparation response is unresolved. Recover its identical body and operation
+            reference.
           </p>
-          <p>{commands.recovery.body.operationId}</p>
+          <p>Operation reference {shortReference(commands.recovery.body.operationId)}</p>
           <PageAction
             label="Recover original paid issue preparation receipt"
             disabled={commands.busy}

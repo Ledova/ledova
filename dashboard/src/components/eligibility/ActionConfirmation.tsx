@@ -5,6 +5,7 @@ import {
   type EligibilityAction,
   formatDateTime,
   ELIGIBILITY_OUTCOME_LABELS,
+  shortReference,
 } from '@ledova/shared';
 import { Row, Rows, Section } from '@components/Ledger';
 import { PageAction } from '@components/Page';
@@ -62,12 +63,14 @@ function Confirmation({ action, busy, confirm, cancel }: ConfirmationProps) {
       {action.request && <EligibilitySummary summary={action.request.sharedSummary} />}
       {action.record && (
         <Rows>
-          <Row label="Exact request">{action.record.uuid}</Row>
-          <Row label="Exact company">{action.record.company}</Row>
+          <Row label="Request">{shortReference(action.record.uuid)}</Row>
+          <Row label="Company">{shortReference(action.record.company)}</Row>
           <Row label="Request digest">{action.record.digest}</Row>
         </Rows>
       )}
-      {action.appointment && <p className="break-all text-sm">Selected appointment: {action.appointment}</p>}
+      {action.appointment && (
+        <p className="break-all text-sm">Selected appointment: {shortReference(action.appointment)}</p>
+      )}
       {action.outcome && (
         <Rows>
           <Row label="Exact decision outcome">{ELIGIBILITY_OUTCOME_LABELS[action.outcome]}</Row>
@@ -75,7 +78,7 @@ function Confirmation({ action, busy, confirm, cancel }: ConfirmationProps) {
         </Rows>
       )}
       {action.reason && <p className="whitespace-pre-wrap text-sm">Reason: {action.reason}</p>}
-      <p className="break-all text-sm text-text-muted">Request key: {action.key}</p>
+      <p className="break-all text-sm text-text-muted">Request key: {shortReference(action.key)}</p>
       {(action.request || action.decision) && (
         <p className="break-all text-sm text-text-muted">
           Preview digest: {action.request?.previewDigest ?? action.decision?.previewDigest}

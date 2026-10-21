@@ -14,6 +14,7 @@ import {
   COMPANY_STATUS_LABELS,
   DEPLOYMENT_SWAP_APPROVAL_LABELS,
   type CompanyStatus,
+  shortReference,
 } from '@ledova/shared';
 import { DecisionTrail } from '@pages/company/register/shared/DecisionTrail';
 import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
@@ -147,11 +148,15 @@ export function DeploymentFlow({ uuid, data }: { uuid: string; data: ReturnType<
                 <Row label="Prepared by">
                   {proposal.preparedByName || 'Not recorded'} · {formatDateTime(proposal.createdAt)}
                 </Row>
-                <Row label="Original preparation">{proposal.operationId}</Row>
+                <Row label="Original preparation">{shortReference(proposal.operationId)}</Row>
                 <Row label="Intent digest">{proposal.intentDigest}</Row>
                 <DecisionTrail proposal={proposal} labels={COPY.DECISIONS} />
-                {proposal.deploymentId && <Row label="Admitted deployment">{proposal.deploymentId}</Row>}
-                {proposal.approvalDecision && <Row label="Consumed approval">{proposal.approvalDecision}</Row>}
+                {proposal.deploymentId && (
+                  <Row label="Admitted deployment">{shortReference(proposal.deploymentId)}</Row>
+                )}
+                {proposal.approvalDecision && (
+                  <Row label="Consumed approval">{shortReference(proposal.approvalDecision)}</Row>
+                )}
               </Rows>
               <SnapshotRows snapshot={proposal.snapshot} />
               <p className="text-sm text-text-muted">{COPY.PROVIDED_BY_COMPANY}</p>
@@ -161,7 +166,7 @@ export function DeploymentFlow({ uuid, data }: { uuid: string; data: ReturnType<
                   <Rows>
                     <Row label="Execution">{registerDeploymentExecutionState(proposal)}</Row>
                     {proposal.execution?.operationId && (
-                      <Row label="Original execution">{proposal.execution.operationId}</Row>
+                      <Row label="Original execution">{shortReference(proposal.execution.operationId)}</Row>
                     )}
                     {proposal.execution?.txHash && <Row label="Transaction">{proposal.execution.txHash}</Row>}
                     {proposal.execution?.contractAddress && (
@@ -201,7 +206,7 @@ export function DeploymentFlow({ uuid, data }: { uuid: string; data: ReturnType<
                   )
                     throw createUserFriendlyError('Refresh the original deployment before starting a new decision.');
                 }}
-                context={`deployment ${proposal.uuid}`}
+                context={`deployment ${shortReference(proposal.uuid)}`}
                 onDecided={async (receipt) => {
                   guard();
                   retain(receipt);

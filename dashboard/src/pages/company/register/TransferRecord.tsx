@@ -8,6 +8,7 @@ import {
   type RegisterTransferDecisionPreview,
   shareCount,
   formatDate,
+  shortReference,
 } from '@ledova/shared';
 import { Row, Rows, Disclosure } from '@components/Ledger';
 import { PageAction } from '@components/Page';
@@ -20,13 +21,9 @@ import type { Landed } from '@pages/company/register/shared/registerPlace';
 function TransferRows({ transfer }: { transfer: RegisterTransfer | RegisterTransferDecisionPreview }) {
   return (
     <Rows>
-      <Row label={COPY.FROM}>
-        {transfer.fromName} · {transfer.fromMember}
-      </Row>
+      <Row label={COPY.FROM}>{transfer.fromName || shortReference(transfer.fromMember)}</Row>
       <Row label="Transferor residential address">{transfer.fromResidentialAddress}</Row>
-      <Row label={COPY.TO}>
-        {transfer.name} · {transfer.toMember}
-      </Row>
+      <Row label={COPY.TO}>{transfer.name || shortReference(transfer.toMember)}</Row>
       <Row label={COPY.ADDRESS}>{transfer.residentialAddress}</Row>
       <Row label="Recipient particulars">
         {transfer.newParticulars ? 'Retained from the signed instrument' : 'Existing retained particulars'}
@@ -81,7 +78,7 @@ export function TransferRecord({
             <Row label={COPY.AUTHORITY_REFERENCE}>{transfer.authorityReference}</Row>
             <Row label={COPY.REASON}>{transfer.reason}</Row>
             <DecisionTrail proposal={transfer} labels={COPY.DECISIONS} />
-            {!!transfer.registerEntry && <Row label="Register entry">{transfer.registerEntry}</Row>}
+            {!!transfer.registerEntry && <Row label="Register entry">{shortReference(transfer.registerEntry)}</Row>}
           </Rows>
           <TransferRows transfer={transfer} />
           <p className="text-sm text-text-muted">{COPY.PROVIDED_BY_COMPANY}</p>

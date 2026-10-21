@@ -9,6 +9,7 @@ import {
   type RegisterGrantDecisionPreview,
   shareCount,
   formatDate,
+  shortReference,
 } from '@ledova/shared';
 import { Row, Rows, Status, Disclosure } from '@components/Ledger';
 import { PageAction } from '@components/Page';
@@ -22,7 +23,7 @@ const DECISION_COPY = { ...COPY, DECISIONS: { ...COPY.DECISIONS, apply: 'Record 
 function GrantRows({ grant }: { grant: RegisterGrant | RegisterGrantDecisionPreview }) {
   return (
     <Rows>
-      {grant.award && <Row label="Employee award">{grant.award}</Row>}
+      {grant.award && <Row label="Employee award">{shortReference(grant.award)}</Row>}
       {'awardPromisedShares' in grant && grant.award && (
         <>
           <Row label={AWARD_COPY.PROMISED}>{shareCount(grant.awardPromisedShares!)}</Row>
@@ -104,7 +105,7 @@ export function GrantRecord({
               <Row label={COPY.AUTHORITY_REFERENCE}>{grant.authorityReference}</Row>
               <Row label={COPY.REASON}>{grant.reason}</Row>
               <DecisionTrail proposal={grant} labels={DECISION_COPY.DECISIONS} />
-              {!!grant.registerEntry && <Row label="Register entry">{grant.registerEntry}</Row>}
+              {!!grant.registerEntry && <Row label="Register entry">{shortReference(grant.registerEntry)}</Row>}
             </Rows>
             <GrantRows grant={grant} />
             <p className="text-sm text-text-muted">{COPY.PROVIDED_BY_COMPANY}</p>
@@ -123,8 +124,8 @@ export function GrantRecord({
             </div>
             {download.isError && <RecordDownloadFailure error={download.error} />}
             <Rows>
-              <Row label="Issue record">{grant.uuid}</Row>
-              <Row label="Member record ID">{grant.member}</Row>
+              <Row label="Issue record">{shortReference(grant.uuid)}</Row>
+              <Row label="Member reference">{shortReference(grant.member)}</Row>
             </Rows>
           </Disclosure>
         </>

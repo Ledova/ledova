@@ -11,6 +11,7 @@ import {
   marketAmount,
   marketShares,
   shareCount,
+  shortReference,
 } from '@ledova/shared';
 import { Modal, ModalActions } from '@components/Modal';
 import { PageAction } from '@components/Page';
@@ -90,7 +91,9 @@ export function CreateOrderSigningFlow({ submission, wallet, tokens, onClose, on
         {state.phase === 'ready' && (
           <>
             <div className="space-y-1">
-              <p>Token: {token ? `${token.symbol} — ${token.name}` : state.snapshot?.intent.token}</p>
+              <p>
+                Token: {token ? `${token.symbol} — ${token.name}` : shortReference(state.snapshot?.intent.token ?? '')}
+              </p>
               <p>Wallet: {formatWalletAddressShort(state.snapshot?.intent.walletAddress ?? '')}</p>
               <p>
                 {state.snapshot?.intent.orderType.toUpperCase()} {shareCount(state.snapshot?.intent.quantity ?? '')}

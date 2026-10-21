@@ -11,6 +11,7 @@ import { CERTIFIER_BODIES, WHOLESALE_ONLY_NOTICE } from './constants';
 import { LoadError } from '@components/Ledger';
 import { ErrorSummary } from '@components/ErrorSummary';
 import { useErrorSummary } from '@hooks/useErrorSummary';
+import { useDirectoryNames } from '@hooks/useDirectoryNames';
 
 interface ClaimModalProps {
   isOpen: boolean;
@@ -68,6 +69,7 @@ export function ClaimModal({
     handleSubmit,
   } = useInvestorClaim({ category, userAccount, onSuccess, submissionBlockedReason });
   const checks = useErrorSummary(problems);
+  const directory = useDirectoryNames(isOpen && needsCompany);
   const evidence = checks.field('file');
   const evidenceError = fileRefusal ?? evidence.error;
   const evidenceErrorId = useId();
@@ -117,7 +119,10 @@ export function ClaimModal({
           <Field
             {...checks.field('company')}
             label="Issuer company UUID"
-            hint="Enter the exact company UUID provided by the issuer. The server checks that it is active."
+            hint={
+              directory.company(company.trim()) ??
+              'Enter the exact company UUID provided by the issuer. The server checks that it is active.'
+            }
           >
             <TextInput
               value={company}

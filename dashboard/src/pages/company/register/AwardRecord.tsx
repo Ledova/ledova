@@ -13,6 +13,7 @@ import {
   type RegisterGrant,
   shareCount,
   formatDate,
+  shortReference,
 } from '@ledova/shared';
 import { LinkRow, Row, Rows, Status, LoadError, Loading, Disclosure } from '@components/Ledger';
 import { PageAction } from '@components/Page';
@@ -278,7 +279,7 @@ export function AwardRecord({
                 <div key={event.uuid} className="space-y-2 border-t border-border-subtle pt-3">
                   <Rows>
                     <Row label={COPY.REVERSED_SHARES}>{shareCount(event.reversedShares)}</Row>
-                    <Row label="Original vesting">{event.vesting}</Row>
+                    <Row label="Original vesting">{shortReference(event.vesting)}</Row>
                     <Row label={COPY.COMPANY_EVENT_ON}>{formatDate(event.companyEventOn)}</Row>
                     <Row label={COPY.REASON}>{event.reason}</Row>
                     <Row label="Recorded on">{formatDateTime(event.createdAt)}</Row>
@@ -320,8 +321,8 @@ export function AwardRecord({
           )}
           <Disclosure summary="Record details">
             <Rows>
-              <Row label="Member ID">{award.member}</Row>
-              <Row label="Award ID">{award.uuid}</Row>
+              <Row label="Member reference">{shortReference(award.member)}</Row>
+              <Row label="Award reference">{shortReference(award.uuid)}</Row>
               <Row label="Recorded on">{formatDateTime(award.createdAt)}</Row>
               <Row label="Recorded by">{award.preparedByName || 'Name not recorded'}</Row>
             </Rows>

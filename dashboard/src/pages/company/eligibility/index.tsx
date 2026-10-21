@@ -12,6 +12,7 @@ import {
   isCurrentEligibilityAppointment,
   useCompanyEligibilityRecords,
   formatDate,
+  shortReference,
 } from '@ledova/shared';
 import { LinkRow, Section, LoadError } from '@components/Ledger';
 import { Pager } from '@components/List';
@@ -133,7 +134,7 @@ export default function CompanyEligibilityPage() {
                       label: `${scopeLabels(item.capabilities)} · appointed ${formatDate(item.createdAt)}${
                         isCurrentEligibilityAppointment(item) ? '' : ' · inactive'
                       }`,
-                      reference: item.uuid.slice(0, 8),
+                      reference: shortReference(item.uuid),
                     })),
                 ]}
                 value={read.appointmentUuid}

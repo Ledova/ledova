@@ -9,6 +9,7 @@ import {
   REGISTER_COPY,
   type OfferingListItem,
   type SubscriptionStatus,
+  shortReference,
 } from '@ledova/shared';
 import { Section, Status, Loading } from '@components/Ledger';
 import { ListSearch, Pager, Table, type Noun } from '@components/List';
@@ -60,7 +61,7 @@ export function SubscriptionsLedger({
         options={offerings.map((row) => ({
           value: row.uuid,
           label: `${row.tokenName} · ${row.statusDisplay} · ${formatDate(row.createdAt)}`,
-          reference: row.uuid.slice(0, 8),
+          reference: shortReference(row.uuid),
         }))}
         value={offering.uuid}
         onChange={(value) => list.setFilter('offering', value)}
