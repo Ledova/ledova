@@ -34,6 +34,7 @@ from shared.tests.core_fixtures import (
     retained_evidence,
 )
 from tokens.models import (
+    ClassRightsRevision,
     MemberAssociation,
     MemberAssociationRevocation,
     MemberCertificateFulfilment,
@@ -302,8 +303,21 @@ class ScopedAccessTest(CoreFixtures, APITransactionTestCase):
         own = self.client.get(f"/api/v1/tokens/{token.pk}/holders/")
         self.assertEqual(own.status_code, 200, own.content)
         self.assertIn("Synthetic Member", str(own.json()))
+        rights_endpoint = f"/api/v1/tokens/{token.pk}/class-rights/"
+        rights_payload = {
+            "appointment": str(self.appointment.pk),
+            "idempotency_key": str(uuid4()),
+            "previous_revision": 0,
+            "summary": "Private synthetic class terms",
+            "document_reference": "Synthetic constitution, clause 4",
+        }
+        rights = self.client.post(rights_endpoint, rights_payload, format="json")
+        self.assertEqual(rights.status_code, 201, rights.content)
         hidden = self.client.get(f"/api/v1/tokens/{foreign_token.pk}/holders/")
         self.assertEqual(hidden.status_code, 404, hidden.content)
+        foreign_rights_endpoint = f"/api/v1/tokens/{foreign_token.pk}/class-rights/"
+        self.assertEqual(self.client.get(foreign_rights_endpoint).status_code, 404)
+        self.assertEqual(self.client.post(foreign_rights_endpoint, rights_payload, format="json").status_code, 404)
         award = self.award_payload()
         recorded = self.client.post("/api/v1/tokens/register-awards/", award, format="json")
         self.assertEqual(recorded.status_code, 201, recorded.content)
@@ -319,6 +333,8 @@ class ScopedAccessTest(CoreFixtures, APITransactionTestCase):
             "agreement_evidence": str(foreign_evidence.pk),
         }
         self.sign_in(self.foreign)
+        self.assertEqual(self.client.get(rights_endpoint).status_code, 404)
+        self.assertEqual(self.client.post(rights_endpoint, rights_payload, format="json").status_code, 404)
         recorded = self.client.post("/api/v1/tokens/register-awards/", foreign_award, format="json")
         self.assertEqual(recorded.status_code, 201, recorded.content)
         hidden = self.client.get(f"/api/v1/tokens/{self.token.pk}/register/members/")
@@ -369,6 +385,10 @@ class ScopedAccessTest(CoreFixtures, APITransactionTestCase):
             list(RegisterAward.objects.using(APP_ALIAS).values("member", "name", "residential_address"))
         with self.assertRaises(ProgrammingError), atomic(using=APP_ALIAS):
             RegisterAward.objects.using(APP_ALIAS).filter(member=foreign_award["member"]).update(name="Forged")
+        with self.assertRaises(ProgrammingError), atomic(using=APP_ALIAS):
+            list(ClassRightsRevision.objects.using(APP_ALIAS).values("summary"))
+        with self.assertRaises(ProgrammingError), atomic(using=APP_ALIAS):
+            ClassRightsRevision.objects.using(APP_ALIAS).filter(pk=rights.json()["uuid"]).update(summary="Forged")
         reset_principal(APP_ALIAS)
 
     def test_foreign_company_cannot_approve_issue_or_write_the_private_grant(self):

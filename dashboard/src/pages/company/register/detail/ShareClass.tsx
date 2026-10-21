@@ -24,6 +24,8 @@ import { CompanyIssueFlow } from './CompanyIssueFlow';
 import { CompanyCapitalFlow } from './CompanyCapitalFlow';
 import { CompanyPauseFlow } from './CompanyPauseFlow';
 import { registerPlace } from '@pages/company/register/shared/registerPlace';
+import { ClassRights } from './ClassRights';
+import { useClassRights } from './useClassRights';
 
 interface ReadState {
   isPending: boolean;
@@ -47,10 +49,7 @@ export function ShareClass({ uuid }: { uuid: string }) {
   const data = useShareClass(uuid);
   return (
     <Page narrow back={registerPlace({ token: uuid, task: 'history' })}>
-      <ShareClassDetails
-        key={`${data.tokenKey.join('/')}/${data.token.data?.companyUuid}/${data.token.data?.isOwner === true}`}
-        data={data}
-      />
+      <ShareClassRecord data={data} uuid={uuid} />
       <DeploymentFlow key={`${data.owner?.userUuid}/${data.owner?.ownerAccountUuid}`} uuid={uuid} data={data} />
       <CompanyIssueFlow
         key={`issues/${data.owner?.userUuid}/${data.owner?.ownerAccountUuid}`}
@@ -76,7 +75,27 @@ export function ShareClass({ uuid }: { uuid: string }) {
   );
 }
 
-function ShareClassDetails({ data }: { data: ReturnType<typeof useShareClass> }) {
+function ShareClassRecord({ data, uuid }: { data: ReturnType<typeof useShareClass>; uuid: string }) {
+  const [scope, setScope] = useState({ owner: data.owner, version: 0 });
+  if (scope.owner !== data.owner) {
+    setScope({ owner: data.owner, version: scope.version + 1 });
+    return null;
+  }
+  return <ShareClassRights key={`${uuid}/${scope.version}`} data={data} uuid={uuid} />;
+}
+
+function ShareClassRights({ data, uuid }: { data: ReturnType<typeof useShareClass>; uuid: string }) {
+  const rights = useClassRights(uuid, data.token.isSuccess && data.token.fetchStatus === 'idle');
+  return (
+    <ShareClassDetails
+      key={`${data.tokenKey.join('/')}/${data.token.data?.companyUuid}/${data.token.data?.isOwner === true}`}
+      data={data}
+      rights={<ClassRights rights={rights} />}
+    />
+  );
+}
+
+function ShareClassDetails({ data, rights }: { data: ReturnType<typeof useShareClass>; rights: ReactNode }) {
   const [copyError, setCopyError] = useState(false);
   const preferences = useUserPreferences();
   const preferencesRead = useQueryClient().getQueryState(USER_PREFERENCES_QUERY_KEY);
@@ -90,12 +109,21 @@ function ShareClassDetails({ data }: { data: ReturnType<typeof useShareClass> })
     data.register.fetchStatus === 'idle';
   const token = data.token.data;
   const content = () => {
-    if (data.token.isPending) return <Loading>Loading the share class…</Loading>;
+    if (data.token.isPending)
+      return (
+        <>
+          <Loading>Loading the share class…</Loading>
+          {rights}
+        </>
+      );
     if (data.token.isError || !token)
       return (
-        <LoadError retry={data.token.refetch} busy={data.token.isFetching}>
-          This share class could not be loaded. It may be unavailable to this account.
-        </LoadError>
+        <>
+          <LoadError retry={data.token.refetch} busy={data.token.isFetching}>
+            This share class could not be loaded. It may be unavailable to this account.
+          </LoadError>
+          {rights}
+        </>
       );
     const addressUrl =
       token.chain && token.contractAddress ? getBlockExplorerAddressUrl(token.chain, token.contractAddress) : '';
@@ -180,6 +208,7 @@ function ShareClassDetails({ data }: { data: ReturnType<typeof useShareClass> })
             </a>
           )}
         </Section>
+        {rights}
         <Section title="Register of members">
           <p className="text-sm text-text-muted">{REGISTER_COPY.PRIVACY_NOTE}</p>
           <PageAction

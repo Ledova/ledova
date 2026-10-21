@@ -50,6 +50,23 @@ ISSUE; a subsequent approved grant or investor allotment records the first share
 this empty-opening choice through the same draft, review and confirmation as copied holdings
 ([register setup](register.md#bringing-in-existing-records)).
 
+### Class rights
+
+On the web, the Share class page shows the company's optional **Class rights** summary and plain
+**Document reference**. A current company register reader can read the latest record and its history;
+a current personal company administrator can add or edit it. Ownership or platform staff status
+alone grants no editing authority. Existing classes have no record until the company adds one.
+
+Both fields are optional. The reference can name a constitution, clause or issue terms; it is text,
+not a file link, an upload requirement or proof that Ledova holds or verifies the source. Existing
+[company-document and offering access](companies.md#company-information-and-documents) stays separate.
+
+Saving appends a revision with the administrator, appointment and actual recording time. Clearing
+both fields records a clear without erasing earlier text. A stale editor must reload before saving;
+an interrupted save recovers its original request rather than recording it twice. The company pack
+includes all revisions. These descriptions do not vary legal rights or change holdings, approvals,
+charts or calculations. Member disclosure and mobile editing are outside this first increment.
+
 ### Deploying an empty class
 
 A company appointee can have Ledova's technical signer create the class's contract. Deployment
@@ -515,14 +532,13 @@ to future shares; vesting alone does not tell which
 ([Moneysmart](https://moneysmart.gov.au/shares/employee-share-schemes)). Ledova's awards support the
 latter promise-and-separate-issue workflow only.
 
-Capability review, 21 October 2026, at main
-[`d15867be`](https://github.com/Ledova/ledova/commit/d15867be557425b60a18630de313163feb9fb1d7),
-under [#1215](https://github.com/Ledova/ledova/issues/1215):
+Capability map under [#1215](https://github.com/Ledova/ledova/issues/1215), reviewed 21 October 2026
+(the original dated source audit is retained on the issue):
 
 | Arrangement | What Ledova records now | Limit |
 | ----------- | ----------------------- | ----- |
 | Ordinary or custom-named classes/series | Name, code, broad type, holdings and history | A label does not establish rights; code length and uniqueness rules still apply |
-| Different voting, preference, redemption or conversion terms | A custom name can describe the class; company documents can retain terms | No class-rights summary or structured rights model; no weighted voting, preference waterfall, conversion or redemption workflow |
+| Different voting, preference, redemption or conversion terms | A custom name and optional rights summary/reference describe the class; company documents can retain terms | Descriptive class-rights records only; no weighted voting, preference waterfall, conversion or redemption workflow |
 | Partly-paid existing shares | Paid/unpaid and beneficial-status facts in copied opening allotments | New external allotments are fully paid in AUD; no calls on unpaid capital |
 | Employee promises | Agreement, company-recorded vesting, unissued-right endings/reversals and a separate approved issue | No options/exercise, employee purchases, RSU settlement engine or upfront-issued restricted-share lifecycle |
 | Convertible notes, SAFEs and other future-equity instruments | No dedicated workflow | Do not count them as issued holdings or disguise them as a class |
@@ -543,26 +559,11 @@ the votes on that assumed poll. Within A's own donut, its sole holder has 100% o
 establishes value. Another 100 promised shares are outside issued holdings; a fully diluted figure
 would need explicit exercise, settlement and conversion assumptions.
 
-### Possible later improvement
-
-On 21 October 2026 the owner chose to finish
-[#1215](https://github.com/Ledova/ledova/issues/1215) with documentation only. The product proposal
-is deferred: an optional company-supplied **Class rights** summary and plain governing-document
-reference on the class details, outside signup. It would describe terms, without calculations,
-compulsory uploads, a class catalogue or changes to holdings and issuance.
-
-For now, [Company documents](companies.md#company-information-and-documents) can hold constitutions
-and shareholder agreements. These company-bound files have no class link or revision chain, and
-some can be removed. Management requires company administration; [offering disclosures](#offer-documents)
-have separate investor access. A future rights reference must grant no extra file access or claim
-retained proof; any implementation needs agreed access rules and revisions retaining actor and
-recording time, with existing classes starting blank.
-
 Corporate, joint and trustee holders remain a separate scope, distinguishing the legal holder,
 beneficial ownership and invited account
 ([ASIC on shareholders](https://www.asic.gov.au/for-business-and-companies/companies/company-building-blocks/company-shares-and-shareholders)).
-The [earlier lifecycle work](https://github.com/Ledova/ledova/issues/1060) is complete. Neither this
-investigation nor its closure reopens advanced governance, trading, filings or unsupported instruments.
+The [earlier lifecycle work](https://github.com/Ledova/ledova/issues/1060) is complete. The descriptive
+class-rights record adds no advanced governance, trading, filings or unsupported instrument workflow.
 
 ## Splits and consolidations
 
