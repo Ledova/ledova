@@ -478,6 +478,12 @@ validates each returned company, member and class against the query. Later attac
 downloads use these retained links, not a public storage URL
 ([attachment rules](../business/register.md#shareholder-documents)). Mobile keeps its existing setup.
 
+The web setup's repeated allotments keep one editor open, retain unfinished input when switching,
+and fold checked entries into compact summaries through **Add another allotment**. **Add to draft**
+finishes the final entry with its shareholder. Recorded totals and the remaining shares use exact
+whole-share arithmetic; neither the total nor the editor adjusts the entered holding
+([form conventions](frontend-ux.md#forms)).
+
 The helpers order an opening's holdings largest first by exact share count, check that every count
 is whole, label each mapped member once (by name, or numbered as an unnamed or new member;
 `registerLinkMemberLabels` for links) so the page, the record and the preview agree, and recognise a

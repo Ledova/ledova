@@ -558,8 +558,11 @@ Some messages keep their own form:
 - **Fields.** A web form field is `Field` (`dashboard/src/components/Field.tsx`): Headless UI's
   `Field`, `Label` and `Description` around a `TextInput` or `TextArea` with the `FIELD_CLASS` look,
   or around Headless UI's `Select` in `SelectField`, so the label, the hint and any error are linked
-  to the control and an error sets `aria-invalid`. The label sits above the control, an optional
-  field ends with "(optional)", a sentence about one field is that field's hint, and an action
+  to the control and an error sets `aria-invalid`. The label sits above the control. A standalone optional
+  field ends with "(optional)"; an optional group declares this once in its heading, without repeating it
+  on each field. Labels use the group's context instead of repeating its name: **Documents (optional)**
+  contains **Category** and **File**, with a numbered accessible group name distinguishing each attachment.
+  Omitting a repeated optional marker does not make the field required. A sentence about one field is that field's hint, and an action
   beside the label, such as Scan QR, is its `aside`. Choices, the searchable pickers, the list search
   and checkboxes that need no check keep their own controls, and sign-in and sign-up keep their own
   look on the same Headless parts.
@@ -578,6 +581,13 @@ Some messages keep their own form:
   [#1201](https://github.com/Ledova/ledova/issues/1201).
 - **Date fields.** A date field is `type="date"`, bounded with `min` and `max` wherever the server
   has a rule, and its label or message names the time zone where it matters.
+- **Repeated allotments.** Web register setup keeps one allotment editor expanded. **Add another allotment**
+  validates the current entry, folds it into a compact date, shares, paid and unpaid summary with
+  **Edit** and **Remove**, then opens an unfinished entry or a new blank one. Fields never collapse on
+  blur or simply because they look complete. Editing or switching entries preserves unfinished input;
+  validation opens the entry needing attention. **Add to draft** completes the shareholder and their
+  final allotment, without another save step. The recorded share total and remainder are read-only,
+  calculated with exact whole-share arithmetic, and never adjust the entered holdings.
 - **UTC dates.** Register and company dates are UTC calendar dates: `utcToday`
   (`packages/shared/src/utils/date.ts`) is their default and their `max`, so a date the server
   would refuse as in the future can't be picked. A team invitation's deadline and appointment

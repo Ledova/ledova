@@ -56,6 +56,20 @@ function positiveShares(value: string) {
   return shares !== null && shares > 0n && shares < 2n ** 256n ? shares.toString() : null;
 }
 
+export function allotmentProblems(allotment: AllotmentDraft, asAt: string) {
+  const problems: string[] = [];
+  if (!isCalendarDate(allotment.allottedOn) || allotment.allottedOn > asAt || positiveShares(allotment.shares) === null)
+    problems.push('Enter shares and an allotment date no later than the record date.');
+  if (registerImportMoney(allotment.amountPaid) === null || registerImportMoney(allotment.amountUnpaid) === null)
+    problems.push('Enter paid and unpaid amounts, using 0 where none is recorded.');
+  if (
+    registerImportMoney(allotment.amountUnpaid) !== null &&
+    allotment.fullyPaid !== (registerImportMoney(allotment.amountUnpaid) === '0.00')
+  )
+    problems.push('Payment status must agree with the unpaid amount.');
+  return problems;
+}
+
 export function blankAllotment(): AllotmentDraft {
   return {
     id: crypto.randomUUID(),
@@ -248,16 +262,8 @@ export function preparationProblems(draft: PreparationDraft, today: string, empt
     row.allotments.forEach((allotment, at) => {
       const prefix = `${label}, allotment ${at + 1}`;
       const shares = positiveShares(allotment.shares);
-      if (!dated(allotment.allottedOn) || shares === null)
-        problems.push(`${prefix}: enter shares and an allotment date no later than the record date.`);
       if (shares !== null) total += BigInt(shares);
-      if (registerImportMoney(allotment.amountPaid) === null || registerImportMoney(allotment.amountUnpaid) === null)
-        problems.push(`${prefix}: enter paid and unpaid amounts, using 0 where none is recorded.`);
-      if (
-        registerImportMoney(allotment.amountUnpaid) !== null &&
-        allotment.fullyPaid !== (registerImportMoney(allotment.amountUnpaid) === '0.00')
-      )
-        problems.push(`${prefix}: payment status must agree with the unpaid amount.`);
+      problems.push(...allotmentProblems(allotment, draft.asAt).map((problem) => `${prefix}: ${problem}`));
     });
     const shares = positiveShares(row.shares);
     if (shares !== null && total !== BigInt(shares))

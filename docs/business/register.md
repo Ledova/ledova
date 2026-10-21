@@ -211,9 +211,14 @@ Ledova, and its holdings must match the stored register. On the web:
    each allotment (date, quantity, paid and unpaid amounts). New web records leave beneficial
    ownership **Not recorded**, with no ownership question or reference inputs; existing answers and
    references stay with saved records and corrections. **Documents (optional)** attaches one or more
-   files to this shareholder and share class, each with its own category
+   files to this shareholder and share class, each with **Category** and **File** fields
    ([supporting documents](#shareholder-documents)).
-   Allotments must add
+   One allotment is open for editing at a time. **Add another allotment** checks the current entry,
+   folds it into a date, shares, paid and unpaid summary, and opens any unfinished entry or a new one.
+   **Edit** reopens a summary, **Remove** drops an unsaved entry, and unfinished input is kept when
+   switching entries. Entries do not collapse while typing. **Add to draft** finishes the shareholder
+   and their final allotment. A read-only total shows the recorded shares and any remainder without
+   changing the entered holding. Allotments must add
    up to the holding, a fully paid allotment has nothing unpaid, and a blank amount stays unknown
    rather than zero. For a genuinely unopened non-tokenised class
    with no issued shares or earlier members, leave the draft empty to record its empty opening.

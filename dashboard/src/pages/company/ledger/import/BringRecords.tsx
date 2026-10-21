@@ -193,6 +193,7 @@ export function BringRecords({
                   companyMembers={companyMembers}
                   preserveParticulars={preserveParticulars}
                   usedMembers={draft.members.filter((_, at) => at !== editingIndex).map((member) => member.member)}
+                  validationAttempt={memberCheck.attempt}
                   update={(patch) => {
                     setMember(editingIndex, patch);
                     if (patch.member) setEditor((current) => (current ? { ...current, member: patch.member! } : null));
@@ -236,13 +237,11 @@ export function BringRecords({
             )}
             <FileField
               label="Current share register"
-              optional
               hint={draft.registerEvidence && 'The retained source copy will be reused unless you choose another file.'}
               onFile={(file) => update((current) => ({ ...current, registerFile: file }))}
             />
             <FileField
               label="ASIC extract"
-              optional
               hint={draft.asicEvidence && 'The retained ASIC copy and figures will be reused unless you change them.'}
               onFile={(file) => update((current) => ({ ...current, asicFile: file }))}
             />

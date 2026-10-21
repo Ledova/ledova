@@ -20,9 +20,10 @@ export function DocumentAttachments({
       <legend className="sr-only">Documents (optional)</legend>
       {heading && <h3 className="text-sm font-medium text-text-primary">Documents (optional)</h3>}
       {documents.map((document, index) => (
-        <div key={document.id} className="space-y-3 rounded-lg border border-border-subtle p-3">
+        <fieldset key={document.id} className="space-y-3 rounded-lg border border-border-subtle p-3">
+          <legend className="sr-only">Document {index + 1}</legend>
           <SelectField
-            label={`Document ${index + 1} category`}
+            label="Category"
             options={Object.entries(DOCUMENT_CATEGORIES).map(([value, label]) => ({ value, label }))}
             value={document.category}
             disabled={!!document.evidence}
@@ -40,8 +41,7 @@ export function DocumentAttachments({
             </p>
           ) : (
             <FileField
-              label={`Document ${index + 1} file`}
-              optional
+              label="File"
               onFile={(file) => update(documents.map((row) => (row.id === document.id ? { ...row, file } : row)))}
             />
           )}
@@ -51,7 +51,7 @@ export function DocumentAttachments({
             disabled={disabled}
             onClick={() => update(documents.filter((row) => row.id !== document.id))}
           />
-        </div>
+        </fieldset>
       ))}
       <PageAction
         label={documents.length ? 'Add another document' : 'Add document'}

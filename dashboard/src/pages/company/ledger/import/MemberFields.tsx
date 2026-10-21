@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { Field, TextInput } from '@components/Field';
-import { FIELD_LIMITS, registerImportMoney, type RegisterTransferMember, peopleFrom } from '@ledova/shared';
-import { PageAction } from '@components/Page';
+import { FIELD_LIMITS, type RegisterTransferMember, peopleFrom } from '@ledova/shared';
 import { PersonFields, PersonSelect } from '@pages/company/ledger/shared/PersonPicker';
 import { DocumentAttachments } from '@pages/company/ledger/shared/DocumentAttachments';
-import { blankAllotment, type AllotmentDraft, type MemberDraft } from './preparation';
+import { type MemberDraft } from './preparation';
+import { AllotmentFields } from './AllotmentFields';
 
 export function MemberFields({
   row,
@@ -14,6 +14,7 @@ export function MemberFields({
   companyMembers,
   preserveParticulars,
   usedMembers,
+  validationAttempt,
 }: {
   row: MemberDraft;
   index: number;
@@ -22,16 +23,13 @@ export function MemberFields({
   companyMembers: RegisterTransferMember[];
   preserveParticulars: boolean;
   usedMembers: string[];
+  validationAttempt: number;
 }) {
   const [personError, setPersonError] = useState('');
   const people = peopleFrom({ members: companyMembers, awardRecipients: [] });
   const retained = companyMembers.find((member) => member.member === row.member);
   const recipient = retained?.onRegister === false ? retained : undefined;
   const known = recipient ? undefined : retained;
-  const setAllotment = (at: number, patch: Partial<AllotmentDraft>) =>
-    update({
-      allotments: row.allotments.map((allotment, current) => (current === at ? { ...allotment, ...patch } : allotment)),
-    });
   return (
     <fieldset className="space-y-5">
       <legend className="sr-only">Shareholder details</legend>
@@ -94,66 +92,14 @@ export function MemberFields({
           />
         </Field>
       </div>
-      {row.allotments.map((allotment, at) => (
-        <fieldset key={allotment.id} className="space-y-4 border-t border-border-subtle pt-4">
-          <legend className="sr-only">Allotment {at + 1}</legend>
-          {row.allotments.length > 1 && <h4 className="text-sm font-medium text-text-primary">Allotment {at + 1}</h4>}
-          <div className="grid gap-3 sm:grid-cols-2">
-            <Field label="Allotment date">
-              <TextInput
-                type="date"
-                max={asAt}
-                value={allotment.allottedOn}
-                onChange={(event) => setAllotment(at, { allottedOn: event.target.value })}
-              />
-            </Field>
-            <Field label="Shares in allotment">
-              <TextInput
-                maxLength={FIELD_LIMITS.REGISTER_SHARES}
-                inputMode="numeric"
-                value={allotment.shares}
-                onChange={(event) => setAllotment(at, { shares: event.target.value })}
-              />
-            </Field>
-            <Field label="Amount paid">
-              <TextInput
-                maxLength={FIELD_LIMITS.AMOUNT}
-                inputMode="decimal"
-                placeholder="0.00"
-                value={allotment.amountPaid}
-                onChange={(event) => setAllotment(at, { amountPaid: event.target.value })}
-              />
-            </Field>
-            <Field label="Amount unpaid">
-              <TextInput
-                maxLength={FIELD_LIMITS.AMOUNT}
-                inputMode="decimal"
-                placeholder="0.00"
-                value={allotment.amountUnpaid}
-                onChange={(event) =>
-                  setAllotment(at, {
-                    amountUnpaid: event.target.value,
-                    fullyPaid: registerImportMoney(event.target.value) === '0.00',
-                  })
-                }
-              />
-            </Field>
-          </div>
-          {row.allotments.length > 1 && (
-            <PageAction
-              label={`Remove allotment ${at + 1} for shareholder ${index + 1}`}
-              onClick={() => update({ allotments: row.allotments.filter((_, current) => current !== at) })}
-            />
-          )}
-        </fieldset>
-      ))}
-      <div className="flex flex-wrap gap-2">
-        <PageAction
-          label="Add allotment"
-          context={`shareholder ${index + 1}`}
-          onClick={() => update({ allotments: [...row.allotments, blankAllotment()] })}
-        />
-      </div>
+      <AllotmentFields
+        allotments={row.allotments}
+        sharesHeld={row.shares}
+        asAt={asAt}
+        shareholder={index + 1}
+        validationAttempt={validationAttempt}
+        update={(allotments) => update({ allotments })}
+      />
       <DocumentAttachments documents={row.documents} update={(documents) => update({ documents })} />
     </fieldset>
   );
