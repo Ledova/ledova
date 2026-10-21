@@ -4467,6 +4467,77 @@ export interface ApiComponents {
       newPassword: string;
       newPasswordConfirm: string;
     };
+    ClassRightsAttributes: {
+      capital?: ApiComponents['schemas']['ClassRightsCapital'];
+      conversion?: ApiComponents['schemas']['ClassRightsConversion'];
+      dividends?: ApiComponents['schemas']['ClassRightsDividends'];
+      redemption?: ApiComponents['schemas']['ClassRightsRedemption'];
+      transfers?: ApiComponents['schemas']['ClassRightsTransfers'];
+      voting?: ApiComponents['schemas']['ClassRightsVoting'];
+    };
+    ClassRightsAttributesRequest: {
+      capital?: ApiComponents['schemas']['ClassRightsCapitalRequest'];
+      conversion?: ApiComponents['schemas']['ClassRightsConversionRequest'];
+      dividends?: ApiComponents['schemas']['ClassRightsDividendsRequest'];
+      redemption?: ApiComponents['schemas']['ClassRightsRedemptionRequest'];
+      transfers?: ApiComponents['schemas']['ClassRightsTransfersRequest'];
+      voting?: ApiComponents['schemas']['ClassRightsVotingRequest'];
+    };
+    ClassRightsCapital: {
+      amount?: string;
+      basis?: string;
+      cap?: string;
+      conditions?: string;
+      currency?: string;
+      multiple?: string;
+      participation?: ApiComponents['schemas']['ParticipationEnum'];
+      ranking?: string;
+      type: ApiComponents['schemas']['ClassRightsCapitalTypeEnum'];
+    };
+    ClassRightsCapitalRequest: {
+      amount?: string;
+      basis?: string;
+      cap?: string;
+      conditions?: string;
+      currency?: string;
+      multiple?: string;
+      participation?: ApiComponents['schemas']['ParticipationEnum'];
+      ranking?: string;
+      type: ApiComponents['schemas']['ClassRightsCapitalTypeEnum'];
+    };
+    ClassRightsCapitalTypeEnum: 'not_recorded' | 'residual' | 'preferential' | 'custom';
+    ClassRightsConversion: {
+      conditions?: string;
+      ratio?: string;
+      targetClass?: string;
+      type: ApiComponents['schemas']['ClassRightsConversionTypeEnum'];
+    };
+    ClassRightsConversionRequest: {
+      conditions?: string;
+      ratio?: string;
+      targetClass?: string;
+      type: ApiComponents['schemas']['ClassRightsConversionTypeEnum'];
+    };
+    ClassRightsConversionTypeEnum: 'not_recorded' | 'convertible' | 'none' | 'custom';
+    ClassRightsDividends: {
+      amount?: string;
+      basis?: string;
+      conditions?: string;
+      cumulative?: ApiComponents['schemas']['CumulativeEnum'];
+      currency?: string;
+      rate?: string;
+      type: ApiComponents['schemas']['ClassRightsDividendsTypeEnum'];
+    };
+    ClassRightsDividendsRequest: {
+      amount?: string;
+      basis?: string;
+      conditions?: string;
+      cumulative?: ApiComponents['schemas']['CumulativeEnum'];
+      currency?: string;
+      rate?: string;
+      type: ApiComponents['schemas']['ClassRightsDividendsTypeEnum'];
+    };
+    ClassRightsDividendsTypeEnum: 'not_recorded' | 'participating' | 'preferential' | 'none' | 'custom';
     ClassRightsDocument: {
       company: string;
       documentType: string;
@@ -4485,11 +4556,24 @@ export interface ApiComponents {
       previous: string | null;
       results: ApiComponents['schemas']['ClassRightsRevision'][];
     };
+    ClassRightsRedemption: {
+      conditions?: string;
+      trigger?: ApiComponents['schemas']['TriggerEnum'];
+      type: ApiComponents['schemas']['ClassRightsRedemptionTypeEnum'];
+    };
+    ClassRightsRedemptionRequest: {
+      conditions?: string;
+      trigger?: ApiComponents['schemas']['TriggerEnum'];
+      type: ApiComponents['schemas']['ClassRightsRedemptionTypeEnum'];
+    };
+    ClassRightsRedemptionTypeEnum: 'not_recorded' | 'redeemable' | 'not_redeemable' | 'custom';
     ClassRightsRevision: {
       appointment: string;
+      attributes: ApiComponents['schemas']['ClassRightsAttributes'];
       createdAt: string;
       documentReference: string;
       documents: ApiComponents['schemas']['ClassRightsDocument'][];
+      effectiveDate: string | null;
       idempotencyKey: string;
       recordedBy: number;
       recordedByName: string;
@@ -4498,10 +4582,36 @@ export interface ApiComponents {
       token: string;
       uuid: string;
     };
+    ClassRightsTransfers: {
+      boardConsent?: boolean;
+      conditions?: string;
+      preEmption?: boolean;
+      type: ApiComponents['schemas']['ClassRightsTransfersTypeEnum'];
+    };
+    ClassRightsTransfersRequest: {
+      boardConsent?: boolean;
+      conditions?: string;
+      preEmption?: boolean;
+      type: ApiComponents['schemas']['ClassRightsTransfersTypeEnum'];
+    };
+    ClassRightsTransfersTypeEnum: 'not_recorded' | 'restricted' | 'no_class_restrictions' | 'custom';
+    ClassRightsVoting: {
+      conditions?: string;
+      type: ApiComponents['schemas']['ClassRightsVotingTypeEnum'];
+      votesPerShare?: string;
+    };
+    ClassRightsVotingRequest: {
+      conditions?: string;
+      type: ApiComponents['schemas']['ClassRightsVotingTypeEnum'];
+      votesPerShare?: string;
+    };
+    ClassRightsVotingTypeEnum: 'not_recorded' | 'general' | 'conditional' | 'no_general_vote' | 'custom';
     ClassRightsWriteRequest: {
       appointment: string;
+      attributes?: ApiComponents['schemas']['ClassRightsAttributesRequest'];
       documentReference?: string;
       documents?: string[];
+      effectiveDate?: string | null;
       idempotencyKey: string;
       previousRevision: number;
       summary: string;
@@ -5063,6 +5173,7 @@ export interface ApiComponents {
       to: string;
       value: string;
     };
+    CumulativeEnum: 'not_recorded' | 'cumulative' | 'non_cumulative';
     CurrencyEnum: 'AUD';
     DeletedAccountResponse: {
       message: string;
@@ -6296,6 +6407,7 @@ export interface ApiComponents {
       previous?: string | null;
       results: ApiComponents['schemas']['WhitelistEntry'][];
     };
+    ParticipationEnum: 'not_recorded' | 'non_participating' | 'participating' | 'capped';
     PatchedCompanyUpdateRequest: {
       abn?: string;
       acn?: string;
@@ -8816,8 +8928,9 @@ export interface ApiComponents {
       name: string;
       symbol: string;
       token: string;
-      type: ApiComponents['schemas']['TypeEnum'];
+      type: ApiComponents['schemas']['TradingWalletTokenBalanceTypeEnum'];
     };
+    TradingWalletTokenBalanceTypeEnum: 'share_token' | 'stablecoin';
     Transaction: {
       amount: string;
       asset: string;
@@ -8874,7 +8987,7 @@ export interface ApiComponents {
     TransferOrderStatusEnum:
       'open' | 'partially_filled' | 'held' | 'matched' | 'pending_signature' | 'completed' | 'cancelled';
     TransferOrderTypeEnum: 'buy' | 'sell';
-    TypeEnum: 'share_token' | 'stablecoin';
+    TriggerEnum: 'company' | 'holder' | 'event' | 'custom';
     UnreadCountResponse: {
       unreadCount: number;
     };

@@ -1,8 +1,10 @@
+from datetime import timedelta
 from unittest.mock import patch
 from uuid import uuid4
 
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import DatabaseError
+from django.utils import timezone
 from rest_framework.test import APITransactionTestCase
 
 from companies.models import CompanyCapability
@@ -49,11 +51,23 @@ class ClassRightsTest(CoreFixtures, APITransactionTestCase):
             "summary": "One vote per share; other rights follow the company's constitution.",
             "document_reference": "Synthetic constitution, clause 4, 21 October 2026",
             "documents": [document_id],
+            "attributes": {
+                "voting": {"type": "general", "votes_per_share": "1"},
+                "dividends": {"type": "participating"},
+                "capital": {"type": "residual"},
+                "transfers": {"type": "restricted", "board_consent": True, "pre_emption": False},
+                "conversion": {"type": "none"},
+                "redemption": {"type": "not_redeemable"},
+            },
+            "effective_date": "2020-01-01",
         }
         saved = self.client.post(endpoint, payload, format="json")
         self.assertEqual(saved.status_code, 201, saved.content)
         first = saved.json()
         self.assertEqual(first["revision"], 1)
+        self.assertEqual(first["attributes"]["voting"], {"type": "general", "votesPerShare": "1"})
+        self.assertEqual(first["effectiveDate"], "2020-01-01")
+        self.assertIs(first["attributes"]["transfers"]["preEmption"], False)
         self.assertEqual(first["recordedBy"], self.owner.pk)
         self.assertEqual(first["recordedByName"], self.profile.full_name)
         self.assertEqual(first["idempotencyKey"], payload["idempotency_key"])
@@ -73,6 +87,36 @@ class ClassRightsTest(CoreFixtures, APITransactionTestCase):
         self.assertEqual(changed.status_code, 409, changed.content)
         changed_files = self.client.post(endpoint, {**payload, "documents": []}, format="json")
         self.assertEqual(changed_files.status_code, 409, changed_files.content)
+        changed_terms = self.client.post(endpoint, {**payload, "attributes": {}}, format="json")
+        self.assertEqual(changed_terms.status_code, 409, changed_terms.content)
+        changed_date = self.client.post(endpoint, {**payload, "effective_date": None}, format="json")
+        self.assertEqual(changed_date.status_code, 409, changed_date.content)
+        invalid_terms = [
+            {"unknown": {"type": "custom"}},
+            {"voting": {"type": "general", "unknown": True}},
+            {"voting": {"type": "general", "votes_per_share": "0"}},
+            {"voting": {"type": "no_general_vote", "votes_per_share": "1"}},
+            {"voting": {"type": "general", "votes_per_share": 1}},
+            {"dividends": {"type": "preferential", "rate": "8"}},
+            {"dividends": {"type": "preferential", "basis": "Per share"}},
+            {"capital": {"type": "preferential", "basis": "Per share"}},
+            {"dividends": {"type": "preferential", "currency": "AUD"}},
+            {"capital": {"type": "preferential", "currency": "AUD"}},
+            {"capital": {"type": "preferential", "cap": "2x"}},
+            {"capital": {"type": "preferential", "participation": "participating", "cap": "2x"}},
+            {"capital": {"type": "preferential", "amount": "100", "basis": "Per share"}},
+            {"conversion": {"type": "convertible", "ratio": "1"}},
+            {"redemption": {"type": "not_recorded", "trigger": "holder"}},
+        ]
+        for attributes in invalid_terms:
+            refused = self.client.post(endpoint, {**payload, "attributes": attributes}, format="json")
+            self.assertEqual(refused.status_code, 400, refused.content)
+        future = self.client.post(
+            endpoint,
+            {**payload, "effective_date": (timezone.now().date() + timedelta(days=1)).isoformat()},
+            format="json",
+        )
+        self.assertEqual(future.status_code, 400, future.content)
         stale = self.client.post(endpoint, {**payload, "idempotency_key": str(uuid4())}, format="json")
         self.assertEqual(stale.status_code, 409, stale.content)
         revised = self.client.post(
@@ -82,6 +126,10 @@ class ClassRightsTest(CoreFixtures, APITransactionTestCase):
                 "idempotency_key": str(uuid4()),
                 "previous_revision": 1,
                 "summary": "Company-supplied correction: two votes per share.",
+                "attributes": {
+                    **payload["attributes"],
+                    "voting": {"type": "general", "votes_per_share": "2"},
+                },
             },
             format="json",
         )
@@ -99,6 +147,8 @@ class ClassRightsTest(CoreFixtures, APITransactionTestCase):
                 "summary": "",
                 "document_reference": "",
                 "documents": [],
+                "attributes": {},
+                "effective_date": None,
             },
             format="json",
         )
@@ -108,6 +158,8 @@ class ClassRightsTest(CoreFixtures, APITransactionTestCase):
         self.assertEqual(history.json()["current"]["revision"], 3)
         self.assertEqual(history.json()["current"]["summary"], "")
         self.assertEqual(history.json()["current"]["documents"], [])
+        self.assertEqual(history.json()["current"]["attributes"], {})
+        self.assertIsNone(history.json()["current"]["effectiveDate"])
         self.assertEqual(history.json()["count"], 3)
         self.assertEqual(len(history.json()["results"]), 1)
         self.assertIsNotNone(history.json()["next"])
@@ -149,6 +201,8 @@ class ClassRightsTest(CoreFixtures, APITransactionTestCase):
                 ClassRightsRevision.objects.filter(pk=first["uuid"]).delete()
             with self.assertRaises(DatabaseError), atomic():
                 ClassRightsRevision.objects.filter(pk=first["uuid"]).update(documents=[])
+            with self.assertRaises(DatabaseError), atomic():
+                ClassRightsRevision.objects.filter(pk=first["uuid"]).update(attributes={})
             with self.assertRaises(DatabaseError), atomic():
                 ClassRightsRevision.objects.create(
                     token=self.token,

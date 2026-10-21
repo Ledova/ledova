@@ -10,6 +10,7 @@ import {
   getClassRights,
   getNextPageParam,
   isRegisterEvidenceReceipt,
+  isCalendarDate,
   isUuid,
   recordClassRights,
   uploadRegisterEvidence,
@@ -18,19 +19,28 @@ import {
   type ClassRightsRequest,
   type ClassRightsRevision,
   type ClassRightsDocument,
+  type ClassRightsAttributes,
   type OrderSubmissionOwner,
   type RegisterEvidence,
 } from '@ledova/shared';
 import { READ_TIMING } from '@hooks/useRegisterAccess';
 import apiClient from '@services/apiClient';
 import { saveFile } from '@utils/saveFile';
+import { cleanRightsAttributes, isRightsAttributes, sameRightsAttributes } from './rightsAttributes';
 
 export function classRightsKey(owner: OrderSubmissionOwner | null, token: string) {
   return ['class-rights', owner?.userUuid, owner?.ownerAccountUuid, token];
 }
 
 type ClassDocumentDraft = { id: string; file: File | null; snapshot?: ClassRightsDocument };
-type Editor = { appointment: string; previousRevision: number; summary: string; documents: ClassDocumentDraft[] };
+type Editor = {
+  appointment: string;
+  previousRevision: number;
+  attributes: ClassRightsAttributes;
+  effectiveDate: string;
+  summary: string;
+  documents: ClassDocumentDraft[];
+};
 type Upload = { file: File; key: string; receipt?: RegisterEvidence };
 
 function isDocument(document: ClassRightsDocument, company: string) {
@@ -75,6 +85,9 @@ function matchesReceipt(
     receipt.appointment === request.appointment &&
     receipt.revision === request.previousRevision + 1 &&
     receipt.summary === request.summary &&
+    receipt.effectiveDate === (request.effectiveDate ?? null) &&
+    isRightsAttributes(receipt.attributes) &&
+    sameRightsAttributes(receipt.attributes, request.attributes ?? {}) &&
     receipt.documentReference === (request.documentReference ?? '') &&
     Array.isArray(receipt.documents) &&
     receipt.documents.length === documents.length &&
@@ -133,6 +146,9 @@ export function useClassRights(token: string, tokenReady: boolean, company: stri
       assertNextPageAdvances(pageParam, data);
       const valid = (revision: ClassRightsRevision) =>
         revision.token === token &&
+        isRightsAttributes(revision.attributes) &&
+        (revision.effectiveDate === null ||
+          (typeof revision.effectiveDate === 'string' && isCalendarDate(revision.effectiveDate))) &&
         Array.isArray(revision.documents) &&
         revision.documents.every((document) => isDocument(document, company!)) &&
         new Set(revision.documents.map((document) => document.evidence)).size === revision.documents.length;
@@ -170,6 +186,8 @@ export function useClassRights(token: string, tokenReady: boolean, company: stri
     setEditor({
       appointment,
       previousRevision: current?.revision ?? 0,
+      attributes: current?.attributes ?? {},
+      effectiveDate: current?.effectiveDate ?? '',
       summary: current?.summary ?? '',
       documents: (current?.documents ?? []).map((snapshot) => ({
         id: snapshot.evidence,
@@ -281,6 +299,8 @@ export function useClassRights(token: string, tokenReady: boolean, company: stri
           appointment: source.appointment,
           previousRevision: source.previousRevision,
           summary: source.summary.trim(),
+          attributes: cleanRightsAttributes(source.attributes),
+          effectiveDate: source.effectiveDate || null,
           documents: documents.map((document) => document.evidence),
           idempotencyKey: crypto.randomUUID(),
         };

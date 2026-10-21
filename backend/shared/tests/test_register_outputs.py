@@ -34,6 +34,8 @@ class RegisterOutputsTest(CoreFixtures, APITransactionTestCase):
             "summary": "Company-supplied ordinary share rights.",
             "document_reference": "Synthetic constitution, clause 4",
             "documents": [str(class_document.pk)],
+            "attributes": {"voting": {"type": "general", "votes_per_share": "1"}},
+            "effective_date": "2020-01-01",
         }
         first_rights = self.client.post(rights_endpoint, rights, format="json")
         self.assertEqual(first_rights.status_code, 201, first_rights.content)
@@ -250,6 +252,8 @@ class RegisterOutputsTest(CoreFixtures, APITransactionTestCase):
             self.assertEqual(exported_rights[0]["summary"], rights["summary"])
             self.assertEqual(exported_rights[1]["summary"], "Clarified company summary.")
             self.assertEqual(exported_rights[0]["document_reference"], rights["document_reference"])
+            self.assertEqual(exported_rights[0]["attributes"], rights["attributes"])
+            self.assertEqual(exported_rights[0]["effective_date"], "2020-01-01")
             self.assertEqual(exported_rights[0]["recorded_by_id"], self.owner.pk)
             self.assertEqual(exported_rights[0]["appointment_id"], str(self.appointment.pk))
             self.assertEqual(exported_rights[0]["idempotency_key"], rights["idempotency_key"])

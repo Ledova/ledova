@@ -243,6 +243,8 @@ def _share_class(company, token, outputs) -> dict:
                     "revision",
                     "summary",
                     "document_reference",
+                    "attributes",
+                    "effective_date",
                     "documents",
                     "recorded_by_id",
                     "recorded_by_name",

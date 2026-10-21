@@ -1,12 +1,22 @@
 import { useEffect, useId, useRef } from 'react';
-import { FIELD_LIMITS, formatDateTime, type ClassRightsRevision } from '@ledova/shared';
-import { Field, FileField, TextArea } from '@components/Field';
+import {
+  FIELD_LIMITS,
+  formatDate,
+  formatDateTime,
+  isCalendarDate,
+  utcToday,
+  type ClassRightsRevision,
+} from '@ledova/shared';
+import { Field, FileField, TextArea, TextInput } from '@components/Field';
 import { ErrorSummary } from '@components/ErrorSummary';
 import { Disclosure, LoadError, Loading, Outcome, Row, Rows, Section } from '@components/Ledger';
 import { LoadMore } from '@components/List';
 import { FormActions, PageAction } from '@components/Page';
 import { useErrorSummary } from '@hooks/useErrorSummary';
+import { useIncompleteDates } from '@hooks/useIncompleteDates';
 import { useClassRights } from './useClassRights';
+import { StructuredRightsFields } from './StructuredRightsFields';
+import { rightsAttributeProblems, structuredRightsRows } from './rightsAttributes';
 
 function RightsSummary({
   revision,
@@ -15,12 +25,31 @@ function RightsSummary({
   revision: ClassRightsRevision;
   rights: ReturnType<typeof useClassRights>;
 }) {
+  const structured = Object.keys(revision.attributes).length > 0;
   return (
     <div className="space-y-3">
-      {revision.summary ? (
-        <p className="whitespace-pre-wrap break-words text-sm text-text-primary">{revision.summary}</p>
-      ) : (
-        <p className="text-sm text-text-muted">No summary recorded.</p>
+      {structured && (
+        <Rows>
+          {structuredRightsRows(revision.attributes).map((row) => (
+            <Row key={row.label} label={row.label}>
+              <span className="whitespace-pre-wrap">{row.value}</span>
+            </Row>
+          ))}
+        </Rows>
+      )}
+      {revision.summary && (
+        <div className="space-y-1">
+          <h3 className="text-sm font-medium text-text-primary">
+            {structured ? 'Additional rights' : 'Recorded summary'}
+          </h3>
+          <p className="whitespace-pre-wrap break-words text-sm text-text-primary">{revision.summary}</p>
+        </div>
+      )}
+      {!structured && !revision.summary && <p className="text-sm text-text-muted">No rights recorded.</p>}
+      {revision.effectiveDate && (
+        <Rows>
+          <Row label="Effective date">{formatDate(revision.effectiveDate)}</Row>
+        </Rows>
       )}
       {revision.documentReference && (
         <Rows>
@@ -50,7 +79,7 @@ function RightsSummary({
         </div>
       )}
       <p className="text-xs text-text-muted">
-        {revision.recordedByName || 'Company administrator'} · {formatDateTime(revision.createdAt)}
+        Recorded by {revision.recordedByName || 'Company administrator'} · {formatDateTime(revision.createdAt)}
       </p>
     </div>
   );
@@ -58,39 +87,58 @@ function RightsSummary({
 
 function RightsEditor({ rights }: { rights: ReturnType<typeof useClassRights> }) {
   const id = useId();
-  const summary = useRef<HTMLTextAreaElement>(null);
+  const form = useRef<HTMLFormElement>(null);
   useEffect(() => {
-    summary.current?.focus();
+    form.current?.querySelector('select')?.focus();
   }, []);
   const editor = rights.editor!;
-  const validation = useErrorSummary({
+  const dates = useIncompleteDates<'effectiveDate'>();
+  const validation = useErrorSummary<string>({
+    ...rightsAttributeProblems(editor.attributes),
     summary:
       editor.summary.length > FIELD_LIMITS.CLASS_RIGHTS &&
-      `Keep the summary within ${FIELD_LIMITS.CLASS_RIGHTS} characters.`,
+      `Keep additional rights within ${FIELD_LIMITS.CLASS_RIGHTS} characters.`,
+    effectiveDate:
+      (dates.incomplete.effectiveDate ||
+        (editor.effectiveDate && (!isCalendarDate(editor.effectiveDate) || editor.effectiveDate > utcToday()))) &&
+      'Enter a complete effective date on or before today (UTC).',
   });
   const locked = rights.busy || rights.pending || rights.stale;
   return (
     <form
+      ref={form}
       aria-label="Edit class rights"
       className="space-y-4"
+      noValidate
       onSubmit={(event) => {
         event.preventDefault();
         if (validation.check()) void rights.save();
       }}
     >
       <ErrorSummary {...validation.summary} />
-      <Field
-        label="Rights summary"
-        hint="Describe voting, dividends, repayment of capital and any other rights or restrictions."
-        {...validation.field('summary')}
-      >
+      <StructuredRightsFields
+        attributes={editor.attributes}
+        onChange={(attributes) => rights.setEditor({ ...editor, attributes })}
+        disabled={locked}
+        field={validation.field}
+      />
+      <Field label="Additional rights" {...validation.field('summary')}>
         <TextArea
-          ref={summary}
           value={editor.summary}
-          rows={6}
+          rows={3}
           maxLength={FIELD_LIMITS.CLASS_RIGHTS}
           disabled={locked}
           onChange={(event) => rights.setEditor({ ...editor, summary: event.target.value })}
+        />
+      </Field>
+      <Field label="Effective date" hint="Leave blank if unknown." {...validation.field('effectiveDate')}>
+        <TextInput
+          type="date"
+          max={utcToday()}
+          value={editor.effectiveDate}
+          disabled={locked}
+          {...dates.watch('effectiveDate')}
+          onChange={(event) => rights.setEditor({ ...editor, effectiveDate: event.target.value })}
         />
       </Field>
       <fieldset disabled={locked} className="space-y-3 border-t border-border-subtle pt-4">
@@ -183,14 +231,14 @@ export function ClassRights({ rights }: { rights: ReturnType<typeof useClassRigh
       ) : (
         <>
           <p className="text-sm text-text-muted">
-            Company-supplied summary. The governing documents determine the rights.
+            Company-recorded terms. The governing documents determine the rights.
           </p>
           {rights.editor ? (
             <RightsEditor rights={rights} />
           ) : rights.current ? (
             <RightsSummary revision={rights.current} rights={rights} />
           ) : (
-            <p className="text-sm text-text-muted">No summary recorded.</p>
+            <p className="text-sm text-text-muted">No rights recorded.</p>
           )}
           {(rights.appointment || rights.pending) && !rights.editor && (
             <PageAction

@@ -10,6 +10,8 @@ class ClassRightsRevision(BaseModel):
     summary = models.CharField(max_length=4000, blank=True)
     document_reference = models.CharField(max_length=255, blank=True)
     documents = models.JSONField(default=list, blank=True)
+    attributes = models.JSONField(default=dict, blank=True)
+    effective_date = models.DateField(null=True, blank=True)
     recorded_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="+")
     recorded_by_name = models.CharField(max_length=255, blank=True)
     appointment = models.ForeignKey("companies.CompanyAppointment", on_delete=models.PROTECT, related_name="+")

@@ -1,5 +1,6 @@
 import type { ApiQuery, ApiRequest, ApiResponse, ApiSchema } from '../contracts';
 
+export type ClassRightsAttributes = ApiSchema<'ClassRightsAttributes'>;
 export type ClassRightsRevision = ApiSchema<'ClassRightsRevision'>;
 export type ClassRightsDocument = ClassRightsRevision['documents'][number];
 export type ClassRightsHistory = ApiResponse<'api_v1_tokens_class_rights_retrieve'>;

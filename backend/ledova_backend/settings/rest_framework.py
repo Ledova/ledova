@@ -40,6 +40,12 @@ SPECTACULAR_SETTINGS = {
     "SERVE_INCLUDE_SCHEMA": False,
     "COMPONENT_SPLIT_REQUEST": True,
     "ENUM_NAME_OVERRIDES": {
+        "ClassRightsVotingTypeEnum": ["not_recorded", "general", "conditional", "no_general_vote", "custom"],
+        "ClassRightsDividendsTypeEnum": ["not_recorded", "participating", "preferential", "none", "custom"],
+        "ClassRightsCapitalTypeEnum": ["not_recorded", "residual", "preferential", "custom"],
+        "ClassRightsTransfersTypeEnum": ["not_recorded", "restricted", "no_class_restrictions", "custom"],
+        "ClassRightsConversionTypeEnum": ["not_recorded", "convertible", "none", "custom"],
+        "ClassRightsRedemptionTypeEnum": ["not_recorded", "redeemable", "not_redeemable", "custom"],
         "OutcomeEnum": "tokens.models.swap_approval_submission.ApprovalSubmissionOutcome.choices",
         "CompanyEligibilityDecisionOutcomeEnum": (
             "users.models.company_eligibility.CompanyEligibilityDecisionOutcome.choices"

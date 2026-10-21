@@ -45,7 +45,7 @@ stay here as history and are marked where they appear.
 | [Simpler signed-in journeys](#simpler-signed-in-journeys)                                                       | 11 October 2026                                | Web layout superseded 12 October; native journey remains delivered                                              |
 | [Ownership dashboard and compact sidebar](#ownership-dashboard-and-compact-sidebar)                             | 12 October 2026                                | Current; increments #1012–#1014; classes moved to Register (#1155); member access moved to Shareholders (#1166) |
 | [Dashboard, Settings and Register for a new company](#dashboard-settings-and-register-for-a-new-company)        | 19 October 2026                                | Current; #1155 (web), #1157 (mobile)                                                                            |
-| [Share classes, shareholders and employee awards](#share-classes-shareholders-and-employee-awards)              | 20 to 21 October 2026                          | Current; web destination named Ledger and revised workflows under #1165; mobile deferred under #1201           |
+| [Share classes, shareholders and employee awards](#share-classes-shareholders-and-employee-awards)              | 20 to 22 October 2026                          | Current; web destination named Ledger and revised workflows under #1165; mobile deferred under #1201           |
 | [Paper and Dark themes](#paper-and-dark-themes)                                                                 | 14 October 2026                                | Current; #1040                                                                                                  |
 | [Frontend UX standards](#frontend-ux-standards)                                                                 | 20 to 21 October 2026                          | Web delivered (#1176, #1178–#1183), picker server search deferred; mobile people (#1196), rest in #1201         |
 | [The account-data export](#the-account-data-export)                                                             | 23 September 2026                              | Current                                                                                                         |
@@ -1338,6 +1338,17 @@ class and its retained rights revision, separate from shareholder attachments an
 document access. Current company register readers can read linked files; current personal company
 administrators record changes. Earlier text references and file versions remain in retained
 history and exports. Member/public disclosure and mobile entry are outside this increment.
+
+On 22 October 2026 the owner approved structured Class rights under #1165: voting, dividends,
+capital on winding-up, transfers, conversion and redemption, with details revealed only where
+relevant. Each group starts Not recorded, distinct from an explicit absence of a right; class names
+and broad types supply no defaults. Additional rights retains custom terms, Documents retains
+supporting files, and a known effective date stays separate from the actual recording time.
+Existing summaries, references, documents and immutable revisions remain readable. The first web
+scope records and displays existing class terms; it does not establish or vary rights, verify
+documents or implement voting, payout, transfer, conversion, redemption or approval rules.
+Holder-specific and award conditions stay with their own records. Member disclosure, broader
+filtering and comparison interfaces, and mobile entry remain separate work.
 
 Initial setup stays **Share details → Shareholders → Review**, copying existing holdings or opening
 a genuinely empty class; it does not issue new shares. Later issues, transfers and history reuse

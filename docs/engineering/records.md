@@ -482,19 +482,26 @@ conventions, and the register hash format is unchanged.
 
 ### Class-rights descriptions
 
-`tokens.ClassRightsRevision` retains company-supplied text and evidence snapshots separately from
-holdings and legal rights.
+`tokens.ClassRightsRevision` retains company-supplied structured terms, additional text and evidence
+snapshots separately from holdings and legal rights. `attributes` groups voting, dividends, capital
+on winding-up, transfers, conversion and redemption. An unrecorded group does not assert that a right
+is absent. Nullable `effective_date` is the company's known date for the terms, not the system's
+`created_at`. Earlier text-only revisions keep their original content and recording time without
+invented structured values or effective dates.
 The class's `class-rights/` GET is paginated newest first, with the latest `current` record and the
 viewer's current personal administration appointment, if any. `idempotency_key` filters the records
 for exact-request recovery without changing `current`. Reads require current company register access.
 
 POST supplies `appointment`, `idempotency_key`, `previous_revision` (zero initially), `summary` (up
-to 4,000 characters, allowed blank) and `documents` (evidence UUIDs, default empty). The response
-includes retained evidence snapshots. New web edits omit `document_reference`; earlier text remains
-readable in revisions and exports, and the optional legacy request field defaults to blank.
+to 4,000 characters, allowed blank), `attributes`, `effective_date` and `documents` (evidence UUIDs,
+default empty). `summary` remains the storage/API field for the web's Additional rights text. The
+response includes the structured terms, effective date and retained evidence snapshots. New web edits
+omit `document_reference`; earlier text remains readable in revisions and exports, and the optional
+legacy request field defaults to blank.
 
 Current personal administration and the company lock are required, including for an exact retry.
-A new request appends one revision; the same actor/key and exact payload recover the prior result.
+A new request appends one revision; the same actor/key and exact payload, including structured terms,
+effective date and documents, recover the prior result.
 Changed retries or a stale revision conflict. PostgreSQL retains the actor, name snapshot,
 appointment, evidence and actual time, refuses edits/deletion, rechecks administration at commit
 and prevents moving a recorded class to another company. Removing a document from the latest
@@ -507,6 +514,10 @@ stored fingerprint. There is no arbitrary evidence download or shareholder assoc
 company pack includes the full revision history and snapshots as
 `classes/<class id>/class_rights.json`, with each unique retained file under
 `documents/evidence/class-rights/<evidence uuid>.<extension>`.
+
+The structured fields are descriptive records for reading and export. They do not change existing
+share-count charts, company capabilities, transfer gates, approvals or calculations. Automated rights
+rules, broader filtering/comparison interfaces and member disclosure require their own scope.
 
 ### Employee awards API
 

@@ -1,11 +1,16 @@
 from contextlib import contextmanager
 from uuid import UUID
 
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 
 from companies.models import CompanyAppointment, CompanyCapability
+from tokens.class_rights_attributes import (
+    validate_class_rights_attributes,
+    validate_class_rights_effective_date,
+)
 from tokens.exceptions import RegisterChangeConflict
 from tokens.models import (
     ClassRightsRevision,
@@ -67,9 +72,25 @@ def _retained_documents(*, token, company, actor, identifiers):
 
 
 def record_class_rights(
-    *, actor, token, appointment, idempotency_key, previous_revision, summary, document_reference="", documents=None
+    *,
+    actor,
+    token,
+    appointment,
+    idempotency_key,
+    previous_revision,
+    summary,
+    document_reference="",
+    documents=None,
+    attributes=None,
+    effective_date=None
 ):
     identifiers = _documents([] if documents is None else documents)
+    attributes = {} if attributes is None else attributes
+    try:
+        validate_class_rights_attributes(attributes)
+        validate_class_rights_effective_date(effective_date)
+    except DjangoValidationError as exc:
+        raise ValidationError(exc.messages) from None
     with register_command(actor, token.company_id, "class_rights_record") as (
         company,
         current_actor,
@@ -86,6 +107,8 @@ def record_class_rights(
                 prior.revision - 1,
                 prior.summary,
                 prior.document_reference,
+                prior.attributes,
+                prior.effective_date,
                 [document["evidence"] for document in prior.documents],
             ) != (
                 token.pk,
@@ -93,6 +116,8 @@ def record_class_rights(
                 previous_revision,
                 summary,
                 document_reference,
+                attributes,
+                effective_date,
                 identifiers,
             ):
                 raise RegisterChangeConflict("This request already records different class-rights details.")
@@ -107,6 +132,8 @@ def record_class_rights(
             revision=previous_revision + 1,
             summary=summary,
             document_reference=document_reference,
+            attributes=attributes,
+            effective_date=effective_date,
             documents=_retained_documents(token=token, company=company, actor=current_actor, identifiers=identifiers),
             recorded_by=current_actor,
             recorded_by_name=profile.full_name or "",

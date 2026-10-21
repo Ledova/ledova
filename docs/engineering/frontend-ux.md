@@ -97,10 +97,12 @@ The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components
 On the web, prefer editing a record's details in its existing card: replace the read view with the
 fields under the same heading, with Cancel and Save together at the bottom right. Focus the first
 field when editing opens and return focus to Edit when it ends, if that action is still available.
-Class rights follows this pattern: Edit replaces its current summary and Previous versions with
-Rights summary and a Documents area inside the same form, focuses Rights summary and keeps one
-Class rights heading. Attachments use the existing document controls with concise labels; they do
-not open another editor or repeat optional markers. Validation, pending-request holds,
+Class rights follows this pattern: Edit replaces its read view and Previous versions with six
+rights groups, Additional rights, the known effective date and Documents in the same form. Keep one
+Class rights heading and focus the first field. Groups start Not recorded; show further fields only
+for the selected terms. Do not infer values from a class label or treat an unanswered choice as No.
+Attachments use the existing document controls with concise labels; they do not open another editor
+or repeat optional markers. Validation, pending-request holds,
 stale-record handling and original-save recovery still apply. Other existing dialogs keep their
 own workflow until separately refined.
 
