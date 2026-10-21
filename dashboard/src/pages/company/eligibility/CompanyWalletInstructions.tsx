@@ -259,7 +259,7 @@ export function CompanyWalletInstructions() {
               {data.error}
             </p>
           )}
-          {data.companyUuid && !data.canRead && (
+          {data.companyUuid && !data.canRead && !data.appointments.isError && (
             <p role="status">
               Refresh current personal register access before reading these private wallet records. Original requests
               are retained.
