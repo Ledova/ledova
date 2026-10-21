@@ -23,6 +23,7 @@ import {
   failureSentence,
   utcToday,
   formatDate,
+  shareCount,
 } from '@ledova/shared';
 import { DecisionTrail } from '@pages/company/register/shared/DecisionTrail';
 import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
@@ -274,7 +275,7 @@ function Preparation({ commands }: { commands: Commands }) {
     () =>
       personChoices(
         peopleFrom(commands.members.data).filter((person) => !person.awardOnly),
-        (person) => `${formatShareCount(person.currentShares)} shares`,
+        (person) => shareCount(person.currentShares),
       ),
     [commands.members.data],
   );

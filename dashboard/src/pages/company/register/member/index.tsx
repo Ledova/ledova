@@ -19,6 +19,7 @@ import {
   type OrderSubmissionOwner,
   type OwnCompanyAppointment,
   sharePercentage,
+  shareCount,
 } from '@ledova/shared';
 import { Row, Rows, Section, LoadError, Loading } from '@components/Ledger';
 import { Page, PageLink } from '@components/Page';
@@ -300,7 +301,7 @@ function OwnShareholder({
             ))}
             {former.map(({ register, row }) => (
               <p key={`${register.token.uuid}/${row.uuid}`} className="text-sm text-text-muted">
-                {register.token.name} · {formatShareCount(row.sharesAtCessation)} shares, ceased{' '}
+                {register.token.name} · {shareCount(row.sharesAtCessation)}, ceased{' '}
                 {formatDate(row.ceasedOn, 'Not recorded')}
                 {row.returnedOn ? ` · returned ${formatDate(row.returnedOn)}` : ''}
                 {row.correctedBy ? ' · cessation corrected' : ''}

@@ -12,6 +12,7 @@ import {
   getBlockExplorerAddressUrl,
   getBlockExplorerTxUrl,
   useUserPreferences,
+  shareCount,
 } from '@ledova/shared';
 import { Page, PageAction, PageLink } from '@components/Page';
 import { Row, Rows, Section, Status, LoadError, Loading } from '@components/Ledger';
@@ -272,7 +273,7 @@ function ShareClassDetails({ data }: { data: ReturnType<typeof useShareClass> })
                   {issuances.map((issuance) => (
                     <li key={issuance.uuid} className="space-y-2 py-4 text-sm">
                       <p className="break-words text-text-primary">
-                        {formatShareCount(issuance.amount)} shares to {issuance.recipientAddress}
+                        {shareCount(issuance.amount)} to {issuance.recipientAddress}
                       </p>
                       <p className="text-text-muted">
                         {issuance.statusDisplay} · {formatDate(issuance.createdAt)}

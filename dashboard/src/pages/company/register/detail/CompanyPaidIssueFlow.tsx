@@ -16,6 +16,7 @@ import {
   type RegisterPaidIssueSource,
   refusalSentences,
   failureSentence,
+  shareCount,
 } from '@ledova/shared';
 import { DecisionTrail } from '@pages/company/register/shared/DecisionTrail';
 import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
@@ -217,7 +218,7 @@ function Preparation({ commands }: { commands: Commands }) {
         ].map((row) => ({
           value: row.subscription,
           label: row.recipientName || 'Name not recorded',
-          detail: `${formatShareCount(row.shares)} shares · ${row.recipientAddress}`,
+          detail: `${shareCount(row.shares)} · ${row.recipientAddress}`,
         }))}
         value={captured?.source.subscription ?? ''}
         onChange={select}
