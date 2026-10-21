@@ -8,7 +8,7 @@ function BookSide({ title, entries }: { title: string; entries: OrderBookEntry[]
     <div className="flex flex-col gap-2">
       <h3 className="text-sm font-medium text-text-primary">{title}</h3>
       {entries.length === 0 ? (
-        <p className="text-sm text-text-muted">No orders listed.</p>
+        <p className="text-sm text-text-muted">No orders yet.</p>
       ) : (
         entries.map((entry, index) => (
           <div key={index} className="border-b border-border-subtle py-2 last:border-b-0">
@@ -112,7 +112,7 @@ export function OrdersPanel({
         ) : isLoadingUserOrders ? (
           <Loading>Loading your orders…</Loading>
         ) : userOrders.length === 0 ? (
-          <p className="text-sm text-text-muted">No recorded orders.</p>
+          <p className="text-sm text-text-muted">No orders yet.</p>
         ) : (
           userOrders.map((order) => (
             <article key={order.uuid} className="border-b border-border-subtle py-3 last:border-b-0">

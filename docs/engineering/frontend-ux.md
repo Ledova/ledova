@@ -454,7 +454,15 @@ Both eligibility pages, member access and Home's member records read through sha
 keep a reason of their own. While a read fails they show the block, with any such reason under it,
 such as "Your award records could not be confirmed. Refresh before continuing.", and no empty line.
 
-Empty states are still to follow under [#1180](https://github.com/Ledova/ledova/issues/1180).
+An empty list says it has none yet in one muted sentence, such as "No applications yet." or "No
+deployments yet.", and an empty section keeps at most one action
+([signed-in page conventions](#signed-in-page-conventions)). A list narrowed by a search or filter
+says what matched instead, such as "No applications match your search." or "No requests match."
+Where both clients show the same empty state, the sentence is shared copy in
+`packages/shared/src/constants/business/`. Mobile's own empty sentences move to these words under
+[#1201](https://github.com/Ledova/ledova/issues/1201). A sentence that reports a state rather than
+an empty list keeps its own words, such as "No votes need your attention." or "No draft company is
+available for an authority request."
 
 Some messages keep their own form:
 

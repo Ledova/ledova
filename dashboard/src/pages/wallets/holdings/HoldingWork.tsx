@@ -154,7 +154,7 @@ export function HoldingWork() {
             What has been published to you could not be loaded.
           </LoadError>
         ) : recent.data.length === 0 ? (
-          <p className="py-3 text-sm text-text-muted">Nothing has been published to you yet.</p>
+          <p className="py-3 text-sm text-text-muted">{PUBLICATION_COPY.EMPTY}</p>
         ) : (
           <ul className="divide-y divide-border-subtle">
             {recent.data.map((publication) => (

@@ -20,7 +20,7 @@ export const OFFER_DOCUMENT_COPY = {
   LOADING: 'Loading offer documents…',
   FAILED: 'Offer documents could not be loaded.',
   RETRY: 'Try offer documents again',
-  EMPTY: 'The company has not attached documents to an approved offering of this share class.',
+  EMPTY: 'No offer documents yet.',
   VIEW: 'View',
   OPENING: 'Opening…',
   OPEN_FAILED: 'This document could not be opened. Try again shortly.',

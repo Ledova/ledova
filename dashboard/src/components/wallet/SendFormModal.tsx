@@ -214,7 +214,7 @@ export function SendFormModal({
         {isLoadingAssets ? (
           <Loading>Loading this wallet&apos;s assets…</Loading>
         ) : assets.length === 0 ? (
-          <p className="text-sm text-text-muted">No assets in this wallet</p>
+          <p className="text-sm text-text-muted">No assets in this wallet yet.</p>
         ) : (
           <div className="space-y-2">
             {hasShareTokens && !isSenderWhitelisted && senderWhitelistStatus !== undefined && (

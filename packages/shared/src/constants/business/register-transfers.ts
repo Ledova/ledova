@@ -33,7 +33,7 @@ export const REGISTER_TRANSFER_COPY = {
   TITLE: 'Non-paid transfers',
   PREPARE: 'Prepare a non-paid transfer',
   SUBMIT: 'Prepare transfer',
-  EMPTY: 'No non-paid transfer has been prepared for this share class.',
+  EMPTY: 'No non-paid transfers yet.',
   NOTE: 'Transfer shares between walletless members of an imported draft register, under the company’s authority and a genuine signed instrument.',
   READ_ONLY_NOTE: 'Preparing, approving and applying a transfer needs current company administration or that step.',
   FROM: 'Transferor',

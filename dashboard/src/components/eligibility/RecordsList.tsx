@@ -13,7 +13,7 @@ export function RecordsList({
   disabled?: boolean;
 }) {
   return records.length === 0 ? (
-    <p>No requests recorded.</p>
+    <p>No requests yet.</p>
   ) : (
     <ul className="divide-y divide-border-subtle">
       {records.map((record) => (

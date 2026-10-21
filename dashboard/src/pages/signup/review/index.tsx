@@ -105,7 +105,7 @@ export default function SignupReview() {
               </div>
             </div>
           ) : (
-            <p className="text-sm text-error-light">No personal information found.</p>
+            <p className="text-sm text-text-muted">No personal information found.</p>
           )}
         </Section>
 
@@ -135,7 +135,7 @@ export default function SignupReview() {
                 </div>
               </div>
             ) : (
-              <p className="text-sm text-error-light">No company information found.</p>
+              <p className="text-sm text-text-muted">No company information found.</p>
             )}
           </Section>
         ) : (
@@ -180,7 +180,7 @@ export default function SignupReview() {
                 )}
               </div>
             ) : (
-              <p className="text-sm text-error-light">No financial profile found.</p>
+              <p className="text-sm text-text-muted">No financial profile found.</p>
             )}
           </Section>
         )}

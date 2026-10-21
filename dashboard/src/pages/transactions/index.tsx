@@ -78,7 +78,7 @@ const TransactionsPage = () => {
             {transactions.length === 0 && !hasNextPage && !moreFailed ? (
               <>
                 <p className="py-3 text-sm text-text-muted">
-                  {hasActiveFilters ? 'No matching activity.' : 'No activity yet.'}
+                  {hasActiveFilters ? 'No activity matches.' : 'No activity yet.'}
                 </p>
                 {hasActiveFilters && <PageAction label="Clear filters" onClick={handleClearFilters} />}
               </>

@@ -31,7 +31,7 @@ export const REGISTER_OPENING_UNMET_COPY: Record<string, string> = {
 
 export const REGISTER_OPENING_COPY = {
   TITLE: 'Openings',
-  EMPTY: 'No opening has been prepared for this share class.',
+  EMPTY: 'No openings yet.',
   PREPARE: 'Open this register',
   PROVIDED_BY_COMPANY: 'Provided by the company',
   STAFF_VERIFIED: 'Verified by Ledova staff before openings were company-run',

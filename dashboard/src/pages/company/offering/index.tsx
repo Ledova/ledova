@@ -161,9 +161,7 @@ function CompanyOfferings({ companyRead }: { companyRead: ReturnType<typeof useC
                 <Section title={`Your offerings (${data.offerings.length})`}>
                   <Outcome>{notice}</Outcome>
                   {data.offerings.length === 0 ? (
-                    <p className="text-sm text-text-muted">
-                      You have no offerings yet. Create one and submit it for review.
-                    </p>
+                    <p className="text-sm text-text-muted">No offerings yet. Create one and submit it for review.</p>
                   ) : (
                     <ul className="divide-y divide-border-subtle">
                       {data.offerings.map((row) => (

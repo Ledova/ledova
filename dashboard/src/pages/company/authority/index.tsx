@@ -108,7 +108,7 @@ function OwnAuthorityRequests({
             Your authority requests could not be loaded.
           </LoadError>
         ) : (history.data ?? []).length === 0 ? (
-          <p className="text-sm text-text-muted">No authority requests recorded.</p>
+          <p className="text-sm text-text-muted">No authority requests yet.</p>
         ) : (
           <ul className="divide-y divide-border-subtle">
             {(history.data ?? []).map((request) => (
