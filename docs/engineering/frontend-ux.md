@@ -589,8 +589,11 @@ by a local helper or a browser `toLocale…` call:
   the server recorded.
 - **Date-times** use `formatDateTime`: "20 Oct 2026, 02:30 pm", in the viewer's local time. A
   calendar date passed to it shows as a date, never with an invented time.
-- **Share counts** use `formatShareCount`, and a count with its noun uses `shareCount`: "1 share",
-  "1,315 shares". Gathered in `packages/shared/src/utils/formatting.ts` with `sharePercentage`.
+- **Share counts** use `formatShareCount`, a count with its noun uses `shareCount` ("1 share",
+  "1,315 shares") and a signed change uses `shareChange` ("+1,000"). Gathered in
+  `packages/shared/src/utils/formatting.ts` with `sharePercentage`. Trading's order quantities use
+  `marketQuantity` and `marketShares`, which read "Unavailable" for a quantity too large to show
+  exactly.
 - **Percentages of a class** use `sharePercentage`, rounded half-up to two places, "<0.01%" for a
   holding too small to show and "Not recorded" without issued shares.
 - **Amounts** use `formatMoney`, which names its currency: "AUD 1,234.50".
