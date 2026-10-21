@@ -553,7 +553,7 @@ The Ledger view shows:
 - a card for each class with **Class details**: Issued shares, Current shareholders, Ledger opened or Ledger not
   opened, Authorised shares (or a Technical share limit for a class set up from existing records), a
   note when completed issues or transfers wait or cannot be checked;
-- **Add share class** in the header, for someone who can prepare the register, opening
+- **Add share class** below the cards, aligned right, for someone who can prepare the register, opening
   [register setup](#bringing-in-existing-records) for the selected company.
 
 Ledger's three sidebar sub-items each open their own focused view, with a shared share-class

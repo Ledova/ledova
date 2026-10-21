@@ -44,14 +44,12 @@ const ON_CHAIN = ['deployed', 'paused'];
 function RegisterPage({
   selection,
   companyName,
-  actions,
   sections,
   task,
   children,
 }: {
   selection?: ReactNode;
   companyName?: string;
-  actions?: ReactNode;
   sections?: ReactNode;
   task?: RegisterTask;
   children: ReactNode;
@@ -63,7 +61,6 @@ function RegisterPage({
   return (
     <PageTitle.Provider value={title}>
       <Page
-        actions={actions}
         lede={
           shownTask === 'issue'
             ? 'Record a company-approved share issue.'
@@ -353,18 +350,6 @@ function OwnRegister({
     <RegisterPage
       task={view === 'register' ? selectedTask : undefined}
       companyName={readable && sourceReady ? scope?.company.name : undefined}
-      actions={
-        scope &&
-        view === 'register' &&
-        !selectedTask &&
-        canAddClass && (
-          <PageLink
-            primary
-            to={`${DESTINATIONS.companyRegisterSetup.path}?company=${scope.company.uuid}`}
-            label="Add share class"
-          />
-        )
-      }
       selection={
         preferences?.status === 'success' &&
         preferences.fetchStatus === 'idle' &&
@@ -489,6 +474,15 @@ function OwnRegister({
                 )}
               </Section>
             ))}
+          {!selectedTask && canAddClass && (
+            <div className="flex flex-wrap justify-end gap-2">
+              <PageLink
+                primary
+                to={`${DESTINATIONS.companyRegisterSetup.path}?company=${scope.company.uuid}`}
+                label="Add share class"
+              />
+            </div>
+          )}
           <section aria-label="Ledger tasks" className="space-y-4">
             {selectedTask && sourceReady && scope.registers.length > 1 && (
               <div className="max-w-sm">

@@ -599,7 +599,8 @@ Each page links to its business section; the audience is the `DESTINATIONS` audi
   Ledger overview, Issue shares, Transfer shares, History, Shareholders (with member access),
   Employee share scheme (ESS) and Documents views by hash.
   Ledger stacks its share-class summaries as full-workspace-width `Section` cards, with the shared
-  card heading, padding and page spacing. Task views show their selected workflow rather than the
+  card heading, padding and page spacing. Add share class sits in a right-aligned row below the
+  cards, including the empty collection card. Task views show their selected workflow rather than the
   ownership overview or header task switches. It keeps every class's
   controllers mounted, merely hidden, so changing view, task or class (the Share class selector)
   keeps an unfinished request with its class, payload and retry key. Controllers

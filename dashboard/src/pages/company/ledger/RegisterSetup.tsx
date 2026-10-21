@@ -18,9 +18,13 @@ export function RegisterSetup({ owner, guard }: { owner: OrderSubmissionOwner; g
   );
   if (!canPrepare) return <p className="py-3 text-sm text-text-muted">{REGISTER_COPY.NO_REGISTER}</p>;
   return (
-    <Section title="Share classes">
-      <p className="text-sm text-text-muted">No share classes yet.</p>
-      <PageLink primary to={DESTINATIONS.companyRegisterSetup.path} label="Add share class" />
-    </Section>
+    <>
+      <Section title="Share classes">
+        <p className="text-sm text-text-muted">No share classes yet.</p>
+      </Section>
+      <div className="flex flex-wrap justify-end gap-2">
+        <PageLink primary to={DESTINATIONS.companyRegisterSetup.path} label="Add share class" />
+      </div>
+    </>
   );
 }

@@ -34,8 +34,11 @@ Ledger's share-class summaries stack as full-width `Section` cards, using the wo
 and the shared card heading and padding. Section spacing is scoped to the frame; sign-up keeps its
 own presentation.
 
-The title row holds the title and the page's actions, with a one-sentence muted lede under it only
-where it adds to the titles. The first section follows at the same gap as between sections (`Page`
+The title row holds the title and contextual page actions, with a one-sentence muted lede under it
+only where it adds to the titles. On web card collections, the primary creation action follows the
+last card in one right-aligned, wrapping row, rather than the title row; keep its content width.
+Ledger's Add share class follows this pattern for both empty and populated collections. The first
+section follows at the same gap as between sections (`Page`
 is one flex column with a single gap; add no margin under the title). On mobile `Page` is a scroll
 view on the page ground: the title (Newsreader, `theme.fontSize.xxxxl`), the lede, then the actions
 as one wrapping row, since a phone's large title leaves no room beside it; the stack header holds
@@ -68,7 +71,8 @@ The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components
   or opens an external resource.
 - `PageAction` and `PageLink` (`Action` on mobile): a content-width action placed with what it acts
   on: the title row for the page (including the way back to the parent), a section for that section,
-  a row for that row's record alone. Nothing is selected before acting, and no toolbar waits under a list.
+  a row for that row's record alone. A web collection's primary creation action sits beneath its
+  cards, aligned right. Actions do not wait for a row to be selected.
 - `Disclosure`: every expandable section on a web page, a button with `aria-expanded` (expanded or
   collapsed on mobile) and a leading caret that opens its detail in place under its row; a summary
   given as text takes the one summary style. Activity's entries and Wallet shares' rows (opened
