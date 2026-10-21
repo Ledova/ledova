@@ -6,6 +6,7 @@ from tokens.models import (
     RegisterAwardEnd,
     RegisterAwardVesting,
     RegisterAwardVestingReversal,
+    RegisterMemberParticulars,
 )
 from tokens.services.register_awards import award_quantities
 
@@ -46,6 +47,8 @@ class RegisterAwardSerializer(serializers.ModelSerializer):
     ended_vested_shares = serializers.CharField(read_only=True)
     unvested_remaining_shares = serializers.CharField(read_only=True)
     remaining_unissued_shares = serializers.CharField(read_only=True)
+    recipient_name = serializers.CharField(read_only=True)
+    recipient_residential_address = serializers.CharField(read_only=True)
 
     class Meta:
         model = RegisterAward
@@ -76,11 +79,21 @@ class RegisterAwardSerializer(serializers.ModelSerializer):
             "ended_vested_shares",
             "unvested_remaining_shares",
             "remaining_unissued_shares",
+            "recipient_name",
+            "recipient_residential_address",
         ]
         read_only_fields = fields
 
     def to_representation(self, instance):
-        return {**super().to_representation(instance), **award_quantities(instance)}
+        held = RegisterMemberParticulars.objects.filter(
+            member_id=instance.member, member__company_id=instance.company_id
+        ).first()
+        return {
+            **super().to_representation(instance),
+            **award_quantities(instance),
+            "recipient_name": held.name if held else instance.name,
+            "recipient_residential_address": held.residential_address if held else instance.residential_address,
+        }
 
 
 class RegisterAwardVestingSerializer(serializers.ModelSerializer):

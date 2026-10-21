@@ -123,6 +123,34 @@ END;
 $$;
 CREATE TRIGGER tokens_employee_award_identity BEFORE INSERT OR UPDATE OR DELETE ON tokens_registeraward
     FOR EACH ROW EXECUTE FUNCTION tokens_guard_employee_award();
+CREATE FUNCTION tokens_guard_award_member() RETURNS trigger
+LANGUAGE plpgsql SECURITY INVOKER SET search_path = pg_catalog, public, pg_temp AS $$
+DECLARE principal bigint;
+BEGIN
+    IF current_setting('app.company_operation', true) IS DISTINCT FROM 'register_award_record' THEN RETURN NEW; END IF;
+    principal := NULLIF(current_setting('app.user_id', true), '')::bigint;
+    IF principal IS NULL OR current_setting('app.company_id', true) IS DISTINCT FROM NEW.company_id::text
+        OR NOT EXISTS (SELECT 1 FROM tokens_registeraward award WHERE award.member = NEW.uuid AND award.new_member
+            AND award.company_id = NEW.company_id AND award.submitted_by_id = principal)
+    THEN RAISE EXCEPTION 'A new award recipient needs the exact company award' USING ERRCODE = '23514'; END IF;
+    RETURN NEW;
+END;
+$$;
+CREATE TRIGGER tokens_award_member BEFORE INSERT ON tokens_registermember
+    FOR EACH ROW EXECUTE FUNCTION tokens_guard_award_member();
+CREATE FUNCTION tokens_check_award_person_record() RETURNS trigger
+LANGUAGE plpgsql SECURITY INVOKER SET search_path = pg_catalog, public, pg_temp AS $$
+BEGIN
+    IF NEW.new_member AND NOT EXISTS (SELECT 1 FROM tokens_registermember member
+            JOIN tokens_registermemberparticulars held ON held.member_id = member.uuid
+            WHERE member.uuid = NEW.member AND member.company_id = NEW.company_id AND held.source_award_id = NEW.uuid) THEN
+        RAISE EXCEPTION 'A new award recipient keeps the person record their award creates' USING ERRCODE = '23514';
+    END IF;
+    RETURN NULL;
+END;
+$$;
+CREATE CONSTRAINT TRIGGER tokens_award_person_record AFTER INSERT ON tokens_registeraward
+    DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION tokens_check_award_person_record();
 CREATE FUNCTION tokens_guard_employee_award_vesting() RETURNS trigger
 LANGUAGE plpgsql SECURITY INVOKER SET search_path = pg_catalog, public, pg_temp AS $$
 DECLARE principal bigint; promised tokens_registeraward;

@@ -688,6 +688,7 @@ def _apply(proposal, actor, decision):
                 "source_grant": None,
                 "source_allotment": None,
                 "source_transfer": None,
+                "source_award": None,
             },
         )
     ImportedFormerMember.objects.bulk_create(

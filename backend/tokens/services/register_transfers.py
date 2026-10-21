@@ -1,5 +1,4 @@
 import re
-from collections import defaultdict
 from datetime import date
 from uuid import UUID
 
@@ -60,6 +59,7 @@ def particulars_snapshot(held):
             for kind in ("import", "change", "grant", "transfer")
         },
         **({"source_allotment": str(held.source_allotment_id)} if held.source_allotment_id else {}),
+        **({"source_award": str(held.source_award_id)} if held.source_award_id else {}),
     }
 
 
@@ -77,24 +77,17 @@ def register_members(token, actor):
         cessations = {}
         for row in RegisterMemberCessation.objects.filter(register__token=token).order_by("entry__sequence"):
             cessations[row.member_id] = row.ceased_on
-        eligible = (
+        registered = set(
+            RegisterPosition.objects.filter(register__company_id=token.company_id).values_list("member_id", flat=True)
+        )
+        awarded = set(RegisterAward.objects.filter(company_id=token.company_id).values_list("member", flat=True))
+        recipients = set(
             RegisterAward.objects.readable_by(actor)
             .filter(company_id=token.company_id)
-            .exclude(member__in=RegisterMember.objects.values("uuid"))
+            .values_list("member", flat=True)
         )
-        identities = defaultdict(set)
-        for member, company, name, address in RegisterAward.objects.filter(
-            member__in=eligible.values("member")
-        ).values_list("member", "company_id", "name", "residential_address"):
-            identities[member].add((company, name, address))
         return {
-            "award_recipients": [
-                {"member": member, "name": name, "residential_address": address}
-                for member, variants in sorted(identities.items())
-                if len(variants) == 1
-                for company, name, address in variants
-                if company == token.company_id
-            ],
+            "award_recipients": [],
             "members": [
                 {
                     "member": member.pk,
@@ -109,8 +102,10 @@ def register_members(token, actor):
                     "last_ceased_on": cessations.get(member.pk),
                     "walletless": member.pk not in linked,
                     "particulars_retained": member.pk in held,
+                    "on_register": member.pk in registered or member.pk not in awarded,
                 }
                 for member in members
+                if member.pk in registered or member.pk not in awarded or member.pk in recipients
             ],
         }
 

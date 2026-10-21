@@ -21,13 +21,14 @@ from tokens.models import (
     RegisterEvidenceKind,
     RegisterImport,
     RegisterMember,
+    RegisterMemberParticulars,
     RegisterMemberWallet,
     ShareRegister,
     ShareToken,
 )
 from tokens.models.choices import ShareTokenStatus
 from tokens.services.register_authority import register_appointment, register_command
-from tokens.services.register_events import retained_particulars
+from tokens.services.register_events import create_member, retained_particulars
 from tokens.services.register_evidence import (
     discard,
     evidence_snapshot,
@@ -227,6 +228,15 @@ def record_award(
             award.file.save("agreement.bin", ContentFile(raw), save=False)
             try:
                 award.save(force_insert=True)
+                if new_member:
+                    create_member(company_id=company.pk, member_id=member)
+                    RegisterMemberParticulars.objects.create(
+                        member_id=member,
+                        name=award.name,
+                        residential_address=award.residential_address,
+                        as_at=timezone.now().date(),
+                        source_award=award,
+                    )
             except IntegrityError:
                 raise RegisterChangeConflict() from None
             return award, True
