@@ -146,6 +146,10 @@ plus the consideration of later external investor allotments (blank stays blank;
 did not carry shows the consideration alone); any other later entry for the member, such as a
 non-paid grant or transfer, blanks it.
 
+Amounts paid and unpaid carry no currency. An import records them as the company enters them from
+its records, without one, and a member's amount paid can add the AUD consideration of later external
+allotments to an imported amount, so the register cannot name a single currency for them.
+
 Date entered is when the member went from no shares to some. The earliest completed allotment to one
 of its wallets replaces it only if earlier, with the holding continuous since; otherwise a member
 the opening carried in shows the opening's date. For such a continuing member an applied import's
