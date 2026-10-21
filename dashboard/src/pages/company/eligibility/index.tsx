@@ -73,7 +73,7 @@ export default function CompanyEligibilityPage() {
         <p>Your signed-in account must be checked before opening these records.</p>
       ) : (
         <>
-          {read.readFailed && (
+          {read.readFailed && !gone && (
             <LoadError retry={() => read.refresh()} busy={read.refreshing}>
               The company&apos;s eligibility records could not be loaded.
             </LoadError>
