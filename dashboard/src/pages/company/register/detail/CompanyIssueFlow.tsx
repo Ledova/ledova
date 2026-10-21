@@ -333,7 +333,7 @@ function Preparation({ commands }: { commands: Commands }) {
         onChange={setMember}
         noun={MEMBERS}
       />
-      {member === 'new' && <p className="text-sm text-text-muted">New stable member: {newMember}</p>}
+      {member === 'new' && <p className="text-sm text-text-muted">New stable member: {shortReference(newMember)}</p>}
       <Field {...checks.field('director')} label="Approving director">
         <TextInput
           maxLength={FIELD_LIMITS.DIRECTOR}
