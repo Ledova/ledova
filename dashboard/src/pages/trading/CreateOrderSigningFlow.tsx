@@ -15,6 +15,8 @@ import {
 import { Modal, ModalActions } from '@components/Modal';
 import { PageAction } from '@components/Page';
 import { SeedPhraseInput } from '@components/SeedPhraseInput';
+import { ErrorSummary } from '@components/ErrorSummary';
+import { useErrorSummary } from '@hooks/useErrorSummary';
 import { QRCodeFrame, QRScannerView, useQRScanner } from '@components/qr';
 import { encodeEthereumTypedData } from '@utils/keystone/urEncoder';
 import { decodeKeystoneMessageSignature } from '@utils/keystone/urDecoder';
@@ -30,6 +32,7 @@ interface Props {
 
 export function CreateOrderSigningFlow({ submission, wallet, tokens, onClose, onSuccess }: Props) {
   const [seedPhrase, setSeedPhrase] = useState('');
+  const phraseCheck = useErrorSummary({ seedPhrase: !seedPhrase.trim() && 'Enter the seed phrase for this wallet.' });
   const delivered = useRef(false);
   const signing = useOrderSubmissionSigning(submission, wallet, (message, selectedWallet) => {
     const encoded = encodeEthereumTypedData(
@@ -106,7 +109,12 @@ export function CreateOrderSigningFlow({ submission, wallet, tokens, onClose, on
                 {view.error}
               </p>
             )}
-            {view.step === 'software' && <SeedPhraseInput value={seedPhrase} onChange={setSeedPhrase} />}
+            {view.step === 'software' && (
+              <>
+                <ErrorSummary {...phraseCheck.summary} />
+                <SeedPhraseInput {...phraseCheck.field('seedPhrase')} value={seedPhrase} onChange={setSeedPhrase} />
+              </>
+            )}
             {view.step === 'show-qr' && view.qrData && (
               <QRCodeFrame>
                 <AnimatedQRCode cbor={view.qrData.cborHex} type={view.qrData.type} />
@@ -170,8 +178,10 @@ export function CreateOrderSigningFlow({ submission, wallet, tokens, onClose, on
             <PageAction
               label="Sign order"
               primary
-              disabled={!seedPhrase.trim() || !wallet?.derivationPath}
-              onClick={sign}
+              disabled={!wallet?.derivationPath}
+              onClick={() => {
+                if (phraseCheck.check()) sign();
+              }}
             />
           )}
           {state.phase === 'ready' && view.step === 'show-qr' && view.qrData && (

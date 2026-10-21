@@ -527,8 +527,9 @@ Some messages keep their own form:
 
 This section covers how a form reports a problem: when it is submitted, and when its request fails.
 
-- **Checking on submit.** Web forms check their fields when submitted, except those listed under
-  **Not yet** below.
+- **Checking on submit.** Web forms check their fields when submitted. Filters that only narrow a
+  list, such as Activity's dates, keep their own rules; mobile follows in
+  [#1201](https://github.com/Ledova/ledova/issues/1201).
   - **Summary and fields.** A problem shows twice. `ErrorSummary` (`dashboard/src/components/`)
     lists each problem at the top of the form as `role="alert"` and takes focus, each item linking
     to its field. The field shows the same sentence as its error and turns `aria-invalid`.
@@ -537,7 +538,13 @@ This section covers how a form reports a problem: when it is submitted, and when
     checks only the fields its action needs. A box that must be ticked is a `CheckboxField`.
     Register import names each shareholder and allotment in its summary instead of linking to a
     field, and lists the problems current at the time. Its shareholder editor lists the problems
-    with the shareholder being edited.
+    with the shareholder being edited. A summary link focuses the control the field's label points
+    to, or else the field's first control, including Headless UI checkboxes and radios.
+  - **Sign-in and sign-up** keep the rules in their hooks, which mobile shares: the hook reports
+    its field errors when the form is submitted, and the server's come back the same way.
+    `useFieldErrorSummary` lists them in the same summary, which takes focus after each submit.
+    Pre-screening's four declarations are checked by the page, since its hook reports only one
+    sentence.
   - **In these forms submit stays enabled** unless the form is busy or the action is unavailable,
     such as without company authority or with nothing changed, and the page says why. An unchanged
     retry of an interrupted request is not checked again.
@@ -554,12 +561,6 @@ This section covers how a form reports a problem: when it is submitted, and when
     input and blur, and the form treats it as a problem: the team invitation's deadline and
     appointment expiry, a representative authority request's expiry, and an offering's closing
     time.
-  - **Not yet:** sign-in and sign-up still show their own alerts. These still disable their action
-    until it is valid: the recovery phrase and Bitcoin signed transaction in signing steps,
-    pre-screening and company registration. They move in the next
-    [#1179](https://github.com/Ledova/ledova/issues/1179) change, and mobile follows in
-    [#1201](https://github.com/Ledova/ledova/issues/1201). Filters that only narrow a list, such as
-    Activity's dates, keep their own rules.
 
 - **Request errors.** A failure reads as one `role="alert"` sentence from `failureSentence`
   (`packages/shared/src/utils/errors.ts`), never the transport's "Request failed with status code

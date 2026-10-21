@@ -3,14 +3,21 @@ import { FIELD_CLASS } from '@components/fieldClass';
 import type { CSSProperties } from 'react';
 
 interface SeedPhraseInputProps {
+  id?: string;
+  error?: string | null;
   value: string;
   onChange: (value: string) => void;
   disabled?: boolean;
 }
 
-export function SeedPhraseInput({ value, onChange, disabled = false }: SeedPhraseInputProps) {
+export function SeedPhraseInput({ id, error, value, onChange, disabled = false }: SeedPhraseInputProps) {
   return (
-    <Field label="Seed phrase" hint="Your seed phrase is used locally for signing and is never stored or transmitted.">
+    <Field
+      id={id}
+      error={error}
+      label="Seed phrase"
+      hint="Your seed phrase is used locally for signing and is never stored or transmitted."
+    >
       <TextArea
         value={value}
         onChange={(e) => onChange(e.target.value)}
