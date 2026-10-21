@@ -238,13 +238,13 @@ access check fails, the page offers a retry rather than guessing.
 
 The company Dashboard opens with one line naming the company and its status. Until setup is
 complete, a personal administrator also sees **Getting started**: **Verify and activate your
-company** ([activation](companies.md#activation-and-the-registry-check)) and **Set up your share
-register** ([register setup](register.md#bringing-in-existing-records)), each marked To do or Done.
+company** ([activation](companies.md#activation-and-the-registry-check)) and **Set up your ledger**
+([register setup](register.md#bringing-in-existing-records)), each marked To do or Done.
 Register setup reads Done once the register of the company shown is opened, not when a class is
 merely created, and it does not wait for activation. Someone who can prepare the register but is
 not an administrator is pointed to Ledger instead. On mobile, the Register tab opens with the
-same line and shows Getting started to an administrator of the company shown, judging register
-setup by that company's register.
+same line and shows Getting started to an administrator of the company shown, keeping **Set up your
+share register** as its setup label and judging completion by that company's register.
 
 Once a register exists, the Dashboard shows the selected company's recorded ownership: issued
 shares, current shareholders (each person counted once across classes) and the number of share

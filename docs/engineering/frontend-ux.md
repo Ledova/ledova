@@ -126,8 +126,9 @@ content", which moves focus to the page's heading.
 `DESTINATIONS` (`packages/shared/src/constants/ui/destinations.ts`) names the signed-in pages,
 register views (Shareholders, Employee share scheme, Documents) and tasks, and Home's Documents
 view. The web sidebar, page titles and parent links use `pageTitle`
-(`dashboard/src/utils/destinations.ts`), which overrides Home as Dashboard and Register as Ledger;
-mobile keeps its existing names. The company dashboard is also Dashboard, so the company workspace
+(`dashboard/src/utils/destinations.ts`), which overrides Home as Dashboard, Register as Ledger,
+setup and import as Set up your ledger, and the chain-opening page as Ledger opening; mobile keeps
+its existing names. The company dashboard is also Dashboard, so the company workspace
 lists Home as Your shares. The sidebar shows
 Employee share scheme by its short label, ESS, with the full name as the link's `title`. `DESTINATION_PARENTS`
 beside it gives each page below a sidebar destination its parent, and `Page` puts one link back to it
@@ -137,7 +138,7 @@ found its member, its link goes back to that member by name. Register setup has 
 ([decisions](../decisions.md#manual-register-setup-shares-before-shareholders)).
 
 A way back to a Ledger class or task carries the place it means, built by `registerPlace`
-(`dashboard/src/pages/company/register/shared/registerPlace.ts`): a correction and an opening return
+(`dashboard/src/pages/company/ledger/shared/registerPlace.ts`): a correction and an opening return
 to that class's History, a class's own page to Ledger, a non-paid transfer to that class's Transfer shares,
 and wallet links to the company's History. A shareholder's page links back to Shareholders with its
 company through `Page`'s parent link, and a transfer started there links back to them by name. Preparing a
@@ -264,7 +265,7 @@ copies until #1201.
 No web flow lists people in a native select, because a dropdown of every person does not scale to a
 large register. Each one uses a searchable list built on Headless UI's `Combobox`:
 
-- **`PersonSelect`** (`dashboard/src/pages/company/register/shared/PersonPicker.tsx`) is used where a
+- **`PersonSelect`** (`dashboard/src/pages/company/ledger/shared/PersonPicker.tsx`) is used where a
   flow names one person:
   - register setup's shareholder, an investor or non-paid issue under Issue shares, a transfer's
     transferor and recipient, and an employee award's recipient. These read one validated list of
@@ -276,7 +277,7 @@ large register. Each one uses a searchable list built on Headless UI's `Combobox
 - **Wallet links** offer, for each waiting wallet, the holders of every class in the company
   (`registerLinkMemberLabels`), then "A member not on the current register" and "New member N" where
   they apply.
-- **Register opening** offers, for each unlinked holding, the members already linked in the class,
+- **Ledger opening** (Register opening on mobile) offers, for each unlinked holding, the members already linked in the class,
   by name or numbered (`openingMemberLabels`), and a "New member N" for each address.
 
 Wallet links and register opening show one-line labels.

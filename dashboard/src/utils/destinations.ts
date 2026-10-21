@@ -9,6 +9,9 @@ export interface Place {
 const WEB_TITLES: Partial<Record<DestinationKey, string>> = {
   home: 'Dashboard',
   companyRegister: 'Ledger',
+  companyRegisterSetup: 'Set up your ledger',
+  companyRegisterImport: 'Set up your ledger',
+  companyRegisterOpening: 'Ledger opening',
 };
 
 function viewName(key: DestinationKey, view: string): string | undefined {

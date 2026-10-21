@@ -1304,8 +1304,10 @@ share classes and structure, with direct class details showing the current posit
 Class rights. Shareholder management and downloads keep their own destinations. Existing technical
 controls and retained history stay available on demand rather than dominating the class page.
 During the localhost walkthrough the owner named the web destination **Ledger**, with the subtitle
-**Share classes and current ownership.** This changes the web labels, not the legal term share
-register, stored records or routes. Mobile keeps Register until its later pass.
+**Share classes and current ownership.** The owner also aligned the web routes and page folder
+under `company/ledger`, with **Set up your ledger** and **Ledger opening** as the web task titles.
+The legal term share register, stored records, API paths and native labels stay unchanged. Mobile
+keeps Register until its later pass.
 
 Initial setup stays **Share details → Shareholders → Review**, copying existing holdings or opening
 a genuinely empty class; it does not issue new shares. Later issues, transfers and history are to

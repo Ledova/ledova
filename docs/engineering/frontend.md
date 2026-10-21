@@ -129,7 +129,7 @@ To place a file, ask in order and stop at the first yes:
 4. Is it a browser binding (the axios instance, a device store)? `services/`.
 5. Does one page use it? That page's folder, beside its entry.
 6. Do several pages under one page folder use it? The `shared/` folder of the lowest page folder
-   holding them all (`pages/company/shared/`, `pages/company/register/shared/`).
+   holding them all (`pages/company/shared/`, `pages/company/ledger/shared/`).
 7. Otherwise (two areas or the frame): `components/` for UI, as a group folder when it has parts,
    hooks or a provider that renders it; `hooks/` for a hook without JSX; `utils/` for any other
    helper or a web-only path.
@@ -165,7 +165,7 @@ The [principles](README.md#principles) apply; in particular, do not add:
   work never crosses accounts. Its query keys carry the owner and every request passes
   `ledovaSubmissionGuard`, which `apiClient` checks, so a late reply cannot reach another account
   (the owner key in `dashboard/src/pages/company/dashboard/index.tsx`, the guard in
-  `dashboard/src/pages/company/register/shared/useRegisterGrants.ts`). Mobile adds the session epoch
+  `dashboard/src/pages/company/ledger/shared/useRegisterGrants.ts`). Mobile adds the session epoch
   ([session scope](mobile.md#session-scope)).
 - **API client.** Shared services take the axios instance first. Shared hooks read it with
   `useApiClient()` and never take it as an argument; dashboard hooks import the `apiClient`
@@ -195,10 +195,10 @@ The [principles](README.md#principles) apply; in particular, do not add:
   Never define a local formatter or pass a displayed amount through `Number` or `parseFloat`. The
   exception is a market value `useCurrency` converts to AUD, because its rate is a number.
 - **Naming and exports.** A page folder takes the last fixed segment of its address and sits in the
-  folder of the nearest page whose fixed address begins its own: `/company/register/:uuid/transfer`
-  is `pages/company/register/transfer/`. An address that only adds a parameter to that page is `detail/`
+  folder of the nearest page whose fixed address begins its own: `/company/ledger/:uuid/transfer`
+  is `pages/company/ledger/transfer/`. An address that only adds a parameter to that page is `detail/`
   (`/directory/:uuid` is `pages/directory/detail/`), and a `detail/` folder never holds sub-pages;
-  an address that renders another's page (`/member-records`, `/company/register/setup`) has no
+  an address that renders another's page (`/member-records`, `/company/ledger/setup`) has no
   folder, and the not-found page is `pages/not-found/`. Page folders and `components/` groups are
   kebab-case (`eligibility-requests/`, `qr/`). A file is named after its main export, or after what
   small siblings share (`fieldClass.ts`): `PascalCase.tsx` for a component, `use<Thing>.ts` for a
@@ -265,8 +265,9 @@ clients share with their address, title and audience. The whole dashboard route 
 (`dashboard/src/routes/pages.tsx`), a map keyed by that table, so
 TypeScript refuses an entry without a page or a page without an entry. Each route, detail pages
 included, gets the entry's title through `PageTitle`. The web-only `pageTitle` mapping
-(`dashboard/src/utils/destinations.ts`) titles `home` Dashboard and `companyRegister` Ledger; native
-keeps My shares and Register. `/member-records` is an alias of `/home`, and `companyRegisterSetup` and
+(`dashboard/src/utils/destinations.ts`) titles `home` Dashboard, `companyRegister` Ledger,
+`companyRegisterSetup` and `companyRegisterImport` Set up your ledger, and `companyRegisterOpening`
+Ledger opening; native keeps its existing titles. `/member-records` is an alias of `/home`, and `companyRegisterSetup` and
 `companyRegisterImport` render the same page. Outside the table sit the
 [sign-up steps](#sign-up-routes) and `/company/dashboard` (`COMPANY_DASHBOARD_PATH` in
 `dashboard/src/utils/paths.ts`, routed in `dashboard/src/routes/AppRoutes.tsx` under `ProtectedRoute`
@@ -274,7 +275,7 @@ with audience `everyone` and title Dashboard).
 
 `canOpen(role, audience)` lets an investor open `everyone` and `investing` pages, a company
 `everyone` and `company` pages, and a dual-role account all; a role outside the API's list opens
-only `everyone` pages. `landingFor(role)` is `/company/register` for a company or dual-role account
+only `everyone` pages. `landingFor(role)` is `/company/ledger` for a company or dual-role account
 and `/home` otherwise. It receives a refused address (replacing it), a signed-in visitor on the
 create-account page, Market while `trading_enabled` is off (`TradingRoute`) and a finished
 non-company account that opens a sign-up step.
@@ -304,7 +305,7 @@ The guard decides pages, not data: the API decides which rows a person sees, ans
 refused row.
 
 The sidebar (`dashboard/src/components/Sidebar.tsx`) names items by `DESTINATIONS` key, or
-`companyDashboard`, optionally with a view (`/company/register#shareholders`, `#awards`,
+`companyDashboard`, optionally with a view (`/company/ledger#shareholders`, `#awards`,
 `#documents`, `/home#documents`). Its company group follows `useRegisterEntry`, its investing group the investing
 role and Market `trading_enabled` ([the app at a
 glance](../business/README.md#the-app-at-a-glance)). A page that isn't an item marks its nearest
@@ -463,10 +464,10 @@ They check it before and after each request and pass it as `ledovaSubmissionGuar
 after an account change or reauthentication is discarded. Query keys and cache timing stay unchanged.
 
 Each preparation is a page of its own (on mobile, in the same stack), a `companyRegister*` entry in
-`DESTINATIONS`: `/company/register/setup`; import, correction, opening, grant and transfer under
-`/company/register/:uuid/` (`import`, `correct/:entry`, `open`, `grant`, `transfer`); particulars
-changes at `/company/register/members/:member/particulars`; and wallet links at
-`/company/register/companies/:company/links`. Setup is the import page without a class in its
+`DESTINATIONS`: `/company/ledger/setup`; import, correction, opening, grant and transfer under
+`/company/ledger/:uuid/` (`import`, `correct/:entry`, `open`, `grant`, `transfer`); particulars
+changes at `/company/ledger/members/:member/particulars`; and wallet links at
+`/company/ledger/companies/:company/links`. Setup is the import page without a class in its
 address: it chooses or creates a share class, then prepares the mirror import.
 
 The helpers order an opening's holdings largest first by exact share count, check that every count
@@ -487,7 +488,7 @@ appointment it opened with and holds confirmation if a refresh changes it. Form 
 with each procedure in [the register of members](../business/register.md).
 
 The web register's repeated row wrappers, stage rows and download failures use
-`dashboard/src/pages/company/register/RecordShell.tsx`; `shared/DecisionTrail.tsx` serves both
+`dashboard/src/pages/company/ledger/RecordShell.tsx`; `shared/DecisionTrail.tsx` serves both
 the Ledger and share-class detail page. Six records use `useRegisterTaskGuard.ts` for their existing visible-task
 check, while grant, allotment and award keep their distinct guards and wrappers. The preparation
 pages share `PreparationShell.tsx` for Back, preference fallback and read-only paragraphs, and
@@ -545,9 +546,9 @@ Each page links to its business section; the audience is the `DESTINATIONS` audi
 | -------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ | --------- |
 | [Company dashboard](../business/README.md#the-app-at-a-glance)                                           | `/company/dashboard` (web only)                                                      | everyone  |
 | [Personal dashboard](../business/member-records.md#what-a-member-can-read)                               | `/home`, `/home#documents`, alias `/member-records`                                  | everyone  |
-| [Ledger, Shareholders, Employee share scheme, Documents](../business/register.md#the-register-page)      | `/company/register` and `#shareholders`, `#awards`, `#documents`; preparation routes | everyone  |
-| [A shareholder's page](../business/register.md#a-shareholders-page)                                      | `/company/register/members/:member?company=`                                         | everyone  |
-| [Share class](../business/register.md#the-share-class-page)                                              | `/company/register/:uuid`                                                            | everyone  |
+| [Ledger, Shareholders, Employee share scheme, Documents](../business/register.md#the-register-page)      | `/company/ledger` and `#shareholders`, `#awards`, `#documents`; preparation routes | everyone  |
+| [A shareholder's page](../business/register.md#a-shareholders-page)                                      | `/company/ledger/members/:member?company=`                                         | everyone  |
+| [Share class](../business/register.md#the-share-class-page)                                              | `/company/ledger/:uuid`                                                            | everyone  |
 | [Company, Representative authority, Company team, Activation](../business/companies.md#the-company-page) | `/company`, `/company/authority` (company), `/company/team`, `/company/listing`      | everyone  |
 | [Company eligibility](../business/participants.md#company-eligibility-decisions)                         | `/company/eligibility`                                                               | everyone  |
 | [Offerings](../business/issuing-shares.md#the-offerings-page)                                            | `/company/offering`                                                                  | company   |
@@ -572,7 +573,7 @@ Each page links to its business section; the audience is the `DESTINATIONS` audi
   register step by that company's registers alone.
 - Personal dashboard: reads the person's own member projection; the first own class's history loads
   when a member record opens, and choosing another class reads that class's own entries.
-- Ledger on the web (`dashboard/src/pages/company/register/index.tsx`): one page renders the
+- Ledger on the web (`dashboard/src/pages/company/ledger/index.tsx`): one page renders the
   Ledger, Shareholders (with member access), Employee share scheme (ESS) and Documents views by hash and keeps every class's
   controllers mounted, merely hidden, so changing view, task (`TASKS`) or class (the Task share
   class selector) keeps an unfinished request with its class, payload and retry key. Controllers
@@ -581,7 +582,7 @@ Each page links to its business section; the audience is the `DESTINATIONS` audi
   member access separately). While anything is held, the page keeps its retained company and class
   scope, disables the company, task and class selectors and pins held task work to its task and
   class. A selection lasts one navigation (`location.key`). Navigation state built by
-  `registerPlace` (`dashboard/src/pages/company/register/shared/registerPlace.ts`) picks the company
+  `registerPlace` (`dashboard/src/pages/company/ledger/shared/registerPlace.ts`) picks the company
   (or the class's company), class and task and focuses that class; with a record it focuses that
   record instead and shows its outcome line. `inviteMember` chooses the invitation's recipient on
   Shareholders.
@@ -591,7 +592,7 @@ Each page links to its business section; the audience is the `DESTINATIONS` audi
   visible, its reads have settled and `hasCurrentRegisterReadAuthority` confirms a current
   register-read appointment.
 - Choosing a person on the web: register setup, investor and non-paid issues, transfers and employee
-  awards read one people list (`dashboard/src/pages/company/register/shared/usePeople.ts`, the
+  awards read one people list (`dashboard/src/pages/company/ledger/shared/usePeople.ts`, the
   `register/members/` read validated by `isRegisterImportMembers`) and render `PersonSelect` and
   `PersonFields` (`shared/PersonPicker.tsx`), the searchable list in
   [choosing a person](frontend-ux.md#choosing-a-person).
@@ -612,7 +613,7 @@ Each page links to its business section; the audience is the `DESTINATIONS` audi
   award, and `registerRecord` focuses a listed non-paid issue. `fromMember` chooses a transfer's
   transferor.
 
-- A shareholder's page on the web (`dashboard/src/pages/company/register/member`): reads the named
+- A shareholder's page on the web (`dashboard/src/pages/company/ledger/member`): reads the named
   company's classes and holders through the same queries as Ledger, the company's recorded
   particulars (`register/members/` of its first class), every page of the member's entries in each
   class (`register/entries/` with `member`) and their awards (`register-awards/` with `member`). It

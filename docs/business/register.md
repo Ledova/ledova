@@ -193,7 +193,7 @@ together; for a class opened from the chain it adds particulars and former membe
 Ledova, and its holdings must match the stored register. On the web:
 
 1. On Ledger, choose **Add share class**; or choose History, the class, then Bring records
-   under Register mirror. Issue shares and Transfer shares also offer Set up your share register for a
+   under Ledger records. Issue shares and Transfer shares also offer **Set up your ledger** for a
    class not yet set up. Share classes are created only through register setup, in Ledger on the
    web and Register on mobile.
 2. Share details: open an existing draft class from its link, or choose a common class (Ordinary
@@ -261,7 +261,7 @@ is pending.
 
 ### Correcting the copied opening
 
-In History, Correct copied opening under the class's Register mirror replaces the latest applied
+In History, Correct copied opening under the class's Ledger records replaces the latest applied
 import's shareholder rows in full, in the same forms and keeping each member ID, with a current
 source and a reason. Applying keeps the earlier snapshot, decisions and opening entry, adds a Copied
 opening correction entry for the exact difference (none when only particulars change) and records
@@ -302,7 +302,7 @@ A correction exactly reverses one entry, which stays and is named by it. An entr
 once, and a correction can itself be corrected; partial corrections and replacement transactions are
 not built.
 
-1. In History, open the entry under the class's Register entries and choose Correct this entry,
+1. In History, open the entry under the class's Ledger entries and choose Correct this entry,
    which shows the exact inverse.
 2. Upload the authority document and give the authority, approving director, reference, reason and
    an effective date of today (UTC) or earlier; a later date would hold back later issues and
@@ -517,14 +517,14 @@ company's share classes and current structure; who holds the shares is on Shareh
 
 The Ledger view shows:
 
-- a card for each class with **Class details**: Issued shares, Current shareholders, Register opened or Register not
+- a card for each class with **Class details**: Issued shares, Current shareholders, Ledger opened or Ledger not
   opened, Authorised shares (or a Technical share limit for a class set up from existing records), a
   note when completed issues or transfers wait or cannot be checked;
 - header actions for three tasks sharing one share-class selector, only the selected one shown: Issue shares
   ([investor and non-paid issues](issuing-shares.md#ways-to-issue-shares)), Transfer shares
   ([non-paid transfers](#non-paid-transfers-between-members)) and History. History holds,
   under Recorded changes, a link to the class's Share class page, Openings (for a class on chain),
-  Register mirror, Register entries (newest first, with certificate controls), Corrections and
+  Ledger records, Ledger entries (newest first, with certificate controls), Corrections and
   Reconciliation with the chain, then the company's Particulars changes and Wallet links;
 - **Add share class** in the header, for someone who can prepare the register, opening
   [register setup](#bringing-in-existing-records) for the selected company.
