@@ -550,7 +550,8 @@ OPERATOR_ONLY = {
     "neither public nor member projections expose the files.",
     "tokens_classrightsrevision": "Append-only company-supplied class-rights descriptions. Current exact-company "
     "register readers read them through the class-rights action and permitted company-pack exports; the bounded "
-    "producer requires a current personal ADMIN appointment and retains actor, time and exact revision history. "
+    "producer requires a current personal ADMIN appointment and retains actor, time, exact revision history and "
+    "linked class-document snapshots. Private downloads require an exact readable class and retained revision link. "
     "They are not included in market, directory or member projections.",
     "auth_group": "Django's own permission grouping.",
     "auth_permission": "Django's own permission rows, one per model and action.",
@@ -646,7 +647,8 @@ OPERATOR_ONLY = {
     "company appointments and exact immutable commands, read through their company-scoped grant.",
     "tokens_registerevidence": "Immutable company-provided register evidence uploads, written only by "
     "tokens/services/register_evidence.py retain_register_evidence in the bounded register command on the operator "
-    "connection. The upload route returns only the uploader's own row; company-private shareholder attachments list "
+    "connection. Class-document uploads require ADMIN; other kinds require preparation authority. "
+    "The upload route returns only the uploader's own row; company-private shareholder and class attachments list "
     "their retained metadata and download through their exact record links. The "
     "uploader's own prepare commands accept them through own_evidence_bytes, and grant preparation also accepts an "
     "award's retained agreement evidence. Action-specific proposals, agreements, receipts, awards, vestings, endings "

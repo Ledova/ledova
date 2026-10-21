@@ -30,7 +30,11 @@ function ShareClassRecord({ data, uuid }: { data: ReturnType<typeof useShareClas
 }
 
 function ShareClassRights({ data, uuid }: { data: ReturnType<typeof useShareClass>; uuid: string }) {
-  const rights = useClassRights(uuid, data.token.isSuccess && data.token.fetchStatus === 'idle');
+  const rights = useClassRights(
+    uuid,
+    data.token.isSuccess && data.token.fetchStatus === 'idle',
+    data.token.data?.companyUuid,
+  );
   return (
     <ShareClassDetails
       key={`${data.tokenKey.join('/')}/${data.token.data?.companyUuid}/${data.token.data?.isOwner === true}`}
@@ -123,6 +127,7 @@ function ShareClassDetails({ data, rights }: { data: ReturnType<typeof useShareC
       {rights}
       {data.owner && (
         <MemberDocuments
+          title="Shareholder documents"
           owner={data.owner}
           guard={data.guard}
           company={token.companyUuid}

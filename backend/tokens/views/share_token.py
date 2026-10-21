@@ -14,7 +14,7 @@ from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 
-from shared.views import AuthenticatedGenericViewSet
+from shared.views import AuthenticatedGenericViewSet, stream_stored_file
 from tokens.filters import ShareTokenFilter
 from tokens.models import ShareIssuance, ShareToken
 from tokens.serializers import (
@@ -28,6 +28,7 @@ from tokens.serializers import (
     ShareTokenListSerializer,
 )
 from tokens.serializers.class_rights import (
+    ClassRightsFileQuerySerializer,
     ClassRightsPageSerializer,
     ClassRightsQuerySerializer,
     ClassRightsRevisionSerializer,
@@ -44,7 +45,11 @@ from tokens.serializers.register_inspection_copy import (
 )
 from tokens.serializers.register_opening import RegisterOpeningHoldersSerializer
 from tokens.serializers.register_transfer import RegisterMembersSerializer
-from tokens.services.class_rights import class_rights_read, record_class_rights
+from tokens.services.class_rights import (
+    class_rights_file,
+    class_rights_read,
+    record_class_rights,
+)
 from tokens.services.former_holders import fold_is_stale, former_members_of
 from tokens.services.register import (
     REGISTER_HEADERS,
@@ -91,6 +96,7 @@ class ShareTokenViewSet(
             "register_waiting",
             "register_members",
             "class_rights",
+            "class_rights_file",
         }
     )
     operator_actions_because = (
@@ -127,6 +133,7 @@ class ShareTokenViewSet(
             "register_inspection_copy",
             "register_certificate",
             "class_rights",
+            "class_rights_file",
         }
     )
 
@@ -227,6 +234,23 @@ class ShareTokenViewSet(
         serializer.is_valid(raise_exception=True)
         revision, created = record_class_rights(actor=request.user, token=token, **serializer.validated_data)
         return Response(ClassRightsRevisionSerializer(revision).data, status=201 if created else 200)
+
+    @extend_schema(
+        parameters=[
+            OpenApiParameter("revision", OpenApiTypes.UUID, required=True),
+            OpenApiParameter("evidence", OpenApiTypes.UUID, required=True),
+        ],
+        responses={(200, "*/*"): OpenApiTypes.BINARY},
+    )
+    @action(detail=True, methods=["get"], url_path="class-rights-file")
+    def class_rights_file(self, request, uuid=None):
+        token = self.get_object()
+        query = ClassRightsFileQuerySerializer(data=request.query_params)
+        query.is_valid(raise_exception=True)
+        with class_rights_file(actor=request.user, token=token, **query.validated_data) as (retained, snapshot):
+            return stream_stored_file(
+                retained.file, snapshot["mime_type"], filename=snapshot["name"], as_attachment=True
+            )
 
     @extend_schema(
         responses=inline_serializer(

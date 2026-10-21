@@ -10,7 +10,12 @@ from companies.models import CompanyDocument
 from shared.uploads import UPLOAD_MIME_BY_EXTENSION
 from tokens.constants import COMPANY_PACK_MAX_STORED_BYTES
 from tokens.exceptions import RegisterIntegrityError
-from tokens.models import RegisterEvidence, RegisterImport, RegisterMemberDocument
+from tokens.models import (
+    ClassRightsRevision,
+    RegisterEvidence,
+    RegisterImport,
+    RegisterMemberDocument,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -147,6 +152,30 @@ def evidence(records) -> dict:
                 "of": f"the ASIC extract of {record._meta.verbose_name} {record.pk}",
             }
     return copies
+
+
+def class_documents(company):
+    listed, stored = [], {}
+    for revision in ClassRightsRevision.objects.filter(token__company=company).order_by("token_id", "revision"):
+        for snapshot in revision.documents:
+            evidence = RegisterEvidence.objects.get(pk=snapshot["evidence"], company=company)
+            path = _path(f"{EVIDENCE_FOLDER}/class-rights", evidence.pk, snapshot["mime_type"])
+            listed.append(
+                {
+                    "company": company.pk,
+                    "token": revision.token_id,
+                    "revision": revision.pk,
+                    "snapshot": snapshot,
+                    "path": path,
+                }
+            )
+            stored[path] = {
+                "file": evidence.file,
+                "size": snapshot["file_size"],
+                "recorded": {"size": snapshot["file_size"], "sha256": snapshot["sha256"]},
+                "of": f"class document {evidence.pk}",
+            }
+    return listed, stored
 
 
 UNREADABLE = (OSError, ValueError, GoogleAPIError, S3ClientError, BotoCoreError)

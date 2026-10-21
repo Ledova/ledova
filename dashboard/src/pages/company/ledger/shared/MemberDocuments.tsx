@@ -14,6 +14,7 @@ export function MemberDocuments(props: {
   token?: string;
   sourceReady: boolean;
   holdings: DocumentHolding[];
+  title?: string;
 }) {
   return (
     <OwnMemberDocuments
@@ -23,11 +24,11 @@ export function MemberDocuments(props: {
   );
 }
 
-function OwnMemberDocuments(props: Parameters<typeof useMemberDocuments>[0]) {
+function OwnMemberDocuments(props: Parameters<typeof useMemberDocuments>[0] & { title?: string }) {
   const documents = useMemberDocuments(props);
   const editor = documents.editor;
   return (
-    <Section title="Documents">
+    <Section title={props.title ?? 'Documents'}>
       {documents.appointments.isError ? (
         <LoadError retry={() => documents.appointments.refetch()} busy={documents.appointments.isFetching}>
           Your company appointments could not be loaded.

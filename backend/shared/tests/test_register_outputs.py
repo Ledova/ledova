@@ -26,12 +26,14 @@ from tokens.services.former_holders import purge_register_exports
 class RegisterOutputsTest(CoreFixtures, APITransactionTestCase):
     def test_unsigned_company_own_transfer_certificate_and_complete_core_pack_retain_real_sources(self):
         rights_endpoint = f"/api/v1/tokens/{self.token.pk}/class-rights/"
+        class_document = retained_evidence(self.owner, self.appointment, RegisterEvidenceKind.CLASS_RIGHTS)
         rights = {
             "appointment": str(self.appointment.pk),
             "idempotency_key": str(uuid4()),
             "previous_revision": 0,
             "summary": "Company-supplied ordinary share rights.",
             "document_reference": "Synthetic constitution, clause 4",
+            "documents": [str(class_document.pk)],
         }
         first_rights = self.client.post(rights_endpoint, rights, format="json")
         self.assertEqual(first_rights.status_code, 201, first_rights.content)
@@ -252,6 +254,16 @@ class RegisterOutputsTest(CoreFixtures, APITransactionTestCase):
             self.assertEqual(exported_rights[0]["appointment_id"], str(self.appointment.pk))
             self.assertEqual(exported_rights[0]["idempotency_key"], rights["idempotency_key"])
             self.assertTrue(exported_rights[0]["created_at"])
+            self.assertEqual(exported_rights[0]["documents"][0]["evidence"], str(class_document.pk))
+            class_documents = json.loads(bundle.read("class_documents.json"))
+            self.assertEqual(len(class_documents), 2)
+            self.assertEqual(
+                {row["revision"] for row in class_documents},
+                {first_rights.json()["uuid"], latest_rights.json()["uuid"]},
+            )
+            class_path = class_documents[0]["path"]
+            self.assertEqual(bundle.namelist().count(class_path), 1)
+            self.assertEqual(hashlib.sha256(bundle.read(class_path)).hexdigest(), class_document.sha256)
             shareholder_documents = json.loads(bundle.read("member_documents.json"))["links"]
             self.assertEqual(len(shareholder_documents), 2)
             self.assertEqual({row["member"] for row in shareholder_documents}, {str(self.member.pk), award["member"]})

@@ -267,7 +267,9 @@ the uploader's current preparing appointment, a PDF, PNG or JPEG, and that path.
 `share_register` or `asic_extract` (an import's optional copies), `authority` (the director
 resolution or court order behind an opening, correction, wallet link, grant, transfer, allotment or
 chain family) or `supporting` (a particulars change, grant terms and acceptance, a transfer
-instrument, an award agreement, a vesting event, an allotment's agreement and receipt).
+instrument, an award agreement, a vesting event, an allotment's agreement and receipt). The
+`class_rights` kind is a class-wide supporting file and requires a current personal administration
+appointment instead of preparing authority.
 
 Preparation accepts only the preparer's own upload for this company, of the right kind, whose stored
 bytes still match their fingerprint, and keeps a private copy and a snapshot
@@ -480,19 +482,31 @@ conventions, and the register hash format is unchanged.
 
 ### Class-rights descriptions
 
-`tokens.ClassRightsRevision` retains company-supplied text separately from holdings and legal rights.
+`tokens.ClassRightsRevision` retains company-supplied text and evidence snapshots separately from
+holdings and legal rights.
 The class's `class-rights/` GET is paginated newest first, with the latest `current` record and the
 viewer's current personal administration appointment, if any. `idempotency_key` filters the records
 for exact-request recovery without changing `current`. Reads require current company register access.
 
 POST supplies `appointment`, `idempotency_key`, `previous_revision` (zero initially), `summary` (up
-to 4,000 characters) and `document_reference` (up to 255). Both strings may be blank. Current personal
-administration and the company lock are required, including for an exact retry. A new request appends
-one revision; the same actor/key and exact payload recover the prior result. Changed retries or a
-stale revision conflict. PostgreSQL retains the actor, name snapshot, appointment and actual time,
-refuses edits/deletion, rechecks administration at commit and prevents moving a recorded class to
-another company. The app role has no table grant; member/public projections do not include these records.
-The company pack includes the full revision history as `classes/<class id>/class_rights.json`.
+to 4,000 characters, allowed blank) and `documents` (evidence UUIDs, default empty). The response
+includes retained evidence snapshots. New web edits omit `document_reference`; earlier text remains
+readable in revisions and exports, and the optional legacy request field defaults to blank.
+
+Current personal administration and the company lock are required, including for an exact retry.
+A new request appends one revision; the same actor/key and exact payload recover the prior result.
+Changed retries or a stale revision conflict. PostgreSQL retains the actor, name snapshot,
+appointment, evidence and actual time, refuses edits/deletion, rechecks administration at commit
+and prevents moving a recorded class to another company. Removing a document from the latest
+record leaves earlier revisions and their files intact. The app role has no table grant;
+member/public projections do not include these records.
+
+`GET <class uuid>/class-rights-file/?revision=<revision uuid>&evidence=<evidence uuid>` requires
+current register access to that exact class and a file linked to that revision, and verifies the
+stored fingerprint. There is no arbitrary evidence download or shareholder association. The
+company pack includes the full revision history and snapshots as
+`classes/<class id>/class_rights.json`, with each unique retained file under
+`documents/evidence/class-rights/<evidence uuid>.<extension>`.
 
 ### Employee awards API
 

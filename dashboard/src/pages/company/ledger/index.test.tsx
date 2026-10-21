@@ -21,6 +21,7 @@ import {
   type RegisterTransferMember,
   type CompanyShareToken,
   type ClassRightsRevision,
+  type ClassRightsDocument,
   type ClassRightsRequest,
   type RegisterMemberDocument,
   type RegisterMemberDocumentRequest,
@@ -325,6 +326,19 @@ it('reads every class page and groups exact holdings by member identity with sea
   let pauseHolders = false;
   let releaseHolders!: () => void;
   let rights: ClassRightsRevision[] = [];
+  const rightsFile = new File(['%PDF-1.4 class rights'], 'constitution.pdf', { type: 'application/pdf' });
+  const rightsEvidence = crypto.randomUUID();
+  const rightsDocument: ClassRightsDocument = {
+    evidence: rightsEvidence,
+    company: 'harbour',
+    providedBy: 'company',
+    documentType: 'class_rights',
+    name: rightsFile.name,
+    fileSize: rightsFile.size,
+    mimeType: rightsFile.type,
+    sha256: 'b'.repeat(64),
+  };
+  let rightsFileGuard = () => {};
   let rightsAppointment: string | null = 'rights-administrator';
   let pauseRights = false;
   let failRights = false;
@@ -339,58 +353,97 @@ it('reads every class page and groups exact holdings by member identity with sea
       administrationAppointment: rightsAppointment,
     },
   });
-  api.get.mockReset().mockImplementation(async (url: string, config?: { params?: Record<string, unknown> }) => {
-    if (url === COMPANY_TOKEN_ENDPOINTS.CLASS_RIGHTS('ordinary')) {
-      if (failRights) throw new Error('Synthetic class rights read refused');
-      return pauseRights
-        ? new Promise((resolve) => {
-            releaseRights = () => resolve(rightsResponse(config?.params?.idempotency_key));
-          })
-        : rightsResponse(config?.params?.idempotency_key);
-    }
-    if (url === COMPANY_TOKEN_ENDPOINTS.DETAIL('ordinary'))
-      return {
-        data: {
-          ...ordinary.token,
-          company: 'harbour',
-          companyUuid: 'harbour',
-          companyName: 'Harbour Example Pty Ltd',
-          isOwner: false,
-          statusDisplay: 'Deployed',
-          tokenTypeDisplay: 'Ordinary shares',
-          isTransferable: false,
-          isDivisible: false,
-          decimals: 0,
-        },
-      };
-    if (url === COMPANY_TOKEN_ENDPOINTS.HOLDERS('ordinary'))
-      return pauseHolders
-        ? new Promise((resolve) => {
-            releaseHolders = () => resolve({ data: ordinary });
-          })
-        : { data: ordinary };
-    return { data: { results: [], count: 0, next: null, previous: null } };
-  });
+  api.get
+    .mockReset()
+    .mockImplementation(
+      async (url: string, config?: { params?: Record<string, unknown>; ledovaSubmissionGuard?: () => void }) => {
+        if (url === COMPANY_TOKEN_ENDPOINTS.CLASS_RIGHTS_FILE('ordinary')) {
+          rightsFileGuard = config?.ledovaSubmissionGuard as () => void;
+          rightsFileGuard();
+          return { data: new Blob(['%PDF-1.4 class rights'], { type: 'application/pdf' }) };
+        }
+        if (url === COMPANY_TOKEN_ENDPOINTS.CLASS_RIGHTS('ordinary')) {
+          if (failRights) throw new Error('Synthetic class rights read refused');
+          return pauseRights
+            ? new Promise((resolve) => {
+                releaseRights = () => resolve(rightsResponse(config?.params?.idempotency_key));
+              })
+            : rightsResponse(config?.params?.idempotency_key);
+        }
+        if (url === COMPANY_TOKEN_ENDPOINTS.DETAIL('ordinary'))
+          return {
+            data: {
+              ...ordinary.token,
+              company: 'harbour',
+              companyUuid: 'harbour',
+              companyName: 'Harbour Example Pty Ltd',
+              isOwner: false,
+              statusDisplay: 'Deployed',
+              tokenTypeDisplay: 'Ordinary shares',
+              isTransferable: false,
+              isDivisible: false,
+              decimals: 0,
+            },
+          };
+        if (url === COMPANY_TOKEN_ENDPOINTS.HOLDERS('ordinary'))
+          return pauseHolders
+            ? new Promise((resolve) => {
+                releaseHolders = () => resolve({ data: ordinary });
+              })
+            : { data: ordinary };
+        return { data: { results: [], count: 0, next: null, previous: null } };
+      },
+    );
   show('investor', <ShareClass uuid="ordinary" />, 'Share class');
   await screen.findByText('No summary recorded.');
   fireEvent.click(screen.getByRole('button', { name: 'Edit (Class rights)' }));
   let rightsForm = within(await screen.findByRole('form', { name: 'Edit class rights' }));
-  expect(document.activeElement).toBe(rightsForm.getByLabelText('Summary (optional)'));
-  expect(rightsForm.queryByLabelText(/upload/i)).toBeNull();
-  fireEvent.change(rightsForm.getByLabelText('Summary (optional)'), {
+  expect(document.activeElement).toBe(rightsForm.getByLabelText('Rights summary'));
+  expect(rightsForm.queryByLabelText(/document reference/i)).toBeNull();
+  fireEvent.change(rightsForm.getByLabelText('Rights summary'), {
     target: { value: '  Each share has one vote.  ' },
   });
-  fireEvent.change(rightsForm.getByLabelText('Document reference (optional)'), {
-    target: { value: '  Company constitution, 1 October 2026  ' },
-  });
-  api.post.mockImplementation(async (url: string, request: ClassRightsRequest) => {
+  fireEvent.click(rightsForm.getByRole('button', { name: 'Add document' }));
+  fireEvent.change(rightsForm.getByLabelText('File'), { target: { files: [rightsFile] } });
+  api.post.mockImplementation(async (url: string, body: ClassRightsRequest | FormData, config) => {
+    config?.ledovaSubmissionGuard();
+    if (url === COMPANY_TOKEN_ENDPOINTS.REGISTER_EVIDENCE) {
+      const upload = body as FormData;
+      expect(upload.get('company_id')).toBe('harbour');
+      expect(upload.get('appointment')).toBe('rights-administrator');
+      expect(upload.get('kind')).toBe('class_rights');
+      expect(upload.get('file')).toBe(rightsFile);
+      expect(config).toEqual(expect.objectContaining({ ledovaSubmissionGuard: expect.any(Function) }));
+      return {
+        data: {
+          uuid: rightsEvidence,
+          company: 'harbour',
+          appointment: 'rights-administrator',
+          idempotencyKey: upload.get('idempotency_key'),
+          kind: 'class_rights',
+          fileSize: rightsFile.size,
+          mimeType: rightsFile.type,
+          originalFilename: rightsFile.name,
+          providedBy: 'company',
+          sha256: rightsDocument.sha256,
+          createdAt: '2026-10-21T00:00:00Z',
+        },
+      };
+    }
     if (url !== COMPANY_TOKEN_ENDPOINTS.CLASS_RIGHTS('ordinary')) throw new Error(`Unexpected POST ${url}`);
+    const request = body as ClassRightsRequest;
+    expect(request).not.toHaveProperty('documentReference');
     const revision: ClassRightsRevision = {
       uuid: `rights-${request.previousRevision + 1}`,
       token: 'ordinary',
       revision: request.previousRevision + 1,
       summary: request.summary,
-      documentReference: request.documentReference,
+      documentReference: request.documentReference ?? '',
+      documents:
+        request.documents?.map((evidence) => {
+          expect(evidence).toBe(rightsEvidence);
+          return rightsDocument;
+        }) ?? [],
       idempotencyKey: request.idempotencyKey,
       appointment: request.appointment,
       recordedBy: 1,
@@ -403,7 +456,8 @@ it('reads every class page and groups exact holdings by member identity with sea
   });
   fireEvent.click(rightsForm.getByRole('button', { name: 'Save' }));
   await rightsForm.findByRole('button', { name: 'Retry original save' });
-  expect((rightsForm.getByLabelText('Summary (optional)') as HTMLTextAreaElement).disabled).toBe(true);
+  expect((rightsForm.getByLabelText('Rights summary') as HTMLTextAreaElement).disabled).toBe(true);
+  expect((rightsForm.getByRole('button', { name: 'Add document' }) as HTMLButtonElement).disabled).toBe(true);
   expect((rightsForm.getByRole('button', { name: 'Cancel' }) as HTMLButtonElement).disabled).toBe(true);
   pauseRights = true;
   let refreshingRights!: Promise<void>;
@@ -413,6 +467,7 @@ it('reads every class page and groups exact holdings by member identity with sea
   await waitFor(() => expect(releaseRights).toBeTypeOf('function'));
   expect(screen.queryByRole('form', { name: 'Edit class rights' })).toBeNull();
   expect(document.body.textContent).not.toContain('Each share has one vote.');
+  expect(screen.queryByText(rightsFile.name)).toBeNull();
   pauseRights = false;
   await act(async () => {
     releaseRights();
@@ -423,15 +478,36 @@ it('reads every class page and groups exact holdings by member identity with sea
   fireEvent.click(rightsForm.getByRole('button', { name: 'Retry original save' }));
   await screen.findByText('Class rights saved.');
   await waitFor(() => expect(screen.queryByRole('form', { name: 'Edit class rights' })).toBeNull());
-  expect(api.post).toHaveBeenCalledTimes(1);
+  expect(api.post.mock.calls.filter(([url]) => url === COMPANY_TOKEN_ENDPOINTS.REGISTER_EVIDENCE)).toHaveLength(1);
+  expect(api.post.mock.calls.filter(([url]) => url === COMPANY_TOKEN_ENDPOINTS.CLASS_RIGHTS('ordinary'))).toHaveLength(
+    1,
+  );
   expect(rights[0].summary).toBe('Each share has one vote.');
-  expect(rights[0].documentReference).toBe('Company constitution, 1 October 2026');
+  expect(rights[0].documentReference).toBe('');
+  expect(rights[0].documents).toEqual([rightsDocument]);
+  expect(screen.getAllByText(rightsFile.name)).toHaveLength(1);
+  vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:class-rights');
+  vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
+  vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+  fireEvent.click(screen.getByRole('button', { name: 'Download (constitution.pdf)' }));
+  await waitFor(() => expect(URL.createObjectURL).toHaveBeenCalledOnce());
+  expect(api.get).toHaveBeenCalledWith(
+    COMPANY_TOKEN_ENDPOINTS.CLASS_RIGHTS_FILE('ordinary'),
+    expect.objectContaining({
+      params: { revision: rights[0].uuid, evidence: rightsEvidence },
+      responseType: 'blob',
+      ledovaSubmissionGuard: expect.any(Function),
+    }),
+  );
   expect(screen.queryByRole('button', { name: 'Edit (Class rights)' })).toBeNull();
   rightsAppointment = 'rights-administrator';
   await act(async () => {
     await client.refetchQueries({ queryKey: ['class-rights'] });
   });
   fireEvent.click(await screen.findByRole('button', { name: 'Edit (Class rights)' }));
+  rightsForm = within(await screen.findByRole('form', { name: 'Edit class rights' }));
+  expect(rightsForm.getAllByText(rightsFile.name)).toHaveLength(1);
+  expect(rightsForm.queryByLabelText('File')).toBeNull();
   rights = [
     { ...rights[0], uuid: 'rights-2', revision: 2, idempotencyKey: 'another-edit', summary: 'Updated rights.' },
     ...rights,
@@ -447,20 +523,37 @@ it('reads every class page and groups exact holdings by member identity with sea
   expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Edit (Class rights)' }));
   fireEvent.click(screen.getByRole('button', { name: 'Edit (Class rights)' }));
   rightsForm = within(await screen.findByRole('form', { name: 'Edit class rights' }));
-  for (const label of ['Summary (optional)', 'Document reference (optional)'])
-    fireEvent.change(rightsForm.getByLabelText(label), { target: { value: '' } });
+  fireEvent.change(rightsForm.getByLabelText('Rights summary'), { target: { value: 'Retained document rights.' } });
+  fireEvent.click(rightsForm.getByRole('button', { name: 'Save' }));
+  await waitFor(() => expect(screen.queryByRole('form', { name: 'Edit class rights' })).toBeNull());
+  expect(rights[0].documents).toEqual([rightsDocument]);
+  expect(api.post.mock.calls.filter(([url]) => url === COMPANY_TOKEN_ENDPOINTS.REGISTER_EVIDENCE)).toHaveLength(1);
+  fireEvent.click(screen.getByRole('button', { name: 'Edit (Class rights)' }));
+  rightsForm = within(await screen.findByRole('form', { name: 'Edit class rights' }));
+  fireEvent.change(rightsForm.getByLabelText('Rights summary'), { target: { value: '' } });
+  fireEvent.click(rightsForm.getByRole('button', { name: 'Remove (document 1)' }));
   fireEvent.click(rightsForm.getByRole('button', { name: 'Save' }));
   await waitFor(() => expect(screen.queryByRole('form', { name: 'Edit class rights' })).toBeNull());
   expect(rights[0].summary).toBe('');
   expect(rights[0].documentReference).toBe('');
+  expect(rights[0].documents).toEqual([]);
+  expect(screen.queryByRole('button', { name: 'Download (constitution.pdf)' })).toBeNull();
   fireEvent.click(screen.getByRole('button', { name: 'Previous versions' }));
   expect(screen.getByText('Each share has one vote.')).toBeTruthy();
+  const originalVersion = screen.getByText('Version 1').closest('li')!;
+  fireEvent.click(within(originalVersion).getByRole('button', { name: 'Download (constitution.pdf)' }));
+  await waitFor(() => expect(URL.createObjectURL).toHaveBeenCalledTimes(2));
+  expect(api.get).toHaveBeenLastCalledWith(
+    COMPANY_TOKEN_ENDPOINTS.CLASS_RIGHTS_FILE('ordinary'),
+    expect.objectContaining({ params: { revision: 'rights-1', evidence: rightsEvidence } }),
+  );
   failRights = true;
   await act(async () => {
     await client.refetchQueries({ queryKey: ['class-rights'] });
   });
   await screen.findByText('The class rights could not be loaded. They may be unavailable to this account.');
   expect(screen.queryByText('Each share has one vote.')).toBeNull();
+  expect(screen.queryByText(rightsFile.name)).toBeNull();
   expect(screen.queryByRole('button', { name: 'Edit (Class rights)' })).toBeNull();
   failRights = false;
   fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
@@ -578,7 +671,8 @@ it('reads every class page and groups exact holdings by member identity with sea
     await lateRights;
   });
   expect(screen.queryByText('Each share has one vote.')).toBeNull();
-  expect(screen.queryByText('Company constitution, 1 October 2026')).toBeNull();
+  expect(screen.queryByText(rightsFile.name)).toBeNull();
+  expect(() => rightsFileGuard()).toThrow(/signed-in account changed/);
   expect(screen.queryByRole('button', { name: 'Edit (Class rights)' })).toBeNull();
 
   cleanup();
@@ -697,8 +791,12 @@ it('reads every class page and groups exact holdings by member identity with sea
   expect(screen.queryByText('+9,007,199,254,740,993 shares')).toBeNull();
   expect(screen.getAllByText(/current company register appointment/)).toHaveLength(2);
   expect(screen.getByRole('heading', { level: 1, name: 'Example Member' })).toBeTruthy();
-  expect(api.post).toHaveBeenCalledTimes(2);
-  expect(api.post.mock.calls.every(([url]) => url === COMPANY_TOKEN_ENDPOINTS.CLASS_RIGHTS('ordinary'))).toBe(true);
+  expect(api.post).toHaveBeenCalledTimes(4);
+  expect(
+    api.post.mock.calls.every(([url]) =>
+      [COMPANY_TOKEN_ENDPOINTS.CLASS_RIGHTS('ordinary'), COMPANY_TOKEN_ENDPOINTS.REGISTER_EVIDENCE].includes(url),
+    ),
+  ).toBe(true);
 
   cleanup();
   client.clear();
@@ -768,7 +866,7 @@ it('reads every class page and groups exact holdings by member identity with sea
   expect(screen.getAllByText(transaction)).toHaveLength(5);
   expect(screen.getAllByText(address)).toHaveLength(5);
   expect(JSON.stringify(retainedReconciliation)).toBe(retainedSnapshot);
-  expect(api.post).toHaveBeenCalledTimes(2);
+  expect(api.post).toHaveBeenCalledTimes(4);
   cleanup();
   client.clear();
   api.post.mockReset();

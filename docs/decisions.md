@@ -1330,6 +1330,15 @@ when that action is still available. This refines the web design standard for co
 edits; separate tasks, signing and confirmations may still use dialogs. Class-rights authority,
 validation, retained revisions and original-save recovery stay the same.
 
+The owner then replaced the fresh Document reference input with **Rights summary** and optional
+class documents in the same inline form. The company records existing terms, with prompts for
+voting, dividends, repayment of capital and other relevant restrictions; Ledova does not assume
+rights from ORD or PRF, draft legal terms or calculate their effects. Documents belong to the
+class and its retained rights revision, separate from shareholder attachments and company-wide
+document access. Current company register readers can read linked files; current personal company
+administrators record changes. Earlier text references and file versions remain in retained
+history and exports. Member/public disclosure and mobile entry are outside this increment.
+
 Initial setup stays **Share details → Shareholders → Review**, copying existing holdings or opening
 a genuinely empty class; it does not issue new shares. Later issues, transfers and history reuse
 the same people and register records, without changing company authority,

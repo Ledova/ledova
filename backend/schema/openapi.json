@@ -1000,6 +1000,47 @@
         ],
         "type": "object"
       },
+      "ClassRightsDocument": {
+        "properties": {
+          "company": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "documentType": {
+            "type": "string"
+          },
+          "evidence": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "fileSize": {
+            "type": "integer"
+          },
+          "mimeType": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "providedBy": {
+            "type": "string"
+          },
+          "sha256": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "company",
+          "documentType",
+          "evidence",
+          "fileSize",
+          "mimeType",
+          "name",
+          "providedBy",
+          "sha256"
+        ],
+        "type": "object"
+      },
       "ClassRightsPage": {
         "properties": {
           "administrationAppointment": {
@@ -1062,6 +1103,13 @@
             "readOnly": true,
             "type": "string"
           },
+          "documents": {
+            "items": {
+              "$ref": "#/components/schemas/ClassRightsDocument"
+            },
+            "readOnly": true,
+            "type": "array"
+          },
           "idempotencyKey": {
             "format": "uuid",
             "readOnly": true,
@@ -1100,6 +1148,7 @@
           "appointment",
           "createdAt",
           "documentReference",
+          "documents",
           "idempotencyKey",
           "recordedBy",
           "recordedByName",
@@ -1117,8 +1166,17 @@
             "type": "string"
           },
           "documentReference": {
+            "default": "",
             "maxLength": 255,
             "type": "string"
+          },
+          "documents": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "maxItems": 100,
+            "type": "array"
           },
           "idempotencyKey": {
             "format": "uuid",
@@ -1136,7 +1194,6 @@
         },
         "required": [
           "appointment",
-          "documentReference",
           "idempotencyKey",
           "previousRevision",
           "summary"
@@ -14759,12 +14816,13 @@
         "type": "object"
       },
       "RegisterEvidenceKindEnum": {
-        "description": "* `share_register` - Share register\n* `asic_extract` - ASIC extract\n* `authority` - Authority document\n* `supporting` - Supporting document",
+        "description": "* `share_register` - Share register\n* `asic_extract` - ASIC extract\n* `authority` - Authority document\n* `supporting` - Supporting document\n* `class_rights` - Class document",
         "enum": [
           "share_register",
           "asic_extract",
           "authority",
-          "supporting"
+          "supporting",
+          "class_rights"
         ],
         "type": "string"
       },
@@ -38657,6 +38715,65 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ShareTokenDetail"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/tokens/{uuid}/class-rights-file/": {
+      "get": {
+        "operationId": "api_v1_tokens_class_rights_file_retrieve",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "evidence",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "revision",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
                 }
               }
             },

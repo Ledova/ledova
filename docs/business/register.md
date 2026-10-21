@@ -652,8 +652,8 @@ person chosen.
 
 Each class opens directly from **Class details** on its Ledger card. Its details show the class's
 name, code, type, state and current register summary, followed by the company's optional
-[Class rights](issuing-shares.md#class-rights) and the class's
-[shareholder documents](#shareholder-documents). Shareholder management stays on Shareholders and
+[Class rights](issuing-shares.md#class-rights), including its summary and optional class documents,
+and its separate **Shareholder documents** section. Shareholder management stays on Shareholders and
 register downloads on Documents. **Technical details and chain workflows** opens the retained
 technical metadata, request history and company-authorised deployment, chain issue, capital and
 pause workflows ([share classes](issuing-shares.md#share-classes)).

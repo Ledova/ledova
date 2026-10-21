@@ -243,6 +243,7 @@ def _share_class(company, token, outputs) -> dict:
                     "revision",
                     "summary",
                     "document_reference",
+                    "documents",
                     "recorded_by_id",
                     "recorded_by_name",
                     "appointment_id",
@@ -438,6 +439,7 @@ def _build_company_pack(company, *, instruction, recipient, validate_contents=No
         particulars_changes = history.particulars_changes(changes)
         listed, held = documents.held(company)
         member_documents, member_files = documents.member_documents(company)
+        class_documents, class_files = documents.class_documents(company)
         copies = documents.evidence(
             [*links, *changes, *(item for share_class in classes for item in share_class["evidence"])]
         )
@@ -466,7 +468,7 @@ def _build_company_pack(company, *, instruction, recipient, validate_contents=No
         copies.update(documents.retained_sources(source_records))
         if validate_contents is not None:
             validate_contents(company, classes, approvals, published, mandate_source)
-    stored = {**held, **copies, **member_files, **published["stored"]}
+    stored = {**held, **copies, **member_files, **class_files, **published["stored"]}
     documents.within_ceiling(company, stored)
     files = {
         "company.json": _json(record),
@@ -476,6 +478,7 @@ def _build_company_pack(company, *, instruction, recipient, validate_contents=No
         "particulars_changes.json": _json(particulars_changes),
         "documents.json": _json(listed),
         "member_documents.json": _json(member_documents),
+        "class_documents.json": _json(class_documents),
         "contracts/contracts.json": _json(contracts),
     }
     for name in INTERFACES:

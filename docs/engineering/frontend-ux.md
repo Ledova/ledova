@@ -98,9 +98,11 @@ On the web, prefer editing a record's details in its existing card: replace the 
 fields under the same heading, with Cancel and Save together at the bottom right. Focus the first
 field when editing opens and return focus to Edit when it ends, if that action is still available.
 Class rights follows this pattern: Edit replaces its current summary and Previous versions with
-Summary and Document reference, focuses Summary and keeps one Class rights heading. Validation,
-pending-request holds, stale-record handling and original-save recovery still apply. Other existing
-dialogs keep their own workflow until separately refined.
+Rights summary and a Documents area inside the same form, focuses Rights summary and keeps one
+Class rights heading. Attachments use the existing document controls with concise labels; they do
+not open another editor or repeat optional markers. Validation, pending-request holds,
+stale-record handling and original-save recovery still apply. Other existing dialogs keep their
+own workflow until separately refined.
 
 A dialog (`Modal` in `dashboard/src/components/Modal.tsx`; `CustomModal` in
 `mobile/src/components/modal`) is the same card over the dimmed page, labelled by its Newsreader

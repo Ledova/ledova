@@ -9,7 +9,10 @@ class ClassRightsWriteSerializer(StrictTeamSerializer):
     idempotency_key = serializers.UUIDField()
     previous_revision = serializers.IntegerField(min_value=0, max_value=2147483646)
     summary = serializers.CharField(max_length=4000, allow_blank=True, trim_whitespace=False)
-    document_reference = serializers.CharField(max_length=255, allow_blank=True, trim_whitespace=False)
+    document_reference = serializers.CharField(
+        max_length=255, allow_blank=True, trim_whitespace=False, required=False, default=""
+    )
+    documents = serializers.ListField(child=serializers.UUIDField(), max_length=100, required=False, default=list)
 
 
 class ClassRightsQuerySerializer(StrictTeamSerializer):
@@ -18,7 +21,25 @@ class ClassRightsQuerySerializer(StrictTeamSerializer):
     idempotency_key = serializers.UUIDField(required=False)
 
 
+class ClassRightsFileQuerySerializer(StrictTeamSerializer):
+    revision = serializers.UUIDField()
+    evidence = serializers.UUIDField()
+
+
+class ClassRightsDocumentSerializer(serializers.Serializer):
+    provided_by = serializers.CharField()
+    evidence = serializers.UUIDField()
+    company = serializers.UUIDField()
+    document_type = serializers.CharField()
+    name = serializers.CharField()
+    file_size = serializers.IntegerField()
+    mime_type = serializers.CharField()
+    sha256 = serializers.CharField()
+
+
 class ClassRightsRevisionSerializer(serializers.ModelSerializer):
+    documents = ClassRightsDocumentSerializer(many=True, read_only=True)
+
     class Meta:
         model = ClassRightsRevision
         fields = [
@@ -27,6 +48,7 @@ class ClassRightsRevisionSerializer(serializers.ModelSerializer):
             "revision",
             "summary",
             "document_reference",
+            "documents",
             "recorded_by",
             "recorded_by_name",
             "appointment",

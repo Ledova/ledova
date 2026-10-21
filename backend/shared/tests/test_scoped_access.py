@@ -304,15 +304,22 @@ class ScopedAccessTest(CoreFixtures, APITransactionTestCase):
         self.assertEqual(own.status_code, 200, own.content)
         self.assertIn("Synthetic Member", str(own.json()))
         rights_endpoint = f"/api/v1/tokens/{token.pk}/class-rights/"
+        class_document = retained_evidence(self.owner, self.appointment, RegisterEvidenceKind.CLASS_RIGHTS)
         rights_payload = {
             "appointment": str(self.appointment.pk),
             "idempotency_key": str(uuid4()),
             "previous_revision": 0,
             "summary": "Private synthetic class terms",
             "document_reference": "Synthetic constitution, clause 4",
+            "documents": [str(class_document.pk)],
         }
         rights = self.client.post(rights_endpoint, rights_payload, format="json")
         self.assertEqual(rights.status_code, 201, rights.content)
+        class_file_endpoint = f"/api/v1/tokens/{token.pk}/class-rights-file/"
+        class_file_query = {"revision": rights.json()["uuid"], "evidence": str(class_document.pk)}
+        class_file = self.client.get(class_file_endpoint, class_file_query)
+        self.assertEqual(class_file.status_code, 200)
+        self.assertTrue(b"".join(class_file.streaming_content))
         hidden = self.client.get(f"/api/v1/tokens/{foreign_token.pk}/holders/")
         self.assertEqual(hidden.status_code, 404, hidden.content)
         foreign_rights_endpoint = f"/api/v1/tokens/{foreign_token.pk}/class-rights/"
@@ -334,6 +341,7 @@ class ScopedAccessTest(CoreFixtures, APITransactionTestCase):
         }
         self.sign_in(self.foreign)
         self.assertEqual(self.client.get(rights_endpoint).status_code, 404)
+        self.assertEqual(self.client.get(class_file_endpoint, class_file_query).status_code, 404)
         self.assertEqual(self.client.post(rights_endpoint, rights_payload, format="json").status_code, 404)
         recorded = self.client.post("/api/v1/tokens/register-awards/", foreign_award, format="json")
         self.assertEqual(recorded.status_code, 201, recorded.content)

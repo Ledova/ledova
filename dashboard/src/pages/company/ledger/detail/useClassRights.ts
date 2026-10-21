@@ -4,49 +4,100 @@ import {
   USER_PREFERENCES_QUERY_KEY,
   assertNextPageAdvances,
   createUserFriendlyError,
+  downloadClassRightsFile,
   failureSentence,
   failureStatus,
   getClassRights,
   getNextPageParam,
+  isRegisterEvidenceReceipt,
+  isUuid,
   recordClassRights,
+  uploadRegisterEvidence,
   useSubmissionOwner,
   useUserPreferences,
   type ClassRightsRequest,
   type ClassRightsRevision,
+  type ClassRightsDocument,
   type OrderSubmissionOwner,
+  type RegisterEvidence,
 } from '@ledova/shared';
 import { READ_TIMING } from '@hooks/useRegisterAccess';
 import apiClient from '@services/apiClient';
+import { saveFile } from '@utils/saveFile';
 
 export function classRightsKey(owner: OrderSubmissionOwner | null, token: string) {
   return ['class-rights', owner?.userUuid, owner?.ownerAccountUuid, token];
 }
 
-type Editor = Omit<ClassRightsRequest, 'idempotencyKey'>;
+type ClassDocumentDraft = { id: string; file: File | null; snapshot?: ClassRightsDocument };
+type Editor = { appointment: string; previousRevision: number; summary: string; documents: ClassDocumentDraft[] };
+type Upload = { file: File; key: string; receipt?: RegisterEvidence };
 
-function matchesReceipt(receipt: ClassRightsRevision, request: ClassRightsRequest, token: string) {
+function isDocument(document: ClassRightsDocument, company: string) {
+  return (
+    !!document &&
+    document.company === company &&
+    isUuid(document.evidence) &&
+    document.providedBy === 'company' &&
+    document.documentType === 'class_rights' &&
+    typeof document.name === 'string' &&
+    !!document.name.trim() &&
+    Number.isSafeInteger(document.fileSize) &&
+    document.fileSize > 0 &&
+    typeof document.mimeType === 'string' &&
+    !!document.mimeType.trim() &&
+    /^[0-9a-f]{64}$/.test(document.sha256)
+  );
+}
+
+function matchesDocument(actual: ClassRightsDocument, expected: ClassRightsDocument) {
+  return (
+    actual.evidence === expected.evidence &&
+    actual.company === expected.company &&
+    actual.name === expected.name &&
+    actual.fileSize === expected.fileSize &&
+    actual.mimeType === expected.mimeType &&
+    actual.sha256 === expected.sha256 &&
+    actual.documentType === expected.documentType &&
+    actual.providedBy === expected.providedBy
+  );
+}
+
+function matchesReceipt(
+  receipt: ClassRightsRevision,
+  request: ClassRightsRequest,
+  token: string,
+  documents: ClassRightsDocument[],
+) {
   return (
     receipt.token === token &&
     receipt.idempotencyKey === request.idempotencyKey &&
     receipt.appointment === request.appointment &&
     receipt.revision === request.previousRevision + 1 &&
     receipt.summary === request.summary &&
-    receipt.documentReference === request.documentReference
+    receipt.documentReference === (request.documentReference ?? '') &&
+    Array.isArray(receipt.documents) &&
+    receipt.documents.length === documents.length &&
+    receipt.documents.every((document, index) => matchesDocument(document, documents[index]))
   );
 }
 
-export function useClassRights(token: string, tokenReady: boolean) {
+export function useClassRights(token: string, tokenReady: boolean, company: string | undefined) {
   const { owner, boundary } = useSubmissionOwner();
   const queryClient = useQueryClient();
   const preferences = useUserPreferences();
   const mounted = useRef(true);
   const pending = useRef<ClassRightsRequest | null>(null);
+  const preparation = useRef<Editor | null>(null);
+  const uploads = useRef(new Map<string, Upload>());
+  const expectedDocuments = useRef<ClassRightsDocument[]>([]);
   const running = useRef(false);
   const [editor, setEditor] = useState<Editor | null>(null);
   const [busy, setBusy] = useState(false);
   const [held, setHeld] = useState(false);
   const [error, setError] = useState('');
   const [outcome, setOutcome] = useState('');
+  const [downloading, setDownloading] = useState<string | null>(null);
   useEffect(() => {
     mounted.current = true;
     return () => {
@@ -57,6 +108,7 @@ export function useClassRights(token: string, tokenReady: boolean) {
   const enabled =
     !!owner &&
     tokenReady &&
+    !!company &&
     !!preferences.preferences &&
     preferencesRead?.status === 'success' &&
     preferences.fetchStatus === 'idle';
@@ -79,7 +131,12 @@ export function useClassRights(token: string, tokenReady: boolean) {
       const { data } = await getClassRights(apiClient, token, { page: pageParam }, { ledovaSubmissionGuard: guard });
       guard();
       assertNextPageAdvances(pageParam, data);
-      if (data.results.some((revision) => revision.token !== token) || (data.current && data.current.token !== token))
+      const valid = (revision: ClassRightsRevision) =>
+        revision.token === token &&
+        Array.isArray(revision.documents) &&
+        revision.documents.every((document) => isDocument(document, company!)) &&
+        new Set(revision.documents.map((document) => document.evidence)).size === revision.documents.length;
+      if (data.results.some((revision) => !valid(revision)) || (data.current && !valid(data.current)))
         throw new Error('The class rights did not identify this share class.');
       return data;
     },
@@ -96,26 +153,34 @@ export function useClassRights(token: string, tokenReady: boolean) {
   useLayoutEffect(() => {
     read.current = { ready, current, appointment };
   }, [ready, current, appointment]);
-  const hold = (request: ClassRightsRequest | null) => {
-    pending.current = request;
-    setHeld(request !== null);
+  const clearPending = () => {
+    pending.current = null;
+    preparation.current = null;
+    uploads.current.clear();
+    expectedDocuments.current = [];
+    setHeld(false);
   };
   const stale =
     !!editor && ready && (editor.previousRevision !== (current?.revision ?? 0) || editor.appointment !== appointment);
   const open = () => {
     guard();
-    if (!ready || !appointment || pending.current) return;
+    if (!ready || !appointment || pending.current || running.current) return;
     setError('');
     setOutcome('');
     setEditor({
       appointment,
       previousRevision: current?.revision ?? 0,
       summary: current?.summary ?? '',
-      documentReference: current?.documentReference ?? '',
+      documents: (current?.documents ?? []).map((snapshot) => ({
+        id: snapshot.evidence,
+        file: null,
+        snapshot,
+      })),
     });
   };
   const close = () => {
-    if (running.current || pending.current) return;
+    if (running.current || pending.current || preparation.current) return;
+    clearPending();
     setEditor(null);
     setError('');
   };
@@ -138,37 +203,97 @@ export function useClassRights(token: string, tokenReady: boolean) {
           { ledovaSubmissionGuard: guard },
         );
         guard();
-        receipt = data.results.find((revision) => matchesReceipt(revision, request!, token));
+        receipt = data.results.find((revision) => matchesReceipt(revision, request!, token, expectedDocuments.current));
         if (!receipt && data.results.length)
           throw createUserFriendlyError('The original class rights receipt did not match. Retry the original save.');
         if (!receipt && data.administrationAppointment !== request.appointment) {
-          hold(null);
+          clearPending();
           throw createUserFriendlyError(
             'The original save was not found and your administrator access changed. Close this form and reopen the current details.',
           );
         }
       } else {
-        if (
-          editor.appointment !== read.current.appointment ||
-          editor.previousRevision !== (read.current.current?.revision ?? 0)
-        )
-          throw createUserFriendlyError('The class rights changed. Close this form and reopen the current details.');
-        request = {
+        const source = preparation.current ?? {
           ...editor,
-          summary: editor.summary.trim(),
-          documentReference: editor.documentReference.trim(),
+          documents: editor.documents.filter((row) => row.file || row.snapshot),
+        };
+        const checkPreparation = () => {
+          guard();
+          if (!read.current.ready) throw createUserFriendlyError('Refresh the class rights before saving.');
+          if (
+            source.appointment !== read.current.appointment ||
+            source.previousRevision !== (read.current.current?.revision ?? 0)
+          ) {
+            clearPending();
+            throw createUserFriendlyError('The class rights changed. Close this form and reopen the current details.');
+          }
+        };
+        checkPreparation();
+        preparation.current = source;
+        setHeld(true);
+        const documents: ClassRightsDocument[] = [];
+        for (const document of source.documents) {
+          if (document.snapshot) {
+            documents.push(document.snapshot);
+            continue;
+          }
+          const file = document.file!;
+          let upload = uploads.current.get(document.id);
+          if (!upload || upload.file !== file) {
+            upload = { file, key: crypto.randomUUID() };
+            uploads.current.set(document.id, upload);
+          }
+          const uploadRequest = {
+            companyId: company!,
+            appointment: source.appointment,
+            kind: 'class_rights' as const,
+            idempotencyKey: upload.key,
+          };
+          checkPreparation();
+          if (!upload.receipt) {
+            const { data } = await uploadRegisterEvidence(
+              apiClient,
+              { ...uploadRequest, file },
+              { ledovaSubmissionGuard: checkPreparation },
+            );
+            checkPreparation();
+            if (!isRegisterEvidenceReceipt(data, uploadRequest, file.size))
+              throw createUserFriendlyError(
+                'The class document upload could not be confirmed. Retry the original save.',
+              );
+            upload.receipt = data;
+          }
+          const evidence = upload.receipt;
+          documents.push({
+            evidence: evidence.uuid,
+            company: company!,
+            providedBy: 'company',
+            documentType: 'class_rights',
+            name: evidence.originalFilename,
+            fileSize: evidence.fileSize,
+            mimeType: evidence.mimeType,
+            sha256: evidence.sha256,
+          });
+        }
+        documents.sort((left, right) => left.evidence.localeCompare(right.evidence));
+        expectedDocuments.current = documents;
+        request = {
+          appointment: source.appointment,
+          previousRevision: source.previousRevision,
+          summary: source.summary.trim(),
+          documents: documents.map((document) => document.evidence),
           idempotencyKey: crypto.randomUUID(),
         };
-        hold(request);
+        pending.current = request;
       }
       if (!receipt) {
         guard();
         ({ data: receipt } = await recordClassRights(apiClient, token, request, { ledovaSubmissionGuard: guard }));
         guard();
-        if (!matchesReceipt(receipt, request, token))
+        if (!matchesReceipt(receipt, request, token, expectedDocuments.current))
           throw createUserFriendlyError('The class rights receipt could not be confirmed. Retry the original save.');
       }
-      hold(null);
+      clearPending();
       setEditor(null);
       setOutcome('Class rights saved.');
       await query.refetch();
@@ -177,7 +302,7 @@ export function useClassRights(token: string, tokenReady: boolean) {
         guard();
         const status = failureStatus(failure);
         if (status !== undefined && status >= 400 && status < 500) {
-          hold(null);
+          clearPending();
           void query.refetch();
         }
         setError(failureSentence(failure, 'The class rights could not be saved. Retry the original save.'));
@@ -187,6 +312,37 @@ export function useClassRights(token: string, tokenReady: boolean) {
     } finally {
       running.current = false;
       if (mounted.current) setBusy(false);
+    }
+  };
+  const download = async (revision: ClassRightsRevision, document: ClassRightsDocument) => {
+    if (running.current || !ready || held) return;
+    running.current = true;
+    setBusy(true);
+    setDownloading(`${revision.uuid}/${document.evidence}`);
+    setError('');
+    try {
+      guard();
+      const { data } = await downloadClassRightsFile(
+        apiClient,
+        token,
+        { revision: revision.uuid, evidence: document.evidence },
+        { ledovaSubmissionGuard: guard },
+      );
+      guard();
+      saveFile(data, document.name);
+    } catch (failure) {
+      try {
+        guard();
+        setError(failureSentence(failure, 'The class document could not be downloaded. Try again.'));
+      } catch {
+        return;
+      }
+    } finally {
+      running.current = false;
+      if (mounted.current) {
+        setBusy(false);
+        setDownloading(null);
+      }
     }
   };
   return {
@@ -210,5 +366,7 @@ export function useClassRights(token: string, tokenReady: boolean) {
     open,
     close,
     save,
+    download,
+    downloading,
   };
 }

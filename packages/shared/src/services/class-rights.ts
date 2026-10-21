@@ -1,6 +1,12 @@
 import type { AxiosInstance, AxiosRequestConfig } from 'axios';
 import { COMPANY_TOKEN_ENDPOINTS } from '../constants/api';
-import type { ClassRightsHistory, ClassRightsQuery, ClassRightsRequest, ClassRightsRevision } from '../types';
+import type {
+  ClassRightsFileQuery,
+  ClassRightsHistory,
+  ClassRightsQuery,
+  ClassRightsRequest,
+  ClassRightsRevision,
+} from '../types';
 
 export const getClassRights = (
   api: AxiosInstance,
@@ -15,3 +21,10 @@ export const recordClassRights = (
   data: ClassRightsRequest,
   config: AxiosRequestConfig = {},
 ) => api.post<ClassRightsRevision>(COMPANY_TOKEN_ENDPOINTS.CLASS_RIGHTS(uuid), data, config);
+
+export const downloadClassRightsFile = (
+  api: AxiosInstance,
+  uuid: string,
+  params: ClassRightsFileQuery,
+  config: AxiosRequestConfig = {},
+) => api.get<Blob>(COMPANY_TOKEN_ENDPOINTS.CLASS_RIGHTS_FILE(uuid), { ...config, params, responseType: 'blob' });

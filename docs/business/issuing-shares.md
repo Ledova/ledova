@@ -55,24 +55,30 @@ on the Share class page, separate from its current register summary and Class ri
 
 ### Class rights
 
-On the web, choose **Class details** on a class's Ledger card. Its details show the company's optional
-**Class rights** summary and plain **Document reference** below the current register summary.
-A current company register reader can read the latest record and its history;
-a current personal company administrator can add or edit it. Ownership or platform staff status
-alone grants no editing authority. Existing classes have no record until the company adds one.
+On the web, choose **Class details** on a class's Ledger card. **Class rights** holds the company's
+optional **Rights summary** and supporting documents below the current register summary. The
+summary can describe voting, dividends, repayment of capital and other relevant terms from the
+company's governing documents. Ledova supplies no assumed rights from a class name or type.
 
-Choose **Edit** to replace the saved summary with fields in the same Class rights card. **Cancel**
-leaves the saved record unchanged; **Save** restores the summary after recording the revision.
+Choose **Edit** to open the summary and **Documents** in the same card. Add files only when useful;
+neither a summary nor an upload is required. The file's name identifies the supporting document;
+there is no category to choose. Each document is linked to the class and the rights
+revision that retained it, without assigning it to a shareholder. These files stay separate from
+[shareholder documents](register.md#shareholder-documents) and the company-wide
+[company-document and offering access](companies.md#company-information-and-documents).
 
-Both fields are optional. The reference can name a constitution, clause or issue terms; it is text,
-not a file link, an upload requirement or proof that Ledova holds or verifies the source. Existing
-[company-document and offering access](companies.md#company-information-and-documents) stays separate.
+A current company register reader can read the latest record, earlier versions and their linked
+files. A current personal company administrator can edit; ownership or platform staff status alone
+grants no editing authority. **Cancel** leaves the saved record unchanged. **Save** records a new
+revision with its documents, administrator, appointment and actual recording time. Removing a file
+from the current description does not erase it from earlier versions. Earlier plain-text document
+references remain readable in those versions and exports; new edits use actual attachments.
 
-Saving appends a revision with the administrator, appointment and actual recording time. Clearing
-both fields records a clear without erasing earlier text. A stale editor must reload before saving;
-an interrupted save recovers its original request rather than recording it twice. The company pack
-includes all revisions. These descriptions do not vary legal rights or change holdings, approvals,
-charts or calculations. Member disclosure and mobile editing are outside this first increment.
+A stale editor must reload before saving; an interrupted save recovers its original request rather
+than recording it twice. The company pack includes the revisions and their retained evidence.
+These records describe the company's existing terms: they do not draft or vary legal rights,
+verify documents or change holdings, approvals, charts or calculations. Member disclosure and
+mobile editing remain outside this increment.
 
 ### Deploying an empty class
 
@@ -549,7 +555,7 @@ Capability map under [#1215](https://github.com/Ledova/ledova/issues/1215), revi
 | Arrangement | What Ledova records now | Limit |
 | ----------- | ----------------------- | ----- |
 | Ordinary or custom-named classes/series | Name, code, broad type, holdings and history | A label does not establish rights; code length and uniqueness rules still apply |
-| Different voting, preference, redemption or conversion terms | A custom name and optional rights summary/reference describe the class; company documents can retain terms | Descriptive class-rights records only; no weighted voting, preference waterfall, conversion or redemption workflow |
+| Different voting, preference, redemption or conversion terms | A custom name, optional Rights summary and class-linked supporting documents describe the class | Descriptive class-rights records only; no weighted voting, preference waterfall, conversion or redemption workflow |
 | Partly-paid existing shares | Paid/unpaid and beneficial-status facts in copied opening allotments | New external allotments are fully paid in AUD; no calls on unpaid capital |
 | Employee promises | Agreement, company-recorded vesting, unissued-right endings/reversals and a separate approved issue | No options/exercise, employee purchases, RSU settlement engine or upfront-issued restricted-share lifecycle |
 | Convertible notes, SAFEs and other future-equity instruments | No dedicated workflow | Do not count them as issued holdings or disguise them as a class |

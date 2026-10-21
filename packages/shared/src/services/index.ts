@@ -98,7 +98,7 @@ export {
 } from './company-tokens';
 export { uploadRegisterEvidence } from './register-commands';
 export * from './register-member-documents';
-export { getClassRights, recordClassRights } from './class-rights';
+export { downloadClassRightsFile, getClassRights, recordClassRights } from './class-rights';
 export * from './register-grants';
 export * from './register-awards';
 export * from './register-deployments';

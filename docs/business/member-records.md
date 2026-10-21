@@ -317,8 +317,9 @@ stated limits, not proof of a bank payment, current contract ownership or a lodg
   and wallet nominations and instructions have none.
 - Issues, and subscriptions with a payment recorded by staff (not proved) still to be allotted or
   refunded, an obligation the company inherits.
-- Each class's company-supplied rights descriptions and document references, with every revision,
-  actor, appointment and recording time. References are text, not retained source-file proof.
+- Each class's company-supplied rights descriptions and linked evidence, with every revision,
+  actor, appointment and recording time. Earlier plain-text document references are retained as
+  text, separate from the supporting files.
 - Wallet approvals, the transactions Ledova sent for the company and the settlements it executed.
 - What the company published to its members, with each resolution's result, each dividend's payment
   records and read counts.

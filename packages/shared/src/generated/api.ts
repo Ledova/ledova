@@ -1455,6 +1455,22 @@ export interface ApiPaths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/tokens/{uuid}/class-rights-file/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: ApiOperations['api_v1_tokens_class_rights_file_retrieve'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/tokens/{uuid}/class-rights/': {
     parameters: {
       query?: never;
@@ -4451,6 +4467,16 @@ export interface ApiComponents {
       newPassword: string;
       newPasswordConfirm: string;
     };
+    ClassRightsDocument: {
+      company: string;
+      documentType: string;
+      evidence: string;
+      fileSize: number;
+      mimeType: string;
+      name: string;
+      providedBy: string;
+      sha256: string;
+    };
     ClassRightsPage: {
       administrationAppointment: string | null;
       count: number;
@@ -4463,6 +4489,7 @@ export interface ApiComponents {
       appointment: string;
       createdAt: string;
       documentReference: string;
+      documents: ApiComponents['schemas']['ClassRightsDocument'][];
       idempotencyKey: string;
       recordedBy: number;
       recordedByName: string;
@@ -4473,7 +4500,8 @@ export interface ApiComponents {
     };
     ClassRightsWriteRequest: {
       appointment: string;
-      documentReference: string;
+      documentReference?: string;
+      documents?: string[];
       idempotencyKey: string;
       previousRevision: number;
       summary: string;
@@ -7131,7 +7159,7 @@ export interface ApiComponents {
       sha256: string;
       uuid: string;
     };
-    RegisterEvidenceKindEnum: 'share_register' | 'asic_extract' | 'authority' | 'supporting';
+    RegisterEvidenceKindEnum: 'share_register' | 'asic_extract' | 'authority' | 'supporting' | 'class_rights';
     RegisterEvidenceUploadRequest: {
       appointment: string;
       companyId: string;
@@ -11777,6 +11805,30 @@ export interface ApiOperations {
         };
         content: {
           'application/json': ApiComponents['schemas']['ShareTokenDetail'];
+        };
+      };
+    };
+  };
+  api_v1_tokens_class_rights_file_retrieve: {
+    parameters: {
+      query: {
+        evidence: string;
+        revision: string;
+      };
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': Blob;
         };
       };
     };

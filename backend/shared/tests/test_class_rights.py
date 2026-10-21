@@ -1,6 +1,7 @@
 from unittest.mock import patch
 from uuid import uuid4
 
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import DatabaseError
 from rest_framework.test import APITransactionTestCase
 
@@ -8,8 +9,14 @@ from companies.models import CompanyCapability
 from companies.services.authority import DECLARATION_VERSION
 from companies.services.team import revoke_company_appointment
 from shared.db import atomic, use_operator
-from shared.tests.core_fixtures import CoreFixtures
-from tokens.models import ClassRightsRevision, RegisterPosition
+from shared.tests.core_fixtures import CoreFixtures, pdf_bytes, retained_evidence
+from tokens.models import (
+    ClassRightsRevision,
+    RegisterEvidenceKind,
+    RegisterPosition,
+    ShareToken,
+)
+from tokens.services.register_authority import register_command
 
 
 class ClassRightsTest(CoreFixtures, APITransactionTestCase):
@@ -20,12 +27,28 @@ class ClassRightsTest(CoreFixtures, APITransactionTestCase):
         self.assertIsNone(initial.json()["current"])
         self.assertEqual(initial.json()["results"], [])
         self.assertEqual(initial.json()["administrationAppointment"], str(self.appointment.pk))
+        raw = pdf_bytes()
+        upload = self.client.post(
+            "/api/v1/tokens/register-evidence/",
+            {
+                "company_id": str(self.company.pk),
+                "appointment": str(self.appointment.pk),
+                "kind": "class_rights",
+                "idempotency_key": str(uuid4()),
+                "file": SimpleUploadedFile("Synthetic constitution.pdf", raw, content_type="application/pdf"),
+            },
+            format="multipart",
+        )
+        self.assertEqual(upload.status_code, 201, upload.content)
+        self.scanner.assert_called()
+        document_id = upload.json()["uuid"]
         payload = {
             "appointment": str(self.appointment.pk),
             "idempotency_key": str(uuid4()),
             "previous_revision": 0,
             "summary": "One vote per share; other rights follow the company's constitution.",
             "document_reference": "Synthetic constitution, clause 4, 21 October 2026",
+            "documents": [document_id],
         }
         saved = self.client.post(endpoint, payload, format="json")
         self.assertEqual(saved.status_code, 201, saved.content)
@@ -34,11 +57,22 @@ class ClassRightsTest(CoreFixtures, APITransactionTestCase):
         self.assertEqual(first["recordedBy"], self.owner.pk)
         self.assertEqual(first["recordedByName"], self.profile.full_name)
         self.assertEqual(first["idempotencyKey"], payload["idempotency_key"])
+        self.assertEqual(first["documents"][0]["evidence"], document_id)
+        self.assertEqual(first["documents"][0]["name"], "Synthetic constitution.pdf")
+        self.assertEqual(first["documents"][0]["company"], str(self.company.pk))
+        file_endpoint = f"/api/v1/tokens/{self.token.pk}/class-rights-file/"
+        file_query = {"revision": first["uuid"], "evidence": document_id}
+        downloaded = self.client.get(file_endpoint, file_query)
+        self.assertEqual(downloaded.status_code, 200)
+        self.assertEqual(b"".join(downloaded.streaming_content), raw)
+        self.assertEqual(downloaded["Cache-Control"], "private, no-store")
         replay = self.client.post(endpoint, payload, format="json")
         self.assertEqual(replay.status_code, 200, replay.content)
         self.assertEqual(replay.json(), first)
         changed = self.client.post(endpoint, {**payload, "summary": payload["summary"] + " "}, format="json")
         self.assertEqual(changed.status_code, 409, changed.content)
+        changed_files = self.client.post(endpoint, {**payload, "documents": []}, format="json")
+        self.assertEqual(changed_files.status_code, 409, changed_files.content)
         stale = self.client.post(endpoint, {**payload, "idempotency_key": str(uuid4())}, format="json")
         self.assertEqual(stale.status_code, 409, stale.content)
         revised = self.client.post(
@@ -64,6 +98,7 @@ class ClassRightsTest(CoreFixtures, APITransactionTestCase):
                 "previous_revision": 2,
                 "summary": "",
                 "document_reference": "",
+                "documents": [],
             },
             format="json",
         )
@@ -72,11 +107,38 @@ class ClassRightsTest(CoreFixtures, APITransactionTestCase):
         self.assertEqual(history.status_code, 200, history.content)
         self.assertEqual(history.json()["current"]["revision"], 3)
         self.assertEqual(history.json()["current"]["summary"], "")
+        self.assertEqual(history.json()["current"]["documents"], [])
         self.assertEqual(history.json()["count"], 3)
         self.assertEqual(len(history.json()["results"]), 1)
         self.assertIsNotNone(history.json()["next"])
+        retained_file = self.client.get(file_endpoint, file_query)
+        self.assertEqual(retained_file.status_code, 200)
+        self.assertEqual(b"".join(retained_file.streaming_content), raw)
+        self.assertEqual(
+            self.client.get(file_endpoint, {**file_query, "revision": cleared.json()["uuid"]}).status_code, 404
+        )
+        foreign_document = retained_evidence(self.foreign, self.foreign_appointment, RegisterEvidenceKind.CLASS_RIGHTS)
+        member_document = retained_evidence(self.owner, self.appointment, RegisterEvidenceKind.SUPPORTING)
+        for documents in ([str(foreign_document.pk)], [str(member_document.pk)], [document_id, document_id]):
+            refused = self.client.post(
+                endpoint,
+                {**payload, "previous_revision": 3, "idempotency_key": str(uuid4()), "documents": documents},
+                format="json",
+            )
+            self.assertEqual(refused.status_code, 400, refused.content)
+        with use_operator():
+            another_class = ShareToken.objects.create(
+                company=self.company, name="Another class", symbol="OTHER", total_supply="1000"
+            )
+        self.assertEqual(
+            self.client.get(f"/api/v1/tokens/{another_class.pk}/class-rights-file/", file_query).status_code, 404
+        )
+        self.assertEqual(
+            self.client.get(file_endpoint, {**file_query, "evidence": str(foreign_document.pk)}).status_code, 404
+        )
         with use_operator():
             self.assertEqual(ClassRightsRevision.objects.count(), 3)
+            retained_snapshot = ClassRightsRevision.objects.get(pk=first["uuid"]).documents[0]
             self.assertEqual(RegisterPosition.objects.get(member=self.member).shares, 100)
             self.token.stored_register.refresh_from_db()
             self.assertEqual(self.token.stored_register.sequence, 1)
@@ -85,6 +147,8 @@ class ClassRightsTest(CoreFixtures, APITransactionTestCase):
                 ClassRightsRevision.objects.filter(pk=first["uuid"]).update(summary="Overwrite")
             with self.assertRaises(DatabaseError), atomic():
                 ClassRightsRevision.objects.filter(pk=first["uuid"]).delete()
+            with self.assertRaises(DatabaseError), atomic():
+                ClassRightsRevision.objects.filter(pk=first["uuid"]).update(documents=[])
             with self.assertRaises(DatabaseError), atomic():
                 ClassRightsRevision.objects.create(
                     token=self.token,
@@ -96,6 +160,17 @@ class ClassRightsTest(CoreFixtures, APITransactionTestCase):
                     appointment=self.appointment,
                     idempotency_key=uuid4(),
                 )
+        with self.assertRaises(DatabaseError), register_command(self.owner, self.company.pk, "class_rights_record"):
+            ClassRightsRevision.objects.create(
+                token=self.token,
+                revision=4,
+                summary="Forged retained document",
+                documents=[{**retained_snapshot, "sha256": "0" * 64}],
+                recorded_by=self.owner,
+                recorded_by_name=self.profile.full_name,
+                appointment=self.appointment,
+                idempotency_key=uuid4(),
+            )
         invitation = self.client.post(
             "/api/v1/company-authority/invitations/",
             {
@@ -118,6 +193,21 @@ class ClassRightsTest(CoreFixtures, APITransactionTestCase):
         read_only = self.client.get(endpoint)
         self.assertEqual(read_only.status_code, 200, read_only.content)
         self.assertIsNone(read_only.json()["administrationAppointment"])
+        readable_file = self.client.get(file_endpoint, file_query)
+        self.assertEqual(readable_file.status_code, 200)
+        self.assertEqual(b"".join(readable_file.streaming_content), raw)
+        refused_upload = self.client.post(
+            "/api/v1/tokens/register-evidence/",
+            {
+                "company_id": str(self.company.pk),
+                "appointment": accepted.json()["uuid"],
+                "kind": "class_rights",
+                "idempotency_key": str(uuid4()),
+                "file": SimpleUploadedFile("Not authorised.pdf", raw, content_type="application/pdf"),
+            },
+            format="multipart",
+        )
+        self.assertEqual(refused_upload.status_code, 404, refused_upload.content)
         refused = self.client.post(
             endpoint,
             {
@@ -129,6 +219,10 @@ class ClassRightsTest(CoreFixtures, APITransactionTestCase):
             format="json",
         )
         self.assertEqual(refused.status_code, 404, refused.content)
+        self.client.force_authenticate(self.owner)
+        revoke_company_appointment(requester=self.owner, appointment_id=accepted.json()["uuid"])
+        self.client.force_authenticate(self.foreign)
+        self.assertEqual(self.client.get(file_endpoint, file_query).status_code, 404)
         self.client.force_authenticate(self.owner)
         create_revision = ClassRightsRevision.objects.create
 
