@@ -15,6 +15,8 @@ import {
   type CompanyWalletInstruction,
   type CompanyWalletDecisionPreview,
   refusalSentences,
+  COMPANY_WALLET_ACTION_LABELS,
+  CHAIN_FAILURE_LABELS,
 } from '@ledova/shared';
 import { Row, Rows, Section, LoadError } from '@components/Ledger';
 import { PageAction } from '@components/Page';
@@ -26,8 +28,8 @@ type Read = ReturnType<typeof useCompanyWalletInstructions>;
 const WALLETS = ['wallet', 'wallets'] as const;
 
 const ACTIONS = [
-  ['add', 'Approve nominated wallet'],
-  ['remove', 'Remove retained approval'],
+  ['add', COMPANY_WALLET_ACTION_LABELS.add],
+  ['remove', COMPANY_WALLET_ACTION_LABELS.remove],
 ] as const;
 function Snapshot({ snapshot }: { snapshot: CompanyWalletInstruction['snapshot'] }) {
   return (
@@ -61,7 +63,7 @@ function Record({ record, data }: { record: CompanyWalletInstruction; data: Read
       {data.canRead && (
         <>
           <p>
-            {record.action} · {COPY.STAGES[record.stage] ?? record.stage}
+            {COMPANY_WALLET_ACTION_LABELS[record.action]} · {COPY.STAGES[record.stage] ?? record.stage}
           </p>
           <Snapshot snapshot={record.snapshot} />
           <Rows>
@@ -81,7 +83,9 @@ function Record({ record, data }: { record: CompanyWalletInstruction; data: Read
             {!!record.execution?.operationId && <Row label="Execution operation">{record.execution.operationId}</Row>}
             {!!record.execution?.claimId && <Row label="Original claim">{record.execution.claimId}</Row>}
             {!!record.execution?.txHash && <Row label="Transaction">{record.execution.txHash}</Row>}
-            {!!record.execution?.failureCode && <Row label="Failure">{record.execution.failureCode}</Row>}
+            {!!record.execution?.failureCode && (
+              <Row label="Failure">{CHAIN_FAILURE_LABELS[record.execution.failureCode]}</Row>
+            )}
           </Rows>
           {refusalSentences(record.executionUnmetRequirements, COMPANY_WALLET_UNMET_COPY).map((sentence) => (
             <p key={sentence} className="text-sm text-text-muted">
@@ -282,7 +286,7 @@ export function CompanyWalletInstructions() {
               <Rows>
                 <Row label="Original instruction key">{data.original.body.operationId}</Row>
                 <Row label="Company">{data.original.body.company}</Row>
-                <Row label="Action">{data.original.body.action}</Row>
+                <Row label="Action">{COMPANY_WALLET_ACTION_LABELS[data.original.body.action]}</Row>
                 <Row label="Nomination or retained ADD">
                   {data.original.body.nomination ?? data.original.body.targetChange}
                 </Row>

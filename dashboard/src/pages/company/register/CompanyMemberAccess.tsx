@@ -7,6 +7,9 @@ import {
   type OrderSubmissionOwner,
   type TokenHoldersResponse,
   utcToday,
+  MEMBER_INVITATION_STATUS_LABELS,
+  MEMBER_PARTICULARS_STATUS_LABELS,
+  MEMBER_CERTIFICATE_STATUS_LABELS,
 } from '@ledova/shared';
 import { Outcome, Section, Loading, LoadError } from '@components/Ledger';
 import { PersonSelect } from '@pages/company/register/shared/PersonPicker';
@@ -182,8 +185,8 @@ export function CompanyMemberAccess({
           {access.access?.invitations.map((item) => (
             <div key={item.uuid} className="space-y-1 text-sm">
               <p>
-                {memberName(item.member)} · {item.intendedEmail} · {item.status} · Until{' '}
-                {formatDateTime(item.acceptanceDeadline)}
+                {memberName(item.member)} · {item.intendedEmail} · {MEMBER_INVITATION_STATUS_LABELS[item.status]} ·
+                Until {formatDateTime(item.acceptanceDeadline)}
               </p>
               <details className="text-text-muted">
                 <summary>Invitation record</summary>
@@ -237,7 +240,7 @@ export function CompanyMemberAccess({
           {access.requests.particulars.map((item) => (
             <div key={item.uuid} className="space-y-2 py-2">
               <p className="text-sm">
-                {item.name} · {item.residentialAddress} · {item.status}
+                {item.name} · {item.residentialAddress} · {MEMBER_PARTICULARS_STATUS_LABELS[item.status]}
               </p>
               <details className="text-sm text-text-muted">
                 <summary>Particulars request record</summary>
@@ -338,7 +341,7 @@ export function CompanyMemberAccess({
           {access.requests.certificates.map((item) => (
             <div key={item.uuid} className="space-y-2">
               <p className="text-sm">
-                {memberName(item.member)} · Certificate {item.status}
+                {memberName(item.member)} · Certificate {MEMBER_CERTIFICATE_STATUS_LABELS[item.status].toLowerCase()}
               </p>
               <details className="text-sm text-text-muted">
                 <summary>Certificate request record</summary>

@@ -1,4 +1,4 @@
-import { formatShareCount } from './formatting';
+import { shareCount } from './formatting';
 import { REGISTER_LINK_COPY } from '../constants/business/register-links';
 import { REGISTER_OPENING_COPY } from '../constants/business/register-openings';
 import type {
@@ -65,7 +65,7 @@ export function registerLinkMemberLabels(mapping: readonly LinkedMember[], holde
     const [wallet] = holder.wallets;
     const detail = wallet
       ? `${wallet.address.slice(0, 6)}…${wallet.address.slice(-4)}`
-      : REGISTER_LINK_COPY.HOLDING(formatShareCount(holder.balance), holder.shareClass);
+      : shareCount(holder.balance, holder.shareClass);
     return `${name ?? REGISTER_LINK_COPY.UNNAMED_MEMBER} · ${detail}`;
   };
   const mapped = (exists: boolean) => [

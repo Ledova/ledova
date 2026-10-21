@@ -26,6 +26,7 @@ import {
   utcToday,
   formatDate,
   shareCount,
+  IDENTITY_SOURCE_LABELS,
 } from '@ledova/shared';
 import { DecisionTrail } from '@pages/company/register/shared/DecisionTrail';
 import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
@@ -59,7 +60,7 @@ function SnapshotRows({ snapshot }: { snapshot: RegisterIssueSnapshot }) {
         {snapshot.member.name} · {snapshot.member.uuid}
       </Row>
       <Row label="Residential address">{snapshot.member.residentialAddress}</Row>
-      <Row label="Identity source">{snapshot.member.identitySource}</Row>
+      <Row label="Identity source">{IDENTITY_SOURCE_LABELS[snapshot.member.identitySource] ?? 'Not identified'}</Row>
       <Row label="Nominated wallet">{snapshot.wallet.address}</Row>
       <Row label="Nomination">{snapshot.wallet.nomination}</Row>
       <Row label="Company ADD">{snapshot.wallet.approval}</Row>
@@ -492,8 +493,8 @@ export function CompanyIssueFlow({ uuid, data }: { uuid: string; data: ReturnTyp
       {commands.visible && commands.recovery && (
         <>
           <p className="text-sm text-text-muted">
-            The original {commands.recovery.kind} preparation is uncertain. Recover its identical body and operation
-            UUID: {commands.recovery.body.operationId}
+            The original {commands.recovery.kind === 'link' ? 'wallet link' : 'share issue'} preparation is uncertain.
+            Recover its identical body and operation UUID: {commands.recovery.body.operationId}
           </p>
           <PageAction
             label="Recover original preparation receipt"

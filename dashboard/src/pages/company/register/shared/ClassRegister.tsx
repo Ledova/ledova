@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import {
   REGISTER_COPY,
+  REGISTER_CORRECTION_COPY,
   TECHNICAL_SHARE_LIMIT,
+  type RegisterEntryKind,
   formatShareCount,
   type TokenHoldersResponse,
   formatDate,
@@ -125,7 +127,11 @@ export function FormerMembers({
               {former.sourceEntrySequence !== null && (
                 <Row label="Cessation entry sequence">{former.sourceEntrySequence}</Row>
               )}
-              {former.sourceEntryKind && <Row label="Cessation entry kind">{former.sourceEntryKind}</Row>}
+              {former.sourceEntryKind && (
+                <Row label="Cessation entry kind">
+                  {REGISTER_CORRECTION_COPY.ENTRY_KINDS[former.sourceEntryKind as RegisterEntryKind]}
+                </Row>
+              )}
               {former.sourceEffectiveOn && (
                 <Row label="Source effective date">{formatDate(former.sourceEffectiveOn)}</Row>
               )}

@@ -49,7 +49,6 @@ export const REGISTER_LINK_COPY = {
   NEW_MEMBER: 'New member',
   UNNAMED_MEMBER: 'Unnamed member',
   NOT_ON_REGISTER: 'A member not on the current register',
-  HOLDING: (shares: string, shareClass: string) => `${shares} ${shareClass} ${shares === '1' ? 'share' : 'shares'}`,
   MAPPING_NOTE:
     'Choose the member who owns each wallet: an existing member, or a new member that applying the link creates. ' +
     'Choose the same member for wallets that belong to one person.',

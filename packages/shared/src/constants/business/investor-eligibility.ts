@@ -32,11 +32,21 @@ export const CATEGORIES: {
   },
 ];
 
+export const INVESTOR_CATEGORY_LABELS = Object.fromEntries(
+  CATEGORIES.map(({ category, label }) => [category, label]),
+) as Record<InvestorCategory, string>;
+
+export const CERTIFIER_BODY_LABELS: Record<CertifierBody, string> = {
+  ca_anz: 'Chartered Accountants Australia and New Zealand',
+  cpa_australia: 'CPA Australia',
+  ipa: 'Institute of Public Accountants',
+};
+
 export function certifierBodies(caAnzLabel: string): { value: CertifierBody; label: string }[] {
   return [
     { value: 'ca_anz', label: caAnzLabel },
-    { value: 'cpa_australia', label: 'CPA Australia' },
-    { value: 'ipa', label: 'Institute of Public Accountants' },
+    { value: 'cpa_australia', label: CERTIFIER_BODY_LABELS.cpa_australia },
+    { value: 'ipa', label: CERTIFIER_BODY_LABELS.ipa },
   ];
 }
 

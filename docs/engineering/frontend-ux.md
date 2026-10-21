@@ -646,19 +646,28 @@ by a local helper or a browser `toLocale…` call:
 - **Date-times** use `formatDateTime`: "20 Oct 2026, 02:30 pm", in the viewer's local time. A
   calendar date passed to it shows as a date, never with an invented time.
 - **Share counts** use `formatShareCount`, a count with its noun uses `shareCount` ("1 share",
-  "1,315 shares") and a signed change uses `shareChange` ("+1,000"). Gathered in
-  `packages/shared/src/utils/formatting.ts` with `sharePercentage`. Trading's order quantities use
-  `marketQuantity` and `marketShares`, which read "Unavailable" for a quantity too large to show
-  exactly.
+  "1,315 shares", or with a qualifier, "1 issued share") and a signed change uses `shareChange`
+  ("+1,000"). Gathered in `packages/shared/src/utils/formatting.ts` with `sharePercentage`.
+  Trading's order quantities that arrive as numbers use `marketQuantity` and `marketShares`, which
+  read "Unavailable" for a quantity too large to show exactly.
 - **Percentages of a class** use `sharePercentage`, rounded half-up to two places, "<0.01%" for a
   holding too small to show and "Not recorded" without issued shares.
 - **Amounts** use `formatMoney`, which names its currency: "AUD 1,234.50".
 - **On screen** the dashboard's records format their dates, share counts and amounts: register
   records, eligibility history and shared summaries, team invitations and confirmations. An
   offering's opening and closing show their time, and Trading's quantities and wallet token balances
-  use the share and crypto formatters. Signing screens and technical transaction rows (hashes, data
-  and transaction values) keep their exact values. Mobile still shows some raw dates until
+  use the share and crypto formatters. Signing screens, technical transaction rows (hashes, data and
+  transaction values) and the exact offering terms an eligibility request shares keep their exact
+  values. Mobile still shows some raw dates until
   [#1201](https://github.com/Ledova/ledova/issues/1201).
+- **Status codes** read as words, never as the code or a code with its underscores replaced: the
+  server's `statusDisplay` where a record carries one (orders, swaps, companies, offerings), else a
+  shared label map (`packages/shared/src/constants/business/labels.ts` for eligibility outcomes,
+  member invitations and requests, appointments, company wallet actions and chain failures, company
+  states, a deployment's swap approval, an application's status on company records, order states
+  and changed order fields, swap approval outcomes and identity sources; `investor-eligibility.ts`
+  for investor categories and certifier bodies; and `REGISTER_CORRECTION_COPY.ENTRY_KINDS` for
+  register entry kinds). Mobile follows in [#1201](https://github.com/Ledova/ledova/issues/1201).
 - **Enforcement.** An ESLint rule in `dashboard/eslint.config.js` refuses `toLocaleString`,
   `toLocaleDateString` and `toLocaleTimeString` in the dashboard's source, beside the rule that
   refuses inline ISO date slicing ([forms](#forms)). Mobile follows in

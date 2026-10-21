@@ -4,6 +4,7 @@ import {
   refusalSentences,
   type EligibilityAction,
   formatDateTime,
+  ELIGIBILITY_OUTCOME_LABELS,
 } from '@ledova/shared';
 import { Row, Rows, Section } from '@components/Ledger';
 import { PageAction } from '@components/Page';
@@ -69,7 +70,7 @@ function Confirmation({ action, busy, confirm, cancel }: ConfirmationProps) {
       {action.appointment && <p className="break-all text-sm">Selected appointment: {action.appointment}</p>}
       {action.outcome && (
         <Rows>
-          <Row label="Exact decision outcome">{action.outcome}</Row>
+          <Row label="Exact decision outcome">{ELIGIBILITY_OUTCOME_LABELS[action.outcome]}</Row>
           <Row label="Exact decision expiry">{formatDateTime(action.expiresAt, 'No acceptance expiry')}</Row>
         </Rows>
       )}

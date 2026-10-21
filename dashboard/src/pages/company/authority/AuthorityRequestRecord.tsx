@@ -8,6 +8,7 @@ import {
   formatDateTime,
   type CompanyAuthorityRequest,
   type CompanyCapability,
+  APPOINTMENT_STATUS_LABELS,
 } from '@ledova/shared';
 import { PageAction } from '@components/Page';
 import { CheckboxField } from '@components/Field';
@@ -163,7 +164,7 @@ export function AuthorityRequestRecord({
       {appointment && (
         <>
           <Rows>
-            <Row label="Appointment status">{appointment.status}</Row>
+            <Row label="Appointment status">{APPOINTMENT_STATUS_LABELS[appointment.status]}</Row>
             <Row label="Current company authority">{appointment.isEffective ? 'Current' : 'Not current'}</Row>
             <Row label="Admitted">{formatDateTime(appointment.createdAt)}</Row>
             <Row label="Appointed actions">{scopeLabels(appointment.capabilities)}</Row>

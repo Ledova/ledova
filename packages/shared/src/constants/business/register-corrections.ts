@@ -57,7 +57,7 @@ export const REGISTER_CORRECTION_COPY = {
     transfer: 'Transfer',
     cessation: 'Cessation',
     correction: 'Compensating correction',
-  } as Record<RegisterEntryKind, string>,
+  } satisfies Record<RegisterEntryKind, string>,
   ORIGINAL_CHANGES: 'Entry being corrected',
   COMPENSATING_CHANGES: 'Compensating changes',
   UNNAMED_MEMBER: (member: string) => `Member ${member}`,

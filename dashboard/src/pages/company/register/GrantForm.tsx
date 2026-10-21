@@ -1,7 +1,7 @@
 import { Field, TextArea, TextInput, FileField } from '@components/Field';
 import { useGrantPreparation, type GrantFormProps, type DocumentKind } from './useGrantPreparation';
 
-import { FIELD_LIMITS, REGISTER_GRANT_COPY as COPY, formatShareCount } from '@ledova/shared';
+import { FIELD_LIMITS, REGISTER_GRANT_COPY as COPY, shareCount } from '@ledova/shared';
 import { FormActions, PageAction } from '@components/Page';
 import { ErrorSummary } from '@components/ErrorSummary';
 import { useErrorSummary } from '@hooks/useErrorSummary';
@@ -97,8 +97,8 @@ export function GrantForm({
             <p className="text-base font-medium text-text-primary">{recipientName}</p>
             <p className="text-sm text-text-muted">{recipientAddress}</p>
             <p className="text-sm text-text-muted">
-              {formatShareCount(award.availableShares)} vested shares available to issue. The recipient and agreement
-              are fixed; company approval and recording the issue remain separate.
+              {shareCount(award.availableShares, 'vested')} available to issue. The recipient and agreement are fixed;
+              company approval and recording the issue remain separate.
             </p>
             <details>
               <summary className="cursor-pointer py-2 text-sm">Award record details</summary>

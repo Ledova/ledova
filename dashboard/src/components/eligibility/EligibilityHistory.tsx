@@ -1,4 +1,4 @@
-import { formatDateTime } from '@ledova/shared';
+import { formatDateTime, ELIGIBILITY_OUTCOME_LABELS } from '@ledova/shared';
 import type { CompanyEligibilityRequest } from '@ledova/shared';
 import { Row, Rows, Section } from '@components/Ledger';
 import { EligibilitySummary } from './EligibilitySummary';
@@ -10,14 +10,14 @@ export function EligibilityHistory({ record }: { record: CompanyEligibilityReque
     <Section title="Retained request and outcome">
       <Rows>
         <Row label="Request">{record.uuid}</Row>
-        <Row label="Outcome">{record.outcome}</Row>
+        <Row label="Outcome">{ELIGIBILITY_OUTCOME_LABELS[record.outcome]}</Row>
         <Row label="Submitted">{formatDateTime(record.submittedAt)}</Row>
         <Row label="Submitted by">{record.submittedBy}</Row>
         <Row label="Request digest">{record.digest}</Row>
         <Row label="Request key">{record.idempotencyKey}</Row>
         {decision && (
           <>
-            <Row label="Decision">{decision.outcome}</Row>
+            <Row label="Decision">{ELIGIBILITY_OUTCOME_LABELS[decision.outcome]}</Row>
             <Row label="Decision maker">{decision.decidedBy}</Row>
             <Row label="Decision appointment">{decision.appointment}</Row>
             <Row label="Decision time">{formatDateTime(decision.decidedAt)}</Row>

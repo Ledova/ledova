@@ -1,4 +1,9 @@
-import { formatDateTime, type CompanyTeamAppointment, type OwnCompanyAppointment } from '@ledova/shared';
+import {
+  formatDateTime,
+  type CompanyTeamAppointment,
+  type OwnCompanyAppointment,
+  APPOINTMENT_STATUS_LABELS,
+} from '@ledova/shared';
 import { Row, Rows } from '@components/Ledger';
 import { PageAction } from '@components/Page';
 import { currentAppointment, scopeLabels } from '@pages/company/shared/appointments';
@@ -26,7 +31,7 @@ export function AppointmentRecord({
             <Row label="Email">{appointment.email}</Row>
           </>
         )}
-        <Row label="Status">{appointment.status}</Row>
+        <Row label="Status">{APPOINTMENT_STATUS_LABELS[appointment.status]}</Row>
         <Row label="Current authority">{currentAppointment(appointment) ? 'Current' : 'Not current'}</Row>
         <Row label="Personal actions">{scopeLabels(appointment.capabilities)}</Row>
         <Row label="May delegate">{scopeLabels(appointment.delegatableCapabilities)}</Row>

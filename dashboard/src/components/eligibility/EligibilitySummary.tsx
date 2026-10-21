@@ -1,4 +1,6 @@
 import {
+  CERTIFIER_BODY_LABELS,
+  INVESTOR_CATEGORY_LABELS,
   formatDate,
   formatDateTime,
   formatMoney,
@@ -35,6 +37,8 @@ function shown(key: string, value: unknown, summary: CompanyEligibilitySharedSum
   if (key === 'quantity') return formatShareCount(text);
   if (key === 'pricePerShare' && summary.priceCurrency) return formatMoney(text, summary.priceCurrency);
   if (key === 'amountAud') return formatMoney(text, 'AUD');
+  if (key === 'category') return INVESTOR_CATEGORY_LABELS[summary.category];
+  if (key === 'certifierBody' && summary.certifierBody) return CERTIFIER_BODY_LABELS[summary.certifierBody];
   return text;
 }
 
