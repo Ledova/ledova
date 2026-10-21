@@ -1309,10 +1309,17 @@ under `company/ledger`, with **Set up your ledger** and **Ledger opening** as th
 The legal term share register, stored records, API paths and native labels stay unchanged. Mobile
 keeps Register until its later pass.
 
+The owner then approved the sidebar as the primary navigation between web sections. Ledger's label
+opens the share-class overview, with a separate caret for Issue shares, Transfer shares and History;
+Shareholders, ESS and Documents stay siblings. Each task has a focused addressable view, reusing
+the existing controllers and records. Page controls remain for the current page or record, including
+Add share class, Class details and contextual issue or transfer actions. This removes the header
+task switches and ownership overview from task views; Settings restructuring, signup and mobile
+are outside this increment.
+
 Initial setup stays **Share details → Shareholders → Review**, copying existing holdings or opening
-a genuinely empty class; it does not issue new shares. Later issues, transfers and history are to
-have focused workflows, reusing the same people and register records. This replaces their placement
-as inline Register tasks above once those increments land, without changing company authority,
+a genuinely empty class; it does not issue new shares. Later issues, transfers and history reuse
+the same people and register records, without changing company authority,
 exact-request recovery or retained history. Implement Ledger and class details first and show each
 step in Chrome on localhost. Mobile remains deferred under
 [#1201](https://github.com/Ledova/ledova/issues/1201).

@@ -22,7 +22,7 @@ export function isRegisterTask(value: unknown): value is RegisterTask {
 
 export function registerPlace({ company, token, task, record, outcome }: RegisterPlace) {
   return {
-    to: DESTINATIONS.companyRegister.path,
+    to: `${DESTINATIONS.companyRegister.path}${task ? `#${task}` : ''}`,
     state: {
       registerCompany: company,
       registerToken: token,

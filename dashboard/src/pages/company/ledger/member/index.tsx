@@ -309,7 +309,7 @@ function OwnShareholder({
             ))}
             {prepare && issueClass && recorded?.walletless && recorded.particularsRetained && (
               <PageLink
-                to={DESTINATIONS.companyRegister.path}
+                to={`${DESTINATIONS.companyRegister.path}#issue`}
                 state={{ registerCompany: company, registerToken: issueClass, issueMember: member }}
                 label="Issue shares to them"
               />

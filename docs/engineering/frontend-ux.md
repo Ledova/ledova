@@ -75,8 +75,8 @@ The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components
   independently through `useOpenRows` from `@ledova/shared`), Activity's filter and Wallets' sort
   hold their detail only while open; every other `Disclosure` keeps its detail mounted while closed,
   so unfinished input survives, and may start open, as a prepared register record does. The
-  sidebar's More group is the one native toggle, styled as a navigation item. Activity's
-  filter and Wallets' sort (once a chain holds two wallets) are a `Disclosure` at the top of the card
+  sidebar's Ledger caret is a separate navigation-group button; More keeps its native toggle.
+  Activity's filter and Wallets' sort (once a chain holds two wallets) are a `Disclosure` at the top of the card
   naming what it applies; applying or clearing closes it and every open entry and returns focus to
   its button. Dialogs are for work that sets the page aside: a form that creates or changes
   something, a signing step or a confirmation.
@@ -124,6 +124,14 @@ marks its nearest parent that is. Below 1024 pixels the header's menu button ope
 as a Headless UI `Dialog`: the button reports `aria-expanded`, focus stays inside the drawer while it
 is open, and Escape or a choice closes it. The first Tab on a signed-in page reaches "Skip to main
 content", which moves focus to the page's heading.
+
+The sidebar owns navigation between sections. A related group has one level of children: its label
+opens the overview and a separate caret expands the children, without an extra Overview item.
+Ledger groups **Issue shares**, **Transfer shares** and **History** this way, opens on a Ledger
+route and marks the current destination. Shareholders, ESS and Documents remain sibling items.
+The same group appears in the small-screen drawer. Page controls start or complete work for that
+page or record: Add share class, Class details, Edit, Save, Confirm and contextual issue or transfer
+actions remain beside their records. Do not repeat section navigation in page headers.
 
 `DESTINATIONS` (`packages/shared/src/constants/ui/destinations.ts`) names the signed-in pages,
 register views (Shareholders, Employee share scheme, Documents) and tasks, and Home's Documents
@@ -173,7 +181,7 @@ confirmation) or pressed, and comes in four forms:
 - **A link** (`PageLink`, same looks, optional router state) is an action that only goes somewhere:
   the title row's way back, Add share class, a shareholder's Details, Issue shares to them.
 - **A toggle** (`pressed`, which sets `aria-pressed`) marks the chosen option where pressing applies
-  it at once: the open Ledger task, the shown eligibility request and Wallets' sort.
+  it at once: the shown eligibility request and Wallets' sort.
 
 `busy` and `busyLabel` disable an action and name its work, such as "Preparing allotment…" or
 "Saving…". Every page form's submit button uses them, and so does every action that starts a

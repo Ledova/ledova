@@ -57,7 +57,7 @@ expansion tickets were [closed as not planned on 18 October](../../decisions.md#
 
 | Issue                                               | Remaining                                         | Current prerequisites                              |
 | --------------------------------------------------- | ------------------------------------------------- | -------------------------------------------------- |
-| [#1165](https://github.com/Ledova/ledova/issues/1165) | Dedicated web issue, transfer and history workflows | Ledger and class-details increment first; preserve authority and original-request recovery |
+| [#1165](https://github.com/Ledova/ledova/issues/1165) | Web Ledger and workflow walkthrough and refinements | Sidebar task views and class details in draft #1259; preserve authority and original-request recovery |
 | [#1201](https://github.com/Ledova/ledova/issues/1201) | Mobile people, issue placement and UX refinements | Deferred until the owner resumes mobile work |
 | [#624](https://github.com/Ledova/ledova/issues/624) | Physical-device and live human release acceptance | Genuine device/human and configured-chain evidence |
 

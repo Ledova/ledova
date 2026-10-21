@@ -17,6 +17,8 @@ const WEB_TITLES: Partial<Record<DestinationKey, string>> = {
 function viewName(key: DestinationKey, view: string): string | undefined {
   const destination: Destination = DESTINATIONS[key];
   const views = destination.views;
+  if (key === 'companyRegister' && Object.prototype.hasOwnProperty.call(DESTINATIONS.companyRegister.tasks, view))
+    return DESTINATIONS.companyRegister.tasks[view as keyof typeof DESTINATIONS.companyRegister.tasks];
   return views && Object.prototype.hasOwnProperty.call(views, view) ? views[view] : undefined;
 }
 

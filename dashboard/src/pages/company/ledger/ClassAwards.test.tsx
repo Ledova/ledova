@@ -231,7 +231,7 @@ it('retains original award, vesting and linked issue preparations through interr
     expect.objectContaining({ vestedShares: '100', issuedShares: '0', availableShares: '100' }),
   );
   expect((await screen.findByRole('link', { name: 'Issue vested shares' })).getAttribute('href')).toBe(
-    '/company/ledger',
+    '/company/ledger#issue',
   );
   expect(submissions(URLS.REGISTER_GRANTS)).toHaveLength(0);
   expect(screen.getByText('100 shares promised · 100 company-recorded vested')).toBeTruthy();

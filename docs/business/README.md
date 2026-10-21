@@ -225,7 +225,8 @@ reply never acts for the new one
 On the web, the sidebar shows:
 
 - Company, for a person who can read a company's register: Dashboard, Ledger, Shareholders, ESS
-  (Employee share scheme) and Documents. Personal holds Your shares.
+  (Employee share scheme) and Documents. Ledger opens the share-class overview; its separate caret
+  expands Issue shares, Transfer shares and History. Personal holds Your shares.
 - For everyone else: Dashboard and Documents, both personal.
 - Configuration: Settings ([Profile and Settings](participants.md#profile-and-settings)).
 - More: Notices and Activity; for investing accounts an Invest group with Directory, Applications,

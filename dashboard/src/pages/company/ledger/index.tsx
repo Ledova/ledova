@@ -38,37 +38,46 @@ import { RegisterSetup } from './RegisterSetup';
 import { useCompanyRegister, useRegisterDownload } from '@pages/company/shared/useCompanyRegister';
 import { ownerGuard } from '@pages/company/shared/ownerGuard';
 import { useOwnAppointments } from '@hooks/useOwnAppointments';
+import { useLedgerNavigation } from '@components/LedgerNavigation';
 
 const ON_CHAIN = ['deployed', 'paused'];
-const TASKS = Object.entries(DESTINATIONS.companyRegister.tasks) as [RegisterTask, string][];
-
 function RegisterPage({
   selection,
   companyName,
   actions,
   sections,
+  task,
   children,
 }: {
   selection?: ReactNode;
   companyName?: string;
   actions?: ReactNode;
   sections?: ReactNode;
+  task?: RegisterTask;
   children: ReactNode;
 }) {
   const { hash } = useLocation();
-  const title = pageTitle('companyRegister', hash.slice(1));
+  const hashTask = hash.slice(1);
+  const shownTask = task ?? (isRegisterTask(hashTask) ? hashTask : undefined);
+  const title = pageTitle('companyRegister', shownTask ?? hashTask);
   return (
     <PageTitle.Provider value={title}>
       <Page
         actions={actions}
         lede={
-          hash === '#awards'
-            ? 'Record employee entitlements and vesting. Shares are issued through a separate company decision.'
-            : hash === '#documents'
-              ? 'Prepare permitted register copies, certificates and company packs.'
-              : hash === '#shareholders'
-                ? 'Who holds shares, what they hold in each class, and their access to their own records.'
-                : 'Share classes and current ownership.'
+          shownTask === 'issue'
+            ? 'Record a company-approved share issue.'
+            : shownTask === 'transfer'
+              ? 'Record a transfer between shareholders.'
+              : shownTask === 'history'
+                ? 'Recorded changes and their supporting records.'
+                : hash === '#awards'
+                  ? 'Record employee entitlements and vesting. Shares are issued through a separate company decision.'
+                  : hash === '#documents'
+                    ? 'Prepare permitted register copies, certificates and company packs.'
+                    : hash === '#shareholders'
+                      ? 'Who holds shares, what they hold in each class, and their access to their own records.'
+                      : 'Share classes and current ownership.'
         }
       >
         {selection}
@@ -128,6 +137,7 @@ function OwnRegister({
   owner: OrderSubmissionOwner;
   currentOwner: () => OrderSubmissionOwner | null;
 }) {
+  const { setState: setLedgerNavigation } = useLedgerNavigation();
   const [memberHeld, setMemberHeld] = useState(false);
   const [heldClasses, setHeldClasses] = useState<ReadonlySet<string>>(() => new Set());
   const [taskSelection, setTaskSelection] = useState<{
@@ -224,7 +234,12 @@ function OwnRegister({
     typeof location.state?.registerCompany === 'string'
       ? location.state.registerCompany
       : (classes.data?.find((item) => item.uuid === registerToken)?.companyUuid ?? '');
-  const registerTask = isRegisterTask(location.state?.registerTask) ? location.state.registerTask : undefined;
+  const hashTask = hash.slice(1);
+  const registerTask = isRegisterTask(hashTask)
+    ? hashTask
+    : isRegisterTask(location.state?.registerTask)
+      ? location.state.registerTask
+      : undefined;
   const registerOutcome =
     typeof location.state?.registerOutcome === 'string' ? location.state.registerOutcome : undefined;
   const inviteMember = typeof location.state?.inviteMember === 'string' ? location.state.inviteMember : undefined;
@@ -271,7 +286,9 @@ function OwnRegister({
       : undefined;
   const taskToken =
     requestedToken ??
-    (registerTask && scope && scope.company.uuid === registerCompany ? scope.registers[0]?.token.uuid : undefined);
+    (scope && (isRegisterTask(hashTask) || (registerTask && scope.company.uuid === registerCompany))
+      ? scope.registers[0]?.token.uuid
+      : undefined);
   const localSelection =
     taskSelection?.company === scope?.company.uuid && taskSelection?.locationKey === location.key
       ? taskSelection
@@ -287,7 +304,7 @@ function OwnRegister({
         ? 'transfer'
         : pinnedParts?.[0] === 'history'
           ? 'history'
-          : (localSelection?.task ?? (taskToken ? (registerTask ?? 'issue') : undefined));
+          : (localSelection?.task ?? (taskToken ? registerTask : undefined));
   const candidateToken =
     pinnedParts && pinnedParts[1] !== 'company' ? pinnedParts[1] : (localSelection?.token ?? taskToken);
   const selectedToken = scope?.registers.some(({ token }) => token.uuid === candidateToken)
@@ -300,10 +317,15 @@ function OwnRegister({
     appointments.isSuccess &&
     !appointments.isFetching &&
     !!appointmentForRegisterStep(appointments.data, scope.company.uuid, 'prepare');
-  const chooseTask = (task: RegisterTask) => {
-    if (held || !sourceReady || !scope || !selectedToken) return;
-    setTaskSelection({ company: scope.company.uuid, token: selectedToken, task, locationKey: location.key });
-  };
+  useEffect(() => {
+    setLedgerNavigation({
+      company: scope?.company.uuid,
+      token: selectedToken,
+      task: selectedTask,
+      blocked: held || !sourceReady,
+    });
+    return () => setLedgerNavigation(null);
+  }, [setLedgerNavigation, scope?.company.uuid, selectedToken, selectedTask, held, sourceReady]);
   const classSections = useRef(new Map<string, HTMLLIElement>());
   const focusedContext = useRef('');
   useEffect(() => {
@@ -312,6 +334,7 @@ function OwnRegister({
       held ||
       !sourceReady ||
       view === 'shareholders' ||
+      (view === 'register' && !selectedTask) ||
       !registerToken ||
       scope?.company.uuid !== registerCompany ||
       !scope.registers.some(({ token }) => token.uuid === registerToken)
@@ -324,32 +347,22 @@ function OwnRegister({
       section.scrollIntoView?.({ block: 'start' });
     }
     focusedContext.current = location.key;
-  }, [location.key, held, sourceReady, view, registerToken, registerRecord, registerCompany, scope]);
+  }, [location.key, held, sourceReady, view, selectedTask, registerToken, registerRecord, registerCompany, scope]);
 
   return (
     <RegisterPage
+      task={view === 'register' ? selectedTask : undefined}
       companyName={readable && sourceReady ? scope?.company.name : undefined}
       actions={
         scope &&
-        view === 'register' && (
-          <>
-            {TASKS.map(([task, label]) => (
-              <PageAction
-                key={task}
-                label={label}
-                pressed={selectedTask === task}
-                disabled={held || !sourceReady}
-                onClick={() => chooseTask(task)}
-              />
-            ))}
-            {canAddClass && (
-              <PageLink
-                primary
-                to={`${DESTINATIONS.companyRegisterSetup.path}?company=${scope.company.uuid}`}
-                label="Add share class"
-              />
-            )}
-          </>
+        view === 'register' &&
+        !selectedTask &&
+        canAddClass && (
+          <PageLink
+            primary
+            to={`${DESTINATIONS.companyRegisterSetup.path}?company=${scope.company.uuid}`}
+            label="Add share class"
+          />
         )
       }
       selection={
@@ -460,7 +473,8 @@ function OwnRegister({
       )}
       {scope && view === 'register' && (
         <>
-          {ownershipReady &&
+          {!selectedTask &&
+            ownershipReady &&
             scope.registers.map((register) => (
               <Section key={register.token.uuid} title={`${register.token.name} · ${register.token.symbol}`}>
                 <ClassRegister register={register} former={false} />
@@ -479,7 +493,7 @@ function OwnRegister({
             {selectedTask && sourceReady && scope.registers.length > 1 && (
               <div className="max-w-sm">
                 <SelectField
-                  label="Task share class"
+                  label="Share class"
                   options={scope.registers.map(({ token }) => ({
                     value: token.uuid,
                     label: `${token.name} · ${token.symbol}`,

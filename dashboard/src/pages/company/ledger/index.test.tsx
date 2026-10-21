@@ -1575,8 +1575,15 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   };
   cleanup();
   client.clear();
-  show();
-  fireEvent.click(await screen.findByRole('button', { name: 'History' }));
+  show(
+    'company',
+    <>
+      <CompanyRegisterPage />
+      <Link to="/#transfer">Transfer shares</Link>
+    </>,
+    'Ledger',
+    { entry: '/#history' },
+  );
   const copiedSummary = await screen.findByRole('button', { name: /^Copied opening ·/ });
   expect(copiedSummary.getAttribute('aria-expanded')).toBe('false');
   fireEvent.click(copiedSummary);
@@ -1586,7 +1593,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   expect(within(copiedMembers).getByText('Example Shareholder')).toBeTruthy();
   expect(within(copiedMembers).getByText('600')).toBeTruthy();
   expect(within(copiedMembers).getByText(formatDate('2020-01-01'))).toBeTruthy();
-  const transferTask = screen.getByRole('button', { name: 'Transfer shares' });
+  const transferTask = screen.getByRole('link', { name: 'Transfer shares' });
   fireEvent.click(within(copiedMembers).getByRole('button', { name: 'Allotments (Example Shareholder)' }));
   const copiedDetails = await screen.findByRole('dialog', { name: 'Example Shareholder' });
   expect(within(copiedDetails).getByText('CERT-001')).toBeTruthy();
@@ -2316,7 +2323,7 @@ it("retains a dashboard's validated company/class context and reads only the cho
       <Link to="/" state={{ registerCompany: 'inland', registerToken: 'ordinary' }}>
         Open mismatched dashboard class
       </Link>
-      <Link to="/" state={{ registerCompany: 'inland', registerToken: 'preference', registerTask: 'history' }}>
+      <Link to="/#history" state={{ registerCompany: 'inland', registerToken: 'preference' }}>
         Open dashboard class
       </Link>
       <Link to="/#shareholders" state={{ registerCompany: 'inland' }}>
@@ -2346,9 +2353,7 @@ it("retains a dashboard's validated company/class context and reads only the cho
   await waitFor(() => expect(document.activeElement).toBe(preference.closest('li')));
   expect(within(preference.closest('li')!).getByRole('heading', { name: 'Recorded changes' })).toBeTruthy();
   expect(screen.getByText('Inland Example Pty Ltd', { selector: 'p' })).toBeTruthy();
-  expect(screen.getByRole('link', { name: 'Class details (Preference shares)' }).getAttribute('href')).toBe(
-    '/company/ledger/preference',
-  );
+  expect(screen.getByRole('link', { name: 'Share class' }).getAttribute('href')).toBe('/company/ledger/preference');
   expect(screen.queryByRole('heading', { name: /^Ordinary shares ·/ })).toBeNull();
   expect(readUrls()).toContain(COMPANY_TOKEN_ENDPOINTS.HOLDERS('preference'));
   expect(readUrls()).not.toContain(COMPANY_TOKEN_ENDPOINTS.HOLDERS('ordinary'));
@@ -2356,7 +2361,6 @@ it("retains a dashboard's validated company/class context and reads only the cho
 
   await choose('Company', 'Harbour Example Pty Ltd', 'harbour');
   await screen.findByText('Harbour Example Pty Ltd', { selector: 'p' });
-  fireEvent.click(screen.getByRole('button', { name: 'History' }));
   expect(
     (await screen.findAllByRole('heading', { name: /^Ordinary shares ·/ })).find((heading) => heading.closest('li')),
   ).toBeTruthy();

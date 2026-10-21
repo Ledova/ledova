@@ -541,9 +541,10 @@ The web destination is **Ledger**, with the subtitle **Share classes and current
 mobile destination remains Register. Ledger is open to every signed-in account and shows the
 registers of companies the person owns or where their appointment includes register access. With
 none, it offers **Add share class** to someone who can prepare one and otherwise says there are none. A company
-selector appears when several companies are readable. Ledger, Shareholders, ESS and Documents in
-the web sidebar are views of one page, so switching between them keeps unfinished forms
-and their recovery ([the app at a glance](README.md#the-app-at-a-glance)). Ledger starts with the
+selector appears when several companies are readable. Ledger's sidebar label opens the share-class
+overview; its separate caret expands Issue shares, Transfer shares and History. Shareholders, ESS
+and Documents remain beside Ledger. These are views of one page, so switching between them keeps
+unfinished forms and their recovery ([the app at a glance](README.md#the-app-at-a-glance)). Ledger starts with the
 company's share classes and current structure; who holds the shares is on Shareholders
 ([decision](../decisions.md#share-classes-shareholders-and-employee-awards)).
 
@@ -552,14 +553,17 @@ The Ledger view shows:
 - a card for each class with **Class details**: Issued shares, Current shareholders, Ledger opened or Ledger not
   opened, Authorised shares (or a Technical share limit for a class set up from existing records), a
   note when completed issues or transfers wait or cannot be checked;
-- header actions for three tasks sharing one share-class selector, only the selected one shown: Issue shares
-  ([investor and non-paid issues](issuing-shares.md#ways-to-issue-shares)), Transfer shares
-  ([non-paid transfers](#non-paid-transfers-between-members)) and History. History holds,
-  under Recorded changes, a link to the class's Share class page, Openings (for a class on chain),
-  Ledger records, Ledger entries (newest first, with certificate controls), Corrections and
-  Reconciliation with the chain, then the company's Particulars changes and Wallet links;
 - **Add share class** in the header, for someone who can prepare the register, opening
   [register setup](#bringing-in-existing-records) for the selected company.
+
+Ledger's three sidebar sub-items each open their own focused view, with a shared share-class
+selector and without the overview cards: Issue shares
+([investor and non-paid issues](issuing-shares.md#ways-to-issue-shares)), Transfer shares
+([non-paid transfers](#non-paid-transfers-between-members)) and History.
+
+History holds, under Recorded changes, a link to the class's Share class page, Openings (for a class
+on chain), Ledger records, Ledger entries (newest first, with certificate controls), Corrections
+and Reconciliation with the chain, then the company's Particulars changes and Wallet links.
 
 History shows each record as one line (its kind, date and stage) that opens on demand to its
 snapshot, documents and decision trail; a prepared record starts open. Stages read Prepared,
@@ -567,12 +571,12 @@ Approved, Applied or Rejected (for an import, Reviewed and Confirmed), and evide
 provided by the company or, before the work became company-run, "Verified by Ledova staff". A
 section that read successfully with nothing to show is left out, but a class on chain without a
 reconciliation says so. An unfinished request keeps its class and exact request, and while one is
-held the company, task and class cannot be changed. A failed read withholds the class cards and the
+held the company, task and class cannot be changed; its sidebar link lets the person return from
+another view to resume the same request. A failed read withholds the class cards and the
 shareholder list rather than implying holdings are zero.
 
-Dedicated Issue shares, Transfer shares and History workflows are the next web increments under
-[#1165](https://github.com/Ledova/ledova/issues/1165). The task controls above remain in Ledger
-until those replacements land; their authority checks and original-request recovery are unchanged.
+The focused views reuse the existing controllers, authority checks and original-request recovery.
+Further workflow refinements remain under [#1165](https://github.com/Ledova/ledova/issues/1165).
 
 The Shareholders view lists Current shareholders: one row per shareholder across classes, with a
 name search, a Share class filter and 25 rows per page, giving each class's shares and percentage

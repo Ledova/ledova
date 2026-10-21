@@ -158,7 +158,7 @@ export function AwardRecord({
               BigInt(award.availableShares) > 0n && (
                 <LinkRow
                   label="Issue vested shares"
-                  to={DESTINATIONS.companyRegister.path}
+                  to={`${DESTINATIONS.companyRegister.path}#issue`}
                   state={{ registerCompany: award.company, registerToken: award.token, issueAward: award.uuid }}
                 />
               )}
@@ -316,7 +316,7 @@ export function AwardRecord({
                   key={grant.uuid}
                   label={`${shareCount(grant.shares)}, prepared ${formatDateTime(grant.createdAt)}`}
                   context={`issue from the award for ${award.recipientName}`}
-                  to={DESTINATIONS.companyRegister.path}
+                  to={`${DESTINATIONS.companyRegister.path}#issue`}
                   state={{ registerCompany: award.company, registerToken: award.token, registerRecord: grant.uuid }}
                   aside={
                     <Status tone={STAGE_TONES[grant.stage] ?? 'waiting'}>

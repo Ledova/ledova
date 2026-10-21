@@ -1,5 +1,7 @@
 // @vitest-environment jsdom
 
+import { Sidebar } from '@components/Sidebar';
+import { LedgerNavigationProvider } from '@components/LedgerNavigationProvider';
 import { ownAppointmentsKey } from '@hooks/useOwnAppointments';
 
 import {
@@ -67,6 +69,8 @@ it('preserves original preparation and issue recovery through refresh, keeps app
     });
   };
   api.get.mockReset().mockImplementation(async (url, config?: { params?: { token?: string } }) => {
+    if (url === '/api/user-accounts/') return { data: { uuid: 'account-one', role: 'company' } };
+    if (url === '/api/user-profiles/' || url === '/api/feature-flags/') return { data: { results: [], next: null } };
     if (url === '/api/user-preferences/') {
       return { data: companyPreferences() };
     }
@@ -180,13 +184,24 @@ it('preserves original preparation and issue recovery through refresh, keeps app
     }
     throw new Error(`Unexpected POST ${url}`);
   });
-  renderCompanyPage(client, <CompanyRegisterPage />, 'Register');
-  const investorTask = await screen.findByRole('button', { name: 'Issue shares' });
-  const transferTask = screen.getByRole('button', { name: 'Transfer shares' });
-  const historyTask = screen.getByRole('button', { name: 'History' });
+  renderCompanyPage(
+    client,
+    <LedgerNavigationProvider>
+      <Sidebar />
+      <CompanyRegisterPage />
+    </LedgerNavigationProvider>,
+    'Ledger',
+    { entry: '/company/ledger', path: '/company/ledger' },
+  );
+  const investorTask = await screen.findByRole('link', { name: 'Issue shares' });
+  const transferTask = screen.getByRole('link', { name: 'Transfer shares' });
+  const historyTask = screen.getByRole('link', { name: 'History' });
+  await waitFor(() => expect(investorTask.getAttribute('aria-disabled')).toBeNull());
   fireEvent.click(investorTask);
-  const taskClass = () => screen.getByLabelText('Task share class') as HTMLSelectElement;
-  fireEvent.change(await screen.findByLabelText('Task share class'), { target: { value: REGISTER.token.uuid } });
+  expect(await screen.findByRole('heading', { level: 1, name: 'Issue shares' })).toBeTruthy();
+  expect(screen.queryByRole('link', { name: /Class details/ })).toBeNull();
+  const taskClass = () => screen.getByLabelText('Share class') as HTMLSelectElement;
+  fireEvent.change(await screen.findByLabelText('Share class'), { target: { value: REGISTER.token.uuid } });
   const allotments = within((await screen.findByRole('group', { name: 'What kind of issue?' })).parentElement!);
   const investorIssue = await allotments.findByRole('radio', { name: 'Investor issue' });
   await waitFor(() => expect(investorIssue.matches(':disabled')).toBe(false));
@@ -240,9 +255,9 @@ it('preserves original preparation and issue recovery through refresh, keeps app
   expect(rows[0].companyEventOn).toBe(ALLOTMENT_REQUEST.companyEventOn);
   expect(allotments.getByLabelText(COPY.CONSIDERATION).matches(':disabled')).toBe(true);
   expect(taskClass().disabled).toBe(true);
-  expect(investorTask.matches(':disabled')).toBe(true);
-  expect(transferTask.matches(':disabled')).toBe(true);
-  expect(historyTask.matches(':disabled')).toBe(true);
+  expect(investorTask.getAttribute('aria-disabled')).toBe('true');
+  expect(transferTask.getAttribute('aria-disabled')).toBe('true');
+  expect(historyTask.getAttribute('aria-disabled')).toBe('true');
   const preparedAllotment = rows[0];
   rows = [{ ...preparedAllotment, companyEventOn: null }];
   const originalReads = api.get.mock.calls.filter(([url]) => url === URLS.REGISTER_ALLOTMENT(rows[0].uuid)).length;
@@ -331,10 +346,17 @@ it('preserves original preparation and issue recovery through refresh, keeps app
   }
   await allotments.findByRole('button', { name: /^Recover record issue receipt/ });
   expect(taskClass().disabled).toBe(true);
-  expect(transferTask.matches(':disabled')).toBe(true);
-  expect(historyTask.matches(':disabled')).toBe(true);
+  expect(transferTask.getAttribute('aria-disabled')).toBe('true');
+  expect(historyTask.getAttribute('aria-disabled')).toBe('true');
   fireEvent.click(transferTask);
   expect(taskClass().value).toBe(REGISTER.token.uuid);
+  expect(allotments.getByRole('button', { name: /^Recover record issue receipt/ })).toBeTruthy();
+  fireEvent.click(screen.getByRole('link', { name: /^Documents$/ }));
+  expect(await screen.findByRole('heading', { level: 1, name: 'Documents' })).toBeTruthy();
+  await waitFor(() => expect(investorTask.getAttribute('aria-disabled')).toBeNull());
+  expect(transferTask.getAttribute('aria-disabled')).toBe('true');
+  fireEvent.click(investorTask);
+  expect(await screen.findByRole('heading', { level: 1, name: 'Issue shares' })).toBeTruthy();
   expect(allotments.getByRole('button', { name: /^Recover record issue receipt/ })).toBeTruthy();
   pauseRead = true;
   failedRead = true;
@@ -354,9 +376,8 @@ it('preserves original preparation and issue recovery through refresh, keeps app
   appointments = [{ ...APPOINTMENT, capabilities: ['read_register'] }];
   fireEvent.click(allotments.getByRole('button', { name: 'Try again' }));
   const recover = await allotments.findByRole('button', { name: /^Recover record issue receipt/ });
-  const shareSummary = await screen.findByRole('region', { name: `${REGISTER.token.name} share summary` });
-  expect(within(shareSummary).getByText('100')).toBeTruthy();
-  expect(within(shareSummary).getByText('1')).toBeTruthy();
+  expect(screen.getByRole('heading', { level: 1, name: 'Issue shares' })).toBeTruthy();
+  expect(screen.queryByRole('region', { name: `${REGISTER.token.name} share summary` })).toBeNull();
   expect(allotments.queryByRole('button', { name: /^Record issue [(]allotment/ })).toBeNull();
   expect(recover).toBeTruthy();
   fireEvent.click(await allotments.findByRole('button', { name: /^Recover record issue receipt/ }));
@@ -428,7 +449,7 @@ it('preserves original preparation and issue recovery through refresh, keeps app
   expect(rows[0].registerEntry).toBe('entry-a');
   expect(rows[0].decisions).toHaveLength(2);
   await waitFor(() => expect(taskClass().disabled).toBe(false));
-  expect(historyTask.matches(':disabled')).toBe(false);
+  await waitFor(() => expect(historyTask.getAttribute('aria-disabled')).toBeNull());
   fireEvent.click(historyTask);
   fireEvent.change(taskClass(), { target: { value: preference.token.uuid } });
   expect(

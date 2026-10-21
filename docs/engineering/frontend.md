@@ -247,7 +247,8 @@ test placement remain review checks. Moves remove the corresponding debt in the 
    needs the same logic.
 5. Build it from `Page`, the ledger blocks, `Modal` and `Field`
    ([signed-in page conventions](frontend-ux.md#signed-in-page-conventions)), one `PascalCase.tsx` per section or
-   dialog, and link it from its parent with `LinkRow` or from the sidebar by its `DESTINATIONS` key.
+   dialog. Put section navigation in the sidebar by its `DESTINATIONS` key; use `LinkRow` or a
+   contextual action for an individual record or task.
 6. When a second page needs one of its files, move the file by the placement rule in the same
    change.
 7. Describe the page in its business section, add its [Pages](#pages) row and add the mobile screen
@@ -306,7 +307,10 @@ refused row.
 
 The sidebar (`dashboard/src/components/Sidebar.tsx`) names items by `DESTINATIONS` key, or
 `companyDashboard`, optionally with a view (`/company/ledger#shareholders`, `#awards`,
-`#documents`, `/home#documents`). Its company group follows `useRegisterEntry`, its investing group the investing
+`#documents`, `/home#documents`). Ledger's label opens its overview; a separate caret expands
+Issue shares (`#issue`), Transfer shares (`#transfer`) and History (`#history`), marking the active
+child and opening the group on Ledger routes. Shareholders, ESS and Documents stay siblings. Its
+company group follows `useRegisterEntry`, its investing group the investing
 role and Market `trading_enabled` ([the app at a
 glance](../business/README.md#the-app-at-a-glance)). A page that isn't an item marks its nearest
 parent that is ([navigation](frontend-ux.md#navigation)): Settings on the Company pages, Activation
@@ -592,18 +596,23 @@ Each page links to its business section; the audience is the `DESTINATIONS` audi
 - Personal dashboard: reads the person's own member projection; the first own class's history loads
   when a member record opens, and choosing another class reads that class's own entries.
 - Ledger on the web (`dashboard/src/pages/company/ledger/index.tsx`): one page renders the
-  Ledger, Shareholders (with member access), Employee share scheme (ESS) and Documents views by hash.
+  Ledger overview, Issue shares, Transfer shares, History, Shareholders (with member access),
+  Employee share scheme (ESS) and Documents views by hash.
   Ledger stacks its share-class summaries as full-workspace-width `Section` cards, with the shared
-  card heading, padding and page spacing. It keeps every class's
-  controllers mounted, merely hidden, so changing view, task (`TASKS`) or class (the Task share
-  class selector) keeps an unfinished request with its class, payload and retry key. Controllers
+  card heading, padding and page spacing. Task views show their selected workflow rather than the
+  ownership overview or header task switches. It keeps every class's
+  controllers mounted, merely hidden, so changing view, task or class (the Share class selector)
+  keeps an unfinished request with its class, payload and retry key. Controllers
   report held work (an unfinished form, or a decision busy or awaiting recovery) under keys naming
   their task, class and any record (`allotments/`, `transfer/`, `history/`, `awards/`, `grants/`;
   member access separately). While anything is held, the page keeps its retained company and class
-  scope, disables the company, task and class selectors and pins held task work to its task and
-  class. A selection lasts one navigation (`location.key`). Navigation state built by
-  `registerPlace` (`dashboard/src/pages/company/ledger/shared/registerPlace.ts`) picks the company
-  (or the class's company), class and task and focuses that class; with a record it focuses that
+  scope, disables the company and class selectors and other sidebar tasks, and pins held task
+  work to its task and class. The held task's sidebar link remains available from a sibling view
+  so its original request can be resumed. `dashboard/src/components/LedgerNavigation.ts` carries
+  this scope and navigation readiness between the page and frame. A selection lasts one navigation
+  (`location.key`). Links built by
+  `registerPlace` (`dashboard/src/pages/company/ledger/shared/registerPlace.ts`) pick the company
+  (or the class's company), class and task hash and focuses that class; with a record it focuses that
   record instead and shows its outcome line. `inviteMember` chooses the invitation's recipient on
   Shareholders.
   History records are disclosures with a one-line summary, their detail and certificate control

@@ -76,15 +76,48 @@ async function openTheSidebar(page: Page, role: Role) {
     await expect(page.getByRole('img', { name: /Ordinary shares share ownership/ })).toBeVisible();
   }
   expect(await page.locator('html').evaluate((node) => node.scrollWidth <= node.clientWidth)).toBe(true);
-  if (page.viewportSize()!.width < 1024) await page.getByRole('button', { name: 'Open navigation' }).click();
+  const phone = page.viewportSize()!.width < 1024;
+  if (phone) await page.getByRole('button', { name: 'Open navigation' }).click();
   const aside = page.locator('aside').filter({ visible: true });
   await expect(aside).toHaveCount(1);
   await expect(aside.getByRole('button', { name: 'Sign out' })).toBeInViewport();
-  await aside.locator('summary').filter({ hasText: 'More' }).click();
   await expect(aside.getByRole('link', { name: 'Settings', exact: true })).toBeVisible();
   await expect(aside.getByRole('link', { name: 'Dashboard', exact: true })).toBeVisible();
   await expect(aside.getByRole('link', { name: 'Ledger', exact: true })).toHaveCount(role === 'company' ? 0 : 1);
   await expect(aside.getByText(LONG_NAME)).toHaveCount(0);
+  if (role !== 'company') {
+    const toggle = aside.getByRole('button', { name: 'Expand Ledger navigation' });
+    await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    await toggle.click();
+    await expect(aside.getByRole('button', { name: 'Collapse Ledger navigation' })).toHaveAttribute(
+      'aria-expanded',
+      'true',
+    );
+    for (const [name, hash] of [
+      ['Issue shares', 'issue'],
+      ['Transfer shares', 'transfer'],
+      ['History', 'history'],
+    ]) {
+      await expect(aside.getByRole('link', { name, exact: true })).toHaveAttribute('href', `/company/ledger#${hash}`);
+    }
+    await aside.getByRole('link', { name: 'History', exact: true }).click();
+    await expect(page.getByRole('heading', { level: 1, name: 'History', exact: true })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Class details', exact: true })).toHaveCount(0);
+    if (phone) {
+      await expect(page.getByRole('dialog', { name: 'Navigation' })).not.toBeVisible();
+      await page.getByRole('button', { name: 'Open navigation' }).click();
+    }
+    await expect(aside.getByRole('link', { name: 'History', exact: true })).toHaveAttribute('aria-current', 'page');
+    await expect(aside.getByRole('link', { name: 'Ledger', exact: true })).not.toHaveAttribute('aria-current');
+    await aside.getByRole('link', { name: 'Ledger', exact: true }).click();
+    await expect(page.getByRole('heading', { level: 1, name: 'Ledger', exact: true })).toBeVisible();
+    if (phone) {
+      await expect(page.getByRole('dialog', { name: 'Navigation' })).not.toBeVisible();
+      await page.getByRole('button', { name: 'Open navigation' }).click();
+    }
+    await expect(aside.getByRole('link', { name: 'Ledger', exact: true })).toHaveAttribute('aria-current', 'page');
+  }
+  await aside.locator('summary').filter({ hasText: 'More' }).click();
   if (role !== 'company') await expect(aside.getByText('Invest', { exact: true })).toBeVisible();
   return aside;
 }
