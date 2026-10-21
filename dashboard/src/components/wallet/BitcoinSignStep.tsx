@@ -1,10 +1,11 @@
 import { Field, TextArea } from '@components/Field';
-import { useState } from 'react';
 import { formatWalletAddressMedium, normalizeBitcoinRawTransactionHex } from '@ledova/shared';
 import type { PrepareBitcoinTransferResponse } from '@ledova/shared';
 import { Row, Rows } from '@components/Ledger';
 import { ModalActions } from '@components/Modal';
 import { PageAction } from '@components/Page';
+import { ErrorSummary } from '@components/ErrorSummary';
+import { useErrorSummary } from '@hooks/useErrorSummary';
 
 interface BitcoinSignStepProps {
   prepared: PrepareBitcoinTransferResponse;
@@ -30,20 +31,16 @@ export function BitcoinSignStep({
   onCancel,
   onBroadcast,
 }: BitcoinSignStepProps) {
-  const [validationError, setValidationError] = useState<string | null>(null);
+  const normalized = normalizeBitcoinRawTransactionHex(signedTransaction);
+  const checks = useErrorSummary({ signed: !normalized && INVALID_SIGNED_HEX_MESSAGE });
 
   const handleBroadcast = () => {
-    const normalized = normalizeBitcoinRawTransactionHex(signedTransaction);
-    if (!normalized) {
-      setValidationError(INVALID_SIGNED_HEX_MESSAGE);
-      return;
-    }
-    setValidationError(null);
-    onBroadcast(normalized);
+    if (checks.check() && normalized) onBroadcast(normalized);
   };
 
   return (
     <div className="space-y-4">
+      <ErrorSummary {...checks.summary} />
       <p className="text-sm text-text-muted">
         This app does not build or sign Bitcoin transactions. Sign with your own wallet software and paste the result.
       </p>
@@ -68,7 +65,7 @@ export function BitcoinSignStep({
         ))}
       </ol>
 
-      <Field label="Signed transaction (hex)" error={validationError}>
+      <Field {...checks.field('signed')} label="Signed transaction (hex)">
         <TextArea
           value={signedTransaction}
           onChange={(event) => onSignedTransactionChange(event.target.value)}
@@ -81,12 +78,7 @@ export function BitcoinSignStep({
 
       <ModalActions>
         <PageAction label="Cancel" onClick={onCancel} />
-        <PageAction
-          label="Broadcast"
-          primary
-          onClick={handleBroadcast}
-          disabled={signedTransaction.trim().length === 0}
-        />
+        <PageAction label="Broadcast" primary onClick={handleBroadcast} />
       </ModalActions>
     </div>
   );

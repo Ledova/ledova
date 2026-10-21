@@ -11,6 +11,8 @@ import {
 import { Modal, ModalActions } from '@components/Modal';
 import { PageAction } from '@components/Page';
 import { SeedPhraseInput } from '@components/SeedPhraseInput';
+import { ErrorSummary } from '@components/ErrorSummary';
+import { useErrorSummary } from '@hooks/useErrorSummary';
 import { QRCodeFrame, QRScannerView, useQRScanner } from '@components/qr';
 import {
   approvalTransactionForSigning,
@@ -79,6 +81,9 @@ export function SwapSettlementFlow({ settlement, wallets, onClose }: Props) {
   const approval = state.approvalData?.needsApproval ? state.approvalData.transaction : null;
   const software = wallet?.signingPreference === 'software' || (!wallet?.derivationPath && !wallet?.masterFingerprint);
   const canSign = !!response?.canSign && !response.hasSigned && !!wallet;
+  const phraseCheck = useErrorSummary({
+    seedPhrase: !view.seedPhrase.trim() && 'Enter the seed phrase for this wallet.',
+  });
   const ready = ['ready', 'approval-ready'].includes(state.phase);
   const reviewedQr = view.qr;
   const liveQr = !!reviewedQr && reviewedQr.attempt === state.attempt;
@@ -91,6 +96,7 @@ export function SwapSettlementFlow({ settlement, wallets, onClose }: Props) {
     view.error = null;
     view.seedPhrase = '';
     view.kind = kind;
+    phraseCheck.reset();
     if (software) {
       view.step = 'software';
       render();
@@ -203,6 +209,7 @@ export function SwapSettlementFlow({ settlement, wallets, onClose }: Props) {
     view.qr = null;
     view.error = null;
     view.step = 'review';
+    phraseCheck.reset();
     render();
   };
   const close = () => {
@@ -301,8 +308,10 @@ export function SwapSettlementFlow({ settlement, wallets, onClose }: Props) {
             <p className="break-all">Approved contract: {response.typedData.domain.verifyingContract}</p>
           </div>
         )}
+        {ready && canSign && view.step === 'software' && <ErrorSummary {...phraseCheck.summary} />}
         {ready && canSign && view.step === 'software' && (
           <SeedPhraseInput
+            {...phraseCheck.field('seedPhrase')}
             value={view.seedPhrase}
             // eslint-disable-next-line react-hooks/immutability
             onChange={(value) => {
@@ -366,9 +375,10 @@ export function SwapSettlementFlow({ settlement, wallets, onClose }: Props) {
             <PageAction
               label={view.kind === 'approval' ? 'Sign approval' : 'Sign trade'}
               primary
-              disabled={!view.seedPhrase.trim()}
               // eslint-disable-next-line react-hooks/immutability
-              onClick={signSoftware}
+              onClick={() => {
+                if (phraseCheck.check()) signSoftware();
+              }}
             />
           )}
           {ready && canSign && view.step === 'qr' && liveQr && view.qr && (

@@ -5,7 +5,7 @@ import { PASSWORD_VALIDATION } from '../constants/utilities';
 import { signup } from '../services/auth';
 import type { FormErrors, SignupRequest } from '../types';
 import { describeFailure, readApiError } from '../utils/errors';
-import { isNumericOnly, validatePassword } from '../utils/validation';
+import { newPasswordProblem, validatePassword } from '../utils/validation';
 import { useApiClient } from './useApiClient';
 
 export const SIGNUP_USER_FIELDS: readonly (keyof SignupRequest)[] = ['email', 'password'];
@@ -54,12 +54,9 @@ export function useSignupUser(rememberEmail: (email: string) => Promise<void> | 
       newErrors.email = ['Email is required'];
     }
 
-    if (form.password.length < PASSWORD_VALIDATION.MIN_LENGTH) {
-      newErrors.password = [`Password must be at least ${PASSWORD_VALIDATION.MIN_LENGTH} characters long`];
-    }
-
-    if (isNumericOnly(form.password)) {
-      newErrors.password = [...(newErrors.password || []), 'Password cannot be entirely numeric'];
+    const passwordProblem = newPasswordProblem(form.password);
+    if (passwordProblem) {
+      newErrors.password = [passwordProblem];
     }
 
     setErrors(newErrors);
