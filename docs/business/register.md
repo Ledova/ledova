@@ -210,19 +210,20 @@ Ledova, and its holdings must match the stored register. On the web:
    ([choosing a person](#choosing-a-person); names never link records, and existing names and
    addresses are kept), then enter from this
    class's records the name, residential address, original date entered and **Current shares held**.
-   **Allotment history (optional)** copies available dates, quantities and paid/unpaid amounts;
+   **Allocation history** optionally copies available dates, quantities and paid/unpaid amounts;
    these historical quantities need not equal today's holding after transfers or cancellations.
    New web records leave beneficial
    ownership **Not recorded**, with no ownership question or reference inputs; existing answers and
-   references stay with saved records and corrections. **Documents (optional)** attaches one or more
+   references stay with saved records and corrections. **Documents** optionally attaches one or more
    files to this shareholder and share class, each with **Category** and **File** fields
    ([supporting documents](#shareholder-documents)).
-   **Add allotment** opens the first optional entry. One allotment is open for editing at a time.
-   **Add another allotment** checks the current entry,
+   **+ Add** beside each section heading adds an allocation or document. One allocation is open
+   for editing at a time. Adding another checks the current entry,
    folds it into a date, shares, paid and unpaid summary, and opens any unfinished entry or a new one.
-   **Edit** reopens a summary, **Remove** drops an unsaved entry, and unfinished input is kept when
-   switching entries. Entries do not collapse while typing. **Add to draft** finishes the shareholder
-   and any history entered. Removing the final entry leaves no copied history. History never sets
+   Pencil and trash controls edit or remove the relevant entry, with accessible names and tooltips;
+   unfinished input is kept when switching entries. Entries do not collapse while typing.
+   **Add shareholder**, or **Save changes** when editing, finishes the shareholder and any history
+   entered. Removing the final entry leaves no copied history. History never sets
    or limits current holdings. New paid/unpaid fields start at zero; clearing either records zero,
    and fully paid means nothing remains unpaid. Existing unknown amounts remain unknown.
    For a genuinely unopened non-tokenised class
@@ -251,14 +252,15 @@ preparation for editing and needs preparation and rejection authority.
 
 Award recipients without shares appear in the same list as members, marked as such. Select the
 exact company recipient to keep their ID, current particulars and any accepted member access; enter
-their source membership date, holdings and allotments yourself. Changed, unavailable, conflicting or
+their source membership date, current holdings and any optional allotment history yourself.
+Changed, unavailable, conflicting or
 foreign identities block preparation, review or application; names alone never join people. A first
 copied holding records an opening balance, not an award-linked issue.
 
 Web imports are attributed to "Company-provided share records", with a snapshot naming the company,
 record date and preparer; the mobile app asks for a source reference and keeps separate Review and
 Confirm mirror screens. Confirming is the company's confirmation that the records are its own, not a
-new director resolution. On the web, **Company source copies (optional)** holds a register copy and ASIC
+new director resolution. On the web, **Company source copies** optionally holds a register copy and ASIC
 extract, kept without being read. Fresh setup asks for neither former shareholders nor ASIC
 comparison figures. Earlier former-member records remain in saved snapshots, review and history;
 an inherited **Earlier ASIC comparison** is read-only, with **Leave out ASIC comparison** available

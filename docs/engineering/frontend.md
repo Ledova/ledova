@@ -478,10 +478,12 @@ validates each returned company, member and class against the query. Later attac
 downloads use these retained links, not a public storage URL
 ([attachment rules](../business/register.md#shareholder-documents)). Mobile keeps its existing setup.
 
-The web setup's repeated allotments keep one editor open, retain unfinished input when switching,
-and fold checked entries into compact summaries through **Add another allotment**. **Add to draft**
-finishes the final entry with its shareholder. Recorded totals and the remaining shares use exact
-whole-share arithmetic; neither the total nor the editor adjusts the entered holding
+The web setup's **Allocation history** is independent of **Current shares held** and starts empty.
+Its **+ Add** heading action keeps one editor open, retains unfinished input when switching and
+folds checked entries into compact summaries. Pencil and trash controls sit with their entry,
+sharing `dashboard/src/pages/company/ledger/shared/RecordAction.tsx` with document and draft-row
+actions. **Add shareholder** or **Save changes** finishes the shareholder. Historical quantities
+neither set nor limit the current holding; new paid/unpaid blanks normalize to zero
 ([form conventions](frontend-ux.md#forms)).
 
 The helpers order an opening's holdings largest first by exact share count, check that every count

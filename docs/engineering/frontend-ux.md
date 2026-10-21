@@ -560,8 +560,10 @@ Some messages keep their own form:
   or around Headless UI's `Select` in `SelectField`, so the label, the hint and any error are linked
   to the control and an error sets `aria-invalid`. The label sits above the control. A standalone optional
   field ends with "(optional)"; an optional group declares this once in its heading, without repeating it
-  on each field. Labels use the group's context instead of repeating its name: **Documents (optional)**
-  contains **Category** and **File**, with a numbered accessible group name distinguishing each attachment.
+  on each field. Repeatable sections entered through **+ Add** use plain headings, such as
+  **Allocation history** and **Documents** in ledger setup; an empty section requires no entry.
+  Labels use the group's context instead of repeating its name: **Documents** contains **Category**
+  and **File**, with a numbered accessible group name distinguishing each attachment.
   Omitting a repeated optional marker does not make the field required. A sentence about one field is that field's hint, and an action
   beside the label, such as Scan QR, is its `aside`. Choices, the searchable pickers, the list search
   and checkboxes that need no check keep their own controls, and sign-in and sign-up keep their own
@@ -581,14 +583,17 @@ Some messages keep their own form:
   [#1201](https://github.com/Ledova/ledova/issues/1201).
 - **Date fields.** A date field is `type="date"`, bounded with `min` and `max` wherever the server
   has a rule, and its label or message names the time zone where it matters.
-- **Repeated allotments.** Web ledger setup separates **Current shares held** from optional allotment
-  history, which starts empty. **Add allotment** opens its first entry. It keeps one editor expanded.
-  **Add another allotment**
+- **Repeated allocations.** Web ledger setup separates **Current shares held** from **Allocation
+  history**, which starts empty. **+ Add** beside the section heading opens its first entry. It keeps
+  one editor expanded. Adding another
   validates the current entry, folds it into a compact date, shares, paid and unpaid summary with
-  **Edit** and **Remove**, then opens an unfinished entry or a new blank one. Fields never collapse on
+  pencil and trash controls, then opens an unfinished entry or a new blank one. Row icons sit with
+  the entry they affect and keep contextual accessible names, hover/focus tooltips and usable targets.
+  Fields never collapse on
   blur or simply because they look complete. Editing or switching entries preserves unfinished input;
-  validation opens the entry needing attention. **Add to draft** completes the shareholder and their
-  optional history, without another save step. Historical quantities never set or limit current
+  validation opens the entry needing attention. **Add shareholder**, or **Save changes** when editing,
+  completes the shareholder and their optional history, with Cancel beside it. These main actions
+  retain visible text. Historical quantities never set or limit current
   holdings; there is no remaining-share counter or equality requirement. New paid/unpaid fields
   default to zero, including when cleared; stored unknown amounts are not rewritten.
 - **UTC dates.** Register and company dates are UTC calendar dates: `utcToday`

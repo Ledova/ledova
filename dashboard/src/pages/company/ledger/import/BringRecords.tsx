@@ -7,6 +7,7 @@ import { ErrorSummary } from '@components/ErrorSummary';
 import { MemberFields } from './MemberFields';
 import { blankMember, type PreparationDraft, type MemberDraft } from './preparation';
 import { Disclosure } from '@components/Ledger';
+import { RecordAction } from '@pages/company/ledger/shared/RecordAction';
 
 export function BringRecords({
   draft,
@@ -147,18 +148,18 @@ export function BringRecords({
                       <td className="whitespace-nowrap px-4 py-4 text-text-muted">{formatDate(row.enteredOn, '—')}</td>
                       <td className="px-4 py-4">
                         <div className="flex gap-2">
-                          <PageAction
-                            label="Edit"
-                            context={`shareholder ${index + 1}`}
+                          <RecordAction
+                            action="edit"
+                            label={`Edit shareholder ${index + 1}`}
                             disabled={busy || editorOpen}
                             onClick={() => {
                               forget();
                               setEditor({ member: row.member, original: row });
                             }}
                           />
-                          <PageAction
-                            label="Remove"
-                            context={`shareholder ${index + 1}`}
+                          <RecordAction
+                            action="remove"
+                            label={`Remove shareholder ${index + 1}`}
                             disabled={busy || editorOpen}
                             onClick={() =>
                               update((current) => ({
@@ -217,7 +218,7 @@ export function BringRecords({
                     }}
                   />
                   <PageAction
-                    label={editor?.original ? 'Done editing' : 'Add to draft'}
+                    label={editor?.original ? 'Save changes' : 'Add shareholder'}
                     primary
                     disabled={busy}
                     onClick={() => {
@@ -229,7 +230,7 @@ export function BringRecords({
               </div>
             )}
           </fieldset>
-          <Disclosure summary="Company source copies (optional)">
+          <Disclosure summary="Company source copies">
             {draft.earlierCopiesNotReused && (
               <p className="text-sm text-text-muted">
                 Earlier source documents remain with their original record. Add replacement documents if needed.

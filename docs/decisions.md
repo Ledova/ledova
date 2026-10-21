@@ -1339,6 +1339,12 @@ from optional history. New web paid/unpaid fields default to zero, including whe
 earlier unknown amounts, calculated values and exact retries. The company's legal historical
 records and the separate new-issue safeguards remain unchanged.
 
+For the same form, the owner approved **Allocation history** and **Documents** without optional
+markers. Keep optional sections empty until **+ Add** beside their heading is used. Pencil and
+trash icons sit with the entry they edit or remove, retaining accessible names and tooltips.
+The main footer keeps Cancel and the labelled **Add shareholder** or **Save changes** action.
+This changes presentation, not whether history or documents are required.
+
 ## Paper and Dark themes
 
 On 14 October 2026 the owner directed under
