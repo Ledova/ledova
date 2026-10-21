@@ -17,6 +17,7 @@ import {
   refusalSentences,
   COMPANY_WALLET_ACTION_LABELS,
   shortReference,
+  CHAIN_FAILURE_LABELS,
 } from '@ledova/shared';
 import { Row, Rows, Section, LoadError } from '@components/Ledger';
 import { PageAction } from '@components/Page';
@@ -95,7 +96,9 @@ function Record({ record, data }: { record: CompanyWalletInstruction; data: Read
               <Row label="Original claim">{shortReference(record.execution.claimId)}</Row>
             )}
             {!!record.execution?.txHash && <Row label="Transaction">{record.execution.txHash}</Row>}
-            {!!record.execution?.failureCode && <Row label="Failure">{record.execution.failureCode}</Row>}
+            {!!record.execution?.failureCode && (
+              <Row label="Failure">{CHAIN_FAILURE_LABELS[record.execution.failureCode]}</Row>
+            )}
           </Rows>
           {refusalSentences(record.executionUnmetRequirements, COMPANY_WALLET_UNMET_COPY).map((sentence) => (
             <p key={sentence} className="text-sm text-text-muted">

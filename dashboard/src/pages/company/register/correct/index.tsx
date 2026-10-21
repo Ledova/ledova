@@ -1,4 +1,4 @@
-import { PreparationBack, PreparationNotice, PreparationShell } from '@pages/company/register/shared/PreparationShell';
+import { PreparationNotice, PreparationShell } from '@pages/company/register/shared/PreparationShell';
 import { useRegisterPreparationOwner } from '@pages/company/register/shared/useRegisterPreparationOwner';
 import { useCorrectionEntry } from './useCorrectionEntry';
 import { useMemo, type ReactNode } from 'react';
@@ -20,6 +20,7 @@ import { useRegisterClasses } from '@pages/company/shared/useCompanyRegister';
 import { ownerGuard } from '@pages/company/shared/ownerGuard';
 import { useOwnAppointments } from '@hooks/useOwnAppointments';
 import { CorrectionForm } from './CorrectionForm';
+import { registerPlace } from '@pages/company/register/shared/registerPlace';
 
 const COPY = REGISTER_CORRECTION_COPY;
 const LEDE =
@@ -33,7 +34,6 @@ function inverseOf(entry: RegisterEntry) {
 export default function CompanyRegisterCorrectionPage() {
   const { uuid = '', entry = '' } = useParams();
   const { owner, boundary, preferences } = useRegisterPreparationOwner();
-  const back = <PreparationBack />;
   if (owner && !preferences.isError)
     return (
       <OwnCorrection
@@ -42,10 +42,9 @@ export default function CompanyRegisterCorrectionPage() {
         entry={entry}
         owner={owner}
         currentOwner={boundary.get}
-        back={back}
       />
     );
-  return <PreparationShell lede={LEDE} actions={back} preferences={preferences} />;
+  return <PreparationShell lede={LEDE} preferences={preferences} />;
 }
 
 function OwnCorrection({
@@ -53,13 +52,11 @@ function OwnCorrection({
   entry,
   owner,
   currentOwner,
-  back,
 }: {
   uuid: string;
   entry: string;
   owner: OrderSubmissionOwner;
   currentOwner: () => OrderSubmissionOwner | null;
-  back: ReactNode;
 }) {
   const guard = useMemo(() => ownerGuard(owner, currentOwner), [owner, currentOwner]);
   const classes = useRegisterClasses(owner, guard);
@@ -149,7 +146,7 @@ function OwnCorrection({
       </>
     );
   return (
-    <Page narrow lede={LEDE} actions={back}>
+    <Page narrow lede={LEDE} back={registerPlace({ token: uuid, task: 'history' })}>
       {content}
     </Page>
   );

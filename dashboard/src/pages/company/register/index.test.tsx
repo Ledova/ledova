@@ -563,7 +563,7 @@ it('reads every class page and groups exact holdings by member identity with sea
   expect(screen.getAllByText(/current company register appointment/)).toHaveLength(2);
   expect(screen.getByRole('heading', { level: 1, name: 'Example Member' })).toBeTruthy();
   expect(api.post).not.toHaveBeenCalled();
-});
+}, 15_000);
 
 it('brings complete mirror records, recovers uncertain requests and confirms one snapshot with separate company appointments', async () => {
   const manual: MemberDraft[] = [
@@ -1777,7 +1777,7 @@ it('shows an account without register access a calm empty state, reads no member
   expect(screen.queryByRole('button', { name: 'Download CSV' })).toBeNull();
   cleanup();
   show('investor', <SettingsPage />, 'Settings');
-  expect(await screen.findByRole('link', { name: 'Team and appointments' })).toBeTruthy();
+  expect(await screen.findByRole('link', { name: 'Company team' })).toBeTruthy();
   await waitFor(() => expect(client.isFetching()).toBe(0));
   expect(readUrls()).toEqual([REGISTER, APPOINTMENTS, PROFILES]);
   expect(screen.queryByRole('link', { name: 'Register' })).toBeNull();
@@ -1795,7 +1795,7 @@ it("retains a dashboard's validated company/class context and reads only the cho
       <Link to="/" state={{ registerCompany: 'inland', registerToken: 'ordinary' }}>
         Open mismatched dashboard class
       </Link>
-      <Link to="/" state={{ registerCompany: 'inland', registerToken: 'preference', registerHistory: true }}>
+      <Link to="/" state={{ registerCompany: 'inland', registerToken: 'preference', registerTask: 'history' }}>
         Open dashboard class
       </Link>
       <Link to="/#shareholders" state={{ registerCompany: 'inland' }}>

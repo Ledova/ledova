@@ -53,8 +53,12 @@ The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components
   most one action besides Refresh; a state is never a title.
 - `Rows` and `Row`: ruled label and value pairs, figures right-aligned in tabular numerals.
 - `LinkRow`: how a list of sub-pages or neighbours links to each; the whole row is the link, named
-  after its destination, with optional detail lines and an aside. A title row never repeats a
-  sidebar destination; an underlined link belongs to a sentence or opens an external resource.
+  with its destination's title, with optional detail lines and an aside. A step in a checklist, such
+  as "Verify and activate your company", and a row that starts a task, such as "Prepare a non-paid
+  transfer", are named for the step or the task; a record's row, such as a share class in Directory,
+  for the record; and a row that opens a section of a page, such as "Company documents", for that
+  section. A title row never repeats a sidebar destination; an underlined link belongs to a sentence
+  or opens an external resource.
 - `PageAction` and `PageLink` (`Action` on mobile): a content-width action placed with what it acts
   on: the title row for the page (including the way back to the parent), a section for that section,
   a row for that row's record alone. Nothing is selected before acting, and no toolbar waits under a list.
@@ -103,10 +107,30 @@ authorises.
 ## Navigation
 
 The web sidebar (`dashboard/src/components/Sidebar.tsx`) is a `<nav>` labelled "Main" whose items
-are links, and the current page's item carries `aria-current="page"`. Below 1024 pixels the header's
-menu button opens the same sidebar as a Headless UI `Dialog`: the button reports `aria-expanded`,
-focus stays inside the drawer while it is open, and Escape or a choice closes it. The first Tab on a
-signed-in page reaches "Skip to main content", which moves focus to the page's heading.
+are links, and the current page's item carries `aria-current="page"`; a page that isn't an item
+marks its nearest parent that is. Below 1024 pixels the header's menu button opens the same sidebar
+as a Headless UI `Dialog`: the button reports `aria-expanded`, focus stays inside the drawer while it
+is open, and Escape or a choice closes it. The first Tab on a signed-in page reaches "Skip to main
+content", which moves focus to the page's heading.
+
+`DESTINATIONS` (`packages/shared/src/constants/ui/destinations.ts`) names the signed-in pages,
+Register's views (Shareholders, Employee awards, Documents) and tasks, and Home's Documents view, and
+the sidebar and page titles read their names from it. On the web the company dashboard and Home are
+both titled Dashboard, so the company workspace lists Home as Your shares. `DESTINATION_PARENTS`
+beside it gives each page below a sidebar destination its parent, and `Page` puts one link back to it
+in the title row, "Back to <parent's title>": Back to Settings on Company team, Back to Company on
+Representative authority, Back to Shareholders on a shareholder's page. Once a particulars change has
+found its member, its link goes back to that member by name. Register setup has none, on purpose
+([decisions](../decisions.md#manual-register-setup-shares-before-shareholders)).
+
+A way back to Register carries the place it means, built by `registerPlace`
+(`dashboard/src/pages/company/register/shared/registerPlace.ts`): a correction, an opening and a
+class's own page return to that class's History, a non-paid transfer to that class's Transfer shares,
+and wallet links to the company's History. A transfer started from a shareholder's page links back
+to them by name. Preparing a correction, opening, non-paid transfer, wallet link or particulars change
+lands on the new record in Register, at its class and task, focused and with one line naming what was
+prepared ([feedback](#feedback)). A preparation started from a shareholder's page lands there too,
+since a shareholder's page doesn't list prepared records.
 
 Each page's title is also the browser tab's title, "<page title> · Ledova", set by `Page`; a
 shareholder's page says "Shareholder" there, so their name stays out of the browser's history. After
@@ -117,7 +141,7 @@ as from `/` to your dashboard, and after a change to the search, filter or page 
 
 Focus outlines come in one style: two pixels in the focus colour (`--color-border-focus`), set once
 for `:focus-visible` in `dashboard/src/styles/index.css`. Text fields, and the sign-in and sign-up
-fields and buttons, keep their own focus rings.
+fields and action buttons, keep their own focus rings.
 
 ## Actions
 
@@ -196,12 +220,14 @@ their own details. It reports:
 - a recorded team invitation, an accepted invitation and a representative authority request;
 - member access's recorded invitation, certificate fulfilment and particulars instruction;
 - a placed or recovered order with its share class, above Trading's orders, until another order
-  action or a class change starts.
+  action or a class change starts;
+- a prepared correction, register opening, non-paid transfer, wallet link or particulars change, on
+  the record you land on in Register.
 
 Other signing flows and identity verification show their result in their own dialog, sign-in and
 sign-up keep their boxed outcomes, and the payment instruction's copy buttons confirm with Copied
-beside them. Register forms and preparations don't use it. Mobile still reports success with native alerts and its success
-dialog.
+beside them. Register's other forms don't use it. Mobile still reports success with native alerts
+and its success dialog.
 
 ## Copy
 
@@ -630,9 +656,11 @@ by a local helper or a browser `toLocale…` call:
 - **Status codes** read as words, never as the code or a code with its underscores replaced: the
   server's `statusDisplay` where a record carries one (orders, swaps, companies, offerings), else a
   shared label map (`packages/shared/src/constants/business/labels.ts` for eligibility outcomes,
-  member invitations and requests, appointments, company wallet actions, company states, order
-  states and changed order fields, and swap approval outcomes; investor categories, certifier
-  bodies and register entry kinds keep their existing maps).
+  member invitations and requests, appointments, company wallet actions and chain failures, company
+  states, a deployment's swap approval, an application's status on company records, order states
+  and changed order fields, swap approval outcomes and identity sources; `investor-eligibility.ts`
+  for investor categories and certifier bodies; and `REGISTER_CORRECTION_COPY.ENTRY_KINDS` for
+  register entry kinds). Mobile follows in [#1201](https://github.com/Ledova/ledova/issues/1201).
 - **Identifiers.** Records show names. Where only an identifier tells records apart, the screen
   shows `shortReference` (`packages/shared/src/utils/formatting.ts`, the first eight characters),
   never the full UUID, including in choices and screen-reader context. Internal user numbers are

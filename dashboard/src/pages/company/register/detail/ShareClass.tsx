@@ -3,7 +3,6 @@ import { CompanyPaidIssueFlow } from './CompanyPaidIssueFlow';
 import { useState, type ReactNode } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import {
-  DESTINATIONS,
   REGISTER_COPY,
   TECHNICAL_SHARE_LIMIT,
   USER_PREFERENCES_QUERY_KEY,
@@ -14,7 +13,7 @@ import {
   useUserPreferences,
   shareCount,
 } from '@ledova/shared';
-import { Page, PageAction, PageLink } from '@components/Page';
+import { Page, PageAction } from '@components/Page';
 import { Row, Rows, Section, Status, LoadError, Loading } from '@components/Ledger';
 import { LoadMore } from '@components/List';
 import { ClassRegister } from '@pages/company/register/shared/ClassRegister';
@@ -24,6 +23,7 @@ import { DeploymentFlow } from './DeploymentFlow';
 import { CompanyIssueFlow } from './CompanyIssueFlow';
 import { CompanyCapitalFlow } from './CompanyCapitalFlow';
 import { CompanyPauseFlow } from './CompanyPauseFlow';
+import { registerPlace } from '@pages/company/register/shared/registerPlace';
 
 interface ReadState {
   isPending: boolean;
@@ -46,7 +46,7 @@ function ReadResult({ query, label, children }: { query: ReadState; label: strin
 export function ShareClass({ uuid }: { uuid: string }) {
   const data = useShareClass(uuid);
   return (
-    <Page narrow actions={<PageLink to={DESTINATIONS.companyRegister.path} label="Back to Register" />}>
+    <Page narrow back={registerPlace({ token: uuid, task: 'history' })}>
       <ShareClassDetails
         key={`${data.tokenKey.join('/')}/${data.token.data?.companyUuid}/${data.token.data?.isOwner === true}`}
         data={data}

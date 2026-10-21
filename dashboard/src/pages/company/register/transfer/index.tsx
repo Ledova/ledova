@@ -1,10 +1,11 @@
-import { PreparationBack, PreparationNotice, PreparationShell } from '@pages/company/register/shared/PreparationShell';
+import { PreparationNotice, PreparationShell } from '@pages/company/register/shared/PreparationShell';
 import { useRegisterPreparationOwner } from '@pages/company/register/shared/useRegisterPreparationOwner';
 import { useTransferRegister } from './useTransferRegister';
 import { useMemo, type ReactNode } from 'react';
 import { useLocation, useParams } from 'react-router-dom';
 
 import {
+  DESTINATIONS,
   REGISTER_TRANSFER_COPY as COPY,
   appointmentForRegisterStep,
   type OrderSubmissionOwner,
@@ -17,6 +18,8 @@ import { ownerGuard } from '@pages/company/shared/ownerGuard';
 import { useOwnAppointments } from '@hooks/useOwnAppointments';
 import { usePeople } from '@pages/company/register/shared/usePeople';
 import { TransferForm } from './TransferForm';
+import { registerPlace } from '@pages/company/register/shared/registerPlace';
+import { shareholderPath } from '@pages/company/register/shared/shareholders';
 
 const LEDE =
   'Prepare a non-paid transfer with the company’s director authority and a genuine signed transfer instrument.';
@@ -24,7 +27,6 @@ const LEDE =
 export default function CompanyRegisterTransferPage() {
   const { uuid = '' } = useParams();
   const { owner, boundary, preferences } = useRegisterPreparationOwner();
-  const back = <PreparationBack />;
   if (owner && !preferences.isError)
     return (
       <OwnTransfer
@@ -32,22 +34,19 @@ export default function CompanyRegisterTransferPage() {
         uuid={uuid}
         owner={owner}
         currentOwner={boundary.get}
-        back={back}
       />
     );
-  return <PreparationShell lede={LEDE} actions={back} preferences={preferences} />;
+  return <PreparationShell lede={LEDE} preferences={preferences} />;
 }
 
 function OwnTransfer({
   uuid,
   owner,
   currentOwner,
-  back,
 }: {
   uuid: string;
   owner: OrderSubmissionOwner;
   currentOwner: () => OrderSubmissionOwner | null;
-  back: ReactNode;
 }) {
   const { state } = useLocation();
   const guard = useMemo(() => ownerGuard(owner, currentOwner), [owner, currentOwner]);
@@ -62,6 +61,15 @@ function OwnTransfer({
   const register = registers.data?.[0];
   const members = usePeople(owner, uuid, guard, !!appointment);
   const busy = classes.isFetching || appointments.isFetching || registers.isFetching || members.isFetching;
+  const fromMember = typeof state?.fromMember === 'string' ? state.fromMember : '';
+  const fromName = peopleFrom(members.data).find((person) => person.member === fromMember)?.name;
+  const back =
+    fromMember && listed
+      ? {
+          to: shareholderPath(fromMember, listed.companyUuid),
+          label: `Back to ${fromName || DESTINATIONS.companyShareholder.title}`,
+        }
+      : registerPlace({ company: listed?.companyUuid, token: uuid, task: 'transfer' });
   const stale = classes.isError || appointments.isError || registers.isError || members.isError;
   const retry = () => {
     void classes.refetch();
@@ -118,13 +126,13 @@ function OwnTransfer({
             appointment={appointment}
             blocked={stale || busy}
             onRefused={retry}
-            initialFrom={typeof state?.fromMember === 'string' ? state.fromMember : ''}
+            initialFrom={fromMember}
           />
         </Section>
       </>
     );
   return (
-    <Page narrow lede={LEDE} actions={back}>
+    <Page narrow lede={LEDE} back={back}>
       {content}
     </Page>
   );

@@ -67,7 +67,7 @@ export default function ParticipantEligibilityPage() {
           )}
           <Section title="Prepare a request for one company">
             <ErrorSummary {...request.summary} />
-            <LinkRow to={DESTINATIONS.investorEligibility.path} label="Upload or inspect your private evidence" />
+            <LinkRow to={DESTINATIONS.investorEligibility.path} label={DESTINATIONS.investorEligibility.title} />
             <p className="text-sm text-text-muted">
               Select your own submitted evidence or retained historical evidence. Enter the exact company UUID supplied
               by the company, or an approved offering UUID for a product-value claim. The server confirms the target and

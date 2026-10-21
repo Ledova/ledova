@@ -6,6 +6,7 @@ import {
   marketAmount,
   useOrderActionSigning,
   type OrderAction,
+  type OrderActionChange,
   type Wallet,
   shareCount,
   ORDER_STATUS_LABELS,
@@ -18,6 +19,9 @@ import { QRCodeFrame, QRScannerView, useQRScanner } from '@components/qr';
 import { encodeEthereumTypedData } from '@utils/keystone/urEncoder';
 import { decodeKeystoneMessageSignature } from '@utils/keystone/urDecoder';
 import { deriveAddress, signEthereumTypedData } from '@utils/softwareWallet/localSigner';
+
+const changeValue = (field: OrderActionChange['field'], value: string) =>
+  field === 'price_per_share' ? marketAmount(value) : shareCount(value);
 
 interface Props {
   action: OrderAction;
@@ -175,7 +179,8 @@ export function OrderActionFlow({ action, wallets, onClose }: Props) {
                 {state.snapshot.result.changes.length === 0 && <p>The values were already the requested values.</p>}
                 {state.snapshot.result.changes.map((change) => (
                   <p key={change.field}>
-                    {ORDER_CHANGE_FIELD_LABELS[change.field]}: {change.old} → {change.new}
+                    {ORDER_CHANGE_FIELD_LABELS[change.field]}: {changeValue(change.field, change.old)} →{' '}
+                    {changeValue(change.field, change.new)}
                   </p>
                 ))}
               </>

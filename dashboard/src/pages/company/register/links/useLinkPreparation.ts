@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import {
-  DESTINATIONS,
   REGISTER_LINK_COPY,
   apiErrorSentence,
   createUserFriendlyError,
@@ -24,6 +23,7 @@ import apiClient from '@services/apiClient';
 import { hasProblems, type Problems } from '@hooks/useErrorSummary';
 
 import { linksKey } from '@pages/company/register/shared/useRegisterLinks';
+import { registerPlace } from '@pages/company/register/shared/registerPlace';
 
 type Draft = {
   file: File | null;
@@ -198,11 +198,13 @@ export function useLinkPreparation({
       const signature = JSON.stringify(request);
       if (operation.current?.signature !== signature) operation.current = { signature, key: crypto.randomUUID() };
       const preparation = { operationId: operation.current.key, ...request };
+      let prepared = '';
       try {
         check();
         const { data } = await prepareRegisterLink(apiClient, preparation, { ledovaSubmissionGuard: check });
         check();
         if (!isPreparedRegisterLink(data, preparation)) throw createUserFriendlyError(COPY.PREPARATION_RECEIPT_FAILED);
+        prepared = data.uuid;
       } catch (failure) {
         if (failureStatus(failure) === 409) operation.current = null;
         throw failure;
@@ -210,7 +212,8 @@ export function useLinkPreparation({
       check();
       await client.invalidateQueries({ queryKey: linksKey(owner, company) });
       check();
-      navigate(DESTINATIONS.companyRegister.path);
+      const place = registerPlace({ company, task: 'history', record: prepared, outcome: 'Wallet link prepared.' });
+      navigate(place.to, { state: place.state });
     } catch (failure) {
       try {
         check();

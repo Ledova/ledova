@@ -21,10 +21,12 @@ import {
   useWaitingWallets,
   waitingWalletsKey,
 } from '@pages/company/register/shared/useRegisterLinks';
+import type { Landed } from '@pages/company/register/shared/registerPlace';
 
 const COPY = REGISTER_LINK_COPY;
 
 export function RegisterLinks({
+  landed,
   owner,
   guard,
   company,
@@ -32,6 +34,7 @@ export function RegisterLinks({
   visible = true,
   onHeldChange,
 }: {
+  landed?: Landed;
   owner: OrderSubmissionOwner;
   guard: () => void;
   company: string;
@@ -116,6 +119,7 @@ export function RegisterLinks({
         {(links.data ?? []).map((link) => (
           <LinkRecord
             key={link.uuid}
+            landed={landed?.record === link.uuid ? landed : undefined}
             link={link}
             visible={privateReady}
             onHeldChange={onHeldChange}

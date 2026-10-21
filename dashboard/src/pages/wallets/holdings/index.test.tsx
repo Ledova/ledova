@@ -275,7 +275,7 @@ it('puts own register shares and awards first without wallet reads, preserves se
     await client.refetchQueries({ queryKey: ['member-records', 'profile-one', 'account-one', 0], exact: true });
   });
   expect(await screen.findByRole('button', { name: 'Request certificate for entry 1' })).toBeTruthy();
-  fireEvent.click(screen.getByRole('link', { name: 'View documents and certificate requests' }));
+  fireEvent.click(screen.getByRole('link', { name: 'Documents' }));
   expect(await screen.findByRole('heading', { name: 'Documents', level: 1 })).toBeTruthy();
   expect(screen.queryByText('10 issued shares')).toBeNull();
   expect(screen.queryByRole('img')).toBeNull();

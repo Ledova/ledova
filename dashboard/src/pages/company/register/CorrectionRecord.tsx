@@ -9,10 +9,12 @@ import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
 import { describeEntry, type RegisterSteps } from '@pages/company/shared/proposals';
 import type { ClassCorrection } from '@pages/company/register/shared/useClassCorrections';
 import { useCorrectionRecordDownload } from './useRegisterRecordDownload';
+import type { Landed } from '@pages/company/register/shared/registerPlace';
 
 const COPY = REGISTER_CORRECTION_COPY;
 
 export function CorrectionRecord({
+  landed,
   correction: { proposal, entry },
   steps,
   guard,
@@ -21,6 +23,7 @@ export function CorrectionRecord({
   visible = true,
   onHeldChange,
 }: {
+  landed?: Landed;
   correction: ClassCorrection;
   steps: RegisterSteps;
   guard: () => void;
@@ -33,7 +36,7 @@ export function CorrectionRecord({
   const download = useCorrectionRecordDownload(proposal, check);
   const context = `correction of entry ${entry.sequence}`;
   return (
-    <RecordShell hidden={!visible}>
+    <RecordShell hidden={!visible} landed={landed}>
       {visible && (
         <details open={proposal.status === 'submitted'} className="space-y-3">
           <summary className="cursor-pointer text-sm font-medium text-text-primary">{`Correction of entry ${entry.sequence} · ${COPY.STAGES[proposal.stage] ?? proposal.stage}`}</summary>

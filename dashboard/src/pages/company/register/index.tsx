@@ -14,6 +14,8 @@ import {
 } from '@ledova/shared';
 import { LinkRow, LoadError, Loading } from '@components/Ledger';
 import { PageTitle } from '@components/PageTitle';
+import { pageTitle } from '@utils/destinations';
+import { isRegisterTask, type Landed } from '@pages/company/register/shared/registerPlace';
 import { Page, PageAction, PageLink } from '@components/Page';
 import { CompanySelection } from '@pages/company/shared/CompanySelection';
 
@@ -38,12 +40,8 @@ import { ownerGuard } from '@pages/company/shared/ownerGuard';
 import { useOwnAppointments } from '@hooks/useOwnAppointments';
 
 const ON_CHAIN = ['deployed', 'paused'];
-const TASKS = [
-  ['issue', 'Issue shares'],
-  ['transfer', 'Transfer shares'],
-  ['history', 'History'],
-] as const;
-type RegisterTask = (typeof TASKS)[number][0];
+type RegisterTask = keyof typeof DESTINATIONS.companyRegister.tasks;
+const TASKS = Object.entries(DESTINATIONS.companyRegister.tasks) as [RegisterTask, string][];
 
 function RegisterPage({
   selection,
@@ -57,14 +55,7 @@ function RegisterPage({
   children: ReactNode;
 }) {
   const { hash } = useLocation();
-  const title =
-    hash === '#awards'
-      ? 'Employee awards'
-      : hash === '#documents'
-        ? 'Documents'
-        : hash === '#shareholders'
-          ? 'Shareholders'
-          : 'Register';
+  const title = pageTitle('companyRegister', hash.slice(1));
   return (
     <PageTitle.Provider value={title}>
       <Page
@@ -226,12 +217,21 @@ function OwnRegister({
   );
   const location = useLocation();
   const { hash } = location;
-  const registerCompany = typeof location.state?.registerCompany === 'string' ? location.state.registerCompany : '';
   const registerToken = typeof location.state?.registerToken === 'string' ? location.state.registerToken : '';
+  const registerCompany =
+    typeof location.state?.registerCompany === 'string'
+      ? location.state.registerCompany
+      : (classes.data?.find((item) => item.uuid === registerToken)?.companyUuid ?? '');
+  const registerTask = isRegisterTask(location.state?.registerTask) ? location.state.registerTask : undefined;
+  const registerOutcome =
+    typeof location.state?.registerOutcome === 'string' ? location.state.registerOutcome : undefined;
   const inviteMember = typeof location.state?.inviteMember === 'string' ? location.state.inviteMember : undefined;
   const issueMember = typeof location.state?.issueMember === 'string' ? location.state.issueMember : undefined;
   const issueAward = typeof location.state?.issueAward === 'string' ? location.state.issueAward : undefined;
   const registerRecord = typeof location.state?.registerRecord === 'string' ? location.state.registerRecord : undefined;
+  const landed: Landed | undefined = registerRecord
+    ? { record: registerRecord, key: location.key, outcome: registerOutcome }
+    : undefined;
   const enteredIssue = useRef('');
   const entered = `${registerCompany}/${registerToken}`;
   useEffect(() => {
@@ -267,6 +267,9 @@ function OwnRegister({
     scope && scope.company.uuid === registerCompany && scope.registers.some(({ token }) => token.uuid === registerToken)
       ? registerToken
       : undefined;
+  const taskToken =
+    requestedToken ??
+    (registerTask && scope && scope.company.uuid === registerCompany ? scope.registers[0]?.token.uuid : undefined);
   const localSelection =
     taskSelection?.company === scope?.company.uuid && taskSelection?.locationKey === location.key
       ? taskSelection
@@ -282,10 +285,9 @@ function OwnRegister({
         ? 'transfer'
         : pinnedParts?.[0] === 'history'
           ? 'history'
-          : (localSelection?.task ??
-            (requestedToken ? (location.state?.registerHistory === true ? 'history' : 'issue') : undefined));
+          : (localSelection?.task ?? (taskToken ? (registerTask ?? 'issue') : undefined));
   const candidateToken =
-    pinnedParts && pinnedParts[1] !== 'company' ? pinnedParts[1] : (localSelection?.token ?? requestedToken);
+    pinnedParts && pinnedParts[1] !== 'company' ? pinnedParts[1] : (localSelection?.token ?? taskToken);
   const selectedToken = scope?.registers.some(({ token }) => token.uuid === candidateToken)
     ? candidateToken
     : scope?.registers[0]?.token.uuid;
@@ -315,7 +317,7 @@ function OwnRegister({
       return;
     const section = classSections.current.get(registerToken);
     if (!section) return;
-    if (location.state?.registerHistory === true && view === 'register') {
+    if (registerTask === 'history' && view === 'register') {
       const history = section.querySelector<HTMLDetailsElement>('details[data-register-history]');
       if (history) history.open = true;
     }
@@ -324,7 +326,7 @@ function OwnRegister({
       section.scrollIntoView?.({ block: 'start' });
     }
     focusedContext.current = location.key;
-  }, [location.key, location.state, held, sourceReady, view, registerToken, registerRecord, registerCompany, scope]);
+  }, [location.key, held, sourceReady, view, registerTask, registerToken, registerRecord, registerCompany, scope]);
 
   return (
     <RegisterPage
@@ -363,6 +365,7 @@ function OwnRegister({
             </div>
             <div hidden={view !== 'register' || selectedTask !== 'history'}>
               <RegisterParticulars
+                landed={landed}
                 owner={owner}
                 guard={guard}
                 company={scope.company.uuid}
@@ -371,6 +374,7 @@ function OwnRegister({
                 onHeldChange={companyHistoryHeld}
               />
               <RegisterLinks
+                landed={landed}
                 owner={owner}
                 guard={guard}
                 company={scope.company.uuid}
@@ -534,6 +538,7 @@ function OwnRegister({
                   </div>
                   <div hidden={view !== 'register' || selectedTask !== 'transfer'}>
                     <ClassTransfers
+                      landed={landed}
                       owner={owner}
                       guard={guard}
                       register={register}
@@ -562,6 +567,7 @@ function OwnRegister({
                       )}
                       {ON_CHAIN.includes(register.token.status) && (
                         <ClassOpenings
+                          landed={landed}
                           owner={owner}
                           guard={guard}
                           register={register}
@@ -589,6 +595,7 @@ function OwnRegister({
                         onHeldChange={historyHeld}
                       />
                       <ClassCorrections
+                        landed={landed}
                         owner={owner}
                         guard={guard}
                         token={register.token.uuid}

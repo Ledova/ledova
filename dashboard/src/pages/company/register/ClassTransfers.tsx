@@ -17,8 +17,10 @@ import { entriesKey } from '@pages/company/register/shared/useRegisterEntries';
 import { useOwnAppointments, ownAppointmentsKey } from '@hooks/useOwnAppointments';
 import { transfersKey, useRegisterTransfers } from '@pages/company/register/shared/useRegisterTransfers';
 import { allPeopleKey } from '@pages/company/register/shared/usePeople';
+import type { Landed } from '@pages/company/register/shared/registerPlace';
 
 export function ClassTransfers({
+  landed,
   owner,
   guard,
   register,
@@ -26,6 +28,7 @@ export function ClassTransfers({
   visible = true,
   onHeldChange,
 }: {
+  landed?: Landed;
   owner: OrderSubmissionOwner;
   guard: () => void;
   register: TokenHoldersResponse;
@@ -82,7 +85,9 @@ export function ClassTransfers({
             (register.token.status === 'draft' ? DESTINATIONS.companyRegisterImport : DESTINATIONS.companyClass).path,
             { uuid: token },
           )}
-          label={register.token.status === 'draft' ? 'Set up share register' : 'Share class settings'}
+          label={
+            (register.token.status === 'draft' ? DESTINATIONS.companyRegisterImport : DESTINATIONS.companyClass).title
+          }
         />
       )}
       {privateReady && steps?.prepare && supported && (
@@ -110,6 +115,7 @@ export function ClassTransfers({
         {(transfers.data ?? []).map((transfer) => (
           <TransferRecord
             key={transfer.uuid}
+            landed={landed?.record === transfer.uuid ? landed : undefined}
             transfer={transfer}
             visible={privateReady}
             onHeldChange={recordHeld}
