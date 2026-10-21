@@ -108,7 +108,7 @@ export function useCompanyMemberRequests({
   const problems: Problems<MemberField> = {
     member: !member && 'Choose the member or award recipient.',
     email: !email.trim() && 'Give the intended recipient’s email.',
-    reason: !reason.trim() && 'Give the company action reason.',
+    reason: (!!access.admin || preparing) && !reason.trim() && 'Give the company action reason.',
     file: preparing && !file && 'Choose the company supporting document.',
     asAt: preparing && (!isCalendarDate(asAt) || asAt > utcToday()) && 'Enter an as-at date no later than today (UTC).',
     instruction: !certificateInstruction.trim() && 'Give the certificate instruction reference.',

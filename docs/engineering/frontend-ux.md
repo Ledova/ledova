@@ -553,13 +553,16 @@ This section covers how a form reports a problem: when it is submitted, and when
     (`dashboard/src/hooks/useIncompleteDates.ts`) notes the browser's `badInput` on each keystroke,
     input and blur, and the form treats it as a problem: the team invitation's deadline and
     appointment expiry, and an offering's closing time.
-  - **Not yet:** sign-in and sign-up still show their own alerts. These still disable their action
-    until it is valid: the eligibility claim, representative authority requests and the acceptance
-    that establishes the appointment, subscriptions, adding a wallet, wallet nominations, the
-    wallet's Send form, eligibility action confirmations, company activation's declaration, the
-    recovery phrase and Bitcoin signed transaction in signing steps, pre-screening and company
-    registration. They move in the next [#1179](https://github.com/Ledova/ledova/issues/1179)
-    changes, and mobile follows in [#1201](https://github.com/Ledova/ledova/issues/1201).
+  - **Not yet:** sign-in and sign-up still show their own alerts, and the investor's company
+    eligibility request reports its rules from the shared hook as one sentence at the top of the
+    page. These still disable their action until it is valid: the eligibility claim,
+    representative authority requests and the acceptance that establishes the appointment,
+    subscriptions, adding a wallet, wallet nominations, the wallet's Send form, eligibility action
+    confirmations, company activation's declaration, Profile's payslip attachment, the recovery
+    phrase and Bitcoin signed transaction in signing steps, pre-screening and company registration.
+    They move in the next [#1179](https://github.com/Ledova/ledova/issues/1179) changes, and mobile
+    follows in [#1201](https://github.com/Ledova/ledova/issues/1201). Filters that only narrow a
+    list, such as Activity's dates, keep their own rules.
 
 - **Request errors.** A failure reads as one `role="alert"` sentence from `failureSentence`
   (`packages/shared/src/utils/errors.ts`), never the transport's "Request failed with status code
