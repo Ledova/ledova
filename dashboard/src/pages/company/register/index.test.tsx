@@ -253,7 +253,7 @@ it('reads every class page and groups exact holdings by member identity with sea
   expect(within(namesakes[0]).getAllByText('9,007,199,254,740,993')).toHaveLength(2);
   expect(within(namesakes[1]).getByText('1')).toBeTruthy();
   expect(within(namesakes[1]).getByText('<0.01%')).toBeTruthy();
-  expect(within(namesakes[1]).getByLabelText('No PREFERENCE holding')).toBeTruthy();
+  expect(within(namesakes[1]).getByText('No PREFERENCE holding')).toBeTruthy();
   expect(within(namesakes[1]).getByText('Identity needs review')).toBeTruthy();
   expect(screen.getByText(/1 shareholder needs identity review/)).toBeTruthy();
   expect(screen.getByText('1–25 of 26 shareholders')).toBeTruthy();
@@ -1825,7 +1825,9 @@ it("retains a dashboard's validated company/class context and reads only the cho
   expect(company.value).toBe('');
   expect(readUrls()).toEqual([REGISTER]);
   fireEvent.click(screen.getByRole('link', { name: 'Open dashboard class' }));
-  const preference = await screen.findByRole('heading', { name: /^Preference shares ·/ });
+  const preference = (await screen.findAllByRole('heading', { name: /^Preference shares ·/ })).find((heading) =>
+    heading.closest('li'),
+  )!;
   await waitFor(() => expect(document.activeElement).toBe(preference.closest('li')));
   expect(within(preference.closest('li')!).getByRole('heading', { name: 'Recorded changes' })).toBeTruthy();
   expect(screen.getByText('Inland Example Pty Ltd', { selector: 'p' })).toBeTruthy();
@@ -1837,7 +1839,9 @@ it("retains a dashboard's validated company/class context and reads only the cho
   await choose('Company', 'Harbour Example Pty Ltd', 'harbour');
   await screen.findByText('Harbour Example Pty Ltd', { selector: 'p' });
   fireEvent.click(screen.getByRole('button', { name: 'History' }));
-  await screen.findByRole('heading', { name: /^Ordinary shares ·/ });
+  expect(
+    (await screen.findAllByRole('heading', { name: /^Ordinary shares ·/ })).find((heading) => heading.closest('li')),
+  ).toBeTruthy();
   expect(screen.getByText('Harbour Example Pty Ltd', { selector: 'p' })).toBeTruthy();
   expect(screen.queryByRole('heading', { name: /^Preference shares ·/ })).toBeNull();
   expect(

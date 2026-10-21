@@ -432,7 +432,9 @@ it('preserves original preparation and issue recovery through refresh, keeps app
   fireEvent.click(historyTask);
   fireEvent.change(taskClass(), { target: { value: preference.token.uuid } });
   expect(
-    await screen.findByRole('heading', { name: `${preference.token.name} · ${preference.token.symbol}` }),
+    (await screen.findAllByRole('heading', { name: `${preference.token.name} · ${preference.token.symbol}` })).find(
+      (heading) => heading.closest('li'),
+    ),
   ).toBeTruthy();
   expect(screen.queryByText('entry-a')).toBeNull();
   fireEvent.change(taskClass(), { target: { value: REGISTER.token.uuid } });

@@ -77,6 +77,7 @@ export function BringRecords({
           allotment.beneficiallyHeld !== null,
       )
     );
+  const listed = draft.members.some((row) => started(row) && row.member !== editor?.member);
   const add = () => {
     if (busy || editorOpen) return;
     const blank = draft.members.find((row) => !started(row));
@@ -124,7 +125,7 @@ export function BringRecords({
       )}
       {step === 'shareholders' && (
         <>
-          <fieldset className="space-y-3">
+          <fieldset className="min-w-0 space-y-3">
             <legend className="sr-only">Shareholders</legend>
             {!editorOpen && (
               <div className="flex flex-wrap items-center justify-between gap-3">
@@ -136,11 +137,9 @@ export function BringRecords({
               </div>
             )}
             {!draft.members.some(started) && !editorOpen && (
-              <div className="rounded-xl border border-dashed border-border-subtle px-4 py-10 text-center">
-                <p className="text-sm text-text-muted">No shareholders added yet.</p>
-              </div>
+              <p className="text-sm text-text-muted">No shareholders added yet.</p>
             )}
-            {draft.members.some((row) => started(row) && row.member !== editor?.member) && (
+            {listed && (
               <Table
                 caption="Draft shareholders"
                 columns={[
@@ -194,7 +193,7 @@ export function BringRecords({
               </Table>
             )}
             {editing && (
-              <div className="space-y-5 rounded-xl bg-surface-tertiary p-4 sm:p-5">
+              <div className={listed ? 'space-y-5 border-t border-border-subtle pt-5' : 'space-y-5'}>
                 <h3 className="text-base font-medium text-text-primary">
                   {editor?.original ? 'Edit shareholder' : 'Add shareholder'}
                 </h3>

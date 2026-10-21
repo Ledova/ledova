@@ -171,7 +171,9 @@ export function ImportForm({
                 />
                 <fieldset
                   disabled={busy || uncertain || blocked}
-                  className={phase === 'details' ? 'grid items-start gap-6 md:grid-cols-2' : 'space-y-5'}
+                  className={
+                    phase === 'details' ? 'grid min-w-0 items-start gap-6 md:grid-cols-2' : 'min-w-0 space-y-5'
+                  }
                 >
                   {phase === 'details' &&
                     (classFields ??
@@ -261,21 +263,21 @@ export function ImportForm({
                     Record date · <time dateTime={proposal.asAt}>{formatDate(proposal.asAt)}</time>
                   </p>
                 </div>
-                <dl aria-label="Share register summary" className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                  <div className="col-span-2 min-w-0 rounded-xl bg-surface-tertiary p-4 sm:col-span-1">
+                <dl className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                  <div className="col-span-2 min-w-0 sm:col-span-1">
                     <dt className="text-xs text-text-muted">Share class</dt>
                     <dd className="mt-2 break-words text-lg font-medium text-text-primary">
                       {shareClass?.name ?? register?.token.name ?? 'Share class'}
                     </dd>
                     <dd className="mt-1 text-xs text-text-muted">{shareClass?.symbol ?? register?.token.symbol}</dd>
                   </div>
-                  <div className="min-w-0 rounded-xl bg-surface-tertiary p-4">
+                  <div className="min-w-0">
                     <dt className="text-xs text-text-muted">Shares held</dt>
                     <dd className="mt-2 break-words text-2xl font-medium tabular-nums text-text-primary">
                       {formatShareCount(registerImportTotals(proposal.members).total)}
                     </dd>
                   </div>
-                  <div className="min-w-0 rounded-xl bg-surface-tertiary p-4">
+                  <div className="min-w-0">
                     <dt className="text-xs text-text-muted">Shareholders</dt>
                     <dd className="mt-2 text-2xl font-medium tabular-nums text-text-primary">
                       {proposal.members.length}
@@ -289,39 +291,22 @@ export function ImportForm({
                   proposal.registerEvidence ||
                   proposal.asicEvidence) && (
                   <Disclosure summary="Supporting records">
-                    <dl className="grid gap-4 pt-4 sm:grid-cols-2">
+                    <Rows>
                       {(proposal.sourceReference || proposal.authorityReference) !==
                         'Company-provided share records' && (
-                        <div>
-                          <dt className="text-xs text-text-muted">Source record</dt>
-                          <dd className="mt-1 text-sm">{proposal.sourceReference || proposal.authorityReference}</dd>
-                        </div>
+                        <Row label="Source record">{proposal.sourceReference || proposal.authorityReference}</Row>
                       )}
                       {proposal.asicIssuedTotal !== null && (
-                        <div>
-                          <dt className="text-xs text-text-muted">ASIC issued shares cross-check</dt>
-                          <dd className="mt-1 text-sm">{formatShareCount(proposal.asicIssuedTotal)}</dd>
-                        </div>
+                        <Row label="ASIC issued shares cross-check">{formatShareCount(proposal.asicIssuedTotal)}</Row>
                       )}
                       {proposal.asicMemberCount !== null && (
-                        <div>
-                          <dt className="text-xs text-text-muted">Shareholders listed by ASIC</dt>
-                          <dd className="mt-1 text-sm">{proposal.asicMemberCount}</dd>
-                        </div>
+                        <Row label="Shareholders listed by ASIC">{proposal.asicMemberCount}</Row>
                       )}
                       {proposal.registerEvidence && (
-                        <div>
-                          <dt className="text-xs text-text-muted">Source copy</dt>
-                          <dd className="mt-1 text-sm">Retained company-provided register copy</dd>
-                        </div>
+                        <Row label="Source copy">Retained company-provided register copy</Row>
                       )}
-                      {proposal.asicEvidence && (
-                        <div>
-                          <dt className="text-xs text-text-muted">ASIC copy</dt>
-                          <dd className="mt-1 text-sm">Retained company-provided extract</dd>
-                        </div>
-                      )}
-                    </dl>
+                      {proposal.asicEvidence && <Row label="ASIC copy">Retained company-provided extract</Row>}
+                    </Rows>
                   </Disclosure>
                 )}
                 <MemberRecords members={proposal.members} />

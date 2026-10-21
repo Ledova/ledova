@@ -242,11 +242,14 @@ function OwnShareholder({
           <Section title="Holdings">
             {!holdings.length && <p className="text-sm text-text-muted">No current holding.</p>}
             {holdings.map(({ register, holder }) => (
-              <section key={register.token.uuid} className="space-y-3 rounded-xl border border-border-subtle p-4">
+              <section
+                key={register.token.uuid}
+                className="space-y-3 border-t border-border-subtle pt-4 first-of-type:border-t-0 first-of-type:pt-0"
+              >
                 <h3 className="break-words text-base font-medium text-text-primary">
                   {register.token.name} · {register.token.symbol}
                 </h3>
-                <dl className="grid gap-4 sm:grid-cols-2">
+                <Rows>
                   {[
                     ['Shares held', formatShareCount(holder.balance)],
                     ['% of class', sharePercentage(holder.balance, register.issuedSupply)],
@@ -254,12 +257,11 @@ function OwnShareholder({
                     ['Holder type', HOLDER_TYPE_LABELS[holder.holderType]],
                     ...(holder.name && holder.name !== title ? [['Name for this class', holder.name]] : []),
                   ].map(([label, value]) => (
-                    <div key={label}>
-                      <dt className="text-xs text-text-muted">{label}</dt>
-                      <dd className="mt-1 break-words text-sm tabular-nums text-text-primary">{value}</dd>
-                    </div>
+                    <Row key={label} label={label}>
+                      {value}
+                    </Row>
                   ))}
-                </dl>
+                </Rows>
                 {holder.holderType === 'ambiguous' && (
                   <p className="text-sm text-text-muted">{REGISTER_COPY.AMBIGUOUS_NOTE}</p>
                 )}

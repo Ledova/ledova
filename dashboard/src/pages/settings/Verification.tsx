@@ -3,10 +3,10 @@ import {
   IDENTITY_CHECK_COPY,
   companiesAwaitingActivation,
   getUserVerificationStatus,
+  VERIFICATION_TONES,
 } from '@ledova/shared';
 import { LinkRow, Section, Status, LoadError } from '@components/Ledger';
 import { ActivationStep } from '@components/SetupStep';
-import { VERIFICATION_TONES } from '@components/statusTones';
 import { useSignedInAppointments } from '@hooks/useOwnAppointments';
 import { useUserProfile } from '@hooks/useUserProfile';
 

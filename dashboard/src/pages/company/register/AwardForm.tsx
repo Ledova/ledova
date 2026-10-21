@@ -67,7 +67,7 @@ export function AwardForm({
   if (!visible) return null;
   return (
     <form
-      className="space-y-5 rounded-xl border border-border-subtle bg-surface-tertiary p-4 sm:p-5"
+      className="space-y-5 border-t border-border-subtle pt-5"
       noValidate
       onSubmit={(event) => {
         event.preventDefault();

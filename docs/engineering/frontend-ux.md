@@ -48,10 +48,15 @@ The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components
 
 - `Section`: a raised card on the page ground (`bg-surface-raised`, a `border-border` hairline,
   `rounded-2xl` in the frame, `rounded-xl` outside it) with its Newsreader title inside. Forms and
-  things to act on are cards too; a group inside a card gets a rule or a small heading, never a
-  nested card. An empty section keeps its real title, one muted sentence ("No activity yet.") and at
-  most one action besides Refresh; a state is never a title.
-- `Rows` and `Row`: ruled label and value pairs, figures right-aligned in tabular numerals.
+  things to act on are cards too; a group inside a card, such as a form or a record, gets a hairline
+  rule above it or a small heading, never a nested card. An empty section keeps its real title, one
+  muted sentence ("No activity yet.") and at most one action besides Refresh; a state is never a
+  title. A card's title is a heading, such as each class's summary on Register.
+- `Rows` and `Row`: ruled label and value pairs for a record's labelled facts, such as a
+  shareholder's holding or an import's supporting records. The web sets values in tabular numerals;
+  mobile right-aligns them. Breakdowns of figures (company ownership, a class's totals, register
+  setup's summary, a holding's wallets) and an award's chart legend keep their own layout, without
+  tinted tiles.
 - `LinkRow`: how a list of sub-pages or neighbours links to each; the whole row is the link, named
   with its destination's title, with optional detail lines and an aside. A step in a checklist, such
   as "Verify and activate your company", and a row that starts a task, such as "Prepare a non-paid
@@ -244,6 +249,11 @@ organisations. An ellipsis is one character, "…"; ESLint refuses three dots in
 dashboard's and the shared package's source. Labels the backend supplies, such as company and
 document types and some statuses ("Under Review", "Awaiting Payment"), keep its title case. Mobile's
 own copy doesn't follow this yet (#1201); the shared strings it shows do.
+
+Copy and tone maps meant for both clients live in `packages/shared`, such as the identity
+verification outcomes (`IDENTITY_OUTCOME_COPY`), their tones (`VERIFICATION_TONES`) and an
+application's history (`applicationHistory`). The web reads them there; mobile still keeps its own
+copies until #1201.
 
 ## Choosing a person
 

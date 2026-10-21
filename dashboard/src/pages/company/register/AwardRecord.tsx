@@ -107,9 +107,7 @@ export function AwardRecord({
     ? (remainingRegisterAwardVesting(correcting, reversals.data ?? []) ?? undefined)
     : undefined;
   return (
-    <RecordShell
-      className={`flex flex-col gap-4 ${visible ? 'rounded-xl border border-border-subtle bg-surface-raised p-4 sm:p-5' : ''}`}
-    >
+    <RecordShell className={`flex flex-col gap-4 ${visible ? 'border-t border-border-subtle pt-4' : ''}`}>
       {visible && (
         <>
           <h4 className="text-base font-medium text-text-primary">{award.name}</h4>
