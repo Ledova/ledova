@@ -1455,6 +1455,22 @@ export interface ApiPaths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/tokens/{uuid}/class-rights/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: ApiOperations['api_v1_tokens_class_rights_retrieve'];
+    put?: never;
+    post: ApiOperations['api_v1_tokens_class_rights_create'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/tokens/{uuid}/holders/': {
     parameters: {
       query?: never;
@@ -4386,6 +4402,33 @@ export interface ApiComponents {
       currentPassword: string;
       newPassword: string;
       newPasswordConfirm: string;
+    };
+    ClassRightsPage: {
+      administrationAppointment: string | null;
+      count: number;
+      current: ApiComponents['schemas']['ClassRightsRevision'] | null;
+      next: string | null;
+      previous: string | null;
+      results: ApiComponents['schemas']['ClassRightsRevision'][];
+    };
+    ClassRightsRevision: {
+      appointment: string;
+      createdAt: string;
+      documentReference: string;
+      idempotencyKey: string;
+      recordedBy: number;
+      recordedByName: string;
+      revision: number;
+      summary: string;
+      token: string;
+      uuid: string;
+    };
+    ClassRightsWriteRequest: {
+      appointment: string;
+      documentReference: string;
+      idempotencyKey: string;
+      previousRevision: number;
+      summary: string;
     };
     CompanyActivated: {
       attempt: ApiComponents['schemas']['CompanyActivationAttempt'];
@@ -11652,6 +11695,76 @@ export interface ApiOperations {
         };
         content: {
           'application/json': ApiComponents['schemas']['ShareTokenDetail'];
+        };
+      };
+    };
+  };
+  api_v1_tokens_class_rights_retrieve: {
+    parameters: {
+      query?: {
+        idempotency_key?: string;
+        page?: number;
+        page_size?: number;
+      };
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['ClassRightsPage'];
+        };
+      };
+    };
+  };
+  api_v1_tokens_class_rights_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': ApiComponents['schemas']['ClassRightsWriteRequest'];
+        'application/x-www-form-urlencoded': ApiComponents['schemas']['ClassRightsWriteRequest'];
+        'multipart/form-data': ApiComponents['schemas']['ClassRightsWriteRequest'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['ClassRightsRevision'];
+        };
+      };
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['ClassRightsRevision'];
+        };
+      };
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            [key: string]: unknown;
+          };
         };
       };
     };
