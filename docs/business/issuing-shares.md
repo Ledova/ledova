@@ -388,9 +388,7 @@ offering past draft; only the company changes them, by editing after a rejection
 not fixed.
 
 An offering is open while it is approved and the time is within its window. Nothing opens or closes
-it automatically: reaching the cap does not close it, and closing is a deliberate staff act. While
-an offering is approved, Offerings shows its UUID in full, with **Copy offering UUID**, to give
-investors for their large-investment eligibility requests.
+it automatically: reaching the cap does not close it, and closing is a deliberate staff act.
 Investors see only open offerings in the directory; approval publishes the terms of an offering
 invisible to them while submitted or under review.
 
@@ -599,8 +597,9 @@ mapped holding against final chain evidence before claiming a mirror.
 Offerings, under More in the web sidebar and in the mobile app, lists every offering of the selected
 company the person owns, with its applications, followed by Investor directory and What happens
 next. Each offering shows its terms, status, any rejection, previous rejection or closing reason,
-and the actions its status allows. New offering needs a deployed class; without one the page says to
-deploy a class first.
+and the actions its status allows. On the web, an approved offering also shows its UUID in full, with
+**Copy offering UUID**, to give investors for their large-investment eligibility requests. New
+offering needs a deployed class; without one the page says to deploy a class first.
 
 The offering form checks the price, ordered bounds, dates and available settlement choices before
 sending, sets the window in the device's local time on mobile, requires a settlement asset that is

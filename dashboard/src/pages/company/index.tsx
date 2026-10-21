@@ -76,7 +76,9 @@ function CompanyDetails({ data }: { data: ReturnType<typeof useCompanySelection>
                     <span className="min-w-0 break-all">{company.uuid}</span>
                     <CopyButton key={company.uuid} value={company.uuid} label="Copy company UUID" />
                   </div>
-                  <p className="mt-1 text-xs text-text-muted">Give this to investors for their eligibility requests.</p>
+                  <p className="mt-1 text-xs text-text-muted">
+                    Give this to investors for their eligibility requests and claims.
+                  </p>
                 </Row>
                 {data.canAdmin && company.email && (
                   <Row label="Email">
