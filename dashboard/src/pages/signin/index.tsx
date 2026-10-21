@@ -15,15 +15,21 @@ import { useSignIn } from './useSignIn';
 import { Field, Label, Description } from '@headlessui/react';
 import { EyeIcon, EyeSlashIcon, EnvelopeIcon, LockIcon, WarningIcon } from '@phosphor-icons/react';
 import { ICON_MD } from '@components/iconSizes';
+import { ErrorSummary } from '@components/ErrorSummary';
+import { useFieldErrorSummary } from '@hooks/useErrorSummary';
 
 function SignInPage() {
   const navigate = useNavigate();
   const { form, errors, generalError, isLoading, showPassword, setFieldValue, togglePassword, handleSubmit } =
     useSignIn();
+  const reported = useFieldErrorSummary(generalError ? {} : errors, ['email', 'password']);
+  const email = reported.field('email');
+  const password = reported.field('password');
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     await handleSubmit(() => navigate(ROOT_PATH));
+    reported.reported();
   };
 
   return (
@@ -31,7 +37,8 @@ function SignInPage() {
       <AuthHeader title="Welcome back" icon={<LockIcon size={ICON_MD} className="text-text-muted" />} />
 
       <AuthCard>
-        <form onSubmit={handleSignIn} className="space-y-6">
+        <form noValidate onSubmit={handleSignIn} className="space-y-6">
+          <ErrorSummary {...reported.summary} />
           {generalError && (
             <div className={ERROR_BANNER_CLASS}>
               <div className="flex items-start">
@@ -47,7 +54,7 @@ function SignInPage() {
             </div>
           )}
 
-          <Field className="space-y-2">
+          <Field id={email.id} className="space-y-2">
             <Label className="block text-sm font-medium text-text-body">Email</Label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -61,17 +68,14 @@ function SignInPage() {
                 onChange={(e) => setFieldValue('email', e.target.value)}
                 placeholder="your@email.com"
                 required
+                invalid={!!email.error}
                 disabled={isLoading}
               />
             </div>
-            {errors.email && !generalError && errors.email.length > 0 && (
-              <Description className="text-error-light text-sm mt-1" role="alert">
-                {errors.email.join(' ')}
-              </Description>
-            )}
+            {email.error && <Description className="text-error-light text-sm mt-1">{email.error}</Description>}
           </Field>
 
-          <Field className="space-y-2">
+          <Field id={password.id} className="space-y-2">
             <Label className="block text-sm font-medium text-text-body">Password</Label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -86,6 +90,7 @@ function SignInPage() {
                 className={authFieldClass(false, 'pl-10 pr-12', true, 'focus:ring-brand-mid')}
                 placeholder="••••••••"
                 required
+                invalid={!!password.error}
                 disabled={isLoading}
               />
               <button
@@ -98,11 +103,7 @@ function SignInPage() {
                 {showPassword ? <EyeSlashIcon size={ICON_MD} /> : <EyeIcon size={ICON_MD} />}
               </button>
             </div>
-            {errors.password && !generalError && errors.password.length > 0 && (
-              <Description className="text-error-light text-sm mt-1" role="alert">
-                {errors.password.join(' ')}
-              </Description>
-            )}
+            {password.error && <Description className="text-error-light text-sm mt-1">{password.error}</Description>}
           </Field>
 
           <button type="submit" disabled={isLoading} className={AUTH_BUTTON_CLASS}>
