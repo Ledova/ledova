@@ -1,13 +1,14 @@
+import { Field, TextInput, FileField } from '@components/Field';
 import { useTransferPreparation, type TransferFormProps } from './useTransferPreparation';
 
-import { REGISTER_TRANSFER_COPY as COPY, type Person } from '@ledova/shared';
+import { REGISTER_TRANSFER_COPY as COPY, type Person, formatDate, shareCount } from '@ledova/shared';
 import { FormActions, PageAction } from '@components/Page';
-import { FIELD_CLASS, LABEL } from '@components/fieldClass';
-import { formatShareCount } from '@ledova/shared';
+import { ErrorSummary } from '@components/ErrorSummary';
+import { useErrorSummary } from '@hooks/useErrorSummary';
 import { PersonFields, PersonSelect } from '@pages/company/register/shared/PersonPicker';
 
 function inClass(person: Person) {
-  return person.awardOnly ? '' : `${formatShareCount(person.currentShares)} shares in this class`;
+  return person.awardOnly ? '' : `${shareCount(person.currentShares)} in this class`;
 }
 
 export function TransferForm({
@@ -33,7 +34,7 @@ export function TransferForm({
     eligible,
     recipient,
     fresh,
-    problem,
+    problems,
     submit,
     fields,
   } = useTransferPreparation({
@@ -47,17 +48,21 @@ export function TransferForm({
     onRefused,
     initialFrom,
   });
+  const checks = useErrorSummary(problems);
 
   return (
     <form
       className="space-y-5"
+      noValidate
       onSubmit={(event) => {
         event.preventDefault();
-        void submit();
+        if (operation || checks.check()) void submit();
       }}
     >
+      <ErrorSummary {...checks.summary} />
       <fieldset disabled={busy || blocked} className="space-y-4">
         <PersonSelect
+          {...checks.field('fromMember')}
           label={COPY.FROM}
           people={eligible.filter((member) => member.particularsRetained && BigInt(member.currentShares) > 0n)}
           value={draft.fromMember}
@@ -66,6 +71,7 @@ export function TransferForm({
           context={inClass}
         />
         <PersonSelect
+          {...checks.field('toMember')}
           label={COPY.TO}
           people={eligible.filter((member) => member.member !== draft.fromMember)}
           value={draft.toMember}
@@ -87,6 +93,8 @@ export function TransferForm({
             onResidentialAddress={(value) => change('residentialAddress', value)}
             nameReadOnly={!!recipient?.awardOnly}
             addressReadOnly={!!recipient?.awardOnly}
+            nameCheck={checks.field('name')}
+            addressCheck={checks.field('residentialAddress')}
           />
         ) : (
           <p className="text-sm text-text-muted">
@@ -95,7 +103,7 @@ export function TransferForm({
         )}
         {recipient?.lastCeasedOn && (
           <p className="text-sm text-text-muted">
-            Last ceased in this class: {recipient.lastCeasedOn}. The same member ID is retained on return.
+            Last ceased in this class: {formatDate(recipient.lastCeasedOn)}. The same member ID is retained on return.
           </p>
         )}
         {fresh && draft.toMember !== 'new' && !recipient?.awardOnly && (
@@ -105,10 +113,8 @@ export function TransferForm({
           </p>
         )}
         {fields.map(([key, label, maxLength]) => (
-          <label key={key} className={LABEL}>
-            {label}
-            <input
-              className={FIELD_CLASS}
+          <Field key={key} {...checks.field(key)} label={label}>
+            <TextInput
               type={key.endsWith('On') ? 'date' : 'text'}
               max={key.endsWith('On') ? today : undefined}
               inputMode={key === 'shares' ? 'numeric' : undefined}
@@ -116,34 +122,29 @@ export function TransferForm({
               maxLength={maxLength}
               onChange={(event) => change(key, event.target.value)}
             />
-          </label>
+          </Field>
         ))}
         <p className="text-sm text-text-muted">
           {COPY.DIRECTOR_NOTE} {COPY.EFFECTIVE_NOTE}
         </p>
         {(['authority', 'instrument'] as const).map((kind) => (
-          <label key={kind} className={LABEL}>
-            {kind === 'authority' ? COPY.AUTHORITY_DOCUMENT : COPY.INSTRUMENT_DOCUMENT}
-            <input
-              type="file"
-              accept="application/pdf,image/png,image/jpeg"
-              className={FIELD_CLASS}
-              onChange={(event) => {
-                setOperation(null);
-                setFiles((current) => ({ ...current, [kind]: event.target.files?.[0] }));
-              }}
-            />
-          </label>
+          <FileField
+            key={kind}
+            {...checks.field(`${kind}Document`)}
+            label={kind === 'authority' ? COPY.AUTHORITY_DOCUMENT : COPY.INSTRUMENT_DOCUMENT}
+            onFile={(file) => {
+              setOperation(null);
+              setFiles((current) => ({ ...current, [kind]: file ?? undefined }));
+            }}
+          />
         ))}
-        <p className="text-sm text-text-muted">PDF or image, max 10 MB each. {COPY.PROVIDED_BY_COMPANY}</p>
+        <p className="text-sm text-text-muted">{COPY.PROVIDED_BY_COMPANY}</p>
       </fieldset>
-      {operation ? (
+      {operation && (
         <p className="text-sm text-text-muted">
           The unchanged retry will retrieve the original preparation, including its member IDs and retained documents.
           Edit a field to prepare a different transfer.
         </p>
-      ) : (
-        problem && <p className="text-sm text-text-muted">{problem}</p>
       )}
       {error && (
         <p role="alert" className="text-sm text-error-light">
@@ -160,7 +161,7 @@ export function TransferForm({
           label={COPY.SUBMIT}
           busy={busy}
           busyLabel="Preparing transfer…"
-          disabled={blocked || (!operation && !!problem)}
+          disabled={blocked}
         />
       </FormActions>
     </form>

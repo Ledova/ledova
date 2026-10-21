@@ -7,13 +7,17 @@ import {
   deleteAccount,
   changePassword,
   exportAccountData,
+  newPasswordProblem,
+  PASSWORD_PROBLEMS,
   upsertCurrentUserPreferences,
   useUserPreferences,
+  utcToday,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
 import { SIGNIN_PATH } from '@utils/paths';
 import { saveFile } from '@utils/saveFile';
 import { useTheme } from '@hooks/useTheme';
+import { hasProblems, type Problems } from '@hooks/useErrorSummary';
 
 export function useSettings() {
   const navigate = useNavigate();
@@ -29,7 +33,6 @@ export function useSettings() {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [passwordError, setPasswordError] = useState('');
   const [passwordChanged, setPasswordChanged] = useState(false);
 
   const deleteMutation = useMutation({
@@ -48,20 +51,12 @@ export function useSettings() {
       setConfirmPassword('');
       setPasswordChanged(true);
     },
-    onError: (error: unknown) => {
-      const data = (error as { response?: { data?: Record<string, unknown> } }).response?.data;
-      if (data?.current_password || data?.currentPassword) setPasswordError('Current password is incorrect.');
-      else if (data?.new_password || data?.newPassword)
-        setPasswordError('The new password was not accepted. Choose another password.');
-      else if (data?.new_password_confirm || data?.newPasswordConfirm) setPasswordError('Passwords do not match.');
-      else setPasswordError('Your password could not be changed. Try again.');
-    },
   });
   const exportMutation = useMutation({
     mutationFn: () => exportAccountData(apiClient),
     onSuccess: (response) => {
       const blob = new Blob([JSON.stringify(response.data, null, 2)], { type: 'application/json' });
-      saveFile(blob, `ledova-data-export-${new Date().toISOString().split('T')[0]}.json`);
+      saveFile(blob, `ledova-data-export-${utcToday()}.json`);
       setModal(null);
     },
   });
@@ -71,16 +66,18 @@ export function useSettings() {
     setCurrentPassword('');
     setNewPassword('');
     setConfirmPassword('');
-    setPasswordError('');
     passwordMutation.reset();
   }
 
+  const passwordProblems: Problems<'currentPassword' | 'newPassword' | 'newPasswordConfirm'> = {
+    currentPassword: !currentPassword && PASSWORD_PROBLEMS.CURRENT,
+    newPassword: newPasswordProblem(newPassword),
+    newPasswordConfirm: newPassword !== confirmPassword && PASSWORD_PROBLEMS.MATCH,
+  };
+
   function savePassword() {
-    if (passwordMutation.isPending) return;
-    setPasswordError('');
-    if (newPassword.length < 8) setPasswordError('New password must be at least 8 characters.');
-    else if (newPassword !== confirmPassword) setPasswordError('Passwords do not match.');
-    else passwordMutation.mutate();
+    if (passwordMutation.isPending || hasProblems(passwordProblems)) return;
+    passwordMutation.mutate();
   }
 
   return {
@@ -96,7 +93,7 @@ export function useSettings() {
     setNewPassword,
     confirmPassword,
     setConfirmPassword,
-    passwordError,
+    passwordProblems,
     passwordChanged,
     setPasswordChanged,
     deleteMutation,

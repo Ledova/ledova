@@ -1,8 +1,8 @@
 import { Link } from 'react-router-dom';
 import { DESTINATIONS, useCompanySelection } from '@ledova/shared';
-import { Section } from '@components/Ledger';
+import { Section, LoadError } from '@components/Ledger';
 import { LoadMore } from '@components/List';
-import { Page, PageAction, PageLink } from '@components/Page';
+import { Page, PageAction } from '@components/Page';
 import { CompanyReadNotice } from '@pages/company/shared/CompanyState';
 import { CompanySelection } from '@pages/company/shared/CompanySelection';
 import { PublicationRecord } from './PublicationRecord';
@@ -27,14 +27,15 @@ function CompanyPublications({ companyRead }: { companyRead: ReturnType<typeof u
       loading={companyRead.isLoading || listing.isLoading}
       actions={
         <>
-          <PageLink to={DESTINATIONS.company.path} label="Back to Company" />
           <PageAction
-            label="Refresh"
+            label="Refresh publications"
             onClick={() => {
               void companyRead.refetch();
               if (company) void listing.refetch();
             }}
-            disabled={companyRead.isRefreshing || listing.isFetching}
+            busy={companyRead.isRefreshing || (listing.isFetching && !listing.isFetchingNextPage)}
+            busyLabel="Refreshing…"
+            disabled={listing.isFetchingNextPage}
           />
         </>
       }
@@ -47,14 +48,9 @@ function CompanyPublications({ companyRead }: { companyRead: ReturnType<typeof u
       ) : (
         <>
           {hasError ? (
-            <div role="alert" className="space-y-2 text-sm text-text-muted">
-              <p>Your company&apos;s publications could not be loaded. Try again before continuing.</p>
-              <PageAction
-                label="Retry publications"
-                onClick={() => void listing.refetch()}
-                disabled={listing.isFetching}
-              />
-            </div>
+            <LoadError retry={() => listing.refetch()} busy={listing.isFetching}>
+              Your company&apos;s publications could not be loaded.
+            </LoadError>
           ) : (
             <>
               <CompanyReadNotice read={companyRead} />
@@ -70,9 +66,7 @@ function CompanyPublications({ companyRead }: { companyRead: ReturnType<typeof u
                   </p>
                 )}
                 {!publications ? null : publications.length === 0 ? (
-                  <p className="text-sm text-text-muted">
-                    Nothing has been published to this company&apos;s members yet.
-                  </p>
+                  <p className="text-sm text-text-muted">No publications yet.</p>
                 ) : (
                   <>
                     <ul className="divide-y divide-border-subtle">
@@ -94,7 +88,7 @@ function CompanyPublications({ companyRead }: { companyRead: ReturnType<typeof u
                       hasMore={listing.hasNextPage}
                       failed={moreFailed}
                       loading={listing.isFetchingNextPage}
-                      disabled={listing.isFetching && !listing.isFetchingNextPage}
+                      disabled={listing.isFetching}
                       onLoad={loadMore}
                     />
                     <p className="text-xs text-text-muted">

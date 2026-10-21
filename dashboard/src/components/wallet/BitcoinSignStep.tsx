@@ -1,9 +1,11 @@
-import { useState } from 'react';
+import { Field, TextArea } from '@components/Field';
 import { formatWalletAddressMedium, normalizeBitcoinRawTransactionHex } from '@ledova/shared';
 import type { PrepareBitcoinTransferResponse } from '@ledova/shared';
 import { Row, Rows } from '@components/Ledger';
 import { ModalActions } from '@components/Modal';
 import { PageAction } from '@components/Page';
+import { ErrorSummary } from '@components/ErrorSummary';
+import { useErrorSummary } from '@hooks/useErrorSummary';
 
 interface BitcoinSignStepProps {
   prepared: PrepareBitcoinTransferResponse;
@@ -29,20 +31,16 @@ export function BitcoinSignStep({
   onCancel,
   onBroadcast,
 }: BitcoinSignStepProps) {
-  const [validationError, setValidationError] = useState<string | null>(null);
+  const normalized = normalizeBitcoinRawTransactionHex(signedTransaction);
+  const checks = useErrorSummary({ signed: !normalized && INVALID_SIGNED_HEX_MESSAGE });
 
   const handleBroadcast = () => {
-    const normalized = normalizeBitcoinRawTransactionHex(signedTransaction);
-    if (!normalized) {
-      setValidationError(INVALID_SIGNED_HEX_MESSAGE);
-      return;
-    }
-    setValidationError(null);
-    onBroadcast(normalized);
+    if (checks.check() && normalized) onBroadcast(normalized);
   };
 
   return (
     <div className="space-y-4">
+      <ErrorSummary {...checks.summary} />
       <p className="text-sm text-text-muted">
         This app does not build or sign Bitcoin transactions. Sign with your own wallet software and paste the result.
       </p>
@@ -67,30 +65,20 @@ export function BitcoinSignStep({
         ))}
       </ol>
 
-      <div className="space-y-1">
-        <label htmlFor="bitcoin-signed-transaction" className="text-sm font-medium text-text-primary">
-          Signed transaction (hex)
-        </label>
-        <textarea
-          id="bitcoin-signed-transaction"
+      <Field {...checks.field('signed')} label="Signed transaction (hex)">
+        <TextArea
           value={signedTransaction}
           onChange={(event) => onSignedTransactionChange(event.target.value)}
           placeholder="02000000…"
           rows={4}
           spellCheck={false}
-          className="block w-full resize-none rounded-lg border border-border bg-surface-raised px-3 py-2 font-mono text-xs text-text-primary placeholder:text-text-muted focus:border-brand-mid focus:outline-none focus:ring-1 focus:ring-brand-mid"
+          className="mt-1 block w-full resize-none rounded-lg border border-border bg-surface-raised px-3 py-2 font-mono text-xs text-text-primary placeholder:text-text-muted focus:border-brand-mid focus:outline-none focus:ring-1 focus:ring-brand-mid"
         />
-        {validationError && <p className="text-xs text-error-light">{validationError}</p>}
-      </div>
+      </Field>
 
       <ModalActions>
         <PageAction label="Cancel" onClick={onCancel} />
-        <PageAction
-          label="Broadcast"
-          primary
-          onClick={handleBroadcast}
-          disabled={signedTransaction.trim().length === 0}
-        />
+        <PageAction label="Broadcast" primary onClick={handleBroadcast} />
       </ModalActions>
     </div>
   );

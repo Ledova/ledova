@@ -1,12 +1,13 @@
 import { Navigate } from 'react-router-dom';
 import { DESTINATIONS, canOpen, useAuth, useUserPreferences } from '@ledova/shared';
 import { useRegisterEntryAccess } from '@hooks/useRegisterAccess';
-import { Page, PageAction } from '@components/Page';
+import { Page } from '@components/Page';
 import { PageTitle } from '@components/PageTitle';
 import { COMPANY_DASHBOARD_PATH, SIGNIN_PATH, SIGNUP_PATHS } from '@utils/paths';
 import { useUserProfile } from '@hooks/useUserProfile';
 import { AccountUnavailable } from './AccountUnavailable';
 import { SIGNUP_RESUMES_AT } from '@utils/paths';
+import { LoadError, Loading } from '@components/Ledger';
 
 export function RootRedirect() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -36,25 +37,20 @@ export function RootRedirect() {
     return (
       <PageTitle.Provider value="Dashboard">
         <Page>
-          <p role="alert" className="text-sm text-text-muted">
+          <LoadError
+            retry={() => Promise.all([preferences.refetch(), access.refetch()])}
+            busy={preferences.isFetching || access.isFetching}
+          >
             Your dashboard access could not be checked.
-          </p>
-          <PageAction
-            label="Try again"
-            onClick={() => {
-              void preferences.refetch();
-              void access.refetch();
-            }}
-            disabled={preferences.isFetching || access.isFetching}
-          />
+          </LoadError>
         </Page>
       </PageTitle.Provider>
     );
   if (preferences.isLoading || preferences.isFetching || access.isPending || access.isFetching)
     return (
-      <p role="status" className="p-6 text-sm text-text-muted">
-        Checking your dashboard access…
-      </p>
+      <div className="p-6">
+        <Loading>Checking your dashboard access…</Loading>
+      </div>
     );
   return <Navigate to={access.data ? COMPANY_DASHBOARD_PATH : DESTINATIONS.home.path} replace />;
 }

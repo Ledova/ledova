@@ -21,6 +21,7 @@ import { useOwnAppointments, ownAppointmentsKey } from '@hooks/useOwnAppointment
 import { grantsKey, useRegisterGrants } from '@pages/company/register/shared/useRegisterGrants';
 import { awardsKey, useRegisterAward } from '@pages/company/register/shared/useRegisterAwards';
 import { allPeopleKey, usePeople } from '@pages/company/register/shared/usePeople';
+import { LoadError, Loading } from '@components/Ledger';
 
 const AWARD_NOTE =
   'Prepare the company’s issue of recorded vested shares. The employee does not purchase them; approval and recording the issue are separate steps.';
@@ -163,10 +164,9 @@ export function useNonPaidIssues({
     <div hidden={!shown} className="flex flex-col gap-3">
       <p className="text-sm text-text-muted">{awardUuid ? AWARD_NOTE : COPY.NOTE}</p>
       {stale ? (
-        <div role="alert" className="flex flex-col items-start gap-2">
-          <p className="text-sm text-error-light">The non-paid issue form could not be prepared. Try again.</p>
-          <PageAction label="Retry non-paid issue" disabled={busy} onClick={retry} />
-        </div>
+        <LoadError retry={retry} busy={busy}>
+          The non-paid issue form could not be loaded.
+        </LoadError>
       ) : appointments.isSuccess && !appointment && !formAppointment ? (
         <p className="text-sm text-text-muted">{COPY.READ_ONLY_NOTE}</p>
       ) : award.isSuccess && people.isSuccess && !recipientReady ? (
@@ -174,11 +174,7 @@ export function useNonPaidIssues({
           This award’s recipient needs current retained walletless particulars before a grant can be prepared.
         </p>
       ) : (
-        !formVisible && (
-          <p role="status" className="text-sm text-text-muted">
-            Loading the non-paid issue form…
-          </p>
-        )
+        !formVisible && <Loading>Loading the non-paid issue form…</Loading>
       )}
       {formAppointment && (
         <div hidden={!formVisible}>
@@ -218,43 +214,34 @@ export function useNonPaidIssues({
     <div className="mt-4 flex flex-col gap-3 border-t border-border-subtle pt-4">
       <h3 className="text-sm font-medium text-text-primary">Non-paid issues</h3>
       {appointments.isError && (
-        <div role="alert" className="flex flex-col items-start gap-2">
-          <p className="text-sm text-error-light">
-            Your appointments could not be loaded. Retry before preparing or deciding a grant.
-          </p>
-          <PageAction
-            label="Retry appointments"
-            disabled={appointments.isFetching}
-            onClick={() => void appointments.refetch()}
-          />
-        </div>
+        <LoadError retry={() => appointments.refetch()} busy={appointments.isFetching}>
+          Your appointments could not be loaded.
+        </LoadError>
       )}
       {readable && !Object.values(steps).some(Boolean) && (
         <p className="text-sm text-text-muted">{COPY.READ_ONLY_NOTE}</p>
       )}
-      {!sourceReady || grants.isPending ? (
-        <p role="status" className="text-sm text-text-muted">
-          Loading non-paid issues…
+      {appointments.isError ? null : !appointments.isSuccess || !sourceReady || (readable && grants.isPending) ? (
+        <Loading>Loading non-paid issues…</Loading>
+      ) : !readable ? (
+        <p className="text-sm text-text-muted">
+          A current company register appointment is required to read non-paid issues.
         </p>
-      ) : !readable || grants.isError || appointments.isError ? (
-        <div role="alert">
-          <p className="text-sm text-error-light">
-            The non-paid issues could not be read. Refresh current company access.
-          </p>
-          <PageAction
-            label="Retry grants"
-            disabled={grants.isFetching || appointments.isFetching}
-            onClick={() => void refresh().catch(() => {})}
-          />
-        </div>
+      ) : grants.isError ? (
+        <LoadError retry={() => refresh().catch(() => {})} busy={grants.isFetching || appointments.isFetching}>
+          Non-paid issues could not be loaded.
+        </LoadError>
       ) : privateReady && grants.data.length === 0 ? (
         <p className="text-sm text-text-muted">{COPY.EMPTY}</p>
       ) : null}
-      <PageAction
-        label="Refresh grants"
-        disabled={grants.isFetching || appointments.isFetching}
-        onClick={() => void refresh().catch(() => {})}
-      />
+      {!grants.isError && !appointments.isError && (
+        <PageAction
+          label="Refresh grants"
+          busy={grants.isFetching || appointments.isFetching}
+          busyLabel="Refreshing…"
+          onClick={() => void refresh().catch(() => {})}
+        />
+      )}
       <ul className="divide-y divide-border-subtle">
         {grants.data?.map((grant) => (
           <GrantRecord

@@ -81,9 +81,9 @@ async function openTheSidebar(page: Page, role: Role) {
   await expect(aside).toHaveCount(1);
   await expect(aside.getByRole('button', { name: 'Sign out' })).toBeInViewport();
   await aside.locator('summary').filter({ hasText: 'More' }).click();
-  await expect(aside.getByRole('button', { name: 'Settings', exact: true })).toBeVisible();
-  await expect(aside.getByRole('button', { name: 'Dashboard', exact: true })).toBeVisible();
-  await expect(aside.getByRole('button', { name: 'Register', exact: true })).toHaveCount(role === 'company' ? 0 : 1);
+  await expect(aside.getByRole('link', { name: 'Settings', exact: true })).toBeVisible();
+  await expect(aside.getByRole('link', { name: 'Dashboard', exact: true })).toBeVisible();
+  await expect(aside.getByRole('link', { name: 'Register', exact: true })).toHaveCount(role === 'company' ? 0 : 1);
   await expect(aside.getByText(LONG_NAME)).toHaveCount(0);
   if (role !== 'company') await expect(aside.getByText('Invest', { exact: true })).toBeVisible();
   return aside;
@@ -99,7 +99,7 @@ async function checkTheCutEdge(aside: ReturnType<Page['locator']>) {
   const help = aside.getByRole('link', { name: 'Help & Support' });
 
   expect(await list.evaluate((node) => node.scrollHeight - node.clientHeight)).toBeGreaterThan(0);
-  expect(await list.evaluate((node) => node.nextElementSibling === node.parentElement.lastElementChild)).toBe(true);
+  expect(await list.evaluate((node) => node.nextElementSibling === node.parentElement?.lastElementChild)).toBe(true);
   await expect(foot).toContainText('Sign out');
   await expect(foot).toHaveCSS('border-top-style', 'solid');
   await expect(foot).toHaveCSS('border-top-width', '1px');

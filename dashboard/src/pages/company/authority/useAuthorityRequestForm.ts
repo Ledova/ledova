@@ -1,10 +1,14 @@
 import {
+  isCalendarDate,
   submitCompanyAuthorityRequest,
   type CompanyAuthorityRequest,
   type CompanyCapability,
   type CompanyListItem,
+  utcToday,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
+import { hasProblems, type Problems } from '@hooks/useErrorSummary';
+import { useIncompleteDates } from '@hooks/useIncompleteDates';
 import { useMutation } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
 
@@ -63,11 +67,18 @@ export function useAuthorityRequestForm({
     apply();
   };
   const busy = submission.isPending;
-  const ready = !disabled && !busy && (requested.length > 0 || delegatable.length > 0);
+  const available = !disabled && !busy;
+  const dates = useIncompleteDates<'expiry'>();
+  const problems: Problems<'actions' | 'expiry'> = {
+    actions: !requested.length && !delegatable.length && 'Choose at least one action to request or to delegate.',
+    expiry:
+      (dates.incomplete.expiry || (!!expiry && (!isCalendarDate(expiry) || expiry < utcToday()))) &&
+      'Enter a requested expiry no earlier than today (UTC), or clear it.',
+  };
   const toggle = (values: CompanyCapability[], value: CompanyCapability) =>
     values.includes(value) ? values.filter((entry) => entry !== value) : [...values, value].sort();
   const send = async () => {
-    if (!ready || submitting.current) return;
+    if (!available || hasProblems(problems) || submitting.current) return;
     submitting.current = true;
     try {
       await submission.mutateAsync();
@@ -88,7 +99,8 @@ export function useAuthorityRequestForm({
     submission,
     change,
     busy,
-    ready,
+    problems,
+    watchDate: dates.watch,
     toggle,
     send,
   };

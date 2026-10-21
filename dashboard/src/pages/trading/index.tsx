@@ -3,7 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import type { TransferOrder, CreateOrderRequest, Wallet, SwapOrder } from '@ledova/shared';
 import {
   marketAmount,
-  marketQuantity,
+  marketShares,
   selectSwapSettlement,
   useInvestorReadinessQuery,
   useOrderBook,
@@ -25,7 +25,7 @@ import { OrdersPanel } from './OrdersPanel';
 import { PlaceOrderPanel } from './PlaceOrderPanel';
 import { useTradingEvents } from './useTradingEvents';
 import { Page, PageAction } from '@components/Page';
-import { Outcome, Section } from '@components/Ledger';
+import { Outcome, Section, LoadError } from '@components/Ledger';
 
 function TradingPage() {
   const queryClient = useQueryClient();
@@ -108,11 +108,13 @@ function TradingPage() {
   const {
     userOrders,
     isLoadingUserOrders,
+    isFetchingOrders,
     getWalletsWithHoldings,
     ordersError,
     refreshOrders,
     balancesError,
     isLoadingBalances,
+    isFetchingBalances,
     refreshBalances,
   } = useTrading({
     walletAddresses,
@@ -222,6 +224,7 @@ function TradingPage() {
         isLoading={isLoading || eligibilityQuery.isLoading}
         isReady={isReady}
         error={tokensQuery.error || eligibilityQuery.error}
+        isRetrying={tokensQuery.isFetching || eligibilityQuery.isFetching}
         onRetry={() => {
           void tokensQuery.refetch();
           void eligibilityQuery.refetch();
@@ -229,33 +232,34 @@ function TradingPage() {
       />
 
       {tradingWallets.error && (
-        <div role="alert">
-          Wallets could not be loaded. Trading actions are unavailable.{' '}
-          <button className="underline" onClick={() => void tradingWallets.refetch()}>
-            Retry wallets
-          </button>
-        </div>
+        <LoadError retry={() => tradingWallets.refetch()} busy={tradingWallets.isFetching}>
+          Wallets could not be loaded. Trading actions are unavailable.
+        </LoadError>
       )}
-      {placed && (
-        <Outcome>
-          {placed.order.orderType === 'buy' ? 'Buy' : 'Sell'} order {placed.recovered ? 'recovered' : 'placed'}
-          {placed.order.tokenSymbol || placed.order.tokenName
-            ? ` for ${placed.order.tokenSymbol || placed.order.tokenName}`
-            : ''}
-          : {marketQuantity(placed.order.quantity)} shares at {marketAmount(placed.order.pricePerShare)},{' '}
-          {marketAmount(placed.order.totalValue)} in total.
-        </Outcome>
-      )}
+      <Outcome>
+        {placed && (
+          <>
+            {placed.order.orderType === 'buy' ? 'Buy' : 'Sell'} order {placed.recovered ? 'recovered' : 'placed'}
+            {placed.order.tokenSymbol || placed.order.tokenName
+              ? ` for ${placed.order.tokenSymbol || placed.order.tokenName}`
+              : ''}
+            : {marketShares(placed.order.quantity)} at {marketAmount(placed.order.pricePerShare)},{' '}
+            {marketAmount(placed.order.totalValue)} in total.
+          </>
+        )}
+      </Outcome>
       <OrdersPanel
         tokenSymbol={!tokensQuery.isError ? (selectedToken?.symbol ?? null) : null}
         orderBook={orderBookData || null}
         isLoadingOrderBook={isLoadingOrderBook}
         orderBookError={orderBookQuery.error}
         onRefreshBook={() => void orderBookQuery.refetch()}
+        isRefreshingBook={orderBookQuery.isFetching}
         userOrders={userOrders}
         isLoadingUserOrders={isLoadingUserOrders}
         ordersError={ordersError}
         onRefreshOrders={() => void refreshOrders()}
+        isRefreshingOrders={isFetchingOrders}
         onCancelOrder={handleCancelOrder}
         onEditOrder={handleEditOrder}
         swaps={swaps}
@@ -265,6 +269,7 @@ function TradingPage() {
           void tradingWallets.refetch();
           void swapsQuery.refetch();
         }}
+        isRefreshingSwaps={swapsQuery.isFetching || tradingWallets.isFetching}
         wallets={wallets}
         settlementOwner={settlements.owner}
         onSignSwap={handleSignSwap}
@@ -343,7 +348,8 @@ function TradingPage() {
           )}
           <PageAction
             label="Refresh saved work"
-            disabled={submissions.isLoading || actions.isLoading || settlements.isLoading}
+            busy={submissions.isLoading || actions.isLoading || settlements.isLoading}
+            busyLabel="Refreshing…"
             onClick={() => {
               void submissions.refresh();
               void actions.refresh();
@@ -355,12 +361,9 @@ function TradingPage() {
       {selectedToken && (
         <>
           {balancesError && (
-            <div role="alert">
-              Share balances could not be loaded. Selling is unavailable.{' '}
-              <button className="underline" onClick={refreshBalances}>
-                Retry share balances
-              </button>
-            </div>
+            <LoadError retry={refreshBalances} busy={isFetchingBalances}>
+              Share balances could not be loaded. Selling is unavailable.
+            </LoadError>
           )}
           <PlaceOrderPanel
             token={selectedToken}

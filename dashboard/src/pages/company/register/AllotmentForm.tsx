@@ -1,8 +1,27 @@
+import { Field, TextInput, FileField } from '@components/Field';
 import { FormActions, PageAction } from '@components/Page';
-import { FIELD_CLASS, LABEL } from '@components/fieldClass';
-import { REGISTER_ALLOTMENT_COPY as COPY, type OwnCompanyAppointment, type Person } from '@ledova/shared';
+import { ErrorSummary } from '@components/ErrorSummary';
+import { useErrorSummary } from '@hooks/useErrorSummary';
+import { FIELD_LIMITS, REGISTER_ALLOTMENT_COPY as COPY, type OwnCompanyAppointment, type Person } from '@ledova/shared';
 import { PersonFields, PersonSelect } from '@pages/company/register/shared/PersonPicker';
 import { useAllotmentForm, type DocumentKind } from './useAllotmentForm';
+
+const LIMITS: Partial<Record<string, number>> = {
+  shares: FIELD_LIMITS.REGISTER_SHARES,
+  consideration: FIELD_LIMITS.AMOUNT,
+  receivedAmount: FIELD_LIMITS.AMOUNT,
+  agreementReference: FIELD_LIMITS.REFERENCE,
+  terms: FIELD_LIMITS.TERMS,
+  approvingDirector: FIELD_LIMITS.DIRECTOR,
+  authorityReference: FIELD_LIMITS.REFERENCE,
+  reason: FIELD_LIMITS.REASON,
+};
+
+const INPUT_MODES: Partial<Record<string, 'numeric' | 'decimal'>> = {
+  shares: 'numeric',
+  consideration: 'decimal',
+  receivedAmount: 'decimal',
+};
 
 export function AllotmentForm({
   company,
@@ -29,7 +48,7 @@ export function AllotmentForm({
   visible?: boolean;
   initialMember?: string;
 }) {
-  const { today, member, setMember, fields, setFields, setFiles, busy, held, error, problem, submit } =
+  const { today, member, setMember, fields, setFiles, busy, held, error, problems, submit, setFields } =
     useAllotmentForm({
       company,
       token,
@@ -43,9 +62,12 @@ export function AllotmentForm({
       onHeldChange,
       visible,
     });
+  const checks = useErrorSummary(problems);
   const field = (key: Exclude<keyof typeof fields, 'name' | 'residentialAddress'>) => (
-    <label key={key} className={LABEL}>
-      {
+    <Field
+      key={key}
+      {...checks.field(key)}
+      label={
         {
           shares: COPY.SHARES,
           companyEventOn: COPY.COMPANY_EVENT_ON,
@@ -60,39 +82,38 @@ export function AllotmentForm({
           reason: COPY.REASON,
         }[key]
       }
-      <input
-        className={FIELD_CLASS}
+    >
+      <TextInput
         type={key.endsWith('On') ? 'date' : 'text'}
         max={key.endsWith('On') ? today : undefined}
         value={fields[key]}
-        maxLength={key === 'shares' ? 78 : ['terms', 'reason', 'residentialAddress'].includes(key) ? 1000 : 255}
+        maxLength={LIMITS[key]}
+        inputMode={INPUT_MODES[key]}
         onChange={(event) => setFields((current) => ({ ...current, [key]: event.target.value }))}
       />
-    </label>
+    </Field>
   );
   const document = (kind: DocumentKind) => (
-    <label className={LABEL}>
-      {COPY.DOCUMENTS[kind]}
-      <input
-        className={FIELD_CLASS}
-        type="file"
-        accept="application/pdf,image/png,image/jpeg"
-        onChange={(event) => setFiles((current) => ({ ...current, [kind]: event.target.files?.[0] }))}
-      />
-    </label>
+    <FileField
+      {...checks.field(`${kind}Document`)}
+      label={COPY.DOCUMENTS[kind]}
+      onFile={(file) => setFiles((current) => ({ ...current, [kind]: file ?? undefined }))}
+    />
   );
   if (!visible) return null;
   return (
     <form
-      className="space-y-5 rounded-xl border border-border-subtle bg-surface-tertiary p-4 sm:p-5"
+      className="space-y-5 border-t border-border-subtle pt-5"
+      noValidate
       onSubmit={(event) => {
         event.preventDefault();
-        void submit();
+        if (held || checks.check()) void submit();
       }}
     >
+      <ErrorSummary {...checks.summary} />
       <fieldset disabled={busy || blocked || held} className="space-y-4">
-        <fieldset className="grid gap-4 rounded-xl border border-border-subtle bg-surface-raised p-4 sm:grid-cols-2 [&>p]:sm:col-span-2">
-          <legend className="px-1 text-sm font-medium">1. Person and shares</legend>
+        <fieldset className="grid gap-4 pt-4 sm:grid-cols-2 [&>p]:sm:col-span-2">
+          <legend className="text-sm font-medium">1. Person and shares</legend>
           <PersonSelect
             label="Issue to"
             people={people.filter((row) => row.walletless && row.particularsRetained)}
@@ -107,13 +128,15 @@ export function AllotmentForm({
               onResidentialAddress={(residentialAddress) =>
                 setFields((current) => ({ ...current, residentialAddress }))
               }
+              nameCheck={checks.field('name')}
+              addressCheck={checks.field('residentialAddress')}
             />
           )}
           {field('shares')}
           {field('consideration')}
         </fieldset>
-        <fieldset className="grid gap-4 rounded-xl border border-border-subtle bg-surface-raised p-4 sm:grid-cols-2 [&>p]:sm:col-span-2">
-          <legend className="px-1 text-sm font-medium">2. Agreement and company receipt</legend>
+        <fieldset className="grid gap-4 border-t border-border-subtle pt-4 sm:grid-cols-2 [&>p]:sm:col-span-2">
+          <legend className="text-sm font-medium">2. Agreement and company receipt</legend>
           {field('agreementReference')}
           {field('agreementOn')}
           {field('terms')}
@@ -123,8 +146,8 @@ export function AllotmentForm({
           {document('receipt')}
           <p className="text-sm text-text-muted">{COPY.RECEIPT_NOTE}</p>
         </fieldset>
-        <fieldset className="grid gap-4 rounded-xl border border-border-subtle bg-surface-raised p-4 sm:grid-cols-2 [&>p]:sm:col-span-2">
-          <legend className="px-1 text-sm font-medium">3. Company authority and review</legend>
+        <fieldset className="grid gap-4 border-t border-border-subtle pt-4 sm:grid-cols-2 [&>p]:sm:col-span-2">
+          <legend className="text-sm font-medium">3. Company authority and review</legend>
           {field('companyEventOn')}
           {field('approvingDirector')}
           {field('authorityReference')}
@@ -136,7 +159,6 @@ export function AllotmentForm({
           </p>
         </fieldset>
       </fieldset>
-      {problem && <p className="text-sm text-text-muted">{problem}</p>}
       {error && (
         <p role="alert" className="text-sm text-error-light">
           {error}
@@ -150,7 +172,7 @@ export function AllotmentForm({
           label={COPY.SUBMIT}
           busy={busy}
           busyLabel="Preparing allotment…"
-          disabled={blocked || (!held && !!problem)}
+          disabled={blocked}
         />
       </FormActions>
     </form>

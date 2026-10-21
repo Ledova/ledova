@@ -1,7 +1,10 @@
+import { Field, TextInput } from '@components/Field';
 import { Choices } from '@components/Choices';
 import { CompanyPicker } from '@components/CompanyPicker';
 import { useState } from 'react';
 import { useRunningAction } from '@hooks/useRunningAction';
+import { ErrorSummary } from '@components/ErrorSummary';
+import { useErrorSummary } from '@hooks/useErrorSummary';
 import {
   useCompanyWalletInstructions,
   COMPANY_WALLET_COPY as COPY,
@@ -12,10 +15,12 @@ import {
   type CompanyWalletInstruction,
   type CompanyWalletDecisionPreview,
   refusalSentences,
+  COMPANY_WALLET_ACTION_LABELS,
+  shortReference,
+  CHAIN_FAILURE_LABELS,
 } from '@ledova/shared';
-import { Row, Rows, Section } from '@components/Ledger';
+import { Row, Rows, Section, LoadError } from '@components/Ledger';
 import { PageAction } from '@components/Page';
-import { FIELD_CLASS } from '@components/fieldClass';
 import { SearchSelect } from '@components/SearchSelect';
 import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
 
@@ -24,15 +29,13 @@ type Read = ReturnType<typeof useCompanyWalletInstructions>;
 const WALLETS = ['wallet', 'wallets'] as const;
 
 const ACTIONS = [
-  ['add', 'Approve nominated wallet'],
-  ['remove', 'Remove retained approval'],
+  ['add', COMPANY_WALLET_ACTION_LABELS.add],
+  ['remove', COMPANY_WALLET_ACTION_LABELS.remove],
 ] as const;
 function Snapshot({ snapshot }: { snapshot: CompanyWalletInstruction['snapshot'] }) {
   return (
     <Rows>
-      <Row label="Company">
-        {snapshot.company.name} · {snapshot.company.uuid}
-      </Row>
+      <Row label="Company">{snapshot.company.name}</Row>
       <Row label="Company ACN">{snapshot.company.acn}</Row>
       <Row label="Address">{snapshot.target.address}</Row>
       <Row label="Chain">
@@ -40,10 +43,18 @@ function Snapshot({ snapshot }: { snapshot: CompanyWalletInstruction['snapshot']
       </Row>
       <Row label="Registry">{snapshot.target.registryAddress}</Row>
       <Row label="Approval expiry">{formatDateTime(snapshot.target.expiresAt)}</Row>
-      <Row label="Shared nomination">{snapshot.source.nomination ?? 'Removal of a retained target'}</Row>
-      <Row label="Original ADD target">{snapshot.source.targetChange ?? 'Not applicable'}</Row>
-      <Row label="Eligibility request">{snapshot.source.request ?? 'Not applicable'}</Row>
-      <Row label="Accepted GENERAL decision">{snapshot.source.decision ?? 'Not applicable'}</Row>
+      <Row label="Shared nomination">
+        {snapshot.source.nomination ? shortReference(snapshot.source.nomination) : 'Removal of a retained target'}
+      </Row>
+      <Row label="Original ADD target">
+        {snapshot.source.targetChange ? shortReference(snapshot.source.targetChange) : 'Not applicable'}
+      </Row>
+      <Row label="Eligibility request">
+        {snapshot.source.request ? shortReference(snapshot.source.request) : 'Not applicable'}
+      </Row>
+      <Row label="Accepted GENERAL decision">
+        {snapshot.source.decision ? shortReference(snapshot.source.decision) : 'Not applicable'}
+      </Row>
       <Row label="Possession proof completed">{formatDateTime(snapshot.source.proofCompletedAt)}</Row>
       <Row label="Eligibility expiry">{formatDateTime(snapshot.source.eligibilityExpiresAt)}</Row>
       <Row label="Technical sender">{snapshot.transaction.sender}</Row>
@@ -59,11 +70,11 @@ function Record({ record, data }: { record: CompanyWalletInstruction; data: Read
       {data.canRead && (
         <>
           <p>
-            {record.action} · {COPY.STAGES[record.stage] ?? record.stage}
+            {COMPANY_WALLET_ACTION_LABELS[record.action]} · {COPY.STAGES[record.stage] ?? record.stage}
           </p>
           <Snapshot snapshot={record.snapshot} />
           <Rows>
-            <Row label="Instruction">{record.uuid}</Row>
+            <Row label="Instruction">{shortReference(record.uuid)}</Row>
             <Row label="Prepared by">{record.preparedByName || 'Name not recorded'}</Row>
             <Row label="Prepared on">{formatDateTime(record.createdAt)}</Row>
             <Row label="Intent fingerprint">{record.intentDigest}</Row>
@@ -73,13 +84,21 @@ function Record({ record, data }: { record: CompanyWalletInstruction; data: Read
                 {decision.reason ? ` · ${decision.reason}` : ''}
               </Row>
             ))}
-            {!!record.approvalDecision && <Row label="Consumed approval">{record.approvalDecision}</Row>}
-            {!!record.changeId && <Row label="Original wallet change">{record.changeId}</Row>}
+            {!!record.approvalDecision && (
+              <Row label="Consumed approval">{shortReference(record.approvalDecision)}</Row>
+            )}
+            {!!record.changeId && <Row label="Original wallet change">{shortReference(record.changeId)}</Row>}
             <Row label="Execution">{companyWalletExecutionState(record)}</Row>
-            {!!record.execution?.operationId && <Row label="Execution operation">{record.execution.operationId}</Row>}
-            {!!record.execution?.claimId && <Row label="Original claim">{record.execution.claimId}</Row>}
+            {!!record.execution?.operationId && (
+              <Row label="Execution operation">{shortReference(record.execution.operationId)}</Row>
+            )}
+            {!!record.execution?.claimId && (
+              <Row label="Original claim">{shortReference(record.execution.claimId)}</Row>
+            )}
             {!!record.execution?.txHash && <Row label="Transaction">{record.execution.txHash}</Row>}
-            {!!record.execution?.failureCode && <Row label="Failure">{record.execution.failureCode}</Row>}
+            {!!record.execution?.failureCode && (
+              <Row label="Failure">{CHAIN_FAILURE_LABELS[record.execution.failureCode]}</Row>
+            )}
           </Rows>
           {refusalSentences(record.executionUnmetRequirements, COMPANY_WALLET_UNMET_COPY).map((sentence) => (
             <p key={sentence} className="text-sm text-text-muted">
@@ -108,7 +127,9 @@ function Record({ record, data }: { record: CompanyWalletInstruction; data: Read
             <Snapshot snapshot={preview.snapshot} />
             <Rows>
               <Row label="Intent fingerprint">{preview.intentDigest}</Row>
-              <Row label="Selected approval">{preview.approvalDecision ?? 'Not selected'}</Row>
+              <Row label="Selected approval">
+                {preview.approvalDecision ? shortReference(preview.approvalDecision) : 'Not selected'}
+              </Row>
             </Rows>
           </>
         )}
@@ -138,10 +159,14 @@ function Preparation({ data }: { data: Read }) {
     data.nominations.isFetching ||
     data.targets.isFetching;
   const moment = Date.parse(expires);
-  const valid = source && (action === 'remove' || Number.isFinite(moment));
+  const checks = useErrorSummary({
+    source: !source && (action === 'add' ? 'Choose the shared wallet nomination.' : 'Choose the retained ADD target.'),
+    expires: action === 'add' && !Number.isFinite(moment) && 'Enter the approval expiry date and time.',
+  });
   if (!data.canRead) return null;
   return (
     <div className="space-y-3">
+      <ErrorSummary {...checks.summary} />
       <p className="text-sm text-text-muted">
         ADD uses an explicitly shared nomination and finite expiry. REMOVE uses the exact retained successful ADD
         journal, including after wallet or eligibility loss.
@@ -151,9 +176,13 @@ function Preparation({ data }: { data: Read }) {
         options={ACTIONS}
         value={action}
         disabled={blocked}
-        onChange={(next) => setDraft({ owner: data.owner, action: next, source: '', expires: '' })}
+        onChange={(next) => {
+          checks.reset();
+          setDraft({ owner: data.owner, action: next, source: '', expires: '' });
+        }}
       />
       <SearchSelect
+        {...checks.field('source')}
         label={action === 'add' ? 'Explicitly shared wallet nomination' : 'Retained successful ADD target'}
         choices={
           action === 'add'
@@ -191,38 +220,39 @@ function Preparation({ data }: { data: Read }) {
         </Rows>
       )}
       {action === 'add' && (
-        <label className="text-sm">
-          Finite approval expiry (local date and time)
-          <input
+        <Field {...checks.field('expires')} label="Finite approval expiry (local date and time)">
+          <TextInput
             type="datetime-local"
-            className={FIELD_CLASS}
             disabled={blocked}
             value={expires}
             onChange={(event) => setDraft({ ...current, expires: event.target.value })}
           />
-        </label>
+        </Field>
       )}
       <PageAction
         label="Prepare wallet instruction"
         busy={running === 'prepare'}
         busyLabel="Preparing…"
-        disabled={blocked || !valid || (action === 'add' && !!selected?.unmetRequirements.length)}
-        onClick={() =>
-          track(
-            'prepare',
-            data.prepare(
-              action === 'add'
-                ? { action, nomination: source, expiresAt: new Date(moment).toISOString() }
-                : { action, targetChange: source },
-            ),
-          )
-        }
+        disabled={blocked || (action === 'add' && !!selected?.unmetRequirements.length)}
+        onClick={() => {
+          if (checks.check())
+            track(
+              'prepare',
+              data.prepare(
+                action === 'add'
+                  ? { action, nomination: source, expiresAt: new Date(moment).toISOString() }
+                  : { action, targetChange: source },
+              ),
+            );
+        }}
       />
     </div>
   );
 }
 export function CompanyWalletInstructions() {
   const data = useCompanyWalletInstructions({ newKey: () => crypto.randomUUID() });
+  const { running, track } = useRunningAction();
+  const readFailed = data.canRead && (data.nominations.isError || data.targets.isError || data.instructions.isError);
   return (
     <Section title="Company wallet approvals">
       {!data.owner ? (
@@ -233,6 +263,11 @@ export function CompanyWalletInstructions() {
             Current personal company administration or a register step grants this section. Earlier eligibility evidence
             sharing exposes no wallet directory.
           </p>
+          {data.appointments.isError && (
+            <LoadError retry={() => track('refresh', data.refresh())} busy={running === 'refresh' || data.busy}>
+              Your appointments could not be loaded.
+            </LoadError>
+          )}
           <CompanyPicker
             label="Wallet approval company"
             companies={data.companies}
@@ -240,11 +275,13 @@ export function CompanyWalletInstructions() {
             disabled={data.busy}
             onChange={data.setCompany}
           />
-          {data.companyUuid && (
+          {data.companyUuid && !readFailed && !data.appointments.isError && (
             <PageAction
               label="Refresh company wallet instructions"
+              busy={running === 'refresh'}
+              busyLabel="Refreshing…"
               disabled={data.busy}
-              onClick={() => void data.refresh()}
+              onClick={() => track('refresh', data.refresh())}
             />
           )}
           {data.error && (
@@ -252,7 +289,7 @@ export function CompanyWalletInstructions() {
               {data.error}
             </p>
           )}
-          {data.companyUuid && !data.canRead && (
+          {data.companyUuid && !data.canRead && !data.appointments.isError && (
             <p role="status">
               Refresh current personal register access before reading these private wallet records. Original requests
               are retained.
@@ -262,11 +299,11 @@ export function CompanyWalletInstructions() {
             <div className="space-y-2">
               <p role="status">The preparation outcome is unconfirmed. Recover the identical original request.</p>
               <Rows>
-                <Row label="Original instruction key">{data.original.body.operationId}</Row>
-                <Row label="Company">{data.original.body.company}</Row>
-                <Row label="Action">{data.original.body.action}</Row>
+                <Row label="Original instruction key">{shortReference(data.original.body.operationId)}</Row>
+                <Row label="Company">{shortReference(data.original.body.company)}</Row>
+                <Row label="Action">{COMPANY_WALLET_ACTION_LABELS[data.original.body.action]}</Row>
                 <Row label="Nomination or retained ADD">
-                  {data.original.body.nomination ?? data.original.body.targetChange}
+                  {shortReference(data.original.body.nomination ?? data.original.body.targetChange ?? '')}
                 </Row>
               </Rows>
               <PageAction
@@ -277,10 +314,11 @@ export function CompanyWalletInstructions() {
             </div>
           )}
           {data.companyUuid && <Preparation key={data.scopeKey} data={data} />}
-          {data.canRead && (data.nominations.isError || data.targets.isError || data.instructions.isError) && (
-            <p role="alert">
-              The current wallet records could not be refreshed. Original receipts remain available for recovery.
-            </p>
+          {readFailed && (
+            <LoadError retry={() => track('refresh', data.refresh())} busy={running === 'refresh' || data.busy}>
+              The current wallet records could not be {data.instructions.data ? 'refreshed' : 'loaded'}. Original
+              receipts remain available for recovery.
+            </LoadError>
           )}
           {data.retainedRecords.map((record) => (
             <Record key={`${data.scopeKey}/${record.uuid}`} record={record} data={data} />

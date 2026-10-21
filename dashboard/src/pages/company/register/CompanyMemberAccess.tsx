@@ -1,12 +1,24 @@
+import { Field, TextArea, TextInput, FileField } from '@components/Field';
 import { useEffect, useRef, useState } from 'react';
 import { useRunningAction } from '@hooks/useRunningAction';
-import { formatDateTime, type OrderSubmissionOwner, type TokenHoldersResponse } from '@ledova/shared';
-import { Outcome, Section } from '@components/Ledger';
+import {
+  FIELD_LIMITS,
+  formatDateTime,
+  type OrderSubmissionOwner,
+  type TokenHoldersResponse,
+  utcToday,
+  MEMBER_INVITATION_STATUS_LABELS,
+  MEMBER_PARTICULARS_STATUS_LABELS,
+  MEMBER_CERTIFICATE_STATUS_LABELS,
+  shortReference,
+} from '@ledova/shared';
+import { Outcome, Section, Loading, LoadError, Disclosure } from '@components/Ledger';
 import { PersonSelect } from '@pages/company/register/shared/PersonPicker';
 import { PageAction } from '@components/Page';
 import { Confirmation } from '@components/Modal';
-import { FIELD_CLASS } from '@components/fieldClass';
-import { useCompanyMemberRequests } from './useCompanyMemberRequests';
+import { ErrorSummary } from '@components/ErrorSummary';
+import { useErrorSummary } from '@hooks/useErrorSummary';
+import { INVITATION_FIELDS, PARTICULARS_FIELDS, useCompanyMemberRequests } from './useCompanyMemberRequests';
 
 export function CompanyMemberAccess({
   company,
@@ -43,16 +55,17 @@ export function CompanyMemberAccess({
     setCertificateInstruction,
     asAt,
     setAsAt,
-    file,
     selectFile,
     uploading,
     uploadError,
     held,
+    problems,
     refresh,
     prepare,
   } = useCompanyMemberRequests({ company, owner, guard, registers, sourceReady, inviteMember, onHeldChange });
   const candidateOf = new Map(candidates.map((candidate) => [candidate.uuid, candidate]));
   const { running, track } = useRunningAction();
+  const checks = useErrorSummary(problems);
   const [revoking, setRevoking] = useState<{ uuid: string; name: string } | null>(null);
   const invite = useRef<HTMLHeadingElement>(null);
   const shown = !!inviteMember && member?.uuid === inviteMember;
@@ -65,13 +78,25 @@ export function CompanyMemberAccess({
         A current company administrator invites one exact member to their own records. This creates no company
         appointment, holding or wallet link. Share the code privately; Ledova does not email it.
       </p>
-      <PageAction label="Refresh member access" disabled={access.busy || uploading} onClick={() => void refresh()} />
-      {access.error && (
+      <ErrorSummary {...checks.summary} />
+      <PageAction
+        label="Refresh member access"
+        busy={running === 'refresh'}
+        busyLabel="Refreshing…"
+        disabled={access.busy || uploading}
+        onClick={() => track('refresh', refresh())}
+      />
+      {access.readFailed && (
+        <LoadError retry={() => track('refresh', refresh())} busy={running === 'refresh' || access.busy || uploading}>
+          Member access or members&apos; requests could not be loaded.
+        </LoadError>
+      )}
+      {(access.readFailed ? access.failure : access.error) && (
         <p role="alert" className="text-sm text-error-light">
-          {access.error}
+          {access.readFailed ? access.failure : access.error}
         </p>
       )}
-      {access.notice && <Outcome>{access.notice}</Outcome>}
+      <Outcome>{access.notice}</Outcome>
       {access.retry && (
         <PageAction
           label="Retry original company member action"
@@ -85,6 +110,7 @@ export function CompanyMemberAccess({
             Invite a member
           </h3>
           <PersonSelect
+            {...checks.field('member')}
             label="Member or award recipient"
             people={candidates.map((candidate) => ({
               member: candidate.uuid,
@@ -109,94 +135,100 @@ export function CompanyMemberAccess({
                 : '';
             }}
           />
-          {awards.isPending && (
-            <p role="status" className="text-sm text-text-muted">
-              Loading company recipients…
-            </p>
-          )}
-          {(awards.isError || recipientsError) && (
-            <p role="alert" className="text-sm text-error-light">
-              {recipientsError || 'The company recipients could not be loaded. Refresh before inviting a member.'}
-            </p>
+          {awards.isPending && <Loading>Loading company recipients…</Loading>}
+          {awards.isError ? (
+            <LoadError retry={() => awards.refetch()} busy={awards.isFetching}>
+              The company recipients could not be loaded.
+            </LoadError>
+          ) : (
+            recipientsError && (
+              <p role="alert" className="text-sm text-error-light">
+                {recipientsError}
+              </p>
+            )
           )}
           {recipientsReady && candidates.length === 0 && (
             <p className="text-sm text-text-muted">Record a member or employee award before inviting its recipient.</p>
           )}
           {member && (
-            <details className="text-sm text-text-muted">
-              <summary>Selected member record</summary>
-              <p className="break-all">{member.uuid}</p>
-            </details>
+            <Disclosure summary="Selected member record">
+              <div className="text-sm text-text-muted">
+                <p>Member reference {shortReference(member.uuid)}</p>
+              </div>
+            </Disclosure>
           )}
           <p className="text-sm text-text-muted">
             An award recipient can view their own award before any shares are issued.
           </p>
-          <label className="block space-y-1 text-sm">
-            Intended recipient email
-            <input
-              className={FIELD_CLASS}
+          <Field {...checks.field('email')} label="Intended recipient email">
+            <TextInput
+              maxLength={FIELD_LIMITS.EMAIL}
               type="email"
               value={email}
               disabled={held}
               onChange={(event) => setInvitation({ company, member: member?.uuid ?? '', email: event.target.value })}
             />
-          </label>
+          </Field>
           <PageAction
             label="Create member invitation"
             primary
             busy={running === 'invite'}
             busyLabel="Creating invitation…"
-            disabled={held || !recipientsReady || !member || !email.trim()}
+            disabled={held || !recipientsReady}
             onClick={() => {
-              if (member) track('invite', access.invite(member.uuid, email.trim()));
+              if (checks.check(INVITATION_FIELDS) && member) track('invite', access.invite(member.uuid, email.trim()));
             }}
           />
           {access.code && (
-            <label className="block space-y-1 text-sm">
-              One-time member invitation code
-              <input className={FIELD_CLASS} readOnly autoComplete="off" value={access.code} />
-            </label>
+            <Field label="One-time member invitation code">
+              <TextInput readOnly autoComplete="off" value={access.code} />
+            </Field>
           )}
           {access.access?.invitations.map((item) => (
             <div key={item.uuid} className="space-y-1 text-sm">
               <p>
-                {memberName(item.member)} · {item.intendedEmail} · {item.status} · Until{' '}
-                {formatDateTime(item.acceptanceDeadline)}
+                {memberName(item.member)} · {item.intendedEmail} · {MEMBER_INVITATION_STATUS_LABELS[item.status]} ·
+                Until {formatDateTime(item.acceptanceDeadline)}
               </p>
-              <details className="text-text-muted">
-                <summary>Invitation record</summary>
-                <p className="break-all">
-                  Invitation {item.uuid} · Member {item.member}
-                </p>
-              </details>
+              <Disclosure summary="Invitation record">
+                <div className="text-text-muted">
+                  <p className="break-all">
+                    Invitation {shortReference(item.uuid)} · Member {shortReference(item.member)}
+                  </p>
+                </div>
+              </Disclosure>
             </div>
           ))}
           <h3 className="border-t border-border-subtle pt-4 text-base font-medium">Current member access</h3>
-          <label className="block space-y-1 text-sm">
-            Company action reason
-            <textarea
-              className={FIELD_CLASS}
+          <Field {...checks.field('reason')} label="Company action reason">
+            <TextArea
+              maxLength={FIELD_LIMITS.REASON}
               value={reason}
               disabled={held}
               onChange={(event) => setReason(event.target.value)}
             />
-          </label>
+          </Field>
           {access.access?.associations.map((association) => (
             <div key={association.uuid} className="space-y-2 py-2">
               <p className="text-sm">
                 {memberName(association.member)} · {association.current ? 'Current access' : 'Revoked access'}
               </p>
-              <details className="text-sm text-text-muted">
-                <summary>Access record</summary>
-                <p className="break-all">
-                  Member {association.member} · Account {association.userAccount} · Access {association.uuid}
-                </p>
-              </details>
+              <Disclosure summary="Access record">
+                <div className="text-sm text-text-muted">
+                  <p className="break-all">
+                    Member {shortReference(association.member)} · Account {shortReference(association.userAccount)} ·
+                    Access {shortReference(association.uuid)}
+                  </p>
+                </div>
+              </Disclosure>
               {association.current && (
                 <PageAction
                   label={`Revoke access for ${memberName(association.member)}`}
-                  disabled={held || !reason.trim()}
-                  onClick={() => setRevoking({ uuid: association.uuid, name: memberName(association.member) })}
+                  disabled={held}
+                  onClick={() => {
+                    if (checks.check(['reason']))
+                      setRevoking({ uuid: association.uuid, name: memberName(association.member) });
+                  }}
                 />
               )}
             </div>
@@ -213,15 +245,16 @@ export function CompanyMemberAccess({
           {access.requests.particulars.map((item) => (
             <div key={item.uuid} className="space-y-2 py-2">
               <p className="text-sm">
-                {item.name} · {item.residentialAddress} · {item.status}
+                {item.name} · {item.residentialAddress} · {MEMBER_PARTICULARS_STATUS_LABELS[item.status]}
               </p>
-              <details className="text-sm text-text-muted">
-                <summary>Particulars request record</summary>
-                <p className="break-all">
-                  Request {item.uuid} · Member {item.member}
-                  {item.change ? ` · Company instruction ${item.change}` : ''}
-                </p>
-              </details>
+              <Disclosure summary="Particulars request record">
+                <div className="text-sm text-text-muted">
+                  <p className="break-all">
+                    Request {shortReference(item.uuid)} · Member {shortReference(item.member)}
+                    {item.change ? ` · Company instruction ${shortReference(item.change)}` : ''}
+                  </p>
+                </div>
+              </Disclosure>
               {item.status === 'submitted' && access.prepare && (
                 <PageAction
                   label={`Prepare particulars update for ${item.name}`}
@@ -238,36 +271,30 @@ export function CompanyMemberAccess({
                   Prepare {access.requests.particulars.find((item) => item.uuid === request)?.name}&apos;s particulars
                   update
                 </p>
-                <label className="block space-y-1 text-sm">
-                  Company supporting document
-                  <input
-                    className={FIELD_CLASS}
-                    type="file"
-                    accept="application/pdf,image/png,image/jpeg"
-                    disabled={held}
-                    onChange={(event) => selectFile(event.target.files?.[0] ?? null)}
-                  />
-                </label>
-                <label className="block space-y-1 text-sm">
-                  As-at date (UTC)
-                  <input
-                    className={FIELD_CLASS}
+                <FileField
+                  {...checks.field('file')}
+                  label="Company supporting document"
+                  disabled={held}
+                  onFile={selectFile}
+                />
+                <Field {...checks.field('asAt')} label="As-at date (UTC)">
+                  <TextInput
                     type="date"
+                    max={utcToday()}
                     value={asAt}
                     disabled={held}
                     onChange={(event) => setAsAt(event.target.value)}
                   />
-                </label>
+                </Field>
                 {!access.admin && (
-                  <label className="block space-y-1 text-sm">
-                    Company action reason
-                    <textarea
-                      className={FIELD_CLASS}
+                  <Field {...checks.field('reason')} label="Company action reason">
+                    <TextArea
+                      maxLength={FIELD_LIMITS.REASON}
                       value={reason}
                       disabled={held}
                       onChange={(event) => setReason(event.target.value)}
                     />
-                  </label>
+                  </Field>
                 )}
                 {uploadError && (
                   <p role="alert" className="text-sm text-error-light">
@@ -279,8 +306,10 @@ export function CompanyMemberAccess({
                   primary
                   busy={running === 'particulars'}
                   busyLabel="Recording instruction…"
-                  disabled={held || !file || !reason.trim() || !asAt}
-                  onClick={() => track('particulars', prepare())}
+                  disabled={held}
+                  onClick={() => {
+                    if (checks.check(PARTICULARS_FIELDS)) track('particulars', prepare());
+                  }}
                 />
               </div>
             )}
@@ -289,16 +318,14 @@ export function CompanyMemberAccess({
             Fulfil a genuine receiving issue or transfer with an unsigned recipient-only PDF. The company remains
             responsible for execution and permitted use.
           </p>
-          <label className="block space-y-1 text-sm">
-            Certificate instruction reference
-            <input
-              className={FIELD_CLASS}
+          <Field {...checks.field('instruction')} label="Certificate instruction reference">
+            <TextInput
               value={certificateInstruction}
-              maxLength={255}
+              maxLength={FIELD_LIMITS.REFERENCE}
               disabled={held || !!access.certificateTarget}
               onChange={(event) => setCertificateInstruction(event.target.value)}
             />
-          </label>
+          </Field>
           {access.certificateTarget && (
             <div className="space-y-2">
               <p>
@@ -320,29 +347,35 @@ export function CompanyMemberAccess({
           {access.requests.certificates.map((item) => (
             <div key={item.uuid} className="space-y-2">
               <p className="text-sm">
-                {memberName(item.member)} · Certificate {item.status}
+                {memberName(item.member)} · Certificate {MEMBER_CERTIFICATE_STATUS_LABELS[item.status].toLowerCase()}
               </p>
-              <details className="text-sm text-text-muted">
-                <summary>Certificate request record</summary>
-                <p className="break-all">
-                  Request {item.uuid} · Member {item.member} · Entry {item.entry}
-                </p>
-                {item.fulfilment && (
+              <Disclosure summary="Certificate request record">
+                <div className="text-sm text-text-muted">
                   <p className="break-all">
-                    Unsigned PDF {item.fulfilment.uuid} · SHA-256 {item.fulfilment.digest} · {item.fulfilment.fileSize}{' '}
-                    bytes
+                    Request {shortReference(item.uuid)} · Member {shortReference(item.member)} · Entry{' '}
+                    {shortReference(item.entry)}
                   </p>
-                )}
-              </details>
+                  {item.fulfilment && (
+                    <p className="break-all">
+                      Unsigned PDF {shortReference(item.fulfilment.uuid)} · SHA-256 {item.fulfilment.digest} ·{' '}
+                      {item.fulfilment.fileSize} bytes
+                    </p>
+                  )}
+                </div>
+              </Disclosure>
               {item.status === 'requested' && (
                 <PageAction
                   label={`Preview certificate for ${memberName(item.member)}`}
                   busy={running === `preview:${item.uuid}`}
                   busyLabel="Previewing…"
-                  disabled={held || !!access.certificateTarget || !certificateInstruction.trim()}
-                  onClick={() =>
-                    track(`preview:${item.uuid}`, access.previewCertificate(item.uuid, certificateInstruction.trim()))
-                  }
+                  disabled={held || !!access.certificateTarget}
+                  onClick={() => {
+                    if (checks.check(['instruction']))
+                      track(
+                        `preview:${item.uuid}`,
+                        access.previewCertificate(item.uuid, certificateInstruction.trim()),
+                      );
+                  }}
                 />
               )}
             </div>

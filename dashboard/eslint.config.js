@@ -23,6 +23,19 @@ const NO_THREE_DOTS = [
   { selector: 'JSXText[value=/\\.\\.\\./]', message: MESSAGE },
 ];
 
+const INLINE_CALENDAR_DATES = {
+  selector:
+    "CallExpression[callee.object.callee.property.name='toISOString'][callee.property.name=/^(slice|split|substring|substr)$/]",
+  message:
+    'Use utcToday, sydneyToday, isCalendarDate, addCalendarDays or addCalendarYears from @ledova/shared (docs/engineering/frontend-ux.md#forms).',
+};
+
+const LOCALE_FORMATTING = {
+  selector: 'CallExpression[callee.property.name=/^toLocale(Date|Time)?String$/]',
+  message:
+    'Format with formatDate, formatDateTime, formatMoney, formatShareCount, shareCount or sharePercentage from @ledova/shared (docs/engineering/frontend-ux.md#dates-numbers-and-identifiers).',
+};
+
 export default tseslint.config(
   { ignores: ['dist'] },
   {
@@ -64,7 +77,7 @@ export default tseslint.config(
     rules: {
       'no-restricted-globals': ['error', ...NODE_GLOBALS_THE_BROWSER_LACKS],
       'no-alert': 'error',
-      'no-restricted-syntax': ['error', ...NO_THREE_DOTS],
+      'no-restricted-syntax': ['error', ...NO_THREE_DOTS, INLINE_CALENDAR_DATES, LOCALE_FORMATTING],
       'no-restricted-imports': [
         'error',
         {
@@ -82,11 +95,7 @@ export default tseslint.config(
   },
   {
     files: ['src/**/*.tsx'],
-    ignores: [
-      'src/**/*.test.tsx',
-      'src/components/SelectField.tsx',
-      'src/pages/signup/user-profile/CountrySelector.tsx',
-    ],
+    ignores: ['src/**/*.test.tsx', 'src/pages/signup/user-profile/CountrySelector.tsx'],
     rules: {
       'no-restricted-syntax': [
         'error',
@@ -96,6 +105,8 @@ export default tseslint.config(
             'Choose the control by the data: Choices, SelectField or SearchSelect (docs/engineering/frontend-ux.md).',
         },
         ...NO_THREE_DOTS,
+        INLINE_CALENDAR_DATES,
+        LOCALE_FORMATTING,
       ],
     },
   },

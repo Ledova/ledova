@@ -1,4 +1,4 @@
-import type { ApiRequest, ApiResponse } from '../contracts';
+import type { ApiQuery, ApiRequest, ApiResponse } from '../contracts';
 
 export type CompanyEligibilityRequest = ApiResponse<'api_v1_company_eligibility_requests_retrieve'>;
 export type CompanyEligibilitySharedSummary = CompanyEligibilityRequest['sharedSummary'];
@@ -12,3 +12,4 @@ export type CompanyEligibilityDecisionPreviewResult =
 export type CompanyEligibilityDecisionCreate = ApiRequest<'api_v1_companies_eligibility_requests_decide_create'>;
 export type CompanyEligibilityWithdrawalCreate = ApiRequest<'api_v1_company_eligibility_requests_withdraw_create'>;
 export type CompanyEligibilityRevocationCreate = ApiRequest<'api_v1_companies_eligibility_requests_revoke_create'>;
+export type CompanyEligibilityQueueQuery = ApiQuery<'api_v1_companies_eligibility_requests_list'>;

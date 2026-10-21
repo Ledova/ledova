@@ -1,11 +1,16 @@
-import { Row, Rows, Section } from '@components/Ledger';
+import { Field, TextArea, TextInput, FileField } from '@components/Field';
+import { Row, Rows, Section, Loading, LoadError } from '@components/Ledger';
 import { PageAction } from '@components/Page';
-import { FIELD_CLASS } from '@components/fieldClass';
+import { ErrorSummary } from '@components/ErrorSummary';
+import { useErrorSummary } from '@hooks/useErrorSummary';
 import { SearchSelect } from '@components/SearchSelect';
 import {
+  COMPANY_SUBSCRIPTION_STATUS_LABELS,
+  FIELD_LIMITS,
   REGISTER_PAID_ISSUE_COPY as COPY,
   REGISTER_PAID_ISSUE_DECISIONS,
   REGISTER_PAID_ISSUE_UNMET_COPY,
+  formatDate,
   formatDateTime,
   formatMoney,
   formatShareCount,
@@ -13,8 +18,11 @@ import {
   useCompanyPaidIssues,
   type RegisterPaidIssue,
   type RegisterPaidIssueSource,
+  type SubscriptionStatus,
   refusalSentences,
   failureSentence,
+  shareCount,
+  shortReference,
 } from '@ledova/shared';
 import { DecisionTrail } from '@pages/company/register/shared/DecisionTrail';
 import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
@@ -27,8 +35,8 @@ const SUBSCRIPTIONS = ['subscription', 'subscriptions'] as const;
 function SourceRows({ source }: { source: RegisterPaidIssueSource }) {
   return (
     <Rows>
-      <Row label="Subscription">{source.subscription}</Row>
-      <Row label="Offering">{source.offering}</Row>
+      <Row label="Subscription">{shortReference(source.subscription)}</Row>
+      <Row label="Offering">{shortReference(source.offering)}</Row>
       <Row label="Recipient">
         {source.recipientName || 'Name not recorded'} · {source.recipientAddress}
       </Row>
@@ -46,7 +54,7 @@ function SourceRows({ source }: { source: RegisterPaidIssueSource }) {
       <Row label="Refund recorded in captured source">
         {source.refundedAt ? formatDateTime(source.refundedAt) : 'No refund recorded'}
       </Row>
-      <Row label="Payment received date">{source.paymentReceivedOn || 'Not recorded'}</Row>
+      <Row label="Payment received date">{formatDate(source.paymentReceivedOn, 'Not recorded')}</Row>
       <Row label="Recorded payment reference">{source.paymentReferenceSeen || 'Not recorded'}</Row>
       <Row label="Recorded payment hash">{source.paymentTxHash || 'Not recorded'}</Row>
       <Row label="Payment recorded on">
@@ -91,33 +99,41 @@ function PaidIssueRecord({ record, commands }: { record: RegisterPaidIssue; comm
           <h3 className="font-medium">{STAGES[record.stage] ?? record.stage} paid issue</h3>
           <SnapshotRows record={record} />
           <Rows>
-            <Row label="Preparation ID">{record.uuid}</Row>
+            <Row label="Preparation reference">{shortReference(record.uuid)}</Row>
             <Row label="Prepared by">{record.preparedByName || 'Name not recorded'}</Row>
             <Row label="Prepared on">{formatDateTime(record.createdAt)}</Row>
 
             <Row label="Intent fingerprint">{record.intentDigest}</Row>
-            {record.approvalDecision && <Row label="Consumed approval">{record.approvalDecision}</Row>}
+            {record.approvalDecision && <Row label="Consumed approval">{shortReference(record.approvalDecision)}</Row>}
             <Row label="Execution">{registerPaidIssueExecutionState(record)}</Row>
-            <Row label="Original subscription status">{record.subscriptionStatus}</Row>
+            <Row label="Original subscription status">
+              {COMPANY_SUBSCRIPTION_STATUS_LABELS[record.subscriptionStatus as SubscriptionStatus]}
+            </Row>
             <Row label="Actual allotment recorded">
               {record.allottedAt ? formatDateTime(record.allottedAt) : 'Not recorded'}
             </Row>
-            <Row label="Original issuance request">{record.request || 'No issuance request admitted'}</Row>
+            <Row label="Original issuance request">
+              {record.request ? shortReference(record.request) : 'No issuance request admitted'}
+            </Row>
             {execution && (
               <>
-                <Row label="Original execution">{execution.execution}</Row>
-                <Row label="Original dispatch">{execution.dispatchId}</Row>
-                {execution.operationId && <Row label="Original operation">{execution.operationId}</Row>}
-                {execution.claimId && <Row label="Original claim">{execution.claimId}</Row>}
+                <Row label="Original execution">{shortReference(execution.execution)}</Row>
+                <Row label="Original dispatch">{shortReference(execution.dispatchId)}</Row>
+                {execution.operationId && <Row label="Original operation">{shortReference(execution.operationId)}</Row>}
+                {execution.claimId && <Row label="Original claim">{shortReference(execution.claimId)}</Row>}
                 {execution.txHash && <Row label="Transaction hash">{execution.txHash}</Row>}
                 {execution.blockNumber !== null && <Row label="Original receipt block">{execution.blockNumber}</Row>}
                 {execution.blockHash && <Row label="Original receipt block hash">{execution.blockHash}</Row>}
                 <Row label="Original completion date">
                   {execution.completedAt ? formatDateTime(execution.completedAt) : 'Not recorded'}
                 </Row>
-                <Row label="Original issuance">{execution.issuance || 'Not recorded'}</Row>
-                <Row label="Register entry">{execution.registerEntry || 'Not recorded'}</Row>
-                <Row label="Entry effective date">{execution.effectiveOn || 'Not recorded'}</Row>
+                <Row label="Original issuance">
+                  {execution.issuance ? shortReference(execution.issuance) : 'Not recorded'}
+                </Row>
+                <Row label="Register entry">
+                  {execution.registerEntry ? shortReference(execution.registerEntry) : 'Not recorded'}
+                </Row>
+                <Row label="Entry effective date">{formatDate(execution.effectiveOn, 'Not recorded')}</Row>
               </>
             )}
           </Rows>
@@ -131,12 +147,16 @@ function PaidIssueRecord({ record, commands }: { record: RegisterPaidIssue; comm
           ))}
           <PageAction
             label="Download paid issue authority"
-            context={`paid issue ${record.uuid}`}
+            context={`paid issue ${shortReference(record.uuid)}`}
             busy={busy}
             busyLabel="Downloading…"
             onClick={() => void download()}
           />
-          {error && <p role="alert">{error}</p>}
+          {error && (
+            <p role="alert" className="text-sm text-error-light">
+              {error}
+            </p>
+          )}
         </>
       )}
       <RegisterDecisions
@@ -150,7 +170,7 @@ function PaidIssueRecord({ record, commands }: { record: RegisterPaidIssue; comm
         onDecided={commands.accept}
         onRefused={commands.refresh}
         visible={commands.visible}
-        context={`paid issue ${record.uuid}`}
+        context={`paid issue ${shortReference(record.uuid)}`}
       >
         {(preview) => (
           <>
@@ -166,38 +186,45 @@ function PaidIssueRecord({ record, commands }: { record: RegisterPaidIssue; comm
 function Preparation({ commands }: { commands: Commands }) {
   const {
     captured,
+    selections,
     director,
     setDirector,
     reference,
     setReference,
     reason,
     setReason,
-    file,
     setFile,
     uploadRef,
     busy,
     error,
     setError,
     termsValid,
+    problems,
     waiting,
     check,
     select,
     submit,
     candidates,
   } = usePaidIssuePreparation({ commands });
+  const checks = useErrorSummary(problems);
   return (
     <fieldset
       disabled={waiting}
-      className="grid gap-4 rounded-xl border border-border-subtle bg-surface-tertiary p-4 sm:grid-cols-2 [&>p]:sm:col-span-2 [&>h3]:sm:col-span-2 [&>dl]:sm:col-span-2"
+      className="grid gap-4 border-t border-border-subtle pt-4 sm:grid-cols-2 [&>p]:sm:col-span-2 [&>h3]:sm:col-span-2 [&>dl]:sm:col-span-2"
     >
       <h3 className="font-medium">Prepare a company paid issue</h3>
+      <ErrorSummary {...checks.summary} className="sm:col-span-2" />
       <p className="text-sm text-text-muted">{COPY.PAYMENT_NOTE}</p>
-      {commands.availableSubscriptions.isPending && <p role="status">Loading recorded paid sources…</p>}
+      {commands.availableSubscriptions.isPending && <Loading>Loading recorded paid sources…</Loading>}
       {commands.availableSubscriptions.isError && (
-        <p role="alert">
-          Available paid subscription sources could not be refreshed. The captured draft remains, and fresh evidence is
-          blocked.
-        </p>
+        <LoadError
+          retry={() => commands.availableSubscriptions.refetch()}
+          busy={commands.availableSubscriptions.isFetching}
+        >
+          Available paid subscription sources could not be{' '}
+          {commands.availableSubscriptions.data ? 'refreshed' : 'loaded'}. The captured draft remains, and fresh
+          evidence is blocked.
+        </LoadError>
       )}
       {commands.availableSubscriptions.isSuccess &&
         !commands.availableSubscriptions.isFetching &&
@@ -207,6 +234,7 @@ function Preparation({ commands }: { commands: Commands }) {
           </p>
         )}
       <SearchSelect
+        {...checks.field('source')}
         label="Recorded paid subscription"
         choices={[
           ...(captured && !candidates.some((row) => row.subscription === captured.source.subscription)
@@ -216,7 +244,7 @@ function Preparation({ commands }: { commands: Commands }) {
         ].map((row) => ({
           value: row.subscription,
           label: row.recipientName || 'Name not recorded',
-          detail: `${formatShareCount(row.shares)} shares · ${row.recipientAddress}`,
+          detail: `${shareCount(row.shares)} · ${row.recipientAddress}`,
         }))}
         value={captured?.source.subscription ?? ''}
         onChange={select}
@@ -231,78 +259,69 @@ function Preparation({ commands }: { commands: Commands }) {
           if (captured) select(captured.source.subscription);
         }}
       />
-      <label className="block text-sm">
-        Approving director
-        <input
-          className={FIELD_CLASS}
-          maxLength={255}
+      <Field
+        {...checks.field('director')}
+        label="Approving director"
+        hint="The company names a director other than the recipient. No director account is required."
+      >
+        <TextInput
+          maxLength={FIELD_LIMITS.DIRECTOR}
           value={director}
           onChange={(event) => setDirector(event.target.value)}
         />
-      </label>
-      <p className="text-sm text-text-muted">
-        The company names a director other than the recipient. No director account is required.
-      </p>
-      <label className="block text-sm">
-        Authority reference
-        <input
-          className={FIELD_CLASS}
-          maxLength={255}
+      </Field>
+      <Field {...checks.field('reference')} label="Authority reference">
+        <TextInput
+          maxLength={FIELD_LIMITS.REFERENCE}
           value={reference}
           onChange={(event) => setReference(event.target.value)}
         />
-      </label>
-      <label className="block text-sm">
-        Paid issue reason
-        <textarea
-          className={FIELD_CLASS}
-          maxLength={1000}
-          value={reason}
-          onChange={(event) => setReason(event.target.value)}
-        />
-      </label>
-      <label className="block text-sm">
-        Paid issue authority document
-        <input
-          className={FIELD_CLASS}
-          type="file"
-          accept=".pdf,.png,.jpg,.jpeg"
-          disabled={!commands.canPrepare || !termsValid}
-          onClick={(event) => {
-            try {
-              check();
-            } catch (failure) {
-              event.preventDefault();
-              setError(failureSentence(failure, 'The authority picker is unavailable.'));
-            }
-          }}
-          onChange={(event) => {
-            try {
-              check();
-              const chosen = event.target.files?.[0] ?? null;
-              if (
-                chosen &&
-                (!['application/pdf', 'image/png', 'image/jpeg'].includes(chosen.type) ||
-                  chosen.size <= 0 ||
-                  chosen.size > 10 * 1024 * 1024)
-              )
-                throw new Error('Choose a PDF, PNG or JPEG of up to 10 MB.');
-              uploadRef.current = null;
-              setFile(chosen);
-              setError('');
-            } catch (failure) {
-              setError(failureSentence(failure, 'The authority document could not be selected.'));
-            }
-          }}
-        />
-      </label>
-      {error && <p role="alert">{error}</p>}
+      </Field>
+      <Field {...checks.field('reason')} label="Paid issue reason">
+        <TextArea maxLength={FIELD_LIMITS.REASON} value={reason} onChange={(event) => setReason(event.target.value)} />
+      </Field>
+      <FileField
+        key={selections}
+        {...checks.field('file')}
+        label="Paid issue authority document"
+        hint={
+          termsValid
+            ? undefined
+            : 'Available once the paid subscription, approving director, authority reference and reason are given.'
+        }
+        disabled={!commands.canPrepare || !termsValid}
+        onClick={(event) => {
+          try {
+            check();
+          } catch (failure) {
+            event.preventDefault();
+            setError(failureSentence(failure, 'The authority picker is unavailable.'));
+          }
+        }}
+        onFile={(chosen) => {
+          try {
+            check();
+            uploadRef.current = null;
+            setFile(chosen);
+            setError('');
+          } catch (failure) {
+            setError(failureSentence(failure, 'The authority document could not be selected.'));
+          }
+        }}
+      />
+      {error && (
+        <p role="alert" className="text-sm text-error-light">
+          {error}
+        </p>
+      )}
       <PageAction
         label="Prepare paid issue"
         busy={busy}
         busyLabel="Preparing…"
-        disabled={waiting || !commands.canPrepare || !!commands.recovery || !termsValid || !file}
-        onClick={() => void submit()}
+        disabled={waiting || !commands.canPrepare || !!commands.recovery}
+        onClick={() => {
+          if (checks.check()) void submit();
+        }}
       />
     </fieldset>
   );
@@ -318,16 +337,28 @@ export function CompanyPaidIssueFlow({ uuid, data }: { uuid: string; data: Retur
   return (
     <Section title={COPY.TITLE}>
       <p className="text-sm text-text-muted">{COPY.NOTE}</p>
-      <PageAction
-        label="Refresh company paid issue records"
-        disabled={commands.busy}
-        onClick={() => void commands.refresh()}
-      />
-      {!commands.visible && (
-        <p className="text-sm text-text-muted">
-          Current personal register access for this company is required. Retained requests stay private until it is
-          refreshed.
-        </p>
+      {!(commands.appointments.isError || (commands.visible && commands.instructions.isError)) && (
+        <PageAction
+          label="Refresh company paid issue records"
+          busy={commands.instructions.isFetching || commands.appointments.isFetching}
+          busyLabel="Refreshing…"
+          disabled={commands.busy}
+          onClick={() => void commands.refresh()}
+        />
+      )}
+      {commands.appointments.isError ? (
+        <LoadError retry={() => commands.refresh()} busy={commands.appointments.isFetching}>
+          Your appointments could not be loaded.
+        </LoadError>
+      ) : !commands.appointments.isSuccess || commands.appointments.isFetching ? (
+        <Loading>Loading your appointments…</Loading>
+      ) : (
+        !commands.visible && (
+          <p className="text-sm text-text-muted">
+            Current personal register access for this company is required. Retained requests stay private until it is
+            refreshed.
+          </p>
+        )
       )}
       {commands.visible && !commands.steps.prepare && (
         <p className="text-sm text-text-muted">
@@ -335,9 +366,15 @@ export function CompanyPaidIssueFlow({ uuid, data }: { uuid: string; data: Retur
           capability.
         </p>
       )}
-      {commands.visible && commands.instructions.isPending && <p role="status">Loading company paid issue records…</p>}
+      {commands.visible && commands.instructions.isPending && <Loading>Loading company paid issue records…</Loading>}
       {commands.visible && commands.instructions.isError && (
-        <p role="alert">The paid issue records could not be refreshed. Retained original receipts remain available.</p>
+        <LoadError
+          retry={() => commands.refresh()}
+          busy={commands.instructions.isFetching || commands.appointments.isFetching}
+        >
+          The paid issue records could not be {commands.instructions.data ? 'refreshed' : 'loaded'}. Retained original
+          receipts remain available.
+        </LoadError>
       )}
       {!!commands.company && (
         <div hidden={!commands.visible || !commands.steps.prepare}>
@@ -347,9 +384,10 @@ export function CompanyPaidIssueFlow({ uuid, data }: { uuid: string; data: Retur
       {commands.visible && commands.recovery && (
         <div className="space-y-2">
           <p className="text-sm text-text-muted">
-            The original paid issue preparation response is unresolved. Recover its identical body and operation UUID.
+            The original paid issue preparation response is unresolved. Recover its identical body and operation
+            reference.
           </p>
-          <p>{commands.recovery.body.operationId}</p>
+          <p>Operation reference {shortReference(commands.recovery.body.operationId)}</p>
           <PageAction
             label="Recover original paid issue preparation receipt"
             disabled={commands.busy}

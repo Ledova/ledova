@@ -2,12 +2,11 @@ import {
   activityAmount,
   activityDirection,
   feeUnit,
-  formatDate,
-  formatTime,
   getBlockExplorerTxUrl,
   getBlockchainDisplayName,
   getChainShortCode,
   shownSymbol,
+  formatDateTime,
 } from '@ledova/shared';
 import type { Transaction } from '@ledova/shared';
 import { Row, Rows, Status } from '@components/Ledger';
@@ -32,14 +31,8 @@ export function TransactionDetail({ transaction }: { transaction: Transaction })
           <span className="break-all">{activityAmount(transaction.amount, shownSymbol(transaction))}</span>
         </Row>
         <Row label="Network">{getBlockchainDisplayName(getChainShortCode(transaction.chain))}</Row>
-        <Row label="Recorded">
-          {formatDate(transaction.createdAt)} {formatTime(transaction.createdAt)}
-        </Row>
-        {transaction.blockTimestamp && (
-          <Row label="Block time">
-            {formatDate(transaction.blockTimestamp)} {formatTime(transaction.blockTimestamp)}
-          </Row>
-        )}
+        <Row label="Recorded">{formatDateTime(transaction.createdAt)}</Row>
+        {transaction.blockTimestamp && <Row label="Block time">{formatDateTime(transaction.blockTimestamp)}</Row>}
         {transaction.transactionFee !== null && (
           <Row label="Network fee">
             <span className="break-all">{activityAmount(transaction.transactionFee, feeUnit(transaction.chain))}</span>
@@ -65,7 +58,7 @@ export function TransactionDetail({ transaction }: { transaction: Transaction })
           href={explorerUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="mt-3 inline-block text-sm text-brand-light underline"
+          className="inline-block text-sm text-brand-light underline"
         >
           View on explorer
         </a>

@@ -8,9 +8,14 @@ import {
   formatDateTime,
   type CompanyAuthorityRequest,
   type CompanyCapability,
+  APPOINTMENT_STATUS_LABELS,
+  shortReference,
 } from '@ledova/shared';
 import { PageAction } from '@components/Page';
-import { Row, Rows, Status } from '@components/Ledger';
+import { CheckboxField } from '@components/Field';
+import { ErrorSummary } from '@components/ErrorSummary';
+import { useErrorSummary } from '@hooks/useErrorSummary';
+import { Row, Rows, Status, Disclosure } from '@components/Ledger';
 import { Confirmation, Modal } from '@components/Modal';
 import { SITE_URL } from '@utils/siteUrl';
 
@@ -44,6 +49,7 @@ export function AuthorityRequestRecord({
   onRevoke: () => Promise<unknown>;
 }) {
   const [accepted, setAccepted] = useState(false);
+  const acceptance = useErrorSummary({ accepted: !accepted && 'Accept the authority declaration and Terms.' });
   const [confirmingWithdrawal, setConfirmingWithdrawal] = useState(false);
   const [confirmingRevocation, setConfirmingRevocation] = useState<symbol | null>(null);
   const revocationConfirmation = useRef<symbol | null>(null);
@@ -69,14 +75,15 @@ export function AuthorityRequestRecord({
         <Row label="Requested actions">{scopeLabels(request.requestedCapabilities)}</Row>
         <Row label="Requested delegation">{scopeLabels(request.delegatableCapabilities)}</Row>
       </Rows>
-      <details className="text-sm">
-        <summary className="cursor-pointer text-text-muted">Request record</summary>
-        <Rows>
-          <Row label="Request">{request.uuid}</Row>
-          <Row label="Submitted">{formatDateTime(request.createdAt)}</Row>
-          {request.withdrawnAt && <Row label="Withdrawn">{formatDateTime(request.withdrawnAt)}</Row>}
-        </Rows>
-      </details>
+      <Disclosure summary="Request record">
+        <div className="text-sm">
+          <Rows>
+            <Row label="Request">{shortReference(request.uuid)}</Row>
+            <Row label="Submitted">{formatDateTime(request.createdAt)}</Row>
+            {request.withdrawnAt && <Row label="Withdrawn">{formatDateTime(request.withdrawnAt)}</Row>}
+          </Rows>
+        </div>
+      </Disclosure>
       <p className="text-sm text-text-muted">{request.verificationMessage}</p>
       {request.fileUrl && (
         <PageAction
@@ -91,6 +98,7 @@ export function AuthorityRequestRecord({
         <>
           {request.requestedCapabilities.includes('admin') ? (
             <div className="space-y-2">
+              <ErrorSummary {...acceptance.summary} />
               <p className="text-sm text-text-primary">{COMPANY_SIGNUP_DECLARATION}</p>
               <p className="text-sm text-text-muted">
                 Declaration version {COMPANY_SIGNUP_DECLARATION_VERSION}. Your appointment uses the exact permissions,
@@ -104,22 +112,22 @@ export function AuthorityRequestRecord({
               >
                 Terms of Service
               </a>
-              <label className="flex items-center gap-2 text-sm text-text-primary">
-                <input
-                  type="checkbox"
-                  checked={accepted}
-                  disabled={blocked}
-                  onChange={(event) => setAccepted(event.target.checked)}
-                />
-                Accept authority declaration and Terms for {request.companyIdentityRaw.name}
-              </label>
+              <CheckboxField
+                {...acceptance.field('accepted')}
+                label={`Accept authority declaration and Terms for ${request.companyIdentityRaw.name}`}
+                checked={accepted}
+                disabled={blocked}
+                onChange={(event) => setAccepted(event.target.checked)}
+              />
               <PageAction
                 label={`Establish appointment ${request.originalFilename || request.companyIdentityRaw.name}`}
                 busy={action === 'admit'}
                 busyLabel="Establishing appointment…"
                 primary
-                disabled={blocked || !accepted}
-                onClick={onAdmit}
+                disabled={blocked}
+                onClick={() => {
+                  if (acceptance.check()) onAdmit();
+                }}
               />
             </div>
           ) : (
@@ -158,7 +166,7 @@ export function AuthorityRequestRecord({
       {appointment && (
         <>
           <Rows>
-            <Row label="Appointment status">{appointment.status}</Row>
+            <Row label="Appointment status">{APPOINTMENT_STATUS_LABELS[appointment.status]}</Row>
             <Row label="Current company authority">{appointment.isEffective ? 'Current' : 'Not current'}</Row>
             <Row label="Admitted">{formatDateTime(appointment.createdAt)}</Row>
             <Row label="Appointed actions">{scopeLabels(appointment.capabilities)}</Row>
@@ -168,20 +176,21 @@ export function AuthorityRequestRecord({
             </Row>
             {appointment.revokedAt && <Row label="Revoked">{formatDateTime(appointment.revokedAt)}</Row>}
           </Rows>
-          <details className="text-sm">
-            <summary className="cursor-pointer text-text-muted">Appointment and declaration record</summary>
-            <div className="space-y-3 pt-3">
-              <Rows>
-                <Row label="Appointment">{appointment.uuid}</Row>
-                <Row label="Declaration version">{appointment.declarationVersion}</Row>
-              </Rows>
-              <p className="text-text-primary">{appointment.declarationText}</p>
-              <p className="text-text-muted">
-                This is your recorded self-declaration. Company information is provided by the company. An appointment
-                does not activate the company or approve any register action.
-              </p>
+          <Disclosure summary="Appointment and declaration record">
+            <div className="text-sm">
+              <div className="space-y-3 pt-3">
+                <Rows>
+                  <Row label="Appointment">{shortReference(appointment.uuid)}</Row>
+                  <Row label="Declaration version">{appointment.declarationVersion}</Row>
+                </Rows>
+                <p className="text-text-primary">{appointment.declarationText}</p>
+                <p className="text-text-muted">
+                  This is your recorded self-declaration. Company information is provided by the company. An appointment
+                  does not activate the company or approve any register action.
+                </p>
+              </div>
             </div>
-          </details>
+          </Disclosure>
           <p className="text-sm text-text-muted">
             Revocation permanently removes this appointment&apos;s company authority. You cannot restore it by making
             another initial self-declaration. Its declaration and evidence remain retained.

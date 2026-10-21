@@ -1,8 +1,15 @@
 import { useState } from 'react';
-import { formatDate, formatShareCount, registerImportTotals, type RegisterImportMemberRow } from '@ledova/shared';
+import {
+  formatDate,
+  formatShareCount,
+  registerImportTotals,
+  sharePercentage,
+  type RegisterImportMemberRow,
+} from '@ledova/shared';
+import { Table } from '@components/List';
 import { Modal } from '@components/Modal';
 import { PageAction } from '@components/Page';
-import { countBarWidth } from '@pages/company/shared/summary';
+import { Row, Rows } from '@components/Ledger';
 
 export function MemberRecords({ members }: { members: RegisterImportMemberRow[] }) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -10,55 +17,35 @@ export function MemberRecords({ members }: { members: RegisterImportMemberRow[] 
   const total = registerImportTotals(members).total;
   return (
     <>
-      <div className="relative max-w-full overflow-x-auto rounded-xl border border-border-subtle">
-        <table className="w-full text-left text-sm">
-          <caption className="sr-only">Shareholders</caption>
-          <thead className="bg-surface-tertiary text-xs text-text-muted">
-            <tr>
-              <th scope="col" className="px-4 py-3 font-medium">
-                Shareholder
+      <Table
+        caption="Shareholders"
+        columns={[
+          { label: 'Shareholder' },
+          { label: 'Shares held', align: 'right' },
+          { label: '% of class', align: 'right' },
+          { label: 'Date added' },
+          { label: 'Allotments', hidden: true },
+        ]}
+      >
+        {members.map((member) => {
+          return (
+            <tr key={member.member}>
+              <th scope="row" className="px-4 py-4 text-left font-normal">
+                <p className="font-medium text-text-primary">{member.name}</p>
+                <p className="mt-1 max-w-64 truncate text-xs text-text-muted">{member.residentialAddress}</p>
               </th>
-              <th scope="col" className="px-4 py-3 text-right font-medium">
-                Shares held
-              </th>
-              <th scope="col" className="px-4 py-3 text-right font-medium">
-                % of class
-              </th>
-              <th scope="col" className="px-4 py-3 font-medium">
-                Date added
-              </th>
-              <th scope="col" className="px-4 py-3 font-medium">
-                <span className="sr-only">Details</span>
-              </th>
+              <td className="px-4 py-4 text-right font-medium tabular-nums">{formatShareCount(member.shares)}</td>
+              <td className="whitespace-nowrap px-4 py-4 text-right tabular-nums text-text-muted">
+                {/^\d+$/.test(member.shares) ? sharePercentage(member.shares, total) : 'Not recorded'}
+              </td>
+              <td className="whitespace-nowrap px-4 py-4 text-text-muted">{formatDate(member.enteredOn, '—')}</td>
+              <td className="px-4 py-4">
+                <PageAction label="Allotments" context={member.name} onClick={() => setSelectedId(member.member)} />
+              </td>
             </tr>
-          </thead>
-          <tbody className="divide-y divide-border-subtle">
-            {members.map((member) => {
-              const percent = total !== '0' && /^\d+$/.test(member.shares) ? countBarWidth(member.shares, total) : null;
-              return (
-                <tr key={member.member}>
-                  <th scope="row" className="px-4 py-4 text-left font-normal">
-                    <p className="font-medium text-text-primary">{member.name}</p>
-                    <p className="mt-1 max-w-64 truncate text-xs text-text-muted">{member.residentialAddress}</p>
-                  </th>
-                  <td className="px-4 py-4 text-right font-medium tabular-nums">{formatShareCount(member.shares)}</td>
-                  <td className="whitespace-nowrap px-4 py-4 text-right tabular-nums text-text-muted">
-                    {percent === null
-                      ? 'Not recorded'
-                      : percent === 0 && BigInt(member.shares) > 0n
-                        ? '<0.01%'
-                        : `${percent.toFixed(2)}%`}
-                  </td>
-                  <td className="whitespace-nowrap px-4 py-4 text-text-muted">{formatDate(member.enteredOn, '—')}</td>
-                  <td className="px-4 py-4">
-                    <PageAction label="Details" context={member.name} onClick={() => setSelectedId(member.member)} />
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+          );
+        })}
+      </Table>
       <Modal
         isOpen={!!selected}
         onClose={() => setSelectedId(null)}
@@ -69,24 +56,23 @@ export function MemberRecords({ members }: { members: RegisterImportMemberRow[] 
       >
         {selected && (
           <div className="space-y-6">
-            <dl className="grid gap-4 sm:grid-cols-2">
+            <Rows>
               {[
                 ['Address', selected.residentialAddress],
                 ['Date first added to register', formatDate(selected.enteredOn, '—')],
                 ['Shares held', formatShareCount(selected.shares)],
               ].map(([label, value]) => (
-                <div key={label}>
-                  <dt className="text-xs text-text-muted">{label}</dt>
-                  <dd className="mt-1 break-words text-sm text-text-primary">{value}</dd>
-                </div>
+                <Row key={label} label={label}>
+                  {value}
+                </Row>
               ))}
-            </dl>
+            </Rows>
             {selected.allotments ? (
               <div className="space-y-4">
                 {selected.allotments.map((allotment, index) => (
-                  <section key={index} className="space-y-3 rounded-xl border border-border-subtle p-4">
+                  <section key={index} className="space-y-3 border-t border-border-subtle pt-4">
                     <h3 className="text-sm font-medium text-text-primary">Allotment {index + 1}</h3>
-                    <dl className="grid gap-4 sm:grid-cols-2">
+                    <Rows>
                       {[
                         ['Allotment date', formatDate(allotment.allottedOn, '—')],
                         ['Shares in allotment', formatShareCount(allotment.shares)],
@@ -99,12 +85,11 @@ export function MemberRecords({ members }: { members: RegisterImportMemberRow[] 
                           ? [['Certificate reference', allotment.certificateReference]]
                           : []),
                       ].map(([label, value]) => (
-                        <div key={label}>
-                          <dt className="text-xs text-text-muted">{label}</dt>
-                          <dd className="mt-1 break-words text-sm text-text-primary">{value}</dd>
-                        </div>
+                        <Row key={label} label={label}>
+                          {value}
+                        </Row>
                       ))}
-                    </dl>
+                    </Rows>
                   </section>
                 ))}
               </div>

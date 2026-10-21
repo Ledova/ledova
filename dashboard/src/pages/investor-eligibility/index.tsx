@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { DESTINATIONS, formatDate, refusalSentences, failureSentence } from '@ledova/shared';
 import type { InvestorCategory, InvestorClassification } from '@ledova/shared';
-import { LinkRow, Row, Rows, Section, Status, type Tone } from '@components/Ledger';
+import { LinkRow, Row, Rows, Section, Status, type Tone, LoadError } from '@components/Ledger';
 import { Page, PageAction } from '@components/Page';
 import { Confirmation } from '@components/Modal';
 import { useInvestorWithdrawal } from './useInvestorWithdrawal';
@@ -38,7 +38,7 @@ export default function InvestorEligibilityPage() {
     classifications.filter((claim) => claim.status === 'submitted').map((claim) => claim.category),
   );
   const submissionBlockedReason = hasError
-    ? 'Your verification could not be loaded. Try again before continuing.'
+    ? 'Your verification could not be loaded.'
     : isLoading || isRefreshing
       ? 'Refreshing your verification before continuing.'
       : null;
@@ -47,12 +47,9 @@ export default function InvestorEligibilityPage() {
     <>
       <Page narrow loading={isLoading}>
         {hasError ? (
-          <div role="alert" className="flex flex-col items-start gap-3 py-6">
-            <p className="text-sm text-text-primary">
-              Your verification could not be loaded. Try again before continuing.
-            </p>
-            <PageAction label="Try again" onClick={() => void retry()} disabled={isRefreshing} />
-          </div>
+          <LoadError retry={retry} busy={isRefreshing}>
+            Your verification could not be loaded.
+          </LoadError>
         ) : (
           <>
             <Section title="Account readiness">
@@ -85,9 +82,7 @@ export default function InvestorEligibilityPage() {
                 </p>
               )}
               {classifications.length === 0 ? (
-                <p className="py-3 text-sm text-text-muted">
-                  You have not submitted evidence yet. Choose a category below.
-                </p>
+                <p className="py-3 text-sm text-text-muted">No claims yet. Choose a category below.</p>
               ) : (
                 <div className="divide-y divide-border-subtle">
                   {classifications.map((claim) => {
@@ -149,7 +144,7 @@ export default function InvestorEligibilityPage() {
                 After adding evidence, request eligibility for the exact company or offering and consent to sharing it.
                 The company records its own decision; new investment actions recheck that decision and its scope.
               </p>
-              <LinkRow to={DESTINATIONS.eligibilityRequests.path} label="Request company eligibility" />
+              <LinkRow to={DESTINATIONS.eligibilityRequests.path} label={DESTINATIONS.eligibilityRequests.title} />
             </Section>
           </>
         )}

@@ -1,5 +1,5 @@
 import { CompanyPicker } from '@components/CompanyPicker';
-import { Outcome, Section } from '@components/Ledger';
+import { Outcome, Section, LoadError, Loading } from '@components/Ledger';
 import { Page, PageAction } from '@components/Page';
 import { useSubmissionOwner, useUserPreferences, type OrderSubmissionOwner, failureSentence } from '@ledova/shared';
 import { AuthorityRequestForm } from './AuthorityRequestForm';
@@ -12,10 +12,15 @@ export default function CompanyAuthorityPage() {
   if (!owner)
     return (
       <Page narrow>
-        <p className="text-sm text-text-muted">
-          Verify your signed-in account before opening representative authority.
-        </p>
-        {preferences.isError && <PageAction label="Retry your account" onClick={() => void preferences.refetch()} />}
+        {preferences.isError ? (
+          <LoadError retry={() => preferences.refetch()} busy={preferences.isFetching}>
+            Your account could not be loaded.
+          </LoadError>
+        ) : (
+          <p className="text-sm text-text-muted">
+            Verify your signed-in account before opening representative authority.
+          </p>
+        )}
       </Page>
     );
   return (
@@ -58,18 +63,11 @@ function OwnAuthorityRequests({
       </p>
       <Section title="New authority request">
         {companies.isLoading ? (
-          <p role="status" className="text-sm text-text-muted">
-            Loading your companies…
-          </p>
+          <Loading>Loading your companies…</Loading>
         ) : companies.isError ? (
-          <div role="alert" className="space-y-2 text-sm text-error-light">
-            <p>Your companies could not be loaded.</p>
-            <PageAction
-              label="Retry companies"
-              onClick={() => void companies.refetch()}
-              disabled={companies.isFetching}
-            />
-          </div>
+          <LoadError retry={() => companies.refetch()} busy={companies.isFetching}>
+            Your companies could not be loaded.
+          </LoadError>
         ) : drafts.length === 0 ? (
           <p className="text-sm text-text-muted">No draft company is available for an authority request.</p>
         ) : (
@@ -83,11 +81,9 @@ function OwnAuthorityRequests({
             }}
           />
         )}
+        <Outcome>{recorded && `Request recorded. ${recorded.verificationMessage}`}</Outcome>
         {recorded ? (
-          <div className="space-y-2">
-            <Outcome>Request recorded. {recorded.verificationMessage}</Outcome>
-            <PageAction label="Start another request" onClick={() => setRecorded(null)} />
-          </div>
+          <PageAction label="Start another request" onClick={() => setRecorded(null)} />
         ) : (
           company && (
             <AuthorityRequestForm
@@ -106,20 +102,13 @@ function OwnAuthorityRequests({
       </Section>
       <Section title="Your request history">
         {history.isLoading ? (
-          <p role="status" className="text-sm text-text-muted">
-            Loading your requests…
-          </p>
+          <Loading>Loading your requests…</Loading>
         ) : history.isError ? (
-          <div role="alert" className="space-y-2 text-sm text-error-light">
-            <p>Your authority requests could not be loaded.</p>
-            <PageAction
-              label="Retry request history"
-              onClick={() => void history.refetch()}
-              disabled={history.isFetching}
-            />
-          </div>
+          <LoadError retry={() => history.refetch()} busy={history.isFetching}>
+            Your authority requests could not be loaded.
+          </LoadError>
         ) : (history.data ?? []).length === 0 ? (
-          <p className="text-sm text-text-muted">No authority requests recorded.</p>
+          <p className="text-sm text-text-muted">No authority requests yet.</p>
         ) : (
           <ul className="divide-y divide-border-subtle">
             {(history.data ?? []).map((request) => (

@@ -1,38 +1,27 @@
 import type { ReactNode } from 'react';
-import type { To } from 'react-router-dom';
-import { DESTINATIONS, type useUserPreferences } from '@ledova/shared';
-import { Page, PageLink } from '@components/Page';
-import { Loading, Unavailable } from '@pages/company/shared/RegisterStatus';
-
-export function PreparationBack({
-  to = DESTINATIONS.companyRegister.path,
-  label = 'Back to Register',
-}: {
-  to?: To;
-  label?: string;
-}) {
-  return <PageLink to={to} label={label} />;
-}
+import type { useUserPreferences } from '@ledova/shared';
+import { Page } from '@components/Page';
+import { LoadError, Loading } from '@components/Ledger';
 
 export function PreparationPreferences({ preferences }: { preferences: ReturnType<typeof useUserPreferences> }) {
   return preferences.isLoading ? (
-    <Loading />
+    <Loading>Loading your account…</Loading>
   ) : (
-    <Unavailable retry={() => void preferences.refetch()} busy={preferences.isFetching} />
+    <LoadError retry={() => preferences.refetch()} busy={preferences.isFetching}>
+      Your account could not be loaded.
+    </LoadError>
   );
 }
 
 export function PreparationShell({
   lede,
-  actions,
   preferences,
 }: {
   lede: string;
-  actions: ReactNode;
   preferences: ReturnType<typeof useUserPreferences>;
 }) {
   return (
-    <Page narrow lede={lede} actions={actions}>
+    <Page narrow lede={lede}>
       <PreparationPreferences preferences={preferences} />
     </Page>
   );

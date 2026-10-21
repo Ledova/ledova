@@ -1,14 +1,29 @@
+import { Field, TextInput } from '@components/Field';
 import { useState } from 'react';
 import { AnimatedQRCode } from '@keystonehq/animated-qr';
-import { marketAmount, useOrderActionSigning, type OrderAction, type Wallet } from '@ledova/shared';
+import {
+  FIELD_LIMITS,
+  marketAmount,
+  useOrderActionSigning,
+  type OrderAction,
+  type OrderActionChange,
+  type Wallet,
+  shareCount,
+  ORDER_STATUS_LABELS,
+  ORDER_CHANGE_FIELD_LABELS,
+} from '@ledova/shared';
 import { Confirmation, Modal, ModalActions } from '@components/Modal';
 import { PageAction } from '@components/Page';
 import { SeedPhraseInput } from '@components/SeedPhraseInput';
+import { ErrorSummary } from '@components/ErrorSummary';
+import { useErrorSummary } from '@hooks/useErrorSummary';
 import { QRCodeFrame, QRScannerView, useQRScanner } from '@components/qr';
 import { encodeEthereumTypedData } from '@utils/keystone/urEncoder';
 import { decodeKeystoneMessageSignature } from '@utils/keystone/urDecoder';
 import { deriveAddress, signEthereumTypedData } from '@utils/softwareWallet/localSigner';
-import { FIELD_CLASS } from '@components/fieldClass';
+
+const changeValue = (field: OrderActionChange['field'], value: string) =>
+  field === 'price_per_share' ? marketAmount(value) : shareCount(value);
 
 interface Props {
   action: OrderAction;
@@ -18,6 +33,7 @@ interface Props {
 
 export function OrderActionFlow({ action, wallets, onClose }: Props) {
   const [seedPhrase, setSeedPhrase] = useState('');
+  const phraseCheck = useErrorSummary({ seedPhrase: !seedPhrase.trim() && 'Enter the seed phrase for this wallet.' });
   const [removal, setRemoval] = useState<'confirming' | 'removing' | null>(null);
   const signing = useOrderActionSigning(action, wallets, (message, wallet) => {
     const encoded = encodeEthereumTypedData(
@@ -75,10 +91,10 @@ export function OrderActionFlow({ action, wallets, onClose }: Props) {
               Token: {review.token.symbol} — {review.token.name}
             </p>
             <p className="break-all">Wallet: {state.snapshot?.walletAddress ?? state.context?.walletAddress}</p>
-            <p>Reviewed quantity: {review.currentValues.quantity} shares</p>
-            <p>Reviewed minimum: {review.currentValues.minQuantity} shares</p>
+            <p>Reviewed quantity: {shareCount(review.currentValues.quantity)}</p>
+            <p>Reviewed minimum: {shareCount(review.currentValues.minQuantity)}</p>
             <p>Reviewed price per share: {marketAmount(review.currentValues.pricePerShare)}</p>
-            <p>Filled: {review.currentValues.filledQuantity} shares</p>
+            <p>Filled: {shareCount(review.currentValues.filledQuantity)}</p>
           </div>
         )}
         {state.phase === 'editing' && (
@@ -87,33 +103,30 @@ export function OrderActionFlow({ action, wallets, onClose }: Props) {
               <p>Cancel the available remainder of this order.</p>
             ) : (
               <>
-                <label className="block">
-                  New quantity
-                  <input
-                    className={FIELD_CLASS}
+                <Field label="New quantity">
+                  <TextInput
+                    maxLength={FIELD_LIMITS.ORDER_SHARES}
                     inputMode="numeric"
                     value={state.values?.quantity ?? ''}
                     onChange={(event) => action.edit('quantity', event.target.value)}
                   />
-                </label>
-                <label className="block">
-                  New minimum fill
-                  <input
-                    className={FIELD_CLASS}
+                </Field>
+                <Field label="New minimum fill">
+                  <TextInput
+                    maxLength={FIELD_LIMITS.ORDER_SHARES}
                     inputMode="numeric"
                     value={state.values?.minQuantity ?? ''}
                     onChange={(event) => action.edit('minQuantity', event.target.value)}
                   />
-                </label>
-                <label className="block">
-                  New price per share
-                  <input
-                    className={FIELD_CLASS}
+                </Field>
+                <Field label="New price per share">
+                  <TextInput
+                    maxLength={FIELD_LIMITS.PRICE}
                     inputMode="decimal"
                     value={state.values?.pricePerShare ?? ''}
                     onChange={(event) => action.edit('pricePerShare', event.target.value)}
                   />
-                </label>
+                </Field>
               </>
             )}
             {state.error && (
@@ -125,8 +138,8 @@ export function OrderActionFlow({ action, wallets, onClose }: Props) {
         )}
         {replacements && (
           <div className="space-y-1 border-t border-border-subtle pt-3">
-            <p>New quantity: {replacements.quantity} shares</p>
-            <p>New minimum fill: {replacements.minQuantity} shares</p>
+            <p>New quantity: {shareCount(replacements.quantity)}</p>
+            <p>New minimum fill: {shareCount(replacements.minQuantity)}</p>
             <p>New price per share: {marketAmount(replacements.pricePerShare)}</p>
           </div>
         )}
@@ -143,7 +156,12 @@ export function OrderActionFlow({ action, wallets, onClose }: Props) {
                 {view.error}
               </p>
             )}
-            {view.step === 'software' && <SeedPhraseInput value={seedPhrase} onChange={setSeedPhrase} />}
+            {view.step === 'software' && (
+              <>
+                <ErrorSummary {...phraseCheck.summary} />
+                <SeedPhraseInput {...phraseCheck.field('seedPhrase')} value={seedPhrase} onChange={setSeedPhrase} />
+              </>
+            )}
             {view.step === 'show-qr' && view.qrData && (
               <QRCodeFrame>
                 <AnimatedQRCode cbor={view.qrData.cborHex} type={view.qrData.type} />
@@ -158,7 +176,10 @@ export function OrderActionFlow({ action, wallets, onClose }: Props) {
           <div role="status" className="space-y-1">
             <h3 className="font-medium">{state.recovered ? 'Original action recovered' : 'Action recorded'}</h3>
             {state.snapshot?.result?.kind === 'cancel' && (
-              <p>This cancellation changed the order from {state.snapshot.result.fromStatus} to cancelled.</p>
+              <p>
+                This cancellation changed the order status from {ORDER_STATUS_LABELS[state.snapshot.result.fromStatus]}{' '}
+                to Cancelled.
+              </p>
             )}
             {state.snapshot?.result?.kind === 'modify' && (
               <>
@@ -166,15 +187,13 @@ export function OrderActionFlow({ action, wallets, onClose }: Props) {
                 {state.snapshot.result.changes.length === 0 && <p>The values were already the requested values.</p>}
                 {state.snapshot.result.changes.map((change) => (
                   <p key={change.field}>
-                    {change.field.replace(/_/g, ' ')}: {change.old} → {change.new}
+                    {ORDER_CHANGE_FIELD_LABELS[change.field]}: {changeValue(change.field, change.old)} →{' '}
+                    {changeValue(change.field, change.new)}
                   </p>
                 ))}
               </>
             )}
-            <p>
-              Current order status:{' '}
-              {state.snapshot?.order.statusDisplay ?? state.snapshot?.order.status.replace(/_/g, ' ')}
-            </p>
+            <p>Current order status: {state.snapshot?.order.statusDisplay}</p>
           </div>
         )}
         {state.phase === 'refused' && (
@@ -211,6 +230,7 @@ export function OrderActionFlow({ action, wallets, onClose }: Props) {
               onClick={() => {
                 stopScanner();
                 setSeedPhrase('');
+                phraseCheck.reset();
                 signing.back();
               }}
             />
@@ -240,8 +260,10 @@ export function OrderActionFlow({ action, wallets, onClose }: Props) {
             <PageAction
               label={`Sign ${label}`}
               primary
-              disabled={!seedPhrase.trim() || !wallet?.derivationPath}
-              onClick={sign}
+              disabled={!wallet?.derivationPath}
+              onClick={() => {
+                if (phraseCheck.check()) sign();
+              }}
             />
           )}
           {state.phase === 'ready' && view.step === 'show-qr' && view.qrData && (

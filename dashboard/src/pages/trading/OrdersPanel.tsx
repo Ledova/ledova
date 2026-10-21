@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { Wallet, OrderSubmissionOwner, TransferOrder, SwapOrder, OrderBook, OrderBookEntry } from '@ledova/shared';
 import { selectSwapSettlement, formatDateTime, marketAmount, marketQuantity } from '@ledova/shared';
-import { Section, Rows, Row, Status, type Tone } from '@components/Ledger';
+import { Section, Rows, Row, Status, type Tone, LoadError, Loading } from '@components/Ledger';
 
 function BookSide({ title, entries }: { title: string; entries: OrderBookEntry[] }) {
   return (
@@ -36,16 +36,19 @@ interface OrdersPanelProps {
   isLoadingOrderBook: boolean;
   orderBookError?: unknown;
   onRefreshBook?: () => void;
+  isRefreshingBook?: boolean;
   userOrders: TransferOrder[];
   isLoadingUserOrders: boolean;
   ordersError?: unknown;
   onRefreshOrders?: () => void;
+  isRefreshingOrders?: boolean;
   onCancelOrder: (uuid: string) => void;
   onEditOrder: (order: TransferOrder) => void;
   swaps: SwapOrder[] | undefined;
   isLoadingSwaps: boolean;
   swapsError?: unknown;
   onRefreshSwaps?: () => void;
+  isRefreshingSwaps?: boolean;
   wallets: Wallet[];
   settlementOwner: OrderSubmissionOwner | null;
   onSignSwap: (swap: SwapOrder) => void;
@@ -62,16 +65,19 @@ export function OrdersPanel({
   isLoadingOrderBook,
   orderBookError,
   onRefreshBook,
+  isRefreshingBook = false,
   userOrders,
   isLoadingUserOrders,
   ordersError,
   onRefreshOrders,
+  isRefreshingOrders = false,
   onCancelOrder,
   onEditOrder,
   swaps,
   isLoadingSwaps,
   swapsError,
   onRefreshSwaps,
+  isRefreshingSwaps = false,
   wallets,
   settlementOwner,
   onSignSwap,
@@ -82,14 +88,11 @@ export function OrdersPanel({
       {tokenSymbol && (
         <Section title={`Orders for ${tokenSymbol}`}>
           {orderBookError ? (
-            <div role="alert">
-              The order lists could not be loaded.{' '}
-              <button className="underline" onClick={onRefreshBook}>
-                Retry order lists
-              </button>
-            </div>
+            <LoadError retry={() => onRefreshBook?.()} busy={isRefreshingBook}>
+              The order lists could not be loaded.
+            </LoadError>
           ) : isLoadingOrderBook ? (
-            <p role="status">Loading order lists…</p>
+            <Loading>Loading order lists…</Loading>
           ) : (
             <div className="grid gap-8 md:grid-cols-2">
               <BookSide title="For sale" entries={orderBook?.sellOrders ?? []} />
@@ -103,16 +106,13 @@ export function OrdersPanel({
           Your recorded orders remain here when a share class is no longer listed.
         </p>
         {ordersError ? (
-          <div role="alert">
-            Your orders could not be loaded.{' '}
-            <button className="underline" onClick={onRefreshOrders}>
-              Retry your orders
-            </button>
-          </div>
+          <LoadError retry={() => onRefreshOrders?.()} busy={isRefreshingOrders}>
+            Your orders could not be loaded.
+          </LoadError>
         ) : isLoadingUserOrders ? (
-          <p role="status">Loading your orders…</p>
+          <Loading>Loading your orders…</Loading>
         ) : userOrders.length === 0 ? (
-          <p className="text-sm text-text-muted">No recorded orders.</p>
+          <p className="text-sm text-text-muted">No orders yet.</p>
         ) : (
           userOrders.map((order) => (
             <article key={order.uuid} className="border-b border-border-subtle py-3 last:border-b-0">
@@ -124,9 +124,7 @@ export function OrdersPanel({
                   <span>{order.orderType === 'buy' ? 'Wanted' : 'For sale'}</span>
                 </Row>
                 <Row label="Status">
-                  <Status tone={ORDER_STATUS_TONES.get(order.status) ?? 'waiting'}>
-                    {order.statusDisplay ?? order.status.replace(/_/g, ' ')}
-                  </Status>
+                  <Status tone={ORDER_STATUS_TONES.get(order.status) ?? 'waiting'}>{order.statusDisplay}</Status>
                 </Row>
                 <Row label="Shares remaining">
                   <span className="break-all">{marketQuantity(order.remainingQuantity ?? order.quantity)}</span>
@@ -180,14 +178,11 @@ export function OrdersPanel({
       </Section>
       <Section title="Trades awaiting signatures">
         {swapsError ? (
-          <div role="alert">
-            Trades could not be loaded.{' '}
-            <button className="underline" onClick={onRefreshSwaps}>
-              Retry trades
-            </button>
-          </div>
+          <LoadError retry={() => onRefreshSwaps?.()} busy={isRefreshingSwaps}>
+            Trades could not be loaded.
+          </LoadError>
         ) : isLoadingSwaps ? (
-          <p role="status">Loading trades…</p>
+          <Loading>Loading trades…</Loading>
         ) : !swaps?.length ? (
           <p className="text-sm text-text-muted">No trades awaiting signatures for your verified wallets.</p>
         ) : (
@@ -215,7 +210,7 @@ export function OrdersPanel({
                 </h3>
                 <Rows>
                   <Row label="Your role">{role}</Row>
-                  <Row label="Status">{swap.status.replace(/_/g, ' ')}</Row>
+                  <Row label="Status">{swap.statusDisplay}</Row>
                   {legacy ? (
                     <Row label="Recorded shares">{marketQuantity(swap.shareAmount)}</Row>
                   ) : (

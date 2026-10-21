@@ -7,7 +7,7 @@ import { ROOT_PATH } from '@utils/paths';
 export function PublicOnlyRoute({ children }: { children: ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth();
 
-  if (isLoading) return <FullScreenSpinner />;
+  if (isLoading) return <FullScreenSpinner label="Checking your session" />;
   if (isAuthenticated) return <Navigate to={ROOT_PATH} replace />;
   return <>{children}</>;
 }

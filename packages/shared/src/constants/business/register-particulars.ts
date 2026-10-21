@@ -23,7 +23,7 @@ export const REGISTER_PARTICULARS_UNMET_COPY: Record<string, string> = {
 
 export const REGISTER_PARTICULARS_COPY = {
   TITLE: 'Particulars changes',
-  EMPTY: 'No particulars change has been prepared for this company.',
+  EMPTY: 'No particulars changes yet.',
   PREPARE: 'Change particulars',
   PROVIDED_BY_COMPANY: 'Provided by the company',
   READ_ONLY_NOTE:
@@ -58,7 +58,7 @@ export const REGISTER_PARTICULARS_COPY = {
   SUPPORTING_DOCUMENT: 'Supporting document',
   SUPPORTING_DOCUMENT_NOTE:
     "A deed poll, the member's notice of a new address or another document that supports this change, provided by " +
-    'the company. PDF or image, max 10 MB. Ledova does not verify it.',
+    'the company. Ledova does not verify it.',
   SUBMIT: 'Prepare change',
   DOWNLOAD: 'Download the supporting document',
   UPLOAD_RECEIPT_FAILED: 'The uploaded supporting document could not be confirmed. Upload it again.',

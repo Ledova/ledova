@@ -6,12 +6,16 @@ import {
   type RegisterDecisionKind,
   type RegisterAllotment,
   type RegisterAllotmentDecisionPreview,
+  shareCount,
+  formatMoney,
+  formatDate,
+  shortReference,
 } from '@ledova/shared';
-import { Row, Rows, Status } from '@components/Ledger';
+import { Row, Rows, Status, Disclosure } from '@components/Ledger';
 import { PageAction } from '@components/Page';
 import { DecisionTrail } from '@pages/company/register/shared/DecisionTrail';
 import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
-import { STAGE_TONES, shareCount, type RegisterSteps } from '@pages/company/shared/proposals';
+import { STAGE_TONES, type RegisterSteps } from '@pages/company/shared/proposals';
 import { useAllotmentRecordDownload } from './useRegisterRecordDownload';
 import { AllotmentOwnership } from './AllotmentOwnership';
 
@@ -24,23 +28,21 @@ function AllotmentRows({ allotment }: { allotment: RegisterAllotment | RegisterA
       <Row label="Residential address">{allotment.residentialAddress}</Row>
       <Row label="Member record">{allotment.newMember ? 'New member' : 'Existing member'}</Row>
       <Row label={COPY.SHARES}>{shareCount(allotment.shares)}</Row>
-      <Row label={COPY.CONSIDERATION}>AUD {allotment.consideration}</Row>
+      <Row label={COPY.CONSIDERATION}>{formatMoney(allotment.consideration, allotment.currency)}</Row>
       <Row label={COPY.AGREEMENT_REFERENCE}>{allotment.agreement.reference}</Row>
-      <Row label={COPY.AGREEMENT_ON}>{allotment.agreement.agreedOn}</Row>
+      <Row label={COPY.AGREEMENT_ON}>{formatDate(allotment.agreement.agreedOn)}</Row>
       <Row label={COPY.TERMS}>{allotment.agreement.terms}</Row>
-      <Row label="Agreement recorded">
-        {allotment.agreement.recordedBy} · {formatDateTime(allotment.agreement.recordedAt)}
-      </Row>
-      <Row label={COPY.RECEIVED_AMOUNT}>AUD {allotment.contribution.amount}</Row>
-      <Row label={COPY.RECEIVED_ON}>{allotment.contribution.receivedOn}</Row>
-      <Row label="Receipt attested">
-        {allotment.contribution.recordedBy} · {formatDateTime(allotment.contribution.recordedAt)}
-      </Row>
-      <Row label={COPY.COMPANY_EVENT_ON}>{allotment.companyEventOn || 'Not recorded'}</Row>
+      <Row label="Agreement recorded">{formatDateTime(allotment.agreement.recordedAt)}</Row>
+      <Row label={COPY.RECEIVED_AMOUNT}>{formatMoney(allotment.contribution.amount, allotment.currency)}</Row>
+      <Row label={COPY.RECEIVED_ON}>{formatDate(allotment.contribution.receivedOn)}</Row>
+      <Row label="Receipt attested">{formatDateTime(allotment.contribution.recordedAt)}</Row>
+      <Row label={COPY.COMPANY_EVENT_ON}>{formatDate(allotment.companyEventOn, 'Not recorded')}</Row>
       {'registerEntry' in allotment &&
         allotment.registerEntry &&
         allotment.effectiveOn &&
-        allotment.effectiveOn !== allotment.companyEventOn && <Row label="Ledger date">{allotment.effectiveOn}</Row>}
+        allotment.effectiveOn !== allotment.companyEventOn && (
+          <Row label="Ledger date">{formatDate(allotment.effectiveOn)}</Row>
+        )}
       <Row label={COPY.DIRECTOR}>{allotment.approvingDirector}</Row>
     </Rows>
   );
@@ -75,7 +77,7 @@ export function AllotmentRecord({
             <div>
               <h4 className="text-base font-medium">{allotment.name}</h4>
               <p className="text-sm text-text-muted">
-                {shareCount(allotment.shares)} · AUD {allotment.consideration}
+                {shareCount(allotment.shares)} · {formatMoney(allotment.consideration, allotment.currency)}
               </p>
             </div>
             <Status tone={STAGE_TONES[allotment.stage] ?? 'waiting'}>
@@ -84,15 +86,14 @@ export function AllotmentRecord({
           </div>
           <p className="text-sm text-text-muted">
             {allotment.stage === 'applied'
-              ? `${allotment.companyEventOn ? `Shares issued on ${allotment.companyEventOn}` : 'Shares issued; company issue date not recorded'}. The company remains responsible for any required ASIC notification and certificate execution and delivery. Generated certificates remain unsigned.`
+              ? `${allotment.companyEventOn ? `Shares issued on ${formatDate(allotment.companyEventOn)}` : 'Shares issued; company issue date not recorded'}. The company remains responsible for any required ASIC notification and certificate execution and delivery. Generated certificates remain unsigned.`
               : allotment.stage === 'approved'
                 ? 'Next: record the approved share issue. Approval has not changed ownership.'
                 : allotment.stage === 'rejected'
                   ? 'No shares were issued by this rejected allotment. The agreement and company receipt remain recorded.'
                   : 'Next: review and approve the company instruction. This allotment has not issued any shares.'}
           </p>
-          <details className="space-y-3">
-            <summary className="cursor-pointer text-sm font-medium">Record details and documents</summary>
+          <Disclosure summary="Record details and documents">
             <Rows>
               <RecordStage stage={allotment.stage}>{COPY.STAGES[allotment.stage] ?? allotment.stage}</RecordStage>
               <Row label="Prepared by">{allotment.preparedByName || 'Name not recorded'}</Row>
@@ -100,11 +101,11 @@ export function AllotmentRecord({
               <Row label={COPY.AUTHORITY_REFERENCE}>{allotment.authorityReference}</Row>
               <Row label={COPY.REASON}>{allotment.reason}</Row>
               <DecisionTrail proposal={allotment} labels={DECISION_COPY.DECISIONS} />
-              {!!allotment.registerEntry && <Row label="Register entry">{allotment.registerEntry}</Row>}
-              <Row label="Allotment record">{allotment.uuid}</Row>
-              <Row label="Member record ID">{allotment.member}</Row>
-              <Row label="External agreement record">{allotment.agreement.uuid}</Row>
-              <Row label="Company contribution record">{allotment.contribution.uuid}</Row>
+              {!!allotment.registerEntry && <Row label="Register entry">{shortReference(allotment.registerEntry)}</Row>}
+              <Row label="Allotment record">{shortReference(allotment.uuid)}</Row>
+              <Row label="Member reference">{shortReference(allotment.member)}</Row>
+              <Row label="External agreement record">{shortReference(allotment.agreement.uuid)}</Row>
+              <Row label="Company contribution record">{shortReference(allotment.contribution.uuid)}</Row>
               <Row label="Authority evidence SHA-256">{allotment.evidenceFingerprint}</Row>
               <Row label="Agreement evidence SHA-256">{allotment.agreement.evidenceFingerprint}</Row>
               <Row label="Receipt evidence SHA-256">{allotment.contribution.evidenceFingerprint}</Row>
@@ -125,7 +126,7 @@ export function AllotmentRecord({
               ))}
             </div>
             {download.isError && <RecordDownloadFailure error={download.error} />}
-          </details>
+          </Disclosure>
         </>
       )}
       <RegisterDecisions

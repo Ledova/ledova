@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import {
-  DESTINATIONS,
   REGISTER_CORRECTION_COPY,
   apiErrorSentence,
   createUserFriendlyError,
@@ -16,10 +15,13 @@ import {
   type RegisterCorrectionAuthority,
   type RegisterEntry,
   type RegisterEvidence,
+  utcToday,
 } from '@ledova/shared';
 
 import apiClient from '@services/apiClient';
+import { hasProblems, type Problems } from '@hooks/useErrorSummary';
 import { correctionsKey } from '@pages/company/register/shared/useClassCorrections';
+import { registerPlace } from '@pages/company/register/shared/registerPlace';
 
 type Draft = {
   file: File | null;
@@ -40,15 +42,22 @@ const CLOSED = 'This correction form is closed. Reopen it before continuing.';
 
 const DAY = /^\d{4}-\d{2}-\d{2}$/;
 
-function problemsOf(draft: Draft, today: string) {
-  const problems: string[] = [];
-  if (!draft.file) problems.push('Choose the authority document.');
-  if (!DAY.test(draft.effectiveOn) || draft.effectiveOn > today)
-    problems.push('Enter an effective date no later than today (UTC).');
-  if (draft.authority === 'director_resolution' && !draft.director.trim())
-    problems.push('Name the approving director for a resolution.');
-  if (!draft.reference.trim() || !draft.reason.trim()) problems.push('Give the authority reference and the reason.');
-  return problems;
+function problemsOf(
+  draft: Draft,
+  today: string,
+): Problems<'file' | 'effectiveOn' | 'director' | 'reference' | 'reason'> {
+  return {
+    file: !draft.file && 'Choose the authority document.',
+    effectiveOn:
+      (!DAY.test(draft.effectiveOn) || draft.effectiveOn > today) &&
+      'Enter an effective date no later than today (UTC).',
+    director:
+      draft.authority === 'director_resolution' &&
+      !draft.director.trim() &&
+      'Name the approving director for a resolution.',
+    reference: !draft.reference.trim() && 'Give the authority reference.',
+    reason: !draft.reason.trim() && 'Give the reason.',
+  };
 }
 
 export type CorrectionFormProps = {
@@ -74,7 +83,7 @@ export function useCorrectionPreparation({
 }: CorrectionFormProps) {
   const client = useQueryClient();
   const navigate = useNavigate();
-  const today = new Date().toISOString().slice(0, 10);
+  const today = utcToday();
   const [draft, setDraft] = useState<Draft>(() => ({
     file: null,
     effectiveOn: today,
@@ -134,7 +143,7 @@ export function useCorrectionPreparation({
   };
 
   const submit = async () => {
-    if (pending.current || busy || blocked || problems.length > 0 || !draft.file) return;
+    if (pending.current || busy || blocked || hasProblems(problems) || !draft.file) return;
     pending.current = true;
     setBusy(true);
     setError('');
@@ -154,12 +163,14 @@ export function useCorrectionPreparation({
       const signature = JSON.stringify(request);
       if (operation.current?.signature !== signature) operation.current = { signature, key: crypto.randomUUID() };
       const preparation = { operationId: operation.current.key, ...request };
+      let prepared = '';
       try {
         check();
         const { data } = await prepareRegisterCorrection(apiClient, preparation, { ledovaSubmissionGuard: check });
         check();
         if (!isPreparedRegisterCorrection(data, preparation))
           throw createUserFriendlyError(COPY.PREPARATION_RECEIPT_FAILED);
+        prepared = data.uuid;
       } catch (failure) {
         if (failureStatus(failure) === 409) {
           operation.current = null;
@@ -170,7 +181,14 @@ export function useCorrectionPreparation({
       check();
       await client.invalidateQueries({ queryKey: correctionsKey(owner, token) });
       check();
-      navigate(DESTINATIONS.companyRegister.path);
+      const place = registerPlace({
+        company,
+        token,
+        task: 'history',
+        record: prepared,
+        outcome: 'Correction prepared.',
+      });
+      navigate(place.to, { state: place.state });
     } catch (failure) {
       try {
         check();

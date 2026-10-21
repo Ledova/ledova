@@ -14,7 +14,7 @@ import { act, cleanup, fireEvent, screen, waitFor, within } from '@testing-libra
 import { afterEach, expect, it, vi } from 'vitest';
 import CompanyDashboardPage from '.';
 import { companyPreferences, prepareCompanyClient, renderCompanyPage } from '../../../testSupport/company';
-import { countBarWidth, ownershipSegments, ownershipSummary } from '@pages/company/shared/summary';
+import { ownershipSegments, ownershipSummary } from '@pages/company/shared/summary';
 
 const api = vi.hoisted(() => ({ get: vi.fn() }));
 vi.mock('@services/apiClient', () => ({ default: api }));
@@ -60,7 +60,7 @@ it('shows exact complete company ownership, refuses incomplete totals and discar
     member: index === 0 ? firstHolder.member : `small-member-${index}`,
     name: index === 0 ? firstHolder.name : `Small holder ${index}`,
     balance,
-    percentage: countBarWidth(balance, ordinary.issuedSupply!),
+    percentage: 0,
   }));
   ordinary.totalHolders = ordinary.holders.length;
   const preference = register('preference', '7');
@@ -82,15 +82,13 @@ it('shows exact complete company ownership, refuses incomplete totals and discar
   expect(ownershipSummary([ordinary, unopened])).toEqual({ issued: null, shareholders: null, classes: 2, unopened: 1 });
   expect(() => ownershipSummary([ordinary, { ...preference, issuedSupply: '8' }])).toThrow(/do not agree/);
   expect(() => ownershipSummary([ordinary, ordinary])).toThrow(/more than once/);
-  expect(countBarWidth('9007199254740993', '9007199254740993')).toBe(100);
-  expect(countBarWidth('0', '0')).toBe(0);
   expect(ownershipSegments(ordinary)).toHaveLength(6);
   expect(ownershipSegments(ordinary).at(-1)).toEqual({
     member: null,
     name: 'Others',
     shares: '3',
     holders: 3,
-    percentage: 0,
+    percentage: '<0.01%',
   });
   expect(ownershipSegments(ordinary).reduce((total, segment) => total + BigInt(segment.shares), 0n)).toBe(
     9007199254740993n,
@@ -163,7 +161,7 @@ it('shows exact complete company ownership, refuses incomplete totals and discar
 
   mode = 'failed';
   await refresh();
-  expect(await screen.findByText(/couldn't load the complete register/)).toBeTruthy();
+  expect(await screen.findByText(/The register could not be loaded/)).toBeTruthy();
   expect(screen.queryByRole('region', { name: 'Company ownership summary' })).toBeNull();
   expect(screen.queryByText('Example Shareholder')).toBeNull();
   expect(screen.queryByRole('img', { name: /share ownership/ })).toBeNull();

@@ -1,11 +1,11 @@
+import { Field, TextArea, TextInput, FileField } from '@components/Field';
 import { Choices } from '@components/Choices';
 import { useCorrectionPreparation, type CorrectionFormProps, COPY } from './useCorrectionPreparation';
 
-import { type RegisterCorrectionAuthority } from '@ledova/shared';
+import { FIELD_LIMITS, type RegisterCorrectionAuthority } from '@ledova/shared';
 import { FormActions, PageAction } from '@components/Page';
-import { FIELD_CLASS, LABEL } from '@components/fieldClass';
-
-const EVIDENCE = 'application/pdf,image/png,image/jpeg';
+import { ErrorSummary } from '@components/ErrorSummary';
+import { useErrorSummary } from '@hooks/useErrorSummary';
 
 const AUTHORITIES = Object.entries(COPY.AUTHORITIES) as [RegisterCorrectionAuthority, string][];
 
@@ -29,42 +29,38 @@ export function CorrectionForm({
     blocked,
     onConflict,
   });
+  const checks = useErrorSummary(problems);
 
   return (
     <form
       className="space-y-5"
+      noValidate
       onSubmit={(event) => {
         event.preventDefault();
-        void submit();
+        if (checks.check()) void submit();
       }}
     >
+      <ErrorSummary {...checks.summary} />
       <fieldset disabled={busy} className="space-y-5">
         <fieldset className="space-y-3">
           <legend className="text-sm font-medium text-text-primary">Evidence provided by the company</legend>
-          <label className={LABEL}>
-            {COPY.AUTHORITY_DOCUMENT}
-            <input
-              type="file"
-              accept={EVIDENCE}
-              className={FIELD_CLASS}
-              onChange={(event) => update({ file: event.target.files?.[0] ?? null })}
-            />
-          </label>
-          <p className="text-sm text-text-muted">{COPY.AUTHORITY_DOCUMENT_NOTE}</p>
+          <FileField
+            {...checks.field('file')}
+            label={COPY.AUTHORITY_DOCUMENT}
+            hint={COPY.AUTHORITY_DOCUMENT_NOTE}
+            onFile={(file) => update({ file })}
+          />
         </fieldset>
         <fieldset className="space-y-3">
           <legend className="text-sm font-medium text-text-primary">Effective date and authority</legend>
-          <label className={LABEL}>
-            {COPY.EFFECTIVE_ON}
-            <input
+          <Field {...checks.field('effectiveOn')} label={COPY.EFFECTIVE_ON} hint={COPY.EFFECTIVE_ON_NOTE}>
+            <TextInput
               type="date"
               max={today}
               value={draft.effectiveOn}
-              className={FIELD_CLASS}
               onChange={(event) => update({ effectiveOn: event.target.value })}
             />
-          </label>
-          <p className="text-sm text-text-muted">{COPY.EFFECTIVE_ON_NOTE}</p>
+          </Field>
           <Choices
             legend={COPY.AUTHORITY}
             options={AUTHORITIES}
@@ -72,44 +68,31 @@ export function CorrectionForm({
             onChange={(authority) => update({ authority })}
           />
           {draft.authority === 'director_resolution' && (
-            <label className={LABEL}>
-              {COPY.APPROVING_DIRECTOR}
-              <input
+            <Field {...checks.field('director')} label={COPY.APPROVING_DIRECTOR}>
+              <TextInput
                 value={draft.director}
-                maxLength={255}
-                className={FIELD_CLASS}
+                maxLength={FIELD_LIMITS.DIRECTOR}
                 onChange={(event) => update({ director: event.target.value })}
               />
-            </label>
+            </Field>
           )}
-          <label className={LABEL}>
-            {COPY.AUTHORITY_REFERENCE}
-            <input
+          <Field {...checks.field('reference')} label={COPY.AUTHORITY_REFERENCE}>
+            <TextInput
               value={draft.reference}
-              maxLength={255}
-              className={FIELD_CLASS}
+              maxLength={FIELD_LIMITS.REFERENCE}
               onChange={(event) => update({ reference: event.target.value })}
             />
-          </label>
-          <label className={LABEL}>
-            {COPY.REASON}
-            <textarea
+          </Field>
+          <Field {...checks.field('reason')} label={COPY.REASON}>
+            <TextArea
               rows={3}
               value={draft.reason}
-              maxLength={1000}
-              className={FIELD_CLASS}
+              maxLength={FIELD_LIMITS.REASON}
               onChange={(event) => update({ reason: event.target.value })}
             />
-          </label>
+          </Field>
         </fieldset>
       </fieldset>
-      {problems.length > 0 && (
-        <ul className="flex flex-col gap-1 text-sm text-text-muted">
-          {problems.map((problem) => (
-            <li key={problem}>{problem}</li>
-          ))}
-        </ul>
-      )}
       {error && (
         <p role="alert" className="text-sm text-error-light">
           {error}
@@ -122,7 +105,7 @@ export function CorrectionForm({
           label={COPY.SUBMIT}
           busy={busy}
           busyLabel="Preparing correction…"
-          disabled={blocked || problems.length > 0}
+          disabled={blocked}
         />
       </FormActions>
     </form>

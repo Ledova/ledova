@@ -1,4 +1,4 @@
-import { useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import {
   HouseIcon,
   WalletIcon,
@@ -26,13 +26,14 @@ import { SignOutButton } from './SignOutButton';
 import { ThemeToggle } from './ThemeToggle';
 import { useRegisterEntry } from '@hooks/useRegisterAccess';
 import { COMPANY_DASHBOARD_PATH, SITE_PATHS } from '@utils/paths';
+import { pageTitle, placesAt } from '@utils/destinations';
 
 type Icon = React.ComponentType<{ size?: number; weight?: 'regular' | 'fill' }>;
 
 interface NavItem {
   destination: DestinationKey | 'companyDashboard';
   icon: Icon;
-  hash?: string;
+  view?: string;
   label?: string;
 }
 
@@ -45,14 +46,14 @@ interface NavGroup {
 const COMPANY: NavItem[] = [
   { destination: 'companyDashboard', icon: HouseIcon },
   { destination: 'companyRegister', icon: BookOpenIcon },
-  { destination: 'companyRegister', hash: 'shareholders', label: 'Shareholders', icon: UsersThreeIcon },
-  { destination: 'companyRegister', hash: 'awards', label: 'Employee awards', icon: UsersIcon },
-  { destination: 'companyRegister', hash: 'documents', label: 'Documents', icon: FilesIcon },
+  { destination: 'companyRegister', view: 'shareholders', icon: UsersThreeIcon },
+  { destination: 'companyRegister', view: 'awards', icon: UsersIcon },
+  { destination: 'companyRegister', view: 'documents', icon: FilesIcon },
 ];
 
 const PERSONAL: NavItem[] = [
-  { destination: 'home', label: 'Dashboard', icon: HouseIcon },
-  { destination: 'home', hash: 'documents', label: 'Documents', icon: FilesIcon },
+  { destination: 'home', icon: HouseIcon },
+  { destination: 'home', view: 'documents', icon: FilesIcon },
 ];
 
 const HISTORY: NavItem[] = [
@@ -76,7 +77,7 @@ const IDLE_CLASS = 'text-text-secondary hover:bg-surface-tertiary hover:text-tex
 
 function itemPath(item: NavItem) {
   const path = item.destination === 'companyDashboard' ? COMPANY_DASHBOARD_PATH : DESTINATIONS[item.destination].path;
-  return `${path}${item.hash ? `#${item.hash}` : ''}`;
+  return `${path}${item.view ? `#${item.view}` : ''}`;
 }
 
 function GroupLabel({ children }: { children: string }) {
@@ -85,18 +86,19 @@ function GroupLabel({ children }: { children: string }) {
   );
 }
 
-function NavButton({ item, active, onSelect }: { item: NavItem; active: boolean; onSelect: (path: string) => void }) {
+function NavLink({ item, active, onNavigate }: { item: NavItem; active: boolean; onNavigate?: () => void }) {
   const Icon = item.icon;
-  const title = item.destination === 'companyDashboard' ? 'Dashboard' : DESTINATIONS[item.destination].title;
+  const title = item.destination === 'companyDashboard' ? 'Dashboard' : pageTitle(item.destination, item.view);
   return (
-    <button
-      onClick={() => onSelect(itemPath(item))}
+    <Link
+      to={itemPath(item)}
+      onClick={onNavigate}
       aria-current={active ? 'page' : undefined}
       className={`${ITEM_CLASS} ${active ? 'bg-brand-mid/10 text-brand-light dark:bg-brand-tint' : IDLE_CLASS}`}
     >
       <Icon size={ICON_MD} weight={active ? 'fill' : 'regular'} />
       <span>{item.label ?? title}</span>
-    </button>
+    </Link>
   );
 }
 
@@ -107,7 +109,6 @@ interface SidebarProps {
 
 export function Sidebar({ onNavigate, withNotifications = false }: SidebarProps = {}) {
   const location = useLocation();
-  const navigate = useNavigate();
   const tradingEnabled = useFeatureFlags().isEnabled('trading_enabled');
   const { isInvestor, isCompany } = useRole();
   const registerAccess = useRegisterEntry();
@@ -143,25 +144,17 @@ export function Sidebar({ onNavigate, withNotifications = false }: SidebarProps 
   ];
 
   const allItems = [...groups, ...secondaryGroups].flatMap((group) => group.items);
-  const shareholderPage = location.pathname.startsWith(`${DESTINATIONS.companyRegister.path}/members/`);
-  const activePath = allItems
-    .map(itemPath)
-    .filter((path) => {
-      if (shareholderPage) return path === `${DESTINATIONS.companyRegister.path}#shareholders`;
-      const [pathname, hash] = path.split('#');
-      return (
-        (location.pathname === pathname || location.pathname.startsWith(`${pathname}/`)) &&
-        (hash
-          ? location.hash === `#${hash}`
-          : !location.hash || !allItems.some((item) => item.hash && itemPath(item).split('#')[0] === pathname))
-      );
-    })
-    .sort((a, b) => b.length - a.length)[0];
-
-  const handleNav = (path: string) => {
-    navigate(path);
-    onNavigate?.();
-  };
+  const activeItem =
+    location.pathname === COMPANY_DASHBOARD_PATH
+      ? allItems.find((item) => item.destination === 'companyDashboard')
+      : placesAt(location.pathname, location.hash)
+          .map(
+            (place) =>
+              allItems.find((item) => item.destination === place.destination && item.view === place.view) ??
+              allItems.find((item) => item.destination === place.destination && !item.view),
+          )
+          .find(Boolean);
+  const activePath = activeItem && itemPath(activeItem);
 
   return (
     <aside className="flex h-full w-52 flex-col border-r border-border-subtle bg-surface-base">
@@ -171,23 +164,16 @@ export function Sidebar({ onNavigate, withNotifications = false }: SidebarProps 
       </div>
 
       <div className="flex-1 overflow-y-auto px-3 py-4">
-        <nav className="space-y-6">
+        <nav aria-label="Main" className="space-y-6">
           {groups.map((group) => (
             <div key={group.id} className="space-y-1">
               {group.label && <GroupLabel>{group.label}</GroupLabel>}
               {group.items.map((item) => (
-                <NavButton
+                <NavLink
                   key={itemPath(item)}
                   item={item}
-                  active={
-                    itemPath(item) === activePath ||
-                    (item.destination === 'settings' &&
-                      (location.pathname === DESTINATIONS.company.path ||
-                        location.pathname === DESTINATIONS.companyListing.path ||
-                        location.pathname === DESTINATIONS.companyTeam.path ||
-                        location.pathname === DESTINATIONS.companyAuthority.path))
-                  }
-                  onSelect={handleNav}
+                  active={itemPath(item) === activePath}
+                  onNavigate={onNavigate}
                 />
               ))}
             </div>
@@ -199,11 +185,11 @@ export function Sidebar({ onNavigate, withNotifications = false }: SidebarProps 
                 <div key={group.id} className="space-y-1">
                   {group.label && <GroupLabel>{group.label}</GroupLabel>}
                   {group.items.map((item) => (
-                    <NavButton
+                    <NavLink
                       key={itemPath(item)}
                       item={item}
                       active={itemPath(item) === activePath}
-                      onSelect={handleNav}
+                      onNavigate={onNavigate}
                     />
                   ))}
                 </div>

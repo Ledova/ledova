@@ -1,11 +1,9 @@
-import { ArrowsClockwiseIcon } from '@phosphor-icons/react';
 import { getActiveChains } from '@ledova/shared';
-import { ICON_LG } from '@components/iconSizes';
 import type { Wallet } from '@ledova/shared';
 import { Modal } from '@components/Modal';
-import { PageAction } from '@components/Page';
 import { WalletChoice } from '@components/wallet';
 import { useWalletSelection } from './useWalletSelection';
+import { LoadError, Loading } from '@components/Ledger';
 
 interface WalletSelectionModalProps {
   isOpen: boolean;
@@ -19,31 +17,21 @@ export function WalletSelectionModal({ isOpen, onClose, onSelectWallet }: Wallet
   const renderContent = () => {
     if (walletsQuery.isError) {
       return (
-        <div role="alert" className="flex flex-col items-start gap-3">
-          <p className="text-sm text-text-muted">Your wallets could not be loaded. Try again before continuing.</p>
-          <PageAction
-            label="Try again"
-            disabled={walletsQuery.isFetching}
-            onClick={() => void walletsQuery.refetch()}
-          />
-        </div>
+        <LoadError retry={() => walletsQuery.refetch()} busy={walletsQuery.isFetching}>
+          Your wallets could not be loaded.
+        </LoadError>
       );
     }
 
     if (walletsQuery.isPending) {
-      return (
-        <div className="flex items-center justify-center py-8">
-          <ArrowsClockwiseIcon size={ICON_LG} className="animate-spin text-text-muted" />
-          <span className="ml-2 text-sm text-text-muted">Loading wallets…</span>
-        </div>
-      );
+      return <Loading>Loading your wallets…</Loading>;
     }
 
     if (wallets.length === 0) {
       return (
         <div className="space-y-1">
-          <p className="text-sm text-text-muted">No verified wallets found</p>
-          <p className="text-xs text-text-subtle">Create and verify a wallet to send crypto</p>
+          <p className="text-sm text-text-muted">No verified wallets yet.</p>
+          <p className="text-xs text-text-subtle">Create and verify a wallet to send crypto.</p>
         </div>
       );
     }

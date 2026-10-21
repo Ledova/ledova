@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import {
-  DESTINATIONS,
   REGISTER_PARTICULARS_COPY,
   apiErrorSentence,
   createUserFriendlyError,
@@ -14,10 +13,13 @@ import {
   type OrderSubmissionOwner,
   type OwnCompanyAppointment,
   type RegisterEvidence,
+  utcToday,
 } from '@ledova/shared';
 
 import apiClient from '@services/apiClient';
+import { hasProblems, type Problems } from '@hooks/useErrorSummary';
 import { particularsKey } from '@pages/company/register/shared/useRegisterParticulars';
+import { registerPlace } from '@pages/company/register/shared/registerPlace';
 
 type Draft = { file: File | null; name: string; address: string; asAt: string; reason: string };
 
@@ -31,13 +33,14 @@ const CLOSED = 'This particulars form is closed. Reopen it before continuing.';
 
 const DAY = /^\d{4}-\d{2}-\d{2}$/;
 
-function problemsOf(draft: Draft, today: string) {
-  const problems: string[] = [];
-  if (!draft.file) problems.push('Choose the supporting document.');
-  if (!draft.name.trim() || !draft.address.trim()) problems.push('Give the name and the residential address.');
-  if (!DAY.test(draft.asAt) || draft.asAt > today) problems.push('Enter an as-at date no later than today (UTC).');
-  if (!draft.reason.trim()) problems.push('Give the reason for the change.');
-  return problems;
+function problemsOf(draft: Draft, today: string): Problems<'file' | 'name' | 'address' | 'asAt' | 'reason'> {
+  return {
+    file: !draft.file && 'Choose the supporting document.',
+    name: !draft.name.trim() && 'Give the name.',
+    address: !draft.address.trim() && 'Give the residential address.',
+    asAt: (!DAY.test(draft.asAt) || draft.asAt > today) && 'Enter an as-at date no later than today (UTC).',
+    reason: !draft.reason.trim() && 'Give the reason for the change.',
+  };
 }
 
 export type ParticularsFormProps = {
@@ -63,7 +66,7 @@ export function useParticularsPreparation({
 }: ParticularsFormProps) {
   const client = useQueryClient();
   const navigate = useNavigate();
-  const today = new Date().toISOString().slice(0, 10);
+  const today = utcToday();
   const [draft, setDraft] = useState<Draft>(() => ({ file: null, name: '', address: '', asAt: today, reason: '' }));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -116,7 +119,7 @@ export function useParticularsPreparation({
   };
 
   const submit = async () => {
-    if (pending.current || busy || blocked || problems.length > 0 || !draft.file) return;
+    if (pending.current || busy || blocked || hasProblems(problems) || !draft.file) return;
     pending.current = true;
     setBusy(true);
     setError('');
@@ -135,6 +138,7 @@ export function useParticularsPreparation({
       const signature = JSON.stringify(request);
       if (operation.current?.signature !== signature) operation.current = { signature, key: crypto.randomUUID() };
       const preparation = { operationId: operation.current.key, ...request };
+      let prepared = '';
       try {
         check();
         const { data } = await prepareRegisterParticularsChange(apiClient, preparation, {
@@ -143,6 +147,7 @@ export function useParticularsPreparation({
         check();
         if (!isPreparedRegisterParticularsChange(data, preparation))
           throw createUserFriendlyError(COPY.PREPARATION_RECEIPT_FAILED);
+        prepared = data.uuid;
       } catch (failure) {
         if (failureStatus(failure) === 409) operation.current = null;
         throw failure;
@@ -150,7 +155,13 @@ export function useParticularsPreparation({
       check();
       await client.invalidateQueries({ queryKey: particularsKey(owner, company) });
       check();
-      navigate(DESTINATIONS.companyRegister.path);
+      const place = registerPlace({
+        company,
+        task: 'history',
+        record: prepared,
+        outcome: 'Particulars change prepared.',
+      });
+      navigate(place.to, { state: place.state });
     } catch (failure) {
       try {
         check();

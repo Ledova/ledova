@@ -182,7 +182,7 @@ mobile a lone Bitcoin wallet opens the Bitcoin send form. It offers crypto and p
 including AUDY, never shares. **Buy crypto** goes straight to the provider when exactly one verified
 wallet is on the chosen asset's network. Each wallet chooser lists only the networks Wallets lists.
 When the purchase page cannot be opened, the page gives the server's reason or "The purchase page
-could not be opened. Try again." **View shares in your wallets** opens
+could not be opened. Try again." **Wallet shares** opens
 [the Wallet shares page](member-records.md#the-wallet-shares-page).
 
 ## The Activity page

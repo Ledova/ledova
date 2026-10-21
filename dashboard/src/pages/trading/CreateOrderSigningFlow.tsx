@@ -9,10 +9,15 @@ import {
   type ShareToken,
   formatWalletAddressShort,
   marketAmount,
+  marketShares,
+  shareCount,
+  shortReference,
 } from '@ledova/shared';
 import { Modal, ModalActions } from '@components/Modal';
 import { PageAction } from '@components/Page';
 import { SeedPhraseInput } from '@components/SeedPhraseInput';
+import { ErrorSummary } from '@components/ErrorSummary';
+import { useErrorSummary } from '@hooks/useErrorSummary';
 import { QRCodeFrame, QRScannerView, useQRScanner } from '@components/qr';
 import { encodeEthereumTypedData } from '@utils/keystone/urEncoder';
 import { decodeKeystoneMessageSignature } from '@utils/keystone/urDecoder';
@@ -28,6 +33,7 @@ interface Props {
 
 export function CreateOrderSigningFlow({ submission, wallet, tokens, onClose, onSuccess }: Props) {
   const [seedPhrase, setSeedPhrase] = useState('');
+  const phraseCheck = useErrorSummary({ seedPhrase: !seedPhrase.trim() && 'Enter the seed phrase for this wallet.' });
   const delivered = useRef(false);
   const signing = useOrderSubmissionSigning(submission, wallet, (message, selectedWallet) => {
     const encoded = encodeEthereumTypedData(
@@ -85,13 +91,15 @@ export function CreateOrderSigningFlow({ submission, wallet, tokens, onClose, on
         {state.phase === 'ready' && (
           <>
             <div className="space-y-1">
-              <p>Token: {token ? `${token.symbol} — ${token.name}` : state.snapshot?.intent.token}</p>
+              <p>
+                Token: {token ? `${token.symbol} — ${token.name}` : shortReference(state.snapshot?.intent.token ?? '')}
+              </p>
               <p>Wallet: {formatWalletAddressShort(state.snapshot?.intent.walletAddress ?? '')}</p>
               <p>
-                {state.snapshot?.intent.orderType.toUpperCase()} {state.snapshot?.intent.quantity} shares
+                {state.snapshot?.intent.orderType.toUpperCase()} {shareCount(state.snapshot?.intent.quantity ?? '')}
               </p>
               <p>Price per share: {marketAmount(state.snapshot?.intent.pricePerShare ?? '')}</p>
-              <p>Minimum fill: {state.snapshot?.intent.minQuantity} shares</p>
+              <p>Minimum fill: {shareCount(state.snapshot?.intent.minQuantity ?? '')}</p>
             </div>
             {!signing.walletReady && (
               <p>
@@ -104,7 +112,12 @@ export function CreateOrderSigningFlow({ submission, wallet, tokens, onClose, on
                 {view.error}
               </p>
             )}
-            {view.step === 'software' && <SeedPhraseInput value={seedPhrase} onChange={setSeedPhrase} />}
+            {view.step === 'software' && (
+              <>
+                <ErrorSummary {...phraseCheck.summary} />
+                <SeedPhraseInput {...phraseCheck.field('seedPhrase')} value={seedPhrase} onChange={setSeedPhrase} />
+              </>
+            )}
             {view.step === 'show-qr' && view.qrData && (
               <QRCodeFrame>
                 <AnimatedQRCode cbor={view.qrData.cborHex} type={view.qrData.type} />
@@ -118,11 +131,9 @@ export function CreateOrderSigningFlow({ submission, wallet, tokens, onClose, on
         {state.phase === 'created' && state.snapshot?.order && (
           <div role="status" className="space-y-1">
             <h3 className="font-medium">{state.recovered ? 'Order recovered' : 'Order created'}</h3>
+            <p>Current status: {state.snapshot.order.statusDisplay}</p>
             <p>
-              Current status: {state.snapshot.order.statusDisplay ?? state.snapshot.order.status.replace(/_/g, ' ')}
-            </p>
-            <p>
-              {state.snapshot.order.quantity} {state.snapshot.order.tokenSymbol} shares at{' '}
+              {marketShares(state.snapshot.order.quantity)} of {state.snapshot.order.tokenSymbol} at{' '}
               {marketAmount(state.snapshot.order.pricePerShare)}
             </p>
           </div>
@@ -152,6 +163,7 @@ export function CreateOrderSigningFlow({ submission, wallet, tokens, onClose, on
               label="Back"
               onClick={() => {
                 setSeedPhrase('');
+                phraseCheck.reset();
                 signing.back();
               }}
             />
@@ -168,8 +180,10 @@ export function CreateOrderSigningFlow({ submission, wallet, tokens, onClose, on
             <PageAction
               label="Sign order"
               primary
-              disabled={!seedPhrase.trim() || !wallet?.derivationPath}
-              onClick={sign}
+              disabled={!wallet?.derivationPath}
+              onClick={() => {
+                if (phraseCheck.check()) sign();
+              }}
             />
           )}
           {state.phase === 'ready' && view.step === 'show-qr' && view.qrData && (

@@ -1,12 +1,15 @@
 import { useLayoutEffect, useRef, useState } from 'react';
 import {
   createRegisterInspectionCopy,
+  isCalendarDate,
+  sydneyToday,
   getRegisterInspectionPreview,
   type RegisterInspectionPreview,
   type RegisterInspectionRequest,
   type TokenHoldersResponse,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
+import { hasProblems, type Problems } from '@hooks/useErrorSummary';
 import { saveFile } from '@utils/saveFile';
 
 type Draft = { instruction: string; recipient: string; requestedOn: string };
@@ -22,12 +25,7 @@ export function useClassInspectionCopy({
   guard: () => void;
   sourceReady: boolean;
 }) {
-  const today = new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'Australia/Sydney',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).format(new Date());
+  const today = sydneyToday();
   const [draft, setDraft] = useState<Draft>({ instruction: '', recipient: '', requestedOn: today });
   const [target, setTarget] = useState<Target | null>(null);
   const [busy, setBusy] = useState<'preview' | 'download' | null>(null);
@@ -43,17 +41,14 @@ export function useClassInspectionCopy({
       transport.current?.abort();
     };
   }, []);
-  const validDate =
-    /^\d{4}-\d{2}-\d{2}$/.test(draft.requestedOn) &&
-    !Number.isNaN(Date.parse(`${draft.requestedOn}T00:00:00Z`)) &&
-    new Date(`${draft.requestedOn}T00:00:00Z`).toISOString().slice(0, 10) === draft.requestedOn &&
-    draft.requestedOn <= today;
-  const valid =
-    !!draft.instruction.trim() &&
-    draft.instruction.trim().length <= 255 &&
-    !!draft.recipient.trim() &&
-    draft.recipient.trim().length <= 255 &&
-    validDate;
+  const missing = (value: string) => !value.trim() || value.trim().length > 255;
+  const problems: Problems<keyof Draft> = {
+    instruction: missing(draft.instruction) && 'Give the written instruction reference.',
+    recipient: missing(draft.recipient) && 'Give the recipient.',
+    requestedOn:
+      (!isCalendarDate(draft.requestedOn) || draft.requestedOn > today) &&
+      'Enter a request date no later than today (Sydney).',
+  };
   const blocked = !!busy || !sourceReady || !register.initialized;
   const assertCurrent = (controller: AbortController) => {
     guard();
@@ -61,7 +56,7 @@ export function useClassInspectionCopy({
       throw new Error('The inspection source changed.');
   };
   const preview = async () => {
-    if (pending.current || blocked || !valid) return;
+    if (pending.current || blocked || hasProblems(problems)) return;
     pending.current = true;
     const controller = new AbortController();
     transport.current = controller;
@@ -133,5 +128,5 @@ export function useClassInspectionCopy({
       if (mounted.current) setBusy(null);
     }
   };
-  return { today, draft, setDraft, target, setTarget, busy, error, downloaded, valid, blocked, preview, download };
+  return { today, draft, setDraft, target, setTarget, busy, error, downloaded, problems, blocked, preview, download };
 }

@@ -9,18 +9,19 @@ import {
   type OrderSubmissionOwner,
   type TokenHoldersResponse,
 } from '@ledova/shared';
-import { LinkRow } from '@components/Ledger';
-import { PageAction } from '@components/Page';
+import { LinkRow, LoadError, Loading } from '@components/Ledger';
 
 import { OpeningRecord } from './OpeningRecord';
 import { registerSteps } from '@pages/company/shared/proposals';
 import { entriesKey } from '@pages/company/register/shared/useRegisterEntries';
 import { useOwnAppointments, ownAppointmentsKey } from '@hooks/useOwnAppointments';
 import { openingsKey, useRegisterOpenings } from '@pages/company/register/shared/useRegisterOpenings';
+import type { Landed } from '@pages/company/register/shared/registerPlace';
 
 const COPY = REGISTER_OPENING_COPY;
 
 export function ClassOpenings({
+  landed,
   owner,
   guard,
   register,
@@ -28,6 +29,7 @@ export function ClassOpenings({
   visible = true,
   onHeldChange,
 }: {
+  landed?: Landed;
   owner: OrderSubmissionOwner;
   guard: () => void;
   register: TokenHoldersResponse;
@@ -67,14 +69,9 @@ export function ClassOpenings({
     <div className="mt-4 flex flex-col gap-3 border-t border-border-subtle pt-4">
       <h3 className="text-sm font-medium text-text-primary">{COPY.TITLE}</h3>
       {appointments.isError ? (
-        <div role="alert" className="flex flex-col items-start gap-2 text-sm text-text-muted">
-          <p>Your appointments could not be loaded. Retry before preparing or deciding an opening.</p>
-          <PageAction
-            label="Retry appointments"
-            onClick={() => void appointments.refetch()}
-            disabled={appointments.isFetching}
-          />
-        </div>
+        <LoadError retry={() => appointments.refetch()} busy={appointments.isFetching}>
+          Your appointments could not be loaded.
+        </LoadError>
       ) : (
         steps && !Object.values(steps).some(Boolean) && <p className="text-sm text-text-muted">{COPY.READ_ONLY_NOTE}</p>
       )}
@@ -84,19 +81,19 @@ export function ClassOpenings({
         </div>
       )}
       {openings.isPending ? (
-        <p role="status" className="text-sm text-text-muted">
-          Loading openings…
-        </p>
+        <Loading>Loading openings…</Loading>
       ) : openings.isError ? (
-        <div role="alert" className="flex flex-col items-start gap-2 text-sm text-text-muted">
-          <p>We couldn&apos;t load the openings for this share class.</p>
-          <PageAction label="Retry openings" onClick={() => void openings.refetch()} disabled={openings.isFetching} />
-        </div>
+        <LoadError retry={() => openings.refetch()} busy={openings.isFetching}>
+          Openings could not be loaded.
+        </LoadError>
+      ) : privateReady && openings.data.length === 0 ? (
+        <p className="text-sm text-text-muted">{COPY.EMPTY}</p>
       ) : null}
       <ul className="divide-y divide-border-subtle">
         {(openings.data ?? []).map((proposal) => (
           <OpeningRecord
             key={proposal.uuid}
+            landed={landed?.record === proposal.uuid ? landed : undefined}
             proposal={proposal}
             visible={privateReady}
             onHeldChange={recordHeld}

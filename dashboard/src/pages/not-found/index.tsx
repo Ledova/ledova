@@ -1,17 +1,20 @@
 import { useContext } from 'react';
 import { Link } from 'react-router-dom';
-import { DESTINATIONS, landingFor, useAuth } from '@ledova/shared';
+import { landingFor, useAuth } from '@ledova/shared';
 import { AuthLayout } from '@components/auth';
 import { InSignedInFrame } from '@components/InSignedInFrame';
 import { useRole } from '@hooks/useRole';
 import { useSignupFinished } from '@hooks/useSignupFinished';
 import { useUserProfile } from '@hooks/useUserProfile';
 import { SIGNUP_RESUMES_AT, SIGNIN_PATH } from '@utils/paths';
+import { destinationAt, pageTitle } from '@utils/destinations';
 
 function Missing({ to, label }: { to: string; label: string }) {
   return (
     <div className="mx-auto w-full max-w-lg px-4 py-16 text-center">
-      <h1 className="font-display text-3xl tracking-[-0.01em] text-text-primary">There is no page at this address</h1>
+      <h1 tabIndex={-1} className="font-display text-3xl tracking-[-0.01em] text-text-primary focus:outline-none">
+        There is no page at this address
+      </h1>
       <p className="mt-2 text-sm text-text-muted">It may be mistyped, or the page may have moved.</p>
       <Link
         to={to}
@@ -45,6 +48,7 @@ export default function NotFoundPage() {
   }
 
   const landing = landingFor(role);
-  const title = Object.values(DESTINATIONS).find(({ path }) => path === landing)?.title;
+  const destination = destinationAt(landing);
+  const title = destination && pageTitle(destination);
   return <Missing to={landing} label={`Go to ${title}`} />;
 }

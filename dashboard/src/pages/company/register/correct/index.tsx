@@ -1,4 +1,4 @@
-import { PreparationBack, PreparationNotice, PreparationShell } from '@pages/company/register/shared/PreparationShell';
+import { PreparationNotice, PreparationShell } from '@pages/company/register/shared/PreparationShell';
 import { useRegisterPreparationOwner } from '@pages/company/register/shared/useRegisterPreparationOwner';
 import { useCorrectionEntry } from './useCorrectionEntry';
 import { useMemo, type ReactNode } from 'react';
@@ -10,10 +10,9 @@ import {
   type OrderSubmissionOwner,
   type RegisterEntry,
 } from '@ledova/shared';
-import { Row, Rows, Section } from '@components/Ledger';
+import { Row, Rows, Section, LoadError, Loading } from '@components/Ledger';
 import { Page } from '@components/Page';
 import { RegisterChanges } from '@pages/company/register/shared/RegisterChanges';
-import { Loading, Unavailable } from '@pages/company/shared/RegisterStatus';
 import { describeEntry } from '@pages/company/shared/proposals';
 
 import { useRegisterClasses } from '@pages/company/shared/useCompanyRegister';
@@ -21,6 +20,7 @@ import { useRegisterClasses } from '@pages/company/shared/useCompanyRegister';
 import { ownerGuard } from '@pages/company/shared/ownerGuard';
 import { useOwnAppointments } from '@hooks/useOwnAppointments';
 import { CorrectionForm } from './CorrectionForm';
+import { registerPlace } from '@pages/company/register/shared/registerPlace';
 
 const COPY = REGISTER_CORRECTION_COPY;
 const LEDE =
@@ -34,7 +34,6 @@ function inverseOf(entry: RegisterEntry) {
 export default function CompanyRegisterCorrectionPage() {
   const { uuid = '', entry = '' } = useParams();
   const { owner, boundary, preferences } = useRegisterPreparationOwner();
-  const back = <PreparationBack />;
   if (owner && !preferences.isError)
     return (
       <OwnCorrection
@@ -43,10 +42,9 @@ export default function CompanyRegisterCorrectionPage() {
         entry={entry}
         owner={owner}
         currentOwner={boundary.get}
-        back={back}
       />
     );
-  return <PreparationShell lede={LEDE} actions={back} preferences={preferences} />;
+  return <PreparationShell lede={LEDE} preferences={preferences} />;
 }
 
 function OwnCorrection({
@@ -54,13 +52,11 @@ function OwnCorrection({
   entry,
   owner,
   currentOwner,
-  back,
 }: {
   uuid: string;
   entry: string;
   owner: OrderSubmissionOwner;
   currentOwner: () => OrderSubmissionOwner | null;
-  back: ReactNode;
 }) {
   const guard = useMemo(() => ownerGuard(owner, currentOwner), [owner, currentOwner]);
   const classes = useRegisterClasses(owner, guard);
@@ -80,12 +76,25 @@ function OwnCorrection({
   const stale = classes.isError || appointments.isError || corrected.isError;
   let content: ReactNode;
   if (!classes.data || !appointments.data)
-    content = classes.isError || appointments.isError ? <Unavailable retry={retry} busy={fetching} /> : <Loading />;
+    content =
+      classes.isError || appointments.isError ? (
+        <LoadError retry={retry} busy={fetching}>
+          {classes.isError ? 'The register could not be loaded.' : 'Your appointments could not be loaded.'}
+        </LoadError>
+      ) : (
+        <Loading>Loading the register…</Loading>
+      );
   else if (!listed) content = <PreparationNotice className="py-3 text-sm text-text-muted" />;
   else if (!appointment)
     content = <PreparationNotice className="py-3 text-sm text-text-muted">{COPY.READ_ONLY_NOTE}</PreparationNotice>;
   else if (corrected.data === undefined)
-    content = corrected.isError ? <Unavailable retry={retry} busy={fetching} /> : <Loading />;
+    content = corrected.isError ? (
+      <LoadError retry={retry} busy={fetching}>
+        The register could not be loaded.
+      </LoadError>
+    ) : (
+      <Loading>Loading the register…</Loading>
+    );
   else if (corrected.data === null)
     content = <p className="py-3 text-sm text-text-muted">This entry is not in the register of this share class.</p>;
   else if (!corrected.data.correctable)
@@ -115,7 +124,11 @@ function OwnCorrection({
           <p className="text-sm text-text-muted">{COPY.COMPENSATION_NOTE}</p>
         </Section>
         <Section title={COPY.PREPARE}>
-          {stale && <Unavailable retry={retry} busy={fetching} />}
+          {stale && (
+            <LoadError retry={retry} busy={fetching}>
+              The register or your appointments could not be loaded.
+            </LoadError>
+          )}
           <CorrectionForm
             owner={owner}
             guard={guard}
@@ -133,7 +146,7 @@ function OwnCorrection({
       </>
     );
   return (
-    <Page narrow lede={LEDE} actions={back}>
+    <Page narrow lede={LEDE} back={registerPlace({ token: uuid, task: 'history' })}>
       {content}
     </Page>
   );

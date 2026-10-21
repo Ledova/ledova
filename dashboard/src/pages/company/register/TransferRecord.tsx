@@ -6,36 +6,38 @@ import {
   formatDateTime,
   type RegisterTransfer,
   type RegisterTransferDecisionPreview,
+  shareCount,
+  formatDate,
+  shortReference,
 } from '@ledova/shared';
-import { Row, Rows } from '@components/Ledger';
+import { Row, Rows, Disclosure } from '@components/Ledger';
 import { PageAction } from '@components/Page';
 import { DecisionTrail } from '@pages/company/register/shared/DecisionTrail';
 import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
-import { shareCount, type RegisterSteps } from '@pages/company/shared/proposals';
+import { type RegisterSteps } from '@pages/company/shared/proposals';
 import { useTransferRecordDownload } from './useRegisterRecordDownload';
+import type { Landed } from '@pages/company/register/shared/registerPlace';
 
 function TransferRows({ transfer }: { transfer: RegisterTransfer | RegisterTransferDecisionPreview }) {
   return (
     <Rows>
-      <Row label={COPY.FROM}>
-        {transfer.fromName} · {transfer.fromMember}
-      </Row>
+      <Row label={COPY.FROM}>{transfer.fromName || shortReference(transfer.fromMember)}</Row>
       <Row label="Transferor residential address">{transfer.fromResidentialAddress}</Row>
-      <Row label={COPY.TO}>
-        {transfer.name} · {transfer.toMember}
-      </Row>
+      <Row label={COPY.TO}>{transfer.name || shortReference(transfer.toMember)}</Row>
       <Row label={COPY.ADDRESS}>{transfer.residentialAddress}</Row>
       <Row label="Recipient particulars">
         {transfer.newParticulars ? 'Retained from the signed instrument' : 'Existing retained particulars'}
       </Row>
       <Row label={COPY.SHARES}>{shareCount(transfer.shares)}</Row>
-      <Row label={COPY.SIGNED_ON}>{transfer.signedOn}</Row>
-      <Row label={COPY.LODGED_ON}>{transfer.lodgedOn}</Row>
-      <Row label={COPY.COMPANY_EVENT_ON}>{transfer.companyEventOn || 'Not recorded'}</Row>
+      <Row label={COPY.SIGNED_ON}>{formatDate(transfer.signedOn)}</Row>
+      <Row label={COPY.LODGED_ON}>{formatDate(transfer.lodgedOn)}</Row>
+      <Row label={COPY.COMPANY_EVENT_ON}>{formatDate(transfer.companyEventOn, 'Not recorded')}</Row>
       {'registerEntry' in transfer &&
         transfer.registerEntry &&
         transfer.effectiveOn &&
-        transfer.effectiveOn !== transfer.companyEventOn && <Row label="Ledger date">{transfer.effectiveOn}</Row>}
+        transfer.effectiveOn !== transfer.companyEventOn && (
+          <Row label="Ledger date">{formatDate(transfer.effectiveOn)}</Row>
+        )}
       <Row label={COPY.TERMS}>{transfer.terms}</Row>
       <Row label={COPY.DIRECTOR}>{transfer.approvingDirector}</Row>
     </Rows>
@@ -43,6 +45,7 @@ function TransferRows({ transfer }: { transfer: RegisterTransfer | RegisterTrans
 }
 
 export function TransferRecord({
+  landed,
   transfer,
   steps,
   guard,
@@ -50,6 +53,7 @@ export function TransferRecord({
   visible = true,
   onHeldChange,
 }: {
+  landed?: Landed;
   transfer: RegisterTransfer;
   steps: RegisterSteps;
   guard: () => void;
@@ -61,10 +65,12 @@ export function TransferRecord({
   const download = useTransferRecordDownload(transfer, check);
   const context = `transfer from ${transfer.fromName} to ${transfer.name} prepared ${formatDateTime(transfer.createdAt)}`;
   return (
-    <RecordShell hidden={!visible}>
+    <RecordShell hidden={!visible} landed={landed}>
       {visible && (
-        <details open={transfer.status === 'submitted'} className="space-y-3">
-          <summary className="cursor-pointer text-sm font-medium text-text-primary">{`Transfer · ${formatDateTime(transfer.createdAt)} · ${COPY.STAGES[transfer.stage] ?? transfer.stage}`}</summary>
+        <Disclosure
+          summary={`Transfer · ${formatDateTime(transfer.createdAt)} · ${COPY.STAGES[transfer.stage] ?? transfer.stage}`}
+          defaultOpen={transfer.status === 'submitted'}
+        >
           <Rows>
             <RecordStage stage={transfer.stage}>{COPY.STAGES[transfer.stage] ?? transfer.stage}</RecordStage>
             <Row label="Prepared by">{transfer.preparedByName || 'Name not recorded'}</Row>
@@ -72,7 +78,7 @@ export function TransferRecord({
             <Row label={COPY.AUTHORITY_REFERENCE}>{transfer.authorityReference}</Row>
             <Row label={COPY.REASON}>{transfer.reason}</Row>
             <DecisionTrail proposal={transfer} labels={COPY.DECISIONS} />
-            {!!transfer.registerEntry && <Row label="Register entry">{transfer.registerEntry}</Row>}
+            {!!transfer.registerEntry && <Row label="Register entry">{shortReference(transfer.registerEntry)}</Row>}
           </Rows>
           <TransferRows transfer={transfer} />
           <p className="text-sm text-text-muted">{COPY.PROVIDED_BY_COMPANY}</p>
@@ -90,7 +96,7 @@ export function TransferRecord({
             ))}
           </div>
           {download.isError && <RecordDownloadFailure error={download.error} />}
-        </details>
+        </Disclosure>
       )}
       <RegisterDecisions
         family={REGISTER_TRANSFER_DECISIONS}

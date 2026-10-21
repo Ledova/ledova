@@ -1,7 +1,10 @@
+import { Field, TextInput } from '@components/Field';
+import { FIELD_LIMITS } from '@ledova/shared';
 import { useState } from 'react';
 import { Outcome, Row, Rows } from '@components/Ledger';
 import { PageAction } from '@components/Page';
-import { FIELD_CLASS } from '@components/fieldClass';
+import { ErrorSummary } from '@components/ErrorSummary';
+import { useErrorSummary } from '@hooks/useErrorSummary';
 import { useClassCertificate, type Source } from './useClassCertificate';
 
 export function ClassCertificate({ sourceKey, ...source }: Source & { sourceKey: string }) {
@@ -35,33 +38,46 @@ function CertificateRequest(source: Source) {
 }
 
 function CertificateForm({ register, entry, guard, sourceReady, close }: Source & { close: () => void }) {
-  const { instruction, setInstruction, target, setTarget, busy, error, downloaded, valid, blocked, preview, download } =
-    useClassCertificate({ register, entry, guard, sourceReady });
+  const {
+    instruction,
+    setInstruction,
+    target,
+    setTarget,
+    busy,
+    error,
+    downloaded,
+    problems,
+    blocked,
+    preview,
+    download,
+  } = useClassCertificate({ register, entry, guard, sourceReady });
+  const checks = useErrorSummary(problems);
   return (
-    <div className="flex flex-col gap-3 rounded-lg border border-border-subtle p-3">
+    <div className="flex flex-col gap-3 border-t border-border-subtle pt-3">
       <h4 className="text-sm font-medium text-text-primary">Unsigned certificate · Entry {entry.sequence}</h4>
+      <ErrorSummary {...checks.summary} />
       <p className="text-sm text-text-muted">
         The PDF includes recorded names and residential addresses. A transfer can include more than one member&apos;s
         page. The company must arrange any required execution and signing.
       </p>
-      <label className="block text-sm text-text-primary">
-        Certificate instruction reference
-        <input
-          className={FIELD_CLASS}
-          maxLength={255}
+      <Field {...checks.field('instruction')} label="Certificate instruction reference">
+        <TextInput
+          maxLength={FIELD_LIMITS.REFERENCE}
           value={instruction}
           disabled={blocked || !!target}
           onChange={(event) => setInstruction(event.target.value)}
         />
-      </label>
+      </Field>
       {!target ? (
         <PageAction
           primary
           label="Preview unsigned certificate"
           busy={busy === 'preview'}
           busyLabel="Preparing certificate preview…"
-          disabled={blocked || !valid}
-          onClick={() => void preview()}
+          disabled={blocked}
+          onClick={() => {
+            if (checks.check()) void preview();
+          }}
         />
       ) : (
         <>
@@ -81,7 +97,13 @@ function CertificateForm({ register, entry, guard, sourceReady, close }: Source 
               disabled={blocked}
               onClick={() => void download()}
             />
-            <PageAction label="Refresh certificate preview" disabled={blocked} onClick={() => void preview()} />
+            <PageAction
+              label="Refresh certificate preview"
+              busy={busy === 'preview'}
+              busyLabel="Refreshing…"
+              disabled={blocked}
+              onClick={() => void preview()}
+            />
             <PageAction label="Edit certificate request" disabled={blocked} onClick={() => setTarget(null)} />
           </div>
         </>
@@ -92,7 +114,7 @@ function CertificateForm({ register, entry, guard, sourceReady, close }: Source 
           {error}
         </p>
       )}
-      {downloaded && <Outcome>The unsigned certificate was downloaded.</Outcome>}
+      <Outcome>{downloaded && 'The unsigned certificate was downloaded.'}</Outcome>
     </div>
   );
 }

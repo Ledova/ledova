@@ -12,8 +12,10 @@ import {
   type OrderSubmissionOwner,
   type TokenHoldersResponse,
 } from '@ledova/shared';
-import { LinkRow } from '@components/Ledger';
+import { LinkRow, LoadError, Loading } from '@components/Ledger';
 import { PageTitle } from '@components/PageTitle';
+import { pageTitle } from '@utils/destinations';
+import { isRegisterTask, type Landed, type RegisterTask } from '@pages/company/register/shared/registerPlace';
 import { Page, PageAction, PageLink } from '@components/Page';
 import { CompanySelection } from '@pages/company/shared/CompanySelection';
 
@@ -33,18 +35,12 @@ import { CompanyPack } from './CompanyPack';
 import { RegisterLinks } from './RegisterLinks';
 import { RegisterParticulars } from './RegisterParticulars';
 import { RegisterSetup } from './RegisterSetup';
-import { Loading, Unavailable } from '@pages/company/shared/RegisterStatus';
 import { useCompanyRegister, useRegisterDownload } from '@pages/company/shared/useCompanyRegister';
 import { ownerGuard } from '@pages/company/shared/ownerGuard';
 import { useOwnAppointments } from '@hooks/useOwnAppointments';
 
 const ON_CHAIN = ['deployed', 'paused'];
-const TASKS = [
-  ['issue', 'Issue shares'],
-  ['transfer', 'Transfer shares'],
-  ['history', 'History'],
-] as const;
-type RegisterTask = (typeof TASKS)[number][0];
+const TASKS = Object.entries(DESTINATIONS.companyRegister.tasks) as [RegisterTask, string][];
 
 function RegisterPage({
   selection,
@@ -58,14 +54,7 @@ function RegisterPage({
   children: ReactNode;
 }) {
   const { hash } = useLocation();
-  const title =
-    hash === '#awards'
-      ? 'Employee awards'
-      : hash === '#documents'
-        ? 'Documents'
-        : hash === '#shareholders'
-          ? 'Shareholders'
-          : 'Register';
+  const title = pageTitle('companyRegister', hash.slice(1));
   return (
     <PageTitle.Provider value={title}>
       <Page
@@ -119,9 +108,11 @@ export default function CompanyRegisterPage() {
   return (
     <RegisterPage>
       {preferences.isLoading ? (
-        <Loading />
+        <Loading>Loading your account…</Loading>
       ) : (
-        <Unavailable retry={() => void preferences.refetch()} busy={preferences.isFetching} />
+        <LoadError retry={() => preferences.refetch()} busy={preferences.isFetching}>
+          Your account could not be loaded.
+        </LoadError>
       )}
     </RegisterPage>
   );
@@ -225,15 +216,25 @@ function OwnRegister({
   );
   const location = useLocation();
   const { hash } = location;
-  const registerCompany = typeof location.state?.registerCompany === 'string' ? location.state.registerCompany : '';
   const registerToken = typeof location.state?.registerToken === 'string' ? location.state.registerToken : '';
+  const registerCompany =
+    typeof location.state?.registerCompany === 'string'
+      ? location.state.registerCompany
+      : (classes.data?.find((item) => item.uuid === registerToken)?.companyUuid ?? '');
+  const registerTask = isRegisterTask(location.state?.registerTask) ? location.state.registerTask : undefined;
+  const registerOutcome =
+    typeof location.state?.registerOutcome === 'string' ? location.state.registerOutcome : undefined;
   const inviteMember = typeof location.state?.inviteMember === 'string' ? location.state.inviteMember : undefined;
   const issueMember = typeof location.state?.issueMember === 'string' ? location.state.issueMember : undefined;
   const issueAward = typeof location.state?.issueAward === 'string' ? location.state.issueAward : undefined;
   const registerRecord = typeof location.state?.registerRecord === 'string' ? location.state.registerRecord : undefined;
+  const landed: Landed | undefined = registerRecord
+    ? { record: registerRecord, key: location.key, outcome: registerOutcome }
+    : undefined;
   const enteredIssue = useRef('');
+  const entered = `${registerCompany}/${registerToken}`;
   useEffect(() => {
-    if (enteredIssue.current === location.key || !classes.isSuccess || classes.isFetching || held) return;
+    if (enteredIssue.current === entered || !classes.isSuccess || classes.isFetching || held) return;
     if (
       registerCompany &&
       classes.data.some(
@@ -241,10 +242,10 @@ function OwnRegister({
       )
     )
       selectCompany(registerCompany);
-    enteredIssue.current = location.key;
+    enteredIssue.current = entered;
   }, [
     enteredIssue,
-    location.key,
+    entered,
     classes.isSuccess,
     classes.isFetching,
     classes.data,
@@ -265,6 +266,9 @@ function OwnRegister({
     scope && scope.company.uuid === registerCompany && scope.registers.some(({ token }) => token.uuid === registerToken)
       ? registerToken
       : undefined;
+  const taskToken =
+    requestedToken ??
+    (registerTask && scope && scope.company.uuid === registerCompany ? scope.registers[0]?.token.uuid : undefined);
   const localSelection =
     taskSelection?.company === scope?.company.uuid && taskSelection?.locationKey === location.key
       ? taskSelection
@@ -280,10 +284,9 @@ function OwnRegister({
         ? 'transfer'
         : pinnedParts?.[0] === 'history'
           ? 'history'
-          : (localSelection?.task ??
-            (requestedToken ? (location.state?.registerHistory === true ? 'history' : 'issue') : undefined));
+          : (localSelection?.task ?? (taskToken ? (registerTask ?? 'issue') : undefined));
   const candidateToken =
-    pinnedParts && pinnedParts[1] !== 'company' ? pinnedParts[1] : (localSelection?.token ?? requestedToken);
+    pinnedParts && pinnedParts[1] !== 'company' ? pinnedParts[1] : (localSelection?.token ?? taskToken);
   const selectedToken = scope?.registers.some(({ token }) => token.uuid === candidateToken)
     ? candidateToken
     : scope?.registers[0]?.token.uuid;
@@ -313,16 +316,12 @@ function OwnRegister({
       return;
     const section = classSections.current.get(registerToken);
     if (!section) return;
-    if (location.state?.registerHistory === true && view === 'register') {
-      const history = section.querySelector<HTMLDetailsElement>('details[data-register-history]');
-      if (history) history.open = true;
-    }
     if (!registerRecord) {
       section.focus({ preventScroll: true });
       section.scrollIntoView?.({ block: 'start' });
     }
     focusedContext.current = location.key;
-  }, [location.key, location.state, held, sourceReady, view, registerToken, registerRecord, registerCompany, scope]);
+  }, [location.key, held, sourceReady, view, registerToken, registerRecord, registerCompany, scope]);
 
   return (
     <RegisterPage
@@ -361,6 +360,7 @@ function OwnRegister({
             </div>
             <div hidden={view !== 'register' || selectedTask !== 'history'}>
               <RegisterParticulars
+                landed={landed}
                 owner={owner}
                 guard={guard}
                 company={scope.company.uuid}
@@ -369,6 +369,7 @@ function OwnRegister({
                 onHeldChange={companyHistoryHeld}
               />
               <RegisterLinks
+                landed={landed}
                 owner={owner}
                 guard={guard}
                 company={scope.company.uuid}
@@ -387,32 +388,38 @@ function OwnRegister({
       }
     >
       {preferenceRead.isError ? (
-        <Unavailable retry={() => void preferenceRead.refetch()} busy={preferenceRead.isFetching} />
+        <LoadError retry={() => preferenceRead.refetch()} busy={preferenceRead.isFetching}>
+          Your account could not be loaded.
+        </LoadError>
       ) : preferenceRead.isFetching || classes.isPending ? (
-        <Loading />
+        <Loading>Loading the register…</Loading>
       ) : classes.isError || registers.isError || (held && !sourceReady) ? (
-        <Unavailable
+        <LoadError
           retry={() => {
             void classes.refetch();
             void registers.refetch();
           }}
           busy={classes.isFetching || registers.isFetching}
-        />
+        >
+          The register could not be loaded.
+        </LoadError>
       ) : companies.length === 0 ? (
         <RegisterSetup owner={owner} guard={guard} />
       ) : !company ? (
         <p className="py-3 text-sm text-text-muted">Select a company to show its register.</p>
       ) : registers.isPending ? (
-        <Loading />
+        <Loading>Loading the register…</Loading>
       ) : null}
       {scope && (view === 'register' || view === 'shareholders') && ownershipInvalid && (
-        <Unavailable
+        <LoadError
           retry={() => {
             void classes.refetch();
             void registers.refetch();
           }}
           busy={classes.isFetching || registers.isFetching}
-        />
+        >
+          The register could not be loaded.
+        </LoadError>
       )}
       {scope && view === 'shareholders' && ownershipReady && (
         <>
@@ -428,15 +435,15 @@ function OwnRegister({
       {scope && view === 'register' && (
         <>
           {ownershipReady && (
-            <div aria-label="Share class summaries" className="grid items-start gap-4 sm:grid-cols-2">
+            <div className="grid items-start gap-4 sm:grid-cols-2">
               {scope.registers.map((register) => (
                 <section
                   key={register.token.uuid}
                   className="min-w-0 space-y-4 rounded-xl border border-border bg-surface-raised p-4 sm:p-5"
                 >
-                  <p className="break-words text-base font-medium text-text-primary">
+                  <h2 className="break-words text-base font-medium text-text-primary">
                     {register.token.name} · {register.token.symbol}
-                  </p>
+                  </h2>
                   <ClassRegister register={register} former={false} />
                 </section>
               ))}
@@ -526,6 +533,7 @@ function OwnRegister({
                   </div>
                   <div hidden={view !== 'register' || selectedTask !== 'transfer'}>
                     <ClassTransfers
+                      landed={landed}
                       owner={owner}
                       guard={guard}
                       register={register}
@@ -540,12 +548,8 @@ function OwnRegister({
                     />
                   </div>
                   <div hidden={view !== 'register' || selectedTask !== 'history'}>
-                    <details
-                      data-register-history
-                      open={view === 'register' && selectedTask === 'history'}
-                      className="space-y-4"
-                    >
-                      <summary className="cursor-pointer text-sm font-medium">Recorded changes</summary>
+                    <div className="space-y-4">
+                      <h3 className="text-sm font-medium">Recorded changes</h3>
                       {sourceReady && (
                         <LinkRow
                           to={generatePath(DESTINATIONS.companyClass.path, { uuid: register.token.uuid })}
@@ -554,6 +558,7 @@ function OwnRegister({
                       )}
                       {ON_CHAIN.includes(register.token.status) && (
                         <ClassOpenings
+                          landed={landed}
                           owner={owner}
                           guard={guard}
                           register={register}
@@ -581,6 +586,7 @@ function OwnRegister({
                         onHeldChange={historyHeld}
                       />
                       <ClassCorrections
+                        landed={landed}
                         owner={owner}
                         guard={guard}
                         token={register.token.uuid}
@@ -610,7 +616,7 @@ function OwnRegister({
                         }
                         onHeldChange={historyHeld}
                       />
-                    </details>
+                    </div>
                   </div>
                   <div hidden={view !== 'awards'} className="space-y-5">
                     <ClassAwards

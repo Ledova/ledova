@@ -96,7 +96,7 @@ export function DeriveAddressModal({
             </div>
           </div>
         ) : (
-          <div className="flex flex-col items-center justify-center py-8 gap-2">
+          <div role="status" className="flex flex-col items-center justify-center py-8 gap-2">
             <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-brand-mid"></div>
             <p className="text-sm text-text-muted">Deriving address…</p>
           </div>

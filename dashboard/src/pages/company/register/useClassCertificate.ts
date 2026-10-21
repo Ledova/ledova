@@ -8,6 +8,7 @@ import {
   type TokenHoldersResponse,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
+import { hasProblems, type Problems } from '@hooks/useErrorSummary';
 import { saveFile } from '@utils/saveFile';
 
 export type Source = {
@@ -37,7 +38,10 @@ export function useClassCertificate({ register, entry, guard, sourceReady }: Sou
       transport.current?.abort();
     };
   }, []);
-  const valid = !!instruction.trim() && instruction.trim().length <= 255;
+  const problems: Problems<'instruction'> = {
+    instruction:
+      (!instruction.trim() || instruction.trim().length > 255) && 'Give the certificate instruction reference.',
+  };
   const blocked = !!busy || !sourceReady || !register.initialized;
   const assertCurrent = (controller: AbortController) => {
     guard();
@@ -45,7 +49,7 @@ export function useClassCertificate({ register, entry, guard, sourceReady }: Sou
       throw new Error('The certificate source changed.');
   };
   const preview = async () => {
-    if (pending.current || blocked || !valid) return;
+    if (pending.current || blocked || hasProblems(problems)) return;
     pending.current = true;
     const controller = new AbortController();
     transport.current = controller;
@@ -128,5 +132,17 @@ export function useClassCertificate({ register, entry, guard, sourceReady }: Sou
       if (mounted.current) setBusy(null);
     }
   };
-  return { instruction, setInstruction, target, setTarget, busy, error, downloaded, valid, blocked, preview, download };
+  return {
+    instruction,
+    setInstruction,
+    target,
+    setTarget,
+    busy,
+    error,
+    downloaded,
+    problems,
+    blocked,
+    preview,
+    download,
+  };
 }

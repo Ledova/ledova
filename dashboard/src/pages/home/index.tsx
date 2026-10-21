@@ -1,24 +1,37 @@
+import { CheckboxField, Field, TextArea, TextInput } from '@components/Field';
 import { CompanyPicker } from '@components/CompanyPicker';
 import { useRunningAction } from '@hooks/useRunningAction';
-import { DESTINATIONS } from '@ledova/shared';
+import {
+  FIELD_LIMITS,
+  DESTINATIONS,
+  INVITATION_CODE_PROBLEM,
+  isInvitationCode,
+  REGISTER_CORRECTION_COPY,
+  MEMBER_PARTICULARS_STATUS_LABELS,
+  MEMBER_CERTIFICATE_STATUS_LABELS,
+  type RegisterEntryKind,
+  shareCount,
+  shortReference,
+} from '@ledova/shared';
 import { useEffect, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import {
   formatDate,
   formatDateTime,
+  shareChange,
   formatShareCount,
   useMemberRecords,
   type MemberCertificateRequest,
 } from '@ledova/shared';
-import { LinkRow, Row, Rows, Section } from '@components/Ledger';
+import { LinkRow, Row, Rows, Section, Loading, LoadError, Disclosure } from '@components/Ledger';
 import { Confirmation } from '@components/Modal';
 import { Page, PageAction } from '@components/Page';
 import { PageTitle } from '@components/PageTitle';
-import { FIELD_CLASS } from '@components/fieldClass';
+import { pageTitle } from '@utils/destinations';
+import { ErrorSummary } from '@components/ErrorSummary';
+import { useErrorSummary } from '@hooks/useErrorSummary';
 import { AwardStatus } from '@components/AwardStatus';
 import { useMemberCertificateDownload } from './useMemberCertificateDownload';
-
-const SUMMARY = 'cursor-pointer py-2 text-sm font-medium text-text-primary';
 
 export default function MemberRecordsPage() {
   const read = useMemberRecords(() => crypto.randomUUID());
@@ -41,6 +54,9 @@ export default function MemberRecordsPage() {
   );
 }
 
+const entryKind = (kind: string) =>
+  REGISTER_CORRECTION_COPY.ENTRY_KINDS[kind.toLowerCase() as RegisterEntryKind] ?? 'Register change';
+
 function MemberRecords({
   read,
   select,
@@ -55,12 +71,25 @@ function MemberRecords({
   const [confirmed, setConfirmed] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [historyToken, setHistoryToken] = useState('');
-  const history = useRef<HTMLDetailsElement>(null);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const initialHistory = useRef('');
   const documentsOnly = useLocation().hash === '#documents';
   const held = read.busy || !!read.retry;
   const [withdrawing, setWithdrawing] = useState<{ uuid: string; createdAt: string } | null>(null);
   const { running, track } = useRunningAction();
+  const invitationChecks = useErrorSummary({
+    code: !isInvitationCode(code) && INVITATION_CODE_PROBLEM,
+    accepted: !accepted && 'Accept access to the invited member record.',
+  });
+  const particularsChecks = useErrorSummary({
+    name: !name.trim() && 'Give the requested name.',
+    address: !address.trim() && 'Give the requested residential address.',
+    confirmed: !confirmed && 'Confirm sharing these particulars with the company.',
+  });
+  const changeCode = (value: string) => {
+    setCode(value);
+    setAccepted(false);
+  };
   useEffect(() => {
     if (read.record && read.record.uuid !== initialHistory.current && !held) {
       initialHistory.current = read.record.uuid;
@@ -75,6 +104,7 @@ function MemberRecords({
   const records = read.record ? [read.record] : read.records.length === 1 ? read.records : [];
   const choose = (uuid: string) => {
     if (uuid !== read.record?.uuid) select(uuid);
+    particularsChecks.reset();
     setName('');
     setAddress('');
     setConfirmed(false);
@@ -100,7 +130,8 @@ function MemberRecords({
       {read.entries.map((entry) => (
         <div key={entry.uuid} className="space-y-2 py-3">
           <p className="text-sm">
-            Entry {entry.sequence} · {entry.kind} · Ledger {formatDate(entry.effectiveOn)} · Own change {entry.delta}
+            Entry {entry.sequence} · {entryKind(entry.kind)} · Ledger {formatDate(entry.effectiveOn)} · Own change{' '}
+            {shareChange(entry.delta)}
           </p>
           <p className="text-sm text-text-muted">
             Recorded {formatDateTime(entry.createdAt)}
@@ -130,40 +161,41 @@ function MemberRecords({
         Use the one-time code privately supplied by the company for your confirmed email. It grants access to your
         member record, not company administration.
       </p>
-      <label className="block space-y-1 text-sm">
-        Member invitation code
-        <input
-          className={FIELD_CLASS}
+      <ErrorSummary {...invitationChecks.summary} />
+      <Field {...invitationChecks.field('code')} label="Member invitation code">
+        <TextInput
+          maxLength={FIELD_LIMITS.INVITATION_CODE}
           autoComplete="off"
           value={code}
           disabled={held}
-          onChange={(event) => {
-            setCode(event.target.value);
-            setAccepted(false);
+          onChange={(event) => changeCode(event.target.value.trim())}
+          onPaste={(event) => {
+            event.preventDefault();
+            changeCode(event.clipboardData.getData('text').trim().slice(0, FIELD_LIMITS.INVITATION_CODE));
           }}
         />
-      </label>
-      <label className="flex items-center gap-2 text-sm">
-        <input
-          type="checkbox"
-          checked={accepted}
-          disabled={held}
-          onChange={(event) => setAccepted(event.target.checked)}
-        />
-        I accept access to the company&apos;s invited member record using my signed-in account.
-      </label>
+      </Field>
+      <CheckboxField
+        {...invitationChecks.field('accepted')}
+        label="I accept access to the company's invited member record using my signed-in account."
+        checked={accepted}
+        disabled={held}
+        onChange={(event) => setAccepted(event.target.checked)}
+      />
       <PageAction
         label="Accept member invitation"
         primary
         busy={running === 'accept'}
         busyLabel="Accepting invitation…"
-        disabled={held || !accepted || !/^[A-Za-z0-9_-]{43}$/.test(code)}
-        onClick={() => track('accept', read.accept(code))}
+        disabled={held}
+        onClick={() => {
+          if (invitationChecks.check()) track('accept', read.accept(code));
+        }}
       />
     </div>
   );
   return (
-    <PageTitle.Provider value={documentsOnly ? 'Documents' : 'Dashboard'}>
+    <PageTitle.Provider value={pageTitle('home', documentsOnly ? 'documents' : undefined)}>
       <Page
         narrow={documentsOnly}
         lede={
@@ -174,7 +206,9 @@ function MemberRecords({
         actions={
           <PageAction
             label="Refresh member records"
-            disabled={read.busy || refreshing}
+            busy={refreshing}
+            busyLabel="Refreshing…"
+            disabled={read.busy}
             onClick={() => {
               setRefreshing(true);
               void read.refresh().finally(() => setRefreshing(false));
@@ -182,9 +216,20 @@ function MemberRecords({
           />
         }
       >
-        {read.error && (
+        {read.readFailed && (
+          <LoadError
+            retry={() => {
+              setRefreshing(true);
+              return read.refresh().finally(() => setRefreshing(false));
+            }}
+            busy={refreshing || read.busy}
+          >
+            Your member records could not be loaded.
+          </LoadError>
+        )}
+        {(read.readFailed ? read.failure : read.error) && (
           <p role="alert" className="text-sm text-error-light">
-            {read.error}
+            {read.readFailed ? read.failure : read.error}
           </p>
         )}
         {read.retry && (
@@ -193,7 +238,7 @@ function MemberRecords({
         {!read.owner ? (
           <p role="status">Check your signed-in account before opening member records.</p>
         ) : read.loading || refreshing || (read.busy && read.records.length === 0) ? (
-          <p role="status">Loading member records…</p>
+          <Loading>Loading member records…</Loading>
         ) : (
           <>
             {read.records.length > 1 && (
@@ -213,7 +258,7 @@ function MemberRecords({
                   <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
                     <Section title="Your issued shares">
                       {record.classes.length === 0 ? (
-                        <p className="text-sm text-text-muted">No issued shares recorded.</p>
+                        <p className="text-sm text-text-muted">No issued shares yet.</p>
                       ) : (
                         <div className="divide-y divide-border-subtle">
                           {record.classes.map((item) => (
@@ -221,7 +266,7 @@ function MemberRecords({
                               <div className="space-y-1">
                                 <p className="break-words text-sm text-text-muted">{item.name}</p>
                                 <p className="break-words text-2xl font-medium tabular-nums">
-                                  {formatShareCount(item.shares)} issued shares
+                                  {shareCount(item.shares, 'issued')}
                                 </p>
                               </div>
                               {read.record?.uuid === record.uuid && (
@@ -231,7 +276,7 @@ function MemberRecords({
                                   onClick={() => {
                                     setHistoryToken(item.uuid);
                                     read.selectToken(item.uuid);
-                                    if (history.current) history.current.open = true;
+                                    setHistoryOpen(true);
                                   }}
                                 />
                               )}
@@ -259,8 +304,7 @@ function MemberRecords({
                                 </h3>
                               )}
                               <AwardStatus {...award} />
-                              <details>
-                                <summary className={SUMMARY}>Award terms and recorded vesting</summary>
+                              <Disclosure summary="Award terms and recorded vesting">
                                 <div className="space-y-2 text-sm text-text-muted">
                                   <p>
                                     {formatDate(award.termsOn)} · {award.terms}
@@ -283,11 +327,11 @@ function MemberRecords({
                                   {award.vestingReversals.map((event) => (
                                     <p key={event.uuid}>
                                       {formatDate(event.companyEventOn)} · {formatShareCount(event.reversedShares)}{' '}
-                                      vesting reversed · original {event.vesting} · {event.reason}
+                                      vesting reversed · original {shortReference(event.vesting)} · {event.reason}
                                     </p>
                                   ))}
                                 </div>
-                              </details>
+                              </Disclosure>
                             </div>
                           ))}
                         </div>
@@ -309,10 +353,14 @@ function MemberRecords({
                       </p>
                       {read.requests.certificates
                         .filter((request) => request.status === 'fulfilled' && request.fulfilment)
-                        .map((request) => (
+                        .map((request, index) => (
                           <div key={request.uuid} className="space-y-1">
                             <p className="text-sm">Certificate requested {formatDate(request.createdAt)}</p>
-                            <MemberCertificateDownload read={read} request={request} />
+                            <MemberCertificateDownload
+                              read={read}
+                              request={request}
+                              context={`certificate ${index + 1}, requested ${formatDateTime(request.createdAt)}`}
+                            />
                           </div>
                         ))}
                     </div>
@@ -320,13 +368,10 @@ function MemberRecords({
                   {read.requests &&
                     !read.requests.certificates.some(
                       (request) => request.status === 'fulfilled' && request.fulfilment,
-                    ) && <p className="text-sm text-text-muted">No issued certificates available.</p>}
-                  {!read.requests && <p role="status">Loading your documents and requests…</p>}
+                    ) && <p className="text-sm text-text-muted">No issued certificates yet.</p>}
+                  {!read.requests && <Loading>Loading your documents and requests…</Loading>}
                   {!documentsOnly && (
-                    <LinkRow
-                      to={`${DESTINATIONS.home.path}#documents`}
-                      label="View documents and certificate requests"
-                    />
+                    <LinkRow to={`${DESTINATIONS.home.path}#documents`} label={pageTitle('home', 'documents')} />
                   )}
                 </Section>
                 <Section title={documentsOnly ? 'Share history' : 'Your member record'}>
@@ -338,7 +383,8 @@ function MemberRecords({
                         .slice(0, 3)
                         .map((entry) => (
                           <p key={entry.uuid} className="text-text-muted">
-                            Ledger {formatDate(entry.effectiveOn)} · {entry.kind} · Own change {entry.delta}
+                            Ledger {formatDate(entry.effectiveOn)} · {entryKind(entry.kind)} · Own change{' '}
+                            {shareChange(entry.delta)}
                             {['ISSUE', 'TRANSFER'].includes(entry.kind.toUpperCase()) &&
                               ` · Company date ${entry.companyEventOn ? formatDate(entry.companyEventOn) : 'Not recorded'}`}
                           </p>
@@ -346,8 +392,7 @@ function MemberRecords({
                     </div>
                   )}
                   {!documentsOnly && (
-                    <details open>
-                      <summary className={SUMMARY}>Company-recorded particulars</summary>
+                    <Disclosure summary="Company-recorded particulars" defaultOpen>
                       <p className="text-sm text-text-muted">
                         Provided by the company, not verified by Ledova. Profile edits do not change this register.
                       </p>
@@ -362,27 +407,30 @@ function MemberRecords({
                           {item.amountPaid ?? 'not recorded'}
                         </p>
                       ))}
-                    </details>
+                    </Disclosure>
                   )}
                   {documentsOnly ? (
                     shareHistory
                   ) : (
-                    <details ref={history}>
-                      <summary className={SUMMARY}>Your share history and certificate requests</summary>
+                    <Disclosure
+                      summary="Your share history and certificate requests"
+                      open={historyOpen}
+                      onToggle={() => setHistoryOpen((open) => !open)}
+                      keepMounted
+                    >
                       {shareHistory}
-                    </details>
+                    </Disclosure>
                   )}
                   {!documentsOnly && (
-                    <details>
-                      <summary className={SUMMARY}>Request a particulars update</summary>
+                    <Disclosure summary="Request a particulars update">
                       <div className="space-y-3 pt-2">
                         <p className="text-sm text-text-muted">
                           The company reviews your request. Sending it changes no holding or register particulars.
                         </p>
-                        <label className="block space-y-1 text-sm">
-                          Requested name
-                          <input
-                            className={FIELD_CLASS}
+                        <ErrorSummary {...particularsChecks.summary} />
+                        <Field {...particularsChecks.field('name')} label="Requested name">
+                          <TextInput
+                            maxLength={FIELD_LIMITS.NAME}
                             value={name}
                             disabled={held}
                             onChange={(event) => {
@@ -390,11 +438,10 @@ function MemberRecords({
                               setConfirmed(false);
                             }}
                           />
-                        </label>
-                        <label className="block space-y-1 text-sm">
-                          Requested residential address
-                          <textarea
-                            className={FIELD_CLASS}
+                        </Field>
+                        <Field {...particularsChecks.field('address')} label="Requested residential address">
+                          <TextArea
+                            maxLength={FIELD_LIMITS.RESIDENTIAL_ADDRESS}
                             value={address}
                             disabled={held}
                             onChange={(event) => {
@@ -402,26 +449,27 @@ function MemberRecords({
                               setConfirmed(false);
                             }}
                           />
-                        </label>
-                        <label className="flex items-center gap-2 text-sm">
-                          <input
-                            type="checkbox"
-                            checked={confirmed}
-                            disabled={held}
-                            onChange={(event) => setConfirmed(event.target.checked)}
-                          />
-                          Share these requested particulars with this company for review.
-                        </label>
+                        </Field>
+                        <CheckboxField
+                          {...particularsChecks.field('confirmed')}
+                          label="Share these requested particulars with this company for review."
+                          checked={confirmed}
+                          disabled={held}
+                          onChange={(event) => setConfirmed(event.target.checked)}
+                        />
                         <PageAction
                           label="Send particulars request"
                           primary
                           busy={running === 'particulars'}
                           busyLabel="Sending request…"
-                          disabled={held || !confirmed || !name.trim() || !address.trim()}
-                          onClick={() => track('particulars', read.requestParticulars(name.trim(), address.trim()))}
+                          disabled={held}
+                          onClick={() => {
+                            if (particularsChecks.check())
+                              track('particulars', read.requestParticulars(name.trim(), address.trim()));
+                          }}
                         />
                       </div>
-                    </details>
+                    </Disclosure>
                   )}
                 </Section>
                 {read.requests && (read.requests.particulars.length > 0 || read.requests.certificates.length > 0) && (
@@ -429,35 +477,34 @@ function MemberRecords({
                     <div className="space-y-3 pt-2 text-sm">
                       {read.requests.particulars.map((request) => (
                         <div key={request.uuid}>
-                          <p>Particulars update · {request.status}</p>
-                          <details>
-                            <summary className={SUMMARY}>Record details</summary>
+                          <p>Particulars update · {MEMBER_PARTICULARS_STATUS_LABELS[request.status]}</p>
+                          <Disclosure summary="Record details">
                             <p className="break-all">
-                              Request {request.uuid}
-                              {request.change ? ` · Company instruction ${request.change}` : ''}
+                              Request {shortReference(request.uuid)}
+                              {request.change ? ` · Company instruction ${shortReference(request.change)}` : ''}
                             </p>
-                          </details>
+                          </Disclosure>
                         </div>
                       ))}
-                      {read.requests.certificates.map((request) => (
+                      {read.requests.certificates.map((request, index) => (
                         <div key={request.uuid} className="space-y-2">
                           <p>
-                            Certificate requested {formatDate(request.createdAt)} · {request.status}
+                            Certificate requested {formatDate(request.createdAt)}
+                            {request.status !== 'requested' && ` · ${MEMBER_CERTIFICATE_STATUS_LABELS[request.status]}`}
                           </p>
                           {request.status === 'requested' && (
                             <PageAction
                               label="Withdraw certificate request"
-                              context={request.createdAt}
+                              context={`request ${index + 1}, requested ${formatDateTime(request.createdAt)}`}
                               disabled={held}
                               onClick={() => setWithdrawing({ uuid: request.uuid, createdAt: request.createdAt })}
                             />
                           )}
-                          <details>
-                            <summary className={SUMMARY}>Record details</summary>
+                          <Disclosure summary="Record details">
                             <p className="break-all">
-                              Request {request.uuid} · Entry {request.entry}
+                              Request {shortReference(request.uuid)} · Entry {shortReference(request.entry)}
                             </p>
-                          </details>
+                          </Disclosure>
                         </div>
                       ))}
                     </div>
@@ -473,10 +520,9 @@ function MemberRecords({
                 {invitation}
               </Section>
             ) : (
-              <details className="rounded-xl border border-border p-4">
-                <summary className={SUMMARY}>Accept another member invitation</summary>
-                {invitation}
-              </details>
+              <div className="rounded-xl border border-border p-4">
+                <Disclosure summary="Accept another member invitation">{invitation}</Disclosure>
+              </div>
             )}
           </>
         )}
@@ -503,16 +549,18 @@ function MemberRecords({
 function MemberCertificateDownload({
   read,
   request,
+  context,
 }: {
   read: ReturnType<typeof useMemberRecords>;
   request: MemberCertificateRequest;
+  context: string;
 }) {
   const { busy, error, download } = useMemberCertificateDownload(read, request);
   return (
     <>
       <PageAction
         label="Download unsigned certificate"
-        context={request.createdAt}
+        context={context}
         busy={busy}
         busyLabel="Downloading…"
         disabled={read.busy || !!read.retry}

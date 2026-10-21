@@ -1,4 +1,5 @@
 import {
+  isCalendarDate,
   registerImportTotals,
   registerImportMoney,
   wholeShares,
@@ -48,8 +49,6 @@ export type PreparationDraft = {
   statedTotal: string;
   statedCount: string;
 };
-
-const DAY = /^\d{4}-\d{2}-\d{2}$/;
 
 function positiveShares(value: string) {
   const shares = wholeShares(value.trim());
@@ -225,11 +224,7 @@ export function figuresDiffer(draft: PreparationDraft) {
 
 export function preparationProblems(draft: PreparationDraft, today: string, emptyOpeningAllowed = false) {
   const problems: string[] = [];
-  const dated = (day: string) =>
-    DAY.test(day) &&
-    Number.isFinite(Date.parse(`${day}T00:00:00Z`)) &&
-    new Date(`${day}T00:00:00Z`).toISOString().slice(0, 10) === day &&
-    day <= draft.asAt;
+  const dated = (day: string) => isCalendarDate(day) && day <= draft.asAt;
   const incomplete = (row: { name: string; residentialAddress: string; shares: string }) =>
     !row.name.trim() || !row.residentialAddress.trim() || positiveShares(row.shares) === null;
   if (!dated(draft.asAt) || draft.asAt > today) problems.push('Enter a record date no later than today (UTC).');

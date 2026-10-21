@@ -2,7 +2,8 @@ import type { ReactElement } from 'react';
 import { Route } from 'react-router-dom';
 import { DESTINATIONS, type DestinationKey } from '@ledova/shared';
 
-import { PageTitle } from '@components/PageTitle';
+import { PageBack, PageTitle } from '@components/PageTitle';
+import { backLink, pageTitle } from '@utils/destinations';
 import { ProtectedRoute } from './ProtectedRoute';
 
 export function signedInRoutes(pages: Record<DestinationKey, ReactElement>) {
@@ -11,8 +12,10 @@ export function signedInRoutes(pages: Record<DestinationKey, ReactElement>) {
       key={key}
       path={DESTINATIONS[key].path}
       element={
-        <PageTitle.Provider value={key === 'home' ? 'Dashboard' : DESTINATIONS[key].title}>
-          <ProtectedRoute audience={DESTINATIONS[key].audience}>{pages[key]}</ProtectedRoute>
+        <PageTitle.Provider value={pageTitle(key)}>
+          <PageBack.Provider value={backLink(key)}>
+            <ProtectedRoute audience={DESTINATIONS[key].audience}>{pages[key]}</ProtectedRoute>
+          </PageBack.Provider>
         </PageTitle.Provider>
       }
     />

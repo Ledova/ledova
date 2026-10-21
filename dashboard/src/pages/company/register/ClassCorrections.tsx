@@ -14,8 +14,7 @@ import {
   type OrderSubmissionOwner,
   type OwnCompanyAppointment,
 } from '@ledova/shared';
-import { LinkRow } from '@components/Ledger';
-import { PageAction } from '@components/Page';
+import { LinkRow, LoadError, Loading, Disclosure } from '@components/Ledger';
 import { LoadMore } from '@components/List';
 
 import { CorrectionRecord } from './CorrectionRecord';
@@ -29,6 +28,7 @@ import {
 } from '@pages/company/register/shared/useClassCorrections';
 import { entriesKey, useRegisterEntries } from '@pages/company/register/shared/useRegisterEntries';
 import { useOwnAppointments, ownAppointmentsKey } from '@hooks/useOwnAppointments';
+import type { Landed } from '@pages/company/register/shared/registerPlace';
 
 const COPY = REGISTER_CORRECTION_COPY;
 
@@ -65,14 +65,11 @@ function EntryHistory({
     >
       <h3 className="text-sm font-medium text-text-primary">{COPY.ENTRIES_TITLE}</h3>
       {history.isPending ? (
-        <p role="status" className="text-sm text-text-muted">
-          Loading register entries…
-        </p>
+        <Loading>Loading register entries…</Loading>
       ) : history.hasError ? (
-        <div role="alert" className="flex flex-col items-start gap-2 text-sm text-text-muted">
-          <p>We couldn&apos;t load the register entries for this share class.</p>
-          <PageAction label="Retry register entries" onClick={history.retry} disabled={history.isFetching} />
-        </div>
+        <LoadError retry={history.retry} busy={history.isFetching}>
+          Register entries could not be loaded.
+        </LoadError>
       ) : null}
       <ul className="divide-y divide-border-subtle">
         {history.entries.map((entry) => {
@@ -80,13 +77,15 @@ function EntryHistory({
           const reversal = entry.correctedBy ? sequences.get(entry.correctedBy) : undefined;
           return (
             <li key={entry.uuid} hidden={!privateReady} className="flex flex-col gap-2 py-4">
-              <details className="space-y-3">
+              <Disclosure
+                summary={
+                  privateReady
+                    ? `${COPY.ENTRY_KINDS[entry.kind]} · Entry ${entry.sequence} · ${formatDate(entry.effectiveOn)}`
+                    : ''
+                }
+              >
                 {privateReady && (
                   <>
-                    <summary className="cursor-pointer text-sm font-medium">
-                      {COPY.ENTRY_KINDS[entry.kind] ?? entry.kind} · Entry {entry.sequence} ·{' '}
-                      {formatDate(entry.effectiveOn)}
-                    </summary>
                     <p className="text-xs text-text-muted">
                       Ledger date {formatDate(entry.effectiveOn)} · Recorded {formatDateTime(entry.recordedAt)}
                     </p>
@@ -127,7 +126,7 @@ function EntryHistory({
                   guard={certificateGuard}
                   sourceReady={visible && sourceReady && !history.isFetching && !history.moreFailed}
                 />
-              </details>
+              </Disclosure>
             </li>
           );
         })}
@@ -145,6 +144,7 @@ function EntryHistory({
 }
 
 export function ClassCorrections({
+  landed,
   owner,
   guard,
   token,
@@ -154,6 +154,7 @@ export function ClassCorrections({
   visible = true,
   onHeldChange,
 }: {
+  landed?: Landed;
   owner: OrderSubmissionOwner;
   guard: () => void;
   token: string;
@@ -232,36 +233,25 @@ export function ClassCorrections({
       >
         <h3 className="text-sm font-medium text-text-primary">{COPY.TITLE}</h3>
         {appointments.isError ? (
-          <div role="alert" className="flex flex-col items-start gap-2 text-sm text-text-muted">
-            <p>Your appointments could not be loaded. Retry before preparing or deciding a correction.</p>
-            <PageAction
-              label="Retry appointments"
-              onClick={() => void appointments.refetch()}
-              disabled={appointments.isFetching}
-            />
-          </div>
+          <LoadError retry={() => appointments.refetch()} busy={appointments.isFetching}>
+            Your appointments could not be loaded.
+          </LoadError>
         ) : (
           steps &&
           !Object.values(steps).some(Boolean) && <p className="text-sm text-text-muted">{COPY.READ_ONLY_NOTE}</p>
         )}
         {corrections.isPending ? (
-          <p role="status" className="text-sm text-text-muted">
-            Loading corrections…
-          </p>
+          <Loading>Loading corrections…</Loading>
         ) : corrections.isError ? (
-          <div role="alert" className="flex flex-col items-start gap-2 text-sm text-text-muted">
-            <p>We couldn&apos;t load the corrections for this share class.</p>
-            <PageAction
-              label="Retry corrections"
-              onClick={() => void corrections.refetch()}
-              disabled={corrections.isFetching}
-            />
-          </div>
+          <LoadError retry={() => corrections.refetch()} busy={corrections.isFetching}>
+            Corrections could not be loaded.
+          </LoadError>
         ) : null}
         <ul className="divide-y divide-border-subtle">
           {(corrections.data ?? []).map((correction) => (
             <CorrectionRecord
               key={correction.proposal.uuid}
+              landed={landed?.record === correction.proposal.uuid ? landed : undefined}
               correction={correction}
               visible={privateReady}
               onHeldChange={recordHeld}

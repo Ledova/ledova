@@ -18,8 +18,6 @@ import {
   type RegisterTransferMembers,
 } from '@ledova/shared';
 import { Page } from '@components/Page';
-import { PageTitle } from '@components/PageTitle';
-import { Loading, Unavailable } from '@pages/company/shared/RegisterStatus';
 import { registerSteps, type RegisterSteps } from '@pages/company/shared/proposals';
 import { useRegisterClasses, registerClassesKey } from '@pages/company/shared/useCompanyRegister';
 import { importsKey, useRegisterImports } from '@pages/company/register/shared/useRegisterImports';
@@ -30,33 +28,32 @@ import { peopleKey, usePeople } from '@pages/company/register/shared/usePeople';
 import { ImportForm } from './ImportForm';
 import { NewClassSetup } from './NewClassSetup';
 import { canOpenEmptyRegister } from './preparation';
+import { LoadError, Loading, Row, Rows } from '@components/Ledger';
 
 export default function CompanyRegisterImportPage() {
   const { uuid = '' } = useParams();
   const { owner, boundary, preferences } = useRegisterPreparationOwner();
   return (
-    <PageTitle.Provider value={REGISTER_IMPORT_COPY.SETUP}>
-      <Page narrow>
-        {owner && !preferences.isError ? (
-          uuid ? (
-            <OwnImport
-              key={`${owner.userUuid}/${owner.ownerAccountUuid}/${uuid}`}
-              uuid={uuid}
-              owner={owner}
-              currentOwner={boundary.get}
-            />
-          ) : (
-            <NewClassSetup
-              key={`${owner.userUuid}/${owner.ownerAccountUuid}`}
-              owner={owner}
-              currentOwner={boundary.get}
-            />
-          )
+    <Page narrow>
+      {owner && !preferences.isError ? (
+        uuid ? (
+          <OwnImport
+            key={`${owner.userUuid}/${owner.ownerAccountUuid}/${uuid}`}
+            uuid={uuid}
+            owner={owner}
+            currentOwner={boundary.get}
+          />
         ) : (
-          <PreparationPreferences preferences={preferences} />
-        )}
-      </Page>
-    </PageTitle.Provider>
+          <NewClassSetup
+            key={`${owner.userUuid}/${owner.ownerAccountUuid}`}
+            owner={owner}
+            currentOwner={boundary.get}
+          />
+        )
+      ) : (
+        <PreparationPreferences preferences={preferences} />
+      )}
+    </Page>
   );
 }
 
@@ -158,14 +155,19 @@ function OwnImport({
   if (!held && fresh && record && !saved)
     return <p className="text-sm text-text-muted">This saved snapshot is not in the selected share class.</p>;
   if (!retained || (!held && (!fresh || !canOpen))) {
-    if (stale) return <Unavailable retry={retry} busy={fetching} />;
+    if (stale)
+      return (
+        <LoadError retry={retry} busy={fetching}>
+          The register or your appointments could not be loaded.
+        </LoadError>
+      );
     if (
       !classes.data ||
       !appointments.data ||
       fetching ||
       (readable && (!imports.data || !register.data || !members.data))
     )
-      return <Loading />;
+      return <Loading>Loading the register…</Loading>;
     if (!listed) return <PreparationNotice />;
     if (!readable) return <PreparationNotice>{REGISTER_IMPORT_COPY.READ_ONLY_NOTE}</PreparationNotice>;
     if (record && imports.data && !saved)
@@ -192,7 +194,7 @@ function OwnImport({
         </p>
       );
     if (!canOpen) return <PreparationNotice>{REGISTER_IMPORT_COPY.READ_ONLY_NOTE}</PreparationNotice>;
-    return <Loading />;
+    return <Loading>Loading the register…</Loading>;
   }
   return (
     <ImportForm
@@ -214,7 +216,7 @@ function OwnImport({
         canOpenEmptyRegister(register.data, listed)
       }
       classFields={
-        <dl className="grid gap-4 sm:grid-cols-2">
+        <Rows>
           {[
             ['Class name', retained.listed.name],
             ['Class code', retained.listed.symbol],
@@ -226,12 +228,11 @@ function OwnImport({
                 : formatShareCount(retained.listed.totalSupply),
             ],
           ].map(([label, value]) => (
-            <div key={label}>
-              <dt className="text-sm text-text-muted">{label}</dt>
-              <dd className="mt-1 text-sm font-medium text-text-primary">{value}</dd>
-            </div>
+            <Row key={label} label={label}>
+              {value}
+            </Row>
           ))}
-        </dl>
+        </Rows>
       }
       appointment={canPrepare ? steps?.prepare : undefined}
       steps={steps ?? retained.steps}

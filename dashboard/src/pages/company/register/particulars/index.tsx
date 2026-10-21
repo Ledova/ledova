@@ -1,20 +1,19 @@
-import { PreparationBack, PreparationNotice, PreparationShell } from '@pages/company/register/shared/PreparationShell';
+import { PreparationNotice, PreparationShell } from '@pages/company/register/shared/PreparationShell';
 import { useRegisterPreparationOwner } from '@pages/company/register/shared/useRegisterPreparationOwner';
 import { useParticularsRegisters } from './useParticularsRegisters';
 import { useMemo, type ReactNode } from 'react';
 import { useParams } from 'react-router-dom';
 
 import {
-  DESTINATIONS,
+  HOLDER_TYPE_LABELS,
   REGISTER_PARTICULARS_COPY,
   appointmentForRegisterStep,
   type CompanyShareTokenListItem,
   type OrderSubmissionOwner,
   type OwnCompanyAppointment,
 } from '@ledova/shared';
-import { Section } from '@components/Ledger';
+import { Section, LoadError, Loading } from '@components/Ledger';
 import { Page } from '@components/Page';
-import { Loading, Unavailable } from '@pages/company/shared/RegisterStatus';
 import { useRegisterClasses } from '@pages/company/shared/useCompanyRegister';
 import { ownerGuard } from '@pages/company/shared/ownerGuard';
 import { useOwnAppointments } from '@hooks/useOwnAppointments';
@@ -48,9 +47,6 @@ function preparingCompanies(classes: CompanyShareTokenListItem[], appointments: 
 export default function CompanyRegisterParticularsPage() {
   const { member = '' } = useParams();
   const { owner, boundary, preferences } = useRegisterPreparationOwner();
-  const back = (
-    <PreparationBack label="Back to Shareholders" to={`${DESTINATIONS.companyRegister.path}#shareholders`} />
-  );
   if (owner && !preferences.isError)
     return (
       <OwnParticulars
@@ -58,22 +54,19 @@ export default function CompanyRegisterParticularsPage() {
         member={member}
         owner={owner}
         currentOwner={boundary.get}
-        back={back}
       />
     );
-  return <PreparationShell lede={LEDE} actions={back} preferences={preferences} />;
+  return <PreparationShell lede={LEDE} preferences={preferences} />;
 }
 
 function OwnParticulars({
   member,
   owner,
   currentOwner,
-  back: list,
 }: {
   member: string;
   owner: OrderSubmissionOwner;
   currentOwner: () => OrderSubmissionOwner | null;
-  back: ReactNode;
 }) {
   const guard = useMemo(() => ownerGuard(owner, currentOwner), [owner, currentOwner]);
   const classes = useRegisterClasses(owner, guard);
@@ -94,14 +87,23 @@ function OwnParticulars({
     classes.isError || appointments.isError || (found ? found.read.isError : registers.some((read) => read.isError));
   let content: ReactNode;
   if (!classes.data || !appointments.data)
-    content = classes.isError || appointments.isError ? <Unavailable retry={retry} busy={fetching} /> : <Loading />;
+    content =
+      classes.isError || appointments.isError ? (
+        <LoadError retry={retry} busy={fetching}>
+          {classes.isError ? 'The register could not be loaded.' : 'Your appointments could not be loaded.'}
+        </LoadError>
+      ) : (
+        <Loading>Loading the register…</Loading>
+      );
   else if (preparing.length === 0)
     content = <PreparationNotice className="py-3 text-sm text-text-muted">{COPY.READ_ONLY_NOTE}</PreparationNotice>;
   else if (!found)
     content = registers.some((read) => read.isPending) ? (
-      <Loading />
+      <Loading>Loading the register…</Loading>
     ) : stale ? (
-      <Unavailable retry={retry} busy={fetching} />
+      <LoadError retry={retry} busy={fetching}>
+        The register or your appointments could not be loaded.
+      </LoadError>
     ) : (
       <p className="py-3 text-sm text-text-muted">This member is not a current member of a register you can change.</p>
     );
@@ -113,7 +115,11 @@ function OwnParticulars({
           <p className="text-sm text-text-muted">{COPY.PRECEDENCE_NOTE}</p>
         </Section>
         <Section title={COPY.PREPARE}>
-          {stale && <Unavailable retry={retry} busy={fetching} />}
+          {stale && (
+            <LoadError retry={retry} busy={fetching}>
+              The register or your appointments could not be loaded.
+            </LoadError>
+          )}
           <ParticularsForm
             owner={owner}
             guard={guard}
@@ -130,13 +136,17 @@ function OwnParticulars({
         </Section>
       </>
     );
-  const back = found ? (
-    <PreparationBack label="Back to shareholder" to={shareholderPath(member, found.company.uuid)} />
-  ) : (
-    list
-  );
   return (
-    <Page narrow lede={LEDE} actions={back}>
+    <Page
+      narrow
+      lede={LEDE}
+      back={
+        found && {
+          to: shareholderPath(member, found.company.uuid),
+          label: `Back to ${found.holder.name || HOLDER_TYPE_LABELS[found.holder.holderType]}`,
+        }
+      }
+    >
       {content}
     </Page>
   );

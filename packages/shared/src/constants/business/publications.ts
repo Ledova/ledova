@@ -1,5 +1,6 @@
 import type { ApiComponents } from '../../generated/api';
 import type { Publication, PublicationCount, PublicationResult, ResolutionStatus } from '../../types';
+import { formatShareCount } from '../../utils/formatting';
 
 export type PublicationKind = ApiComponents['schemas']['PublicationKindEnum'];
 
@@ -40,7 +41,7 @@ export const RESOLUTION_KIND_LABELS: Record<ResolutionKind, string> = {
 export const BALLOT_CHOICES: readonly BallotChoice[] = ['for', 'against', 'abstain'];
 
 export const PUBLICATION_COPY = {
-  EMPTY: 'Nothing has been published to you yet.',
+  EMPTY: 'No notices yet.',
   HOLDING_LABEL: 'Your holding on the record date',
   RECORD_DATE_LABEL: 'Record date',
   OPEN: 'Open the document',
@@ -120,8 +121,6 @@ export function nextResolutionBoundary(
   const closes = new Date(publication.closesAt).getTime();
   return now.getTime() < closes ? closes : null;
 }
-
-export const formatShareCount = (shares: string) => shares.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 
 const memberCount = (members: number) => `${members.toLocaleString('en-AU')} ${members === 1 ? 'member' : 'members'}`;
 
