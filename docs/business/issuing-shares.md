@@ -65,10 +65,13 @@ description of existing terms below the current register summary. Choose **Edit*
 - **Conversion:** whether terms exist and their target, ratio and conditions.
 - **Redemption:** whether terms exist and who can trigger them, when and on what basis.
 
-Each group starts **Not recorded**, distinct from recording that a right does not exist. Relevant
-details appear after a choice; custom terms and **Additional rights** retain arrangements that do
-not fit a standard choice. Ledova supplies no assumed rights from a class name or type. Record a
-known effective date separately from the actual recording time; leave it blank when unknown.
+Each group starts **Not recorded**, distinct from recording that a right does not exist. The six
+choices share a compact layout, with relevant structured details beside each choice. One
+**Additional terms** field holds conditions, exceptions and custom rights, identifying the relevant
+right where useful. Earlier group conditions appear there with their category labels when editing;
+saving retains the combined text without rewriting earlier versions. Ledova supplies no assumed
+rights from a class name or type. Record a known effective date separately from the actual recording
+time; leave it blank when unknown.
 
 **Documents** uses actual supporting files; no upload is required. The file's name identifies the
 document, with no category to choose. Each document is linked to the class and the rights

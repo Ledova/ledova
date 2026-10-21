@@ -192,6 +192,7 @@ function allowedRightsFields(group: RightsGroup, values: Record<string, unknown>
 
 export function visibleRightsFields(group: RightsGroup, values: Record<string, unknown>) {
   return allowedRightsFields(group, values).filter((field) => {
+    if (field.kind === 'conditions') return false;
     if (group.measure && ['rate', 'multiple', 'amount'].includes(field.key))
       return field.key === preferenceMeasure(group, values);
     if (field.key === 'basis') return preferenceMeasure(group, values) !== 'not_recorded';
@@ -217,9 +218,9 @@ export function rightsAttributeProblems(attributes: ClassRightsAttributes) {
         problems[key] =
           (!DECIMAL.test(text) || (!!field.positive && !/[1-9]/.test(text))) &&
           `Enter ${field.label.toLowerCase()} as ${field.positive ? 'a positive' : 'a non-negative'} number with up to 16 whole digits and 8 decimal places.`;
-      if (!field.kind || field.kind === 'conditions') {
-        const limit = field.kind === 'conditions' ? FIELD_LIMITS.CLASS_RIGHTS_CONDITIONS : FIELD_LIMITS.NAME;
-        if (text.length > limit) problems[key] = `Keep ${field.label.toLowerCase()} within ${limit} characters.`;
+      if (!field.kind) {
+        if (text.length > FIELD_LIMITS.NAME)
+          problems[key] = `Keep ${field.label.toLowerCase()} within ${FIELD_LIMITS.NAME} characters.`;
       }
       if (field.key === 'currency' && text && !/^[A-Z]{3}$/.test(text))
         problems[key] = 'Use a three-letter currency code, such as AUD.';
@@ -232,6 +233,24 @@ export function rightsAttributeProblems(attributes: ClassRightsAttributes) {
     }
   }
   return problems;
+}
+
+export function classRightsTerms(attributes: ClassRightsAttributes, summary: string) {
+  const conditions = RIGHTS_GROUPS.flatMap((group) => {
+    const text = attributes[group.key]?.conditions;
+    return text?.trim() ? [`${group.label}: ${text}`] : [];
+  });
+  return [...conditions, summary].filter((text) => text.trim()).join('\n\n');
+}
+
+export function rightsWithoutConditions(attributes: ClassRightsAttributes): ClassRightsAttributes {
+  return Object.fromEntries(
+    Object.entries(attributes).map(([key, value]) => {
+      const fields = { ...value };
+      delete fields.conditions;
+      return [key, fields];
+    }),
+  );
 }
 
 export function cleanRightsAttributes(attributes: ClassRightsAttributes): ClassRightsAttributes {
@@ -286,7 +305,9 @@ export function isRightsAttributes(value: unknown): value is ClassRightsAttribut
         );
       if (field.kind === 'decimal') return DECIMAL.test(value) && (!field.positive || /[1-9]/.test(value));
       if (field.key === 'currency' && !/^[A-Z]{3}$/.test(value)) return false;
-      return value.length <= (field.kind === 'conditions' ? FIELD_LIMITS.CLASS_RIGHTS_CONDITIONS : FIELD_LIMITS.NAME);
+      return field.kind === 'conditions'
+        ? Array.from(value).length <= FIELD_LIMITS.CLASS_RIGHTS_CONDITIONS
+        : value.length <= FIELD_LIMITS.NAME;
     });
     if (!fields) return false;
     const has = (key: string) => Object.prototype.hasOwnProperty.call(values, key);
@@ -310,6 +331,7 @@ export function structuredRightsRows(attributes: ClassRightsAttributes) {
     if (group.key === 'voting' && ['general', 'conditional'].includes(String(values.type)) && !values.votesPerShare)
       parts.push('Poll weight not recorded');
     for (const field of group.fields) {
+      if (field.kind === 'conditions') continue;
       const value = values[field.key];
       if (value === undefined || value === '' || value === 'not_recorded') continue;
       if (field.kind === 'checkbox') {
@@ -318,8 +340,6 @@ export function structuredRightsRows(attributes: ClassRightsAttributes) {
         parts.push(
           `${field.label}: ${field.options!.find((option) => option.value === value)?.label ?? 'Not recorded'}`,
         );
-      } else if (field.kind === 'conditions') {
-        parts.push(String(value));
       } else {
         parts.push(`${field.label}: ${String(value)}`);
       }

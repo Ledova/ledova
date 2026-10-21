@@ -7,7 +7,7 @@ from shared.models import BaseModel
 class ClassRightsRevision(BaseModel):
     token = models.ForeignKey("tokens.ShareToken", on_delete=models.PROTECT, related_name="rights_revisions")
     revision = models.PositiveIntegerField()
-    summary = models.CharField(max_length=4000, blank=True)
+    summary = models.CharField(max_length=20000, blank=True)
     document_reference = models.CharField(max_length=255, blank=True)
     documents = models.JSONField(default=list, blank=True)
     attributes = models.JSONField(default=dict, blank=True)

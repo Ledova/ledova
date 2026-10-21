@@ -26,7 +26,13 @@ import {
 import { READ_TIMING } from '@hooks/useRegisterAccess';
 import apiClient from '@services/apiClient';
 import { saveFile } from '@utils/saveFile';
-import { cleanRightsAttributes, isRightsAttributes, sameRightsAttributes } from './rightsAttributes';
+import {
+  classRightsTerms,
+  cleanRightsAttributes,
+  isRightsAttributes,
+  rightsWithoutConditions,
+  sameRightsAttributes,
+} from './rightsAttributes';
 
 export function classRightsKey(owner: OrderSubmissionOwner | null, token: string) {
   return ['class-rights', owner?.userUuid, owner?.ownerAccountUuid, token];
@@ -186,9 +192,9 @@ export function useClassRights(token: string, tokenReady: boolean, company: stri
     setEditor({
       appointment,
       previousRevision: current?.revision ?? 0,
-      attributes: current?.attributes ?? {},
+      attributes: rightsWithoutConditions(current?.attributes ?? {}),
       effectiveDate: current?.effectiveDate ?? '',
-      summary: current?.summary ?? '',
+      summary: classRightsTerms(current?.attributes ?? {}, current?.summary ?? ''),
       documents: (current?.documents ?? []).map((snapshot) => ({
         id: snapshot.evidence,
         file: null,

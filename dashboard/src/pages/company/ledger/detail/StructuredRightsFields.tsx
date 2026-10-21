@@ -1,5 +1,5 @@
 import { FIELD_LIMITS, type ClassRightsAttributes } from '@ledova/shared';
-import { CheckboxField, Field, TextArea, TextInput } from '@components/Field';
+import { CheckboxField, Field, TextInput } from '@components/Field';
 import { SelectField } from '@components/SelectField';
 import type { FieldCheck } from '@hooks/useErrorSummary';
 import { RIGHTS_GROUPS, preferenceMeasure, rightsGroupValues, visibleRightsFields } from './rightsAttributes';
@@ -32,8 +32,7 @@ export function StructuredRightsFields({
               onChange={(type) => {
                 const next = { ...attributes };
                 if (type === 'not_recorded') delete next[group.key];
-                else
-                  next[group.key] = { type, ...(values.conditions ? { conditions: values.conditions } : {}) } as never;
+                else next[group.key] = { type } as never;
                 onChange(next);
               }}
             />
@@ -83,32 +82,23 @@ export function StructuredRightsFields({
                 );
               return (
                 <Field key={definition.key} {...check} label={definition.label} hint={definition.hint}>
-                  {definition.kind === 'conditions' ? (
-                    <TextArea
-                      value={String(value ?? '')}
-                      rows={2}
-                      maxLength={FIELD_LIMITS.CLASS_RIGHTS_CONDITIONS}
-                      onChange={(event) => change(definition.key, event.target.value)}
-                    />
-                  ) : (
-                    <TextInput
-                      inputMode={definition.kind === 'decimal' ? 'decimal' : undefined}
-                      value={String(value ?? '')}
-                      maxLength={
-                        definition.key === 'currency'
-                          ? 3
-                          : definition.kind === 'decimal'
-                            ? FIELD_LIMITS.CLASS_RIGHTS_DECIMAL
-                            : FIELD_LIMITS.NAME
-                      }
-                      onChange={(event) =>
-                        change(
-                          definition.key,
-                          definition.key === 'currency' ? event.target.value.toUpperCase() : event.target.value,
-                        )
-                      }
-                    />
-                  )}
+                  <TextInput
+                    inputMode={definition.kind === 'decimal' ? 'decimal' : undefined}
+                    value={String(value ?? '')}
+                    maxLength={
+                      definition.key === 'currency'
+                        ? 3
+                        : definition.kind === 'decimal'
+                          ? FIELD_LIMITS.CLASS_RIGHTS_DECIMAL
+                          : FIELD_LIMITS.NAME
+                    }
+                    onChange={(event) =>
+                      change(
+                        definition.key,
+                        definition.key === 'currency' ? event.target.value.toUpperCase() : event.target.value,
+                      )
+                    }
+                  />
                 </Field>
               );
             })}

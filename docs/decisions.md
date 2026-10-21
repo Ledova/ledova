@@ -1350,6 +1350,13 @@ documents or implement voting, payout, transfer, conversion, redemption or appro
 Holder-specific and award conditions stay with their own records. Member disclosure, broader
 filtering and comparison interfaces, and mobile entry remain separate work.
 
+The owner then simplified this layout to six compact choices with relevant structured details
+beside each right, followed by one full-width **Additional terms** field. This replaces the separate
+Conditions fields and Additional rights label. The shared field retains conditions, exceptions and
+custom rights. Earlier group conditions are combined with category labels and existing text when
+editing; a new save records the combined text without duplicate group conditions, leaving earlier
+versions unchanged. The effective date, Documents, authority checks and save workflow stay the same.
+
 Initial setup stays **Share details → Shareholders → Review**, copying existing holdings or opening
 a genuinely empty class; it does not issue new shares. Later issues, transfers and history reuse
 the same people and register records, without changing company authority,

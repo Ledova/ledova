@@ -16,7 +16,7 @@ import { useErrorSummary } from '@hooks/useErrorSummary';
 import { useIncompleteDates } from '@hooks/useIncompleteDates';
 import { useClassRights } from './useClassRights';
 import { StructuredRightsFields } from './StructuredRightsFields';
-import { rightsAttributeProblems, structuredRightsRows } from './rightsAttributes';
+import { classRightsTerms, rightsAttributeProblems, structuredRightsRows } from './rightsAttributes';
 
 function RightsSummary({
   revision,
@@ -26,6 +26,7 @@ function RightsSummary({
   rights: ReturnType<typeof useClassRights>;
 }) {
   const structured = Object.keys(revision.attributes).length > 0;
+  const terms = classRightsTerms(revision.attributes, revision.summary);
   return (
     <div className="space-y-3">
       {structured && (
@@ -37,15 +38,13 @@ function RightsSummary({
           ))}
         </Rows>
       )}
-      {revision.summary && (
+      {terms && (
         <div className="space-y-1">
-          <h3 className="text-sm font-medium text-text-primary">
-            {structured ? 'Additional rights' : 'Recorded summary'}
-          </h3>
-          <p className="whitespace-pre-wrap break-words text-sm text-text-primary">{revision.summary}</p>
+          <h3 className="text-sm font-medium text-text-primary">Additional terms</h3>
+          <p className="whitespace-pre-wrap break-words text-sm text-text-primary">{terms}</p>
         </div>
       )}
-      {!structured && !revision.summary && <p className="text-sm text-text-muted">No rights recorded.</p>}
+      {!structured && !terms && <p className="text-sm text-text-muted">No rights recorded.</p>}
       {revision.effectiveDate && (
         <Rows>
           <Row label="Effective date">{formatDate(revision.effectiveDate)}</Row>
@@ -96,8 +95,8 @@ function RightsEditor({ rights }: { rights: ReturnType<typeof useClassRights> })
   const validation = useErrorSummary<string>({
     ...rightsAttributeProblems(editor.attributes),
     summary:
-      editor.summary.length > FIELD_LIMITS.CLASS_RIGHTS &&
-      `Keep additional rights within ${FIELD_LIMITS.CLASS_RIGHTS} characters.`,
+      Array.from(editor.summary).length > FIELD_LIMITS.CLASS_RIGHTS &&
+      `Keep additional terms within ${FIELD_LIMITS.CLASS_RIGHTS} characters.`,
     effectiveDate:
       (dates.incomplete.effectiveDate ||
         (editor.effectiveDate && (!isCalendarDate(editor.effectiveDate) || editor.effectiveDate > utcToday()))) &&
@@ -122,11 +121,15 @@ function RightsEditor({ rights }: { rights: ReturnType<typeof useClassRights> })
         disabled={locked}
         field={validation.field}
       />
-      <Field label="Additional rights" {...validation.field('summary')}>
+      <Field
+        label="Additional terms"
+        hint="Name the relevant right when describing a condition."
+        {...validation.field('summary')}
+      >
         <TextArea
           value={editor.summary}
-          rows={3}
-          maxLength={FIELD_LIMITS.CLASS_RIGHTS}
+          rows={5}
+          maxLength={FIELD_LIMITS.CLASS_RIGHTS * 2}
           disabled={locked}
           onChange={(event) => rights.setEditor({ ...editor, summary: event.target.value })}
         />

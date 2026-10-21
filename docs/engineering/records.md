@@ -493,11 +493,15 @@ viewer's current personal administration appointment, if any. `idempotency_key` 
 for exact-request recovery without changing `current`. Reads require current company register access.
 
 POST supplies `appointment`, `idempotency_key`, `previous_revision` (zero initially), `summary` (up
-to 4,000 characters, allowed blank), `attributes`, `effective_date` and `documents` (evidence UUIDs,
-default empty). `summary` remains the storage/API field for the web's Additional rights text. The
-response includes the structured terms, effective date and retained evidence snapshots. New web edits
-omit `document_reference`; earlier text remains readable in revisions and exports, and the optional
-legacy request field defaults to blank.
+to 20,000 characters, allowed blank), `attributes`, `effective_date` and `documents` (evidence UUIDs,
+default empty). `summary` remains the storage/API field for the web's single Additional terms field.
+New writes also limit the combined, category-labelled group conditions and summary to 20,000 characters.
+The web combines earlier group conditions with their category labels and existing summary for
+reading and editing. A new web save stores that combined text in `summary` without group-condition
+copies; earlier revisions and API condition fields remain supported. No text is parsed into rights
+or calculations. The response includes the structured terms, effective date and retained evidence
+snapshots. New web edits omit `document_reference`; earlier text remains readable in revisions and
+exports, and the optional legacy request field defaults to blank.
 
 Current personal administration and the company lock are required, including for an exact retry.
 A new request appends one revision; the same actor/key and exact payload, including structured terms,

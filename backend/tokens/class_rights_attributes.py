@@ -89,9 +89,9 @@ def validate_class_rights_attributes(value):
         if "amount" in fields and "currency" not in fields:
             raise ValidationError(f"Record the currency for the {group} amount.")
         if "rate" in fields and "amount" in fields:
-            raise ValidationError("Choose a dividend rate or amount; record any combined terms in conditions.")
+            raise ValidationError("Choose a dividend rate or amount; record any combined terms in Additional terms.")
         if "multiple" in fields and "amount" in fields:
-            raise ValidationError("Choose a capital multiple or amount; record any combined terms in conditions.")
+            raise ValidationError("Choose a capital multiple or amount; record any combined terms in Additional terms.")
         if group == "capital" and fields.get("participation") == "capped" and not fields.get("cap", "").strip():
             raise ValidationError("Record the capital participation cap.")
 

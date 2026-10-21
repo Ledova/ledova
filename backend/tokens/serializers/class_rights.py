@@ -91,7 +91,7 @@ class ClassRightsWriteSerializer(StrictTeamSerializer):
     appointment = serializers.UUIDField()
     idempotency_key = serializers.UUIDField()
     previous_revision = serializers.IntegerField(min_value=0, max_value=2147483646)
-    summary = serializers.CharField(max_length=4000, allow_blank=True, trim_whitespace=False)
+    summary = serializers.CharField(max_length=20000, allow_blank=True, trim_whitespace=False)
     document_reference = serializers.CharField(
         max_length=255, allow_blank=True, trim_whitespace=False, required=False, default=""
     )

@@ -400,6 +400,8 @@ it('reads every class page and groups exact holdings by member identity with sea
   let rightsForm = within(await screen.findByRole('form', { name: 'Edit class rights' }));
   expect(document.activeElement).toBe(rightsForm.getByLabelText('Voting'));
   expect(rightsForm.queryByLabelText(/document reference/i)).toBeNull();
+  expect(rightsForm.queryAllByLabelText('Conditions')).toHaveLength(0);
+  expect(rightsForm.getAllByLabelText('Additional terms')).toHaveLength(1);
   for (const label of ['Voting', 'Dividends', 'Capital on winding-up', 'Transfers', 'Conversion', 'Redemption'])
     expect((rightsForm.getByLabelText(label) as HTMLSelectElement).value).toBe('not_recorded');
   fireEvent.change(rightsForm.getByLabelText('Voting'), { target: { value: 'general' } });
@@ -418,7 +420,7 @@ it('reads every class page and groups exact holdings by member identity with sea
   fireEvent.change(rightsForm.getByLabelText('Conversion'), { target: { value: 'none' } });
   fireEvent.change(rightsForm.getByLabelText('Redemption'), { target: { value: 'not_redeemable' } });
   fireEvent.change(rightsForm.getByLabelText('Effective date'), { target: { value: '2026-10-21' } });
-  fireEvent.change(rightsForm.getByLabelText('Additional rights'), {
+  fireEvent.change(rightsForm.getByLabelText('Additional terms'), {
     target: { value: '  Each share has one vote.  ' },
   });
   fireEvent.click(rightsForm.getByRole('button', { name: 'Add document' }));
@@ -476,7 +478,7 @@ it('reads every class page and groups exact holdings by member identity with sea
   });
   fireEvent.click(rightsForm.getByRole('button', { name: 'Save' }));
   await rightsForm.findByRole('button', { name: 'Retry original save' });
-  expect((rightsForm.getByLabelText('Additional rights') as HTMLTextAreaElement).disabled).toBe(true);
+  expect((rightsForm.getByLabelText('Additional terms') as HTMLTextAreaElement).disabled).toBe(true);
   expect((rightsForm.getByLabelText('Voting') as HTMLSelectElement).disabled).toBe(true);
   expect((rightsForm.getByRole('button', { name: 'Add document' }) as HTMLButtonElement).disabled).toBe(true);
   expect((rightsForm.getByRole('button', { name: 'Cancel' }) as HTMLButtonElement).disabled).toBe(true);
@@ -546,16 +548,34 @@ it('reads every class page and groups exact holdings by member identity with sea
   rightsForm = within(await screen.findByRole('form', { name: 'Edit class rights' }));
   expect(rightsForm.getAllByText(rightsFile.name)).toHaveLength(1);
   expect(rightsForm.queryByLabelText('File')).toBeNull();
+  const earlierSummary = '📘'.repeat(4000);
+  const earlierCapitalTerms = '📄'.repeat(2000);
+  const combinedTerms = [
+    ...['Voting', 'Dividends', 'Capital on winding-up', 'Transfers', 'Conversion', 'Redemption'].map(
+      (label) => `${label}: ${earlierCapitalTerms}`,
+    ),
+    earlierSummary,
+  ].join('\n\n');
   rights = [
     {
       ...rights[0],
       uuid: 'rights-2',
       revision: 2,
       idempotencyKey: 'another-edit',
-      summary: 'Updated rights.',
+      summary: earlierSummary,
       attributes: {
         ...rights[0].attributes,
-        transfers: { type: 'restricted', boardConsent: true, preEmption: false },
+        voting: { type: 'general', votesPerShare: '1', conditions: earlierCapitalTerms },
+        dividends: { type: 'participating', conditions: earlierCapitalTerms },
+        capital: { type: 'residual', conditions: earlierCapitalTerms },
+        transfers: {
+          type: 'restricted',
+          boardConsent: true,
+          preEmption: false,
+          conditions: earlierCapitalTerms,
+        },
+        conversion: { type: 'none', conditions: earlierCapitalTerms },
+        redemption: { type: 'not_redeemable', conditions: earlierCapitalTerms },
       },
     },
     ...rights,
@@ -571,15 +591,26 @@ it('reads every class page and groups exact holdings by member identity with sea
   expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Edit (Class rights)' }));
   fireEvent.click(screen.getByRole('button', { name: 'Edit (Class rights)' }));
   rightsForm = within(await screen.findByRole('form', { name: 'Edit class rights' }));
-  fireEvent.change(rightsForm.getByLabelText('Additional rights'), { target: { value: 'Retained document rights.' } });
+  expect((rightsForm.getByLabelText('Additional terms') as HTMLTextAreaElement).value).toBe(combinedTerms);
+  expect(combinedTerms.length).toBeGreaterThan(20000);
+  expect(rightsForm.queryAllByLabelText('Conditions')).toHaveLength(0);
+  const editedTerms = `${combinedTerms}\n\nReviewed for the demo.`;
+  fireEvent.change(rightsForm.getByLabelText('Additional terms'), { target: { value: editedTerms } });
   fireEvent.click(rightsForm.getByRole('button', { name: 'Save' }));
   await waitFor(() => expect(screen.queryByRole('form', { name: 'Edit class rights' })).toBeNull());
   expect(rights[0].documents).toEqual([rightsDocument]);
+  expect(rights[0].summary).toBe(editedTerms);
+  expect(rights[0].attributes.capital).not.toHaveProperty('conditions');
+  expect(rights[0].attributes.transfers).not.toHaveProperty('conditions');
+  expect(rights[1].summary).toBe(earlierSummary);
+  expect(rights[1].attributes.capital?.conditions).toBe(earlierCapitalTerms);
+  expect(rights[1].attributes.transfers?.conditions).toBe(earlierCapitalTerms);
   expect(rights[0].attributes.transfers?.preEmption).toBe(false);
   expect(api.post.mock.calls.filter(([url]) => url === COMPANY_TOKEN_ENDPOINTS.REGISTER_EVIDENCE)).toHaveLength(1);
   fireEvent.click(screen.getByRole('button', { name: 'Edit (Class rights)' }));
   rightsForm = within(await screen.findByRole('form', { name: 'Edit class rights' }));
-  fireEvent.change(rightsForm.getByLabelText('Additional rights'), { target: { value: '' } });
+  expect((rightsForm.getByLabelText('Additional terms') as HTMLTextAreaElement).value).toBe(editedTerms);
+  fireEvent.change(rightsForm.getByLabelText('Additional terms'), { target: { value: '' } });
   fireEvent.click(rightsForm.getByRole('button', { name: 'Remove (document 1)' }));
   fireEvent.click(rightsForm.getByRole('button', { name: 'Save' }));
   await waitFor(() => expect(screen.queryByRole('form', { name: 'Edit class rights' })).toBeNull());

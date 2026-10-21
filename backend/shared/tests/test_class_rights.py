@@ -61,11 +61,16 @@ class ClassRightsTest(CoreFixtures, APITransactionTestCase):
             },
             "effective_date": "2020-01-01",
         }
+        for group in payload["attributes"].values():
+            group["conditions"] = "Synthetic condition." * 100
         saved = self.client.post(endpoint, payload, format="json")
         self.assertEqual(saved.status_code, 201, saved.content)
         first = saved.json()
         self.assertEqual(first["revision"], 1)
-        self.assertEqual(first["attributes"]["voting"], {"type": "general", "votesPerShare": "1"})
+        self.assertEqual(
+            first["attributes"]["voting"],
+            {"type": "general", "votesPerShare": "1", "conditions": payload["attributes"]["voting"]["conditions"]},
+        )
         self.assertEqual(first["effectiveDate"], "2020-01-01")
         self.assertIs(first["attributes"]["transfers"]["preEmption"], False)
         self.assertEqual(first["recordedBy"], self.owner.pk)
@@ -119,15 +124,35 @@ class ClassRightsTest(CoreFixtures, APITransactionTestCase):
         self.assertEqual(future.status_code, 400, future.content)
         stale = self.client.post(endpoint, {**payload, "idempotency_key": str(uuid4())}, format="json")
         self.assertEqual(stale.status_code, 409, stale.content)
+        oversized_terms = self.client.post(
+            endpoint,
+            {
+                **payload,
+                "idempotency_key": str(uuid4()),
+                "previous_revision": 1,
+                "summary": "Synthetic terms." * 1250,
+            },
+            format="json",
+        )
+        self.assertEqual(oversized_terms.status_code, 400, oversized_terms.content)
+        self.assertIn("Additional terms", str(oversized_terms.json()))
+        additional_terms = "\n\n".join(
+            [payload["summary"]]
+            + [f"{name.title()}: {group['conditions']}" for name, group in payload["attributes"].items()]
+        )
+        self.assertGreater(len(additional_terms), 4000)
         revised = self.client.post(
             endpoint,
             {
                 **payload,
                 "idempotency_key": str(uuid4()),
                 "previous_revision": 1,
-                "summary": "Company-supplied correction: two votes per share.",
+                "summary": additional_terms,
                 "attributes": {
-                    **payload["attributes"],
+                    **{
+                        name: {key: value for key, value in group.items() if key != "conditions"}
+                        for name, group in payload["attributes"].items()
+                    },
                     "voting": {"type": "general", "votes_per_share": "2"},
                 },
             },
@@ -135,6 +160,8 @@ class ClassRightsTest(CoreFixtures, APITransactionTestCase):
         )
         self.assertEqual(revised.status_code, 201, revised.content)
         self.assertEqual(revised.json()["revision"], 2)
+        self.assertEqual(revised.json()["summary"], additional_terms)
+        self.assertTrue(all("conditions" not in group for group in revised.json()["attributes"].values()))
         replay = self.client.post(endpoint, payload, format="json")
         self.assertEqual(replay.status_code, 200, replay.content)
         self.assertEqual(replay.json(), first)

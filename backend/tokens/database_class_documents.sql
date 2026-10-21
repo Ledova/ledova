@@ -24,7 +24,7 @@ BEGIN
     SELECT coalesce(profile.full_name, '') INTO actor_name FROM companies_companyappointment appointment
         JOIN users_userprofile profile ON profile.uuid = appointment.appointee_profile_id
         WHERE appointment.uuid = NEW.appointment_id AND profile.user_id = principal;
-    IF NEW.revision IS DISTINCT FROM last_revision + 1 OR char_length(NEW.summary) > 4000
+    IF NEW.revision IS DISTINCT FROM last_revision + 1 OR char_length(NEW.summary) > 20000
         OR char_length(NEW.document_reference) > 255 OR NEW.recorded_by_name IS DISTINCT FROM actor_name
     THEN
         RAISE EXCEPTION 'Retain the exact next class-rights description and its actor' USING ERRCODE = '23514';

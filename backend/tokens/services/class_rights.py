@@ -82,7 +82,7 @@ def record_class_rights(
     document_reference="",
     documents=None,
     attributes=None,
-    effective_date=None
+    effective_date=None,
 ):
     identifiers = _documents([] if documents is None else documents)
     attributes = {} if attributes is None else attributes
@@ -127,6 +127,22 @@ def record_class_rights(
             raise RegisterChangeConflict("The class-rights details changed. Reload them before saving again.")
         if not isinstance(summary, str) or not isinstance(document_reference, str):
             raise ValidationError("Class-rights details must be text.")
+        terms = []
+        for group, label in (
+            ("voting", "Voting"),
+            ("dividends", "Dividends"),
+            ("capital", "Capital on winding-up"),
+            ("transfers", "Transfers"),
+            ("conversion", "Conversion"),
+            ("redemption", "Redemption"),
+        ):
+            conditions = attributes.get(group, {}).get("conditions", "")
+            if conditions.strip():
+                terms.append(f"{label}: {conditions}")
+        if summary.strip():
+            terms.append(summary)
+        if len("\n\n".join(terms)) > 20000:
+            raise ValidationError("Keep Additional terms and recorded conditions within 20,000 characters.")
         revision = ClassRightsRevision.objects.create(
             token=token,
             revision=previous_revision + 1,

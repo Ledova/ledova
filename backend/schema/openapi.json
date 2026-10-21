@@ -1654,7 +1654,7 @@
             "type": "integer"
           },
           "summary": {
-            "maxLength": 4000,
+            "maxLength": 20000,
             "type": "string"
           }
         },
