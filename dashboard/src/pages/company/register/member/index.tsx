@@ -403,7 +403,7 @@ function OwnShareholder({
   }
   return (
     <PageTitle.Provider value={title}>
-      <Page narrow lede={data.company?.name} actions={back}>
+      <Page narrow lede={data.company?.name} documentTitle={DESTINATIONS.companyShareholder.title} actions={back}>
         {content}
       </Page>
     </PageTitle.Provider>

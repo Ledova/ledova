@@ -10,7 +10,7 @@ export function ThemeToggle() {
       aria-pressed={dark}
       aria-label="Dark theme"
       onClick={() => setTheme(dark ? 'paper' : 'dark')}
-      className="inline-flex h-10 w-10 items-center justify-center rounded-full text-text-muted transition-colors hover:bg-surface-tertiary hover:text-text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-border-focus"
+      className="inline-flex h-10 w-10 items-center justify-center rounded-full text-text-muted transition-colors hover:bg-surface-tertiary hover:text-text-primary"
     >
       {dark ? <SunIcon size={ICON_MD} /> : <MoonIcon size={ICON_MD} />}
     </button>
