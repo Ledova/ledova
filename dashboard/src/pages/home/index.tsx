@@ -7,6 +7,7 @@ import { useLocation } from 'react-router-dom';
 import {
   formatDate,
   formatDateTime,
+  shareChange,
   formatShareCount,
   useMemberRecords,
   type MemberCertificateRequest,
@@ -116,7 +117,8 @@ function MemberRecords({
       {read.entries.map((entry) => (
         <div key={entry.uuid} className="space-y-2 py-3">
           <p className="text-sm">
-            Entry {entry.sequence} · {entry.kind} · Ledger {formatDate(entry.effectiveOn)} · Own change {entry.delta}
+            Entry {entry.sequence} · {entry.kind} · Ledger {formatDate(entry.effectiveOn)} · Own change{' '}
+            {shareChange(entry.delta)}
           </p>
           <p className="text-sm text-text-muted">
             Recorded {formatDateTime(entry.createdAt)}
@@ -339,10 +341,14 @@ function MemberRecords({
                       </p>
                       {read.requests.certificates
                         .filter((request) => request.status === 'fulfilled' && request.fulfilment)
-                        .map((request) => (
+                        .map((request, index) => (
                           <div key={request.uuid} className="space-y-1">
                             <p className="text-sm">Certificate requested {formatDate(request.createdAt)}</p>
-                            <MemberCertificateDownload read={read} request={request} />
+                            <MemberCertificateDownload
+                              read={read}
+                              request={request}
+                              context={`certificate ${index + 1}, requested ${formatDateTime(request.createdAt)}`}
+                            />
                           </div>
                         ))}
                     </div>
@@ -368,7 +374,8 @@ function MemberRecords({
                         .slice(0, 3)
                         .map((entry) => (
                           <p key={entry.uuid} className="text-text-muted">
-                            Ledger {formatDate(entry.effectiveOn)} · {entry.kind} · Own change {entry.delta}
+                            Ledger {formatDate(entry.effectiveOn)} · {entry.kind} · Own change{' '}
+                            {shareChange(entry.delta)}
                             {['ISSUE', 'TRANSFER'].includes(entry.kind.toUpperCase()) &&
                               ` · Company date ${entry.companyEventOn ? formatDate(entry.companyEventOn) : 'Not recorded'}`}
                           </p>
@@ -469,7 +476,7 @@ function MemberRecords({
                           </details>
                         </div>
                       ))}
-                      {read.requests.certificates.map((request) => (
+                      {read.requests.certificates.map((request, index) => (
                         <div key={request.uuid} className="space-y-2">
                           <p>
                             Certificate requested {formatDate(request.createdAt)} · {request.status}
@@ -477,7 +484,7 @@ function MemberRecords({
                           {request.status === 'requested' && (
                             <PageAction
                               label="Withdraw certificate request"
-                              context={formatDateTime(request.createdAt)}
+                              context={`request ${index + 1}, requested ${formatDateTime(request.createdAt)}`}
                               disabled={held}
                               onClick={() => setWithdrawing({ uuid: request.uuid, createdAt: request.createdAt })}
                             />
@@ -533,16 +540,18 @@ function MemberRecords({
 function MemberCertificateDownload({
   read,
   request,
+  context,
 }: {
   read: ReturnType<typeof useMemberRecords>;
   request: MemberCertificateRequest;
+  context: string;
 }) {
   const { busy, error, download } = useMemberCertificateDownload(read, request);
   return (
     <>
       <PageAction
         label="Download unsigned certificate"
-        context={formatDateTime(request.createdAt)}
+        context={context}
         busy={busy}
         busyLabel="Downloading…"
         disabled={read.busy || !!read.retry}

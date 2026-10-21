@@ -18,6 +18,7 @@ export {
   formatFileSize,
   formatPlainDecimal,
   formatShareCount,
+  shareChange,
   shareCount,
   sharePercentage,
 } from './formatting';
